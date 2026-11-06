@@ -76,6 +76,8 @@
 	<string>การสนทนาที่ใช้งานอยู่</string>
 	<key>Active links</key>
 	<string>ลิงก์ที่ใช้งาน</string>
+	<key>Activity</key>
+	<string>กิจกรรม</string>
 	<key>Activity on this device</key>
 	<string>กิจกรรมบนอุปกรณ์นี้</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>อุปกรณ์ที่ได้รับอนุญาต</string>
 	<key>Authorized devices</key>
 	<string>อุปกรณ์ที่ได้รับอนุญาต</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>การป้อนอัตโนมัติจะได้รับเฉพาะรายการเข้าสู่ระบบที่คุณเลือก และต้องยืนยันตัวตนกับระบบแยกจากพื้นที่ทำงาน ชื่อผู้ใช้และชื่อเว็บไซต์อาจปรากฏในคำแนะนำของระบบ</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>การป้อนอัตโนมัติจะได้รับเฉพาะรายการเข้าสู่ระบบที่คุณเลือก และต้องยืนยันตัวตนของระบบแยกจากพื้นที่ทำงาน ขณะที่ dMsg เปิดและปลดล็อกอยู่ สแนปช็อตจะติดตามการเปลี่ยนแปลงของรายการเหล่านั้น หากไม่มีการอัปเดตจะหมดอายุภายใน 24 ชั่วโมง ชื่อผู้ใช้และชื่อเว็บไซต์อาจปรากฏในคำแนะนำของระบบ</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>ดาวน์โหลดในเบื้องหลัง</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>ความสามารถของการลงนามในเบื้องหลังและความสามารถของเอเจนต์ประจำจะแยกจากการล็อกพื้นที่ทำงานนี้</string>
+	<key>Background transfer</key>
+	<string>การถ่ายโอนในพื้นหลัง</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>เริ่มการถ่ายโอนเบื้องหลังแล้ว ตรวจสอบความคืบหน้าในการโอน</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>ตรวจสอบการส่ง</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>ตรวจสอบความยาวของช่องและตั้งชื่อให้ลิงก์ HTTPS</string>
+	<key>Check original result</key>
+	<string>ตรวจสอบผลลัพธ์เดิม</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>ตรวจสอบการอ้างอิงโครงการและสำเนาที่จัดส่งไปแล้ว</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>คัดลอกลิงก์</string>
 	<key>Copy pairing request</key>
 	<string>คัดลอกคำขอจับคู่</string>
+	<key>Copy password</key>
+	<string>คัดลอกรหัสผ่าน</string>
 	<key>Copy reference</key>
 	<string>คัดลอกการอ้างอิง</string>
 	<key>Copy request</key>
 	<string>คัดลอกคำขอ</string>
 	<key>Copy this field?</key>
 	<string>คัดลอกช่องนี้ใช่ไหม</string>
+	<key>Copy username</key>
+	<string>คัดลอกชื่อผู้ใช้</string>
 	<key>Cosign on this device</key>
 	<string>ลงนามร่วมบนอุปกรณ์นี้</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>สร้างข้อเสนอการโอน</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>สร้างพื้นที่ทำงานที่เข้ารหัสของคุณเพื่อเริ่มบันทึกรหัสผ่าน บันทึกย่อ และไฟล์</string>
+	<key>Created</key>
+	<string>สร้างเมื่อ</string>
 	<key>Creating %lld of %lld…</key>
 	<string>กำลังสร้าง %lld/%lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>ร่าง</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>ฉบับร่างและจดหมายที่ส่งแล้วจะบันทึกอยู่ในอุปกรณ์นี้</string>
+	<key>Due %@</key>
+	<string>ครบกำหนด %@</string>
 	<key>EVM</key>
 	<string>อีวีเอ็ม</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>เขตข้อมูล</string>
 	<key>File</key>
 	<string>ไฟล์</string>
+	<key>File details</key>
+	<string>รายละเอียดไฟล์</string>
 	<key>File name</key>
 	<string>ชื่อไฟล์</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>ชื่อโฟลเดอร์</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>สำหรับคีย์ที่อุปกรณ์นี้ไม่ได้ถือไว้ เช่น คีย์บนอุปกรณ์ที่หายไป หลังสมาชิกอนุมัติ คีย์ใหม่จะมีผลใน 24 ชั่วโมงต่อมา</string>
+	<key>For this site</key>
+	<string>สำหรับไซต์นี้</string>
 	<key>Freeze this wallet?</key>
 	<string>แช่แข็งกระเป๋าเงินนี้เหรอ?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>คีย์ตั้งค่าหรือ URL otpauth ไม่ถูกต้อง</string>
 	<key>Inventory fingerprint</key>
 	<string>ลายนิ้วมือสินค้าคงคลัง</string>
+	<key>Invitation created</key>
+	<string>สร้างคำเชิญแล้ว</string>
 	<key>Invite member</key>
 	<string>เชิญสมาชิก</string>
 	<key>Invite to a conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>การล็อกจะพักการโอน และดำเนินต่อเมื่อปลดล็อก</string>
 	<key>Login identities</key>
 	<string>ข้อมูลระบุตัวตนในการเข้าสู่ระบบ</string>
+	<key>Login identity</key>
+	<string>ข้อมูลประจำตัวในการเข้าสู่ระบบ</string>
 	<key>Manage Apple subscriptions</key>
 	<string>จัดการการสมัครสมาชิก Apple</string>
 	<key>Manage file</key>
@@ -1546,6 +1570,8 @@
 	<string>อื่นๆ</string>
 	<key>Other devices</key>
 	<string>อุปกรณ์อื่นๆ</string>
+	<key>Other logins</key>
+	<string>การเข้าสู่ระบบอื่น</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>มิฉะนั้น dMsg จะล็อคหลังจากผ่านไป 3 นาที การล็อคอุปกรณ์จะล็อคพื้นที่ทำงานของคุณทันทีเสมอ</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>วางคำขอผูกมัด</string>
 	<key>Paste enrollment request</key>
 	<string>วางคำขอลงทะเบียน</string>
+	<key>Paste image</key>
+	<string>วางรูปภาพ</string>
 	<key>Paste invitation</key>
 	<string>วางคำเชิญ</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>วางลิงก์แพ็กเกจลับ</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>วางคำขอที่อุปกรณ์ใหม่แสดง ตรวจสอบสิ่งที่ขอ แล้วยืนยัน ID อุปกรณ์ของอุปกรณ์นั้น</string>
+	<key>Pause notifications</key>
+	<string>หยุดการแจ้งเตือนชั่วคราว</string>
 	<key>Pause this agent</key>
 	<string>หยุดเอเจนต์นี้ชั่วคราว</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>แผน</string>
 	<key>Plan and usage</key>
 	<string>การวางแผนและการใช้งาน</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>ไม่สามารถเปลี่ยนแผนในแอปเวอร์ชันนี้ได้ แผนปัจจุบันและการใช้งานของคุณยังคงดูได้</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>แผน Plus ขึ้นไปขอไฟล์จากใครก็ได้ผ่านลิงก์ ผู้ส่งไม่ต้องมีบัญชี เห็นเฉพาะสิ่งที่ตนส่ง และมีเพียงคุณที่เปิดไฟล์ได้</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>ซื้อแล้ว</string>
 	<key>Purchases are not currently available.</key>
 	<string>ไม่สามารถซื้อได้ในขณะนี้</string>
+	<key>Purpose</key>
+	<string>วัตถุประสงค์</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>การแจ้งเตือนแบบพุชไม่ได้เปิดใช้งานในโครงสร้างนี้ เปิด dMsg เพื่อซิงโครไนซ์</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>ปลดล็อกด่วนใช้เปิดพื้นที่ทำงาน การผูกอุปกรณ์จำกัดอุปกรณ์ที่ปลดล็อกได้ การอนุมัติด้วยฮาร์ดแวร์ปกป้องการทำงานที่สำคัญของบัญชี</string>
+	<key>Quick unlock with %@</key>
+	<string>ปลดล็อกอย่างรวดเร็วด้วย %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>ปลดล็อคอย่างรวดเร็วด้วยการรับรองความถูกต้องของระบบ</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>สแกนคำเชิญจากคอมพิวเตอร์</string>
 	<key>Scan device request</key>
 	<string>สแกนคำขออุปกรณ์</string>
+	<key>Scan invitation</key>
+	<string>สแกนคำเชิญ</string>
 	<key>Scopes, one per line</key>
 	<string>ขอบเขต หนึ่งรายการต่อบรรทัด</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>เลือกรายการเข้าสู่ระบบ</string>
 	<key>Select non-duplicates</key>
 	<string>เลือกรายการที่ไม่ซ้ำ</string>
+	<key>Select text</key>
+	<string>เลือกข้อความ</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>เลือกได้สูงสุด 1,000 รายการต่อการนำเข้าหนึ่งครั้ง</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>ไฟล์ที่เลือก</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>ส่วนที่เลือกจะใช้เวอร์ชันที่ขัดแย้ง ส่วนอื่นจะเก็บเวอร์ชันปัจจุบันไว้</string>
+	<key>Send</key>
+	<string>ส่ง</string>
 	<key>Send device request</key>
 	<string>ส่งคำขอของอุปกรณ์</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>บัญชีผู้ส่ง</string>
 	<key>Sending</key>
 	<string>กำลังส่ง</string>
+	<key>Sent</key>
+	<string>ส่งแล้ว</string>
 	<key>Sent letters</key>
 	<string>ส่งจดหมายแล้ว</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>ลายเซ็นที่รวบรวมแล้ว</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>ลายเซ็นของผู้ลงนามร่วม %@ ไม่ตรงกับคีย์ปัจจุบันแล้วและถูกพักไว้ ต้องลงนามใหม่</string>
+	<key>Size</key>
+	<string>ขนาด</string>
 	<key>Skipped</key>
 	<string>ข้ามแล้ว</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>จัดเรียง</string>
 	<key>Sort by</key>
 	<string>จัดเรียงตาม</string>
+	<key>Source</key>
+	<string>แหล่งที่มา</string>
 	<key>Source address</key>
 	<string>ที่อยู่ต้นทาง</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>เริ่มรายการตรวจสอบ</string>
 	<key>Start sending</key>
 	<string>เริ่มส่ง</string>
+	<key>Statement</key>
+	<string>ข้อความรับรอง</string>
 	<key>Status</key>
 	<string>สถานะ</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>แท็ก คั่นด้วยเครื่องหมายจุลภาค</string>
 	<key>Take photo or video</key>
 	<string>ถ่ายรูปหรือวิดีโอ</string>
+	<key>Technical details</key>
+	<string>รายละเอียดทางเทคนิค</string>
 	<key>Terms of service</key>
 	<string>ข้อกำหนดในการให้บริการ</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>คำขอไม่พร้อมใช้งานกับอุปกรณ์นี้ มันอาจจะหมดอายุหรือได้รับการจัดการแล้ว</string>
 	<key>The required content key is not available yet.</key>
 	<string>คีย์เนื้อหาที่ต้องการยังไม่พร้อมใช้งาน</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>ยังไม่ได้ยืนยันผลลัพธ์ ตรวจสอบอีกครั้งก่อนลองใหม่</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>ผลลัพธ์ไม่ได้รับการยืนยัน ปรับยอดคำขอนี้ก่อนที่จะลองอีกครั้ง</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>พื้นที่ทำงานนี้สร้างบน iPhone เครื่องอื่นแล้วคัดลอกมาที่นี่ เช่น จากการกู้คืนข้อมูลสำรองหรือการถ่ายโอนอุปกรณ์ เพื่อปกป้องบัญชีของคุณ พื้นที่นี้จะไม่ทำงานในฐานะอุปกรณ์เดิม: จะไม่ปลดล็อกที่นี่ และไม่มีสิ่งใดในนั้นถูกลบ</string>
 	<key>Title</key>
 	<string>ชื่อเรื่อง</string>
+	<key>To device</key>
+	<string>ไปยังอุปกรณ์</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>หากต้องการแทนที่ iPhone เครื่องเก่าแทน ให้แยกสำเนาไว้แล้วลงชื่อเข้าใช้ จากนั้นเลือก แทนที่ iPhone เครื่องเก่า ที่สำเนา เมื่อ iPhone เครื่องนี้เข้าร่วมแล้ว ให้นำเข้าไฟล์จากสำเนาใน อุปกรณ์</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>ปลดล็อคนโยบาย</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>ปลดล็อค iPhone เครื่องนี้เพื่อเปิด dMsg</string>
+	<key>Unlock with %@</key>
+	<string>ปลดล็อกด้วย %@</string>
 	<key>Unlock with system authentication</key>
 	<string>ปลดล็อกด้วยการยืนยันตัวตนของระบบ</string>
 	<key>Unlock workspace</key>
 	<string>ปลดล็อกพื้นที่ทำงาน</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>ปลดล็อคพื้นที่ทำงาน dMsg ของคุณ</string>
+	<key>Unmute notifications</key>
+	<string>เลิกปิดเสียงการแจ้งเตือน</string>
 	<key>Unread messages</key>
 	<string>ยังไม่ได้อ่าน</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>อำนาจการมอบหมายไม่ จำกัด</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>สูงสุด 8 ขอบเขตและ 4 กลุ่มเป้าหมาย ใช้ต้นทาง HTTPS หรือ Agent ID ไม่อนุญาตอักขระตัวแทน</string>
+	<key>Update AutoFill</key>
+	<string>อัปเดตการป้อนอัตโนมัติ</string>
+	<key>Update Files app copies</key>
+	<string>อัปเดตสำเนาในแอปไฟล์</string>
+	<key>Update conversation keys</key>
+	<string>อัปเดตคีย์การสนทนา</string>
 	<key>Updated</key>
 	<string>อัปเดตแล้ว</string>
 	<key>Uploading</key>
@@ -2934,6 +3000,8 @@
 	<string>รายงานของคุณและข้อความใดๆ ที่คุณระบุไว้อย่างชัดเจนจะถูกส่งไปยังทีมกลั่นกรอง ไม่รวมเนื้อหาและคีย์ส่วนตัวอื่น ๆ</string>
 	<key>Your reports</key>
 	<string>รายงานของคุณ</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>ห้องนิรภัยของคุณซิงค์อัตโนมัติขณะเปิด dMsg</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

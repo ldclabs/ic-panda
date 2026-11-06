@@ -34,6 +34,10 @@ enum AppGlyph: String, CaseIterable {
     case link
     case signature
     case language
+    case sync
+    case cloudUp
+    case cloudDown
+    case cloudOff
 
     var assetName: String { "Glyph-\(rawValue)" }
 
@@ -59,6 +63,12 @@ enum AppGlyph: String, CaseIterable {
 
 extension Label where Title == Text, Icon == Image {
     init(_ title: LocalizedStringKey, glyph: AppGlyph) {
-        self.init { Text(title) } icon: { glyph.image }
+        self.init(title, image: glyph.assetName)
+    }
+}
+
+extension Button where Label == SwiftUI.Label<Text, Image> {
+    init(_ title: LocalizedStringKey, glyph: AppGlyph, role: ButtonRole? = nil, action: @escaping () -> Void) {
+        self.init(role: role, action: action) { SwiftUI.Label(title, glyph: glyph) }
     }
 }

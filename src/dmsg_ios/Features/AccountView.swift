@@ -51,24 +51,24 @@ struct AccountView: View {
                     }
                 }.accessibilityIdentifier("account.sync-settings")
                 NavigationLink { SubscriptionView() } label: { Label("Plan and usage", glyph: .plan) }.accessibilityIdentifier("account.plan")
-                NavigationLink { SystemExportsView() } label: { Label("System integrations", systemImage: "square.stack.3d.up") }
-                NavigationLink { DisplayCacheView() } label: { Label("Cached data", systemImage: "internaldrive") }.accessibilityIdentifier("account.cache")
+                NavigationLink { SystemIntegrationsView() } label: { Label("System integrations", systemImage: "square.stack.3d.up") }
             }
             Section("Settings") {
                 NavigationLink { NotificationSettingsView() } label: { Label("Notifications", systemImage: "bell") }
-                Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: { Label(NoticeCopy.text("noticeTitle"), systemImage: "clock") }
                 LanguageSettingsLink()
                 NavigationLink { AdvancedAccountView() } label: { Label("Advanced", systemImage: "slider.horizontal.3") }.accessibilityIdentifier("account.advanced")
                 NavigationLink { AboutDMsgView() } label: { Label("About dMsg", systemImage: "info.circle") }.accessibilityIdentifier("account.about")
             }
             Section {
-                SettingsAction("Lock workspace", systemImage: "lock") { Task { await model.lock() } }
                 SettingsAction("Sign out", role: .destructive) { signingOut = true }.disabled(model.busy)
             }
         }.privateScreen().navigationTitle("Account").workspaceRootTitle()
             .task(id: "\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0):\(model.profileRevision)") { await loadProfile(force: loadedProfileRevision != model.profileRevision) }
             .onDisappear { avatarTask?.cancel() }
-            .toolbar { Button("Lock workspace", systemImage: "lock") { Task { await model.lock() } }.accessibilityIdentifier("account.lock") }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { ActivityButton() }
+                ToolbarItem(placement: .primaryAction) { Button("Lock workspace", systemImage: "lock") { Task { await model.lock() } }.accessibilityIdentifier("account.lock") }
+            }
             .confirmationDialog("Sign out of this account?", isPresented: $signingOut) {
                 Button("Sign out", role: .destructive) { Task { await logout() } }
             } message: { Text("Your encrypted files remain here. Saved login and quick unlock are removed.") }

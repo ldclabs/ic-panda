@@ -1902,6 +1902,68 @@ Release build, VoiceOver and a real account were not exercised in this pass.
 
 Implementation and validation: Claude Opus 5.5 <noreply@anthropic.com>.
 
+## 2026-11-06 design and experience review
+
+Carried out the iOS design and experience review; `IMPLEMENTATION_CHECKLIST_zh.md`
+lists the changes and where they differ from the review. All results below are
+from simulators (iOS 27.0, Xcode 27.2) on a 16 GB, 10-core Mac, using UI fixtures.
+
+- iPhone 17, full suite: 239 tests, 0 failed, 2 skipped (both need a regular-width
+  iPad), in 1426 s (`R-final-*.xcresult`). Later changes affect the split layouts
+  and the tests, so these were rerun on iPhone 17 afterwards: all 106 unit tests
+  and 14 UI tests passed, with the iPad-only one skipped.
+- iPad Pro 11-inch (M5): 39 tests from `FileLibraryUITests`, `SecretNavigationTests`,
+  `AccountNavigationTests` and `MessagingUITests`. The first run failed 13, which
+  led to two fixes: the Vault list started collapsed on a portrait iPad, unlike
+  Messages and Files, and a file's preview could not open its details because the
+  detail column had no navigation stack. A rerun of the 15 affected tests leaves
+  3 that rely on a Back button a split layout does not have; those now skip there.
+  The other UI test classes were not run on iPad.
+- `scripts/ios/localizations.py` passed all 23 localizations, with compiler
+  extraction from this run's Debug products. The check found two missing keys
+  ("Size" and the AutoFill explanation), now translated. Pointing it at the whole
+  DerivedData still reports the 2026-11-03 Release copy noted above.
+- `sync-notifications.mjs --check`, `sync-icons.py --check` and the 23 script tests
+  passed. No Rust changed, so the cargo steps of `verify.sh` were not rerun, and
+  `verify.sh` itself was not run from start to finish.
+- Exported screenshots were inspected for dark Chinese, Arabic RTL, maximum
+  Dynamic Type and the iPad Files split. They use presentation fixtures.
+
+Test speed: the suite no longer takes about an hour on this machine.
+
+| Run | Workers | Result | Time |
+| --- | --- | --- | --- |
+| Before, estimated from 62 tests summing 1548 s | 1 | not completed | about 60 min |
+| All changes, 19-language access test | 4 | 239 tests | 1402 s |
+| All changes, 6-language access test | 3 | 239 tests | 1330 s, 1426 s |
+
+- Each class runs on its own simulator clone, so `FileLibraryUITests` and
+  `NavigationTests` were split into smaller classes. `verify.sh` allows one worker
+  per 5 GB and two cores, at most four. On 16 GB, four workers finished no sooner
+  than three: swap reached 25 GB and the load average passed 700.
+- `UITests/FastWaits.swift` replaces XCTest's wait, which looks only once a second.
+  Automatic screen recording is off; a failure still attaches a UI snapshot and
+  hierarchy. `testExpandedLanguageAccessScreens` keeps one language per script and
+  text width, as `localizations.py` checks every catalog.
+- `app.launch()` remains over half of a UI test: about 2 s to terminate, 3 s for the
+  automation session and 3 s to go idle. `UIView.setAnimationsEnabled(false)` made
+  no measurable difference (idle waits 104.4 s and 105.1 s over the same 18
+  launches) and was removed.
+
+Waiting less exposed races the one-second wait had hidden. Most were in the tests.
+One was in the app: a notification settings refresh could overwrite a change made
+while it was loading, which matters now that changes save themselves. It now keeps
+such a change, and the form no longer waits for the system's permission answer,
+which took over 5 s on a freshly booted simulator. No test covers that overwrite
+directly, and `testKeyboardCanCreateAndSaveAnItem` failed once under full load and
+passed alone and in the later full run.
+
+Real devices, Face ID, the camera, the extensions and widgets as installed,
+VoiceOver, physical keyboards, a Release build and a real account were not exercised
+in this pass. `dmsg-ios.yml` was not run on GitHub.
+
+Implementation and validation: Claude Opus 5.5 <noreply@anthropic.com>.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a

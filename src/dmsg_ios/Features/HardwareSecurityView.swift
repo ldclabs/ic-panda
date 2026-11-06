@@ -115,7 +115,7 @@ struct HardwareSecurityView: View {
                                 FingerprintRow(title: "Key fingerprint", value: key)
                                 if !device.thisDevice { Button("Review retiring this approval key", role: .destructive) { Task { await retire(device.deviceId) } }.disabled(busy || !status.canManagePolicy) }
                             } else { Text("No registered approval key").font(.caption).foregroundStyle(.secondary) }
-                        }.padding(.vertical, 4)
+                        }.buttonStyle(.borderless).padding(.vertical, 4)
                     }
                 }
                 Section("Review an enrollment request") {

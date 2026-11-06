@@ -16,8 +16,9 @@ struct CloudBackupSection: View {
                         if let job = model.fileTransfers.downloads.first(where: { $0.id == backup.id && $0.stage != "done" }) {
                             FileTransferProgressView(id: job.id, stage: job.stage, bytes: job.bytes, total: job.totalBytes, failure: job.error, retry: job.retryAt, compact: true)
                         } else {
-                            Label(backup.needsRoot ? "The required content key is not available yet." : backup.local ? "On this device" : "Only in cloud",
-                                  systemImage: backup.needsRoot ? "key" : backup.local ? "checkmark.circle" : "icloud")
+                            Label {
+                                Text(backup.needsRoot ? "The required content key is not available yet." : backup.local ? "On this device" : "Only in cloud")
+                            } icon: { backup.needsRoot ? Image(systemName: "key") : backup.local ? Image(systemName: "checkmark.circle") : AppGlyph.sync.image }
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -28,7 +29,7 @@ struct CloudBackupSection: View {
                     ContentUnavailableView.search(text: query)
                     Button("Clear search") { model.filesSearch = "" }
                 } else if model.cloudBackupsComplete {
-                    ContentUnavailableView("No cloud backups", systemImage: "icloud",
+                    ContentUnavailableView("No cloud backups", image: AppGlyph.sync.assetName,
                         description: Text("Choose Back up to cloud from a local file to create your first backup."))
                 }
             }
@@ -51,7 +52,7 @@ struct CloudBackupStatusView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     if model.loadingCloudBackups { ProgressView("Refreshing backups…") }
                     else if model.cloudBackupsFailed {
-                        Label("Backup list could not be refreshed", systemImage: "exclamationmark.icloud").font(.subheadline)
+                        Label("Backup list could not be refreshed", glyph: .cloudOff).font(.subheadline)
                     } else if !model.cloudBackupsKnown { Text("Refresh to check cloud backups").font(.subheadline) }
                     if let at = model.cloudBackupsObservedAt {
                         (Text("Last refreshed") + Text(verbatim: " · " + fileDate(at).formatted(date: .abbreviated, time: .shortened)))
@@ -115,7 +116,7 @@ struct CloudBackupDetailView: View {
                 } else {
                     LabeledContent("Destination folder", value: localDetails.map { ($0.file.path ?? []).joined(separator: " / ").nonEmpty ?? String(localized: "Files") } ?? folderName)
                     if localDetails == nil { Button("Choose folder") { choosing = true }.disabled(working || pending) }
-                    SettingsAction("Restore to this device", systemImage: "icloud.and.arrow.down", prominent: true) { Task { await restore() } }
+                    SettingsAction("Restore to this device", glyph: .cloudDown, prominent: true) { Task { await restore() } }
                         .disabled(working || pending).accessibilityIdentifier("backup.restore.\(backup.id)")
                     Text("Restoring downloads and verifies the selected version before it can be opened.")
                         .font(.footnote).foregroundStyle(.secondary)

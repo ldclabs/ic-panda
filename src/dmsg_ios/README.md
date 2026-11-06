@@ -61,12 +61,14 @@ inside sheets. Sync failures remain in the toolbar's status details, without an
 automatic "Sync paused" overlay or VoiceOver announcement. Messages likewise
 keeps the sync panel out of its conversation list. Displayed OTP expiry is
 independent of other field operations,
-and an OTP clipboard copy expires no later than its displayed validity.
+and an OTP clipboard copy expires no later than its displayed validity. Login rows
+copy their username or password by swipe or context menu.
 
 Details show type, tags, modification time, version state and ordered field
 sections. Long values and accessibility text move actions below the value.
-Copy/reveal confirmations name the item and field; hidden values are never loaded
-by list browsing. Managed keys remain read-only, tombstones have an explicit trash
+Revealing or copying a sensitive field asks next to its button, and one confirmation
+covers the item for 30 seconds. Other fields copy directly, and one-time codes stay
+current on screen without asking. Hidden values are never loaded by list browsing. Managed keys remain read-only, tombstones have an explicit trash
 state, and current details refresh on content/version changes without replacing an
 open editor's draft. Historical versions show their timestamp and can be compared
 with the current version. Conflict resolution supports individual metadata and
@@ -101,6 +103,10 @@ such as publishing or saving; destructive actions retain their red text and
 confirmation steps. Account IDs have a direct copy button on Account and the
 public-profile editor, separate from profile navigation.
 
+Password AutoFill and Files app copies are separate pages under Account → System
+integrations. Security keeps the frequent settings on its first page, with login
+identities and on-chain recovery on their own pages.
+
 The public offline tour has been removed. Blocking and report history live under
 Messages → Message settings. Privacy remains available offline before sign-in;
 contact information is accessible there and under Account → About dMsg. Removing
@@ -134,9 +140,10 @@ invitation**. The authorized desktop shows its QR code under Settings → Device
 → Authorize another device. The encrypted request returns through the configured
 relay, so the devices may use different networks.
 Scanning delivers a device request; compare the full device ID and approve in
-the desktop approval window, then check authorization on the phone. The existing
-phone-displayed request QR and copied tokens remain available: an authorized
-iPhone or desktop can scan the new device’s request directly without an invitation mailbox. This is separate
+the desktop approval window. The phone notices the decision by itself. The existing
+phone-displayed request QR and copied tokens remain available and renew when they
+expire: an authorized iPhone or desktop can scan the new device’s request directly
+without an invitation mailbox, and goes straight to reviewing it. This is separate
 from binding another login identity. See the
 [public invitation contract](../../docs/protocol/device_pairing.md).
 
@@ -186,7 +193,7 @@ distinct states; retry keeps the available messages visible.
 
 The named UniFFI methods in `dmsg_mobile::notifications` share the desktop's
 settings, durable reminder records, version checks, budgets and snooze policy.
-The global bell opens pending/recent reminders and notification settings. The
+The activity menu in each workspace's toolbar opens pending/recent reminders and notification settings. The
 old per-account push toggle is imported once; core preferences then own it.
 Fixed notification copy and APNs localization keys follow all 23 desktop catalogs;
 `node scripts/ios/sync-notifications.mjs --check` checks their parity.
@@ -209,7 +216,7 @@ New installations start with notifications off; an upgrade keeps the earlier
 default through the core migration. Once an account is set up, Reminders and
 Login identities show a non-modal prompt to turn on security alerts. It only
 opens notification settings; the system permission request still comes from
-saving the settings. "Not now" is kept per account in the private preferences
+changing the settings, which save themselves shortly after a change. "Not now" is kept per account in the private preferences
 file, and binding another login shows the prompt again. Turning on an account
 while another local account already receives notifications asks for native
 confirmation: the notification service and Apple can tell that these accounts
@@ -268,6 +275,11 @@ generated UniFFI code is isolated in its Swift 5 language-mode package.
 ```sh
 bash scripts/ios/verify.sh SIMULATOR_UUID
 ```
+
+Tests run in parallel, one test class per simulator clone. The script allows one
+worker per 5 GB of memory and two cores, at most four; `DMSG_IOS_TEST_WORKERS`
+overrides that. To run a class while working on it, pass `-only-testing` to
+`xcodebuild` rather than running everything.
 
 The manual `dmsg-ios.yml` workflow runs the same checks on a runner with the
 reviewed SDK. A missing SDK is an explicit failure, not a lower-version pass.
@@ -861,6 +873,12 @@ plans. A link's detail lists what arrived, with the sender's name marked as unve
 file comes down only when saved, re-encrypted into the library under `Received files`, in
 the foreground: unlike a restore it has no background transfer, so the screen asks to keep
 dMsg open and holds off the idle lock meanwhile.
+
+Folders and files are pushed onto a real navigation stack; a folder's last listing
+shows at once on the way back. Opening a local file of a previewable type up to
+200 MiB goes straight to its preview, with details one step away; a cloud file still
+downloads only when asked. Clean imports and trash report briefly, and a results page
+appears only when something failed.
 
 The library supports folder naming/moving/trashing, multiple file imports,
 photo/video selection, and per-file outcomes for batch backup/move/trash actions.

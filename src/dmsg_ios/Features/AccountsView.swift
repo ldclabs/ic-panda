@@ -43,7 +43,7 @@ struct AccountsView: View {
                         LocalAccount(account: "040g2082040g2082040g", current: false),
                         LocalAccount(account: "040g2083040g2083040g", current: false)]
             let chinese = Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
-            model.rememberAccountNames([accounts[0].id: "Studio", accounts[1].id: chinese ? "个人账户" : "Personal", accounts[2].id: nil], epoch: epoch)
+            model.rememberAccountNames([accounts[0].id: "Studio", accounts[1].id: chinese ? "个人账号" : "Personal", accounts[2].id: nil], epoch: epoch)
             return
         }
         #endif

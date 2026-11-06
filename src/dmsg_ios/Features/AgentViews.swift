@@ -68,7 +68,7 @@ struct AgentDetailView: View {
                         Button("Revoke grant", role: .destructive) { Task {
                             if await perform({ try await $0.revokeAgentPermissions(id: grant.id) }) != nil { await load() }
                         } }
-                    }
+                    }.buttonStyle(.borderless)
                 }
                 SettingsField("Capabilities, one per line") { TextField("Capabilities, one per line", text: $capabilities, axis: .vertical).lineLimit(3...8).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
                 Stepper("\(days) days", value: $days, in: 1...366)
@@ -168,7 +168,7 @@ struct AgentDelegationsView: View {
                             FingerprintRow(title: "Controller ID", value: controller.agentId)
                             if controller.retiredAt == nil { Button("Review retiring controller", role: .destructive) { Task { await action { try await $0.retireAgentController(generation: controller.generation) } } } }
                             else { Text("Revoked").font(.caption).foregroundStyle(.secondary) }
-                        }
+                        }.buttonStyle(.borderless)
                     }
                 }
                 DisclosureGroup("New controller") {
@@ -197,7 +197,7 @@ struct AgentDelegationsView: View {
                             if let expiry = credential.expiresAt { LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(expiry) / 1000), style: .date) } }
                             DisclosureGroup("Details") { FingerprintRow(title: "Credential ID", value: credential.id) }
                             if credential.status != "revoked" { Button("Review revocation", role: .destructive) { Task { await action { try await $0.revokeAgentDelegation(id: credential.id, reason: nil) } } } }
-                        }
+                        }.buttonStyle(.borderless)
                     }
                     if credentials.isEmpty && !loading && !failed { Text("No credentials").foregroundStyle(.secondary) }
                 }

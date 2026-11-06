@@ -41,32 +41,35 @@ struct RemindersView: View {
                     .accessibilityIdentifier("reminders.originalAccount")
             }
             if !model.unlocked && !selected.isEmpty {
-                Button("Unlock with system authentication") { Task { await model.fastUnlock() } }.disabled(model.busy)
+                Button(Biometry.unlockTitle) { Task { await model.fastUnlock() } }.disabled(model.busy)
             }
             if loading && items.isEmpty { ProgressView() }
             if failed { Button("Retry") { Task { await load() } } }
             ForEach(items.filter { category == nil || $0.target.category == category }) { item in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .top) {
+                Button { destination = ReminderDestination(account: item.account, target: item.target) } label: {
+                    HStack(alignment: .top, spacing: 10) {
                         Image(systemName: item.target.category == .security ? "shield" : item.actionable ? "checkmark.circle" : "bell").foregroundStyle(Theme.forest)
+                            .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(item.target.category.title).font(.headline)
-                            Text(Date(timeIntervalSince1970: Double(item.updatedAt) / 1000), style: .relative).font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if let deadline = item.deadline { Text(Date(timeIntervalSince1970: Double(deadline) / 1000), style: .relative).font(.caption).foregroundStyle(.secondary) }
+                            Text(NoticeCopy.text(item.target.category.bodyKey)).font(.subheadline).foregroundStyle(.secondary)
+                            HStack(spacing: 8) {
+                                Text(verbatim: listDateText(ConversationTimeline.date(item.updatedAt)))
+                                if let deadline = item.deadline { Text("Due \(listDateText(ConversationTimeline.date(deadline)))") }
+                            }.font(.caption).foregroundStyle(.secondary)
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "chevron.forward").font(.caption).foregroundStyle(.tertiary).accessibilityHidden(true)
+                    }.contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityIdentifier("reminders.item")
+                    .swipeActions {
+                        if item.open && item.actionable { Button(NoticeCopy.text("noticeLater")) { snoozing = item }.tint(Theme.forest) }
                     }
-                    HStack {
-                        Button("Open") { destination = ReminderDestination(account: item.account, target: item.target) }
-                        if item.open && item.actionable {
-                            Button(NoticeCopy.text("noticeLater")) { snoozing = item }.disabled(loading)
-                        }
-                    }.buttonStyle(.bordered)
-                }.accessibilityIdentifier("reminders.item")
+                    .contextMenu {
+                        if item.open && item.actionable { Button(NoticeCopy.text("noticeLater")) { snoozing = item } }
+                    }
             }
             if !loading && !failed && items.isEmpty { ContentUnavailableView(NoticeCopy.text("noticeEmpty"), systemImage: "clock") }
-            if next != nil { Button("Load more") { Task { await load(more: true) } }.disabled(loading) }
-            NoticeBar(text: NoticeCopy.text("noticeReadOnlyHint"))
+            if next != nil { LoadMoreRow(working: loading, trigger: items.count) { await load(more: true) } }
         }
         .privateScreen().navigationTitle(NoticeCopy.text("noticeTitle"))
         .toolbar {
@@ -146,7 +149,7 @@ private struct ReminderDestinationView: View {
                 case .channel: if let channel { ConversationView(channel: channel) }
                 case .inbox: if let letter { InboxDetail(letter: letter, changed: {}) }
                 case .approval: if let approval { ApprovalDetailView(request: approval) }
-                case .recovery: AccountSecurityView()
+                case .recovery: AccountSecurityView(page: .recovery)
                 case .wallet(let wallet, let proposal): if let id = UInt64(proposal) { WalletProposalView(wallet: wallet, proposal: id) }
                 case .plan: SubscriptionView()
                 case .task(let id): if id.hasPrefix("conflicts:") { ConflictsView() } else { AccountView() }

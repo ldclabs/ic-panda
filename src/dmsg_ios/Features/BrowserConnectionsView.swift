@@ -52,7 +52,7 @@ struct BrowserConnectionsView: View {
                         Text(LocalizedStringKey(pairing.state == "active" ? "Active" : pairing.state == "revoked" ? "Revoked" : pairing.state == "expired" ? "Expired" : pairing.state)).font(.caption).foregroundStyle(.secondary)
                         if let expiry = pairing.expiresAt { LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(expiry) / 1000), style: .relative) }.font(.caption) }
                         if pairing.state == "active" { Button("Revoke browser", role: .destructive) { revoking = pairing }.disabled(working) }
-                    }
+                    }.buttonStyle(.borderless)
                 }
                 if !loading && !failed && pairings.isEmpty { Text("No connected browsers").foregroundStyle(.secondary) }
             }

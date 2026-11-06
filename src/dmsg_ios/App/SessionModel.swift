@@ -12,7 +12,7 @@ final class SessionModel {
     private(set) var session: SessionSnapshot?
     private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); resetFilePresentation() } }
     // Background invalidates reads through epoch while retaining this workspace's forms.
-    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset() } }
+    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset(); people.reset(); thumbnails.reset() } }
     var concealed = true
     var busy = false
     private(set) var unlocking = false
@@ -55,6 +55,8 @@ final class SessionModel {
     private(set) var deviceLabels: [String: String] = [:]
     let messageSending = MessageSending()
     let letters = LetterWorkspace()
+    let people = PeopleDirectory()
+    let thumbnails = ThumbnailStore()
     private var dirtyDrafts: Set<String> = []
     var library: LibraryListing = .empty
     private(set) var cloudBackups: [CloudBackup] = []
@@ -62,7 +64,13 @@ final class SessionModel {
     private(set) var cloudBackupsKnown = false
     private var cloudBackupRequest: UUID?
     var loadingCloudBackups: Bool { cloudBackupRequest != nil }
-    var filesFolder = "root"
+    /// The folder on top of the Files stack.
+    var filesFolder: String {
+        for entry in route.filesPath.reversed() { if case .folder(let id) = entry { return id } }
+        return "root"
+    }
+    /// What each visited folder held, so going back shows it at once.
+    var filesListings: [String: LibraryListing] = [:]
     var filesSearch = ""
     var filesScope = FileScope.local
     var filesSort = FileSort.name
@@ -75,6 +83,9 @@ final class SessionModel {
     var filesLocalOnly: LocalOnly?
     var filesPendingImports = 0
     var filesSharedImports = 0
+    var incomingSharesArrived: UInt64 = 0
+    @ObservationIgnored var announcedShares: Set<String> = []
+    @ObservationIgnored private var tabRefreshedAt: [AppTab: Date] = [:]
     var fileOperations: Set<String> = []
     var cloudBackupsObservedAt: UInt64?
     var cloudBackupsComplete = false
@@ -82,10 +93,23 @@ final class SessionModel {
     var filesQueryKey: String { filesFolder + "\u{0}" + filesSearch }
     var filesQueryIsCurrent: Bool { filesQuery == filesQueryKey }
     var approvals: [ApprovalView] = []
+    private(set) var approvalsFailed = false
     private(set) var recoveryWarning: RecoveryObservation?
     private(set) var recoveryRefreshFailed = false
     private(set) var checkingRecovery = false
-    var selectedTab: AppTab = .vault
+    var selectedTab: AppTab = .vault {
+        didSet {
+            if selectedTab != oldValue, let files { try? writePreferences(at: files.root) }
+        }
+    }
+    /// Where the person is in each tab. Unlocking returns there; it stays in memory,
+    /// so a restart or another account starts fresh.
+    var route = WorkspaceRoute()
+    private var routeAccount: String?
+    /// Accounts that dismissed the reminder about files without a cloud backup.
+    private(set) var backupHintDismissed: Set<String> = []
+    /// Space the active screen keeps free at the bottom, such as the tab bar or keyboard.
+    var screenBottomInset: CGFloat = 0
     var immediateBackgroundLock = false {
         didSet {
             guard let files else { return }
@@ -224,6 +248,8 @@ final class SessionModel {
             accountIdentities = preferences.accountIdentities ?? [:]
             deviceLabels = preferences.deviceLabels ?? [:]
             immediateBackgroundLock = preferences.immediateBackgroundLock
+            backupHintDismissed = preferences.backupHintDismissed ?? []
+            selectedTab = preferences.lastTab.flatMap(AppTab.init(rawValue:)) ?? .vault
             let security = AppleSecurity(installation: files.installation, environment: deployment.name)
             let engine: MobileEngine
             switch deployment {
@@ -244,7 +270,7 @@ final class SessionModel {
         }
     }
 
-    func profileDidChange() { profileRevision &+= 1 }
+    func profileDidChange() { people.invalidate(); profileRevision &+= 1 }
 
     func rememberIdentity(name: String?, avatar: Data?) {
         guard unlocked, let account = session?.account else { return }
@@ -371,6 +397,11 @@ final class SessionModel {
         } catch { }
     }
 
+    func dismissBackupHint() {
+        guard let account = session?.account, backupHintDismissed.insert(account).inserted else { return }
+        if let files { try? writePreferences(at: files.root) }
+    }
+
     func removeLocalAccount() async {
         guard let account = session?.account, let engine, let files else { return }
         await cancelBackgroundForAccount(account)
@@ -382,7 +413,7 @@ final class SessionModel {
             if let incoming = try? IncomingShares() {
                 for entry in try incoming.list() where entry.accountHash == IncomingShares.accountHash(account) { try incoming.remove(entry) }
             }
-            manualSyncAccounts.remove(account); syncIntroduced.remove(account); notificationSetupDismissed.remove(account)
+            manualSyncAccounts.remove(account); syncIntroduced.remove(account); notificationSetupDismissed.remove(account); backupHintDismissed.remove(account)
             accountIdentities.removeValue(forKey: account)
             deviceLabels = deviceLabels.filter { !$0.key.hasPrefix(account + "/") }
             try writePreferences(at: files.root)
@@ -489,13 +520,14 @@ final class SessionModel {
         if recoveryWarning?.account != state.account {
             recoveryWarning = nil; recoveryRefreshFailed = false
         }
+        if routeAccount != state.account { route = WorkspaceRoute(); routeAccount = state.account }
         if (session?.state == "unlocked" && state.state != "unlocked") ||
             (session?.account != nil && session?.account != state.account) ||
             (session?.deviceId != nil && session?.deviceId != state.deviceId) {
             fileTransfers.stop()
             stopAutomaticSync(.sessionChanged); contentSync = nil
             epoch &+= 1; viewGeneration &+= 1
-            vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
+            vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
             clearCloudBackups()
         }
         if session?.state != "unlocked" && state.state == "unlocked" { unlockRetryDue = true }
@@ -537,7 +569,8 @@ final class SessionModel {
     private func writePreferences(at root: URL) throws {
         try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, manualSyncAccounts: manualSyncAccounts,
                              syncIntroduced: syncIntroduced, notificationSetupDismissed: notificationSetupDismissed,
-                             accountIdentities: accountIdentities, deviceLabels: deviceLabels).write(at: root)
+                             accountIdentities: accountIdentities, deviceLabels: deviceLabels,
+                             lastTab: selectedTab.rawValue, backupHintDismissed: backupHintDismissed).write(at: root)
     }
 
     /// The engine decides when a pass is due and says what moved; this keeps
@@ -560,7 +593,7 @@ final class SessionModel {
         if automatic && !syncIntroduced.contains(account) {
             // Said once per account, where it first syncs by itself.
             syncIntroduced.insert(account)
-            notice = String(localized: "While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.")
+            notice = String(localized: "Your vault syncs automatically while dMsg is open.")
             if let files {
                 do { try writePreferences(at: files.root) }
                 catch { report(error) }
@@ -623,7 +656,19 @@ final class SessionModel {
     }
 
     /// Polling is a backstop while hints arrive: five times as long, at least five minutes.
-    func pollSeconds(_ alone: Int) -> Int { hintsConnected ? max(alone * 5, 300) : alone }
+    /// Polling is the first thing to give up when the device is short of power or running hot.
+    func pollSeconds(_ alone: Int) -> Int {
+        let seconds = hintsConnected ? max(alone * 5, 300) : alone
+        let device = ProcessInfo.processInfo
+        return device.isLowPowerModeEnabled || device.thermalState == .serious || device.thermalState == .critical ? seconds * 3 : seconds
+    }
+
+    /// Going back and forth between tabs shows what is there; a recent look need not be repeated.
+    func refreshSelectedTab() async {
+        if let at = tabRefreshedAt[selectedTab], Date.now.timeIntervalSince(at) < 30 { return }
+        tabRefreshedAt[selectedTab] = .now
+        await refresh()
+    }
 
     func watchHints() async {
         guard let engine else { return }
@@ -815,6 +860,7 @@ final class SessionModel {
         do { _ = try await coreOperation { try await engine.syncConnect(operation: $0) } } catch { }
         guard current == epoch, !Task.isCancelled else { return }
         _ = try? await engine.syncBlockedAccounts()
+        _ = try? await engine.maintainFiles()
         await loadBlockedAccounts(); await loadApprovals()
     }
 
@@ -823,7 +869,7 @@ final class SessionModel {
         do {
             let result = try await engine.channels()
             guard current == epoch, !Task.isCancelled else { return }; channels = result.items
-        } catch { if current == epoch { report(error) } }
+        } catch { if current == epoch { reportBackground(error) } }
     }
 
     /// The counts and state a pass moved, without reloading any view.
@@ -832,7 +878,7 @@ final class SessionModel {
         do {
             let state = try await engine?.sessionState()
             guard current == epoch else { return }; try adopt(state)
-        } catch { report(error) }
+        } catch { reportBackground(error) }
     }
 
     func updateSession() async {
@@ -984,7 +1030,7 @@ final class SessionModel {
         busyOperation = nil; synchronizing = false; unlocking = false
         privacyShield.show()
         concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
-        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
+        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
         clearCloudBackups()
         if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.close() } }
         engine = nil; security?.cancelPresence()
@@ -1018,7 +1064,7 @@ final class SessionModel {
         recoveryOperation?.cancel()
         epoch &+= 1
         viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
-        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
+        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
         busy = false; notice = nil; error = nil
         busyOperation = nil; synchronizing = false; unlocking = false
@@ -1099,18 +1145,18 @@ final class SessionModel {
         do {
             let state = try await engine.sessionState()
             guard current == epoch else { return }; try adopt(state)
+            // The list is local to read, and the Messages tab's badge counts it.
+            let result = try await engine.channels()
+            guard current == epoch else { return }; if channels != result.items { channels = result.items }
             switch selectedTab {
             case .vault: await loadVault()
-            case .messages:
-                await loadBlockedAccounts()
-                let result = try await engine.channels()
-                guard current == epoch else { return }; channels = result.items
+            case .messages: await loadBlockedAccounts()
             case .files:
-                await loadFiles()
+                await loadFiles(quiet: true)
                 await loadCloudBackups(refresh: false)
             case .account: break
             }
-        } catch { if current == epoch { report(error) } }
+        } catch { if current == epoch { reportBackground(error) } }
     }
 
     func loadVault(more: Bool = false) async {
@@ -1141,7 +1187,8 @@ final class SessionModel {
                 favorites: vaultFilter == "favorites", tag: vaultTag.isEmpty ? nil : vaultTag,
                 sort: vaultSort, offset: UInt32(offset), limit: UInt32(min(count, 10_000)), trash: false))
             guard current == epoch, request == vaultRequest, key == vaultQueryKey, !Task.isCancelled else { return }
-            let page: VaultBrowsePage = try decode(result)
+            let page: VaultBrowsePage = try await decodeInBackground(result)
+            guard current == epoch, request == vaultRequest, key == vaultQueryKey, !Task.isCancelled else { return }
             vault = more ? vault + page.items.map(\.item) : page.items.map(\.item)
             vaultCounts = VaultCounts(total: page.total, all: page.all, favorites: page.favorites, kinds: page.kinds, tags: page.tags)
             vaultCountsQuery = vaultCountsKey
@@ -1187,7 +1234,9 @@ final class SessionModel {
         do {
             let result = try await engine.cloudBackups(refresh: refresh, operation: operation)
             guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
-            cloudBackups = try decode(result)
+            let backups: [CloudBackup] = try await decodeInBackground(result)
+            guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
+            cloudBackups = backups
             struct Observation: Decodable { let complete: Bool; let observedAtMs: UInt64? }
             let observation: Observation = try decode(try await engine.cloudBackupStatus())
             guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
@@ -1220,8 +1269,8 @@ final class SessionModel {
             if refresh { _ = try await coreOperation { try await engine.syncConnect(operation: $0) } }
             let result = try await engine.approvals()
             let values: [ApprovalView] = try decode(result)
-            guard current == epoch else { return }; approvals = values
-        } catch { if current == epoch { report(error) } }
+            guard current == epoch else { return }; approvals = values; approvalsFailed = false
+        } catch { if current == epoch { approvalsFailed = true; reportBackground(error) } }
     }
 
     /// Public certified metadata only. It does not unlock content, upload it,
@@ -1273,10 +1322,28 @@ final class SessionModel {
         }
     }
 
+    /// For the large lists: their JSON is parsed away from the main thread.
+    func decodeInBackground<T: Decodable & Sendable>(_ snapshot: ObjectSnapshot) async throws -> T {
+        guard !Task.isCancelled, snapshot.generation == session?.generation else { throw CancellationError() }
+        let json = snapshot.json
+        let value = try await Task.detached(priority: .userInitiated) {
+            let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(T.self, from: Data(json.utf8))
+        }.value
+        guard !Task.isCancelled, snapshot.generation == session?.generation else { throw CancellationError() }
+        return value
+    }
+
     func decode<T: Decodable>(_ snapshot: ObjectSnapshot) throws -> T {
         guard !Task.isCancelled, snapshot.generation == session?.generation else { throw CancellationError() }
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(T.self, from: Data(snapshot.json.utf8))
+    }
+
+    /// Work the person did not ask for keeps its failure in the view it belongs
+    /// to. Only losing this device's approval still has to reach them.
+    func reportBackground(_ error: Error) {
+        if let failure = error as? MobileError, case .Failure(let code) = failure, code == "DEVICE_NOT_APPROVED" { report(error) }
     }
 
     func report(_ error: Error) {
@@ -1294,7 +1361,7 @@ final class SessionModel {
                 // lifecycle already clears views when it requests a lock.
                 if code == "LOCKED" { return }
                 if code == "DEVICE_NOT_APPROVED" {
-                    epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []; vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
+                    epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []; vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
                     clearCloudBackups()
                     let engine = engine
                     Task { _ = try? await engine?.lock() }
@@ -1330,6 +1397,19 @@ enum AppTab: String, CaseIterable, Identifiable {
     var icon: AppGlyph {
         switch self { case .vault: .vault; case .messages: .channels; case .files: .folder; case .account: .account }
     }
+}
+
+/// See `SessionModel.route`.
+struct WorkspaceRoute: Equatable {
+    var vaultItem: String?
+    var messagesMode = 0
+    var message: String?
+    var filesPath: [FilesRoute] = []
+    var file: String?
+}
+
+enum FilesRoute: Hashable {
+    case folder(String), file(String), transfers
 }
 
 /// One automatic attempt per real visit. Authentication dialogs make the app

@@ -4,26 +4,26 @@ import SwiftUI
 /// their own layout. Native button styles preserve roles and interaction states.
 struct SettingsAction: View {
     let title: LocalizedStringKey
-    let systemImage: String?
+    let icon: Image?
     let role: ButtonRole?
     let prominent: Bool
     let action: () -> Void
 
-    init(_ title: LocalizedStringKey, systemImage: String? = nil, role: ButtonRole? = nil,
+    init(_ title: LocalizedStringKey, systemImage: String? = nil, glyph: AppGlyph? = nil, role: ButtonRole? = nil,
          prominent: Bool = false, action: @escaping () -> Void) {
-        self.title = title; self.systemImage = systemImage; self.role = role
+        self.title = title; icon = glyph?.image ?? systemImage.map { Image(systemName: $0) }; self.role = role
         self.prominent = prominent; self.action = action
     }
 
     var body: some View {
         if prominent && role != .destructive {
-            Button(role: role, action: action) { SettingsActionLabel(title, systemImage: systemImage) }
+            Button(role: role, action: action) { SettingsActionLabel(title, icon: icon) }
                 .buttonStyle(.borderedProminent).controlSize(.large)
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
         } else {
             Button(role: role, action: action) {
-                SettingsActionLabel(title, systemImage: systemImage)
+                SettingsActionLabel(title, icon: icon)
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.borderless)
@@ -35,15 +35,19 @@ struct SettingsAction: View {
 
 struct SettingsActionLabel: View {
     let title: LocalizedStringKey
-    let systemImage: String?
+    let icon: Image?
 
     init(_ title: LocalizedStringKey, systemImage: String? = nil) {
-        self.title = title; self.systemImage = systemImage
+        self.title = title; icon = systemImage.map { Image(systemName: $0) }
+    }
+
+    init(_ title: LocalizedStringKey, icon: Image?) {
+        self.title = title; self.icon = icon
     }
 
     var body: some View {
         HStack(spacing: 8) {
-            if let systemImage { Image(systemName: systemImage).accessibilityHidden(true) }
+            if let icon { icon.accessibilityHidden(true) }
             Text(title)
         }.frame(maxWidth: .infinity).multilineTextAlignment(.center)
             .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
@@ -87,6 +91,23 @@ struct SettingsField<Content: View>: View {
             }.font(.caption).foregroundStyle(.secondary)
             content().accessibilityLabel(title)
         }.padding(.vertical, 2)
+    }
+}
+
+/// Reaching the end of a list loads the next page. The button stays for
+/// VoiceOver and for retrying a page that failed.
+struct LoadMoreRow: View {
+    var title: LocalizedStringKey = "Load more"
+    var working = false
+    let trigger: Int
+    let load: @MainActor () async -> Void
+
+    var body: some View {
+        Group {
+            if working { ProgressView() }
+            else { Button(title) { Task { await load() } } }
+        }.frame(maxWidth: .infinity, minHeight: 44)
+            .task(id: trigger) { await load() }
     }
 }
 
@@ -148,9 +169,4 @@ func deviceCapabilityTitle(_ capability: String) -> String {
     case "WalletApprove", "wallet_approve": String(localized: "Multisig wallets")
     default: capability
     }
-}
-
-func binarySize(_ bytes: UInt64) -> String {
-    let unit: (UInt64, String) = bytes >= 1 << 30 ? (1 << 30, "GiB") : bytes >= 1 << 20 ? (1 << 20, "MiB") : (1 << 10, "KiB")
-    return (Double(bytes) / Double(unit.0)).formatted(.number.precision(.fractionLength(0...1))) + " " + unit.1
 }

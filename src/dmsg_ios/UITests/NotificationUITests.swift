@@ -45,8 +45,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-notification-setup", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
-        let reminders = app.buttons["reminders.open"].firstMatch
-        XCTAssertTrue(reminders.waitForExistence(timeout: 10)); reminders.tap()
+        app.openActivity("reminders.open")
         let later = app.buttons["notifications.setup.later"]
         XCTAssertTrue(later.waitForExistence(timeout: 5))
         capture(app, "Security alert prompt · zh-Hans")
@@ -62,8 +61,7 @@ import XCTest
         app.launchArguments = ["--ui-testing", "--ui-notification-setup", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         if dark { app.launchArguments.append("--ui-dark") }
         app.launch()
-        let reminders = app.buttons["reminders.open"].firstMatch
-        XCTAssertTrue(reminders.waitForExistence(timeout: 10)); reminders.tap()
+        app.openActivity("reminders.open")
         let open = app.buttons["notifications.setup.open"]
         XCTAssertTrue(open.waitForExistence(timeout: 5))
         capture(app, "Security alert prompt · \(language)")
@@ -75,16 +73,15 @@ import XCTest
         account.coordinate(withNormalizedOffset: CGVector(dx: language == "ar" ? 0.08 : 0.92, dy: 0.5)).tap()
         let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: account)
         XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
-        let save = app.buttons["notifications.save"]
-        for _ in 0..<8 where !save.isHittable { app.swipeUp() }
-        XCTAssertTrue(save.isEnabled); save.tap()
+        // The change saves by itself, and a second account still needs consent first.
         let accept = app.buttons[confirm]
         XCTAssertTrue(accept.waitForExistence(timeout: 5))
         capture(app, "Second account consent · \(language)")
         accept.tap()
-        for _ in 0..<8 where !save.exists || !save.isHittable { app.swipeUp() }
-        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: save)
-        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 5), .completed)
+        let pending = app.descendants(matching: .any)["notifications.pending"]
+        for _ in 0..<8 where !pending.exists { app.swipeUp() }
+        XCTAssertTrue(pending.waitForExistence(timeout: 5))
+        XCTAssertEqual(account.value as? String, "1")
         app.terminate()
     }
 
@@ -93,8 +90,7 @@ import XCTest
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         if dark { app.launchArguments.append("--ui-dark") }
         app.launch()
-        let reminders = app.buttons["reminders.open"].firstMatch
-        XCTAssertTrue(reminders.waitForExistence(timeout: 10)); reminders.tap()
+        app.openActivity("reminders.open")
         XCTAssertTrue(app.segmentedControls["reminders.scope"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["reminders.account"].exists)
         XCTAssertFalse(app.buttons["reminders.switch"].exists)
@@ -111,14 +107,11 @@ import XCTest
         XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
         XCTAssertEqual(enabled.value as? String, "0")
         capture(app, "Notification settings · \(language)")
-        let save = app.buttons["notifications.save"]
-        for _ in 0..<8 where !save.isHittable { app.swipeUp() }
-        XCTAssertTrue(save.isHittable); XCTAssertTrue(save.isEnabled); save.tap()
-        // The pending-sync explanation inserts rows above Save, which can move
-        // it off screen with longer translations. Find it in the new layout.
-        for _ in 0..<8 where !save.exists || !save.isHittable { app.swipeUp() }
-        XCTAssertTrue(save.waitForExistence(timeout: 3))
-        XCTAssertFalse(save.isEnabled)
+        // There is no Save button to reach: the change saves itself shortly after.
+        let pending = app.descendants(matching: .any)["notifications.pending"]
+        for _ in 0..<8 where !pending.exists { app.swipeUp() }
+        XCTAssertTrue(pending.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["notifications.save"].exists)
         capture(app, "Saved notification settings · \(language)")
         app.terminate()
     }

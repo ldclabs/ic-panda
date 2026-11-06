@@ -76,6 +76,8 @@
 	<string>활성 대화</string>
 	<key>Active links</key>
 	<string>활성 링크</string>
+	<key>Activity</key>
+	<string>활동</string>
 	<key>Activity on this device</key>
 	<string>이 기기에서의 활동</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>승인된 장치</string>
 	<key>Authorized devices</key>
 	<string>승인된 장치</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>자동 완성은 선택한 로그인 항목만 받으며 작업 공간과 별개로 시스템 인증이 필요합니다. 사용자 이름과 웹사이트 이름이 시스템 제안에 표시될 수 있습니다.</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>자동 완성은 선택한 로그인 항목만 받으며 작업 공간과 별도로 시스템 인증이 필요합니다. dMsg가 열려 있고 잠금 해제된 동안 스냅샷은 해당 항목의 변경을 따라갑니다. 업데이트되지 않으면 24시간 후 만료됩니다. 사용자 이름과 웹사이트 이름이 시스템 제안에 표시될 수 있습니다.</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>백그라운드 다운로드</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>백그라운드 서명 및 상주 에이전트 기능은 이 작업공간 잠금과 별개입니다.</string>
+	<key>Background transfer</key>
+	<string>백그라운드 전송</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>백그라운드 전송이 시작되었습니다. 전송에서 진행 상황을 검토하세요.</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>전달 상태 확인</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>필드 길이를 확인하고 HTTPS 링크에 이름을 입력하세요.</string>
+	<key>Check original result</key>
+	<string>원래 결과 확인</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>프로젝트 참조와 이미 전달된 사본을 확인하세요.</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>링크 복사</string>
 	<key>Copy pairing request</key>
 	<string>페어링 요청 복사</string>
+	<key>Copy password</key>
+	<string>비밀번호 복사</string>
 	<key>Copy reference</key>
 	<string>참조 복사</string>
 	<key>Copy request</key>
 	<string>요청 복사</string>
 	<key>Copy this field?</key>
 	<string>이 필드를 복사하시겠습니까?</string>
+	<key>Copy username</key>
+	<string>사용자 이름 복사</string>
 	<key>Cosign on this device</key>
 	<string>이 기기에서 공동 서명</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>이적 제안 생성</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>암호화된 작업 공간을 만들어 비밀번호, 메모, 파일을 저장해 보세요.</string>
+	<key>Created</key>
+	<string>생성됨</string>
 	<key>Creating %lld of %lld…</key>
 	<string>만드는 중 %lld/%lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>초안</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>초안과 보낸 편지는 이 기기에 저장됩니다.</string>
+	<key>Due %@</key>
+	<string>기한 %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>필드</string>
 	<key>File</key>
 	<string>파일</string>
+	<key>File details</key>
+	<string>파일 세부 정보</string>
 	<key>File name</key>
 	<string>파일 이름</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>폴더 이름</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>분실한 장치의 키처럼 이 장치에 없는 키를 위한 것입니다. 구성원이 승인하면 새 키는 24시간 후에 적용됩니다.</string>
+	<key>For this site</key>
+	<string>이 사이트용</string>
 	<key>Freeze this wallet?</key>
 	<string>이 지갑을 동결하시겠습니까?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>설정 키 또는 otpauth URL이 올바르지 않습니다.</string>
 	<key>Inventory fingerprint</key>
 	<string>인벤토리 지문</string>
+	<key>Invitation created</key>
+	<string>초대 생성됨</string>
 	<key>Invite member</key>
 	<string>회원 초대</string>
 	<key>Invite to a conversation</key>
@@ -1229,6 +1251,8 @@
 	<key>Locking pauses transfers; unlocking resumes them.</key>
 	<string>잠그면 전송이 일시 중지되고 잠금을 해제하면 재개됩니다.</string>
 	<key>Login identities</key>
+	<string>로그인 ID</string>
+	<key>Login identity</key>
 	<string>로그인 ID</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple 구독 관리</string>
@@ -1546,6 +1570,8 @@
 	<string>기타</string>
 	<key>Other devices</key>
 	<string>기타 장치</string>
+	<key>Other logins</key>
+	<string>기타 로그인</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>그렇지 않으면 dMsg가 3분 후에 잠깁니다. 장치 잠금은 항상 작업 공간을 즉시 잠급니다.</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>붙여넣기 바인딩 요청</string>
 	<key>Paste enrollment request</key>
 	<string>등록 요청 붙여넣기</string>
+	<key>Paste image</key>
+	<string>이미지 붙여넣기</string>
 	<key>Paste invitation</key>
 	<string>초대 붙여넣기</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>비밀 패키지 링크 붙여넣기</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>새 장치에 표시된 요청을 붙여 넣고 내용을 확인한 다음 장치 ID를 확인하세요.</string>
+	<key>Pause notifications</key>
+	<string>알림 일시 중지</string>
 	<key>Pause this agent</key>
 	<string>이 에이전트를 일시중지합니다.</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>플랜</string>
 	<key>Plan and usage</key>
 	<string>계획 및 사용법</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>이 버전의 앱에서는 요금제를 변경할 수 없습니다. 현재 요금제와 사용량은 계속 확인할 수 있습니다.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Plus 이상 요금제는 링크로 누구에게나 파일을 요청할 수 있습니다. 상대방은 계정이 필요 없고 자신이 보낸 것만 보며, 파일은 나만 열 수 있습니다.</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>구매함</string>
 	<key>Purchases are not currently available.</key>
 	<string>현재 구매가 불가능합니다.</string>
+	<key>Purpose</key>
+	<string>용도</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>이 빌드에서는 푸시 알림이 활성화되지 않습니다. dMsg를 열어 동기화하세요.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>빠른 잠금 해제는 작업 공간을 엽니다. 기기 바인딩은 잠금을 해제할 수 있는 기기를 제한합니다. 하드웨어 승인은 민감한 계정 작업을 보호합니다.</string>
+	<key>Quick unlock with %@</key>
+	<string>%@(으)로 빠른 잠금 해제</string>
 	<key>Quick unlock with system authentication</key>
 	<string>시스템 인증을 통한 빠른 잠금 해제</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>컴퓨터 초대 스캔</string>
 	<key>Scan device request</key>
 	<string>스캔 장치 요청</string>
+	<key>Scan invitation</key>
+	<string>초대 스캔</string>
 	<key>Scopes, one per line</key>
 	<string>범위(한 줄에 하나씩)</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>로그인 항목 선택</string>
 	<key>Select non-duplicates</key>
 	<string>중복되지 않은 항목 선택</string>
+	<key>Select text</key>
+	<string>텍스트 선택</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>한 번에 최대 1,000개 기록을 가져올 수 있습니다.</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>선택한 파일</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>선택한 부분에는 충돌 버전을 사용하고 나머지는 현재 버전을 유지합니다.</string>
+	<key>Send</key>
+	<string>보내기</string>
 	<key>Send device request</key>
 	<string>기기 요청 보내기</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>보내는 사람 계정</string>
 	<key>Sending</key>
 	<string>보내는 중</string>
+	<key>Sent</key>
+	<string>보냄</string>
 	<key>Sent letters</key>
 	<string>보낸 편지</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>수집된 서명</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>공동 서명자 %@의 서명이 현재 키와 더 이상 일치하지 않아 보류되었습니다. 다시 서명해야 합니다.</string>
+	<key>Size</key>
+	<string>크기</string>
 	<key>Skipped</key>
 	<string>건너뜀</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>정렬</string>
 	<key>Sort by</key>
 	<string>정렬 기준</string>
+	<key>Source</key>
+	<string>출처</string>
 	<key>Source address</key>
 	<string>소스 주소</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>체크리스트 시작</string>
 	<key>Start sending</key>
 	<string>보내기 시작</string>
+	<key>Statement</key>
+	<string>진술</string>
 	<key>Status</key>
 	<string>상태</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>쉼표로 구분된 태그</string>
 	<key>Take photo or video</key>
 	<string>사진 또는 비디오 촬영</string>
+	<key>Technical details</key>
+	<string>기술 세부 정보</string>
 	<key>Terms of service</key>
 	<string>서비스 약관</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>이 장치에서는 요청을 사용할 수 없습니다. 만료되었거나 이미 처리되었을 수 있습니다.</string>
 	<key>The required content key is not available yet.</key>
 	<string>필요한 콘텐츠 키를 아직 사용할 수 없습니다.</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>결과가 확인되지 않았습니다. 다시 시도하기 전에 한 번 더 확인하세요.</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>결과는 확인되지 않았습니다. 재시도하기 전에 이 요청을 조정하세요.</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>이 작업 공간은 다른 iPhone에서 만들어져 백업 복원이나 기기 전송 등으로 여기에 복사되었습니다. 계정을 보호하기 위해 이전 기기로 동작하지 않습니다. 여기서 잠금 해제되지 않으며 그 안의 내용도 지워지지 않습니다.</string>
 	<key>Title</key>
 	<string>제목</string>
+	<key>To device</key>
+	<string>대상 기기</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>대신 이전 iPhone을 대체하려면 복사본을 따로 두고 로그인한 다음, 복사본에서 '이전 iPhone 대체'를 선택하세요. 이 iPhone이 가입하면 장치에서 복사본의 파일을 가져오세요.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>잠금해제 정책</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>dMsg를 열려면 이 iPhone을 잠금 해제하세요.</string>
+	<key>Unlock with %@</key>
+	<string>%@(으)로 잠금 해제</string>
 	<key>Unlock with system authentication</key>
 	<string>시스템 인증으로 잠금 해제</string>
 	<key>Unlock workspace</key>
 	<string>작업 공간 잠금 해제</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>dMsg 작업 공간 잠금 해제</string>
+	<key>Unmute notifications</key>
+	<string>알림 음소거 해제</string>
 	<key>Unread messages</key>
 	<string>읽지 않음</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>무제한 위임 권한</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>범위는 최대 8개, 대상은 최대 4개입니다. HTTPS 출처나 Agent ID를 사용하세요. 와일드카드는 허용되지 않습니다.</string>
+	<key>Update AutoFill</key>
+	<string>자동 완성 업데이트</string>
+	<key>Update Files app copies</key>
+	<string>파일 앱 사본 업데이트</string>
+	<key>Update conversation keys</key>
+	<string>대화 키 업데이트</string>
 	<key>Updated</key>
 	<string>업데이트됨</string>
 	<key>Uploading</key>
@@ -2825,7 +2891,7 @@
 	<key>Waiting for browser confirmation</key>
 	<string>브라우저 확인을 기다리는 중</string>
 	<key>Waiting for confirmation</key>
-	<string>확인을 기다리는 중</string>
+	<string>확인 대기 중</string>
 	<key>Waiting for confirmation: </key>
 	<string>확인을 기다리는 중: </string>
 	<key>Waiting for first sync</key>
@@ -2934,6 +3000,8 @@
 	<string>귀하의 보고서와 귀하가 명시적으로 포함하는 모든 텍스트는 조정팀으로 전송됩니다. 기타 개인 콘텐츠 및 키는 포함되지 않습니다.</string>
 	<key>Your reports</key>
 	<string>귀하의 보고서</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>dMsg가 열려 있는 동안 보관함이 자동으로 동기화됩니다.</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

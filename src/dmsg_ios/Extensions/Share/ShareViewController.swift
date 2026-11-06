@@ -4,6 +4,8 @@ import UniformTypeIdentifiers
 final class ShareViewController: UIViewController {
     private let status = UILabel()
     private let button = UIButton(type: .system)
+    private let items = UILabel()
+    private let thumbnail = UIImageView()
     private var completedProviders: Set<Int> = []
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -16,7 +18,7 @@ final class ShareViewController: UIViewController {
         let cancel = UIButton(type: .system)
         cancel.setTitle(String(localized: "Cancel"), for: .normal)
         cancel.addAction(UIAction { [weak self] _ in self?.extensionContext?.cancelRequest(withError: CocoaError(.userCancelled)) }, for: .touchUpInside)
-        let stack = UIStackView(arrangedSubviews: [status, button, cancel]); stack.axis = .vertical; stack.spacing = 20; stack.translatesAutoresizingMaskIntoConstraints = false
+        let stack = UIStackView(arrangedSubviews: [thumbnail, items, status, button, cancel]); stack.axis = .vertical; stack.spacing = 20; stack.translatesAutoresizingMaskIntoConstraints = false
         let scroll = UIScrollView(); scroll.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(scroll); scroll.addSubview(stack)
         NSLayoutConstraint.activate([
             scroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
@@ -25,6 +27,24 @@ final class ShareViewController: UIViewController {
             stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 24), stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -24),
             stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -48),
             button.heightAnchor.constraint(greaterThanOrEqualToConstant: 44), cancel.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)])
+    }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if items.text == nil { showItems() }
+    }
+    /// Names what is about to be saved, without reading the items themselves.
+    private func showItems() {
+        let providers = (extensionContext?.inputItems as? [NSExtensionItem] ?? []).flatMap { $0.attachments ?? [] }
+        items.numberOfLines = 0; items.font = .preferredFont(forTextStyle: .subheadline); items.adjustsFontForContentSizeCategory = true
+        let names = providers.compactMap(\.suggestedName).prefix(3)
+        items.text = String(localized: "Items") + ": " + providers.count.formatted() + (names.isEmpty ? "" : "\n" + names.joined(separator: "\n"))
+        thumbnail.contentMode = .scaleAspectFit; thumbnail.isHidden = true
+        thumbnail.heightAnchor.constraint(lessThanOrEqualToConstant: 120).isActive = true
+        guard let image = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }) else { return }
+        image.loadPreviewImage(options: [NSItemProviderPreferredImageSizeKey: NSValue(cgSize: CGSize(width: 240, height: 240))]) { [weak self] value, _ in
+            let preview = value as? UIImage
+            Task { @MainActor in self?.thumbnail.image = preview; self?.thumbnail.isHidden = preview == nil }
+        }
     }
     @objc private func save() {
         button.isEnabled = false

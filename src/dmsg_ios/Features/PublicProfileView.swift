@@ -92,7 +92,7 @@ struct PublicProfileView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         SettingsField("Name") { TextField("Name", text: $link.name) }
                         SettingsField("URL") { TextField("URL", text: $link.url, prompt: Text(verbatim: "https://")).textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL).environment(\.layoutDirection, .leftToRight) }
-                        Button("Remove", role: .destructive) { draft.links.removeAll { $0.id == link.id } }
+                        Button("Remove", role: .destructive) { draft.links.removeAll { $0.id == link.id } }.buttonStyle(.borderless)
                     }
                 }
                 SettingsAction("Add link") { draft.links.append(PublicProfileLink(name: "", url: "https://")) }.disabled(draft.links.count >= 100)

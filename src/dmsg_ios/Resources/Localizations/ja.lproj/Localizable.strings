@@ -76,6 +76,8 @@
 	<string>活発な会話</string>
 	<key>Active links</key>
 	<string>有効なリンク</string>
+	<key>Activity</key>
+	<string>アクティビティ</string>
 	<key>Activity on this device</key>
 	<string>このデバイスでのアクティビティ</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>認可されたデバイス</string>
 	<key>Authorized devices</key>
 	<string>認可されたデバイス</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>自動入力には選択したログイン項目のみが渡され、ワークスペースとは別にシステム認証が必要です。ユーザー名とウェブサイト名がシステムの候補に表示されることがあります。</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>自動入力は選択したログイン項目のみを受け取り、ワークスペースとは別にシステム認証を必要とします。dMsg を開いてロックを解除している間、スナップショットはそれらの項目の変更に追従します。更新されない場合は 24 時間後に期限切れになります。ユーザー名と Web サイト名はシステムの候補に表示されることがあります。</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>バックグラウンドダウンロード</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>バックグラウンド署名および常駐エージェント機能は、このワークスペース ロックとは別のものです。</string>
+	<key>Background transfer</key>
+	<string>バックグラウンド転送</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>バックグラウンド転送が開始されました。転送で進捗状況を確認します。</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>配信状況を確認</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>入力の長さを確認し、HTTPSリンクに名前を付けてください。</string>
+	<key>Check original result</key>
+	<string>元の結果を確認</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>プロジェクトの参照と、すでに配信されているコピーを確認してください。</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>リンクをコピー</string>
 	<key>Copy pairing request</key>
 	<string>ペアリング要求のコピー</string>
+	<key>Copy password</key>
+	<string>パスワードをコピー</string>
 	<key>Copy reference</key>
 	<string>参照のコピー</string>
 	<key>Copy request</key>
 	<string>依頼をコピー</string>
 	<key>Copy this field?</key>
 	<string>このフィールドをコピーしますか?</string>
+	<key>Copy username</key>
+	<string>ユーザー名をコピー</string>
 	<key>Cosign on this device</key>
 	<string>このデバイスで共同署名</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>移転提案書を作成する</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>暗号化されたワークスペースを作成して、パスワード、メモ、ファイルの保存を開始します。</string>
+	<key>Created</key>
+	<string>作成日時</string>
 	<key>Creating %lld of %lld…</key>
 	<string>作成中 %lld/%lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>下書き</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>下書きと送信済みの手紙はこのデバイスに保存されます。</string>
+	<key>Due %@</key>
+	<string>期限 %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>フィールド</string>
 	<key>File</key>
 	<string>ファイル</string>
+	<key>File details</key>
+	<string>ファイルの詳細</string>
 	<key>File name</key>
 	<string>ファイル名</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>フォルダ名</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>紛失したデバイスのキーなど、このデバイスが持っていないキー向けです。メンバーが承認すると、新しいキーは 24 時間後に有効になります。</string>
+	<key>For this site</key>
+	<string>このサイト用</string>
 	<key>Freeze this wallet?</key>
 	<string>このウォレットを凍結しますか?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>設定キーまたは otpauth URL が無効です。</string>
 	<key>Inventory fingerprint</key>
 	<string>インベントリのフィンガープリント</string>
+	<key>Invitation created</key>
+	<string>招待を作成しました</string>
 	<key>Invite member</key>
 	<string>メンバーを招待する</string>
 	<key>Invite to a conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>ロックすると転送は一時停止し、解除すると再開します。</string>
 	<key>Login identities</key>
 	<string>ログイン ID</string>
+	<key>Login identity</key>
+	<string>ログインID</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple のサブスクリプションを管理する</string>
 	<key>Manage file</key>
@@ -1546,6 +1570,8 @@
 	<string>その他</string>
 	<key>Other devices</key>
 	<string>その他のデバイス</string>
+	<key>Other logins</key>
+	<string>その他のログイン</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>それ以外の場合、dMsg は 3 分後にロックされます。デバイスをロックすると、常にワークスペースが即座にロックされます。</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>バインディングリクエストの貼り付け</string>
 	<key>Paste enrollment request</key>
 	<string>登録リクエストを貼り付けます</string>
+	<key>Paste image</key>
+	<string>画像をペースト</string>
 	<key>Paste invitation</key>
 	<string>招待状を貼り付け</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>シークレットパッケージのリンクを貼り付けます</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>新しいデバイスに表示された依頼を貼り付けて内容を確認し、そのデバイス ID を確かめます。</string>
+	<key>Pause notifications</key>
+	<string>通知を一時停止</string>
 	<key>Pause this agent</key>
 	<string>このエージェントを一時停止する</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>プラン</string>
 	<key>Plan and usage</key>
 	<string>プランと使い方</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>このバージョンのアプリではプランを変更できません。現在のプランと使用状況は引き続き確認できます。</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Plus 以上のプランなら、リンクで誰からでもファイルを集められます。相手にアカウントは不要で、自分が送ったものだけが見え、ファイルを開けるのはあなただけです。</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>購入済み</string>
 	<key>Purchases are not currently available.</key>
 	<string>現在、購入はできません。</string>
+	<key>Purpose</key>
+	<string>目的</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>このビルドではプッシュ通知が有効になっていません。 dMsg を開いて同期します。</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>クイックロック解除でワークスペースを開きます。デバイスへの紐付けは解除可能なデバイスを制限し、ハードウェア承認は重要なアカウント操作を保護します。</string>
+	<key>Quick unlock with %@</key>
+	<string>%@ でクイックロック解除</string>
 	<key>Quick unlock with system authentication</key>
 	<string>システム認証によるクイックロック解除</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>パソコンの招待をスキャン</string>
 	<key>Scan device request</key>
 	<string>デバイスのスキャン要求</string>
+	<key>Scan invitation</key>
+	<string>招待をスキャン</string>
 	<key>Scopes, one per line</key>
 	<string>スコープ、1 行に 1 つ</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>ログイン項目を選択する</string>
 	<key>Select non-duplicates</key>
 	<string>重複しない項目を選択</string>
+	<key>Select text</key>
+	<string>テキストを選択</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>1回のインポートで最大1,000件を選択できます。</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>選択したファイル</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>選択した部分には競合バージョンを使用し、それ以外は現在のバージョンを保持します。</string>
+	<key>Send</key>
+	<string>送信</string>
 	<key>Send device request</key>
 	<string>デバイスのリクエストを送信</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>送信者アカウント</string>
 	<key>Sending</key>
 	<string>送信</string>
+	<key>Sent</key>
+	<string>送信済み</string>
 	<key>Sent letters</key>
 	<string>送信された手紙</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>集まった署名</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>共同署名者 %@ の署名は現在のキーと一致しなくなったため保留されました。もう一度署名する必要があります。</string>
+	<key>Size</key>
+	<string>サイズ</string>
 	<key>Skipped</key>
 	<string>スキップ</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>並べ替え</string>
 	<key>Sort by</key>
 	<string>並べ替え</string>
+	<key>Source</key>
+	<string>ソース</string>
 	<key>Source address</key>
 	<string>送信元アドレス</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>チェックリストを開始する</string>
 	<key>Start sending</key>
 	<string>送信を開始</string>
+	<key>Statement</key>
+	<string>ステートメント</string>
 	<key>Status</key>
 	<string>ステータス</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>カンマで区切られたタグ</string>
 	<key>Take photo or video</key>
 	<string>写真や動画を撮る</string>
+	<key>Technical details</key>
+	<string>技術的な詳細</string>
 	<key>Terms of service</key>
 	<string>利用規約</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>このデバイスではリクエストを利用できません。有効期限が切れているか、すでに処理されている可能性があります。</string>
 	<key>The required content key is not available yet.</key>
 	<string>必要なコンテンツ キーはまだ利用できません。</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>結果は確認されていません。再試行する前にもう一度確認してください。</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>結果は未確認です。再試行する前に、このリクエストを調整してください。</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>このワークスペースは別の iPhone で作成され、バックアップの復元やデバイスの移行などでここにコピーされました。アカウントを保護するため、古いデバイスとして動作することはありません。ここではロック解除されず、中身も消去されません。</string>
 	<key>Title</key>
 	<string>タイトル</string>
+	<key>To device</key>
+	<string>転送先デバイス</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>代わりに古い iPhone を置き換えるには、コピーを退避してサインインし、コピーで「古い iPhone を置き換える」を選びます。この iPhone が参加したら、「デバイス」でコピーのファイルを取り込みます。</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>ロック解除ポリシー</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>この iPhone のロックを解除して、dMsg を開きます。</string>
+	<key>Unlock with %@</key>
+	<string>%@でロック解除</string>
 	<key>Unlock with system authentication</key>
 	<string>システム認証によるロック解除</string>
 	<key>Unlock workspace</key>
 	<string>ワークスペースをロック解除</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>dMsg ワークスペースのロックを解除します</string>
+	<key>Unmute notifications</key>
+	<string>通知のミュートを解除</string>
 	<key>Unread messages</key>
 	<string>未読</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>無制限の委任権限</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>スコープは8個、対象は4個まで。HTTPSオリジンまたはAgent IDを使用してください。ワイルドカードは使用できません。</string>
+	<key>Update AutoFill</key>
+	<string>自動入力を更新</string>
+	<key>Update Files app copies</key>
+	<string>「ファイル」Appのコピーを更新</string>
+	<key>Update conversation keys</key>
+	<string>会話の鍵を更新</string>
 	<key>Updated</key>
 	<string>更新されました</string>
 	<key>Uploading</key>
@@ -2934,6 +3000,8 @@
 	<string>レポートと明示的に含めたテキストはモデレーション チームに送信されます。他のプライベート コンテンツやキーは含まれません。</string>
 	<key>Your reports</key>
 	<string>あなたのレポート</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>dMsg を開いている間、保管庫は自動的に同期されます。</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

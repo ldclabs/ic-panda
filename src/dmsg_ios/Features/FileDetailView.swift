@@ -1,5 +1,6 @@
 import SwiftUI
 import QuickLook
+import UniformTypeIdentifiers
 @preconcurrency import DMsgCore
 
 struct FileDetailDestination: View {
@@ -19,9 +20,9 @@ struct FileDetailDestination: View {
                     }.privateScreen().navigationTitle("File")
                 } else if let version {
                     if let item = details.versions.first(where: { $0.id == version }) {
-                        FileDetailView(file: item.file(in: details.file), historical: !item.current)
+                        FileScreen(file: item.file(in: details.file), historical: !item.current)
                     } else { ContentUnavailableView("File not available on this device", systemImage: "doc.badge.ellipsis") }
-                } else { FileDetailView(file: details.file) }
+                } else { FileScreen(file: details.file) }
             } else {
                 List {
                     if loading { ProgressView("Loading…") }
@@ -40,9 +41,98 @@ struct FileDetailDestination: View {
     }
 }
 
+/// The decrypted copy behind a preview. It closes when the screen holding it goes
+/// away by any route, and stays open while another screen is pushed on top.
+private final class OpenedFile {
+    let url: URL
+    let version: String
+    private let nonce: String?
+    private let engine: MobileEngine?
+
+    init(url: URL, version: String, nonce: String?, engine: MobileEngine?) {
+        self.url = url; self.version = version; self.nonce = nonce; self.engine = engine
+    }
+
+    deinit {
+        guard let nonce, let engine else { return }
+        Task { try? await engine.closeFile(nonce: nonce) }
+    }
+}
+
+/// Opening a file shows the file. Its details and management are one step further.
+struct FileScreen: View {
+    let file: LibraryFile
+    var historical = false
+    @Environment(SessionModel.self) private var model
+    @State private var opened: OpenedFile?
+    @State private var unavailable = false
+    @State private var confirmShare = false
+    @State private var sharing = false
+    @State private var showingDetails = false
+    private static let maxPreviewBytes: UInt64 = 200 * 1024 * 1024
+
+    private var previews: Bool {
+        #if DEBUG
+        if model.uiTesting && !ProcessInfo.processInfo.arguments.contains("--ui-files-preview") { return false }
+        #endif
+        return file.canOpen && !unavailable && file.size <= Self.maxPreviewBytes && filePreviewable(file.mime)
+    }
+
+    var body: some View {
+        if previews {
+            Group {
+                if let opened { EmbeddedPreview(url: opened.url).ignoresSafeArea(edges: .bottom).accessibilityIdentifier("file.preview") }
+                else { ProgressView("Loading…").frame(maxWidth: .infinity, maxHeight: .infinity) }
+            }.privateScreen().navigationTitle(file.name).navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Button("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }
+                            .disabled(opened == nil).accessibilityIdentifier("file.share")
+                            .confirmationDialog("Share a copy", isPresented: $confirmShare, titleVisibility: .visible) {
+                                Button("Share a copy") { sharing = true }
+                            } message: { Text("Shared copies leave dMsg's protection and cannot be recalled.") }
+                        Button("File details", systemImage: "info.circle") { showingDetails = true }.accessibilityIdentifier("file.details")
+                    }
+                }
+                .navigationDestination(isPresented: $showingDetails) { FileDetailView(file: file, historical: historical, previewed: true) }
+                .sheet(isPresented: $sharing) { if let opened { ShareSheet(items: [opened.url]) } }
+                .task(id: "\(file.id):\(file.current):\(file.canOpen):\(model.concealed)") { await open() }
+        } else { FileDetailView(file: file, historical: historical) }
+    }
+
+    private func open() async {
+        guard previews, !model.concealed, opened?.version != file.current else { return }
+        let stamp = model.epoch
+        do {
+            let next = try await read()
+            guard stamp == model.epoch, !Task.isCancelled else { return }
+            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: next.url.path)
+            if QLPreviewController.canPreview(next.url as NSURL) { opened = next } else { unavailable = true }
+        } catch { if stamp == model.epoch, !Task.isCancelled { unavailable = true } }
+    }
+
+    private func read() async throws -> OpenedFile {
+        #if DEBUG
+        if model.uiTesting {
+            let url = FileManager.default.temporaryDirectory.appending(path: "preview-\(file.id).txt")
+            try Data("A preview of this file.".utf8).write(to: url)
+            return OpenedFile(url: url, version: file.current, nonce: nil, engine: nil)
+        }
+        #endif
+        struct Opened: Decodable { let path: String; let nonce: String }
+        guard let engine = model.engine else { throw CancellationError() }
+        let result = try await coreOperation { try await engine.openFile(id: file.id, version: file.current, operation: $0) }
+        // Decoded even when cancelled, so that the object below closes what the core opened.
+        let value = try JSONDecoder().decode(Opened.self, from: Data(result.json.utf8))
+        return OpenedFile(url: URL(fileURLWithPath: value.path), version: file.current, nonce: value.nonce, engine: engine)
+    }
+}
+
 struct FileDetailView: View {
     let file: LibraryFile
     var historical = false
+    /// Reached from the file's own preview, which already offers these.
+    var previewed = false
     @Environment(SessionModel.self) private var model
     @State private var preview: SharedFile?
     @State private var sharing: SharedFile?
@@ -71,9 +161,11 @@ struct FileDetailView: View {
             FileSummaryRow(name: file.name, mime: file.mime, subtitle: fileSize(file.size) + " · " + (available ? file.statusLabel : String(localized: "Only in cloud")), expanded: true)
                 .compactObjectRow().listRowBackground(Color.clear).accessibilityIdentifier("file.detail.title")
             Section {
-                SettingsAction("Preview file", systemImage: "doc.text.magnifyingglass", prominent: available) { actionTask = Task { await open(share: false) } }
-                    .disabled(!available)
-                SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
+                if !previewed {
+                    SettingsAction("Preview file", systemImage: "doc.text.magnifyingglass", prominent: available) { actionTask = Task { await open(share: false) } }
+                        .disabled(!available)
+                    SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
+                }
                 SettingsAction("Share by link", systemImage: "link") { linking = true }
                     .disabled(file.size > FileLinkTarget.maxBytes || !(available || file.backup != nil)).accessibilityIdentifier("file.link")
                 if file.size > FileLinkTarget.maxBytes { Text("Files over 100 MiB cannot be shared by link.").font(.footnote).foregroundStyle(.secondary) }
@@ -82,14 +174,14 @@ struct FileDetailView: View {
                         .accessibilityIdentifier("file.links")
                 }
                 if !available {
-                    SettingsAction("Restore to this device", systemImage: "icloud.and.arrow.down", prominent: true) { actionTask = Task { await restore() } }
+                    SettingsAction("Restore to this device", glyph: .cloudDown, prominent: true) { actionTask = Task { await restore() } }
                         .disabled(download != nil).accessibilityIdentifier("file.restore")
                 }
                 if !historical {
                     if file.backup?.verified == true {
-                        Label("Backed up", systemImage: "checkmark.icloud").foregroundStyle(.secondary)
+                        Label("Backed up", systemImage: "checkmark.circle").foregroundStyle(.secondary)
                     } else {
-                        SettingsAction("Back up to cloud", systemImage: "icloud.and.arrow.up") { confirmBackup = true }
+                        SettingsAction("Back up to cloud", glyph: .cloudUp) { confirmBackup = true }
                             .disabled(!available)
                     }
                     NavigationLink("Manage file") { FileManagementView(file: file) }.accessibilityIdentifier("file.manage")
@@ -108,7 +200,7 @@ struct FileDetailView: View {
                 }
             }
             Section("Details") {
-                LabeledContent("Type", value: file.mime)
+                LabeledContent("Type", value: UTType(mimeType: file.mime)?.localizedDescription ?? file.mime)
                 LabeledContent("Folder", value: (file.path ?? []).isEmpty ? String(localized: "Files") : (file.path ?? []).joined(separator: " / "))
                 if let time = file.updatedAt ?? file.createdAt { LabeledContent("Modified") { Text(fileDate(time), format: .dateTime) } }
                 if let backup = file.backup { LabeledContent("Backed up") { Text(fileDate(backup.backedUpAt), format: .dateTime) } }

@@ -2,11 +2,35 @@ import SwiftUI
 
 struct FileManagementView: View {
     let file: LibraryFile
+    @Environment(SessionModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirming = false
+    @State private var working = false
+
     var body: some View {
         List {
             NavigationLink("Rename") { FileNameEditor(target: LibraryItemTarget(id: file.id, name: file.name, folder: false), parent: file.folder ?? "root") }
             NavigationLink("Move to another folder") { FileMoveView(items: [LibraryItemTarget(id: file.id, name: file.name, folder: false)]) }
+            Button("Move to Trash", systemImage: "trash", role: .destructive) { confirming = true }
+                .disabled(working).accessibilityIdentifier("file.trash")
+                .confirmationDialog("Move to Trash", isPresented: $confirming, titleVisibility: .visible) {
+                    Button("Move to Trash", role: .destructive) { Task { await trash() } }
+                } message: { Text("Cloud backups are kept. This only changes the copy on this device.") }
         }.privateScreen().navigationTitle("Manage file")
+    }
+
+    private func trash() async {
+        let stamp = model.epoch
+        working = true; defer { working = false }
+        do {
+            try await model.trashLibraryItem(file.id)
+            guard stamp == model.epoch else { return }
+            await model.loadFiles()
+            model.notice = String(localized: "Moved to Trash")
+            if let index = model.route.filesPath.lastIndex(of: .file(file.id)) { model.route.filesPath.removeSubrange(index...) }
+            if model.route.file == file.id { model.route.file = nil }
+            dismiss()
+        } catch { if stamp == model.epoch { model.reportFileError(error) } }
     }
 }
 
@@ -208,7 +232,7 @@ struct FileVersionsView: View {
                         Text(fileDate(version.createdAt), format: .dateTime).font(.body.weight(.medium))
                         Text(fileSize(version.size) + " · " + String(localized: version.local ? "On this device" : "Only in cloud")).font(.caption).foregroundStyle(.secondary)
                         if version.current { Text("Current version").font(.caption).foregroundStyle(Theme.forest) }
-                        if !version.local { Label("Restore to this device", systemImage: "icloud.and.arrow.down").font(.footnote) }
+                        if !version.local { Label("Restore to this device", glyph: .cloudDown).font(.footnote) }
                     }
                 }.compactObjectRow().accessibilityIdentifier("file.version.\(version.id)")
             }

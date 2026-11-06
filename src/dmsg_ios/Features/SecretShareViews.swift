@@ -267,7 +267,7 @@ struct SecretSnapshotItemPicker: View {
             ForEach(items, id: \.id) { item in
                 Button { Task { await select(item.id) } } label: { VaultRow(item: item) }.disabled(item.reserved)
             }
-            if hasMore { Button("Load more") { Task { await load(reset: false) } }.disabled(reading) }
+            if hasMore { LoadMoreRow(working: reading, trigger: items.count) { await load(reset: false) } }
             if reading { ProgressView() }
         }.privateScreen().navigationTitle("Choose a secret").navigationBarTitleDisplayMode(.inline).searchable(text: $search)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }

@@ -72,8 +72,10 @@ final class RecoveryPolicyTests: XCTestCase {
     func testFreshnessExpiresWithoutAReplacementObservation() {
         let observation = RecoveryObservation(account: account, pending: false, digest: nil,
             observedAtMs: 1_000_000, stale: false)
-        XCTAssertFalse(observation.isStale(at: Date(timeIntervalSince1970: 1120)))
-        XCTAssertTrue(observation.isStale(at: Date(timeIntervalSince1970: 1121)))
+        XCTAssertFalse(observation.isStale(at: Date(timeIntervalSince1970: 1660)))
+        XCTAssertTrue(observation.isStale(at: Date(timeIntervalSince1970: 1661)))
+        XCTAssertFalse(observation.isLongUnconfirmed(at: Date(timeIntervalSince1970: 87400)))
+        XCTAssertTrue(observation.isLongUnconfirmed(at: Date(timeIntervalSince1970: 87401)))
     }
 }
 #endif

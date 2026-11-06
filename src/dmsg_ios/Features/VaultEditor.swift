@@ -54,11 +54,11 @@ struct VaultEditor: View {
     @State private var saving = false
     @State private var discard = false
     @State private var failure: String?
-    @State private var newFieldKind = "text"
+    @State private var tagEntry = ""
     @State private var choosingAttachment = false
     @State private var attachmentFiles: [String: LibraryFile] = [:]
     @State private var editMode: EditMode = .inactive
-    private var dirty: Bool { draft != initial }
+    private var dirty: Bool { draft != initial || !tagEntry.isEmpty }
     private var draftKey: String { "vault:" + target.id }
     private var invalid: Bool { draft.fields.contains { vaultInputError($0, existing: target.item != nil) != nil } }
 
@@ -81,24 +81,17 @@ struct VaultEditor: View {
                     }.accessibilityIdentifier("vault.edit.type")
                 }
                 Toggle("Favorite", isOn: $draft.favorite)
-                VStack(alignment: .leading) {
-                    Text("Tags").font(.caption).foregroundStyle(.secondary)
-                    TextField("Tags, separated by commas", text: $draft.tags).textInputAutocapitalization(.never).autocorrectionDisabled()
-                }
+                VaultTagEditor(tags: $draft.tags, entry: $tagEntry)
             }
             Section {
                 ForEach($draft.fields) { $field in
                     VaultEditorField(field: $field, existing: target.item != nil)
                 }.onMove { draft.fields.move(fromOffsets: $0, toOffset: $1) }
                     .onDelete { draft.fields.remove(atOffsets: $0) }
-                Picker("New field type", selection: $newFieldKind) {
-                    Text("Text").tag("text"); Text("Hidden value").tag("concealed")
-                    Text("Website").tag("url"); Text("Email").tag("email"); Text("Phone").tag("phone")
-                    Text("Date").tag("date"); Text("Month").tag("month"); Text("One-time code").tag("otp")
-                }
-                Button("Add field") {
-                    draft.fields.append(.init(id: "field_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).lowercased(),
-                        kind: newFieldKind, label: "", section: "", value: "", concealed: ["concealed", "otp"].contains(newFieldKind), changed: true))
+                Menu("Add field", systemImage: "plus") {
+                    addField("Text", kind: "text"); addField("Hidden value", kind: "concealed")
+                    addField("Website", kind: "url"); addField("Email", kind: "email"); addField("Phone", kind: "phone")
+                    addField("Date", kind: "date"); addField("Month", kind: "month"); addField("One-time code", kind: "otp")
                 }.disabled(draft.fields.count >= 64).accessibilityIdentifier("vault.edit.add-field")
             } header: { HStack { Text("Fields"); Spacer(); EditButton().frame(minWidth: 44, minHeight: 44) } }
             Section("Notes") { TextEditor(text: $draft.notes).frame(minHeight: 120).accessibilityLabel("Notes") }
@@ -162,6 +155,13 @@ struct VaultEditor: View {
             }
     }
 
+    private func addField(_ title: LocalizedStringKey, kind: String) -> some View {
+        Button(title) {
+            draft.fields.append(.init(id: "field_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).lowercased(),
+                kind: kind, label: "", section: "", value: "", concealed: ["concealed", "otp"].contains(kind), changed: true))
+        }
+    }
+
     private func loadAttachments() async {
         guard let id = target.item?.id else { return }; let epoch = model.epoch
         do {
@@ -174,9 +174,11 @@ struct VaultEditor: View {
     private func save() async {
         guard !saving else { return }
         saving = true; failure = nil; defer { saving = false }; let epoch = model.epoch
+        // A tag still being typed counts.
+        draft.tags = (vaultTags(draft.tags) + vaultTags(tagEntry)).joined(separator: ", "); tagEntry = ""
         do {
             let edit = VaultEdit(title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines), kind: draft.kind, notes: draft.notes,
-                favorite: draft.favorite, tags: draft.tags.split(whereSeparator: { $0 == "," || $0 == "，" || $0 == "،" }).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty },
+                favorite: draft.favorite, tags: vaultTags(draft.tags),
                 fields: draft.fields.map { field in
                     let value = ["date", "month", "otp", "url", "email", "phone"].contains(field.kind) ? field.value.trimmingCharacters(in: .whitespacesAndNewlines) : field.value
                     return FieldEdit(id: field.id, kind: field.kind, label: field.label, section: field.section, value: target.item != nil && !field.changed ? nil : value)

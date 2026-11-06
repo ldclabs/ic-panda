@@ -1,7 +1,7 @@
 import XCTest
 
-@MainActor final class NavigationTests: XCTestCase {
-    private func tab(_ app: XCUIApplication, symbol: String, title: String) -> XCUIElement {
+@MainActor class NavigationTestCase: XCTestCase {
+    fileprivate func tab(_ app: XCUIApplication, symbol: String, title: String) -> XCUIElement {
         // The system can move these buttons outside TabBar into a side rail.
         let named = app.buttons[title].firstMatch
         if named.waitForExistence(timeout: 10) { return named }
@@ -9,11 +9,11 @@ import XCTest
     }
 
     /// SwiftUI reports a `Link` as a button on iOS 18 and as a link on iOS 27.
-    private func linkOrButton(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+    fileprivate func linkOrButton(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
-    private func back(_ app: XCUIApplication) {
+    fileprivate func back(_ app: XCUIApplication) {
         let rail = app.buttons["BackButton"].firstMatch
         if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 {
             XCTAssertTrue(rail.waitForExistence(timeout: 3)); rail.tap()
@@ -22,6 +22,13 @@ import XCTest
         else { app.navigationBars.buttons.element(boundBy: 0).tap() }
     }
 
+    fileprivate func capture(_ app: XCUIApplication, name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name; shot.lifetime = .keepAlways; add(shot)
+    }
+}
+
+final class NavigationTests: NavigationTestCase {
     func testProductionStartupAllowsPasskeyLoginWithoutStagingConfiguration() {
         let app = XCUIApplication()
         // Exercise normal startup and the real bridge, not presentation fixtures.
@@ -61,17 +68,11 @@ import XCTest
     }
 
     func testExpandedLanguageAccessScreens() {
+        // One language per script and text width: `localizations.py` checks every catalog.
         let cases = [
             ("zh-Hant", "zh_TW", "語言"), ("hi", "hi_IN", "भाषा"),
-            ("id", "id_ID", "Bahasa"), ("pt-BR", "pt_BR", "Idioma"),
-            ("ja", "ja_JP", "言語"), ("de", "de_DE", "Sprache"),
-            ("ko", "ko_KR", "언어"), ("it", "it_IT", "Lingua"),
-            ("tr", "tr_TR", "Dil"), ("ar", "ar_SA", "اللغة"),
-            ("zh-Hans", "zh_CN", "语言"),
-            ("vi", "vi_VN", "Ngôn ngữ"), ("th", "th_TH", "ภาษา"),
-            ("fil", "fil_PH", "Wika"), ("ms", "ms_MY", "Bahasa"),
-            ("bn", "bn_BD", "ভাষা"), ("ur", "ur_PK", "زبان"),
-            ("pl", "pl_PL", "Język"), ("nl", "nl_NL", "Taal")
+            ("de", "de_DE", "Sprache"), ("ar", "ar_SA", "اللغة"),
+            ("th", "th_TH", "ภาษา"), ("ur", "ur_PK", "زبان"),
         ]
         let app = XCUIApplication()
         for (index, item) in cases.enumerated() {
@@ -131,7 +132,9 @@ import XCTest
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Read-only plan · \(language)"; shot.lifetime = .keepAlways; add(shot)
     }
+}
 
+final class SecretNavigationTests: NavigationTestCase {
     func testCompactVaultAndLockClearContent() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
@@ -147,19 +150,20 @@ import XCTest
         XCTAssertFalse(app.staticTexts["GitHub"].exists)
     }
 
-    func testRepeatedManagedSecretAndFileNavigation() {
-        checkDetailNavigation(language: "en", locale: "en_US", dark: false, repetitions: 3)
+    func testRepeatedManagedSecretAndFileNavigation() throws {
+        try checkDetailNavigation(language: "en", locale: "en_US", dark: false, repetitions: 3)
     }
 
-    func testDetailNavigationInDarkChinese() {
-        checkDetailNavigation(language: "zh-Hans", locale: "zh_CN", dark: true, repetitions: 1)
+    func testDetailNavigationInDarkChinese() throws {
+        try checkDetailNavigation(language: "zh-Hans", locale: "zh_CN", dark: true, repetitions: 1)
     }
 
-    private func checkDetailNavigation(language: String, locale: String, dark: Bool, repetitions: Int) {
+    private func checkDetailNavigation(language: String, locale: String, dark: Bool, repetitions: Int) throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-detail-navigation", "--ui-slow-vault", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         if dark { app.launchArguments.append("--ui-dark") }
         app.launch()
+        guard app.frame.width < 700 else { throw XCTSkip("Goes back, which a split layout has no need to") }
         for iteration in 0..<repetitions {
             for (id, title) in [("fixture-managed", "dMsg controller #1"), ("fixture-note", "Project notes")] {
                 let row = app.buttons["vault.item.\(id)"]
@@ -183,15 +187,11 @@ import XCTest
         }
     }
 
-    private func capture(_ app: XCUIApplication, name: String) {
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = name; shot.lifetime = .keepAlways; add(shot)
-    }
-
-    func testLeavingPendingSecretDoesNotReplaceNextDetail() {
+    func testLeavingPendingSecretDoesNotReplaceNextDetail() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-detail-navigation", "--ui-slow-vault", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
+        guard app.frame.width < 700 else { throw XCTSkip("Goes back, which a split layout has no need to") }
         let managed = app.buttons["vault.item.fixture-managed"]
         XCTAssertTrue(managed.waitForExistence(timeout: 5)); managed.tap()
         back(app)
@@ -210,8 +210,9 @@ import XCTest
         guard app.frame.width > 700 else { throw XCTSkip("Requires a regular-width iPad") }
         func select(_ identifier: String) {
             let row = app.buttons[identifier]
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
             if !row.isHittable { app.buttons["ToggleSidebar"].tap() }
-            XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+            row.tap()
         }
         select("vault.item.fixture-managed")
         select("vault.item.fixture-note")
@@ -247,10 +248,8 @@ import XCTest
         let row = app.buttons["vault.item.fixture-managed"]
         XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
         XCUIDevice.shared.press(.home)
-        app.activate()
-        let detail = app.staticTexts["vault.detail.title"]
-        guard detail.waitForExistence(timeout: 8) else { XCTFail("Secret did not resume after background suspension"); return }
-        XCTAssertEqual(detail.label, "dMsg controller #1")
+        app.returnToForeground(showing: app.staticTexts.matching(identifier: "vault.detail.title"))
+        XCTAssertEqual(app.staticTexts["vault.detail.title"].label, "dMsg controller #1")
         XCTAssertFalse(app.alerts.firstMatch.exists)
         capture(app, name: "Secret load recovered after background")
     }
@@ -316,8 +315,9 @@ import XCTest
         app.launch()
         let item = app.buttons["vault.item.fixture-github"]
         XCTAssertTrue(item.waitForExistence(timeout: 10)); item.tap()
+        let more = app.buttons["vault.detail.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5)); more.tap()
         let share = app.buttons["vault.share"]
-        if !share.isHittable { app.swipeUp() }
         XCTAssertTrue(share.waitForExistence(timeout: 5)); share.tap()
         let password = app.switches["secret.snapshot.field.password"]
         let username = app.switches["secret.snapshot.field.username"]
@@ -338,7 +338,9 @@ import XCTest
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Explicit secret snapshot selection"; shot.lifetime = .keepAlways; add(shot)
     }
+}
 
+final class AccountNavigationTests: NavigationTestCase {
     func testHardwarePageDoesNotInventAvailabilityWithoutCoreData() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
@@ -358,7 +360,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-recovery-pending", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        let status = app.buttons["workspace.status"].firstMatch
+        let status = app.buttons["activity.open"].firstMatch
         XCTAssertTrue(status.waitForExistence(timeout: 5))
         XCTAssertEqual(status.label, "Account recovery is pending")
         let item = app.buttons["vault.item.fixture-github"]
@@ -439,7 +441,11 @@ import XCTest
             app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale] + (dark ? ["--ui-dark"] : [])
             app.launch()
             tab(app, symbol: "Glyph-account", title: account).tap()
+            let advanced = app.buttons["account.advanced"]
+            for _ in 0..<8 where !advanced.isHittable { app.swipeUp() }
+            advanced.tap()
             let cache = app.buttons["account.cache"]
+            XCTAssertTrue(cache.waitForExistence(timeout: 5))
             for _ in 0..<8 where !cache.isHittable { app.swipeUp() }
             XCTAssertTrue(cache.isHittable); cache.tap()
             XCTAssertTrue(app.staticTexts["cache.explanation"].waitForExistence(timeout: 5))
@@ -458,7 +464,7 @@ import XCTest
         tab(app, symbol: "Glyph-folder", title: "Files").tap()
         let cloudScope = app.buttons["files.scope.cloud"]
         if cloudScope.exists && cloudScope.isHittable { cloudScope.tap() }
-        else { app.buttons["files.scope.local"].tap(); app.buttons["Cloud backups"].tap() }
+        else { app.buttons["files.scope.local"].tap(); app.buttons["Cloud backups"].firstMatch.tap() }
         let backup = app.buttons["backup.item.fixture-backup"]
         XCTAssertTrue(backup.waitForExistence(timeout: 5)); backup.tap()
         XCTAssertTrue(app.buttons["backup.restore.fixture-backup"].isHittable)
@@ -492,7 +498,9 @@ import XCTest
         XCTAssertTrue(app.staticTexts["dMsg Privacy Policy"].waitForExistence(timeout: 5))
         XCTAssertTrue(linkOrButton(app, "Contact support").exists)
     }
+}
 
+final class DeviceNavigationTests: NavigationTestCase {
     func testDeviceHandoverEntriesInEnglish() { handover(language: "en", locale: "en_US", account: "Account", dark: false) }
 
     func testDeviceHandoverEntriesInDarkArabic() { handover(language: "ar", locale: "ar_SA", account: "الحساب", dark: true) }

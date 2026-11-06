@@ -44,7 +44,7 @@ struct DMsgApp: App {
                     guard scenePhase == .active, model.session?.account != nil else { return }
                     while !Task.isCancelled {
                         await model.refreshRecoveryWarning()
-                        do { try await Task.sleep(for: .seconds(60)) } catch { break }
+                        do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }
                     }
                 }
                 // Only leaving the foreground ends the driver, not a passing control center.
@@ -91,9 +91,6 @@ struct DMsgApp: App {
                 }
                 .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
                     Task { await model.idleTick() }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in
-                    if model.unlocked { model.notice = String(localized: "Screenshots may contain private information.") }
                 }
         }
     }

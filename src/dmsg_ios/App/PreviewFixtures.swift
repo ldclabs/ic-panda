@@ -15,8 +15,8 @@ extension SessionModel {
                             pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, setupPending: false, lastSyncAtMs: nil, syncError: nil),
             items: [
                 vaultFixtureItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: chinese ? "个人开发账号" : "Personal development account", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [],
-                          fields: [VaultField(id: "username", kind: "text", label: "Username", section: "", value: "lin@studio.example", concealed: false),
-                                   VaultField(id: "password", kind: "concealed", label: "Password", section: "", value: "••••••••", concealed: true)]),
+                          fields: [VaultField(id: "username", kind: "text", label: "", section: "", value: "lin@studio.example", concealed: false),
+                                   VaultField(id: "password", kind: "concealed", label: "", section: "", value: "••••••••", concealed: true)]),
                 vaultFixtureItem(id: "fixture-mail", revision: "1", kind: "login", title: chinese ? "工作邮箱" : "Work email", subtitle: "hello@studio.example", notes: "", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [], fields: []),
                 vaultFixtureItem(id: "fixture-note", revision: "1", kind: "note", title: chinese ? "项目笔记" : "Project notes", subtitle: chinese ? "记录尚未完成的想法" : "A place for unfinished ideas", notes: "", favorite: false, tags: [], synced: storeScreens, conflict: false, reserved: false, files: [], fields: []),
             ])

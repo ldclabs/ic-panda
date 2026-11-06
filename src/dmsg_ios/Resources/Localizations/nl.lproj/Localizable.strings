@@ -76,6 +76,8 @@
 	<string>Actieve gesprekken</string>
 	<key>Active links</key>
 	<string>Actieve links</string>
+	<key>Activity</key>
+	<string>Activiteit</string>
 	<key>Activity on this device</key>
 	<string>Activiteit op dit apparaat</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>Geautoriseerd apparaat</string>
 	<key>Authorized devices</key>
 	<string>Geautoriseerde apparaten</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Automatisch invullen ontvangt alleen de inloggegevens die je selecteert en vereist systeemverificatie, los van de werkruimte. Gebruikersnamen en websitenamen kunnen in systeemsuggesties verschijnen.</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>Automatisch invullen ontvangt alleen de inloggegevens die je selecteert en vereist systeemverificatie, los van de werkruimte. Zolang dMsg open en ontgrendeld is, volgt de momentopname wijzigingen in die items; zonder update verloopt ze na 24 uur. Gebruikersnamen en websitenamen kunnen in systeemsuggesties verschijnen.</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>Download op de achtergrond</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>De mogelijkheden voor ondertekening op de achtergrond en de mogelijkheden voor residente agenten staan los van deze werkruimtevergrendeling.</string>
+	<key>Background transfer</key>
+	<string>Overdracht op de achtergrond</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>Achtergrondoverdracht gestart. Bekijk de voortgang in Overdrachten.</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>Bezorging controleren</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Controleer veldlengtes en gebruik HTTPS-links met een naam.</string>
+	<key>Check original result</key>
+	<string>Oorspronkelijk resultaat controleren</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Controleer projectreferenties en eventueel reeds geleverde exemplaren.</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>Kopieer link</string>
 	<key>Copy pairing request</key>
 	<string>Koppelingsverzoek kopiëren</string>
+	<key>Copy password</key>
+	<string>Wachtwoord kopiëren</string>
 	<key>Copy reference</key>
 	<string>Kopieer referentie</string>
 	<key>Copy request</key>
 	<string>Verzoek kopiëren</string>
 	<key>Copy this field?</key>
 	<string>Dit veld kopiëren?</string>
+	<key>Copy username</key>
+	<string>Gebruikersnaam kopiëren</string>
 	<key>Cosign on this device</key>
 	<string>Medeondertekenen op dit apparaat</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>Overdrachtsvoorstel maken</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Creëer je gecodeerde werkruimte om wachtwoorden, notities en bestanden op te slaan.</string>
+	<key>Created</key>
+	<string>Gemaakt</string>
 	<key>Creating %lld of %lld…</key>
 	<string>Bezig met %lld van %lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>Diepgang</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>Concepten en verzonden brieven worden op dit apparaat opgeslagen.</string>
+	<key>Due %@</key>
+	<string>Uiterlijk: %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>Velden</string>
 	<key>File</key>
 	<string>Bestand</string>
+	<key>File details</key>
+	<string>Bestandsdetails</string>
 	<key>File name</key>
 	<string>Bestandsnaam</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>Mapnaam</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>Voor een sleutel die dit apparaat niet heeft, zoals die van een verloren apparaat. Na goedkeuring door de leden geldt de nieuwe sleutel 24 uur later.</string>
+	<key>For this site</key>
+	<string>Voor deze site</string>
 	<key>Freeze this wallet?</key>
 	<string>Deze portemonnee bevriezen?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>Ongeldige instelsleutel of otpauth-URL.</string>
 	<key>Inventory fingerprint</key>
 	<string>Inventaris vingerafdruk</string>
+	<key>Invitation created</key>
+	<string>Uitnodiging gemaakt</string>
 	<key>Invite member</key>
 	<string>Nodig lid uit</string>
 	<key>Invite to a conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>Vergrendelen pauzeert overdrachten; ontgrendelen hervat ze.</string>
 	<key>Login identities</key>
 	<string>Login-identiteiten</string>
+	<key>Login identity</key>
+	<string>Aanmeldidentiteit</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Beheer Apple-abonnementen</string>
 	<key>Manage file</key>
@@ -1546,6 +1570,8 @@
 	<string>Anders</string>
 	<key>Other devices</key>
 	<string>Andere apparaten</string>
+	<key>Other logins</key>
+	<string>Andere aanmeldingen</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>Anders wordt de dMsg na 3 minuten vergrendeld. Apparaatvergrendeling vergrendelt je werkruimte altijd onmiddellijk.</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>Bindend verzoek plakken</string>
 	<key>Paste enrollment request</key>
 	<string>Inschrijvingsverzoek plakken</string>
+	<key>Paste image</key>
+	<string>Afbeelding plakken</string>
 	<key>Paste invitation</key>
 	<string>Uitnodiging plakken</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>Plak de geheime pakketlink</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>Plak het verzoek dat het nieuwe apparaat toont, controleer wat het vraagt en bevestig daarna de apparaat-ID.</string>
+	<key>Pause notifications</key>
+	<string>Meldingen pauzeren</string>
 	<key>Pause this agent</key>
 	<string>Pauzeer deze agent</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>Plannen</string>
 	<key>Plan and usage</key>
 	<string>Plan en gebruik</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>In deze versie van de app kun je je abonnement niet wijzigen. Je huidige abonnement en gebruik blijven beschikbaar.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Vanaf Plus kun je iedereen via een link om bestanden vragen. Geen account nodig, iedereen ziet alleen wat diegene zelf stuurde, en alleen jij kunt de bestanden openen.</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>Gekocht</string>
 	<key>Purchases are not currently available.</key>
 	<string>Aankopen zijn momenteel niet beschikbaar.</string>
+	<key>Purpose</key>
+	<string>Doel</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Pushmeldingen zijn niet ingeschakeld in deze build. Open dMsg om te synchroniseren.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Snel ontgrendelen opent de werkruimte. Apparaatbinding beperkt welke apparaten deze kunnen openen. Hardwaregoedkeuring beschermt gevoelige accountacties.</string>
+	<key>Quick unlock with %@</key>
+	<string>Snel ontgrendelen met %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Snel ontgrendelen met systeemauthenticatie</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>Uitnodiging van computer scannen</string>
 	<key>Scan device request</key>
 	<string>Verzoek om scanapparaat</string>
+	<key>Scan invitation</key>
+	<string>Uitnodiging scannen</string>
 	<key>Scopes, one per line</key>
 	<string>Scopes, één per regel</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>Selecteer inlogitems</string>
 	<key>Select non-duplicates</key>
 	<string>Niet-dubbele records selecteren</string>
+	<key>Select text</key>
+	<string>Tekst selecteren</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>Selecteer maximaal 1.000 records per import.</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>Geselecteerde bestanden</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Geselecteerde delen gebruiken de conflicterende versie. Andere delen behouden de huidige versie.</string>
+	<key>Send</key>
+	<string>Verzenden</string>
 	<key>Send device request</key>
 	<string>Apparaatverzoek verzenden</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>Afzenderaccount</string>
 	<key>Sending</key>
 	<string>Versturen</string>
+	<key>Sent</key>
+	<string>Verzonden</string>
 	<key>Sent letters</key>
 	<string>Brieven verzonden</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>Verzamelde handtekeningen</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Handtekeningen van medeondertekenaars %@ passen niet meer bij hun huidige sleutels en zijn apart gezet; zij moeten opnieuw ondertekenen.</string>
+	<key>Size</key>
+	<string>Grootte</string>
 	<key>Skipped</key>
 	<string>Overgeslagen</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>Sorteren</string>
 	<key>Sort by</key>
 	<string>Sorteren op</string>
+	<key>Source</key>
+	<string>Bron</string>
 	<key>Source address</key>
 	<string>Bron adres</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>Controlelijst starten</string>
 	<key>Start sending</key>
 	<string>Versturen starten</string>
+	<key>Statement</key>
+	<string>Verklaring</string>
 	<key>Status</key>
 	<string>Status</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>Tags, gescheiden door komma's</string>
 	<key>Take photo or video</key>
 	<string>Foto of video maken</string>
+	<key>Technical details</key>
+	<string>Technische details</string>
 	<key>Terms of service</key>
 	<string>Servicevoorwaarden</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>Het verzoek is niet beschikbaar voor dit apparaat. Mogelijk is de aanvraag verlopen of al afgehandeld.</string>
 	<key>The required content key is not available yet.</key>
 	<string>De vereiste inhoudssleutel is nog niet beschikbaar.</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>Het resultaat is niet bevestigd. Controleer het opnieuw voordat je het nogmaals probeert.</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>Het resultaat is niet bevestigd. Stem dit verzoek af voordat je het opnieuw probeert.</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>Deze werkruimte is op een andere iPhone gemaakt en hierheen gekopieerd, bijvoorbeeld met een teruggezette back-up of een apparaatoverdracht. Om je account te beschermen treedt hij nooit op als het oude apparaat: hij wordt hier niet ontgrendeld en er wordt niets uit verwijderd.</string>
 	<key>Title</key>
 	<string>Titel</string>
+	<key>To device</key>
+	<string>Naar apparaat</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>Wil je de oude iPhone liever vervangen, zet de kopie dan opzij en log in; kies daarna Oude iPhone vervangen bij de kopie en importeer de bestanden onder Apparaten zodra deze iPhone is toegevoegd.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>Beleid ontgrendelen</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>Ontgrendel deze iPhone om dMsg te openen.</string>
+	<key>Unlock with %@</key>
+	<string>Ontgrendelen met %@</string>
 	<key>Unlock with system authentication</key>
 	<string>Ontgrendel met systeemverificatie</string>
 	<key>Unlock workspace</key>
 	<string>Werkruimte ontgrendelen</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Ontgrendel je dMsg-werkruimte</string>
+	<key>Unmute notifications</key>
+	<string>Meldingen weer aanzetten</string>
 	<key>Unread messages</key>
 	<string>Ongelezen</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>Onbeperkte delegatiebevoegdheid</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>Maximaal 8 scopes en 4 doelgroepen. Gebruik HTTPS-origins of Agent-ID’s; jokertekens zijn niet toegestaan.</string>
+	<key>Update AutoFill</key>
+	<string>Automatisch invullen bijwerken</string>
+	<key>Update Files app copies</key>
+	<string>Kopieën in Bestanden-app bijwerken</string>
+	<key>Update conversation keys</key>
+	<string>Gesprekssleutels bijwerken</string>
 	<key>Updated</key>
 	<string>Bijgewerkt</string>
 	<key>Uploading</key>
@@ -2934,6 +3000,8 @@
 	<string>Je rapport en eventuele tekst die je expliciet vermeldt, worden naar het moderatieteam gestuurd. Andere privé-inhoud en sleutels zijn niet inbegrepen.</string>
 	<key>Your reports</key>
 	<string>Je rapporten</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>Je kluis wordt automatisch gesynchroniseerd zolang dMsg geopend is.</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

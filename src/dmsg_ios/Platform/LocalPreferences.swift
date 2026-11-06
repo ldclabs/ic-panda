@@ -18,6 +18,10 @@ struct LocalPreferences: Codable, Equatable {
     /// Public identity thumbnails in the protected, device-local preferences.
     var accountIdentities: [String: LocalAccountIdentity]?
     var deviceLabels: [String: String]?
+    /// The tab to open on the next launch.
+    var lastTab: String?
+    /// Accounts that dismissed the reminder about files without a cloud backup.
+    var backupHintDismissed: Set<String>?
     static func read(at root: URL) throws -> Self {
         let file = root.appending(path: "privacy-preferences.json")
         guard FileManager.default.fileExists(atPath: file.path) else { return Self() }

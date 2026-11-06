@@ -76,6 +76,8 @@
 	<string>Mga aktibong pag-uusap</string>
 	<key>Active links</key>
 	<string>Mga aktibong link</string>
+	<key>Activity</key>
+	<string>Aktibidad</string>
 	<key>Activity on this device</key>
 	<string>Aktibidad sa device na ito</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>Awtorisadong device</string>
 	<key>Authorized devices</key>
 	<string>Mga awtorisadong device</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Ang AutoFill ay tumatanggap lang ng mga login item na pinili mo at nangangailangan ng system authentication na hiwalay sa workspace. Maaaring lumabas ang mga username at pangalan ng website sa mga suhestiyon ng system.</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>Tumatanggap lang ang AutoFill ng mga login item na pinili mo at nangangailangan ng system authentication na hiwalay sa workspace. Habang bukas at naka-unlock ang dMsg, sinusundan ng snapshot ang mga pagbabago sa mga item na iyon; kapag hindi na-update, mag-e-expire ito pagkalipas ng 24 na oras. Maaaring lumabas ang mga username at pangalan ng website sa mga mungkahi ng system.</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>Pag-download sa background</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Ang background signing at resident agent na kakayahan ay hiwalay sa workspace lock na ito.</string>
+	<key>Background transfer</key>
+	<string>Background transfer</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>Nagsimula ang paglilipat ng background. Suriin ang progreso nito sa Transfers.</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>Tingnan ang paghahatid</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Suriin ang haba ng mga field at gumamit ng mga HTTPS link na may pangalan.</string>
+	<key>Check original result</key>
+	<string>Suriin ang orihinal na resulta</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Suriin ang mga sanggunian ng proyekto at anumang mga kopyang naihatid na.</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>Kopyahin ang link</string>
 	<key>Copy pairing request</key>
 	<string>Kopyahin ang kahilingan sa pagpapares</string>
+	<key>Copy password</key>
+	<string>Kopyahin ang password</string>
 	<key>Copy reference</key>
 	<string>Kopyahin ang sanggunian</string>
 	<key>Copy request</key>
 	<string>Kopyahin ang kahilingan</string>
 	<key>Copy this field?</key>
 	<string>Kopyahin ang field na ito?</string>
+	<key>Copy username</key>
+	<string>Kopyahin ang username</string>
 	<key>Cosign on this device</key>
 	<string>Mag-cosign sa device na ito</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>Gumawa ng panukala sa paglipat</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Gawin ang iyong naka-encrypt na workspace para simulan ang pag-save ng mga password, tala, at file.</string>
+	<key>Created</key>
+	<string>Ginawa</string>
 	<key>Creating %lld of %lld…</key>
 	<string>Ginagawa %lld sa %lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>Draft</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>Naka-save sa device na ito ang mga draft at naipadalang liham.</string>
+	<key>Due %@</key>
+	<string>Takdang oras: %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>Mga patlang</string>
 	<key>File</key>
 	<string>File</string>
+	<key>File details</key>
+	<string>Mga detalye ng file</string>
 	<key>File name</key>
 	<string>Pangalan ng file</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>Pangalan ng folder</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>Para sa key na wala sa device na ito, gaya ng nasa nawalang device. Pagkatapos aprubahan ng mga miyembro, magkakabisa ang bagong key makalipas ang 24 na oras.</string>
+	<key>For this site</key>
+	<string>Para sa site na ito</string>
 	<key>Freeze this wallet?</key>
 	<string>I-freeze ang wallet na ito?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>Hindi wastong setup key o otpauth URL.</string>
 	<key>Inventory fingerprint</key>
 	<string>Imbentaryo ng fingerprint</string>
+	<key>Invitation created</key>
+	<string>Nagawa ang imbitasyon</string>
 	<key>Invite member</key>
 	<string>Mag-imbita ng miyembro</string>
 	<key>Invite to a conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>Humihinto ang paglilipat kapag naka-lock at nagpapatuloy kapag na-unlock.</string>
 	<key>Login identities</key>
 	<string>Mga pagkakakilanlan sa pag-login</string>
+	<key>Login identity</key>
+	<string>Identity sa pag-login</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Pamahalaan ang mga subscription sa Apple</string>
 	<key>Manage file</key>
@@ -1546,6 +1570,8 @@
 	<string>Iba pa</string>
 	<key>Other devices</key>
 	<string>Iba pang mga device</string>
+	<key>Other logins</key>
+	<string>Iba pang login</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>Kung hindi, magla-lock ang dMsg pagkalipas ng 3 minuto ang layo. Palaging ni-lock ng device lock ang iyong workspace kaagad.</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>Idikit ang nagbubuklod na kahilingan</string>
 	<key>Paste enrollment request</key>
 	<string>I-paste ang kahilingan sa pagpapatala</string>
+	<key>Paste image</key>
+	<string>I-paste ang larawan</string>
 	<key>Paste invitation</key>
 	<string>Idikit ang imbitasyon</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>I-paste ang link ng lihim na package</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>I-paste ang kahilingang ipinapakita ng bagong device, tingnan kung ano ang hinihingi nito, saka kumpirmahin ang device ID nito.</string>
+	<key>Pause notifications</key>
+	<string>I-pause ang mga notification</string>
 	<key>Pause this agent</key>
 	<string>I-pause ang agent na ito</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>Plano</string>
 	<key>Plan and usage</key>
 	<string>Plano at paggamit</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>Hindi mababago ang plano sa bersyong ito ng app. Available pa rin ang kasalukuyan mong plano at paggamit.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Sa Plus pataas, puwede kang humingi ng files sa kahit kanino gamit ang link. Walang account na kailangan, sariling padala lang ang nakikita ng bawat isa, at ikaw lang ang makakapagbukas.</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>Binili</string>
 	<key>Purchases are not currently available.</key>
 	<string>Kasalukuyang hindi available ang mga pagbili.</string>
+	<key>Purpose</key>
+	<string>Layunin</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Ang mga push notification ay hindi pinagana sa build na ito. Buksan ang dMsg para i-synchronize.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Binubuksan ng quick unlock ang workspace. Nililimitahan ng device binding kung aling device ang makakapagbukas nito. Pinoprotektahan ng hardware approval ang sensitibong aksyon ng account.</string>
+	<key>Quick unlock with %@</key>
+	<string>Mabilis na i-unlock gamit ang %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Mabilis na pag-unlock gamit ang pagpapatunay ng system</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>I-scan ang imbitasyon sa computer</string>
 	<key>Scan device request</key>
 	<string>I-scan ang kahilingan ng device</string>
+	<key>Scan invitation</key>
+	<string>I-scan ang imbitasyon</string>
 	<key>Scopes, one per line</key>
 	<string>Mga saklaw, isa bawat linya</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>Pumili ng mga item sa pag-log in</string>
 	<key>Select non-duplicates</key>
 	<string>Piliin ang mga hindi duplikado</string>
+	<key>Select text</key>
+	<string>Pumili ng teksto</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>Pumili ng hanggang 1,000 tala sa bawat pag-import.</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>Mga napiling file</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Gagamitin ng mga napiling bahagi ang magkasalungat na bersyon. Pananatilihin ng iba ang kasalukuyang bersyon.</string>
+	<key>Send</key>
+	<string>Ipadala</string>
 	<key>Send device request</key>
 	<string>Ipadala ang kahilingan ng device</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>Account ng nagpadala</string>
 	<key>Sending</key>
 	<string>Nagpapadala</string>
+	<key>Sent</key>
+	<string>Naipadala</string>
 	<key>Sent letters</key>
 	<string>Nagpadala ng mga liham</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>Mga nakolektang lagda</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Hindi na tugma sa kanilang kasalukuyang mga key ang mga lagda ng mga cosigner na %@ kaya isinantabi; kailangan nilang pumirma ulit.</string>
+	<key>Size</key>
+	<string>Laki</string>
 	<key>Skipped</key>
 	<string>Nilaktawan</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>Pagbukud-bukurin</string>
 	<key>Sort by</key>
 	<string>Ayusin ayon sa</string>
+	<key>Source</key>
+	<string>Pinagmulan</string>
 	<key>Source address</key>
 	<string>Address ng pinagmulan</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>Simulan ang checklist</string>
 	<key>Start sending</key>
 	<string>Simulang magpadala</string>
+	<key>Statement</key>
+	<string>Pahayag</string>
 	<key>Status</key>
 	<string>Katayuan</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>Mga tag, na pinaghihiwalay ng mga kuwit</string>
 	<key>Take photo or video</key>
 	<string>Kumuha ng larawan o video</string>
+	<key>Technical details</key>
+	<string>Mga teknikal na detalye</string>
 	<key>Terms of service</key>
 	<string>Mga tuntunin ng serbisyo</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>Hindi available ang kahilingan sa device na ito. Maaaring nag-expire na ito o nahawakan na.</string>
 	<key>The required content key is not available yet.</key>
 	<string>Hindi pa available ang kinakailangang content key.</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>Hindi pa kumpirmado ang resulta. Suriin itong muli bago subukang muli.</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>Ang resulta ay hindi nakumpirma. Ipagkasundo ang kahilingang ito bago subukang muli.</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>Ginawa ang workspace na ito sa ibang iPhone at kinopya rito, halimbawa ng na-restore na backup o paglilipat ng device. Para protektahan ang iyong account, hindi ito kailanman kumikilos bilang lumang device: hindi ito naa-unlock dito, at walang binubura rito.</string>
 	<key>Title</key>
 	<string>Pamagat</string>
+	<key>To device</key>
+	<string>Sa device</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>Para palitan na lang ang lumang iPhone, itabi ang kopya at mag-sign in, saka piliin ang Palitan ang lumang iPhone sa kopya; kapag nakasali na ang iPhone na ito, i-import ang mga file ng kopya sa Mga device.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>Patakaran sa pag-unlock</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>I-unlock ang iPhone na ito para buksan ang dMsg.</string>
+	<key>Unlock with %@</key>
+	<string>I-unlock gamit ang %@</string>
 	<key>Unlock with system authentication</key>
 	<string>I-unlock gamit ang system authentication</string>
 	<key>Unlock workspace</key>
 	<string>I-unlock ang workspace</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>I-unlock ang iyong dMsg workspace</string>
+	<key>Unmute notifications</key>
+	<string>I-unmute ang mga notification</string>
 	<key>Unread messages</key>
 	<string>Hindi pa nababasa</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>Hindi pinaghihigpitang awtoridad sa delegasyon</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>Hanggang 8 scope at 4 audience. Gumamit ng HTTPS origin o Agent ID; bawal ang wildcard.</string>
+	<key>Update AutoFill</key>
+	<string>I-update ang AutoFill</string>
+	<key>Update Files app copies</key>
+	<string>I-update ang mga kopya sa Files app</string>
+	<key>Update conversation keys</key>
+	<string>I-update ang mga key ng usapan</string>
 	<key>Updated</key>
 	<string>Na-update</string>
 	<key>Uploading</key>
@@ -2825,7 +2891,7 @@
 	<key>Waiting for browser confirmation</key>
 	<string>Naghihintay para sa kumpirmasyon ng browser</string>
 	<key>Waiting for confirmation</key>
-	<string>Naghihintay ng kumpirmasyon</string>
+	<string>Hinihintay ang kumpirmasyon</string>
 	<key>Waiting for confirmation: </key>
 	<string>Naghihintay ng kumpirmasyon: </string>
 	<key>Waiting for first sync</key>
@@ -2934,6 +3000,8 @@
 	<string>Ang iyong ulat at anumang text na tahasang isasama mo ay ipapadala sa moderation team. Ang iba pang pribadong nilalaman at mga susi ay hindi kasama.</string>
 	<key>Your reports</key>
 	<string>Ang iyong mga ulat</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>Awtomatikong nagsi-sync ang iyong vault habang bukas ang dMsg.</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

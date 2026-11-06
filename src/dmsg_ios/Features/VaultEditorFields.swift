@@ -15,6 +15,8 @@ struct VaultEditorField: View {
     private var label: String { field.label.isEmpty ? (field.kind == "otp" ? String(localized: "One-time code") : vaultFieldName(field.id)) : field.label }
     private var keeping: Bool { existing && field.concealed && !field.changed }
     private var placeholder: LocalizedStringKey { keeping ? "Leave empty to keep existing value" : "Value" }
+    /// Values the person chooses freely; a card's numbers and key material come from elsewhere.
+    private var generates: Bool { field.kind != "otp" && !["number", "cvv", "pin", "private_key", "public_key", "phrase"].contains(field.id) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -30,7 +32,7 @@ struct VaultEditorField: View {
             if field.concealed {
                 HStack {
                     if !field.value.isEmpty { Button(showingDraft ? "Hide" : "Show draft") { showingDraft.toggle() } }
-                    if field.id == "password" { Button("Generate password") { tool = .generator } }
+                    if generates { Button("Generate password") { tool = .generator } }
                     if field.kind == "otp" {
                         Button("Scan QR code", systemImage: "qrcode.viewfinder") { requestingCamera = true }
                             .disabled(!DataScannerViewController.isSupported || requestingCamera)
@@ -98,6 +100,77 @@ struct VaultEditorField: View {
         }
     }
 
+}
+
+func vaultTags(_ text: String) -> [String] {
+    text.split(whereSeparator: { $0 == "," || $0 == "，" || $0 == "،" }).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+}
+
+/// Tags as removable chips; typing a comma or pressing return adds one.
+struct VaultTagEditor: View {
+    @Binding var tags: String
+    @Binding var entry: String
+    private var list: [String] { vaultTags(tags) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Tags").font(.caption).foregroundStyle(.secondary)
+            if !list.isEmpty {
+                FlowLayout(spacing: 6) {
+                    ForEach(Array(list.enumerated()), id: \.offset) { index, tag in
+                        Button { remove(at: index) } label: {
+                            HStack(spacing: 4) {
+                                Text(tag).font(.subheadline).lineLimit(1)
+                                Image(systemName: "xmark").font(.caption2).accessibilityHidden(true)
+                            }.padding(.horizontal, 10).frame(minHeight: 32)
+                                .foregroundStyle(Theme.forest).background(Theme.forest.opacity(0.1), in: Capsule())
+                        }.buttonStyle(.borderless).accessibilityLabel(Text("Remove") + Text(verbatim: " · " + tag))
+                    }
+                }
+            }
+            TextField("Tags, separated by commas", text: $entry).textInputAutocapitalization(.never).autocorrectionDisabled()
+                .submitLabel(.done).onSubmit(commit).accessibilityIdentifier("vault.edit.tags")
+                .onChange(of: entry) { _, value in if value.contains(where: { ",，،".contains($0) }) { commit() } }
+        }
+    }
+
+    private func commit() {
+        tags = (list + vaultTags(entry)).joined(separator: ", ")
+        entry = ""
+    }
+
+    private func remove(at index: Int) {
+        var next = list
+        next.remove(at: index)
+        tags = next.joined(separator: ", ")
+    }
+}
+
+/// Lays its views out in rows, wrapping where they no longer fit.
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(width: proposal.width ?? .infinity, subviews: subviews).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for (subview, origin) in zip(subviews, arrange(width: bounds.width, subviews: subviews).origins) {
+            subview.place(at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrange(width: CGFloat, subviews: Subviews) -> (origins: [CGPoint], size: CGSize) {
+        var origins: [CGPoint] = [], x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0, widest: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0 && x + size.width > width { x = 0; y += rowHeight + spacing; rowHeight = 0 }
+            origins.append(CGPoint(x: x, y: y))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height); widest = max(widest, x - spacing)
+        }
+        return (origins, CGSize(width: widest, height: y + rowHeight))
+    }
 }
 
 private struct VaultDatePicker: View {

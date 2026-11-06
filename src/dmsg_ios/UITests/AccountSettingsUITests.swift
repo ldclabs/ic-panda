@@ -26,7 +26,7 @@ import XCTest
     }
 
     func testAccountSwitcherShowsNamesInDarkChinese() {
-        checkAccountNames(language: "zh-Hans", locale: "zh_CN", tab: "我的", personal: "个人账户", dark: true)
+        checkAccountNames(language: "zh-Hans", locale: "zh_CN", tab: "我的", personal: "个人账号", dark: true)
     }
 
     private func checkAccountNames(language: String, locale: String, tab: String, personal: String, dark: Bool) {
@@ -49,6 +49,7 @@ import XCTest
     func testMemberDeviceCanDisputeRecoveryWithoutEditingPolicy() {
         let app = open(["--ui-member-security"])
         tap("account.security", in: app)
+        tap("security.recovery", in: app)
         let toggle = app.switches["On-chain recovery"]
         for _ in 0..<10 where !toggle.isHittable { app.swipeUp() }
         XCTAssertTrue(toggle.exists); XCTAssertFalse(toggle.isEnabled)
@@ -74,9 +75,8 @@ import XCTest
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(app.buttons["login.start"].waitForExistence(timeout: 10))
-        tap("reminders.open", in: app)
-        tap("reminders.menu", in: app)
-        tap("reminders.settings", in: app)
+        XCTAssertFalse(app.buttons["reminders.open"].exists, "Nothing can wait for an account that is not here")
+        tap("access.notifications", in: app)
         XCTAssertTrue(app.switches["notifications.enabled"].waitForExistence(timeout: 10))
         capture(app, "Global notification settings before login")
     }
@@ -102,8 +102,7 @@ import XCTest
         name.tap(); name.typeText(" Draft")
         XCTAssertTrue(app.staticTexts["Name"].exists)
         XCUIDevice.shared.press(.home)
-        app.activate()
-        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        app.returnToForeground(showing: app.textFields.matching(identifier: "profile.name"))
         XCTAssertTrue((name.value as? String ?? "").contains("Draft"))
         app.buttons["Back"].firstMatch.tap()
         tap("Keep draft and leave", in: app)
@@ -122,8 +121,7 @@ import XCTest
         enabled.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         XCTAssertNotEqual(enabled.value as? String, original)
         XCUIDevice.shared.press(.home)
-        app.activate()
-        XCTAssertTrue(enabled.waitForExistence(timeout: 5))
+        app.returnToForeground(showing: app.switches.matching(identifier: "notifications.enabled"))
         XCTAssertNotEqual(enabled.value as? String, original)
         capture(app, "Notification draft survives a foreground refresh")
     }
@@ -162,6 +160,7 @@ import XCTest
     func testAutoFillSelectionSurvivesSearchAndReopening() {
         let app = open()
         tap("System integrations", in: app)
+        tap("system.autofill", in: app)
         tap("Select login items", in: app)
         let github = app.switches["GitHub"].firstMatch
         XCTAssertTrue(github.waitForExistence(timeout: 5))
@@ -184,14 +183,14 @@ import XCTest
     func testSystemExportBiometryChoiceSurvivesReturningToTheForeground() {
         let app = open()
         tap("System integrations", in: app)
+        tap("system.autofill", in: app)
         let biometry = app.switches["Biometrics only for exported copies"]
         for _ in 0..<8 where !biometry.isHittable { app.swipeUp() }
         XCTAssertTrue(biometry.isHittable)
         biometry.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         XCTAssertEqual(biometry.value as? String, "1")
         XCUIDevice.shared.press(.home)
-        app.activate()
-        XCTAssertTrue(biometry.waitForExistence(timeout: 5))
+        app.returnToForeground(showing: app.switches.matching(identifier: "Biometrics only for exported copies"))
         let relaxed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: biometry)
         relaxed.isInverted = true
         XCTAssertEqual(XCTWaiter.wait(for: [relaxed], timeout: 2), .completed)

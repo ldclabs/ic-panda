@@ -84,6 +84,34 @@ extension SessionModel {
         return result.item
     }
 
+    /// A field's real value, read only when the person asks for it.
+    func vaultFieldValue(_ item: VaultItem, field: VaultField) async throws -> SecretValue {
+        #if DEBUG
+        if uiTesting {
+            return SecretValue(generation: 0, value: field.kind == "otp" ? "123456" : field.concealed ? "fixture-secret" : field.value,
+                remainingMs: field.kind == "otp" ? 2000 : nil)
+        }
+        #endif
+        guard let engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        return try await engine.revealField(id: item.id, revision: item.revision, field: field.id)
+    }
+
+    /// Copies a login's username or password from the list, where only summaries are loaded.
+    func copyVaultField(_ summary: VaultItem, field id: String) async {
+        let current = epoch
+        do {
+            let item = try await readVaultItem(id: summary.id)
+            guard current == epoch, let field = item.fields.first(where: { $0.id == id }), !field.value.isEmpty else {
+                if current == epoch { notice = String(localized: "No fields or notes") }
+                return
+            }
+            let value = try await vaultFieldValue(item, field: field)
+            guard current == epoch, value.generation == session?.generation, !concealed else { return }
+            clipboard.copy(value.value)
+            notice = String(localized: "Copied for 30 seconds")
+        } catch { if current == epoch { report(error) } }
+    }
+
     func setVaultFavorite(_ item: VaultItem) async throws {
         let current = epoch
         #if DEBUG

@@ -17,7 +17,7 @@ final class SyncUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "workspace.feedback").firstMatch.exists)
         let messages = XCTAttachment(screenshot: app.screenshot())
         messages.name = "Messages without an inline sync status"; messages.lifetime = .keepAlways; add(messages)
-        app.buttons["workspace.status"].tap()
+        app.openActivity("workspace.status")
         XCTAssertTrue(app.otherElements["sync.status"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["同步已暂停"].exists)
         XCTAssertFalse(app.buttons["sync.retry"].isEnabled)
@@ -29,8 +29,7 @@ final class SyncUITests: XCTestCase {
                                "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         if dark { app.launchArguments.append("--ui-dark") }
         app.launch()
-        let status = app.buttons["workspace.status"].firstMatch
-        XCTAssertTrue(status.waitForExistence(timeout: 8)); status.tap()
+        app.openActivity("workspace.status")
         XCTAssertTrue(app.otherElements["sync.status"].waitForExistence(timeout: 8))
         if paused { XCTAssertTrue(app.buttons["sync.retry"].exists) }
         else { XCTAssertTrue(app.staticTexts["sync.entries"].exists) }
@@ -42,7 +41,7 @@ final class SyncUITests: XCTestCase {
         let tabs = app.tabBars.buttons
         XCTAssertEqual(tabs.count, 4)
         tabs.element(boundBy: 1).tap()
-        XCTAssertTrue(app.buttons["workspace.status"].exists)
+        XCTAssertTrue(app.buttons["activity.open"].exists)
         XCTAssertFalse(app.otherElements["sync.status"].exists)
         tabs.element(boundBy: 3).tap()
         let settings = app.buttons["account.sync-settings"]
@@ -61,8 +60,7 @@ final class SyncUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-sync-paused", "--ui-sync-short-pause", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        let status = app.buttons["workspace.status"].firstMatch
-        XCTAssertTrue(status.waitForExistence(timeout: 5)); status.tap()
+        app.openActivity("workspace.status")
         let retry = app.buttons["sync.retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 5))
         XCTAssertFalse(retry.isEnabled)

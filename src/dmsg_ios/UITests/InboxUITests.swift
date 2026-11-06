@@ -27,17 +27,24 @@ final class InboxUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5)); XCTAssertFalse(retry.exists)
         capture(app, "Inbox received letter · Chinese dark")
         row.tap()
+        let more = app.buttons["inbox.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5)); more.tap()
         let read = app.buttons["inbox.read"]
         XCTAssertTrue(read.waitForExistence(timeout: 5)); read.tap()
-        XCTAssertEqual(read.label, "标为未读")
+        more.tap()
+        XCTAssertTrue(read.waitForExistence(timeout: 5)); XCTAssertEqual(read.label, "标为未读")
         app.buttons["inbox.archive"].tap()
+        more.tap()
         XCTAssertTrue(app.buttons["恢复"].waitForExistence(timeout: 5))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85)).tap()
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.descendants(matching: .any)["inbox.empty"].waitForExistence(timeout: 5))
         app.buttons["letters.folder"].tap()
         app.buttons["已归档"].tap()
         XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+        XCTAssertTrue(more.waitForExistence(timeout: 5)); more.tap()
         app.buttons["inbox.archive"].tap()
+        more.tap()
         XCTAssertTrue(app.buttons["归档"].waitForExistence(timeout: 5))
         capture(app, "Inbox restored letter · Chinese dark")
     }
@@ -65,7 +72,7 @@ final class InboxUITests: XCTestCase {
         retry.tap()
         let row = app.buttons["inbox.row.fixture-letter"]
         XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
-        XCTAssertTrue(app.buttons["inbox.read"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["inbox.more"].waitForExistence(timeout: 5))
         capture(app, "Inbox letter detail · Arabic RTL")
     }
 }

@@ -3,7 +3,21 @@ import FileProvider
 import SwiftUI
 @preconcurrency import DMsgCore
 
+struct SystemIntegrationsView: View {
+    var body: some View {
+        List {
+            NavigationLink { SystemExportsView(section: .autoFill) } label: { Label("Password AutoFill", systemImage: "key") }
+                .accessibilityIdentifier("system.autofill")
+            NavigationLink { SystemExportsView(section: .files) } label: { Label("Files app copies", systemImage: "folder") }
+                .accessibilityIdentifier("system.files")
+        }.privateScreen().navigationTitle("System integrations")
+    }
+}
+
+enum SystemExportSection { case autoFill, files }
+
 struct SystemExportsView: View {
+    var section: SystemExportSection
     var initialCredential: VaultItem? = nil
     @State private var initialized = false
     @Environment(SessionModel.self) private var model
@@ -24,30 +38,19 @@ struct SystemExportsView: View {
     var body: some View {
         Form {
             if snapshotFailed { SettingsAction("Retry") { refreshSnapshots() } }
-            Section("Password AutoFill") {
-                LabeledContent("System permission", value: String(localized: autoFillEnabled ? "Allowed" : "Not enabled"))
-                ExportSnapshotStatus(header: credentialSnapshot)
-
-                Text("AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.").font(.footnote).foregroundStyle(.secondary)
-                ForEach(credentials, id: \.id) { item in HStack { Text(item.title); Spacer(); Button("Remove", role: .destructive) { credentials.removeAll { $0.id == item.id } } } }
-                SettingsAction("Select login items") { selectingCredentials = true }
-                SettingsAction("Replace AutoFill snapshot", prominent: true) { work = Task { await exportCredentials() } }.disabled(credentials.isEmpty)
-                Button("Enable dMsg in AutoFill settings") { Task { do { try await ASSettingsHelper.openCredentialProviderAppSettings() } catch { model.report(error) } } }
-                SettingsAction("Remove AutoFill snapshot", role: .destructive) { work = Task { await removeSnapshot(.credentials) } }.disabled(credentialSnapshot == nil)
-            }
-            Section("Files app copies") {
-                ExportSnapshotStatus(header: fileSnapshot)
-                Text("Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.").font(.footnote).foregroundStyle(.secondary)
-                ForEach(files) { file in VStack(alignment: .leading, spacing: 6) { FileRow(file: file); Button("Remove", role: .destructive) { files.removeAll { $0.id == file.id } } } }
-                SettingsAction("Select a file") { selectingFile = true }.disabled(files.count >= 10)
-                SettingsAction("Replace Files app snapshot", prominent: true) { work = Task { await exportFiles() } }.disabled(files.isEmpty)
-                SettingsAction("Remove Files app snapshot", role: .destructive) { work = Task { await removeSnapshot(.files) } }.disabled(fileSnapshot == nil)
+            switch section {
+            case .autoFill: autoFill
+            case .files: filesApp
             }
             Toggle("Biometrics only for exported copies", isOn: $biometryOnly).disabled(requiresBiometry)
             Text("These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.").font(.footnote).foregroundStyle(.secondary)
             if working { ProgressView() }
-        }.disabled(working).privateScreen().navigationTitle("System integrations")
-            .sheet(isPresented: $selectingCredentials) { NavigationStack { AutoFillSelectionView(initial: credentials) { values in credentials = values } } }
+        }.disabled(working).privateScreen().navigationTitle(section == .autoFill ? "Password AutoFill" : "Files app copies").navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $selectingCredentials) { NavigationStack { AutoFillSelectionView(initial: credentials) { values in
+                credentials = values
+                // Choosing the items is the whole step: AutoFill follows the selection.
+                if !values.isEmpty { work = Task { await exportCredentials() } }
+            } } }
             .sheet(isPresented: $selectingFile) { NavigationStack { AttachmentPicker(folder: "root") { file in
                 if !files.contains(where: { $0.id == file.id }) { files.append(file) }; selectingFile = false
             } } }
@@ -62,7 +65,7 @@ struct SystemExportsView: View {
                         guard epoch == model.epoch, !Task.isCancelled else { return }
                         credentials = chosen.items; biometryOnly = chosen.biometryOnly
                     }
-                    if let initialCredential { credentials = [initialCredential] }
+                    if let initialCredential, !credentials.contains(where: { $0.id == initialCredential.id }) { credentials.append(initialCredential) }
                 }
                 let state = await ASCredentialIdentityStore.shared.state()
                 guard epoch == model.epoch, !Task.isCancelled else { return }
@@ -77,6 +80,42 @@ struct SystemExportsView: View {
                 }
                 catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
             }
+    }
+
+    /// Turn it on, choose what it may use, and see what it has.
+    @ViewBuilder private var autoFill: some View {
+        Section {
+            if autoFillEnabled { LabeledContent("System permission", value: String(localized: "Allowed")) }
+            else {
+                LabeledContent("System permission", value: String(localized: "Not enabled"))
+                SettingsAction("Enable dMsg in AutoFill settings", prominent: true) { Task { do { try await ASSettingsHelper.openCredentialProviderAppSettings() } catch { model.report(error) } } }
+            }
+        }
+        Section {
+            ForEach(credentials, id: \.id) { item in HStack { Text(item.title); Spacer(); Button("Remove", role: .destructive) { credentials.removeAll { $0.id == item.id } }.buttonStyle(.borderless) } }
+            SettingsAction("Select login items", prominent: autoFillEnabled && credentials.isEmpty) { selectingCredentials = true }
+        } footer: {
+            Text("AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.")
+        }
+        Section {
+            ExportSnapshotStatus(header: credentialSnapshot)
+            SettingsAction("Update AutoFill") { work = Task { await exportCredentials() } }.disabled(credentials.isEmpty)
+            SettingsAction("Remove AutoFill snapshot", role: .destructive) { work = Task { await removeSnapshot(.credentials) } }.disabled(credentialSnapshot == nil)
+        }
+    }
+
+    @ViewBuilder private var filesApp: some View {
+        Section {
+            ForEach(files) { file in VStack(alignment: .leading, spacing: 6) { FileRow(file: file); Button("Remove", role: .destructive) { files.removeAll { $0.id == file.id } }.buttonStyle(.borderless) } }
+            SettingsAction("Select a file") { selectingFile = true }.disabled(files.count >= 10)
+        } footer: {
+            Text("Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.")
+        }
+        Section {
+            ExportSnapshotStatus(header: fileSnapshot)
+            SettingsAction("Update Files app copies", prominent: !files.isEmpty) { work = Task { await exportFiles() } }.disabled(files.isEmpty)
+            SettingsAction("Remove Files app snapshot", role: .destructive) { work = Task { await removeSnapshot(.files) } }.disabled(fileSnapshot == nil)
+        }
     }
 
     private func exportRequiresBiometry() async throws -> Bool {
@@ -188,7 +227,7 @@ struct AutoFillSelectionView: View {
                 })).disabled(item.reserved || (chosen[item.id] == nil && chosen.count >= 50))
             }
             if !working && !failed && items.isEmpty { ContentUnavailableView.search(text: query) }
-            if more { SettingsAction("Load more") { Task { await load(reset: false) } }.disabled(working) }
+            if more { LoadMoreRow(working: working, trigger: items.count) { await load(reset: false) } }
         }.privateScreen().navigationTitle("Select login items")
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always))
             .safeAreaInset(edge: .bottom) {

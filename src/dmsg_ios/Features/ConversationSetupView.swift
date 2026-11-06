@@ -1,4 +1,6 @@
 import SwiftUI
+import VisionKit
+import AVFoundation
 
 struct ConversationSetupView: View {
     var invitee = ""
@@ -15,6 +17,7 @@ struct ConversationSetupView: View {
     @State private var leaving = false
     @State private var scope: UInt64 = 0
     @State private var completed = false
+    @State private var scanning = false
     private struct Draft: Codable { var joining: Bool; var name: String; var invitation: String }
     private var summary: ChannelInvitationSummary? { ChannelInvitationSummary.parse(invitation) }
     private var valid: Bool {
@@ -33,6 +36,19 @@ struct ConversationSetupView: View {
                     Picker("Conversation", selection: $joining) { Text("Create").tag(false); Text("Join").tag(true) }.pickerStyle(.segmented)
                     if joining {
                         SettingsField("Paste invitation") { TextField("Paste invitation", text: $invitation, axis: .vertical).lineLimit(3...8).textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityIdentifier("channel.invitation.input") }
+                        if invitation.isEmpty {
+                            HStack {
+                                PasteButton(payloadType: String.self) { values in
+                                    let text = values.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                                    Task { @MainActor in if !text.isEmpty { invitation = text } }
+                                }.buttonBorderShape(.capsule).labelStyle(.titleAndIcon)
+                                if DataScannerViewController.isSupported {
+                                    Button("Scan invitation", systemImage: "qrcode.viewfinder") { Task {
+                                        if await AVCaptureDevice.requestAccess(for: .video) { scanning = true }
+                                    } }.buttonStyle(.bordered).buttonBorderShape(.capsule)
+                                }
+                            }
+                        }
                         if let summary {
                             LabeledContent("Conversation name", value: summary.name)
                             MessageIdentity(account: summary.account, showID: true)
@@ -47,7 +63,8 @@ struct ConversationSetupView: View {
                 }.disabled(working)
             }
         }.privateScreen().navigationTitle("New conversation")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if name.isEmpty && invitation.isEmpty { dismiss() } else { leaving = true } }.disabled(working) } }
+            .toolbar { if created == nil { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if name.isEmpty && invitation.isEmpty { dismiss() } else { leaving = true } }.disabled(working) } } }
+            .sheet(isPresented: $scanning) { QRCodeScanner { text in invitation = text; scanning = false } }
             .interactiveDismissDisabled(working || !name.isEmpty || !invitation.isEmpty)
             .confirmationDialog("Leave this form?", isPresented: $leaving) { Button("Keep draft and leave") { dismiss() } }
             .onAppear {
@@ -72,7 +89,9 @@ struct ConversationSetupView: View {
             await model.loadChannels(); model.settingsDrafts.removeValue(forKey: "conversation-setup")
             guard epoch == model.epoch, visible else { return }; completed = true
             onCreated(id)
-            if !invitee.isEmpty && !joining { created = id } else { name = ""; invitation = ""; dismiss() }
+            // A new conversation has one member, so inviting someone is the next step.
+            name = ""
+            if joining { invitation = ""; dismiss() } else { created = id }
         } catch { if epoch == model.epoch, visible { failure = InboxLoading.message(error) } }
     }
 }
@@ -87,6 +106,7 @@ struct ChannelInvitationView: View {
     @State private var failure: String?
     @State private var visible = true
     @State private var scope: UInt64 = 0
+    @State private var sharing = false
     init(channel: String, account: String = "") { self.channel = channel; _account = State(initialValue: account) }
     var body: some View {
         Form {
@@ -94,14 +114,24 @@ struct ChannelInvitationView: View {
             NoticeBar(text: String(localized: "The invitation is bound to this account. Sharing the link does not grant access to another account."))
             if let failure { NoticeBar(text: failure) }
             if working { ProgressView() }
-            SettingsAction("Create invitation", prominent: true) { Task { await create() } }.disabled(!validMessageAccount(account) || working)
-            if let invitation { ShareLink(item: invitation) { Label("Share invitation", systemImage: "square.and.arrow.up") }.accessibilityIdentifier("channel.invitation.share") }
+            SettingsAction("Share invitation", systemImage: "square.and.arrow.up", prominent: true) { Task { await share() } }
+                .disabled(!validMessageAccount(account) || working).accessibilityIdentifier("channel.invitation.share")
+            if invitation != nil {
+                Label("Invitation created", systemImage: "checkmark.circle").font(.footnote).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("channel.invitation.ready")
+            }
         }.privateScreen().navigationTitle("Invite member")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+            .sheet(isPresented: $sharing) { if let invitation { ShareSheet(items: [invitation]) } }
             .onChange(of: account) { _, _ in invitation = nil; failure = nil }
             .onAppear { visible = true; scope = model.viewGeneration; if account.isEmpty, let saved = model.formDraft("invite:" + channel, as: String.self) { account = saved } }
             .onDisappear { visible = false; model.keepFormDraft("invite:" + channel, value: account, generation: scope) }
     }
+    private func share() async {
+        if invitation == nil { await create() }
+        if invitation != nil && !model.uiTesting { sharing = true }
+    }
+
     private func create() async {
         guard !working, validMessageAccount(account) else { return }
         let epoch = model.epoch, recipient = account; working = true; invitation = nil; failure = nil; defer { working = false }

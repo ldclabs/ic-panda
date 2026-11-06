@@ -17,6 +17,24 @@ struct ExportHeader: Codable, Sendable {
     var count: Int? = nil
 }
 struct CredentialExport: Codable, Identifiable, Sendable { let id: String; let title: String; let username: String; let origin: String }
+extension CredentialExport {
+    /// Whether this login belongs to the site that is asking, ignoring `www.` and subdomains.
+    func matches(service identifier: String) -> Bool {
+        guard let requested = Self.host(identifier), let own = Self.host(origin) else { return false }
+        return requested == own || requested.hasSuffix("." + own) || own.hasSuffix("." + requested)
+    }
+
+    func contains(_ query: String) -> Bool {
+        [title, username, origin].contains { $0.localizedCaseInsensitiveContains(query) }
+    }
+
+    private static func host(_ value: String) -> String? {
+        let text = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !text.isEmpty, let host = URL(string: text.contains("://") ? text : "https://" + text)?.host else { return nil }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
+}
+
 struct FileExport: Codable, Identifiable, Sendable { let id: String; let name: String; let size: UInt64; let sha256: String; let parts: Int; let modified: UInt64 }
 struct CredentialInput: Sendable { let title: String; let username: String; let password: String; let origin: String }
 struct FileExportInput: Sendable { let url: URL; let name: String; let sha256: String; let size: UInt64 }

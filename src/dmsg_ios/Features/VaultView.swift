@@ -3,21 +3,24 @@ import SwiftUI
 
 struct VaultView: View {
     @Environment(SessionModel.self) private var model
-    @State private var selected: String?
     @State private var editing: VaultEditorTarget?
     @State private var trash = false
     @State private var filtering = false
+    @State private var copyingPassword: VaultItem?
 
     var body: some View {
         @Bindable var model = model
-        WorkspaceNavigation(selection: $selected) { selection in
+        WorkspaceNavigation(selection: $model.route.vaultItem, sidebarInitiallyVisible: true) { selection in
             VStack(spacing: 0) {
                 VaultBrowseBar(filtering: $filtering)
                 List(selection: selection) {
+                    Group {
                     if model.vaultQueryIsCurrent {
                         ForEach(model.vault, id: \.id) { item in
                             NavigationLink(value: item.id) { VaultRow(item: item) }
                                 .compactObjectRow().accessibilityIdentifier("vault.item.\(item.id)")
+                                .swipeActions { if item.kind == "login" { copyActions(item) } }
+                                .contextMenu { if item.kind == "login" { copyActions(item) } }
                         }
                     }
                     if model.loadingVault || !model.vaultQueryIsCurrent && !model.vaultFailed {
@@ -29,14 +32,15 @@ struct VaultView: View {
                         Button("Retry") { Task { await model.loadVault() } }.accessibilityIdentifier("vault.retry")
                     } else if model.vaultLoaded && model.vaultQueryIsCurrent && model.vault.isEmpty && !model.loadingVault { empty }
                     if model.vaultQueryIsCurrent && model.vaultHasMore {
-                        Button("Load more") { Task { await model.loadVault(more: true) } }
-                            .disabled(model.loadingVault).accessibilityIdentifier("vault.more")
+                        LoadMoreRow(working: model.loadingVault, trigger: model.vault.count) { await model.loadVault(more: true) }
+                            .accessibilityIdentifier("vault.more")
                     }
+                    }.plainListRows(selectable: selection != nil)
                 }.listStyle(.plain).refreshable { await model.synchronize() }
             }.privateScreen().navigationTitle("Vault")
                 .searchable(text: $model.search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search your vault")
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) { ApprovalButton() }
+                    ToolbarItem(placement: .topBarLeading) { ActivityButton() }
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button("Add item", systemImage: "plus") { add() }.accessibilityIdentifier("vault.add").keyboardShortcut("n", modifiers: .command)
                         Menu("Vault tools", systemImage: "ellipsis.circle") {
@@ -44,7 +48,7 @@ struct VaultView: View {
                             NavigationLink("Import secret package") { SecretPackageImportView() }
                             NavigationLink("Shared snapshots") { SecretSharesView() }
                             NavigationLink("Local security review") { SecretHealthView() }
-                            NavigationLink("Password AutoFill") { SystemExportsView() }
+                            NavigationLink("Password AutoFill") { SystemExportsView(section: .autoFill) }
                             NavigationLink("Activity on this device") { SecretActivityView() }
                             Button("Trash", systemImage: "trash") { trash = true }
                         }
@@ -59,10 +63,18 @@ struct VaultView: View {
             else { ContentUnavailableView("Select a secret", image: AppGlyph.vault.assetName,
                 description: Text("Your hidden fields stay concealed until you choose to reveal them.")) }
         }
-        .onChange(of: selected) { _, value in if value != nil { model.activity() } }
+        .onChange(of: model.route.vaultItem) { _, value in if value != nil { model.activity() } }
         .sheet(item: $editing) { target in NavigationStack { VaultEditor(target: target) } }
         .sheet(isPresented: $trash) { NavigationStack { VaultTrashView() } }
         .sheet(isPresented: $filtering) { NavigationStack { VaultFiltersView() } }
+        .confirmationDialog("Copy this field?", isPresented: Binding(get: { copyingPassword != nil }, set: { if !$0 { copyingPassword = nil } }), titleVisibility: .visible) {
+            Button("Copy for 30 seconds") { if let item = copyingPassword { Task { await model.copyVaultField(item, field: "password") } } }
+        } message: { Text("Copies stay on this device and expire within 30 seconds.") }
+    }
+
+    @ViewBuilder private func copyActions(_ item: VaultItem) -> some View {
+        Button("Copy password", systemImage: "key") { copyingPassword = item }.tint(Theme.forest)
+        Button("Copy username", systemImage: "person") { Task { await model.copyVaultField(item, field: "username") } }
     }
 
     @ViewBuilder private var empty: some View {
@@ -136,11 +148,6 @@ private struct VaultBrowseBar: View {
                 AppGlyph.vaultItem(value).image.resizable().scaledToFit().frame(width: 17, height: 17).accessibilityHidden(true)
             } else { Image(systemName: symbol) }
             Text(title)
-            if model.vaultLoaded && model.contentSync?.initialized == true {
-                Text(model.vaultCounts.count(value).formatted()).font(.caption.monospacedDigit())
-                    .opacity(model.vaultCountsAreCurrent ? 1 : 0)
-                    .accessibilityHidden(!model.vaultCountsAreCurrent)
-            }
         }.id(value).accessibilityIdentifier("vault.scope.\(value)")
     }
 }

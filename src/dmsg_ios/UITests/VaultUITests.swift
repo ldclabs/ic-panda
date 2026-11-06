@@ -83,32 +83,53 @@ final class VaultUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["vault.detail.title"].label, "GitHub")
     }
 
-    func testOTPExpiresAfterCopyingAnotherField() {
+    func testOTPStaysCurrentWithoutAskingAndOtherFieldsCopyDirectly() {
         let app = launch()
         let row = app.buttons["vault.item.fixture-rich-0"]
         for _ in 0..<3 where !row.isHittable { app.swipeUp() }
         row.tap()
-        let reveal = app.buttons["vault.reveal.otp"]
-        for _ in 0..<3 where !reveal.isHittable { app.swipeUp() }
-        reveal.tap(); app.buttons["Reveal"].firstMatch.tap()
         let code = app.staticTexts["vault.value.otp"]
+        for _ in 0..<3 where !code.isHittable { app.swipeUp() }
         let visible = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1 2 3 4 5 6"), object: code)
-        XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 3), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 5), .completed)
+        XCTAssertFalse(app.buttons["vault.reveal.otp"].exists)
+        app.buttons["vault.copy.otp"].tap()
+        XCTAssertFalse(app.buttons["Copy for 30 seconds"].exists)
         let copy = app.buttons["vault.copy.username"]
         if !copy.isHittable { app.swipeDown() }
-        copy.tap(); app.buttons["Copy for 30 seconds"].tap()
+        copy.tap()
+        XCTAssertFalse(app.buttons["Copy for 30 seconds"].exists)
+        // The fixture's code lasts two seconds, and a new one replaces it.
+        sleep(3)
         if !code.isHittable { app.swipeUp() }
-        let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Hidden value"), object: code)
-        XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 8), .completed)
-        capture(app, "OTP expires independently of copying a different field")
+        XCTAssertEqual(code.value as? String, "1 2 3 4 5 6")
+        capture(app, "OTP stays current and copies without asking")
+    }
+
+    func testOneConfirmationCoversTheItemForThirtySeconds() {
+        let app = launch()
+        app.buttons["vault.item.fixture-github"].tap()
+        let copy = app.buttons["vault.copy.password"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 5)); copy.tap()
+        let confirm = app.buttons["Copy for 30 seconds"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        capture(app, "Sensitive copy asks near its button")
+        confirm.tap()
+        XCTAssertTrue(confirm.waitForNonExistence(timeout: 5))
+        app.buttons["vault.reveal.password"].tap()
+        let value = app.staticTexts["vault.value.password"]
+        let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: value)
+        XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 5), .completed)
+        XCTAssertFalse(app.buttons["Reveal"].exists)
     }
 
     func testDeletionLeavesNoEditableDetail() {
         let app = launch()
         app.buttons["vault.item.fixture-github"].tap()
+        let more = app.buttons["vault.detail.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5)); more.tap()
         let trash = app.buttons["vault.detail.trash"]
-        for _ in 0..<5 where !trash.isHittable { app.swipeUp() }
-        trash.tap()
+        XCTAssertTrue(trash.waitForExistence(timeout: 5)); trash.tap()
         app.sheets.buttons["Move to Trash"].tap()
         XCTAssertTrue(app.buttons["vault.scope.all"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["vault.item.fixture-github"].exists)
@@ -157,7 +178,7 @@ final class VaultUITests: XCTestCase {
         app.buttons["vault.item.fixture-github"].tap()
         let copy = app.buttons["vault.copy.username"]
         XCTAssertTrue(copy.waitForExistence(timeout: 5)); copy.tap()
-        app.buttons["Copy for 30 seconds"].tap()
+        XCTAssertFalse(app.buttons["Copy for 30 seconds"].exists)
         let notice = app.staticTexts.matching(identifier: "workspace.notice")
         XCTAssertTrue(notice.firstMatch.waitForExistence(timeout: 5))
         XCTAssertEqual(notice.count, 1)

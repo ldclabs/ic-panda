@@ -76,6 +76,8 @@
 	<string>Perbualan aktif</string>
 	<key>Active links</key>
 	<string>Pautan aktif</string>
+	<key>Activity</key>
+	<string>Aktiviti</string>
 	<key>Activity on this device</key>
 	<string>Aktiviti pada peranti ini</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>Peranti yang dibenarkan</string>
 	<key>Authorized devices</key>
 	<string>Peranti yang dibenarkan</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>AutoIsi hanya menerima item log masuk yang anda pilih dan memerlukan pengesahan sistem secara berasingan daripada ruang kerja. Nama pengguna dan nama tapak web mungkin muncul dalam cadangan sistem.</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>Autoisi hanya menerima item log masuk yang anda pilih dan memerlukan pengesahan sistem secara berasingan daripada ruang kerja. Semasa dMsg dibuka dan tidak dikunci, syot kilat mengikut perubahan item tersebut; jika tidak dikemas kini, ia tamat tempoh selepas 24 jam. Nama pengguna dan nama laman web mungkin muncul dalam cadangan sistem.</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>Muat turun latar belakang</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Penandatanganan latar belakang dan keupayaan ejen pemastautin adalah berasingan daripada kunci ruang kerja ini.</string>
+	<key>Background transfer</key>
+	<string>Pemindahan latar belakang</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>Pemindahan latar belakang bermula. Semak kemajuannya dalam Pemindahan.</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>Semak penghantaran</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Semak panjang medan dan namakan pautan HTTPS.</string>
+	<key>Check original result</key>
+	<string>Semak hasil asal</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Semak rujukan projek dan sebarang salinan yang telah dihantar.</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>Salin pautan</string>
 	<key>Copy pairing request</key>
 	<string>Salin permintaan pasangan</string>
+	<key>Copy password</key>
+	<string>Salin kata laluan</string>
 	<key>Copy reference</key>
 	<string>Salin rujukan</string>
 	<key>Copy request</key>
 	<string>Salin permintaan</string>
 	<key>Copy this field?</key>
 	<string>Salin medan ini?</string>
+	<key>Copy username</key>
+	<string>Salin nama pengguna</string>
 	<key>Cosign on this device</key>
 	<string>Tandatangan bersama pada peranti ini</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>Buat cadangan pemindahan</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Cipta ruang kerja anda yang disulitkan untuk mula menyimpan kata laluan, nota dan fail.</string>
+	<key>Created</key>
+	<string>Dicipta</string>
 	<key>Creating %lld of %lld…</key>
 	<string>Membuat %lld daripada %lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>Draf</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>Draf dan surat dihantar disimpan pada peranti ini.</string>
+	<key>Due %@</key>
+	<string>Tarikh akhir: %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>Padang</string>
 	<key>File</key>
 	<string>Fail</string>
+	<key>File details</key>
+	<string>Butiran fail</string>
 	<key>File name</key>
 	<string>Nama fail</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>Nama folder</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>Untuk kunci yang tidak disimpan oleh peranti ini, seperti kunci pada peranti yang hilang. Setelah ahli meluluskan, kunci baharu berkuat kuasa 24 jam kemudian.</string>
+	<key>For this site</key>
+	<string>Untuk tapak ini</string>
 	<key>Freeze this wallet?</key>
 	<string>Bekukan dompet ini?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>Kunci persediaan atau URL otpauth tidak sah.</string>
 	<key>Inventory fingerprint</key>
 	<string>Cap jari inventori</string>
+	<key>Invitation created</key>
+	<string>Jemputan dicipta</string>
 	<key>Invite member</key>
 	<string>Jemput ahli</string>
 	<key>Invite to a conversation</key>
@@ -1229,6 +1251,8 @@
 	<key>Locking pauses transfers; unlocking resumes them.</key>
 	<string>Penguncian menjeda pemindahan; buka kunci untuk menyambung.</string>
 	<key>Login identities</key>
+	<string>Identiti log masuk</string>
+	<key>Login identity</key>
 	<string>Identiti log masuk</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Urus langganan Apple</string>
@@ -1546,6 +1570,8 @@
 	<string>Lain-lain</string>
 	<key>Other devices</key>
 	<string>Peranti lain</string>
+	<key>Other logins</key>
+	<string>Log masuk lain</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>Jika tidak, dMsg terkunci selepas 3 minit. Kunci peranti sentiasa mengunci ruang kerja anda dengan segera.</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>Tampal permintaan mengikat</string>
 	<key>Paste enrollment request</key>
 	<string>Tampalkan permintaan pendaftaran</string>
+	<key>Paste image</key>
+	<string>Tampal imej</string>
 	<key>Paste invitation</key>
 	<string>Tampal jemputan</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>Tampal pautan pakej rahsia</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>Tampal permintaan yang dipaparkan oleh peranti baharu, semak apa yang dimintanya, kemudian sahkan ID perantinya.</string>
+	<key>Pause notifications</key>
+	<string>Jeda pemberitahuan</string>
 	<key>Pause this agent</key>
 	<string>Jeda ejen ini</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>Rancang</string>
 	<key>Plan and usage</key>
 	<string>Pelan dan penggunaan</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>Pelan tidak boleh ditukar dalam versi apl ini. Pelan semasa dan penggunaan anda kekal tersedia.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Plus dan ke atas boleh meminta fail daripada sesiapa melalui pautan. Tiada akaun diperlukan, setiap orang hanya melihat kirimannya, dan hanya anda boleh membuka fail.</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>Dibeli</string>
 	<key>Purchases are not currently available.</key>
 	<string>Pembelian tidak tersedia pada masa ini.</string>
+	<key>Purpose</key>
+	<string>Tujuan</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Pemberitahuan tolak tidak didayakan dalam binaan ini. Buka dMsg untuk menyegerakkan.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Buka kunci pantas membuka ruang kerja. Pengikatan mengehadkan peranti yang boleh membukanya. Kelulusan perkakasan melindungi tindakan akaun sensitif.</string>
+	<key>Quick unlock with %@</key>
+	<string>Buka kunci pantas dengan %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Buka kunci cepat dengan pengesahan sistem</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>Imbas jemputan komputer</string>
 	<key>Scan device request</key>
 	<string>Imbas permintaan peranti</string>
+	<key>Scan invitation</key>
+	<string>Imbas jemputan</string>
 	<key>Scopes, one per line</key>
 	<string>Skop, satu setiap baris</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>Pilih item log masuk</string>
 	<key>Select non-duplicates</key>
 	<string>Pilih rekod bukan pendua</string>
+	<key>Select text</key>
+	<string>Pilih teks</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>Pilih sehingga 1,000 rekod bagi setiap import.</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>Fail yang dipilih</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Bahagian yang dipilih menggunakan versi bercanggah. Bahagian lain mengekalkan versi semasa.</string>
+	<key>Send</key>
+	<string>Hantar</string>
 	<key>Send device request</key>
 	<string>Hantar permintaan peranti</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>Akaun penghantar</string>
 	<key>Sending</key>
 	<string>Menghantar</string>
+	<key>Sent</key>
+	<string>Dihantar</string>
 	<key>Sent letters</key>
 	<string>Surat yang dihantar</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>Tandatangan yang dikumpul</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Tandatangan daripada cosigner %@ tidak lagi sepadan dengan kunci semasa mereka dan diketepikan; mereka perlu menandatangani semula.</string>
+	<key>Size</key>
+	<string>Saiz</string>
 	<key>Skipped</key>
 	<string>Dilangkau</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>Isih</string>
 	<key>Sort by</key>
 	<string>Isih mengikut</string>
+	<key>Source</key>
+	<string>Sumber</string>
 	<key>Source address</key>
 	<string>Alamat sumber</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>Mulakan senarai semak</string>
 	<key>Start sending</key>
 	<string>Mula menghantar</string>
+	<key>Statement</key>
+	<string>Pernyataan</string>
 	<key>Status</key>
 	<string>Status</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>Teg, dipisahkan dengan koma</string>
 	<key>Take photo or video</key>
 	<string>Ambil foto atau video</string>
+	<key>Technical details</key>
+	<string>Butiran teknikal</string>
 	<key>Terms of service</key>
 	<string>Syarat perkhidmatan</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>Permintaan tidak tersedia untuk peranti ini. Ia mungkin telah tamat tempoh atau sudah dikendalikan.</string>
 	<key>The required content key is not available yet.</key>
 	<string>Kunci kandungan yang diperlukan belum tersedia lagi.</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>Hasil belum disahkan. Semak semula sebelum mencuba lagi.</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>Keputusan tidak disahkan. Selaraskan permintaan ini sebelum mencuba semula.</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>Ruang kerja ini dibuat pada iPhone lain dan disalin ke sini, contohnya oleh sandaran yang dipulihkan atau pemindahan peranti. Untuk melindungi akaun anda, ia tidak pernah bertindak sebagai peranti lama: ia tidak dibuka kunci di sini, dan tiada apa-apa di dalamnya dipadam.</string>
 	<key>Title</key>
 	<string>Tajuk</string>
+	<key>To device</key>
+	<string>Ke peranti</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>Untuk menggantikan iPhone lama, ketepikan salinan itu dan log masuk, kemudian pilih Gantikan iPhone lama pada salinan; setelah iPhone ini menyertai, import fail daripada salinan itu dalam Peranti.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>Dasar buka kunci</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>Buka kunci iPhone ini untuk membuka dMsg.</string>
+	<key>Unlock with %@</key>
+	<string>Buka kunci dengan %@</string>
 	<key>Unlock with system authentication</key>
 	<string>Buka kunci dengan pengesahan sistem</string>
 	<key>Unlock workspace</key>
 	<string>Buka kunci ruang kerja</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Buka kunci ruang kerja dMsg anda</string>
+	<key>Unmute notifications</key>
+	<string>Nyahbisukan pemberitahuan</string>
 	<key>Unread messages</key>
 	<string>Belum dibaca</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>Pihak berkuasa perwakilan tidak terhad</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>Maksimum 8 skop dan 4 khalayak. Gunakan asal HTTPS atau ID Ejen; kad bebas tidak dibenarkan.</string>
+	<key>Update AutoFill</key>
+	<string>Kemas kini Autoisi</string>
+	<key>Update Files app copies</key>
+	<string>Kemas kini salinan app Fail</string>
+	<key>Update conversation keys</key>
+	<string>Kemas kini kunci perbualan</string>
 	<key>Updated</key>
 	<string>dikemas kini</string>
 	<key>Uploading</key>
@@ -2934,6 +3000,8 @@
 	<string>Laporan anda dan sebarang teks yang anda sertakan secara eksplisit akan dihantar kepada pasukan penyederhana. Kandungan dan kunci peribadi lain tidak disertakan.</string>
 	<key>Your reports</key>
 	<string>Laporan anda</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>Peti besi anda disegerakkan secara automatik semasa dMsg dibuka.</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

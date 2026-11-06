@@ -24,7 +24,9 @@ extension SessionModel {
         filesLocalOnly = nil; filesPendingImports = 0; filesSharedImports = 0; fileOperations = []
     }
 
-    func loadFiles() async {
+    /// A quiet reload tells views about the library only if the listing changed;
+    /// after a change of its own, a caller has them read everything again.
+    func loadFiles(quiet: Bool = false) async {
         guard unlocked else { return }
         let stamp = epoch, key = filesQueryKey, folder = filesFolder, query = filesSearch, request = UUID()
         filesRequest = request; filesLoading = true; filesFailed = false
@@ -41,7 +43,9 @@ extension SessionModel {
             value = try await readFileListing(folder: folder, query: query)
             #endif
             guard stamp == epoch, key == filesQueryKey, filesRequest == request, !Task.isCancelled else { return }
-            library = value; filesLoaded = true; filesQuery = key; filesRevision &+= 1
+            if !quiet || library != value { filesRevision &+= 1 }
+            library = value; filesLoaded = true; filesQuery = key
+            if query.isEmpty { filesListings[folder] = value }
             await loadFileSummary()
         } catch {
             guard stamp == epoch, key == filesQueryKey, filesRequest == request, !Task.isCancelled else { return }
@@ -51,11 +55,10 @@ extension SessionModel {
 
     private func readFileListing(folder: String, query: String) async throws -> LibraryListing {
         guard let engine else { throw CancellationError() }
-        _ = try await engine.maintainFiles()
-        let listing: LibraryListing = try decode(try await engine.files(folder: folder))
+        let listing: LibraryListing = try await decodeInBackground(try await engine.files(folder: folder))
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if query.isEmpty { return listing }
-        let matches: [LibraryFile] = try decode(try await engine.searchFiles(query: query, folder: folder == "root" ? nil : folder))
+        let matches: [LibraryFile] = try await decodeInBackground(try await engine.searchFiles(query: query, folder: folder == "root" ? nil : folder))
         return LibraryListing(folder: listing.folder,
                               folders: listing.folders.filter { $0.name.localizedCaseInsensitiveContains(query) }, files: matches)
     }
@@ -75,6 +78,19 @@ extension SessionModel {
         }.value
         guard stamp == epoch, !Task.isCancelled else { return }
         filesPendingImports = counts.0; filesSharedImports = counts.1
+    }
+
+    /// Shares saved while dMsg was away announce themselves once per launch.
+    func announceIncomingShares() {
+        #if DEBUG
+        if uiTesting { return }
+        #endif
+        guard unlocked, let account = session?.account, let entries = try? IncomingShares().list() else { return }
+        let hash = IncomingShares.accountHash(account)
+        let waiting = entries.filter { $0.accountHash == nil || $0.accountHash == hash }.map(\.id)
+        guard !waiting.allSatisfy(announcedShares.contains) else { return }
+        announcedShares.formUnion(waiting)
+        incomingSharesArrived &+= 1
     }
 
     func fileDetails(_ id: String) async throws -> LibraryDetails {

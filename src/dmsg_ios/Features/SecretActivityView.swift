@@ -23,12 +23,12 @@ struct SecretActivityView: View {
                     }
                     if entry.state == "awaiting_user" { Button("Cancel pending request", role: .destructive) { cancelling = entry }.disabled(working) }
                     if entry.state == "lost" { Button("Record manual review") { reviewing = entry }.disabled(working) }
-                }.padding(.vertical, 4)
+                }.buttonStyle(.borderless).padding(.vertical, 4)
             }
             if !loaded { ProgressView() }
             else if entries.isEmpty && failed { Button("Retry loading activity") { Task { await load(reset: true) } } }
             else if entries.isEmpty { ContentUnavailableView("No activity on this device", systemImage: "clock") }
-            if next != nil { Button("Load earlier activity") { Task { await load(reset: false) } }.disabled(working) }
+            if next != nil { LoadMoreRow(title: "Load earlier activity", working: working, trigger: entries.count) { await load(reset: false) } }
         }.privateScreen().navigationTitle("Activity on this device").navigationBarTitleDisplayMode(.inline).task { await load(reset: true) }.refreshable { await load(reset: true) }
             .confirmationDialog("Cancel this pending request?", isPresented: Binding(get: { cancelling != nil }, set: { if !$0 { cancelling = nil } })) {
                 Button("Cancel request", role: .destructive) { if let entry = cancelling { Task { await act(entry, reviewed: false) } } }

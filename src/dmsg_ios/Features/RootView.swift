@@ -2,8 +2,13 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(SessionModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showApprovals = false
     @State private var showIncoming = false
+    @State private var rootBottomInset: CGFloat = 0
+    /// Toasts sit just above whatever the active screen keeps at its bottom.
+    private var bottomInset: CGFloat { (model.noticeHosts.isEmpty ? rootBottomInset : model.screenBottomInset) + 8 }
+    private var unreadMessages: Int { model.channels.reduce(0) { $0 + ($1.muted ? 0 : Int(clamping: $1.unread)) } }
 
     var body: some View {
         @Bindable var model = model
@@ -18,13 +23,13 @@ struct RootView: View {
                     if model.unlocked {
                         TabView(selection: $model.selectedTab) {
                             VaultView().tabItem { Label(AppTab.vault.title, glyph: AppTab.vault.icon) }.tag(AppTab.vault)
-                            MessagesView().tabItem { Label(AppTab.messages.title, glyph: AppTab.messages.icon) }.tag(AppTab.messages)
+                            MessagesView().tabItem { Label(AppTab.messages.title, glyph: AppTab.messages.icon) }.tag(AppTab.messages).badge(unreadMessages)
                             FilesView().tabItem { Label(AppTab.files.title, glyph: AppTab.files.icon) }.tag(AppTab.files)
-                            NavigationStack { AccountView() }.tabItem { Label(AppTab.account.title, glyph: AppTab.account.icon) }.tag(AppTab.account)
+                            AccountWorkspace().tabItem { Label(AppTab.account.title, glyph: AppTab.account.icon) }.tag(AppTab.account)
                         }
-                        .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refresh() } }
+                        .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refreshSelectedTab() } }
                         .environment(\.openApprovals, { showApprovals = true })
-                        .sheet(isPresented: $showApprovals) { NavigationStack { ApprovalsView() } }
+                        .sheet(isPresented: $showApprovals) { NavigationStack { ApprovalsView(showsDone: true) } }
                         .id(model.viewGeneration)
                     } else if model.session?.state == "moved" { NavigationStack { MovedView() } }
                     else { NavigationStack { AccessView() } }
@@ -37,8 +42,8 @@ struct RootView: View {
                         Image(systemName: plan.category == .security ? "shield" : "bell").foregroundStyle(Theme.forest)
                         Text(plan.body).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
                         Button("Open") { model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target); model.notifications.presented = nil }
-                    }.padding(14).background(Theme.surface, in: RoundedRectangle(cornerRadius: 14)).padding(.horizontal, 16).padding(.bottom, 82)
-                }
+                    }.padding(14).background(Theme.surface, in: RoundedRectangle(cornerRadius: 14)).padding(.horizontal, 16).padding(.bottom, bottomInset)
+                }.ignoresSafeArea(.all, edges: .bottom)
                 .accessibilityIdentifier("notifications.toast")
                 .task(id: plan.id) {
                     try? await Task.sleep(for: .seconds(6))
@@ -51,13 +56,15 @@ struct RootView: View {
                     .accessibilityLabel("Private workspace hidden")
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { rootBottomInset = $0 }
         .overlay(alignment: .bottom) {
-            WorkspaceFeedback()
-            if model.noticeHosts.isEmpty { TransientNotice().padding(.bottom, model.unlocked ? 82 : 12) }
+            Group {
+                WorkspaceFeedback(bottomInset: bottomInset)
+                if model.noticeHosts.isEmpty { TransientNotice().padding(.bottom, bottomInset) }
+            }.ignoresSafeArea(.all, edges: .bottom)
         }
-        .alert("dMsg", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
-            Button("OK", role: .cancel) { model.error = nil }
-        } message: { Text(model.error ?? "") }
+        .workspaceAlert(presenting: model.noticeHosts.isEmpty)
+        .background(TouchActivityProbe { model.activity() })
         .sheet(item: $connect.pending) { link in NavigationStack { ConnectLandingView(link: link) } }
         .sheet(item: $model.reminderEntry) { entry in NavigationStack { RemindersView(entry: entry) } }
         .sheet(item: Binding(get: { model.unlocked ? channelNavigation.pending : nil }, set: { if model.unlocked { channelNavigation.pending = $0 } })) { invitation in
@@ -67,7 +74,9 @@ struct RootView: View {
         .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView() }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
         .task { routeIntent() }
         .onChange(of: IntentNavigation.shared.destination) { _, _ in routeIntent() }
-        .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent() } }
+        .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent(); model.announceIncomingShares() } }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { model.announceIncomingShares() } }
+        .onChange(of: model.incomingSharesArrived) { _, _ in showIncoming = true }
         .onChange(of: model.epoch) { _, _ in showApprovals = false; showIncoming = false }
     }
     private func routeIntent() {
@@ -75,11 +84,27 @@ struct RootView: View {
         IntentNavigation.shared.destination = nil
         switch destination {
         case .vault: model.selectedTab = .vault
+        case .messages: model.selectedTab = .messages
+        case .files: model.selectedTab = .files
         case .approvals: model.selectedTab = .account; showApprovals = true
         case .imports: model.selectedTab = .files; showIncoming = true
         }
     }
 
+}
+
+/// On a wide screen the account's pages open beside its list.
+private struct AccountWorkspace: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    var body: some View {
+        if sizeClass == .compact { NavigationStack { AccountView() } }
+        else {
+            NavigationSplitView { AccountView() } detail: {
+                ContentUnavailableView("Account", image: AppGlyph.account.assetName)
+            }.navigationSplitViewStyle(.balanced)
+        }
+    }
 }
 
 private struct ApprovalActionKey: EnvironmentKey { static let defaultValue: @MainActor () -> Void = {} }
@@ -90,20 +115,46 @@ extension EnvironmentValues {
     }
 }
 
-struct ApprovalButton: View {
+/// One toolbar entry for what waits on the person: approvals, reminders and sync.
+/// Its place never changes, so status transitions do not move the toolbar.
+struct ActivityButton: View {
     @Environment(SessionModel.self) private var model
-    @Environment(\.openApprovals) private var open
+    @Environment(\.openApprovals) private var openApprovals
+    @State private var showingStatus = false
+
     var body: some View {
-        HStack {
-        WorkspaceStatusButton()
-        ReminderButton()
-        Button(action: open) {
-            Label("Approvals", glyph: .approvals)
-                .overlay(alignment: .topTrailing) {
-                    if (model.session?.approvalsWaiting ?? 0) > 0 { Circle().fill(.orange).frame(width: 7, height: 7) }
-                }
-        }.accessibilityIdentifier("approvals.open")
-        }
+        TimelineView(.periodic(from: .now, by: 30)) { timeline in
+            let status = WorkspaceStatus.current(model, at: timeline.date)
+            let approvals = model.session?.approvalsWaiting ?? 0
+            let reminders = model.notifications.status?.counts
+            let waiting = approvals > 0 || (reminders?.actionable ?? 0) > 0 || reminders?.unverified == true || status != nil
+            Menu {
+                Button(action: openApprovals) {
+                    Text("Approvals")
+                    if approvals > 0 { Text(approvals.formatted()) }
+                    AppGlyph.approvals.image
+                }.accessibilityIdentifier("approvals.open")
+                Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: {
+                    Text(NoticeCopy.text("noticeTitle"))
+                    if let count = reminders?.actionable, count > 0 { Text(count.formatted()) }
+                    Image(systemName: "clock")
+                }.accessibilityIdentifier("reminders.open")
+                Button { showingStatus = true } label: {
+                    Text(status?.title ?? "Account synchronization")
+                    if let count = status?.count, count > 0 { Text(count.formatted()) }
+                    Image(systemName: status?.symbol ?? "arrow.triangle.2.circlepath")
+                }.accessibilityIdentifier("workspace.status")
+            } label: {
+                Image(systemName: status?.urgent == true ? status?.symbol ?? "bell" : "bell")
+                    .foregroundStyle(status?.urgent == true ? .orange : Theme.forest)
+                    .frame(minWidth: 28, minHeight: 44)
+                    .overlay(alignment: .topTrailing) {
+                        if waiting { Circle().fill(.orange).frame(width: 7, height: 7).padding(.top, 8).accessibilityHidden(true) }
+                    }
+            }.accessibilityLabel(status?.urgent == true ? status?.title ?? "Activity" : "Activity")
+                .accessibilityValue(waiting ? (approvals + (reminders?.actionable ?? 0)).formatted() : "")
+                .accessibilityIdentifier("activity.open")
+        }.sheet(isPresented: $showingStatus) { NavigationStack { WorkspaceStatusView() } }
     }
 }
 
@@ -158,7 +209,7 @@ struct AccessView: View {
                         Button { Task {
                             await model.fastUnlock()
                         } } label: {
-                            AccessActionLabel("Unlock with system authentication", symbol: "lock.open", working: model.unlocking)
+                            AccessActionLabel(Biometry.unlockTitle, symbol: "lock.open", working: model.unlocking)
                         }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("login.unlock")
                     }
                     if needsSetup {
@@ -185,7 +236,7 @@ struct AccessView: View {
                         await model.login()
                     } } label: {
                         AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle", working: signingIn)
-                    }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsSetup && !needsAuthorization))
+                    }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsSetup && !needsAuthorization, quiet: fastUnlock || needsSetup || needsAuthorization))
                         .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
                 }.disabled(model.busy)
                 NoticeBar(text: guidance)
@@ -194,7 +245,13 @@ struct AccessView: View {
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
         }.frame(maxWidth: .infinity).background(Theme.paper).navigationTitle("dMsg")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .primaryAction) { ReminderButton() } }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    if model.session?.account != nil, (model.notifications.status?.counts.actionable ?? 0) > 0 || model.notifications.status?.counts.unverified == true {
+                        ReminderButton()
+                    }
+                }
+            }
             .task(id: model.session?.generation) { await loadCopies() }
     }
 
@@ -315,6 +372,8 @@ private struct AccessFooter: View {
 
     @ViewBuilder private var links: some View {
         LanguageSettingsLink(iconSize: 14).frame(minHeight: 44)
+        NavigationLink(NoticeCopy.text("noticeSettings")) { NotificationSettingsView() }
+            .frame(minHeight: 44).accessibilityIdentifier("access.notifications")
         NavigationLink("Privacy policy") { PrivacyPolicyView() }
             .frame(minHeight: 44).accessibilityIdentifier("access.privacy")
     }
@@ -340,11 +399,13 @@ private struct AccessActionLabel: View {
 
 private struct AccessActionStyle: ViewModifier {
     let prominent: Bool
+    var quiet = false
 
     @ViewBuilder
     func body(content: Content) -> some View {
         Group {
             if prominent { content.buttonStyle(.borderedProminent) }
+            else if quiet { content.buttonStyle(.borderless) }
             else { content.buttonStyle(.bordered) }
         }.controlSize(.large).buttonBorderShape(.roundedRectangle(radius: 16))
     }

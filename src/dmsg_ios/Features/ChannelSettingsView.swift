@@ -16,8 +16,7 @@ struct ChannelSettingsView: View {
     @State private var failed = false
     @State private var scope: UInt64 = 0
     @State private var visible = true
-    private struct Draft: Codable { let name: String; let muted: Bool }
-    private var dirty: Bool { details.map { name != $0.name || muted != $0.muted } ?? false }
+    private var dirty: Bool { details.map { name != $0.name } ?? false }
     struct Member: Decodable { let role: String; let canRotate: Bool }
     struct Ledger: Decodable { let members: [String: Member]; let status: String }
     struct Details: Decodable {
@@ -32,7 +31,7 @@ struct ChannelSettingsView: View {
             SettingsLoadStatus(loading: loading, failed: failed) { Task { await load() } }
             Section("Conversation") {
                 SettingsField("Conversation name", counter: "\(name.count) / 100") { TextField("Conversation name", text: $name) }
-                Toggle("Mute notifications", isOn: $muted)
+                Toggle("Mute notifications", isOn: Binding(get: { muted }, set: { value in muted = value; Task { await setMuted(value) } }))
                 Menu(NoticeCopy.text("noticeLater")) {
                     Button(NoticeCopy.text("noticePause15")) { Task { await mute(until: NotificationTime.now + 900_000) } }
                     Button(NoticeCopy.text("noticePauseHour")) { Task { await mute(until: NotificationTime.now + 3_600_000) } }
@@ -44,10 +43,12 @@ struct ChannelSettingsView: View {
                 if details?.notificationPending == true { NoticeBar(text: NoticeCopy.text("noticePending")) }
                 if details?.notificationConflict == true {
                     Button("Retry") { Task {
-                        if muted { await mute(until: details?.mutedUntil) } else { await save() }
+                        if muted { await mute(until: details?.mutedUntil) } else { await setMuted(false) }
                     } }.disabled(working)
                 }
-                SettingsAction("Save settings", prominent: true) { Task { await save() } }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || name.count > 100 || working || !dirty)
+                if dirty {
+                    SettingsAction("Save name", prominent: true) { Task { await save() } }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || name.count > 100 || working)
+                }
             }.disabled(details == nil || working)
             Section("Members") {
                 ForEach((details?.ledger?.members ?? [:]).keys.sorted(), id: \.self) { account in
@@ -66,12 +67,13 @@ struct ChannelSettingsView: View {
                         }
                         if (myRole == "owner" || myRole == "admin" && ["member", "publisher"].contains(details?.ledger?.members[account]?.role)) && account != model.session?.account && details?.ledger?.status != "archived" {
                             Button("Remove member", role: .destructive) { selectedAction = Change(action: "remove", account: account, role: nil) }
+                                .buttonStyle(.borderless)
                         }
                     }
                 }
             }
             if details?.ledger?.status != "archived" && (["owner", "admin"].contains(myRole) || details?.ledger?.members[model.session?.account ?? ""]?.canRotate == true) {
-                Button("Rotate conversation keys") { selectedAction = Change(action: "rekey", account: nil, role: nil) }
+                Button("Update conversation keys") { selectedAction = Change(action: "rekey", account: nil, role: nil) }
             }
             if myRole == "owner" && details?.ledger?.status != "archived" {
                 Button("Archive conversation", role: .destructive) { selectedAction = Change(action: "archive", account: nil, role: nil) }
@@ -80,16 +82,16 @@ struct ChannelSettingsView: View {
             }
             if let pendingChange { Button("Retry original change") { Task { await change(pendingChange) } } }
             ForEach(pending) { item in
-                Button("Reconcile original operation") { Task {
+                Button("Check original result") { Task {
                     do { _ = try await model.engine?.resumeChannelOperation(channel: channel, key: item.key); await load() }
                     catch { model.report(error) }
                 } }
             }
         }.disabled(working).privateScreen().navigationTitle("Conversation settings").confirmLeavingDraft(dirty)
-            .task { scope = model.viewGeneration; await load(); if let draft = model.formDraft("channel:" + channel, as: Draft.self) { name = draft.name; muted = draft.muted } }
+            .task { scope = model.viewGeneration; await load(); if let draft = model.formDraft("channel:" + channel, as: String.self) { name = draft } }
             .refreshable { await load() }
             .onAppear { visible = true }
-            .onDisappear { visible = false; if dirty { model.keepFormDraft("channel:" + channel, value: Draft(name: name, muted: muted), generation: scope) } }
+            .onDisappear { visible = false; if dirty { model.keepFormDraft("channel:" + channel, value: name, generation: scope) } }
             .confirmationDialog(actionTitle, isPresented: Binding(get: { selectedAction != nil }, set: { if !$0 { selectedAction = nil } }), titleVisibility: .visible) {
                 Button("Confirm change", role: selectedAction?.action == "role" ? nil : .destructive) { if let action = selectedAction { Task { await change(action) } } }
             } message: {
@@ -100,7 +102,7 @@ struct ChannelSettingsView: View {
         switch selectedAction?.action {
         case "remove": String(localized: "Remove member")
         case "role": String(localized: "Change role")
-        case "rekey": String(localized: "Rotate conversation keys")
+        case "rekey": String(localized: "Update conversation keys")
         case "archive": String(localized: "Archive conversation")
         case "leave": String(localized: "Leave conversation")
         default: String(localized: "Apply this conversation change?")
@@ -116,7 +118,8 @@ struct ChannelSettingsView: View {
                 let next: Details = try model.decode(result)
                 let keepInput = editing || dirty
                 details = next
-                if !keepInput { name = next.name; muted = next.muted }
+                if !keepInput { name = next.name }
+                muted = next.muted
                 if let jobs = try await model.engine?.pendingChannelOperations(channel: channel), epoch == model.epoch, !Task.isCancelled { pending = try model.decode(jobs) }
             }
         } catch { if epoch == model.epoch, !Task.isCancelled { failed = true } }
@@ -129,6 +132,20 @@ struct ChannelSettingsView: View {
             guard epoch == model.epoch, !Task.isCancelled else { return }
             await load(); await model.notifications.refresh(model, receive: true)
         } catch { if epoch == model.epoch { model.report(error) } }
+    }
+    private func setMuted(_ value: Bool) async {
+        guard let engine = model.engine, let details, !working else { return }; let epoch = model.epoch
+        working = true; defer { working = false }
+        do {
+            let result = try await engine.channelSettings(channel: channel, name: details.name, muted: value, hidden: details.hidden)
+            guard epoch == model.epoch else { return }
+            let next: Details = try model.decode(result)
+            self.details = next; muted = next.muted
+            await model.loadChannels()
+        } catch {
+            guard epoch == model.epoch else { return }
+            muted = details.muted; model.report(error)
+        }
     }
     private func save() async {
         guard let engine = model.engine, !working else { return }; let epoch = model.epoch

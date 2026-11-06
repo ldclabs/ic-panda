@@ -76,6 +76,8 @@
 	<string>সক্রিয় কথোপকথন</string>
 	<key>Active links</key>
 	<string>সক্রিয় লিঙ্ক</string>
+	<key>Activity</key>
+	<string>কার্যকলাপ</string>
 	<key>Activity on this device</key>
 	<string>এই ডিভাইসে কার্যকলাপ</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>অনুমোদিত ডিভাইস</string>
 	<key>Authorized devices</key>
 	<string>অনুমোদিত ডিভাইস</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>অটোফিল শুধু আপনার বেছে নেওয়া লগইন আইটেমগুলো পায় এবং ওয়ার্কস্পেস থেকে আলাদাভাবে সিস্টেম প্রমাণীকরণ প্রয়োজন। ব্যবহারকারীর নাম ও ওয়েবসাইটের নাম সিস্টেমের পরামর্শে দেখা যেতে পারে।</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>অটোফিল শুধু আপনার বেছে নেওয়া লগইন আইটেম পায় এবং ওয়ার্কস্পেস থেকে আলাদাভাবে সিস্টেম প্রমাণীকরণ প্রয়োজন। dMsg খোলা ও আনলক থাকা অবস্থায় স্ন্যাপশট ওই আইটেমগুলোর পরিবর্তন অনুসরণ করে; আপডেট না হলে ২৪ ঘণ্টা পরে এর মেয়াদ শেষ হয়। ব্যবহারকারীর নাম ও ওয়েবসাইটের নাম সিস্টেমের পরামর্শে দেখা যেতে পারে।</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>পটভূমিতে ডাউনলোড</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>ব্যাকগ্রাউন্ড সাইনিং এবং রেসিডেন্ট এজেন্টের ক্ষমতা এই ওয়ার্কস্পেস লক থেকে আলাদা।</string>
+	<key>Background transfer</key>
+	<string>ব্যাকগ্রাউন্ড ট্রান্সফার</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>ব্যাকগ্রাউন্ড ট্রান্সফার শুরু হয়েছে। স্থানান্তরে এর অগ্রগতি পর্যালোচনা করুন।</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>বিতরণের অবস্থা দেখুন</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>ফিল্ডের দৈর্ঘ্য যাচাই করুন এবং নামযুক্ত HTTPS লিংক ব্যবহার করুন।</string>
+	<key>Check original result</key>
+	<string>মূল ফলাফল দেখুন</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>প্রকল্পের রেফারেন্স এবং ইতিমধ্যে বিতরণ করা কোনো কপি চেক করুন।</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>লিঙ্ক কপি করুন</string>
 	<key>Copy pairing request</key>
 	<string>পেয়ারিং অনুরোধ কপি করুন</string>
+	<key>Copy password</key>
+	<string>পাসওয়ার্ড কপি করুন</string>
 	<key>Copy reference</key>
 	<string>রেফারেন্স কপি করুন</string>
 	<key>Copy request</key>
 	<string>অনুরোধ কপি করুন</string>
 	<key>Copy this field?</key>
 	<string>এই ক্ষেত্রটি অনুলিপি করবেন?</string>
+	<key>Copy username</key>
+	<string>ব্যবহারকারীর নাম কপি করুন</string>
 	<key>Cosign on this device</key>
 	<string>এই ডিভাইসে সহ-স্বাক্ষর করুন</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>স্থানান্তর প্রস্তাব তৈরি করুন</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>পাসওয়ার্ড, নোট এবং ফাইল সংরক্ষণ শুরু করতে আপনার এনক্রিপ্ট করা ওয়ার্কস্পেস তৈরি করুন৷</string>
+	<key>Created</key>
+	<string>তৈরি হয়েছে</string>
 	<key>Creating %lld of %lld…</key>
 	<string>তৈরি হচ্ছে %lld/%lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>খসড়া</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>খসড়া ও পাঠানো চিঠি এই ডিভাইসে সংরক্ষিত থাকে।</string>
+	<key>Due %@</key>
+	<string>নির্ধারিত: %@</string>
 	<key>EVM</key>
 	<string>ইভিএম</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>ক্ষেত্র</string>
 	<key>File</key>
 	<string>ফাইল</string>
+	<key>File details</key>
+	<string>ফাইলের বিবরণ</string>
 	<key>File name</key>
 	<string>ফাইলের নাম</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>ফোল্ডারের নাম</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>এমন কীর জন্য যা এই ডিভাইসে নেই, যেমন হারানো ডিভাইসের কী। সদস্যরা অনুমোদন দেওয়ার ২৪ ঘণ্টা পরে নতুন কী কার্যকর হয়।</string>
+	<key>For this site</key>
+	<string>এই সাইটের জন্য</string>
 	<key>Freeze this wallet?</key>
 	<string>এই মানিব্যাগ ফ্রিজ?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>সেটআপ কী বা otpauth URL সঠিক নয়।</string>
 	<key>Inventory fingerprint</key>
 	<string>ইনভেন্টরি ফিঙ্গারপ্রিন্ট</string>
+	<key>Invitation created</key>
+	<string>আমন্ত্রণ তৈরি হয়েছে</string>
 	<key>Invite member</key>
 	<string>সদস্যকে আমন্ত্রণ জানান</string>
 	<key>Invite to a conversation</key>
@@ -1229,6 +1251,8 @@
 	<key>Locking pauses transfers; unlocking resumes them.</key>
 	<string>লক করলে স্থানান্তর বিরতি নেয়, আনলক করলে আবার শুরু হয়।</string>
 	<key>Login identities</key>
+	<string>লগইন পরিচয়</string>
+	<key>Login identity</key>
 	<string>লগইন পরিচয়</string>
 	<key>Manage Apple subscriptions</key>
 	<string>অ্যাপল সদস্যতা পরিচালনা করুন</string>
@@ -1546,6 +1570,8 @@
 	<string>অন্যান্য</string>
 	<key>Other devices</key>
 	<string>অন্যান্য ডিভাইস</string>
+	<key>Other logins</key>
+	<string>অন্যান্য লগইন</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>অন্যথায়, 3 মিনিট দূরে dMsg লক হয়ে যাবে। ডিভাইস লক সবসময় আপনার কর্মক্ষেত্র অবিলম্বে লক করে।</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>পেস্ট বাঁধাই অনুরোধ</string>
 	<key>Paste enrollment request</key>
 	<string>তালিকাভুক্তির অনুরোধ পেস্ট করুন</string>
+	<key>Paste image</key>
+	<string>ছবি পেস্ট করুন</string>
 	<key>Paste invitation</key>
 	<string>আমন্ত্রণ পেস্ট করুন</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>গোপন প্যাকেজ লিঙ্ক আটকান</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>নতুন ডিভাইসে দেখানো অনুরোধটি পেস্ট করুন, সেটি কী চায় দেখুন, তারপর তার ডিভাইস ID নিশ্চিত করুন।</string>
+	<key>Pause notifications</key>
+	<string>বিজ্ঞপ্তি বিরতি দিন</string>
 	<key>Pause this agent</key>
 	<string>এই এজেন্ট থামান</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>পরিকল্পনা</string>
 	<key>Plan and usage</key>
 	<string>পরিকল্পনা এবং ব্যবহার</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>অ্যাপের এই সংস্করণে প্ল্যান পরিবর্তন করা যায় না। আপনার বর্তমান প্ল্যান ও ব্যবহার দেখা যাবে।</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Plus ও তার ওপরের প্ল্যানে লিঙ্ক দিয়ে যে কারও কাছে ফাইল চাইতে পারেন। অ্যাকাউন্ট লাগে না, প্রত্যেকে শুধু নিজের পাঠানো জিনিস দেখেন, আর ফাইল শুধু আপনিই খুলতে পারেন।</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>ক্রয় করা হয়েছে</string>
 	<key>Purchases are not currently available.</key>
 	<string>ক্রয় বর্তমানে উপলব্ধ নেই.</string>
+	<key>Purpose</key>
+	<string>উদ্দেশ্য</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>এই বিল্ডে পুশ বিজ্ঞপ্তিগুলি সক্ষম করা নেই৷ সিঙ্ক্রোনাইজ করতে dMsg খুলুন।</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>দ্রুত আনলক কর্মক্ষেত্র খোলে। ডিভাইস বাঁধন কোন ডিভাইস খুলতে পারবে তা সীমিত করে। হার্ডওয়্যার অনুমোদন সংবেদনশীল অ্যাকাউন্ট কাজ রক্ষা করে।</string>
+	<key>Quick unlock with %@</key>
+	<string>%@ দিয়ে দ্রুত আনলক</string>
 	<key>Quick unlock with system authentication</key>
 	<string>সিস্টেম প্রমাণীকরণের সাথে দ্রুত আনলক</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>কম্পিউটারের আমন্ত্রণ স্ক্যান করুন</string>
 	<key>Scan device request</key>
 	<string>ডিভাইসের অনুরোধ স্ক্যান করুন</string>
+	<key>Scan invitation</key>
+	<string>আমন্ত্রণ স্ক্যান করুন</string>
 	<key>Scopes, one per line</key>
 	<string>স্কোপ, প্রতি লাইনে একটি</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>লগইন আইটেম নির্বাচন করুন</string>
 	<key>Select non-duplicates</key>
 	<string>ডুপ্লিকেট নয় এমন রেকর্ড বাছুন</string>
+	<key>Select text</key>
+	<string>টেক্সট নির্বাচন করুন</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>প্রতি আমদানিতে সর্বোচ্চ ১,০০০ রেকর্ড বাছুন।</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>নির্বাচিত ফাইল</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>বাছাই করা অংশগুলো বিরোধপূর্ণ সংস্করণ ব্যবহার করবে। বাকি অংশে বর্তমান সংস্করণ থাকবে।</string>
+	<key>Send</key>
+	<string>পাঠান</string>
 	<key>Send device request</key>
 	<string>ডিভাইসের অনুরোধ পাঠান</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>প্রেরকের অ্যাকাউন্ট</string>
 	<key>Sending</key>
 	<string>প্রেরণ</string>
+	<key>Sent</key>
+	<string>পাঠানো হয়েছে</string>
 	<key>Sent letters</key>
 	<string>চিঠি পাঠিয়েছে</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>সংগৃহীত স্বাক্ষর</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>সহ-স্বাক্ষরকারী %@-এর স্বাক্ষর আর তাঁদের বর্তমান কী-এর সঙ্গে মেলে না, তাই আলাদা রাখা হয়েছে; তাঁদের আবার স্বাক্ষর করতে হবে।</string>
+	<key>Size</key>
+	<string>আকার</string>
 	<key>Skipped</key>
 	<string>বাদ দেওয়া হয়েছে</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>সাজান</string>
 	<key>Sort by</key>
 	<string>সাজানোর ক্রম</string>
+	<key>Source</key>
+	<string>উৎস</string>
 	<key>Source address</key>
 	<string>উৎস ঠিকানা</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>চেকলিস্ট শুরু করুন</string>
 	<key>Start sending</key>
 	<string>পাঠানো শুরু করুন</string>
+	<key>Statement</key>
+	<string>বিবৃতি</string>
 	<key>Status</key>
 	<string>অবস্থা</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>ট্যাগ, কমা দ্বারা পৃথক</string>
 	<key>Take photo or video</key>
 	<string>ছবি বা ভিডিও তুলুন</string>
+	<key>Technical details</key>
+	<string>প্রযুক্তিগত বিবরণ</string>
 	<key>Terms of service</key>
 	<string>পরিষেবার শর্তাবলী</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>অনুরোধ এই ডিভাইসে উপলব্ধ নয়. এটি মেয়াদ উত্তীর্ণ বা ইতিমধ্যে পরিচালনা করা হতে পারে.</string>
 	<key>The required content key is not available yet.</key>
 	<string>প্রয়োজনীয় বিষয়বস্তু কী এখনও উপলব্ধ নয়৷</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>ফলাফল নিশ্চিত হয়নি। আবার চেষ্টা করার আগে পুনরায় দেখুন।</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>ফলাফল নিশ্চিত করা হয় না. পুনরায় চেষ্টা করার আগে এই অনুরোধটি পুনর্মিলন করুন৷</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>এই ওয়ার্কস্পেসটি অন্য iPhone-এ তৈরি হয়ে এখানে কপি হয়েছে, যেমন পুনরুদ্ধার করা ব্যাকআপ বা ডিভাইস স্থানান্তরের মাধ্যমে। আপনার অ্যাকাউন্ট সুরক্ষিত রাখতে এটি কখনো পুরোনো ডিভাইস হিসেবে কাজ করে না: এখানে আনলক হয় না, এবং এর কিছুই মুছে ফেলা হয় না।</string>
 	<key>Title</key>
 	<string>শিরোনাম</string>
+	<key>To device</key>
+	<string>ডিভাইসে</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>এর বদলে পুরনো iPhone প্রতিস্থাপন করতে কপিটি আলাদা রেখে সাইন ইন করুন, তারপর কপিতে «পুরনো iPhone প্রতিস্থাপন করুন» বেছে নিন; এই iPhone যুক্ত হলে ডিভাইসে গিয়ে কপির ফাইল আমদানি করুন।</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>আনলক নীতি</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>dMsg খুলতে এই iPhone আনলক করুন।</string>
+	<key>Unlock with %@</key>
+	<string>%@ দিয়ে আনলক করুন</string>
 	<key>Unlock with system authentication</key>
 	<string>সিস্টেমের পরিচয় যাচাই দিয়ে আনলক করুন</string>
 	<key>Unlock workspace</key>
 	<string>কর্মক্ষেত্র আনলক করুন</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>আপনার dMsg ওয়ার্কস্পেস আনলক করুন</string>
+	<key>Unmute notifications</key>
+	<string>বিজ্ঞপ্তি চালু করুন</string>
 	<key>Unread messages</key>
 	<string>অপঠিত</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>অপ্রতিরোধ্য প্রতিনিধি কর্তৃপক্ষ</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>সর্বোচ্চ ৮টি স্কোপ ও ৪টি অডিয়েন্স। HTTPS উৎস বা Agent ID ব্যবহার করুন; ওয়াইল্ডকার্ড নয়।</string>
+	<key>Update AutoFill</key>
+	<string>অটোফিল আপডেট করুন</string>
+	<key>Update Files app copies</key>
+	<string>Files অ্যাপের কপি আপডেট করুন</string>
+	<key>Update conversation keys</key>
+	<string>কথোপকথনের কী আপডেট করুন</string>
 	<key>Updated</key>
 	<string>আপডেট করা হয়েছে</string>
 	<key>Uploading</key>
@@ -2825,7 +2891,7 @@
 	<key>Waiting for browser confirmation</key>
 	<string>ব্রাউজার নিশ্চিতকরণের জন্য অপেক্ষা করা হচ্ছে</string>
 	<key>Waiting for confirmation</key>
-	<string>নিশ্চিতকরণের জন্য অপেক্ষা করা হচ্ছে</string>
+	<string>নিশ্চিতকরণের অপেক্ষায়</string>
 	<key>Waiting for confirmation: </key>
 	<string>নিশ্চিতকরণের জন্য অপেক্ষা করা হচ্ছে: </string>
 	<key>Waiting for first sync</key>
@@ -2934,6 +3000,8 @@
 	<string>আপনার প্রতিবেদন এবং আপনি স্পষ্টভাবে অন্তর্ভুক্ত যে কোনো পাঠ্য মডারেশন টিমের কাছে পাঠানো হবে। অন্যান্য ব্যক্তিগত বিষয়বস্তু এবং কী অন্তর্ভুক্ত করা হয় না।</string>
 	<key>Your reports</key>
 	<string>আপনার রিপোর্ট</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>dMsg খোলা থাকলে আপনার ভল্ট স্বয়ংক্রিয়ভাবে সিঙ্ক হয়।</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

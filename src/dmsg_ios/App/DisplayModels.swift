@@ -13,7 +13,7 @@ struct AccountProfile: Decodable {
     }
 }
 
-struct LibraryListing: Decodable {
+struct LibraryListing: Decodable, Equatable {
     let folder: FolderItem?
     let folders: [FolderItem]
     let files: [LibraryFile]
@@ -144,12 +144,12 @@ struct FileLinkTarget: Identifiable {
     }
 }
 
-struct FolderItem: Decodable, Identifiable {
+struct FolderItem: Decodable, Identifiable, Equatable {
     let id: String; var name: String; var parent: String?
     var path: [String]? = nil
     var trashedAt: UInt64? = nil
 }
-struct LibraryFile: Decodable, Identifiable {
+struct LibraryFile: Decodable, Identifiable, Equatable {
     let id: String; var name: String; let mime: String; let size: UInt64
     let current: String; let sha256: String; var status: String
     let versions: Int
@@ -173,7 +173,7 @@ struct LibraryFile: Decodable, Identifiable {
     }
 }
 
-struct FileBackupReceipt: Decodable {
+struct FileBackupReceipt: Decodable, Equatable {
     let uploadId: String
     let verified: Bool
     let backedUpAt: UInt64
@@ -218,6 +218,13 @@ enum DisplayValue: Decodable {
         else if let value = try? container.decode([String: DisplayValue].self) { self = .object(value) }
         else if let value = try? container.decode([DisplayValue].self) { self = .array(value) }
         else { self = .number(try container.decode(Decimal.self)) }
+    }
+    var isNull: Bool { if case .null = self { true } else { false } }
+    var isScalar: Bool {
+        switch self {
+        case .array, .object: false
+        default: true
+        }
     }
     var text: String {
         switch self {

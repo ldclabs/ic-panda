@@ -9,7 +9,7 @@ struct BackgroundTransferSection: View {
     var body: some View {
         Group {
             if let state {
-                Section("Background ciphertext transfer") {
+                Section("Background transfer") {
                     if state.transfer.account == model.session?.account {
                         Text(LocalizedStringKey(state.transfer.method == "PUT" ? "Uploading encrypted backup" : "Downloading encrypted backup"))
                         ProgressView(value: Double(state.completed.count), total: Double(state.transfer.parts.count))

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
-	<string>有 %lld 台已撤销或已不在你账户中的设备仍绑定在此钱包上。</string>
+	<string>有 %lld 台已撤销或已不在你账号中的设备仍绑定在此钱包上。</string>
 	<key>%lld files · %@</key>
 	<string>%lld 个文件 · %@</string>
 	<key>1 day</key>
@@ -53,21 +53,21 @@
 	<key>Account</key>
 	<string>我的</string>
 	<key>Account ID</key>
-	<string>账户 ID</string>
+	<string>账号 ID</string>
 	<key>Account recovery</key>
-	<string>账户恢复</string>
+	<string>账号恢复</string>
 	<key>Account recovery is pending</key>
-	<string>账户恢复正在等待执行</string>
+	<string>账号恢复正在等待执行</string>
 	<key>Account security</key>
-	<string>账户安全</string>
+	<string>账号安全</string>
 	<key>Account synchronization</key>
 	<string>账号同步</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
-	<string>账户、设备和身份的保护同时变更。必需的硬件批准不能降级为普通确认对话框。</string>
+	<string>账号、设备和身份的保护同时变更。必需的硬件批准不能降级为普通确认对话框。</string>
 	<key>Account, devices and identities</key>
-	<string>账户、设备与身份</string>
+	<string>账号、设备与身份</string>
 	<key>Accounts</key>
-	<string>账户</string>
+	<string>账号</string>
 	<key>Actions</key>
 	<string>操作</string>
 	<key>Active</key>
@@ -76,10 +76,12 @@
 	<string>活动会话</string>
 	<key>Active links</key>
 	<string>活跃链接</string>
+	<key>Activity</key>
+	<string>动态</string>
 	<key>Activity on this device</key>
 	<string>本设备活动</string>
 	<key>Add account</key>
-	<string>添加账户</string>
+	<string>添加账号</string>
 	<key>Add device</key>
 	<string>添加设备</string>
 	<key>Add field</key>
@@ -149,9 +151,9 @@
 	<key>Amount in base units</key>
 	<string>金额（最小单位）</string>
 	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>有一个账户恢复请求正在等待执行，请到“账户安全”中审阅。</string>
+	<string>有一个账号恢复请求正在等待执行，请到“账号安全”中审阅。</string>
 	<key>An administrator device is required to change account security.</key>
-	<string>更改账户安全设置需要管理员设备。</string>
+	<string>更改账号安全设置需要管理员设备。</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>发布此公开资料需要管理员设备。</string>
 	<key>An empty replacement clears the saved value.</key>
@@ -159,7 +161,7 @@
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>持有完整链接及所需密码的人，都可在限制范围内取回内容。</string>
 	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
-	<string>持有链接的人都能下载这个文件，直到链接过期或被你撤销。对方不需要 dMsg 账户或应用。</string>
+	<string>持有链接的人都能下载这个文件，直到链接过期或被你撤销。对方不需要 dMsg 账号或应用。</string>
 	<key>Anyone, free of charge</key>
 	<string>所有人，免费</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -203,7 +205,7 @@
 	<key>Approver</key>
 	<string>批准者</string>
 	<key>Approving enrolls the new device and moves the content root to it.</key>
-	<string>批准后新设备加入账户，内容根转到新设备。</string>
+	<string>批准后新设备加入账号，内容根转到新设备。</string>
 	<key>Archive</key>
 	<string>归档</string>
 	<key>Archive conversation</key>
@@ -219,7 +221,7 @@
 	<key>Arrives</key>
 	<string>到账</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
-	<string>请管理员将这个登录身份绑定到已有账户。设备授权需要单独完成。</string>
+	<string>请管理员将这个登录身份绑定到已有账号。设备授权需要单独完成。</string>
 	<key>Asset</key>
 	<string>资产</string>
 	<key>Asset details are unavailable. Retry before entering an amount.</key>
@@ -260,6 +262,8 @@
 	<string>已授权设备</string>
 	<key>Authorized devices</key>
 	<string>已授权设备</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>自动填充只会收到你选择的登录项，并且独立于工作区，需要通过系统身份验证。用户名和网站名称可能出现在系统建议中。</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>AutoFill 只接收你选择的登录项，并独立于工作区要求系统身份验证。dMsg 打开且已解锁时，快照会跟随这些条目的变化；长时间未更新时，快照会在 24 小时后过期。用户名和网站名称可能出现在系统建议中。</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>后台下载</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>后台签名和常驻 Agent 能力不受此工作区锁定控制。</string>
+	<key>Background transfer</key>
+	<string>后台传输</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>后台传输已启动，请在“传输”中查看进度。</string>
 	<key>Backing up…</key>
@@ -367,7 +373,7 @@
 	<key>Change a device secret policy</key>
 	<string>变更设备秘密策略</string>
 	<key>Change account security</key>
-	<string>变更账户安全设置</string>
+	<string>变更账号安全设置</string>
 	<key>Change device permissions</key>
 	<string>修改设备权限</string>
 	<key>Change hardware approval policy</key>
@@ -391,7 +397,7 @@
 	<key>Channels</key>
 	<string>频道</string>
 	<key>Check account IDs and remove duplicates.</key>
-	<string>请核对账户 ID，并移除重复项。</string>
+	<string>请核对账号 ID，并移除重复项。</string>
 	<key>Check addresses</key>
 	<string>检查地址</string>
 	<key>Check authorization</key>
@@ -402,6 +408,8 @@
 	<string>查看投递状态</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>请检查字段长度，并为 HTTPS 链接填写名称。</string>
+	<key>Check original result</key>
+	<string>查看原操作结果</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>检查项目引用及已经交付的副本。</string>
 	<key>Check recovery status</key>
@@ -421,7 +429,7 @@
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>在本机文件中选择“备份到云端”，创建第一份备份。</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
-	<string>在文件上选择“通过链接分享”，就能发给任何人。对方不需要 dMsg 账户或应用。</string>
+	<string>在文件上选择“通过链接分享”，就能发给任何人。对方不需要 dMsg 账号或应用。</string>
 	<key>Choose a credential for:</key>
 	<string>为以下对象选择登录凭据：</string>
 	<key>Choose a secret</key>
@@ -509,7 +517,7 @@
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>确认你已核对的 dMsg 请求</string>
 	<key>Confirm this account security change</key>
-	<string>确认这项账户安全变更</string>
+	<string>确认这项账号安全变更</string>
 	<key>Confirm your completed steps</key>
 	<string>确认已完成的步骤</string>
 	<key>Confirming cloud backup…</key>
@@ -581,7 +589,7 @@
 	<key>Copy SHA-256</key>
 	<string>复制 SHA-256</string>
 	<key>Copy account ID</key>
-	<string>复制账户 ID</string>
+	<string>复制账号 ID</string>
 	<key>Copy address</key>
 	<string>复制地址</string>
 	<key>Copy all</key>
@@ -598,12 +606,16 @@
 	<string>复制链接</string>
 	<key>Copy pairing request</key>
 	<string>复制配对请求</string>
+	<key>Copy password</key>
+	<string>复制密码</string>
 	<key>Copy reference</key>
 	<string>复制引用</string>
 	<key>Copy request</key>
 	<string>复制请求</string>
 	<key>Copy this field?</key>
 	<string>复制这个字段？</string>
+	<key>Copy username</key>
+	<string>复制用户名</string>
 	<key>Cosign on this device</key>
 	<string>在本机联合签名</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>创建转账提案</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>创建你的加密工作区，即可开始保存密码、笔记和文件。</string>
+	<key>Created</key>
+	<string>创建时间</string>
 	<key>Creating %lld of %lld…</key>
 	<string>正在创建 %lld/%lld…</string>
 	<key>Credential</key>
@@ -673,7 +687,7 @@
 	<key>Current</key>
 	<string>当前</string>
 	<key>Current account</key>
-	<string>当前账户</string>
+	<string>当前账号</string>
 	<key>Current local dependencies</key>
 	<string>当前本地依赖</string>
 	<key>Current login</key>
@@ -820,6 +834,8 @@
 	<string>草稿</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>草稿和已发送的信保存在此设备上。</string>
+	<key>Due %@</key>
+	<string>截止 %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -859,7 +875,7 @@
 	<key>Enter a setup key or otpauth URL.</key>
 	<string>输入设置密钥或 otpauth 链接。</string>
 	<key>Enter a valid account ID.</key>
-	<string>请输入有效的账户 ID。</string>
+	<string>请输入有效的账号 ID。</string>
 	<key>Enter a valid date.</key>
 	<string>请输入有效日期。</string>
 	<key>Enter a valid email address.</key>
@@ -922,6 +938,8 @@
 	<string>字段</string>
 	<key>File</key>
 	<string>文件详情</string>
+	<key>File details</key>
+	<string>文件详情</string>
 	<key>File name</key>
 	<string>文件名</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>文件夹名称</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>用于本设备没有的钥匙，例如丢失设备上的钥匙。成员批准后，新钥匙在 24 小时后生效。</string>
+	<key>For this site</key>
+	<string>此网站</string>
 	<key>Freeze this wallet?</key>
 	<string>冻结此钱包？</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>设置密钥或 otpauth 链接无效。</string>
 	<key>Inventory fingerprint</key>
 	<string>清单指纹</string>
+	<key>Invitation created</key>
+	<string>邀请已创建</string>
 	<key>Invite member</key>
 	<string>邀请成员</string>
 	<key>Invite to a conversation</key>
@@ -1109,9 +1131,9 @@
 	<key>Join</key>
 	<string>加入</string>
 	<key>Join account</key>
-	<string>加入账户</string>
+	<string>加入账号</string>
 	<key>Join an existing account</key>
-	<string>加入现有账户</string>
+	<string>加入现有账号</string>
 	<key>Join an existing wallet</key>
 	<string>加入已有钱包</string>
 	<key>Join conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>锁定时暂停传输，解锁后自动继续。</string>
 	<key>Login identities</key>
 	<string>登录身份</string>
+	<key>Login identity</key>
+	<string>登录身份</string>
 	<key>Manage Apple subscriptions</key>
 	<string>管理 Apple 订阅</string>
 	<key>Manage file</key>
@@ -1249,7 +1273,7 @@
 	<key>Member</key>
 	<string>成员</string>
 	<key>Member account ID</key>
-	<string>目标成员账户 ID</string>
+	<string>目标成员账号 ID</string>
 	<key>Member account or Principal</key>
 	<string>成员账号或 Principal</string>
 	<key>Member label</key>
@@ -1299,7 +1323,7 @@
 	<key>Moved to Trash</key>
 	<string>已移入回收站</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
-	<string>在同一网络内把文件库传到此账户的另一台设备，全程端到端加密。完成前请保持两台设备都已解锁。</string>
+	<string>在同一网络内把文件库传到此账号的另一台设备，全程端到端加密。完成前请保持两台设备都已解锁。</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>从旧设备换过来？本设备将接替它的角色、钥匙和钱包，随后撤销旧设备。</string>
 	<key>Moving to Trash does not free cloud storage.</key>
@@ -1313,7 +1337,7 @@
 	<key>Mute notifications</key>
 	<string>静音通知</string>
 	<key>My account</key>
-	<string>我的账户</string>
+	<string>我的账号</string>
 	<key>Name</key>
 	<string>名称</string>
 	<key>Native Taproot key</key>
@@ -1355,7 +1379,7 @@
 	<key>No</key>
 	<string>否</string>
 	<key>No accounts</key>
-	<string>没有账户</string>
+	<string>没有账号</string>
 	<key>No active transfers</key>
 	<string>没有活动传输</string>
 	<key>No activity on this device</key>
@@ -1546,6 +1570,8 @@
 	<string>其他</string>
 	<key>Other devices</key>
 	<string>其他设备</string>
+	<key>Other logins</key>
+	<string>其他登录项</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>关闭后，离开应用 3 分钟将锁定。设备锁屏时始终立即锁定。</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>粘贴绑定请求</string>
 	<key>Paste enrollment request</key>
 	<string>粘贴登记请求</string>
+	<key>Paste image</key>
+	<string>粘贴图片</string>
 	<key>Paste invitation</key>
 	<string>粘贴邀请</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>粘贴秘密包链接</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>粘贴新设备显示的请求，核对其内容，再确认它的设备 ID。</string>
+	<key>Pause notifications</key>
+	<string>暂停通知</string>
 	<key>Pause this agent</key>
 	<string>暂停此 Agent</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>会员</string>
 	<key>Plan and usage</key>
 	<string>套餐与用量</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>此版本的应用无法更改方案。你当前的方案和用量仍可查看。</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Plus 及以上方案可以通过链接向任何人收取文件。对方无需账号，只能看到自己发送的内容，文件只有你能打开。</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>购买日期</string>
 	<key>Purchases are not currently available.</key>
 	<string>购买暂不可用。</string>
+	<key>Purpose</key>
+	<string>用途</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>此版本尚未启用推送通知，请打开 dMsg 同步。</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
-	<string>快速解锁用于打开工作区；设备绑定限制可解锁的设备；硬件审批保护敏感账户操作。</string>
+	<string>快速解锁用于打开工作区；设备绑定限制可解锁的设备；硬件审批保护敏感账号操作。</string>
+	<key>Quick unlock with %@</key>
+	<string>使用 %@ 快速解锁</string>
 	<key>Quick unlock with system authentication</key>
 	<string>使用系统验证快速解锁</string>
 	<key>Read from a desktop file mapping</key>
@@ -1821,7 +1857,7 @@
 	<key>Removal date</key>
 	<string>移除日期</string>
 	<key>Remove</key>
-	<string>移除成员</string>
+	<string>移除</string>
 	<key>Remove AutoFill snapshot</key>
 	<string>移除自动填充快照</string>
 	<key>Remove Files app snapshot</key>
@@ -1851,7 +1887,7 @@
 	<key>Remove this account's local data</key>
 	<string>移除此账号的本机数据</string>
 	<key>Remove this device's encrypted workspace and saved login. Your service account and other devices remain available. Unsynced changes and files without a backup will be lost.</key>
-	<string>移除此设备上的加密工作区和已保存登录。服务账户及其他设备不受影响。未同步的更改和未备份的文件将丢失。</string>
+	<string>移除此设备上的加密工作区和已保存登录。服务账号及其他设备不受影响。未同步的更改和未备份的文件将丢失。</string>
 	<key>Remove this local agent</key>
 	<string>移除此本机 Agent</string>
 	<key>Remove this local agent?</key>
@@ -1893,7 +1929,7 @@
 	<key>Request account deletion</key>
 	<string>请求删除账号</string>
 	<key>Request account recovery</key>
-	<string>申请账户恢复</string>
+	<string>申请账号恢复</string>
 	<key>Request expires</key>
 	<string>请求过期时间</string>
 	<key>Request from the new device</key>
@@ -2166,6 +2202,8 @@
 	<string>扫描桌面邀请</string>
 	<key>Scan device request</key>
 	<string>扫描设备请求</string>
+	<key>Scan invitation</key>
+	<string>扫描邀请</string>
 	<key>Scopes, one per line</key>
 	<string>范围，每行一个</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>选择登录项</string>
 	<key>Select non-duplicates</key>
 	<string>选择非重复条目</string>
+	<key>Select text</key>
+	<string>选择文字</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>每次最多导入 1,000 条记录。</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>已选文件</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>选中的部分采用冲突版本，其余部分保留当前版本。</string>
+	<key>Send</key>
+	<string>发送</string>
 	<key>Send device request</key>
 	<string>发送设备请求</string>
 	<key>Send failed</key>
@@ -2247,9 +2289,11 @@
 	<key>Sender</key>
 	<string>发件人</string>
 	<key>Sender account</key>
-	<string>发送者账户</string>
+	<string>发送者账号</string>
 	<key>Sending</key>
 	<string>发送</string>
+	<key>Sent</key>
+	<string>已发送</string>
 	<key>Sent letters</key>
 	<string>已发出的信</string>
 	<key>Server</key>
@@ -2261,7 +2305,7 @@
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>为自己的资产配置设备协签，或邀请他人共同管理资金。</string>
 	<key>Set up this account</key>
-	<string>初始化账户</string>
+	<string>初始化账号</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>将这台 iPhone 设为新设备</string>
 	<key>Settings</key>
@@ -2325,19 +2369,21 @@
 	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
 	<string>请重新登录，解锁这台 iPhone 上的加密工作区。</string>
 	<key>Sign in to another account</key>
-	<string>登录其他账户</string>
+	<string>登录其他账号</string>
 	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>新设备先登录同一账户，扫描桌面二维码，然后在桌面核对并批准。</string>
+	<string>新设备先登录同一账号，扫描桌面二维码，然后在桌面核对并批准。</string>
 	<key>Sign out</key>
 	<string>退出登录</string>
 	<key>Sign out of this account?</key>
-	<string>退出这个账户？</string>
+	<string>退出这个账号？</string>
 	<key>Sign the statement you reviewed</key>
 	<string>签署你已核对的声明</string>
 	<key>Signatures collected</key>
 	<string>已收集的签名</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>协签人 %@ 的签名与其当前密钥不再匹配，已被搁置，需要重新签名。</string>
+	<key>Size</key>
+	<string>大小</string>
 	<key>Skipped</key>
 	<string>已跳过</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>排序</string>
 	<key>Sort by</key>
 	<string>排序方式</string>
+	<key>Source</key>
+	<string>来源</string>
 	<key>Source address</key>
 	<string>来源地址</string>
 	<key>Source address %u</key>
@@ -2385,11 +2433,13 @@
 	<key>Start a rotation checklist?</key>
 	<string>开始轮换清单？</string>
 	<key>Start account recovery?</key>
-	<string>开始账户恢复？</string>
+	<string>开始账号恢复？</string>
 	<key>Start checklist</key>
 	<string>开始清单</string>
 	<key>Start sending</key>
 	<string>开始发送</string>
+	<key>Statement</key>
+	<string>声明</string>
 	<key>Status</key>
 	<string>状态</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2423,7 +2473,7 @@
 	<key>Sweep the old address</key>
 	<string>扫出旧地址</string>
 	<key>Switch account</key>
-	<string>切换账户</string>
+	<string>切换账号</string>
 	<key>Switch to the invited account before joining.</key>
 	<string>请先切换到受邀账号再加入。</string>
 	<key>Switch to this account</key>
@@ -2460,6 +2510,8 @@
 	<string>标签，以逗号分隔</string>
 	<key>Take photo or video</key>
 	<string>拍照或录像</string>
+	<key>Technical details</key>
+	<string>技术详情</string>
 	<key>Terms of service</key>
 	<string>服务条款</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2487,7 +2539,7 @@
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>收件箱密钥尚未同步到此设备。请先在开启收信的设备上同步，再在此重试。</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
-	<string>邀请与这个账户绑定，分享链接不会向其他账户授予权限。</string>
+	<string>邀请与这个账号绑定，分享链接不会向其他账号授予权限。</string>
 	<key>The invitation is invalid.</key>
 	<string>邀请无效。</string>
 	<key>The invitation is verified when you choose Join conversation.</key>
@@ -2515,7 +2567,7 @@
 	<key>The old device must be online to cosign the sweep.</key>
 	<string>旧设备需要在线，才能为扫币协签。</string>
 	<key>The old device stops working for this account, and anything only on it is lost.</key>
-	<string>旧设备将无法再用于此账户，只在它上面的内容会丢失。</string>
+	<string>旧设备将无法再用于此账号，只在它上面的内容会丢失。</string>
 	<key>The operation could not be completed.</key>
 	<string>操作未能完成。</string>
 	<key>The operation could not be completed. Please try again.</key>
@@ -2536,6 +2588,8 @@
 	<string>此设备无法获取该请求，它可能已到期或已处理。</string>
 	<key>The required content key is not available yet.</key>
 	<string>所需的内容密钥暂不可用。</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>结果尚未确认。重试前请再次检查。</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>结果尚未确认。请核对原请求，不要重复提交。</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2559,13 +2613,13 @@
 	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
 	<string>这里只列出此设备创建的快照任务。桌面本地的审批请求不会同步到这里。</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
-	<string>这些是账户内设备的已验证备份。请明确选择恢复，将副本保存到本机。</string>
+	<string>这些是账号内设备的已验证备份。请明确选择恢复，将副本保存到本机。</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
-	<string>这些导出绝不包含账户根密钥或设备签名密钥。「文件」App 中的副本不会跟随源文件变化，需要重新生成快照。</string>
+	<string>这些导出绝不包含账号根密钥或设备签名密钥。「文件」App 中的副本不会跟随源文件变化，需要重新生成快照。</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>这些原生地址的 L1 仍需要旧设备签名。等每笔输出足够久后，成员仍可经 L2 扫回。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
-	<string>此账户要求使用已注册的批准钥匙。请到“硬件安全”中设置本设备，或请其他已授权设备处理。</string>
+	<string>此账号要求使用已注册的批准钥匙。请到“硬件安全”中设置本设备，或请其他已授权设备处理。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>此设备不支持此操作。秘密快照必须通过专用的导入流程处理。</string>
 	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
@@ -2573,9 +2627,9 @@
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>此操作无法撤销。仅退出登录不会删除账号。</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
-	<string>这会改变本地解锁保护，可能需要系统认证；不会变更账户恢复或其他设备。</string>
+	<string>这会改变本地解锁保护，可能需要系统认证；不会变更账号恢复或其他设备。</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
-	<string>这会改变哪些账户操作需要硬件签名。关闭保护后，这些操作无需该硬件证明即可执行。</string>
+	<string>这会改变哪些账号操作需要硬件签名。关闭保护后，这些操作无需该硬件证明即可执行。</string>
 	<key>This conversation is archived.</key>
 	<string>频道已归档，不能发消息。</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
@@ -2599,7 +2653,7 @@
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>这台设备保存独立的加密工作区，未同步内容无法从其他设备恢复。</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
-	<string>此设备钥匙已无法使用。请使用其他已授权设备或账户恢复；工作区并未被清除。</string>
+	<string>此设备钥匙已无法使用。请使用其他已授权设备或账号恢复；工作区并未被清除。</string>
 	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
 	<string>这台设备可能获得你的私密内容。批准后仍需完成内容根分发。</string>
 	<key>This device replaces</key>
@@ -2676,6 +2730,8 @@
 	<string>此工作区创建于另一台 iPhone，经恢复备份或设备迁移等方式复制到了这里。为保护账号，它不会以旧设备的身份做任何事：不会在本机解锁，其中的内容也不会被删除。</string>
 	<key>Title</key>
 	<string>标题</string>
+	<key>To device</key>
+	<string>目标设备</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>如果要改为替换旧 iPhone：先将副本放到一边并登录，再在副本上选择“替换旧 iPhone”；本机加入后，再在“设备”中导入副本中的文件。</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>解锁策略</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>请先解锁 iPhone，再打开 dMsg。</string>
+	<key>Unlock with %@</key>
+	<string>使用 %@ 解锁</string>
 	<key>Unlock with system authentication</key>
 	<string>使用系统验证解锁</string>
 	<key>Unlock workspace</key>
 	<string>解锁工作区</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>解锁你的 dMsg 保险库</string>
+	<key>Unmute notifications</key>
+	<string>取消静音</string>
 	<key>Unread messages</key>
 	<string>未读</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>不受限的委托权限</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>最多 8 个权限范围和 4 个依赖方。依赖方使用 HTTPS 源或 Agent ID，不允许通配符。</string>
+	<key>Update AutoFill</key>
+	<string>更新自动填充</string>
+	<key>Update Files app copies</key>
+	<string>更新“文件”App 副本</string>
+	<key>Update conversation keys</key>
+	<string>更新会话密钥</string>
 	<key>Updated</key>
 	<string>更新于</string>
 	<key>Uploading</key>
@@ -2799,7 +2865,7 @@
 	<key>Verify and finish</key>
 	<string>验证并完成</string>
 	<key>Verify the full device and key fingerprints. This key will prove hardware approval for the protected actions of this account.</key>
-	<string>请核对完整的设备和钥匙指纹。此钥匙将为该账户受保护的操作提供硬件批准证明。</string>
+	<string>请核对完整的设备和钥匙指纹。此钥匙将为该账号受保护的操作提供硬件批准证明。</string>
 	<key>Verify the full device fingerprint</key>
 	<string>核对完整设备指纹</string>
 	<key>Verifying account content…</key>
@@ -2825,7 +2891,7 @@
 	<key>Waiting for browser confirmation</key>
 	<string>等待浏览器确认</string>
 	<key>Waiting for confirmation</key>
-	<string>等待结果确认</string>
+	<string>等待确认</string>
 	<key>Waiting for confirmation: </key>
 	<string>等待结果确认：</string>
 	<key>Waiting for first sync</key>
@@ -2934,6 +3000,8 @@
 	<string>举报及你明确附上的正文会发送给处理团队，不包含其他私密内容或密钥。</string>
 	<key>Your reports</key>
 	<string>你的举报</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>dMsg 打开时，保险库会自动同步。</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

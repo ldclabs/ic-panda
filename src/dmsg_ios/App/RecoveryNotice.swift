@@ -7,8 +7,14 @@ struct RecoveryObservation: Decodable, Equatable {
     let observedAtMs: UInt64
     let stale: Bool
 
+    /// Allows for a missed check: a connected device polls every five minutes.
     func isStale(at date: Date = .now) -> Bool {
-        stale || date.timeIntervalSince1970 * 1000 > Double(observedAtMs) + 120_000
+        stale || date.timeIntervalSince1970 * 1000 > Double(observedAtMs) + 660_000
+    }
+
+    /// Nothing could be confirmed for a day, which needs the person's attention.
+    func isLongUnconfirmed(at date: Date = .now) -> Bool {
+        date.timeIntervalSince1970 * 1000 > Double(observedAtMs) + 86_400_000
     }
 }
 
@@ -30,7 +36,7 @@ struct RecoveryNotice: View {
                         .foregroundStyle(observation?.pending == true ? .orange : Theme.forest)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(LocalizedStringKey(observation?.pending == true ? "Account recovery is pending" : "Recovery status needs checking"))
+                        Text(LocalizedStringKey(observation?.pending == true ? "Account recovery is pending" : "Check recovery status"))
                             .font(.subheadline.weight(.semibold))
                         if observation?.pending == true {
                             Text(LocalizedStringKey(model.unlocked ? "Review the request and dispute it if it is not yours." : "Unlock dMsg to review this request."))
@@ -54,7 +60,7 @@ struct RecoveryNotice: View {
                     .accessibilityIdentifier("recovery.warning")
             }
         }
-        .sheet(isPresented: $reviewing) { NavigationStack { AccountSecurityView() } }
+        .sheet(isPresented: $reviewing) { NavigationStack { AccountSecurityView(page: .recovery) } }
         .onChange(of: model.epoch) { _, _ in reviewing = false }
     }
 }

@@ -76,6 +76,8 @@
 	<string>Активные беседы</string>
 	<key>Active links</key>
 	<string>Активные ссылки</string>
+	<key>Activity</key>
+	<string>Активность</string>
 	<key>Activity on this device</key>
 	<string>Действия на этом устройстве</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>Авторизованное устройство</string>
 	<key>Authorized devices</key>
 	<string>Авторизованные устройства</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Автозаполнение получает только выбранные вами логины и требует системной проверки подлинности независимо от рабочего пространства. Имена пользователей и названия сайтов могут появляться в системных подсказках.</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>Автозаполнение получает только выбранные вами логины и требует системной аутентификации независимо от рабочего пространства. Пока dMsg открыт и разблокирован, снимок следует за изменениями этих записей; без обновления он истекает через 24 часа. Имена пользователей и названия сайтов могут появляться в системных подсказках.</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>Фоновая загрузка</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Подпись в фоне и возможности постоянно работающих агентов не связаны с блокировкой рабочего пространства.</string>
+	<key>Background transfer</key>
+	<string>Фоновая передача</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>Фоновая передача начата. Прогресс доступен в разделе «Передачи».</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>Проверить доставку</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Проверьте длину полей и укажите названия для HTTPS-ссылок.</string>
+	<key>Check original result</key>
+	<string>Проверить исходный результат</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Проверьте ссылки проекта и уже переданные копии.</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>Скопировать ссылку</string>
 	<key>Copy pairing request</key>
 	<string>Копировать запрос сопряжения</string>
+	<key>Copy password</key>
+	<string>Скопировать пароль</string>
 	<key>Copy reference</key>
 	<string>Скопировать ссылку на поле</string>
 	<key>Copy request</key>
 	<string>Копировать запрос</string>
 	<key>Copy this field?</key>
 	<string>Копировать это поле?</string>
+	<key>Copy username</key>
+	<string>Скопировать имя пользователя</string>
 	<key>Cosign on this device</key>
 	<string>Соподписать на этом устройстве</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>Создать предложение перевода</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Создайте зашифрованное рабочее пространство для хранения паролей, заметок и файлов.</string>
+	<key>Created</key>
+	<string>Создано</string>
 	<key>Creating %lld of %lld…</key>
 	<string>Создание: %lld из %lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>Черновик</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>Черновики и отправленные письма сохраняются на этом устройстве.</string>
+	<key>Due %@</key>
+	<string>Срок: %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>Поля</string>
 	<key>File</key>
 	<string>Файл</string>
+	<key>File details</key>
+	<string>Сведения о файле</string>
 	<key>File name</key>
 	<string>Имя файла</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>Имя папки</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>Для ключа, которого нет на этом устройстве, например с потерянного. После одобрения участниками новый ключ начнёт действовать через 24 часа.</string>
+	<key>For this site</key>
+	<string>Для этого сайта</string>
 	<key>Freeze this wallet?</key>
 	<string>Заморозить этот кошелёк?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>Недействительный ключ настройки или URL otpauth.</string>
 	<key>Inventory fingerprint</key>
 	<string>Отпечаток списка</string>
+	<key>Invitation created</key>
+	<string>Приглашение создано</string>
 	<key>Invite member</key>
 	<string>Пригласить участника</string>
 	<key>Invite to a conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>Блокировка приостанавливает передачу, разблокировка возобновляет её.</string>
 	<key>Login identities</key>
 	<string>Учётные записи входа</string>
+	<key>Login identity</key>
+	<string>Учетные данные для входа</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Управлять подписками Apple</string>
 	<key>Manage file</key>
@@ -1546,6 +1570,8 @@
 	<string>Другое</string>
 	<key>Other devices</key>
 	<string>Другие устройства</string>
+	<key>Other logins</key>
+	<string>Другие логины</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>Иначе dMsg блокируется через 3 минуты вне приложения. Блокировка устройства всегда немедленно блокирует рабочее пространство.</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>Вставить запрос привязки</string>
 	<key>Paste enrollment request</key>
 	<string>Вставить запрос регистрации</string>
+	<key>Paste image</key>
+	<string>Вставить изображение</string>
 	<key>Paste invitation</key>
 	<string>Вставить приглашение</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>Вставить ссылку на пакет секретов</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>Вставьте запрос, который показывает новое устройство, проверьте, о чём он просит, затем подтвердите его идентификатор.</string>
+	<key>Pause notifications</key>
+	<string>Приостановить уведомления</string>
 	<key>Pause this agent</key>
 	<string>Приостановить этого агента</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>Тариф</string>
 	<key>Plan and usage</key>
 	<string>Тариф и использование</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>В этой версии приложения нельзя изменить тариф. Текущий тариф и использование остаются доступными.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>С тарифом Plus и выше можно попросить файлы у кого угодно по ссылке. Учётная запись не нужна, каждый видит только своё, а открыть файлы можете только вы.</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>Дата покупки</string>
 	<key>Purchases are not currently available.</key>
 	<string>Покупки сейчас недоступны.</string>
+	<key>Purpose</key>
+	<string>Назначение</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>В этой сборке push-уведомления не включены. Откройте dMsg для синхронизации.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Быстрая разблокировка открывает рабочее пространство. Привязка ограничивает устройства, которые могут его открыть. Аппаратное одобрение защищает важные действия аккаунта.</string>
+	<key>Quick unlock with %@</key>
+	<string>Быстрая разблокировка с %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Быстрое разблокирование системной проверкой</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>Сканировать приглашение с компьютера</string>
 	<key>Scan device request</key>
 	<string>Сканировать запрос устройства</string>
+	<key>Scan invitation</key>
+	<string>Сканировать приглашение</string>
 	<key>Scopes, one per line</key>
 	<string>Области, по одной в строке</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>Выбрать учётные записи</string>
 	<key>Select non-duplicates</key>
 	<string>Выбрать без дубликатов</string>
+	<key>Select text</key>
+	<string>Выделить текст</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>Выберите до 1 000 записей за один импорт.</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>Выбранные файлы</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Выбранные части берутся из конфликтующей версии. Остальные сохраняются из текущей версии.</string>
+	<key>Send</key>
+	<string>Отправить</string>
 	<key>Send device request</key>
 	<string>Отправить запрос устройства</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>Аккаунт отправителя</string>
 	<key>Sending</key>
 	<string>Отправка</string>
+	<key>Sent</key>
+	<string>Отправлено</string>
 	<key>Sent letters</key>
 	<string>Отправленные письма</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>Собрано подписей</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Подписи соподписантов %@ больше не соответствуют их текущим ключам и отложены; им нужно подписать заново.</string>
+	<key>Size</key>
+	<string>Размер</string>
 	<key>Skipped</key>
 	<string>Пропущено</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>Сортировка</string>
 	<key>Sort by</key>
 	<string>Сортировка</string>
+	<key>Source</key>
+	<string>Источник</string>
 	<key>Source address</key>
 	<string>Исходный адрес</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>Начать список</string>
 	<key>Start sending</key>
 	<string>Начать отправку</string>
+	<key>Statement</key>
+	<string>Заявление</string>
 	<key>Status</key>
 	<string>Состояние</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>Метки через запятую</string>
 	<key>Take photo or video</key>
 	<string>Снять фото или видео</string>
+	<key>Technical details</key>
+	<string>Технические сведения</string>
 	<key>Terms of service</key>
 	<string>Условия использования</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>Запрос недоступен на этом устройстве. Возможно, он истёк или уже обработан.</string>
 	<key>The required content key is not available yet.</key>
 	<string>Нужный ключ содержимого пока недоступен.</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>Результат не подтвержден. Проверьте еще раз перед повторной попыткой.</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>Результат не подтверждён. Проверьте исходный запрос перед повторной попыткой.</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>Это рабочее пространство создано на другом iPhone и скопировано сюда, например при восстановлении резервной копии или переносе данных. Чтобы защитить аккаунт, оно никогда не действует от имени старого устройства: здесь оно не разблокируется, и ничего в нём не удаляется.</string>
 	<key>Title</key>
 	<string>По названию</string>
+	<key>To device</key>
+	<string>На устройство</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>Чтобы вместо этого заменить старый iPhone, отложите копию и войдите, затем выберите «Заменить старый iPhone» у копии; когда этот iPhone присоединится, импортируйте её файлы в разделе «Устройства».</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>Правило разблокировки</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>Разблокируйте этот iPhone, чтобы открыть dMsg.</string>
+	<key>Unlock with %@</key>
+	<string>Разблокировать с помощью %@</string>
 	<key>Unlock with system authentication</key>
 	<string>Разблокировать системной проверкой</string>
 	<key>Unlock workspace</key>
 	<string>Разблокировать рабочее пространство</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Разблокировать пространство dMsg</string>
+	<key>Unmute notifications</key>
+	<string>Включить уведомления</string>
 	<key>Unread messages</key>
 	<string>Не прочитано</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>Неограниченные права делегирования</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>До 8 областей и 4 аудиторий. Используйте HTTPS-источники или ID агентов, без подстановочных знаков.</string>
+	<key>Update AutoFill</key>
+	<string>Обновить автозаполнение</string>
+	<key>Update Files app copies</key>
+	<string>Обновить копии в приложении «Файлы»</string>
+	<key>Update conversation keys</key>
+	<string>Обновить ключи беседы</string>
 	<key>Updated</key>
 	<string>Изменено</string>
 	<key>Uploading</key>
@@ -2825,7 +2891,7 @@
 	<key>Waiting for browser confirmation</key>
 	<string>Ожидание подтверждения браузера</string>
 	<key>Waiting for confirmation</key>
-	<string>Ожидает подтверждения</string>
+	<string>Ожидание подтверждения</string>
 	<key>Waiting for confirmation: </key>
 	<string>Ожидает подтверждения: </string>
 	<key>Waiting for first sync</key>
@@ -2934,6 +3000,8 @@
 	<string>Жалоба и явно приложенный текст будут отправлены модераторам. Другие личные данные и ключи не передаются.</string>
 	<key>Your reports</key>
 	<string>Ваши жалобы</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>Хранилище синхронизируется автоматически, пока открыт dMsg.</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

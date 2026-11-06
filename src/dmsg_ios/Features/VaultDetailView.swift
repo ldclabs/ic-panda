@@ -12,8 +12,10 @@ struct VaultDetailView: View {
     @State private var failure: String?
     @State private var reload = 0
     @State private var revealed: [String: RevealedVaultValue] = [:]
-    @State private var pendingField: VaultField?
-    @State private var copying = false
+    /// One-time codes stay current on their own while the item is open.
+    @State private var codes: [String: RevealedVaultValue] = [:]
+    /// One confirmation covers this item's sensitive fields for 30 seconds.
+    @State private var trustedUntil: Date?
     @State private var workingField: String?
     @State private var working = false
     @State private var editing: VaultEditorTarget?
@@ -45,73 +47,100 @@ struct VaultDetailView: View {
                 ForEach(groups(item), id: \.self) { group in
                     Section {
                         ForEach(item.fields.filter { $0.section == group }, id: \.id) { field in
-                            TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                                VaultDetailField(field: field, value: revealed[field.id]?.value(at: timeline.date),
-                                    remaining: revealed[field.id]?.remaining(at: timeline.date),
-                                    busy: workingField == field.id, readOnly: item.reserved || item.deleted,
-                                    showReferences: revision == nil,
-                                    reveal: {
-                                        if revealed[field.id]?.value(at: .now) != nil { revealed.removeValue(forKey: field.id) }
-                                        else { pendingField = field; copying = false }
-                                    }, copy: { pendingField = field; copying = true },
-                                    reference: { referenceTarget = ReferenceTarget(itemID: item.id, fieldID: field.id) })
-                            }
+                            if liveCode(field, item: item) {
+                                TimelineView(.periodic(from: .now, by: 1)) { timeline in fieldRow(field, item: item, at: timeline.date) }
+                            } else { fieldRow(field, item: item, at: .now) }
                         }
                     } header: { if !group.isEmpty { Text(group) } }
                 }
                 if !item.notes.isEmpty { Section("Notes") { Text(item.notes).textSelection(.enabled) } }
                 if item.fields.isEmpty && item.notes.isEmpty { Text("No fields or notes").foregroundStyle(.secondary) }
-                if !item.reserved {
-                    Section {
-                        NavigationLink("Version history") { VaultHistoryView(item: item) }
-                        if revision == nil && !item.deleted {
-                            NavigationLink { SecretItemAttachmentsView(itemID: item.id) } label: {
-                                Label { Text("Item attachments") + Text(verbatim: " · \(item.files.count)") } icon: { Image(systemName: "paperclip") }
-                            }
-                            NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
-                                .accessibilityIdentifier("vault.share")
-                            if item.kind == "login" { NavigationLink("Password AutoFill") { SystemExportsView(initialCredential: item) } }
-                            NavigationLink("Local security review") { SecretHealthView() }
-                            Button("Move to Trash", systemImage: "trash", role: .destructive) { deleting = true }
-                                .accessibilityIdentifier("vault.detail.trash")
-                        }
-                    }
-                }
             } else if let failure {
                 NoticeBar(text: failure)
                 Button("Retry") { reload &+= 1 }.accessibilityIdentifier("vault.detail.retry")
             } else { ProgressView().accessibilityIdentifier("vault.detail.loading") }
         }.privateScreen().navigationTitle(revision == nil ? "Secret" : "Historical version").navigationBarTitleDisplayMode(.inline)
+            // The header already names the item.
+            .toolbar(removing: revision == nil ? .title : nil)
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
-                    WorkspaceStatusButton()
                     if let item, item.canEdit, revision == nil {
                         Button { Task { await favorite(item) } } label: { Image(systemName: item.favorite ? "star.fill" : "star") }
                             .accessibilityLabel(item.favorite ? "Remove favorite" : "Favorite").accessibilityIdentifier("vault.detail.favorite").disabled(working)
                         Button("Edit item", systemImage: "pencil") { clearRevealed(); editing = VaultEditorTarget(item: item) }
                             .accessibilityIdentifier("vault.edit.open")
                     }
+                    if let item, !item.reserved { actions(item) }
                 }
             }
             .task(id: readKey) { if !model.concealed && editing == nil { await load() } }
-            .onDisappear { clearRevealed() }
-            .onChange(of: id) { _, _ in editing = nil; referenceTarget = nil }
-            .onChange(of: model.concealed) { _, value in if value { clearRevealed() } }
+            .task(id: "codes:\(item?.id ?? ""):\(item?.revision ?? ""):\(model.epoch):\(model.concealed)") { await watchCodes() }
+            .onDisappear { clearRevealed(); codes = [:]; trustedUntil = nil }
+            .onChange(of: id) { _, _ in editing = nil; referenceTarget = nil; codes = [:]; trustedUntil = nil }
+            .onChange(of: model.concealed) { _, value in if value { clearRevealed(); codes = [:]; trustedUntil = nil } }
             .sheet(item: $editing, onDismiss: { reload &+= 1 }) { target in NavigationStack { VaultEditor(target: target) } }
             .navigationDestination(item: $referenceTarget) { target in SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID) }
-            .confirmationDialog(copying ? "Copy this field?" : "Reveal this field?", isPresented: Binding(get: { pendingField != nil }, set: { if !$0 { pendingField = nil } }), titleVisibility: .visible) {
-                Button(copying ? "Copy for 30 seconds" : "Reveal") {
-                    if let field = pendingField { revealTask?.cancel(); revealTask = Task { await reveal(field) } }
-                }
-            } message: {
-                if let field = pendingField, let item {
-                    Text(item.title + " · " + vaultFieldTitle(field))
-                    Text(copying ? "Copies stay on this device and expire within 30 seconds." : "This field will be visible until you hide it or leave this screen.")
-                }
-            }
             .confirmationDialog("Move this secret to Trash?", isPresented: $deleting, titleVisibility: .visible) {
                 Button("Move to Trash", role: .destructive) { if let item { Task { await remove(item) } } }
             } message: { Text(item?.title ?? "") }
+    }
+
+    private func actions(_ item: VaultItem) -> some View {
+        Menu("Actions", systemImage: "ellipsis.circle") {
+            NavigationLink("Version history") { VaultHistoryView(item: item) }
+            if revision == nil && !item.deleted {
+                NavigationLink { SecretItemAttachmentsView(itemID: item.id) } label: {
+                    Label { Text("Item attachments") + Text(verbatim: " · \(item.files.count)") } icon: { Image(systemName: "paperclip") }
+                }
+                NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
+                    .accessibilityIdentifier("vault.share")
+                if item.kind == "login" { NavigationLink("Password AutoFill") { SystemExportsView(section: .autoFill, initialCredential: item) } }
+                if !item.fields.isEmpty {
+                    Menu("Field reference and dependencies", systemImage: "link") {
+                        ForEach(item.fields, id: \.id) { field in
+                            Button(vaultFieldTitle(field)) { referenceTarget = ReferenceTarget(itemID: item.id, fieldID: field.id) }
+                        }
+                    }
+                }
+                Button("Move to Trash", systemImage: "trash", role: .destructive) { deleting = true }
+                    .accessibilityIdentifier("vault.detail.trash")
+            }
+        }.accessibilityIdentifier("vault.detail.more")
+    }
+
+    private func liveCode(_ field: VaultField, item: VaultItem) -> Bool {
+        field.kind == "otp" && !field.value.isEmpty && revision == nil && !item.reserved && !item.deleted
+    }
+
+    private func fieldRow(_ field: VaultField, item: VaultItem, at date: Date) -> some View {
+        let live = liveCode(field, item: item)
+        let shown = live ? codes[field.id] : revealed[field.id]
+        return VaultDetailField(field: field, value: shown?.value(at: date), remaining: shown?.remaining(at: date),
+            busy: workingField == field.id, readOnly: item.reserved || item.deleted, live: live,
+            asks: field.concealed && !live && (trustedUntil.map { $0 <= .now } ?? true),
+            reveal: {
+                if revealed[field.id]?.value(at: .now) != nil { revealed.removeValue(forKey: field.id) }
+                else { revealTask?.cancel(); revealTask = Task { await read(field, copy: false) } }
+            }, copy: { revealTask?.cancel(); revealTask = Task { await read(field, copy: true) } })
+    }
+
+    private func watchCodes() async {
+        guard let item, !model.concealed else { return }
+        let fields = item.fields.filter { liveCode($0, item: item) }
+        let epoch = model.epoch
+        while !fields.isEmpty, !Task.isCancelled {
+            var wait = 30.0
+            for field in fields {
+                let requestedAt = Date.now
+                guard let value = try? await model.vaultFieldValue(item, field: field) else { continue }
+                guard epoch == model.epoch, value.generation == model.session?.generation, !model.concealed, !Task.isCancelled else { return }
+                // Conservatively include the read's latency; never extend a code's validity.
+                let expiry = value.remainingMs.map { requestedAt.addingTimeInterval(Double($0) / 1000) }
+                codes[field.id] = RevealedVaultValue(text: value.value, expires: expiry)
+                if let expiry { wait = min(wait, max(0.5, expiry.timeIntervalSinceNow)) }
+            }
+            try? await Task.sleep(for: .seconds(wait))
+        }
     }
 
     private func header(_ item: VaultItem) -> some View {
@@ -123,7 +152,7 @@ struct VaultDetailView: View {
                     HStack(spacing: 8) {
                         Text(vaultKindName(item.kind))
                         Label(item.deleted ? "In Trash" : item.conflict ? "Sync conflicts" : item.synced ? "Synced" : "Waiting to sync",
-                            systemImage: item.deleted ? "trash" : item.conflict ? "arrow.triangle.branch" : item.synced ? "checkmark.icloud" : "arrow.triangle.2.circlepath")
+                            systemImage: item.deleted ? "trash" : item.conflict ? "arrow.triangle.branch" : item.synced ? "checkmark.circle" : "arrow.triangle.2.circlepath")
                     }.font(.caption).foregroundStyle(.secondary)
                 }
             }
@@ -164,29 +193,25 @@ struct VaultDetailView: View {
 
     private func clearRevealed() {
         revealTask?.cancel(); revealTask = nil; revealRequest = nil; workingField = nil
-        revealed = [:]; pendingField = nil
+        revealed = [:]
     }
 
-    private func reveal(_ field: VaultField) async {
+    private func read(_ field: VaultField, copy: Bool) async {
         guard let item, !item.reserved, !item.deleted else { return }
-        let copy = copying, epoch = model.epoch, request = UUID(), requestedAt = Date.now
-        revealRequest = request; pendingField = nil; workingField = field.id; model.activity()
+        model.activity()
+        // Fields that are not sensitive are already on screen.
+        if copy && !field.concealed {
+            model.clipboard.copy(field.value)
+            model.notice = String(localized: "Copied for 30 seconds")
+            return
+        }
+        let epoch = model.epoch, request = UUID(), requestedAt = Date.now
+        revealRequest = request; workingField = field.id
         defer { if revealRequest == request { workingField = nil } }
         do {
-            let value: SecretValue
-            #if DEBUG
-            if model.uiTesting {
-                value = SecretValue(generation: 0, value: field.kind == "otp" ? "123456" : field.concealed ? "fixture-secret" : field.value,
-                    remainingMs: field.kind == "otp" ? 5000 : nil)
-            } else {
-                guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-                value = try await engine.revealField(id: item.id, revision: item.revision, field: field.id)
-            }
-            #else
-            guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-            value = try await engine.revealField(id: item.id, revision: item.revision, field: field.id)
-            #endif
+            let value = try await model.vaultFieldValue(item, field: field)
             guard epoch == model.epoch, value.generation == model.session?.generation, revealRequest == request, !model.concealed, !Task.isCancelled else { return }
+            if field.concealed && !liveCode(field, item: item) { trustedUntil = .now.addingTimeInterval(30) }
             // Conservatively include the read's latency; never extend a code's validity.
             let expiry = value.remainingMs.map { requestedAt.addingTimeInterval(Double($0) / 1000) }
             let lifetime = expiry.map { max(0, $0.timeIntervalSinceNow) }
@@ -217,16 +242,20 @@ struct VaultDetailView: View {
     }
 }
 
+/// A sensitive field asks first, next to the button that was pressed; a field that
+/// is already on screen, or a one-time code, just copies.
 private struct VaultDetailField: View {
+    private enum Pending { case reveal, copy }
     let field: VaultField
     let value: String?
     let remaining: Int?
     let busy: Bool
     let readOnly: Bool
-    let showReferences: Bool
+    let live: Bool
+    let asks: Bool
     let reveal: () -> Void
     let copy: () -> Void
-    let reference: () -> Void
+    @State private var pending: Pending?
     @Environment(\.dynamicTypeSize) private var size
     @Environment(\.layoutDirection) private var direction
     private var text: String { value ?? field.value }
@@ -242,32 +271,47 @@ private struct VaultDetailField: View {
                     .environment(\.layoutDirection, vaultFieldIsLTR(field, value: text) ? .leftToRight : direction)
                     .accessibilityLabel(vaultFieldTitle(field)).accessibilityValue(spokenValue)
                     .accessibilityIdentifier("vault.value.\(field.id)")
+                if let remaining, value != nil { countdown(remaining) }
                 if !readOnly {
                     HStack(spacing: 4) {
                         if busy { ProgressView().frame(width: 44, height: 44) }
                         else {
-                            if field.concealed && !field.value.isEmpty {
-                                Button(action: reveal) { Image(systemName: value == nil ? "eye" : "eye.slash").frame(width: 44, height: 44) }
-                                    .accessibilityLabel(Text(value == nil ? "Reveal" : "Hide") + Text(verbatim: " · " + vaultFieldTitle(field)))
+                            if field.concealed && !live && !field.value.isEmpty {
+                                Button { if value == nil && asks { pending = .reveal } else { reveal() } } label: {
+                                    Image(systemName: value == nil ? "eye" : "eye.slash").frame(width: 44, height: 44)
+                                }.accessibilityLabel(Text(value == nil ? "Reveal" : "Hide") + Text(verbatim: " · " + vaultFieldTitle(field)))
                                     .accessibilityIdentifier("vault.reveal.\(field.id)")
+                                    .confirmationDialog("Reveal this field?", isPresented: asking(.reveal), titleVisibility: .visible) {
+                                        Button("Reveal", action: reveal)
+                                    } message: { Text("This field will be visible until you hide it or leave this screen.") }
                             }
                             if !field.value.isEmpty {
-                                Button(action: copy) { Image(systemName: "doc.on.doc").frame(width: 44, height: 44) }
-                                    .accessibilityLabel(Text("Copy") + Text(verbatim: " · " + vaultFieldTitle(field))).accessibilityIdentifier("vault.copy.\(field.id)")
-                            }
-                            if showReferences {
-                                Menu { Button("Field reference and dependencies", systemImage: "link", action: reference) } label: {
-                                    Image(systemName: "ellipsis").frame(width: 44, height: 44)
-                                }.accessibilityLabel(Text("Field settings") + Text(verbatim: " · " + vaultFieldTitle(field)))
+                                Button { if asks { pending = .copy } else { copy() } } label: {
+                                    Image(systemName: "doc.on.doc").frame(width: 44, height: 44)
+                                }.accessibilityLabel(Text("Copy") + Text(verbatim: " · " + vaultFieldTitle(field))).accessibilityIdentifier("vault.copy.\(field.id)")
+                                    .confirmationDialog("Copy this field?", isPresented: asking(.copy), titleVisibility: .visible) {
+                                        Button("Copy for 30 seconds", action: copy)
+                                    } message: { Text("Copies stay on this device and expire within 30 seconds.") }
                             }
                         }
                     }.font(.system(size: 20)).buttonStyle(.borderless)
                 }
             }
-            if let remaining, value != nil {
-                LabeledContent("Remaining", value: remaining.formatted()).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-            }
         }.padding(.vertical, 5)
+    }
+
+    private func asking(_ action: Pending) -> Binding<Bool> {
+        Binding(get: { pending == action }, set: { if !$0 { pending = nil } })
+    }
+
+    private func countdown(_ remaining: Int) -> some View {
+        ZStack {
+            Circle().stroke(Theme.forest.opacity(0.15), lineWidth: 3)
+            Circle().trim(from: 0, to: CGFloat(min(remaining, 30)) / 30)
+                .stroke(Theme.forest, style: StrokeStyle(lineWidth: 3, lineCap: .round)).rotationEffect(.degrees(-90))
+            Text(remaining.formatted()).font(.caption2.monospacedDigit())
+        }.frame(width: 30, height: 30).accessibilityElement(children: .ignore)
+            .accessibilityLabel("Remaining").accessibilityValue(remaining.formatted())
     }
 
     private var spokenValue: String {

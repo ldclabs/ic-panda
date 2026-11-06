@@ -3,9 +3,9 @@ import Foundation
 import Observation
 
 enum WorkspaceDestination: String, AppEnum {
-    case vault, approvals, imports
+    case vault, messages, files, approvals, imports
     static let typeDisplayRepresentation: TypeDisplayRepresentation = "Workspace destination"
-    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.vault: "Vault", .approvals: "Approvals", .imports: "Shared with dMsg"]
+    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.vault: "Vault", .messages: "Messages", .files: "Files", .approvals: "Approvals", .imports: "Shared with dMsg"]
 }
 
 @MainActor @Observable

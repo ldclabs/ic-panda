@@ -7,6 +7,7 @@ struct LetterComposerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var discarding = false
     @State private var leaving = false
+    @State private var showsInvitation = false
 
     init(recipient: String = "", draft: LetterDraft? = nil) { initial = draft ?? LetterDraft(recipient: recipient) }
     private var draft: LetterDraft { model.letters.drafts[initial.id] ?? initial }
@@ -21,27 +22,23 @@ struct LetterComposerView: View {
             if let queued { SentLetterContent(source: queued) }
             else {
                 Form {
-                    Section("New free letter") {
+                    Section {
                         MessageRecipientField(title: "Recipient account ID", account: binding(\.recipient))
-                        SettingsField("Contact invitation, if provided", invalid: !draft.invitationValid) {
-                            TextField("Contact invitation, if provided", text: Binding(get: { draft.invitation ?? "" }, set: { value in
-                                var next = draft; next.invitation = value.isEmpty ? nil : value; model.letters.update(next, model: model)
-                            })).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight)
-                        }
-                        if !draft.invitationValid { Text("The invitation is invalid.").font(.caption).foregroundStyle(.red) }
                         SettingsField("Message", counter: "\(draft.text.utf8.count) / 6000", invalid: draft.text.utf8.count > 6000) {
                             TextField("Message", text: binding(\.text), axis: .vertical).lineLimit(5...12).accessibilityIdentifier("letter.text")
                         }
                         if draft.text.utf8.count > 6000 { Text("This letter is too long.").font(.caption).foregroundStyle(.red) }
+                        DisclosureGroup("Contact invitation, if provided", isExpanded: Binding(get: { showsInvitation || draft.invitation != nil }, set: { showsInvitation = $0 })) {
+                            TextField("Contact invitation, if provided", text: Binding(get: { draft.invitation ?? "" }, set: { value in
+                                var next = draft; next.invitation = value.isEmpty ? nil : value; model.letters.update(next, model: model)
+                            })).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight)
+                            if !draft.invitationValid { Text("The invitation is invalid.").font(.caption).foregroundStyle(.red) }
+                        }
+                    } footer: {
+                        Text("Only free contact is supported here. This action cannot pay or approve a recipient's fee.")
                     }.disabled(working)
-                    NoticeBar(text: String(localized: "Only free contact is supported here. This action cannot pay or approve a recipient's fee."))
-                    Text("Drafts and sent letters are saved on this device.").font(.footnote).foregroundStyle(.secondary)
                     if let error = model.letters.failures[initial.id] { NoticeBar(text: error) }
                     if working { ProgressView("Sending") }
-                    else {
-                        SettingsAction("Send free letter", prominent: true) { model.letters.send(draft, id: draft.id, model: model) }
-                            .disabled(!draft.valid).accessibilityIdentifier("letter.send")
-                    }
                     if !draft.empty {
                         Text(model.letters.dirty.contains(initial.id) ? "Saving draft…" : "Draft saved").font(.caption).foregroundStyle(.secondary)
                         SettingsAction("Discard draft", role: .destructive) { discarding = true }.disabled(working)
@@ -50,10 +47,18 @@ struct LetterComposerView: View {
             }
         }.privateScreen().navigationTitle("Write a letter").navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { Task {
-                leaving = true; await model.letters.flush(model); leaving = false
-                if !model.letters.dirty.contains(initial.id) { dismiss() }
-            } }.disabled(leaving) } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Done") { Task {
+                    leaving = true; await model.letters.flush(model); leaving = false
+                    if !model.letters.dirty.contains(initial.id) { dismiss() }
+                } }.disabled(leaving) }
+                if queued == nil {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Send") { model.letters.send(draft, id: draft.id, model: model) }
+                            .disabled(!draft.valid || working).accessibilityIdentifier("letter.send")
+                    }
+                }
+            }
             .interactiveDismissDisabled(model.letters.dirty.contains(initial.id))
             .task { if model.letters.drafts[initial.id] == nil && !initial.empty && queued == nil { model.letters.update(initial, model: model) } }
             .confirmationDialog("Discard this draft?", isPresented: $discarding, titleVisibility: .visible) {

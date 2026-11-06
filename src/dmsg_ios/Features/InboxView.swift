@@ -70,23 +70,25 @@ struct InboxDetail: View {
             }
             Section {
                 SettingsAction("Reply", systemImage: "arrowshape.turn.up.left", prominent: true) { composing = true }.accessibilityIdentifier("inbox.reply")
-                Button("Invite to a conversation", systemImage: "person.badge.plus") { inviting = true }
             }.disabled(working || model.blockedAccounts.contains(letter.sender))
-            Section {
-                Button(LocalizedStringKey(letter.archived ? "Restore" : "Archive"), systemImage: "archivebox") {
-                    Task { await mark(read: letter.read, archived: !letter.archived) }
-                }.disabled(working).accessibilityIdentifier("inbox.archive")
-                    Button(LocalizedStringKey(letter.read ? "Mark as unread" : "Mark as read"), systemImage: "envelope.open") {
-                        Task { await mark(read: !letter.read, archived: letter.archived) }
-                    }.disabled(working).accessibilityIdentifier("inbox.read")
-            }
-            Section {
-                Button("Allow another letter") { reopening = true }.disabled(working)
-                Text("Archiving only organizes this letter. Allow another letter separately to reopen contact.").font(.footnote).foregroundStyle(.secondary)
-                Button("Report content") { reporting = true }
-                Button(LocalizedStringKey(model.blockedAccounts.contains(letter.sender) ? "Unblock" : "Block this account"), role: .destructive) { blocking = true }.disabled(working)
-            }
         }.accessibilityIdentifier("inbox.detail").privateScreen().navigationTitle("Inbox").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu("Actions", systemImage: "ellipsis.circle") {
+                        Button(LocalizedStringKey(letter.archived ? "Restore" : "Archive"), systemImage: "archivebox") {
+                            Task { await mark(read: letter.read, archived: !letter.archived) }
+                        }.accessibilityIdentifier("inbox.archive")
+                        Button(LocalizedStringKey(letter.read ? "Mark as unread" : "Mark as read"), systemImage: "envelope.open") {
+                            Task { await mark(read: !letter.read, archived: letter.archived) }
+                        }.accessibilityIdentifier("inbox.read")
+                        Button("Invite to a conversation", systemImage: "person.badge.plus") { inviting = true }
+                            .disabled(model.blockedAccounts.contains(letter.sender))
+                        Button("Allow another letter", systemImage: "envelope.badge") { reopening = true }
+                        Button("Report content", systemImage: "exclamationmark.bubble") { reporting = true }
+                        Button(LocalizedStringKey(model.blockedAccounts.contains(letter.sender) ? "Unblock" : "Block this account"), systemImage: "hand.raised", role: .destructive) { blocking = true }
+                    }.disabled(working).accessibilityIdentifier("inbox.more")
+                }
+            }
             .onChange(of: source) { _, value in letter = value }
             .sheet(isPresented: $reporting) { NavigationStack { ReportContentView(target: ReportTarget(kind: "inbox", account: letter.sender, resource: letter.id)) } }
             .sheet(isPresented: $composing) { NavigationStack { LetterComposerView(recipient: letter.sender) } }

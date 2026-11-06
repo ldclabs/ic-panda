@@ -21,7 +21,7 @@ struct PendingImportsView: View {
                         NavigationLink("Continue password import") { VaultImportView(pending: record) }
                     } else { Text("The source copy was interrupted. Discard it and select the source again.").font(.footnote).foregroundStyle(.secondary) }
                     Button("Discard staged copy", role: .destructive) { discarding = record }.disabled(model.transfer.running)
-                }
+                }.buttonStyle(.borderless)
             }
             if !loading && failure == nil && pending.isEmpty { ContentUnavailableView("No interrupted imports", systemImage: "checkmark.circle") }
         }.privateScreen().navigationTitle("Pending imports").task { await load() }

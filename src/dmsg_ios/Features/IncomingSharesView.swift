@@ -19,7 +19,7 @@ struct IncomingSharesView: View {
                         Button("Import into this account") { Task { await receive(entry) } }.disabled(working)
                     } else { Text("Continue this import in the account you originally selected.").font(.footnote).foregroundStyle(.secondary) }
                     Button("Discard staged copy", role: .destructive) { discarding = entry }.disabled(working)
-                }
+                }.buttonStyle(.borderless)
             }
             if entries.isEmpty { Text(LocalizedStringKey(failed ? "Shared items are unavailable. Open the app again after unlocking this device." : "No shared items waiting")).foregroundStyle(.secondary) }
         }.privateScreen().navigationTitle("Shared with dMsg").task { await load() }.refreshable { await load() }

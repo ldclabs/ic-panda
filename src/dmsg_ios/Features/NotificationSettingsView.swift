@@ -15,6 +15,8 @@ struct NotificationSettingsView: View {
     @State private var others: [String] = []
     @State private var linking = false
     @State private var draftGeneration: UInt64 = 0
+    @State private var saveTask: Task<Void, Never>?
+    @State private var saveFailed = false
     private var dirty: Bool { draft?.global != saved?.global || draft?.account != saved?.account }
     private var scope: String { "\(model.epoch):\(model.session?.account ?? "")" }
     var body: some View {
@@ -35,14 +37,17 @@ struct NotificationSettingsView: View {
                         Text(NoticeCopy.text("noticeBadgeActions")).tag("actions")
                         Text(NoticeCopy.text("noticeBadgeOff")).tag("off")
                     }
-                    Menu(NoticeCopy.text("noticePauseHour")) {
+                    Menu("Pause notifications") {
                         Button(NoticeCopy.text("noticePause15")) { Task { await pause(NotificationTime.now + 900_000) } }
                         Button(NoticeCopy.text("noticePauseHour")) { Task { await pause(NotificationTime.now + 3_600_000) } }
                         Button(NoticeCopy.text("noticePauseTomorrow")) { Task { await pause(NotificationTime.tomorrow()) } }
-                        Button(NoticeCopy.text("noticeResume")) { Task { await pause(nil) } }
                     }
                     if let until = draft?.global.pausedUntil, until > NotificationTime.now {
-                        Text(Date(timeIntervalSince1970: Double(until) / 1000), style: .relative).foregroundStyle(.secondary)
+                        HStack {
+                            Text(Date(timeIntervalSince1970: Double(until) / 1000), style: .relative).foregroundStyle(.secondary)
+                            Spacer()
+                            Button(NoticeCopy.text("noticeResume")) { Task { await pause(nil) } }.buttonStyle(.borderless)
+                        }
                     }
                 }
                 Section(NoticeCopy.text("noticeQuiet")) {
@@ -52,8 +57,10 @@ struct NotificationSettingsView: View {
                     if draft?.global.quietHours != nil {
                         DatePicker(NoticeCopy.text("noticeFrom"), selection: time(\.start), displayedComponents: .hourAndMinute)
                         DatePicker(NoticeCopy.text("noticeUntil"), selection: time(\.end), displayedComponents: .hourAndMinute)
-                        Picker(NoticeCopy.text("noticeZone"), selection: Binding(get: { draft?.global.quietHours?.timezone ?? TimeZone.current.identifier }, set: { draft?.global.quietHours?.timezone = $0 })) {
-                            ForEach(Array(Set([TimeZone.current.identifier] + TimeZone.knownTimeZoneIdentifiers)).sorted(), id: \.self) { Text($0).tag($0) }
+                        NavigationLink {
+                            TimeZonePicker(selection: Binding(get: { draft?.global.quietHours?.timezone ?? TimeZone.current.identifier }, set: { draft?.global.quietHours?.timezone = $0 }))
+                        } label: {
+                            LabeledContent(NoticeCopy.text("noticeZone"), value: draft?.global.quietHours?.timezone ?? TimeZone.current.identifier)
                         }
                         Toggle(NoticeCopy.text("noticeSecurityException"), isOn: Binding(get: { draft?.global.securityException == true }, set: { draft?.global.securityException = $0 }))
                     }
@@ -74,25 +81,39 @@ struct NotificationSettingsView: View {
                 Section {
                     NoticeBar(text: NoticeCopy.text("noticeScopeHint"))
                     if saved?.remoteSupported == false { NoticeBar(text: NoticeCopy.text("noticeRemote")) }
-                    if saved?.pending == true { NoticeBar(text: NoticeCopy.text("noticePending")); Text(NoticeCopy.text("noticePendingHint")).font(.footnote).foregroundStyle(.secondary) }
+                    if saved?.pending == true {
+                        NoticeBar(text: NoticeCopy.text("noticePending")).accessibilityIdentifier("notifications.pending")
+                        Text(NoticeCopy.text("noticePendingHint")).font(.footnote).foregroundStyle(.secondary)
+                    }
                     if let registration = model.push.status { NoticeBar(text: registration) }
-                    SettingsAction(LocalizedStringKey(saved?.conflict == true ? "Retry" : "Save settings"), prominent: true) { Task { await save() } }
-                        .disabled(!dirty && saved?.conflict != true).accessibilityIdentifier("notifications.save")
-                    SettingsAction("Retry registration") { Task { await model.push.refresh(model); await load(preserve: true) } }
+                    if saved?.conflict == true || saveFailed {
+                        SettingsAction("Retry", prominent: true) { Task { await save() } }.accessibilityIdentifier("notifications.save")
+                    }
+                    SettingsAction("Retry registration") { Task { await model.push.refresh(model); await load() } }
                 }
             } else if !loading { SettingsAction("Retry") { Task { await load() } } }
             if loading || working || model.push.working { ProgressView() }
             if failed { NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device.")) }
         }
-        .disabled(working).privateScreen().navigationTitle(NoticeCopy.text("noticeSettings")).confirmLeavingDraft(dirty)
+        .disabled(working).privateScreen().navigationTitle(NoticeCopy.text("noticeSettings"))
+        .onChange(of: draft?.global) { _, _ in scheduleSave() }
+        .onChange(of: draft?.account) { _, _ in scheduleSave() }
         .confirmationDialog(NoticeCopy.text("noticeLinkTitle"), isPresented: $linking, titleVisibility: .visible) {
             Button(NoticeCopy.text("noticeLinkConfirm")) { Task { await save(linked: true) } }
+            Button("Cancel", role: .cancel) { draft?.account?.enabled = false }
         } message: {
             Text(NoticeCopy.text("noticeLinkBody") + "\n\n" + NoticeCopy.text("noticeLinkAccounts") + "\n" + others.joined(separator: "\n"))
         }
-        .task(id: scope) { draftGeneration = model.viewGeneration; await load(preserve: dirty) }
-        .onDisappear { if dirty, let draft { model.keepFormDraft("notifications", value: draft, generation: draftGeneration) } }
-        .refreshable { await model.notifications.refresh(model, receive: true); await load(preserve: dirty) }
+        .task(id: scope) { draftGeneration = model.viewGeneration; await load() }
+        .onDisappear {
+            // Leaving does not lose a change that was still waiting to be saved.
+            saveTask?.cancel()
+            if dirty, let draft {
+                model.keepFormDraft("notifications", value: draft, generation: draftGeneration)
+                Task { await save() }
+            }
+        }
+        .refreshable { await model.notifications.refresh(model, receive: true); await load() }
         .accessibilityIdentifier("notifications.settings")
     }
     private func categoryValue(_ category: ReminderCategory, sound: Bool) -> Binding<Bool> {
@@ -110,12 +131,11 @@ struct NotificationSettingsView: View {
             draft?.global.quietHours?[keyPath: key] = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
         })
     }
-    private func load(preserve: Bool = false) async {
+    private func load() async {
         let current = scope, token = UUID(); request = token; loading = true; failed = false
         defer { if request == token { loading = false } }
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
-        guard current == scope, request == token, !Task.isCancelled else { return }
-        status = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus) ? String(localized: "Allowed") : String(localized: "Not enabled")
+        // The system can take seconds to answer, and the settings do not depend on it.
+        Task { await checkPermission() }
         do {
             let next: NoticePreferences, counts: ReminderStatus?
             if model.uiTesting, let fixture = model.notifications.preferences { next = fixture; counts = model.notifications.status }
@@ -125,15 +145,35 @@ struct NotificationSettingsView: View {
                 counts = try model.decode(try await engine.notificationStatus())
             }
             guard current == scope, request == token, !Task.isCancelled else { return }
-            saved = next; if !preserve || draft == nil {
+            // A change made while this was loading stays, and saves itself.
+            let keep = dirty
+            saved = next; if !keep || draft == nil {
                 let restored = model.formDraft("notifications", as: NoticePreferences.self)
                 if let restored, restored.accountId == next.accountId { draft = restored } else { draft = next }
             }
             others = (counts?.accounts ?? []).filter { $0.enabled && $0.account != next.accountId }.map(\.account)
         } catch { if current == scope { failed = true } }
     }
+    /// Changes save shortly after the last one, so a run of toggles is one write.
+    private func checkPermission() async {
+        let current = scope
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard current == scope else { return }
+        status = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus) ? String(localized: "Allowed") : String(localized: "Not enabled")
+    }
+
+    private func scheduleSave() {
+        saveTask?.cancel()
+        guard dirty else { return }
+        saveTask = Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled, dirty else { return }
+            await save()
+        }
+    }
     private func save(linked: Bool = false) async {
         guard let saved, var value = draft, !working else { return }
+        saveFailed = false
         // Registering another account tells the notification service and the push
         // provider that these accounts share this device; that needs consent.
         if !linked, value.account?.enabled == true, saved.account?.enabled != true, !others.isEmpty { linking = true; return }
@@ -144,7 +184,8 @@ struct NotificationSettingsView: View {
             guard current == scope, !Task.isCancelled else { return }
             if model.uiTesting {
                 value.global.revision += 1; value.account?.revision += 1; value.globalPendingSync = true
-                model.notifications.saveFixture(value); self.saved = value; draft = value; model.settingsDrafts.removeValue(forKey: "notifications"); return
+                self.saved = value; draft = value
+                model.notifications.saveFixture(value); model.settingsDrafts.removeValue(forKey: "notifications"); return
             }
             guard let engine = model.engine else { return }
             if value.global != saved.global || saved.globalConflict == true {
@@ -156,15 +197,40 @@ struct NotificationSettingsView: View {
             }
             guard current == scope, !Task.isCancelled else { return }
             self.saved = value; draft = value; model.settingsDrafts.removeValue(forKey: "notifications")
+            // The change is saved; what follows only refreshes around it.
+            working = false
             await model.push.refresh(model); await model.notifications.refresh(model, receive: true)
             await load()
-        } catch { if current == scope { await load(preserve: true); model.report(error) } }
+        } catch { if current == scope { saveFailed = true; await load(); model.report(error) } }
     }
     private func pause(_ until: UInt64?) async { draft?.global.pausedUntil = until; await save() }
     private func test() async {
         do { if try await model.push.requestPermission() { try await model.notifications.test() } }
         catch { model.report(error) }
-        await load(preserve: dirty)
+        await load()
+    }
+}
+
+private struct TimeZonePicker: View {
+    @Binding var selection: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    private var zones: [String] {
+        let all = Array(Set([TimeZone.current.identifier] + TimeZone.knownTimeZoneIdentifiers)).sorted()
+        return query.isEmpty ? all : all.filter { $0.localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        List(zones, id: \.self) { zone in
+            Button { selection = zone; dismiss() } label: {
+                HStack {
+                    Text(verbatim: zone).foregroundStyle(.primary)
+                    Spacer()
+                    if zone == selection { Image(systemName: "checkmark").foregroundStyle(Theme.forest).accessibilityLabel("Selected") }
+                }
+            }
+        }.privateScreen().navigationTitle(NoticeCopy.text("noticeZone")).navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always))
     }
 }
 

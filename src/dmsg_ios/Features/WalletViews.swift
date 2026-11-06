@@ -87,7 +87,7 @@ struct WalletDetailView: View {
                 ForEach(proposals) { proposal in NavigationLink { WalletProposalView(wallet: wallet, proposal: proposal.id) } label: {
                     VStack(alignment: .leading, spacing: 4) { Text("Proposal \(proposal.id)"); Text(proposal.status).font(.caption).foregroundStyle(.secondary) }
                 } }
-                if next != nil { Button("Load earlier proposals") { Task { await load(more: true) } }.disabled(reading) }
+                if next != nil { LoadMoreRow(title: "Load earlier proposals", working: reading, trigger: proposals.count) { await load(more: true) } }
             }
             if let details { DisclosureGroup("Wallet details and policy") { CanonicalDetails(value: details) } }
         }.privateScreen().navigationTitle(name).task { await load() }.refreshable { await load(force: true) }

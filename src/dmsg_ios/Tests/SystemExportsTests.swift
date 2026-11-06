@@ -3,6 +3,18 @@ import XCTest
 @testable import dMsg
 
 final class SystemExportsTests: XCTestCase {
+    func testALoginMatchesItsSiteAndSubdomainsButNotALookalike() {
+        let login = CredentialExport(id: "1", title: "GitHub", username: "lin", origin: "https://www.github.com/login")
+        for service in ["github.com", "https://github.com", "https://gist.github.com/x", "www.github.com"] {
+            XCTAssertTrue(login.matches(service: service), service)
+        }
+        for service in ["notgithub.com", "github.com.example.org", "", "example.org"] {
+            XCTAssertFalse(login.matches(service: service), service)
+        }
+        XCTAssertTrue(login.contains("hub")); XCTAssertFalse(login.contains("gitlab"))
+    }
+
+
     private func root() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)

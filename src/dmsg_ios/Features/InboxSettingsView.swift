@@ -38,7 +38,7 @@ struct InboxSettingsView: View {
                         SettingsField("Account ID") { TextField("Account ID", text: $draft.allow[index]).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
                         if let name = model.accountIdentities[draft.allow[index]]?.name { Text(name).font(.caption) }
                         if !Change(mode: draft.mode, allow: [draft.normalized.allow[index]]).valid { Text("Enter a valid account ID.").font(.caption).foregroundStyle(.red) }
-                        Button("Remove", role: .destructive) { draft.allow.remove(at: index) }
+                        Button("Remove", role: .destructive) { draft.allow.remove(at: index) }.buttonStyle(.borderless)
                     }
                 }
                 SettingsAction("Add account") { draft.allow.append("") }

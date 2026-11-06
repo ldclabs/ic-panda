@@ -9,6 +9,7 @@ final class PrivateClipboard {
         UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: text]],
             options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(max(0, min(30, lifetime)))])
         writtenChange = UIPasteboard.general.changeCount
+        Haptics.tap()
     }
 
     func clearOwned() {

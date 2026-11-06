@@ -96,6 +96,12 @@ func fileSymbol(_ mime: String) -> String {
     return "doc"
 }
 
+/// Types worth opening straight into a preview. Anything else lands on its details.
+func filePreviewable(_ mime: String) -> Bool {
+    ["image/", "video/", "audio/", "text/"].contains { mime.hasPrefix($0) } || mime == "application/pdf"
+        || mime.contains("officedocument") || mime.contains("msword") || mime.contains("ms-excel") || mime.contains("ms-powerpoint")
+}
+
 func fileFailure(_ error: Error) -> String {
     if let error = error as? CocoaError {
         if error.code == .fileWriteOutOfSpace { return String(localized: "Not enough storage on this device.") }

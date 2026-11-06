@@ -1,10 +1,10 @@
 import XCTest
 
 @MainActor
-final class FileLibraryUITests: XCTestCase {
+class FileLibraryTestCase: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
-    private func launch(_ extra: [String] = [], language: String = "en", locale: String = "en_US") -> XCUIApplication {
+    fileprivate func launch(_ extra: [String] = [], language: String = "en", locale: String = "en_US") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-files-rich", "-AppleLanguages", "(\(language))", "-AppleLocale", locale] + extra
         app.launch()
@@ -12,18 +12,18 @@ final class FileLibraryUITests: XCTestCase {
         return app
     }
 
-    private func tap(_ element: XCUIElement, in app: XCUIApplication) {
+    fileprivate func tap(_ element: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<6 where !element.isHittable { app.swipeUp() }
         XCTAssertTrue(element.waitForExistence(timeout: 5)); XCTAssertTrue(element.isHittable); element.tap()
     }
 
-    private func capture(_ app: XCUIApplication, _ name: String) {
+    fileprivate func capture(_ app: XCUIApplication, _ name: String) {
         let feedback = app.buttons.matching(identifier: "workspace.feedback").firstMatch
         if feedback.exists { _ = feedback.waitForNonExistence(timeout: 6) }
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)
     }
 
-    private func chooseCloud(_ app: XCUIApplication, language: String = "en") {
+    fileprivate func chooseCloud(_ app: XCUIApplication, language: String = "en") {
         let cloud = app.buttons["files.scope.cloud"]
         if cloud.exists && cloud.isHittable { cloud.tap() }
         else {
@@ -33,10 +33,17 @@ final class FileLibraryUITests: XCTestCase {
         }
     }
 
-    private func back(_ app: XCUIApplication) { app.navigationBars.buttons.element(boundBy: 0).tap() }
+    /// A narrow column shows the scopes as a menu named after the current one.
+    fileprivate func chooseLocal(_ app: XCUIApplication) {
+        let local = app.buttons["files.scope.local"]
+        if local.exists && local.isHittable { local.tap() }
+        else { app.buttons["files.scope.cloud"].tap(); app.buttons["On this device"].tap() }
+    }
+
+    fileprivate func back(_ app: XCUIApplication) { app.navigationBars.buttons.element(boundBy: 0).tap() }
 
     /// Whether the screen shows one flat color where the element sits.
-    private func isBlank(_ element: XCUIElement) -> Bool {
+    fileprivate func isBlank(_ element: XCUIElement) -> Bool {
         guard let image = element.screenshot().image.cgImage else { return false }
         var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
         pixels.withUnsafeMutableBytes { buffer in
@@ -48,7 +55,9 @@ final class FileLibraryUITests: XCTestCase {
             (0..<3).allSatisfy { abs(Int(pixels[pixel + $0]) - Int(pixels[$0])) < 16 }
         }
     }
+}
 
+final class FileLibraryUITests: FileLibraryTestCase {
     func testWorkspaceRootShowsNoTitleButPushedScreensDo() {
         let app = launch()
         // The expanded layout's floating tab bar counts as part of the navigation bars.
@@ -96,7 +105,7 @@ final class FileLibraryUITests: XCTestCase {
         XCTAssertTrue(captured.label.contains(".jpg"))
         XCTAssertTrue(app.descendants(matching: .any)["workspace.notice"].waitForExistence(timeout: 5))
         capture(app, "Camera capture listed in the open folder")
-        app.buttons["files.parent"].tap()
+        back(app)
         XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 5))
         XCTAssertFalse(captured.exists)
     }
@@ -134,7 +143,7 @@ final class FileLibraryUITests: XCTestCase {
         app.buttons["Clear search"].tap()
         XCTAssertTrue(app.buttons["backup.item.fixture-backup"].waitForExistence(timeout: 5))
         if app.buttons["Cancel"].isHittable { app.buttons["Cancel"].tap() }
-        app.buttons["files.scope.local"].tap()
+        chooseLocal(app)
         XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["backup.item.fixture-backup"].exists)
     }
@@ -152,6 +161,45 @@ final class FileLibraryUITests: XCTestCase {
         capture(app, "Restored historical file version")
     }
 
+    func testAPreviewableFileOpensToItsPreviewAndDetailsAreOneStepAway() {
+        let app = launch(["--ui-files-preview"])
+        tap(app.buttons["file.item.fixture-local"], in: app)
+        XCTAssertTrue(app.buttons["file.details"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Preview file"].exists)
+        capture(app, "Opening a file shows the file")
+        app.buttons["file.details"].tap()
+        XCTAssertTrue(app.buttons["file.manage"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Preview file"].exists)
+    }
+
+    func testFileMovesToTrashFromItsManagementPage() {
+        let app = launch()
+        tap(app.buttons["file.item.fixture-local"], in: app)
+        tap(app.buttons["file.manage"], in: app)
+        tap(app.buttons["file.trash"], in: app)
+        let confirm = app.sheets.buttons["Move to Trash"].exists ? app.sheets.buttons["Move to Trash"] : app.buttons["Move to Trash"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForNonExistence(timeout: 5))
+    }
+
+    func testAccessibilityAndLargeText() throws {
+        let app = launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        capture(app, "Files maximum Dynamic Type header")
+        let longName = app.buttons["file.item.fixture-note"]
+        let list = app.collectionViews.firstMatch
+        for _ in 0..<10 where !longName.isHittable {
+            // The list extends behind the tab bar; start inside its visible body.
+            list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55)).press(forDuration: 0.05,
+                thenDragTo: list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)))
+        }
+        XCTAssertTrue(longName.waitForExistence(timeout: 5)); XCTAssertTrue(longName.isHittable)
+        XCTAssertTrue(longName.label.contains("A very long research document with a visible extension.md"))
+        capture(app, "Files maximum Dynamic Type")
+        try app.performAccessibilityAudit(for: [.sufficientElementDescription, .hitRegion])
+    }
+}
+
+final class FileManagementUITests: FileLibraryTestCase {
     func testRenameFailureKeepsDraftAndCanRetry() {
         let app = launch(["--ui-files-save-failure"])
         tap(app.buttons["file.item.fixture-local"], in: app)
@@ -176,7 +224,9 @@ final class FileLibraryUITests: XCTestCase {
         app.buttons["files.tools"].tap(); app.buttons["Select files"].tap()
         tap(app.buttons["file.item.fixture-local"], in: app)
         tap(app.buttons["file.item.fixture-video"], in: app)
-        app.buttons["files.selection.actions"].tap(); app.buttons["Back up to cloud"].tap()
+        app.buttons["files.selection.actions"].tap()
+        capture(app, "Selection actions")
+        app.buttons["Back up to cloud"].tap()
         tap(app.buttons["files.backup.submit"], in: app)
         XCTAssertTrue(app.staticTexts["This version is already backed up."].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["This file exceeds your current cloud backup file limit."].exists)
@@ -241,14 +291,14 @@ final class FileLibraryUITests: XCTestCase {
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Audit folder")).firstMatch.waitForExistence(timeout: 5))
         tap(app.buttons["folder.item.fixture-folder"], in: app)
         XCTAssertTrue(app.buttons["file.item.fixture-nested"].waitForExistence(timeout: 5))
-        app.buttons["files.parent"].tap()
+        back(app)
         XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 5))
         app.buttons["files.tools"].tap(); app.buttons["Select files"].tap()
         tap(app.buttons["file.item.fixture-local"], in: app)
         app.buttons["files.selection.actions"].tap(); app.buttons["Move to Trash"].tap()
         app.sheets.buttons["Move to Trash"].tap()
-        XCTAssertTrue(app.staticTexts["Moved to Trash"].waitForExistence(timeout: 5))
-        app.buttons["Done"].tap()
+        // A clean run reports briefly instead of opening a results page.
+        XCTAssertTrue(app.descendants(matching: .any)["workspace.notice"].waitForExistence(timeout: 5))
         app.buttons["files.tools"].tap(); app.buttons["Trash"].tap()
         tap(app.buttons["trash.restore.fixture-local"], in: app)
         XCTAssertTrue(app.buttons["trash.restore.fixture-local"].waitForNonExistence(timeout: 5))
@@ -320,7 +370,9 @@ final class FileLibraryUITests: XCTestCase {
         tap(app.buttons["folder.item.fixture-folder"], in: app)
         XCTAssertTrue(app.buttons["file.item.fixture-video"].waitForExistence(timeout: 5))
     }
+}
 
+final class FileRequestUITests: FileLibraryTestCase {
     func testLinkFromALocalFileWaitsThenHandsOverTheLink() {
         let app = launch(["--ui-files-link-slow"])
         app.buttons["file.item.fixture-local"].press(forDuration: 1)
@@ -367,7 +419,7 @@ final class FileLibraryUITests: XCTestCase {
         XCTAssertFalse(app.buttons["file.request.new"].isEnabled)
         capture(app, "Collecting files explains the paid plan")
         tap(app.buttons["file.request.plans"], in: app)
-        XCTAssertFalse(app.buttons["file.request.plans"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["file.request.plans"].waitForNonExistence(timeout: 5))
     }
 
     func testOneLinkPerNameAndAFailureKeepsTheRest() {
@@ -421,7 +473,7 @@ final class FileLibraryUITests: XCTestCase {
 
         // Each control in a row answers on its own: this one opens the saved file.
         tap(app.buttons.matching(identifier: "file.request.show").firstMatch, in: app)
-        XCTAssertFalse(app.buttons["file.request.close"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["file.request.close"].waitForNonExistence(timeout: 5))
         back(app)
         XCTAssertTrue(app.buttons["file.request.close"].waitForExistence(timeout: 5))
 
@@ -518,21 +570,5 @@ final class FileLibraryUITests: XCTestCase {
         for _ in 0..<8 where !create.isHittable { app.swipeUp() }
         XCTAssertTrue(create.isHittable)
         capture(app, "Create link reachable at maximum Dynamic Type")
-    }
-
-    func testAccessibilityAndLargeText() throws {
-        let app = launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
-        capture(app, "Files maximum Dynamic Type header")
-        let longName = app.buttons["file.item.fixture-note"]
-        let list = app.collectionViews.firstMatch
-        for _ in 0..<10 where !longName.isHittable {
-            // The list extends behind the tab bar; start inside its visible body.
-            list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55)).press(forDuration: 0.05,
-                thenDragTo: list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)))
-        }
-        XCTAssertTrue(longName.waitForExistence(timeout: 5)); XCTAssertTrue(longName.isHittable)
-        XCTAssertTrue(longName.label.contains("A very long research document with a visible extension.md"))
-        capture(app, "Files maximum Dynamic Type")
-        try app.performAccessibilityAudit(for: [.sufficientElementDescription, .hitRegion])
     }
 }

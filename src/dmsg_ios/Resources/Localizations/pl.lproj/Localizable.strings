@@ -76,6 +76,8 @@
 	<string>Aktywne rozmowy</string>
 	<key>Active links</key>
 	<string>Aktywne linki</string>
+	<key>Activity</key>
+	<string>Aktywność</string>
 	<key>Activity on this device</key>
 	<string>Aktywność na tym urządzeniu</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>Autoryzowane urządzenie</string>
 	<key>Authorized devices</key>
 	<string>Autoryzowane urządzenia</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Autouzupełnianie otrzymuje tylko wybrane przez Ciebie dane logowania i wymaga uwierzytelnienia systemowego niezależnie od obszaru roboczego. Nazwy użytkowników i nazwy witryn mogą pojawiać się w podpowiedziach systemu.</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>Autouzupełnianie otrzymuje tylko wybrane przez Ciebie dane logowania i wymaga uwierzytelnienia systemowego niezależnie od obszaru roboczego. Gdy dMsg jest otwarty i odblokowany, migawka śledzi zmiany tych elementów; bez aktualizacji wygasa po 24 godzinach. Nazwy użytkowników i witryn mogą pojawiać się w podpowiedziach systemu.</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>Pobieranie w tle</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Funkcje podpisywania w tle i agenta rezydentnego są niezależne od tej blokady obszaru roboczego.</string>
+	<key>Background transfer</key>
+	<string>Transfer w tle</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>Rozpoczęto przesyłanie w tle. Przejrzyj jego postępy w Transferach.</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>Sprawdź dostarczenie</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Sprawdź długość pól i nadaj nazwy linkom HTTPS.</string>
+	<key>Check original result</key>
+	<string>Sprawdź pierwotny wynik</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Sprawdź referencje projektu i wszelkie dostarczone już kopie.</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>Skopiuj link</string>
 	<key>Copy pairing request</key>
 	<string>Skopiuj prośbę o parowanie</string>
+	<key>Copy password</key>
+	<string>Kopiuj hasło</string>
 	<key>Copy reference</key>
 	<string>Skopiuj odniesienie</string>
 	<key>Copy request</key>
 	<string>Kopiuj prośbę</string>
 	<key>Copy this field?</key>
 	<string>Skopiować to pole?</string>
+	<key>Copy username</key>
+	<string>Kopiuj nazwę użytkownika</string>
 	<key>Cosign on this device</key>
 	<string>Współpodpisz na tym urządzeniu</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>Utwórz propozycję przeniesienia</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Utwórz zaszyfrowany obszar roboczy, aby rozpocząć zapisywanie haseł, notatek i plików.</string>
+	<key>Created</key>
+	<string>Utworzono</string>
 	<key>Creating %lld of %lld…</key>
 	<string>Tworzenie %lld z %lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>Wersja robocza</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>Szkice i wysłane listy są zapisywane na tym urządzeniu.</string>
+	<key>Due %@</key>
+	<string>Termin: %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>Pola</string>
 	<key>File</key>
 	<string>Plik</string>
+	<key>File details</key>
+	<string>Szczegóły pliku</string>
 	<key>File name</key>
 	<string>Nazwa pliku</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>Nazwa folderu</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>Dla klucza, którego to urządzenie nie ma, np. z utraconego urządzenia. Po zatwierdzeniu przez członków nowy klucz zacznie obowiązywać po 24 godzinach.</string>
+	<key>For this site</key>
+	<string>Dla tej witryny</string>
 	<key>Freeze this wallet?</key>
 	<string>Zamrozić ten portfel?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>Nieprawidłowy klucz konfiguracji lub adres URL otpauth.</string>
 	<key>Inventory fingerprint</key>
 	<string>Odcisk palca inwentarza</string>
+	<key>Invitation created</key>
+	<string>Utworzono zaproszenie</string>
 	<key>Invite member</key>
 	<string>Zaproś członka</string>
 	<key>Invite to a conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>Blokada wstrzymuje transfery, a odblokowanie je wznawia.</string>
 	<key>Login identities</key>
 	<string>Tożsamości logowania</string>
+	<key>Login identity</key>
+	<string>Tożsamość logowania</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Zarządzaj subskrypcjami Apple</string>
 	<key>Manage file</key>
@@ -1546,6 +1570,8 @@
 	<string>Inne</string>
 	<key>Other devices</key>
 	<string>Inne urządzenia</string>
+	<key>Other logins</key>
+	<string>Inne dane logowania</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>W przeciwnym razie dMsg blokuje się po 3 minutach. Blokada urządzenia zawsze natychmiast blokuje przestrzeń roboczą.</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>Wklej wiążące żądanie</string>
 	<key>Paste enrollment request</key>
 	<string>Wklej prośbę o rejestrację</string>
+	<key>Paste image</key>
+	<string>Wklej obraz</string>
 	<key>Paste invitation</key>
 	<string>Wklej zaproszenie</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>Wklej tajny link do pakietu</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>Wklej prośbę wyświetloną przez nowe urządzenie, sprawdź, czego dotyczy, a potem potwierdź jego identyfikator.</string>
+	<key>Pause notifications</key>
+	<string>Wstrzymaj powiadomienia</string>
 	<key>Pause this agent</key>
 	<string>Wstrzymaj tego agenta</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>Planuj</string>
 	<key>Plan and usage</key>
 	<string>Planuj i używaj</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>W tej wersji aplikacji nie można zmienić planu. Twój obecny plan i użycie pozostają dostępne.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Od planu Plus możesz prosić o pliki przez link. Konto nie jest potrzebne, każdy widzi tylko to, co wysłał, a pliki otworzysz tylko Ty.</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>Kupiony</string>
 	<key>Purchases are not currently available.</key>
 	<string>Zakupy nie są obecnie dostępne.</string>
+	<key>Purpose</key>
+	<string>Cel</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>W tej kompilacji nie są włączone powiadomienia push. Otwórz dMsg, aby zsynchronizować.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Szybkie odblokowanie otwiera obszar roboczy. Powiązanie ogranicza urządzenia mogące go odblokować. Zatwierdzanie sprzętowe chroni wrażliwe operacje konta.</string>
+	<key>Quick unlock with %@</key>
+	<string>Szybkie odblokowanie przez %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Szybkie odblokowanie dzięki uwierzytelnieniu systemu</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>Skanuj zaproszenie z komputera</string>
 	<key>Scan device request</key>
 	<string>Zeskanuj żądanie urządzenia</string>
+	<key>Scan invitation</key>
+	<string>Zeskanuj zaproszenie</string>
 	<key>Scopes, one per line</key>
 	<string>Zakresy, po jednym na linię</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>Wybierz elementy logowania</string>
 	<key>Select non-duplicates</key>
 	<string>Wybierz rekordy bez duplikatów</string>
+	<key>Select text</key>
+	<string>Zaznacz tekst</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>Wybierz do 1 000 rekordów na jeden import.</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>Wybrane pliki</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Wybrane części używają wersji konfliktowej. Pozostałe zachowują bieżącą wersję.</string>
+	<key>Send</key>
+	<string>Wyślij</string>
 	<key>Send device request</key>
 	<string>Wyślij prośbę urządzenia</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>Konto nadawcy</string>
 	<key>Sending</key>
 	<string>Wysyłanie</string>
+	<key>Sent</key>
+	<string>Wysłano</string>
 	<key>Sent letters</key>
 	<string>Wysłane listy</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>Zebrane podpisy</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Podpisy współpodpisujących %@ nie pasują już do ich bieżących kluczy i zostały odłożone; muszą podpisać ponownie.</string>
+	<key>Size</key>
+	<string>Rozmiar</string>
 	<key>Skipped</key>
 	<string>Pominięte</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>Sortuj</string>
 	<key>Sort by</key>
 	<string>Sortuj według</string>
+	<key>Source</key>
+	<string>Źródło</string>
 	<key>Source address</key>
 	<string>Adres źródłowy</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>Uruchom listę kontrolną</string>
 	<key>Start sending</key>
 	<string>Zacznij wysyłać</string>
+	<key>Statement</key>
+	<string>Oświadczenie</string>
 	<key>Status</key>
 	<string>Stan</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>Tagi oddzielone przecinkami</string>
 	<key>Take photo or video</key>
 	<string>Zrób zdjęcie lub nagraj film</string>
+	<key>Technical details</key>
+	<string>Szczegóły techniczne</string>
 	<key>Terms of service</key>
 	<string>Warunki usługi</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>Żądanie nie jest dostępne dla tego urządzenia. Być może wygasło lub zostało już rozpatrzone.</string>
 	<key>The required content key is not available yet.</key>
 	<string>Wymagany klucz zawartości nie jest jeszcze dostępny.</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>Wynik nie został potwierdzony. Sprawdź go ponownie przed kolejną próbą.</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>Wynik nie jest potwierdzony. Uzgodnij tę prośbę przed ponowną próbą.</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>Ten obszar roboczy utworzono na innym iPhonie i skopiowano tutaj, na przykład z odtworzonej kopii zapasowej lub podczas przenoszenia danych. Aby chronić Twoje konto, nigdy nie działa jako stare urządzenie: nie odblokowuje się tutaj i nic w nim nie jest usuwane.</string>
 	<key>Title</key>
 	<string>Tytuł</string>
+	<key>To device</key>
+	<string>Na urządzenie</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>Aby zamiast tego zastąpić stary iPhone, odłóż kopię i zaloguj się, a potem wybierz Zastąp stary iPhone przy kopii; gdy ten iPhone dołączy, zaimportuj jej pliki w Urządzeniach.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>Odblokuj politykę</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>Odblokuj ten iPhone, aby otworzyć dMsg.</string>
+	<key>Unlock with %@</key>
+	<string>Odblokuj za pomocą %@</string>
 	<key>Unlock with system authentication</key>
 	<string>Odblokuj przez uwierzytelnianie systemowe</string>
 	<key>Unlock workspace</key>
 	<string>Odblokuj obszar roboczy</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Odblokuj przestrzeń roboczą dMsg</string>
+	<key>Unmute notifications</key>
+	<string>Wyłącz wyciszenie powiadomień</string>
 	<key>Unread messages</key>
 	<string>Nieprzeczytane</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>Nieograniczone uprawnienia delegowania</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>Maksymalnie 8 zakresów i 4 odbiorców. Użyj źródeł HTTPS lub ID agentów; symbole wieloznaczne są niedozwolone.</string>
+	<key>Update AutoFill</key>
+	<string>Aktualizuj autouzupełnianie</string>
+	<key>Update Files app copies</key>
+	<string>Aktualizuj kopie w aplikacji Pliki</string>
+	<key>Update conversation keys</key>
+	<string>Aktualizuj klucze rozmowy</string>
 	<key>Updated</key>
 	<string>Zaktualizowano</string>
 	<key>Uploading</key>
@@ -2825,7 +2891,7 @@
 	<key>Waiting for browser confirmation</key>
 	<string>Czekam na potwierdzenie przeglądarki</string>
 	<key>Waiting for confirmation</key>
-	<string>Czekam na potwierdzenie</string>
+	<string>Oczekiwanie na potwierdzenie</string>
 	<key>Waiting for confirmation: </key>
 	<string>Czekam na potwierdzenie: </string>
 	<key>Waiting for first sync</key>
@@ -2934,6 +3000,8 @@
 	<string>Twój raport i dowolny tekst, który wyraźnie zawrzesz, zostaną przesłane do zespołu moderacyjnego. Inne prywatne treści i klucze nie są uwzględniane.</string>
 	<key>Your reports</key>
 	<string>Twoje raporty</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>Sejf synchronizuje się automatycznie, gdy dMsg jest otwarty.</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

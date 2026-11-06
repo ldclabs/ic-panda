@@ -76,6 +76,8 @@
 	<string>المحادثات النشطة</string>
 	<key>Active links</key>
 	<string>الروابط النشطة</string>
+	<key>Activity</key>
+	<string>النشاط</string>
 	<key>Activity on this device</key>
 	<string>النشاط على هذا الجهاز</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>جهاز مخوّل</string>
 	<key>Authorized devices</key>
 	<string>الأجهزة المفوّضة</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>لا يتلقى الملء التلقائي سوى عناصر تسجيل الدخول التي تحددها، ويتطلب مصادقة النظام بشكل مستقل عن مساحة العمل. قد تظهر أسماء المستخدمين وأسماء المواقع في اقتراحات النظام.</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>لا يتلقى الملء التلقائي سوى عناصر تسجيل الدخول التي تحددها، ويتطلب مصادقة النظام بشكل مستقل عن مساحة العمل. أثناء فتح dMsg وإلغاء قفله، تتبع اللقطة تغييرات تلك العناصر؛ وإذا لم تُحدَّث تنتهي صلاحيتها بعد 24 ساعة. قد تظهر أسماء المستخدمين وأسماء المواقع في اقتراحات النظام.</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>تنزيل في الخلفية</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>التوقيع في الخلفية وصلاحيات الوكلاء المقيمين منفصلة عن قفل مساحة العمل هذا.</string>
+	<key>Background transfer</key>
+	<string>النقل في الخلفية</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>بدأ النقل في الخلفية. راجع التقدم في «عمليات النقل».</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>التحقق من التسليم</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>تحقق من طول الحقول واستخدم روابط HTTPS مسمّاة.</string>
+	<key>Check original result</key>
+	<string>التحقق من النتيجة الأصلية</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>تحقّق من مراجع المشروع وأي نسخ سُلّمت بالفعل.</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>نسخ الرابط</string>
 	<key>Copy pairing request</key>
 	<string>نسخ طلب الاقتران</string>
+	<key>Copy password</key>
+	<string>نسخ كلمة المرور</string>
 	<key>Copy reference</key>
 	<string>نسخ المرجع</string>
 	<key>Copy request</key>
 	<string>نسخ الطلب</string>
 	<key>Copy this field?</key>
 	<string>هل تريد نسخ هذا الحقل؟</string>
+	<key>Copy username</key>
+	<string>نسخ اسم المستخدم</string>
 	<key>Cosign on this device</key>
 	<string>التوقيع المشترك على هذا الجهاز</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>إنشاء اقتراح تحويل</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>أنشئ مساحة عملك المشفّرة لبدء حفظ كلمات المرور والملاحظات والملفات.</string>
+	<key>Created</key>
+	<string>تاريخ الإنشاء</string>
 	<key>Creating %lld of %lld…</key>
 	<string>جارٍ الإنشاء %lld من %lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>مسودة</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>تُحفظ المسودات والرسائل المرسلة على هذا الجهاز.</string>
+	<key>Due %@</key>
+	<string>الموعد: %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>الحقول</string>
 	<key>File</key>
 	<string>الملف</string>
+	<key>File details</key>
+	<string>تفاصيل الملف</string>
 	<key>File name</key>
 	<string>اسم الملف</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>اسم المجلد</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>لمفتاح لا يملكه هذا الجهاز، مثل مفتاح على جهاز مفقود. بعد موافقة الأعضاء يسري المفتاح الجديد بعد 24 ساعة.</string>
+	<key>For this site</key>
+	<string>لهذا الموقع</string>
 	<key>Freeze this wallet?</key>
 	<string>هل تريد تجميد هذه المحفظة؟</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>مفتاح الإعداد أو رابط otpauth غير صالح.</string>
 	<key>Inventory fingerprint</key>
 	<string>بصمة الجرد</string>
+	<key>Invitation created</key>
+	<string>تم إنشاء الدعوة</string>
 	<key>Invite member</key>
 	<string>دعوة عضو</string>
 	<key>Invite to a conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>يوقف القفل عمليات النقل مؤقتًا، وتُستأنف عند إلغاء القفل.</string>
 	<key>Login identities</key>
 	<string>هويات تسجيل الدخول</string>
+	<key>Login identity</key>
+	<string>هوية تسجيل الدخول</string>
 	<key>Manage Apple subscriptions</key>
 	<string>إدارة اشتراكات Apple</string>
 	<key>Manage file</key>
@@ -1546,6 +1570,8 @@
 	<string>أخرى</string>
 	<key>Other devices</key>
 	<string>الأجهزة الأخرى</string>
+	<key>Other logins</key>
+	<string>عمليات تسجيل دخول أخرى</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>خلاف ذلك، يُقفل dMsg بعد الابتعاد عنه 3 دقائق. قفل الجهاز يقفل مساحة العمل فورًا دائمًا.</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>لصق طلب الربط</string>
 	<key>Paste enrollment request</key>
 	<string>لصق طلب التسجيل</string>
+	<key>Paste image</key>
+	<string>لصق الصورة</string>
 	<key>Paste invitation</key>
 	<string>لصق الدعوة</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>لصق رابط حزمة الأسرار</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>الصق الطلب الذي يعرضه الجهاز الجديد، وتحقق مما يطلبه، ثم أكّد معرّف جهازه.</string>
+	<key>Pause notifications</key>
+	<string>إيقاف الإشعارات مؤقتًا</string>
 	<key>Pause this agent</key>
 	<string>إيقاف هذا الوكيل مؤقتًا</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>الخطة</string>
 	<key>Plan and usage</key>
 	<string>الخطة والاستخدام</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>لا يمكن تغيير الخطة في هذا الإصدار من التطبيق. تبقى خطتك الحالية واستخدامك متاحين.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>يمكن لخطة Plus وما فوقها طلب الملفات من أي شخص عبر رابط. لا يحتاج الآخرون إلى حساب، ولا يرون سوى ما أرسلوه، ولا يفتح الملفات سواك.</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>تاريخ الشراء</string>
 	<key>Purchases are not currently available.</key>
 	<string>المشتريات غير متاحة حاليًا.</string>
+	<key>Purpose</key>
+	<string>الغرض</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>الإشعارات الفورية غير مفعّلة في هذا الإصدار. افتح dMsg للمزامنة.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>يفتح إلغاء القفل السريع مساحة العمل. يحد ربط الجهاز من الأجهزة القادرة على فتحها. تحمي الموافقة عبر العتاد إجراءات الحساب الحساسة.</string>
+	<key>Quick unlock with %@</key>
+	<string>فتح سريع باستخدام %@</string>
 	<key>Quick unlock with system authentication</key>
 	<string>فتح سريع بمصادقة النظام</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>مسح دعوة الكمبيوتر</string>
 	<key>Scan device request</key>
 	<string>مسح طلب الجهاز</string>
+	<key>Scan invitation</key>
+	<string>مسح الدعوة ضوئيًا</string>
 	<key>Scopes, one per line</key>
 	<string>النطاقات، واحد في كل سطر</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>اختيار بيانات الدخول</string>
 	<key>Select non-duplicates</key>
 	<string>تحديد السجلات غير المكررة</string>
+	<key>Select text</key>
+	<string>تحديد النص</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>يمكن تحديد ما يصل إلى 1,000 سجل لكل عملية استيراد.</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>الملفات المحددة</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>تستخدم الأجزاء المحددة الإصدار المتعارض. وتحتفظ الأجزاء الأخرى بالإصدار الحالي.</string>
+	<key>Send</key>
+	<string>إرسال</string>
 	<key>Send device request</key>
 	<string>إرسال طلب الجهاز</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>حساب المرسل</string>
 	<key>Sending</key>
 	<string>إرسال</string>
+	<key>Sent</key>
+	<string>تم الإرسال</string>
 	<key>Sent letters</key>
 	<string>الرسائل المُرسَلة</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>التوقيعات المجمَّعة</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>لم تعد توقيعات الموقّعين المشاركين %@ مطابقة لمفاتيحهم الحالية فتمت تنحيتها؛ يجب أن يوقّعوا مرة أخرى.</string>
+	<key>Size</key>
+	<string>الحجم</string>
 	<key>Skipped</key>
 	<string>تم تخطيها</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>ترتيب</string>
 	<key>Sort by</key>
 	<string>ترتيب حسب</string>
+	<key>Source</key>
+	<string>المصدر</string>
 	<key>Source address</key>
 	<string>عنوان المصدر</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>بدء القائمة</string>
 	<key>Start sending</key>
 	<string>بدء الإرسال</string>
+	<key>Statement</key>
+	<string>البيان</string>
 	<key>Status</key>
 	<string>الحالة</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>وسوم مفصولة بفواصل</string>
 	<key>Take photo or video</key>
 	<string>التقاط صورة أو فيديو</string>
+	<key>Technical details</key>
+	<string>التفاصيل التقنية</string>
 	<key>Terms of service</key>
 	<string>شروط الخدمة</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>الطلب غير متاح لهذا الجهاز. قد يكون منتهيًا أو تمت معالجته.</string>
 	<key>The required content key is not available yet.</key>
 	<string>مفتاح المحتوى المطلوب غير متاح بعد.</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>لم يتم تأكيد النتيجة. تحقق منها مجددًا قبل إعادة المحاولة.</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>لم تتأكد النتيجة. تحقّق من الطلب الأصلي قبل إعادة المحاولة.</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>أُنشئت مساحة العمل هذه على جهاز iPhone آخر ونُسخت إلى هنا، مثلًا باستعادة نسخة احتياطية أو بنقل الجهاز. لحماية حسابك لا تعمل أبدًا بصفتها الجهاز القديم: لا يُفتح قفلها هنا، ولا يُحذف شيء منها.</string>
 	<key>Title</key>
 	<string>العنوان</string>
+	<key>To device</key>
+	<string>إلى الجهاز</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>لاستبدال جهاز iPhone القديم بدلًا من ذلك، ضع النسخة جانبًا وسجّل الدخول، ثم اختر «استبدال جهاز iPhone القديم» على النسخة؛ وبعد انضمام هذا الـ iPhone استورد ملفاتها من الأجهزة.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>سياسة فك القفل</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>افتح قفل هذا الـ iPhone لفتح dMsg.</string>
+	<key>Unlock with %@</key>
+	<string>فتح القفل باستخدام %@</string>
 	<key>Unlock with system authentication</key>
 	<string>فتح القفل بمصادقة النظام</string>
 	<key>Unlock workspace</key>
 	<string>فتح مساحة العمل</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>فتح قفل مساحة عمل dMsg</string>
+	<key>Unmute notifications</key>
+	<string>إلغاء كتم الإشعارات</string>
 	<key>Unread messages</key>
 	<string>غير مقروءة</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>صلاحيات تفويض غير مقيّدة</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>حتى 8 نطاقات و4 جهات مستهدفة. استخدم أصول HTTPS أو معرّفات الوكلاء؛ لا تُسمح أحرف البدل.</string>
+	<key>Update AutoFill</key>
+	<string>تحديث الملء التلقائي</string>
+	<key>Update Files app copies</key>
+	<string>تحديث نسخ تطبيق الملفات</string>
+	<key>Update conversation keys</key>
+	<string>تحديث مفاتيح المحادثة</string>
 	<key>Updated</key>
 	<string>آخر تحديث</string>
 	<key>Uploading</key>
@@ -2825,7 +2891,7 @@
 	<key>Waiting for browser confirmation</key>
 	<string>بانتظار تأكيد المتصفح</string>
 	<key>Waiting for confirmation</key>
-	<string>بانتظار التأكيد</string>
+	<string>في انتظار التأكيد</string>
 	<key>Waiting for confirmation: </key>
 	<string>بانتظار التأكيد: </string>
 	<key>Waiting for first sync</key>
@@ -2934,6 +3000,8 @@
 	<string>سيُرسل البلاغ والنص الذي ترفقه صراحةً إلى فريق المراجعة. لا يُضمّن أي محتوى خاص آخر أو مفاتيح.</string>
 	<key>Your reports</key>
 	<string>بلاغاتك</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>تتم مزامنة خزنتك تلقائيًا أثناء فتح dMsg.</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

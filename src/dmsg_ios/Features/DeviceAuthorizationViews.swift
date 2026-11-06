@@ -4,6 +4,16 @@ import CoreImage.CIFilterBuiltins
 import VisionKit
 import AVFoundation
 
+/// Four-character groups are easier to compare between two screens.
+func groupedFingerprint(_ value: String) -> String {
+    stride(from: 0, to: value.count, by: 4).map { start in
+        let from = value.index(value.startIndex, offsetBy: start)
+        return String(value[from..<(value.index(from, offsetBy: 4, limitedBy: value.endIndex) ?? value.endIndex)])
+    }.joined(separator: " ")
+}
+
+/// The request stays current and the screen notices the approval by itself:
+/// nothing here asks the person to check or to start again.
 struct PairView: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -11,7 +21,6 @@ struct PairView: View {
     @State private var expires = Date.distantPast
     @State private var qrImage: UIImage?
     @State private var needsLogin = false
-    @State private var refreshing = false
     var body: some View {
         List {
             HStack(spacing: 12) {
@@ -26,23 +35,33 @@ struct PairView: View {
             }.accessibilityIdentifier("pair.desktop")
             if let token {
                 if let image = qrImage { Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 240).frame(maxWidth: .infinity).accessibilityLabel("Device pairing request QR code") }
-                Text(model.session?.deviceId ?? "").font(.caption.monospaced()).textSelection(.enabled)
+                FingerprintRow(title: "Device ID", value: groupedFingerprint(model.session?.deviceId ?? ""))
+                LabeledContent("Expires") { Text(expires, style: .relative) }
                 ShareLink(item: token) { SettingsActionLabel("Share pairing request", systemImage: "square.and.arrow.up") }
-                SettingsAction("Copy pairing request") { model.clipboard.copy(token) }
-                Text(expires, style: .relative).font(.caption).foregroundStyle(.secondary)
-            }
-            SettingsAction("Check authorization") { Task { await refresh() } }.disabled(refreshing || model.busy)
+                SettingsAction("Copy pairing request") { model.clipboard.copy(token); model.notice = String(localized: "Copied for 30 seconds") }
+            } else if model.engine != nil { ProgressView().frame(maxWidth: .infinity) }
             if needsLogin {
                 NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
-                SettingsAction("Continue with Internet Identity") { Task { await model.login() } }.disabled(refreshing || model.busy)
+                SettingsAction("Continue with Internet Identity") { Task { await model.login(); needsLogin = false } }.disabled(model.busy)
             }
-            SettingsAction("Create a new pairing request") { Task { await request() } }
             NoticeBar(text: String(localized: "On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically."))
             NavigationLink("All devices lost?") { RecoveryView() }
         }.privateScreen().navigationTitle("Join account")
+            .task(id: model.epoch) { await watch() }
             .onChange(of: model.session?.state) {
                 if let state = model.session?.state, ["logged_out", "locked"].contains(state) { dismiss() }
             }
+    }
+
+    private func watch() async {
+        guard model.engine != nil else { return }
+        await request()
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            if expires <= .now { await request() }
+            if !needsLogin { await refresh() }
+        }
     }
 
     private func request() async {
@@ -52,12 +71,10 @@ struct PairView: View {
                 token = try JSONDecoder().decode(String.self, from: Data(result.json.utf8)); expires = .now.addingTimeInterval(270)
                 qrImage = token.flatMap(QRCode.image)
             }
-        } catch { model.report(error) }
+        } catch { model.reportBackground(error) }
     }
 
     private func refresh() async {
-        guard !refreshing else { return }
-        refreshing = true; defer { refreshing = false }
         let epoch = model.epoch
         do {
             _ = try await model.engine?.refreshAccount()
@@ -68,7 +85,7 @@ struct PairView: View {
             guard epoch == model.epoch else { return }
             if let failure = error as? MobileError, case .Failure(let code) = failure, code == "AUTH_REQUIRED" {
                 needsLogin = true
-            } else { model.report(error) }
+            } else { model.reportBackground(error) }
         }
         // An identity transition invalidates the old engine handle even on
         // failure. Adopt its current state so retry/sign-in can work again.
@@ -76,16 +93,16 @@ struct PairView: View {
     }
 }
 
+/// Scan or paste a request, then decide on the approval screen, which shows the
+/// device's full fingerprint, role and permissions. Nothing is authorized before that.
 struct PairApprovalView: View {
     @Environment(SessionModel.self) private var model
     @State private var token = ""
-    @State private var device = ""
     @State private var created: ApprovalView?
     @State private var scanning = false
-    @State private var preview: DisplayValue?
     @State private var working = false
-    @State private var inspected = ""
     struct PairPreview: Decodable { let deviceId: String }
+    private var clean: String { token.trimmingCharacters(in: .whitespacesAndNewlines) }
     var body: some View {
         Form {
             Section("Device request") { TextField("Paste pairing request", text: $token, axis: .vertical).lineLimit(3...6).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
@@ -94,36 +111,27 @@ struct PairApprovalView: View {
                     if await AVCaptureDevice.requestAccess(for: .video) { scanning = true }
                 } }
             }
-            SettingsAction("Inspect pairing request") { Task { await inspect() } }.disabled(token.isEmpty)
-            if let preview { Section("Requested permissions") { CanonicalDetails(value: preview) } }
-            Section("Verify the full device fingerprint") { TextField("Device ID", text: $device, axis: .vertical).font(.body.monospaced()).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
-            SettingsAction("Review in approval center", prominent: true) { Task { await create() } }.disabled(token.isEmpty || device.count != 64 || preview == nil || inspected != token)
+            SettingsAction("Review request", prominent: true) { Task { await review() } }.disabled(clean.isEmpty)
+            if working { ProgressView() }
             NoticeBar(text: String(localized: "This creates a pending request. It does not authorize the device."))
         }.disabled(working).privateScreen().navigationTitle("Add device")
-            .onChange(of: token) { _, _ in preview = nil; device = ""; inspected = "" }
-            .sheet(isPresented: $scanning) { QRCodeScanner { text in token = text; scanning = false; Task { await inspect() } } }
+            .sheet(isPresented: $scanning) { QRCodeScanner { text in token = text; scanning = false; Task { await review() } } }
             .navigationDestination(isPresented: Binding(get: { created != nil }, set: { if !$0 { created = nil } })) {
                 if let created { ApprovalDetailView(request: created) }
             }
     }
 
-    private func inspect() async {
-        guard !working else { return }; working = true; defer { working = false }
-        let epoch = model.epoch, input = token
+    private func review() async {
+        guard !working, let engine = model.engine else { return }
+        let epoch = model.epoch, input = clean
+        working = true; defer { working = false }
         do {
-            guard let result = try await model.engine?.inspectPairingRequest(token: input) else { return }
-            guard epoch == model.epoch, input == token else { return }
-            inspected = input
-            let request: PairPreview = try model.decode(result)
-            device = request.deviceId; preview = try model.decode(result)
-        } catch { if epoch == model.epoch { preview = nil; device = ""; model.report(error) } }
-    }
-
-    private func create() async {
-        guard !working, preview != nil, inspected == token else { return }
-        let epoch = model.epoch; working = true; defer { working = false }
-        do { if let result = try await model.engine?.approvePairingRequest(token: token, device: device), epoch == model.epoch { created = try model.decode(result) } }
-        catch { if epoch == model.epoch { model.report(error) } }
+            let inspected: PairPreview = try model.decode(try await engine.inspectPairingRequest(token: input))
+            guard epoch == model.epoch, input == clean else { return }
+            let result = try await engine.approvePairingRequest(token: input, device: inspected.deviceId)
+            guard epoch == model.epoch, input == clean else { return }
+            created = try model.decode(result)
+        } catch { if epoch == model.epoch { model.report(error) } }
     }
 }
 

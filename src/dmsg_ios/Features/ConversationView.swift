@@ -4,26 +4,18 @@ import SwiftUI
 struct ConversationView: View {
     let channel: ChannelItem
     @Environment(SessionModel.self) private var model
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var messages: [MessageItem] = []
-    private var draft: String {
-        get { model.drafts[channel.id] ?? "" }
-        nonmutating set { model.setDraft(channel: channel.id, text: newValue) }
-    }
-    @State private var queuing = false
     @State private var queuedAt: ContinuousClock.Instant?
     @State private var outbox: [OutgoingMessage] = []
-    @State private var ownerEpoch: UInt64 = 0
-    @State private var choosingAttachment = false
-    @State private var attachment: LibraryFile?
     @State private var receivedFiles: [UInt64: LibraryFile] = [:]
+    @State private var checkedAttachments: Set<UInt64> = []
     @State private var openingFile: LibraryFile?
     @State private var receiving: UInt64?
     @State private var firstUnread: UInt64?
-    private var currentChannel: ChannelItem { model.channels.first { $0.id == channel.id } ?? channel }
-    private var canPublish: Bool { currentChannel.canPublish }
-    private var searchQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+    @State private var lastSeen: UInt64 = 0
     @State private var inviting = false
-    @State private var sharingSecret = false
+    @State private var showingSettings = false
     @State private var secretPackage: SecretPackageImportView.ChannelSource?
     @State private var hasEarlier = false
     @State private var nextBefore: UInt64?
@@ -32,7 +24,6 @@ struct ConversationView: View {
     @State private var nearBottom = true
     @State private var loadedQuery = ""
     @State private var messageRequest: UUID?
-    @State private var persistTask: Task<Void, Never>?
     @State private var actionTask: Task<Void, Never>?
     @State private var loadingEarlier = false
     @State private var messagesKnown = false
@@ -40,119 +31,110 @@ struct ConversationView: View {
     @State private var refreshFailed = false
     @State private var refreshing = false
     @State private var query = ""
+    @State private var searching = false
+    @FocusState private var searchFocused: Bool
     @State private var replying: MessageItem?
     @State private var editingMessage: MessageEdit?
+    @State private var selectingText: MessageEdit?
     @State private var retracting: MessageItem?
-    @State private var participants: [String: Participant] = [:]
-    @State private var avatars: [String: UIImage] = [:]
-    @State private var visibleParticipants: Set<String> = []
-    private struct Participant: Decodable { let name: String?; let avatarUrl: String? }
-    private var participantIDs: [String] { Array(visibleParticipants.union([model.session?.account ?? ""])).filter { !$0.isEmpty }.sorted() }
+    private var currentChannel: ChannelItem { model.channels.first { $0.id == channel.id } ?? channel }
+    private var searchQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private static let bottom = "conversation.bottom"
     struct MessageEdit: Identifiable { let message: MessageItem; var id: String { message.id } }
-    private var shownMessages: [MessageItem] {
-        model.messageSending.messages(channel: channel.id, stored: messages)
-            .filter { !model.blockedAccounts.contains($0.account) && (searchQuery.isEmpty || $0.text.localizedCaseInsensitiveContains(searchQuery) || $0.attachmentName?.localizedCaseInsensitiveContains(searchQuery) == true) }
+
+    private func matches(_ text: String, _ attachment: String?) -> Bool {
+        searchQuery.isEmpty || text.localizedCaseInsensitiveContains(searchQuery) || attachment?.localizedCaseInsensitiveContains(searchQuery) == true
     }
-    private var shownOutbox: [OutgoingMessage] {
-        // A verified local copy can arrive before the original send's ACK.
-        let received = Set(model.messageSending.messages(channel: channel.id, stored: messages).filter { $0.account == model.session?.account }.map(\.id))
-        return model.messageSending.items(channel: channel.id, stored: outbox, received: received)
-            .filter { searchQuery.isEmpty || $0.text.localizedCaseInsensitiveContains(searchQuery) || $0.attachmentName?.localizedCaseInsensitiveContains(searchQuery) == true }
-    }
+
     var body: some View {
+        let own = model.session?.account
+        let merged = model.messageSending.messages(channel: channel.id, stored: messages)
+        let shown = merged.filter { !model.blockedAccounts.contains($0.account) && matches($0.text, $0.attachmentName) }
+        // A verified local copy can arrive before the original send's ACK.
+        let received = Set(merged.filter { $0.account == own }.map(\.id))
+        let pending = model.messageSending.items(channel: channel.id, stored: outbox, received: received).filter { matches($0.text, $0.attachmentName) }
+        let rows = ConversationTimeline.rows(shown)
+        let references = Dictionary(merged.map { ($0.sequence, $0) }, uniquingKeysWith: { _, next in next })
+        let last = shown.last
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
+                LazyVStack(alignment: .leading, spacing: 4) {
                     // Saved messages stay on screen without comment while newer ones arrive.
-                    if shownMessages.isEmpty && (refreshing || !messagesKnown && !loadFailed) {
-                        ProgressView("Syncing…").accessibilityIdentifier("conversation.loading")
+                    if shown.isEmpty && (refreshing || !messagesKnown && !loadFailed) {
+                        ProgressView("Syncing…").frame(maxWidth: .infinity).accessibilityIdentifier("conversation.loading")
                     }
                     if loadFailed || refreshFailed {
                         NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish."))
                         Button("Retry") { actionTask = Task { await refreshMessages() } }
                             .disabled(refreshing).accessibilityIdentifier("conversation.retry")
-                    } else if messagesKnown && shownMessages.isEmpty && shownOutbox.isEmpty && !hasEarlier && !refreshing {
+                    } else if messagesKnown && shown.isEmpty && pending.isEmpty && !hasEarlier && !refreshing {
                         ContentUnavailableView(searchQuery.isEmpty ? "No messages" : "No matching results", image: AppGlyph.channels.assetName)
                             .accessibilityIdentifier("conversation.empty")
                     }
                     if !searchQuery.isEmpty {
                         Text("Searches messages saved on this device.").font(.caption).foregroundStyle(.secondary)
-                        LabeledContent("Messages", value: (shownMessages.count + shownOutbox.count).formatted() + (hasEarlier ? "+" : "")).font(.caption).foregroundStyle(.secondary)
+                        LabeledContent("Messages", value: (shown.count + pending.count).formatted() + (hasEarlier ? "+" : "")).font(.caption).foregroundStyle(.secondary)
                     }
                     if hasEarlier {
-                        Button(LocalizedStringKey(searchQuery.isEmpty ? "Load earlier messages" : "Load more")) { actionTask = Task { await loadEarlier() } }
-                            .disabled(loadingEarlier).accessibilityIdentifier("conversation.earlier")
+                        LoadMoreRow(title: searchQuery.isEmpty ? "Load earlier messages" : "Load more", working: loadingEarlier, trigger: shown.count) { await loadEarlier() }
+                            .accessibilityIdentifier("conversation.earlier")
                     }
-                    ForEach(shownMessages, id: \.id) { message in
-                        if dayStarts.contains(message.id) { Text(Date(timeIntervalSince1970: Double(message.createdAtMs) / 1000), style: .date).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity) }
-                        if message.sequence == firstUnread && searchQuery.isEmpty { Label("Unread messages", systemImage: "circle.fill").font(.caption).foregroundStyle(Theme.forest).frame(maxWidth: .infinity) }
-                        messageBubble(message) { sequence in actionTask = Task { await reveal(sequence, proxy: proxy) } }
-                            .onAppear { visibleParticipants.insert(message.account) }
-                            .reminderVisible(.channel(channel.id), watermark: message.sequence,
-                                ready: query.isEmpty && !message.unreadable && message.id == shownMessages.last?.id) {
-                                await model.channelRead(channel.id, through: message.sequence)
+                    ForEach(rows) { row in
+                        VStack(alignment: .leading, spacing: 8) {
+                            if row.startsDay {
+                                Text(ConversationTimeline.dayTitle(ConversationTimeline.date(row.message.createdAtMs)))
+                                    .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 8)
                             }
-                            .id(message.id).accessibilityIdentifier("message.row.\(message.sequence)").contextMenu {
-                            if !message.hidden && !message.unreadable && !message.retracted {
-                                if canPublish { Button("Reply") { replying = message } }
-                                if !message.text.isEmpty { Button("Copy") { UIPasteboard.general.string = message.text } }
-                                if message.account == model.session?.account && canPublish {
-                                    if !message.text.isEmpty { Button("Edit message") { editingMessage = MessageEdit(message: message) } }
-                                    Button("Withdraw message", role: .destructive) { retracting = message }
-                                }
+                            if row.message.sequence == firstUnread && searchQuery.isEmpty {
+                                Label("Unread messages", systemImage: "circle.fill").font(.caption).foregroundStyle(Theme.forest).frame(maxWidth: .infinity)
                             }
-                            Button(LocalizedStringKey(message.hidden ? "Show" : "Hide on this device")) { actionTask = Task { await hide(message, hidden: !message.hidden) } }
-                        }
+                            bubble(row, own: row.message.account == own, references: references) { sequence in
+                                actionTask = Task { await reveal(sequence, proxy: proxy) }
+                            }
+                        }.padding(.top, row.firstOfGroup ? 8 : 0).id(row.id)
                     }
                     // Pending and confirmed rows need distinct IDs so
                     // LazyVStack replaces the sending UI after an ACK.
-                    ForEach(shownOutbox, id: \.id) { pending in
-                        ConversationMessageRow(own: true, name: participantName(model.session?.account ?? ""), avatar: participantAvatar(model.session?.account ?? "")) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            if model.messageSending.active.contains(pending.id) {
-                                ProgressView("Sending")
-                                Text(pending.text)
-                            } else if model.messageSending.contains(pending.id) {
-                                Text("Waiting to submit").font(.caption).foregroundStyle(.secondary)
-                                Text(pending.text)
-                            } else if pending.error == "EXECUTION_UNKNOWN" || pending.attempted && pending.error == nil {
-                                NoticeBar(text: String(localized: "Waiting for confirmation: ") + pending.text)
-                            } else if pending.error != nil {
-                                NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
-                                Text(pending.text)
-                            } else {
-                                Text("Waiting to submit").font(.caption).foregroundStyle(.secondary)
-                                Text(pending.text)
-                            }
-                            if let name = pending.attachmentName { Label(name, systemImage: "doc") }
-                            if !model.messageSending.contains(pending.id) {
-                                Button(LocalizedStringKey(pending.attempted ? "Retry" : "Send queued message")) {
-                                    model.deliverMessage(channel: channel.id, item: pending)
-                                }.accessibilityIdentifier("message.retry.\(pending.id)")
-                            }
-                        }
-                        }.id("pending:\(pending.id)").accessibilityElement(children: .contain)
-                            .accessibilityIdentifier("message.pending.\(pending.id)")
+                    ForEach(pending, id: \.id) { item in
+                        pendingBubble(item).id("pending:\(item.id)").padding(.top, 8)
                     }
+                    // The end of the conversation being on screen is what counts as read and as following along.
+                    Color.clear.frame(height: 1).id(Self.bottom)
+                        .reminderVisible(.channel(channel.id), watermark: last?.sequence, ready: query.isEmpty && last != nil && last?.unreadable == false) {
+                            if let last { await model.channelRead(channel.id, through: last.sequence) }
+                        }
+                        .onScrollVisibilityChange(threshold: 0.01) { nearBottom = $0 }
                 }.padding(16)
-            }.defaultScrollAnchor(.bottom)
-                .onScrollGeometryChange(for: Bool.self) { geometry in
-                    geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 100
-                } action: { _, value in nearBottom = value }
-                .onChange(of: shownMessages.count) { _, _ in
+            }.defaultScrollAnchor(.bottom).scrollDismissesKeyboard(.interactively)
+                .onChange(of: shown.count) { _, _ in
                     if let preserveMessage { proxy.scrollTo(preserveMessage, anchor: .top); self.preserveMessage = nil }
-                    else if nearBottom, let id = shownMessages.last?.id { proxy.scrollTo(id, anchor: .bottom) }
+                    else if nearBottom { proxy.scrollTo(Self.bottom, anchor: .bottom) }
                 }
-                .onChange(of: shownOutbox.count) { old, count in
-                    if count > old, let id = shownOutbox.last?.id {
-                        proxy.scrollTo("pending:\(id)", anchor: .bottom)
+                .onChange(of: pending.count) { old, count in
+                    if count > old {
+                        proxy.scrollTo(Self.bottom, anchor: .bottom)
                         if let queuedAt { MessageTiming.record(.queueVisible, since: queuedAt); self.queuedAt = nil }
                     }
                 }
+                .onChange(of: last?.sequence) { _, sequence in if nearBottom, let sequence { lastSeen = sequence } }
+                .onChange(of: nearBottom) { _, value in if value, let sequence = last?.sequence { lastSeen = sequence } }
+                // Opening with unread messages starts at the first of them, once.
+                .onChange(of: firstUnread) { _, sequence in
+                    guard let sequence, let id = shown.first(where: { $0.sequence == sequence })?.id else { return }
+                    lastSeen = sequence - 1; nearBottom = false
+                    proxy.scrollTo(id, anchor: .top)
+                }
                 .overlay(alignment: .bottomTrailing) {
                     if !nearBottom && searchQuery.isEmpty {
-                        Button("Latest messages", systemImage: "arrow.down") { if let id = shownMessages.last?.id { proxy.scrollTo(id, anchor: .bottom) } }
-                            .buttonStyle(.borderedProminent).padding(12).accessibilityIdentifier("conversation.latest")
+                        let unseen = shown.filter { $0.sequence > lastSeen && $0.account != own }.count
+                        Button { withAnimation { proxy.scrollTo(Self.bottom, anchor: .bottom) } } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.down").accessibilityHidden(true)
+                                if unseen > 0 { Text(unseen.formatted()).font(.subheadline.monospacedDigit()).accessibilityHidden(true) }
+                            }.frame(minWidth: 24, minHeight: 24)
+                        }.buttonStyle(.borderedProminent).padding(12)
+                            .accessibilityLabel("Latest messages").accessibilityValue(unseen > 0 ? unseen.formatted() : "")
+                            .accessibilityIdentifier("conversation.latest")
                     }
                 }
                 .onChange(of: model.messageSending.revision) { _, _ in
@@ -160,60 +142,41 @@ struct ConversationView: View {
                         MessageTiming.record(.ackVisible, since: confirmation.at)
                     }
                 }
-        }.background(Theme.paper).navigationTitle(channel.name).navigationBarTitleDisplayMode(.inline)
-            .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 6) {
-                if !canPublish { NoticeBar(text: channelRestriction(currentChannel.status)).padding(.horizontal) }
-                if let replying {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading) { Text(participantName(replying.account)).font(.caption.bold()); Text(replying.text.isEmpty ? replying.attachmentName ?? "" : replying.text).font(.caption).lineLimit(2) }
-                        Spacer(); Button("Cancel reply", systemImage: "xmark.circle") { self.replying = nil }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
-                    }.padding(.horizontal)
-                }
-                if let attachment {
-                    HStack { VStack(alignment: .leading) { Label(attachment.name, systemImage: "doc").lineLimit(2); Text(binarySize(attachment.size)).font(.caption).foregroundStyle(.secondary) }; Spacer(); Button("Remove", systemImage: "xmark.circle") { self.attachment = nil }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44) }.padding(.horizontal).accessibilityIdentifier("message.attachment.draft")
-                }
-                if receiving != nil { TransferStatusView().padding(.horizontal) }
-                HStack(alignment: .bottom, spacing: 10) {
-                    Menu("Attach", systemImage: "paperclip") {
-                        Button("Attach file", systemImage: "doc") { choosingAttachment = true }
-                        Button("Share secret snapshot", systemImage: "lock.doc") { sharingSecret = true }
-                    }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(!canPublish || queuing)
-                    TextField("Write a message", text: Binding(get: { draft }, set: { draft = $0 }), axis: .vertical).lineLimit(1...5)
-                        .padding(12).background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
-                        .accessibilityIdentifier("message.draft").disabled(!canPublish)
-                    Button { actionTask = Task { await send() } } label: { Image(systemName: "arrow.up").font(.headline).frame(width: 44, height: 44) }
-                        .buttonStyle(.borderedProminent).buttonBorderShape(.circle).accessibilityLabel("Send message")
-                        .accessibilityIdentifier("message.send")
-                        .disabled(!canPublish || (draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && attachment == nil) || draft.utf8.count > 16 * 1024 || queuing)
-                }.padding(12).background(.bar)
-                if draft.utf8.count > 16 * 1024 { Text("This message is too long.").font(.caption).foregroundStyle(.red) }
-                }
+        }.privateScreen().navigationTitle(channel.name).navigationBarTitleDisplayMode(.inline)
+            .toolbar(sizeClass == .compact ? .hidden : .automatic, for: .tabBar)
+            .safeAreaInset(edge: .top, spacing: 0) { if searching { searchBar } }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                ConversationComposer(channel: currentChannel, restriction: channelRestriction(currentChannel.status), receiving: receiving != nil, replying: $replying,
+                                     willQueue: { queuedAt = .now }, failed: { await load() })
             }
             .toolbar {
-                if currentChannel.canInvite { Button("Invite member", systemImage: "person.badge.plus") { inviting = true } }
-                NavigationLink { ChannelSettingsView(channel: channel.id) } label: { Label("Conversation settings", systemImage: "gearshape") }
+                ToolbarItem(placement: .principal) {
+                    Button { showingSettings = true } label: { Text(currentChannel.name).font(.headline).lineLimit(1) }
+                        .buttonStyle(.plain).accessibilityHint("Conversation settings").accessibilityIdentifier("conversation.title")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Menu("Actions", systemImage: "ellipsis.circle") {
+                        Button("Search messages", systemImage: "magnifyingglass") { openSearch() }
+                        if currentChannel.canInvite { Button("Invite member", systemImage: "person.badge.plus") { inviting = true } }
+                        Button("Conversation settings", systemImage: "gearshape") { showingSettings = true }
+                    }.accessibilityIdentifier("conversation.more")
+                }
             }
-            .searchable(text: Binding(get: { query }, set: { query = String($0.prefix(200)) }), prompt: "Search messages")
+            // A shortcut inside a closed menu does not fire, so it has its own empty button.
+            .background { Button(action: openSearch) { EmptyView() }.keyboardShortcut("f", modifiers: .command).accessibilityHidden(true) }
+            .navigationDestination(isPresented: $showingSettings) { ChannelSettingsView(channel: channel.id) }
             .sheet(item: $editingMessage) { target in NavigationStack { MessageEditView(channel: channel.id, message: target.message) { await load() } } }
+            .sheet(item: $selectingText) { target in NavigationStack { MessageTextView(text: target.message.text) } }
             .confirmationDialog("Withdraw this message?", isPresented: Binding(get: { retracting != nil }, set: { if !$0 { retracting = nil } })) {
                 Button("Withdraw", role: .destructive) { if let message = retracting { actionTask = Task { await withdraw(message) } } }
             }
-            .sheet(isPresented: $choosingAttachment) {
-                NavigationStack { AttachmentPicker(folder: "root") { file in
-                    choosingAttachment = false
-                    attachment = file
-                } }
-            }
             .sheet(item: $openingFile) { file in NavigationStack { FileDetailDestination(id: file.id, version: file.current).toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openingFile = nil } } } } }
             .sheet(isPresented: $inviting) { NavigationStack { ChannelInvitationView(channel: channel.id) } }
-            .sheet(isPresented: $sharingSecret) { NavigationStack { SecretSnapshotItemPicker(channel: channel.id) } }
             .sheet(item: $secretPackage) { source in NavigationStack { SecretPackageImportView(source: source) } }
-            .task(id: "participants:\(model.epoch):\(model.profileRevision):\(participantIDs.joined(separator: ","))") { await loadParticipants() }
-            .onChange(of: model.filesRevision) { _, _ in receivedFiles = [:] }
+            .task(id: model.profileRevision) { requestPeople() }
+            .onChange(of: model.filesRevision) { _, _ in receivedFiles = [:]; checkedAttachments = [] }
             .task(id: "\(channel.id):\(model.contentRevision):\(model.filesRevision):\(model.epoch):\(query)") {
-                ownerEpoch = model.epoch; model.activeChannel = channel.id
-                if model.drafts[channel.id] == nil { draft = channel.draft }
+                model.activeChannel = channel.id
                 if !query.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
                 if !Task.isCancelled { await load() }
             }
@@ -221,7 +184,7 @@ struct ConversationView: View {
                 guard !model.concealed else { return }
                 while !Task.isCancelled {
                     await refreshMessages()
-                    do { try await Task.sleep(for: .seconds(model.hintsConnected ? 120 : 30)) } catch { break }
+                    do { try await Task.sleep(for: .seconds(model.pollSeconds(30))) } catch { break }
                 }
             }
             .onChange(of: model.channelHints[channel.id]) { _, _ in Task { await refreshMessages() } }
@@ -234,36 +197,26 @@ struct ConversationView: View {
                         try await coreOperation { try await engine.refreshChannelAttachments(channel: channel.id, operation: $0) }
                         if !Task.isCancelled { await load() }
                     } catch { /* Keep saved metadata; retry on the next visible pass. */ }
-                    do { try await Task.sleep(for: .seconds(model.hintsConnected ? 120 : 30)) } catch { break }
-                }
-            }
-            .onChange(of: draft) { _, value in
-                model.activity(); let previous = persistTask; previous?.cancel()
-                let epoch = model.epoch, channelID = channel.id
-                persistTask = Task {
-                    await previous?.value
-                    guard !Task.isCancelled, epoch == model.epoch else { return }
-                    do { try await model.engine?.saveDraft(channel: channelID, text: value); if epoch == model.epoch { model.draftSaved(channel: channelID, text: value) } }
-                    catch { if epoch == model.epoch { model.report(error) } }
+                    do { try await Task.sleep(for: .seconds(model.pollSeconds(30))) } catch { break }
                 }
             }
             .onDisappear {
-                actionTask?.cancel(); let persistence = persistTask; persistence?.cancel()
+                actionTask?.cancel()
                 if model.activeChannel == channel.id { model.activeChannel = nil }
-                guard ownerEpoch == model.epoch else { return }
-                let value = draft, channelID = channel.id
-                let engine = model.engine, epoch = ownerEpoch
-                Task { await persistence?.value; if epoch == model.epoch { try? await engine?.saveDraft(channel: channelID, text: value) } }
             }
     }
 
-    private var dayStarts: Set<String> {
-        var result: Set<String> = [], previous: Date?
-        for message in shownMessages {
-            let day = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: Double(message.createdAtMs) / 1000))
-            if day != previous { result.insert(message.id) }; previous = day
-        }
-        return result
+    private var searchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+            TextField("Search messages", text: Binding(get: { query }, set: { query = String($0.prefix(200)) }))
+                .focused($searchFocused).submitLabel(.search).autocorrectionDisabled().accessibilityIdentifier("conversation.search")
+            Button("Cancel") { query = ""; searching = false }.frame(minHeight: 44)
+        }.padding(.horizontal, 16).background(.bar)
+    }
+
+    private func openSearch() {
+        searching = true; searchFocused = true
     }
 
     private func channelRestriction(_ status: String) -> String {
@@ -276,7 +229,7 @@ struct ConversationView: View {
     }
 
     private func reveal(_ sequence: UInt64, proxy: ScrollViewProxy) async {
-        query = ""; await load()
+        query = ""; searching = false; await load()
         while !Task.isCancelled && !messages.contains(where: { $0.sequence == sequence }) && hasEarlier {
             let before = nextBefore; await loadEarlier(); if nextBefore == before { break }
         }
@@ -284,85 +237,111 @@ struct ConversationView: View {
         else if !Task.isCancelled { model.notice = String(localized: "The original message is not available on this device.") }
     }
 
-    private func messageBubble(_ message: MessageItem, reveal: @escaping (UInt64) -> Void) -> some View {
-        ConversationMessageRow(own: message.account == model.session?.account, name: participantName(message.account), avatar: participantAvatar(message.account)) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(participantName(message.account)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+    private func bubble(_ row: ConversationRow, own: Bool, references: [UInt64: MessageItem], reveal: @escaping (UInt64) -> Void) -> some View {
+        let message = row.message
+        return ConversationMessageRow(own: own, name: model.personName(message.account), avatar: model.people.avatar(message.account), showsPortrait: row.firstOfGroup) {
+            VStack(alignment: .leading, spacing: 6) {
+                if !own && row.firstOfGroup { Text(model.personName(message.account)).font(.caption.weight(.semibold)).foregroundStyle(Theme.forest).lineLimit(1) }
                 if message.hidden {
                     Text("Hidden message").foregroundStyle(.secondary)
                     Button("Show") { actionTask = Task { await hide(message, hidden: false) } }
                 } else {
-                    Text(message.retracted ? String(localized: "Message withdrawn") : message.unreadable ? String(localized: "This message could not be verified.") : message.text).textSelection(.enabled)
-                    if let reference = message.replySequence {
-                        Button { reveal(reference) } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                if let original = messages.first(where: { $0.sequence == reference }) {
-                                    Text(participantName(original.account)).font(.caption.bold())
-                                    Text(original.hidden ? String(localized: "Hidden message") : original.retracted ? String(localized: "Message withdrawn") : original.unreadable ? String(localized: "This message could not be verified.") : original.text.isEmpty ? original.attachmentName ?? "" : original.text).font(.caption).lineLimit(2)
-                                } else { Text("Reply to message \(reference)").font(.caption) }
-                            }.padding(8).frame(maxWidth: .infinity, alignment: .leading).background(Theme.forest.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-                        }.buttonStyle(.plain).accessibilityLabel("Open original message")
+                    if let reference = message.replySequence { replyPreview(reference, original: references[reference], reveal: reveal) }
+                    if message.retracted { Text("Message withdrawn").italic().foregroundStyle(.secondary) }
+                    else if message.unreadable { Text("This message could not be verified.").foregroundStyle(.secondary) }
+                    else if !message.text.isEmpty { Text(message.text) }
+                    if let name = message.attachmentName { attachment(message, name: name) }
+                    if message.edited || row.lastOfGroup {
+                        HStack(spacing: 4) {
+                            if message.edited { Text("Edited") }
+                            if row.lastOfGroup {
+                                Text(ConversationTimeline.date(message.createdAtMs), style: .time)
+                                if own { Image(systemName: "checkmark").accessibilityLabel("Sent") }
+                            }
+                        }.font(.caption2).foregroundStyle(.secondary)
                     }
-                    if message.edited { Text("Edited").font(.caption).foregroundStyle(.secondary) }
-                    if let name = message.attachmentName {
-                        Button {
-                            if message.attachmentMime == "application/vnd.dmsg.secret-package" {
-                                secretPackage = .init(channel: channel.id, sequence: message.sequence)
-                            } else if let saved = receivedFiles[message.sequence] { openingFile = saved }
-                            else { actionTask = Task { await receiveAttachment(message) } }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Label(name, systemImage: message.attachmentMime == "application/vnd.dmsg.secret-package" ? "lock.doc" : "doc.badge.arrow.down")
-                                if let size = message.attachmentSize { Text(binarySize(size)).font(.caption).foregroundStyle(.secondary) }
-                                if receivedFiles[message.sequence] != nil { Text("On this device").font(.caption) }
-                                if receiving == message.sequence { ProgressView() }
-                                if message.attachmentMime == "application/vnd.dmsg.secret-package" { Text("Preview and choose what to import").font(.caption) }
-                            }.font(.subheadline).padding(10)
-                        }.disabled(message.unreadable || message.attachmentDeleted || receiving != nil)
-                            .background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
-                    }
-                    HStack {
-                        Text(Date(timeIntervalSince1970: Double(message.createdAtMs) / 1000), style: .time)
-                        if message.account == model.session?.account { Label("Accepted by service", systemImage: "checkmark") }
-                    }.font(.caption2).foregroundStyle(.secondary)
                 }
             }.accessibilityIdentifier("message.content.\(message.sequence)")
-        }
+        } actions: {
+            messageActions(message, own: own)
+        }.accessibilityIdentifier("message.row.\(message.sequence)")
     }
 
-    private func participantName(_ account: String) -> String {
-        participants[account]?.name ?? String(account.prefix(8))
+    private func replyPreview(_ reference: UInt64, original: MessageItem?, reveal: @escaping (UInt64) -> Void) -> some View {
+        Button { reveal(reference) } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                if let original {
+                    Text(model.personName(original.account)).font(.caption.bold())
+                    Text(original.hidden ? String(localized: "Hidden message") : original.retracted ? String(localized: "Message withdrawn") : original.unreadable ? String(localized: "This message could not be verified.") : original.text.isEmpty ? original.attachmentName ?? "" : original.text).font(.caption).lineLimit(2)
+                } else { Text("Reply to message \(reference)").font(.caption) }
+            }.padding(8).frame(maxWidth: .infinity, alignment: .leading).background(Theme.forest.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+        }.buttonStyle(.plain).accessibilityLabel("Open original message")
     }
 
-    private func participantAvatar(_ account: String) -> UIImage? {
-        guard let url = participants[account]?.avatarUrl else { return nil }
-        return avatars[url]
+    @ViewBuilder private func attachment(_ message: MessageItem, name: String) -> some View {
+        let secret = message.attachmentMime == "application/vnd.dmsg.secret-package"
+        let saved = receivedFiles[message.sequence]
+        Button {
+            if secret { secretPackage = .init(channel: channel.id, sequence: message.sequence) }
+            else if let saved { openingFile = saved }
+            else { actionTask = Task { await receiveAttachment(message) } }
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                if let saved, ThumbnailStore.supports(saved) {
+                    LibraryThumbnail(file: saved).frame(width: 220, height: 150).clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                Label(name, systemImage: secret ? "lock.doc" : fileSymbol(message.attachmentMime ?? ""))
+                if let size = message.attachmentSize { Text(fileSize(size)).font(.caption).foregroundStyle(.secondary) }
+                if saved != nil { Text("On this device").font(.caption) }
+                if receiving == message.sequence { ProgressView() }
+                if secret { Text("Preview and choose what to import").font(.caption) }
+            }.font(.subheadline).padding(10)
+        }.disabled(message.unreadable || message.attachmentDeleted || receiving != nil)
+            .background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
     }
 
-    private func loadParticipants() async {
-        guard let engine = model.engine, !model.concealed else { return }
-        do { try await Task.sleep(for: .milliseconds(80)) } catch { return }
-        let epoch = model.epoch, accounts = participantIDs
-        for start in stride(from: 0, to: accounts.count, by: 100) {
-            let batch = Array(accounts[start..<min(start + 100, accounts.count)])
-            for refresh in [false, true] {
-                guard epoch == model.epoch, !Task.isCancelled else { return }
-                do {
-                    let snapshot = try await coreOperation { try await engine.channelNames(accounts: batch, refresh: refresh, operation: $0) }
-                    let names: [String: Participant] = try model.decode(snapshot)
-                    guard epoch == model.epoch, !Task.isCancelled else { return }
-                    participants.merge(names) { _, next in next }
-                    var loadedURLs: Set<String> = []
-                    for (account, profile) in names {
-                        guard let url = profile.avatarUrl, loadedURLs.insert(url).inserted else { continue }
-                        let bytes = try? await engine.channelAvatar(account: account, refresh: refresh)
-                        let image = await AvatarImage.decode(bytes)
-                        guard epoch == model.epoch, !Task.isCancelled else { return }
-                        if refresh || image != nil { avatars[url] = image }
-                    }
-                } catch { /* Names and initials remain available when a public image is offline. */ }
+    @ViewBuilder private func messageActions(_ message: MessageItem, own: Bool) -> some View {
+        if !message.hidden && !message.unreadable && !message.retracted {
+            if currentChannel.canPublish { Button("Reply") { replying = message } }
+            if !message.text.isEmpty {
+                Button("Copy") { model.clipboard.copy(message.text); model.notice = String(localized: "Copied") }
+                Button("Select text") { selectingText = MessageEdit(message: message) }
+            }
+            if own && currentChannel.canPublish {
+                if !message.text.isEmpty { Button("Edit message") { editingMessage = MessageEdit(message: message) } }
+                Button("Withdraw message", role: .destructive) { retracting = message }
             }
         }
+        Button(LocalizedStringKey(message.hidden ? "Show" : "Hide on this device")) { actionTask = Task { await hide(message, hidden: !message.hidden) } }
+    }
+
+    /// The text comes first and stays put, whatever state its delivery is in.
+    private func pendingBubble(_ item: OutgoingMessage) -> some View {
+        let active = model.messageSending.active.contains(item.id), queued = model.messageSending.contains(item.id)
+        let unconfirmed = item.error == "EXECUTION_UNKNOWN" || item.attempted && item.error == nil
+        return ConversationMessageRow(own: true, name: "", avatar: nil, showsPortrait: false) {
+            VStack(alignment: .leading, spacing: 6) {
+                if !item.text.isEmpty { Text(item.text) }
+                if let name = item.attachmentName { Label(name, systemImage: "doc").font(.subheadline) }
+                HStack(spacing: 6) {
+                    if active { ProgressView().controlSize(.small); Text("Sending") }
+                    else if queued { Text("Waiting to submit") }
+                    else if unconfirmed { Image(systemName: "clock").accessibilityHidden(true); Text("Waiting for confirmation") }
+                    else if item.error != nil { Image(systemName: "exclamationmark.circle").foregroundStyle(.red).accessibilityHidden(true); Text("The operation could not be completed. Please try again.") }
+                    else { Text("Waiting to submit") }
+                }.font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                if !queued {
+                    Button(LocalizedStringKey(item.attempted ? "Retry" : "Send message")) {
+                        model.deliverMessage(channel: channel.id, item: item)
+                    }.font(.subheadline.weight(.medium)).accessibilityIdentifier("message.retry.\(item.id)")
+                }
+            }
+        } actions: { EmptyView() }
+            .accessibilityElement(children: .contain).accessibilityIdentifier("message.pending.\(item.id)")
+    }
+
+    private func requestPeople() {
+        model.people.request(Set(messages.map(\.account)).union([model.session?.account ?? ""]), model: model)
     }
 
     private func hide(_ message: MessageItem, hidden: Bool) async {
@@ -397,7 +376,7 @@ struct ConversationView: View {
         } catch {
             if epoch == model.epoch, !Task.isCancelled {
                 refreshFailed = true
-                model.report(error)
+                model.reportBackground(error)
             }
         }
         local.cancel()
@@ -441,11 +420,16 @@ struct ConversationView: View {
                 }
             }
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
-            messages = fresh; hasEarlier = page.hasMore; nextBefore = page.nextBefore
+            // This runs every second during a sync; an unchanged page redraws nothing.
+            if messages != fresh { messages = fresh; requestPeople() }
+            if hasEarlier != page.hasMore { hasEarlier = page.hasMore }
+            if nextBefore != page.nextBefore { nextBefore = page.nextBefore }
             if firstUnread == nil && channel.unread > 0 {
                 firstUnread = fresh.first { $0.sequence > channel.readThrough && $0.account != model.session?.account }?.sequence
             }
-            loadedQuery = query; messagesKnown = true; loadFailed = false
+            if loadedQuery != query { loadedQuery = query }
+            if !messagesKnown { messagesKnown = true }
+            if loadFailed { loadFailed = false }
             MessageTiming.record(.localPage, since: started)
             guard let engine = model.engine else {
                 #if DEBUG
@@ -457,17 +441,18 @@ struct ConversationView: View {
                 return
             }
             let pending = try await engine.outbox(channel: channel.id)
-            guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }; outbox = pending.items
+            guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
+            if outbox != pending.items { outbox = pending.items }
             model.messageSending.loaded(channel: channel.id, items: fresh, since: sendRevision)
-            for message in fresh where message.attachmentName != nil && !message.attachmentDeleted && !message.unreadable && receivedFiles[message.sequence] == nil {
-                if let value = try? await engine.savedAttachment(channel: channel.id, sequence: message.sequence),
-                   let file = try? model.decode(value) as LibraryFile?, epoch == model.epoch, !Task.isCancelled {
-                    receivedFiles[message.sequence] = file
-                }
+            // Each attachment is looked up once until the library changes.
+            for message in fresh where message.attachmentName != nil && !message.attachmentDeleted && !message.unreadable && !checkedAttachments.contains(message.sequence) {
+                guard let value = try? await engine.savedAttachment(channel: channel.id, sequence: message.sequence), epoch == model.epoch, !Task.isCancelled else { continue }
+                checkedAttachments.insert(message.sequence)
+                if let file = try? model.decode(value) as LibraryFile? { receivedFiles[message.sequence] = file }
             }
         } catch {
             if epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled {
-                loadFailed = true; model.report(error)
+                loadFailed = true; model.reportBackground(error)
             }
         }
     }
@@ -490,6 +475,7 @@ struct ConversationView: View {
             let rows = Dictionary((page.items + messages).map { ($0.sequence, $0) }, uniquingKeysWith: { first, _ in first })
             messages = rows.values.sorted { $0.sequence < $1.sequence }
             oldestLoaded = messages.first?.sequence; hasEarlier = page.hasMore; nextBefore = page.nextBefore
+            requestPeople()
         } catch { if epoch == model.epoch, messageRequest == request, !Task.isCancelled { model.report(error) } }
     }
 
@@ -497,37 +483,6 @@ struct ConversationView: View {
         guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
         if !searchQuery.isEmpty { return try await engine.searchMessagesPage(channel: channel.id, query: searchQuery, before: before) }
         return try await coreOperation { try await engine.earlierMessages(channel: channel.id, before: before, limit: 100, operation: $0) }
-    }
-
-    private func send() async {
-        model.activity()
-        guard !queuing, canPublish else { return }
-        queuedAt = .now
-        let text = draft, reply = replying, file = attachment
-        let persistence = persistTask; persistence?.cancel()
-        queuing = true; defer { queuing = false }
-        let epoch = model.epoch
-        do {
-            await persistence?.value
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            let id: String
-            #if DEBUG
-            if model.uiTesting { id = UUID().uuidString }
-            else { id = try await queueText(text, reply: reply, file: file) }
-            #else
-            id = try await queueText(text, reply: reply, file: file)
-            #endif
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            model.clearQueuedDraft(channel: channel.id, sent: text); replying = nil; attachment = nil
-            model.deliverMessage(channel: channel.id, item: OutgoingMessage(id: id, text: text, attachmentName: file?.name, attempted: false, error: nil))
-        } catch { if epoch == model.epoch, !Task.isCancelled { await load(); model.report(error) } }
-    }
-
-    private func queueText(_ text: String, reply: MessageItem?, file: LibraryFile?) async throws -> String {
-        guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-        if let file { return try await engine.queueAttachmentReply(channel: channel.id, file: file.id, text: text, sequence: reply?.sequence, digest: reply?.digest) }
-        if let reply { return try await engine.queueMessageAction(channel: channel.id, action: "reply", sequence: reply.sequence, digest: reply.digest, text: text) }
-        return try await engine.queueMessage(channel: channel.id, text: text)
     }
 
     private func withdraw(_ message: MessageItem) async {
@@ -552,6 +507,19 @@ struct ConversationView: View {
             receivedFiles[message.sequence] = saved.file; openingFile = saved.file
             model.notice = String(localized: "Verified attachment saved to Files.")
         } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
+    }
+}
+
+/// Long-pressing a message opens its menu, so selecting text happens on its own page.
+private struct MessageTextView: View {
+    let text: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            Text(text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(16)
+        }.privateScreen().navigationTitle("Select text").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
     }
 }
 

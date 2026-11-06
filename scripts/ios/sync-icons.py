@@ -26,7 +26,8 @@ def main():
         raise SystemExit("AppGlyph.vaultItem must match the desktop vault typeIcon mapping")
     files = {}
     for name in names:
-        path = glyphs[name]
+        # Swift case names are camelCase; desktop keys are kebab-case.
+        path = glyphs[re.sub(r"[A-Z]", lambda letter: "-" + letter.group().lower(), name)]
         folder = IOS / f"Resources/Assets.xcassets/Glyph-{name}.imageset"
         files[folder / "icon.svg"] = (
             '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">\n'

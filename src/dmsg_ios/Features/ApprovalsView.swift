@@ -1,12 +1,13 @@
 import SwiftUI
 
 struct ApprovalsView: View {
+    var showsDone = false
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         List {
-            NoticeBar(text: String(localized: "Desktop-local command approvals stay on that desktop. Only requests available to this device appear here."))
-            Section("Approvals") {
+            if model.approvalsFailed { NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish.")) }
+            Section {
                 ForEach(model.approvals) { request in
                     NavigationLink { ApprovalDetailView(request: request) } label: {
                         HStack(alignment: .top, spacing: 10) {
@@ -21,9 +22,11 @@ struct ApprovalsView: View {
                     }.compactObjectRow()
                 }
                 if model.approvals.isEmpty { ContentUnavailableView("All caught up", image: AppGlyph.approvals.assetName, description: Text("Requests that need your decision appear here.")) }
+            } footer: {
+                Text("Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.")
             }
         }.privateScreen().navigationTitle("Approvals")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+            .toolbar { if showsDone { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } } }
             .task(id: model.contentRevision) { await model.loadApprovals(); await model.loadApprovals(refresh: true) }
             .refreshable { await model.loadApprovals(refresh: true) }
     }
@@ -83,6 +86,18 @@ struct ApprovalDetailView: View {
             : "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.")
     }
 
+    /// The action itself, every field of it, in the terms of the request.
+    private var reviewed: DisplayValue? {
+        if case .object(let fields)? = payload, let detail = fields["detail"], !detail.isNull { return detail }
+        return payload
+    }
+
+    private var envelope: DisplayValue? {
+        guard case .object(var fields)? = payload, let detail = fields["detail"], !detail.isNull else { return nil }
+        fields.removeValue(forKey: "detail")
+        return .object(fields)
+    }
+
     var body: some View {
         List {
             HStack(alignment: .top, spacing: 12) {
@@ -92,6 +107,7 @@ struct ApprovalDetailView: View {
                     Text(request.source).font(.subheadline).foregroundStyle(.secondary).textSelection(.enabled)
                 }
             }.listRowBackground(Color.clear).listRowSeparator(.hidden)
+                .reminderVisible(.approval(request.id), watermark: observedVersion, ready: observedVersion != nil)
             if request.type == "device_pair" {
                 NoticeBar(text: String(localized: "This device may receive your private content. The content root must be redistributed after approval."))
                     .listRowBackground(Color.clear)
@@ -104,9 +120,10 @@ struct ApprovalDetailView: View {
                     .environment(\.layoutDirection, .leftToRight)
             }
             Section("Review the complete request") {
-                if let payload { CanonicalDetails(value: payload).reminderVisible(.approval(request.id), watermark: observedVersion, ready: observedVersion != nil) }
-                else { ProgressView() }
+                if let reviewed { CanonicalDetails(value: reviewed) } else { ProgressView() }
             }
+            // Bookkeeping around the request, not part of what is being decided.
+            if let envelope { DisclosureGroup("Technical details") { CanonicalDetails(value: envelope) } }
             if let result { Section("Result") { CanonicalDetails(value: result) } }
         }.privateScreen().navigationTitle("Review request").navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
@@ -127,7 +144,7 @@ struct ApprovalDetailView: View {
                     }.padding(16).background(.bar)
                 } else if result == nil && (state == "executing" || state == "unknown") {
                     VStack(spacing: 8) {
-                        Text("The result is not confirmed. Reconcile this request before retrying.")
+                        Text("The result is not confirmed. Check it again before retrying.")
                             .font(.caption).foregroundStyle(.secondary)
                         Button("Refresh") { Task { await reconcile() } }.disabled(working)
                     }.padding(16).background(.bar)
@@ -185,7 +202,7 @@ struct ApprovalDetailView: View {
         do {
             let snapshot = try await coreOperation { try await engine.decide(id: request.id, digest: request.digest, approve: approve, operation: $0) }
             guard epoch == model.epoch else { return }
-            result = try model.decode(snapshot); await model.updateSession(); await model.loadApprovals()
+            result = try model.decode(snapshot); Haptics.success(); await model.updateSession(); await model.loadApprovals()
         } catch { if epoch == model.epoch { supported = false; state = nil; model.report(error) } }
         working = false
         if epoch == model.epoch && !model.concealed { await load() }
@@ -217,15 +234,59 @@ struct CanonicalDetails: View {
         }
     }
 
-    private static func flatten(_ value: DisplayValue, path: String, label: String) -> [Row] {
+    private static func flatten(_ value: DisplayValue, path: String, label: String, key: String = "") -> [Row] {
         switch value {
         case .object(let values):
-            return values.keys.sorted().flatMap { key in flatten(values[key]!, path: path + "/" + key,
-                label: label.isEmpty ? key : label + " · " + key) }
+            return values.keys.sorted().flatMap { child in
+                let title = approvalFieldLabel(child)
+                return flatten(values[child]!, path: path + "/" + child, label: label.isEmpty ? title : label + " · " + title, key: child)
+            }
         case .array(let values):
             if values.isEmpty { return [Row(id: path, label: label, text: "—")] }
-            return values.enumerated().flatMap { index, value in flatten(value, path: path + "/\(index)", label: label + " \(index + 1)") }
-        default: return [Row(id: path, label: label, text: value.text)]
+            // A plain list reads as one line, not one numbered row per item.
+            if values.allSatisfy(\.isScalar) {
+                return [Row(id: path, label: label, text: values.map { approvalFieldValue($0.text, key: key) }.joined(separator: ", "))]
+            }
+            return values.enumerated().flatMap { index, value in flatten(value, path: path + "/\(index)", label: label + " \(index + 1)", key: key) }
+        default: return [Row(id: path, label: label, text: approvalFieldValue(value.text, key: key))]
         }
     }
+}
+
+/// Words for a request's field names. The name itself is never hidden from the
+/// reader: a field without a translation still reads as its own words.
+func approvalFieldLabel(_ key: String) -> String {
+    var words = ""
+    for character in key {
+        if character == "_" || character == "-" { words.append(" "); continue }
+        if character.isUppercase && !words.isEmpty { words.append(" ") }
+        words.append(character.lowercased())
+    }
+    switch words {
+    case "device id", "device": return String(localized: "Device ID")
+    case "to device": return String(localized: "To device")
+    case "role": return String(localized: "Role")
+    case "capabilities": return String(localized: "Permissions")
+    case "origin": return String(localized: "Website")
+    case "name": return String(localized: "Name")
+    case "type", "kind": return String(localized: "Type")
+    case "size", "bytes": return String(localized: "Size")
+    case "recipient": return String(localized: "Recipient")
+    case "expires at": return String(localized: "Expires")
+    case "version": return String(localized: "Version")
+    case "file": return String(localized: "File")
+    case "state": return String(localized: "Status")
+    case "created at": return String(localized: "Created")
+    case "updated at": return String(localized: "Updated")
+    case "source": return String(localized: "Source")
+    case "purpose": return String(localized: "Purpose")
+    case "statement": return String(localized: "Statement")
+    default: return words.prefix(1).uppercased() + words.dropFirst()
+    }
+}
+
+/// Role and permission names arrive as code identifiers such as `ManageAccount`.
+func approvalFieldValue(_ text: String, key: String) -> String {
+    guard ["role", "capabilities", "purpose", "purposes"].contains(key) else { return text }
+    return approvalFieldLabel(text)
 }

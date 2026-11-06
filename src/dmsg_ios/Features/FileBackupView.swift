@@ -19,7 +19,7 @@ struct FileBackupView: View {
                 Text("The encrypted version will use cloud storage. Your local copy stays on this device.").font(.footnote).foregroundStyle(.secondary)
                 if loading { ProgressView("Loading…") }
                 if let capacity {
-                    if let limit = capacity.backupMaxFileBytes { LabeledContent("Cloud backup file limit", value: binarySize(limit)) }
+                    if let limit = capacity.backupMaxFileBytes { LabeledContent("Cloud backup file limit", value: fileLimit(limit)) }
                     if let remaining = capacity.remaining { LabeledContent("Remaining", value: fileSize(remaining)) }
                 }
                 if let failure { FileInlineFailure(message: failure, working: loading) { Task { await load() } } }
@@ -37,7 +37,7 @@ struct FileBackupView: View {
             }
             if working { ProgressView("Preparing backups…") }
             if completed.count < files.count {
-                SettingsAction("Back up encrypted copy", systemImage: "icloud.and.arrow.up", prominent: true) { Task { await submit() } }
+                SettingsAction("Back up encrypted copy", glyph: .cloudUp, prominent: true) { Task { await submit() } }
                     .disabled(working || loading || capacity?.backupMaxFileBytes == nil).accessibilityIdentifier("files.backup.submit")
             }
             if !outcomes.isEmpty { NavigationLink("File transfers") { TransfersView() } }

@@ -33,7 +33,7 @@ func validMessageAccount(_ value: String) -> Bool {
 
 func letterStateTitle(_ state: String) -> String {
     switch state {
-    case "visible": String(localized: "Accepted by service")
+    case "visible": String(localized: "Sent")
     case "queued": String(localized: "Waiting to submit")
     case "unconfirmed": String(localized: "Waiting for confirmation")
     case "failed": String(localized: "Send failed")

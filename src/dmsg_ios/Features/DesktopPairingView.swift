@@ -49,9 +49,9 @@ struct DesktopPairingView: View {
             if let delivery {
                 Section("Waiting for approval") {
                     Text("Compare the device ID on both screens and approve on your desktop.")
-                    Text(delivery.deviceId).font(.caption.monospaced()).textSelection(.enabled)
-                        .accessibilityIdentifier("pair.desktop.device")
-                    Button("Check authorization") { Task { await refresh() } }.disabled(working)
+                    Text(groupedFingerprint(delivery.deviceId)).font(.caption.monospaced()).textSelection(.enabled)
+                        .environment(\.layoutDirection, .leftToRight).accessibilityIdentifier("pair.desktop.device")
+                    LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(delivery.expiresAt) / 1000), style: .relative) }
                 }
             }
         }.privateScreen().navigationTitle("Scan desktop invitation").navigationBarTitleDisplayMode(.inline)
@@ -62,6 +62,15 @@ struct DesktopPairingView: View {
                 }
             }
             .task { await scan() }
+            // Notices the desktop's decision without being asked.
+            .task(id: delivery?.deviceId) {
+                guard delivery != nil else { return }
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(5))
+                    guard !Task.isCancelled, !needsLogin else { return }
+                    await check()
+                }
+            }
             .task(id: attempt) {
                 guard attempt != nil, let engine = model.engine else { return }
                 let epoch = model.epoch
@@ -88,9 +97,14 @@ struct DesktopPairingView: View {
     }
 
     private func refresh() async {
-        guard let engine = model.engine, !working else { return }
-        let epoch = model.epoch
+        guard !working else { return }
         working = true; defer { working = false }
+        await check()
+    }
+
+    private func check() async {
+        guard let engine = model.engine else { return }
+        let epoch = model.epoch
         do {
             _ = try await engine.refreshAccount()
             guard epoch == model.epoch else { return }
@@ -100,7 +114,7 @@ struct DesktopPairingView: View {
             guard epoch == model.epoch else { return }
             if let failure = error as? MobileError, case .Failure(let code) = failure, code == "AUTH_REQUIRED" {
                 needsLogin = true
-            } else { model.report(error) }
+            } else { model.reportBackground(error) }
         }
         if epoch == model.epoch { await model.updateSession() }
     }

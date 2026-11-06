@@ -1,7 +1,12 @@
 import SwiftUI
 @preconcurrency import DMsgCore
 
+enum AccountSecurityPage { case overview, logins, recovery }
+
+/// The overview holds what people change often; logins and recovery policy
+/// each have their own page, sharing this view's loading and review flow.
 struct AccountSecurityView: View {
+    var page = AccountSecurityPage.overview
     @Environment(SessionModel.self) private var model
     @State private var visible = true
     @State private var display = DisplayLoad()
@@ -21,58 +26,31 @@ struct AccountSecurityView: View {
     struct Recovery: Decodable { let opId: String; let executeAfter: UInt64 }
     struct SecurityInfo: Decodable { let logins: [Login]; let recoveryDelayMs: UInt64; let recoveryEnabled: Bool; let recoveryUpdating: Bool; let pendingRecovery: Recovery? }
     var body: some View {
-        @Bindable var model = model
         Form {
-            Section("Privacy") {
-                Toggle("Quick unlock with system authentication", isOn: Binding(get: { model.session?.fastUnlock ?? false }, set: { enabled in Task { await model.setFastUnlock(enabled: enabled) } })).disabled(model.busy)
-                Toggle("Lock immediately in background", isOn: $model.immediateBackgroundLock)
-                Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.").font(.footnote).foregroundStyle(.secondary)
-                NavigationLink("Hardware security") { HardwareSecurityView() }.accessibilityIdentifier("account.hardware")
-            }
+            if page == .overview { overview }
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
-            Section { NotificationSetupPrompt { settingUp = true } }
-            if security != nil && canManage == false { NoticeBar(text: String(localized: "An administrator device is required to change account security.")) }
-            SettingsLoadStatus(loading: security != nil && canManage == nil && !permissionFailed, failed: permissionFailed) { Task { await load(force: true) } }
-            Section("Login identities") {
-                ForEach(security?.logins ?? []) { login in
-                    VStack(alignment: .leading, spacing: 8) {
-                        FingerprintRow(title: "Principal", value: login.principal)
-                        if login.current { Text("Current login").font(.caption).foregroundStyle(Theme.forest) }
-                        Button("Review removing this login", role: .destructive) { Task { await remove(login.principal) } }
-                            .disabled(login.current || (security?.logins.count ?? 0) <= 1)
-                    }
-                }
-                SettingsAction("Bind another Internet Identity") { Task { await bind() } }.disabled(busy)
+            if page != .overview {
+                if security != nil && canManage == false { NoticeBar(text: String(localized: "An administrator device is required to change account security.")) }
+                SettingsLoadStatus(loading: security != nil && canManage == nil && !permissionFailed, failed: permissionFailed) { Task { await load(force: true) } }
             }
-            .disabled(busy || canManage != true)
-            Section("Approve a binding request") {
-                SettingsField("Paste binding request") { TextField("Paste binding request", text: $token, axis: .vertical).lineLimit(2...4).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
-                SettingsAction("Review binding") { Task { await action { try await $0.reviewBinding(token: token.trimmingCharacters(in: .whitespacesAndNewlines)) } } }.disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            .disabled(busy || canManage != true)
-            Section("On-chain recovery") {
-                Toggle("On-chain recovery", isOn: $recoveryEnabled).disabled(busy || security == nil)
-                NoticeBar(text: String(localized: recoveryEnabled ? "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time." : "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content."))
-                if recoveryEnabled { Stepper("\(delay) days", value: $delay, in: 1...7).disabled(busy) }
-                if security?.recoveryUpdating == true { Text("Finishing the security update. New content waits until it completes.").font(.caption) }
-                SettingsAction("Review in approval center") { Task { await reviewRecovery() } }
-                    .disabled(busy || security == nil || (recoveryEnabled == security?.recoveryEnabled && (!recoveryEnabled || delay == Int((security?.recoveryDelayMs ?? 0) / 86_400_000))))
-            }
-            .disabled(busy || canManage != true)
-            if let recovery = security?.pendingRecovery {
+            if page == .logins { logins }
+            if page == .recovery { recoveryPolicy }
+            if page != .logins, let recovery = security?.pendingRecovery {
                 Section("Recovery status") {
                     Text(Date(timeIntervalSince1970: Double(recovery.executeAfter) / 1000), style: .date)
                         .reminderVisible(.recovery(model.recoveryWarning?.digest ?? ""), ready: model.recoveryWarning != nil)
                     SettingsAction("Dispute pending recovery", role: .destructive) { Task { await action { try await $0.disputeRecovery(operation: recovery.opId) } } }.disabled(busy)
                 }
             }
-            Section {
-                NavigationLink("Account recovery") { RecoveryView() }
-                NavigationLink("Remove local data") { LocalAccountRemovalView() }.accessibilityIdentifier("account.local-data")
-                NavigationLink("Delete account") { AccountDeletionView() }.foregroundStyle(.red).accessibilityIdentifier("account.delete")
+            if page == .overview {
+                Section {
+                    NavigationLink("Account recovery") { RecoveryView() }
+                    NavigationLink("Remove local data") { LocalAccountRemovalView() }.accessibilityIdentifier("account.local-data")
+                    NavigationLink("Delete account") { AccountDeletionView() }.foregroundStyle(.red).accessibilityIdentifier("account.delete")
+                }
             }
             if busy { ProgressView() }
-        }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Account security").confirmLeavingDraft(dirty)
+        }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle(title).confirmLeavingDraft(dirty)
             .task(id: model.contentRevision) { scope = model.viewGeneration; await load(force: true) }
             .onDisappear { if dirty { model.keepFormDraft("security", value: Draft(token: token, delay: delay, enabled: recoveryEnabled), generation: scope) } }
             .refreshable { await load(force: true) }
@@ -81,6 +59,61 @@ struct AccountSecurityView: View {
             }
             .navigationDestination(isPresented: $settingUp) { NotificationSettingsView() }
     }
+    private var title: LocalizedStringKey {
+        switch page {
+        case .overview: "Account security"
+        case .logins: "Login identities"
+        case .recovery: "On-chain recovery"
+        }
+    }
+
+    @ViewBuilder private var overview: some View {
+        @Bindable var model = model
+        Section("Privacy") {
+            Toggle(Biometry.quickUnlockTitle, isOn: Binding(get: { model.session?.fastUnlock ?? false }, set: { enabled in Task { await model.setFastUnlock(enabled: enabled) } })).disabled(model.busy)
+            Toggle("Lock immediately in background", isOn: $model.immediateBackgroundLock)
+            Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.").font(.footnote).foregroundStyle(.secondary)
+            NavigationLink("Hardware security") { HardwareSecurityView() }.accessibilityIdentifier("account.hardware")
+        }
+        Section { NotificationSetupPrompt { settingUp = true } }
+        Section {
+            NavigationLink("Login identities") { AccountSecurityView(page: .logins) }.accessibilityIdentifier("security.logins")
+            NavigationLink("On-chain recovery") { AccountSecurityView(page: .recovery) }.accessibilityIdentifier("security.recovery")
+        }
+    }
+
+    @ViewBuilder private var logins: some View {
+        Section {
+            ForEach(security?.logins ?? []) { login in
+                VStack(alignment: .leading, spacing: 8) {
+                    FingerprintRow(title: "Login identity", value: login.principal)
+                    if login.current { Text("Current login").font(.caption).foregroundStyle(Theme.forest) }
+                    Button("Review removing this login", role: .destructive) { Task { await remove(login.principal) } }
+                        .buttonStyle(.borderless).disabled(login.current || (security?.logins.count ?? 0) <= 1)
+                }
+            }
+            SettingsAction("Bind another Internet Identity") { Task { await bind() } }.disabled(busy)
+        }
+        .disabled(busy || canManage != true)
+        Section("Approve a binding request") {
+            SettingsField("Paste binding request") { TextField("Paste binding request", text: $token, axis: .vertical).lineLimit(2...4).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
+            SettingsAction("Review binding") { Task { await action { try await $0.reviewBinding(token: token.trimmingCharacters(in: .whitespacesAndNewlines)) } } }.disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .disabled(busy || canManage != true)
+    }
+
+    @ViewBuilder private var recoveryPolicy: some View {
+        Section {
+            Toggle("On-chain recovery", isOn: $recoveryEnabled).disabled(busy || security == nil)
+            NoticeBar(text: String(localized: recoveryEnabled ? "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time." : "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content."))
+            if recoveryEnabled { Stepper("\(delay) days", value: $delay, in: 1...7).disabled(busy) }
+            if security?.recoveryUpdating == true { Text("Finishing the security update. New content waits until it completes.").font(.caption) }
+            SettingsAction("Review request") { Task { await reviewRecovery() } }
+                .disabled(busy || security == nil || (recoveryEnabled == security?.recoveryEnabled && (!recoveryEnabled || delay == Int((security?.recoveryDelayMs ?? 0) / 86_400_000))))
+        }
+        .disabled(busy || canManage != true)
+    }
+
     private func load(force: Bool = false) async {
         #if DEBUG
         if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-member-security") {
@@ -97,7 +130,7 @@ struct AccountSecurityView: View {
             security = next
             if !editing { delay = Int(next.recoveryDelayMs / 86_400_000); recoveryEnabled = next.recoveryEnabled }
         }
-        if let restored = model.formDraft("security", as: Draft.self) {
+        if page != .overview, let restored = model.formDraft("security", as: Draft.self) {
             token = restored.token; delay = restored.delay; recoveryEnabled = restored.enabled
             model.settingsDrafts.removeValue(forKey: "security")
         }

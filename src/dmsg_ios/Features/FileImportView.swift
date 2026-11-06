@@ -61,5 +61,10 @@ struct FileImportView: View {
             }
         }
         guard stamp == model.epoch else { return }; await model.loadFiles()
+        // A clean import needs no results page; only what went wrong does.
+        if visible, !Task.isCancelled, !results.values.contains(where: \.failed) {
+            model.notice = String(localized: "Imported to this device. Cloud backup is a separate action.")
+            dismiss()
+        }
     }
 }

@@ -8,22 +8,21 @@ struct MessageIdentity: View {
     var showID = false
     @Environment(SessionModel.self) private var model
     @Environment(\.dynamicTypeSize) private var typeSize
-    @State private var person: MessagePerson?
-    @State private var avatar: UIImage?
+    private var name: String? { model.people.people[account]?.name ?? model.accountIdentities[account]?.name }
     var body: some View {
         let layout = typeSize.isAccessibilitySize && showID
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
             : AnyLayout(HStackLayout(spacing: 10))
         layout {
             Group {
-                if let avatar { Image(uiImage: avatar).resizable().scaledToFill() }
+                if let avatar = model.people.avatar(account) { Image(uiImage: avatar).resizable().scaledToFill() }
                 else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(7) }
             }.frame(width: 36, height: 36).background(Theme.forest.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 9)).foregroundStyle(Theme.forest).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
-                Text(person?.name ?? model.accountIdentities[account]?.name ?? account).font(.subheadline.weight(.medium))
+                Text(name ?? account).font(.subheadline.weight(.medium))
                     .lineLimit(showID ? nil : 1)
-                if showID && (person?.name != nil || model.accountIdentities[account]?.name != nil) {
+                if showID && name != nil {
                     Text(account).font(.caption.monospaced()).foregroundStyle(.secondary).environment(\.layoutDirection, .leftToRight)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
@@ -33,24 +32,7 @@ struct MessageIdentity: View {
                         .buttonStyle(.borderless).frame(minHeight: 44)
                 } else { AccountIDCopyButton(account: account) }
             }
-        }.task(id: "\(account):\(model.epoch)") {
-            person = nil; avatar = nil
-            guard validMessageAccount(account), let engine = model.engine, !model.concealed else { return }
-            let epoch = model.epoch
-            for refresh in [false, true] {
-                do {
-                    let values: [String: MessagePerson] = try model.decode(try await coreOperation { try await engine.channelNames(accounts: [account], refresh: refresh, operation: $0) })
-                    guard epoch == model.epoch, !Task.isCancelled else { return }
-                    person = values[account]
-                    if person?.avatarUrl != nil {
-                        let bytes = try? await engine.channelAvatar(account: account, refresh: refresh)
-                        let image = await AvatarImage.decode(bytes)
-                        guard epoch == model.epoch, !Task.isCancelled else { return }
-                        avatar = image
-                    }
-                } catch { /* Keep the cached identity while offline. */ }
-            }
-        }
+        }.task(id: "\(account):\(model.profileRevision)") { model.people.request([account], model: model) }
     }
 }
 
@@ -75,11 +57,10 @@ struct MessagingAccountsPicker: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var accounts: [String] = []
-    @State private var names: [String: MessagePerson] = [:]
     @State private var query = ""
     @State private var loading = true
     @State private var failed = false
-    private var matches: [String] { accounts.filter { query.isEmpty || $0.localizedCaseInsensitiveContains(query) || names[$0]?.name?.localizedCaseInsensitiveContains(query) == true } }
+    private var matches: [String] { accounts.filter { query.isEmpty || $0.localizedCaseInsensitiveContains(query) || model.people.people[$0]?.name?.localizedCaseInsensitiveContains(query) == true } }
     var body: some View {
         List {
             SettingsLoadStatus(loading: loading, failed: failed) { Task { await load() } }
@@ -100,11 +81,7 @@ struct MessagingAccountsPicker: View {
         do {
             let values: [String] = try model.decode(try await engine.messagingAccounts())
             guard epoch == model.epoch, !Task.isCancelled else { return }; accounts = values
-            for start in stride(from: 0, to: values.count, by: 100) {
-                let batch = Array(values[start..<min(start + 100, values.count)])
-                let cached: [String: MessagePerson] = try model.decode(try await coreOperation { try await engine.channelNames(accounts: batch, refresh: false, operation: $0) })
-                guard epoch == model.epoch, !Task.isCancelled else { return }; names.merge(cached) { _, next in next }
-            }
+            model.people.request(values, model: model)
         } catch { if epoch == model.epoch, !Task.isCancelled { failed = true } }
     }
 }

@@ -76,6 +76,8 @@
 	<string>Aktif konuşmalar</string>
 	<key>Active links</key>
 	<string>Etkin bağlantılar</string>
+	<key>Activity</key>
+	<string>Etkinlik</string>
 	<key>Activity on this device</key>
 	<string>Bu cihazdaki etkinlik</string>
 	<key>Add account</key>
@@ -260,6 +262,8 @@
 	<string>Yetkili cihaz</string>
 	<key>Authorized devices</key>
 	<string>Yetkili cihazlar</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Otomatik Doldurma yalnızca seçtiğiniz oturum açma öğelerini alır ve çalışma alanından bağımsız olarak sistem kimlik doğrulaması gerektirir. Kullanıcı adları ve web sitesi adları sistem önerilerinde görünebilir.</string>
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>Otomatik Doldurma yalnızca seçtiğiniz giriş öğelerini alır ve çalışma alanından bağımsız sistem kimlik doğrulaması gerektirir. dMsg açık ve kilidi açıkken anlık görüntü bu öğelerdeki değişiklikleri izler; güncellenmezse 24 saat sonra sona erer. Kullanıcı adları ve web sitesi adları sistem önerilerinde görünebilir.</string>
 	<key>AutoFill snapshot updated</key>
@@ -284,6 +288,8 @@
 	<string>Arka planda indirme</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Arka planda imzalama ve yerleşik aracı özellikleri bu çalışma alanı kilidinden ayrıdır.</string>
+	<key>Background transfer</key>
+	<string>Arka plan aktarımı</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>Arka plan aktarımı başladı. Transferler'deki ilerleme durumunu inceleyin.</string>
 	<key>Backing up…</key>
@@ -402,6 +408,8 @@
 	<string>Teslimatı kontrol et</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Alan uzunluklarını kontrol edin ve adlandırılmış HTTPS bağlantıları kullanın.</string>
+	<key>Check original result</key>
+	<string>Özgün sonucu denetle</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Proje referanslarını ve halihazırda teslim edilmiş olan kopyaları kontrol edin.</string>
 	<key>Check recovery status</key>
@@ -598,12 +606,16 @@
 	<string>Bağlantıyı kopyala</string>
 	<key>Copy pairing request</key>
 	<string>Eşleştirme isteğini kopyala</string>
+	<key>Copy password</key>
+	<string>Parolayı kopyala</string>
 	<key>Copy reference</key>
 	<string>Referansı kopyala</string>
 	<key>Copy request</key>
 	<string>İsteği kopyala</string>
 	<key>Copy this field?</key>
 	<string>Bu alan kopyalansın mı?</string>
+	<key>Copy username</key>
+	<string>Kullanıcı adını kopyala</string>
 	<key>Cosign on this device</key>
 	<string>Bu cihazda ortak imzala</string>
 	<key>Cosign packet from another device</key>
@@ -658,6 +670,8 @@
 	<string>Transfer teklifi oluştur</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Şifreleri, notları ve dosyaları kaydetmeye başlamak için şifrelenmiş çalışma alanınızı oluşturun.</string>
+	<key>Created</key>
+	<string>Oluşturulma</string>
 	<key>Creating %lld of %lld…</key>
 	<string>Oluşturuluyor %lld/%lld…</string>
 	<key>Credential</key>
@@ -820,6 +834,8 @@
 	<string>Taslak</string>
 	<key>Drafts and sent letters are saved on this device.</key>
 	<string>Taslaklar ve gönderilen mektuplar bu cihazda saklanır.</string>
+	<key>Due %@</key>
+	<string>Son tarih: %@</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
@@ -922,6 +938,8 @@
 	<string>Alanlar</string>
 	<key>File</key>
 	<string>Dosya</string>
+	<key>File details</key>
+	<string>Dosya ayrıntıları</string>
 	<key>File name</key>
 	<string>Dosya adı</string>
 	<key>File not available on this device</key>
@@ -960,6 +978,8 @@
 	<string>Klasör adı</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
 	<string>Bu cihazda olmayan bir anahtar için, örneğin kaybolan bir cihazdaki. Üyeler onayladıktan 24 saat sonra yeni anahtar geçerli olur.</string>
+	<key>For this site</key>
+	<string>Bu site için</string>
 	<key>Freeze this wallet?</key>
 	<string>Bu cüzdan dondurulsun mu?</string>
 	<key>Freeze wallet</key>
@@ -1094,6 +1114,8 @@
 	<string>Geçersiz kurulum anahtarı veya otpauth URL’si.</string>
 	<key>Inventory fingerprint</key>
 	<string>Envanter parmak izi</string>
+	<key>Invitation created</key>
+	<string>Davet oluşturuldu</string>
 	<key>Invite member</key>
 	<string>Üyeyi davet et</string>
 	<key>Invite to a conversation</key>
@@ -1230,6 +1252,8 @@
 	<string>Kilitleme aktarımları duraklatır; kilit açılınca devam eder.</string>
 	<key>Login identities</key>
 	<string>Giriş kimlikleri</string>
+	<key>Login identity</key>
+	<string>Giriş kimliği</string>
 	<key>Manage Apple subscriptions</key>
 	<string>Apple aboneliklerini yönetin</string>
 	<key>Manage file</key>
@@ -1546,6 +1570,8 @@
 	<string>Diğer</string>
 	<key>Other devices</key>
 	<string>Diğer cihazlar</string>
+	<key>Other logins</key>
+	<string>Diğer girişler</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
 	<string>Aksi halde dMsg 3 dakika uzakta kaldıktan sonra kilitlenir. Cihaz kilidi çalışma alanınızı her zaman hemen kilitler.</string>
 	<key>Outcome no longer available</key>
@@ -1572,6 +1598,8 @@
 	<string>Bağlama isteğini yapıştır</string>
 	<key>Paste enrollment request</key>
 	<string>Kayıt isteğini yapıştır</string>
+	<key>Paste image</key>
+	<string>Görseli yapıştır</string>
 	<key>Paste invitation</key>
 	<string>Davetiyeyi yapıştır</string>
 	<key>Paste pairing request</key>
@@ -1580,6 +1608,8 @@
 	<string>Gizli paket bağlantısını yapıştır</string>
 	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
 	<string>Yeni cihazın gösterdiği isteği yapıştırın, ne istediğini kontrol edin, ardından cihaz kimliğini onaylayın.</string>
+	<key>Pause notifications</key>
+	<string>Bildirimleri duraklat</string>
 	<key>Pause this agent</key>
 	<string>Bu temsilciyi duraklat</string>
 	<key>Pause transfer</key>
@@ -1616,6 +1646,8 @@
 	<string>Plan</string>
 	<key>Plan and usage</key>
 	<string>Plan ve kullanım</string>
+	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
+	<string>Uygulamanın bu sürümünde plan değiştirilemez. Mevcut planınız ve kullanımınız görüntülenebilir.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
 	<string>Plus ve üzeri planlarla bağlantı üzerinden herkesten dosya isteyebilirsiniz. Hesap gerekmez, herkes yalnızca kendi gönderdiğini görür ve dosyaları yalnızca siz açabilirsiniz.</string>
 	<key>Policy points to an unavailable field</key>
@@ -1716,10 +1748,14 @@
 	<string>Satın alındı</string>
 	<key>Purchases are not currently available.</key>
 	<string>Şu anda satın alma işlemi yapılamıyor.</string>
+	<key>Purpose</key>
+	<string>Amaç</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Bu yapıda anında bildirimler etkin değil. Senkronize etmek için dMsg'yu açın.</string>
 	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
 	<string>Hızlı kilit açma çalışma alanını açar. Cihaz bağlama, hangi cihazın açabileceğini sınırlar. Donanım onayı hassas hesap işlemlerini korur.</string>
+	<key>Quick unlock with %@</key>
+	<string>%@ ile hızlı kilit açma</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Sistem kimlik doğrulamasıyla hızlı kilit açma</string>
 	<key>Read from a desktop file mapping</key>
@@ -2166,6 +2202,8 @@
 	<string>Bilgisayar davetini tara</string>
 	<key>Scan device request</key>
 	<string>Cihaz isteğini tarayın</string>
+	<key>Scan invitation</key>
+	<string>Daveti tara</string>
 	<key>Scopes, one per line</key>
 	<string>Kapsamlar, her satıra bir tane</string>
 	<key>Screenshots may contain private information.</key>
@@ -2218,6 +2256,8 @@
 	<string>Oturum açma öğelerini seçin</string>
 	<key>Select non-duplicates</key>
 	<string>Yinelenmeyenleri seç</string>
+	<key>Select text</key>
+	<string>Metni seç</string>
 	<key>Select up to 1,000 records per import.</key>
 	<string>Her içe aktarmada en fazla 1.000 kayıt seçin.</string>
 	<key>Selected</key>
@@ -2230,6 +2270,8 @@
 	<string>Seçili dosyalar</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Seçilen bölümler çakışan sürümü kullanır. Diğer bölümler geçerli sürümü korur.</string>
+	<key>Send</key>
+	<string>Gönder</string>
 	<key>Send device request</key>
 	<string>Cihaz isteği gönder</string>
 	<key>Send failed</key>
@@ -2250,6 +2292,8 @@
 	<string>Gönderen hesabı</string>
 	<key>Sending</key>
 	<string>Gönderme</string>
+	<key>Sent</key>
+	<string>Gönderildi</string>
 	<key>Sent letters</key>
 	<string>Gönderilen mektuplar</string>
 	<key>Server</key>
@@ -2338,6 +2382,8 @@
 	<string>Toplanan imzalar</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Ortak imzacılar %@ imzaları artık geçerli anahtarlarıyla eşleşmiyor ve bir kenara ayrıldı; yeniden imzalamaları gerekiyor.</string>
+	<key>Size</key>
+	<string>Boyut</string>
 	<key>Skipped</key>
 	<string>Atlananlar</string>
 	<key>Snapshot</key>
@@ -2364,6 +2410,8 @@
 	<string>Sırala</string>
 	<key>Sort by</key>
 	<string>Sıralama ölçütü</string>
+	<key>Source</key>
+	<string>Kaynak</string>
 	<key>Source address</key>
 	<string>Kaynak adresi</string>
 	<key>Source address %u</key>
@@ -2390,6 +2438,8 @@
 	<string>Kontrol listesini başlat</string>
 	<key>Start sending</key>
 	<string>Göndermeye başla</string>
+	<key>Statement</key>
+	<string>Beyan</string>
 	<key>Status</key>
 	<string>Durum</string>
 	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
@@ -2460,6 +2510,8 @@
 	<string>Virgülle ayrılmış etiketler</string>
 	<key>Take photo or video</key>
 	<string>Fotoğraf veya video çek</string>
+	<key>Technical details</key>
+	<string>Teknik ayrıntılar</string>
 	<key>Terms of service</key>
 	<string>Hizmet şartları</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2536,6 +2588,8 @@
 	<string>İstek bu cihazda kullanılamıyor. Süresi dolmuş veya zaten işlenmiş olabilir.</string>
 	<key>The required content key is not available yet.</key>
 	<string>Gerekli içerik anahtarı henüz mevcut değil.</string>
+	<key>The result is not confirmed. Check it again before retrying.</key>
+	<string>Sonuç doğrulanmadı. Yeniden denemeden önce tekrar denetleyin.</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>Sonuç doğrulanmadı. Yeniden denemeden önce bu isteği uzlaştırın.</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
@@ -2676,6 +2730,8 @@
 	<string>Bu çalışma alanı başka bir iPhone’da oluşturuldu ve örneğin geri yüklenen bir yedekle ya da cihaz aktarımıyla buraya kopyalandı. Hesabınızı korumak için asla eski cihaz gibi davranmaz: burada kilidi açılmaz ve içindeki hiçbir şey silinmez.</string>
 	<key>Title</key>
 	<string>Başlık</string>
+	<key>To device</key>
+	<string>Hedef cihaz</string>
 	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
 	<string>Bunun yerine eski iPhone’un yerine geçmek için kopyayı kenara koyup giriş yapın, ardından kopyada Eski iPhone’un yerine geç’i seçin; bu iPhone katıldığında kopyanın dosyalarını Cihazlar’da içe aktarın.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -2734,12 +2790,16 @@
 	<string>Kilit açma politikası</string>
 	<key>Unlock this iPhone to open dMsg.</key>
 	<string>dMsg'yu açmak için bu iPhone'un kilidini açın.</string>
+	<key>Unlock with %@</key>
+	<string>%@ ile kilidi aç</string>
 	<key>Unlock with system authentication</key>
 	<string>Sistem kimlik doğrulamasıyla kilidi açın</string>
 	<key>Unlock workspace</key>
 	<string>Çalışma alanının kilidini aç</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>dMsg çalışma alanınızın kilidini açın</string>
+	<key>Unmute notifications</key>
+	<string>Bildirimlerin sesini aç</string>
 	<key>Unread messages</key>
 	<string>Okunmamış</string>
 	<key>Unread only</key>
@@ -2748,6 +2808,12 @@
 	<string>Sınırsız delegasyon yetkisi</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
 	<string>En fazla 8 kapsam ve 4 hedef. HTTPS kaynakları veya Aracı kimlikleri kullanın; joker karakterlere izin verilmez.</string>
+	<key>Update AutoFill</key>
+	<string>Otomatik Doldurmayı güncelle</string>
+	<key>Update Files app copies</key>
+	<string>Dosyalar uygulaması kopyalarını güncelle</string>
+	<key>Update conversation keys</key>
+	<string>Sohbet anahtarlarını güncelle</string>
 	<key>Updated</key>
 	<string>Güncellendi</string>
 	<key>Uploading</key>
@@ -2934,6 +3000,8 @@
 	<string>Raporunuz ve açıkça eklediğiniz metinler moderasyon ekibine gönderilecektir. Diğer özel içerik ve anahtarlar dahil değildir.</string>
 	<key>Your reports</key>
 	<string>Raporlarınız</string>
+	<key>Your vault syncs automatically while dMsg is open.</key>
+	<string>dMsg açıkken kasanız otomatik olarak eşitlenir.</string>
 	<key>dMsg</key>
 	<string>dMsg</string>
 	<key>dMsg workspace</key>

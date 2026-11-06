@@ -31,7 +31,7 @@ struct SubscriptionView: View {
             Section("Current plan and limits") {
                 if let plan {
                     LabeledContent("Plan", value: plan.plan)
-                    LabeledContent("Storage limit", value: binarySize(plan.limits.storageBytes))
+                    LabeledContent("Storage limit", value: fileLimit(plan.limits.storageBytes))
                     LabeledContent("Conversation limit", value: plan.limits.activeChannels.formatted())
                     LabeledContent("Monthly execution limit", value: plan.limits.monthlyExecutionUnits.formatted())
                     if let term = plan.current { LabeledContent("Current term ends") { Text(Date(timeIntervalSince1970: Double(term.endsAtMs) / 1000), style: .date) } }
@@ -45,9 +45,9 @@ struct SubscriptionView: View {
             Section("Usage") {
                 if usageLoading { ProgressView() }
                 if let cloud = usage?.cloud {
-                    LabeledContent("Used", value: binarySize(cloud.committed))
-                    LabeledContent("Reserved for uploads", value: binarySize(cloud.reserved))
-                    if let remaining = cloud.remaining { LabeledContent("Remaining", value: binarySize(remaining)) }
+                    LabeledContent("Used", value: fileSize(cloud.committed))
+                    LabeledContent("Reserved for uploads", value: fileSize(cloud.reserved))
+                    if let remaining = cloud.remaining { LabeledContent("Remaining", value: fileSize(remaining)) }
                     if let limit = cloud.storageLimit, limit > 0 { ProgressView(value: min(Double(cloud.committed) + Double(cloud.reserved), Double(limit)), total: Double(limit)).accessibilityLabel("Cloud storage") }
                     if let used = cloud.activeChannels, let limit = cloud.channelLimit {
                         LabeledContent("Active conversations", value: "\(used.formatted()) / \(limit.formatted())")
@@ -94,7 +94,7 @@ struct SubscriptionView: View {
                 }
             } else {
                 Section {
-                    Text("In-app purchases are disabled in this build. Your current plan and usage remain available.")
+                    Text("Plans cannot be changed in this version of the app. Your current plan and usage remain available.")
                         .font(.footnote).foregroundStyle(.secondary)
                         .accessibilityIdentifier("plan.purchases-disabled")
                 }

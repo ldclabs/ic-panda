@@ -37,6 +37,7 @@ struct AdvancedAccountView: View {
             NavigationLink { BrowserConnectionsView() } label: { Label("Connected browsers", glyph: .browser) }
             NavigationLink { HardwareSecurityView() } label: { Label("Hardware security", systemImage: "cpu") }.accessibilityIdentifier("account.hardware")
             NavigationLink { SecretActivityView() } label: { Label("Activity on this device", glyph: .audit) }
+            NavigationLink { DisplayCacheView() } label: { Label("Cached data", systemImage: "internaldrive") }.accessibilityIdentifier("account.cache")
         }.privateScreen().navigationTitle("Advanced")
     }
 }

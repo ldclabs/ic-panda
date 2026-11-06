@@ -21,7 +21,7 @@ struct VaultTrashView: View {
             if loading { ProgressView() }
             else if failed { Button("Retry") { Task { await load(reset: true) } } }
             else if items.isEmpty { ContentUnavailableView("Trash is empty", systemImage: "trash") }
-            if more { Button("Load more") { Task { await load(reset: false) } }.disabled(loading) }
+            if more { LoadMoreRow(working: loading, trigger: items.count) { await load(reset: false) } }
             Text("Moving to Trash does not free cloud storage.").font(.footnote).foregroundStyle(.secondary)
         }.privateScreen().navigationTitle("Trash").task(id: model.contentRevision) { await load(reset: true) }
             .refreshable { await load(reset: true) }
