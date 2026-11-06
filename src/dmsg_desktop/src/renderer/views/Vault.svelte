@@ -237,7 +237,7 @@
 
   // A filter that no longer has items falls back to everything.
   $effect(() => {
-    if (scope.startsWith('tag:') || scope.startsWith('type:'))
+    if (loaded && (scope.startsWith('tag:') || scope.startsWith('type:')))
       if (!scopes.some((option) => option.value === scope)) scope = 'all'
   })
 
@@ -379,8 +379,9 @@
       chosen = new Set(shown.filter((e) => !isManaged(e.item)).map((e) => e.id))
     } else if (event.key === 'Delete' || (event.key === 'Backspace' && held)) {
       event.preventDefault()
-      if (picked.length > 1) void trashChosen()
-      else if (current && !isManaged(current.item)) void discard(current)
+      if (chosen.size) {
+        if (picked.length) void trashChosen()
+      } else if (current && !isManaged(current.item)) void discard(current)
     } else if (event.key === 'Enter' && current) {
       event.preventDefault()
       document.querySelector<HTMLElement>('[data-testid="vault-inspector"] button')?.focus()

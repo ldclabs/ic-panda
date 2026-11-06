@@ -117,8 +117,6 @@
 
   /** How many messages a channel opens with, and each page of earlier ones. */
   const PAGE = 200
-  /** What a channel already open reads again on a change. */
-  const TAIL = 50
 
   const unlocked = $derived(status?.state === 'unlocked')
   const me = $derived<string | undefined>(status?.account)
@@ -245,16 +243,13 @@
     const switching = channel?.id !== id
     if (selected !== id) { channelVisit++; loadingEarlier = false }
     selected = id
-    // An open channel only needs what is new; a longer absence reads a full page.
-    const read = (limit: number) => call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit })
-    const [next, tail, box] = await Promise.all([
+    // Edits and withdrawals update their original rows; reread the opening
+    // page rather than assuming only the last few messages can change.
+    const [next, page, box] = await Promise.all([
       call<any>('channel/show', { id }),
-      read(switching ? PAGE : TAIL),
+      call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE }),
       call<Outgoing[]>('channel/outbox', { id }).catch(() => [])
     ])
-    if (!alive || selected !== id || openRequest !== request) return
-    const gap = !switching && tail.has_more && tail.items[0]?.seq > (messages.at(-1)?.seq ?? 0) + 1
-    const page = gap ? await read(PAGE) : tail
     if (!alive || selected !== id || openRequest !== request) return
     const list = page.items
     if (switching) {
@@ -645,7 +640,7 @@
       rememberPlain('channels.attached', $state.snapshot(attached))
       rememberPlain('channels.replies', $state.snapshot(replies))
       // The moment after typing stops, the daemon had not kept the text yet.
-      if (channel && (drafts[channel.id] ?? '') !== (channel.draft ?? '')) void call('channel/draft', { id: channel.id, text: drafts[channel.id] ?? '' }).catch(() => {})
+      if (!daemonBlocked() && channel && (drafts[channel.id] ?? '') !== (channel.draft ?? '')) void call('channel/draft', { id: channel.id, text: drafts[channel.id] ?? '' }).catch(() => {})
     }
   })
 </script>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import { t } from '../i18n/index.svelte'
   import { bridge, errorText } from '../rpc'
   import Dialog from './Dialog.svelte'
@@ -10,6 +11,8 @@
   function close() {
     leaving.url = leaving.host = null
   }
+
+  onDestroy(close)
 
   function go() {
     const url = leaving.url

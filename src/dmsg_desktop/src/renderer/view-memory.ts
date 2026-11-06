@@ -7,6 +7,7 @@
 const places = new Map<string, unknown>()
 const plain = new Map<string, unknown>()
 let account: string | null = null
+let unlocked = false
 
 /** A status arrived: another account starts with nothing, and only an unlocked one keeps plaintext. */
 export function settleMemory(status: { account?: string | null; state?: string } | null) {
@@ -16,11 +17,15 @@ export function settleMemory(status: { account?: string | null; state?: string }
     plain.clear()
     account = next
   }
-  if (status?.state !== 'unlocked') plain.clear()
+  unlocked = status?.state === 'unlocked'
+  if (!unlocked) plain.clear()
 }
 
 /** The session changed and the next status is not known yet: plaintext goes now. */
-export const forgetPlain = () => plain.clear()
+export const forgetPlain = () => {
+  unlocked = false
+  plain.clear()
+}
 
 export const remembered = <T>(key: string): T | undefined => places.get(key) as T | undefined
 export const remember = (key: string, value: unknown) => {
@@ -38,4 +43,7 @@ export const noteRoute = (view: string, route: string) => {
 export const lastRoute = (view: string) => remembered<string>(`route:${view}`) ?? view
 
 export const rememberedPlain = <T>(key: string): T | undefined => plain.get(key) as T | undefined
-export const rememberPlain = (key: string, value: unknown) => plain.set(key, value)
+export const rememberPlain = (key: string, value: unknown) => {
+  // Old views tear down after session/changed has already cleared this cache.
+  if (unlocked) plain.set(key, value)
+}

@@ -58,9 +58,12 @@
     }
   }
 
-  onMount(() => window.dmsg.onEvent((event) => {
-    if (open && event.type === 'notifications/changed') void load()
-  }))
+  onMount(() => {
+    const off = window.dmsg.onEvent((event) => {
+      if (open && event.type === 'notifications/changed') void load()
+    })
+    return () => { run++; off() }
+  })
 </script>
 
 <Popover.Root bind:open>

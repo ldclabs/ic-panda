@@ -304,7 +304,9 @@
       {windowNav}
     />
     <div class="flex min-w-0 flex-1 flex-col bg-paper">
-      <Header {view} {mod} {collapsed} {windowNav} {go} {reminders} {status} onPalette={() => (palette = true)} />
+      {#key viewSession}
+        <Header {view} {mod} {collapsed} {windowNav} {go} {reminders} {status} onPalette={() => (palette = true)} />
+      {/key}
       {#key viewSession}<RecoveryBanner />{/key}
       <main class="min-h-0 flex-1 overflow-hidden" aria-busy={!Page}>
         {#key viewSession}

@@ -64,6 +64,21 @@ test('a route that asks for something once is not gone back to', () => {
   assert.equal(lastRoute('/wallet'), '/wallet/w?tab=team')
 })
 
+test('a departing view cannot put plaintext back after the session was invalidated', () => {
+  settleMemory({ account: 'a', state: 'unlocked' })
+  rememberPlain('draft', 'before lock')
+  forgetPlain()
+  // Svelte destroys the old view after App handles session/changed.
+  rememberPlain('draft', 'saved by the old view on destroy')
+  assert.equal(rememberedPlain('draft'), undefined)
+  settleMemory({ account: 'a', state: 'locked' })
+  rememberPlain('draft', 'locked view teardown')
+  assert.equal(rememberedPlain('draft'), undefined)
+  settleMemory({ account: 'a', state: 'unlocked' })
+  rememberPlain('draft', 'new draft')
+  assert.equal(rememberedPlain('draft'), 'new draft')
+})
+
 test('the desktop state keeps only what it knows and only views', () => {
   assert.equal(isViewRoute('/vault/ssh'), true)
   assert.equal(isViewRoute('/approval/abc'), false)

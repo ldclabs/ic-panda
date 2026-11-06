@@ -43,6 +43,7 @@ import { securityFlow } from './security-flow.mjs'
 import { pairingFlow } from './pairing-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
 import { uxFlow } from './ux-flow.mjs'
+import { uxRegressionsFlow } from './ux-regressions-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
 import { fileRequestsFlow } from './file-requests-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
@@ -1943,6 +1944,12 @@ smoke: try {
     console.log('desktop succession smoke test passed')
     break smoke
   }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'ux-regressions') {
+    await uxRegressionsFlow({ app, main, shots, methods, emit, hold, waitFor, calls, account, formMatrix, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop interaction regression tests passed')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'ux') {
     await uxFlow({ app, main, shots, methods, requests, request, emit, waitFor, calls, profile, formMatrix, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])
@@ -2164,7 +2171,7 @@ smoke: try {
   assert.ok(latest('channel/sync'), 'opening a channel refreshes it immediately')
   await finishChannelSync()
   assert.equal(latest('channel/sync').params.recent, true)
-  assert.ok(pages.slice(1).some((p) => p.before === Number.MAX_SAFE_INTEGER && p.limit === 50), 'a channel already open reads only what is new')
+  assert.ok(pages.slice(1).some((p) => p.before === Number.MAX_SAFE_INTEGER && p.limit === 200), 'an open channel rereads its bounded page for edits and withdrawals')
   // A message names its own ID, so a retry never sends it twice; members show their names.
   assert.match(latest('channel/send').params.message_id, /^[0-9a-f]{64}$/)
   await main.getByTestId('channel-members-toggle').click()

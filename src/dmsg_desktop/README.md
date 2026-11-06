@@ -659,6 +659,9 @@ The smoke test normally checks native macOS fullscreen transitions as well.
 policy, returning to where a view was left, the shortcuts, locking with the
 screen and idle time, list widths, pasted images, localized menus, the first-run
 page, and the approval window closing itself after its last decision.
+`DMSG_DESKTOP_SMOKE=ux-regressions node scripts/smoke.mjs` checks session cleanup,
+vault filters and deletion targets, message edits, sent-letter status updates and
+uncertain letter retries with isolated fixtures.
 
 `DMSG_DESKTOP_SMOKE=settings pnpm test:e2e` checks all nine Settings routes,
 profile publication and lookup drafts, device capability edits, file

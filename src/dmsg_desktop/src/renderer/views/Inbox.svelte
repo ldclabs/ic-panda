@@ -195,17 +195,18 @@
     remember('inbox.selected', selected)
   })
 
-  // A sent letter says how it went as soon as it opens.
+  // Read on selection and when the outgoing list changes after a payment.
   $effect(() => {
     const target = order
-    if (target) untrack(() => orders[target.order_id] || orderFailed[target.order_id] || check(target))
+    if (target) untrack(() => void check(target))
   })
 
   /** The daemon's `inbox/changed` reloads the letters. */
   const mark = (target: any, read: boolean, archived: boolean) => attempt(() => call('inbox/mark', { order: target.order_id, read, archived }))
 
-  async function check(target: any) {
+  const check = single(async (target: any) => {
     const at = generation
+    if (!valid(at)) return
     orderFailed[target.order_id] = false
     try {
       const next = await call('inbox/order', { recipient: target.recipient, order: target.order_id })
@@ -213,7 +214,7 @@
     } catch {
       if (valid(at)) orderFailed[target.order_id] = true
     }
-  }
+  })
 
   /** The escrow of a paid letter and its transfers; a refused one is resent at the fee the ledger asked for. */
   const funds = (target: any) =>
@@ -401,6 +402,7 @@
               <dd class="flex items-center gap-2 text-[12.5px]">
                 {#if orders[order.order_id]}
                   <span data-testid="order-state">{named(orders[order.order_id].state, orderStates)}</span>
+                  <button class={buttonClass('ghost', 'xs')} onclick={() => check(order)} data-testid="order-refresh">{t('refresh')}</button>
                 {:else if orderFailed[order.order_id]}
                   <span class="text-faint">{t('serviceUnavailable')}</span>
                   <button class={buttonClass('secondary', 'xs')} onclick={() => check(order)} data-testid="order-retry">{t('retry')}</button>

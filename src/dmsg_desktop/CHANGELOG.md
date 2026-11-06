@@ -36,10 +36,14 @@ where the client depends on them.
 - Load each window, view and language on its own. The approval window no longer
   loads the main window's code and every catalog.
 - Stop scanning every list on each key in the command palette. Page long Vault
-  lists, and read only what is new while a channel is open.
+  lists, and reread a bounded message page while a channel is open.
 
 ### Fixes
 
+- Clear reminder names, link confirmations and retained drafts on session changes.
+- Apply Delete to the selected vault items, including a single remaining selection.
+- Refresh edits to earlier messages and order states after letter payments.
+- Restore vault filters after loading and retain the original order when retrying a restored letter draft.
 - Stop pasted images failing with an invalid input error.
 - Stop a dialog closing on a stray click outside it.
 - Keep at most four toasts on screen.

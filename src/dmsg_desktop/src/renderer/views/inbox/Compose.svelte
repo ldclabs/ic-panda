@@ -21,14 +21,15 @@
    */
   let { open = $bindable(false), to = '', mod }: { open?: boolean; to?: string; mod: string } = $props()
 
-  const draft = rememberedPlain<{ recipient: string; text: string; pay: boolean }>('inbox.compose')
+  type Pending = { key: string; order: string } | null
+  const draft = rememberedPlain<{ recipient: string; text: string; pay: boolean; pending: Pending }>('inbox.compose')
   let recipient = $state(draft?.recipient ?? '')
   let text = $state(draft?.text ?? '')
   let pay = $state(draft?.pay ?? false)
   let busy = $state(false)
   let error = $state('')
   let generation = 0
-  let pending: { key: string; order: string } | null = null
+  let pending: Pending = draft?.pending ?? null
 
   $effect(() => {
     if (!open) { generation += 1; error = '' }
@@ -37,7 +38,7 @@
 
   onDestroy(() => {
     generation += 1
-    rememberPlain('inbox.compose', { recipient, text, pay })
+    rememberPlain('inbox.compose', { recipient, text, pay, pending })
   })
 
   async function send() {

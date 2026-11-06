@@ -584,7 +584,8 @@ row and its right-click are one `TargetMenu`. There is no selection mode and no
 checkbox column.
 
 **Reading.** Long lists render a page at a time and read the next near the end.
-A channel asks only for what is new while it stays open. Reads from a keystroke
+A channel rereads its latest bounded page so edits and withdrawals update the
+original messages. Reads from a keystroke
 or an event coalesce; the palette never scans every list on each character.
 
 **Text and links.** Messages and letters show links through `LinkedText`. A
