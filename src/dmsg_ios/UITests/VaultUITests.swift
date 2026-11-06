@@ -94,11 +94,9 @@ final class VaultUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 5), .completed)
         XCTAssertFalse(app.buttons["vault.reveal.otp"].exists)
         app.buttons["vault.copy.otp"].tap()
-        XCTAssertFalse(app.buttons["Copy for 30 seconds"].exists)
         let copy = app.buttons["vault.copy.username"]
         if !copy.isHittable { app.swipeDown() }
         copy.tap()
-        XCTAssertFalse(app.buttons["Copy for 30 seconds"].exists)
         // The fixture's code lasts two seconds, and a new one replaces it.
         sleep(3)
         if !code.isHittable { app.swipeUp() }
@@ -106,29 +104,55 @@ final class VaultUITests: XCTestCase {
         capture(app, "OTP stays current and copies without asking")
     }
 
-    func testOneConfirmationCoversTheItemForThirtySeconds() {
+    func testCopyingASensitiveFieldTakesOneTapAndConfirmsNothing() {
         let app = launch()
         app.buttons["vault.item.fixture-github"].tap()
         let copy = app.buttons["vault.copy.password"]
         XCTAssertTrue(copy.waitForExistence(timeout: 5)); copy.tap()
-        let confirm = app.buttons["Copy for 30 seconds"]
+        XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
+        capture(app, "Sensitive copy takes one tap")
+        // A copy is not a confirmation: showing the field still asks.
+        app.buttons["vault.reveal.password"].tap()
+        XCTAssertTrue(app.buttons["Reveal"].firstMatch.waitForExistence(timeout: 5))
+    }
+
+    func testListRowCopiesThePasswordInOneTap() {
+        let app = launch()
+        let row = app.buttons["vault.item.fixture-github"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5)); row.swipeLeft()
+        let copy = app.buttons["Copy password"].firstMatch
+        XCTAssertTrue(copy.waitForExistence(timeout: 5)); copy.tap()
+        XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
+        capture(app, "A list row copies its password in one tap")
+    }
+
+    func testOneConfirmationCoversShowingTheItemForThirtySeconds() {
+        let app = launch()
+        app.buttons["vault.item.fixture-github"].tap()
+        let reveal = app.buttons["vault.reveal.password"]
+        XCTAssertTrue(reveal.waitForExistence(timeout: 5)); reveal.tap()
+        let confirm = app.buttons["Reveal"].firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        capture(app, "Sensitive copy asks near its button")
+        capture(app, "Showing a sensitive field asks near its button")
         confirm.tap()
         XCTAssertTrue(confirm.waitForNonExistence(timeout: 5))
-        // A read within the grace period must not renew that confirmation.
-        sleep(20)
-        app.buttons["vault.reveal.password"].tap()
         let value = app.staticTexts["vault.value.password"]
         let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: value)
         XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 5), .completed)
-        XCTAssertFalse(app.buttons["Reveal"].exists)
+        reveal.tap()
+        // A read within the grace period must not renew that confirmation.
+        sleep(20)
+        reveal.tap()
+        let shownAgain = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: value)
+        XCTAssertEqual(XCTWaiter.wait(for: [shownAgain], timeout: 5), .completed)
+        XCTAssertFalse(confirm.exists)
+        reveal.tap()
         // Leave the page still: the deadline must be checked when tapped, even
         // when no state change has caused SwiftUI to render it again.
         sleep(11)
-        copy.tap()
+        reveal.tap()
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        capture(app, "Sensitive copy asks again after thirty seconds")
+        capture(app, "Showing asks again after thirty seconds")
     }
 
     func testHistoricalOTPExpiresWithoutAnotherFieldOperation() {
@@ -206,7 +230,6 @@ final class VaultUITests: XCTestCase {
         app.buttons["vault.item.fixture-github"].tap()
         let copy = app.buttons["vault.copy.username"]
         XCTAssertTrue(copy.waitForExistence(timeout: 5)); copy.tap()
-        XCTAssertFalse(app.buttons["Copy for 30 seconds"].exists)
         let notice = app.staticTexts.matching(identifier: "workspace.notice")
         XCTAssertTrue(notice.firstMatch.waitForExistence(timeout: 5))
         XCTAssertEqual(notice.count, 1)

@@ -582,8 +582,6 @@
 	<string>Kopyalandı. Kodun süresi yakında dolacak.</string>
 	<key>Copies from other iPhones</key>
 	<string>Diğer iPhone’lardan kopyalar</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>Kopyalar bu cihazda kalır ve en geç 30 saniye içinde sona erer.</string>
 	<key>Copy</key>
 	<string>Kopyala</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>Cihaz kimliğini kopyala</string>
 	<key>Copy enrollment request</key>
 	<string>Kayıt isteğini kopyala</string>
-	<key>Copy for 30 seconds</key>
-	<string>30 saniye boyunca kopyala</string>
 	<key>Copy link</key>
 	<string>Bağlantıyı kopyala</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>Referansı kopyala</string>
 	<key>Copy request</key>
 	<string>İsteği kopyala</string>
-	<key>Copy this field?</key>
-	<string>Bu alan kopyalansın mı?</string>
 	<key>Copy username</key>
 	<string>Kullanıcı adını kopyala</string>
 	<key>Cosign on this device</key>

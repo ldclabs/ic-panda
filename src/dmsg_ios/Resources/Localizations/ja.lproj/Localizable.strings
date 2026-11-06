@@ -582,8 +582,6 @@
 	<string>コピーしました。コードはまもなく期限切れになります。</string>
 	<key>Copies from other iPhones</key>
 	<string>他の iPhone からのコピー</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>コピーはこの端末にのみ保持され、30秒以内に期限切れになります。</string>
 	<key>Copy</key>
 	<string>コピー</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>デバイスIDをコピー</string>
 	<key>Copy enrollment request</key>
 	<string>登録リクエストのコピー</string>
-	<key>Copy for 30 seconds</key>
-	<string>30秒間コピーします</string>
 	<key>Copy link</key>
 	<string>リンクをコピー</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>参照のコピー</string>
 	<key>Copy request</key>
 	<string>依頼をコピー</string>
-	<key>Copy this field?</key>
-	<string>このフィールドをコピーしますか?</string>
 	<key>Copy username</key>
 	<string>ユーザー名をコピー</string>
 	<key>Cosign on this device</key>

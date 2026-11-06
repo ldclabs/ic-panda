@@ -582,8 +582,6 @@
 	<string>คัดลอกแล้ว รหัสจะหมดอายุในไม่ช้า</string>
 	<key>Copies from other iPhones</key>
 	<string>สำเนาจาก iPhone เครื่องอื่น</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>สำเนาจะอยู่บนอุปกรณ์นี้และหมดอายุภายใน 30 วินาที</string>
 	<key>Copy</key>
 	<string>คัดลอก</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>คัดลอก ID อุปกรณ์</string>
 	<key>Copy enrollment request</key>
 	<string>คัดลอกคำขอลงทะเบียน</string>
-	<key>Copy for 30 seconds</key>
-	<string>คัดลอกเป็นเวลา 30 วินาที</string>
 	<key>Copy link</key>
 	<string>คัดลอกลิงก์</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>คัดลอกการอ้างอิง</string>
 	<key>Copy request</key>
 	<string>คัดลอกคำขอ</string>
-	<key>Copy this field?</key>
-	<string>คัดลอกช่องนี้ใช่ไหม</string>
 	<key>Copy username</key>
 	<string>คัดลอกชื่อผู้ใช้</string>
 	<key>Cosign on this device</key>

@@ -582,8 +582,6 @@
 	<string>Disalin. Kod akan tamat tempoh tidak lama lagi.</string>
 	<key>Copies from other iPhones</key>
 	<string>Salinan dari iPhone lain</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>Salinan kekal pada peranti ini dan tamat tempoh dalam 30 saat.</string>
 	<key>Copy</key>
 	<string>Salin</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>Salin ID peranti</string>
 	<key>Copy enrollment request</key>
 	<string>Salin permintaan pendaftaran</string>
-	<key>Copy for 30 seconds</key>
-	<string>Salin selama 30 saat</string>
 	<key>Copy link</key>
 	<string>Salin pautan</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>Salin rujukan</string>
 	<key>Copy request</key>
 	<string>Salin permintaan</string>
-	<key>Copy this field?</key>
-	<string>Salin medan ini?</string>
 	<key>Copy username</key>
 	<string>Salin nama pengguna</string>
 	<key>Cosign on this device</key>

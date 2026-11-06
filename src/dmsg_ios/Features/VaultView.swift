@@ -6,7 +6,6 @@ struct VaultView: View {
     @State private var editing: VaultEditorTarget?
     @State private var trash = false
     @State private var filtering = false
-    @State private var copyingPassword: VaultItem?
 
     var body: some View {
         @Bindable var model = model
@@ -67,13 +66,10 @@ struct VaultView: View {
         .sheet(item: $editing) { target in NavigationStack { VaultEditor(target: target) } }
         .sheet(isPresented: $trash) { NavigationStack { VaultTrashView() } }
         .sheet(isPresented: $filtering) { NavigationStack { VaultFiltersView() } }
-        .confirmationDialog("Copy this field?", isPresented: Binding(get: { copyingPassword != nil }, set: { if !$0 { copyingPassword = nil } }), titleVisibility: .visible) {
-            Button("Copy for 30 seconds") { if let item = copyingPassword { Task { await model.copyVaultField(item, field: "password") } } }
-        } message: { Text("Copies stay on this device and expire within 30 seconds.") }
     }
 
     @ViewBuilder private func copyActions(_ item: VaultItem) -> some View {
-        Button("Copy password", systemImage: "key") { copyingPassword = item }.tint(Theme.forest)
+        Button("Copy password", systemImage: "key") { Task { await model.copyVaultField(item, field: "password") } }.tint(Theme.forest)
         Button("Copy username", systemImage: "person") { Task { await model.copyVaultField(item, field: "username") } }
     }
 

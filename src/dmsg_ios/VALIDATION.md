@@ -2058,3 +2058,26 @@ explicit choice. Interrupted import staging is retained rather than erased on
 startup. The current synchronization scope is also described in the README.
 
 Implementation and validation: Codex (OpenAI).
+
+## 2026-11-06 one-tap copy
+
+Copying a vault field now takes one tap on iOS, in details and on list rows, as it
+does on the desktop. Only revealing a sensitive field asks; one confirmation covers
+showing the item's fields for 30 seconds, and a copy does not start that interval.
+Copies keep their protections: `localOnly`, expiry within 30 seconds and clearing on
+lock. The three strings of the removed dialog left all 23 catalogs.
+
+On iPhone 18 Pro / iOS 27.0 with native libraries rebuilt from the current source,
+`-only-testing:dMsgUITests/VaultUITests` ran 19 tests with no failures, including
+`testCopyingASensitiveFieldTakesOneTapAndConfirmsNothing` and
+`testOneConfirmationCoversShowingTheItemForThirtySeconds`.
+`testListRowCopiesThePasswordInOneTap`, added afterwards, passed in a targeted run.
+
+`scripts/ios/localizations.py` passed on the source. With `--derived-data` it reports
+removed keys while `.build/DerivedData` still holds a Release build from 2026-11-03,
+so that check passed on a copy holding only the current Debug extraction.
+
+The full UI suite, the Swift unit tests, copying from a row's context menu, other
+simulators and physical devices were not run.
+
+Implementation and validation: Claude Opus 5.5 <noreply@anthropic.com>.

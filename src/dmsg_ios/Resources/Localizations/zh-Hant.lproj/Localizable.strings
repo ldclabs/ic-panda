@@ -582,8 +582,6 @@
 	<string>已複製，驗證碼即將到期。</string>
 	<key>Copies from other iPhones</key>
 	<string>來自其他 iPhone 的副本</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>複製內容僅保留在本機，並於 30 秒內到期。</string>
 	<key>Copy</key>
 	<string>複製</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>複製裝置 ID</string>
 	<key>Copy enrollment request</key>
 	<string>複製登記請求</string>
-	<key>Copy for 30 seconds</key>
-	<string>複製，保留 30 秒</string>
 	<key>Copy link</key>
 	<string>複製連結</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>複製引用</string>
 	<key>Copy request</key>
 	<string>複製請求</string>
-	<key>Copy this field?</key>
-	<string>複製這個欄位？</string>
 	<key>Copy username</key>
 	<string>複製使用者名稱</string>
 	<key>Cosign on this device</key>

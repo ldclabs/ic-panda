@@ -582,8 +582,6 @@
 	<string>Gekopieerd. De code verloopt binnenkort.</string>
 	<key>Copies from other iPhones</key>
 	<string>Kopieën van andere iPhones</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>Kopieën blijven op dit apparaat en verlopen binnen 30 seconden.</string>
 	<key>Copy</key>
 	<string>Kopiëren</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>Apparaat-ID kopiëren</string>
 	<key>Copy enrollment request</key>
 	<string>Kopieer het inschrijvingsverzoek</string>
-	<key>Copy for 30 seconds</key>
-	<string>Kopieer gedurende 30 seconden</string>
 	<key>Copy link</key>
 	<string>Kopieer link</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>Kopieer referentie</string>
 	<key>Copy request</key>
 	<string>Verzoek kopiëren</string>
-	<key>Copy this field?</key>
-	<string>Dit veld kopiëren?</string>
 	<key>Copy username</key>
 	<string>Gebruikersnaam kopiëren</string>
 	<key>Cosign on this device</key>

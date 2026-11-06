@@ -582,8 +582,6 @@
 	<string>Skopiowano. Kod wkrótce wygaśnie.</string>
 	<key>Copies from other iPhones</key>
 	<string>Kopie z innych iPhone’ów</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>Kopie pozostają na tym urządzeniu i wygasają w ciągu 30 sekund.</string>
 	<key>Copy</key>
 	<string>Kopiuj</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>Kopiuj ID urządzenia</string>
 	<key>Copy enrollment request</key>
 	<string>Skopiuj prośbę o rejestrację</string>
-	<key>Copy for 30 seconds</key>
-	<string>Kopiuj przez 30 sekund</string>
 	<key>Copy link</key>
 	<string>Skopiuj link</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>Skopiuj odniesienie</string>
 	<key>Copy request</key>
 	<string>Kopiuj prośbę</string>
-	<key>Copy this field?</key>
-	<string>Skopiować to pole?</string>
 	<key>Copy username</key>
 	<string>Kopiuj nazwę użytkownika</string>
 	<key>Cosign on this device</key>

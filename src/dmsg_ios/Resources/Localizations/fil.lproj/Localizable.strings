@@ -582,8 +582,6 @@
 	<string>Nakopya. Malapit nang mag-expire ang code.</string>
 	<key>Copies from other iPhones</key>
 	<string>Mga kopya mula sa ibang iPhone</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>Nananatili ang mga kopya sa device na ito at mag-e-expire sa loob ng 30 segundo.</string>
 	<key>Copy</key>
 	<string>Kopyahin</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>Kopyahin ang device ID</string>
 	<key>Copy enrollment request</key>
 	<string>Kopyahin ang kahilingan sa pagpapatala</string>
-	<key>Copy for 30 seconds</key>
-	<string>Kopyahin sa loob ng 30 segundo</string>
 	<key>Copy link</key>
 	<string>Kopyahin ang link</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>Kopyahin ang sanggunian</string>
 	<key>Copy request</key>
 	<string>Kopyahin ang kahilingan</string>
-	<key>Copy this field?</key>
-	<string>Kopyahin ang field na ito?</string>
 	<key>Copy username</key>
 	<string>Kopyahin ang username</string>
 	<key>Cosign on this device</key>

@@ -14,7 +14,7 @@ struct VaultDetailView: View {
     @State private var revealed: [String: RevealedVaultValue] = [:]
     /// One-time codes stay current on their own while the item is open.
     @State private var codes: [String: RevealedVaultValue] = [:]
-    /// One confirmation covers this item's sensitive fields for 30 seconds.
+    /// One confirmation lets this item's sensitive fields show for 30 seconds.
     @State private var trustedUntil: Date?
     @State private var workingField: String?
     @State private var working = false
@@ -241,10 +241,9 @@ struct VaultDetailView: View {
     }
 }
 
-/// A sensitive field asks first, next to the button that was pressed; a field that
-/// is already on screen, or a one-time code, just copies.
+/// Showing a sensitive field asks first, next to the button that was pressed. Copying
+/// takes one tap: the copy stays on this device and expires within 30 seconds.
 private struct VaultDetailField: View {
-    private enum Pending { case reveal, copy }
     let field: VaultField
     let value: String?
     let remaining: Int?
@@ -255,7 +254,7 @@ private struct VaultDetailField: View {
     let confirm: () -> Void
     let reveal: () -> Void
     let copy: () -> Void
-    @State private var pending: Pending?
+    @State private var asking = false
     @Environment(\.dynamicTypeSize) private var size
     @Environment(\.layoutDirection) private var direction
     // Evaluate at the tap, even if this row has not rendered since confirmation.
@@ -279,31 +278,24 @@ private struct VaultDetailField: View {
                         if busy { ProgressView().frame(width: 44, height: 44) }
                         else {
                             if field.concealed && !live && !field.value.isEmpty {
-                                Button { if value == nil && asks { pending = .reveal } else { reveal() } } label: {
+                                Button { if value == nil && asks { asking = true } else { reveal() } } label: {
                                     Image(systemName: value == nil ? "eye" : "eye.slash").frame(width: 44, height: 44)
                                 }.accessibilityLabel(Text(value == nil ? "Reveal" : "Hide") + Text(verbatim: " · " + vaultFieldTitle(field)))
                                     .accessibilityIdentifier("vault.reveal.\(field.id)")
-                                    .confirmationDialog("Reveal this field?", isPresented: asking(.reveal), titleVisibility: .visible) {
+                                    .confirmationDialog("Reveal this field?", isPresented: $asking, titleVisibility: .visible) {
                                         Button("Reveal") { confirm(); reveal() }
                                     } message: { Text("This field will be visible until you hide it or leave this screen.") }
                             }
                             if !field.value.isEmpty {
-                                Button { if asks { pending = .copy } else { copy() } } label: {
+                                Button { copy() } label: {
                                     Image(systemName: "doc.on.doc").frame(width: 44, height: 44)
                                 }.accessibilityLabel(Text("Copy") + Text(verbatim: " · " + vaultFieldTitle(field))).accessibilityIdentifier("vault.copy.\(field.id)")
-                                    .confirmationDialog("Copy this field?", isPresented: asking(.copy), titleVisibility: .visible) {
-                                        Button("Copy for 30 seconds") { confirm(); copy() }
-                                    } message: { Text("Copies stay on this device and expire within 30 seconds.") }
                             }
                         }
                     }.font(.system(size: 20)).buttonStyle(.borderless)
                 }
             }
         }.padding(.vertical, 5)
-    }
-
-    private func asking(_ action: Pending) -> Binding<Bool> {
-        Binding(get: { pending == action }, set: { if !$0 { pending = nil } })
     }
 
     private func countdown(_ remaining: Int) -> some View {

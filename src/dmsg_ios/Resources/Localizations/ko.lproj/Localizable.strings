@@ -582,8 +582,6 @@
 	<string>복사했습니다. 코드가 곧 만료됩니다.</string>
 	<key>Copies from other iPhones</key>
 	<string>다른 iPhone의 복사본</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>복사한 내용은 이 기기에만 남으며 30초 이내에 만료됩니다.</string>
 	<key>Copy</key>
 	<string>복사</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>기기 ID 복사</string>
 	<key>Copy enrollment request</key>
 	<string>등록 요청 복사</string>
-	<key>Copy for 30 seconds</key>
-	<string>30초 동안 복사</string>
 	<key>Copy link</key>
 	<string>링크 복사</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>참조 복사</string>
 	<key>Copy request</key>
 	<string>요청 복사</string>
-	<key>Copy this field?</key>
-	<string>이 필드를 복사하시겠습니까?</string>
 	<key>Copy username</key>
 	<string>사용자 이름 복사</string>
 	<key>Cosign on this device</key>

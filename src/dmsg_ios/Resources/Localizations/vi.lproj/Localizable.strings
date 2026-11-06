@@ -582,8 +582,6 @@
 	<string>Đã sao chép. Mã sắp hết hạn.</string>
 	<key>Copies from other iPhones</key>
 	<string>Bản sao từ iPhone khác</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>Bản sao chỉ ở trên thiết bị này và hết hạn trong vòng 30 giây.</string>
 	<key>Copy</key>
 	<string>Sao chép</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>Sao chép ID thiết bị</string>
 	<key>Copy enrollment request</key>
 	<string>Sao chép yêu cầu đăng ký</string>
-	<key>Copy for 30 seconds</key>
-	<string>Sao chép trong 30 giây</string>
 	<key>Copy link</key>
 	<string>Sao chép liên kết</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>Sao chép tài liệu tham khảo</string>
 	<key>Copy request</key>
 	<string>Sao chép yêu cầu</string>
-	<key>Copy this field?</key>
-	<string>Sao chép trường này?</string>
 	<key>Copy username</key>
 	<string>Sao chép tên người dùng</string>
 	<key>Cosign on this device</key>

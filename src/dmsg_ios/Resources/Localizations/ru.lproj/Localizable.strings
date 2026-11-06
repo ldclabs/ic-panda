@@ -582,8 +582,6 @@
 	<string>Скопировано. Срок действия кода скоро истечёт.</string>
 	<key>Copies from other iPhones</key>
 	<string>Копии с других iPhone</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>Копии остаются на этом устройстве и удаляются не позднее чем через 30 секунд.</string>
 	<key>Copy</key>
 	<string>Копировать</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>Копировать ID устройства</string>
 	<key>Copy enrollment request</key>
 	<string>Скопировать запрос регистрации</string>
-	<key>Copy for 30 seconds</key>
-	<string>Копировать на 30 секунд</string>
 	<key>Copy link</key>
 	<string>Скопировать ссылку</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>Скопировать ссылку на поле</string>
 	<key>Copy request</key>
 	<string>Копировать запрос</string>
-	<key>Copy this field?</key>
-	<string>Копировать это поле?</string>
 	<key>Copy username</key>
 	<string>Скопировать имя пользователя</string>
 	<key>Cosign on this device</key>

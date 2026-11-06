@@ -66,8 +66,9 @@ copy their username or password by swipe or context menu.
 
 Details show type, tags, modification time, version state and ordered field
 sections. Long values and accessibility text move actions below the value.
-Revealing or copying a sensitive field asks next to its button, and one confirmation
-covers the item for 30 seconds. Other fields copy directly, and one-time codes stay
+Revealing a sensitive field asks next to its button, and one confirmation covers
+showing the item's fields for 30 seconds. Copying takes one tap, in details and on
+list rows; copies stay on this device and expire within 30 seconds. One-time codes stay
 current on screen without asking. Hidden values are never loaded by list browsing. Managed keys remain read-only, tombstones have an explicit trash
 state, and current details refresh on content/version changes without replacing an
 open editor's draft. Historical versions show their timestamp and can be compared

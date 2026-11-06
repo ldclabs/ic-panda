@@ -582,8 +582,6 @@
 	<string>تم النسخ. ستنتهي صلاحية الرمز قريبًا.</string>
 	<key>Copies from other iPhones</key>
 	<string>نسخ من أجهزة iPhone أخرى</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>تبقى النسخ على هذا الجهاز وتنتهي صلاحيتها خلال 30 ثانية.</string>
 	<key>Copy</key>
 	<string>نسخ</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>نسخ معرّف الجهاز</string>
 	<key>Copy enrollment request</key>
 	<string>نسخ طلب التسجيل</string>
-	<key>Copy for 30 seconds</key>
-	<string>النسخ لمدة 30 ثانية</string>
 	<key>Copy link</key>
 	<string>نسخ الرابط</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>نسخ المرجع</string>
 	<key>Copy request</key>
 	<string>نسخ الطلب</string>
-	<key>Copy this field?</key>
-	<string>هل تريد نسخ هذا الحقل؟</string>
 	<key>Copy username</key>
 	<string>نسخ اسم المستخدم</string>
 	<key>Cosign on this device</key>

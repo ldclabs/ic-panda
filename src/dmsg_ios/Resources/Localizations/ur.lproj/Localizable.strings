@@ -582,8 +582,6 @@
 	<string>کاپی ہو گیا۔ کوڈ جلد ختم ہو جائے گا۔</string>
 	<key>Copies from other iPhones</key>
 	<string>دوسرے iPhone سے کاپیاں</string>
-	<key>Copies stay on this device and expire within 30 seconds.</key>
-	<string>کاپیاں اسی آلے پر رہتی ہیں اور 30 سیکنڈ کے اندر ختم ہو جاتی ہیں۔</string>
 	<key>Copy</key>
 	<string>کاپی کریں</string>
 	<key>Copy SHA-256</key>
@@ -600,8 +598,6 @@
 	<string>آلے کی ID کاپی کریں</string>
 	<key>Copy enrollment request</key>
 	<string>اندراج کی درخواست کاپی کریں</string>
-	<key>Copy for 30 seconds</key>
-	<string>30 سیکنڈ کے لیے کاپی کریں</string>
 	<key>Copy link</key>
 	<string>لنک کاپی کریں</string>
 	<key>Copy pairing request</key>
@@ -612,8 +608,6 @@
 	<string>حوالہ کاپی کریں</string>
 	<key>Copy request</key>
 	<string>درخواست کاپی کریں</string>
-	<key>Copy this field?</key>
-	<string>اس فیلڈ کو کاپی کریں؟</string>
 	<key>Copy username</key>
 	<string>صارف نام کاپی کریں</string>
 	<key>Cosign on this device</key>
