@@ -171,3 +171,5 @@ schemes:
         dMsg: all
     test:
       targets: [dMsgTests, dMsgUITests]
+      # Recording every test costs more than it gives; a failure still attaches the UI hierarchy.
+      captureScreenshotsAutomatically: false

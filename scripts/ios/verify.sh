@@ -16,9 +16,17 @@ python3 scripts/ios/sync-icons.py --check
 bash scripts/ios/build-core.sh
 result="src/dmsg_ios/.build/Tests-$(date -u +%Y%m%dT%H%M%SZ).xcresult"
 mkdir -p src/dmsg_ios/.build
+# Each test class runs on its own simulator clone. A clone takes about 5 GB, and past
+# that the machine only swaps: on 16 GB, four workers finished no sooner than three.
+cores="$(sysctl -n hw.ncpu)"
+memory_gb="$(( $(sysctl -n hw.memsize) / 1073741824 ))"
+workers=$(( memory_gb / 5 < cores / 2 ? memory_gb / 5 : cores / 2 ))
+workers=$(( workers < 1 ? 1 : workers > 4 ? 4 : workers ))
+workers="${DMSG_IOS_TEST_WORKERS:-$workers}"
 xcodebuild -project src/dmsg_ios/dMsg.xcodeproj -scheme dMsg \
   -destination "platform=iOS Simulator,id=$simulator" \
   -derivedDataPath src/dmsg_ios/.build/DerivedData -resultBundlePath "$result" \
+  -parallel-testing-enabled YES -parallel-testing-worker-count "$workers" \
   CODE_SIGNING_ALLOWED=NO test
 
 python3 scripts/ios/localizations.py --derived-data src/dmsg_ios/.build/DerivedData
