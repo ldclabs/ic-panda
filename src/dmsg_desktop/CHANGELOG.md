@@ -6,7 +6,34 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
-## Unreleased
+## [1.4.0] - 2026-11-06
+
+### Files
+
+- Share a cloud backup or a file version without a local copy by link. Show
+  progress while temporarily downloading and verifying the source; keep these
+  reads separate from saved restore jobs.
+- Collect files through request links on Plus and higher plans. Create one link
+  or a batch of named links, review arrivals and close links from Files. Senders
+  can upload in a browser without an account or app.
+- Save received files to the library only when requested, with byte progress.
+  Each arrival becomes a separate file, even when names match; deleting its
+  cloud copy preserves the saved copy. Stop link batches when leaving the page
+  or locking the session, and keep unfinished imports separate by source.
+- Ask before opening a library file that could run as a program.
+- Add `dmsg files cloud link` and `dmsg files request` to the CLI.
+
+### Sync and offline use
+
+- Use live hints to bring vault changes and channel activity to other unlocked
+  devices, and synchronize the account's read position across devices. Idle
+  clients back off while keeping fallback polling available.
+- Retry failed sync automatically and keep a rejected version from blocking
+  other work. Resume unanswered sends with their original IDs for up to 24 hours.
+- Keep saved content visible during refreshes and show sync status when an
+  initial sync, lasting failure or needed action requires attention. Fast unlock
+  waits at most one second for the network; file backups and downloads remain
+  explicit actions.
 
 ### Everyday use
 
@@ -652,6 +679,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.4.0]: https://github.com/ldclabs/ic-panda/compare/1.3.3...1.4.0
 [1.3.3]: https://github.com/ldclabs/ic-panda/compare/1.3.2...1.3.3
 [1.3.2]: https://github.com/ldclabs/ic-panda/compare/1.3.1...1.3.2
 [1.3.1]: https://github.com/ldclabs/ic-panda/compare/1.3.0...1.3.1
