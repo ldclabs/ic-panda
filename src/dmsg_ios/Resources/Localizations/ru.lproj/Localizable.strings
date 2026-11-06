@@ -60,6 +60,8 @@
 	<string>Восстановление аккаунта ожидает выполнения</string>
 	<key>Account security</key>
 	<string>Безопасность аккаунта</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>Настройка аккаунта ещё не подтверждена. Проверьте соединение и повторите попытку, чтобы продолжить сохранённую настройку.</string>
 	<key>Account synchronization</key>
 	<string>Синхронизация аккаунта</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>Настроить этот аккаунт</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Настроить этот iPhone как новое устройство</string>
+	<key>Setting up account…</key>
+	<string>Настройка аккаунта…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>Настраиваем ваше зашифрованное пространство. Не закрывайте dMsg.</string>
 	<key>Settings</key>
 	<string>Настройки</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>Лимит ниже оценки.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>Размер мобильного пакета ограничен 8 MiB. Предпросмотр проверяет пакет до выбора импортируемых данных.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>Сеть отвечает медленнее обычного. Всё ещё ждём подтверждения; ход настройки сохранён.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>Новое устройство принимает привязки кошельков старого, по одному подтверждению на кошелёк.</string>
 	<key>The old address holds nothing.</key>

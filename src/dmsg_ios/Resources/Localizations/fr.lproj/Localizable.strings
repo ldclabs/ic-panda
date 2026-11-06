@@ -60,6 +60,8 @@
 	<string>Récupération du compte en attente</string>
 	<key>Account security</key>
 	<string>Sécurité du compte</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>La configuration du compte n’est pas encore confirmée. Vérifiez votre connexion et réessayez pour reprendre la configuration enregistrée.</string>
 	<key>Account synchronization</key>
 	<string>Synchronisation du compte</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>Configurer ce compte</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Configurer cet iPhone comme nouvel appareil</string>
+	<key>Setting up account…</key>
+	<string>Configuration du compte…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>Configuration de votre espace chiffré. Gardez dMsg ouvert.</string>
 	<key>Settings</key>
 	<string>Paramètres</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>Plafond inférieur à l’estimation.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>La taille des paquets mobiles est limitée à 8 MiB. La prévisualisation vérifie le paquet avant votre sélection des éléments à importer.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>Le réseau prend plus de temps que prévu. Confirmation en attente ; votre progression est conservée.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>Le nouvel appareil reprend les liaisons de portefeuille de l’ancien, une approbation par portefeuille.</string>
 	<key>The old address holds nothing.</key>

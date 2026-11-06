@@ -60,6 +60,8 @@
 	<string>Account recovery is pending</string>
 	<key>Account security</key>
 	<string>Account security</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</string>
 	<key>Account synchronization</key>
 	<string>Account synchronization</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>Set up this account</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Set up this iPhone as a new device</string>
+	<key>Setting up account…</key>
+	<string>Setting up account…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>Setting up your encrypted workspace. Please keep dMsg open.</string>
 	<key>Settings</key>
 	<string>Settings</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>The maximum fee is below the estimate.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>The new device takes over the old device's wallet bindings, one approval per wallet.</string>
 	<key>The old address holds nothing.</key>

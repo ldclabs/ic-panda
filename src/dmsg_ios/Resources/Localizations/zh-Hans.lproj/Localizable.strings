@@ -60,6 +60,8 @@
 	<string>账号恢复正在等待执行</string>
 	<key>Account security</key>
 	<string>账号安全</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>尚未确认账户初始化结果。请检查网络连接后重试，应用会继续已保存的初始化进度。</string>
 	<key>Account synchronization</key>
 	<string>账号同步</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>初始化账号</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>将这台 iPhone 设为新设备</string>
+	<key>Setting up account…</key>
+	<string>正在初始化账户…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>正在初始化加密工作区，请保持 dMsg 打开。</string>
 	<key>Settings</key>
 	<string>设置</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>手续费上限低于估算值。</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>移动端包大小上限为 8 MiB。预览会先验证包，再由你选择导入内容。</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>网络响应较慢，仍在等待确认。已完成的初始化步骤会保留。</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>新设备接管旧设备的钱包绑定，每个钱包一次审批。</string>
 	<key>The old address holds nothing.</key>

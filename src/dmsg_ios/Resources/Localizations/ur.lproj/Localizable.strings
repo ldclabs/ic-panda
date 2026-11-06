@@ -60,6 +60,8 @@
 	<string>اکاؤنٹ کی وصولی زیر التواء ہے</string>
 	<key>Account security</key>
 	<string>اکاؤنٹ سیکیورٹی</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>اکاؤنٹ کی ترتیب کی ابھی تصدیق نہیں ہوئی۔ اپنا کنکشن چیک کریں اور محفوظ شدہ ترتیب جاری رکھنے کے لیے دوبارہ کوشش کریں۔</string>
 	<key>Account synchronization</key>
 	<string>اکاؤنٹ کی ہم وقت سازی</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>اس اکاؤنٹ کو ترتیب دیں</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>اس iPhone کو نئے آلے کے طور پر سیٹ اپ کریں</string>
+	<key>Setting up account…</key>
+	<string>اکاؤنٹ ترتیب دیا جا رہا ہے…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>آپ کی خفیہ کردہ کام کی جگہ ترتیب دی جا رہی ہے۔ براہ کرم dMsg کھلا رکھیں۔</string>
 	<key>Settings</key>
 	<string>ترتیبات</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>فیس کی حد تخمینہ سے کم ہے۔</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>موبائل پیکیج کی حد 8 MiB ہے۔ پیش نظارہ پیکج کو چیک کرتا ہے اس سے پہلے کہ آپ یہ منتخب کریں کہ کیا درآمد کرنا ہے۔</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>نیٹ ورک معمول سے زیادہ وقت لے رہا ہے۔ ابھی تصدیق کا انتظار ہے؛ ترتیب کی پیش رفت محفوظ ہے۔</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>نیا آلہ پرانے آلے کے والٹ روابط سنبھال لیتا ہے، ہر والٹ کے لیے ایک منظوری۔</string>
 	<key>The old address holds nothing.</key>

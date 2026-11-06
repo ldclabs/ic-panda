@@ -60,6 +60,8 @@
 	<string>계정 복구가 보류 중입니다.</string>
 	<key>Account security</key>
 	<string>계정 보안</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>계정 설정 결과가 아직 확인되지 않았습니다. 연결을 확인한 후 다시 시도하면 저장된 설정을 이어서 진행합니다.</string>
 	<key>Account synchronization</key>
 	<string>계정 동기화</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>이 계정을 설정하세요</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>이 iPhone을 새 기기로 설정</string>
+	<key>Setting up account…</key>
+	<string>계정 설정 중…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>암호화된 작업 공간을 설정하고 있습니다. dMsg를 열어 두세요.</string>
 	<key>Settings</key>
 	<string>설정</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>수수료 상한선은 예상 금액보다 낮습니다.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>모바일 패키지 제한은 8 MiB입니다. 미리보기는 가져올 항목을 선택하기 전에 패키지를 확인합니다.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>네트워크 응답이 평소보다 느립니다. 아직 확인을 기다리고 있으며 설정 진행 상황은 저장됩니다.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>새 장치가 이전 장치의 지갑 연결을 넘겨받습니다. 지갑마다 한 번 승인합니다.</string>
 	<key>The old address holds nothing.</key>

@@ -60,6 +60,8 @@
 	<string>Accountherstel is in behandeling</string>
 	<key>Account security</key>
 	<string>Accountbeveiliging</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>Het instellen van je account is nog niet bevestigd. Controleer je verbinding en probeer opnieuw om de opgeslagen configuratie voort te zetten.</string>
 	<key>Account synchronization</key>
 	<string>Accountsynchronisatie</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>Stel dit account in</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Deze iPhone instellen als nieuw apparaat</string>
+	<key>Setting up account…</key>
+	<string>Account instellen…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>Je versleutelde werkruimte wordt ingesteld. Houd dMsg open.</string>
 	<key>Settings</key>
 	<string>Instellingen</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>Het honorariumplafond ligt onder de schatting.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>De mobiele pakketlimiet is 8 MiB. Preview controleert het pakket voordat je kiest wat je wilt importeren.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>Het netwerk reageert langzamer dan normaal. We wachten nog op bevestiging; je voortgang blijft bewaard.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>Het nieuwe apparaat neemt de walletkoppelingen van het oude over, met één goedkeuring per wallet.</string>
 	<key>The old address holds nothing.</key>

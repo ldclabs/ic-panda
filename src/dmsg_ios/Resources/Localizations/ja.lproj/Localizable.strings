@@ -60,6 +60,8 @@
 	<string>アカウントの回復は保留中です</string>
 	<key>Account security</key>
 	<string>アカウントのセキュリティ</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>アカウントの設定結果はまだ確認できていません。接続を確認して再試行すると、保存された設定の続きから再開します。</string>
 	<key>Account synchronization</key>
 	<string>アカウントの同期</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>このアカウントを設定する</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>この iPhone を新しいデバイスとして設定</string>
+	<key>Setting up account…</key>
+	<string>アカウントを設定中…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>暗号化されたワークスペースを設定しています。dMsgを開いたままにしてください。</string>
 	<key>Settings</key>
 	<string>設定</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>料金の上限が見積もりを下回っています。</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>モバイル パッケージの制限は 8 MiB です。インポートするものを選択する前に、プレビューによってパッケージがチェックされます。</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>ネットワークの応答に時間がかかっています。確認を待っています。設定の進捗は保存されています。</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>新しいデバイスが古いデバイスのウォレットバインドを引き継ぎます。ウォレットごとに 1 回承認します。</string>
 	<key>The old address holds nothing.</key>

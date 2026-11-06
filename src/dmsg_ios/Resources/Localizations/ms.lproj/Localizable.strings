@@ -60,6 +60,8 @@
 	<string>Pemulihan akaun belum selesai</string>
 	<key>Account security</key>
 	<string>Keselamatan akaun</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>Persediaan akaun belum disahkan. Semak sambungan anda dan cuba lagi untuk meneruskan persediaan yang disimpan.</string>
 	<key>Account synchronization</key>
 	<string>Penyegerakan akaun</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>Sediakan akaun ini</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Sediakan iPhone ini sebagai peranti baharu</string>
+	<key>Setting up account…</key>
+	<string>Menyediakan akaun…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>Sedang menyediakan ruang kerja disulitkan anda. Sila biarkan dMsg terbuka.</string>
 	<key>Settings</key>
 	<string>Tetapan</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>Siling yuran adalah di bawah anggaran.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>Had pakej mudah alih ialah 8 MiB. Pratonton menyemak pakej sebelum anda memilih perkara yang hendak diimport.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>Rangkaian mengambil masa lebih lama daripada biasa. Masih menunggu pengesahan; kemajuan persediaan anda disimpan.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>Peranti baharu mengambil alih ikatan dompet peranti lama, satu kelulusan bagi setiap dompet.</string>
 	<key>The old address holds nothing.</key>

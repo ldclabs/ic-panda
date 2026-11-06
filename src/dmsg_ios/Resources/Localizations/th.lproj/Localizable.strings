@@ -60,6 +60,8 @@
 	<string>การกู้คืนบัญชีอยู่ระหว่างรอดำเนินการ</string>
 	<key>Account security</key>
 	<string>ความปลอดภัยของบัญชี</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>ยังไม่ได้รับการยืนยันการตั้งค่าบัญชี โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้งเพื่อดำเนินการต่อจากความคืบหน้าที่บันทึกไว้</string>
 	<key>Account synchronization</key>
 	<string>การซิงค์บัญชี</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>ตั้งค่าบัญชีนี้</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>ตั้งค่า iPhone เครื่องนี้เป็นอุปกรณ์ใหม่</string>
+	<key>Setting up account…</key>
+	<string>กำลังตั้งค่าบัญชี…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>กำลังตั้งค่าพื้นที่ทำงานที่เข้ารหัสของคุณ โปรดเปิด dMsg ค้างไว้</string>
 	<key>Settings</key>
 	<string>การตั้งค่า</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>เพดานค่าธรรมเนียมต่ำกว่าประมาณการ</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>ขีดจำกัดแพ็กเกจมือถือคือ 8 MiB ดูตัวอย่างจะตรวจสอบแพ็คเกจก่อนที่คุณจะเลือกสิ่งที่จะนำเข้า</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>เครือข่ายใช้เวลานานกว่าปกติ ยังรอการยืนยันอยู่ ความคืบหน้าการตั้งค่าของคุณจะถูกเก็บไว้</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>อุปกรณ์ใหม่รับช่วงการผูกกระเป๋าเงินของอุปกรณ์เก่า กระเป๋าเงินละหนึ่งการอนุมัติ</string>
 	<key>The old address holds nothing.</key>

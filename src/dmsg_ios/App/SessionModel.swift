@@ -16,6 +16,7 @@ final class SessionModel {
     var concealed = true
     var busy = false
     private(set) var unlocking = false
+    private(set) var initializingAccount = false
     private(set) var synchronizing = false
     var contentSync: ContentSyncStatus?
     private var syncClock = Date.now
@@ -187,6 +188,7 @@ final class SessionModel {
     var fixtureInboxLetters: [InboxLetter] = []
     var fixtureInboxRefreshes = 0
     var fixtureInboxComplete = false
+    var fixtureInitializationAttempts = 0
     #else
     let uiTesting = false
     #endif
@@ -211,6 +213,11 @@ final class SessionModel {
         cloudBackups = [CloudBackup(uploadId: "fixture-backup", name: "Project brief.pdf", size: 2048, bytes: 4096, needsRoot: false, local: false,
                                    fileId: "fixture-cloud", versionId: "v1", path: ["Projects"], mime: "application/pdf", createdAt: 1_793_000_000_000,
                                    committedAt: 1_793_000_100_000, device: "fixture-device")]
+    }
+
+    func installEngineFixture(_ engine: MobileEngine) async throws {
+        self.engine = engine
+        try adopt(try await engine.sessionState())
     }
 
     func setFileCloudFixture(_ backups: [CloudBackup], failed: Bool = false) {
@@ -509,7 +516,7 @@ final class SessionModel {
     @discardableResult
     func finishBusyOperation(_ token: UUID) -> Bool {
         guard busyOperation == token else { return false }
-        busyOperation = nil; busy = false; synchronizing = false; unlocking = false
+        busyOperation = nil; busy = false; synchronizing = false; unlocking = false; initializingAccount = false
         return true
     }
 
@@ -881,13 +888,16 @@ final class SessionModel {
         } catch { reportBackground(error) }
     }
 
-    func updateSession() async {
+    @discardableResult
+    func updateSession() async -> Bool {
+        guard let engine else { return uiTesting }
         let current = epoch
         do {
-            let state = try await engine?.sessionState()
-            guard current == epoch else { return }; try adopt(state)
+            let state = try await engine.sessionState()
+            guard current == epoch else { return false }; try adopt(state)
             if unlocked { await refresh() }
-        } catch { report(error) }
+            return true
+        } catch { report(error); return false }
     }
 
     func idleTick() async {
@@ -1027,7 +1037,7 @@ final class SessionModel {
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
         authenticationGeneration &+= 1; webLogin.cancel(); busy = false
-        busyOperation = nil; synchronizing = false; unlocking = false
+        busyOperation = nil; synchronizing = false; unlocking = false; initializingAccount = false
         privacyShield.show()
         concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
@@ -1067,7 +1077,7 @@ final class SessionModel {
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
         busy = false; notice = nil; error = nil
-        busyOperation = nil; synchronizing = false; unlocking = false
+        busyOperation = nil; synchronizing = false; unlocking = false; initializingAccount = false
         if clearClipboard { clipboard.clearOwned() }
         if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); engine?.cancelLogin() }
         security?.cancelPresence()
@@ -1117,6 +1127,47 @@ final class SessionModel {
             guard current == epoch else { return }
             try adopt(state); await refresh()
         } catch { if current == epoch { await updateSession(); report(error) } }
+    }
+
+    func initializeAccount() async {
+        guard !busy, engine != nil || uiTesting else { return }
+        automaticUnlock.suppress()
+        let operation = beginBusyOperation(), current = epoch
+        initializingAccount = true; error = nil
+        activity()
+        defer { finishBusyOperation(operation) }
+        for attempt in 0..<2 {
+            do {
+                let state = try await initializeAccountState()
+                guard current == epoch, !Task.isCancelled else { return }
+                try adopt(state)
+                if unlocked { await refresh() }
+                return
+            } catch {
+                guard current == epoch, !Task.isCancelled else { return }
+                // Even a failed transition fences its old handle. Refresh it
+                // before reconciling, or the next attempt only returns LOCKED.
+                let refreshed = await updateSession()
+                guard current == epoch, !Task.isCancelled else { return }
+                if refreshed, attempt == 0, case MobileError.Failure(code: "EXECUTION_UNKNOWN") = error {
+                    // The core resumes the saved account/root operation and
+                    // checks its receipt; it does not create a second account.
+                    continue
+                }
+                if case MobileError.Failure(code: "EXECUTION_UNKNOWN") = error {
+                    self.error = String(localized: "Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.")
+                } else { report(error) }
+                return
+            }
+        }
+    }
+
+    private func initializeAccountState() async throws -> SessionSnapshot {
+        #if DEBUG
+        if uiTesting { return try await initializeAccountFixture() }
+        #endif
+        guard let engine else { throw MobileError.Failure(code: "LOCKED") }
+        return try await engine.initializeAccount()
     }
 
     private func unlockAutomaticallyIfNeeded() async {

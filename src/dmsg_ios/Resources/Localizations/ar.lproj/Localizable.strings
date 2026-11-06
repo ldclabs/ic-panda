@@ -60,6 +60,8 @@
 	<string>استرداد الحساب معلّق</string>
 	<key>Account security</key>
 	<string>أمان الحساب</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>لم يتم تأكيد إعداد الحساب بعد. تحقق من اتصالك وحاول مجددًا لمتابعة الإعداد المحفوظ.</string>
 	<key>Account synchronization</key>
 	<string>مزامنة الحساب</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>إعداد هذا الحساب</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>إعداد جهاز iPhone هذا كجهاز جديد</string>
+	<key>Setting up account…</key>
+	<string>جارٍ إعداد الحساب…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>جارٍ إعداد مساحة عملك المشفرة. يُرجى إبقاء dMsg مفتوحًا.</string>
 	<key>Settings</key>
 	<string>الإعدادات</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>حد الرسوم أقل من التقدير.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>الحد الأقصى للحزمة على الهاتف هو 8 MiB. تتحقق المعاينة من الحزمة قبل اختيار ما تريد استيراده.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>تستغرق الشبكة وقتًا أطول من المعتاد. ما زلنا ننتظر التأكيد؛ تم حفظ تقدم الإعداد.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>يتولى الجهاز الجديد روابط المحافظ للجهاز القديم، بموافقة واحدة لكل محفظة.</string>
 	<key>The old address holds nothing.</key>

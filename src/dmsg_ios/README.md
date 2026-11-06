@@ -89,6 +89,13 @@ history lists distinguish an unavailable read from an empty result.
 
 ## Account and settings
 
+Account setup shows a spinner and disables competing access actions while it
+runs. After 15 seconds, the screen explains that it is still waiting for network
+confirmation. An uncertain result refreshes the native session handle and makes
+one bounded attempt to reconcile the saved account/root operation. Continued
+failure restores the controls and explains how to resume after checking the
+connection; completed steps are retained.
+
 Account groups identity and security, synchronization and storage, and app settings.
 Advanced contains agents, wallets, browser connections, hardware approval and local
 activity. Pending approvals and unsynced changes have direct entries. Device names

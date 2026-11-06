@@ -60,6 +60,8 @@
 	<string>Die Wiederherstellung des Kontos steht aus</string>
 	<key>Account security</key>
 	<string>Kontosicherheit</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>Die Kontoeinrichtung ist noch nicht bestätigt. Prüfe deine Verbindung und versuche es erneut, um die gespeicherte Einrichtung fortzusetzen.</string>
 	<key>Account synchronization</key>
 	<string>Kontosynchronisierung</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>Richten Sie dieses Konto ein</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Dieses iPhone als neues Gerät einrichten</string>
+	<key>Setting up account…</key>
+	<string>Konto wird eingerichtet…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>Dein verschlüsselter Arbeitsbereich wird eingerichtet. Lass dMsg bitte geöffnet.</string>
 	<key>Settings</key>
 	<string>Einstellungen</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>Die Gebührenobergrenze liegt unter der Schätzung.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>Das Limit für Mobilpakete beträgt 8 MiB. Die Vorschau prüft das Paket, bevor Sie auswählen, was importiert werden soll.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>Das Netzwerk braucht länger als gewöhnlich. Die Bestätigung steht noch aus; dein Fortschritt bleibt gespeichert.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>Das neue Gerät übernimmt die Wallet-Bindungen des alten, eine Genehmigung pro Wallet.</string>
 	<key>The old address holds nothing.</key>

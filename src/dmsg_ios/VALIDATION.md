@@ -1,5 +1,44 @@
 # iOS implementation validation
 
+## First account setup on a slow network (2026-11-07)
+
+The reported App Store installation completed its initial setup after the user
+enabled a VPN. This establishes network dependence for that incident; the
+specific failing request or endpoint was not identified.
+
+The setup button previously had no working state and refreshed its session only
+after success. A failed native transition also advances the session generation,
+so a later attempt using the old handle was rejected. Setup now refreshes that
+handle after failure, reconciles an uncertain account/root operation once using
+the existing journal, and restores retry controls if confirmation still fails.
+The access actions are disabled while setup runs, the button shows a spinner and
+working label, and guidance changes to a slow-network message after 15 seconds.
+The new copy is present in all 23 languages.
+
+Validation on iPhone SE (3rd generation), iOS 18.4 Simulator:
+
+- 29 selected tests passed: `AccountInitializationTests`, `CoreBridgeTests`,
+  `SessionPolicyTests`, and `AccountInitializationUITests` (27 unit, 2 UI).
+  The bridge regression exercises real failed Rust transitions and verifies that
+  a fresh handle can start another attempt. UI fixtures cover slow confirmation,
+  one automatic reconciliation, bounded failure, disabled competing actions and
+  a successful user retry that continues the already-created account.
+- Inspected Chinese light and Arabic RTL dark screenshots at 375 × 667 points,
+  including the spinner, disabled actions and the long-wait explanation.
+  Final screenshots are in `.build/AccountInitializationFinalScreens` locally.
+- The simulator build, native artifact/source fingerprint, `git diff --check`,
+  and all localization checks with fresh compiler extraction passed. The fresh
+  extraction is in `.build/AccountInitializationDerivedData`; older shared
+  DerivedData still contains strings removed by earlier changes.
+- The generic ARM64 iOS Release build passed with `CODE_SIGNING_ALLOWED=NO`,
+  using `.build/AccountInitializationReleaseDerivedData`. This verifies that the
+  production configuration builds with UI fixtures excluded; it is not a signed
+  installation or App Store archive.
+
+The full Swift suite, physical-device weak-network/VPN switching, live II login
+and system-authentication prompts were not rerun. UI fixtures do not prove live
+network behavior. No App Store build was uploaded.
+
 ## File link review (2026-11-05)
 
 Reviewed `ab5579b..=b6dc1c5` inclusively, retaining the subsequent root-title test

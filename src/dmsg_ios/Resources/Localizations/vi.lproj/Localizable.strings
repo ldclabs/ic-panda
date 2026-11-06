@@ -60,6 +60,8 @@
 	<string>Việc khôi phục tài khoản đang chờ xử lý</string>
 	<key>Account security</key>
 	<string>Bảo mật tài khoản</string>
+	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
+	<string>Việc thiết lập tài khoản chưa được xác nhận. Kiểm tra kết nối và thử lại để tiếp tục quá trình thiết lập đã lưu.</string>
 	<key>Account synchronization</key>
 	<string>Đồng bộ tài khoản</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -2302,6 +2304,10 @@
 	<string>Thiết lập tài khoản này</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Thiết lập iPhone này làm thiết bị mới</string>
+	<key>Setting up account…</key>
+	<string>Đang thiết lập tài khoản…</string>
+	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
+	<string>Đang thiết lập không gian làm việc được mã hóa của bạn. Vui lòng giữ dMsg mở.</string>
 	<key>Settings</key>
 	<string>Cài đặt</string>
 	<key>Share</key>
@@ -2552,6 +2558,8 @@
 	<string>Mức phí trần thấp hơn mức ước tính.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>Giới hạn gói di động là 8 MiB. Xem trước sẽ kiểm tra gói trước khi bạn chọn nội dung cần nhập.</string>
+	<key>The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.</key>
+	<string>Mạng phản hồi chậm hơn bình thường. Vẫn đang chờ xác nhận; tiến trình thiết lập của bạn được giữ lại.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
 	<string>Thiết bị mới tiếp nhận các liên kết ví của thiết bị cũ, mỗi ví một phê duyệt.</string>
 	<key>The old address holds nothing.</key>

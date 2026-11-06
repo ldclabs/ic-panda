@@ -175,11 +175,17 @@ struct ReminderButton: View {
 struct AccessView: View {
     @Environment(SessionModel.self) private var model
     @State private var signingIn = false
+    @State private var initializationIsSlow = false
     @State private var copies: [MovedCopy] = []
     private var fastUnlock: Bool { model.session?.fastUnlock == true }
     private var needsSetup: Bool { model.session?.state == "no_account" || model.session?.setupPending == true }
     private var needsAuthorization: Bool { model.session?.state == "pairing_required" || model.session?.state == "root_required" }
     private var guidance: String {
+        if model.initializingAccount {
+            return initializationIsSlow
+                ? String(localized: "The network is taking longer than usual. Still waiting for confirmation; your setup progress is kept.")
+                : String(localized: "Setting up your encrypted workspace. Please keep dMsg open.")
+        }
         if needsSetup {
             return String(localized: "Create your encrypted workspace to start saving passwords, notes and files.")
         }
@@ -213,13 +219,14 @@ struct AccessView: View {
                         }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("login.unlock")
                     }
                     if needsSetup {
-                        Button { Task { await initialize() } } label: {
-                            AccessActionLabel("Set up this account", symbol: "person.crop.circle.badge.plus")
+                        Button { Task { await model.initializeAccount() } } label: {
+                            AccessActionLabel(model.initializingAccount ? "Setting up account…" : "Set up this account", symbol: "person.crop.circle.badge.plus", working: model.initializingAccount)
                         }.modifier(AccessActionStyle(prominent: !fastUnlock))
+                            .accessibilityIdentifier("login.initialize")
                         if model.session?.state == "no_account" {
                             NavigationLink { LoginBindingRequestView() } label: {
                                 AccessActionLabel("Join an existing account", symbol: "person.2")
-                            }.modifier(AccessActionStyle(prominent: false))
+                            }.modifier(AccessActionStyle(prominent: false)).accessibilityIdentifier("login.join")
                         }
                     } else if needsAuthorization {
                         NavigationLink { PairView() } label: {
@@ -253,11 +260,13 @@ struct AccessView: View {
                 }
             }
             .task(id: model.session?.generation) { await loadCopies() }
-    }
-
-    private func initialize() async {
-        do { _ = try await model.engine?.initializeAccount(); await model.updateSession() }
-        catch { model.report(error) }
+            .task(id: model.initializingAccount) {
+                initializationIsSlow = false
+                guard model.initializingAccount else { return }
+                do { try await Task.sleep(for: .seconds(15)) } catch { return }
+                guard model.initializingAccount, !Task.isCancelled else { return }
+                initializationIsSlow = true
+            }
     }
 
     private func loadCopies() async {

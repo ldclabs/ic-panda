@@ -7,11 +7,12 @@ extension SessionModel {
     /// writes a real workspace, or appears in a Release build.
     func loadFixtures() {
         let access = ProcessInfo.processInfo.arguments.contains("--ui-access")
+        let setup = ProcessInfo.processInfo.arguments.contains("--ui-setup")
         let pairing = ProcessInfo.processInfo.arguments.contains("--ui-pairing")
         let storeScreens = ProcessInfo.processInfo.arguments.contains("--ui-store-screenshots")
         let chinese = storeScreens && Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
         installFixtures(
-            SessionSnapshot(generation: 0, sequence: 0, state: access ? (pairing ? "pairing_required" : "root_required") : "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
+            SessionSnapshot(generation: 0, sequence: 0, state: setup ? "no_account" : (access ? (pairing ? "pairing_required" : "root_required") : "unlocked"), account: setup ? nil : "040g2081040g2081040g", deviceId: "fixture-device",
                             pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, setupPending: false, lastSyncAtMs: nil, syncError: nil),
             items: [
                 vaultFixtureItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: chinese ? "个人开发账号" : "Personal development account", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [],
@@ -73,6 +74,24 @@ extension SessionModel {
         fixtureVaultItems = vault
         prepareFileFixtures()
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-saved-attachment") { selectedTab = .messages }
+    }
+
+    /// An interrupted setup binds the account before its first root is ready.
+    /// The next attempt continues that same account, as the native journal does.
+    func initializeAccountFixture() async throws -> SessionSnapshot {
+        fixtureInitializationAttempts += 1
+        let attempt = fixtureInitializationAttempts, current = epoch
+        let slow = ProcessInfo.processInfo.arguments.contains("--ui-setup-slow")
+        try await Task.sleep(for: .seconds(slow && attempt == 1 ? 22 : 6))
+        guard current == epoch, !Task.isCancelled else { throw CancellationError() }
+        let fails = attempt == 1 || (attempt == 2 && ProcessInfo.processInfo.arguments.contains("--ui-setup-failure"))
+        let state = SessionSnapshot(generation: UInt64(attempt * 2), sequence: UInt64(attempt),
+            state: fails ? "root_required" : "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
+            pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false,
+            setupPending: fails, lastSyncAtMs: nil, syncError: nil)
+        installFixtures(state, items: [])
+        if fails { throw MobileError.Failure(code: "EXECUTION_UNKNOWN") }
+        return state
     }
 
     /// Model an incoming revision after detail loading, without a network account.
