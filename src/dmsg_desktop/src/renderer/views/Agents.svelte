@@ -2,8 +2,7 @@
   import { onMount, untrack } from 'svelte'
   import Page from '../components/page/Page.svelte'
   import Notice from '../components/page/Notice.svelte'
-  import Icon from '../components/Icon.svelte'
-  import { cn } from '../components/ui'
+  import TabBar from '../components/page/TabBar.svelte'
   import { toast } from '../components/toast.svelte'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, single } from '../rpc'
@@ -24,11 +23,15 @@
    * the Agent IDs show while locked or offline; owner changes come back
    * through the daemon's `agent/changed` or `approval/changed`.
    */
-  let { status, route }: { status: any; route: string } = $props()
+  let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
 
-  type Tab = 'overview' | 'ids' | 'capabilities' | 'discourse' | 'mail' | 'knowledge' | 'events' | 'audit'
-
-  let tab = $state<Tab>('overview')
+  const named = ['ids', 'capabilities', 'discourse', 'mail', 'knowledge', 'events', 'audit']
+  /** The tab is the route's next part; `/agents/mail/<id>` also names the Agent ID to inspect. */
+  const tab = $derived.by(() => {
+    const part = route.split('?')[0].split('/')[2]
+    return named.includes(part) ? part : 'overview'
+  })
+  const showTab = (next: string) => go(next === 'overview' ? '/agents' : `/agents/${next}`)
   let inspectedAgent = $state<string | null>(null)
   /** A malformed escape in a hand-written URL still opens Mail for that text. */
   function decoded(value: string) {
@@ -40,7 +43,6 @@
   }
   $effect(() => {
     if (route.startsWith('/agents/mail/')) {
-      tab = 'mail'
       inspectedAgent = decoded(route.slice('/agents/mail/'.length))
     }
   })
@@ -145,12 +147,12 @@
 
   function delegateTo(agent: string) {
     delegate = agent
-    tab = 'overview'
+    showTab('overview')
   }
 
   const tabs = $derived([
-    { value: 'overview', label: t('tabPrincipal'), icon: 'plan' as const },
     { value: 'ids', label: t('tabAgentIds'), icon: 'agents' as const, count: hosted.agents.length },
+    { value: 'overview', label: t('tabPrincipal'), icon: 'plan' as const },
     { value: 'capabilities', label: t('tabCapabilities'), icon: 'security' as const },
     { value: 'discourse', label: t('tabDiscourse'), icon: 'members' as const },
     { value: 'mail', label: t('mail'), icon: 'mail' as const },
@@ -161,23 +163,7 @@
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-  <nav class="flex shrink-0 gap-1 overflow-x-auto border-b border-line px-8 [scrollbar-width:none]" aria-label={t('agents')}>
-    {#each tabs as item (item.value)}
-      <button
-        class={cn(
-          'relative flex h-10 shrink-0 items-center gap-1.5 rounded-t-lg px-2.5 text-[13px] outline-none transition-colors hover:bg-wash focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-forest',
-          tab === item.value ? 'bg-pale font-medium text-forest' : 'text-muted'
-        )}
-        aria-current={tab === item.value ? 'page' : undefined}
-        onclick={() => (tab = item.value as Tab)}
-        data-testid={`agents-tab-${item.value}`}
-      >
-        <Icon name={item.icon} />{item.label}
-        {#if item.count}<span class="rounded-full bg-wash px-1.5 text-[10.5px] tabular-nums">{item.count}</span>{/if}
-        {#if tab === item.value}<span class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-forest"></span>{/if}
-      </button>
-    {/each}
-  </nav>
+  <TabBar bind:value={() => tab, showTab} items={tabs} label={t('agents')} testid="agents-tab" />
   <div class="min-h-0 flex-1">
     {#key sessionKey}
     {#if errors.hosted}<Notice failure={errors.hosted} tone="danger">{errors.hosted}</Notice>{/if}
@@ -198,7 +184,7 @@
           selectAgent={(id) => (inspectedAgent = id)}
           blocked={hosted.blocked_senders ?? []}
           {unlocked}
-          manage={() => (tab = 'capabilities')}
+          manage={() => showTab('capabilities')}
         />{/key}
       </Page>
     {:else if tab === 'knowledge'}
@@ -209,7 +195,7 @@
           selectAgent={(id) => (inspectedAgent = id)}
           hosts={hosted.hosts}
           {unlocked}
-          manage={() => (tab = 'capabilities')}
+          manage={() => showTab('capabilities')}
         /></Page
       >
     {:else if tab === 'events'}

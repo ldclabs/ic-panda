@@ -368,6 +368,7 @@ Object.assign(methods, {
   'channel/sync': () => ({}),
   'channel/receipts': () => ({}),
   'channel/cursor': () => ({}),
+  'channel/message_page': () => ({ items: methods['channel/messages'](), has_more: false, next_before: null }),
   'channel/messages': () => [
     {
       seq: 1,
@@ -496,9 +497,8 @@ try {
     timeout: 20000
   })
   await main.evaluate(() => {
-    location.hash = '/approvals'
+    location.hash = '/vault/policies'
   })
-  await main.getByTestId('approvals-tab-secrets').click()
   await main.getByTestId('secret-policies').waitFor()
   await main.getByRole('button', { name: 'New policy', exact: true }).click()
   const form = main.getByTestId('secret-policy-form')
@@ -615,9 +615,7 @@ try {
       globalThis.openedSettings = url
     }
   })
-  await workflows
-    .getByRole('button', { name: 'Secret files', exact: true })
-    .click()
+  await main.getByTestId('workflow-tab-mounts').click()
   await main.waitForFunction(() =>
     document.body.textContent.includes(
       'The dMsg secret files extension is turned off'
@@ -646,9 +644,7 @@ try {
     animations: 'disabled',
     path: join(shots, 'mounts.png')
   })
-  await workflows
-    .getByRole('button', { name: 'Secret snapshots', exact: true })
-    .click()
+  await main.getByTestId('workflow-tab-sharing').click()
   await main.getByTestId('share-upload-progress').first().waitFor()
   const progress = main.getByTestId('share-upload-progress').getByRole('progressbar')
   assert.equal(await progress.nth(0).getAttribute('aria-valuenow'), '1')
@@ -705,9 +701,7 @@ try {
     /No link expiry/
   )
   await approve(approval)
-  await workflows
-    .getByRole('button', { name: 'Health and discovery', exact: true })
-    .click()
+  await main.getByTestId('workflow-tab-health').click()
   await workflows
     .getByRole('button', { name: 'Inspect dependencies', exact: true })
     .click()
@@ -723,9 +717,7 @@ try {
       .dependencies_digest,
     'b3'.repeat(32)
   )
-  await workflows
-    .getByRole('button', { name: 'Import a snapshot', exact: true })
-    .click()
+  await main.getByTestId('workflow-tab-receive').click()
   await workflows
     .getByLabel('Paste the full share link')
     .fill('https://dmsg.test/s/' + 'a2'.repeat(32) + '#synthetic-test-key')
@@ -763,9 +755,7 @@ try {
     path: join(shots, 'mount-window.png')
   })
   assert.equal(calls.filter((c) => c.method === 'vault/reveal').length, 0)
-  await workflows
-    .getByRole('button', { name: 'Device activity', exact: true })
-    .click()
+  await main.getByTestId('workflow-tab-activity').click()
   await workflows
     .getByText('Import selected snapshot content', { exact: true })
     .first()
@@ -799,9 +789,8 @@ try {
   )
   // Workflow regressions use only the fixture: no real credentials or writes.
   await main.evaluate(() => {
-    location.hash = '/approvals'
+    location.hash = '/vault/policies'
   })
-  await main.getByTestId('approvals-tab-secrets').click()
   await main.getByTestId('secret-policies').waitFor()
   assert.equal(
     await workflows
@@ -1072,7 +1061,7 @@ try {
   )
   await app.evaluate(({ BrowserWindow }) => {
     for (const w of BrowserWindow.getAllWindows())
-      if (w.webContents.getURL().includes('#/approvals')) w.setSize(900, 700)
+      if (w.webContents.getURL().includes('#/vault')) w.setSize(900, 700)
   })
   await main.screenshot({
     animations: 'disabled',

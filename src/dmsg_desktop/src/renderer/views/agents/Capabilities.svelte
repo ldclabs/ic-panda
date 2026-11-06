@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { tick } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -7,6 +6,7 @@
   import Pill from '../../components/page/Pill.svelte'
   import Section from '../../components/page/Section.svelte'
   import Select from '../../components/Select.svelte'
+  import TextField from '../../components/TextField.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
@@ -17,8 +17,8 @@
    * What each hosted Agent ID may reach, as a matrix of the Agent Protocols
    * services and the origins they are granted at, then every grant with its
    * revoke, and a new grant: services ticked at a chosen origin and other
-   * capabilities picked or typed from the daemon's vocabulary, for a number of days or
-   * until revoked. A grant reaching every target, a secret's value or a
+   * capabilities picked from the daemon's vocabulary, each with the target it
+   * names filled in, for a number of days or until revoked. A grant reaching every target, a secret's value or a
    * wallet's execution asks once more.
    */
   let {
@@ -39,8 +39,11 @@
   /** The origin the service capabilities name, `*` for every allowed host. */
   let origin = $state('*')
   let ticked = $state<Record<string, boolean>>({})
-  let capabilities = $state('')
-  let capabilityInput = $state<HTMLInputElement>()
+  /** The capabilities picked from the vocabulary, targets filled in. */
+  let others = $state<string[]>([])
+  /** The vocabulary entry whose target is being filled in, such as `vault.read:<tag>`. */
+  let asking = $state<string | null>(null)
+  let target = $state('')
   /** Days, or empty until revoked. */
   let days = $state('')
   let confirming = $state(false)
@@ -49,40 +52,48 @@
   const columns = services.flatMap((s) => [s.read, s.write])
   const labelOf = (did: string) => hosted.agents.find((a: any) => a.agent_id === did)?.label ?? did
 
-  /** The ticked services at the origin and the typed capabilities, each once. */
+  /** The ticked services at the origin and the picked capabilities, each once. */
   const chosen = $derived([
     ...new Set([
       ...Object.keys(ticked)
         .filter((name) => ticked[name])
         .map((name) => `${name}:${origin}`),
-      ...capabilities.split(/\s+/).filter(Boolean)
+      ...others
     ])
   ])
 
   const vocabulary = $derived<string[]>(hosted.vocabulary ?? [])
   const otherCapabilities = $derived(vocabulary.filter((v) => !services.some((s) => v.startsWith(`${s.read}:`) || v.startsWith(`${s.write}:`))))
-  const unknown = $derived(vocabulary.length ? unknownCapabilities(chosen, vocabulary) : [])
   const wide = $derived(chosen.filter(sensitive))
+  /** The capability the target makes; refused with what the vocabulary allows. */
+  const filled = $derived(asking && target.trim() ? `${asking.slice(0, asking.indexOf(':<'))}:${target.trim()}` : '')
+  const refused = $derived(!!filled && unknownCapabilities([filled], vocabulary).length > 0)
+  /** Whether any capability picked comes from this vocabulary entry. */
+  const pickedFrom = (entry: string) => others.some((c) => c === entry || (entry.includes(':<') && c.startsWith(entry.slice(0, entry.indexOf('<')))))
 
-  async function addCapability(capability: string) {
-    const entries = capabilities.split(/\s+/).filter(Boolean)
-    let index = entries.indexOf(capability)
-    if (index < 0) {
-      index = entries.length
-      entries.push(capability)
+  /** A capability with no target is ticked on or off; one with a target asks for it. */
+  function pick(entry: string) {
+    if (!entry.includes(':<')) {
+      others = others.includes(entry) ? others.filter((c) => c !== entry) : [...others, entry]
+      return
     }
-    capabilities = entries.join(' ')
-    await tick()
-    const start = entries.slice(0, index).join(' ').length + (index ? 1 : 0)
-    const placeholder = capability.indexOf('<')
-    capabilityInput?.focus()
-    capabilityInput?.setSelectionRange(start + (placeholder < 0 ? capability.length : placeholder), start + capability.length)
+    asking = entry
+    target = ''
+  }
+
+  function addFilled() {
+    if (!filled || refused) return
+    if (!others.includes(filled)) others = [...others, filled]
+    asking = null
+    target = ''
   }
 
   async function grant() {
     await run('grants/add', { agent: grantee, capabilities: chosen, days: days ? Number(days) : null })
     ticked = {}
-    capabilities = ''
+    others = []
+    asking = null
+    target = ''
   }
 
   const submit = () => (wide.length ? (confirming = true) : grant())
@@ -173,27 +184,58 @@
         {/each}
       </div>
       <div class="grid gap-2">
-        <Field label={t('capabilityList')}>
-          <input bind:this={capabilityInput} bind:value={capabilities} class="font-mono text-[12.5px]" spellcheck="false" data-testid="grant-other" />
-        </Field>
-        {#if otherCapabilities.length}
-          <div class="grid gap-1.5">
-            <p class="text-[11.5px] text-faint">{t('capabilityVocabulary')}</p>
-            <div class="flex flex-wrap gap-1.5" data-testid="grant-options">
-              {#each otherCapabilities as capability (capability)}
-                <button type="button" class={buttonClass('secondary', 'xs', 'font-mono font-normal')} disabled={busy} onclick={() => addCapability(capability)}>
-                  {#if chosen.includes(capability)}<Icon name="check" />{/if}{capability}
-                </button>
-              {/each}
+        <p class="text-[12.5px] font-medium">{t('capabilityList')}</p>
+        <p class="text-[11.5px] text-faint">{t('capabilityPickHint')}</p>
+        <div class="flex flex-wrap gap-1.5" data-testid="grant-options">
+          {#each otherCapabilities as capability (capability)}
+            <button
+              type="button"
+              class={buttonClass(asking === capability ? 'primary' : 'secondary', 'xs', 'font-mono font-normal')}
+              aria-pressed={pickedFrom(capability)}
+              disabled={busy}
+              onclick={() => pick(capability)}
+            >
+              {#if pickedFrom(capability)}<Icon name="check" />{/if}{capability}
+            </button>
+          {/each}
+        </div>
+        {#if asking}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="flex flex-wrap items-start gap-2 rounded-lg bg-surface-2/60 p-3"
+            onkeydown={(event) => {
+              if (event.key === 'Enter') { event.preventDefault(); addFilled() }
+              else if (event.key === 'Escape') { event.stopPropagation(); asking = null }
+            }}
+            data-testid="grant-parameter"
+          >
+            <!-- svelte-ignore a11y_autofocus -->
+            <TextField
+              label={asking}
+              bind:value={target}
+              mono
+              autofocus
+              spellcheck={false}
+              error={refused ? t('unknownCapabilities', { list: filled }) : undefined}
+              class="min-w-48 flex-1"
+              data-testid="grant-target"
+            />
+            <div class="flex gap-1.5 pt-5">
+              <button class={buttonClass('secondary')} disabled={!filled || refused} onclick={addFilled} data-testid="grant-target-add">{t('add')}</button>
+              <button class={buttonClass('ghost')} onclick={() => (asking = null)}>{t('cancel')}</button>
             </div>
-            <p class="text-[11.5px] text-faint">{t('capabilityPickHint')}</p>
           </div>
         {/if}
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex min-w-0 flex-1 flex-wrap gap-1" data-testid="grant-chosen">
           {#each chosen as capability (capability)}
-            <Pill tone={unknown.includes(capability) ? 'danger' : sensitive(capability) ? 'warn' : 'forest'} class="font-mono font-normal">{capability}</Pill>
+            <Pill tone={sensitive(capability) ? 'warn' : 'forest'} class="font-mono font-normal">
+              {capability}
+              {#if others.includes(capability)}
+                <button class="-me-1 grid size-4 place-items-center rounded-full hover:bg-ink/10" aria-label={`${t('remove')} ${capability}`} onclick={() => (others = others.filter((c) => c !== capability))} data-testid="grant-remove"><Icon name="close" class="size-3" /></button>
+              {/if}
+            </Pill>
           {/each}
         </div>
         <Select
@@ -205,9 +247,8 @@
             ...[7, 30, 90, 366].map((n) => ({ value: String(n), label: t('daysCount', { n }) }))
           ]}
         />
-        <button class={buttonClass('primary')} data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length || unknown.length > 0} onclick={submit}>{t('grant')}</button>
+        <button class={buttonClass('primary')} data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length} onclick={submit}>{t('grant')}</button>
       </div>
-      {#if unknown.length}<p class="text-[12px] text-danger" data-testid="grant-unknown">{t('unknownCapabilities', { list: unknown.join(' ') })}</p>{/if}
     </div>
   </Section>
 {/if}

@@ -148,7 +148,7 @@ export async function settingsFlow({ app, main, shots, methods, requests, emit, 
   // Navigation hides the error of an action started on another Settings page.
   const oldFastUnlock = methods['session/fast_unlock']
   methods['session/fast_unlock'] = () => { throw { code: 'INVALID_INPUT', message: 'Fixture fast unlock failure' } }
-  await go('session')
+  await go('security')
   const finishFast = hold('session/fast_unlock')
   const fastCount = count('session/fast_unlock')
   await main.getByTestId('fast-unlock-toggle').click()

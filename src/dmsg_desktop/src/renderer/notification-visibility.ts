@@ -1,3 +1,4 @@
+import { daemonBlocked } from './connection-gate'
 import { onMount } from 'svelte'
 import type { NoticeVisibility } from '../shared/contract'
 
@@ -24,7 +25,7 @@ export function noticeVisibility(read: () => NoticeVisibility | null, selector: 
       intersecting = false
       if (element) observer.observe(element)
     }
-    if (!value || !intersecting || document.body.inert || !document.hasFocus() || document.visibilityState !== 'visible' || document.querySelector('[aria-modal="true"]')) { clear(); return }
+    if (!value || !intersecting || daemonBlocked() || !document.hasFocus() || document.visibilityState !== 'visible' || document.querySelector('[aria-modal="true"]')) { clear(); return }
     const key = JSON.stringify(value)
     if (key === last) return
     last = key

@@ -343,6 +343,8 @@ pub async fn send<H: Hold>(
                     recipient,
                     text_digest,
                     payload: payload.clone(),
+                    text: text.to_string(),
+                    sent_at: now_ms(),
                 },
             )?;
             Ok(payload)

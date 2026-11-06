@@ -48,8 +48,8 @@ desktop is one of its clients, like the CLI.
   switcher (this device's accounts, another login), the views in three
   groups (work; authorization; account) and Settings, and at its foot the
   gate rail: while the device is not unlocked, its state and the step that
-  opens it (Log in, Unlock with Touch ID, Fast unlock, or Continue setup in
-  Settings); the versions waiting to sync, background online while it is
+  opens it (Log in, Unlock with Touch ID or Fast unlock); the versions
+  waiting to sync, background online while it is
   on, the daemon connection, and one Lock button while it is unlocked.
   A new device shows first-sync stages, counts and downloaded bytes until its
   baseline is verified. Empty Vault and Channel lists explain that wait. The
@@ -59,7 +59,12 @@ desktop is one of its clients, like the CLI.
   Views the device cannot show yet offer the same step. A title bar names
   the view and opens the command palette (⌘K, or Ctrl+K elsewhere), which
   goes to any view and runs the session, appearance and language commands;
-  ⌘1–⌘8 and ⌘, go to a view, ⌘L locks.
+  ⌘1–⌘8 and ⌘, go to a view (Channels, Files, Vault, Inbox, Approvals,
+  Agents, Plan, Wallet, Settings), ⌘L locks and ⌘/ lists the shortcuts. Each
+  returns to where the view was left: IDs and tabs last until the account
+  changes, plaintext and drafts until it locks. The title bar's bell lists the
+  latest reminders. A device with no account opens on a first-run page:
+  language, login, fast unlock, alerts.
   Beside the sidebar toggle, back and forward (⌘[ and ⌘], or Alt+← and
   Alt+→) walk the views the window showed. The sidebar collapses to icons,
   and the title bar then takes the toggle and the arrows. On macOS the
@@ -127,7 +132,8 @@ desktop is one of its clients, like the CLI.
     in each member's menu; creating, joining, leaving, and ownership and
     billing transfers by packet open in dialogs, a transfer in its three
     steps.
-  - Inbox: the inbox, sent letters and the archive beside the open letter;
+  - Inbox: the inbox, sent letters with their text and the archive beside
+    the open letter; search, reply, and an order's state in words;
     a new letter, and who may write (nobody, contacts, everyone, or a price
     per letter), open in dialogs. Verified cached letters appear first;
     remote letters and rules refresh independently, and a network failure
@@ -310,9 +316,9 @@ Rules (`src/main/policy.ts`):
   The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for
   agents.
-- A vault item's hidden field is shown, or copied, only on a second click
-  within three seconds of the first (⌘⇧C, pressed twice, copies the main
-  secret); shown, it hides again after a minute. The window asks the daemon
+- A vault item's hidden field is shown only on a second click within three
+  seconds of the first, and hides again after a minute; one click copies it
+  (⌘⇧C copies the main secret). The window asks the daemon
   for one field at a time (`vault/reveal`); an edit never loads a saved
   hidden value, which stays unless the person changes or clears it. A copy
   goes from the daemon to the clipboard through the main process, so the
@@ -326,6 +332,9 @@ Rules (`src/main/policy.ts`):
   items open their web addresses in the system browser, http and https
   only. dMsg's own keys (tagged `dmsg-`) are read-only.
 - Revoking a device and changing its capabilities are approval requests.
+- Settings › Security holds what closes the account: the idle time (the
+  daemon's, kept in `preferences.json`) and the screen lock or sleep, on by
+  default, which the main process hears and answers with `session/lock`.
 - Only a person's input in a window (a click, a key, a scroll) and a
   successful unlock are activity for the idle lock. The main process
   declares so at `app/initialize` and reports input with `app/activity` at
@@ -524,7 +533,7 @@ and notifications instead of the system's. It covers:
   endpoint whose secret shows once, and a delivery notification without its
   content;
 - a web checkout that cannot be approved before it is quoted;
-- the vault: a secret shown and copied only on a second click, with the
+- the vault: a secret shown only on a second click and copied on one, with the
   clipboard markers, a one-time code, an edit that keeps the hidden values
   it never loaded and names the version it replaces, a version restored
   from the history, dMsg's own key read-only, the security check's filter,
@@ -646,6 +655,11 @@ Homebrew restrictions and Chinese/French/Arabic screenshots in both themes at
 exercise a real GitHub publication.
 
 The smoke test normally checks native macOS fullscreen transitions as well.
+`DMSG_DESKTOP_SMOKE=ux pnpm test:e2e` covers each view loading under the page's
+policy, returning to where a view was left, the shortcuts, locking with the
+screen and idle time, list widths, pasted images, localized menus, the first-run
+page, and the approval window closing itself after its last decision.
+
 `DMSG_DESKTOP_SMOKE=settings pnpm test:e2e` checks all nine Settings routes,
 profile publication and lookup drafts, device capability edits, file
 preferences and the system mount confirmation, cache clearing, browser
@@ -694,7 +708,7 @@ removed cloud-space interface in both themes, narrow windows and RTL.
 
 ## Credential use
 
-Signatures & approvals → Credential use configures device-local GitHub
+Vault → Credential use (`/vault/policies`) configures device-local GitHub
 issue-create policies using masked field selectors. Changes and optional
 Agent grants open the existing approval window. Uses show the exact target,
 credential revision and full literal title/body, with high-risk confirmation.
@@ -723,7 +737,7 @@ covers both against a local fixture with an intercepted clipboard; see the
 
 实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [验证范围](../../docs/protocol/secrets_zh.md#验证入口与边界)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享保险库仍暂缓。
 
-桌面入口位于“签名与授权 → 凭据使用”；策略、机密文件、SSH/Git、健康与发现、快照、导入及本设备活动使用独立页签，按任务分组。健康结果可筛选并打开来源处理；轮换按实际凭据变化与依赖清单开放步骤；审批以结构化摘要显示范围，原始数据可展开核对。挂载和快照预览在表单变化后失效，迟到结果不能重新启用提交。导入失败保留当前页面内的掩码输入，成功、离页及锁定时清除；导入记录提供结果入口。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。macOS 不会自动启用文件系统扩展：“机密文件”页提示用户启用 “dMsg secret files”，提供打开系统设置的按钮，启动失败时在映射卡片上显示固定原因对应的说明。
+桌面入口位于“保险库 → 凭据使用”；策略、机密文件、SSH/Git、健康与发现、快照、导入及本设备活动使用独立页签，按任务分组。健康结果可筛选并打开来源处理；轮换按实际凭据变化与依赖清单开放步骤；审批以结构化摘要显示范围，原始数据可展开核对。挂载和快照预览在表单变化后失效，迟到结果不能重新启用提交。导入失败保留当前页面内的掩码输入，成功、离页及锁定时清除；导入记录提供结果入口。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。macOS 不会自动启用文件系统扩展：“机密文件”页提示用户启用 “dMsg secret files”，提供打开系统设置的按钮，启动失败时在映射卡片上显示固定原因对应的说明。
 
 ## Mail recovery in SDK 0.12.6
 

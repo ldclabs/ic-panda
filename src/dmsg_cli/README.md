@@ -17,7 +17,7 @@ targets. The desktop exposes this action in the account menu as **Log out**.
 | Path | Content |
 | --- | --- |
 | `config.toml` | Deployment parameters and policies; the only place to change them. Without it the production deployment built into the binary applies ([`production.toml`](../dmsg_client/production.toml)) |
-| `preferences.json` | The desktop's file settings: `files_mount` (allowed after a system dialog, beside `config.toml`'s) and `files_trash_days` (instead of `config.toml`'s). Only the desktop's main process writes it; the daemon reads it at start and on `files/preferences_reload`, never from a request's values |
+| `preferences.json` | The desktop's settings: `files_mount` (allowed after a system dialog, beside `config.toml`'s), `files_trash_days` and `idle_lock_minutes` (instead of `config.toml`'s). Only the desktop's main process writes it; the daemon reads it at start and on `files/preferences_reload`, never from a request's values |
 | `owner.token` | Owner credential with `secure_storage = "file"`, readable only by its owner |
 | `daemon.json` | Port, process and instance ID of the running daemon |
 | `dmsg-daemon.lock` | Held by the running daemon: one daemon per home |

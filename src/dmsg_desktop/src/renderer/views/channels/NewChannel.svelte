@@ -10,13 +10,16 @@
   import { t } from '../../i18n/index.svelte'
   import { call, CallError, errorText } from '../../rpc'
   import { invitationLink, readInvitation } from './channels'
-  import { accountOf } from './names.svelte'
+  import { accountOf, label } from './names.svelte'
+  import TextArea from '../../components/TextArea.svelte'
+  import TextField from '../../components/TextField.svelte'
 
   /**
    * A new channel of a kind, or joining one with an invitation another
    * member gave, pasted as its link or JSON or opened from a `dmsg://` link.
-   * A conversation with one person names them: once the channel exists they
-   * are invited, and the dialog shows the link to hand them.
+   * The usual new channel is a conversation with one person, which needs only
+   * them: it takes their name unless given another. Once it exists they are
+   * invited, and the dialog shows the link to hand them.
    */
   let {
     open = $bindable(false),
@@ -33,7 +36,7 @@
   } = $props()
 
   let name = $state('')
-  let kind = $state('collaboration')
+  let kind = $state('direct')
   let target = $state('')
   let busy = $state(false)
   let error = $state('')
@@ -41,9 +44,9 @@
   let made = $state<any>(null)
 
   const kinds: { value: string; icon: Glyph }[] = [
+    { value: 'direct', icon: 'user' },
     { value: 'collaboration', icon: 'members' },
-    { value: 'distribution', icon: 'send' },
-    { value: 'direct', icon: 'user' }
+    { value: 'distribution', icon: 'send' }
   ]
 
   // A conversation started from a profile or a letter names its person as
@@ -63,6 +66,7 @@
     if (!open) {
       name = ''
       target = ''
+      kind = 'direct'
       invitation = ''
       error = ''
       made = null
@@ -76,7 +80,8 @@
     try {
       if (tab === 'create') {
         const account = kind === 'direct' ? await accountOf(target) : null
-        const created: any = await call('channel/create', { name: name.trim(), type: kind })
+        const called = name.trim() || (account ? label(account) : '')
+        const created: any = await call('channel/create', { name: called, type: kind })
         onOpened(created.id)
         if (account) {
           made = await call('channel/invite', { id: created.id, account })
@@ -104,7 +109,7 @@
   {#if made}
     <div class="grid gap-2" data-testid="channel-invitation-box">
       <p class="text-[12.5px] text-ink-2">{t('directInvited')}</p>
-      <input readonly value={invitationLink(made)} class="font-mono text-[11px]" data-testid="channel-invitation-link" />
+      <TextField readonly value={invitationLink(made)} label={t('invitation')} hideLabel mono class="text-[11px]" data-testid="channel-invitation-link" />
       <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(invitationLink(made))}><Icon name="link" />{t('copyLink')}</button>
     </div>
   {:else}
@@ -114,10 +119,6 @@
         <Tabs.Trigger value="join" class={tabClass} data-testid="channel-join-tab">{t('joinChannel')}</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="create" class="grid gap-3 outline-none">
-        <label class="grid gap-1 text-[12px] text-faint">
-          {t('channelName')}
-          <input bind:value={name} class="text-[13.5px] text-ink" data-testid="channel-name" />
-        </label>
         <RadioGroup.Root bind:value={kind} class="grid grid-cols-3 gap-1.5" aria-label={t('type')}>
           {#each kinds as option (option.value)}
             <RadioGroup.Item
@@ -131,14 +132,12 @@
           {/each}
         </RadioGroup.Root>
         {#if kind === 'direct'}
-          <label class="grid gap-1 text-[12px] text-faint">
-            {t('directWith')}
-            <input bind:value={target} placeholder={t('accountOrName')} class="font-mono text-[12.5px] text-ink placeholder:font-sans" spellcheck="false" data-testid="channel-peer" />
-          </label>
+          <TextField bind:value={target} label={t('directWith')} placeholder={t('accountOrName')} mono spellcheck="false" data-testid="channel-peer" />
         {/if}
+        <TextField bind:value={name} label={kind === 'direct' ? t('channelNameOptional') : t('channelName')} data-testid="channel-name" />
       </Tabs.Content>
       <Tabs.Content value="join" class="grid gap-2 outline-none">
-        <textarea bind:value={invitation} class="min-h-32 font-mono text-[11px]" placeholder={t('invitation')} spellcheck="false" data-testid="channel-join-text"></textarea>
+        <TextArea bind:value={invitation} label={t('invitation')} rows={6} mono spellcheck="false" data-testid="channel-join-text" />
       </Tabs.Content>
     </Tabs.Root>
   {/if}
@@ -151,7 +150,7 @@
       <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>
       <button
         class={cn(buttonClass('primary'))}
-        disabled={busy || (tab === 'create' ? !name.trim() || (kind === 'direct' && !target.trim()) : !invitation.trim())}
+        disabled={busy || (tab === 'create' ? (kind === 'direct' ? !target.trim() : !name.trim()) : !invitation.trim())}
         onclick={submit}
         data-testid="channel-create"
       >

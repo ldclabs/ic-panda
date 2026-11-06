@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { daemonBlocked } from '../connection-gate'
   import { watchContent } from '../content-refresh'
   import type { Delivery, MessageDeliveries } from '../message-delivery'
   import Notice from '../components/page/Notice.svelte'
-  import { DropdownMenu } from 'bits-ui'
-  import { onMount } from 'svelte'
+  import { ContextMenu, DropdownMenu } from 'bits-ui'
+  import { onMount, tick } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
   import { tomorrowMorning } from '../../shared/notification-time'
   import { localeDir } from '../../shared/locales'
@@ -11,13 +12,19 @@
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
   import Locked from '../components/page/Locked.svelte'
+  import Field from '../components/page/Field.svelte'
+  import PaneHandle from '../components/PaneHandle.svelte'
+  import TargetMenu from '../components/TargetMenu.svelte'
+  import TextField from '../components/TextField.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
   import { bridge, call, closed, errorText, onChange, planAction, single } from '../rpc'
   import Access from './channels/Access.svelte'
-  import { arrange, kindLabel, powers, roleLabel, statusLabel } from './channels/channels'
+  import { arrange, kindLabel, listTime, powers, roleLabel, statusLabel } from './channels/channels'
+  import { pinsOf, readReceipts, setPins } from './channels/preferences'
+  import { remember, remembered, rememberedPlain, rememberPlain } from '../view-memory'
   import LibraryPicker from './channels/LibraryPicker.svelte'
   import LegacyHistory from './channels/LegacyHistory.svelte'
   import Members from './channels/Members.svelte'
@@ -30,12 +37,15 @@
   import { workflowText } from './secrets/workflow-text'
 
   /**
-   * Channels: the list, latest activity first with what is unread, the open
-   * channel's timeline and composer, and its members in a drawer. Creating,
-   * joining, transfers, history grants, access and confirmations open in
-   * dialogs; a `dmsg://` invitation link opens the join dialog with it, and a
-   * profile or a letter opens a conversation with its person. Each change
-   * comes back through the daemon's `channel/changed`.
+   * Channels: the list, pinned ones and then latest activity first with what
+   * is unread, the open channel's timeline and composer, and its members in a
+   * drawer. Creating, joining, transfers, history grants, access and
+   * confirmations open in dialogs; a `dmsg://` invitation link opens the join
+   * dialog with it, and a profile or a letter opens a conversation with its
+   * person. Each change comes back through the daemon's `channel/changed`.
+   * Leaving the view keeps which channel was open, and what was being written.
+   * ⌘F searches the channel, ⌘N starts a new one, ⌥↑ and ⌥↓ move through the
+   * list (Ctrl for ⌘ elsewhere).
    */
   let { status, route, go, deliveries, messageDeliveries }: {
     status: any; route: string; go: (path: string) => void; deliveries: Delivery[]; messageDeliveries: MessageDeliveries
@@ -49,7 +59,7 @@
   let legacySelected = $state<any>(null)
   let legacyError = $state('')
   let legacyRequested: string | null = null
-  let selected = $state<string | null>(null)
+  let selected = $state<string | null>(remembered<string>('channels.selected') ?? null)
   let channel = $state<any>(null)
   let messages = $state<any[]>([])
   /** Earlier messages exist above the first one shown. */
@@ -61,20 +71,26 @@
   let busy = $state(false)
   let error = $state('')
   /** Unsent text and attachments per channel; the text is kept by the daemon too. */
-  let drafts = $state<Record<string, string>>({})
-  let attached = $state<Record<string, { id: string; name: string }[]>>({})
-  let reply = $state<any>(null)
+  let drafts = $state<Record<string, string>>(rememberedPlain('channels.drafts') ?? {})
+  let attached = $state<Record<string, { id: string; name: string }[]>>(rememberedPlain('channels.attached') ?? {})
+  /** The message each channel's next one answers. */
+  let replies = $state<Record<string, any>>(rememberedPlain('channels.replies') ?? {})
   let editing = $state<any>(null)
+  /** The timeline shows a search result's surroundings until the person asks for the latest again. */
+  let reading = $state(false)
+  let pins = $state<string[]>([])
+  let onlyUnread = $state(remembered<boolean>('channels.unread') ?? false)
+  let searchInput = $state<HTMLInputElement | null>(null)
+  let listInput = $state<HTMLInputElement | null>(null)
   /** The daemon's outbox of the open channel, the messages this window sends now, and why the last try failed. */
   let outbox = $state<Outgoing[]>([])
   let receipts = $state<any>(null)
   let images = $state<Record<number, string>>({})
   let search = $state<{ open: boolean; query: string; results: any[] | null }>({ open: false, query: '', results: null })
   let highlight = $state<number | null>(null)
-  let membersOpen = $state(stored('dmsg.members') !== 'closed')
+  let membersOpen = $state(stored('dmsg.members') === 'open')
   let showOther = $state(stored('dmsg.channels-other') === 'open')
   let showLegacy = $state(false)
-  let readReceipts = $state(stored('dmsg.read-receipts') === 'on')
   let creating = $state(false)
   let createTab = $state<'create' | 'join'>('create')
   let joinText = $state('')
@@ -101,12 +117,15 @@
 
   /** How many messages a channel opens with, and each page of earlier ones. */
   const PAGE = 200
+  /** What a channel already open reads again on a change. */
+  const TAIL = 50
 
   const unlocked = $derived(status?.state === 'unlocked')
   const me = $derived<string | undefined>(status?.account)
   const ledger = $derived(channel?.ledger)
   const can = $derived(powers(ledger, me))
-  const listed = $derived(arrange(channels.filter((c) => !query.trim() || c.name.toLowerCase().includes(query.trim().toLowerCase())), me))
+  const listed = $derived(arrange(channels.filter((c) => (!query.trim() || c.name.toLowerCase().includes(query.trim().toLowerCase())) && (!onlyUnread || c.unread || c.news || c.id === selected)), me, pins))
+  const anyUnread = $derived(channels.some((c) => c.unread || c.news))
   const oldChannels = $derived(legacyChannels.filter((c) => !query.trim() || `${c.name} ${c.source}`.toLowerCase().includes(query.trim().toLowerCase())))
   const currentDeliveries = $derived(deliveries.filter(row => row.channel === channel?.id))
   const shownMessages = $derived.by(() => {
@@ -119,7 +138,7 @@
     ...outbox.filter(row => !currentDeliveries.some(pending => pending.message_id === row.message_id))
   ])
   const transferring = $derived(channel?.billing?.lifecycle === 'transferring')
-  const shortTime = $derived(new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit' }))
+  const direct = $derived(ledger?.type === 'direct')
   const shortDay = $derived(new Intl.DateTimeFormat(locale(), { month: 'numeric', day: 'numeric' }))
 
   function stored(key: string): string | null {
@@ -140,7 +159,11 @@
 
   $effect(() => store('dmsg.members', membersOpen ? 'open' : 'closed'))
   $effect(() => store('dmsg.channels-other', showOther ? 'open' : 'closed'))
-  $effect(() => store('dmsg.read-receipts', readReceipts ? 'on' : 'off'))
+  $effect(() => {
+    pins = pinsOf(me)
+  })
+  $effect(() => remember('channels.selected', selected))
+  $effect(() => remember('channels.unread', onlyUnread || null))
 
   const fail = (e: unknown) => toast(() => errorText(e), planAction(e))
 
@@ -173,13 +196,13 @@
 
   /** What came elsewhere is read ahead while this list is on screen; the daemon paces it. */
   function readAhead() {
-    if (document.visibilityState !== 'visible' || document.body.inert) return
+    if (document.visibilityState !== 'visible' || daemonBlocked()) return
     for (const entry of listed.live.filter((c) => c.news && !c.muted && c.id !== selected).slice(0, 8))
       void call('channel/catch_up', { id: entry.id }).catch(() => {})
   }
 
   const refreshChannel = single(async (id: string | null = selected) => {
-    if (!alive || !unlocked || !id || selected !== id || document.visibilityState !== 'visible' || document.body.inert) return
+    if (!alive || !unlocked || !id || selected !== id || document.visibilityState !== 'visible' || daemonBlocked()) return
     let failure = ''
     try { await call('channel/sync', { id, recent: true }) }
     catch (e) { failure = closed(e, status) ? 'LOCKED' : errorText(e) }
@@ -222,18 +245,24 @@
     const switching = channel?.id !== id
     if (selected !== id) { channelVisit++; loadingEarlier = false }
     selected = id
-    const [next, page, box] = await Promise.all([
+    // An open channel only needs what is new; a longer absence reads a full page.
+    const read = (limit: number) => call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit })
+    const [next, tail, box] = await Promise.all([
       call<any>('channel/show', { id }),
-      call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE }),
+      read(switching ? PAGE : TAIL),
       call<Outgoing[]>('channel/outbox', { id }).catch(() => [])
     ])
+    if (!alive || selected !== id || openRequest !== request) return
+    const gap = !switching && tail.has_more && tail.items[0]?.seq > (messages.at(-1)?.seq ?? 0) + 1
+    const page = gap ? await read(PAGE) : tail
     if (!alive || selected !== id || openRequest !== request) return
     const list = page.items
     if (switching) {
       messages = list
       more = page.has_more
       nextBefore = page.next_before
-      reply = editing = null
+      editing = null
+      reading = false
       images = {}
       highlight = null
       search = { open: false, query: '', results: null }
@@ -243,6 +272,10 @@
       // Show local history immediately, then catch up this channel without
       // waiting for its place in the background pass.
       if (next.ledger?.members?.[me ?? '']) void refreshChannel(id)
+    } else if (reading) {
+      // Around a search result: what is shown may change, what came later waits.
+      const changed = new Map(list.map((m: any) => [m.seq, m]))
+      messages = messages.map((m: any) => changed.get(m.seq) ?? m)
     } else {
       // A local send can be acknowledged before earlier incoming messages
       // arrive. Merge by sequence so those gaps appear in the right place.
@@ -302,6 +335,7 @@
     const id = channel.id
     const text = drafts[id] ?? ''
     const files = attached[id] ?? []
+    if (reading) void latest()
     if (editing) {
       const target = editing
       editing = null
@@ -310,10 +344,10 @@
       return
     }
     if (!text.trim() && !files.length) return
-    const replyTo = reply ? ref(reply) : null
+    const replyTo = replies[id] ? ref(replies[id]) : null
     drafts[id] = ''
     attached[id] = []
-    reply = null
+    delete replies[id]
     // A text goes with the first file; each further file goes in a message of its own.
     if (!files.length) deliver(id, { message_id: random(), draft: { text } }, { text, reply_to: replyTo })
     for (const [i, file] of files.entries()) {
@@ -337,11 +371,22 @@
       await reload()
     })
 
-  /** New files enter the library through the system dialog or a drop, then go with the next message. */
-  async function addFiles(dropped?: File[]) {
+  /** Files attached to messages wait in a folder of their own, not among the person's own. */
+  async function attachmentFolder(): Promise<string> {
+    const name = t('channelAttachments')
+    const listing = await call<{ folders: { id: string; name: string }[] }>('files/list', { folder: 'root' })
+    const found = listing.folders.find((folder) => folder.name === name)
+    if (found) return found.id
+    const made = await call<{ id: string }>('files/mkdir', { parent: 'root', name })
+    return made.id
+  }
+
+  /** New files enter the library through the system dialog, a drop or a paste, then go with the next message; a taken name keeps both. */
+  async function addFiles(add: (folder: string) => Promise<unknown>) {
     const id = channel.id
     await attempt(async () => {
-      const added: any = await bridge(() => window.dmsg.filesAdd('root', dropped))
+      const folder = await attachmentFolder()
+      const added: any = await bridge(() => add(folder))
       const fresh = (added?.files ?? []).map((f: any) => f.file).filter(Boolean)
       // A file added again, as a new version, stays attached once and goes at its latest version.
       const list = attached[id] ?? []
@@ -372,7 +417,7 @@
 
   const hide = (message: any, hidden: boolean) =>
     attempt(async () => {
-      const changed = await call('channel/hide', { id: channel.id, seq: message.seq, hidden })
+      const changed = await call<any>('channel/hide', { id: channel.id, seq: message.seq, hidden })
       messages = messages.map((m) => (m.seq === message.seq ? changed : m))
     })
 
@@ -406,7 +451,7 @@
     if (!channel || seq <= Math.max(channel.read ?? 0, marked)) return
     marked = seq
     const id = channel.id
-    void call<any>('channel/mark', { id, through: seq, receipt: readReceipts }).then((view) => {
+    void call<any>('channel/mark', { id, through: seq, receipt: readReceipts() }).then((view) => {
       channels = channels.map((c) => (c.id === id ? { ...c, read: view.read, unread: view.unread } : c))
       if (channel?.id === id) channel = { ...channel, read: view.read, unread: view.unread }
     })
@@ -445,10 +490,60 @@
     more = seq > 30
     nextBefore = more ? messages[0]?.seq ?? null : null
     highlight = seq
+    reading = true
     search = { ...search, open: false }
   }
 
+  /** Back from a search result to the channel's newest messages. */
+  async function latest() {
+    const id = channel.id, visit = ++channelVisit
+    loadingEarlier = false
+    const page = await call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE })
+    if (!alive || selected !== id || channelVisit !== visit) return
+    messages = page.items
+    more = page.has_more
+    nextBefore = page.next_before
+    highlight = null
+    reading = false
+  }
+
   const settings = (change: Record<string, unknown>) => attempt(() => call('channel/settings', { id: channel.id, ...change }))
+  const settingsOf = (id: string, change: Record<string, unknown>) => attempt(() => call('channel/settings', { id, ...change }))
+
+  function togglePin(id: string) {
+    pins = pins.includes(id) ? pins.filter((pin) => pin !== id) : [id, ...pins]
+    if (me) setPins(me, pins)
+  }
+
+  const markAllRead = (entry: any) => attempt(() => call('channel/mark', { id: entry.id, through: entry.message_cursor, receipt: readReceipts() }))
+  const channelOf = (element: Element) => channels.find((c) => c.id === element.closest('[data-channel]')?.getAttribute('data-channel')) ?? null
+
+  function onKey(event: KeyboardEvent) {
+    if (document.querySelector('[aria-modal="true"]')) return
+    const held = window.dmsg.platform === 'darwin' ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
+    const key = event.key.toLowerCase()
+    if (held && !event.altKey && !event.shiftKey && key === 'f') {
+      event.preventDefault()
+      if (channel) {
+        search = { ...search, open: true }
+        void tick().then(() => searchInput?.focus())
+      } else listInput?.focus()
+    } else if (held && !event.altKey && !event.shiftKey && key === 'n' && unlocked) {
+      event.preventDefault()
+      createTab = 'create'
+      creating = true
+    } else if (event.altKey && !event.metaKey && !event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+      const list = listed.live
+      if (!list.length) return
+      event.preventDefault()
+      const at = list.findIndex((c) => c.id === selected)
+      const next = list[at < 0 ? 0 : (at + (event.key === 'ArrowUp' ? -1 : 1) + list.length) % list.length]
+      void pick(next.id)
+    } else if (event.key === 'Escape' && search.open) {
+      event.preventDefault()
+      search = { open: false, query: '', results: null }
+    }
+  }
   const control = (action: Record<string, unknown>) => attempt(() => call('channel/control', { id: channel.id, action }))
   const rotate = () => attempt(() => call('channel/rotate', { id: channel.id }))
   const reactivate = () => attempt(() => call('channel/reactivate', { id: channel.id }))
@@ -542,14 +637,52 @@
       onChange(['legacy/changed', 'session/changed', 'sync/changed'], readLegacy)
     ]
     const stop = watchContent('channel', () => selected, () => refreshChannel())
-    return () => { alive = false; stop(); offs.forEach((off) => off()) }
+    return () => {
+      alive = false
+      stop()
+      offs.forEach((off) => off())
+      rememberPlain('channels.drafts', $state.snapshot(drafts))
+      rememberPlain('channels.attached', $state.snapshot(attached))
+      rememberPlain('channels.replies', $state.snapshot(replies))
+      // The moment after typing stops, the daemon had not kept the text yet.
+      if (channel && (drafts[channel.id] ?? '') !== (channel.draft ?? '')) void call('channel/draft', { id: channel.id, text: drafts[channel.id] ?? '' }).catch(() => {})
+    }
   })
 </script>
+
+<svelte:window onkeydown={onKey} />
+
+{#snippet channelMenu(entry: any)}
+  <ContextMenu.Item class={menuItemClass} onSelect={() => togglePin(entry.id)} data-testid="channel-pin">
+    <span class="flex items-center gap-2"><Icon name="pin" class="text-faint" />{pins.includes(entry.id) ? t('unpin') : t('pin')}</span>
+  </ContextMenu.Item>
+  {#if entry.unread}
+    <ContextMenu.Item class={menuItemClass} onSelect={() => markAllRead(entry)} data-testid="channel-mark-read">
+      <span class="flex items-center gap-2"><Icon name="check" class="text-faint" />{t('markRead')}</span>
+    </ContextMenu.Item>
+  {/if}
+  <ContextMenu.Separator class="my-1 h-px bg-line" />
+  {#if entry.muted || entry.muted_until > Date.now()}
+    <ContextMenu.Item class={menuItemClass} onSelect={() => settingsOf(entry.id, { muted: false })}>
+      <span class="flex items-center gap-2"><Icon name="bell" class="text-faint" />{t('unmuteChannel')}</span>
+    </ContextMenu.Item>
+  {:else}
+    <ContextMenu.Item class={menuItemClass} onSelect={() => settingsOf(entry.id, { muted: true })}>
+      <span class="flex items-center gap-2"><Icon name="eye-off" class="text-faint" />{t('muteChannel')}</span>
+    </ContextMenu.Item>
+    <ContextMenu.Item class={menuItemClass} onSelect={() => settingsOf(entry.id, { muted_until: Date.now() + 3_600_000 })}>
+      <span class="ps-6">{t('noticePauseHour')}</span>
+    </ContextMenu.Item>
+    <ContextMenu.Item class={menuItemClass} onSelect={() => settingsOf(entry.id, { muted_until: tomorrowMorning(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone) })}>
+      <span class="ps-6">{t('noticePauseTomorrow')}</span>
+    </ContextMenu.Item>
+  {/if}
+{/snippet}
 
 {#snippet item(entry: any)}
   {@const draft = (drafts[entry.id] ?? entry.draft)?.trim()}
   {@const at = Math.max(entry.last?.stored_at ?? 0, entry.active_at ?? 0)}
-  <li>
+  <li data-channel={entry.id}>
     <button
       class={cn(
         'grid w-full grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-lg px-2 py-2 text-start outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
@@ -564,6 +697,7 @@
         <span class="flex min-w-0 items-center gap-1">
           <span class={cn('truncate text-[13.5px] leading-snug', entry.unread && !entry.muted ? 'font-semibold' : 'font-medium')}>{entry.name}</span>
           {#if entry.muted}<Icon name="eye-off" class="size-3 shrink-0 text-faint" />{/if}
+          {#if pins.includes(entry.id)}<Icon name="pin" class="size-3 shrink-0 text-faint" label={t('pinned')} />{/if}
         </span>
         {#if draft}
           <span class="block truncate text-[12px] leading-snug text-warn">{t('draft')}: {draft}</span>
@@ -578,7 +712,7 @@
         {/if}
       </span>
       <span class="grid justify-items-end gap-0.5">
-        {#if at}<span class="text-[10.5px] text-faint tabular-nums">{Date.now() - at < 86_400_000 ? shortTime.format(at) : shortDay.format(at)}</span>{/if}
+        {#if at}<span class="text-[10.5px] text-faint tabular-nums">{listTime(at, Date.now(), locale())}</span>{/if}
         {#if entry.ledger && entry.ledger.status !== 'active'}
           <span class={cn('rounded px-1 text-[10.5px] font-medium', entry.ledger.status === 'archived' ? 'bg-wash text-muted' : 'bg-warn-pale text-warn')}>
             {t(statusLabel[entry.ledger.status] ?? 'channelArchived')}
@@ -602,11 +736,11 @@
   {#if error === 'LOCKED'}
     <Locked {status} />
   {:else}
-    <section class="flex w-[248px] shrink-0 flex-col border-e border-line @min-[1100px]:w-[284px]">
+    <section class="flex w-[var(--pane,248px)] shrink-0 flex-col border-e border-line @min-[1100px]:w-[var(--pane,284px)]">
       <div class="flex items-center gap-1.5 p-3 pb-2">
         <label class="relative min-w-0 flex-1">
           <Icon name="search" class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />
-          <input bind:value={query} type="search" class="ps-8" placeholder={t('searchChannels')} aria-label={t('searchChannels')} />
+          <input bind:this={listInput} bind:value={query} type="search" class="ps-8" placeholder={t('searchChannels')} aria-label={t('searchChannels')} />
         </label>
         {#if unlocked}
           <DropdownMenu.Root dir={localeDir(locale())}>
@@ -625,16 +759,19 @@
                 <DropdownMenu.Item class={menuItemClass} onSelect={() => ((createTab = 'join'), (creating = true))}>
                   <span class="flex items-center gap-2"><Icon name="enter" class="text-faint" />{t('joinChannel')}</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Separator class="my-1 h-px bg-line" />
-                <DropdownMenu.Item class={menuItemClass} onSelect={() => (settling = true)} data-testid="channel-packet-open">
-                  <span class="flex items-center gap-2"><Icon name="transfer" class="text-faint" />{t('transferPacket')}…</span>
-                </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
         {/if}
       </div>
+      {#if anyUnread || onlyUnread}
+        <div class="px-3 pb-1.5">
+          <button class={buttonClass(onlyUnread ? 'secondary' : 'ghost', 'xs')} aria-pressed={onlyUnread} onclick={() => (onlyUnread = !onlyUnread)} data-testid="channel-unread-filter">{t('unread')}</button>
+        </div>
+      {/if}
       {#if error}<Notice failure={error} tone="danger" testid="channel-error">{error}</Notice>{/if}
+      <TargetMenu find={channelOf} testid="channel-menu">
+        {#snippet menu(entry)}{@render channelMenu(entry)}{/snippet}
       <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="channel-list">
         {#each listed.live as entry (entry.id)}
           {@render item(entry)}
@@ -688,8 +825,10 @@
         {/if}
         {#if legacyError}<li class="px-2 py-2 text-[12px] text-danger">{legacyError}</li>{/if}
       </ul>
+      </TargetMenu>
     </section>
 
+    <PaneHandle name="channels" />
     <section class="@container/conversation flex min-w-0 flex-1 flex-col">
       {#if legacySelected}
         {#key `${legacySelected.archive}:${legacySelected.source}`}
@@ -701,11 +840,6 @@
           <div class="min-w-0 flex-1 basis-full @min-[420px]/conversation:basis-auto">
             <div class="flex min-w-0 items-center gap-2">
               <h2 class="truncate text-[15px] leading-snug font-semibold" data-testid="channel-title">{channel.name}</h2>
-              {#if ledger}
-                <span class="inline-flex shrink-0 items-center gap-1 rounded-md border border-line bg-surface px-1.5 text-[11px] leading-5 text-muted" title={t('epochN', { n: ledger.epoch })}>
-                  <Icon name="epoch" class="size-3" />{ledger.epoch}
-                </span>
-              {/if}
               {#if channel.muted}<Icon name="eye-off" class="size-3.5 shrink-0 text-faint" />{/if}
             </div>
             {#if ledger}
@@ -730,14 +864,7 @@
               </button>
             {/snippet}
           </Tooltip>
-          <Tooltip content={t('read')}>
-            {#snippet children(props)}
-              <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('read')} disabled={busy} onclick={read} data-testid="channel-read">
-                <Icon name="sync-now" />
-              </button>
-            {/snippet}
-          </Tooltip>
-          {#if ledger}
+          {#if ledger && !direct}
             <Tooltip content={t('members')}>
               {#snippet children(props)}
                 <button
@@ -772,29 +899,35 @@
                   <DropdownMenu.Item class={menuItemClass} onSelect={() => (renaming = { open: true, name: channel.name })} data-testid="channel-rename">
                     <span class="flex items-center gap-2"><Icon name="edit" class="text-faint" />{t('renameChannel')}…</span>
                   </DropdownMenu.Item>
-                  <DropdownMenu.CheckboxItem checked={channel.muted} onCheckedChange={(on) => settings({ muted: on })} class={menuItemClass} data-testid="channel-mute">
-                    {#snippet children({ checked })}
+                  <DropdownMenu.Sub>
+                    <DropdownMenu.SubTrigger class={menuItemClass} data-testid="channel-mute-menu">
                       <span class="flex items-center gap-2"><Icon name="eye-off" class="text-faint" />{t('muteChannel')}</span>
-                      {#if checked}<Icon name="check" class="size-3.5" />{/if}
-                    {/snippet}
-                  </DropdownMenu.CheckboxItem>
-                  <DropdownMenu.Item class={menuItemClass} onSelect={() => settings({ muted_until: Date.now() + 3_600_000 })} data-testid="channel-mute-hour">
-                    <span class="whitespace-normal">{t('muteChannel')} · {t('noticePauseHour')}</span>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item class={menuItemClass} onSelect={() => settings({ muted_until: tomorrowMorning(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone) })} data-testid="channel-mute-tomorrow">
-                    <span class="whitespace-normal">{t('muteChannel')} · {t('noticePauseTomorrow')}</span>
-                  </DropdownMenu.Item>
+                      <Icon name="chevron-end" class="size-3.5 text-faint" />
+                    </DropdownMenu.SubTrigger>
+                    <DropdownMenu.SubContent class={cn(menuContentClass, 'min-w-48')} sideOffset={4}>
+                      <DropdownMenu.Item class={menuItemClass} onSelect={() => settings({ muted_until: Date.now() + 3_600_000 })} data-testid="channel-mute-hour">{t('noticePauseHour')}</DropdownMenu.Item>
+                      <DropdownMenu.Item class={menuItemClass} onSelect={() => settings({ muted_until: tomorrowMorning(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone) })} data-testid="channel-mute-tomorrow">{t('noticePauseTomorrow')}</DropdownMenu.Item>
+                      <DropdownMenu.CheckboxItem checked={channel.muted} onCheckedChange={(on) => settings({ muted: on })} class={menuItemClass} data-testid="channel-mute">
+                        {#snippet children({ checked })}
+                          {t('muteAlways')}
+                          {#if checked}<Icon name="check" class="size-3.5" />{/if}
+                        {/snippet}
+                      </DropdownMenu.CheckboxItem>
+                    </DropdownMenu.SubContent>
+                  </DropdownMenu.Sub>
                   {#if channel.notification_pending}
                     <DropdownMenu.Item class={menuItemClass} disabled={!channel.notification_conflict} onSelect={() => settings(channel.muted_until > Date.now() ? {muted_until:channel.muted_until} : {muted:channel.muted})}>
                       <span class="whitespace-normal">{channel.notification_conflict ? t('retry') : t('noticePending')}</span>
                     </DropdownMenu.Item>
                   {/if}
-                  <DropdownMenu.CheckboxItem checked={readReceipts} onCheckedChange={(on) => (readReceipts = on)} class={menuItemClass} data-testid="channel-receipts">
-                    {#snippet children({ checked })}
-                      <span class="flex items-center gap-2"><Icon name="delivered" class="text-faint" />{t('sendReadReceipts')}</span>
-                      {#if checked}<Icon name="check" class="size-3.5" />{/if}
-                    {/snippet}
-                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.Item class={menuItemClass} disabled={busy} onSelect={read} data-testid="channel-read">
+                    <span class="flex items-center gap-2"><Icon name="sync-now" class="text-faint" />{t('read')}</span>
+                  </DropdownMenu.Item>
+                  {#if direct}
+                    <DropdownMenu.Item class={menuItemClass} onSelect={() => (membersOpen = !membersOpen)} data-testid="channel-members-menu">
+                      <span class="flex items-center gap-2"><Icon name="members" class="text-faint" />{t('members')}</span>
+                    </DropdownMenu.Item>
+                  {/if}
                   {#if can.member}
                     <DropdownMenu.Item class={menuItemClass} onSelect={() => (access = true)} data-testid="channel-access-open">
                       <span class="flex items-center gap-2"><Icon name="agents" class="text-faint" />{t('channelAccess')}…</span>
@@ -825,6 +958,9 @@
                       <span class="flex items-center gap-2"><Icon name="leave" />{t('leave')}…</span>
                     </DropdownMenu.Item>
                   {/if}
+                  <DropdownMenu.Item class={menuItemClass} onSelect={() => (settling = true)} data-testid="channel-packet-open">
+                    <span class="flex items-center gap-2"><Icon name="transfer" class="text-faint" />{t('transferPacket')}…</span>
+                  </DropdownMenu.Item>
                   {#if !can.member || ledger?.status === 'archived' || channel.hidden}
                     <DropdownMenu.Item class={menuItemClass} onSelect={() => settings({ hidden: !channel.hidden })} data-testid="channel-hide">
                       <span class="flex items-center gap-2"><Icon name="archive" class="text-faint" />{channel.hidden ? t('showInList') : t('hideFromList')}</span>
@@ -841,10 +977,12 @@
             <label class="relative block">
               <Icon name="search" class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />
               <input
+                bind:this={searchInput}
                 bind:value={search.query}
                 type="search"
                 class="ps-8"
                 placeholder={t('searchMessages')}
+                aria-label={t('searchMessages')}
                 onkeydown={(e) => e.key === 'Enter' && find()}
                 data-testid="channel-search-query"
               />
@@ -897,6 +1035,7 @@
           </div>
         {/if}
 
+        {#key channel.id}
         <Thread
           {channel}
           messages={shownMessages}
@@ -911,15 +1050,18 @@
           writes={unlocked && can.writes}
           bind:draft={() => drafts[channel.id] ?? '', (text) => (drafts[channel.id] = text)}
           bind:attachments={() => attached[channel.id] ?? [], (list) => (attached[channel.id] = list)}
-          bind:reply
+          bind:reply={() => replies[channel.id] ?? null, (message) => (replies[channel.id] = message)}
           bind:editing
+          history={reading}
+          onLatest={latest}
           onSend={send}
           onRetry={retry}
           onDiscard={discard}
-          onImport={() => addFiles()}
+          onImport={() => addFiles((folder) => window.dmsg.filesAdd(folder, undefined, false, true))}
           onAttach={attachments}
           onBrowse={() => (picking = true)}
-          onDrop={(dropped) => addFiles(dropped)}
+          onDrop={(dropped) => addFiles((folder) => window.dmsg.filesAdd(folder, dropped, false, true))}
+          onPaste={(pasted) => addFiles((folder) => window.dmsg.filesPaste(folder, pasted))}
           onDownload={download}
           onSave={save}
           onSnapshot={receiveSnapshot}
@@ -930,6 +1072,7 @@
           onPacket={settlePacket}
           onRead={markRead}
         />
+        {/key}
       {:else}
         <div class="grid flex-1 place-items-center p-8 text-center text-[13px] text-faint">
           <p>{channels.length ? t('pickChannel') : ''}</p>
@@ -991,7 +1134,7 @@
     {/snippet}
   </Dialog>
   <Dialog bind:open={renaming.open} title={t('renameChannel')} description={t('renameHint')} icon="edit" testid="channel-rename-dialog">
-    <input bind:value={renaming.name} class="text-[13.5px]" data-testid="channel-rename-input" />
+    <TextField bind:value={renaming.name} label={t('channelName')} hideLabel class="text-[13.5px]" data-testid="channel-rename-input" />
     {#snippet footer()}
       <span class="flex-1"></span>
       <button class={buttonClass('ghost')} onclick={() => (renaming.open = false)}>{t('cancel')}</button>
@@ -1028,15 +1171,13 @@
 {#if history.member}
   <Dialog bind:open={history.open} title={t('grantHistory')} description={t('historyHint')} icon="legacy" testid="history-dialog">
     <div class="flex items-end gap-2" data-testid="history-form">
-      <label class="grid flex-1 gap-1 text-[12px] text-faint">
-        {t('fromEpoch')}
+      <Field label={t('fromEpoch')} class="flex-1">
         <input type="number" min="1" max={history.member.joined_epoch - 1} bind:value={history.from} class="text-ink tabular-nums" />
-      </label>
+      </Field>
       <span class="pb-1.5 text-faint">–</span>
-      <label class="grid flex-1 gap-1 text-[12px] text-faint">
-        {t('toEpoch')}
+      <Field label={t('toEpoch')} class="flex-1">
         <input type="number" min="1" max={history.member.joined_epoch - 1} bind:value={history.to} class="text-ink tabular-nums" />
-      </label>
+      </Field>
     </div>
     {#snippet footer()}
       <span class="flex-1"></span>
@@ -1055,5 +1196,5 @@
 
 <Dialog bind:open={snapshotOpen} title={workflowText('channelSnapshot')} description={workflowText('channelWarning')}>
   {#if snapshotError}<p class="text-danger">{snapshotError}</p>{/if}
-  {#if snapshot}{#key snapshot.package_id}<PackageImport received={snapshot} open={id=>{snapshotOpen=false;go(`/approval/${id}`)}} />{/key}{/if}
+  {#if snapshot}{#key snapshot.package_id}<PackageImport received={snapshot} open={id=>{snapshotOpen=false;void bridge(()=>window.dmsg.openApproval(id)).catch(fail)}} />{/key}{/if}
 </Dialog>

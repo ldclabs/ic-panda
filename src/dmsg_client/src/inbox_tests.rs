@@ -403,3 +403,49 @@ async fn a_locked_inbox_read_does_not_start_network_work() {
     assert_eq!(list(&c.hold()).await.unwrap_err(), Error::Locked);
     assert_eq!(policy(&c.hold()).await.unwrap_err(), Error::Locked);
 }
+
+#[test]
+fn a_sent_letter_keeps_its_text_for_its_sender() {
+    #[derive(Serialize)]
+    struct Before {
+        recipient: String,
+        text_digest: String,
+        payload: ContactPayload,
+    }
+    let dir = crate::testing::TempDir::new();
+    let c = crate::testing::unlocked(&dir.0, false, None);
+    let payload = ContactPayload {
+        recipient: "them".into(),
+        order_id: "aa".repeat(32),
+        inbox_key_version: 1,
+        ciphertext: "sealed".into(),
+        invitation: None,
+        payer: None,
+    };
+    c.save_inbox_job(
+        &format!("outgoing:{}", "aa".repeat(32)),
+        &Outgoing {
+            recipient: "them".into(),
+            text_digest: "digest".into(),
+            payload: payload.clone(),
+            text: "see you soon".into(),
+            sent_at: 7,
+        },
+    )
+    .unwrap();
+    // A letter from before the text was kept still reads, without one.
+    c.save_inbox_job(
+        &format!("outgoing:{}", "bb".repeat(32)),
+        &Before {
+            recipient: "them".into(),
+            text_digest: "digest".into(),
+            payload,
+        },
+    )
+    .unwrap();
+    let sent = c.inbox_outgoing().unwrap();
+    assert_eq!(sent[0]["text"], "see you soon");
+    assert_eq!(sent[0]["sent_at"], 7);
+    assert_eq!(sent[1]["text"], "");
+    assert_eq!(sent[1]["sent_at"], 0);
+}

@@ -6,6 +6,44 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## Unreleased
+
+### Everyday use
+
+- Open on a first-run page on a device with no account. Views come back where
+  they were left, and tabs are part of the route, so back and the sidebar
+  return to them. Press ⌘/ for the shortcuts; ⌘1–⌘8 now follow the sidebar's
+  order, so ⌘1 is Channels and ⌘3 is Vault.
+- Select in lists as in a file manager: ⌘ or Shift click, Shift with the arrows,
+  ⌘A, Enter, Delete and Esc. Selection mode and its checkboxes are gone.
+- Copy a secret with one click. Showing one still takes two.
+- Move Credential use and the other secret workflows from Approvals into Vault
+  (`/vault/<workflow>`).
+- Keep the text of sent letters for their sender. Search letters, reply, and read
+  an order's state in words.
+- Open links in messages and letters after seeing their real address. The bell
+  in the title bar lists the latest reminders, and each one opens what it is about.
+- Lock on screen lock or sleep, on by default, and choose the idle time in
+  Settings › Security. The approval window closes itself after its last request.
+- Localize the menus; restore the window's place and size; say what closing the
+  window does the first time; offer a retry and details when the daemon cannot
+  start.
+- Drag list widths, drag files out of the library, preview them with Space and
+  paste images into a message.
+
+### Performance
+
+- Load each window, view and language on its own. The approval window no longer
+  loads the main window's code and every catalog.
+- Stop scanning every list on each key in the command palette. Page long Vault
+  lists, and read only what is new while a channel is open.
+
+### Fixes
+
+- Stop pasted images failing with an invalid input error.
+- Stop a dialog closing on a stray click outside it.
+- Keep at most four toasts on screen.
+
 ## [1.3.3] - 2026-11-04
 
 ### Fixes

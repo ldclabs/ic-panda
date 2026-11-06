@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { daemonBlocked } from '../connection-gate'
   import SecretInput from '../components/SecretInput.svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import { DropdownMenu } from 'bits-ui'
@@ -8,6 +9,7 @@
   import Icon from '../components/Icon.svelte'
   import Locked from '../components/page/Locked.svelte'
   import Notice from '../components/page/Notice.svelte'
+  import PaneHandle from '../components/PaneHandle.svelte'
   import Progress from '../components/Progress.svelte'
   import Select from '../components/Select.svelte'
   import { toast } from '../components/toast.svelte'
@@ -16,6 +18,7 @@
   import { locale, t } from '../i18n/index.svelte'
   import { copyText } from '../components/clipboard'
   import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
+  import { remember, remembered, rememberedPlain, rememberPlain } from '../view-memory'
   import { added, backups, downloads, scopeJobs, dismiss, failed, forget, jobs, picked, progress, type Job } from './files/adding.svelte'
   import Cloud from './files/Cloud.svelte'
   import Links from './files/Links.svelte'
@@ -47,7 +50,7 @@
   const SORT_KEY = 'dmsg.files.sort'
 
   /** A folder ID, or `starred`, `tag:<tag>`, `cloud`, `trash`. */
-  let scope = $state<string>(ROOT)
+  let scope = $state<string>(rememberedPlain<string>('files.tag') ?? remembered('files.scope') ?? ROOT)
   let folders = $state<any[]>([])
   let tags = $state<{ tag: string; files: number }[]>([])
   let listing = $state<{ folder: any; folders: any[]; files: any[] } | null>(null)
@@ -58,7 +61,7 @@
   let cloudUsage = $state<any>(null)
   let usage = $state<any>(null)
   let query = $state('')
-  let selected = $state<string[]>([])
+  let selected = $state<string[]>(remembered('files.selected') ?? [])
   let placesOpen = $state(false)
   let program = $state<{ id: string; version: string | null; name: string } | null>(null)
   /** Where a shift-extended selection starts. */
@@ -166,6 +169,13 @@
       busy = false
     }
   }
+
+  $effect(() => {
+    const tagged = scope.startsWith('tag:')
+    rememberPlain('files.tag', tagged ? scope : null)
+    if (!tagged) remember('files.scope', scope)
+    remember('files.selected', selected)
+  })
 
   // The route names the place; the place changes the route.
   $effect(() => {
@@ -411,6 +421,9 @@
       event.preventDefault()
       if (currentRow.kind === 'folder') pick(currentRow.id)
       else if (statusOf(currentRow.status) !== 'cloud_only') open(currentRow.id, null)
+    } else if (key === ' ' && current && window.dmsg.platform === 'darwin' && statusOf(current.status) !== 'cloud_only') {
+      event.preventDefault()
+      void bridge(() => window.dmsg.filesPreview(current.id, current.name)).catch(fail)
     } else if (key === 'F2' && currentRow) {
       event.preventDefault()
       renameItem(currentRow)
@@ -641,7 +654,7 @@
       toast(() => t(bad ? 'verifyAllBad' : 'verifyAllDone', counts), { ms: 8000, testid: 'files-verified' })
     })
   const refreshInventory = single(async () => {
-    if (scope !== 'cloud' || !unlocked || document.visibilityState !== 'visible' || document.body.inert) return
+    if (scope !== 'cloud' || !unlocked || document.visibilityState !== 'visible' || daemonBlocked()) return
     try { await call('files/cloud_refresh', { force: false }) }
     catch (e) { if (scope === 'cloud') { const failure = errorText(e); await reload(); if (scope === 'cloud') error = failure } }
   })
@@ -848,7 +861,7 @@
         </div>
       {/if}
     {:else}
-      <section class="relative flex w-[248px] shrink-0 flex-col border-e border-line @min-[800px]:w-[280px] @min-[980px]:w-[320px]">
+      <section class="relative flex w-[var(--pane,248px)] shrink-0 flex-col border-e border-line @min-[800px]:w-[var(--pane,280px)] @min-[980px]:w-[var(--pane,320px)]">
         <div class="grid gap-2 p-3 pb-2">
           <div class="flex items-center gap-1.5">
             <label class="relative min-w-0 flex-1">
@@ -987,6 +1000,7 @@
         </ul>
         <Jobs {nameOf} onCancel={cancelBackup} onRetry={retryTransfer} onCancelImport={cancelImport} />
       </section>
+      <PaneHandle name="files" />
 
       <div class="min-w-0 flex-1">
         {#if current && details?.file?.id === current.id}

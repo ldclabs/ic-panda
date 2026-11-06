@@ -25,9 +25,7 @@
   const ready = $derived(status?.state === 'unlocked')
   const guidance = $derived<Label>(
     !status ? 'loading' : status.state === 'logged_out' ? 'legacyLoginHint'
-      : status.state === 'locked' ? 'legacyUnlockHint'
-      : status.state === 'no_account' || status.setup_pending ? 'legacySetupHint'
-      : status.state === 'pairing_required' ? 'legacyDeviceHint' : 'legacyRootHint'
+      : status.state === 'locked' ? 'legacyUnlockHint' : 'legacyRootHint'
   )
   let offer = $state<any>(null)
   let pairs = $state<any[]>([])

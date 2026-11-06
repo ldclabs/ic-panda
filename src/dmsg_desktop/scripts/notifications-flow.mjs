@@ -260,6 +260,9 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   assert.equal(await main.getByTestId('notifications-account-enabled').getAttribute('aria-checked'), 'true')
   model.settings.delete(nextAccount)
   await main.getByTestId('reminders-open').click()
+  await main.getByTestId('reminders-popover').waitFor()
+  await waitFor(async () => await main.getByTestId('reminder-row').count() === 2)
+  await main.getByTestId('reminders-all').click()
   await main.getByTestId('reminders-page').waitFor()
   await waitFor(async () => await main.getByTestId('reminder-item').count() === 2)
   const actions = calls.filter((call) => ['approval/respond', 'inbox/mark', 'plan/notice_ack'].includes(call.method)).length
@@ -282,7 +285,7 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
       console.log('notification visibility diagnostics', await main.evaluate(async () => {
         const node = document.querySelector('[data-testid="letter"] > header')
         const intersection = await new Promise((resolve) => { const observer = new IntersectionObserver(([entry]) => { observer.disconnect(); resolve({ intersecting: entry.isIntersecting, ratio: entry.intersectionRatio }) }); observer.observe(node) })
-        return { focus: document.hasFocus(), inert: document.body.inert, visible: document.visibilityState,
+        return { focus: document.hasFocus(), inert: document.body.hasAttribute("data-daemon-unverified"), visible: document.visibilityState,
           modal: !!document.querySelector('[aria-modal="true"]'), anchor: node?.getBoundingClientRect().toJSON(), intersection }
       }), await native.evaluate((window) => ({ visible: window.isVisible(), focused: window.isFocused(), destroyed: window.isDestroyed() })), calls.filter((call) => call.method === 'notifications/observed').slice(-3))
       await main.screenshot({ path: join(shots, 'notifications-visibility-diagnostic.png') })
@@ -314,6 +317,7 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   const membersClose = main.locator('aside').getByRole('button', {name:'Close',exact:true})
   if (await membersClose.count()) await membersClose.last().click()
   await main.getByTestId('channel-manage').click()
+  await main.getByTestId('channel-mute-menu').click()
   await main.getByTestId('channel-mute-hour').click()
   await waitFor(() => latest('channel/settings')?.params.muted_until > Date.now() + 3_500_000)
   for (const [language, appearance] of [['zh','light'],['zh','dark'],['de','light'],['ar','dark']]) {
@@ -372,7 +376,7 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   await main.getByTestId('reminders-page').waitFor()
   await main.screenshot({ path: join(shots, 'notifications-reminders.png') })
   const oldAccounts = methods['session/accounts'], oldSettings = methods['notifications/settings'], oldNoticeStatus = methods['notifications/status']
-  methods['session/accounts'] = () => []
+  // A device with accounts but none open: one with no account at all opens on the first-run page.
   methods['notifications/settings'] = () => ({ ...oldSettings(), account: null, account_id: null })
   methods['daemon/status'] = () => ({ ...status(), account: null, state: 'logged_out', approvals_waiting: 0, pending_sync: 0 })
   methods['notifications/status'] = () => ({ counts:{actionable:0,unread:0,unverified:false},accounts:[],badge:0,enabled:true })

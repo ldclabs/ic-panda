@@ -179,6 +179,15 @@
   const tones: Record<string, string> = { neutral: 'text-faint', forest: 'text-forest', gem: 'text-gem', warn: 'text-warn', danger: 'text-danger', ok: 'text-ok' }
   const dateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }))
   const deviceName = (id: string) => (id && device && id.toLowerCase() === device.toLowerCase() ? t('thisDevice') : t('fromDevice', { device: String(id ?? '').slice(0, 8) }))
+
+  /** Largest file dragged out directly: a drag cannot wait for much decrypting. */
+  const DRAG_MAX = 64 * 1024 * 1024
+  const draggable = $derived(!trash && statusOf(file.status) !== 'cloud_only' && file.size <= DRAG_MAX)
+
+  function dragOut(event: DragEvent) {
+    event.preventDefault()
+    void bridge(() => window.dmsg.filesDrag(file.id, file.name)).catch((e) => toast(() => errorText(e)))
+  }
 </script>
 
 {#snippet row(label: string)}
@@ -188,7 +197,14 @@
 <section class="@container flex h-full min-w-0 flex-col" aria-label={file.name} data-testid="files-detail">
   <header class="flex flex-wrap items-start gap-x-3 gap-y-2 px-6 pt-5 pb-4">
     <div class="flex min-w-[min(100%,15rem)] flex-1 items-start gap-3">
-      <span class="grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5">
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <span
+        class={cn('grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5', draggable && 'cursor-grab')}
+        {draggable}
+        title={draggable ? t('fileDragHint') : undefined}
+        ondragstart={dragOut}
+        data-testid="files-drag"
+      >
         <Icon name={fileIcon(file.mime)} />
       </span>
       <div class="min-w-0 flex-1">

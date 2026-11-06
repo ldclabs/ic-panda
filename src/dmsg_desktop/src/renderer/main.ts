@@ -1,6 +1,7 @@
 import { mount } from 'svelte'
 import App from './App.svelte'
 import { showPendingButtons } from './components/pending'
+import { languageReady } from './i18n/index.svelte'
 import '@fontsource-variable/inter'
 import './app.css'
 
@@ -12,4 +13,5 @@ if (window.dmsg.role === 'main' && window.dmsg.platform === 'darwin') {
 }
 
 showPendingButtons()
+await languageReady
 mount(App, { target: document.getElementById('app')! })

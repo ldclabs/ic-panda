@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Brand from './Brand.svelte'
   import type { Snippet } from 'svelte'
   import Icon from '../components/Icon.svelte'
   import Tooltip from '../components/Tooltip.svelte'
@@ -18,26 +19,24 @@
   let {
     route,
     status,
-    connected,
-    connectionError,
     collapsed,
     inset,
     mod,
     legacyNotice,
     onDismissLegacy,
     go,
+    enter,
     windowNav
   }: {
     route: string
     status: any
-    connected: boolean
-    connectionError?: string
     collapsed: boolean
     inset: boolean
     mod: string
     legacyNotice: boolean
     onDismissLegacy: () => void
     go: (path: string) => void
+    enter: (path: string) => void
     windowNav: Snippet
   } = $props()
 
@@ -46,7 +45,7 @@
 
 {#snippet item(view: View)}
   {@const active = entry === view}
-  <Tooltip content={view.key ? `${t(view.label)} · ${mod}${view.key}` : t(view.label)} side="right" disabled={!collapsed}>
+  <Tooltip content={view.key ? `${t(view.label)} · ${mod}${view.key}` : t(view.label)} side="right">
     {#snippet children(props)}
       <button
         {...props}
@@ -57,7 +56,7 @@
         )}
         aria-current={active ? 'page' : undefined}
         aria-label={collapsed ? t(view.label) : undefined}
-        onclick={() => go(view.path)}
+        onclick={() => enter(view.path)}
       >
         <Icon name={view.icon} class={cn('size-4.5', active ? 'text-forest' : 'text-faint')} />
         {#if !collapsed}<span class="min-w-0 flex-1">{t(view.label)}</span>{/if}
@@ -98,18 +97,7 @@
   <div class="flex h-[60px] shrink-0 items-center gap-2 ps-2 pb-px [-webkit-app-region:drag] lights:ltr:ps-[72px]">
     {#if !collapsed}
       {#if !inset}
-        <!-- The Gate, as on dmsg.net: a post and a dome, one request waiting between them. -->
-        <svg class="h-5 w-[17px] fill-forest" viewBox="0 0 42 48" aria-hidden="true">
-          <mask id="brand-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="42" height="48">
-            <rect width="42" height="48" fill="#fff" />
-            <path d="M12 17.5 18.5 24 12 30.5 5.5 24Z" stroke="#000" stroke-width="5" stroke-linejoin="round" />
-          </mask>
-          <g mask="url(#brand-cut)">
-            <path d="M4 0h4.5A1.5 1.5 0 0 1 10 1.5v45A1.5 1.5 0 0 1 8.5 48H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4Z" />
-            <path d="M15.5 0H18a24 24 0 0 1 0 48h-2.5a1.5 1.5 0 0 1-1.5-1.5v-45A1.5 1.5 0 0 1 15.5 0Z" />
-          </g>
-          <path class="fill-gem" d="M12 17.5 18.5 24 12 30.5 5.5 24Z" />
-        </svg>
+        <Brand />
         <span class="me-auto text-lg leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
       {/if}
       {@render windowNav()}
@@ -141,6 +129,6 @@
     {@render item(views.settings)}
   </nav>
   <div class={cn('mt-auto pt-3', collapsed ? 'w-full' : '')}>
-    <GateRail {status} {connected} {connectionError} {collapsed} {mod} />
+    <GateRail {status} {collapsed} {mod} />
   </div>
 </aside>

@@ -11,9 +11,10 @@ export async function trayFlow({ app, methods, emit, waitFor, setSession, shots 
       return setImage.call(this, image)
     }
   })
-  const status = methods['daemon/status']
+  const status = methods['daemon/status'], notices = methods['notifications/status']
   let waiting = 0
   methods['daemon/status'] = () => ({ ...status(), approvals_waiting: waiting })
+  methods['notifications/status'] = () => { const read = notices(); return { ...read, counts: { ...read.counts, actionable: waiting } } }
   const template = process.platform === 'darwin' ? 'Template' : ''
   for (const [state, count, badge] of [
     ['unlocked', 0, ''], ['locked', 0, 'Locked'], ['locked', 2, 'LockedWaiting'], ['unlocked', 2, 'Waiting'], ['unlocked', 0, '']
@@ -27,5 +28,6 @@ export async function trayFlow({ app, methods, emit, waitFor, setSession, shots 
     await writeFile(join(shots, `tray-${badge || 'idle'}@2x.png`), Buffer.from(frame.retina, 'base64'))
   }
   methods['daemon/status'] = status
+  methods['notifications/status'] = notices
   emit('session/changed', { state: 'unlocked' })
 }

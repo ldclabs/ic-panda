@@ -3,21 +3,28 @@
   import { onDestroy } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Dialog from '../../components/Dialog.svelte'
+  import TextArea from '../../components/TextArea.svelte'
+  import TextField from '../../components/TextField.svelte'
   import { toast } from '../../components/toast.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { bridge, call, errorText } from '../../rpc'
+  import { rememberedPlain, rememberPlain } from '../../view-memory'
+  import { accountOf } from '../channels/names.svelte'
 
   /**
-   * A letter to an account. A free one is delivered at once; a paid one
-   * comes back quoted and is paid only once the approval window agrees.
-   * The daemon's `inbox/changed` reloads the letters.
+   * A letter to an account, named by its ID or its dMsg name. A free one is
+   * delivered at once; a paid one comes back quoted and is paid only once the
+   * approval window agrees. The daemon's `inbox/changed` reloads the letters.
+   * `to` fills the recipient of a reply; what was being written stays until it
+   * is sent or the account locks.
    */
-  let { open = $bindable(false), mod }: { open?: boolean; mod: string } = $props()
+  let { open = $bindable(false), to = '', mod }: { open?: boolean; to?: string; mod: string } = $props()
 
-  let recipient = $state('')
-  let text = $state('')
-  let pay = $state(false)
+  const draft = rememberedPlain<{ recipient: string; text: string; pay: boolean }>('inbox.compose')
+  let recipient = $state(draft?.recipient ?? '')
+  let text = $state(draft?.text ?? '')
+  let pay = $state(draft?.pay ?? false)
   let busy = $state(false)
   let error = $state('')
   let generation = 0
@@ -25,9 +32,13 @@
 
   $effect(() => {
     if (!open) { generation += 1; error = '' }
+    else if (to) recipient = to
   })
 
-  onDestroy(() => { generation += 1 })
+  onDestroy(() => {
+    generation += 1
+    rememberPlain('inbox.compose', { recipient, text, pay })
+  })
 
   async function send() {
     if (busy || !recipient.trim() || !text.trim()) return
@@ -35,13 +46,14 @@
     busy = true
     error = ''
     try {
-      const to = recipient.trim()
-      const key = JSON.stringify([to, text, pay])
+      const account = await accountOf(recipient)
+      if (at !== generation || !open) return
+      const key = JSON.stringify([account, text, pay])
       if (pending?.key !== key) pending = { key, order: Array.from(crypto.getRandomValues(new Uint8Array(32)), (n) => n.toString(16).padStart(2, '0')).join('') }
-      const sent: any = await call('inbox/send', { recipient: to, text, pay, order: pending.order })
+      const sent: any = await call('inbox/send', { recipient: account, text, pay, order: pending.order })
       if (at !== generation || !open) return
       if (sent.state === 'quoted') {
-        const request: any = await call('inbox/pay', { recipient: to, order: sent.order_id })
+        const request: any = await call('inbox/pay', { recipient: account, order: sent.order_id })
         if (at !== generation || !open) return
         await bridge(() => window.dmsg.openApproval(request.id))
         toast(() => t('letterQuoted'), { testid: 'letter-state' })
@@ -72,14 +84,8 @@
 <Dialog bind:open title={t('writeLetter')} description={t('letterHint')} icon="mail" testid="letter-dialog">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="grid gap-3" onkeydown={onKey}>
-    <label class="grid gap-1 text-[12px] text-faint">
-      {t('to')}
-      <input disabled={busy} bind:value={recipient} class="font-mono text-[12.5px] text-ink placeholder:font-sans" placeholder={t('accountId')} spellcheck="false" data-testid="letter-recipient" />
-    </label>
-    <label class="grid gap-1 text-[12px] text-faint">
-      {t('message')}
-      <textarea disabled={busy} bind:value={text} rows="7" class="text-[13.5px] text-ink" data-testid="letter-text"></textarea>
-    </label>
+    <TextField label={t('to')} disabled={busy} bind:value={recipient} placeholder={t('accountOrName')} spellcheck={false} data-testid="letter-recipient" />
+    <TextArea label={t('message')} disabled={busy} bind:value={text} rows={7} data-testid="letter-text" />
     <Checkbox disabled={busy} bind:checked={pay} class="text-[12.5px] text-ink-2">{t('paidLetterHint')}</Checkbox>
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   </div>

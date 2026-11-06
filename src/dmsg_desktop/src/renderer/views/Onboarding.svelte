@@ -177,7 +177,6 @@
   <Section title={t('recovery')} description={t('recoveryHint')} icon="recovery">
     <div class="grid gap-3">
       <div class="flex flex-wrap gap-2">
-        <button class={buttonClass('secondary')} disabled={busy} onclick={() => recoveryCall('recovery/status')}>{t('recoveryStatus')}</button>
         {#if status?.state === 'pairing_required'}
           <button class={buttonClass('secondary')} disabled={busy || !recovery || recovery.enabled === false || !!recovery.pending} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>
         {/if}

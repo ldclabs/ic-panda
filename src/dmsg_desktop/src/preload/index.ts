@@ -33,8 +33,8 @@ const api: DesktopBridge = {
   login: (origin, bind) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true)),
   openLogin: (url) => unwrap(ipcRenderer.invoke('dmsg:open-login', url)),
   runtime: () => unwrap(ipcRenderer.invoke('dmsg:runtime')),
-  filesAdd: (folder, dropped, directory) => {
-    if (dropped === undefined) return unwrap(ipcRenderer.invoke('dmsg:files-add', folder, null, directory === true))
+  filesAdd: (folder, dropped, directory, attach) => {
+    if (dropped === undefined) return unwrap(ipcRenderer.invoke('dmsg:files-add', folder, null, directory === true, attach === true))
     // Only a file the person dropped or picked has a path; one a page made has none.
     const paths: string[] = []
     for (const file of dropped) {
@@ -46,11 +46,29 @@ const api: DesktopBridge = {
       }
     }
     return paths.length === dropped.length && paths.length
-      ? unwrap(ipcRenderer.invoke('dmsg:files-add', folder, paths, false))
+      ? unwrap(ipcRenderer.invoke('dmsg:files-add', folder, paths, false, attach === true))
       : Promise.reject(new Error('INVALID_INPUT: Not files on this device'))
+  },
+  filesPaste: (folder, pasted) => {
+    // A copied file has a path. Anything else, a screenshot for one, is read
+    // from the system clipboard by the main process, never taken from the page.
+    const path = (file: File) => {
+      try {
+        return webUtils.getPathForFile(file)
+      } catch {
+        return ''
+      }
+    }
+    const paths = pasted.map(path)
+    return paths.every(Boolean)
+      ? unwrap(ipcRenderer.invoke('dmsg:files-add', folder, paths, false, true))
+      : unwrap(ipcRenderer.invoke('dmsg:files-paste-image', folder))
   },
   filesExport: (id, version, name) => unwrap(ipcRenderer.invoke('dmsg:files-export', id, version, name)),
   filesExportMany: (items) => unwrap(ipcRenderer.invoke('dmsg:files-export-many', items)),
+  filesPreview: (id, name) => unwrap(ipcRenderer.invoke('dmsg:files-preview', id, name)),
+  filesDrag: (id, name) => unwrap(ipcRenderer.invoke('dmsg:files-drag', id, name)),
+  closeApproval: () => unwrap(ipcRenderer.invoke('dmsg:close-approval')),
   filesPreferences: (changes) => unwrap(ipcRenderer.invoke('dmsg:files-preferences', changes)),
   filesOpen: (id, version) => unwrap(ipcRenderer.invoke('dmsg:files-open', id, version)),
   avatar: () => unwrap(ipcRenderer.invoke('dmsg:avatar')),
@@ -95,6 +113,12 @@ const api: DesktopBridge = {
   pair: (copyLink) => unwrap(ipcRenderer.invoke('dmsg:pair', copyLink)),
   openApproval: (id) => unwrap(ipcRenderer.invoke('dmsg:open-approval', id)),
   connection: () => unwrap(ipcRenderer.invoke('dmsg:connection')),
+  reconnect: () => unwrap(ipcRenderer.invoke('dmsg:reconnect')),
+  quit: () => unwrap(ipcRenderer.invoke('dmsg:quit')),
+  desktopSettings: () => unwrap(ipcRenderer.invoke('dmsg:desktop-settings')),
+  setDesktopSettings: (change) => unwrap(ipcRenderer.invoke('dmsg:set-desktop-settings', change)),
+  openLink: (url) => unwrap(ipcRenderer.invoke('dmsg:open-link', url)),
+  copyImage: (url) => unwrap(ipcRenderer.invoke('dmsg:copy-image', url)),
   updates: () => unwrap(ipcRenderer.invoke('dmsg:updates')),
   setUpdateChannel: (channel) => unwrap(ipcRenderer.invoke('dmsg:set-update-channel', channel)),
   checkUpdates: () => unwrap(ipcRenderer.invoke('dmsg:check-updates')),

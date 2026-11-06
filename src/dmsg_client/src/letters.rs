@@ -174,7 +174,9 @@ impl Client {
             let status = self
                 .workspace
                 .private::<Value>(keys, &format!("{STATUS}{id}"))?;
-            rows.insert(id.to_string(), json!({"id":id,"recipient":outgoing["recipient"],"text":null,"created_at":status.as_ref().and_then(|v| v["created_at"].as_u64()),"state":status.as_ref().and_then(|v| v["state"].as_str()).unwrap_or("unknown"),"error":null,"pending":false,"editable":false}));
+            let text = outgoing["text"].as_str().filter(|text| !text.is_empty());
+            let sent_at = outgoing["sent_at"].as_u64().filter(|at| *at > 0);
+            rows.insert(id.to_string(), json!({"id":id,"recipient":outgoing["recipient"],"text":text,"created_at":status.as_ref().and_then(|v| v["created_at"].as_u64()).or(sent_at),"state":status.as_ref().and_then(|v| v["state"].as_str()).unwrap_or("unknown"),"error":null,"pending":false,"editable":false}));
         }
         for key in self.workspace.store.sealed_keys(INTENT)? {
             let letter = self

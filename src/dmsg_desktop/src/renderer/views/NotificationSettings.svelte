@@ -13,6 +13,7 @@
   import { call, code, errorText, when } from '../rpc'
   import { t, stateLabel, type Label } from '../i18n/index.svelte'
   import { tomorrowMorning } from '../../shared/notification-time'
+  import { readReceipts, setReadReceipts } from './channels/preferences'
   import { noticeCategories, type GlobalNoticeSettings, type NoticeCategory, type NoticePermission, type NoticePreferences, type NoticeSettings, type NoticeStatus } from '../../shared/notifications'
 
   let { status }: { status: any } = $props()
@@ -92,6 +93,8 @@
     return () => { alive = false; generation++; off() }
   })
 
+  let receipts = $state(readReceipts())
+
   function enable(value: boolean) {
     if (!global) return
     global.enabled = value
@@ -159,7 +162,7 @@
   {#if error}<Notice failure={error} tone="danger" testid="notifications-error">{error}</Notice>{/if}
   {#if loading && !global}<p class="px-5 text-sm text-muted" role="status">{t('loading')}</p>{/if}
   {#if global && preferences}
-    <Section title={t('noticeSettings')} description={t('noticeScopeHint')} icon="time">
+    <Section title={t('noticeSettings')} description={t('noticeScopeHint')} icon="bell">
       <div class="space-y-4">
         <Checkbox checked={global.enabled} onCheckedChange={enable} disabled={busy || loading} label={t('noticeEnable')} testid="notifications-enabled">{t('noticeEnable')}</Checkbox>
         <p class="text-xs text-muted">{permission?.supported ? t('noticeManaged') : t('noticeUnsupported')}</p>
@@ -186,6 +189,10 @@
         <Checkbox class="flex" bind:checked={global.security_exception} disabled={busy || loading} label={t('noticeSecurityException')}>{t('noticeSecurityException')}</Checkbox>
         <Field label={t('noticeBadge')}><Select value={global.badge} options={[{value:'all',label:t('noticeBadgeAll')},{value:'actions',label:t('noticeBadgeActions')},{value:'off',label:t('noticeBadgeOff')}]} label={t('noticeBadge')} onChange={(value) => { global!.badge = value as GlobalNoticeSettings['badge'] }} disabled={busy || loading} /></Field>
       </div>
+    </Section>
+
+    <Section title={t('channels')} icon="channels" testid="notifications-channels">
+      <Checkbox bind:checked={() => receipts, (on) => { receipts = on; setReadReceipts(on) }} label={t('sendReadReceipts')} testid="read-receipts">{t('sendReadReceipts')}</Checkbox>
     </Section>
 
     <Section title={t('account')} icon="account" testid="notifications-account-section">

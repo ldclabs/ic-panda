@@ -1,14 +1,14 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import Icon from '../components/Icon.svelte'
-  import { cn, iconButtonClass } from '../components/ui'
+  import { cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { views, type View } from './nav'
+  import RemindersPopover from './RemindersPopover.svelte'
 
   /**
-   * The view's title bar: its name, under Settings for Settings' own pages, a
-   * line on what it holds, and the command palette. With the sidebar
-   * collapsed it reaches over the rail's top and starts with the window's
+   * The view's title bar: its name, under Settings for Settings' own pages,
+   * the reminders and the command palette. With the sidebar collapsed it reaches over the rail's top and starts with the window's
    * buttons, where the sidebar showed them. On macOS it leaves the traffic
    * lights their room at the window's top left, its end in right-to-left text.
    */
@@ -19,8 +19,9 @@
     windowNav,
     go,
     onPalette,
+    status,
     reminders = 0
-  }: { view: View; mod: string; collapsed: boolean; windowNav: Snippet; go: (path: string) => void; onPalette: () => void; reminders?: number } = $props()
+  }: { view: View; mod: string; collapsed: boolean; windowNav: Snippet; go: (path: string) => void; onPalette: () => void; status: any; reminders?: number } = $props()
 
   const parent = $derived(view === views.legacy ? views.settings : null)
 </script>
@@ -41,12 +42,8 @@
       {/if}
       <h1 class="truncate" data-testid="view-title">{t(view.label)}</h1>
     </div>
-    <p class="mt-0.5 truncate text-xs text-faint">{t(view.detail)}</p>
   </div>
-  <button class={iconButtonClass('ghost', 'lg', 'relative shrink-0 [-webkit-app-region:no-drag]')} onclick={() => go('/reminders')} aria-label={`${t('noticeTitle')}${reminders ? ` (${reminders})` : ''}`} title={t('noticeTitle')} data-testid="reminders-open">
-    <Icon name="time" />
-    {#if reminders > 0}<span class="absolute -end-1 -top-1 rounded-full bg-gem-pale px-1 text-[9px] font-semibold leading-4 text-gem">{reminders > 99 ? '99+' : reminders}</span>{/if}
-  </button>
+  <RemindersPopover {status} count={reminders} {go} />
   <button
     class="flex h-8 w-64 max-w-[40%] shrink items-center gap-2 rounded-lg bg-wash ps-2.5 pe-1.5 text-[13px] text-muted outline-none transition-colors duration-150 hover:bg-pale focus-visible:ring-3 focus-visible:ring-focus/35 [-webkit-app-region:no-drag]"
     onclick={onPalette}

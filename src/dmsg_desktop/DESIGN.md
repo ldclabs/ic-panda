@@ -246,7 +246,10 @@ monospace face: Arabic loses its letter joining there, so only the value
   title bar reaches over the rail's top and takes the buttons, on macOS at
   the same place. In right-to-left text the lights stay at the top left,
   over the title bar's end, which leaves them 84px. The title bar is the
-  drag region.
+  drag region and names the view once; a view does not repeat its name or
+  a subtitle below it. The sidebar folds to its rail below 900px, whatever
+  the person chose, and comes back with the room. The window's place and
+  size return when it opens again.
 - **Pane views** (vault, files, channels, inbox) run edge to edge: a filter
   or list column (248–320px), the open object, and for channels a members
   drawer (256–280px); the file library adds a folder tree (220px) before
@@ -255,6 +258,9 @@ monospace face: Arabic loses its letter joining there, so only the value
   into a menu below 860px; the file library’s places move into a dialog below
   800px, leaving room for its list and detail; the members drawer floats over the timeline below
   860px, the settings section list turns into a row of buttons below 720px.
+  The channel, vault and file lists take their width from `PaneHandle`: drag it,
+  move it with the arrows, Home and End, or double-click for the default.
+  The members drawer starts closed and stays as it was left.
 - **Page views** (agents, signatures, plan, settings) scroll as one column of
   sections, 860px wide (1040px for the capability matrix), with tab bars or
   a section list for their parts.
@@ -417,8 +423,9 @@ inline editors alone handle their own cancel shortcut.
   clearing needs a known, nonempty cache; cancelling system dialogs never
   reports success. Recovery
   alerts stay visible in the overview; cross-device key setup is folded.
-- **Secret field** — first click arms Show or Copy for three seconds with a
-  draining bar; the second click acts. A shown secret hides after a minute.
+- **Secret field** — one click copies. The first click on Show arms it for
+  three seconds with a draining bar; the second shows the value, which hides
+  after a minute.
 - **Conflict** — the current version and the copy side by side, changed
   fields tinted, the body diffed line by line; both choices weigh the same.
 - **Adding files** — a job card per file with its chunks done, above the
@@ -459,10 +466,12 @@ inline editors alone handle their own cancel shortcut.
 ## Interaction Integrity
 
 - Only the approval window decides; the main window can only open a request.
-- A secret reaches the screen only on the second click and reaches the
-  clipboard only through the main process.
-- Files enter through the main process's dialogs or a drop the preload
-  resolves to a path; a file a page made has none and is refused. Nothing
+- A secret reaches the screen only on the second click. It reaches the
+  clipboard on one click, only through the main process, marked to stay out
+  of clipboard histories and cleared after its time.
+- Files enter through the main process's dialogs, a drop the preload
+  resolves to a path, or an image the main process reads from the clipboard;
+  a file a page made has no path and is refused. Nothing
   of the library leaves the device unless the person backs it up or shares
   it, and deleting on one side never deletes on the other. A payer's PEM
   key enters only through the main process's dialog; a window never names
@@ -479,8 +488,10 @@ inline editors alone handle their own cancel shortcut.
 
 ## Accessibility & Languages
 
-- Six catalogs (`i18n/messages`), checked against English; values avoid the
-  ASCII apostrophe (French uses ’).
+- Twenty-three catalogs (`i18n/messages`), checked against English, which is
+  the only one in the first load: the chosen language loads before the first
+  paint, and the others only when picked. Values avoid the ASCII apostrophe
+  (French uses ’).
 - Arabic lays the windows out right to left with logical properties
   (`ms-`/`me-`/`ps-`/`pe-`/`start-`/`end-`); IDs, code and numbers stay in
   `<bdi dir="ltr">` or the `font-mono` isolation in `app.css`.
@@ -546,6 +557,47 @@ field content, notes, URL passwords, query strings or fragments. Full notes
 remain available in the selected item's detail.
 
 `DMSG_DESKTOP_VISUAL_MATRIX=1 node scripts/smoke.mjs` additionally captures the
-wallet and transfer dialog at 760, 1180 and 1600px, across all six languages
-and both themes in representative combinations. It checks horizontal fit;
+wallet and transfer dialog at 760, 1180 and 1600px, across six representative
+languages and both themes. It checks horizontal fit;
 visual inspection is still needed for typography, focus and grouping.
+
+## 2026-11-06 Interaction review
+
+**Loading.** The two windows share one build and load different parts of it.
+`App.svelte` holds only what both need; the main window's shell and each view
+load on their own, then the rest when the window is idle. The approval window
+loads one view and one catalog.
+
+**Coming back.** A view opens where it was left. IDs and tabs last until the
+account changes, plaintext and drafts until it locks (`view-memory.ts`). Tabs
+live in the route (`/approvals/<tab>`, `/agents/<tab>`, `/vault/<workflow>`,
+`/wallet/<id>?tab=`), so back, the palette and the sidebar all return to them.
+
+**First run.** A device with no account opens on `shell/Welcome.svelte`:
+language, login, then fast unlock and alerts. Settings keeps its account and
+pairing sections for later, and no other page tells the person to go to setup.
+
+**Selecting.** Lists select the way a file manager does: a click opens, ⌘ or
+Shift adds, Shift with the arrows extends, ⌘A takes all, Enter opens, Delete
+asks and Esc clears. A batch bar appears only for a selection. The menu on a
+row and its right-click are one `TargetMenu`. There is no selection mode and no
+checkbox column.
+
+**Reading.** Long lists render a page at a time and read the next near the end.
+A channel asks only for what is new while it stays open. Reads from a keystroke
+or an event coalesce; the palette never scans every list on each character.
+
+**Text and links.** Messages and letters show links through `LinkedText`. A
+link opens only after `LinkConfirm` shows its real address; nothing fetches a
+preview.
+
+**Reminders.** The title bar's bell lists the latest and opens each one; the
+whole list is one step further. Each row opens what it is about.
+
+**Locking.** Security holds what closes the account: the idle time, which the
+daemon applies from `preferences.json`, and the screen lock or sleep, on by
+default, which only the main process can hear. The approval window closes by
+itself two seconds after its last request is decided.
+
+**Secrets.** Credential use, sharing and maintenance are workflows of the vault
+(`/vault/<workflow>`), and Approvals decides requests only.

@@ -39,10 +39,11 @@ export const MAX_TEXT = 16_000
 export const bytes = (text: string): number => new TextEncoder().encode(text).length
 
 /**
- * The channel list: the channels this account takes part in, latest
- * activity first, then the others (archived, left or hidden) by name.
+ * The channel list: the channels this account takes part in, those it pinned
+ * first and otherwise latest activity first, then the others (archived, left
+ * or hidden) by name.
  */
-export function arrange(channels: any[], me: string | undefined): { live: any[]; other: any[] } {
+export function arrange(channels: any[], me: string | undefined, pins: readonly string[] = []): { live: any[]; other: any[] } {
   const live: any[] = []
   const other: any[] = []
   for (const channel of channels) {
@@ -51,9 +52,28 @@ export function arrange(channels: any[], me: string | undefined): { live: any[];
     else other.push(channel)
   }
   const at = (c: any) => Math.max(c.last?.stored_at ?? 0, c.active_at ?? 0)
-  live.sort((a, b) => at(b) - at(a) || String(a.name).localeCompare(String(b.name)))
+  const pinned = (c: any) => (pins.includes(c.id) ? 1 : 0)
+  live.sort((a, b) => pinned(b) - pinned(a) || at(b) - at(a) || String(a.name).localeCompare(String(b.name)))
   other.sort((a, b) => String(a.name).localeCompare(String(b.name)))
   return { live, other }
+}
+
+/**
+ * When a channel was last active, as its list row says it: the time today,
+ * yesterday in words, the weekday within a week, else the date.
+ */
+export function listTime(at: number, now: number, locale: string): string {
+  const day = (ms: number) => new Date(new Date(ms).toDateString()).getTime()
+  const days = Math.round((day(now) - day(at)) / 86_400_000)
+  if (days <= 0) return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(at)
+  if (days === 1) return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(-1, 'day')
+  if (days < 7) return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(at)
+  return new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric', ...(new Date(at).getFullYear() === new Date(now).getFullYear() ? {} : { year: '2-digit' }) }).format(at)
+}
+
+/** The first message of someone else after what this account had read when the channel opened. */
+export function firstUnread(messages: { seq: number; account?: string }[], read: number, me: string | undefined): number | null {
+  return messages.find((message) => message.seq > read && message.account !== me)?.seq ?? null
 }
 
 /** How far the other members took and read a message of this account (C04). */

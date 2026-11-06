@@ -190,6 +190,12 @@ struct Outgoing {
     recipient: String,
     text_digest: String,
     payload: ContactPayload,
+    /// What the letter said, for its sender on this device; none on letters
+    /// sent before it was kept. The ciphertext is sealed for the recipient.
+    #[serde(default)]
+    text: String,
+    #[serde(default)]
+    sent_at: u64,
 }
 
 /// An escrow being opened.
@@ -403,6 +409,8 @@ impl Client {
                 "order_id": &key[prefix.len()..],
                 "recipient": outgoing.recipient,
                 "paid": outgoing.payload.payer.is_some(),
+                "text": outgoing.text,
+                "sent_at": outgoing.sent_at,
             }));
         }
         Ok(list)

@@ -13,6 +13,7 @@ export interface DaemonEvent {
 /** Where the desktop's connection to its daemon stands. */
 export interface Connection {
   connected: boolean
+  /** Why the last try failed, as `dmsg` said it; a window folds this under its details. */
   error?: string
   recovery?: 'idle' | 'recovering' | 'offline'
 }
@@ -46,6 +47,12 @@ export interface NoticeVisibility {
   id?: string
   version?: string
   watermark?: string
+}
+
+export interface DesktopSettings {
+  /** Lock dMsg when the screen locks or the computer sleeps. */
+  lock_on_screen_lock: boolean
+  open_at_login: boolean
 }
 
 export interface DesktopBridge {
@@ -98,18 +105,31 @@ export interface DesktopBridge {
    * name already in the folder asks. A `files/adding` event names what was
    * picked, and the paths of the folders among it, before the import starts.
    */
-  filesAdd(folder: string, dropped?: File[], directory?: boolean): Promise<unknown>
+  filesAdd(folder: string, dropped?: File[], directory?: boolean, attach?: boolean): Promise<unknown>
+  /**
+   * Add what was pasted to the library's `folder`, both kept when a name is
+   * taken: copied files by their paths, else the image on the system
+   * clipboard, read by the main process. Resolves as `filesAdd` does.
+   */
+  filesPaste(folder: string, pasted: File[]): Promise<unknown>
   /** Export library files' current versions into a folder the person picks: `{dir, count}`, or null when cancelled. */
   filesExportMany(items: { id: string; name: string }[]): Promise<unknown>
   /**
    * Change the file library's settings, `files_mount` (after the person
    * allows it in a system dialog) and `files_trash_days`; resolves to the
    * daemon's `files/preferences`, or null when the dialog was dismissed.
+   * `idle_lock_minutes` is kept in the same file.
    */
-  filesPreferences(changes: { files_mount?: boolean; files_trash_days?: number }): Promise<unknown>
+  filesPreferences(changes: { files_mount?: boolean; files_trash_days?: number; idle_lock_minutes?: number }): Promise<unknown>
   /** Export a library file's version to a place the person picks in a system dialog; null when cancelled. */
   filesExport(id: string, version: string | null, name: string): Promise<unknown>
   /** Open a library file's version in its program, from a temporary copy the daemon cleans up. */
+  /** The system's own preview of a file, macOS only. */
+  filesPreview(id: string, name: string): Promise<void>
+  /** Hands a dragged file's decrypted copy to the system's drag. */
+  filesDrag(id: string, name: string): Promise<void>
+  /** The approval window has done its work. */
+  closeApproval(): Promise<void>
   filesOpen(id: string, version: string | null): Promise<unknown>
   /** Upload an image the person picks as the public avatar; null when cancelled. */
   avatar(): Promise<unknown>
@@ -178,6 +198,17 @@ export interface DesktopBridge {
   /** Open the approval window on a request. */
   openApproval(id: string): Promise<void>
   connection(): Promise<Connection>
+  /** Try the daemon again now instead of at the next backoff. */
+  reconnect(): Promise<void>
+  /** Quit the app; for a window that cannot reach its daemon. */
+  quit(): Promise<void>
+  /** This app's own choices; `desktop/changed` events follow a change from the tray. */
+  desktopSettings(): Promise<DesktopSettings>
+  setDesktopSettings(change: Partial<DesktopSettings>): Promise<DesktopSettings>
+  /** Follow a `dmsg://` link found in a message or letter; it moves the view and executes nothing. */
+  openLink(url: string): Promise<void>
+  /** Copy an image a window shows, by its data address. */
+  copyImage(url: string): Promise<void>
   /** The app's version and where its update stands; the main window only. `updates/changed` events follow it. */
   updates(): Promise<AppUpdates>
   /** Opt this installation into beta releases, or stop receiving them without downgrading. */

@@ -67,6 +67,7 @@ export class Daemon extends EventEmitter {
   private delay = 1000
   private closed = false
   private inFlight = new Map<string, Promise<unknown>>()
+  private connecting: Promise<void> | null = null
   readonly recovery: ReadRecovery
 
   constructor(options: DaemonOptions) {
@@ -94,9 +95,14 @@ export class Daemon extends EventEmitter {
     return JSON.parse(stdout.trim().split('\n').pop()!) as { url: string; token: string }
   }
 
-  async connect(): Promise<void> {
+  /** Connect now; a try already under way, such as the backoff's, is the same try. */
+  connect(): Promise<void> {
     this.closed = false
     clearTimeout(this.retry)
+    return (this.connecting ??= this.tryConnect().finally(() => { this.connecting = null }))
+  }
+
+  private async tryConnect(): Promise<void> {
     try {
       const { url, token } = await this.credential()
       const ws = url.replace(/^http/, 'ws') + '/ws/app/v1'

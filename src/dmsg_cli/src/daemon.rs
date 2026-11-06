@@ -287,6 +287,8 @@ pub(crate) struct Daemon {
     pub(crate) mount: std::sync::Mutex<Option<crate::mount::Mount>>,
     /// Whether the mount is allowed: `config.toml` or `preferences.json`.
     pub(crate) files_mount: AtomicBool,
+    /// How long idle before locking: `preferences.json`'s, else `config.toml`'s.
+    pub(crate) idle_lock_ms: AtomicU64,
     /// Stops the file imports under way; set without the client's lock.
     pub(crate) import_cancel: Arc<AtomicBool>,
     /// Channels the relay hinted at, for the channel loop; `*` reads all.
@@ -484,7 +486,10 @@ async fn background(daemon: Arc<Daemon>) {
         let session = {
             let mut client = daemon.client.lock().await;
             let before = client.session_state().state;
-            if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
+            if now
+                > daemon.activity.load(Ordering::Relaxed)
+                    + daemon.idle_lock_ms.load(Ordering::Relaxed)
+            {
                 client.lock_idle();
             }
             let session = client.session_state();
@@ -622,6 +627,7 @@ impl Daemon {
     ) -> Self {
         crate::secret_mounts::configure_clock(&mut client);
         let settings_mount = settings.files_mount;
+        let settings_idle = settings.idle_lock_ms;
         let (channel_hints, channel_hinted) = tokio::sync::mpsc::unbounded_channel();
         Self {
             token,
@@ -657,6 +663,7 @@ impl Daemon {
             outcomes: Default::default(),
             mount: std::sync::Mutex::new(None),
             files_mount: AtomicBool::new(settings_mount),
+            idle_lock_ms: AtomicU64::new(settings_idle),
             import_cancel: Arc::new(AtomicBool::new(false)),
             channel_hints,
             read_ahead: Default::default(),
@@ -1110,9 +1117,10 @@ impl Daemon {
         // While unlocked, when the idle lock comes; the background pass
         // checks it every FLUSH_MS.
         if value["state"] == "unlocked" {
-            value["lock_at"] =
-                (self.activity.load(Ordering::Relaxed) + self.settings.idle_lock_ms).into();
-            value["idle_lock_ms"] = self.settings.idle_lock_ms.into();
+            value["lock_at"] = (self.activity.load(Ordering::Relaxed)
+                + self.idle_lock_ms.load(Ordering::Relaxed))
+            .into();
+            value["idle_lock_ms"] = self.idle_lock_ms.load(Ordering::Relaxed).into();
         }
         Ok(value)
     }
@@ -3654,7 +3662,10 @@ mod tests {
         assert_eq!(status["state"], "unlocked");
         assert!(daemon.sync_requested.load(Ordering::Relaxed));
         assert!(status["last_sync"].is_null());
-        assert!(daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms > now_ms());
+        assert!(
+            daemon.activity.load(Ordering::Relaxed) + daemon.idle_lock_ms.load(Ordering::Relaxed)
+                > now_ms()
+        );
     }
 
     fn request(method: &str, params: Value) -> RpcRequest {

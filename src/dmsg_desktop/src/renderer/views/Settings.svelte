@@ -7,8 +7,8 @@
   import { RadioGroup } from 'bits-ui'
   import { appearances, isAppearance } from '../../shared/appearance'
   import { isLocale, localeNames, locales } from '../../shared/locales'
-  import type { Glyph } from '../components/glyphs'
   import Icon from '../components/Icon.svelte'
+  import Collapsible from '../components/Collapsible.svelte'
   import Fact from '../components/page/Fact.svelte'
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
@@ -20,14 +20,15 @@
   import { toast } from '../components/toast.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
-  import { locale, sessionLabel, setLocale, t, type Label } from '../i18n/index.svelte'
+  import { locale, sessionLabel, setLocale, t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, single, when } from '../rpc'
+  import { settingsPages, type SettingsPage } from '../shell/nav'
   import { unlock, unlocking } from '../shell/session'
   import About from './About.svelte'
   import Devices from './Devices.svelte'
   import FilesSettings from './files/FilesSettings.svelte'
   import Legacy from './Legacy.svelte'
-  import Onboarding from './Onboarding.svelte'
+  import LockSettings from './LockSettings.svelte'
   import Moved from './Moved.svelte'
   import Profile from './Profile.svelte'
   import Security from './Security.svelte'
@@ -41,22 +42,7 @@
    */
   let { status, refresh, route, go }: { status: any; refresh: () => Promise<void>; route: string; go: (path: string) => void } = $props()
 
-  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'files' | 'notifications' | 'appearance' | 'legacy' | 'about'
-
-  const parts: { value: Part; label: Label; icon: Glyph; locked?: boolean }[] = [
-    { value: 'session', label: 'sessionAccounts', icon: 'account' },
-    { value: 'security', label: 'security', icon: 'security' },
-    { value: 'devices', label: 'devices', icon: 'device' },
-    { value: 'profile', label: 'publicProfile', icon: 'profile' },
-    { value: 'browsers', label: 'browsers', icon: 'browser' },
-    { value: 'files', label: 'files', icon: 'folder' },
-    { value: 'notifications', label: 'noticeSettings', icon: 'time' },
-    { value: 'appearance', label: 'languageAppearance', icon: 'system' },
-    { value: 'legacy', label: 'legacy', icon: 'legacy' },
-    { value: 'about', label: 'aboutApp', icon: 'info' }
-  ]
-
-  const part = $derived<Part>(parts.find((p) => route === `/settings/${p.value}`)?.value ?? 'session')
+  const part = $derived<SettingsPage>(settingsPages.find((p) => route === `/settings/${p.value}`)?.value ?? 'session')
 
   let account = $state<any>(null)
   /** Null while the device cannot sign for them: locked without a resident key. */
@@ -76,7 +62,7 @@
   let pairingRevision = 0
   let pairingBusy = $state(false)
   let lastSession: string | undefined
-  let lastPart: Part | undefined
+  let lastPart: SettingsPage | undefined
   let errors = $state<Record<string, string>>({})
   let loaded = $state<Record<string, boolean>>({})
   const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
@@ -224,7 +210,7 @@
 
 <div class="@container flex h-full min-h-0">
   <nav class="hidden w-[228px] shrink-0 flex-col gap-px overflow-y-auto border-e border-line p-2.5 @min-[720px]:flex" aria-label={t('settings')}>
-    {#each parts as item (item.value)}
+    {#each settingsPages as item (item.value)}
       <button
         class={cn(
           'flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-start text-[13px] outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
@@ -241,7 +227,7 @@
   </nav>
   <div class="flex min-w-0 flex-1 flex-col">
     <div class="flex gap-1 overflow-x-auto border-b border-line px-4 py-2 @min-[720px]:hidden">
-      {#each parts as item (item.value)}
+      {#each settingsPages as item (item.value)}
         <button
           class={buttonClass(part === item.value ? 'secondary' : 'ghost', 'sm')}
           aria-current={part === item.value ? 'page' : undefined}
@@ -292,39 +278,18 @@
           <About />
         {:else if part === 'session'}
           <Moved {status} {refresh} />
-          <Onboarding {status} {refresh} />
           <Section title={t('status')} icon="account">
             <dl>
               <Fact label={t('status')} testid="session-state">
                 <Pill tone={unlocked ? 'ok' : 'neutral'}><Icon name={unlocked ? 'unlock' : 'lock'} />{status?.state ? sessionLabel(status.state) : '-'}</Pill>
               </Fact>
               <Fact label={t('account')}>{#if status?.account}<Id id={status.account} full />{:else}-{/if}</Fact>
-              <Fact label={t('device')}>{#if status?.device_id}<Id id={status.device_id} />{:else}-{/if}</Fact>
-              <Fact label={t('formal')}>
-                <span class="text-[12.5px] text-muted">
-                  {!loaded.account ? t('loading') : account ? own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff') : '-'}
-                </span>
-              </Fact>
               <Fact label={t('syncState')} testid="settings-sync-state">
                 <span>{t(syncStatus.label, { n: syncStatus.pending })}</span>
                 <span class="w-full text-[12px] text-faint">{syncStatus.okAt ? t('syncLastSuccess', { time: when(syncStatus.okAt) }) : t('localOnlyNever')}</span>
                 {#if syncStatus.retryAt}<span class="w-full text-[12px] text-faint">{t('syncRetryAt', { time: when(syncStatus.retryAt) })}</span>{/if}
                 <span class="w-full text-[12px] text-muted">{t('syncScope')}</span>
               </Fact>
-              <Fact label={t('backgroundOnline')}>
-                {status?.background_online ? t('on') : t('off')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}
-              </Fact>
-              {#if status?.account}
-                <Fact label={t('fastUnlock')} testid="fast-unlock">
-                  <Pill tone={status.fast_unlock ? 'forest' : 'neutral'}>{status.fast_unlock ? t('on') : t('off')}</Pill>
-                  {#if status.fast_unlock}
-                    <span class="text-[12.5px]" data-testid="fast-unlock-method">
-                      {t(status.fast_presence === 'biometrics' ? 'presenceBiometrics' : status.fast_presence === 'password' ? 'presencePassword' : 'presenceKeychain')}
-                    </span>
-                  {/if}
-                  <span class="w-full text-[12px] text-faint">{t('fastUnlockHint')}</span>
-                </Fact>
-              {/if}
               {#if status?.login_expires_at}
                 <Fact label={t('loginExpiresAt')} testid="login-expires">{when(status.login_expires_at)}</Fact>
               {/if}
@@ -335,15 +300,25 @@
               {/if}
               {#if unlocked}
                 <button class={buttonClass('secondary', 'sm')} disabled={actionBusy} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>
-                <!-- Turning it on needs the open account's keys; its key goes to the OS keychain. -->
-                <button class={buttonClass('secondary', 'sm')} disabled={actionBusy} onclick={() => act('session/fast_unlock', { enable: !status.fast_unlock })} data-testid="fast-unlock-toggle">
-                  <Icon name="key" />{status.fast_unlock ? t('fastUnlockOff') : t('fastUnlockOn')}
-                </button>
               {/if}
               {#if status?.account}
                 <button class={buttonClass('secondary', 'sm')} disabled={actionBusy || $unlocking || status.syncing || syncStatus.paused || syncStatus.coolingDown} data-testid="settings-sync" onclick={() => act('sync/run')}><Icon name="sync-now" />{status.syncing ? t('syncing') : t('sync')}</button>
               {/if}
             </div>
+            <Collapsible class="mt-3" testid="session-details">
+              {#snippet title()}<span class="text-[12.5px] text-muted">{t('technicalDetails')}</span>{/snippet}
+              <dl>
+                <Fact label={t('device')}>{#if status?.device_id}<Id id={status.device_id} />{:else}-{/if}</Fact>
+                <Fact label={t('formal')}>
+                  <span class="text-[12.5px] text-muted">
+                    {!loaded.account ? t('loading') : account ? own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff') : '-'}
+                  </span>
+                </Fact>
+                <Fact label={t('backgroundOnline')}>
+                  {status?.background_online ? t('on') : t('off')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}
+                </Fact>
+              </dl>
+            </Collapsible>
           </Section>
         {:else if part === 'browsers'}
           {#if opened && pairings}
@@ -369,7 +344,7 @@
               <ul class="divide-y divide-line" data-testid="pairings">
                 {#each pairings as p (p.pairing_id)}
                   <li class="flex flex-wrap items-center gap-2 px-5 py-3">
-                    <Pill tone={p.state === 'active' ? 'ok' : 'neutral'}>{p.state}</Pill>
+                    <Pill tone={p.state === 'active' ? 'ok' : 'neutral'}>{p.state === 'active' ? t('pairingActive') : p.state === 'revoked' ? t('pairingRevoked') : p.state}</Pill>
                     <b class="text-[13px] font-medium">{p.label ?? p.pairing_id.slice(0, 12)}</b>
                     <span class="min-w-0 flex-1 text-[12px] text-faint">
                       {t('issuedBy')} <bdi dir="ltr" class="font-mono">{p.issued_by?.slice(0, 8) ?? '-'}</bdi>{p.issued_by === status?.device_id ? ` (${t('thisDevice')})` : ''}
@@ -390,6 +365,7 @@
         {:else if !unlocked}
           <Notice icon="lock">{t('locked')}</Notice>
         {:else if part === 'security'}
+          <LockSettings {status} />
           <Security {status} {go} />
         {:else if part === 'devices'}
           <Devices {status} {go} />

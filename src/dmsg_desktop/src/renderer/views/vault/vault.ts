@@ -24,6 +24,18 @@ export interface Field {
 export type Templates = Record<string, { fields: { id: string; type: FieldType }[]; secret: string | null }>
 
 /** The types in the order the filters and the new-item dialog offer them. */
+/** The parts of what stored secrets are used for, each a route under /vault. */
+export const workflows = ['policies', 'mounts', 'ssh', 'sharing', 'receive', 'health', 'activity']
+export const workflowIcon: Record<string, Glyph> = {
+  policies: 'security',
+  mounts: 'folder',
+  ssh: 'terminal',
+  sharing: 'send',
+  receive: 'inbox',
+  health: 'health',
+  activity: 'audit'
+}
+
 export const types: ItemType[] = ['login', 'api', 'key', 'ssh', 'wallet', 'card', 'identity', 'server', 'database', 'license', 'note']
 
 export const typeLabel: Record<ItemType, Label> = {

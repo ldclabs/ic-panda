@@ -1,3 +1,4 @@
+import { daemonBlocked } from './connection-gate'
 import { call, CallError } from './rpc'
 
 export type Mode = 'local' | 'swr' | 'fresh'
@@ -37,6 +38,6 @@ export function watchDisplays(kinds: string[], reload: (mode: Mode) => unknown, 
     const kind = (event.data as { kind?: string } | undefined)?.kind
     if (event.type === 'cache/changed' && (kind === 'all' || (kind && kinds.includes(kind)))) void reload('local')
   })
-  const timer = setInterval(() => { if (document.visibilityState === 'visible' && !document.body.inert) void reload('swr') }, interval)
+  const timer = setInterval(() => { if (document.visibilityState === 'visible' && !daemonBlocked()) void reload('swr') }, interval)
   return () => { off(); clearInterval(timer) }
 }

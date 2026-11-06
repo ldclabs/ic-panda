@@ -6,11 +6,11 @@
   import { bridge, call, errorText } from '../../rpc'
 
   /**
-   * A concealed field: shown or copied only on a second click within three
-   * seconds of the first. Shown, it hides again after a minute, every line
-   * of it; a copy goes from the daemon to the clipboard through the main
-   * process, so this window never holds it. A bar under the button shows
-   * the time left. `revision` reads an earlier version.
+   * A concealed field: shown only on a second click within three seconds of
+   * the first, and hidden again after a minute, every line of it; a bar under
+   * the button shows the time left. A copy takes one click and goes from the
+   * daemon to the clipboard through the main process, so this window never
+   * holds it. `revision` reads an earlier version.
    */
   let {
     id,
@@ -24,16 +24,16 @@
   const SHOWN_MS = 60_000
 
   let generation = 0
-  let armed = $state<'reveal' | 'copy' | null>(null)
+  let armed = $state(false)
   let secret = $state<string | null>(null)
   let busy = $state(false)
   let armTimer: ReturnType<typeof setTimeout> | undefined
   let hideTimer: ReturnType<typeof setTimeout> | undefined
 
-  function arm(action: 'reveal' | 'copy') {
+  function arm() {
     clearTimeout(armTimer)
-    armed = action
-    armTimer = setTimeout(() => (armed = null), ARMED_MS)
+    armed = true
+    armTimer = setTimeout(() => (armed = false), ARMED_MS)
   }
 
   function hide() {
@@ -44,9 +44,9 @@
   async function reveal() {
     if (!unlocked) return
     if (secret !== null) return hide()
-    if (armed !== 'reveal') return arm('reveal')
+    if (!armed) return arm()
     clearTimeout(armTimer)
-    armed = null
+    armed = false
     busy = true
     const at = generation
     try {
@@ -62,9 +62,6 @@
   }
 
   async function copy() {
-    if (armed !== 'copy') return arm('copy')
-    clearTimeout(armTimer)
-    armed = null
     busy = true
     try {
       const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id, field, revision))
@@ -80,7 +77,7 @@
     // Forget plaintext and invalidate late reveals on lock or a changed field.
     void [id, field, revision, unlocked]
     generation += 1
-    armed = null
+    armed = false
     hide()
     clearTimeout(armTimer)
     return () => {
@@ -113,27 +110,19 @@
   </span>
   {#if unlocked}
     <button
-      class={buttonClass(armed === 'reveal' ? 'primary' : 'secondary', 'sm', 'relative overflow-hidden')}
+      class={buttonClass(armed ? 'primary' : 'secondary', 'sm', 'relative overflow-hidden')}
       disabled={busy}
       onclick={reveal}
       data-testid="reveal-secret"
-      data-armed={armed === 'reveal'}
+      data-armed={armed}
     >
       <Icon name={secret !== null ? 'eye-off' : 'eye'} />
-      {secret !== null ? t('hideSecret') : armed === 'reveal' ? t('clickAgainShow') : t('show')}
-      {#if armed === 'reveal'}{@render bar(ARMED_MS)}{:else if secret !== null}{@render bar(SHOWN_MS)}{/if}
+      {secret !== null ? t('hideSecret') : armed ? t('clickAgainShow') : t('show')}
+      {#if armed}{@render bar(ARMED_MS)}{:else if secret !== null}{@render bar(SHOWN_MS)}{/if}
     </button>
     {#if copyable}
-      <button
-        class={buttonClass(armed === 'copy' ? 'primary' : 'secondary', 'sm', 'relative overflow-hidden')}
-        disabled={busy}
-        onclick={copy}
-        data-testid="copy-secret"
-        data-armed={armed === 'copy'}
-      >
-        <Icon name="copy" />
-        {armed === 'copy' ? t('clickAgainCopy') : t('copy')}
-        {#if armed === 'copy'}{@render bar(ARMED_MS)}{/if}
+      <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={copy} data-testid="copy-secret">
+        <Icon name="copy" />{t('copy')}
       </button>
     {/if}
   {/if}

@@ -3,7 +3,7 @@ import { toast } from '../components/toast.svelte'
 import { writable } from 'svelte/store'
 import { t, type Label } from '../i18n/index.svelte'
 import { call, code, errorText } from '../rpc'
-import { closeLogin, setupStates, startLogin } from './login.svelte'
+import { closeLogin, startLogin } from './login.svelte'
 
 /**
  * The session actions the sidebar, the locked pages and the command palette
@@ -92,7 +92,6 @@ export function nextStep(status: any): { label: Label; icon: Glyph; run: () => u
     const label: Label = !status.fast_unlock ? 'login' : status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock'
     return { label, icon: 'unlock', run: () => unlock(status) }
   }
-  if (setupStates.includes(state)) return { label: 'continueSetup', icon: 'settings', run: () => (location.hash = '/settings/session') }
   if (state === 'moved') return { label: 'movedReview', icon: 'device', run: () => (location.hash = '/settings/session') }
   return null
 }

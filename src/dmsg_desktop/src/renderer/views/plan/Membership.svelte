@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { daemonBlocked } from '../../connection-gate'
   import { onMount } from 'svelte'
   import { display, watchDisplays, type Mode } from '../../display.svelte'
   import DisplayNotice from '../../components/DisplayNotice.svelte'
@@ -59,7 +60,7 @@
   // a later entitlement refresh behind it.
   const readPlan = single((mode: Mode = 'swr') => part('plan', async () => {
     if (!alive) return
-    const refresh = refreshPlan || (mode !== 'local' && !document.body.inert && Date.now() - paidAt < 15 * 60_000)
+    const refresh = refreshPlan || (mode !== 'local' && !daemonBlocked() && Date.now() - paidAt < 15 * 60_000)
     refreshPlan = false
     const next = refresh ? await call('plan/status', { refresh: true }) : await display('plan/status', { refresh: false }, mode)
     if (alive) plan = next
@@ -130,7 +131,7 @@
     const off = onChange(['approval/changed'], () => {
       // A session event remounts this view. Its old payment-follow-up state
       // must never update the account being selected during that transition.
-      if (document.body.inert) return
+      if (daemonBlocked()) return
       void readPlan()
       void readExecution()
       if (Date.now() - paidAt < 15 * 60_000) void readCloud()

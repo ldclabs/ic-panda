@@ -49,6 +49,9 @@
   let error = $state('')
   let busy = $state(false)
   let approving = $state(false)
+  /** A decision made in this window, and whether the person went on using it since. */
+  let decided = $state(false)
+  let staying = $state(false)
   let assets = $state<any[]>([])
   let selection = $state('')
   let readiness = $state<any>(null)
@@ -203,6 +206,7 @@
       if (!valid(at)) return
       revision += 1
       request = next
+      decided = true
       void loadQueue()
     } catch (e) {
       if (!valid(at)) return
@@ -214,6 +218,21 @@
       if (run === work) { busy = false; approving = false }
     }
   }
+
+  // Decided here and nothing else is waiting: the window has done its work.
+  // An outcome that needs reading stays; so does a window the person goes on using.
+  $effect(() => {
+    if (!decided || staying || busy || queue.length || !['done', 'rejected'].includes(request?.state)) return
+    const stay = () => (staying = true)
+    const timer = setTimeout(() => void window.dmsg.closeApproval(), 2000)
+    window.addEventListener('pointerdown', stay)
+    window.addEventListener('keydown', stay)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('pointerdown', stay)
+      window.removeEventListener('keydown', stay)
+    }
+  })
 
   /** A web checkout is quoted here first, so the amount approved is the amount shown. */
   async function quote() {

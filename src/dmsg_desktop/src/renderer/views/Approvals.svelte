@@ -11,7 +11,6 @@
   import Grants from './approvals/Grants.svelte'
   import Requests from './approvals/Requests.svelte'
   import Sign from './approvals/Sign.svelte'
-  import Workflows from './secrets/Workflows.svelte'
 
   /**
    * Signatures and approvals in parts: the requests waiting, running and
@@ -19,11 +18,14 @@
    * verified and exported; and what the account has authorized. Every
    * decision is the approval window's.
    */
-  let { status }: { status: any } = $props()
+  let { status, route = '/approvals', go }: { status: any; route?: string; go: (path: string) => void } = $props()
 
-  type Tab = 'requests' | 'sign' | 'bundles' | 'grants' | 'secrets'
-
-  let tab = $state<Tab>('requests')
+  const named = ['sign', 'bundles', 'grants']
+  /** The tab is the route's last part. */
+  const tab = $derived.by(() => {
+    const part = route.split('?')[0].split('/')[2]
+    return named.includes(part) ? part : 'requests'
+  })
   let requests = $state<any[]>([])
   let history = $state<any[]>([])
   let agents = $state<Record<string, string>>({})
@@ -119,13 +121,12 @@
     { value: 'requests', label: t('requests'), icon: 'approvals' as const, count: waiting.length },
     { value: 'sign', label: t('newSignature'), icon: 'signature' as const },
     { value: 'bundles', label: t('bundles'), icon: 'verified' as const },
-    { value: 'grants', label: t('authorizations'), icon: 'security' as const },
-    { value: 'secrets', label: t('secretUses'), icon: 'security' as const }
+    { value: 'grants', label: t('authorizations'), icon: 'security' as const }
   ])
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-  <TabBar bind:value={() => tab, (next) => (tab = next as Tab)} items={tabs} label={t('approvals')} testid="approvals-tab" />
+  <TabBar bind:value={() => tab, (next) => go(next === 'requests' ? '/approvals' : `/approvals/${next}`)} items={tabs} label={t('approvals')} testid="approvals-tab" />
   <div class="flex min-h-0 flex-1 flex-col">
     {#if !unlocked && tab !== 'bundles'}
       <Locked {status} testid="approvals-locked" />
@@ -140,8 +141,6 @@
           <Sign {open} />
         {:else if tab === 'bundles'}
           <Bundles {history} {known} {unlocked} {open} />
-        {:else if tab === 'secrets'}
-          <Workflows {open} />
         {:else}
           <Grants {requests} />
         {/if}

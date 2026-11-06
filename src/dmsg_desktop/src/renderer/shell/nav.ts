@@ -1,27 +1,26 @@
 import type { Glyph } from '../components/glyphs'
 import type { Label } from '../i18n/index.svelte'
 
-/** A view of the main window: its route, name, icon, a line on what it holds, and its ⌘ shortcut. */
+/** A view of the main window: its route, name, icon and its ⌘ shortcut. */
 export interface View {
   path: string
   label: Label
-  detail: Label
   icon: Glyph
   key?: string
 }
 
 export const views = {
-  reminders: { path: '/reminders', label: 'noticeTitle', detail: 'noticeDetail', icon: 'time' },
-  vault: { path: '/vault', label: 'vault', detail: 'vaultDetail', icon: 'vault', key: '1' },
-  files: { path: '/files', label: 'files', detail: 'filesDetail', icon: 'folder', key: '2' },
-  channels: { path: '/channels', label: 'channels', detail: 'channelsDetail', icon: 'channels', key: '3' },
-  inbox: { path: '/inbox', label: 'inbox', detail: 'inboxDetail', icon: 'inbox', key: '4' },
-  approvals: { path: '/approvals', label: 'approvals', detail: 'approvalsDetail', icon: 'approvals', key: '5' },
-  agents: { path: '/agents', label: 'agents', detail: 'agentsDetail', icon: 'agents', key: '6' },
-  plan: { path: '/plan', label: 'planAndNames', detail: 'planDetail', icon: 'plan', key: '7' },
-  wallet: { path: '/wallet', label: 'twNav', detail: 'twDetail', icon: 'coins', key: '8' },
-  settings: { path: '/settings', label: 'settings', detail: 'settingsDetail', icon: 'settings', key: ',' },
-  legacy: { path: '/settings/legacy', label: 'legacy', detail: 'legacyDetail', icon: 'legacy' }
+  reminders: { path: '/reminders', label: 'noticeTitle', icon: 'bell' },
+  channels: { path: '/channels', label: 'channels', icon: 'channels', key: '1' },
+  files: { path: '/files', label: 'files', icon: 'folder', key: '2' },
+  vault: { path: '/vault', label: 'vault', icon: 'vault', key: '3' },
+  inbox: { path: '/inbox', label: 'inbox', icon: 'inbox', key: '4' },
+  approvals: { path: '/approvals', label: 'approvals', icon: 'approvals', key: '5' },
+  agents: { path: '/agents', label: 'agents', icon: 'agents', key: '6' },
+  plan: { path: '/plan', label: 'planAndNames', icon: 'plan', key: '7' },
+  wallet: { path: '/wallet', label: 'twNav', icon: 'coins', key: '8' },
+  settings: { path: '/settings', label: 'settings', icon: 'settings', key: ',' },
+  legacy: { path: '/settings/legacy', label: 'legacy', icon: 'legacy' }
 } satisfies Record<string, View>
 
 /** The sidebar's groups (PRD §4); devices, recovery and migration live in Settings. */
@@ -31,8 +30,24 @@ export const groups: { label: Label; views: View[] }[] = [
   { label: 'navAccount', views: [views.plan, views.wallet] }
 ]
 
-/** The views with a ⌘ shortcut, in sidebar order. */
+/** The views with a ⌘ shortcut, in sidebar order, so ⌘1 is the first entry there. */
 export const shortcuts: View[] = [...groups.flatMap((g) => g.views), views.settings]
+
+/** Settings' own pages, each with its route under /settings. */
+export type SettingsPage = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'files' | 'notifications' | 'appearance' | 'legacy' | 'about'
+
+export const settingsPages: { value: SettingsPage; label: Label; icon: Glyph }[] = [
+  { value: 'session', label: 'sessionAccounts', icon: 'account' },
+  { value: 'security', label: 'security', icon: 'security' },
+  { value: 'devices', label: 'devices', icon: 'device' },
+  { value: 'profile', label: 'publicProfile', icon: 'profile' },
+  { value: 'browsers', label: 'browsers', icon: 'browser' },
+  { value: 'files', label: 'files', icon: 'folder' },
+  { value: 'notifications', label: 'noticeSettings', icon: 'bell' },
+  { value: 'appearance', label: 'languageAppearance', icon: 'system' },
+  { value: 'legacy', label: 'legacy', icon: 'legacy' },
+  { value: 'about', label: 'aboutApp', icon: 'info' }
+]
 
 /** The view a route shows; Settings' own pages keep Settings selected in the sidebar. */
 export function viewOf(route: string): View {

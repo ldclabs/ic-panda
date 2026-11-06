@@ -21,10 +21,14 @@ export const toasts = $state<Toast[]>([])
 
 let last = 0
 
+/** A burst of notices shows its latest few. */
+const MAX_SHOWN = 4
+
 /** Show a notice for `ms` (4 s by default); with `countdown`, its time left shows beside it. */
 export function toast(text: (seconds: number) => string, options: { ms?: number; countdown?: boolean; action?: Toast['action']; testid?: string } = {}) {
   if (network.state !== 'idle' && networkFailure(text(0))) return
   if (temporaryFailure(text(0)) && toasts.some((toast) => toast.text(0) === text(0))) return
+  while (toasts.length >= MAX_SHOWN) toasts.shift()
   const id = ++last
   const ms = options.ms ?? 4000
   toasts.push({ id, text, until: Date.now() + ms, ms, countdown: options.countdown ?? false, action: options.action, testid: options.testid })

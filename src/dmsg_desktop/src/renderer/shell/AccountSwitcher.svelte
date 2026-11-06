@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { daemonBlocked } from '../connection-gate'
   import { onMount } from 'svelte'
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../shared/locales'
@@ -38,7 +39,7 @@
 
   onMount(() => {
     const reread = () => {
-      if (unlockedAccount && !document.hidden && !document.body.inert) { void showProfile(unlockedAccount); refreshNames() }
+      if (unlockedAccount && !document.hidden && !daemonBlocked()) { void showProfile(unlockedAccount); refreshNames() }
     }
     const off = onChange(['profile/changed'], () => { if (unlockedAccount) void showProfile(unlockedAccount) })
     const timer = setInterval(reread, 60_000)

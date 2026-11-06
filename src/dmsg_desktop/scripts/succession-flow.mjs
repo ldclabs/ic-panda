@@ -467,6 +467,7 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
   tasks = [{ id: 'b3'.repeat(32), side: 'successor', predecessor: old, successor: me, created_at: Date.now(), steps: { authorize: done({ account_version: 10, added_at: Date.now() }) } }]
   setSession('unlocked')
   emit('session/changed', { state: 'unlocked' })
+  await main.getByTestId('welcome-done').click()
   await main.getByTestId('moved-import').click()
   await main.getByTestId('moved-notice').getByText('Imported 12 records', { exact: false }).waitFor()
   assert.deepEqual(last('device/moved_import').params, { id: `${account}-56565656`, succession: 'b3'.repeat(32) })

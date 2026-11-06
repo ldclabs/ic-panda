@@ -145,8 +145,8 @@ pub struct Settings {
     pub preferences: PathBuf,
 }
 
-/// `preferences.json`: the file settings the desktop's main process
-/// writes, read at start and when the daemon is told to read them again.
+/// `preferences.json`: the file and idle lock settings the desktop's main
+/// process writes, read at start and when the daemon is told to read them again.
 #[derive(Deserialize, Default, Clone, Debug, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
 pub struct Preferences {
@@ -154,6 +154,8 @@ pub struct Preferences {
     pub files_mount: bool,
     /// Days trashed files stay, instead of `config.toml`'s.
     pub files_trash_days: Option<u64>,
+    /// Minutes idle before locking, instead of `config.toml`'s.
+    pub idle_lock_minutes: Option<u64>,
 }
 
 impl Preferences {
@@ -527,14 +529,15 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         fs::write(
             &settings.preferences,
-            r#"{"files_mount": true, "files_trash_days": 7}"#,
+            r#"{"files_mount": true, "files_trash_days": 7, "idle_lock_minutes": 5}"#,
         )
         .unwrap();
         assert_eq!(
             Preferences::read(&settings.preferences).unwrap(),
             Preferences {
                 files_mount: true,
-                files_trash_days: Some(7)
+                files_trash_days: Some(7),
+                idle_lock_minutes: Some(5)
             }
         );
         fs::write(&settings.preferences, r#"{"relay": "x"}"#).unwrap();

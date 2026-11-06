@@ -5,27 +5,29 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn } from '../components/ui'
   import { sessionLabel, t } from '../i18n/index.svelte'
-  import { when, size } from '../rpc'
+  import { bridge, onChange, size, when } from '../rpc'
   import { syncShown, syncState } from '../sync-state'
   import { lock, nextStep, sync, unlocking } from './session'
 
   /**
    * The gate rail at the foot of the sidebar: the step that opens the device
    * when it is not unlocked, what has not reached the relay yet, background
-   * online while it is on (PRD §6–§7 ask for both to stay in view), the Lock
-   * button while it is unlocked, and the daemon connection.
+   * online while it is on (PRD §6–§7 ask for both to stay in view) and the
+   * Lock button while it is unlocked. A lost daemon covers the whole window.
    */
-  let {
-    status,
-    connected,
-    connectionError,
-    collapsed = false,
-    mod
-  }: { status: any; connected: boolean; connectionError?: string; collapsed?: boolean; mod: string } = $props()
+  let { status, collapsed = false, mod }: { status: any; collapsed?: boolean; mod: string } = $props()
 
   let requested = $state(false)
   let now = $state(Date.now())
-  onMount(() => { const timer = setInterval(() => { now = Date.now() }, 1000); return () => clearInterval(timer) })
+  /** A downloaded update waits for a restart, here in view rather than only in About. */
+  let updateReady = $state(false)
+  const readUpdate = () => bridge(() => window.dmsg.updates()).then((info) => (updateReady = info.state?.kind === 'ready'), () => {})
+  onMount(() => {
+    const timer = setInterval(() => { now = Date.now() }, 1000)
+    void readUpdate()
+    const off = onChange(['updates/changed'], readUpdate)
+    return () => { clearInterval(timer); off() }
+  })
   let syncingSince = $state<number | undefined>()
   $effect(() => {
     if (!status?.syncing) syncingSince = undefined
@@ -84,6 +86,13 @@
         {/snippet}
       </Tooltip>
     {/if}
+    {#if updateReady}
+      <Tooltip content={t('restartToUpdate')} side="right">
+        {#snippet children(props)}
+          <button {...props} class={iconButtonClass('ghost', 'md', 'text-forest')} aria-label={t('restartToUpdate')} onclick={() => void window.dmsg.applyUpdate()} data-testid="gate-update"><Icon name="download" /></button>
+        {/snippet}
+      </Tooltip>
+    {/if}
     {#if status?.background_online}
       <Tooltip content={`${t('backgroundOnline')} · ${t('on')}`} side="right">
         {#snippet children(props)}
@@ -91,11 +100,6 @@
         {/snippet}
       </Tooltip>
     {/if}
-    <Tooltip content={connected ? t('connected') : connectionError ? t('networkReconnecting') : t('disconnected')} side="right">
-      {#snippet children(props)}
-        <span {...props} class="grid size-8 place-items-center"><span class={cn('size-2 rounded-full', connected ? 'bg-ok' : 'bg-danger')}></span></span>
-      {/snippet}
-    </Tooltip>
   </div>
 {:else}
   <div class="grid grid-cols-1 gap-2 border-t border-line py-2.5 ps-3 pe-2 text-[12.5px]" data-testid="gate-rail">
@@ -152,21 +156,16 @@
         <span>{t('backgroundOnline')} · {t('on')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}</span>
       </div>
     {/if}
-    <div class="flex items-center gap-1">
-      <span class={cn('size-[7px] shrink-0 rounded-full', connected ? 'bg-ok' : 'bg-danger')}></span>
-      <span class={cn('ms-1 min-w-0 flex-1 truncate text-[11.5px]', connected ? 'text-faint' : 'text-danger')}>{connected ? t('connected') : t('disconnected')}</span>
-      {#if unlocked}
-        <Tooltip content={`${t('lock')} · ${mod}L`}>
-          {#snippet children(props)}
-            <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('lock')} onclick={lock} data-testid="gate-lock">
-              <Icon name="lock" />
-            </button>
-          {/snippet}
-        </Tooltip>
-      {/if}
-    </div>
-    {#if !connected && connectionError}
-      <p class="text-[11.5px] break-words whitespace-pre-wrap text-muted" data-testid="connection-error">{t('networkReconnecting')}</p>
+    {#if updateReady}
+      <button class={buttonClass('ghost', 'xs', '-my-0.5 h-auto min-h-6 justify-start gap-2 px-0 text-start text-forest')} onclick={() => void window.dmsg.applyUpdate()} data-testid="gate-update">
+        <Icon name="download" class="shrink-0" /><span class="min-w-0 flex-1 truncate">{t('restartToUpdate')}</span>
+      </button>
+    {/if}
+    {#if unlocked}
+      <button class={buttonClass('ghost', 'xs', '-my-0.5 h-auto min-h-6 justify-start gap-2 px-0 text-start')} onclick={lock} data-testid="gate-lock">
+        <Icon name="lock" class="shrink-0 text-faint" /><span class="min-w-0 flex-1 truncate">{t('lock')}</span>
+        <kbd class="font-mono text-[10.5px] font-normal text-faint">{mod}L</kbd>
+      </button>
     {/if}
   </div>
 {/if}

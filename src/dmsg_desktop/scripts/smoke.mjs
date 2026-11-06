@@ -42,6 +42,7 @@ import { accountsFlow } from './accounts-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { pairingFlow } from './pairing-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
+import { uxFlow } from './ux-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
 import { fileRequestsFlow } from './file-requests-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
@@ -1130,7 +1131,8 @@ const methods = {
   'inbox/list': () => [
     { order_id: '77'.repeat(32), sender: peer, state: 'visible', text: 'A paid letter', created_at: Date.now(), read: false, archived: false }
   ],
-  'inbox/outgoing': () => [],
+  'inbox/outgoing': () => [{ order_id: 'a1'.repeat(32), recipient: peer, paid: false, text: 'A letter I sent\nwith a second line', sent_at: Date.now() - 60_000 }],
+  'inbox/order': () => ({ state: 'visible' }),
   'inbox/status': () => ({ complete: true, observed_at_ms: Date.now() }),
   'inbox/policy': () => ({ mode: 'paid', version: 1 }),
   'inbox/configure': (p) => ({ ...p, version: 2 }),
@@ -1565,7 +1567,8 @@ const app = await electron.launch({
     DMSG_DESKTOP_USER_DATA: profile,
     DMSG_DESKTOP_DAEMON: `http://127.0.0.1:${port}`,
     DMSG_DESKTOP_TOKEN: token,
-    DMSG_HOME: join(profile, 'home')
+    DMSG_HOME: join(profile, 'home'),
+    ...(process.env.DMSG_DESKTOP_SMOKE === 'ux' ? { DMSG_DESKTOP_TEST_APPROVAL_CLOSE: '1' } : {})
   }
 })
 // An interrupted run must also close its isolated Electron process before
@@ -1940,6 +1943,12 @@ smoke: try {
     console.log('desktop succession smoke test passed')
     break smoke
   }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'ux') {
+    await uxFlow({ app, main, shots, methods, requests, request, emit, waitFor, calls, profile, formMatrix, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop interaction smoke test passed')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'settings') {
     await settingsFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])
@@ -1978,7 +1987,7 @@ smoke: try {
   assert.equal(await main.locator('[data-testid="gate-state"]').count(), 0)
   assert.match(await main.textContent('[data-testid="gate-rail"]'), /2 versions to sync/)
   await main.screenshot({ path: join(shots, 'main.png') })
-  // The palette goes to a view by name; ⌘1 comes back to the vault.
+  // The palette goes to a view by name; ⌘3 comes back to the vault.
   const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
   // The desktop's reads are not activity for the idle lock; a person's input is.
   assert.equal(latest('app/initialize').params.activity, 'reported')
@@ -1991,7 +2000,7 @@ smoke: try {
   await main.keyboard.press('Enter')
   await main.waitForSelector('[data-testid="palette"]', { state: 'detached' })
   assert.equal(await main.textContent('[data-testid="view-title"]'), 'Inbox')
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
   // Recovery alerts arrive off the security page, even while locked. They
   // expose no account/login IDs, and clicking only navigates to a fresh read.
@@ -2029,7 +2038,7 @@ smoke: try {
     console.log('desktop recovery notification smoke test passed (remaining flows skipped)')
     break smoke
   }
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
   // Local account choices show public names as well as their distinct IDs.
   // A cache event can reach the window before its original missing response.
@@ -2051,7 +2060,7 @@ smoke: try {
   // the window showed before a click away.
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('dmsg:navigate', '/approvals'))
   await main.waitForSelector('[data-testid="view-title"] >> text=Signatures & approvals')
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
   // Back and forward walk the views the window showed, by the buttons
   // beside the sidebar toggle and by ⌘[ and ⌘] (Alt+arrows elsewhere).
@@ -2069,7 +2078,7 @@ smoke: try {
   await main.keyboard.press(forwardKey)
   await title('Signatures & approvals')
   // A view opened from there drops the visits ahead of it.
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await title('Vault')
   assert.ok(await main.isDisabled('[data-testid="nav-forward"]'))
   // Collapsed, the title bar covers the rail's top and takes the window's
@@ -2155,10 +2164,12 @@ smoke: try {
   assert.ok(latest('channel/sync'), 'opening a channel refreshes it immediately')
   await finishChannelSync()
   assert.equal(latest('channel/sync').params.recent, true)
-  assert.ok(pages.slice(1).some((p) => p.before === Number.MAX_SAFE_INTEGER && p.limit === 200))
+  assert.ok(pages.slice(1).some((p) => p.before === Number.MAX_SAFE_INTEGER && p.limit === 50), 'a channel already open reads only what is new')
   // A message names its own ID, so a retry never sends it twice; members show their names.
   assert.match(latest('channel/send').params.message_id, /^[0-9a-f]{64}$/)
+  await main.getByTestId('channel-members-toggle').click()
   await main.waitForSelector('[data-testid="channel-members"] >> text=Peer Person')
+  await main.getByTestId('channel-members-toggle').click()
 
   // Acknowledged outgoing messages may arrive before an earlier incoming
   // message. Filling that gap must keep both messages, sorted by sequence.
@@ -2189,11 +2200,9 @@ smoke: try {
   assert.equal(await main.getByTestId('message-outgoing').count(), 0)
   await main.getByTestId('channel-list').getByText('Smoke channel', { exact: true }).click()
   await main.waitForSelector('[data-testid="message-outgoing"][data-state="failed"]')
-  await main.getByTestId('channel-members-toggle').click()
   await main.getByTestId('sidebar-toggle').click()
   await formMatrix(app, main, shots, 'channel-retry', '[data-testid="channel-messages"]')
   await main.getByTestId('sidebar-toggle').click()
-  await main.getByTestId('channel-members-toggle').click()
   methods['channel/send'] = realSend
 
   // A channel with news shows a dot before its messages arrive, and the list
@@ -2261,6 +2270,7 @@ smoke: try {
   await main.locator('[data-seq="2"] [data-testid="message-save"]').click()
   await waitFor(() => latest('files/save_shared'))
   assert.deepEqual(latest('files/save_shared').params, { channel: channel.id, seq: 2 })
+  await main.getByTestId('channel-members-toggle').click()
   await choose(main, 'member-actions', 'admin')
   await waitFor(() => latest('channel/control'))
   assert.deepEqual(latest('channel/control').params, { id: channel.id, action: { type: 'role', account: peer, role: 'admin', can_rotate: false } })
@@ -2311,7 +2321,7 @@ smoke: try {
   await main.getByTestId('channel-send').click()
   await waitFor(() => latest('channel/queue')?.params.text === 'Session send two · 第二条消息')
   assert.equal(calls.some(c => c.method === 'channel/send' && c.params.text === 'Session send two · 第二条消息'), false)
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await title('Vault')
   await main.click('nav >> text=/Channels|频道/')
   await main.getByTestId('channel-list').getByText('Smoke channel', { exact: true }).click()
@@ -2322,14 +2332,12 @@ smoke: try {
   assert.equal(await main.getByTestId('message-outgoing').filter({ hasText: 'Session send one' }).count(), 0)
   await main.waitForSelector('[data-testid="message-outgoing"][data-state="queued"] >> text=Session send two')
   assert.equal(await main.getByTestId('outgoing-retry').count(), 0)
-  await main.getByTestId('channel-members-toggle').click()
   await main.getByTestId('sidebar-toggle').click()
   while (await main.locator('[role="status"][aria-live="polite"] button[aria-label]').count()) {
     await main.locator('[role="status"][aria-live="polite"] button[aria-label]').first().click()
   }
   await formMatrix(app, main, shots, 'channel-queued', '[data-testid="channel-messages"]')
   await main.getByTestId('sidebar-toggle').click()
-  await main.getByTestId('channel-members-toggle').click()
   await finishQueuedSend()
   await main.waitForSelector('[data-testid="channel-messages"] article[data-seq] >> text=Session send two')
   const sessionMessages = await main.locator('[data-testid="channel-messages"] article[data-seq]').allTextContents()
@@ -3755,30 +3763,32 @@ smoke: try {
   await main.click('[data-testid="agents-tab-capabilities"]')
   await choose(main, 'grant-agent', claude)
   await choose(main, 'grant-origin', 'https://api.al.ink')
-  // Suggested capabilities fill the field once; scoped templates select
-  // their placeholder and cannot be granted until the target is filled.
+  // A capability with no target ticks on and off; one that names a target
+  // asks for it first, and takes only what the vocabulary allows.
   const options = main.locator('[data-testid="grant-options"]')
   const grantCount = calls.filter((c) => c.method === 'grants/add').length
+  const chip = (name) => main.locator('[data-testid="grant-chosen"]').getByText(name, { exact: true })
   await options.getByRole('button', { name: 'account.read', exact: true }).click()
   await options.getByRole('button', { name: 'account.read', exact: true }).click()
-  assert.equal(await main.inputValue('[data-testid="grant-other"]'), 'account.read')
+  assert.equal(await chip('account.read').count(), 0)
+  await options.getByRole('button', { name: 'account.read', exact: true }).click()
   await options.getByRole('button', { name: 'vault.list', exact: true }).click()
   await options.getByRole('button', { name: 'vault.read:<tag>', exact: true }).click()
-  await options.getByRole('button', { name: 'vault.read:<tag>', exact: true }).click()
-  assert.equal(await main.inputValue('[data-testid="grant-other"]'), 'account.read vault.list vault.read:<tag>')
-  assert.equal(await main.locator('[data-testid="grant-other"]').evaluate((input) => input.value.slice(input.selectionStart, input.selectionEnd)), '<tag>')
-  assert.equal(await main.isDisabled('[data-testid="grant-capabilities"]'), true)
-  assert.equal(calls.filter((c) => c.method === 'grants/add').length, grantCount)
-  await main.keyboard.type('work')
-  assert.equal(await main.inputValue('[data-testid="grant-other"]'), 'account.read vault.list vault.read:work')
+  assert.equal(await main.isDisabled('[data-testid="grant-target-add"]'), true)
+  await main.getByTestId('grant-target').fill('dmsg-keys')
+  assert.equal(await main.isDisabled('[data-testid="grant-target-add"]'), true)
+  await main.getByTestId('grant-target').fill('work')
+  await main.getByTestId('grant-target').press('Enter')
+  await main.getByTestId('grant-parameter').waitFor({ state: 'detached' })
   await main.click('[data-testid="grant-capabilities"]')
   await waitFor(() => calls.filter((c) => c.method === 'grants/add').length === grantCount + 1)
   assert.deepEqual(latest('grants/add').params.capabilities, ['account.read', 'vault.list', 'vault.read:work'])
-  await main.waitForFunction(() => document.querySelector('[data-testid="grant-other"]').value === '')
+  await main.waitForFunction(() => !document.querySelector('[data-testid="grant-remove"]'))
   await main.check('[data-testid="service-discourse.read"]')
   await main.check('[data-testid="service-mail.write"]')
-  // A capability typed twice, or typed as well as ticked, is granted once.
-  await main.fill('[data-testid="grant-other"]', 'vault.list vault.list mail.write:https://api.al.ink')
+  // Services are ticked above and are not offered again in the list.
+  assert.equal(await options.getByRole('button', { name: 'mail.write:<origin>', exact: true }).count(), 0)
+  await options.getByRole('button', { name: 'vault.list', exact: true }).click()
   await main.locator('[data-testid="grants-card"]').screenshot({ path: join(shots, 'grants.png') })
   await main.click('[data-testid="grant-capabilities"]')
   await main.waitForSelector('[data-testid="capability-grants"] >> text=discourse.read:https://api.al.ink')
@@ -3789,12 +3799,10 @@ smoke: try {
     source: 'gui'
   })
   assert.equal(await main.isChecked('[data-testid="service-discourse.read"]'), false)
-  // What the vocabulary does not name is never sent; a grant reaching every
-  // target asks once more, for the days chosen.
-  await main.fill('[data-testid="grant-other"]', 'file.read:work')
-  await main.waitForSelector('[data-testid="grant-unknown"]')
-  assert.equal(await main.isDisabled('[data-testid="grant-capabilities"]'), true)
-  await main.fill('[data-testid="grant-other"]', 'vault.read:*')
+  // A grant reaching every target asks once more, for the days chosen.
+  await options.getByRole('button', { name: 'vault.read:<tag>', exact: true }).click()
+  await main.getByTestId('grant-target').fill('*')
+  await main.getByTestId('grant-target-add').click()
   await choose(main, 'grant-days', '30')
   await main.click('[data-testid="grant-capabilities"]')
   await main.click('[data-testid="grant-confirm-dialog-confirm"]')
@@ -3833,15 +3841,11 @@ smoke: try {
   await main.click('[data-testid="legacy-notice"] >> text=Open')
   await main.waitForSelector('[data-testid="legacy-archives"]')
   await main.waitForSelector(`[data-testid="legacy-pick-${offer.nonce}"]`)
-  // Migration never calls the daemon for account content while setup is
-  // unfinished. Every blocked state points to the account's next step.
+  // Migration never calls the daemon for account content while the account
+  // is closed; each state points to its next step.
   for (const [state, pending, hint] of [
     ['logged_out', false, 'Sign in'],
-    ['locked', false, 'Unlock'],
-    ['no_account', false, 'Finish setting up'],
-    ['pairing_required', false, 'device must join'],
-    ['root_required', true, 'Finish setting up'],
-    ['root_required', false, 'cannot open your account data']
+    ['locked', false, 'Unlock']
   ]) {
     const reads = calls.filter((c) => ['legacy/pairs', 'legacy/list'].includes(c.method)).length
     session = state
@@ -3852,14 +3856,27 @@ smoke: try {
     assert.equal(await main.locator('[data-testid="legacy-pair"]').isDisabled(), true)
     assert.equal(await main.locator('[data-testid="legacy-archives"]').count(), 0)
     assert.equal(calls.filter((c) => ['legacy/pairs', 'legacy/list'].includes(c.method)).length, reads)
-    if (state === 'root_required' && pending) await main.screenshot({ path: join(shots, 'legacy-setup-required.png') })
   }
+  // A device without a ready account sees only the welcome, whatever the route said.
+  for (const [state, pending, shown] of [
+    ['pairing_required', false, 'pair-request'],
+    ['root_required', true, 'retry-account-setup'],
+    ['root_required', false, 'retry-account-setup']
+  ]) {
+    session = state
+    setupPending = pending
+    emit('session/changed')
+    await main.getByTestId(shown).waitFor()
+    await main.getByTestId('welcome').waitFor()
+    assert.equal(await main.getByTestId('sidebar').count(), 0)
+  }
+  await main.keyboard.press(`${process.platform === 'darwin' ? 'Meta' : 'Control'}+k`)
+  assert.equal(await main.locator('[data-testid="palette"]').count(), 0, 'the palette waits for an account')
   // A failed create has already bound the account. The same page switches
   // to finishing setup, and its retry reaches the same account/create API.
   session = 'no_account'
   setupPending = false
   emit('session/changed')
-  await main.click('[data-testid="legacy-setup"]')
   await main.waitForSelector('[data-testid="create-account"]')
   await main.getByTestId('join-account').getByRole('button').click()
   assert.equal(await main.getByTestId('bind-account').evaluate((el) => el.labels.length), 1)
@@ -3878,6 +3895,12 @@ smoke: try {
   await main.click('[data-testid="retry-account-setup"]')
   await main.waitForSelector('[data-testid="retry-account-setup"]', { state: 'detached' })
   assert.equal(session, 'unlocked')
+  // The account opens on the choices worth making at the start, then on the app.
+  await main.getByTestId('welcome-finish').waitFor()
+  await formMatrix(app, main, shots, 'welcome-finish', '[data-testid="welcome-finish"]')
+  await main.getByTestId('welcome-done').click()
+  await main.getByTestId('welcome').waitFor({ state: 'detached' })
+  await main.getByTestId('sidebar').waitFor()
   await main.click('[data-testid="settings-legacy"]')
   await main.waitForSelector('[data-testid="legacy-pair"]:not([disabled])')
   assert.equal(await main.locator('[data-testid="legacy-not-ready"]').count(), 0)
@@ -3981,8 +4004,7 @@ smoke: try {
   assert.equal(revealed(), 0)
   await main.click('[data-testid="reveal-secret"]')
   await main.waitForSelector(`[data-testid="vault-secret"] >> text=${SECRET}`)
-  await main.click('[data-testid="copy-secret"]')
-  assert.equal(await app.evaluate(() => globalThis.__clip), '')
+  // A copy takes one click; showing the value on screen keeps its second.
   await main.click('[data-testid="copy-secret"]')
   await main.waitForSelector('[data-testid="secret-copied"]')
   assert.equal(await app.evaluate(() => globalThis.__clip), SECRET)
@@ -4196,16 +4218,17 @@ smoke: try {
   await finishImport()
   await emptyImport
   // Many items at once: a tag for two of them.
-  await main.click('[data-testid="vault-choose"]')
+  const chooseHeld = { modifiers: [process.platform === 'darwin' ? 'Meta' : 'Control'] }
   await main.click('[data-testid="vault-list"] >> text=Smoke note')
-  await main.click('[data-testid="vault-list"] >> text=New login')
+  await main.click('[data-testid="vault-list"] >> text=New login', chooseHeld)
   await main.click('[data-testid="vault-batch-tag"]')
   await main.fill('[data-testid="vault-batch-tags-input"] input', 'shared')
   await main.press('[data-testid="vault-batch-tags-input"] input', 'Enter')
   await main.click('[data-testid="vault-batch-tags-save"]')
   await waitFor(() => latest('vault/tags'))
   assert.deepEqual(latest('vault/tags').params, { ids: ['22'.repeat(32), 'c0'.repeat(32)], add: ['shared'] })
-  await main.click('[data-testid="vault-choose"]')
+  await main.click('[data-testid="vault-batch-done"]')
+  await main.waitForSelector('[data-testid="vault-batch"]', { state: 'detached' })
   await main.click('[data-testid="vault-conflicts-review"]')
   await main.waitForSelector('[data-testid="conflict-dialog"] >> text=from the laptop')
   await settled(main, '[data-testid="conflict-dialog"]')
@@ -4744,7 +4767,7 @@ smoke: try {
   emit('hint', { kind: 'channel' })
   await new Promise((r) => setTimeout(r, 300))
   assert.equal((await app.evaluate(() => globalThis.__notes)).length, notesBeforeHints)
-  await main.click('[data-testid="settings-session"]')
+  await main.click('[data-testid="settings-security"]')
   // Fast unlock turns on in Settings; the locked account then opens from the
   // keychain instead of a login.
   const logins = calls.filter((c) => c.method === 'session/login').length
@@ -4790,7 +4813,7 @@ smoke: try {
   await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Syncing'))
   assert.equal(await main.locator('[data-testid="gate-sync"]').isDisabled(), true)
   // Local content is usable while the automatic sync is still running.
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await main.waitForSelector('[data-testid="vault-list"]')
   await main.screenshot({ path: join(shots, 'unlock-syncing.png') })
   syncing = false
@@ -4829,7 +4852,9 @@ smoke: try {
   await main.click('[data-testid="gate-unlock"]')
   await main.waitForSelector('[data-testid="gate-lock"]')
   assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
+  await main.click('[data-testid="settings-security"]')
   assert.equal(await main.textContent('[data-testid="fast-unlock-method"]'), 'Touch ID or the Mac password')
+  await main.click('[data-testid="settings-session"]')
   // A workspace copied from another Mac never unlocks: the gate leads to
   // Settings, which sets it aside as a new device and keeps the copy until
   // the person deletes it.
@@ -4848,7 +4873,7 @@ smoke: try {
   emit('session/changed', { state: 'moved' })
   await main.waitForSelector('[data-testid="gate-unlock"] >> text=Review copied workspace')
   assert.equal(await main.textContent('[data-testid="gate-state"]'), 'Copied from another Mac')
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await main.waitForSelector('text=This workspace was copied from another Mac')
   await main.click('[data-testid="gate-unlock"]')
   await main.waitForSelector('[data-testid="moved"]')
@@ -4889,7 +4914,7 @@ smoke: try {
   assert.equal((await main.textContent('[data-testid="account-login"]')).trim(), 'Log in')
   assert.equal(await main.locator('[data-testid="account-logout"]').count(), 0)
   await main.keyboard.press('Escape')
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await main.waitForSelector('[data-testid="vault-locked"] >> text=Log in to use dMsg on this device.')
   failLogin = true
   await main.click('[data-testid="vault-locked"] [data-testid="locked-step"]')
@@ -4932,11 +4957,12 @@ smoke: try {
   if (process.platform === 'darwin') assert.equal(await main.$eval('header', (el) => getComputedStyle(el).paddingLeft), '84px')
   await main.screenshot({ path: join(shots, 'locale-ar.png') })
   // The panes mirror right to left; IDs and code keep their own order.
-  await main.keyboard.press(`${mod}+1`)
+  await main.keyboard.press(`${mod}+3`)
   await main.waitForSelector('[data-testid="vault-inspector"]')
   await main.screenshot({ path: join(shots, 'vault-ar.png') })
-  await main.keyboard.press(`${mod}+3`)
+  await main.keyboard.press(`${mod}+1`)
   await main.click('[data-testid="channel-list"] button >> nth=0')
+  // The panel stays as the person left it.
   await main.waitForSelector('[data-testid="channel-members"]')
   await main.screenshot({ path: join(shots, 'channels-ar.png') })
   await main.keyboard.press(`${mod}+8`)

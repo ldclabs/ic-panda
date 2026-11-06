@@ -48,7 +48,7 @@
     <Dialog.Content
       {onOpenAutoFocus}
       escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}
-      interactOutsideBehavior={dismissible ? 'close' : 'ignore'}
+      interactOutsideBehavior="ignore"
       class={cn(
         'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-48px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-line bg-surface text-ink shadow-pop outline-none duration-200 ease-spring-soft data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-98 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-98',
         wide ? 'w-[min(760px,calc(100vw-32px))]' : 'w-[min(520px,calc(100vw-32px))]'

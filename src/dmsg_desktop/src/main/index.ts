@@ -20,15 +20,16 @@ import {
   net,
   Notification,
   powerMonitor,
+  screen,
   shell,
   session as electronSession,
   systemPreferences,
   Tray,
   type IpcMainInvokeEvent
 } from 'electron'
-import { readFileSync } from 'node:fs'
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
+import { readFileSync, rmSync } from 'node:fs'
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { homedir, tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { isAppearance, type Appearance } from '../shared/appearance'
 import type { DaemonEvent } from '../shared/contract'
@@ -45,6 +46,7 @@ import { quietUntil, validTimeZone } from '../shared/notification-time'
 import { notificationBody, notificationText } from '../shared/notification-text'
 import type { NoticeVisibility } from '../shared/contract'
 import { textFor } from './text'
+import { boundsOnScreen, isViewRoute, readDesktopState, type DesktopState } from './desktop-state'
 import { trayVariant } from './tray-state'
 import { Updates } from './updater'
 import { handleBrokenOutput } from './stdio'
@@ -89,12 +91,27 @@ const noticeViewports = new Map<number, { id: string; version: string; stage: nu
 const noticeViewEpoch = new Map<number, number>()
 let pendingLink: string | null = null
 let trayState = 'connecting'
+/** Window bounds, the last view and the desktop's own choices, kept in the app's profile. */
+let desktop: DesktopState = { lockOnScreenLock: true }
+const keepsDesktopState = !testMode || process.env.DMSG_DESKTOP_TEST_STATE === '1'
+const desktopFile = () => join(app.getPath('userData'), 'desktop.json')
+let desktopTimer: ReturnType<typeof setTimeout> | undefined
+
+function keepDesktop(change: Partial<DesktopState>, now = false) {
+  desktop = { ...desktop, ...change }
+  clearTimeout(desktopTimer)
+  if (!keepsDesktopState) return
+  const save = () => void writeFile(desktopFile(), JSON.stringify(desktop)).catch(() => {})
+  if (now) save()
+  else desktopTimer = setTimeout(save, 500)
+}
 /** English until the app is ready and knows its locale. */
 let locale: Locale = 'en'
 let text = textFor(locale)
 let appearance: Appearance = 'system'
 const updates = new Updates(() => {
   updateTray(trayState)
+  updateMenu()
   broadcast('dmsg:event', { type: 'updates/changed' })
 })
 /** A copied secret leaves the clipboard after this long, unless something replaced it; locking or quitting clears it sooner. */
@@ -127,9 +144,30 @@ function load(window: BrowserWindow, route: string) {
   else void window.loadFile(join(__dirname, '../renderer/index.html'), { hash: route })
 }
 
+/** Right-click in text: spelling suggestions, then cut, copy, paste and select all in the window's language. */
+function textMenu(window: BrowserWindow, params: Electron.ContextMenuParams) {
+  const { editFlags, isEditable, selectionText, misspelledWord, dictionarySuggestions } = params
+  const items: Electron.MenuItemConstructorOptions[] = []
+  if (isEditable && misspelledWord) {
+    for (const word of dictionarySuggestions.slice(0, 5)) items.push({ label: word, click: () => window.webContents.replaceMisspelling(word) })
+    if (dictionarySuggestions.length) items.push({ type: 'separator' })
+  }
+  if (isEditable) {
+    items.push(
+      { role: 'cut', label: text.cut, enabled: editFlags.canCut },
+      { role: 'copy', label: text.copy, enabled: editFlags.canCopy },
+      { role: 'paste', label: text.paste, enabled: editFlags.canPaste },
+      { type: 'separator' },
+      { role: 'selectAll', label: text.selectAll, enabled: editFlags.canSelectAll }
+    )
+  } else if (selectionText.trim()) items.push({ role: 'copy', label: text.copy, enabled: editFlags.canCopy })
+  if (items.length) Menu.buildFromTemplate(items).popup({ window })
+}
+
 function harden(window: BrowserWindow) {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
+  window.webContents.on('context-menu', (_event, params) => textMenu(window, params))
   const clearViewport = () => {
     const id = windowId
     noticeViewports.delete(id)
@@ -157,6 +195,7 @@ function applyLocale(next: Locale) {
   locale = next
   text = textFor(next)
   updateTray(trayState)
+  updateMenu()
 }
 
 /** The appearance the person picked in the main window, kept in the app's profile. */
@@ -175,6 +214,7 @@ function webPreferences(role: 'main' | 'approval') {
     sandbox: true,
     nodeIntegration: false,
     webSecurity: true,
+    devTools: !app.isPackaged,
     additionalArguments: [`--dmsg-role=${role}`, `--dmsg-locale=${locale}`, `--dmsg-appearance=${appearance}`]
   }
 }
@@ -197,23 +237,41 @@ function showMain(route?: string) {
     main.focus()
     return
   }
+  const kept = boundsOnScreen(desktop.bounds, screen.getAllDisplays().map((display) => display.workArea))
   const window = new BrowserWindow({
-    width: 1180,
-    height: 760,
+    width: kept?.width ?? 1180,
+    height: kept?.height ?? 760,
+    ...(kept ? { x: kept.x, y: kept.y } : {}),
     minWidth: 760,
     minHeight: 540,
     title: 'dMsg',
+    autoHideMenuBar: true,
     // On macOS the sidebar sits on the window's own material; the traffic
     // lights sit in the 60px title bar, centred on its line.
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hidden', trafficLightPosition: { x: 18, y: 24 }, vibrancy: 'sidebar', backgroundColor: '#00000000' }
       : { backgroundColor: background() }),
-    show: !testMode || process.env.DMSG_DESKTOP_SHOW === '1',
+    show: false,
     webPreferences: webPreferences('main')
   })
   main = window
   harden(window)
-  load(window, route ?? '/channels')
+  // Shown once its first frame is ready, in the place it had, never a blank window.
+  window.once('ready-to-show', () => {
+    if (desktop.maximized && kept) window.maximize()
+    if (!testMode || process.env.DMSG_DESKTOP_SHOW === '1') window.show()
+  })
+  const rememberBounds = () => {
+    if (!window.isDestroyed() && !window.isFullScreen() && !window.isMinimized())
+      keepDesktop({ bounds: window.isMaximized() ? desktop.bounds : window.getBounds(), maximized: window.isMaximized() })
+  }
+  window.on('resize', rememberBounds)
+  window.on('move', rememberBounds)
+  window.webContents.on('did-navigate-in-page', (_event, url) => {
+    const shown = new URL(url).hash.slice(1)
+    if (isViewRoute(shown)) keepDesktop({ route: shown })
+  })
+  load(window, route ?? (isViewRoute(desktop.route) ? desktop.route : '/channels'))
   let leavingFullScreen = false
   // Full screen hides the traffic lights; the title bar takes back their room.
   window.on('enter-full-screen', () => window.webContents.send('dmsg:fullscreen', true))
@@ -228,6 +286,7 @@ function showMain(route?: string) {
     // Closing keeps the tray and the daemon; quitting is explicit.
     if (quitting) return
     event.preventDefault()
+    closingHint()
     if (process.platform !== 'darwin' || !(leavingFullScreen || window.isFullScreen())) return window.hide()
     // Hiding a window in full screen leaves its Space behind, black. It hides
     // once the asynchronous exit finished, unless it is shown again first.
@@ -240,6 +299,13 @@ function showMain(route?: string) {
     main = null
     hideAfterFullScreen = false
   })
+}
+
+/** The first time a window closes, say once where dMsg went on running. */
+function closingHint() {
+  if (desktop.closeHintShown || !keepsDesktopState) return
+  keepDesktop({ closeHintShown: true }, true)
+  if (Notification.isSupported()) new Notification({ title: 'dMsg', body: process.platform === 'darwin' ? text.stillRunningMenuBar : text.stillRunningTray, silent: true }).show()
 }
 
 /** The approval window shows one request from the daemon; it takes no outside parameters but the ID. */
@@ -260,10 +326,15 @@ function showApproval(id: string) {
     title: 'dMsg approval',
     ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 12, y: 11 } } : {}),
     backgroundColor: background(),
-    show: !testMode || process.env.DMSG_DESKTOP_SHOW === '1',
+    autoHideMenuBar: true,
+    show: false,
     webPreferences: webPreferences('approval')
   })
   harden(approval)
+  const opened = approval
+  opened.once('ready-to-show', () => {
+    if (!testMode || process.env.DMSG_DESKTOP_SHOW === '1') opened.show()
+  })
   load(approval, `/approval/${id}`)
   approval.on('closed', () => (approval = null))
 }
@@ -356,7 +427,7 @@ handle('dmsg:open-login', 'main', async (_event, url: string) => {
  * `files/progress` events follow. The answer names them again, since a
  * folder's files carry their own names.
  */
-handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[] | null, directory: boolean) => {
+handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[] | null, directory: boolean, attach: boolean) => {
   let paths = Array.isArray(dropped) ? dropped.filter((p): p is string => typeof p === 'string' && !!p) : []
   if (!paths.length) {
     const picked = await dialog.showOpenDialog(main!, {
@@ -371,8 +442,9 @@ handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[]
   for (const path of paths) if ((await stat(path).catch(() => null))?.isDirectory()) folders.push(path)
   const listing = (await daemon.call('files/list', { folder: target })) as { files: { name: string }[]; folders: { name: string }[] }
   const taken = paths.filter((p) => (folders.includes(p) ? listing.folders : listing.files).some((f) => f.name === basename(p)))
-  let keepBoth = false
-  if (taken.length) {
+  // Files attached to a message never ask: both are kept, under the channel attachments folder.
+  let keepBoth = attach === true
+  if (taken.length && !keepBoth) {
     const { response } = await dialog.showMessageBox(main!, {
       type: 'question',
       message: text.nameTaken(taken.length, basename(taken[0])),
@@ -387,6 +459,58 @@ handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[]
   const names = paths.map((p) => basename(p))
   event.sender.send('dmsg:event', { type: 'files/adding', data: { names, folders } })
   return { names, files: await daemon.call('files/import', { paths, folder: target, keep_both: keepBoth }) }
+})
+/**
+ * The image on the clipboard (a screenshot has no path), read by the main
+ * process itself, so a page cannot pass off bytes it made as something pasted.
+ * It enters the library through a temporary file, removed once imported.
+ */
+handle('dmsg:files-paste-image', 'main', async (_event, folder: string) => {
+  const item = (await clipboard.read()).find((entry) => entry.types.includes('image/png'))
+  if (!item) throw new DaemonError('NOT_FOUND', 'No image on the clipboard')
+  const blob = (await item.getType('image/png')) as Blob
+  const dir = await mkdtemp(join(tmpdir(), 'dmsg-paste-'))
+  try {
+    const stamp = new Date().toISOString().replace(/\.\d+Z$/, '').replace(/[-:]/g, '').replace('T', '-')
+    const path = join(dir, `Pasted-${stamp}.png`)
+    await writeFile(path, Buffer.from(await blob.arrayBuffer()), { mode: 0o600 })
+    return { names: [basename(path)], files: await daemon.call('files/import', { paths: [path], folder: String(folder || 'root'), keep_both: true }) }
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+/** Decrypted copies handed to the system: each goes after a while, and all of them when the session changes or the app quits. */
+const systemCopies = new Set<string>()
+function dropSystemCopies() {
+  for (const dir of systemCopies) rmSync(dir, { recursive: true, force: true })
+  systemCopies.clear()
+}
+async function systemCopy(id: string, name: string): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), 'dmsg-copy-'))
+  systemCopies.add(dir)
+  const forget = () => {
+    systemCopies.delete(dir)
+    return rm(dir, { recursive: true, force: true })
+  }
+  try {
+    const path = join(dir, basename(name) || 'file')
+    await daemon.call('files/export', { id, version: null, path })
+    setTimeout(forget, 10 * 60_000).unref()
+    return path
+  } catch (error) {
+    await forget()
+    throw error
+  }
+}
+app.on('will-quit', dropSystemCopies)
+/** Space in the library: the system's own preview of a copy. */
+handle('dmsg:files-preview', 'main', async (_event, id: string, name: string) => {
+  main?.previewFile(await systemCopy(String(id), String(name)), basename(String(name)))
+})
+/** The file's icon dragged out of the window: the system moves a copy to where it is dropped. */
+handle('dmsg:files-drag', 'main', async (event, id: string, name: string) => {
+  const path = await systemCopy(String(id), String(name))
+  event.sender.startDrag({ file: path, icon: await app.getFileIcon(path) })
 })
 /** `name` in `dir`, or `name (2)` and so on when taken. */
 async function freePath(dir: string, name: string): Promise<string> {
@@ -407,19 +531,19 @@ handle('dmsg:files-export-many', 'main', async (_event, items: { id: string; nam
   return { dir, count: list.length }
 })
 /**
- * The file library's settings, kept in the home's `preferences.json`, which
- * the daemon reads and never takes from a request. Allowing the disk mount
+ * The file library's settings and the idle time, kept in the home's
+ * `preferences.json`, which the daemon reads and never takes from a request. Allowing the disk mount
  * asks in a system dialog first, which no window can answer.
  */
-handle('dmsg:files-preferences', 'main', async (_event, changes: { files_mount?: boolean; files_trash_days?: number }) => {
+handle('dmsg:files-preferences', 'main', async (_event, changes: { files_mount?: boolean; files_trash_days?: number; idle_lock_minutes?: number }) => {
   const path = join(home, 'preferences.json')
-  let kept: { files_mount?: boolean; files_trash_days?: number } = {}
+  let kept: { files_mount?: boolean; files_trash_days?: number; idle_lock_minutes?: number } = {}
   try {
     kept = JSON.parse(await readFile(path, 'utf8'))
   } catch {
     /* none yet */
   }
-  const next = { files_mount: kept.files_mount === true, files_trash_days: kept.files_trash_days }
+  const next = { files_mount: kept.files_mount === true, files_trash_days: kept.files_trash_days, idle_lock_minutes: kept.idle_lock_minutes }
   if (typeof changes?.files_mount === 'boolean' && changes.files_mount !== next.files_mount) {
     if (changes.files_mount) {
       const { response } = await dialog.showMessageBox(main!, {
@@ -438,6 +562,11 @@ handle('dmsg:files-preferences', 'main', async (_event, changes: { files_mount?:
     const days = Number(changes.files_trash_days)
     if (!Number.isInteger(days) || days < 1 || days > 365) throw new DaemonError('INVALID_INPUT', 'files_trash_days')
     next.files_trash_days = days
+  }
+  if (changes?.idle_lock_minutes !== undefined) {
+    const minutes = Number(changes.idle_lock_minutes)
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 24 * 60) throw new DaemonError('INVALID_INPUT', 'idle_lock_minutes')
+    next.idle_lock_minutes = minutes
   }
   await mkdir(home, { recursive: true })
   await writeFile(path, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 })
@@ -540,7 +669,7 @@ let secretMountSerial = 0
 let preparedSecretMount: { session: number; epoch: number; params: any } | null = null
 handle('dmsg:secret-scan', 'main', async () => {
   const session = importSession
-  const selected = await dialog.showOpenDialog(main!, { title: 'Scan selected directory / 扫描所选目录', properties: ['openDirectory'] })
+  const selected = await dialog.showOpenDialog(main!, { title: text.pickScanDirectory, properties: ['openDirectory'] })
   if (selected.canceled || !selected.filePaths[0] || session !== importSession) return null
   return daemon.call('secrets/discovery/start', { path: selected.filePaths[0] })
 })
@@ -549,7 +678,7 @@ handle('dmsg:secret-mount-prepare', 'main', async (_event, input: any, windowMs:
   const session = ++secretMountSerial
   const epoch = importSession
   if (!input || typeof input.project_label !== 'string' || !Array.isArray(input.entries)) throw new DaemonError('INVALID_INPUT', 'Mapping')
-  const selected = await dialog.showOpenDialog(main!, { title: 'Choose project directory / 选择项目目录', properties: ['openDirectory'] })
+  const selected = await dialog.showOpenDialog(main!, { title: text.pickProject, properties: ['openDirectory'] })
   if (selected.canceled || !selected.filePaths[0] || epoch !== importSession || session !== secretMountSerial) return null
   const project = selected.filePaths[0]
   const params = { input: { project_label: input.project_label, project_directory: project, mount_point: join(project, '.dmsg-secrets'), entries: input.entries, aliases: input.aliases ?? [] }, ...(process.platform === 'darwin' ? { window_ms: windowMs } : {}) }
@@ -758,7 +887,38 @@ handle('dmsg:set-appearance', 'main', async (_event, next: string) => {
   await writeFile(appearanceFile(), next)
   applyAppearance(next)
 })
-handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError ? 'DAEMON_DISCONNECTED' : undefined, recovery: daemon.recovery.state }))
+handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError, recovery: daemon.recovery.state }))
+handle('dmsg:reconnect', 'any', () => (daemon.connected ? undefined : daemon.connect()))
+handle('dmsg:quit', 'any', () => {
+  quitting = true
+  app.quit()
+})
+/** What only this app's windows and system integration know. */
+const desktopSettings = () => ({ lock_on_screen_lock: desktop.lockOnScreenLock, open_at_login: app.getLoginItemSettings().openAtLogin })
+handle('dmsg:desktop-settings', 'main', () => desktopSettings())
+/** The approval window closes itself once decided. The flows keep it open to look at it, unless they test this. */
+handle('dmsg:close-approval', 'approval', () => {
+  if (!testMode || process.env.DMSG_DESKTOP_TEST_APPROVAL_CLOSE === '1') approval?.close()
+})
+handle('dmsg:set-desktop-settings', 'main', (_event, change: { lock_on_screen_lock?: boolean; open_at_login?: boolean }) => {
+  if (typeof change?.lock_on_screen_lock === 'boolean') keepDesktop({ lockOnScreenLock: change.lock_on_screen_lock }, true)
+  if (typeof change?.open_at_login === 'boolean') {
+    app.setLoginItemSettings({ openAtLogin: change.open_at_login, args: ['--hidden'] })
+    updateTray(trayState)
+  }
+  return desktopSettings()
+})
+/** A `dmsg://` link in a message or letter moves the view, as one from outside the app does. */
+handle('dmsg:open-link', 'main', async (_event, url: string) => {
+  if (!parseLink(String(url))) throw new DaemonError('INVALID_INPUT', 'Not a dMsg link')
+  await openLink(String(url))
+})
+/** An image shown in a window, to the clipboard: only an image's own data address. */
+handle('dmsg:copy-image', 'main', async (_event, url: string) => {
+  const image = /^data:image\/(png|jpeg|gif|webp);base64,/.test(String(url)) ? nativeImage.createFromDataURL(String(url)) : null
+  if (!image || image.isEmpty()) throw new DaemonError('INVALID_INPUT', 'Not an image')
+  await clipboard.write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(image.toPNG())], { type: 'image/png' }) })])
+})
 /** What an MCP client runs to reach this daemon: the installed binary and its home. */
 handle('dmsg:runtime', 'main', () => ({ binary: daemon.options.binary, home: daemon.options.home }))
 handle('dmsg:fullscreen', 'main', () => main?.isFullScreen() === true)
@@ -1030,14 +1190,17 @@ function updateTray(state: string) {
       { label: `${notificationText(locale).noticeTitle} (${waiting})`, click: () => showMain('/reminders') },
       { type: 'separator' },
       { label: text.open, click: () => showMain() },
-      { label: text.lock, click: () => void daemon.call('session/lock').catch(() => {}) },
+      { label: text.lock, enabled: state === 'unlocked', click: () => void daemon.call('session/lock').catch(() => {}) },
       { type: 'separator' },
       ...updateItem(),
       {
         label: text.openAtLogin,
         type: 'checkbox',
         checked: app.getLoginItemSettings().openAtLogin,
-        click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--hidden'] })
+        click: (item) => {
+          app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--hidden'] })
+          broadcast('dmsg:event', { type: 'desktop/changed' })
+        }
       },
       { type: 'separator' },
       {
@@ -1051,8 +1214,85 @@ function updateTray(state: string) {
   )
 }
 
+/**
+ * The menu bar in the interface language, rebuilt when it changes. Packaged
+ * apps have no reload or developer tools; every other command is the system's
+ * own, and no accelerator takes a key the windows answer themselves.
+ */
+function updateMenu() {
+  if (!app.isReady()) return
+  const mac = process.platform === 'darwin'
+  const quit = () => {
+    quitting = true
+    app.quit()
+  }
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(mac
+      ? [{
+          label: 'dMsg',
+          submenu: [
+            { role: 'about', label: text.about },
+            { type: 'separator' },
+            { label: text.settings, accelerator: 'Cmd+,', click: () => showMain('/settings') },
+            ...updateItem(),
+            { type: 'separator' },
+            { role: 'services', label: text.services },
+            { type: 'separator' },
+            { role: 'hide', label: text.hide },
+            { role: 'hideOthers', label: text.hideOthers },
+            { role: 'unhide', label: text.showAll },
+            { type: 'separator' },
+            { label: text.quit, accelerator: 'Cmd+Q', click: quit }
+          ]
+        } as Electron.MenuItemConstructorOptions]
+      : []),
+    {
+      label: text.menuEdit,
+      submenu: [
+        { role: 'undo', label: text.undo },
+        { role: 'redo', label: text.redo },
+        { type: 'separator' },
+        { role: 'cut', label: text.cut },
+        { role: 'copy', label: text.copy },
+        { role: 'paste', label: text.paste },
+        { role: 'selectAll', label: text.selectAll }
+      ]
+    },
+    {
+      label: text.menuView,
+      submenu: [
+        ...(app.isPackaged ? [] : ([{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }] as Electron.MenuItemConstructorOptions[])),
+        { role: 'resetZoom', label: text.actualSize },
+        { role: 'zoomIn', label: text.zoomIn },
+        { role: 'zoomOut', label: text.zoomOut },
+        { type: 'separator' },
+        { role: 'togglefullscreen', label: text.fullScreen }
+      ]
+    },
+    {
+      label: text.menuWindow,
+      submenu: [
+        { role: 'minimize', label: text.minimize },
+        ...(mac ? ([{ role: 'zoom', label: text.zoom }] as Electron.MenuItemConstructorOptions[]) : []),
+        { role: 'close', label: text.close },
+        ...(mac ? ([{ type: 'separator' }, { role: 'front', label: text.bringToFront }] as Electron.MenuItemConstructorOptions[]) : [])
+      ]
+    },
+    {
+      label: text.menuHelp,
+      role: 'help',
+      submenu: [
+        { label: text.website, click: () => void shell.openExternal('https://dmsg.net') },
+        ...(mac ? [] : [{ type: 'separator' } as Electron.MenuItemConstructorOptions, ...updateItem(), { label: text.quit, click: quit }])
+      ]
+    }
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
 daemon.on('event', (event: DaemonEvent) => {
   if (event.type === 'session/changed' || event.type === 'resync') cancelImport()
+  if (event.type === 'session/changed') dropSystemCopies()
   broadcast('dmsg:event', event)
   if (['notifications/changed', 'session/changed', 'resync', 'sync/changed', 'sync/finished'].includes(event.type)) {
     noticeEpoch++
@@ -1123,7 +1363,12 @@ app.whenReady().then(async () => {
     permission !== 'media' || (!!main && contents === main.webContents && details.isMainFrame === true && details.mediaType === 'video'))
   electronSession.defaultSession.setPermissionRequestHandler((contents, permission, respond, details) =>
     respond(permission !== 'media' || (!!main && contents === main.webContents && details.isMainFrame === true && 'mediaTypes' in details && details.mediaTypes?.length === 1 && details.mediaTypes[0] === 'video')))
-  powerMonitor.on('lock-screen', () => { screenLocked = true; noticeViewports.clear(); noticeEpoch++; void refreshNotices() })
+  // A person who stepped away from this computer also left dMsg open; the toggle is under Security.
+  const lockForAbsence = () => {
+    if (desktop.lockOnScreenLock && daemon.connected) daemon.call('session/lock').catch(() => {})
+  }
+  powerMonitor.on('lock-screen', () => { screenLocked = true; noticeViewports.clear(); noticeEpoch++; lockForAbsence(); void refreshNotices() })
+  powerMonitor.on('suspend', lockForAbsence)
   powerMonitor.on('unlock-screen', () => { screenLocked = false; noticeEpoch++; void refreshNotices() })
   powerMonitor.on('resume', () => { noticeEpoch++; void refreshNotices(); networkReturned() })
   let online = net.isOnline()
@@ -1138,6 +1383,13 @@ app.whenReady().then(async () => {
     if (!noticeHistoryLoaded) noticeActivation = match[1]
     else void nativeNotices.activate(match[1]).then((opened) => { if (!opened) showMain('/reminders?ended=1') })
   })
+  if (keepsDesktopState) {
+    try {
+      desktop = readDesktopState(readFileSync(desktopFile(), 'utf8'))
+    } catch {
+      /* the first run */
+    }
+  }
   let stored: string | null = null
   try {
     stored = readFileSync(localeFile(), 'utf8').trim()
@@ -1158,6 +1410,8 @@ app.whenReady().then(async () => {
   if (!testMode || process.env.DMSG_DESKTOP_TEST_TRAY === '1') {
     trayImages = { idle: trayImage('idle'), waiting: trayImage('waiting'), locked: trayImage('locked'), lockedWaiting: trayImage('lockedWaiting') }
     tray = new Tray(trayImages.idle)
+    // On Windows the tray icon's left click is how a closed window comes back.
+    if (process.platform === 'win32') tray.on('click', () => showMain())
     updateTray('connecting')
   }
   // Opened at login, the app starts in the tray.

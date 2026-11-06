@@ -421,14 +421,23 @@ impl Daemon {
     }
 
     /// Take `preferences.json` again, which only the desktop's main process
-    /// writes: whether the mount is allowed beside `config.toml`, and how
-    /// long trashed files stay. A mount no longer allowed is undone.
+    /// writes: whether the mount is allowed beside `config.toml`, how long
+    /// trashed files stay and how long idle before locking. A mount no longer
+    /// allowed is undone.
     pub(crate) async fn read_preferences(&self) -> Result<Value> {
         let preferences = Preferences::read(&self.settings().preferences)?;
         let days = preferences
             .files_trash_days
             .unwrap_or(self.settings().config.files_trash_days);
         self.client().lock().await.files_set_trash_days(days)?;
+        let idle = match preferences.idle_lock_minutes {
+            Some(minutes) if !(1..=24 * 60).contains(&minutes) => {
+                return Err(dmsg_types::invalid("idle_lock_minutes"));
+            }
+            Some(minutes) => minutes * 60_000,
+            None => self.settings().idle_lock_ms,
+        };
+        self.idle_lock_ms.store(idle, Ordering::Relaxed);
         let allowed = self.settings().files_mount || preferences.files_mount;
         self.files_mount.store(allowed, Ordering::SeqCst);
         if !allowed {

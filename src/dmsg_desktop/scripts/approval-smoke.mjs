@@ -105,8 +105,7 @@ for (const page of app.windows()) watch(page)
 try {
   const main = await app.firstWindow()
   await main.getByTestId('sidebar-toggle').waitFor()
-  await main.evaluate(() => { location.hash = '/approvals' })
-  await main.getByTestId('approvals-tab-secrets').click()
+  await main.evaluate(() => { location.hash = '/vault' })
   await main.getByTestId('workflow-tab-ssh').click()
   const [approval] = await Promise.all([
     app.waitForEvent('window'),

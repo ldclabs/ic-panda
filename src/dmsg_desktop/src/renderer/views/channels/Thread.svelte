@@ -3,21 +3,26 @@
 </script>
 
 <script lang="ts">
-  import { DropdownMenu } from 'bits-ui'
-  import { tick } from 'svelte'
+  import { ContextMenu, DropdownMenu } from 'bits-ui'
+  import { onMount, tick, untrack } from 'svelte'
   import { uncertainSend, type Outgoing } from '../../message-delivery'
   import { localeDir } from '../../../shared/locales'
   import ParticipantAvatar from './ParticipantAvatar.svelte'
   import { copyText } from '../../components/clipboard'
+  import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
+  import LinkedText from '../../components/LinkedText.svelte'
+  import TargetMenu from '../../components/TargetMenu.svelte'
+  import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { size, when } from '../../rpc'
+  import { bridge, errorText, size, when } from '../../rpc'
+  import { remember, remembered } from '../../view-memory'
   import { validPrincipal, walletRoute } from '../wallet/model'
   import { w } from '../wallet/text'
   import { workflowText } from '../secrets/workflow-text'
-  import { bytes, days, MAX_TEXT, packetStep, receiptOf } from './channels'
+  import { bytes, days, firstUnread, MAX_TEXT, packetStep, receiptOf } from './channels'
   import { label as accountLabel } from './names.svelte'
 
   /**
@@ -26,9 +31,12 @@
    * if the daemon refused it. Messages answer, edit and withdraw earlier
    * ones; a hidden one folds away on this device. Enter sends, Shift+Enter
    * starts a line, Escape leaves a reply or an edit and ↑ edits the last
-   * message of this account. Files come from the library, the system
-   * dialog, a drop or a paste; images show in place. The timeline follows
-   * new messages only while it is at its end, which also marks them read.
+   * message of this account, and typing anywhere in the timeline goes to the
+   * composer. Files come from the library, the system dialog, a drop or a
+   * paste; images show in place and open large. The timeline follows new
+   * messages only while it is at its end, which also marks them read; it opens
+   * where it was left, else at what is new, under a line. One per channel: the
+   * parent keys it, so nothing of one channel's position reaches another.
    */
   let {
     channel,
@@ -53,6 +61,9 @@
     onAttach,
     onBrowse,
     onDrop,
+    onPaste,
+    history = false,
+    onLatest,
     onDownload,
     onSave,
     onSnapshot,
@@ -85,6 +96,10 @@
     onAttach: () => void
     onBrowse: () => void
     onDrop: (files: File[]) => void
+    onPaste: (files: File[]) => void
+    /** The timeline shows a search result's surroundings, not the latest messages. */
+    history?: boolean
+    onLatest: () => Promise<void>
     onDownload: (message: any) => void
     onSave: (message: any) => void
     onSnapshot: (message: any) => void
@@ -99,8 +114,15 @@
   let scroller = $state<HTMLElement | null>(null)
   let input = $state<HTMLTextAreaElement | null>(null)
   let dragging = $state(false)
+  /** Where this channel was left; none is at its end, or at what is new. */
+  const place = untrack(() => `channels.scroll.${channel.id}`)
+  const left = remembered<number>(place)
   /** Whether the timeline shows its end, so new messages keep it there. */
-  let atEnd = true
+  let atEnd = $state(left === undefined)
+  /** What this account had read as the channel opened, for the line above what is new. */
+  const readAt = untrack(() => channel?.read ?? 0)
+  const unreadAt = untrack(() => (channel?.unread ? firstUnread(messages, readAt, me) : null))
+  let large = $state<any>(null)
 
   const ledger = $derived(channel?.ledger)
   const groups = $derived(days(messages))
@@ -125,7 +147,44 @@
 
   function onScroll() {
     atEnd = nearEnd()
+    remember(place, atEnd || !scroller ? null : scroller.scrollHeight - scroller.scrollTop)
     if (atEnd) read()
+  }
+
+  const toEnd = () => {
+    if (scroller) scroller.scrollTop = scroller.scrollHeight
+  }
+
+  /** The newest messages, from anywhere: a search result's surroundings first load them. */
+  async function latest() {
+    if (history) await onLatest()
+    atEnd = true
+    remember(place, null)
+    await tick()
+    toEnd()
+    read()
+  }
+
+  /** The channel opens where it was left, else at the line above what is new, else at its end. */
+  onMount(() => {
+    void tick().then(() => {
+      if (!scroller) return
+      if (left !== undefined) scroller.scrollTop = scroller.scrollHeight - left
+      else if (unreadAt !== null) scroller.querySelector('[data-testid="unread-divider"]')?.scrollIntoView({ block: 'start' })
+      else toEnd()
+      atEnd = nearEnd()
+      read()
+      if (writes && document.hasFocus() && !document.querySelector('[aria-modal="true"]')) input?.focus({ preventScroll: true })
+    })
+  })
+
+  /** A letter typed with nothing focused, or the timeline focused, belongs in the composer. */
+  function onWindowKey(event: KeyboardEvent) {
+    if (!input || event.key.length !== 1 || event.key === ' ' || event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return
+    const target = event.target as Element | null
+    if (target !== document.body && !scroller?.contains(target)) return
+    if (document.querySelector('[aria-modal="true"]')) return
+    input.focus()
   }
 
   /** The last message is read once the timeline shows it to someone looking. */
@@ -140,7 +199,8 @@
     void outbox.length
     if (!atEnd) return
     void tick().then(() => {
-      if (scroller) scroller.scrollTop = scroller.scrollHeight
+      if (!atEnd) return
+      toEnd()
       read()
     })
   })
@@ -164,9 +224,10 @@
     // An explicit send follows its own pending row even when the person was
     // reading older history. Incoming messages still respect their position.
     atEnd = true
+    remember(place, null)
     onSend()
     void tick().then(() => {
-      if (scroller) scroller.scrollTop = scroller.scrollHeight
+      toEnd()
       input?.focus()
     })
   }
@@ -209,11 +270,11 @@
     reply = editing = null
   }
 
-  function onPaste(event: ClipboardEvent) {
+  function pasteFiles(event: ClipboardEvent) {
     const pasted = [...(event.clipboardData?.files ?? [])]
     if (!pasted.length) return
     event.preventDefault()
-    onDrop(pasted)
+    onPaste(pasted)
   }
 
   function dropped(event: DragEvent) {
@@ -221,6 +282,14 @@
     dragging = false
     const list = [...(event.dataTransfer?.files ?? [])]
     if (list.length && writes) onDrop(list)
+  }
+
+  /** What a person selected in the message, else its whole text. */
+  const copyMessage = (message: any) => copyText(getSelection()?.toString() || message.text)
+  const copyImage = (message: any) => void bridge(() => window.dmsg.copyImage(images[message.seq])).catch((error) => toast(() => errorText(error)))
+  const messageOf = (element: Element) => {
+    const seq = Number(element.closest('[data-seq]')?.getAttribute('data-seq'))
+    return messages.find((message) => message.seq === seq && !message.unreadable && !message.hidden) ?? null
   }
 
   const snippet = (message: any) => (message.retracted ? t('retracted') : message.text || message.file?.name || '')
@@ -237,6 +306,40 @@
     return () => observer.disconnect()
   }
 </script>
+
+{#snippet messageItems(Item: any, message: any)}
+  {#if writes && !message.retracted}
+    <Item class={menuItemClass} onSelect={() => answer(message)} data-testid="menu-reply">
+      <span class="flex items-center gap-2"><Icon name="reply" class="text-faint" />{t('replyAction')}</span>
+    </Item>
+  {/if}
+  {#if message.text && !message.retracted}
+    <Item class={menuItemClass} onSelect={() => copyMessage(message)} data-testid="menu-copy">
+      <span class="flex items-center gap-2"><Icon name="copy" class="text-faint" />{t('copy')}</span>
+    </Item>
+  {/if}
+  {#if message.file && !message.file_deleted && !message.retracted && message.file.mime !== 'application/vnd.dmsg.secret-package'}
+    <Item class={menuItemClass} onSelect={() => onSave(message)} data-testid="menu-save">
+      <span class="flex items-center gap-2"><Icon name="folder-add" class="text-faint" />{t('saveToLibrary')}</span>
+    </Item>
+    <Item class={menuItemClass} onSelect={() => onDownload(message)} data-testid="menu-download">
+      <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('download')}</span>
+    </Item>
+  {/if}
+  {#if writes && mine(message) && editable(message)}
+    <Item class={menuItemClass} onSelect={() => edit(message)} data-testid="message-edit">
+      <span class="flex items-center gap-2"><Icon name="edit" class="text-faint" />{t('edit')}</span>
+    </Item>
+  {/if}
+  {#if writes && mine(message) && !message.retracted}
+    <Item class={cn(menuItemClass, 'text-danger')} onSelect={() => onRetract(message)} data-testid="message-retract">
+      <span class="flex items-center gap-2"><Icon name="restore" />{t('retract')}…</span>
+    </Item>
+  {/if}
+  <Item class={menuItemClass} onSelect={() => onHide(message, true)} data-testid="message-hide">
+    <span class="flex items-center gap-2"><Icon name="eye-off" class="text-faint" />{t('hideHere')}</span>
+  </Item>
+{/snippet}
 
 {#snippet author(account: string)}
   <b class="text-[13px] font-semibold" title={account}>
@@ -297,6 +400,11 @@
   {/if}
 {/snippet}
 
+<svelte:window onkeydown={onWindowKey} />
+
+<div class="relative flex min-h-0 flex-1 flex-col">
+<TargetMenu find={messageOf} testid="message-menu">
+  {#snippet menu(message)}{@render messageItems(ContextMenu.Item, message)}{/snippet}
 <div
   bind:this={scroller}
   class={cn('relative min-h-0 flex-1 overflow-y-auto py-3', dragging && 'bg-pale/40 ring-2 ring-forest/40 ring-inset')}
@@ -316,12 +424,20 @@
       <button class={buttonClass('ghost', 'xs')} disabled={loadingEarlier} onclick={earlier} data-testid="channel-earlier"><Icon name="history" />{t('earlierMessages')}</button>
     </div>
   {/if}
-  {#each groups as group (group.day)}
+  {#each groups as group, g (group.day)}
+    <!-- Days out of sight skip layout until they come near; the last two stay
+         laid out, so the timeline's end is where it says it is. -->
+    <section class={g < groups.length - 2 ? '[content-visibility:auto] [contain-intrinsic-size:auto_600px]' : ''}>
     <div class="sticky top-0 z-[1] flex justify-center py-1.5">
       <span class="rounded-full border border-line bg-paper px-2.5 py-0.5 text-[11px] font-medium text-faint">{dayLabel(group.at)}</span>
     </div>
     {#each group.messages as message, i (message.seq)}
-      {@const compact = follows(group.messages, i)}
+      {@const compact = follows(group.messages, i) && message.seq !== unreadAt}
+      {#if message.seq === unreadAt}
+        <div class="flex items-center gap-3 px-6 py-1.5 text-[11px] font-medium text-forest" data-testid="unread-divider">
+          <span class="h-px flex-1 bg-forest/40"></span>{t('newMessages')}<span class="h-px flex-1 bg-forest/40"></span>
+        </div>
+      {/if}
       {#if message.hidden}
         <div class="flex items-center gap-2 px-6 py-1 text-[11.5px] text-faint" data-seq={message.seq} data-testid="message-hidden">
           <Icon name="eye-off" class="size-3.5" />{t('hiddenMessage')}
@@ -360,13 +476,13 @@
             {:else}
               {#if message.text}
                 <p dir="auto" class="max-w-xl text-start text-[13.5px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">
-                  {message.text}{#if message.edited_at}<span class="ms-1 text-[11px] text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}
+                  <LinkedText text={message.text} />{#if message.edited_at}<span class="ms-1 text-[11px] text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}
                 </p>
               {/if}
               {#if message.file_deleted}<p class="mt-2 text-[12px] text-faint" data-testid="attachment-deleted">{t('storageAttachmentDeleted')}</p>
               {:else if message.file}
                 {#if isImage(message) && images[message.seq]}
-                  <button class="mt-1.5 block max-w-sm overflow-hidden rounded-xl border border-line" onclick={() => onDownload(message)} title={message.file.name}>
+                  <button class="mt-1.5 block max-w-sm cursor-zoom-in overflow-hidden rounded-xl border border-line" onclick={() => (large = message)} title={message.file.name} data-testid="message-image-open">
                     <img src={images[message.seq]} alt={message.file.name} class="max-h-72 w-auto object-contain" data-testid="message-image" />
                   </button>
                 {/if}
@@ -422,25 +538,7 @@
                 <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} data-testid="message-more"><Icon name="more" /></DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
                   <DropdownMenu.Content align="end" sideOffset={4} class={cn(menuContentClass, 'min-w-44')}>
-                    {#if writes && !message.retracted}
-                      <DropdownMenu.Item class={menuItemClass} onSelect={() => answer(message)}>{t('replyAction')}</DropdownMenu.Item>
-                    {/if}
-                    {#if message.text && !message.retracted}
-                      <DropdownMenu.Item class={menuItemClass} onSelect={() => copyText(message.text)}>{t('copy')}</DropdownMenu.Item>
-                    {/if}
-                    {#if writes && mine(message) && editable(message)}
-                      <DropdownMenu.Item class={menuItemClass} onSelect={() => edit(message)} data-testid="message-edit">
-                        <span class="flex items-center gap-2"><Icon name="edit" class="text-faint" />{t('edit')}</span>
-                      </DropdownMenu.Item>
-                    {/if}
-                    {#if writes && mine(message) && !message.retracted}
-                      <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={() => onRetract(message)} data-testid="message-retract">
-                        <span class="flex items-center gap-2"><Icon name="restore" />{t('retract')}…</span>
-                      </DropdownMenu.Item>
-                    {/if}
-                    <DropdownMenu.Item class={menuItemClass} onSelect={() => onHide(message, true)} data-testid="message-hide">
-                      <span class="flex items-center gap-2"><Icon name="eye-off" class="text-faint" />{t('hideHere')}</span>
-                    </DropdownMenu.Item>
+                    {@render messageItems(DropdownMenu.Item, message)}
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
@@ -449,6 +547,7 @@
         </article>
       {/if}
     {/each}
+    </section>
   {:else}
     {#if !outbox.length && !more}
       <div class="grid h-full place-items-center px-8 text-center">
@@ -487,6 +586,29 @@
     </article>
   {/each}
 </div>
+</TargetMenu>
+{#if !atEnd || history}
+  <button
+    class={buttonClass('secondary', 'sm', 'absolute end-5 bottom-3 z-[2] rounded-full shadow-pop')}
+    onclick={latest}
+    data-testid="channel-latest"
+  >
+    <Icon name="arrow-down" />{t('jumpToLatest')}{#if channel?.unread}<span class="rounded-full bg-forest px-1.5 text-[10.5px] leading-4 font-semibold text-on-forest tabular-nums">{channel.unread > 99 ? '99+' : channel.unread}</span>{/if}
+  </button>
+{/if}
+</div>
+
+{#if large}
+  <Dialog bind:open={() => !!large, (open) => !open && (large = null)} title={large.file.name} icon="image" wide testid="message-image-large">
+    <img src={images[large.seq]} alt={large.file.name} class="mx-auto max-h-[64vh] w-auto rounded-lg object-contain" />
+    {#snippet footer()}
+      <span class="min-w-0 flex-1 truncate text-[12px] text-faint">{size(large.file.size)}</span>
+      <button class={buttonClass('ghost')} onclick={() => copyImage(large)} data-testid="image-copy"><Icon name="copy" />{t('copy')}</button>
+      <button class={buttonClass('ghost')} onclick={() => onSave(large)}><Icon name="folder-add" />{t('saveToLibrary')}</button>
+      <button class={buttonClass('primary')} onclick={() => onDownload(large)} data-testid="image-download"><Icon name="download" />{t('download')}</button>
+    {/snippet}
+  </Dialog>
+{/if}
 
 {#if writes}
   <div class="border-t border-line px-4 pt-2.5 pb-3">
@@ -554,7 +676,7 @@
         class="max-h-40 min-h-8 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 text-[13.5px] shadow-none [field-sizing:content] focus-visible:shadow-none"
         placeholder={t('messageTo', { name: channel.name })}
         onkeydown={onKey}
-        onpaste={onPaste}
+        onpaste={pasteFiles}
         data-testid="channel-text"
       ></textarea>
       <button class={buttonClass('primary', 'md')} disabled={tooLong || (!draft.trim() && !attachments.length)} onclick={send} data-testid="channel-send">

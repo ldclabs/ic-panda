@@ -94,6 +94,7 @@
   <header class="flex h-12 shrink-0 items-center gap-2 border-b border-line ps-4 pe-2">
     <Icon name="members" class="text-faint" />
     <b class="flex-1 text-[13px] font-semibold">{t('members')} <span class="font-normal text-faint">{members.length}</span></b>
+    <span class="inline-flex shrink-0 items-center gap-1 text-[11px] text-faint" data-testid="channel-epoch"><Icon name="epoch" class="size-3" />{t('epochN', { n: ledger.epoch })}</span>
     <button class={iconButtonClass('ghost', 'lg')} aria-label={t('close')} onclick={onClose}><Icon name="close" /></button>
   </header>
   <ul class="min-h-0 flex-1 overflow-y-auto p-2">

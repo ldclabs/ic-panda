@@ -212,6 +212,19 @@
     }
   })
 
+  // The route names the tab, so back and the sidebar return to it.
+  const WALLET_TABS = ['overview', 'assets', 'proposals', 'team', 'activity', 'settings']
+  function show(next: string) {
+    tab = next
+    if (selected) go(`/wallet/${selected}?tab=${next}`)
+  }
+  $effect(() => {
+    const [path, search] = route.split('?')
+    const asked = new URLSearchParams(search ?? '').get('tab')
+    if (asked && WALLET_TABS.includes(asked)) tab = asked
+    else if (!search && path.split('/').length === 3) tab = 'overview'
+  })
+
   $effect(() => {
     const move = new URLSearchParams(route.split('?')[1] ?? '').get('move')
     if (move && /^\d+$/.test(move))
@@ -265,7 +278,8 @@
 
   function select(id: string) {
     if (busy) return
-    go(walletRoute(id))
+    // Another wallet opens on the tab being read.
+    go(`${walletRoute(id)}?tab=${tab}`)
     void open(id)
   }
   function open(id: string, mode: Mode = 'swr') {
@@ -672,7 +686,7 @@
         >{w('creationPausedHint')}</p
       >{/if}
     <TabBar
-      bind:value={() => (tab === 'settings' ? 'team' : tab === 'activity' ? 'proposals' : tab), (value) => (tab = value)}
+      bind:value={() => (tab === 'settings' ? 'team' : tab === 'activity' ? 'proposals' : tab), show}
       items={tabs}
       label={t('twNav')}
       testid="wallet-tab"
@@ -707,9 +721,9 @@
           >{/if}
         {#if wallet}
           {#if ['team', 'settings'].includes(tab)}<div class="flex flex-wrap gap-2"
-              ><button class={buttonClass('secondary', 'sm')} onclick={() => (tab = 'team')}>{w('security')}</button><button
+              ><button class={buttonClass('secondary', 'sm')} onclick={() => show('team')}>{w('security')}</button><button
                 class={buttonClass('ghost', 'sm')}
-                onclick={() => (tab = 'settings')}
+                onclick={() => show('settings')}
                 data-testid="wallet-tab-settings">{w('settings')}</button
               ></div
             >{/if}
@@ -717,16 +731,16 @@
               ><button
                 class={buttonClass('secondary', 'sm')}
                 onclick={() => {
-                  tab = 'proposals'
+                  show('proposals')
                   historyOpen = false
                 }}>{w('queue')}</button
               ><button
                 class={buttonClass('ghost', 'sm')}
                 onclick={() => {
-                  tab = 'proposals'
+                  show('proposals')
                   historyOpen = true
                 }}>{w('history')}</button
-              ><button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'activity')} data-testid="wallet-tab-activity"
+              ><button class={buttonClass('ghost', 'sm')} onclick={() => show('activity')} data-testid="wallet-tab-activity"
                 >{w('activity')}</button
               ></div
             >{/if}
@@ -752,7 +766,7 @@
               {#snippet actions()}<button
                   class={buttonClass('ghost', 'sm')}
                   onclick={() => {
-                    tab = 'proposals'
+                    show('proposals')
                     filter = 'waiting'
                   }}>{w('waiting')} · {queueBusy || queueError ? '—' : waiting}</button
                 >{/snippet}
@@ -774,9 +788,9 @@
             </Section>
             <div class="flex flex-wrap items-center gap-3 text-[13px]">
               <span data-testid="wallet-cycles">{w('runningHealth')}: {cyclesText(wallet.stats?.cycles ?? '0')} T</span>
-              <button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'settings')}>{w('settings')}</button>
+              <button class={buttonClass('ghost', 'sm')} onclick={() => show('settings')}>{w('settings')}</button>
               <span>{w('approvals')}: {wallet.policy.approver_threshold}</span>
-              <button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'team')}>{w('teamReadiness')}</button>
+              <button class={buttonClass('ghost', 'sm')} onclick={() => show('team')}>{w('teamReadiness')}</button>
             </div>
           {:else if tab === 'proposals'}
             {#if historyOpen}<History {wallet} {metadata} {now} onOpen={showProposal} />{:else}
@@ -1142,7 +1156,7 @@
           onDone={proposed}
           onSetup={() => {
             manageOpen = false
-            tab = 'settings'
+            show('settings')
           }}
         />{/key}{/if}
     {#if detailId !== null && detailOpen}{#key `${wallet.wallet}:${detailId}`}<ProposalDetail

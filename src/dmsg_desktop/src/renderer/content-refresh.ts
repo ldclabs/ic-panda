@@ -1,7 +1,8 @@
+import { daemonBlocked } from './connection-gate'
 /** Only mounted, visible business views fetch message bodies. Hints carry no content. */
 export function watchContent(kind: 'channel' | 'inbox', resource: () => string | null, refresh: () => unknown) {
   const run = () => {
-    if (document.visibilityState === 'visible' && !document.body.inert && resource()) void refresh()
+    if (document.visibilityState === 'visible' && !daemonBlocked() && resource()) void refresh()
   }
   const off = window.dmsg.onEvent((event) => {
     if (event.type === 'resync') run()
