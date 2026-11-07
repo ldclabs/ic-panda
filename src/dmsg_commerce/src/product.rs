@@ -247,7 +247,10 @@ fn offer(
                 s.addons.iter().filter(|a| a.expires_at_ms > at).count() < model::MAX_ADDONS,
                 Error::QuotaExceeded,
             )?;
-            let current = s.active(at).ok_or(Error::MembershipIneligible)?;
+            let current = s
+                .active(at)
+                .filter(|c| !c.source.is_sandbox())
+                .ok_or(Error::MembershipIneligible)?;
             ensure(
                 current.eligibility == Eligibility::Eligible && at < current.qualified_until_ms,
                 Error::MembershipStale,
@@ -269,7 +272,9 @@ fn offer(
             // Apple renews an App Store term itself; another base term waits until it ends.
             ensure(
                 !s.contracts.iter().any(|c| {
-                    matches!(c.source, ContractSource::AppStore { .. }) && model::end(c) > at
+                    matches!(c.source, ContractSource::AppStore { .. })
+                        && !c.source.is_sandbox()
+                        && model::end(c) > at
                 }),
                 Error::Forbidden,
             )?;
@@ -593,7 +598,7 @@ fn deliver(
                 .contracts
                 .iter_mut()
                 .rev()
-                .find(|c| c.starts_at_ms <= at && at < model::end(c))
+                .find(|c| c.starts_at_ms <= at && at < model::end(c) && !c.source.is_sandbox())
                 .ok_or(Error::NotFound)?;
             ensure(
                 matches!(old.source, ContractSource::Cash { .. }),

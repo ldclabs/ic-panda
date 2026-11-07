@@ -2516,6 +2516,10 @@
 	<string>服務條款</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>測試環境 · 獨立帳號與測試購買</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>測試購買不會扣款，現有正式會員優先生效。</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>測試訂閱，不會實際扣款。到期時間由 Apple 測試環境決定。</string>
 	<key>Test the new credential at its provider</key>
 	<string>在服務提供方測試新憑據</string>
 	<key>Text</key>

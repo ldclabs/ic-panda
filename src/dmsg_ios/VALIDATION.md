@@ -2175,3 +2175,56 @@ App Store Connect accepted the 24 localized screenshots after one stalled
 English medium-size image was re-uploaded. Version 1.1.0 (15) was submitted
 on 2026-11-07; the verified status is Waiting for Review. The submission contains
 only this app version, with manual release retained and no in-app purchases.
+
+## 2026-11-07 TestFlight subscriptions on production accounts
+
+This change starts from local public commit `67bb7857b328b9fd0e6d95220eff0bbfc5d94576`.
+StoreKit's verified Apple environment is separate from the business deployment.
+With the explicit service opt-ins enabled, Sandbox annual subscriptions use the
+same production account and membership pipeline, with no tester allowlist.
+Formal memberships take priority, Apple supplies the actual test expiry, and
+upgrades/refunds only change contracts in the same Apple environment. Sandbox
+history does not consume the first formal cash purchase's refund window.
+
+The app reports a test membership, refreshes its plan after delivery, and finishes
+a StoreKit transaction only after the authoritative service returns `applied`.
+Xcode-local and unverified transactions are rejected. Business endpoint selection,
+Core HTTP proof bytes and production APNs/App Attest selection remain independent of the Apple
+transaction environment. No production deployment or App Store configuration
+was performed in this change.
+
+Actual local verification:
+
+- `cargo test --locked -p dmsg_client -p dmsg_mobile -p dmsg_commerce --lib`:
+  592 client, 27 mobile and 47 commerce tests passed; 5 client and 2 commerce
+  tests remain ignored by their existing defaults.
+- `cargo test --locked -p dmsg_types -p dmsg_protocol`: 130 tests passed,
+  including old Candid and CBOR App Store records without the new optional fields.
+- Strict Clippy passed for types, client, mobile and commerce with all targets.
+- Three App Store PocketIC tests passed against the optimized commerce Wasm,
+  including opt-in/opt-out, duplicate IDs across environments, formal priority,
+  short Sandbox expiry, refunds and upgrade preservation. The normally ignored
+  legacy test was explicitly run with a real commerce Wasm built from the
+  pre-change commit above, not the new Wasm installed twice. Existing Production
+  contracts survived and the absent Sandbox opt-in stayed disabled.
+- The broader commerce/governance PocketIC selection passed 59 checks across
+  two runs: 56 initially, then 3 after building the missing test-only account
+  product Wasm. No business assertion or source change was needed for the retry.
+  Nine tests were ignored by default; the legacy upgrade was run separately as
+  described above. Capacity profiles were not run.
+- Native Rust libraries and UniFFI bindings were rebuilt for device and simulator;
+  `scripts/ios/artifacts.py verify` passed. All 23 localization catalogs passed
+  `scripts/ios/localizations.py`.
+- iPhone 16 Pro / iOS 18.4: 112 tests passed in
+  `.build/IAP-Sandbox-iPhone.xcresult` (Swift unit suite plus two navigation checks).
+  The final Chinese test-membership fixture passed a targeted UI run in
+  `.build/IAP-Sandbox-Notice.xcresult`; its screenshot was visually checked for
+  the notice, expiry and matching Max limits. This is a DEBUG fixture, not an
+  actual purchase screenshot.
+
+The iOS release flag remains disabled and the service opt-ins default off.
+This source change does not change version 1.1.0 (15) or upload a new build.
+Real TestFlight purchases, Apple renewals/refunds and callbacks, physical-device
+App Attest, the full simulator UI matrix and production rollout remain unverified.
+
+Implementation and validation: Codex (OpenAI).

@@ -711,7 +711,9 @@ This tree is development code, not an App Store release assertion. In particular
 3. APNs, App Attest and StoreKit now have native APIs, provider/verification
    services and a governed commerce adapter. Apple products and deployment
    credentials must be provisioned; no private key belongs in this repository
-   or app. Production refuses sandbox purchase facts. TestFlight and App Store
+   or app. Production can explicitly admit Sandbox annual subscriptions through
+   matching gateway and commerce opt-ins (both default off). Formal memberships
+   take priority; sandbox renewals/refunds cannot replace them. TestFlight and App Store
    Release builds both use the fixed production services; a sandbox receipt never
    changes business endpoints. Testers register with their own Internet Identity
    passkey. No shared review account or StagingDeployment.json is required.

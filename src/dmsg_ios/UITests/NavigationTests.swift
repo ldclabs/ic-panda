@@ -106,6 +106,20 @@ final class NavigationTests: NavigationTestCase {
         assertReadOnlyPlan(language: "ar", locale: "ar_SA", accountTitle: "الحساب", dark: true)
     }
 
+    func testSandboxSubscriptionNoticeInChinese() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-sandbox-subscription", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: "我的").tap()
+        let plan = app.buttons["account.plan"]
+        for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+        XCTAssertTrue(plan.isHittable); plan.tap()
+        let notice = app.staticTexts["plan.sandbox"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 10))
+        XCTAssertTrue(notice.label.contains("不会实际扣款"))
+        capture(app, name: "Sandbox subscription · Chinese")
+    }
+
     private func assertReadOnlyPlan(language: String, locale: String, accountTitle: String, dark: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]

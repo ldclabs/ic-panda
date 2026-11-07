@@ -892,13 +892,19 @@ fn contract_view(c: &MembershipContract) -> Json {
     let (method, source) = match &c.source {
         ContractSource::Cash { order_id } => ("Cash", hex::encode(**order_id)),
         ContractSource::Sns { claim_id } => ("Panda", hex::encode(**claim_id)),
-        ContractSource::AppStore { transaction_id } => ("AppStore", hex::encode(**transaction_id)),
+        ContractSource::AppStore { transaction_id, .. } => {
+            ("AppStore", hex::encode(**transaction_id))
+        }
         ContractSource::Compensation => ("Compensation", String::new()),
     };
     json!({
         "contract": hex::encode(*c.contract_id),
         "plan": format!("{:?}", c.plan.plan_id),
         "method": method,
+        "store_environment": match &c.source {
+            ContractSource::AppStore { environment, .. } => Some(environment.clone().unwrap_or(dmsg_types::app_store::StoreEnvironment::Production)),
+            _ => None,
+        },
         "source": source,
         "term_starts_at_ms": c.term_starts_at_ms,
         "starts_at_ms": c.starts_at_ms,
@@ -913,7 +919,10 @@ fn contract_view(c: &MembershipContract) -> Json {
 /// until the lease it already issued runs out, so a purchase made after it
 /// is the one in force.
 fn in_force<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a MembershipContract> {
-    live.iter().rev().find(|c| c.starts_at_ms <= now).copied()
+    live.iter()
+        .filter(|c| c.starts_at_ms <= now)
+        .max_by_key(|c| (!c.source.is_sandbox(), c.starts_at_ms))
+        .copied()
 }
 
 /// The one renewal queued after the term in force: contracts come oldest
@@ -1112,9 +1121,16 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
     let next = queued(&live, now);
     status["current"] = current.map_or(Json::Null, contract_view);
     status["next"] = next.map_or(Json::Null, contract_view);
-    status["offers"] = offers(&catalog, current, next, now)?.into();
+    status["offers"] = offers(
+        &catalog,
+        current.filter(|c| !c.source.is_sandbox()),
+        next.filter(|c| !c.source.is_sandbox()),
+        now,
+    )?
+    .into();
     // Storage packs extend a paid membership that qualifies now, to its end.
-    status["storage_available"] = (current.is_some_and(|c| c.terminated_at_ms.is_none())
+    status["storage_available"] = (current
+        .is_some_and(|c| c.terminated_at_ms.is_none() && !c.source.is_sandbox())
         && status["eligibility"] == "Eligible")
         .into();
     // Only a term running to its end is continued; one renewal at a time.
@@ -1794,7 +1810,11 @@ pub async fn app_store_products<H: Hold>(h: &H) -> Result<Json> {
 /// This is a preflight, not proof of a purchase or a durable entitlement.
 /// # Errors
 /// Unconfigured product, stale certification, or unavailable commerce.
-pub async fn app_store_purchase_check<H: Hold>(h: &H, product: &str) -> Result<Json> {
+pub async fn app_store_purchase_check<H: Hold>(
+    h: &H,
+    product: &str,
+    environment: &dmsg_types::app_store::StoreEnvironment,
+) -> Result<Json> {
     let commerce = services(h).await?.commerce;
     let ic = h.anonymous().await?;
     let config: Option<dmsg_types::app_store::AppStoreConfig> =
@@ -1807,25 +1827,39 @@ pub async fn app_store_purchase_check<H: Hold>(h: &H, product: &str) -> Result<J
         .ok_or(Error::UnsupportedProtocol)?
         .kind;
     let status = plan_status(h, true).await?;
-    let reason = app_store_purchase_reason(kind, &status);
+    let reason = if config.accepts(environment) {
+        app_store_purchase_reason(kind, &status, environment)
+    } else {
+        Some("unavailable")
+    };
     Ok(
-        json!({"eligible":reason.is_none(),"reason":reason,"environment":config.environment,"kind":if matches!(kind,dmsg_types::app_store::StoreProductKind::Plan(_)){"subscription"}else{"storage"}}),
+        json!({"eligible":reason.is_none(),"reason":reason,"environment":environment,"kind":if matches!(kind,dmsg_types::app_store::StoreProductKind::Plan(_)){"subscription"}else{"storage"}}),
     )
 }
 
 fn app_store_purchase_reason(
     kind: &dmsg_types::app_store::StoreProductKind,
     status: &Json,
+    environment: &dmsg_types::app_store::StoreEnvironment,
 ) -> Option<&'static str> {
     if status["source"] == "Unverifiable" {
         return Some("unavailable");
+    }
+    if *environment == dmsg_types::app_store::StoreEnvironment::Sandbox {
+        return if matches!(kind, dmsg_types::app_store::StoreProductKind::Plan(_)) {
+            None
+        } else {
+            Some("unavailable")
+        };
     }
     let current = &status["current"];
     if !current.is_null() && current["method"] != "AppStore" {
         return Some("external_plan");
     }
     if matches!(kind, dmsg_types::app_store::StoreProductKind::Storage(_))
-        && (current.is_null() || status["source"] != "Active")
+        && (current.is_null()
+            || status["source"] != "Active"
+            || current["store_environment"] == "Sandbox")
     {
         return Some("subscription_required");
     }
@@ -1835,35 +1869,39 @@ fn app_store_purchase_reason(
 #[cfg(test)]
 mod app_store_purchase_tests {
     use super::*;
+    use dmsg_types::app_store::StoreEnvironment::Production;
     #[test]
     fn no_payment_ui_for_unsupported_source_or_storage_without_a_live_base() {
         use dmsg_types::app_store::StoreProductKind::{Plan, Storage};
         let plan = Plan(PlanId::Plus);
         let storage = Storage(Hash::new([1; 32]));
         let free = json!({"source":"Free","current":null});
-        assert_eq!(app_store_purchase_reason(&plan, &free), None);
+        assert_eq!(app_store_purchase_reason(&plan, &free, &Production), None);
         assert_eq!(
-            app_store_purchase_reason(&storage, &free),
+            app_store_purchase_reason(&storage, &free, &Production),
             Some("subscription_required")
         );
         assert_eq!(
             app_store_purchase_reason(
                 &plan,
-                &json!({"source":"Active","current":{"method":"Cash"}})
+                &json!({"source":"Active","current":{"method":"Cash"}}),
+                &Production
             ),
             Some("external_plan")
         );
         assert_eq!(
             app_store_purchase_reason(
                 &storage,
-                &json!({"source":"Active","current":{"method":"AppStore"}})
+                &json!({"source":"Active","current":{"method":"AppStore"}}),
+                &Production
             ),
             None
         );
         assert_eq!(
             app_store_purchase_reason(
                 &plan,
-                &json!({"source":"Unverifiable","current":{"method":"AppStore"}})
+                &json!({"source":"Unverifiable","current":{"method":"AppStore"}}),
+                &Production
             ),
             Some("unavailable")
         );

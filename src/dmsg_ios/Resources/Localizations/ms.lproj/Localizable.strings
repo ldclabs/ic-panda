@@ -2516,6 +2516,10 @@
 	<string>Syarat perkhidmatan</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>Persekitaran ujian · Asingkan akaun dan ujian pembelian</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>Pembelian ujian tidak dikenakan caj. Pelan berbayar aktif diberi keutamaan.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>Langganan ujian tanpa caj. Tarikh tamat mengikut persekitaran ujian Apple.</string>
 	<key>Test the new credential at its provider</key>
 	<string>Uji kelayakan baharu di pembekalnya</string>
 	<key>Text</key>

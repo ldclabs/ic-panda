@@ -2516,6 +2516,10 @@
 	<string>서비스 약관</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>테스트 환경 · 별도 계정 및 테스트 구매</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>테스트 구입에는 요금이 청구되지 않습니다. 활성 유료 요금제가 우선 적용됩니다.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>테스트 구독이며 요금이 청구되지 않습니다. 만료일은 Apple 테스트 환경을 따릅니다.</string>
 	<key>Test the new credential at its provider</key>
 	<string>제공업체에서 새 자격 증명을 테스트하세요.</string>
 	<key>Text</key>

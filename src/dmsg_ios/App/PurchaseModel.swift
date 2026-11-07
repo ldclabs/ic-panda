@@ -17,17 +17,20 @@ final class PurchaseModel {
     private(set) var products: [Product] = []
     private(set) var working = false
     private(set) var pending = false
+    private(set) var storeEnvironment: String?
+    private(set) var revision = 0
     private var account: String?
     private var token: UUID?
 
     func load(_ model: SessionModel, reportErrors: Bool = true) async {
         guard enabled else { return }
         guard let engine = model.engine, model.unlocked else { return }; let epoch = model.epoch
-        #if DEBUG
-        guard model.environment == "staging" else { products = []; token = nil; return }
-        #endif
         if account != model.session?.account { products = []; token = nil; pending = false; account = model.session?.account }
         do {
+            guard case .verified(let app) = try await AppTransaction.shared,
+                  let environment = Self.environmentName(app.environment) else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            storeEnvironment = environment
             let catalogue: Catalogue = try model.decode(try await engine.storeProducts())
             guard epoch == model.epoch, !Task.isCancelled else { return }
             guard let config = catalogue.configuration else { products = []; return }
@@ -40,13 +43,13 @@ final class PurchaseModel {
     }
 
     func purchase(_ product: Product, model: SessionModel) async {
-        guard enabled, !working, let token, account == model.session?.account else { return }
+        guard enabled, !working, let token, let storeEnvironment, account == model.session?.account else { return }
         working = true; defer { working = false }
         let epoch = model.epoch, expectedAccount = account
         do {
             struct Check: Decodable { let eligible: Bool; let reason: String?; let kind: String }
             guard let engine = model.engine else { return }
-            let check: Check = try model.decode(try await engine.purchasePreflight(product: product.id))
+            let check: Check = try model.decode(try await engine.purchasePreflight(product: product.id, environment: storeEnvironment))
             guard epoch == model.epoch, expectedAccount == model.session?.account else { return }
             guard check.eligible else {
                 switch check.reason {
@@ -95,13 +98,28 @@ final class PurchaseModel {
 
     private func deliver(_ value: VerificationResult<Transaction>, model: SessionModel) async throws {
         guard enabled else { return }
-        guard case .verified(let transaction) = value else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+        guard case .verified(let transaction) = value, Self.environmentName(transaction.environment) != nil else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
         guard let token, transaction.appAccountToken == token, let account, account == model.session?.account,
               model.unlocked, let engine = model.engine, let files = model.files else { return }
         let epoch = model.epoch
         try await model.apple.submitPurchase(engine: engine, files: files, account: account, jws: value.jwsRepresentation)
         guard epoch == model.epoch else { return }
         // Apple payment is finished only after the authoritative service applied it.
-        await transaction.finish(); pending = false; await model.updateSession()
+        await transaction.finish(); pending = false; revision &+= 1; await model.updateSession()
     }
+    static func environmentName(_ value: AppStore.Environment) -> String? {
+        switch value {
+        case .production: return "Production"
+        case .sandbox: return "Sandbox"
+        default: return nil
+        }
+    }
+
+    static func requireApplied(_ data: Data) throws {
+        struct Result: Decodable { let state: String }
+        guard try JSONDecoder().decode(Result.self, from: data).state == "applied" else {
+            throw MobileError.Failure(code: "PURCHASE_PENDING")
+        }
+    }
+
 }

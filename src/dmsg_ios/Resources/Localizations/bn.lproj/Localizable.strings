@@ -2516,6 +2516,10 @@
 	<string>পরিষেবার শর্তাবলী</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>পরীক্ষার পরিবেশ · পৃথক অ্যাকাউন্ট এবং পরীক্ষা কেনাকাটা</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>পরীক্ষামূলক কেনাকাটায় চার্জ নেই। সক্রিয় পেইড প্ল্যান অগ্রাধিকার পায়।</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>পরীক্ষামূলক সাবস্ক্রিপশন। কোনো চার্জ নেই। মেয়াদ Apple-এর পরীক্ষার পরিবেশ অনুযায়ী।</string>
 	<key>Test the new credential at its provider</key>
 	<string>এর প্রদানকারীতে নতুন শংসাপত্র পরীক্ষা করুন</string>
 	<key>Text</key>

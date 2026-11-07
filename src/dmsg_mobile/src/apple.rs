@@ -82,12 +82,26 @@ impl MobileEngine {
 
 #[uniffi::export]
 impl MobileEngine {
-    pub async fn purchase_preflight(&self, product: String) -> Result<ObjectSnapshot> {
+    pub async fn purchase_preflight(
+        &self,
+        product: String,
+        environment: String,
+    ) -> Result<ObjectSnapshot> {
+        let store_environment = match environment.as_str() {
+            "Production" => dmsg_types::app_store::StoreEnvironment::Production,
+            "Sandbox" => dmsg_types::app_store::StoreEnvironment::Sandbox,
+            _ => return Err(Error::UnsupportedProtocol.into()),
+        };
         let selected = product.clone();
         let snapshot = self
             .held_object(move |h| {
                 Box::pin(async move {
-                    dmsg_client::commerce::app_store_purchase_check(h, &selected).await
+                    dmsg_client::commerce::app_store_purchase_check(
+                        h,
+                        &selected,
+                        &store_environment,
+                    )
+                    .await
                 })
             })
             .await?;
@@ -97,20 +111,7 @@ impl MobileEngine {
             let gateway = self.mobile_read("configuration".into()).await?;
             let configured: serde_json::Value =
                 serde_json::from_str(&gateway.json).map_err(|_| Error::IntegrityFailed)?;
-            let expected = if self.config.environment == dmsg_types::Environment::Production {
-                "Production"
-            } else {
-                "Sandbox"
-            };
-            if configured["available"] != true
-                || configured["environment"] != expected
-                || check["environment"] != expected
-                || !configured["products"].as_array().is_some_and(|items| {
-                    items
-                        .iter()
-                        .any(|p| p["id"] == product && p["kind"] == check["kind"])
-                })
-            {
+            if !purchase_gateway_matches(&configured, &check, &product, &environment) {
                 check["eligible"] = false.into();
                 check["reason"] = "unavailable".into();
             }
@@ -218,5 +219,58 @@ impl MobileEngine {
             Some(request_id),
         )
         .await
+    }
+}
+
+/// A routing/preflight check only; Apple JWS verification remains server-side.
+fn purchase_gateway_matches(
+    configured: &Value,
+    check: &Value,
+    product: &str,
+    environment: &str,
+) -> bool {
+    matches!(environment, "Production" | "Sandbox")
+        && configured["available"] == true
+        && (configured["environment"] == environment
+            || (environment == "Sandbox"
+                && configured["environment"] == "Production"
+                && configured["accept_sandbox"] == true))
+        && check["environment"] == environment
+        && configured["products"].as_array().is_some_and(|items| {
+            items
+                .iter()
+                .any(|p| p["id"] == product && p["kind"] == check["kind"])
+        })
+}
+
+#[cfg(test)]
+mod purchase_tests {
+    use super::*;
+
+    #[test]
+    fn production_business_can_preflight_sandbox_only_when_both_services_allow_it() {
+        let mut gateway = json!({"available":true,"environment":"Production","products":[{"id":"plus","kind":"subscription"}]});
+        let check = json!({"environment":"Sandbox","kind":"subscription"});
+        assert!(!purchase_gateway_matches(
+            &gateway, &check, "plus", "Sandbox"
+        ));
+        gateway["accept_sandbox"] = true.into();
+        assert!(purchase_gateway_matches(
+            &gateway, &check, "plus", "Sandbox"
+        ));
+        assert!(!purchase_gateway_matches(
+            &gateway, &check, "other", "Sandbox"
+        ));
+        assert!(!purchase_gateway_matches(
+            &gateway,
+            &check,
+            "plus",
+            "Production"
+        ));
+        assert!(!purchase_gateway_matches(&gateway, &check, "plus", "Xcode"));
+        gateway["available"] = false.into();
+        assert!(!purchase_gateway_matches(
+            &gateway, &check, "plus", "Sandbox"
+        ));
     }
 }

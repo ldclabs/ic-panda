@@ -2516,6 +2516,10 @@
 	<string>सेवा की शर्तें</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>परीक्षण वातावरण · अलग खाते और परीक्षण खरीदारी</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>परीक्षण खरीद पर शुल्क नहीं लगता। सक्रिय सशुल्क प्लान को प्राथमिकता मिलती है।</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>परीक्षण सदस्यता। कोई शुल्क नहीं। समाप्ति Apple के परीक्षण वातावरण के अनुसार है।</string>
 	<key>Test the new credential at its provider</key>
 	<string>अपने प्रदाता पर नए क्रेडेंशियल का परीक्षण करें</string>
 	<key>Text</key>

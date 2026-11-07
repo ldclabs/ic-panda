@@ -5,7 +5,7 @@ struct SubscriptionView: View {
     @Environment(SessionModel.self) private var model
     struct Plan: Decodable {
         struct Limits: Decodable { let storageBytes: UInt64; let activeChannels: UInt64; let monthlyExecutionUnits: UInt64 }
-        struct Term: Decodable { let endsAtMs: UInt64; let method: String }
+        struct Term: Decodable { let endsAtMs: UInt64; let method: String; let storeEnvironment: String? }
         let plan: String; let source: String; let limits: Limits; let current: Term?
     }
     struct Usage: Decodable {
@@ -35,6 +35,10 @@ struct SubscriptionView: View {
                     LabeledContent("Conversation limit", value: plan.limits.activeChannels.formatted())
                     LabeledContent("Monthly execution limit", value: plan.limits.monthlyExecutionUnits.formatted())
                     if let term = plan.current { LabeledContent("Current term ends") { Text(Date(timeIntervalSince1970: Double(term.endsAtMs) / 1000), style: .date) } }
+                    if plan.current?.storeEnvironment == "Sandbox" {
+                        Text("Test subscription. No charge. The expiry follows Apple's test environment.").font(.footnote).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("plan.sandbox")
+                    }
                     if plan.source == "Unverifiable" { NoticeBar(text: String(localized: "Your current entitlement could not be refreshed. Retry when the verification service is available.")) }
                 } else if loading { ProgressView() }
                 if failed {
@@ -73,8 +77,11 @@ struct SubscriptionView: View {
             }
             if model.purchases.enabled {
                 Section("App Store subscriptions") {
+                    if model.purchases.storeEnvironment == "Sandbox" {
+                        Text("Test purchases do not charge you. An active paid plan takes priority.").font(.footnote).foregroundStyle(.secondary)
+                    }
                     productRows(model.purchases.products.filter { $0.type == .autoRenewable })
-                    if let term = plan?.current, term.method != "AppStore" {
+                    if let term = plan?.current, term.method != "AppStore", model.purchases.storeEnvironment != "Sandbox" {
                         NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
                     } else if plan?.current == nil {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
@@ -105,6 +112,7 @@ struct SubscriptionView: View {
             }
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
             .task { await load() }.refreshable { await load(force: true) }
+            .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true) } }
     }
     private func productRows(_ products: [Product]) -> some View {
                 ForEach(products) { product in
@@ -117,8 +125,10 @@ struct SubscriptionView: View {
                 }
     }
     private func canPurchase(_ product: Product) -> Bool {
-        guard let plan, plan.source != "Unverifiable", plan.current == nil || plan.current?.method == "AppStore" else { return false }
-        return product.type == .autoRenewable || (product.type == .consumable && plan.current?.method == "AppStore" && plan.source == "Active")
+        guard let plan, plan.source != "Unverifiable" else { return false }
+        if model.purchases.storeEnvironment == "Sandbox" { return product.type == .autoRenewable }
+        guard plan.current == nil || plan.current?.method == "AppStore" else { return false }
+        return product.type == .autoRenewable || (product.type == .consumable && plan.current?.method == "AppStore" && plan.source == "Active" && plan.current?.storeEnvironment != "Sandbox")
     }
     private static func period(_ period: Product.SubscriptionPeriod) -> String {
         let formatter = DateComponentsFormatter(); formatter.unitsStyle = .full
@@ -138,7 +148,10 @@ struct SubscriptionView: View {
         if model.uiTesting {
             plan = Plan(plan: "Free", source: "Free", limits: Plan.Limits(storageBytes: 104857600,
                 activeChannels: 2, monthlyExecutionUnits: 3), current: nil)
-            usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: 104857600, activeChannels: 1, channelLimit: 2), execution: Usage.Execution(month: 202611, allowed: 3, charged: 1, remaining: 2), cloudError: nil, executionError: nil)
+            if ProcessInfo.processInfo.arguments.contains("--ui-sandbox-subscription") {
+                plan = Plan(plan: "Max", source: "Active", limits: Plan.Limits(storageBytes: 107374182400, activeChannels: 200, monthlyExecutionUnits: 200), current: Plan.Term(endsAtMs: UInt64(Date().addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
+            }
+            usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: plan?.limits.storageBytes, activeChannels: 1, channelLimit: plan?.limits.activeChannels), execution: Usage.Execution(month: 202611, allowed: plan?.limits.monthlyExecutionUnits ?? 3, charged: 1, remaining: (plan?.limits.monthlyExecutionUnits ?? 3) - 1), cloudError: nil, executionError: nil)
             return
         }
         #endif

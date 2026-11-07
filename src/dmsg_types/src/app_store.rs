@@ -4,12 +4,12 @@ use crate::{Hash, billing::PlanId, membership::Beneficiary};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
-/// Apple's transaction environment; sandbox rights never enter production.
+/// Apple's transaction environment, independent of the business deployment.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum StoreEnvironment {
     /// Transactions signed for App Store distribution.
     Production,
-    /// Apple sandbox transactions for nonproduction deployments.
+    /// Apple sandbox transactions; production admission requires explicit opt-in.
     Sandbox,
 }
 
@@ -42,8 +42,21 @@ pub struct AppStoreConfig {
     pub app_apple_id: u64,
     /// One deployment environment.
     pub environment: StoreEnvironment,
+    /// Permit sandbox annual subscriptions alongside production. Missing means false.
+    #[serde(default)]
+    pub accept_sandbox: Option<bool>,
     /// No unknown product can mint an entitlement.
     pub products: Vec<StoreProduct>,
+}
+
+impl AppStoreConfig {
+    /// Whether a new purchase may use this Apple environment.
+    pub fn accepts(&self, environment: &StoreEnvironment) -> bool {
+        self.environment == *environment
+            || (self.environment == StoreEnvironment::Production
+                && *environment == StoreEnvironment::Sandbox
+                && self.accept_sandbox == Some(true))
+    }
 }
 
 /// Facts extracted from a cryptographically verified Apple transaction.

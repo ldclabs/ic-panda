@@ -49,6 +49,7 @@ record!(SubjectRepr => Subject {
     9 => view: Option<EntitlementView>,
     10 => last_service_end_ms: Option<u64>,
     12 => retry_after_ms: u64,
+    13 => last_sandbox_service_end_ms: Option<u64>,
 });
 
 record!(ConfigRepr => Config {
@@ -121,5 +122,20 @@ mod tests {
                 .all(|(key, _)| matches!(key, cbor2::Value::Integer(_)))
         );
         assert!(bytes.len() < cbor2::to_vec(&subject).unwrap().len());
+    }
+
+    #[test]
+    fn previous_subject_schema_without_sandbox_history_still_decodes() {
+        let subject = Subject::new(beneficiary(
+            Principal::from_slice(&[1]),
+            &AccountId([2; 12]),
+        ));
+        let cbor2::Value::Map(mut fields) = cbor2::from_slice(&compact_bytes(&subject)).unwrap()
+        else {
+            panic!("record")
+        };
+        fields.retain(|(key, _)| *key != cbor2::Value::Integer(13.into()));
+        let old = cbor2::to_vec(&cbor2::Value::Map(fields)).unwrap();
+        assert_eq!(compact_from_bytes::<Subject>(&old), subject);
     }
 }

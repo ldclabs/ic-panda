@@ -2516,6 +2516,10 @@
 	<string>Условия использования</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>Тестовое окружение · Отдельные аккаунты и тестовые покупки</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>Тестовые покупки бесплатны. Действующий платный тариф имеет приоритет.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>Тестовая подписка без списания средств. Срок действия задаётся тестовой средой Apple.</string>
 	<key>Test the new credential at its provider</key>
 	<string>Проверить новые учётные данные у поставщика</string>
 	<key>Text</key>

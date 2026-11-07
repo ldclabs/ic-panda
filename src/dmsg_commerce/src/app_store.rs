@@ -89,10 +89,11 @@ fn validate_set_app_store_config(config: AppStoreConfig) -> Validation {
                 })
                 .collect();
             format!(
-                "Set App Store config for {} (Apple ID {}, {:?}): verifiers [{}], products [{}].{}",
+                "Set App Store config for {} (Apple ID {}, {:?}, accept sandbox: {}): verifiers [{}], products [{}].{}",
                 config.bundle_id,
                 config.app_apple_id,
                 config.environment,
+                config.accept_sandbox.unwrap_or(false),
                 verifiers.join(", "),
                 products.join(", "),
                 admin::unchanged(
@@ -109,13 +110,31 @@ fn get_app_store_config() -> Option<AppStoreConfig> {
     CONFIG.with_borrow(|c| c.get().0.clone())
 }
 
+pub(crate) fn transaction_environment(id: &Hash) -> Option<StoreEnvironment> {
+    TRANSACTIONS.with_borrow(|m| m.load(id.as_slice()).map(|o| o.transaction.environment))
+}
+
 fn validate_transaction(
     t: &StoreTransaction,
     config: &AppStoreConfig,
     at: u64,
 ) -> Result<StoreProductKind> {
     ensure(
-        t.bundle_id == config.bundle_id && t.environment == config.environment,
+        t.bundle_id == config.bundle_id
+            && (config.accepts(&t.environment)
+                || (config.environment == StoreEnvironment::Production
+                    && t.environment == StoreEnvironment::Sandbox
+                    && OWNERS
+                        .with_borrow(|m| {
+                            m.load(
+                                digest(
+                                    "dmsg/app-store/original/v1",
+                                    &(&t.environment, &t.original_transaction_id),
+                                )
+                                .as_slice(),
+                            )
+                        })
+                        .is_some_and(|owner| owner == t.beneficiary))),
         Error::Forbidden,
     )?;
     for id in [&t.transaction_id, &t.original_transaction_id] {
@@ -145,12 +164,20 @@ fn validate_transaction(
                 .is_none_or(|r| r >= t.purchased_at_ms && r <= t.signed_at_ms),
         "transaction interval",
     )?;
-    config
+    let kind = config
         .products
         .iter()
         .find(|p| p.product_id == t.product_id)
         .map(|p| p.kind.clone())
-        .ok_or(Error::UnsupportedProtocol)
+        .ok_or(Error::UnsupportedProtocol)?;
+    // This production opt-in is for annual memberships, not consumable credit.
+    ensure(
+        !(config.environment == StoreEnvironment::Production
+            && t.environment == StoreEnvironment::Sandbox
+            && matches!(kind, StoreProductKind::Storage(_))),
+        Error::UnsupportedProtocol,
+    )?;
+    Ok(kind)
 }
 
 fn apply(
@@ -205,13 +232,14 @@ fn apply(
                 "subscription interval",
             )?;
             ensure(
-                s.active(t.purchased_at_ms)
-                    .is_none_or(|c| matches!(c.source, ContractSource::AppStore { .. })),
+                t.environment == StoreEnvironment::Sandbox
+                    || s.active(t.purchased_at_ms)
+                        .is_none_or(|c| matches!(c.source, ContractSource::AppStore { .. })),
                 Error::Forbidden,
             )?;
             // StoreKit upgrades replace only overlapping Apple subscriptions.
             for old in &mut s.contracts {
-                if matches!(old.source, ContractSource::AppStore { .. })
+                if matches!(old.source, ContractSource::AppStore { ref environment, .. } if environment.as_ref() == Some(&t.environment))
                     && old.starts_at_ms < t.purchased_at_ms
                     && model::end(old) > t.purchased_at_ms
                 {
@@ -222,7 +250,7 @@ fn apply(
                 .contracts
                 .iter()
                 .filter(|c| {
-                    matches!(c.source, ContractSource::AppStore { .. })
+                    matches!(c.source, ContractSource::AppStore { ref environment, .. } if environment.as_ref() == Some(&t.environment))
                         && c.starts_at_ms > t.purchased_at_ms
                 })
                 .map(|c| c.starts_at_ms)
@@ -232,7 +260,10 @@ fn apply(
                 resource_pauses: vec![],
                 contract_id: id,
                 plan: model::plan(catalog, plan)?,
-                source: ContractSource::AppStore { transaction_id: id },
+                source: ContractSource::AppStore {
+                    transaction_id: id,
+                    environment: Some(t.environment.clone()),
+                },
                 starts_at_ms: t.purchased_at_ms,
                 expires_at_ms: expiry,
                 terminated_at_ms: replaced_at,
@@ -245,7 +276,7 @@ fn apply(
         StoreProductKind::Storage(product) => {
             let current = s.active(at).ok_or(Error::Forbidden)?;
             ensure(
-                matches!(current.source, ContractSource::AppStore { .. }),
+                matches!(current.source, ContractSource::AppStore { ref environment, .. } if environment.as_ref() == Some(&t.environment)),
                 Error::Forbidden,
             )?;
             let expiry = model::end(current).min(t.expires_at_ms.unwrap_or(u64::MAX));
@@ -411,6 +442,7 @@ mod tests {
             bundle_id: t.bundle_id.clone(),
             app_apple_id: 6827050680,
             environment: StoreEnvironment::Sandbox,
+            accept_sandbox: None,
             products: vec![StoreProduct {
                 product_id: t.product_id.clone(),
                 kind: StoreProductKind::Plan(PlanId::Plus),
@@ -430,6 +462,150 @@ mod tests {
         wrong.checked_at_ms -= 61_000;
         assert!(validate_transaction(&wrong, &config, NOW).is_err());
         assert!(validate_config(&config, &Environment::Production).is_err());
+    }
+
+    #[test]
+    fn legacy_contract_environment_is_recovered_from_the_recorded_transaction() {
+        let t = transaction("101", NOW - DAY);
+        let mut s = model::Subject::new(t.beneficiary.clone());
+        apply(
+            &mut s,
+            &t,
+            &StoreProductKind::Plan(PlanId::Plus),
+            &catalog(),
+            NOW,
+        )
+        .unwrap();
+        let id = s.contracts[0].contract_id;
+        if let ContractSource::AppStore { environment, .. } = &mut s.contracts[0].source {
+            *environment = None;
+        }
+        TRANSACTIONS.with_borrow_mut(|m| {
+            m.put(
+                id.as_slice(),
+                &Observation {
+                    transaction: t.clone(),
+                    fingerprint: Hash::new([0; 32]),
+                },
+            )
+        });
+        store::save_subject(&s);
+        assert!(
+            store::load(&t.beneficiary).unwrap().contracts[0]
+                .source
+                .is_sandbox()
+        );
+    }
+
+    #[test]
+    fn production_priority_and_same_environment_upgrades_preserve_both_histories() {
+        let mut sandbox = transaction("101", NOW - DAY);
+        let mut paid = transaction("101", NOW - DAY / 2);
+        paid.environment = StoreEnvironment::Production;
+        let mut s = model::Subject::new(paid.beneficiary.clone());
+        let c = catalog();
+        apply(
+            &mut s,
+            &sandbox,
+            &StoreProductKind::Plan(PlanId::Max),
+            &c,
+            NOW,
+        )
+        .unwrap();
+        apply(
+            &mut s,
+            &paid,
+            &StoreProductKind::Plan(PlanId::Plus),
+            &c,
+            NOW,
+        )
+        .unwrap();
+        assert_eq!(s.contracts.len(), 2); // The same Apple ID in two environments is not a duplicate.
+        assert_eq!(s.active(NOW).unwrap().plan.plan_id, PlanId::Plus);
+        let production_id = s.active(NOW).unwrap().contract_id;
+        s.created_at_ms = Some(NOW - DAY);
+        let paid_end = model::end(s.active(NOW).unwrap());
+        sandbox.transaction_id = "102".into();
+        sandbox.purchased_at_ms = NOW - MINUTE;
+        apply(
+            &mut s,
+            &sandbox,
+            &StoreProductKind::Plan(PlanId::Pro),
+            &c,
+            NOW,
+        )
+        .unwrap();
+        assert_eq!(s.active(NOW).unwrap().contract_id, production_id);
+        assert_eq!(model::end(s.active(NOW).unwrap()), paid_end);
+        // Both resource projection and month accounting must use the formal source.
+        let view = model::project(Principal::from_slice(&[1]), &mut s, &c, NOW, None).unwrap();
+        assert_eq!(view.plan_snapshot.plan_id, PlanId::Plus);
+        let month = model::month(
+            &s,
+            std::slice::from_ref(&c),
+            dmsg_protocol::billing::month_utc(NOW).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            month
+                .segments
+                .iter()
+                .find(|segment| segment.start_ms <= NOW && NOW < segment.end_ms)
+                .unwrap()
+                .source_contract_id,
+            Some(production_id)
+        );
+        sandbox.revoked_at_ms = Some(NOW);
+        apply(
+            &mut s,
+            &sandbox,
+            &StoreProductKind::Plan(PlanId::Pro),
+            &c,
+            NOW,
+        )
+        .unwrap();
+        assert_eq!(s.active(NOW).unwrap().contract_id, production_id);
+        paid.revoked_at_ms = Some(NOW);
+        apply(
+            &mut s,
+            &paid,
+            &StoreProductKind::Plan(PlanId::Plus),
+            &c,
+            NOW,
+        )
+        .unwrap();
+        assert!(s.active(NOW).is_none());
+    }
+
+    #[test]
+    fn sandbox_renewals_use_apple_expiry_and_never_mint_an_annual_term() {
+        let mut first = transaction("101", NOW);
+        first.expires_at_ms = Some(NOW + MINUTE);
+        let mut s = model::Subject::new(first.beneficiary.clone());
+        apply(
+            &mut s,
+            &first,
+            &StoreProductKind::Plan(PlanId::Plus),
+            &catalog(),
+            NOW,
+        )
+        .unwrap();
+        assert!(s.active(NOW + MINUTE).is_none());
+        let mut renewal = transaction("102", NOW + MINUTE);
+        renewal.expires_at_ms = Some(NOW + 2 * MINUTE);
+        apply(
+            &mut s,
+            &renewal,
+            &StoreProductKind::Plan(PlanId::Plus),
+            &catalog(),
+            NOW + MINUTE,
+        )
+        .unwrap();
+        assert_eq!(
+            s.active(NOW + MINUTE).unwrap().expires_at_ms,
+            NOW + 2 * MINUTE
+        );
+        assert!(s.active(NOW + 2 * MINUTE).is_none());
     }
 
     #[test]

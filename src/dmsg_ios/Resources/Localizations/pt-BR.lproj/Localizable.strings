@@ -2516,6 +2516,10 @@
 	<string>Termos de serviço</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>Ambiente de teste · Contas separadas e compras de teste</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>Compras de teste não geram cobranças. Um plano pago ativo tem prioridade.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>Assinatura de teste sem cobrança. A validade segue o ambiente de teste da Apple.</string>
 	<key>Test the new credential at its provider</key>
 	<string>Teste a nova credencial em seu provedor</string>
 	<key>Text</key>

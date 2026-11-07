@@ -100,7 +100,8 @@ final class NativeApple {
         let key = try await key(engine: engine, files: files, account: account)
         let challenge: Challenge = try decode(try await engine.purchaseChallenge(installation: files.installation, jws: jws, keyId: key))
         let proof = try await assert(challenge, key: key)
-        _ = try await engine.submitPurchase(installation: files.installation, jws: jws, proof: proof, requestId: Self.requestID())
+        let result = try await engine.submitPurchase(installation: files.installation, jws: jws, proof: proof, requestId: Self.requestID())
+        try PurchaseModel.requireApplied(Data(result.json.utf8))
     }
 
     nonisolated static func requestID() -> String { (UUID().uuidString + UUID().uuidString).replacingOccurrences(of: "-", with: "").lowercased() }

@@ -29,13 +29,24 @@ APNs、App Attest、StoreKit 的环境分别配置。TestFlight 可使用 produc
 
 ## 3. StoreKit 权益
 
+2026-11-07：业务环境与 Apple 交易环境分开。TestFlight 与 App Store 均可连接生产业务服务；
+production commerce 的主环境仍为 Production，治理字段 `accept_sandbox: opt bool` 显式为 true 时，
+允许新的 Sandbox 年度订阅（缺失/false 默认关闭）。关闭只阻止新原始订阅；已登记原始订阅的恢复、
+状态更新、续订及退款仍处理。无测试账号白名单、邀请或额外会员类型。
+
+会员合同的 `AppStore.environment` 是可选字段；旧记录从已持久化的原交易补全。正式合同优先于
+Sandbox，只有无正式合同生效时采用 Sandbox；两者不累加。升级只替换同环境合同，交易与原订阅
+身份均包含环境。期限采用 Apple 实际 expiresDate，月账沿用同一 UTC 自然月计量，不因测试续订清零。
+客户端 `current.store_environment` 用于标明测试订阅；价格继续来自 StoreKit，账号 token 的算法不变。
+配置与本地测试通过不代表已经部署或完成 Apple 真机验收。
+
 应用 SKU dmsg-ios、Apple ID 6827050680、bundle net.dmsg.ios 与商品 ID 是不同标识。实际年度套餐及存储包 ID 必须由 App Store Connect 创建，并与商业配置对应。
 
 appAccountToken 的输入为 UTF-8：
 dmsg/apple/account/1、换行、user home Principal 文本、换行、AccountId 文本。
 取 SHA-256 前 16 字节，设置 UUID 版本／variant 位后用 UUID 文本表示。这是固定协议的 UUID 形状账号绑定，不是访问凭据。
 
-客户端在付款前检查经认证的套餐和商品，以及验证服务的环境与配置。外部渠道有效套餐、缺少基础订阅的存储购买或不可验证状态不会进入付款。反过来，Apple 基础合同结束前，commerce 不为该账号报价现金或 PANDA 基础套餐，桌面套餐页只说明由 App Store 续订。年度套餐使用 auto-renewable subscription，当前周期存储使用 consumable。
+客户端在付款前检查经认证的套餐和商品，以及验证服务的环境与配置。正式购买中，外部渠道有效套餐、缺少同环境基础订阅的存储购买或不可验证状态不会进入付款。反过来，正式 Apple 基础合同结束前，commerce 不为该账号报价现金或 PANDA 基础套餐，桌面套餐页只说明由 App Store 续订。年度套餐使用 auto-renewable subscription，当前周期存储使用 consumable。Sandbox 首发仅开放年度套餐，不开放存储包。
 
 POST purchase 提交安装标识、Apple 交易 JWS 和对应断言。服务验证 Apple 签名、证书、应用、环境、商品、购买所有权及账号 token，并查询当前 Apple 状态。治理配置的验证者才可调用 commerce 的 apply_app_store_transaction。事实包含交易及原始交易 ID、受益主体、商品、购买／到期／撤销时间、Apple signedDate 和状态复核时间 checked_at_ms。
 
@@ -51,16 +62,15 @@ App Store Server Notifications V2 的接收入口是 Core 的 `POST /storekit/no
 | 环境 | App Store Connect 中的通知 URL |
 | --- | --- |
 | Production | `https://api.dmsg.net/storekit/notifications` |
-| Sandbox | `https://staging-api.dmsg.net/storekit/notifications` |
+| Sandbox | `https://api.dmsg.net/storekit/notifications` |
 
 请求为 `Content-Type: application/json` 和 `{ "signedPayload": "<Apple JWS>" }`，正文最多 96 KiB，
 不使用查询参数或设备 HTTP PoP。接收方必须验证 Apple 签名、证书状态、应用标识和环境；知道 URL 或
 传入自报的购买 JSON 不构成授权。只有通知已经被验证并可靠接收，才能返回 `200 {"accepted":true}`；
 服务或验证不可用时返回 503，不能提前确认成功。重复通知沿用原交易身份，不重复授予权益。
 
-这两个 URL 是部署接入合同，不表示已经配置 App Store Connect 或完成真实回调验收。
-当前 TestFlight 仍连接生产业务服务且关闭内购处理；Sandbox 通知地址不会切换客户端业务环境，
-也不会使 production commerce 接受 Sandbox 交易。重新启用购买前须独立完成环境隔离与验收。
+两种通知使用同一生产入口，由验签后的 Apple 环境分流。URL 不表示已经完成后台配置或真实回调验收。
+网关与 commerce 必须分别显式开启 Sandbox 新购买；客户端发行开关仍独立控制是否显示购买入口。
 
 ## 4. 举报、屏蔽与账号删除
 

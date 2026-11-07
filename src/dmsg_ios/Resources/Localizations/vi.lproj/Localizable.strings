@@ -2516,6 +2516,10 @@
 	<string>Điều khoản dịch vụ</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>Môi trường thử nghiệm · Tách biệt các tài khoản và mua hàng thử nghiệm</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>Mua thử nghiệm không bị tính phí. Gói trả phí đang hoạt động được ưu tiên.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>Gói đăng ký thử nghiệm, không tính phí. Hạn dùng theo môi trường thử nghiệm của Apple.</string>
 	<key>Test the new credential at its provider</key>
 	<string>Kiểm tra thông tin xác thực mới tại nhà cung cấp của nó</string>
 	<key>Text</key>

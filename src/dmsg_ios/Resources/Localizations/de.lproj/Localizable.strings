@@ -2516,6 +2516,10 @@
 	<string>Nutzungsbedingungen</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>Testumgebung · Separate Konten und Testkäufe</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>Testkäufe sind kostenlos. Ein aktiver bezahlter Tarif hat Vorrang.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>Testabonnement ohne Kosten. Das Ablaufdatum richtet sich nach Apples Testumgebung.</string>
 	<key>Test the new credential at its provider</key>
 	<string>Testen Sie den neuen Ausweis bei seinem Anbieter</string>
 	<key>Text</key>

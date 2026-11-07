@@ -2516,6 +2516,10 @@
 	<string>Hizmet şartları</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>Test ortamı · Ayrı hesaplar ve test satın alımları</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>Test satın alımlarında ücret alınmaz. Etkin ücretli plan önceliklidir.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>Test aboneliği. Ücret alınmaz. Bitiş tarihi Apple test ortamına bağlıdır.</string>
 	<key>Test the new credential at its provider</key>
 	<string>Yeni kimlik bilgisini sağlayıcısında test edin</string>
 	<key>Text</key>

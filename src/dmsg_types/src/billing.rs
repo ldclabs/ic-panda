@@ -183,9 +183,25 @@ pub enum ContractSource {
     AppStore {
         /// Domain-separated identity of the Apple transaction.
         transaction_id: Hash,
+        /// Apple environment. Legacy records are resolved from their stored transaction.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        environment: Option<crate::app_store::StoreEnvironment>,
     },
     /// Product-granted compensation benefit.
     Compensation,
+}
+
+impl ContractSource {
+    /// Sandbox contracts provide fallback resources, never replace formal membership.
+    pub fn is_sandbox(&self) -> bool {
+        matches!(
+            self,
+            Self::AppStore {
+                environment: Some(crate::app_store::StoreEnvironment::Sandbox),
+                ..
+            }
+        )
+    }
 }
 
 /// Fixed base contract and its separately observed resource qualification.

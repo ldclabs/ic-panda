@@ -186,6 +186,7 @@ fn an_app_store_term_offers_no_other_renewal_or_switch() {
     assert!(renew.iter().any(|o| o["action"] == "renew"));
     let mut apple = cash;
     apple.source = ContractSource::AppStore {
+        environment: None,
         transaction_id: Hash::new([12; 32]),
     };
     let managed = offers(&catalog, Some(&apple), None, NOW).unwrap();
@@ -244,4 +245,36 @@ fn an_early_refund_reports_when_the_term_closes() {
     let mut refused = view;
     refused.cancellation.as_mut().unwrap().cancelled = false;
     assert_eq!(status_name(&refused, stop), "Applied");
+}
+
+#[test]
+fn sandbox_status_is_visible_but_never_selected_over_a_formal_contract() {
+    use dmsg_types::app_store::StoreEnvironment;
+    let formal = contract(31, PlanId::Plus, NOW - DAY_MS, NOW + DAY_MS);
+    let mut sandbox = contract(32, PlanId::Max, NOW - 1000, NOW + DAY_MS);
+    sandbox.source = ContractSource::AppStore {
+        transaction_id: Hash::new([32; 32]),
+        environment: Some(StoreEnvironment::Sandbox),
+    };
+    assert_eq!(
+        in_force(&[&formal, &sandbox], NOW).unwrap().contract_id,
+        formal.contract_id
+    );
+    assert_eq!(contract_view(&sandbox)["store_environment"], "Sandbox");
+    let sandbox_plan = json!({"source":"Active","current":contract_view(&sandbox)});
+    let storage = dmsg_types::app_store::StoreProductKind::Storage(Hash::new([1; 32]));
+    assert_eq!(
+        app_store_purchase_reason(&storage, &sandbox_plan, &StoreEnvironment::Production),
+        Some("subscription_required")
+    );
+    let external = json!({"source":"Active","current":{"method":"Cash"}});
+    let plan = dmsg_types::app_store::StoreProductKind::Plan(PlanId::Plus);
+    assert_eq!(
+        app_store_purchase_reason(&plan, &external, &StoreEnvironment::Sandbox),
+        None
+    );
+    assert_eq!(
+        app_store_purchase_reason(&plan, &external, &StoreEnvironment::Production),
+        Some("external_plan")
+    );
 }

@@ -215,7 +215,21 @@ pub fn reserve_order(at: u64) -> Result<()> {
 }
 
 pub fn load(b: &Beneficiary) -> Result<Subject> {
-    SUBJECTS.with_borrow(|t| t.load(entitlement_key(b).as_slice()).ok_or(Error::NotFound))
+    let mut s =
+        SUBJECTS.with_borrow(|t| t.load(entitlement_key(b).as_slice()).ok_or(Error::NotFound))?;
+    for contract in &mut s.contracts {
+        if let dmsg_types::billing::ContractSource::AppStore {
+            transaction_id,
+            environment,
+        } = &mut contract.source
+            && environment.is_none()
+        {
+            *environment = Some(
+                crate::app_store::transaction_environment(transaction_id).ok_or(Error::NotFound)?,
+            );
+        }
+    }
+    Ok(s)
 }
 
 pub fn save_subject(s: &Subject) {

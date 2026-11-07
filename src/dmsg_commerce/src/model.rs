@@ -18,6 +18,8 @@ pub struct Subject {
     pub addons: Vec<StorageAddon>,
     pub view: Option<EntitlementView>,
     pub last_service_end_ms: Option<u64>,
+    #[serde(default)]
+    pub last_sandbox_service_end_ms: Option<u64>,
     pub retry_after_ms: u64,
 }
 
@@ -32,6 +34,7 @@ impl Subject {
             addons: vec![],
             view: None,
             last_service_end_ms: None,
+            last_sandbox_service_end_ms: None,
             retry_after_ms: 0,
         }
     }
@@ -40,7 +43,8 @@ impl Subject {
         self.contracts
             .iter()
             .rev()
-            .find(|c| c.starts_at_ms <= at && at < end(c))
+            .filter(|c| c.starts_at_ms <= at && at < end(c))
+            .max_by_key(|c| (!c.source.is_sandbox(), c.starts_at_ms))
     }
 }
 
@@ -60,9 +64,11 @@ pub const REFUNDABLE_LEASE_MS: u64 = 60 * MINUTE;
 /// [`CASH_REFUND_WINDOW_MS`] of its start. An upgrade or a renewal adds a
 /// second contract and closes the window.
 pub fn refund_window(s: &Subject, at: u64) -> Option<RefundWindow> {
-    let [c] = s.contracts.as_slice() else {
+    let mut formal = s.contracts.iter().filter(|c| !c.source.is_sandbox());
+    let c = formal.next()?;
+    if formal.next().is_some() {
         return None;
-    };
+    }
     let ContractSource::Cash { order_id } = c.source else {
         return None;
     };
@@ -121,7 +127,12 @@ pub fn prune(s: &mut Subject, at: u64) -> Result<()> {
     s.contracts.retain(|c| {
         let end = end(c);
         if end <= month_start {
-            s.last_service_end_ms = Some(s.last_service_end_ms.unwrap_or(0).max(end));
+            let last = if c.source.is_sandbox() {
+                &mut s.last_sandbox_service_end_ms
+            } else {
+                &mut s.last_service_end_ms
+            };
+            *last = Some(last.unwrap_or(0).max(end));
             false
         } else {
             true
@@ -202,7 +213,10 @@ pub fn project(
     let free = plan(catalog, &PlanId::Free)?;
     let active = s.active(at).cloned();
     let mut p = free;
-    let mut status = if s.contracts.is_empty() && s.last_service_end_ms.is_none() {
+    let mut status = if s.contracts.is_empty()
+        && s.last_service_end_ms.is_none()
+        && s.last_sandbox_service_end_ms.is_none()
+    {
         SourceStatus::Free
     } else {
         SourceStatus::Expired
@@ -235,6 +249,7 @@ pub fn project(
                 .filter(|t| *t <= at)
         })
         .chain(s.last_service_end_ms)
+        .chain(s.last_sandbox_service_end_ms)
         .max();
     if let Some(c) = &active {
         eligibility = c.eligibility.clone();
@@ -458,6 +473,27 @@ mod tests {
             qualified_until_ms: end,
         });
         s
+    }
+
+    #[test]
+    fn sandbox_history_does_not_consume_the_first_cash_refund_window() {
+        let (start, end) = month_bounds(202609).unwrap();
+        let mut s = subject(start - DAY, start - 1);
+        s.contracts[0].source = ContractSource::AppStore {
+            transaction_id: Hash::new([3; 32]),
+            environment: Some(dmsg_types::app_store::StoreEnvironment::Sandbox),
+        };
+        let mut cash = subject(start, end).contracts.remove(0);
+        cash.contract_id = Hash::new([5; 32]);
+        cash.source = ContractSource::Cash {
+            order_id: Hash::new([6; 32]),
+        };
+        s.contracts.push(cash);
+        assert!(refund_window(&s, start + 1).is_some());
+        prune(&mut s, start + 1).unwrap();
+        assert_eq!(s.last_service_end_ms, None);
+        assert_eq!(s.last_sandbox_service_end_ms, Some(start - 1));
+        assert!(refund_window(&s, start + 1).is_some());
     }
 
     #[test]

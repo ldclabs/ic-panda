@@ -1,4 +1,5 @@
 import XCTest
+import StoreKit
 @testable import dMsg
 
 @MainActor
@@ -27,4 +28,17 @@ final class DeploymentTests: XCTestCase {
         XCTAssertTrue(model.purchases.products.isEmpty)
         XCTAssertNil(model.error)
     }
+    func testAppleEnvironmentIsIndependentOfProductionBusinessServices() throws {
+        XCTAssertEqual(try MobileDeployment.load().name, "production")
+        XCTAssertEqual(PurchaseModel.environmentName(.sandbox), "Sandbox")
+        XCTAssertEqual(PurchaseModel.environmentName(.production), "Production")
+        XCTAssertNil(PurchaseModel.environmentName(.xcode))
+    }
+
+    func testPendingOrMalformedDeliveryCannotFinishTheAppleTransaction() throws {
+        XCTAssertNoThrow(try PurchaseModel.requireApplied(Data(#"{"state":"applied"}"#.utf8)))
+        XCTAssertThrowsError(try PurchaseModel.requireApplied(Data(#"{"state":"pending"}"#.utf8)))
+        XCTAssertThrowsError(try PurchaseModel.requireApplied(Data(#"{"accepted":true}"#.utf8)))
+    }
+
 }

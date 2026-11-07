@@ -2516,6 +2516,10 @@
 	<string>Mga tuntunin ng serbisyo</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>Pansubok na kapaligiran · Paghiwalayin ang mga account at pagsubok na mga pagbili</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>Walang singil ang mga test purchase. Mas inuuna ang aktibong bayad na plano.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>Test subscription na walang singil. Ang pag-expire ay ayon sa test environment ng Apple.</string>
 	<key>Test the new credential at its provider</key>
 	<string>Subukan ang bagong kredensyal sa provider nito</string>
 	<key>Text</key>

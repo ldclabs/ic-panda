@@ -55,6 +55,8 @@ type AppRegistration = record {
 };
 // Merchant-verification policy set by governance.
 type AppStoreConfig = record {
+  // Permit sandbox annual subscriptions alongside production. Missing means false.
+  accept_sandbox : opt bool;
   // Signed application bundle ID.
   bundle_id : text;
   // Principals of the server-side Apple-verification service.
@@ -514,6 +516,8 @@ type ContractSource = variant {
   AppStore : record {
     // Domain-separated identity of the Apple transaction.
     transaction_id : blob;
+    // Apple environment. Legacy records are resolved from their stored transaction.
+    environment : opt StoreEnvironment;
   };
   // Product-granted compensation benefit.
   Compensation;
@@ -1131,11 +1135,11 @@ type StorageProduct = record {
   // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
 };
-// Apple's transaction environment; sandbox rights never enter production.
+// Apple's transaction environment, independent of the business deployment.
 type StoreEnvironment = variant {
   // Transactions signed for App Store distribution.
   Production;
-  // Apple sandbox transactions for nonproduction deployments.
+  // Apple sandbox transactions; production admission requires explicit opt-in.
   Sandbox;
 };
 // One App Store Connect product ID, independent of the application's SKU.

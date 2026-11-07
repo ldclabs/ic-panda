@@ -2516,6 +2516,10 @@
 	<string>سروس کی شرائط</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>ٹیسٹ ماحول · الگ اکاؤنٹس اور جانچ کی خریداری</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>آزمائشی خریداری پر چارج نہیں ہوتا۔ فعال ادا شدہ پلان کو ترجیح حاصل ہے۔</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>آزمائشی سبسکرپشن، کوئی چارج نہیں۔ میعاد Apple کے آزمائشی ماحول کے مطابق ہے۔</string>
 	<key>Test the new credential at its provider</key>
 	<string>اس کے فراہم کنندہ پر نئی اسناد کی جانچ کریں</string>
 	<key>Text</key>

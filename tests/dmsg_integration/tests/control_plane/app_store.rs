@@ -11,7 +11,8 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
         verifiers: vec![verifier],
         bundle_id: "net.dmsg.ios".into(),
         app_apple_id: 6827050680,
-        environment: StoreEnvironment::Sandbox,
+        environment: StoreEnvironment::Production,
+        accept_sandbox: None,
         products: vec![
             StoreProduct {
                 product_id: "test.plus.annual".into(),
@@ -65,7 +66,7 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
         product_id: "test.plus.annual".into(),
         app_account_token: dmsg_protocol::app_store::account_token(f.user, &account),
         bundle_id: config.bundle_id.clone(),
-        environment: StoreEnvironment::Sandbox,
+        environment: StoreEnvironment::Production,
         purchased_at_ms: now,
         expires_at_ms: Some(now + 365 * DAY),
         revoked_at_ms: None,
@@ -123,7 +124,7 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
     );
     assert_eq!(denied, Err(Error::Forbidden));
     let mut wrong_environment = transaction.clone();
-    wrong_environment.environment = StoreEnvironment::Production;
+    wrong_environment.environment = StoreEnvironment::Sandbox;
     let denied: Result<EntitlementView> = update(
         &f.ic,
         f.commerce,
@@ -228,4 +229,262 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
     assert_eq!(rollback, Err(Error::VersionConflict));
     // Once the App Store term ended, other payment opens again.
     assert_eq!(offer_sku(&f, &account, "plus", 8).sku, "plus".to_string());
+}
+
+#[test]
+fn production_and_sandbox_subscriptions_are_isolated_and_survive_upgrade() {
+    let f = Fixture::commercial();
+    let account = f.create(1);
+    let verifier = person(90);
+    let mut config = AppStoreConfig {
+        verifiers: vec![verifier],
+        bundle_id: "net.dmsg.ios".into(),
+        app_apple_id: 6827050680,
+        environment: StoreEnvironment::Production,
+        accept_sandbox: None,
+        products: vec![
+            StoreProduct {
+                product_id: "test.plus".into(),
+                kind: StoreProductKind::Plan(PlanId::Plus),
+            },
+            StoreProduct {
+                product_id: "test.max".into(),
+                kind: StoreProductKind::Plan(PlanId::Max),
+            },
+        ],
+    };
+    let set = |c: &AppStoreConfig| {
+        let r: Result<()> = update(
+            &f.ic,
+            f.commerce,
+            f.sns,
+            "set_app_store_config",
+            (c.clone(),),
+        );
+        r.unwrap();
+    };
+    let apply = |t: &StoreTransaction| -> Result<EntitlementView> {
+        update(
+            &f.ic,
+            f.commerce,
+            verifier,
+            "apply_app_store_transaction",
+            (t.clone(),),
+        )
+    };
+    let now = time(&f.ic);
+    let mut sandbox = StoreTransaction {
+        beneficiary: beneficiary(f.user, &account),
+        transaction_id: "101".into(),
+        original_transaction_id: "100".into(),
+        product_id: "test.plus".into(),
+        app_account_token: dmsg_protocol::app_store::account_token(f.user, &account),
+        bundle_id: config.bundle_id.clone(),
+        environment: StoreEnvironment::Sandbox,
+        purchased_at_ms: now,
+        expires_at_ms: Some(now + 3 * MINUTE),
+        revoked_at_ms: None,
+        signed_at_ms: now,
+        checked_at_ms: now,
+    };
+    set(&config);
+    assert_eq!(apply(&sandbox), Err(Error::Forbidden));
+    config.accept_sandbox = Some(true);
+    set(&config);
+    assert_eq!(apply(&sandbox).unwrap().plan_snapshot.plan_id, PlanId::Plus);
+    let mut paid = sandbox.clone();
+    paid.environment = StoreEnvironment::Production;
+    paid.expires_at_ms = Some(now + MINUTE);
+    let real = apply(&paid).unwrap();
+    assert_ne!(
+        real.active_contract_id,
+        Some(dmsg_protocol::digest(
+            "dmsg/app-store/transaction/v1",
+            &(&sandbox.environment, &sandbox.transaction_id)
+        ))
+    );
+    f.ic.advance_time(Duration::from_secs(10));
+    sandbox.transaction_id = "102".into();
+    sandbox.product_id = "test.max".into();
+    sandbox.purchased_at_ms = time(&f.ic);
+    sandbox.signed_at_ms = time(&f.ic);
+    sandbox.checked_at_ms = time(&f.ic);
+    let hidden = apply(&sandbox).unwrap();
+    assert_eq!(hidden.plan_snapshot.plan_id, PlanId::Plus);
+    assert_eq!(hidden.active_contract_id, real.active_contract_id);
+    let repeated = apply(&sandbox).unwrap();
+    assert_eq!(repeated.business_revision, hidden.business_revision);
+    f.ic.upgrade_canister(
+        f.commerce,
+        wasm("dmsg_commerce"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let terms: Result<MembershipTerms> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_membership_terms",
+        (&sandbox.beneficiary,),
+    );
+    let terms = terms.unwrap();
+    assert_eq!(terms.contracts.len(), 3);
+    assert_eq!(
+        terms
+            .contracts
+            .iter()
+            .filter(|c| c.source.is_sandbox())
+            .count(),
+        2
+    );
+    config.accept_sandbox = Some(false);
+    set(&config);
+    let mut unknown = sandbox.clone();
+    unknown.transaction_id = "999".into();
+    unknown.original_transaction_id = "999".into();
+    assert_eq!(apply(&unknown), Err(Error::Forbidden));
+    assert_eq!(apply(&sandbox).unwrap().plan_snapshot.plan_id, PlanId::Plus);
+    f.ic.advance_time(Duration::from_secs(51));
+    let fallback: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "refresh_entitlement",
+        (&sandbox.beneficiary,),
+    );
+    assert_eq!(fallback.unwrap().plan_snapshot.plan_id, PlanId::Max);
+    sandbox.revoked_at_ms = Some(time(&f.ic));
+    sandbox.signed_at_ms = time(&f.ic);
+    sandbox.checked_at_ms = time(&f.ic);
+    assert_eq!(apply(&sandbox).unwrap().plan_snapshot.plan_id, PlanId::Free);
+}
+
+#[test]
+#[ignore = "requires DMSG_PRE_IAP_COMMERCE_WASM built from the pre-change commit"]
+fn legacy_production_subscription_survives_dual_environment_upgrade() {
+    let legacy =
+        std::fs::read(std::env::var("DMSG_PRE_IAP_COMMERCE_WASM").expect("pre-change Wasm path"))
+            .unwrap();
+    let f = Fixture::with_modules(
+        false,
+        100,
+        MAX_PAYMENT_ESCROWS,
+        |_| {},
+        [
+            wasm("dmsg_user"),
+            wasm("dmsg_directory"),
+            wasm("dmsg_handle"),
+            legacy,
+        ],
+    );
+    let account = f.create(1);
+    let verifier = person(90);
+    let now = time(&f.ic);
+    let mut config = AppStoreConfig {
+        verifiers: vec![verifier],
+        bundle_id: "net.dmsg.ios".into(),
+        app_apple_id: 6827050680,
+        environment: StoreEnvironment::Production,
+        accept_sandbox: None,
+        products: vec![StoreProduct {
+            product_id: "test.plus".into(),
+            kind: StoreProductKind::Plan(PlanId::Plus),
+        }],
+    };
+    let set = |c: &AppStoreConfig| {
+        let r: Result<()> = update(
+            &f.ic,
+            f.commerce,
+            f.sns,
+            "set_app_store_config",
+            (c.clone(),),
+        );
+        r.unwrap();
+    };
+    let apply = |t: &StoreTransaction| -> Result<EntitlementView> {
+        update(
+            &f.ic,
+            f.commerce,
+            verifier,
+            "apply_app_store_transaction",
+            (t.clone(),),
+        )
+    };
+    set(&config);
+    let paid = StoreTransaction {
+        beneficiary: beneficiary(f.user, &account),
+        transaction_id: "101".into(),
+        original_transaction_id: "100".into(),
+        product_id: "test.plus".into(),
+        app_account_token: dmsg_protocol::app_store::account_token(f.user, &account),
+        bundle_id: config.bundle_id.clone(),
+        environment: StoreEnvironment::Production,
+        purchased_at_ms: now,
+        expires_at_ms: Some(now + 365 * DAY),
+        revoked_at_ms: None,
+        signed_at_ms: now,
+        checked_at_ms: now,
+    };
+    let before = apply(&paid).unwrap();
+    let terms: Result<MembershipTerms> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_membership_terms",
+        (&paid.beneficiary,),
+    );
+    assert!(matches!(
+        &terms.unwrap().contracts[0].source,
+        ContractSource::AppStore {
+            environment: None,
+            ..
+        }
+    ));
+    f.ic.upgrade_canister(
+        f.commerce,
+        wasm("dmsg_commerce"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let restored = apply(&paid).unwrap();
+    assert_eq!(restored.active_contract_id, before.active_contract_id);
+    let terms: Result<MembershipTerms> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_membership_terms",
+        (&paid.beneficiary,),
+    );
+    assert!(matches!(
+        &terms.unwrap().contracts[0].source,
+        ContractSource::AppStore {
+            environment: Some(StoreEnvironment::Production),
+            ..
+        }
+    ));
+    let retained: Option<AppStoreConfig> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_app_store_config",
+        (),
+    );
+    assert_eq!(retained.as_ref().unwrap().accept_sandbox, None);
+    let mut sandbox = paid.clone();
+    sandbox.environment = StoreEnvironment::Sandbox;
+    assert_eq!(apply(&sandbox), Err(Error::Forbidden));
+    config.accept_sandbox = Some(true);
+    set(&config);
+    assert_eq!(
+        apply(&sandbox).unwrap().active_contract_id,
+        before.active_contract_id
+    );
+    sandbox.revoked_at_ms = Some(now);
+    sandbox.signed_at_ms = now + 1;
+    assert_eq!(
+        apply(&sandbox).unwrap().active_contract_id,
+        before.active_contract_id
+    );
 }

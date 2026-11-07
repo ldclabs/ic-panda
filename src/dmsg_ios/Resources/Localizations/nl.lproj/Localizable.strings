@@ -2516,6 +2516,10 @@
 	<string>Servicevoorwaarden</string>
 	<key>Test environment · Separate accounts and test purchases</key>
 	<string>Testomgeving · Aparte accounts en testaankopen</string>
+	<key>Test purchases do not charge you. An active paid plan takes priority.</key>
+	<string>Testaankopen zijn gratis. Een actief betaald abonnement heeft voorrang.</string>
+	<key>Test subscription. No charge. The expiry follows Apple's test environment.</key>
+	<string>Testabonnement zonder kosten. De einddatum volgt de testomgeving van Apple.</string>
 	<key>Test the new credential at its provider</key>
 	<string>Test de nieuwe referentie bij de provider</string>
 	<key>Text</key>
