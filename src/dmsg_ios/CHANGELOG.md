@@ -5,6 +5,29 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
+## 1.1.1 - 2026-11-07
+
+### Vault
+
+- Fix vault history ordering when several versions are saved within the same
+  millisecond, preserving newest-first display and correct parent relationships.
+
+### Subscriptions
+
+- Prepare TestFlight annual subscription testing on existing production
+  accounts. In-app purchases remain disabled in the release configuration;
+  testing requires the app purchase flag and explicit service opt-ins.
+- Identify test memberships and Apple's test expiry in all 23 supported
+  languages. Keep formal memberships ahead of test memberships and isolate
+  test upgrades and refunds from formal purchases.
+- Suppress misleading plan-expiry alerts for short-lived test subscriptions.
+  Hide storage packs in Sandbox and show the storage-purchase hint only when
+  a storage product is available.
+- Finish StoreKit transactions only after the service confirms delivery, then
+  refresh the displayed plan and usage.
+- Clarify annual App Store auto-renewal, cancellation, purchase restoration
+  and Apple refund handling in the linked terms of service.
+
 ## 1.1.0 - 2026-11-06
 
 ### Files
