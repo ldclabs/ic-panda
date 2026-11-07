@@ -22,6 +22,7 @@
   let items = $state<NoticeItem[]>([])
   let cursor = $state<string | null>(null)
   let summary = $state<NoticeStatus | null>(null)
+  const counts = $derived(summary?.accounts.find((entry) => entry.account === selected)?.counts)
   let names = $state.raw(noNames())
   let loading = $state(true), busy = $state(false), error = $state('')
   let later = $state(false), laterItem = $state<NoticeItem | null>(null), laterNow = $state(0)
@@ -130,7 +131,12 @@
     {#if step}
       <div><button class={buttonClass('secondary', 'sm')} onclick={step.run}><Icon name={step.icon} />{t(step.label)}</button></div>
     {/if}
-    {#if summary?.counts.unverified}<p class="text-xs text-muted" role="status">{t('sync')} · {t('loading')}</p>{/if}
+    {#if counts?.unverified}
+      <div class="flex flex-wrap items-center gap-2 text-xs text-muted" role="status" data-testid="reminders-unverified">
+        <span>{t('noticeVerifyHint')}</span>
+        {#if scope === 'open'}<button class={buttonClass('ghost', 'xs')} onclick={() => { scope = 'recent' }}>{t('noticeRecent')}</button>{/if}
+      </div>
+    {/if}
     <ul class="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface" data-testid="reminders-list">
       {#each items as item (item.id)}
         <li class="flex items-start gap-2 pe-3 transition-colors duration-100 hover:bg-wash" data-testid="reminder-item">

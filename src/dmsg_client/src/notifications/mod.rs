@@ -363,6 +363,18 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
         if item.category() == Category::Message && item.unread.is_none() {
             item.unread = old.unread;
         }
+        // A delayed hint for a watermark already verified on this device
+        // cannot revive a read message or downgrade its known count.
+        if item.category() == Category::Message
+            && item.version == old.version
+            && item.unverified
+            && !old.unverified
+            && old.unread.is_some()
+        {
+            item.open = old.open;
+            item.unread = old.unread;
+            item.unverified = false;
+        }
         if matches!(item.target, Target::Recovery(_)) && item.deadline.is_none() {
             item.deadline = old.deadline;
         }

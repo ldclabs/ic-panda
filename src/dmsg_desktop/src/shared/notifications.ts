@@ -80,7 +80,7 @@ export interface NoticePreferences {
 
 export interface NoticeStatus {
   counts: { actionable: number; unread: number; unverified: boolean }
-  accounts: { account: string; enabled: boolean; pending_sync: boolean }[]
+  accounts: { account: string; enabled: boolean; pending_sync: boolean; counts: NoticeStatus['counts'] }[]
   badge: number
   enabled: boolean
 }

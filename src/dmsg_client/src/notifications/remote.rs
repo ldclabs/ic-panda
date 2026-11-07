@@ -728,9 +728,6 @@ pub async fn refresh(h: &impl Hold, context: &ReceiveContext) -> Result<bool> {
                     }
                     let old = s.notification_item(&item.id)?;
                     if let Some(old) = old.as_ref().filter(|old| old.version == item.version) {
-                        if item.unread.is_none() {
-                            item.unread = old.unread;
-                        }
                         item.quiet |= old.quiet;
                     } else if cursor == 0 && item.category() != Category::Security {
                         item.quiet = true;
@@ -1457,6 +1454,52 @@ mod tests {
             })
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn notifications_delayed_feed_preserves_verified_and_pending_watermarks() {
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        let credential = credential(&c);
+        let context = credential.context.clone();
+        c.save_notification_credential(&credential).unwrap();
+        let mut item = Item::new(
+            context.account.clone(),
+            Target::Channel("44".repeat(32)),
+            9,
+            now_ms(),
+        );
+        upsert(&c.workspace.store, item.clone()).unwrap();
+        let id = item.id.clone();
+        let server = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        crate::testing::relay_to(&mut c, &format!("http://{}", server.local_addr().unwrap()));
+        let task = tokio::spawn(async move {
+            for (cursor, version) in [(1, 9), (2, 10), (3, 10), (4, 10)] {
+                let (mut socket, _) = server.accept().await.unwrap();
+                let mut request = [0; 8192];
+                assert!(socket.read(&mut request).await.unwrap() > 0);
+                item.version = version;
+                item.unread = None;
+                let body = json!({"ok":true,"data":{"entries":[item],
+                    "next_cursor":cursor.to_string(),"complete":true,"gap":false}})
+                .to_string();
+                socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        for (index, pending) in [false, true, true, false].into_iter().enumerate() {
+            if index == 3 {
+                let mut verified = c.workspace.store.notification_item(&id).unwrap().unwrap();
+                verified.unread = Some(0);
+                verified.unverified = false;
+                upsert(&c.workspace.store, verified).unwrap();
+            }
+            assert!(!refresh(&c.hold(), &context).await.unwrap());
+            let stored = c.workspace.store.notification_item(&id).unwrap().unwrap();
+            assert_eq!(stored.open, pending);
+            assert_eq!(stored.unverified, pending);
+            assert_eq!(stored.unread, Some(0));
+        }
+        task.await.unwrap();
     }
 
     #[tokio::test]

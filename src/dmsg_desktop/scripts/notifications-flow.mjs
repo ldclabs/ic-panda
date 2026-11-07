@@ -54,6 +54,58 @@ export async function notificationBadgeFlow({ app, methods, emit, waitFor }) {
   }
 }
 
+/** The active account owns the page's verification state; the bell stays global. */
+export async function remindersFlow({ app, main, shots, methods, emit, waitFor, account }) {
+  const native = await app.browserWindow(main)
+  const nextAccount = methods['session/accounts']().find((entry) => entry.account !== account).account
+  await main.evaluate(() => { location.hash = '/reminders' })
+  await main.getByTestId('reminders-page').waitFor()
+  // The installation bell includes other accounts, but this page's pending
+  // verification belongs only to the selected account.
+  const readNoticeStatus = methods['notifications/status']
+  let currentUnverified = false
+  methods['notifications/status'] = () => ({
+    ...readNoticeStatus(),
+    counts: { actionable: 0, unread: 1, unverified: true },
+    accounts: [
+      { account, enabled: true, pending_sync: false, counts: { actionable: 0, unread: 0, unverified: currentUnverified } },
+      { account: nextAccount, enabled: true, pending_sync: false, counts: { actionable: 0, unread: 1, unverified: true } }
+    ]
+  })
+  emit('notifications/changed')
+  await waitFor(async () => await main.getByTestId('reminders-count').textContent() === '1')
+  const refreshReminders = main.getByTestId('reminders-page').getByRole('button', { name: 'Refresh', exact: true })
+  await refreshReminders.click()
+  await waitFor(async () => !await refreshReminders.isDisabled())
+  assert.equal(await main.getByTestId('reminders-unverified').count(), 0)
+  currentUnverified = true
+  emit('notifications/changed')
+  await main.getByTestId('reminders-unverified').waitFor()
+  for (const [language, appearance] of [['zh', 'light'], ['zh', 'dark'], ['de', 'light'], ['ar', 'dark']]) {
+    await native.evaluate((window) => window.setContentSize(760, 540))
+    await main.evaluate(async ([language, appearance]) => { await window.dmsg.setLocale(language); await window.dmsg.setAppearance(appearance) }, [language, appearance])
+    await main.waitForFunction(([language, appearance]) => document.documentElement.lang === language && matchMedia('(prefers-color-scheme: dark)').matches === (appearance === 'dark'), [language === 'zh' ? 'zh-Hans' : language, appearance])
+    await main.evaluate(() => document.fonts.ready.then(() => undefined))
+    await main.getByTestId('reminders-unverified').scrollIntoViewIfNeeded()
+    assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+    await main.screenshot({ path: join(shots, `reminders-unverified-${language}-${appearance}.png`), animations: 'disabled' })
+  }
+  await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
+  const recent = main.getByTestId('reminders-unverified').getByRole('button', { name: 'Recent reminders', exact: true })
+  await recent.focus()
+  await main.keyboard.press('Enter')
+  await recent.waitFor({ state: 'detached' })
+  await main.getByTestId('reminders-unverified').waitFor()
+  currentUnverified = false
+  await refreshReminders.focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('reminders-unverified').waitFor({ state: 'detached' })
+  assert.equal(await main.getByTestId('reminders-count').textContent(), '1')
+  methods['notifications/status'] = readNoticeStatus
+  emit('notifications/changed')
+  await native.evaluate((window) => window.setContentSize(1180, 760))
+}
+
 /** Native APIs are observed, not sent to the real Notification Center. */
 export async function notificationsFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, model, account }) {
   await notificationBadgeFlow({ app, methods, emit, waitFor })
@@ -375,6 +427,7 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   await route('/reminders')
   await main.getByTestId('reminders-page').waitFor()
   await main.screenshot({ path: join(shots, 'notifications-reminders.png') })
+  await remindersFlow({ app, main, shots, methods, emit, waitFor, account })
   const oldAccounts = methods['session/accounts'], oldSettings = methods['notifications/settings'], oldNoticeStatus = methods['notifications/status']
   // A device with accounts but none open: one with no account at all opens on the first-run page.
   methods['notifications/settings'] = () => ({ ...oldSettings(), account: null, account_id: null })

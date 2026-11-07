@@ -1,5 +1,6 @@
 use super::*;
 use dmsg_client::{notifications as notice, testing};
+use futures_util::FutureExt;
 
 fn fixture(dir: &testing::TempDir) -> (Daemon, String) {
     let c = testing::unlocked(&dir.path("workspace"), false, None);
@@ -44,6 +45,61 @@ fn daemon(dir: &testing::TempDir, c: dmsg_client::Client) -> Daemon {
         dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
         crate::mcp_events::McpEvents::new(&[]).unwrap(),
     )
+}
+
+#[tokio::test]
+async fn notifications_reconcile_each_unlock_even_when_lock_wakeup_is_coalesced() {
+    let dir = testing::TempDir::new();
+    let mut c = testing::unlocked(
+        &dir.path("workspace"),
+        false,
+        Some(Arc::new(testing::MemoryStorage::default())),
+    );
+    c.enable_fast_unlock().unwrap();
+    let d = Arc::new(daemon(&dir, c));
+    let mut events = d.events.subscribe();
+    let task = tokio::spawn(crate::notifications::inbox_run(d.clone()));
+    let wait = async |events: &mut tokio::sync::broadcast::Receiver<Value>| {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                if events.recv().await.unwrap()["type"] == "inbox/hint" {
+                    break;
+                }
+            }
+        })
+        .await
+        .unwrap();
+    };
+    wait(&mut events).await;
+    // Consume the initial projection's invalidation, if any.
+    while d.notifications.wake.notified().now_or_never().is_some() {}
+
+    d.client().lock().await.lock();
+    d.notification_hint(&testing::account().id.to_string(), "inbox", None)
+        .await;
+    assert_eq!(
+        d.call_notifications("notifications/status", &json!({}))
+            .await
+            .unwrap()["counts"]["unverified"],
+        true
+    );
+    while d.notifications.wake.notified().now_or_never().is_some() {}
+    // The offline fixture unlock is deliberately serialized so the loop never
+    // observes the intermediate locked state, just like a coalesced wakeup.
+    d.under_lock(async |c| c.unlock_fast().await).await.unwrap();
+    d.notifications.inbox.notify_one();
+    wait(&mut events).await;
+    task.abort();
+    let _ = task.await;
+    let status = d
+        .call_notifications("notifications/status", &json!({}))
+        .await
+        .unwrap();
+    assert_eq!(status["counts"]["unverified"], false);
+    assert!(
+        d.notifications.wake.notified().now_or_never().is_some(),
+        "publish the reconciled state to visible reminders"
+    );
 }
 
 #[tokio::test]

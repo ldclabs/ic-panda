@@ -1,10 +1,94 @@
 //! Compact stable representation of the wallet record. Integer keys stand in
 //! for the field names every member and address would otherwise repeat.
-use crate::store::{EvmPending, Settings, SolLast, Spend, Wallet};
-use cbor2::Cbor;
+use crate::store::{EvmPending, STABLE_SCHEMA, Settings, SolLast, Spend, Wallet};
+use candid::Principal;
+use cbor2::{Cbor, Value};
 use dmsg_runtime::stable_types::{is_zero, wallet::*};
 use dmsg_runtime::storage::StableCodec;
 use dmsg_types::{wallet::*, *};
+use serde::{Deserialize, Deserializer, Serialize, de};
+
+/// Schema 1 stored calling Principals at member key 6. Schema 2 stores
+/// binding maps there. Keep this reader local to the wallet's old layout;
+/// public protocol and current MemberRepr decoding remain strict.
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+struct LegacyMemberRepr {
+    #[cbor(key = 1)]
+    id: MemberId,
+    #[cbor(key = 2)]
+    role: Role,
+    #[cbor(key = 3)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    label: String,
+    #[cbor(key = 4)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    agent_ids: Vec<String>,
+    #[cbor(key = 5)]
+    status: MemberStatus,
+    #[cbor(key = 6)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    principals: Vec<Principal>,
+    #[cbor(key = 7)]
+    added_at_ms: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+enum WalletMemberRepr {
+    Current(MemberRepr),
+    Legacy(LegacyMemberRepr),
+}
+
+impl<'de> Deserialize<'de> for WalletMemberRepr {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        // Decode each layout with the CBOR deserializer: serde's untagged
+        // buffering loses the binary representation expected by Principal.
+        let value = Value::deserialize(deserializer)?;
+        let bytes = cbor2::to_vec(&value).map_err(de::Error::custom)?;
+        if let Ok(member) = cbor2::from_slice::<MemberRepr>(&bytes) {
+            return Ok(Self::Current(member));
+        }
+        cbor2::from_slice(&bytes)
+            .map(Self::Legacy)
+            .map_err(de::Error::custom)
+    }
+}
+
+impl WalletMemberRepr {
+    fn into_member(self, schema: u16) -> Member {
+        match self {
+            Self::Current(member) => {
+                // Empty old principal lists have the same bytes as empty
+                // binding lists. Nonempty binding maps require schema 2.
+                assert!(
+                    schema == STABLE_SCHEMA || member.bindings.is_empty(),
+                    "wallet member schema"
+                );
+                Member::from_repr(member)
+            }
+            Self::Legacy(member) => {
+                assert_eq!(schema, 1, "wallet member schema");
+                Member {
+                    id: member.id,
+                    role: member.role,
+                    label: member.label,
+                    agent_ids: member.agent_ids,
+                    status: member.status,
+                    bindings: member
+                        .principals
+                        .into_iter()
+                        .map(|principal| Binding {
+                            principal,
+                            device: None,
+                            bound_at_ms: 0,
+                        })
+                        .collect(),
+                    added_at_ms: member.added_at_ms,
+                }
+            }
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct WalletRepr {
@@ -15,7 +99,7 @@ pub(crate) struct WalletRepr {
     #[cbor(key = 3)]
     created_at_ms: u64,
     #[cbor(key = 4)]
-    members: Vec<MemberRepr>,
+    members: Vec<WalletMemberRepr>,
     #[cbor(key = 5)]
     policy: Policy,
     #[cbor(key = 6)]
@@ -68,7 +152,12 @@ impl StableCodec for Wallet {
             schema: self.schema,
             settings: self.settings.clone(),
             created_at_ms: self.created_at_ms,
-            members: self.members.to_repr(),
+            members: self
+                .members
+                .to_repr()
+                .into_iter()
+                .map(WalletMemberRepr::Current)
+                .collect(),
             policy: self.policy.clone(),
             addresses: self.addresses.to_repr(),
             cosigners: self.cosigners.to_repr(),
@@ -90,11 +179,22 @@ impl StableCodec for Wallet {
     }
 
     fn from_repr(repr: Self::Repr) -> Self {
+        assert!(
+            matches!(repr.schema, 1 | STABLE_SCHEMA),
+            "explicit stable-state migration required"
+        );
+        // post_upgrade saves the converted record and rebuilds the certified
+        // wallet view. Principals keep their authority without invented device
+        // IDs or binding times; all other stable regions remain untouched.
         Self {
-            schema: repr.schema,
+            schema: STABLE_SCHEMA,
             settings: repr.settings,
             created_at_ms: repr.created_at_ms,
-            members: StableCodec::from_repr(repr.members),
+            members: repr
+                .members
+                .into_iter()
+                .map(|member| member.into_member(repr.schema))
+                .collect(),
             policy: repr.policy,
             addresses: StableCodec::from_repr(repr.addresses),
             cosigners: StableCodec::from_repr(repr.cosigners),
@@ -249,6 +349,84 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    #[test]
+    fn schema_one_cell_migrates_principals_without_changing_wallet_state() {
+        let mut expected = wallet(5, 4);
+        expected.members[1].bindings.clear();
+        for member in &mut expected.members {
+            for binding in &mut member.bindings {
+                binding.device = None;
+                binding.bound_at_ms = 0;
+            }
+        }
+        let mut legacy = expected.to_repr();
+        legacy.schema = 1;
+        legacy.members = expected
+            .members
+            .iter()
+            .map(|member| {
+                WalletMemberRepr::Legacy(LegacyMemberRepr {
+                    id: member.id.clone(),
+                    role: member.role,
+                    label: member.label.clone(),
+                    agent_ids: member.agent_ids.clone(),
+                    status: member.status,
+                    principals: member
+                        .bindings
+                        .iter()
+                        .map(|binding| binding.principal)
+                        .collect(),
+                    added_at_ms: member.added_at_ms,
+                })
+            })
+            .collect();
+        let memory = VectorMemory::default();
+        {
+            // StableCell contains an optional compact record, exactly as the
+            // released schema-1 wallet wrote it, including principal bytes.
+            let mut old = StableCell::init(memory.clone(), Vec::<u8>::new());
+            old.set(cbor2::to_vec(&Some(legacy)).unwrap());
+        }
+        let mut cell = StableCell::<CompactStored<Option<Wallet>>, _>::init(
+            memory.clone(),
+            CompactStored::new(&None),
+        );
+        let migrated = cell.get().value().unwrap();
+        assert_eq!(migrated, expected);
+        cell.set(CompactStored::some(&migrated));
+        drop(cell);
+        let cell =
+            StableCell::<CompactStored<Option<Wallet>>, _>::init(memory, CompactStored::new(&None));
+        assert_eq!(cell.get().value(), Some(expected));
+    }
+
+    #[test]
+    fn wallet_schema_rejects_unknown_versions_and_mixed_member_layouts() {
+        for schema in [0, 3, u16::MAX] {
+            let mut repr = wallet(1, 1).to_repr();
+            repr.schema = schema;
+            assert!(std::panic::catch_unwind(|| Wallet::from_repr(repr)).is_err());
+        }
+        let mut repr = wallet(1, 1).to_repr();
+        repr.schema = 1;
+        assert!(std::panic::catch_unwind(|| Wallet::from_repr(repr)).is_err());
+        let mut repr = wallet(1, 1).to_repr();
+        let WalletMemberRepr::Current(member) = repr.members.remove(0) else {
+            unreachable!()
+        };
+        repr.members
+            .push(WalletMemberRepr::Legacy(LegacyMemberRepr {
+                id: member.id,
+                role: member.role,
+                label: member.label,
+                agent_ids: member.agent_ids,
+                status: member.status,
+                principals: vec![p(1)],
+                added_at_ms: member.added_at_ms,
+            }));
+        assert!(std::panic::catch_unwind(|| Wallet::from_repr(repr)).is_err());
     }
 
     #[test]

@@ -141,6 +141,8 @@
 
 钱包以 `AcceptUpgrade { version, module_hash }` 管理类提案（24 小时延时）接受 hub 登记的版本；任何人调用 hub `upgrade_wallet`，hub 读取 `accepted_upgrade()`、核对版本与哈希后停止实例、分块安装（`post_upgrade` 参数为该版本号，匹配时清除接受记录）并启动；停止失败时立即重新启动实例；读不到 `accepted_upgrade()` 时先启动实例再报错。`LockCode` 生效后 `lock_wallet` 把 controllers 设为空，之后不能升级或删除。hub 只安装治理以 `admin_register_version` 登记过哈希的模块；上传由 controller、governance 或其指定的上传者完成。已退役的版本只有在未过期报价与未完成激活均不再引用时才能由 `admin_remove_version` 删除，版本号不复用。hub 持久维护版本引用，安装前重查模块；安装成功但回复丢失时按该激活唯一控制的实例状态继续。
 
+2026-11-07 存储迁移：钱包模块读取 schema 1 时，将成员 `principals` 转换为 `bindings`（原 Principal 保留，`device: None`、`bound_at_ms: 0`），升级时保存 schema 2 并重新认证钱包视图。成员权限、策略、地址、钥匙根、提案、审计与资金不重置；未知 schema 和混用的成员布局拒绝升级。需要由成员接受包含迁移的新发布版本及哈希，既有批准不授权更换模块字节。旧版实际 Wasm 的回归入口为 `scripts/test-dmsg-wallet-upgrade.sh`；源码支持不表示生产已升级。
+
 ## cycles
 
 `refuel()` 任何人可调：策略 `refuel` 规则下余额低于 `min_cycles` 且当日次数未满时，从指定 ICP 地址以 ICRC-1 memo `TPUP`（`0x50555054` 小端 8 字节）转入 CMC 的实例子账户并 `notify_top_up`。`Refuel` 意图做同样的事但需要批准。看门狗以 hub 的 `list_wallets(after, take)` 遍历实例。

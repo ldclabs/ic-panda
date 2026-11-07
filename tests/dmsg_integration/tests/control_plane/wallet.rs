@@ -5,7 +5,7 @@
 use super::*;
 use dmsg_protocol::wallet::*;
 use dmsg_types::{integration::*, wallet::*};
-use std::io::Write as _;
+use std::io::{Read as _, Write as _};
 
 const A: u8 = 41;
 const B: u8 = 42;
@@ -369,6 +369,15 @@ impl Team {
     }
 
     fn with_module(approvers: u8, module: &[u8]) -> Self {
+        let t = Self::activate(approvers, module);
+        t.join_b();
+        let joined: Result<Member> =
+            update(&t.f.ic, t.wallet, person(P), "join", (principal_join(),));
+        assert_eq!(joined.unwrap().status, MemberStatus::Active);
+        t
+    }
+
+    fn activate(approvers: u8, module: &[u8]) -> Self {
         let f = Fixture::new();
         let hub = setup_with_module(&f, module);
         let a = create_member(&f, A);
@@ -415,19 +424,14 @@ impl Team {
         for _ in 0..10 {
             f.ic.tick();
         }
-        let t = Self {
+        Self {
             f,
             hub,
             wallet,
             a,
             b,
             quote: quote.quote_id,
-        };
-        t.join_b();
-        let joined: Result<Member> =
-            update(&t.f.ic, wallet, person(P), "join", (principal_join(),));
-        assert_eq!(joined.unwrap().status, MemberStatus::Active);
-        t
+        }
     }
 
     fn join_b(&self) {
@@ -1626,6 +1630,106 @@ fn upgrade_without_claim(old: &[u8]) {
     let proposal: Result<Proposal> =
         query(&t.f.ic, t.wallet, person(A), "get_proposal", (accept.id,));
     assert_eq!(proposal.unwrap().status, ProposalStatus::Settled);
+}
+
+#[test]
+#[ignore = "requires the released v3.1.2 wallet; run scripts/test-dmsg-wallet-upgrade.sh"]
+fn wallet_upgrade_schema_one_preserves_state() {
+    let path = std::env::var_os("DMSG_SCHEMA1_WALLET_WASM").expect("released wallet path");
+    let old = std::fs::read(path).unwrap();
+    assert_eq!(
+        hex::encode(*sha256(&old)),
+        "e292e1cba5e54cde276e1d0bf10c5a916de0a80a91d650c1cfe3b46018a7bf5f"
+    );
+    let mut module = Vec::new();
+    flate2::read::GzDecoder::new(old.as_slice())
+        .read_to_end(&mut module)
+        .unwrap();
+    let t = Team::activate(1, &module);
+    let snapshot = || {
+        let batch: Result<CertifiedBatch> =
+            query(&t.f.ic, t.wallet, person(A), "get_wallet_certified", ());
+        let batch = batch.unwrap();
+        let view: dmsg_client::wallet::WalletSnapshot =
+            cbor2::from_slice(batch.entries[0].value.as_ref().unwrap()).unwrap();
+        view.view().clone()
+    };
+    void(
+        &t.f.ic,
+        t.f.ledger,
+        person(1),
+        "mint_test",
+        (account(t.wallet), 123_456_789u128),
+    );
+    let payment = t.propose(
+        A,
+        Intent::Transfer {
+            from: 0,
+            asset: AssetKey::Icp,
+            to: Destination::Icrc(account(person(80))),
+            amount: 100_000,
+            max_fee: 10_000,
+            memo: None,
+        },
+    );
+    t.decide_account(A, t.a, &payment, Decision::Approve)
+        .unwrap();
+    let payment = t.execute(payment.id, None, vec![]).unwrap().proposal;
+    assert_eq!(payment.status, ProposalStatus::Settled);
+    let next = register_module(&t.f, t.hub, &gz(&wasm("dmsg_wallet")));
+    let accept = t.propose(
+        A,
+        Intent::AcceptUpgrade {
+            version: next.version,
+            module_hash: next.module_hash,
+        },
+    );
+    t.decide_account(A, t.a, &accept, Decision::Approve)
+        .unwrap();
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.f.ic.tick();
+    t.execute(accept.id, None, vec![]).unwrap();
+    let before = snapshot();
+    let audit = t.audit_since(0);
+    let balance = t.balance(account(t.wallet));
+    let upgraded: Result<WalletRecord> =
+        update(&t.f.ic, t.hub, person(99), "upgrade_wallet", (t.wallet,));
+    assert_eq!(upgraded.unwrap().version, next.version);
+    let after = t.view();
+    assert_eq!(after.code, CodeAcceptance::None);
+    assert_eq!(after.members, before.members);
+    assert_eq!(after.policy, before.policy);
+    assert_eq!(after.addresses, before.addresses);
+    assert_eq!(after.cosigners, before.cosigners);
+    assert_eq!(after.key_roots, before.key_roots);
+    assert_eq!(after.next_proposal, before.next_proposal);
+    assert_eq!(after.audit_head, before.audit_head);
+    assert_eq!(t.audit_since(0), audit);
+    assert_eq!(t.balance(account(t.wallet)), balance);
+    let stored: Result<Proposal> =
+        query(&t.f.ic, t.wallet, person(A), "get_proposal", (payment.id,));
+    assert_eq!(stored.unwrap(), payment);
+    assert_eq!(
+        snapshot(),
+        after,
+        "upgrade recertifies the migrated wallet view"
+    );
+    // Original callers retain authority, and an invited account can bind its
+    // actual device with the new interface after migration.
+    t.join_b();
+    let proposed = t.propose(
+        A,
+        Intent::Transfer {
+            from: 0,
+            asset: AssetKey::Icp,
+            to: Destination::Icrc(account(person(80))),
+            amount: 1,
+            max_fee: 10_000,
+            memo: None,
+        },
+    );
+    assert_eq!(proposed.proposer, MemberId::Account(t.a));
 }
 
 #[test]

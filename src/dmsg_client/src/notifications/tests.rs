@@ -267,6 +267,39 @@ fn notifications_unverified_updates_keep_last_known_counts_without_claiming_a_ne
 }
 
 #[test]
+fn notifications_same_version_unknown_hint_keeps_verified_message_state() {
+    for unread in [0, 2] {
+        let store = Store::memory().unwrap();
+        let (mut item, _, _, _) = example();
+        item.unread = Some(unread);
+        upsert(&store, item.clone()).unwrap();
+        let verified = store.notification_item(&item.id).unwrap().unwrap();
+
+        // A delayed feed page must not revive a read message or turn an
+        // already verified watermark back into a perpetual pending read.
+        for unknown in [None, Some(unread)] {
+            let mut hint = item.clone();
+            hint.unread = unknown;
+            hint.unverified = true;
+            hint.updated_at += 1_000;
+            upsert(&store, hint).unwrap();
+            let stored = store.notification_item(&item.id).unwrap().unwrap();
+            assert_eq!(stored.open, verified.open);
+            assert_eq!(stored.unread, verified.unread);
+            assert!(!stored.unverified);
+        }
+
+        // A genuinely newer watermark still needs verification.
+        item.version += 1;
+        item.unread = None;
+        upsert(&store, item.clone()).unwrap();
+        let pending = store.notification_item(&item.id).unwrap().unwrap();
+        assert!(pending.open && pending.unverified);
+        assert_eq!(pending.unread, Some(unread));
+    }
+}
+
+#[test]
 fn notifications_delivery_reserves_once_and_reconnects_silently_without_reading_business() {
     let store = Store::memory().unwrap();
     let (item, mut settings, mut runtime, mut ctx) = example();

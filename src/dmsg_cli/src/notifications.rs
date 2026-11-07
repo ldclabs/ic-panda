@@ -85,7 +85,10 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
             continue;
         }
         let h = d.hold();
-        let Ok(session) = h.with(|c| Ok(c.session_state())).await else {
+        let Ok((session, generation)) = h
+            .with(|c| Ok((c.session_state(), c.session_generation())))
+            .await
+        else {
             continue;
         };
         let Some(account) = session.unlocked_account().map(str::to_string) else {
@@ -95,9 +98,11 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
         let Some(_turn) = d.try_turn(&format!("inbox:{account}")) else {
             continue;
         };
-        if seen.as_ref() != Some(&account) {
+        let current = (account, generation);
+        if seen.as_ref() != Some(&current) {
             let result = h
                 .with(|c| {
+                    ensure(c.session_generation() == generation, Error::Locked)?;
                     let now = now_ms();
                     c.reconcile_notifications(now)?;
                     let path = c.agent_runtime()?;
@@ -112,7 +117,8 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
                 .await;
             d.note_result("notifications/reconcile", &result);
             if result.is_ok() {
-                seen = Some(account);
+                seen = Some(current);
+                d.notifications.wake.notify_one();
             }
             let result = core::refresh_capabilities(&h).await;
             d.note_result("notifications/capabilities", &result);
