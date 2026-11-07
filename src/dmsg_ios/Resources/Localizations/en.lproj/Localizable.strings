@@ -928,8 +928,6 @@
 	<string>Field name is required.</string>
 	<key>Field reference</key>
 	<string>Field reference</string>
-	<key>Field reference and dependencies</key>
-	<string>Field reference and dependencies</string>
 	<key>Field settings</key>
 	<string>Field settings</string>
 	<key>Fields</key>

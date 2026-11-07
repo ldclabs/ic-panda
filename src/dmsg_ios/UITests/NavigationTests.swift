@@ -187,6 +187,7 @@ final class SecretNavigationTests: NavigationTestCase {
                 XCTAssertEqual(detail.label, title)
                 if id == "fixture-managed" {
                     XCTAssertFalse(app.buttons["vault.field.more.key"].exists)
+                    XCTAssertFalse(app.buttons["vault.copy.key"].exists)
                     if iteration == 0 { capture(app, name: "Managed secret · \(language)") }
                 }
                 back(app)

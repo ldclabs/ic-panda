@@ -928,8 +928,6 @@
 	<string>フィールド名を入力してください。</string>
 	<key>Field reference</key>
 	<string>フィールド参照</string>
-	<key>Field reference and dependencies</key>
-	<string>フィールド参照と依存関係</string>
 	<key>Field settings</key>
 	<string>フィールド設定</string>
 	<key>Fields</key>

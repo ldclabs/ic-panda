@@ -928,8 +928,6 @@
 	<string>फ़ील्ड का नाम आवश्यक है।</string>
 	<key>Field reference</key>
 	<string>फ़ील्ड संदर्भ</string>
-	<key>Field reference and dependencies</key>
-	<string>फ़ील्ड संदर्भ और निर्भरताएँ</string>
 	<key>Field settings</key>
 	<string>फ़ील्ड सेटिंग</string>
 	<key>Fields</key>

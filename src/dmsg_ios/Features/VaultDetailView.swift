@@ -95,6 +95,7 @@ struct VaultDetailView: View {
             .onDisappear { clearRevealed(); codes = [:] }
             .onChange(of: id) { _, _ in clearRevealed(); editing = nil; referenceTarget = nil; codes = [:] }
             .onChange(of: model.concealed) { _, value in if value { clearRevealed(); codes = [:] } }
+            .onChange(of: model.epoch) { _, _ in clearRevealed(); codes = [:] }
             .sheet(item: $editing, onDismiss: { reload &+= 1 }) { target in NavigationStack { VaultEditor(target: target) } }
             .sheet(item: $largeType) { target in NavigationStack { VaultLargeTypeView(target: target) } }
             .navigationDestination(item: $referenceTarget) { target in SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID) }
@@ -188,8 +189,8 @@ struct VaultDetailView: View {
     }
 
     private func load() async {
-        clearRevealed(); failure = nil
-        if item?.id != id { item = nil }
+        failure = nil
+        if item?.id != id { clearRevealed(); item = nil }
         let epoch = model.epoch
         do {
             #if DEBUG
@@ -200,13 +201,16 @@ struct VaultDetailView: View {
             #endif
             let loaded = try await model.readVaultItem(id: id, revision: revision)
             guard model.epoch == epoch, !model.concealed, !Task.isCancelled else { return }
-            if revision == nil, let previous = item, previous.id == loaded.id,
-               previous.revision != loaded.revision, model.notice == nil {
-                model.notice = String(localized: "Updated") + " · " + loaded.title
+            // Plaintext belongs to one revision. A sync that leaves this item
+            // alone must not close large type or hide what was just revealed.
+            if let previous = item, previous.id == loaded.id, previous.revision != loaded.revision {
+                clearRevealed()
+                if revision == nil, model.notice == nil { model.notice = String(localized: "Updated") + " · " + loaded.title }
             }
             item = loaded
         } catch {
             guard model.epoch == epoch, !model.concealed, !Task.isCancelled else { return }
+            clearRevealed()
             failure = vaultReadError(error)
         }
     }

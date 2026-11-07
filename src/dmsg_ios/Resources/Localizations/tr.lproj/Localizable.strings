@@ -928,8 +928,6 @@
 	<string>Alan adı zorunludur.</string>
 	<key>Field reference</key>
 	<string>Alan referansı</string>
-	<key>Field reference and dependencies</key>
-	<string>Alan referansı ve bağımlılıklar</string>
 	<key>Field settings</key>
 	<string>Saha ayarları</string>
 	<key>Fields</key>

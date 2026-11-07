@@ -928,8 +928,6 @@
 	<string>Nama kolom wajib diisi.</string>
 	<key>Field reference</key>
 	<string>Referensi lapangan</string>
-	<key>Field reference and dependencies</key>
-	<string>Referensi lapangan dan ketergantungan</string>
 	<key>Field settings</key>
 	<string>Pengaturan lapangan</string>
 	<key>Fields</key>

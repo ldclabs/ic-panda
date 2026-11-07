@@ -928,8 +928,6 @@
 	<string>El nombre del campo es obligatorio.</string>
 	<key>Field reference</key>
 	<string>Referencia del campo</string>
-	<key>Field reference and dependencies</key>
-	<string>Referencia y dependencias del campo</string>
 	<key>Field settings</key>
 	<string>Ajustes del campo</string>
 	<key>Fields</key>

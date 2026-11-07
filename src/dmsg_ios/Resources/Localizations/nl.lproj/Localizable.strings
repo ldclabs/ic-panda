@@ -928,8 +928,6 @@
 	<string>Een veldnaam is vereist.</string>
 	<key>Field reference</key>
 	<string>Veldreferentie</string>
-	<key>Field reference and dependencies</key>
-	<string>Veldreferentie en afhankelijkheden</string>
 	<key>Field settings</key>
 	<string>Lokale instellingen</string>
 	<key>Fields</key>

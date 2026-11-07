@@ -928,8 +928,6 @@
 	<string>Укажите название поля.</string>
 	<key>Field reference</key>
 	<string>Ссылка на поле</string>
-	<key>Field reference and dependencies</key>
-	<string>Ссылка на поле и зависимости</string>
 	<key>Field settings</key>
 	<string>Настройки поля</string>
 	<key>Fields</key>

@@ -928,8 +928,6 @@
 	<string>Nazwa pola jest wymagana.</string>
 	<key>Field reference</key>
 	<string>Odniesienie do pola</string>
-	<key>Field reference and dependencies</key>
-	<string>Odniesienia do pól i zależności</string>
 	<key>Field settings</key>
 	<string>Ustawienia pola</string>
 	<key>Fields</key>

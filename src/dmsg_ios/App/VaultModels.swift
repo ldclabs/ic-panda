@@ -58,9 +58,9 @@ extension VaultItem {
     var changeToken: String { "\(revision):\(synced):\(conflict):\(deleted)" }
     var canEdit: Bool { !reserved && !deleted }
 
-    func replacing(favorite: Bool? = nil, deleted: Bool? = nil, revision: String? = nil, fields: [VaultField]? = nil, title: String? = nil) -> VaultItem {
+    func replacing(favorite: Bool? = nil, deleted: Bool? = nil, revision: String? = nil, fields: [VaultField]? = nil, title: String? = nil, synced: Bool? = nil) -> VaultItem {
         VaultItem(id: id, revision: revision ?? self.revision, kind: kind, title: title ?? self.title, subtitle: subtitle,
-            notes: notes, favorite: favorite ?? self.favorite, tags: tags, synced: synced, conflict: conflict,
+            notes: notes, favorite: favorite ?? self.favorite, tags: tags, synced: synced ?? self.synced, conflict: conflict,
             reserved: reserved, files: files, fields: fields ?? self.fields, deleted: deleted ?? self.deleted, createdAt: createdAt, updatedAt: updatedAt)
     }
 }
@@ -90,6 +90,7 @@ extension SessionModel {
         if uiTesting {
             fixtureVaultFieldReadAttempts += 1
             let attempt = fixtureVaultFieldReadAttempts
+            if attempt == 2 { scheduleVaultFixtureChangeAfterRead(id: item.id) }
             if ProcessInfo.processInfo.arguments.contains("--ui-vault-field-slow") { try await Task.sleep(for: .seconds(2)) }
             if ProcessInfo.processInfo.arguments.contains("--ui-vault-field-failure") && attempt == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
             let secret = item.id == "fixture-api" ? "L0ng_API-key_0123456789_ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\nSecond-line_0O1Il_0123456789" : "fixture-secret"

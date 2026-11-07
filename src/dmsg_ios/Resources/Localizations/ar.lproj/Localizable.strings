@@ -928,8 +928,6 @@
 	<string>اسم الحقل مطلوب.</string>
 	<key>Field reference</key>
 	<string>مرجع الحقل</string>
-	<key>Field reference and dependencies</key>
-	<string>مرجع الحقل واعتمادياته</string>
 	<key>Field settings</key>
 	<string>إعدادات الحقل</string>
 	<key>Fields</key>

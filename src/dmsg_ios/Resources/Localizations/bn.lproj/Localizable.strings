@@ -928,8 +928,6 @@
 	<string>ফিল্ডের নাম দিতে হবে।</string>
 	<key>Field reference</key>
 	<string>ক্ষেত্রের রেফারেন্স</string>
-	<key>Field reference and dependencies</key>
-	<string>ক্ষেত্রের রেফারেন্স এবং নির্ভরতা</string>
 	<key>Field settings</key>
 	<string>ক্ষেত্র সেটিংস</string>
 	<key>Fields</key>

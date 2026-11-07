@@ -928,8 +928,6 @@
 	<string>Ein Feldname ist erforderlich.</string>
 	<key>Field reference</key>
 	<string>Feldreferenz</string>
-	<key>Field reference and dependencies</key>
-	<string>Feldbezug und Abhängigkeiten</string>
 	<key>Field settings</key>
 	<string>Feldeinstellungen</string>
 	<key>Fields</key>

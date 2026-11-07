@@ -928,8 +928,6 @@
 	<string>Kailangan ang pangalan ng field.</string>
 	<key>Field reference</key>
 	<string>Sanggunian sa larangan</string>
-	<key>Field reference and dependencies</key>
-	<string>Field reference at dependencies</string>
 	<key>Field settings</key>
 	<string>Mga setting ng field</string>
 	<key>Fields</key>

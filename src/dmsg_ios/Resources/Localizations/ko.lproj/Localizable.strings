@@ -928,8 +928,6 @@
 	<string>필드 이름이 필요합니다.</string>
 	<key>Field reference</key>
 	<string>현장 참조</string>
-	<key>Field reference and dependencies</key>
-	<string>필드 참조 및 종속성</string>
 	<key>Field settings</key>
 	<string>필드 설정</string>
 	<key>Fields</key>

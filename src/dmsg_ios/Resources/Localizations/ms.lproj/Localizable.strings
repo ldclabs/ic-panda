@@ -928,8 +928,6 @@
 	<string>Nama medan diperlukan.</string>
 	<key>Field reference</key>
 	<string>Rujukan lapangan</string>
-	<key>Field reference and dependencies</key>
-	<string>Rujukan medan dan kebergantungan</string>
 	<key>Field settings</key>
 	<string>Tetapan medan</string>
 	<key>Fields</key>

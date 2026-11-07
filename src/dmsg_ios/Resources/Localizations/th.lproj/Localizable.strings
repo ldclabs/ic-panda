@@ -928,8 +928,6 @@
 	<string>ต้องระบุชื่อช่องข้อมูล</string>
 	<key>Field reference</key>
 	<string>การอ้างอิงภาคสนาม</string>
-	<key>Field reference and dependencies</key>
-	<string>การอ้างอิงฟิลด์และการขึ้นต่อกัน</string>
 	<key>Field settings</key>
 	<string>การตั้งค่าภาคสนาม</string>
 	<key>Fields</key>

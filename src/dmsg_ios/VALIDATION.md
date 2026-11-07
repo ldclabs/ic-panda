@@ -52,6 +52,30 @@ desktop suites were not rerun. No signed archive or App Store upload was made.
 
 Implementation and validation: Codex (OpenAI).
 
+### Review of the vault detail change
+
+Any content sync reloaded the detail, and every reload hid revealed values, closed
+large type and cancelled a copy in progress, even when that item had not changed.
+Plaintext now clears only when the item's revision changes, a reload fails or the
+session epoch changes, along with the existing dismissal, background and lock cases.
+The orphaned "Field reference and dependencies" string left all 23 languages, and
+the managed-key test also asserts that its field has no copy action.
+
+Validation:
+
+- `testSyncWithoutANewRevisionKeepsValuesAndLargeType` failed before the fix: large
+  type had closed when the test went to dismiss it.
+- iPhone 17 / iOS 27.0: all 7 `VaultTests` and 10 selected UI cases passed: the new
+  sync and revision cases, field menu, large type, failure and retry, favorite and
+  website, historical code, incoming revisions and managed-key navigation.
+- iPhone 16e / iOS 18.4 and iPad (A16): the two new cases passed.
+- Unsigned generic ARM64 iOS Release build and localization extraction passed.
+
+The rest of the UI suite, physical devices, manual VoiceOver and real-account sync
+were not run, and no new screenshots were inspected.
+
+Review and fixes: Claude (Anthropic).
+
 ## First account setup on a slow network (2026-11-07)
 
 The reported App Store installation completed its initial setup after the user

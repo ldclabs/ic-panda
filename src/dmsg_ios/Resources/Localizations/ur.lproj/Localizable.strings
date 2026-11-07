@@ -928,8 +928,6 @@
 	<string>خانے کا نام ضروری ہے۔</string>
 	<key>Field reference</key>
 	<string>فیلڈ حوالہ</string>
-	<key>Field reference and dependencies</key>
-	<string>فیلڈ حوالہ اور انحصار</string>
 	<key>Field settings</key>
 	<string>فیلڈ کی ترتیبات</string>
 	<key>Fields</key>

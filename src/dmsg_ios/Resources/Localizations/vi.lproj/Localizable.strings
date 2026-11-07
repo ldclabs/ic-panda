@@ -928,8 +928,6 @@
 	<string>Tên trường là bắt buộc.</string>
 	<key>Field reference</key>
 	<string>Tham chiếu trường</string>
-	<key>Field reference and dependencies</key>
-	<string>Tham chiếu trường và phụ thuộc</string>
 	<key>Field settings</key>
 	<string>Cài đặt trường</string>
 	<key>Fields</key>

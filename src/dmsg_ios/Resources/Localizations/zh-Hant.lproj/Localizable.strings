@@ -928,8 +928,6 @@
 	<string>請填寫欄位名稱。</string>
 	<key>Field reference</key>
 	<string>欄位引用</string>
-	<key>Field reference and dependencies</key>
-	<string>欄位引用與依賴</string>
 	<key>Field settings</key>
 	<string>欄位設定</string>
 	<key>Fields</key>

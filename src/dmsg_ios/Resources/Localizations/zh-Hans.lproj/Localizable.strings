@@ -928,8 +928,6 @@
 	<string>请填写字段名称。</string>
 	<key>Field reference</key>
 	<string>字段引用</string>
-	<key>Field reference and dependencies</key>
-	<string>字段引用与依赖</string>
 	<key>Field settings</key>
 	<string>字段设置</string>
 	<key>Fields</key>

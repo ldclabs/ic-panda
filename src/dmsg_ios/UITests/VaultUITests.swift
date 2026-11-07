@@ -358,6 +358,40 @@ final class VaultUITests: XCTestCase {
         XCTAssertEqual(app.buttons["vault.copy.password"].value as? String, "Hidden value")
     }
 
+    /// Reveals the password, then opens it in large type over the revealed row.
+    private func revealAndEnlargePassword(_ app: XCUIApplication) -> (row: XCUIElement, large: XCUIElement) {
+        app.buttons["vault.item.fixture-github"].tap()
+        openFieldMenu(app, "password"); app.buttons["vault.reveal.password"].tap()
+        let row = app.buttons["vault.copy.password"]
+        let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: row)
+        XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 5), .completed)
+        openFieldMenu(app, "password"); app.buttons["vault.enlarge.password"].tap()
+        let large = app.staticTexts["vault.large.value"]
+        XCTAssertTrue(large.waitForExistence(timeout: 5))
+        return (row, large)
+    }
+
+    func testSyncWithoutANewRevisionKeepsValuesAndLargeType() {
+        let app = launch(["--ui-vault-sync-state"])
+        let (row, large) = revealAndEnlargePassword(app)
+        // Past the sync the fixture lands five seconds after this second read.
+        sleep(7)
+        XCTAssertTrue(large.exists)
+        app.buttons["vault.large.done"].tap()
+        XCTAssertTrue(large.waitForNonExistence(timeout: 5))
+        // The detail did reload, and the value it had revealed stayed.
+        XCTAssertTrue(app.staticTexts["Waiting to sync"].waitForExistence(timeout: 5))
+        XCTAssertEqual(row.value as? String, "fixture-secret")
+    }
+
+    func testIncomingRevisionClosesLargeTypeAndHidesValues() {
+        let app = launch(["--ui-vault-new-revision"])
+        let (row, large) = revealAndEnlargePassword(app)
+        XCTAssertTrue(large.waitForNonExistence(timeout: 12))
+        XCTAssertEqual(row.value as? String, "Hidden value")
+        XCTAssertEqual(app.staticTexts["vault.detail.title"].label, "GitHub updated")
+    }
+
     func testIncomingRevisionDoesNotReplaceAnOpenDraft() {
         let app = launch(["--ui-vault-refresh"])
         app.buttons["vault.item.fixture-github"].tap(); app.buttons["vault.edit.open"].tap()

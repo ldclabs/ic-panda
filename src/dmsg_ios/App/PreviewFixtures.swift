@@ -109,12 +109,26 @@ extension SessionModel {
         guard id == "fixture-github", !fixtureVaultRefreshScheduled,
               ProcessInfo.processInfo.arguments.contains("--ui-vault-refresh") else { return }
         fixtureVaultRefreshScheduled = true
+        changeVaultFixture(id: id, after: .seconds(8)) { $0.replacing(revision: "remote-2", title: "GitHub updated") }
+    }
+
+    /// Model a sync landing while a value read on request is still on screen.
+    func scheduleVaultFixtureChangeAfterRead(id: String) {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--ui-vault-sync-state") {
+            changeVaultFixture(id: id, after: .seconds(5)) { $0.replacing(synced: false) }
+        } else if arguments.contains("--ui-vault-new-revision") {
+            changeVaultFixture(id: id, after: .seconds(5)) { $0.replacing(revision: "remote-2", title: "GitHub updated") }
+        }
+    }
+
+    private func changeVaultFixture(id: String, after delay: Duration, _ change: @escaping (VaultItem) -> VaultItem) {
         let epoch = epoch
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(8))
+            try? await Task.sleep(for: delay)
             guard let self, self.epoch == epoch, self.unlocked,
                   let index = self.fixtureVaultItems.firstIndex(where: { $0.id == id }) else { return }
-            self.fixtureVaultItems[index] = self.fixtureVaultItems[index].replacing(revision: "remote-2", title: "GitHub updated")
+            self.fixtureVaultItems[index] = change(self.fixtureVaultItems[index])
             await self.loadVault()
         }
     }
