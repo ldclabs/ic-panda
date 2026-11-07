@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>每个移动端包上限为 8 MiB，含所选附件。最终审批会显示确切且不可变的内容选择与目标位置。</string>
+	<key>Edit</key>
+	<string>编辑</string>
 	<key>Edit draft</key>
 	<string>编辑</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>已签发凭证</string>
 	<key>Item attachments</key>
 	<string>条目附件</string>
+	<key>Item information</key>
+	<string>条目信息</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>条目引用可能先于文件同步。只有此设备上可用的文件才能加入新快照。</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>打开秘密条目</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>请打开原账号，校验并完成此次下载。</string>
+	<key>Open website</key>
+	<string>打开网站</string>
 	<key>Open workspace</key>
 	<string>打开工作区</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>重试此举报</string>
 	<key>Reveal</key>
 	<string>显示</string>
-	<key>Reveal this field?</key>
-	<string>显示这个字段？</string>
 	<key>Review</key>
 	<string>审阅</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>显示已忽略的发现</string>
 	<key>Show draft</key>
 	<string>显示输入内容</string>
+	<key>Show in Large Type</key>
+	<string>放大显示</string>
 	<key>Show in library</key>
 	<string>在文件库中显示</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>这台设备可能获得你的私密内容。批准后仍需完成内容根分发。</string>
 	<key>This device replaces</key>
 	<string>本设备替换</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>该字段将保持可见，直到你隐藏它或离开此页面。</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>这个文件无法打开。你可以删除它。</string>
 	<key>This file exceeds the size limit for this operation.</key>

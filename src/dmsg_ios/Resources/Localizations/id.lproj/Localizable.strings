@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Setiap paket seluler dibatasi hingga 8 MiB, termasuk lampiran yang dipilih. Persetujuan akhir menunjukkan pilihan dan tujuan yang tidak dapat diubah.</string>
+	<key>Edit</key>
+	<string>Edit</string>
 	<key>Edit draft</key>
 	<string>Sunting</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Kredensial yang diterbitkan</string>
 	<key>Item attachments</key>
 	<string>Lampiran barang</string>
+	<key>Item information</key>
+	<string>Informasi item</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Referensi item dapat disinkronkan sebelum filenya. Hanya file yang tersedia di perangkat ini yang dapat ditambahkan ke snapshot baru.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Buka rahasia</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Buka akun asal untuk memverifikasi dan menyelesaikan unduhan ini.</string>
+	<key>Open website</key>
+	<string>Buka situs web</string>
 	<key>Open workspace</key>
 	<string>Buka ruang kerja</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Coba lagi laporan ini</string>
 	<key>Reveal</key>
 	<string>Mengungkapkan</string>
-	<key>Reveal this field?</key>
-	<string>Ungkapkan bidang ini?</string>
 	<key>Review</key>
 	<string>Ulasan</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Tampilkan temuan yang ditolak</string>
 	<key>Show draft</key>
 	<string>Tunjukkan apa yang Anda ketik</string>
+	<key>Show in Large Type</key>
+	<string>Tampilkan dengan huruf besar</string>
 	<key>Show in library</key>
 	<string>Tampilkan di pustaka</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Perangkat ini mungkin menerima konten pribadi Anda. Akar konten harus didistribusikan ulang setelah disetujui.</string>
 	<key>This device replaces</key>
 	<string>Perangkat ini menggantikan</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Kolom ini tetap terlihat sampai Anda menyembunyikannya atau meninggalkan layar ini.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>File ini tidak dapat dibuka. Anda dapat menghapusnya.</string>
 	<key>This file exceeds the size limit for this operation.</key>

@@ -836,6 +836,8 @@
 	<string>ईवीएम</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>प्रत्येक मोबाइल पैकेज चयनित अनुलग्नकों सहित 8 MiB तक सीमित है। अंतिम अनुमोदन सटीक अपरिवर्तनीय चयन और गंतव्य को दर्शाता है।</string>
+	<key>Edit</key>
+	<string>संपादित करें</string>
 	<key>Edit draft</key>
 	<string>संपादित करें</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>प्रमाण पत्र जारी किये</string>
 	<key>Item attachments</key>
 	<string>आइटम अनुलग्नक</string>
+	<key>Item information</key>
+	<string>आइटम की जानकारी</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>आइटम संदर्भ उनकी फ़ाइलों से पहले सिंक हो सकते हैं। केवल इस डिवाइस पर उपलब्ध फ़ाइलें ही नए स्नैपशॉट में जोड़ी जा सकती हैं।</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>खुला राज</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>इस डाउनलोड को सत्यापित और पूरा करने के लिए मूल खाता खोलें।</string>
+	<key>Open website</key>
+	<string>वेबसाइट खोलें</string>
 	<key>Open workspace</key>
 	<string>कार्यक्षेत्र खोलें</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>इस रिपोर्ट का पुनः प्रयास करें</string>
 	<key>Reveal</key>
 	<string>खुलासा</string>
-	<key>Reveal this field?</key>
-	<string>इस फ़ील्ड का खुलासा करें?</string>
 	<key>Review</key>
 	<string>समीक्षा</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>खारिज किए गए निष्कर्ष दिखाएँ</string>
 	<key>Show draft</key>
 	<string>दिखाएँ कि आपने क्या टाइप किया है</string>
+	<key>Show in Large Type</key>
+	<string>बड़े अक्षरों में दिखाएँ</string>
 	<key>Show in library</key>
 	<string>लाइब्रेरी में दिखाएँ</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>यह उपकरण आपकी निजी सामग्री प्राप्त कर सकता है. अनुमोदन के बाद सामग्री रूट को पुनर्वितरित किया जाना चाहिए।</string>
 	<key>This device replaces</key>
 	<string>यह उपकरण इसकी जगह लेता है</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>यह फ़ील्ड तब तक दिखाई देगा जब तक आप इसे छिपाएँ या यह स्क्रीन छोड़ें।</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>यह फ़ाइल खुल नहीं सकती। आप इसे हटा सकते हैं।</string>
 	<key>This file exceeds the size limit for this operation.</key>

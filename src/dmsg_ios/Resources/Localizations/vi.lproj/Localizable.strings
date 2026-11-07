@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Mỗi gói di động được giới hạn ở 8 MiB, bao gồm các tệp đính kèm được chọn. Sự phê duyệt cuối cùng cho thấy sự lựa chọn và đích đến chính xác không thể thay đổi.</string>
+	<key>Edit</key>
+	<string>Sửa</string>
 	<key>Edit draft</key>
 	<string>Sửa</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Thông tin xác thực đã được cấp</string>
 	<key>Item attachments</key>
 	<string>Tệp đính kèm mục</string>
+	<key>Item information</key>
+	<string>Thông tin mục</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Tham chiếu mục có thể đồng bộ hóa trước tệp của chúng. Chỉ những tệp có sẵn trên thiết bị này mới có thể được thêm vào ảnh chụp nhanh mới.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Mở bí mật</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Mở tài khoản gốc để xác minh và hoàn tất lượt tải xuống này.</string>
+	<key>Open website</key>
+	<string>Mở trang web</string>
 	<key>Open workspace</key>
 	<string>Mở không gian làm việc</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Thử lại báo cáo này</string>
 	<key>Reveal</key>
 	<string>Hiện</string>
-	<key>Reveal this field?</key>
-	<string>Tiết lộ lĩnh vực này?</string>
 	<key>Review</key>
 	<string>Xem lại</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Hiển thị các phát hiện bị loại bỏ</string>
 	<key>Show draft</key>
 	<string>Hiển thị nội dung bạn đã nhập</string>
+	<key>Show in Large Type</key>
+	<string>Hiển thị chữ lớn</string>
 	<key>Show in library</key>
 	<string>Hiển thị trong thư viện</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Thiết bị này có thể nhận được nội dung riêng tư của bạn. Khóa mã hóa nội dung chính phải được phân phối lại sau khi được phê duyệt.</string>
 	<key>This device replaces</key>
 	<string>Thiết bị này thay thế</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Trường này sẽ hiển thị cho đến khi bạn ẩn nó hoặc rời màn hình này.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Không thể mở tệp này. Bạn có thể xóa nó.</string>
 	<key>This file exceeds the size limit for this operation.</key>

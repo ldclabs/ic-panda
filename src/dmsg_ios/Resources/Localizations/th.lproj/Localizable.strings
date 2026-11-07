@@ -836,6 +836,8 @@
 	<string>อีวีเอ็ม</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>แพ็กเกจมือถือแต่ละแพ็กเกจจำกัดอยู่ที่ 8 MiB รวมถึงไฟล์แนบที่เลือก การอนุมัติขั้นสุดท้ายจะแสดงการเลือกและปลายทางที่ไม่เปลี่ยนรูปอย่างแน่นอน</string>
+	<key>Edit</key>
+	<string>แก้ไข</string>
 	<key>Edit draft</key>
 	<string>แก้ไข</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>ออกหนังสือรับรองแล้ว</string>
 	<key>Item attachments</key>
 	<string>สิ่งที่แนบมารายการ</string>
+	<key>Item information</key>
+	<string>ข้อมูลรายการ</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>การอ้างอิงรายการสามารถซิงค์ก่อนไฟล์ได้ มีเพียงไฟล์ที่มีอยู่ในอุปกรณ์นี้เท่านั้นที่สามารถเพิ่มลงในสแนปชอตใหม่ได้</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>เปิดความลับ</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>เปิดบัญชีเดิมเพื่อตรวจสอบและดาวน์โหลดให้เสร็จสมบูรณ์</string>
+	<key>Open website</key>
+	<string>เปิดเว็บไซต์</string>
 	<key>Open workspace</key>
 	<string>เปิดพื้นที่ทำงาน</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>ลองรายงานนี้อีกครั้ง</string>
 	<key>Reveal</key>
 	<string>แสดง</string>
-	<key>Reveal this field?</key>
-	<string>เปิดเผยฟิลด์นี้?</string>
 	<key>Review</key>
 	<string>รีวิว</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>แสดงผลการสืบค้นที่ถูกปิด</string>
 	<key>Show draft</key>
 	<string>แสดงสิ่งที่คุณพิมพ์</string>
+	<key>Show in Large Type</key>
+	<string>แสดงตัวอักษรขนาดใหญ่</string>
 	<key>Show in library</key>
 	<string>แสดงในคลัง</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>อุปกรณ์นี้อาจรับเนื้อหาส่วนตัวของคุณ คีย์การเข้ารหัสเนื้อหาหลักต้องได้รับการแจกจ่ายซ้ำหลังจากได้รับการอนุมัติ</string>
 	<key>This device replaces</key>
 	<string>อุปกรณ์นี้แทนที่</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>ช่องข้อมูลนี้จะมองเห็นได้จนกว่าคุณจะซ่อนหรือออกจากหน้าจอนี้</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>เปิดไฟล์นี้ไม่ได้ คุณลบได้</string>
 	<key>This file exceeds the size limit for this operation.</key>

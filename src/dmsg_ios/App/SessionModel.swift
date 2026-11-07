@@ -182,6 +182,7 @@ final class SessionModel {
     var fixtureVaultItems: [VaultItem] = []
     var fixtureVaultHistory: [String: [VaultItem]] = [:]
     var fixtureVaultSaveAttempts = 0
+    var fixtureVaultFieldReadAttempts = 0
     var fixtureVaultRefreshScheduled = false
     var fixtureChannelMessages: [MessageItem] = []
     var fixtureChannelRefreshes = 0

@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>各モバイル パッケージは、選択された添付ファイルを含めて 8 MiB に制限されています。最終的な承認には、正確な不変の選択と宛先が示されます。</string>
+	<key>Edit</key>
+	<string>編集</string>
 	<key>Edit draft</key>
 	<string>編集</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>発行された認証情報</string>
 	<key>Item attachments</key>
 	<string>アイテムの添付ファイル</string>
+	<key>Item information</key>
+	<string>アイテム情報</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>アイテム参照は、ファイルの前に同期できます。このデバイスで利用可能なファイルのみを新しいスナップショットに追加できます。</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>公然の秘密</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>元のアカウントを開き、このダウンロードの検証を完了してください。</string>
+	<key>Open website</key>
+	<string>Webサイトを開く</string>
 	<key>Open workspace</key>
 	<string>オープンなワークスペース</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>このレポートを再試行してください</string>
 	<key>Reveal</key>
 	<string>明らかにする</string>
-	<key>Reveal this field?</key>
-	<string>このフィールドを公開しますか?</string>
 	<key>Review</key>
 	<string>レビュー</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>却下された調査結果を表示する</string>
 	<key>Show draft</key>
 	<string>入力した内容を表示する</string>
+	<key>Show in Large Type</key>
+	<string>大きな文字で表示</string>
 	<key>Show in library</key>
 	<string>ライブラリで表示</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>このデバイスはあなたのプライベートコンテンツを受信する可能性があります。コンテンツルートは承認後に再配布する必要があります。</string>
 	<key>This device replaces</key>
 	<string>このデバイスが置き換える相手</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>このフィールドは、非表示にするか画面を離れるまで表示されます。</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>このファイルは開けません。削除できます。</string>
 	<key>This file exceeds the size limit for this operation.</key>

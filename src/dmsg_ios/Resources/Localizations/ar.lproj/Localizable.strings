@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>الحد الأقصى لكل حزمة على الهاتف هو 8 MiB، بما في ذلك المرفقات المحددة. تعرض الموافقة النهائية المحتوى الثابت المحدد بدقة ووجهته.</string>
+	<key>Edit</key>
+	<string>تعديل</string>
 	<key>Edit draft</key>
 	<string>تعديل</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>بيانات الاعتماد الصادرة</string>
 	<key>Item attachments</key>
 	<string>مرفقات العنصر</string>
+	<key>Item information</key>
+	<string>معلومات العنصر</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>قد تتم مزامنة مراجع العناصر قبل ملفاتها. لا يمكن إضافة ملف إلى لقطة جديدة إلا إذا كان متاحًا على هذا الجهاز.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>فتح السر</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>افتح الحساب الأصلي للتحقق من هذا التنزيل وإتمامه.</string>
+	<key>Open website</key>
+	<string>فتح الموقع</string>
 	<key>Open workspace</key>
 	<string>فتح مساحة العمل</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>إعادة محاولة هذا البلاغ</string>
 	<key>Reveal</key>
 	<string>إظهار</string>
-	<key>Reveal this field?</key>
-	<string>هل تريد إظهار هذا الحقل؟</string>
 	<key>Review</key>
 	<string>مراجعة</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>إظهار النتائج المستبعدة</string>
 	<key>Show draft</key>
 	<string>أظهر ما كتبته</string>
+	<key>Show in Large Type</key>
+	<string>عرض بخط كبير</string>
 	<key>Show in library</key>
 	<string>عرض في المكتبة</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>قد يحصل هذا الجهاز على محتواك الخاص. يجب إعادة توزيع مفتاح جذر المحتوى بعد الموافقة.</string>
 	<key>This device replaces</key>
 	<string>يحلّ هذا الجهاز محل</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>سيظل هذا الحقل ظاهرًا حتى تخفيه أو تغادر هذه الشاشة.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>لا يمكن فتح هذا الملف. يمكنك حذفه.</string>
 	<key>This file exceeds the size limit for this operation.</key>

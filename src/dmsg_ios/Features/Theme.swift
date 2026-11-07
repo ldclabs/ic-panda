@@ -8,14 +8,15 @@ enum Theme {
 
 struct ObjectIcon: View {
     private let image: Image
+    private var size: CGFloat = 36
 
     init(name: String) { image = Image(systemName: name) }
 
-    init(glyph: AppGlyph) { image = glyph.image }
+    init(glyph: AppGlyph, size: CGFloat = 36) { image = glyph.image; self.size = size }
 
     var body: some View {
-        image.resizable().scaledToFit().frame(width: 18, height: 18).foregroundStyle(Theme.forest)
-            .frame(width: 36, height: 36).background(Theme.forest.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        image.resizable().scaledToFit().frame(width: size / 2, height: size / 2).foregroundStyle(Theme.forest)
+            .frame(width: size, height: size).background(Theme.forest.opacity(0.08), in: RoundedRectangle(cornerRadius: size * 0.28))
             .accessibilityHidden(true)
     }
 }

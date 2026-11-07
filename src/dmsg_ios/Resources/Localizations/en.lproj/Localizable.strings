@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</string>
+	<key>Edit</key>
+	<string>Edit</string>
 	<key>Edit draft</key>
 	<string>Edit draft</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Issued credentials</string>
 	<key>Item attachments</key>
 	<string>Item attachments</string>
+	<key>Item information</key>
+	<string>Item information</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Open secret</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Open the original account to verify and finish this download.</string>
+	<key>Open website</key>
+	<string>Open website</string>
 	<key>Open workspace</key>
 	<string>Open workspace</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Retry this report</string>
 	<key>Reveal</key>
 	<string>Reveal</string>
-	<key>Reveal this field?</key>
-	<string>Reveal this field?</string>
 	<key>Review</key>
 	<string>Review</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Show dismissed findings</string>
 	<key>Show draft</key>
 	<string>Show draft</string>
+	<key>Show in Large Type</key>
+	<string>Show in Large Type</string>
 	<key>Show in library</key>
 	<string>Show in library</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>This device may receive your private content. The content root must be redistributed after approval.</string>
 	<key>This device replaces</key>
 	<string>This device replaces</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>This field will be visible until you hide it or leave this screen.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>This file cannot be opened. You can delete it.</string>
 	<key>This file exceeds the size limit for this operation.</key>

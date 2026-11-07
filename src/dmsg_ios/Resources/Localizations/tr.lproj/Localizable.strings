@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Her mobil paket, seçilen eklentiler de dahil olmak üzere 8 MiB ile sınırlıdır. Nihai onay, kesin değişmez seçimi ve hedefi gösterir.</string>
+	<key>Edit</key>
+	<string>Düzenle</string>
 	<key>Edit draft</key>
 	<string>Düzenle</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Verilen kimlik bilgileri</string>
 	<key>Item attachments</key>
 	<string>Öğe ekleri</string>
+	<key>Item information</key>
+	<string>Öğe bilgileri</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Öğe referansları dosyalarından önce senkronize edilebilir. Yeni bir anlık görüntüye yalnızca bu cihazda bulunan dosyalar eklenebilir.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Sırrı aç</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Bu indirmeyi doğrulayıp tamamlamak için asıl hesabı açın.</string>
+	<key>Open website</key>
+	<string>Web sitesini aç</string>
 	<key>Open workspace</key>
 	<string>Çalışma alanını aç</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Bu raporu yeniden deneyin</string>
 	<key>Reveal</key>
 	<string>Açıkla</string>
-	<key>Reveal this field?</key>
-	<string>Bu alan gösterilsin mi?</string>
 	<key>Review</key>
 	<string>İncele</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Reddedilen bulguları göster</string>
 	<key>Show draft</key>
 	<string>Ne yazdığınızı gösterin</string>
+	<key>Show in Large Type</key>
+	<string>Büyük yazıyla göster</string>
 	<key>Show in library</key>
 	<string>Kitaplıkta göster</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Bu cihaz özel içeriğinizi alabilir. İçerik kökü onaylandıktan sonra yeniden dağıtılmalıdır.</string>
 	<key>This device replaces</key>
 	<string>Bu cihazın yerini aldığı cihaz</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Bu alan, siz gizleyene veya bu ekrandan ayrılana kadar görünür kalır.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Bu dosya açılamıyor. Silebilirsiniz.</string>
 	<key>This file exceeds the size limit for this operation.</key>

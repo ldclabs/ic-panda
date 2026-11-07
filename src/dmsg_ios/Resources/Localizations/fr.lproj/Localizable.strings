@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Chaque paquet mobile est limité à 8 MiB, pièces jointes sélectionnées comprises. L’approbation finale présente la sélection immuable exacte et sa destination.</string>
+	<key>Edit</key>
+	<string>Modifier</string>
 	<key>Edit draft</key>
 	<string>Modifier</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Justificatifs délivrés</string>
 	<key>Item attachments</key>
 	<string>Pièces jointes de l’élément</string>
+	<key>Item information</key>
+	<string>Informations sur l’élément</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Les références d’éléments peuvent se synchroniser avant leurs fichiers. Seuls les fichiers disponibles sur cet appareil peuvent être ajoutés à un nouvel instantané.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Ouvrir le secret</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Ouvrez le compte d’origine pour vérifier et terminer ce téléchargement.</string>
+	<key>Open website</key>
+	<string>Ouvrir le site web</string>
 	<key>Open workspace</key>
 	<string>Ouvrir l’espace de travail</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Réessayer ce signalement</string>
 	<key>Reveal</key>
 	<string>Afficher</string>
-	<key>Reveal this field?</key>
-	<string>Afficher ce champ ?</string>
 	<key>Review</key>
 	<string>Examiner</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Afficher les constats ignorés</string>
 	<key>Show draft</key>
 	<string>Afficher la saisie</string>
+	<key>Show in Large Type</key>
+	<string>Afficher en grands caractères</string>
 	<key>Show in library</key>
 	<string>Afficher dans la bibliothèque</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Cet appareil peut recevoir votre contenu privé. La racine de chiffrement doit être redistribuée après l’approbation.</string>
 	<key>This device replaces</key>
 	<string>Cet appareil remplace</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Ce champ reste visible jusqu’à ce que vous le masquiez ou quittiez cet écran.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Ce fichier ne peut pas être ouvert. Vous pouvez le supprimer.</string>
 	<key>This file exceeds the size limit for this operation.</key>

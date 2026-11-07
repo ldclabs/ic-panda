@@ -71,6 +71,16 @@ extension SessionModel {
             }
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-vault-empty") { vault = [] }
+        if ProcessInfo.processInfo.arguments.contains("--ui-vault-detail") {
+            vault.insert(vaultFixtureItem(id: "fixture-api", revision: "1", kind: "api", title: "API · Production integration", subtitle: "api.example.org", notes: "", favorite: false,
+                tags: ["production", "development"], synced: true, conflict: false, reserved: false, files: [], fields: [
+                    VaultField(id: "username", kind: "text", label: "", section: "", value: "", concealed: false),
+                    VaultField(id: "credential", kind: "concealed", label: "Production API key (read and write)", section: "", value: "**********", concealed: true),
+                    VaultField(id: "url", kind: "url", label: "", section: "", value: "https://api.example.org/developer/integrations/production?region=ap-southeast-1", concealed: false),
+                    VaultField(id: "expires", kind: "date", label: "", section: "Empty section", value: "", concealed: false),
+                    VaultField(id: "region", kind: "text", label: "Region", section: "Saved on api.example.org for the production integration workspace", value: "Asia Pacific · Singapore", concealed: false),
+                ]), at: 0)
+        }
         fixtureVaultItems = vault
         prepareFileFixtures()
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-saved-attachment") { selectedTab = .messages }

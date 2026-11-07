@@ -1,5 +1,57 @@
 # iOS implementation validation
 
+## Vault detail and large type (2026-11-07)
+
+Vault details now copy a field by tapping its value. Native field menus provide
+copy, reveal/hide, large type, HTTP(S) website opening and field references.
+Selecting reveal or large type performs that explicit action immediately; the
+old reveal confirmation, its grace-period state and its unused translations
+were removed. Desktop interaction is unchanged.
+
+The detail header and rows are compact, unfilled fields are omitted only while
+reading, timestamps move to Item information, and editing remains a text action.
+Favorites live in the item menu. Copy feedback replaces the field's menu symbol
+without changing the value's available width. Large type supports wrapping and
+scrolling, a native bottom copy action, loading/failure/retry, OTP expiry, and
+clearing when dismissed, backgrounded, locked or switched to another account.
+
+Validation:
+
+- iPhone 17e / iOS 27.0: all 111 Swift unit tests and three initial field-action
+  UI tests passed (`VaultDetail-Smoke.xcresult`). The broader vault/navigation
+  run had 29 UI passes, one iPhone skip for the expanded-sidebar case and two
+  failing test assumptions: a field below the fold at maximum text size, and
+  a two-second fixture code expiring before a menu animation finished. After
+  correcting those tests, the final seven-case field-action run passed
+  (`VaultDetail-UI27-Final.xcresult`). Final large-type layout/copy/background
+  checks passed again in `VaultDetail-UI27-Delivery.xcresult` (2 tests).
+  Managed-key navigation also passed with an explicit assertion that managed
+  fields expose no field menu (`VaultDetail-Managed.xcresult`).
+- iPhone SE (3rd generation) / iOS 18.4: ten selected UI cases passed after
+  focused reruns (`VaultDetail-SE-Final.xcresult` has five passes, with its five
+  menu-tap failures corrected and passing in `VaultDetail-SE-Actions.xcresult`).
+  Native menus have different legacy/modern AX types on iOS 18; tests now tap
+  the observed menu frame and verify that its actions actually appear. Final
+  presentation checks passed in `VaultDetail-SE-Delivery.xcresult` (2 tests).
+- iPad (A16) / iOS 27.0: all five selected UI tests passed
+  (`VaultDetail-iPad.xcresult`), followed by the final toolbar copy, feedback
+  placement and background-clearing check (`VaultDetail-iPad-Delivery.xcresult`).
+- Inspected Chinese light/dark, Arabic RTL and German at maximum Dynamic Type,
+  including long keys, the end of scrollable values, field menus, last-field
+  access above the tab bar, errors and copy feedback. The copy action now uses
+  the native bottom toolbar so feedback stays above it. Final screenshots are
+  in `.build/VaultDetailScreens/Delivery-SE`, `Delivery-27` and `Delivery-iPad`.
+  Field-control hit-region, trait and description accessibility audits passed.
+- Debug simulator and unsigned generic ARM64 iOS Release builds passed. Fresh
+  Debug/Release localization extraction passed for all 23 languages; native
+  artifact/source fingerprints and `git diff --check` passed.
+
+These UI tests use local fixtures. Physical-device clipboard handoff, manual
+VoiceOver reading, real-account relay behavior and the unrelated full UI/Rust/
+desktop suites were not rerun. No signed archive or App Store upload was made.
+
+Implementation and validation: Codex (OpenAI).
+
 ## First account setup on a slow network (2026-11-07)
 
 The reported App Store installation completed its initial setup after the user

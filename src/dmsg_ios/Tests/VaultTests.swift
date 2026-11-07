@@ -4,6 +4,21 @@ import XCTest
 
 @MainActor
 final class VaultTests: XCTestCase {
+    func testWebsiteActionsOnlyOpenWebURLsAndKeepTheOriginalAddress() {
+        func field(_ value: String, kind: String = "url", concealed: Bool = false) -> VaultField {
+            VaultField(id: "url", kind: kind, label: "", section: "", value: value, concealed: concealed)
+        }
+        let address = "https://example.org/path?token=a%2Fb#section"
+        XCTAssertEqual(vaultWebsiteURL(field(address))?.absoluteString, address)
+        XCTAssertNotNil(vaultWebsiteURL(field("http://example.org")))
+        for value in ["javascript:alert(1)", "file:///private/data", "dmsg://connect/request", "https:", "example.org"] {
+            XCTAssertNil(vaultWebsiteURL(field(value)), value)
+        }
+        XCTAssertNil(vaultWebsiteURL(field(address, kind: "text")))
+        XCTAssertNil(vaultWebsiteURL(field(address, concealed: true)))
+        XCTAssertTrue(vaultFieldIsLTR(field("token", kind: "concealed", concealed: true), value: "token"))
+    }
+
     func testChangingTypeRetainsValuesLabelsGroupsAndCustomFields() {
         var draft = VaultDraft(target: VaultEditorTarget(item: nil))
         draft.fields[0].value = "person@example.org"

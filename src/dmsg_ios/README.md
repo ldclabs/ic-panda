@@ -64,12 +64,18 @@ independent of other field operations,
 and an OTP clipboard copy expires no later than its displayed validity. Login rows
 copy their username or password by swipe or context menu.
 
-Details show type, tags, modification time, version state and ordered field
-sections. Long values and accessibility text move actions below the value.
-Revealing a sensitive field asks next to its button, and one confirmation covers
-showing the item's fields for 30 seconds. Copying takes one tap, in details and on
-list rows; copies stay on this device and expire within 30 seconds. One-time codes stay
-current on screen without asking. Hidden values are never loaded by list browsing. Managed keys remain read-only, tombstones have an explicit trash
+Details keep the title, type, tags and sync state above compact, ordered field
+sections, with creation/modification dates in Item information at the bottom.
+Empty fields and empty sections are hidden only while reading; editors retain them.
+Tap a field value to copy it in one step. The field menu (also available by long
+press) provides reveal/hide, large type, opening HTTP(S) websites and field references.
+Choosing reveal or large type is the explicit mobile action: there is no additional
+confirmation or thirty-second confirmation grace period. Large type supports long,
+multiline values, Dynamic Type and a direct copy button. It clears on dismissal,
+backgrounding, locking, account changes or a changed item revision. Current one-time
+codes refresh in both views; historical codes disappear at expiry. Copies stay on
+this device and expire within thirty seconds, or sooner when the code expires.
+Hidden values are never loaded by list browsing. Managed keys remain read-only, tombstones have an explicit trash
 state, and current details refresh on content/version changes without replacing an
 open editor's draft. Historical versions show their timestamp and can be compared
 with the current version. Conflict resolution supports individual metadata and

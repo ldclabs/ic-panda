@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Ang bawat mobile package ay limitado sa 8 MiB, kasama ang mga napiling attachment. Ipinapakita ng huling pag-apruba ang eksaktong hindi nababagong pagpili at patutunguhan.</string>
+	<key>Edit</key>
+	<string>I-edit</string>
 	<key>Edit draft</key>
 	<string>I-edit</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Nagbigay ng mga kredensyal</string>
 	<key>Item attachments</key>
 	<string>Mga attachment ng item</string>
+	<key>Item information</key>
+	<string>Impormasyon ng item</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Maaaring mag-sync ang mga reference ng item bago ang kanilang mga file. Tanging ang mga file na available sa device na ito ang maaaring idagdag sa isang bagong snapshot.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Buksan ang lihim</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Buksan ang orihinal na account para beripikahin at tapusin ang download na ito.</string>
+	<key>Open website</key>
+	<string>Buksan ang website</string>
 	<key>Open workspace</key>
 	<string>Buksan ang workspace</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Subukang muli ang ulat na ito</string>
 	<key>Reveal</key>
 	<string>Ipakita</string>
-	<key>Reveal this field?</key>
-	<string>Ibunyag ang larangang ito?</string>
 	<key>Review</key>
 	<string>Balik-aral</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Ipakita ang mga na-dismiss na natuklasan</string>
 	<key>Show draft</key>
 	<string>Ipakita kung ano ang iyong na-type</string>
+	<key>Show in Large Type</key>
+	<string>Ipakita sa malaking teksto</string>
 	<key>Show in library</key>
 	<string>Ipakita sa library</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Maaaring matanggap ng device na ito ang iyong pribadong nilalaman. Dapat na muling ipamahagi ang master content-encryption key pagkatapos ng pag-apruba.</string>
 	<key>This device replaces</key>
 	<string>Pinapalitan ng device na ito ang</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Makikita ang field na ito hanggang itago mo ito o umalis sa screen na ito.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Hindi mabubuksan ang file na ito. Puwede mo itong burahin.</string>
 	<key>This file exceeds the size limit for this operation.</key>

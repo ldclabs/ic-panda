@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Cada paquete móvil tiene un límite de 8 MiB, incluidos los adjuntos seleccionados. La aprobación final muestra la selección inmutable exacta y su destino.</string>
+	<key>Edit</key>
+	<string>Editar</string>
 	<key>Edit draft</key>
 	<string>Editar</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Credenciales emitidas</string>
 	<key>Item attachments</key>
 	<string>Adjuntos del elemento</string>
+	<key>Item information</key>
+	<string>Información del elemento</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Las referencias pueden sincronizarse antes que sus archivos. Solo los archivos disponibles en este dispositivo pueden añadirse a una nueva instantánea.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Abrir secreto</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Abre la cuenta original para verificar y completar esta descarga.</string>
+	<key>Open website</key>
+	<string>Abrir sitio web</string>
 	<key>Open workspace</key>
 	<string>Abrir espacio de trabajo</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Reintentar esta denuncia</string>
 	<key>Reveal</key>
 	<string>Mostrar</string>
-	<key>Reveal this field?</key>
-	<string>¿Mostrar este campo?</string>
 	<key>Review</key>
 	<string>Revisar</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Mostrar hallazgos descartados</string>
 	<key>Show draft</key>
 	<string>Mostrar lo escrito</string>
+	<key>Show in Large Type</key>
+	<string>Mostrar en letra grande</string>
 	<key>Show in library</key>
 	<string>Mostrar en la biblioteca</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Este dispositivo puede recibir tu contenido privado. La clave raíz de contenido debe redistribuirse tras la aprobación.</string>
 	<key>This device replaces</key>
 	<string>Este dispositivo reemplaza a</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Este campo será visible hasta que lo ocultes o salgas de esta pantalla.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Este archivo no se puede abrir. Puedes eliminarlo.</string>
 	<key>This file exceeds the size limit for this operation.</key>

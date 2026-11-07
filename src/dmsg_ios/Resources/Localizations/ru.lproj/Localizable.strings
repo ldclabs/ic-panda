@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Размер мобильного пакета ограничен 8 MiB, включая выбранные вложения. Перед утверждением будут показаны точный неизменяемый состав и получатель.</string>
+	<key>Edit</key>
+	<string>Изменить</string>
 	<key>Edit draft</key>
 	<string>Изменить</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Выданные полномочия</string>
 	<key>Item attachments</key>
 	<string>Вложения записи</string>
+	<key>Item information</key>
+	<string>Информация об элементе</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Ссылки на файлы могут синхронизироваться раньше самих файлов. В новый снимок можно добавить только файлы, доступные на этом устройстве.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Открыть секрет</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Откройте исходный аккаунт, чтобы проверить и завершить эту загрузку.</string>
+	<key>Open website</key>
+	<string>Открыть сайт</string>
 	<key>Open workspace</key>
 	<string>Открыть рабочее пространство</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Повторить отправку жалобы</string>
 	<key>Reveal</key>
 	<string>Показать</string>
-	<key>Reveal this field?</key>
-	<string>Показать это поле?</string>
 	<key>Review</key>
 	<string>Проверить</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Показать скрытые результаты</string>
 	<key>Show draft</key>
 	<string>Показать введённое</string>
+	<key>Show in Large Type</key>
+	<string>Показать крупным шрифтом</string>
 	<key>Show in library</key>
 	<string>Показать в библиотеке</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Это устройство может получить ваши личные данные. После одобрения необходимо заново распределить корневой ключ содержимого.</string>
 	<key>This device replaces</key>
 	<string>Это устройство заменяет</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Поле будет видно, пока вы не скроете его или не покинете этот экран.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Этот файл не открывается. Его можно удалить.</string>
 	<key>This file exceeds the size limit for this operation.</key>

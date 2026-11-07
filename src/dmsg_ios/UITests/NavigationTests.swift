@@ -186,7 +186,7 @@ final class SecretNavigationTests: NavigationTestCase {
                 guard detail.waitForExistence(timeout: 5) else { XCTFail("Secret detail did not finish loading: \(id)"); return }
                 XCTAssertEqual(detail.label, title)
                 if id == "fixture-managed" {
-                    XCTAssertFalse(app.buttons["vault.reveal.key"].exists)
+                    XCTAssertFalse(app.buttons["vault.field.more.key"].exists)
                     if iteration == 0 { capture(app, name: "Managed secret · \(language)") }
                 }
                 back(app)
@@ -276,8 +276,8 @@ final class SecretNavigationTests: NavigationTestCase {
         XCTAssertTrue(item.waitForExistence(timeout: 10))
         item.tap()
         XCTAssertFalse(app.staticTexts["fixture-secret"].exists)
-        XCTAssertTrue(app.buttons["vault.reveal.password"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["vault.value.password"].value as? String, "Hidden value")
+        XCTAssertTrue(app.buttons["vault.field.more.password"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["vault.copy.password"].value as? String, "Hidden value")
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Secret fields remain concealed"
         attachment.lifetime = .keepAlways
@@ -314,7 +314,7 @@ final class SecretNavigationTests: NavigationTestCase {
         let item = app.buttons["vault.item.fixture-github"]
         XCTAssertTrue(item.waitForExistence(timeout: 5)); item.tap()
         XCTAssertEqual(app.staticTexts["vault.detail.title"].label, "GitHub")
-        let reveal = app.buttons["vault.reveal.password"]
+        let reveal = app.buttons["vault.field.more.password"]
         for _ in 0..<6 where !reveal.exists || !reveal.isHittable { app.swipeUp() }
         XCTAssertTrue(reveal.exists)
         XCTAssertTrue(reveal.isHittable)
@@ -401,7 +401,7 @@ final class AccountNavigationTests: NavigationTestCase {
         XCTAssertEqual(status.label, "Account recovery is pending")
         let item = app.buttons["vault.item.fixture-github"]
         XCTAssertTrue(item.waitForExistence(timeout: 5)); item.tap()
-        XCTAssertTrue(app.buttons["vault.reveal.password"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["vault.field.more.password"].waitForExistence(timeout: 5))
         let navigation = [app.navigationBars.buttons["Vault"].firstMatch,
                           app.buttons["Show Sidebar"].firstMatch, app.buttons["Hide Sidebar"].firstMatch,
                           app.buttons["BackButton"].firstMatch]

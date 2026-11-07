@@ -3,6 +3,7 @@ import SwiftUI
 
 struct VaultDetailView: View {
     private struct ReferenceTarget: Hashable { let itemID: String; let fieldID: String }
+    private struct CopyFeedback: Equatable { let fieldID: String; let at = Date.now }
     let id: String
     var revision: String? = nil
     var versionDate: UInt64? = nil
@@ -14,8 +15,8 @@ struct VaultDetailView: View {
     @State private var revealed: [String: RevealedVaultValue] = [:]
     /// One-time codes stay current on their own while the item is open.
     @State private var codes: [String: RevealedVaultValue] = [:]
-    /// One confirmation lets this item's sensitive fields show for 30 seconds.
-    @State private var trustedUntil: Date?
+    @State private var copied: CopyFeedback?
+    @State private var largeType: VaultLargeTypeTarget?
     @State private var workingField: String?
     @State private var working = false
     @State private var editing: VaultEditorTarget?
@@ -46,28 +47,39 @@ struct VaultDetailView: View {
                 if item.conflict { NavigationLink("Review sync conflicts") { ConflictsView() } }
                 ForEach(groups(item), id: \.self) { group in
                     Section {
-                        ForEach(item.fields.filter { $0.section == group }, id: \.id) { field in
+                        ForEach(item.fields.filter { $0.section == group && !$0.value.isEmpty }, id: \.id) { field in
                             if field.kind == "otp" {
                                 TimelineView(.periodic(from: .now, by: 1)) { timeline in fieldRow(field, item: item, at: timeline.date) }
                             } else { fieldRow(field, item: item, at: .now) }
                         }
-                    } header: { if !group.isEmpty { Text(group) } }
+                    } header: {
+                        if !group.isEmpty { Text(group).font(.footnote).textCase(nil).fixedSize(horizontal: false, vertical: true) }
+                    }
                 }
                 if !item.notes.isEmpty { Section("Notes") { Text(item.notes).textSelection(.enabled) } }
-                if item.fields.isEmpty && item.notes.isEmpty { Text("No fields or notes").foregroundStyle(.secondary) }
+                if groups(item).isEmpty && item.notes.isEmpty { Text("No fields or notes").foregroundStyle(.secondary) }
+                Section("Item information") {
+                    if item.createdAt > 0 {
+                        LabeledContent("Created") { Text(Date(timeIntervalSince1970: Double(item.createdAt) / 1000), format: .dateTime) }
+                    }
+                    if (versionDate ?? item.updatedAt) > 0 {
+                        LabeledContent(revision == nil ? "Updated" : "Date") {
+                            Text(Date(timeIntervalSince1970: Double(versionDate ?? item.updatedAt) / 1000), format: .dateTime)
+                        }
+                    }
+                }.font(.footnote).foregroundStyle(.secondary)
             } else if let failure {
                 NoticeBar(text: failure)
                 Button("Retry") { reload &+= 1 }.accessibilityIdentifier("vault.detail.retry")
             } else { ProgressView().accessibilityIdentifier("vault.detail.loading") }
-        }.privateScreen().navigationTitle(revision == nil ? "Secret" : "Historical version").navigationBarTitleDisplayMode(.inline)
+        }.privateScreen().contentMargins(.top, 8, for: .scrollContent)
+            .navigationTitle(revision == nil ? "Secret" : "Historical version").navigationBarTitleDisplayMode(.inline)
             // The header already names the item.
             .toolbar(removing: revision == nil ? .title : nil)
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     if let item, item.canEdit, revision == nil {
-                        Button { Task { await favorite(item) } } label: { Image(systemName: item.favorite ? "star.fill" : "star") }
-                            .accessibilityLabel(item.favorite ? "Remove favorite" : "Favorite").accessibilityIdentifier("vault.detail.favorite").disabled(working)
-                        Button("Edit item", systemImage: "pencil") { clearRevealed(); editing = VaultEditorTarget(item: item) }
+                        Button { clearRevealed(); editing = VaultEditorTarget(item: item) } label: { Text("Edit") }
                             .accessibilityIdentifier("vault.edit.open")
                     }
                     if let item, !item.reserved { actions(item) }
@@ -75,10 +87,16 @@ struct VaultDetailView: View {
             }
             .task(id: readKey) { if !model.concealed && editing == nil { await load() } }
             .task(id: "codes:\(item?.id ?? ""):\(item?.revision ?? ""):\(model.epoch):\(model.concealed)") { await watchCodes() }
-            .onDisappear { clearRevealed(); codes = [:]; trustedUntil = nil }
-            .onChange(of: id) { _, _ in editing = nil; referenceTarget = nil; codes = [:]; trustedUntil = nil }
-            .onChange(of: model.concealed) { _, value in if value { clearRevealed(); codes = [:]; trustedUntil = nil } }
+            .task(id: copied) {
+                guard copied != nil else { return }
+                try? await Task.sleep(for: .seconds(2))
+                if !Task.isCancelled { copied = nil }
+            }
+            .onDisappear { clearRevealed(); codes = [:] }
+            .onChange(of: id) { _, _ in clearRevealed(); editing = nil; referenceTarget = nil; codes = [:] }
+            .onChange(of: model.concealed) { _, value in if value { clearRevealed(); codes = [:] } }
             .sheet(item: $editing, onDismiss: { reload &+= 1 }) { target in NavigationStack { VaultEditor(target: target) } }
+            .sheet(item: $largeType) { target in NavigationStack { VaultLargeTypeView(target: target) } }
             .navigationDestination(item: $referenceTarget) { target in SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID) }
             .confirmationDialog("Move this secret to Trash?", isPresented: $deleting, titleVisibility: .visible) {
                 Button("Move to Trash", role: .destructive) { if let item { Task { await remove(item) } } }
@@ -87,6 +105,11 @@ struct VaultDetailView: View {
 
     private func actions(_ item: VaultItem) -> some View {
         Menu("Actions", systemImage: "ellipsis.circle") {
+            if item.canEdit, revision == nil {
+                Button(item.favorite ? "Remove favorite" : "Favorite", systemImage: item.favorite ? "star.slash" : "star") {
+                    Task { await favorite(item) }
+                }.accessibilityIdentifier("vault.detail.favorite").disabled(working)
+            }
             NavigationLink("Version history") { VaultHistoryView(item: item) }
             if revision == nil && !item.deleted {
                 NavigationLink { SecretItemAttachmentsView(itemID: item.id) } label: {
@@ -95,13 +118,6 @@ struct VaultDetailView: View {
                 NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
                     .accessibilityIdentifier("vault.share")
                 if item.kind == "login" { NavigationLink("Password AutoFill") { SystemExportsView(section: .autoFill, initialCredential: item) } }
-                if !item.fields.isEmpty {
-                    Menu("Field reference and dependencies", systemImage: "link") {
-                        ForEach(item.fields, id: \.id) { field in
-                            Button(vaultFieldTitle(field)) { referenceTarget = ReferenceTarget(itemID: item.id, fieldID: field.id) }
-                        }
-                    }
-                }
                 Button("Move to Trash", systemImage: "trash", role: .destructive) { deleting = true }
                     .accessibilityIdentifier("vault.detail.trash")
             }
@@ -117,11 +133,13 @@ struct VaultDetailView: View {
         let shown = live ? codes[field.id] : revealed[field.id]
         return VaultDetailField(field: field, value: shown?.value(at: date), remaining: shown?.remaining(at: date),
             busy: workingField == field.id, readOnly: item.reserved || item.deleted, live: live,
-            trustedUntil: trustedUntil, confirm: { trustedUntil = .now.addingTimeInterval(30) },
+            copied: copied?.fieldID == field.id,
             reveal: {
                 if revealed[field.id]?.value(at: .now) != nil { revealed.removeValue(forKey: field.id) }
                 else { revealTask?.cancel(); revealTask = Task { await read(field, copy: false) } }
-            }, copy: { revealTask?.cancel(); revealTask = Task { await read(field, copy: true) } })
+            }, copy: { revealTask?.cancel(); revealTask = Task { await read(field, copy: true) } },
+            enlarge: { largeType = VaultLargeTypeTarget(item: item, field: field, historical: revision != nil) },
+            reference: revision == nil ? { referenceTarget = ReferenceTarget(itemID: item.id, fieldID: field.id) } : nil)
     }
 
     private func watchCodes() async {
@@ -146,25 +164,27 @@ struct VaultDetailView: View {
     private func header(_ item: VaultItem) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
-                ObjectIcon(glyph: .vaultItem(item.kind))
+                ObjectIcon(glyph: .vaultItem(item.kind), size: 48)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(item.title).font(.title2.bold()).accessibilityIdentifier("vault.detail.title")
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(item.title).font(.title2.bold()).accessibilityIdentifier("vault.detail.title")
+                        if item.favorite {
+                            Image(systemName: "star.fill").font(.caption).foregroundStyle(Theme.forest).accessibilityLabel("Favorite")
+                        }
+                    }
                     HStack(spacing: 8) {
                         Text(vaultKindName(item.kind))
                         Label(item.deleted ? "In Trash" : item.conflict ? "Sync conflicts" : item.synced ? "Synced" : "Waiting to sync",
                             systemImage: item.deleted ? "trash" : item.conflict ? "arrow.triangle.branch" : item.synced ? "checkmark.circle" : "arrow.triangle.2.circlepath")
-                    }.font(.caption).foregroundStyle(.secondary)
+                    }.font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            if (versionDate ?? item.updatedAt) > 0 {
-                LabeledContent(revision == nil ? "Updated" : "Date") { Text(Date(timeIntervalSince1970: Double(versionDate ?? item.updatedAt) / 1000), format: .dateTime) }.font(.caption).foregroundStyle(.secondary)
-            }
             if !item.tags.isEmpty { Text(item.tags.joined(separator: " · ")).font(.caption).foregroundStyle(Theme.forest) }
-        }.padding(.vertical, 4).listRowBackground(Color.clear).listRowSeparator(.hidden)
+        }.padding(.vertical, 8).listRowBackground(Color.clear).listRowSeparator(.hidden)
     }
 
     private func groups(_ item: VaultItem) -> [String] {
-        item.fields.reduce(into: [String]()) { if !$0.contains($1.section) { $0.append($1.section) } }
+        item.fields.filter { !$0.value.isEmpty }.reduce(into: [String]()) { if !$0.contains($1.section) { $0.append($1.section) } }
     }
 
     private func load() async {
@@ -194,6 +214,7 @@ struct VaultDetailView: View {
     private func clearRevealed() {
         revealTask?.cancel(); revealTask = nil; revealRequest = nil; workingField = nil
         revealed = [:]
+        copied = nil; largeType = nil
     }
 
     private func read(_ field: VaultField, copy: Bool) async {
@@ -203,6 +224,7 @@ struct VaultDetailView: View {
         if copy && !field.concealed {
             model.clipboard.copy(field.value)
             model.notice = String(localized: "Copied for 30 seconds")
+            copied = CopyFeedback(fieldID: field.id)
             return
         }
         let epoch = model.epoch, request = UUID(), requestedAt = Date.now
@@ -218,6 +240,7 @@ struct VaultDetailView: View {
             if copy {
                 model.clipboard.copy(value.value, lifetime: min(30, lifetime ?? 30))
                 model.notice = String(localized: value.remainingMs == nil ? "Copied for 30 seconds" : "Copied. The code expires shortly.")
+                copied = CopyFeedback(fieldID: field.id)
             } else { revealed[field.id] = RevealedVaultValue(text: value.value, expires: expiry) }
         } catch { if epoch == model.epoch && !Task.isCancelled { model.report(error) } }
     }
@@ -238,79 +261,5 @@ struct VaultDetailView: View {
         working = true; defer { working = false }
         do { try await model.trashVaultItem(item, restore: true); reload &+= 1 }
         catch { model.report(error) }
-    }
-}
-
-/// Showing a sensitive field asks first, next to the button that was pressed. Copying
-/// takes one tap: the copy stays on this device and expires within 30 seconds.
-private struct VaultDetailField: View {
-    let field: VaultField
-    let value: String?
-    let remaining: Int?
-    let busy: Bool
-    let readOnly: Bool
-    let live: Bool
-    let trustedUntil: Date?
-    let confirm: () -> Void
-    let reveal: () -> Void
-    let copy: () -> Void
-    @State private var asking = false
-    @Environment(\.dynamicTypeSize) private var size
-    @Environment(\.layoutDirection) private var direction
-    // Evaluate at the tap, even if this row has not rendered since confirmation.
-    private var asks: Bool { field.concealed && !live && (trustedUntil.map { $0 <= .now } ?? true) }
-    private var text: String { value ?? field.value }
-    private var stacked: Bool { size.isAccessibilitySize || text.count > 34 || text.contains("\n") }
-    private var layout: AnyLayout { stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8)) }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(vaultFieldTitle(field)).font(.caption).foregroundStyle(.secondary).accessibilityHidden(true)
-            layout {
-                Text(text.isEmpty ? "—" : text).font(field.concealed ? .body.monospaced() : .body)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .environment(\.layoutDirection, vaultFieldIsLTR(field, value: text) ? .leftToRight : direction)
-                    .accessibilityLabel(vaultFieldTitle(field)).accessibilityValue(spokenValue)
-                    .accessibilityIdentifier("vault.value.\(field.id)")
-                if let remaining, value != nil { countdown(remaining) }
-                if !readOnly {
-                    HStack(spacing: 4) {
-                        if busy { ProgressView().frame(width: 44, height: 44) }
-                        else {
-                            if field.concealed && !live && !field.value.isEmpty {
-                                Button { if value == nil && asks { asking = true } else { reveal() } } label: {
-                                    Image(systemName: value == nil ? "eye" : "eye.slash").frame(width: 44, height: 44)
-                                }.accessibilityLabel(Text(value == nil ? "Reveal" : "Hide") + Text(verbatim: " · " + vaultFieldTitle(field)))
-                                    .accessibilityIdentifier("vault.reveal.\(field.id)")
-                                    .confirmationDialog("Reveal this field?", isPresented: $asking, titleVisibility: .visible) {
-                                        Button("Reveal") { confirm(); reveal() }
-                                    } message: { Text("This field will be visible until you hide it or leave this screen.") }
-                            }
-                            if !field.value.isEmpty {
-                                Button { copy() } label: {
-                                    Image(systemName: "doc.on.doc").frame(width: 44, height: 44)
-                                }.accessibilityLabel(Text("Copy") + Text(verbatim: " · " + vaultFieldTitle(field))).accessibilityIdentifier("vault.copy.\(field.id)")
-                            }
-                        }
-                    }.font(.system(size: 20)).buttonStyle(.borderless)
-                }
-            }
-        }.padding(.vertical, 5)
-    }
-
-    private func countdown(_ remaining: Int) -> some View {
-        ZStack {
-            Circle().stroke(Theme.forest.opacity(0.15), lineWidth: 3)
-            Circle().trim(from: 0, to: CGFloat(min(remaining, 30)) / 30)
-                .stroke(Theme.forest, style: StrokeStyle(lineWidth: 3, lineCap: .round)).rotationEffect(.degrees(-90))
-            Text(remaining.formatted()).font(.caption2.monospacedDigit())
-        }.frame(width: 30, height: 30).accessibilityElement(children: .ignore)
-            .accessibilityLabel("Remaining").accessibilityValue(remaining.formatted())
-    }
-
-    private var spokenValue: String {
-        if field.concealed && value == nil { return String(localized: "Hidden value") }
-        if field.kind == "otp" { return text.map(String.init).joined(separator: " ") }
-        return text
     }
 }

@@ -5,6 +5,19 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
+## Unreleased
+
+### Vault
+
+- Copy a field by tapping its value. Use its menu to reveal or hide secrets,
+  show values in large type, open websites or view field references, with no
+  second reveal confirmation on mobile.
+- Read long passwords and keys in a scrollable large-type view, with direct
+  copying and automatic clearing when dismissed or backgrounded.
+- Compact the detail header and field rows, hide unfilled fields while reading,
+  and move timestamps to Item information and favorites to the item menu.
+  Keep the editing action visible and show copy feedback beside the field.
+
 ## 1.1.1 - 2026-11-07
 
 ### Vault

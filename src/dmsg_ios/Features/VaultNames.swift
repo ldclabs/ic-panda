@@ -25,9 +25,15 @@ func vaultFieldTitle(_ field: VaultField) -> String {
 }
 
 func vaultFieldIsLTR(_ field: VaultField, value: String) -> Bool {
-    ["url", "email", "otp", "date", "month", "phone"].contains(field.kind)
+    field.concealed || ["url", "email", "otp", "date", "month", "phone"].contains(field.kind)
         || ["private_key", "public_key", "fingerprint", "number", "cvv", "pin"].contains(field.id)
         || value.contains("@")
+}
+
+func vaultWebsiteURL(_ field: VaultField) -> URL? {
+    guard field.kind == "url", !field.concealed, let url = URL(string: field.value),
+          ["https", "http"].contains(url.scheme?.lowercased() ?? ""), url.host?.isEmpty == false else { return nil }
+    return url
 }
 
 func vaultReadError(_ error: Error) -> String {

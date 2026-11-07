@@ -19,6 +19,16 @@ final class VaultUITests: XCTestCase {
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)
     }
 
+    private func openFieldMenu(_ app: XCUIApplication, _ field: String) {
+        let menu = app.descendants(matching: .any).matching(identifier: "vault.field.more.\(field)").firstMatch
+        for _ in 0..<6 where !menu.isHittable { app.swipeUp() }
+        XCTAssertTrue(menu.isHittable)
+        // iOS 18 reports Menu as Button to legacy AX and PopUpButton to modern
+        // AX. Tap its observed frame, then verify that the menu actually opened.
+        menu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(app.buttons["vault.enlarge.\(field)"].waitForExistence(timeout: 5))
+    }
+
     func testSearchAndCategoryPositionsStayStableWhileLoading() {
         let app = launch(["--ui-vault-slow-load"])
         XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 8))
@@ -88,7 +98,7 @@ final class VaultUITests: XCTestCase {
         let row = app.buttons["vault.item.fixture-rich-0"]
         for _ in 0..<3 where !row.isHittable { app.swipeUp() }
         row.tap()
-        let code = app.staticTexts["vault.value.otp"]
+        let code = app.buttons["vault.copy.otp"]
         for _ in 0..<3 where !code.isHittable { app.swipeUp() }
         let visible = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1 2 3 4 5 6"), object: code)
         XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 5), .completed)
@@ -110,10 +120,11 @@ final class VaultUITests: XCTestCase {
         let copy = app.buttons["vault.copy.password"]
         XCTAssertTrue(copy.waitForExistence(timeout: 5)); copy.tap()
         XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["vault.field.more.password"].value as? String, "Copied")
         capture(app, "Sensitive copy takes one tap")
-        // A copy is not a confirmation: showing the field still asks.
-        app.buttons["vault.reveal.password"].tap()
-        XCTAssertTrue(app.buttons["Reveal"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(copy.value as? String, "Hidden value")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        XCTAssertFalse(app.sheets.firstMatch.exists)
     }
 
     func testListRowCopiesThePasswordInOneTap() {
@@ -126,37 +137,122 @@ final class VaultUITests: XCTestCase {
         capture(app, "A list row copies its password in one tap")
     }
 
-    func testOneConfirmationCoversShowingTheItemForThirtySeconds() {
+    func testFieldMenuRevealsAndHidesWithoutAnotherConfirmation() {
         let app = launch()
         app.buttons["vault.item.fixture-github"].tap()
-        let reveal = app.buttons["vault.reveal.password"]
-        XCTAssertTrue(reveal.waitForExistence(timeout: 5)); reveal.tap()
-        let confirm = app.buttons["Reveal"].firstMatch
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        capture(app, "Showing a sensitive field asks near its button")
-        confirm.tap()
-        XCTAssertTrue(confirm.waitForNonExistence(timeout: 5))
-        let value = app.staticTexts["vault.value.password"]
+        openFieldMenu(app, "password")
+        XCTAssertTrue(app.buttons["vault.reveal.password"].waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 0.5)
+        capture(app, "Password actions belong to the field menu")
+        app.buttons["vault.reveal.password"].tap()
+        let value = app.buttons["vault.copy.password"]
         let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: value)
         XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 5), .completed)
-        reveal.tap()
-        // A read within the grace period must not renew that confirmation.
-        sleep(20)
-        reveal.tap()
-        let shownAgain = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: value)
-        XCTAssertEqual(XCTWaiter.wait(for: [shownAgain], timeout: 5), .completed)
-        XCTAssertFalse(confirm.exists)
-        reveal.tap()
-        // Leave the page still: the deadline must be checked when tapped, even
-        // when no state change has caused SwiftUI to render it again.
-        sleep(11)
-        reveal.tap()
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        capture(app, "Showing asks again after thirty seconds")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        XCTAssertFalse(app.sheets.firstMatch.exists)
+        openFieldMenu(app, "password"); app.buttons["vault.reveal.password"].tap()
+        XCTAssertEqual(value.value as? String, "Hidden value")
+    }
+
+    func testLargeTypeReadsCopiesAndClearsWhenBackgrounded() {
+        let app = launch()
+        app.buttons["vault.item.fixture-github"].tap()
+        openFieldMenu(app, "password"); app.buttons["vault.enlarge.password"].tap()
+        let value = app.staticTexts["vault.large.value"]
+        XCTAssertTrue(value.waitForExistence(timeout: 5))
+        XCTAssertEqual(value.label, "fixture-secret")
+        capture(app, "Large type password")
+        app.buttons["vault.large.copy"].tap()
+        let notice = app.staticTexts.matching(identifier: "workspace.notice").firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 5))
+        XCTAssertLessThanOrEqual(notice.frame.maxY, app.buttons["vault.large.copy"].frame.minY)
+        capture(app, "Large type copy feedback")
+        app.buttons["vault.large.done"].tap()
+        XCTAssertEqual(app.buttons["vault.copy.password"].value as? String, "Hidden value")
+        openFieldMenu(app, "password"); app.buttons["vault.enlarge.password"].tap()
+        XCTAssertTrue(value.waitForExistence(timeout: 5))
+        XCUIDevice.shared.press(.home)
+        app.returnToForeground(showing: app.staticTexts.matching(identifier: "vault.detail.title"))
+        XCTAssertFalse(value.exists)
+        XCTAssertEqual(app.buttons["vault.copy.password"].value as? String, "Hidden value")
+    }
+
+    func testLargeTypeReadFailureCanRetryAndCancelWhileLoading() {
+        let app = launch(["--ui-vault-field-slow", "--ui-vault-field-failure"])
+        app.buttons["vault.item.fixture-github"].tap()
+        openFieldMenu(app, "password"); app.buttons["vault.enlarge.password"].tap()
+        XCTAssertTrue(app.activityIndicators["vault.large.loading"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["vault.large.copy"].isEnabled)
+        let retry = app.buttons["vault.large.retry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 5)); capture(app, "Large type read failure")
+        retry.tap()
+        XCTAssertTrue(app.staticTexts["vault.large.value"].waitForExistence(timeout: 5))
+        app.buttons["vault.large.done"].tap()
+        openFieldMenu(app, "password"); app.buttons["vault.enlarge.password"].tap()
+        XCTAssertTrue(app.activityIndicators["vault.large.loading"].waitForExistence(timeout: 3))
+        app.buttons["vault.large.done"].tap()
+        XCTAssertFalse(app.staticTexts["vault.large.value"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.buttons["vault.copy.password"].value as? String, "Hidden value")
+    }
+
+    func testFavoriteAndWebsiteActionsStayAvailableInTheirMenus() {
+        let app = launch(["--ui-vault-detail"])
+        app.buttons["vault.item.fixture-api"].tap()
+        app.buttons["vault.detail.more"].tap()
+        let favorite = app.buttons["vault.detail.favorite"]
+        XCTAssertTrue(favorite.waitForExistence(timeout: 5)); favorite.tap()
+        app.buttons["vault.detail.more"].tap()
+        XCTAssertEqual(favorite.label, "Remove favorite")
+        favorite.tap()
+        openFieldMenu(app, "url")
+        XCTAssertTrue(app.buttons["vault.open.url"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["vault.reference.url"].exists)
+        app.buttons["vault.field.copy.url"].tap()
+        XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["vault.copy.url"].value as? String, "https://api.example.org/developer/integrations/production?region=ap-southeast-1")
+    }
+
+    func testDetailAndLargeTypeAcrossLanguagesAndTextSizes() {
+        for (language, dark, large) in [("zh-Hans", false, false), ("zh-Hans", true, false), ("de", false, true), ("ar", true, false)] {
+            var arguments = ["--ui-vault-detail"]
+            if dark { arguments.append("--ui-dark") }
+            if large { arguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+            let app = launch(arguments, language: language)
+            let row = app.buttons["vault.item.fixture-api"]
+            XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+            let credential = app.buttons["vault.copy.credential"]
+            for _ in 0..<5 where !credential.isHittable { app.swipeUp() }
+            XCTAssertTrue(credential.isHittable)
+            XCTAssertFalse(app.buttons["vault.copy.username"].exists)
+            XCTAssertFalse(app.staticTexts["Empty section"].exists)
+            capture(app, "Compact detail \(language) dark=\(dark) large=\(large)")
+            openFieldMenu(app, "credential")
+            Thread.sleep(forTimeInterval: 0.5)
+            capture(app, "Field menu \(language)")
+            app.buttons["vault.enlarge.credential"].tap()
+            let value = app.staticTexts["vault.large.value"]
+            XCTAssertTrue(value.waitForExistence(timeout: 5))
+            XCTAssertTrue(value.label.contains("Second-line_0O1Il"))
+            capture(app, "Large type long key \(language) dark=\(dark) large=\(large)")
+            let copy = app.buttons["vault.large.copy"]
+            for _ in 0..<12 where value.frame.maxY > copy.frame.minY {
+                app.scrollViews["vault.large.scroll"].swipeUp()
+            }
+            XCTAssertLessThanOrEqual(value.frame.maxY, copy.frame.minY)
+            capture(app, "End of large type value \(language)")
+            app.buttons["vault.large.done"].tap()
+            let region = app.buttons["vault.copy.region"]
+            for _ in 0..<6 where !region.isHittable { app.swipeUp() }
+            XCTAssertTrue(region.isHittable); region.tap()
+            XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
+            capture(app, "Last field above the tab bar \(language)")
+            app.terminate()
+        }
     }
 
     func testHistoricalOTPExpiresWithoutAnotherFieldOperation() {
-        let app = launch()
+        // Leave enough time to observe the value after the system menu closes.
+        let app = launch(["--ui-vault-long-code"])
         let row = app.buttons["vault.item.fixture-rich-0"]
         for _ in 0..<3 where !row.isHittable { app.swipeUp() }
         row.tap()
@@ -164,14 +260,12 @@ final class VaultUITests: XCTestCase {
         app.buttons["vault.detail.more"].tap(); app.buttons["Version history"].tap()
         let version = app.buttons["vault.version.1"]
         XCTAssertTrue(version.waitForExistence(timeout: 5)); version.tap()
-        let reveal = app.buttons["vault.reveal.otp"]
-        for _ in 0..<3 where !reveal.isHittable { app.swipeUp() }
-        reveal.tap(); app.buttons["Reveal"].firstMatch.tap()
-        let code = app.staticTexts["vault.value.otp"]
+        openFieldMenu(app, "otp"); app.buttons["vault.reveal.otp"].tap()
+        let code = app.buttons["vault.copy.otp"]
         let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1 2 3 4 5 6"), object: code)
         XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 3), .completed)
         let expired = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Hidden value"), object: code)
-        XCTAssertEqual(XCTWaiter.wait(for: [expired], timeout: 5), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [expired], timeout: 8), .completed)
         capture(app, "Historical code disappears when it expires")
     }
 
@@ -250,7 +344,7 @@ final class VaultUITests: XCTestCase {
     func testVaultControlsHaveAccessibleTargetsAndDescriptions() throws {
         let app = launch()
         app.buttons["vault.item.fixture-github"].tap()
-        XCTAssertTrue(app.buttons["vault.reveal.password"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["vault.field.more.password"].waitForExistence(timeout: 5))
         try app.performAccessibilityAudit(for: [.hitRegion, .trait, .sufficientElementDescription])
     }
 
@@ -261,7 +355,7 @@ final class VaultUITests: XCTestCase {
         XCTAssertTrue(title.waitForExistence(timeout: 5))
         let updated = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "GitHub updated"), object: title)
         XCTAssertEqual(XCTWaiter.wait(for: [updated], timeout: 12), .completed)
-        XCTAssertEqual(app.staticTexts["vault.value.password"].value as? String, "Hidden value")
+        XCTAssertEqual(app.buttons["vault.copy.password"].value as? String, "Hidden value")
     }
 
     func testIncomingRevisionDoesNotReplaceAnOpenDraft() {
@@ -307,9 +401,11 @@ final class VaultUITests: XCTestCase {
         app.buttons["vault.edit.save"].tap()
         let row = app.buttons["vault.item.fixture-created"]
         XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
-        let value = app.staticTexts["vault.value.expires"]
-        for _ in 0..<4 where !value.exists { app.swipeUp() }
-        XCTAssertTrue(value.exists); XCTAssertTrue((value.value as? String ?? "").isEmpty)
-        capture(app, "Cancelled optional date remains empty")
+        XCTAssertFalse(app.buttons["vault.copy.expires"].exists)
+        app.buttons["vault.edit.open"].tap()
+        let calendarAgain = app.buttons["vault.edit.calendar.expires"]
+        for _ in 0..<5 where !calendarAgain.isHittable { app.swipeUp() }
+        XCTAssertTrue(calendarAgain.isHittable)
+        capture(app, "Empty optional fields remain available in the editor")
     }
 }

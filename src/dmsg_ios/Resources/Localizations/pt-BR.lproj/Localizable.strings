@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Cada pacote móvel é limitado a 8 MiB, incluindo acessórios selecionados. A aprovação final mostra a seleção e o destino exatos e imutáveis.</string>
+	<key>Edit</key>
+	<string>Editar</string>
 	<key>Edit draft</key>
 	<string>Editar</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Credenciais emitidas</string>
 	<key>Item attachments</key>
 	<string>Anexos de itens</string>
+	<key>Item information</key>
+	<string>Informações do item</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>As referências de itens podem ser sincronizadas antes de seus arquivos. Somente os arquivos disponíveis neste dispositivo podem ser adicionados a um novo instantâneo.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Segredo aberto</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Abra a conta original para verificar e concluir este download.</string>
+	<key>Open website</key>
+	<string>Abrir site</string>
 	<key>Open workspace</key>
 	<string>Abrir espaço de trabalho</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Tentar novamente este relatório</string>
 	<key>Reveal</key>
 	<string>Revelar</string>
-	<key>Reveal this field?</key>
-	<string>Revelar este campo?</string>
 	<key>Review</key>
 	<string>Revisão</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Mostrar descobertas rejeitadas</string>
 	<key>Show draft</key>
 	<string>Mostre o que você digitou</string>
+	<key>Show in Large Type</key>
+	<string>Mostrar em letras grandes</string>
 	<key>Show in library</key>
 	<string>Mostrar na biblioteca</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Este dispositivo pode receber seu conteúdo privado. A raiz do conteúdo deve ser redistribuída após aprovação.</string>
 	<key>This device replaces</key>
 	<string>Este dispositivo substitui</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Este campo ficará visível até você ocultá-lo ou sair desta tela.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Este arquivo não pode ser aberto. Você pode excluí-lo.</string>
 	<key>This file exceeds the size limit for this operation.</key>

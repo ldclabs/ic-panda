@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Setiap pakej mudah alih adalah terhad kepada 8 MiB, termasuk lampiran terpilih. Kelulusan akhir menunjukkan pemilihan dan destinasi tidak berubah yang tepat.</string>
+	<key>Edit</key>
+	<string>Edit</string>
 	<key>Edit draft</key>
 	<string>Edit</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Bukti kelayakan yang dikeluarkan</string>
 	<key>Item attachments</key>
 	<string>Lampiran item</string>
+	<key>Item information</key>
+	<string>Maklumat item</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Rujukan item boleh disegerakkan sebelum failnya. Hanya fail yang tersedia pada peranti ini boleh ditambahkan pada syot kilat baharu.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Rahsia terbuka</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Buka akaun asal untuk mengesahkan dan melengkapkan muat turun ini.</string>
+	<key>Open website</key>
+	<string>Buka laman web</string>
 	<key>Open workspace</key>
 	<string>Buka ruang kerja</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Cuba semula laporan ini</string>
 	<key>Reveal</key>
 	<string>Tunjukkan</string>
-	<key>Reveal this field?</key>
-	<string>Dedahkan bidang ini?</string>
 	<key>Review</key>
 	<string>Semakan</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Tunjukkan penemuan yang ditolak</string>
 	<key>Show draft</key>
 	<string>Tunjukkan apa yang anda taip</string>
+	<key>Show in Large Type</key>
+	<string>Paparkan dalam teks besar</string>
 	<key>Show in library</key>
 	<string>Tunjukkan dalam pustaka</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>Peranti ini mungkin menerima kandungan peribadi anda. Kunci penyulitan kandungan induk mesti diedarkan semula selepas diluluskan.</string>
 	<key>This device replaces</key>
 	<string>Peranti ini menggantikan</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>Medan ini akan kelihatan sehingga anda menyembunyikannya atau meninggalkan skrin ini.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Fail ini tidak dapat dibuka. Anda boleh memadamnya.</string>
 	<key>This file exceeds the size limit for this operation.</key>

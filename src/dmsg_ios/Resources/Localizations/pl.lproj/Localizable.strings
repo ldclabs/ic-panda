@@ -836,6 +836,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Każdy pakiet mobilny jest ograniczony do 8 MiB, w tym wybranych załączników. Ostateczne zatwierdzenie pokazuje dokładny, niezmienny wybór i miejsce docelowe.</string>
+	<key>Edit</key>
+	<string>Edytuj</string>
 	<key>Edit draft</key>
 	<string>Edytuj</string>
 	<key>Edit item</key>
@@ -1120,6 +1122,8 @@
 	<string>Wydane referencje</string>
 	<key>Item attachments</key>
 	<string>Załączniki do przedmiotów</string>
+	<key>Item information</key>
+	<string>Informacje o elemencie</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Odniesienia do elementów mogą być synchronizowane przed ich plikami. Do nowego zrzutu można dodać tylko pliki dostępne na tym urządzeniu.</string>
 	<key>Items</key>
@@ -1552,6 +1556,8 @@
 	<string>Otwarty sekret</string>
 	<key>Open the original account to verify and finish this download.</key>
 	<string>Otwórz pierwotne konto, aby zweryfikować i ukończyć to pobieranie.</string>
+	<key>Open website</key>
+	<string>Otwórz witrynę</string>
 	<key>Open workspace</key>
 	<string>Otwórz przestrzeń roboczą</string>
 	<key>Optional password</key>
@@ -2000,8 +2006,6 @@
 	<string>Spróbuj ponownie wykonać ten raport</string>
 	<key>Reveal</key>
 	<string>Pokaż</string>
-	<key>Reveal this field?</key>
-	<string>Ujawnić to pole?</string>
 	<key>Review</key>
 	<string>Recenzja</string>
 	<key>Review a request</key>
@@ -2356,6 +2360,8 @@
 	<string>Pokaż odrzucone ustalenia</string>
 	<key>Show draft</key>
 	<string>Pokaż co wpisałeś</string>
+	<key>Show in Large Type</key>
+	<string>Pokaż dużą czcionką</string>
 	<key>Show in library</key>
 	<string>Pokaż w bibliotece</string>
 	<key>Show share link</key>
@@ -2664,8 +2670,6 @@
 	<string>To urządzenie może odbierać Twoje prywatne treści. Główny klucz szyfrowania treści musi zostać ponownie rozpowszechniony po zatwierdzeniu.</string>
 	<key>This device replaces</key>
 	<string>To urządzenie zastępuje</string>
-	<key>This field will be visible until you hide it or leave this screen.</key>
-	<string>To pole pozostanie widoczne, dopóki go nie ukryjesz lub nie opuścisz tego ekranu.</string>
 	<key>This file cannot be opened. You can delete it.</key>
 	<string>Nie można otworzyć tego pliku. Możesz go usunąć.</string>
 	<key>This file exceeds the size limit for this operation.</key>

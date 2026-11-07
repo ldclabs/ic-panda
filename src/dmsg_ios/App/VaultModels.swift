@@ -88,8 +88,13 @@ extension SessionModel {
     func vaultFieldValue(_ item: VaultItem, field: VaultField) async throws -> SecretValue {
         #if DEBUG
         if uiTesting {
-            return SecretValue(generation: 0, value: field.kind == "otp" ? "123456" : field.concealed ? "fixture-secret" : field.value,
-                remainingMs: field.kind == "otp" ? 2000 : nil)
+            fixtureVaultFieldReadAttempts += 1
+            let attempt = fixtureVaultFieldReadAttempts
+            if ProcessInfo.processInfo.arguments.contains("--ui-vault-field-slow") { try await Task.sleep(for: .seconds(2)) }
+            if ProcessInfo.processInfo.arguments.contains("--ui-vault-field-failure") && attempt == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
+            let secret = item.id == "fixture-api" ? "L0ng_API-key_0123456789_ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\nSecond-line_0O1Il_0123456789" : "fixture-secret"
+            return SecretValue(generation: 0, value: field.kind == "otp" ? "123456" : field.concealed ? secret : field.value,
+                remainingMs: field.kind == "otp" ? (ProcessInfo.processInfo.arguments.contains("--ui-vault-long-code") ? 6000 : 2000) : nil)
         }
         #endif
         guard let engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
