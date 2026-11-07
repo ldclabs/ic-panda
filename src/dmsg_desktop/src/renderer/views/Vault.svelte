@@ -567,7 +567,7 @@
       </div>
     {:else}
     <section class="relative flex w-[var(--pane,264px)] shrink-0 flex-col border-e border-line @min-[860px]:w-[var(--pane,296px)]">
-      <div class="grid gap-2 p-3 pb-2">
+      <div class="grid min-w-0 grid-cols-1 gap-2 p-3 pb-2">
         <div class="flex items-center gap-1.5">
           <label class="relative min-w-0 flex-1">
             <Icon name="search" class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />

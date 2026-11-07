@@ -158,6 +158,10 @@ export default {
     copyVaultItemId: "Скопировать ID записи",
     copyFileReference: "Скопировать ссылку на версию файла",
     copyFieldReference: "Скопировать ссылку на поле",
+    viewField: "Показать крупно",
+    fieldActions: "Действия для поля «{field}»",
+    fieldValueCopied: "Значение поля скопировано",
+    fieldReferenceCopied: "Ссылка на поле скопирована",
     fileReferenceHint: "Ссылка на конкретную версию файла текущего аккаунта. Не содержит ключа и не предоставляет доступ.",
     fieldReferenceHint: "Содержит только ID аккаунта, записи и поля, без значения поля. Использование требует одобрения.",
 

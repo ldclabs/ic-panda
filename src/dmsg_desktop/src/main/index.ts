@@ -646,17 +646,32 @@ function concealing(): Record<string, string> {
 handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | null, revision: string | null) => {
   const params = { id: String(id), field: field ? String(field) : undefined, revision: revision ? String(revision) : undefined }
   const shown = (await daemon.call('vault/reveal', params)) as { type: string; value: string; field: string }
-  const secret = shown.type === 'otp' ? ((await daemon.call('vault/otp', { id: params.id, field: shown.field })) as { code: string }).code : shown.value
+  let secret = shown.value
+  let expiresAt = Infinity
+  if (shown.type === 'otp') {
+    const requestedAt = Date.now()
+    const otp = (await daemon.call('vault/otp', { id: params.id, field: shown.field })) as { code: string; remaining_ms: number }
+    secret = otp.code
+    // Count RPC latency too: a copied code must never outlive its validity.
+    expiresAt = requestedAt + otp.remaining_ms
+  }
   if (!secret) throw new DaemonError('NOT_FOUND', 'No value to copy')
+  if (expiresAt <= Date.now()) throw new DaemonError('SECRET_VERSION_STALE', 'Code expired; copy the current code')
   await forgetCopied()
+  if (expiresAt <= Date.now()) throw new DaemonError('SECRET_VERSION_STALE', 'Code expired; copy the current code')
   try {
     await clipboard.write([new ClipboardItem({ 'text/plain': secret, ...concealing() })])
   } catch {
     // A platform that refuses a marker still gets the text.
     await clipboard.writeText(secret)
   }
-  copied = { text: secret, timer: setTimeout(() => void forgetCopied(), CLEAR_MS) }
-  return { clear_after_ms: CLEAR_MS }
+  const clearAfter = Math.max(0, Math.min(CLEAR_MS, expiresAt - Date.now()))
+  copied = { text: secret, timer: setTimeout(() => void forgetCopied(), clearAfter) }
+  if (!clearAfter) {
+    await forgetCopied()
+    throw new DaemonError('SECRET_VERSION_STALE', 'Code expired; copy the current code')
+  }
+  return { clear_after_ms: clearAfter }
 })
 /** The export last previewed, by the path the person picked; the window never names a path. */
 let importing: { path: string; digest: string } | null = null

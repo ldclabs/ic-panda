@@ -117,7 +117,7 @@
     {/if}
     {#if field && isHidden(field) && field.value}
       {#if field.type === 'concealed'}
-        <SecretField id={entry.id} field={field.id} revision={entry.revision} unlocked copyable={false} />
+        <SecretField id={entry.id} field={field.id} name={fieldName(field, t)} context={entry.item.title} revision={entry.revision} unlocked copyable={false} />
       {:else}
         <span class="font-mono text-faint">••••••</span>
       {/if}

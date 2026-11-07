@@ -158,6 +158,10 @@ export default {
     copyVaultItemId: "Copier l’ID de l’élément",
     copyFileReference: "Copier la référence de version du fichier",
     copyFieldReference: "Copier la référence du champ",
+    viewField: "Afficher en grand",
+    fieldActions: "Actions pour {field}",
+    fieldValueCopied: "Valeur du champ copiée",
+    fieldReferenceCopied: "Référence du champ copiée",
     fileReferenceHint: "Référence cette version précise du fichier dans le compte actuel. Ne contient aucune clé et n’accorde aucun accès.",
     fieldReferenceHint: "Contient les ID du compte, de l’élément et du champ, jamais la valeur. Son utilisation nécessite toujours une approbation.",
 

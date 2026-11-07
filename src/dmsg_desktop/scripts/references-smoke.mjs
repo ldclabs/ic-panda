@@ -128,28 +128,43 @@ try {
   await main.getByTestId('vault-copy-id').press('Tab')
   await main.getByTestId('vault-copy-id').focus()
   await main.locator('[data-tooltip-content]').filter({ hasText: itemId }).waitFor()
-  const refButton = field => main.locator(`[data-testid="vault-field"][data-field="${field}"]`).getByTestId('vault-copy-field-reference')
-  await copy(refButton('credential'), `dmsg-secret://${account}/${itemId}/credential`)
-  await copy(refButton('username'), `dmsg-secret://${account}/${itemId}/username`)
-  assert.equal(await refButton('otp').count(), 0)
+  const fieldMenu = field => main.locator(`[data-testid="vault-field"][data-field="${field}"]`).getByTestId('vault-field-menu')
+  const openFieldMenu = async field => {
+    await main.waitForFunction(() => !document.querySelector('[data-testid="vault-field-menu-content"][data-state="closed"]'))
+    await fieldMenu(field).click()
+    await main.getByTestId('vault-field-menu-content').waitFor()
+  }
+  const refButton = async field => {
+    await openFieldMenu(field)
+    return main.getByTestId('vault-copy-field-reference')
+  }
+  await copy(await refButton('credential'), `dmsg-secret://${account}/${itemId}/credential`)
+  await copy(await refButton('username'), `dmsg-secret://${account}/${itemId}/username`)
+  await openFieldMenu('otp')
+  assert.equal(await main.getByTestId('vault-copy-field-reference').count(), 0)
+  await main.keyboard.press('Escape')
   await main.getByTestId('vault-copy-id').scrollIntoViewIfNeeded()
   await screenshot('vault.png')
 
   // A failed authoritative lookup must not manufacture or copy a reference.
   rejectReference = true
   await main.evaluate(() => { window.testClipboard = 'unchanged' })
-  await refButton('credential').click()
-  await main.waitForFunction(() => !document.querySelector('[data-testid="vault-copy-field-reference"]')?.disabled)
+  await (await refButton('credential')).click()
+  await main.waitForFunction(() => document.querySelector('[data-field="credential"] [data-testid="vault-field-menu"]')?.getAttribute('aria-busy') === 'false')
   assert.equal(await main.evaluate(() => window.testClipboard), 'unchanged')
   rejectReference = false
 
   conflict = true; emit('vault/changed')
-  await main.waitForFunction(() => document.querySelector('[data-testid="vault-copy-field-reference"]')?.disabled)
+  await openFieldMenu('credential')
+  await main.waitForFunction(() => document.querySelector('[data-testid="vault-copy-field-reference"]')?.getAttribute('aria-disabled') === 'true')
   conflict = false; emit('vault/changed')
-  await main.waitForFunction(() => !document.querySelector('[data-testid="vault-copy-field-reference"]')?.disabled)
+  await main.waitForFunction(() => document.querySelector('[data-testid="vault-copy-field-reference"]')?.getAttribute('aria-disabled') !== 'true')
+  await main.keyboard.press('Escape')
   for (const title of ['Wallet fixture', 'Managed fixture']) {
     await openVault(title)
+    await openFieldMenu('credential')
     assert.equal(await main.getByTestId('vault-copy-field-reference').count(), 0)
+    await main.keyboard.press('Escape')
   }
 
   // A source update, navigation or lock invalidates a pending clipboard action.
@@ -157,7 +172,7 @@ try {
     await openVault('Reference fixture')
     holdReference = true; releaseReference = undefined
     await main.evaluate(() => { window.testClipboard = 'unchanged' })
-    await refButton('credential').click()
+    await (await refButton('credential')).click()
     for (let i = 0; i < 100 && !releaseReference; i++) await new Promise(resolve => setTimeout(resolve, 20))
     assert.ok(releaseReference)
     if (exit === 'revision') {

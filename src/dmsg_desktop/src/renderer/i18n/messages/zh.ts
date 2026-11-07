@@ -159,6 +159,10 @@ export default {
     copyVaultItemId: "复制条目 ID",
     copyFileReference: "复制文件版本引用",
     copyFieldReference: "复制字段引用",
+    viewField: "放大显示",
+    fieldActions: "{field}的操作",
+    fieldValueCopied: "已复制字段值",
+    fieldReferenceCopied: "已复制字段引用",
     fileReferenceHint: "引用当前账户中此文件的固定版本，不含密钥，也不授予访问权限。",
     fieldReferenceHint: "仅含账户、条目和字段 ID，不含字段值；使用时仍需审批。",
 

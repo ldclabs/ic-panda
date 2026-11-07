@@ -158,6 +158,10 @@ export default {
     copyVaultItemId: "نسخ معرّف العنصر",
     copyFileReference: "نسخ مرجع إصدار الملف",
     copyFieldReference: "نسخ مرجع الحقل",
+    viewField: "عرض بخط كبير",
+    fieldActions: "إجراءات الحقل {field}",
+    fieldValueCopied: "تم نسخ قيمة الحقل",
+    fieldReferenceCopied: "تم نسخ مرجع الحقل",
     fileReferenceHint: "يشير إلى هذا الإصدار المحدد من الملف في الحساب الحالي. لا يحتوي على مفتاح ولا يمنح صلاحية الوصول.",
     fieldReferenceHint: "يحتوي فقط على معرّفات الحساب والعنصر والحقل، دون قيمة الحقل. يظل الاستخدام بحاجة إلى موافقة.",
 

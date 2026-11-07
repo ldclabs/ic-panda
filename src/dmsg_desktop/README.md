@@ -327,8 +327,10 @@ Rules (`src/main/policy.ts`):
   `TransientType`, Windows' history and cloud exclusions, KDE's password
   hint), and leaves the clipboard after 30 seconds, or when dMsg locks or
   quits, unless something replaced it. A one-time password copies as its
-  current code. Imports read only the export the person picked in the main
-  process's dialog, and OTP QR codes only a picked image or the clipboard's;
+  current code, cleared by its expiry or the 30-second limit, whichever is
+  sooner; time waiting for the daemon is included. Imports read only the export
+  the person picked in the main process's dialog, and OTP QR codes only a picked
+  image or the clipboard's;
   items open their web addresses in the system browser, http and https
   only. dMsg's own keys (tagged `dmsg-`) are read-only.
 - Revoking a device and changing its capabilities are approval requests.
@@ -734,6 +736,14 @@ File details show complete, copyable file and version IDs and copy
 value-free field references from `secrets/ref`. `node scripts/references-smoke.mjs`
 covers both against a local fixture with an intercepted clipboard; see the
 [tutorial](../../docs/dmsg_secrets_tutorial_zh.md).
+
+Vault fields keep selectable values and a copy icon. Their more menu and
+right-click menu offer the same secondary actions, including large-type viewing
+and supported field references. Large secret values keep the desktop's two-click
+Show action and original one-minute deadline; closing the view clears plaintext.
+`node scripts/vault-detail-smoke.mjs` verifies these interactions, keyboard focus,
+OTP clipboard expiry and multilingual layouts with synthetic data. See the
+[validation record](docs/vault-detail-validation.md) for scope and limitations.
 
 
 ## Secrets P1 开发工作流

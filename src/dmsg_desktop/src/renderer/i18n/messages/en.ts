@@ -161,6 +161,10 @@ const messages = {
     copyVaultItemId: "Copy item ID",
     copyFileReference: "Copy file version reference",
     copyFieldReference: "Copy field reference",
+    viewField: "View in large type",
+    fieldActions: "Actions for {field}",
+    fieldValueCopied: "Field value copied",
+    fieldReferenceCopied: "Field reference copied",
     fileReferenceHint: "References this exact file version in the current account. Contains no key and does not grant access.",
     fieldReferenceHint: "Contains the account, item and field IDs, never the field value. Using it still requires approval.",
 

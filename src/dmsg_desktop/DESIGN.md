@@ -423,9 +423,26 @@ inline editors alone handle their own cancel shortcut.
   clearing needs a known, nonempty cache; cancelling system dialogs never
   reports success. Recovery
   alerts stay visible in the overview; cross-device key setup is folded.
-- **Secret field** — one click copies. The first click on Show arms it for
-  three seconds with a draining bar; the second shows the value, which hides
-  after a minute.
+- **Vault fields** — values remain selectable; a fixed copy icon handles the
+  frequent action. The field's more menu and right-click menu share Copy,
+  Open website when applicable, View in large type, and Copy field reference
+  when supported. References retain a separate explanation and success notice;
+  selected text keeps the system's text-copy menu. Empty fields stay hidden,
+  long values wrap, and field groups preserve their original capitalization.
+  Favorite moves to the item's more menu, with its state beside the title;
+  Edit stays visible and metadata stays at the bottom.
+- **Secret field** — one click copies through the main process. The first
+  click on Show arms it for three seconds with a draining bar; the second
+  shows the value, which hides after a minute. The large-type dialog shares
+  that value and deadline, including the bar's elapsed time. Closing it,
+  changing the source version or locking clears plaintext and cancels late
+  reveals; a sync ACK for the same version keeps the view. The dialog returns
+  focus to the field menu, including when closed during a pending reveal.
+  Historical secrets remain read-only; managed fields keep desktop read/copy
+  access without gaining field references or editing.
+- **One-time code** — the field and its large-type view share the live code,
+  countdown and retry action. Clipboard copies expire no later than the code
+  or the usual 30-second limit, including time spent waiting for its RPC.
 - **Conflict** — the current version and the copy side by side, changed
   fields tinted, the body diffed line by line; both choices weigh the same.
 - **Adding files** — a job card per file with its chunks done, above the

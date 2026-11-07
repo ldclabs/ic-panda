@@ -21,6 +21,7 @@
     dismissible = true,
     testid,
     onOpenAutoFocus,
+    onCloseAutoFocus,
     children,
     footer
   }: {
@@ -33,6 +34,7 @@
     dismissible?: boolean
     testid?: string
     onOpenAutoFocus?: (event: Event) => void
+    onCloseAutoFocus?: (event: Event) => void
     children: Snippet
     footer?: Snippet
   } = $props()
@@ -47,6 +49,7 @@
     />
     <Dialog.Content
       {onOpenAutoFocus}
+      {onCloseAutoFocus}
       escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}
       interactOutsideBehavior="ignore"
       class={cn(

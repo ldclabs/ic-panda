@@ -86,7 +86,7 @@
           <div class="grid gap-2 bg-surface-2 px-4 py-3 text-[12.5px]" data-testid="vault-version-detail">
             <b class="font-semibold">{shown.item.title}</b>
             {#each sections(shown.item.fields.filter((f: any) => f.value)) as section (section.title)}
-              {#if section.title}<div class="text-[11.5px] font-medium text-faint uppercase">{section.title}</div>{/if}
+              {#if section.title}<div class="text-[11.5px] font-medium text-faint [overflow-wrap:anywhere]">{section.title}</div>{/if}
               {#each section.fields as field (field.id)}
                 <div class="grid gap-x-3 @min-[440px]:grid-cols-[112px_1fr]">
                   <span class="text-faint">{fieldName(field, t)}</span>
@@ -94,7 +94,7 @@
                     {#if field.type === 'otp'}
                       <span class="text-faint">••••••</span>
                     {:else}
-                      <SecretField {id} field={field.id} revision={version.revision} {unlocked} copyable={false} />
+                      <SecretField {id} field={field.id} name={fieldName(field, t)} context={shown.item.title} revision={version.revision} {unlocked} copyable={false} />
                     {/if}
                   {:else}
                     <span class="break-all whitespace-pre-wrap">{field.value}</span>

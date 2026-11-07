@@ -15,7 +15,8 @@
   import ItemForm from './ItemForm.svelte'
   import OtpField from './OtpField.svelte'
   import SecretField from './SecretField.svelte'
-  import { fieldName, isManaged, isMultiline, issueLabel, sections, typeIcon, typeLabel, typeOf, type Field } from './vault'
+  import ValueField from './ValueField.svelte'
+  import { fieldName, isManaged, issueLabel, sections, typeIcon, typeLabel, typeOf, type Field } from './vault'
 
   /**
    * One item, opened: its fields by section with their actions beside
@@ -68,15 +69,17 @@
   const editable = $derived(unlocked && !trash && !managed)
 
   async function copyFieldReference(field: Field) {
-    if (copyingReference || !editable || conflict || type === 'wallet' || field.type === 'otp') return
+    if (copyingReference || !editable || conflict || type === 'wallet' || field.type === 'otp') return false
     const id = entry.id, revision = entry.revision
     copyingReference = field.id
     try {
       const result = await call<{ uri: string }>('secrets/ref', { item_id: id, field_id: field.id })
       // A late response must not replace the clipboard after navigation, a lock or a source update.
-      if (alive && editable && !conflict && entry.id === id && entry.revision === revision) await copyText(result.uri)
+      if (alive && editable && !conflict && entry.id === id && entry.revision === revision) return await copyText(result.uri, () => t('fieldReferenceCopied'))
+      return false
     } catch (error) {
       if (alive) toast(() => errorText(error))
+      return false
     } finally {
       if (alive) copyingReference = null
     }
@@ -158,79 +161,47 @@
   }
 </script>
 
-{#snippet copyButton(text: string, label: string)}
-  <Tooltip content={label}>
-    {#snippet children(props)}
-      <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={label} onclick={() => copyText(text)}>
-        <Icon name="copy" />
-      </button>
-    {/snippet}
-  </Tooltip>
-{/snippet}
-
 {#snippet fieldRow(field: Field)}
-  <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[132px_1fr] @min-[440px]:items-start" data-testid="vault-field" data-field={field.id}>
-    <dt class="flex flex-wrap items-center gap-1 pt-2 text-[12px] text-faint @min-[440px]:pt-1.5">
-      <span class="[overflow-wrap:anywhere]">{fieldName(field, t)}</span>
+  {@const name = fieldName(field, t)}
+  {@const reference = field.type !== 'otp' && !managed && type !== 'wallet' && !trash ? () => copyFieldReference(field) : undefined}
+  {@const referenceDisabled = !unlocked || conflict || copyingReference !== null}
+  {@const referenceHint = conflict ? t('conflictItem') : t('fieldReferenceHint')}
+  <div class="grid gap-x-4 gap-y-1 py-2 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start" data-testid="vault-field" data-field={field.id}>
+    <dt class="flex flex-wrap items-center gap-1 text-[12px] text-faint @min-[440px]:pt-1.5">
+      <span class="[overflow-wrap:anywhere]">{name}</span>
       {#each issues?.get(field.id) ?? [] as issue (issue)}
         <span class="rounded bg-warn-pale px-1 text-[10.5px] font-medium text-warn" data-testid="vault-issue">{t(issueLabel[issue] ?? 'warning')}</span>
       {/each}
     </dt>
-    <dd class="flex min-w-0 items-start gap-1.5">
+    <dd class="flex min-w-0 items-start">
       {#if field.type === 'concealed'}
         {#key entry.revision}
-          <SecretField id={entry.id} field={field.id} unlocked={unlocked && !trash} />
+          <SecretField id={entry.id} field={field.id} {name} context={item.title} unlocked={unlocked && !trash} {reference} {referenceDisabled} {referenceHint} />
         {/key}
       {:else if field.type === 'otp'}
         {#if unlocked && !trash}
-          {#key entry.revision}
-            <OtpField id={entry.id} field={field.id} {unlocked} />
-          {/key}
-        {:else}
-          <span class="py-1 font-mono text-faint">••• •••</span>
-        {/if}
-      {:else if field.type === 'url'}
-        <span class="min-w-0 flex-1 truncate py-1 text-forest select-text" dir="ltr" title={field.value}>{field.value}</span>
-        {#if /^https?:\/\//i.test(field.value)}
-          <Tooltip content={t('openWebsite')}>
-            {#snippet children(props)}
-              <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('openWebsite')} onclick={() => open(field.value)} data-testid="vault-open-url">
-                <Icon name="external" />
-              </button>
-            {/snippet}
-          </Tooltip>
-        {/if}
-        {@render copyButton(field.value, t('copy'))}
+          {#key entry.revision}<OtpField id={entry.id} field={field.id} {name} context={item.title} {unlocked} />{/key}
+        {:else}<span class="py-1 font-mono text-faint">••• •••</span>{/if}
       {:else}
-        <span
-          class={cn(
-            'min-w-0 flex-1 py-1 select-text [overflow-wrap:anywhere]',
-            isMultiline(field) ? 'max-h-64 overflow-auto whitespace-pre-wrap' : 'truncate',
-            ['public_key', 'fingerprint'].includes(field.id) && 'font-mono text-[12px] break-all'
-          )}
-          dir={field.type === 'email' || field.type === 'phone' ? 'ltr' : undefined}
-        >
-          {formatted(field)}
-        </span>
-        {@render copyButton(field.value, field.id === 'username' ? t('copyUsername') : t('copy'))}
+        <ValueField {field} {name} context={item.title} identity={`${entry.id}:${entry.revision}:${field.id}`} formatted={formatted(field)} {unlocked}
+          {reference} {referenceDisabled} {referenceHint}
+          openWebsite={field.type === 'url' && /^https?:\/\//i.test(field.value) ? () => open(field.value) : undefined} />
       {/if}
     </dd>
-    {#if field.type !== 'otp' && !managed && type !== 'wallet' && !trash}
-      <dd class="@min-[440px]:col-start-2">
-        <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || conflict || copyingReference !== null} title={conflict ? t('conflictItem') : t('fieldReferenceHint')} onclick={() => copyFieldReference(field)} data-testid="vault-copy-field-reference"><Icon name="link" />{t('copyFieldReference')}</button>
-      </dd>
-    {/if}
   </div>
 {/snippet}
 
 <section class="@container flex h-full min-w-0 flex-col" aria-label={item.title} data-testid="vault-inspector">
   <header class="flex flex-wrap items-start gap-3 px-6 pt-5 pb-4">
-    <div class="flex min-w-[min(100%,15rem)] flex-1 items-start gap-3">
+    <div class="flex min-w-[min(100%,12rem)] flex-1 items-start gap-3">
       <span class="grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5">
         <Icon name={typeIcon[type]} />
       </span>
       <div class="min-w-0 flex-1">
-        <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
+        <div class="flex min-w-0 items-start gap-1.5">
+          <h2 class="min-w-0 text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
+          {#if item.favorite}<span class="pt-0.5 text-gem" title={t('starred')}><Icon name="starred" class="size-4" /></span>{/if}
+        </div>
         <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-faint">
           <span>{t(typeLabel[type])}</span>
           {#if managed}<span class="rounded-md bg-pale px-1.5 py-px text-[11.5px] text-forest" data-testid="vault-managed">{t('managedByDmsg')}</span>{/if}
@@ -247,21 +218,6 @@
             <Icon name="restore" />{t('restore')}
           </button>
         {:else if !managed}
-          <Tooltip content={item.favorite ? t('unstar') : t('star')}>
-            {#snippet children(props)}
-              <button
-                {...props}
-                class={iconButtonClass('ghost', 'md', cn(item.favorite && 'text-gem hover:not-disabled:text-gem'))}
-                aria-label={item.favorite ? t('unstar') : t('star')}
-                aria-pressed={item.favorite}
-                disabled={busy}
-                onclick={star}
-                data-testid="vault-star"
-              >
-                <Icon name={item.favorite ? 'starred' : 'star'} />
-              </button>
-            {/snippet}
-          </Tooltip>
           <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={startEdit} data-testid="vault-edit-open">
             <Icon name="edit" />{t('edit')}
           </button>
@@ -277,6 +233,11 @@
             </Tooltip>
             <DropdownMenu.Portal>
               <DropdownMenu.Content align="end" sideOffset={6} class={cn(menuContentClass, 'min-w-48')} data-testid="vault-more-menu">
+                {#if !managed}
+                  <DropdownMenu.Item class={menuItemClass} disabled={busy} onSelect={star} data-testid="vault-star">
+                    <span class="flex items-center gap-2"><Icon name={item.favorite ? 'starred' : 'star'} class="text-faint" />{item.favorite ? t('unstar') : t('star')}</span>
+                  </DropdownMenu.Item>
+                {/if}
                 <DropdownMenu.Item class={menuItemClass} onSelect={() => (history = !history)} data-testid="vault-history-open">
                   <span class="flex items-center gap-2"><Icon name="history" class="text-faint" />{t('history')}</span>
                 </DropdownMenu.Item>
@@ -331,7 +292,7 @@
       />
     {:else}
       {#each sections(shownFields) as section (section.title)}
-        {#if section.title}<h3 class="mt-3 mb-1 text-[11.5px] font-semibold tracking-wide text-faint uppercase">{section.title}</h3>{/if}
+        {#if section.title}<h3 class="mt-3 mb-1 text-[11.5px] font-medium text-faint [overflow-wrap:anywhere]">{section.title}</h3>{/if}
         <dl class={cn('grid gap-1', !section.title && 'mb-3')} data-testid="vault-detail">
           {#each section.fields as field (field.id)}
             {@render fieldRow(field)}
