@@ -6,6 +6,32 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.4.1] - 2026-11-07
+
+### Vault
+
+- Keep field values selectable with a direct copy button; use the field menu
+  or right-click for large-type viewing, website opening and field references.
+  Hide empty fields while reading and keep long values and translated labels
+  usable in narrow windows.
+- Read long values in a scrollable large-type view. Secret values retain the
+  two-click reveal and original one-minute deadline; closing the view clears
+  them. Refreshing the same version preserves the open view.
+- Keep copy feedback visible above dialogs and keyboard focus on one-time
+  codes while they refresh. Clear copied codes when they expire or after
+  30 seconds, whichever comes first, and fetch a fresh code if it expires
+  during copying.
+- Keep vault history in write order when versions share the same timestamp.
+
+### Reminders
+
+- Reconcile reminders on every unlock and prevent delayed message hints from
+  reopening already-read messages or replacing verified unread counts.
+- Show a message-verification hint and a shortcut to recent reminders instead
+  of an indefinite loading label. Verification status follows the selected
+  account.
+- Suppress expiry reminders for short-lived App Store sandbox subscriptions.
+
 ## [1.4.0] - 2026-11-06
 
 ### Files
@@ -679,6 +705,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.4.1]: https://github.com/ldclabs/ic-panda/compare/1.4.0...1.4.1
 [1.4.0]: https://github.com/ldclabs/ic-panda/compare/1.3.3...1.4.0
 [1.3.3]: https://github.com/ldclabs/ic-panda/compare/1.3.2...1.3.3
 [1.3.2]: https://github.com/ldclabs/ic-panda/compare/1.3.1...1.3.2

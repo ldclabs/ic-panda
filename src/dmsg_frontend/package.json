@@ -88,5 +88,5 @@
     "test": "node --test ../../scripts/signer-heartbeat.test.mjs && vitest run"
   },
   "type": "module",
-  "version": "3.4.10"
+  "version": "3.4.11"
 }
