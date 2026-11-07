@@ -77,10 +77,14 @@ private struct PrivateScreen: ViewModifier {
             }
             .onChange(of: model.noticeHosts.last == noticeHost) { _, active in if active { model.screenBottomInset = bottomInset } }
             .onAppear {
-                model.noticeHosts.removeAll { $0 == noticeHost }; model.noticeHosts.append(noticeHost)
+                // Split views can deliver onAppear again without disappearing.
+                // Re-registering the same host invalidates the root and repeats that cycle.
+                if !model.noticeHosts.contains(noticeHost) { model.noticeHosts.append(noticeHost) }
                 model.activity()
             }
-            .onDisappear { model.noticeHosts.removeAll { $0 == noticeHost } }
+            .onDisappear {
+                if model.noticeHosts.contains(noticeHost) { model.noticeHosts.removeAll { $0 == noticeHost } }
+            }
     }
 }
 

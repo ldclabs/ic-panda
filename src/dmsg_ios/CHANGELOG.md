@@ -43,6 +43,9 @@ tracked separately. Build and device-test evidence is recorded in
 
 ### Everyday use
 
+- Fix an iPad freeze when switching workspace tabs or opening account pages.
+  Transient presentation updates no longer rebuild workspace navigation, and
+  visible screens register their feedback host only once.
 - Align Vault, Files and Messages tabs and toolbars, remember the last workspace
   tab and restore navigation after locking. Put reminders in one activity menu
   and unread counts on Messages; open the Vault list initially on iPad.

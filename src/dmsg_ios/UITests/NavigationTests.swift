@@ -341,6 +341,28 @@ final class SecretNavigationTests: NavigationTestCase {
 }
 
 final class AccountNavigationTests: NavigationTestCase {
+    func testIPadAccountStaysResponsiveAcrossWorkspaceTabs() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-store-screenshots", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        guard app.frame.width > 700 else { throw XCTSkip("Requires a regular-width iPad") }
+        for _ in 0..<3 {
+            tab(app, symbol: "Glyph-folder", title: "Files").tap()
+            XCTAssertTrue(app.buttons["files.scope.local"].waitForExistence(timeout: 5))
+            tab(app, symbol: "Glyph-account", title: "Account").tap()
+            let security = linkOrButton(app, "account.security")
+            if !security.isHittable, app.buttons["ToggleSidebar"].exists { app.buttons["ToggleSidebar"].tap() }
+            XCTAssertTrue(security.waitForExistence(timeout: 5))
+            XCTAssertTrue(security.isHittable)
+            security.tap()
+            XCTAssertTrue(linkOrButton(app, "security.recovery").waitForExistence(timeout: 5))
+            tab(app, symbol: "Glyph-vault", title: "Vault").tap()
+            XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 5))
+        }
+        capture(app, name: "iPad account navigation remains responsive")
+    }
+
     func testHardwarePageDoesNotInventAvailabilityWithoutCoreData() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]

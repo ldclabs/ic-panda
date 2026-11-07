@@ -2120,3 +2120,58 @@ The full UI suite, the Swift unit tests, copying from a row's context menu, othe
 simulators and physical devices were not run.
 
 Implementation and validation: Claude Opus 5.5 <noreply@anthropic.com>.
+
+
+## 2026-11-07 iPad presentation feedback loop and App Store preparation
+
+App Store screenshot capture reproduced a UI hang on iPadOS 18.4 when moving
+from Files to Account, opening its sidebar, or entering an account page.
+SwiftUI body-change logging showed repeated `noticeHosts` invalidations of
+`RootView`, followed by regenerated workspace selection bindings. A main-thread
+sample stayed in SwiftUI/AttributeGraph updates.
+
+`WorkspaceOverlays` now owns transient presentation and geometry observation,
+so changing the active feedback host does not rebuild the workspace navigation.
+`PrivateScreen` registers/unregisters a host only when membership actually
+changes. The existing iPad split layout is retained. Temporary diagnostics were
+removed. The regression test repeats Files → Account → Account security → Vault
+three times; the existing copy-feedback test checks a single visible notice.
+
+Final simulator verification (122 test executions, all passed):
+
+| Device / runtime | Checks | Result bundle |
+| --- | --- | --- |
+| iPhone 16 Pro / iOS 18.4 | 111: unit tests plus copy feedback, lock hiding content and notification draft preservation | `.build/WorkspaceOverlays-iPhone.xcresult` |
+| iPad Pro 11-inch M4 / iOS 18.4 | 2: repeated account navigation and copy feedback | `.build/WorkspaceOverlays18.xcresult` |
+| iPad Pro 13-inch M4 / iOS 18.4 | 3: repeated account navigation and both screenshot languages | `.build/WorkspaceOverlays18-original-device.xcresult` |
+| iPad Pro 13-inch M5 / iOS 27.0 | 4: repeated account navigation, copy feedback and both screenshot languages | `.build/WorkspaceOverlays27.xcresult` |
+| iPad Pro 13-inch M5 / iOS 27.0 | 2: final screenshots, waiting for the account lock toolbar before capture | `.build/Store110-final-toolbar.xcresult` |
+
+The `WorkspaceOverlays27` tool call exceeded its 300-second response window; the completed Xcode
+log reports `TEST EXECUTE SUCCEEDED` and the result bundle reports 4 passed,
+0 failed, 0 skipped. Earlier diagnostic/candidate bundles are not passing
+verification evidence.
+
+`python3 scripts/ios/localizations.py` verified all 23 languages. No Rust source
+changed; the Rust test/clippy suite and the complete iOS UI suite were not rerun.
+No physical-device or production-account end-to-end test was performed here.
+
+`AppStoreScreenshotTests` captures the real UI with the existing in-memory,
+DEBUG-only store fixtures. The fixtures now include backup receipts matching
+their displayed backed-up status. Original PNGs are kept locally under
+`misc/dmsg-ios-appstore-1.1.0-20261107`, with language/device folders and a
+SHA-256 manifest. The App Store selection contains five images per iPhone size
+and two per iPad language. Release notes are derived from `CHANGELOG.md`.
+
+Build 15 retains version 1.1.0 and disables in-app purchases.
+
+Release archive and signed IPA export succeeded for 1.1.0 (15). The main app
+and all five extensions have build 15. The exported main Info.plist retains
+production APNs/App Attest, `DMsgUseStaging=NO` and
+`DMsgInAppPurchasesEnabled=NO`. Xcode confirmed upload success at
+2026-11-07 11:57 (UTC+8); the App Store Connect build then entered processing.
+
+App Store Connect accepted the 24 localized screenshots after one stalled
+English medium-size image was re-uploaded. Version 1.1.0 (15) was submitted
+on 2026-11-07; the verified status is Waiting for Review. The submission contains
+only this app version, with manual release retained and no in-app purchases.

@@ -228,9 +228,9 @@ extension SessionModel {
             ChannelItem(id: "fixture-personal", name: text("Personal notes", "个人笔记"), unread: 0, draft: "", preview: text("Ideas for next week", "下周的想法")),
         ]
         library = LibraryListing(folder: nil, folders: [], files: [
-            LibraryFile(id: "fixture-brief", name: text("Project brief.pdf", "项目简介.pdf"), mime: "application/pdf", size: 245_760, current: "1", sha256: "", status: "backed_up", versions: 1),
+            LibraryFile(id: "fixture-brief", name: text("Project brief.pdf", "项目简介.pdf"), mime: "application/pdf", size: 245_760, current: "1", sha256: "", status: "backed_up", versions: 1, backup: FileBackupReceipt(uploadId: "fixture-brief-backup", verified: true, backedUpAt: 1_793_534_400_000)),
             LibraryFile(id: "fixture-notes", name: text("Research notes.md", "研究笔记.md"), mime: "text/markdown", size: 8192, current: "1", sha256: "", status: "local", versions: 1),
-            LibraryFile(id: "fixture-image", name: text("Design reference.png", "设计参考.png"), mime: "image/png", size: 1_572_864, current: "1", sha256: "", status: "backed_up", versions: 1),
+            LibraryFile(id: "fixture-image", name: text("Design reference.png", "设计参考.png"), mime: "image/png", size: 1_572_864, current: "1", sha256: "", status: "backed_up", versions: 1, backup: FileBackupReceipt(uploadId: "fixture-image-backup", verified: true, backedUpAt: 1_793_534_400_000)),
         ])
     }
 }

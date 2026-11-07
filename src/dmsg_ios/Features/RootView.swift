@@ -5,36 +5,71 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showApprovals = false
     @State private var showIncoming = false
-    @State private var rootBottomInset: CGFloat = 0
-    /// Toasts sit just above whatever the active screen keeps at its bottom.
-    private var bottomInset: CGFloat { (model.noticeHosts.isEmpty ? rootBottomInset : model.screenBottomInset) + 8 }
     private var unreadMessages: Int { model.channels.reduce(0) { $0 + ($1.muted ? 0 : Int(clamping: $1.unread)) } }
 
     var body: some View {
         @Bindable var model = model
         @Bindable var connect = ConnectNavigation.shared
         @Bindable var channelNavigation = ChannelNavigation.shared
+        VStack(spacing: 0) {
+            if model.environment == "staging" {
+                Text("Test environment · Separate accounts and test purchases").font(.caption.weight(.semibold)).padding(8).frame(maxWidth: .infinity).background(.orange.opacity(0.12))
+            }
+            Group {
+                if model.unlocked {
+                    TabView(selection: $model.selectedTab) {
+                        VaultView().tabItem { Label(AppTab.vault.title, glyph: AppTab.vault.icon) }.tag(AppTab.vault)
+                        MessagesView().tabItem { Label(AppTab.messages.title, glyph: AppTab.messages.icon) }.tag(AppTab.messages).badge(unreadMessages)
+                        FilesView().tabItem { Label(AppTab.files.title, glyph: AppTab.files.icon) }.tag(AppTab.files)
+                        AccountWorkspace().tabItem { Label(AppTab.account.title, glyph: AppTab.account.icon) }.tag(AppTab.account)
+                    }
+                    .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refreshSelectedTab() } }
+                    .environment(\.openApprovals, { showApprovals = true })
+                    .sheet(isPresented: $showApprovals) { NavigationStack { ApprovalsView(showsDone: true) } }
+                    .id(model.viewGeneration)
+                } else if model.session?.state == "moved" { NavigationStack { MovedView() } }
+                else { NavigationStack { AccessView() } }
+            }.frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .modifier(WorkspaceOverlays())
+        .background(TouchActivityProbe { model.activity() })
+        .sheet(item: $connect.pending) { link in NavigationStack { ConnectLandingView(link: link) } }
+        .sheet(item: $model.reminderEntry) { entry in NavigationStack { RemindersView(entry: entry) } }
+        .sheet(item: Binding(get: { model.unlocked ? channelNavigation.pending : nil }, set: { if model.unlocked { channelNavigation.pending = $0 } })) { invitation in
+            NavigationStack { ConversationSetupView(invitation: invitation.value) { _ in model.selectedTab = .messages } }
+        }
+        .onChange(of: connect.pending) { _, _ in showApprovals = false; showIncoming = false }
+        .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView() }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
+        .task { routeIntent() }
+        .onChange(of: IntentNavigation.shared.destination) { _, _ in routeIntent() }
+        .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent(); model.announceIncomingShares() } }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { model.announceIncomingShares() } }
+        .onChange(of: model.incomingSharesArrived) { _, _ in showIncoming = true }
+        .onChange(of: model.epoch) { _, _ in showApprovals = false; showIncoming = false }
+    }
+    private func routeIntent() {
+        guard model.unlocked, let destination = IntentNavigation.shared.destination else { return }
+        IntentNavigation.shared.destination = nil
+        switch destination {
+        case .vault: model.selectedTab = .vault
+        case .messages: model.selectedTab = .messages
+        case .files: model.selectedTab = .files
+        case .approvals: model.selectedTab = .account; showApprovals = true
+        case .imports: model.selectedTab = .files; showIncoming = true
+        }
+    }
+
+}
+
+/// Keep transient presentation state from rebuilding the workspace's navigation bindings.
+private struct WorkspaceOverlays: ViewModifier {
+    @Environment(SessionModel.self) private var model
+    @State private var rootBottomInset: CGFloat = 0
+    private var bottomInset: CGFloat { (model.noticeHosts.isEmpty ? rootBottomInset : model.screenBottomInset) + 8 }
+
+    func body(content: Content) -> some View {
         ZStack {
-            VStack(spacing: 0) {
-                if model.environment == "staging" {
-                    Text("Test environment · Separate accounts and test purchases").font(.caption.weight(.semibold)).padding(8).frame(maxWidth: .infinity).background(.orange.opacity(0.12))
-                }
-                Group {
-                    if model.unlocked {
-                        TabView(selection: $model.selectedTab) {
-                            VaultView().tabItem { Label(AppTab.vault.title, glyph: AppTab.vault.icon) }.tag(AppTab.vault)
-                            MessagesView().tabItem { Label(AppTab.messages.title, glyph: AppTab.messages.icon) }.tag(AppTab.messages).badge(unreadMessages)
-                            FilesView().tabItem { Label(AppTab.files.title, glyph: AppTab.files.icon) }.tag(AppTab.files)
-                            AccountWorkspace().tabItem { Label(AppTab.account.title, glyph: AppTab.account.icon) }.tag(AppTab.account)
-                        }
-                        .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refreshSelectedTab() } }
-                        .environment(\.openApprovals, { showApprovals = true })
-                        .sheet(isPresented: $showApprovals) { NavigationStack { ApprovalsView(showsDone: true) } }
-                        .id(model.viewGeneration)
-                    } else if model.session?.state == "moved" { NavigationStack { MovedView() } }
-                    else { NavigationStack { AccessView() } }
-                }.frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-            }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            content
             if let plan = model.notifications.presented, !model.concealed {
                 VStack {
                     Spacer()
@@ -64,33 +99,7 @@ struct RootView: View {
             }.ignoresSafeArea(.all, edges: .bottom)
         }
         .workspaceAlert(presenting: model.noticeHosts.isEmpty)
-        .background(TouchActivityProbe { model.activity() })
-        .sheet(item: $connect.pending) { link in NavigationStack { ConnectLandingView(link: link) } }
-        .sheet(item: $model.reminderEntry) { entry in NavigationStack { RemindersView(entry: entry) } }
-        .sheet(item: Binding(get: { model.unlocked ? channelNavigation.pending : nil }, set: { if model.unlocked { channelNavigation.pending = $0 } })) { invitation in
-            NavigationStack { ConversationSetupView(invitation: invitation.value) { _ in model.selectedTab = .messages } }
-        }
-        .onChange(of: connect.pending) { _, _ in showApprovals = false; showIncoming = false }
-        .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView() }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
-        .task { routeIntent() }
-        .onChange(of: IntentNavigation.shared.destination) { _, _ in routeIntent() }
-        .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent(); model.announceIncomingShares() } }
-        .onChange(of: scenePhase) { _, phase in if phase == .active { model.announceIncomingShares() } }
-        .onChange(of: model.incomingSharesArrived) { _, _ in showIncoming = true }
-        .onChange(of: model.epoch) { _, _ in showApprovals = false; showIncoming = false }
     }
-    private func routeIntent() {
-        guard model.unlocked, let destination = IntentNavigation.shared.destination else { return }
-        IntentNavigation.shared.destination = nil
-        switch destination {
-        case .vault: model.selectedTab = .vault
-        case .messages: model.selectedTab = .messages
-        case .files: model.selectedTab = .files
-        case .approvals: model.selectedTab = .account; showApprovals = true
-        case .imports: model.selectedTab = .files; showIncoming = true
-        }
-    }
-
 }
 
 /// On a wide screen the account's pages open beside its list.
