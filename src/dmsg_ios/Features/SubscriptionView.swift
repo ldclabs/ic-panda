@@ -83,7 +83,7 @@ struct SubscriptionView: View {
                     productRows(model.purchases.products.filter { $0.type == .autoRenewable })
                     if let term = plan?.current, term.method != "AppStore", model.purchases.storeEnvironment != "Sandbox" {
                         NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
-                    } else if plan?.current == nil {
+                    } else if plan?.current == nil, model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
                     if model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }

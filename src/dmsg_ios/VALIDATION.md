@@ -2228,3 +2228,35 @@ Real TestFlight purchases, Apple renewals/refunds and callbacks, physical-device
 App Attest, the full simulator UI matrix and production rollout remain unverified.
 
 Implementation and validation: Codex (OpenAI).
+
+## 2026-11-07 Review of the Sandbox subscription change
+
+Review of `df85b8cd` fixed four defects. A Sandbox term raised a plan-expiry
+alert for every renewal, because it always ends within a day and each renewal is
+a new contract; Sandbox terms now raise none. TestFlight listed storage packs it
+can never sell, with a hint implying a subscription would unlock them; Sandbox
+now loads annual subscriptions only and the hint needs a storage product. A legacy
+contract without its stored transaction now fails as `INTEGRITY_FAILED` instead of
+reading as an absent subject. Contracts with the same start again keep the later
+delivery in force, matching the client's choice.
+
+Actual local verification:
+
+- `cargo test --locked --no-fail-fast -p dmsg_commerce -p dmsg_client -p dmsg_mobile --lib`:
+  48 commerce, 593 client and 27 mobile tests passed; 2 commerce and 5 client tests
+  remain ignored. An earlier run failed once in
+  `vault::tests::history_shows_and_reverts_versions`, which this change does not
+  touch; it passed five isolated reruns and the full rerun.
+- `cargo test --locked -p dmsg_types -p dmsg_protocol`: 130 tests passed. Strict Clippy
+  passed for types, client, mobile and commerce; commerce vectors, the integration SDK
+  check and `dmsg_commerce.did` are unchanged.
+- Three App Store PocketIC tests passed, the legacy one against a commerce Wasm built
+  from `67bb7857`. The commerce/governance selection passed 59 and ignored 9.
+- Debug native libraries were rebuilt and `scripts/ios/artifacts.py verify` passed.
+  iPhone 16 Pro / iOS 18.4: `DeploymentTests` (4) and
+  `testSandboxSubscriptionNoticeInChinese` passed.
+
+The purchase flag stays disabled, so the storage-pack change was compiled but not
+seen on screen. No real Apple purchase, full simulator UI matrix or deployment was run.
+
+Review and validation: Claude (Anthropic).

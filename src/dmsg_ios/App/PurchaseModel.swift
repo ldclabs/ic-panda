@@ -38,7 +38,8 @@ final class PurchaseModel {
                   let token = UUID(uuidString: catalogue.accountToken) else { throw CocoaError(.coderInvalidValue) }
             let found = try await Product.products(for: config.products.map(\.productId))
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            self.token = token; products = found.sorted { $0.price < $1.price }
+            // Sandbox admits annual subscriptions only; commerce refuses its storage packs.
+            self.token = token; products = found.filter { environment != "Sandbox" || $0.type == .autoRenewable }.sorted { $0.price < $1.price }
         } catch { if epoch == model.epoch, reportErrors { model.report(error) } }
     }
 
@@ -107,6 +108,7 @@ final class PurchaseModel {
         // Apple payment is finished only after the authoritative service applied it.
         await transaction.finish(); pending = false; revision &+= 1; await model.updateSession()
     }
+
     static func environmentName(_ value: AppStore.Environment) -> String? {
         switch value {
         case .production: return "Production"
@@ -121,5 +123,4 @@ final class PurchaseModel {
             throw MobileError.Failure(code: "PURCHASE_PENDING")
         }
     }
-
 }

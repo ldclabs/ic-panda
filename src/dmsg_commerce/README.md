@@ -506,6 +506,8 @@ icp canister start dmsg_commerce -e ic
 
 Commerce/governance 扩展回归首轮 56 项通过，3 项因未构建 `dmsg_account_product.wasm` 无法执行；补建测试组件后这 3 项全部通过，合计 59 项通过。9 项按默认配置忽略，其中上述旧版 App Store 升级已单独显式运行；容量 profile 未运行。正式现金/PANDA 流程及首次现金退款窗口保留。未连接真实 Apple、主网资产或线上服务；客户端检查详见 iOS `VALIDATION.md`。
 
+同日审查修复后：commerce 单元测试 48 项通过、2 项忽略；App Store PocketIC 三项（含以 `67bb7857` 旧 Wasm 运行的升级）通过；commerce/governance 选择 59 项通过、9 项忽略；`.did` 与重新构建的 Wasm 一致。容量 profile 未运行。
+
 单独运行旧版本升级检查时，先用独立 `CARGO_TARGET_DIR` 构建旧 commerce，避免覆盖当前 Wasm，再指定：
 
 ```sh

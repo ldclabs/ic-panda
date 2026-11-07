@@ -37,7 +37,7 @@ production commerce 的主环境仍为 Production，治理字段 `accept_sandbox
 会员合同的 `AppStore.environment` 是可选字段；旧记录从已持久化的原交易补全。正式合同优先于
 Sandbox，只有无正式合同生效时采用 Sandbox；两者不累加。升级只替换同环境合同，交易与原订阅
 身份均包含环境。期限采用 Apple 实际 expiresDate，月账沿用同一 UTC 自然月计量，不因测试续订清零。
-客户端 `current.store_environment` 用于标明测试订阅；价格继续来自 StoreKit，账号 token 的算法不变。
+客户端 `current.store_environment` 用于标明测试订阅，Sandbox 合同不产生会员到期提醒；价格继续来自 StoreKit，账号 token 的算法不变。
 配置与本地测试通过不代表已经部署或完成 Apple 真机验收。
 
 应用 SKU dmsg-ios、Apple ID 6827050680、bundle net.dmsg.ios 与商品 ID 是不同标识。实际年度套餐及存储包 ID 必须由 App Store Connect 创建，并与商业配置对应。

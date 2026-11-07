@@ -40,9 +40,9 @@ impl Subject {
     }
 
     pub fn active(&self, at: u64) -> Option<&MembershipContract> {
+        // On a tie `max_by_key` keeps the last, so the later delivery stays in force.
         self.contracts
             .iter()
-            .rev()
             .filter(|c| c.starts_at_ms <= at && at < end(c))
             .max_by_key(|c| (!c.source.is_sandbox(), c.starts_at_ms))
     }
@@ -60,7 +60,7 @@ pub const CASH_LEASE_MS: u64 = 30 * DAY;
 pub const REFUNDABLE_LEASE_MS: u64 = 60 * MINUTE;
 
 /// The subject's first cash base contract while its unused time can still be
-/// refunded: its only base contract ever, started, not ended, within
+/// refunded: its only formal base contract ever, started, not ended, within
 /// [`CASH_REFUND_WINDOW_MS`] of its start. An upgrade or a renewal adds a
 /// second contract and closes the window.
 pub fn refund_window(s: &Subject, at: u64) -> Option<RefundWindow> {
@@ -473,6 +473,16 @@ mod tests {
             qualified_until_ms: end,
         });
         s
+    }
+
+    #[test]
+    fn contracts_with_the_same_start_keep_the_later_delivery_in_force() {
+        let (start, end) = month_bounds(202609).unwrap();
+        let mut s = subject(start, end);
+        let mut later = s.contracts[0].clone();
+        later.contract_id = Hash::new([5; 32]);
+        s.contracts.push(later);
+        assert_eq!(s.active(start + 1).unwrap().contract_id, Hash::new([5; 32]));
     }
 
     #[test]

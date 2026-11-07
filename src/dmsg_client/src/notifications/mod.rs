@@ -732,9 +732,12 @@ impl crate::Client {
         };
         let current = &status["current"];
         let revision = status["notification_revision"].as_u64().unwrap_or(1).max(1);
-        let active = current["contract"]
-            .as_str()
-            .filter(|_| status["next"].is_null() && current["terminated_at_ms"].is_null());
+        // Sandbox terms last hours and renew as new contracts, so each would alert at once.
+        let active = current["contract"].as_str().filter(|_| {
+            status["next"].is_null()
+                && current["terminated_at_ms"].is_null()
+                && current["store_environment"] != "Sandbox"
+        });
         for mut item in self.workspace.store.notification_items()? {
             if let Target::Plan(id) = &item.target
                 && Some(id.as_str()) != active

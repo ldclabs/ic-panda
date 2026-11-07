@@ -224,8 +224,10 @@ pub fn load(b: &Beneficiary) -> Result<Subject> {
         } = &mut contract.source
             && environment.is_none()
         {
+            // NotFound would read as "no subject" and let a fresh record replace this one.
             *environment = Some(
-                crate::app_store::transaction_environment(transaction_id).ok_or(Error::NotFound)?,
+                crate::app_store::transaction_environment(transaction_id)
+                    .ok_or(Error::IntegrityFailed)?,
             );
         }
     }

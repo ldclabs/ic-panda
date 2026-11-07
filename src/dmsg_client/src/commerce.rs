@@ -914,10 +914,10 @@ fn contract_view(c: &MembershipContract) -> Json {
     })
 }
 
-/// The base contract in force now: the newest one that has started, as
-/// commerce's own projection picks it. An early refund keeps its contract
-/// until the lease it already issued runs out, so a purchase made after it
-/// is the one in force.
+/// The base contract in force now: the newest formal one that has started,
+/// else the newest Sandbox one, as commerce's own projection picks it. An early
+/// refund keeps its contract until the lease it already issued runs out, so a
+/// purchase made after it is the one in force.
 fn in_force<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a MembershipContract> {
     live.iter()
         .filter(|c| c.starts_at_ms <= now)

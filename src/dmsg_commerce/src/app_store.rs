@@ -495,6 +495,9 @@ mod tests {
                 .source
                 .is_sandbox()
         );
+        // A missing fact must not look like an absent subject, which would be replaced.
+        TRANSACTIONS.with_borrow_mut(|m| m.delete(id.as_slice()));
+        assert_eq!(store::load(&t.beneficiary), Err(Error::IntegrityFailed));
     }
 
     #[test]

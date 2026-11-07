@@ -715,6 +715,36 @@ fn notifications_verified_contract_claims_only_its_legacy_phase() {
 }
 
 #[test]
+fn notifications_sandbox_term_never_raises_a_plan_expiry() {
+    let dir = crate::testing::TempDir::new();
+    let client = crate::testing::unlocked(&dir.0, false, None);
+    let plans = || {
+        client
+            .workspace
+            .store
+            .notification_items()
+            .unwrap()
+            .into_iter()
+            .filter(|item| matches!(item.target, Target::Plan(_)) && item.open)
+            .count()
+    };
+    let status = |environment: &str| {
+        serde_json::json!({
+            "current":{"contract":"a1".repeat(32),"ends_at_ms":100_000,"terminated_at_ms":null,"store_environment":environment},
+            "next":null
+        })
+    };
+    client
+        .project_plan_notification(&status("Sandbox"), 1_000)
+        .unwrap();
+    assert_eq!(plans(), 0);
+    client
+        .project_plan_notification(&status("Production"), 1_000)
+        .unwrap();
+    assert_eq!(plans(), 1);
+}
+
+#[test]
 fn notifications_recent_limit_and_clear_never_hide_unfinished_work() {
     let store = Store::memory().unwrap();
     for index in 1..=1001 {
