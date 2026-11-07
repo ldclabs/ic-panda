@@ -1279,12 +1279,14 @@ impl Store {
             .map_err(storage)
     }
 
+    /// Rows are immutable, so `rowid` keeps the write order within one millisecond,
+    /// where the key's random revision would put versions in an arbitrary order.
     fn select(&self, filter: &str, value: &str) -> Result<Vec<ObjectRow>> {
         let conn = self.conn();
         let mut statement = conn
             .prepare(&format!(
                 "SELECT key, item, revision, kind, frame, state, conflict, resolved, created_at
-                 FROM objects WHERE {filter} ORDER BY created_at, key"
+                 FROM objects WHERE {filter} ORDER BY created_at, rowid"
             ))
             .map_err(storage)?;
         let rows = statement.query_map([value], row).map_err(storage)?;

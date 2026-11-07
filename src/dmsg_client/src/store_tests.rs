@@ -27,6 +27,34 @@ fn a_new_workspace_gives_collected_pages_back() {
 }
 
 #[test]
+fn versions_written_in_the_same_millisecond_keep_their_write_order() {
+    let store = Store::memory().unwrap();
+    // Revisions are random, so the later version can sort first by key.
+    for revision in ["z", "a"] {
+        store
+            .put_object(&ObjectRow {
+                key: format!("item:{revision}"),
+                item: "item".into(),
+                revision: revision.into(),
+                kind: "vault".into(),
+                frame: vec![],
+                state: LOCAL.into(),
+                conflict: false,
+                resolved: false,
+                created_at: 1000,
+            })
+            .unwrap();
+    }
+    let revisions: Vec<String> = store
+        .versions("item")
+        .unwrap()
+        .into_iter()
+        .map(|row| row.revision)
+        .collect();
+    assert_eq!(revisions, ["z", "a"]);
+}
+
+#[test]
 fn sealed_ranges_stop_at_their_prefix() {
     let store = Store::memory().unwrap();
     for key in ["a:", "a:1", "a:2", "a:3", "a;", "ab:1", "b:1"] {
