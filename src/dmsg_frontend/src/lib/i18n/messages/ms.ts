@@ -411,7 +411,7 @@ export default {
   "Version": "Versi",
   "Copied": "Disalin",
   "Copy SHA-256": "Salin SHA-256",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "Perdagangan dMsg merekodkan cincangan ini dengan setiap pembelian. Untuk menyemaknya, muat turun teks bahasa Inggeris dan hitung SHA-256nya:",
+  "To verify this version, download the English text and compute its SHA-256:": "Untuk mengesahkan versi ini, muat turun teks bahasa Inggeris dan kira SHA-256-nya:",
   "Open the English text": "Buka teks bahasa Inggeris",
   "Earlier versions": "Versi terdahulu",
   "This translation is provided for convenience. The English text of version {version} is binding.": "Terjemahan ini disediakan untuk kemudahan. Teks bahasa Inggeris versi {version} adalah terikat.",

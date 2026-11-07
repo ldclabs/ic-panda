@@ -411,7 +411,7 @@ export default {
   "Version": "Versione",
   "Copied": "Copiato",
   "Copy SHA-256": "Copia SHA-256",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "Il commercio dMsg registra questo riepilogo con ogni acquisto. Per verificarlo, scarica il testo in inglese e calcola il suo SHA-256:",
+  "To verify this version, download the English text and compute its SHA-256:": "Per verificare questa versione, scarica il testo inglese e calcolane l’hash SHA-256:",
   "Open the English text": "Apri il testo in inglese",
   "Earlier versions": "Versioni precedenti",
   "This translation is provided for convenience. The English text of version {version} is binding.": "Questa traduzione è fornita per comodità. Fa fede il testo inglese della versione {version}.",

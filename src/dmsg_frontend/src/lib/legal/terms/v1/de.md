@@ -1,10 +1,8 @@
 # dMsg Nutzungsbedingungen
 
-Version 1. Letzte Aktualisierung: 11.10.2026.
+Version 1. Letzte Aktualisierung: 07.11.2026.
 
 Diese Bedingungen regeln Ihre Nutzung von dMsg: der dmsg.net-Website, der alten dMsg-Web-App, der dMsg-Browsererweiterung, dem dMsg-Cloud-Dienst und dem dMsg canisters auf dem Internetcomputer (ICP). „dMsg“, „wir“ und „uns“ bezeichnen das Team, das den dMsg-Dienst unter der Leitung von ICPanda DAO betreibt. „Sie“ bezeichnet die Person oder Organisation, die dMsg verwendet.
-
-Der SHA-256-Digest dieses genauen Textes ist im dMsg-Handel canister registriert. Bei jedem Kauf, den Sie genehmigen, wird die Zusammenfassung der zu diesem Zeitpunkt geltenden Bedingungen aufgezeichnet, sodass jeder überprüfen kann, welcher Text darauf angewendet wurde.
 
 ## 1. Akzeptieren Sie diese Bedingungen
 
@@ -55,6 +53,12 @@ Verbundene Anwendungen werden von ihren eigenen Betreibern ausgeführt. Ihre Lei
 
 ## 7. Pläne und Zahlungen
 
+### 7.1 App-Store-Abonnements
+
+Über den App Store gekaufte Plus-, Pro- und Max-Abonnements laufen ein Jahr und verlängern sich jedes Jahr automatisch, sofern du nicht vor der Verlängerung kündigst. Apple belastet deinen Apple Account. Preis, Währung, Laufzeit und enthaltene Leistungen werden vor der Kaufbestätigung angezeigt. Für Verlängerungen, Preisänderungen und Tarifwechsel gelten die von Apple bereitgestellten Bedingungen und Bestätigungen. Diese App-Store-Regeln gelten, wenn In-App-Käufe verfügbar sind; die Regeln für Wallet-Zahlungen und manuelle Verlängerungen in Abschnitt 7.2 gelten hierfür nicht.
+
+### 7.2 Zahlungen außerhalb des App Store
+
 dMsg bietet einen kostenlosen Plan und kostenpflichtige Pläne an. Die Pläne, Ressourcenlimits und Preise werden im zertifizierten Katalog des dMsg commerce canister veröffentlicht und Ihnen vor der Zahlung angezeigt. Die Preise werden in US-Dollar angegeben.
 
 - Für Barzahlungen werden die an der Kasse aufgeführten Stablecoins verwendet, z. B. ckUSDC. Das Angebot wandelt den US-Dollar-Preis in einen veröffentlichten Abrechnungspreis um und legt den Betrag, das Depotkonto und die Fristen fest. Zahlen Sie vor Ablauf der Frist genau den angegebenen Betrag auf dieses Konto ein.
@@ -65,6 +69,14 @@ dMsg bietet einen kostenlosen Plan und kostenpflichtige Pläne an. Die Pläne, R
 - Ein neuer Katalog wird mindestens 30 Tage vor seinem Inkrafttreten geplant. Eine bestehende Bestellung behält die Bedingungen bei, zu denen sie genehmigt wurde.
 
 ## 8. Stornierungen und Rückerstattungen
+
+### 8.1 App-Store-Abonnements
+
+Du kannst die automatische Verlängerung in den Abonnementeinstellungen deines Apple Accounts verwalten oder kündigen, auch über die Abonnementverwaltung in dMsg. Nach einer Kündigung bleibt der Zugang normalerweise bis zum Ende des bezahlten Zeitraums erhalten; eine Erstattung oder ein Widerruf kann ihn früher beenden. Das Löschen von dMsg oder deines dMsg-Kontos kündigt kein Apple-Abonnement.
+
+Apple bearbeitet App-Store-Abrechnungen und Erstattungsanträge. Beantrage eine Erstattung unter https://reportaproblem.apple.com oder beim Apple Support. Es gelten Apples Regeln und das anwendbare Recht; die Einschränkungen für Wallet-Erstattungen und Ledger-Gebühren in Abschnitt 8.2 gelten nicht für App-Store-Käufe. Wenn ein Kauf in dMsg noch nicht angezeigt wird, stelle ihn mit dem ursprünglichen Apple Account und demselben dMsg-Konto wieder her, statt erneut zu bezahlen.
+
+### 8.2 Zahlungen außerhalb des App Store
 
 - Eine bereits begonnene bezahlte Laufzeit wird nicht erstattet, es sei denn, dies ist in Abschnitt 11 angegeben oder das Gesetz schreibt dies vor.
 - Eine noch nicht begonnene Verlängerung kann storniert werden. Der dafür gezahlte Betrag wird dann zurückerstattet.

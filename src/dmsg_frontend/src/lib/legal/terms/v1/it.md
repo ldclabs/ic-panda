@@ -1,10 +1,8 @@
 # dMsg Termini di servizio
 
-Versione 1. Ultimo aggiornamento: 2026-10-11.
+Versione 1. Ultimo aggiornamento: 2026-11-07.
 
 I presenti termini regolano l'utilizzo di dMsg: il sito Web dmsg.net, l'app Web legacy dMsg, l'estensione del browser dMsg, il servizio cloud dMsg e dMsg canisters sul computer Internet (ICP). "dMsg", "noi" e "ci" indicano il team che gestisce il servizio dMsg sotto la governance di ICPanda DAO. "Tu" indica la persona o l'organizzazione che utilizza dMsg.
-
-Il digest SHA-256 di questo testo esatto è registrato nel commercio dMsg canister. Ogni acquisto che approvi registra il riassunto dei termini in vigore in quel momento, così chiunque può verificare quale testo è applicato ad esso.
 
 ## 1. Accettazione di questi termini
 
@@ -55,6 +53,12 @@ Le applicazioni connesse sono gestite dai propri operatori. I loro servizi, term
 
 ## 7. Piani e pagamenti
 
+### 7.1 Abbonamenti App Store
+
+Plus, Pro e Max acquistati tramite l’App Store sono abbonamenti annuali che si rinnovano automaticamente ogni anno, salvo disdetta prima del rinnovo. Apple addebita il costo al tuo Apple Account. Prezzo, valuta, durata e vantaggi inclusi sono mostrati prima della conferma dell’acquisto. Rinnovi, variazioni di prezzo e cambi di piano seguono le condizioni e le conferme fornite da Apple. Queste regole si applicano quando gli acquisti in-app sono disponibili; le regole sui pagamenti tramite wallet e sui rinnovi manuali della sezione 7.2 non si applicano a questi abbonamenti.
+
+### 7.2 Pagamenti al di fuori dell’App Store
+
 dMsg offre un piano gratuito e piani a pagamento. I piani, i limiti delle risorse e i prezzi sono pubblicati nel catalogo certificato del commercio dMsg canister e mostrati prima del pagamento. I prezzi sono fissati in dollari USA.
 
 - I pagamenti in contanti utilizzano le stablecoin elencate alla cassa, come ckUSDC. La quotazione converte il prezzo in dollari USA in un prezzo di liquidazione pubblicato e fissa l'importo, il conto di deposito e le scadenze. Paga esattamente l'importo indicato su quel conto prima della scadenza.
@@ -65,6 +69,14 @@ dMsg offre un piano gratuito e piani a pagamento. I piani, i limiti delle risors
 - Un nuovo catalogo è previsto almeno 30 giorni prima della sua entrata in vigore. Un ordine esistente mantiene i termini con cui è stato approvato.
 
 ## 8. Cancellazioni e rimborsi
+
+### 8.1 Abbonamenti App Store
+
+Puoi gestire o disattivare il rinnovo automatico nelle impostazioni degli abbonamenti del tuo Apple Account, anche dalla gestione abbonamenti di dMsg. La disdetta normalmente mantiene l’accesso fino alla fine del periodo pagato; un rimborso o una revoca possono terminarlo prima. Eliminare dMsg o il tuo account dMsg non annulla un abbonamento Apple.
+
+Apple gestisce la fatturazione e le richieste di rimborso dell’App Store. Richiedi un rimborso su https://reportaproblem.apple.com o contatta il supporto Apple. Si applicano le regole Apple e la legge vigente; le limitazioni ai rimborsi su wallet e le commissioni del registro nella sezione 8.2 non si applicano agli acquisti App Store. Se un acquisto non compare in dMsg, ripristinalo con l’Apple Account originale e lo stesso account dMsg anziché pagare di nuovo.
+
+### 8.2 Pagamenti al di fuori dell’App Store
 
 - Un periodo retribuito iniziato non viene rimborsato, salvo quanto indicato nella sezione 11 o laddove la legge lo richiede.
 - Un rinnovo non iniziato può essere annullato. L'importo pagato verrà quindi rimborsato.

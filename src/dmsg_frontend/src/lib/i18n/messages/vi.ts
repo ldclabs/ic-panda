@@ -411,7 +411,7 @@ export default {
   "Version": "Phiên bản",
   "Copied": "Đã sao chép",
   "Copy SHA-256": "Sao chép SHA-256",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "Thương mại dMsg ghi lại hàm băm này với mỗi lần mua hàng. Để kiểm tra, hãy tải xuống văn bản tiếng Anh và tính SHA-256 của nó:",
+  "To verify this version, download the English text and compute its SHA-256:": "Để kiểm tra phiên bản này, hãy tải văn bản tiếng Anh và tính SHA-256:",
   "Open the English text": "Mở văn bản tiếng Anh",
   "Earlier versions": "Các phiên bản trước đó",
   "This translation is provided for convenience. The English text of version {version} is binding.": "Bản dịch này được cung cấp để thuận tiện. Văn bản tiếng Anh của phiên bản {version} có tính ràng buộc.",

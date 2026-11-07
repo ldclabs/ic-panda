@@ -1,10 +1,8 @@
 # dMsg Ketentuan Layanan
 
-Versi 1. Terakhir diperbarui: 11-10-2026.
+Versi 1. Terakhir diperbarui: 07-11-2026.
 
 Ketentuan ini mengatur penggunaan Anda atas dMsg: situs web dmsg.net, aplikasi web dMsg lama, ekstensi browser dMsg, layanan cloud dMsg, dan dMsg canisters di Komputer Internet (ICP). "dMsg", "kami" dan "kami" berarti tim yang mengoperasikan layanan dMsg di bawah tata kelola ICPanda DAO. "Anda" berarti orang atau organisasi yang menggunakan dMsg.
-
-Intisari SHA-256 dari teks persis ini terdaftar di perdagangan dMsg canister. Setiap pembelian yang Anda setujui mencatat intisari ketentuan yang berlaku pada saat itu, sehingga siapa pun dapat memeriksa teks mana yang diterapkan pada pembelian tersebut.
 
 ## 1. Menerima persyaratan ini
 
@@ -55,6 +53,12 @@ Aplikasi yang terhubung dijalankan oleh operatornya sendiri. Layanan, syarat dan
 
 ## 7. Paket dan pembayaran
 
+### 7.1 Langganan App Store
+
+Plus, Pro, dan Max yang dibeli melalui App Store adalah langganan satu tahun yang diperpanjang otomatis setiap tahun kecuali Anda membatalkannya sebelum perpanjangan. Apple menagih Akun Apple Anda. Harga, mata uang, periode, dan manfaat ditampilkan sebelum konfirmasi pembelian. Perpanjangan, perubahan harga, dan perubahan paket mengikuti ketentuan dan konfirmasi Apple. Aturan ini berlaku saat pembelian dalam aplikasi tersedia; aturan pembayaran dompet dan perpanjangan manual pada bagian 7.2 tidak berlaku untuk langganan ini.
+
+### 7.2 Pembayaran di luar App Store
+
 dMsg menawarkan paket Gratis dan paket berbayar. Paket, batasan sumber daya, dan harga dipublikasikan dalam katalog bersertifikat perdagangan dMsg canister dan ditampilkan kepada Anda sebelum Anda membayar. Harga ditetapkan dalam dolar AS.
 
 - Pembayaran tunai menggunakan stablecoin yang terdaftar di checkout, seperti ckUSDC. Kutipan tersebut mengubah harga dolar AS pada harga penyelesaian yang dipublikasikan dan menetapkan jumlah, rekening deposito, dan tenggat waktu. Bayar persis jumlah yang dikutip ke rekening itu sebelum batas waktu.
@@ -65,6 +69,14 @@ dMsg menawarkan paket Gratis dan paket berbayar. Paket, batasan sumber daya, dan
 - Katalog baru dijadwalkan setidaknya 30 hari sebelum berlaku. Pesanan yang ada tetap mempertahankan persyaratan yang telah disetujui.
 
 ## 8. Pembatalan dan pengembalian dana
+
+### 8.1 Langganan App Store
+
+Anda dapat mengelola atau membatalkan perpanjangan otomatis di pengaturan langganan Akun Apple, termasuk melalui pengelolaan langganan di dMsg. Pembatalan biasanya mempertahankan akses hingga akhir periode berbayar; pengembalian dana atau pencabutan dapat mengakhirinya lebih awal. Menghapus dMsg atau akun dMsg tidak membatalkan langganan Apple.
+
+Apple menangani penagihan dan permintaan pengembalian dana App Store. Ajukan pengembalian dana di https://reportaproblem.apple.com atau hubungi Dukungan Apple. Kelayakan mengikuti aturan Apple dan hukum yang berlaku; pembatasan pengembalian dana dompet dan biaya buku besar pada bagian 8.2 tidak berlaku untuk pembelian App Store. Jika pembelian belum muncul di dMsg, pulihkan pembelian dengan Akun Apple asli dan akun dMsg yang sama, alih-alih membayar lagi.
+
+### 8.2 Pembayaran di luar App Store
 
 - Jangka waktu pembayaran yang telah dimulai tidak dapat dikembalikan, kecuali sebagaimana dinyatakan dalam bagian 11 atau jika undang-undang mengharuskannya.
 - Perpanjangan yang belum dimulai dapat dibatalkan. Jumlah yang dibayarkan untuk itu kemudian dikembalikan.

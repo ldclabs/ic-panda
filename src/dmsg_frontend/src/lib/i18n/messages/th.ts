@@ -411,7 +411,7 @@ export default {
   "Version": "เวอร์ชัน",
   "Copied": "คัดลอกแล้ว",
   "Copy SHA-256": "คัดลอก SHA-256",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "การค้า dMsg บันทึกแฮชนี้ทุกครั้งที่ซื้อ หากต้องการตรวจสอบ ให้ดาวน์โหลดข้อความภาษาอังกฤษและคำนวณ SHA-256:",
+  "To verify this version, download the English text and compute its SHA-256:": "หากต้องการตรวจสอบเวอร์ชันนี้ ให้ดาวน์โหลดข้อความภาษาอังกฤษแล้วคำนวณค่า SHA-256:",
   "Open the English text": "เปิดข้อความภาษาอังกฤษ",
   "Earlier versions": "รุ่นก่อนหน้านี้",
   "This translation is provided for convenience. The English text of version {version} is binding.": "การแปลนี้จัดทำขึ้นเพื่อความสะดวก ข้อความภาษาอังกฤษของเวอร์ชัน {version} มีผลผูกพัน",

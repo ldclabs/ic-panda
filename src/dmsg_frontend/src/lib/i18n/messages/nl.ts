@@ -411,7 +411,7 @@ export default {
   "Version": "Versie",
   "Copied": "Gekopieerd",
   "Copy SHA-256": "Kopieer SHA-256",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "dMsg commerce registreert deze hash bij elke aankoop. Om dit te controleren, downloadt je de Engelse tekst en berekent je de SHA-256:",
+  "To verify this version, download the English text and compute its SHA-256:": "Download de Engelse tekst en bereken de SHA-256 om deze versie te controleren:",
   "Open the English text": "Open de Engelse tekst",
   "Earlier versions": "Eerdere versies",
   "This translation is provided for convenience. The English text of version {version} is binding.": "Deze vertaling is bedoeld voor het gemak. De Engelse tekst van versie {version} is bindend.",

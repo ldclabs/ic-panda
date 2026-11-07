@@ -1,10 +1,8 @@
 # dMsg Hizmet Şartları
 
-Sürüm 1. Son güncelleme: 2026-10-11.
+Sürüm 1. Son güncelleme: 2026-11-07.
 
 Bu şartlar dMsg kullanımınızı yönetir: dmsg.net web sitesi, eski dMsg web uygulaması, dMsg tarayıcı uzantısı, dMsg bulut hizmeti ve İnternet Bilgisayarındaki dMsg canisters (ICP). "dMsg", "biz" ve "bize", ICPanda DAO yönetimi altında dMsg hizmetini işleten ekip anlamına gelir. "Siz", dMsg kullanan kişi veya kuruluş anlamına gelir.
-
-Bu tam metnin SHA-256 özeti, dMsg ticaret canister'da kayıtlıdır. Onayladığınız her satın alma işlemi, o anda yürürlükte olan şartların özetini kaydeder; böylece herkes, hangi metnin uygulandığını kontrol edebilir.
 
 ## 1. Bu şartları kabul etmek
 
@@ -55,6 +53,12 @@ Bağlantılı uygulamalar kendi operatörleri tarafından çalıştırılır. Hi
 
 ## 7. Planlar ve ödemeler
 
+### 7.1 App Store abonelikleri
+
+App Store üzerinden satın alınan Plus, Pro ve Max, yenilemeden önce iptal etmediğiniz sürece her yıl otomatik yenilenen bir yıllık aboneliklerdir. Apple, Apple Hesabınızdan ücret alır. Fiyat, para birimi, süre ve dahil olan haklar satın alma onayından önce gösterilir. Yenilemeler, fiyat ve plan değişiklikleri Apple'ın sunduğu koşullara ve onaylara tabidir. Bu kurallar uygulama içi satın alma sunulduğunda geçerlidir; bölüm 7.2'deki cüzdan ödemesi ve manuel yenileme kuralları bu aboneliklere uygulanmaz.
+
+### 7.2 App Store dışındaki ödemeler
+
 dMsg Ücretsiz plan ve ücretli planlar sunar. Planlar, kaynak limitleri ve fiyatlar, dMsg ticari canister sertifikalı kataloğunda yayınlanır ve ödeme yapmadan önce size gösterilir. Fiyatlar ABD doları cinsinden belirlenmektedir.
 
 - Nakit ödemelerde ödeme sırasında listelenen ckUSDC gibi sabit paralar kullanılır. Teklif, ABD doları fiyatını yayınlanmış bir uzlaşma fiyatına dönüştürür ve tutarı, mevduat hesabını ve son teslim tarihlerini sabitler. Belirtilen tutarı son tarihten önce o hesaba tam olarak ödeyin.
@@ -65,6 +69,14 @@ dMsg Ücretsiz plan ve ücretli planlar sunar. Planlar, kaynak limitleri ve fiya
 - Yeni kataloğun yürürlüğe girmesinden en az 30 gün önce planlanır. Mevcut bir sipariş, onaylandığı şartları korur.
 
 ## 8. İptaller ve para iadeleri
+
+### 8.1 App Store abonelikleri
+
+Otomatik yenilemeyi Apple Hesabınızın abonelik ayarlarından veya dMsg'deki abonelik yönetiminden yönetebilir ya da iptal edebilirsiniz. İptal genellikle ödenen dönemin sonuna kadar erişimi korur; iade veya hakların geri alınması erişimi daha erken sonlandırabilir. dMsg'yi ya da dMsg hesabınızı silmek Apple aboneliğini iptal etmez.
+
+App Store faturalandırmasını ve iade taleplerini Apple işler. https://reportaproblem.apple.com üzerinden veya Apple Destek ile iletişime geçerek iade isteyin. Uygunluk Apple kurallarına ve geçerli hukuka tabidir; bölüm 8.2'deki cüzdan iadesi kısıtlamaları ve defter ücretleri App Store satın alımlarına uygulanmaz. Bir satın alma dMsg'de görünmüyorsa yeniden ödeme yapmak yerine ilk Apple Hesabı ve aynı dMsg hesabıyla satın alımları geri yükleyin.
+
+### 8.2 App Store dışındaki ödemeler
 
 - 11. maddede belirtilen durumlar veya kanunların gerektirdiği haller dışında, başlamış olan ücretli sürenin iadesi yapılmaz.
 - Başlamayan bir yenileme iptal edilebilir. Daha sonra bunun için ödenen tutar iade edilir.

@@ -1,10 +1,8 @@
 # Warunki korzystania z usługi dMsg
 
-Wersja 1. Ostatnia aktualizacja: 2026-10-11.
+Wersja 1. Ostatnia aktualizacja: 2026-11-07.
 
 Niniejsze warunki dotyczą korzystania z dMsg: witryny dmsg.net, starszej aplikacji internetowej dMsg, rozszerzenia przeglądarki dMsg, usługi chmurowej dMsg oraz canisterów dMsg w sieci Internet Computer (ICP). Określenia "dMsg" i "my" oznaczają zespół prowadzący usługę dMsg pod nadzorem ICPanda DAO. "Ty" oznacza osobę lub organizację korzystającą z dMsg.
-
-Hash SHA-256 tego dokładnego tekstu jest zarejestrowany w handlu dMsg canister. Każdy zatwierdzony zakup rejestruje skrót warunków obowiązujących w danym momencie, dzięki czemu każdy może sprawdzić, który tekst go dotyczy.
 
 ## 1. Akceptacja niniejszego regulaminu
 
@@ -55,6 +53,12 @@ Połączone aplikacje są obsługiwane przez własnych operatorów. Ich usługi,
 
 ## 7. Plany i płatności
 
+### 7.1 Subskrypcje App Store
+
+Plus, Pro i Max kupione w App Store to roczne subskrypcje odnawiane automatycznie co roku, chyba że anulujesz je przed odnowieniem. Apple obciąża Twoje konto Apple. Cena, waluta, okres subskrypcji i korzyści są wyświetlane przed potwierdzeniem zakupu. Odnowienia, zmiany cen i planów podlegają warunkom oraz potwierdzeniom Apple. Zasady te obowiązują, gdy dostępne są zakupy w aplikacji; zasady płatności portfelem i ręcznego odnawiania z sekcji 7.2 nie mają do nich zastosowania.
+
+### 7.2 Płatności poza App Store
+
 dMsg oferuje plan bezpłatny i płatny. Plany, limity zasobów i ceny są publikowane w certyfikowanym katalogu handlu dMsg canister i pokazywane przed dokonaniem płatności. Ceny ustalane są w dolarach amerykańskich.
 
 - Płatności gotówkowe wykorzystują monety stabilne wymienione przy kasie, takie jak ckUSDC. Kwotowanie przelicza cenę w dolarach amerykańskich po opublikowanym kursie rozliczeniowym i ustala kwotę, rachunek depozytowy oraz terminy. Wpłać dokładnie podaną kwotę na to konto przed upływem terminu.
@@ -65,6 +69,14 @@ dMsg oferuje plan bezpłatny i płatny. Plany, limity zasobów i ceny są publik
 - Nowy katalog planowany jest co najmniej 30 dni przed jego wejściem w życie. Istniejące zamówienie zachowuje warunki, na jakich zostało zatwierdzone.
 
 ## 8. Anulowanie i zwrot pieniędzy
+
+### 8.1 Subskrypcje App Store
+
+Możesz zarządzać automatycznym odnawianiem lub je anulować w ustawieniach subskrypcji konta Apple, także poprzez zarządzanie subskrypcjami w dMsg. Anulowanie zwykle zachowuje dostęp do końca opłaconego okresu; zwrot pieniędzy lub cofnięcie uprawnień może zakończyć go wcześniej. Usunięcie dMsg lub konta dMsg nie anuluje subskrypcji Apple.
+
+Apple obsługuje rozliczenia i wnioski o zwrot pieniędzy za zakupy w App Store. Złóż wniosek na https://reportaproblem.apple.com lub skontaktuj się ze Wsparciem Apple. Obowiązują zasady Apple i właściwe prawo; ograniczenia zwrotów na portfel oraz opłaty rejestru z sekcji 8.2 nie dotyczą zakupów w App Store. Jeśli zakup nie pojawił się w dMsg, odtwórz go przy użyciu pierwotnego konta Apple i tego samego konta dMsg zamiast płacić ponownie.
+
+### 8.2 Płatności poza App Store
 
 - Rozpoczęty płatny okres nie podlega zwrotowi, z wyjątkiem przypadków określonych w sekcji 11 lub gdy wymaga tego prawo.
 - Odnowienie, które się nie rozpoczęło, można anulować. Zapłacona za nie kwota zostaje następnie zwrócona.

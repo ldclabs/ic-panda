@@ -1,10 +1,8 @@
 # Conditions d’utilisation de dMsg
 
-Version 1 (traduction française). Dernière mise à jour : 2026-10-11.
+Version 1 (traduction française). Dernière mise à jour : 2026-11-07.
 
 Les présentes conditions régissent votre utilisation de dMsg : le site dmsg.net, l’ancienne application web de dMsg, l’extension de navigateur dMsg, le service cloud dMsg et les canisters dMsg sur Internet Computer (ICP). « dMsg » et « nous » désignent l’équipe qui exploite le service dMsg sous la gouvernance d’ICPanda DAO. « Vous » désigne la personne ou l’organisation qui utilise dMsg.
-
-L’empreinte SHA-256 du texte original anglais de ces conditions est enregistrée dans le canister commerce de dMsg. Chaque achat que vous approuvez enregistre l’empreinte des conditions en vigueur à ce moment, afin que chacun puisse vérifier quel texte s’y applique.
 
 ## 1. Acceptation des conditions
 
@@ -55,6 +53,12 @@ Les applications connectées sont exploitées par leurs propres opérateurs. Leu
 
 ## 7. Formules et paiements
 
+### 7.1 Abonnements App Store
+
+Les offres Plus, Pro et Max achetées dans l’App Store sont des abonnements d’un an renouvelés automatiquement chaque année, sauf annulation avant le renouvellement. Apple débite votre compte Apple. Le prix, la devise, la durée et les avantages inclus sont affichés avant la confirmation de l’achat. Les renouvellements, changements de prix et changements d’offre suivent les conditions et confirmations fournies par Apple. Ces règles s’appliquent lorsque les achats intégrés sont disponibles ; les règles de paiement par portefeuille et de renouvellement manuel de la section 7.2 ne s’y appliquent pas.
+
+### 7.2 Paiements en dehors de l’App Store
+
 dMsg propose une formule gratuite et des formules payantes. Les formules, les limites de ressources et les prix sont publiés dans le catalogue certifié du canister commerce de dMsg et affichés avant le paiement. Les prix sont fixés en dollars américains.
 
 - Les paiements en espèces utilisent les stablecoins indiqués lors du paiement, comme ckUSDC. Le devis convertit le prix en dollars selon un prix de règlement publié et fixe le montant, le compte de dépôt et les échéances. Payez exactement le montant du devis sur ce compte avant l’échéance.
@@ -65,6 +69,14 @@ dMsg propose une formule gratuite et des formules payantes. Les formules, les li
 - Un nouveau catalogue est programmé au moins 30 jours avant son entrée en vigueur. Une commande existante conserve les conditions avec lesquelles elle a été approuvée.
 
 ## 8. Annulations et remboursements
+
+### 8.1 Abonnements App Store
+
+Vous pouvez gérer ou annuler le renouvellement automatique dans les réglages d’abonnement de votre compte Apple, notamment depuis la gestion des abonnements de dMsg. L’annulation conserve normalement l’accès jusqu’à la fin de la période payée ; un remboursement ou une révocation peut y mettre fin plus tôt. Supprimer dMsg ou votre compte dMsg n’annule pas un abonnement Apple.
+
+Apple gère la facturation et les demandes de remboursement de l’App Store. Demandez un remboursement sur https://reportaproblem.apple.com ou auprès de l’assistance Apple. Les conditions d’éligibilité dépendent des règles d’Apple et de la loi applicable ; les restrictions de remboursement par portefeuille et les frais de registre de la section 8.2 ne s’appliquent pas aux achats App Store. Si un achat n’apparaît pas dans dMsg, restaurez-le avec le compte Apple d’origine et le même compte dMsg au lieu de payer à nouveau.
+
+### 8.2 Paiements en dehors de l’App Store
 
 - Une période payante commencée n’est pas remboursée, sauf dans les cas prévus à la section 11 ou lorsque la loi l’exige.
 - Un renouvellement qui n’a pas commencé peut être annulé. Le montant payé pour celui-ci est alors remboursé.

@@ -479,8 +479,8 @@ export default {
   'Version': '版本',
   'Copied': '已复制',
   'Copy SHA-256': '复制 SHA-256',
-  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:':
-    'dMsg commerce 会在每笔购买中记录这个摘要。如需核对，请下载英文原文并计算其 SHA-256：',
+  'To verify this version, download the English text and compute its SHA-256:':
+    '要核验此版本，请下载英文原文并计算其 SHA-256：',
   'Open the English text': '打开英文原文',
   'Earlier versions': '早期版本',
   'This translation is provided for convenience. The English text of version {version} is binding.':

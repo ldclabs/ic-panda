@@ -1,10 +1,8 @@
 # Điều khoản dịch vụ của dMsg
 
-Phiên bản 1. Cập nhật lần cuối: 2026-10-11.
+Phiên bản 1. Cập nhật lần cuối: 2026-11-07.
 
 Các điều khoản này áp dụng cho việc sử dụng dMsg: trang web dmsg.net, ứng dụng web dMsg cũ, tiện ích mở rộng trình duyệt dMsg, dịch vụ đám mây dMsg và các canister dMsg trên Internet Computer (ICP). "dMsg" và "chúng tôi" chỉ nhóm vận hành dịch vụ dMsg dưới sự quản trị của ICPanda DAO. "Bạn" chỉ cá nhân hoặc tổ chức sử dụng dMsg.
-
-Hàm băm SHA-256 của văn bản chính xác này đã được đăng ký trong dMsg thương mại canister. Mỗi giao dịch mua mà bạn phê duyệt đều ghi lại hàm băm của các điều khoản có hiệu lực tại thời điểm đó, vì vậy bất kỳ ai cũng có thể kiểm tra văn bản nào được áp dụng cho giao dịch mua đó.
 
 ## 1. Chấp nhận các điều khoản này
 
@@ -55,6 +53,12 @@ Các ứng dụng được kết nối được điều hành bởi các nhà kh
 
 ## 7. Các gói và thanh toán
 
+### 7.1 Gói đăng ký App Store
+
+Plus, Pro và Max mua qua App Store là gói đăng ký một năm, tự động gia hạn hằng năm trừ khi bạn hủy trước khi gia hạn. Apple tính phí qua Tài khoản Apple của bạn. Giá, đơn vị tiền tệ, thời hạn và quyền lợi được hiển thị trước khi bạn xác nhận mua. Việc gia hạn, thay đổi giá và đổi gói tuân theo điều khoản và quy trình xác nhận của Apple. Các quy tắc này áp dụng khi tính năng mua trong ứng dụng khả dụng; quy tắc thanh toán bằng ví và gia hạn thủ công tại mục 7.2 không áp dụng cho các gói này.
+
+### 7.2 Thanh toán ngoài App Store
+
 dMsg cung cấp gói miễn phí và gói trả phí. Các gói, giới hạn tài nguyên và giá cả được xuất bản trong danh mục được chứng nhận của dMsg thương mại canister và hiển thị cho bạn trước khi bạn thanh toán. Giá được ấn định bằng đô la Mỹ.
 
 - Thanh toán bằng tiền mặt sử dụng stablecoin được liệt kê khi thanh toán, chẳng hạn như ckUSDC. Báo giá chuyển đổi giá đô la Mỹ theo giá thanh toán được công bố và ấn định số tiền, tài khoản tiền gửi và thời hạn. Thanh toán chính xác số tiền đã trích dẫn vào tài khoản đó trước thời hạn.
@@ -65,6 +69,14 @@ dMsg cung cấp gói miễn phí và gói trả phí. Các gói, giới hạn t�
 - Danh mục mới được lên kế hoạch ít nhất 30 ngày trước khi có hiệu lực. Đơn đặt hàng hiện tại giữ nguyên các điều khoản đã được phê duyệt.
 
 ## 8. Hủy và hoàn tiền
+
+### 8.1 Gói đăng ký App Store
+
+Bạn có thể quản lý hoặc hủy tự động gia hạn trong phần cài đặt đăng ký của Tài khoản Apple, kể cả qua mục quản lý đăng ký trong dMsg. Hủy gia hạn thường giữ quyền truy cập đến hết thời hạn đã thanh toán; hoàn tiền hoặc thu hồi có thể chấm dứt quyền truy cập sớm hơn. Xóa ứng dụng dMsg hoặc tài khoản dMsg không hủy đăng ký Apple.
+
+Apple xử lý hóa đơn và yêu cầu hoàn tiền của App Store. Yêu cầu hoàn tiền tại https://reportaproblem.apple.com hoặc liên hệ Bộ phận hỗ trợ Apple. Điều kiện hoàn tiền tuân theo quy tắc Apple và pháp luật hiện hành; hạn chế hoàn tiền qua ví và phí sổ cái tại mục 8.2 không áp dụng cho giao dịch App Store. Nếu giao dịch mua chưa xuất hiện trong dMsg, hãy khôi phục bằng Tài khoản Apple ban đầu và cùng tài khoản dMsg thay vì thanh toán lại.
+
+### 8.2 Thanh toán ngoài App Store
 
 - Thời hạn đã thanh toán đã bắt đầu sẽ không được hoàn trả, trừ khi được nêu tại mục 11 hoặc khi pháp luật yêu cầu.
 - Việc gia hạn chưa bắt đầu có thể bị hủy. Số tiền đã trả cho nó sau đó sẽ được hoàn lại.

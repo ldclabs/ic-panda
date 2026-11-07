@@ -411,7 +411,7 @@ export default {
   "Version": "バージョン",
   "Copied": "コピーされました",
   "Copy SHA-256": "SHA-256をコピー",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "dMsg コマースは、購入ごとにこのダイジェストを記録します。それを確認するには、英語のテキストをダウンロードし、その SHA-256 を計算します。",
+  "To verify this version, download the English text and compute its SHA-256:": "このバージョンを検証するには、英語の原文をダウンロードして SHA-256 を計算してください：",
   "Open the English text": "英語のテキストを開く",
   "Earlier versions": "以前のバージョン",
   "This translation is provided for convenience. The English text of version {version} is binding.": "この翻訳は便宜のために提供されています。バージョン {version} の英語テキストは拘束力があります。",

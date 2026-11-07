@@ -411,7 +411,7 @@ export default {
   "Version": "Sürüm",
   "Copied": "Kopyalandı",
   "Copy SHA-256": "SHA-256'yu kopyala",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "dMsg ticareti her satın alma işleminde bu özeti kaydeder. Kontrol etmek için İngilizce metni indirin ve SHA-256 değerini hesaplayın:",
+  "To verify this version, download the English text and compute its SHA-256:": "Bu sürümü doğrulamak için İngilizce metni indirin ve SHA-256 değerini hesaplayın:",
   "Open the English text": "İngilizce metni aç",
   "Earlier versions": "Önceki sürümler",
   "This translation is provided for convenience. The English text of version {version} is binding.": "Bu çeviri kolaylık sağlamak amacıyla sağlanmıştır. {version} sürümünün İngilizce metni bağlayıcıdır.",

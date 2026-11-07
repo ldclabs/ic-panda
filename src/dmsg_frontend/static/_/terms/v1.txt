@@ -1,10 +1,8 @@
 # dMsg Terms of Service
 
-Version 1. Last updated: 2026-10-11.
+Version 1. Last updated: 2026-11-07.
 
 These terms govern your use of dMsg: the dmsg.net website, the legacy dMsg web app, the dMsg browser extension, the dMsg cloud service and the dMsg canisters on the Internet Computer (ICP). "dMsg", "we" and "us" mean the team that operates the dMsg service under the governance of ICPanda DAO. "You" means the person or organization using dMsg.
-
-The SHA-256 digest of this exact text is registered in the dMsg commerce canister. Every purchase you approve records the digest of the terms in effect at that moment, so anyone can check which text applied to it.
 
 ## 1. Accepting these terms
 
@@ -55,6 +53,12 @@ Connected applications are run by their own operators. Their services, terms and
 
 ## 7. Plans and payments
 
+### 7.1 App Store subscriptions
+
+Plus, Pro and Max purchased through the App Store are one-year subscriptions that renew automatically each year unless you cancel before renewal. Apple charges your Apple Account. The price, currency, subscription period and included benefits are shown before you confirm the purchase. Renewals, price changes and plan changes follow the terms and confirmations provided by Apple. These App Store rules apply when purchases are available in the app; the wallet payment and manual renewal rules in section 7.2 do not apply to them.
+
+### 7.2 Payments outside the App Store
+
 dMsg offers a Free plan and paid plans. The plans, resource limits and prices are published in the certified catalog of the dMsg commerce canister and shown to you before you pay. Prices are set in US dollars.
 
 - Cash payments use the stablecoins listed at checkout, such as ckUSDC. The quote converts the US dollar price at a published settlement price and fixes the amount, the deposit account and the deadlines. Pay exactly the quoted amount to that account before the deadline.
@@ -65,6 +69,14 @@ dMsg offers a Free plan and paid plans. The plans, resource limits and prices ar
 - A new catalog is scheduled at least 30 days before it takes effect. An existing order keeps the terms it was approved with.
 
 ## 8. Cancellations and refunds
+
+### 8.1 App Store subscriptions
+
+You can manage or cancel automatic renewal in your Apple Account subscription settings, including through Manage subscriptions in dMsg. Cancelling renewal normally preserves access until the end of the paid period; a refund or revocation may end access earlier. Deleting dMsg or your dMsg account does not cancel an Apple subscription.
+
+Apple handles App Store billing and refund requests. Request a refund at https://reportaproblem.apple.com or contact Apple Support. Eligibility follows Apple's rules and applicable law; section 8.2's wallet refund restrictions and ledger fees do not apply to App Store purchases. If a purchase has not appeared in dMsg, use Restore purchases with the original Apple Account and the same dMsg account instead of paying again.
+
+### 8.2 Payments outside the App Store
 
 - A paid term that has started is not refunded, except as stated in section 11 or where the law requires it.
 - A renewal that has not started can be cancelled. The amount paid for it is then refunded.

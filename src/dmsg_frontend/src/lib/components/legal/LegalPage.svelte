@@ -146,7 +146,7 @@
               </dl>
               <p class="small"
                 >{$t(
-                  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:'
+                  'To verify this version, download the English text and compute its SHA-256:'
                 )}</p
               >
               <pre dir="ltr"><code>{verifyCommand}</code></pre>

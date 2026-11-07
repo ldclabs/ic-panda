@@ -483,8 +483,8 @@ export default {
   'Version': 'الإصدار',
   'Copied': 'تم النسخ',
   'Copy SHA-256': 'نسخ SHA-256',
-  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:':
-    'تسجّل dMsg commerce هذه البصمة مع كل عملية شراء. للتحقق منها، نزّل النص الإنجليزي واحسب SHA-256 الخاص به:',
+  'To verify this version, download the English text and compute its SHA-256:':
+    'للتحقق من هذا الإصدار، نزّل النص الإنجليزي واحسب بصمة SHA-256 الخاصة به:',
   'Open the English text': 'فتح النص الإنجليزي',
   'Earlier versions': 'الإصدارات السابقة',
   'This translation is provided for convenience. The English text of version {version} is binding.':

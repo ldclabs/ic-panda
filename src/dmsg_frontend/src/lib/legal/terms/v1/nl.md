@@ -1,10 +1,8 @@
 # dMsg Servicevoorwaarden
 
-Versie 1. Laatst bijgewerkt: 11-10-2026.
+Versie 1. Laatst bijgewerkt: 07-11-2026.
 
 Deze voorwaarden gelden voor je gebruik van dMsg: de website dmsg.net, de oude dMsg-webapp, de dMsg-browserextensie, de dMsg-clouddienst en de dMsg-canisters op Internet Computer (ICP). Met "dMsg" en "wij" bedoelen we het team dat de dMsg-dienst beheert onder het bestuur van ICPanda DAO. Met "jij" bedoelen we de persoon of organisatie die dMsg gebruikt.
-
-De SHA-256-hash van deze exacte tekst is geregistreerd in de dMsg-commerce canister. Bij elke aankoop die je goedkeurt, wordt de hash van de op dat moment geldende voorwaarden vastgelegd, zodat iedereen kan controleren welke tekst erop van toepassing is.
 
 ## 1. Deze voorwaarden accepteren
 
@@ -55,6 +53,12 @@ Verbonden applicaties worden beheerd door hun eigen operators. Hun diensten, voo
 
 ## 7. Plannen en betalingen
 
+### 7.1 App Store-abonnementen
+
+Plus, Pro en Max die via de App Store worden gekocht, zijn jaarabonnementen die ieder jaar automatisch worden verlengd, tenzij je vóór de verlenging opzegt. Apple brengt de kosten in rekening bij je Apple Account. De prijs, valuta, abonnementsperiode en inbegrepen voordelen worden vóór de aankoopbevestiging getoond. Voor verlengingen, prijswijzigingen en planwijzigingen gelden de voorwaarden en bevestigingen van Apple. Deze regels gelden wanneer in-app-aankopen beschikbaar zijn; de regels voor walletbetalingen en handmatige verlenging in paragraaf 7.2 zijn hierop niet van toepassing.
+
+### 7.2 Betalingen buiten de App Store
+
 dMsg biedt een gratis abonnement en betaalde abonnementen. De plannen, resourcelimieten en prijzen worden gepubliceerd in de gecertificeerde catalogus van de dMsg-commerce canister en aan je getoond voordat je betaalt. De prijzen zijn vastgesteld in Amerikaanse dollars.
 
 - Bij contante betalingen worden de stablecoins gebruikt die bij het afrekenen worden vermeld, zoals ckUSDC. De offerte zet de koers van de Amerikaanse dollar om tegen een gepubliceerde afwikkelingsprijs en legt het bedrag, de depositorekening en de deadlines vast. Betaal precies het opgegeven bedrag vóór de deadline op die rekening.
@@ -65,6 +69,14 @@ dMsg biedt een gratis abonnement en betaalde abonnementen. De plannen, resourcel
 - Een nieuwe catalogus wordt minimaal 30 dagen voordat deze van kracht wordt gepland. Een bestaande bestelling behoudt de voorwaarden waarmee deze is goedgekeurd.
 
 ## 8. Annuleringen en terugbetalingen
+
+### 8.1 App Store-abonnementen
+
+Je kunt automatische verlenging beheren of opzeggen in de abonnementsinstellingen van je Apple Account, ook via het abonnementsbeheer in dMsg. Na opzegging houd je normaal toegang tot het einde van de betaalde periode; een terugbetaling of intrekking kan de toegang eerder beëindigen. Het verwijderen van dMsg of je dMsg-account zegt een Apple-abonnement niet op.
+
+Apple behandelt App Store-facturering en terugbetalingsverzoeken. Vraag een terugbetaling aan via https://reportaproblem.apple.com of Apple Support. Hiervoor gelden de regels van Apple en het toepasselijke recht; de beperkingen voor walletterugbetalingen en ledgerkosten in paragraaf 8.2 gelden niet voor App Store-aankopen. Als een aankoop nog niet in dMsg verschijnt, herstel deze dan met het oorspronkelijke Apple Account en hetzelfde dMsg-account in plaats van opnieuw te betalen.
+
+### 8.2 Betalingen buiten de App Store
 
 - Een begonnen betaalde termijn wordt niet terugbetaald, behalve zoals vermeld in artikel 11 of waar de wet dit vereist.
 - Een verlenging die nog niet is ingegaan, kan worden geannuleerd. Het daarvoor betaalde bedrag wordt dan terugbetaald.

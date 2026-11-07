@@ -497,8 +497,8 @@ export default {
   'Version': 'Версия',
   'Copied': 'Скопировано',
   'Copy SHA-256': 'Скопировать SHA-256',
-  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:':
-    'dMsg commerce фиксирует этот хеш при каждой покупке. Чтобы проверить его, скачайте английский текст и вычислите его SHA-256:',
+  'To verify this version, download the English text and compute its SHA-256:':
+    'Чтобы проверить эту версию, скачайте английский текст и вычислите его SHA-256:',
   'Open the English text': 'Открыть английский текст',
   'Earlier versions': 'Предыдущие версии',
   'This translation is provided for convenience. The English text of version {version} is binding.':

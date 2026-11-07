@@ -491,8 +491,8 @@ const en = {
   'Version': 'Version',
   'Copied': 'Copied',
   'Copy SHA-256': 'Copy SHA-256',
-  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:':
-    'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:',
+  'To verify this version, download the English text and compute its SHA-256:':
+    'To verify this version, download the English text and compute its SHA-256:',
   'Open the English text': 'Open the English text',
   'Earlier versions': 'Earlier versions',
   'This translation is provided for convenience. The English text of version {version} is binding.':

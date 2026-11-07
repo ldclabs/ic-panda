@@ -411,7 +411,7 @@ export default {
   "Version": "ورژن",
   "Copied": "کاپی ہو گیا",
   "Copy SHA-256": "SHA-256 کاپی کریں",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "dMsg کامرس ہر خریداری کے ساتھ اس ہیش کو ریکارڈ کرتا ہے۔ اسے چیک کرنے کے لیے، انگریزی متن ڈاؤن لوڈ کریں اور اس کی SHA-256 کی گنتی کریں:",
+  "To verify this version, download the English text and compute its SHA-256:": "اس ورژن کی تصدیق کے لیے انگریزی متن ڈاؤن لوڈ کریں اور اس کا SHA-256 نکالیں:",
   "Open the English text": "انگریزی متن کھولیں",
   "Earlier versions": "پہلے کے ورژن",
   "This translation is provided for convenience. The English text of version {version} is binding.": "یہ ترجمہ سہولت کے لیے فراہم کیا گیا ہے۔ ورژن {version} کا انگریزی متن پابند ہے۔",

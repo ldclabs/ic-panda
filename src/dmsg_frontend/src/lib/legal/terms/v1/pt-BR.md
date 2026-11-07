@@ -1,10 +1,8 @@
 # dMsg Termos de Serviço
 
-Versão 1. Última atualização: 11/10/2026.
+Versão 1. Última atualização: 07/11/2026.
 
 Estes termos regem o uso do dMsg: o site dmsg.net, o aplicativo da web herdado dMsg, a extensão do navegador dMsg, o serviço de nuvem dMsg e o dMsg canisters no computador da Internet (ICP). "dMsg", "nós" e "nos" significam a equipe que opera o serviço dMsg sob a governança de ICPanda DAO. "Você" significa a pessoa ou organização que usa dMsg.
-
-O resumo SHA-256 deste texto exato está registrado no comércio dMsg canister. Cada compra que você aprova registra o resumo dos termos em vigor naquele momento, para que qualquer pessoa possa verificar qual texto se aplica a ela.
 
 ## 1. Aceitando estes termos
 
@@ -55,6 +53,12 @@ Os aplicativos conectados são executados por seus próprios operadores. Seus se
 
 ## 7. Planos e pagamentos
 
+### 7.1 Assinaturas da App Store
+
+Plus, Pro e Max comprados pela App Store são assinaturas de um ano que se renovam automaticamente a cada ano, a menos que você cancele antes da renovação. A Apple cobra na sua Conta Apple. O preço, a moeda, o período e os benefícios incluídos são exibidos antes da confirmação da compra. Renovações, alterações de preço e mudanças de plano seguem os termos e as confirmações fornecidos pela Apple. Estas regras se aplicam quando as compras no app estão disponíveis; as regras de pagamento por carteira e renovação manual da seção 7.2 não se aplicam a essas assinaturas.
+
+### 7.2 Pagamentos fora da App Store
+
 dMsg oferece um plano gratuito e planos pagos. Os planos, limites de recursos e preços são publicados no catálogo certificado do comércio dMsg canister e mostrados a você antes de você pagar. Os preços são definidos em dólares americanos.
 
 - Os pagamentos em dinheiro usam stablecoins listados na finalização da compra, como ckUSDC. A cotação converte o preço do dólar americano em um preço de liquidação publicado e fixa o valor, a conta de depósito e os prazos. Pague exatamente o valor cotado nessa conta antes do prazo.
@@ -65,6 +69,14 @@ dMsg oferece um plano gratuito e planos pagos. Os planos, limites de recursos e 
 - Um novo catálogo é agendado pelo menos 30 dias antes de entrar em vigor. Um pedido existente mantém os termos com os quais foi aprovado.
 
 ## 8. Cancelamentos e reembolsos
+
+### 8.1 Assinaturas da App Store
+
+Você pode gerenciar ou cancelar a renovação automática nos ajustes de assinaturas da sua Conta Apple, inclusive pela opção de gerenciar assinaturas no dMsg. O cancelamento normalmente mantém o acesso até o fim do período pago; um reembolso ou uma revogação pode encerrá-lo antes. Excluir o dMsg ou sua conta dMsg não cancela uma assinatura Apple.
+
+A Apple processa a cobrança e os pedidos de reembolso da App Store. Solicite um reembolso em https://reportaproblem.apple.com ou ao Suporte Apple. Aplicam-se as regras da Apple e a legislação vigente; as restrições de reembolso à carteira e as taxas do registro da seção 8.2 não se aplicam às compras na App Store. Se uma compra não aparecer no dMsg, restaure-a com a Conta Apple original e a mesma conta dMsg em vez de pagar novamente.
+
+### 8.2 Pagamentos fora da App Store
 
 - Um período pago iniciado não será reembolsado, exceto conforme indicado na seção 11 ou quando a lei assim o exigir.
 - Uma renovação que não tenha começado pode ser cancelada. O valor pago por isso é então reembolsado.

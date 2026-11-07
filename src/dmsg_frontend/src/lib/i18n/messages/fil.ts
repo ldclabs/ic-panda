@@ -411,7 +411,7 @@ export default {
   "Version": "Bersyon",
   "Copied": "Nakopya na",
   "Copy SHA-256": "Kopyahin ang SHA-256",
-  "dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:": "Itinatala ng dMsg ang hash na ito sa bawat pagbili. Upang suriin ito, i-download ang English na text at kalkulahin ang SHA-256 nito:",
+  "To verify this version, download the English text and compute its SHA-256:": "Para beripikahin ang bersyong ito, i-download ang tekstong Ingles at kalkulahin ang SHA-256 nito:",
   "Open the English text": "Buksan ang tekstong Ingles",
   "Earlier versions": "Mga naunang bersyon",
   "This translation is provided for convenience. The English text of version {version} is binding.": "Ang pagsasaling ito ay ibinigay para sa kaginhawahan. Ang Ingles na teksto ng bersyong {version} ay may bisa.",

@@ -1,10 +1,8 @@
 # dMsg Syarat Perkhidmatan
 
-Versi 1. Kemas kini terakhir: 2026-10-11.
+Versi 1. Kemas kini terakhir: 2026-11-07.
 
 Terma ini mengawal penggunaan dMsg oleh anda: laman web dmsg.net, aplikasi web dMsg lama, sambungan pelayar dMsg, perkhidmatan awan dMsg dan canister dMsg di Internet Computer (ICP). "dMsg" dan "kami" merujuk kepada pasukan yang mengendalikan perkhidmatan dMsg di bawah tadbir urus ICPanda DAO. "Anda" merujuk kepada individu atau organisasi yang menggunakan dMsg.
-
-Cincang SHA-256 teks tepat ini didaftarkan dalam perdagangan dMsg canister. Setiap pembelian yang anda luluskan merekodkan cincangan syarat yang berkuat kuasa pada masa itu, jadi sesiapa sahaja boleh menyemak teks yang digunakan padanya.
 
 ## 1. Menerima syarat ini
 
@@ -55,6 +53,12 @@ Aplikasi yang disambungkan dijalankan oleh pengendali mereka sendiri. Perkhidmat
 
 ## 7. Pelan dan pembayaran
 
+### 7.1 Langganan App Store
+
+Plus, Pro dan Max yang dibeli melalui App Store ialah langganan setahun yang diperbaharui secara automatik setiap tahun melainkan anda membatalkannya sebelum pembaharuan. Apple mengenakan caj kepada Akaun Apple anda. Harga, mata wang, tempoh dan manfaat dipaparkan sebelum pembelian disahkan. Pembaharuan, perubahan harga dan pertukaran pelan mengikut terma dan pengesahan Apple. Peraturan ini terpakai apabila pembelian dalam app tersedia; peraturan pembayaran dompet dan pembaharuan manual dalam bahagian 7.2 tidak terpakai kepada langganan ini.
+
+### 7.2 Pembayaran di luar App Store
+
 dMsg menawarkan pelan Percuma dan pelan berbayar. Pelan, had sumber dan harga diterbitkan dalam katalog diperakui perdagangan dMsg canister dan ditunjukkan kepada anda sebelum anda membayar. Harga ditetapkan dalam dolar AS.
 
 - Pembayaran tunai menggunakan stablecoin yang disenaraikan semasa pembayaran, seperti ckUSDC. Sebut harga menukar harga dolar AS pada harga penyelesaian yang diterbitkan dan menetapkan jumlah, akaun deposit dan tarikh akhir. Bayar dengan tepat jumlah yang disebut ke akaun itu sebelum tarikh akhir.
@@ -65,6 +69,14 @@ dMsg menawarkan pelan Percuma dan pelan berbayar. Pelan, had sumber dan harga di
 - Katalog baharu dijadualkan sekurang-kurangnya 30 hari sebelum ia berkuat kuasa. Pesanan sedia ada mengekalkan syarat yang telah diluluskan.
 
 ## 8. Pembatalan dan bayaran balik
+
+### 8.1 Langganan App Store
+
+Anda boleh mengurus atau membatalkan pembaharuan automatik dalam tetapan langganan Akaun Apple, termasuk melalui pengurusan langganan dalam dMsg. Pembatalan biasanya mengekalkan akses sehingga tempoh berbayar tamat; bayaran balik atau pembatalan hak boleh menamatkannya lebih awal. Memadam dMsg atau akaun dMsg tidak membatalkan langganan Apple.
+
+Apple mengendalikan pengebilan dan permintaan bayaran balik App Store. Mohon bayaran balik di https://reportaproblem.apple.com atau hubungi Sokongan Apple. Kelayakan mengikut peraturan Apple dan undang-undang yang terpakai; sekatan bayaran balik dompet dan fi lejar dalam bahagian 8.2 tidak terpakai kepada pembelian App Store. Jika pembelian belum muncul dalam dMsg, pulihkan pembelian menggunakan Akaun Apple asal dan akaun dMsg yang sama, bukannya membayar sekali lagi.
+
+### 8.2 Pembayaran di luar App Store
 
 - Tempoh berbayar yang telah bermula tidak akan dikembalikan, kecuali seperti yang dinyatakan dalam seksyen 11 atau di mana undang-undang memerlukannya.
 - Pembaharuan yang belum bermula boleh dibatalkan. Jumlah yang dibayar untuknya kemudian dikembalikan.

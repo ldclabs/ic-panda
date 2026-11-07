@@ -1,10 +1,8 @@
 # dMsg Mga Tuntunin ng Serbisyo
 
-Bersyon 1. Huling na-update: 2026-10-11.
+Bersyon 1. Huling na-update: 2026-11-07.
 
 Saklaw ng mga tuntuning ito ang paggamit mo ng dMsg: ang website na dmsg.net, ang lumang dMsg web app, ang dMsg browser extension, ang dMsg cloud service, at ang mga dMsg canister sa Internet Computer (ICP). Ang "dMsg" at "kami" ay tumutukoy sa team na nagpapatakbo ng serbisyo ng dMsg sa ilalim ng pamamahala ng ICPanda DAO. Ang "ikaw" ay ang tao o organisasyong gumagamit ng dMsg.
-
-Ang SHA-256 hash ng eksaktong text na ito ay nakarehistro sa dMsg commerce canister. Ang bawat pagbili na inaprubahan mo ay nagtatala ng hash ng mga tuntuning may bisa sa sandaling iyon, upang masuri ng sinuman kung aling text ang inilapat dito.
 
 ## 1. Pagtanggap sa mga tuntuning ito
 
@@ -55,6 +53,12 @@ Ang mga konektadong aplikasyon ay pinapatakbo ng sarili nilang mga operator. Ang
 
 ## 7. Mga plano at pagbabayad
 
+### 7.1 Mga subscription sa App Store
+
+Ang Plus, Pro, at Max na binili sa App Store ay mga isang-taong subscription na awtomatikong nagre-renew bawat taon maliban kung kakanselahin mo bago ang renewal. Sisingilin ng Apple ang iyong Apple Account. Ipinapakita ang presyo, currency, panahon, at mga benepisyo bago mo kumpirmahin ang pagbili. Ang renewal, pagbabago ng presyo, at pagpapalit ng plano ay sumusunod sa mga tuntunin at kumpirmasyon ng Apple. Nalalapat ang mga patakarang ito kapag available ang mga in-app purchase; hindi nalalapat dito ang mga patakaran sa pagbabayad gamit ang wallet at manual na renewal sa seksyon 7.2.
+
+### 7.2 Mga pagbabayad sa labas ng App Store
+
 Nag-aalok ang dMsg ng Libreng plan at mga bayad na plano. Ang mga plano, limitasyon sa mapagkukunan, at presyo ay na-publish sa certified catalog ng dMsg commerce canister at ipinapakita sa iyo bago ka magbayad. Ang mga presyo ay nakatakda sa US dollars.
 
 - Ginagamit ng mga pagbabayad ng cash ang mga stablecoin na nakalista sa checkout, gaya ng ckUSDC. Kino-convert ng quote ang presyo ng US dollar sa isang nai-publish na presyo ng settlement at inaayos ang halaga, ang deposito account at ang mga deadline. Magbayad nang eksakto sa naka-quote na halaga sa account na iyon bago ang deadline.
@@ -65,6 +69,14 @@ Nag-aalok ang dMsg ng Libreng plan at mga bayad na plano. Ang mga plano, limitas
 - Ang isang bagong catalog ay naka-iskedyul nang hindi bababa sa 30 araw bago ito magkabisa. Pinapanatili ng isang umiiral na order ang mga tuntunin kung saan ito naaprubahan.
 
 ## 8. Mga pagkansela at refund
+
+### 8.1 Mga subscription sa App Store
+
+Maaari mong pamahalaan o kanselahin ang awtomatikong renewal sa mga setting ng subscription ng iyong Apple Account, kasama ang pamamahala ng subscription sa dMsg. Karaniwang mananatili ang access hanggang matapos ang bayad na panahon kapag kinansela ang renewal; maaaring mas maagang matapos ito dahil sa refund o pagbawi. Hindi kinakansela ng pagtanggal ng dMsg o ng iyong dMsg account ang subscription sa Apple.
+
+Apple ang humahawak sa pagsingil at mga kahilingan sa refund ng App Store. Humiling ng refund sa https://reportaproblem.apple.com o sa Apple Support. Nakabatay ang pagiging kuwalipikado sa mga patakaran ng Apple at naaangkop na batas; hindi nalalapat sa mga pagbili sa App Store ang mga limitasyon sa refund sa wallet at bayad sa ledger sa seksyon 8.2. Kung hindi pa lumalabas ang pagbili sa dMsg, i-restore ito gamit ang orihinal na Apple Account at parehong dMsg account sa halip na magbayad muli.
+
+### 8.2 Mga pagbabayad sa labas ng App Store
 
 - Ang isang bayad na termino na nagsimula ay hindi ibinabalik, maliban sa nakasaad sa seksyon 11 o kung saan kinakailangan ito ng batas.
 - Maaaring kanselahin ang pag-renew na hindi pa nagsimula. Ang halagang binayaran para dito ay ibabalik.
