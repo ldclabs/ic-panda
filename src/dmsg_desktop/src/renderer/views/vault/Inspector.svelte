@@ -200,7 +200,7 @@
       <div class="min-w-0 flex-1">
         <div class="flex min-w-0 items-start gap-1.5">
           <h2 class="min-w-0 text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
-          {#if item.favorite}<span class="pt-0.5 text-gem" title={t('starred')}><Icon name="starred" class="size-4" /></span>{/if}
+          {#if item.favorite}<span class="pt-0.5 text-gem" role="img" aria-label={t('starred')} title={t('starred')}><Icon name="starred" class="size-4" /></span>{/if}
         </div>
         <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-faint">
           <span>{t(typeLabel[type])}</span>

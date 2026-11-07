@@ -76,7 +76,10 @@
       shownUntil = Date.now() + SHOWN_MS
       hideTimer = setTimeout(hide, SHOWN_MS)
     } catch (error) {
-      if (at === generation && unlocked) { failure = errorText(error); toast(() => errorText(error)) }
+      if (at === generation && unlocked) {
+        if (viewing) failure = errorText(error)
+        else toast(() => errorText(error))
+      }
     } finally {
       if (at === generation) busy = false
     }
@@ -88,7 +91,8 @@
     busy = true
     try {
       const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id, field, revision))
-      if (at !== generation || !unlocked) return false
+      // The clipboard holds it whichever view is open now; only a lock has cleared it.
+      if (!unlocked) return false
       toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'secret-copied' })
       return true
     } catch (error) {
@@ -122,6 +126,7 @@
       generation += 1
       armed = false
       busy = false
+      failure = ''
       hide()
       clearTimeout(armTimer)
     }

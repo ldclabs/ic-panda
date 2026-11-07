@@ -177,6 +177,9 @@ try {
   assert.equal(await dialog.getByTestId('vault-large-value').evaluate(el => el.parentElement.scrollHeight > el.parentElement.clientHeight), true)
   await dialog.getByTestId('vault-large-copy').click()
   await main.waitForFunction(value => window.testClipboard === value, LONG)
+  const copiedNotice = main.locator('[aria-live="polite"]').getByText('Field value copied', { exact: true }).last()
+  await copiedNotice.waitFor()
+  assert.equal(await copiedNotice.evaluate(el => { const r = el.getBoundingClientRect(); return el === document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) }), true, 'a notice stays readable above the open dialog')
   await closeViewer('recovery')
   await openMenu('url')
   await main.getByTestId('vault-field-website').click()
@@ -199,6 +202,16 @@ try {
   await main.waitForFunction(value => document.querySelector('[data-testid="vault-large-value"]')?.textContent === value, SECRET)
   await closeViewer('password')
   assert.equal(await row('password').getByTestId('vault-secret').getAttribute('data-shown'), 'false')
+
+  // A copy that finishes after its viewer closed still reports what the clipboard holds.
+  await main.locator('[role="status"] button').evaluateAll(buttons => buttons.forEach(button => button.click()))
+  await view('password')
+  holdReveal = true; releaseReveal = undefined
+  await dialog.getByTestId('vault-large-copy').click()
+  await waitFor(() => !!releaseReveal)
+  await closeViewer('password')
+  releaseReveal(); holdReveal = false
+  await main.getByTestId('secret-copied').waitFor()
 
   await main.clock.install()
   await row('password').getByTestId('reveal-secret').click()
@@ -225,6 +238,21 @@ try {
   await dialog.getByTestId('reveal-secret').click()
   await dialog.getByTestId('reveal-secret').click()
   await main.waitForSelector('[data-testid="vault-large-value"][data-shown="true"]')
+  await closeViewer('password')
+
+  // A failure belongs to the attempt that saw it and does not wait in a later view.
+  rejectReveal = true
+  await row('password').getByTestId('reveal-secret').click()
+  await row('password').getByTestId('reveal-secret').click()
+  await view('password') // its menu stays disabled until that reveal has failed
+  assert.equal(await dialog.locator('[role="alert"]').count(), 0, 'a failure in the row stays out of the viewer')
+  await dialog.getByTestId('reveal-secret').click()
+  await dialog.getByTestId('reveal-secret').click()
+  await dialog.locator('[role="alert"]').waitFor()
+  rejectReveal = false
+  await closeViewer('password')
+  await view('password')
+  assert.equal(await dialog.locator('[role="alert"]').count(), 0, 'closing the viewer clears its failure')
   await closeViewer('password')
   for (const exit of ['close', 'revision', 'navigation', 'lock']) {
     await select()
@@ -274,10 +302,11 @@ try {
   await app.evaluate(() => { globalThis.testClipboard = 'a later user copy' })
   await main.waitForTimeout(800)
   assert.equal(await app.evaluate(() => globalThis.testClipboard), 'a later user copy')
+  // A code that expired on the way gives way to the next one; it never reaches the clipboard.
   nextOtp = { code: 'expired', remaining_ms: 50, delay: 150 }
-  const failed = await main.evaluate(async id => { try { await window.dmsg.copySecret(id, 'otp', null); return '' } catch (error) { return error.message } }, itemId)
-  assert.match(failed, /SECRET_VERSION_STALE/)
-  assert.equal(await app.evaluate(() => globalThis.testClipboard), 'a later user copy')
+  const renewed = await main.evaluate(id => window.dmsg.copySecret(id, 'otp', null), itemId)
+  assert.ok(renewed.clear_after_ms > 1000, JSON.stringify(renewed))
+  assert.equal(await app.evaluate(() => globalThis.testClipboard), '123456')
 
   // Live large codes refresh; a failed fetch can be retried in the field.
   nextOtp = { error: 'UNAVAILABLE' }
@@ -291,10 +320,21 @@ try {
   await main.waitForFunction(() => document.querySelector('[data-testid="vault-large-value"]')?.textContent === '789 012')
   await closeViewer('otp')
 
+  // A refresh keeps the copy action and its keyboard focus; the old code is not shown past its time.
+  const otpFocus = () => main.evaluate(() => document.activeElement?.getAttribute('data-testid'))
+  await row('otp').getByTestId('copy-otp').focus()
+  nextOtp = { code: '345678', remaining_ms: 30000, delay: 400 }
+  await main.clock.fastForward(30100)
+  await main.waitForFunction(() => document.querySelector('[data-testid="vault-otp-code"]')?.textContent === '••• •••')
+  assert.equal(await otpFocus(), 'copy-otp')
+  await main.waitForFunction(() => document.querySelector('[data-testid="vault-otp-code"]')?.textContent === '345 678')
+  assert.equal(await otpFocus(), 'copy-otp')
+
   await main.getByTestId('vault-more').click()
   await main.getByTestId('vault-star').click()
   await waitFor(() => entries[0].item.favorite)
   assert.equal(await main.getByTestId('vault-inspector').locator('header').getByTestId('vault-star').count(), 0)
+  await main.getByTestId('vault-inspector').locator('header').getByRole('img', { name: 'Starred', exact: true }).waitFor()
   // Screenshot matrix includes Chinese, a longer translation, RTL and the minimum window.
   for (const [lang, theme, width, height] of [['zh', 'light', 1180, 760], ['zh', 'light', 760, 540], ['zh', 'dark', 760, 540], ['de', 'light', 760, 540], ['de', 'dark', 760, 540], ['ar', 'light', 760, 540], ['ar', 'dark', 760, 540]]) {
     await main.evaluate(async ([lang, theme]) => { await window.dmsg.setLocale(lang); await window.dmsg.setAppearance(theme) }, [lang, theme])
@@ -308,6 +348,7 @@ try {
     await screenshot(`menu-${lang}-${theme}-${width}.png`)
     await main.getByTestId('vault-field-view').click()
     await dialog.waitFor()
+    assert.equal(await dialog.getByTestId('vault-large-value').evaluate(el => getComputedStyle(el).textAlign), 'left', 'multi-line LTR values keep their line starts in every language')
     await dialog.getByTestId('reveal-secret').click()
     await screenshot(`viewer-${lang}-${theme}-${width}.png`)
     await closeViewer('password')

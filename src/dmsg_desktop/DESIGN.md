@@ -321,9 +321,9 @@ restyle a control by hand.
   actions, flush lists), `Notice` (info, warn, danger, ok), `Pill` (states),
   `Id` (the neutral ID chip), `Field`, `Fact` (label and value rows),
   `TabBar`.
-- **Feedback** — `toast()` notices, above composers and footers; a copied
-  secret's notice counts down to the clipboard being cleared. Errors that
-  belong to a form stay in the form.
+- **Feedback** — `toast()` notices, above composers, footers and open dialogs;
+  a copied secret's notice counts down to the clipboard being cleared. Errors
+  that belong to a form stay in the form.
 - **Avatars** — published images from certified public profiles, with initials
   (or an ID's first two characters) as the fallback. Participant images load
   when their rows become visible, through the daemon's bounded, encrypted URL
@@ -441,8 +441,11 @@ inline editors alone handle their own cancel shortcut.
   Historical secrets remain read-only; managed fields keep desktop read/copy
   access without gaining field references or editing.
 - **One-time code** — the field and its large-type view share the live code,
-  countdown and retry action. Clipboard copies expire no later than the code
-  or the usual 30-second limit, including time spent waiting for its RPC.
+  countdown and retry action. A refresh keeps the row and its copy action in
+  place, masking the expired code until the next one arrives. Clipboard copies
+  expire no later than the code or the usual 30-second limit, including time
+  spent waiting for its RPC; a code that expired on the way is replaced by the
+  next one.
 - **Conflict** — the current version and the copy side by side, changed
   fields tinted, the body diffed line by line; both choices weigh the same.
 - **Adding files** — a job card per file with its chunks done, above the

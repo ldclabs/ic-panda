@@ -649,16 +649,21 @@ handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | nu
   let secret = shown.value
   let expiresAt = Infinity
   if (shown.type === 'otp') {
-    const requestedAt = Date.now()
-    const otp = (await daemon.call('vault/otp', { id: params.id, field: shown.field })) as { code: string; remaining_ms: number }
+    const read = async () => {
+      const requestedAt = Date.now()
+      const otp = (await daemon.call('vault/otp', { id: params.id, field: shown.field })) as { code: string; remaining_ms: number }
+      // Count RPC latency too: a copied code must never outlive its validity.
+      return { code: otp.code, expiresAt: requestedAt + otp.remaining_ms }
+    }
+    let otp = await read()
+    // A code that expired on the way has a successor, so the click still copies a valid one.
+    if (otp.expiresAt <= Date.now()) otp = await read()
     secret = otp.code
-    // Count RPC latency too: a copied code must never outlive its validity.
-    expiresAt = requestedAt + otp.remaining_ms
+    expiresAt = otp.expiresAt
   }
   if (!secret) throw new DaemonError('NOT_FOUND', 'No value to copy')
-  if (expiresAt <= Date.now()) throw new DaemonError('SECRET_VERSION_STALE', 'Code expired; copy the current code')
   await forgetCopied()
-  if (expiresAt <= Date.now()) throw new DaemonError('SECRET_VERSION_STALE', 'Code expired; copy the current code')
+  if (expiresAt <= Date.now()) throw new DaemonError('UNAVAILABLE', 'Code expired; copy the current code')
   try {
     await clipboard.write([new ClipboardItem({ 'text/plain': secret, ...concealing() })])
   } catch {
@@ -669,7 +674,7 @@ handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | nu
   copied = { text: secret, timer: setTimeout(() => void forgetCopied(), clearAfter) }
   if (!clearAfter) {
     await forgetCopied()
-    throw new DaemonError('SECRET_VERSION_STALE', 'Code expired; copy the current code')
+    throw new DaemonError('UNAVAILABLE', 'Code expired; copy the current code')
   }
   return { clear_after_ms: clearAfter }
 })

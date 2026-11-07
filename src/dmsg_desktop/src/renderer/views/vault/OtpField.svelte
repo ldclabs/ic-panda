@@ -26,7 +26,8 @@
   let copying = $state(false)
   let retry = $state(0)
   let generation = 0
-  const value = $derived(current && left > 0 ? spaced(current.code) : null)
+  // A code past its time is not shown, but its row and copy action stay until the next one arrives.
+  const value = $derived(current ? (left > 0 ? spaced(current.code) : '••• •••') : null)
   const source = $derived(`${id}:${field}:${unlocked}`)
 
   async function copy() {
@@ -35,7 +36,8 @@
     copying = true
     try {
       const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id, field, null))
-      if (at !== generation || !unlocked) return false
+      // The clipboard holds it whichever view is open now; only a lock has cleared it.
+      if (!unlocked) return false
       toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'otp-copied' })
       return true
     } catch (e) {

@@ -23,6 +23,6 @@
 
 <Dialog bind:open title={name} description={context} wide testid="vault-field-viewer"
   onCloseAutoFocus={restoreFocus} {footer}>
-  <div class={cn('text-[28px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] select-text', mono && 'font-mono', value === null && 'tracking-[0.18em] text-faint')}
+  <div class={cn('text-[28px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] select-text', mono && 'font-mono', ltr && 'text-left', value === null && 'tracking-[0.18em] text-faint')}
     dir={ltr ? 'ltr' : 'auto'} data-testid="vault-large-value" data-shown={value !== null}>{value ?? '••••••••••••'}</div>
 </Dialog>
