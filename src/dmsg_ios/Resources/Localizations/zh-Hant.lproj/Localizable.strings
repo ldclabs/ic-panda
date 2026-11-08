@@ -768,6 +768,8 @@
 	<string>新裝置顯示的裝置 ID</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>裝置認證暫時不可用。鑰匙已保留，請在解鎖此裝置後重試。</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>II 登入到期後，仍可透過系統身分驗證解鎖本機內容。</string>
 	<key>Device pairing request QR code</key>
 	<string>裝置配對請求QR 碼</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>私密檔案，安心儲存</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>隱藏欄位將保持隱藏，直到你主動檢視。</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>本機內容可繼續使用。需要帳戶身分的操作會要求重新登入 Internet Identity。</string>
 	<key>Your private workspace.</key>
 	<string>你的私密工作臺。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

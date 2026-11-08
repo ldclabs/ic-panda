@@ -21,6 +21,41 @@ import XCTest
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)
     }
 
+    func testExpiredLoginKeepsLocalPasswordCopyAvailable() {
+        for (language, accountTab, vaultTab) in [("en", "Account", "Vault"), ("zh-Hans", "我的", "保险库"), ("ar", "الحساب", "الخزنة")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-login-expired", "-AppleLanguages", "(\(language))"] + (language == "en" ? [] : ["--ui-dark"])
+            app.launch()
+            XCTAssertTrue(app.buttons[accountTab].waitForExistence(timeout: 8))
+            app.buttons[accountTab].tap()
+            XCTAssertTrue(app.buttons["account.login"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["account.login"].isEnabled)
+            XCTAssertFalse(app.alerts.firstMatch.exists)
+            XCTAssertFalse(app.sheets.firstMatch.exists)
+            capture(app, "Local access without II login · \(language)")
+            app.buttons[vaultTab].tap()
+            XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 5))
+            app.buttons["vault.item.fixture-github"].tap()
+            let copy = app.buttons["vault.copy.password"]
+            XCTAssertTrue(copy.waitForExistence(timeout: 5)); copy.tap()
+            XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
+            XCTAssertFalse(app.alerts.firstMatch.exists)
+            XCTAssertFalse(app.sheets.firstMatch.exists)
+            capture(app, "Password copy without II login · \(language)")
+            app.terminate()
+        }
+    }
+
+    func testLoginExpiryOnlyAddsAnAccountAction() {
+        let app = open(["--ui-login-expiring"])
+        XCTAssertFalse(app.buttons["account.login"].exists)
+        XCTAssertTrue(app.buttons["account.login"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["account.lock"].exists)
+        XCTAssertFalse(app.buttons["login.start"].exists)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        capture(app, "II expiry leaves the workspace unlocked")
+    }
+
     func testAccountSwitcherShowsNamesAndIDs() {
         checkAccountNames(language: "en", locale: "en_US", tab: "Account", personal: "Personal", dark: false)
     }

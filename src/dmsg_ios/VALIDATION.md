@@ -1,5 +1,40 @@
 # iOS implementation validation
 
+## Local unlock after II login expiry (2026-11-08)
+
+Hardware-presence quick unlock now opens cached local content independently of
+the II authorization lifetime. Plain credential-store keys retain their 30-day
+deadline. The native session snapshot carries the II expiry separately; Account
+offers a non-blocking login action without changing the unlocked workspace or
+intercepting password copies. The notice updates when a still-valid login expires.
+
+Validation:
+
+- `cargo test --locked -p dmsg_client -p dmsg_mobile -p dmsg_cli`: 598 client,
+  28 mobile and 120 CLI tests passed; 11 existing ignored tests were not run.
+  Coverage includes a 90-day-old login unlock with an expired sealed delegation,
+  both bound and unbound hardware keys, cancelled authentication, plain-key
+  expiry and local secret reads without II followed by rejection after locking.
+- Rust formatting and Clippy with `--all-targets -- -D warnings` passed.
+- `scripts/ios/build-core.sh` rebuilt device and simulator libraries and Swift
+  bindings; `scripts/ios/artifacts.py verify` checked their source fingerprint.
+- iPhone 17e / iOS 27.0: all 113 Swift unit tests and two existing account UI
+  cases passed. The two new UI cases initially exposed a parent accessibility
+  identifier overriding the login button's identifier; after moving the hint's
+  identifier to its text, both passed in `dmsg-login-ios-final.xcresult`.
+  They cover English/light, Chinese/dark and Arabic/RTL/dark account notices and
+  password copies, plus expiry while Account remains open without locking or
+  presenting a login modal. Screenshots were exported and visually checked.
+- iPhone SE (3rd generation) / iOS 18.4: the same three-language account and
+  password-copy UI case passed in `dmsg-login-ios-se.xcresult`; narrow-screen
+  Chinese and Arabic screenshots were visually checked.
+- All 23 localizations passed source and built Swift-string extraction checks.
+
+UI tests use synthetic presentation fixtures. Rust tests verify the actual local
+unlock and read policy with test hardware; these runs do not verify physical
+Face ID/Touch ID, production II or live canister revocation. Production deployment
+was not performed.
+
 ## Vault detail and large type (2026-11-07)
 
 Vault details now copy a field by tapping its value. Native field menus provide

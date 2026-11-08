@@ -72,7 +72,7 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 - `unlock_secret(account_id, device_id)` 是 user home 的认证 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 32 字节 `digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，其中 `digest(domain, value) = SHA256(CBOR([1, domain, value]))`。`master_secret` 在 home 初始化的 timer 中由 `raw_rand` 生成一次，升级保留。撤销设备后该设备的解锁材料不再发放。
 - 新工作台在绑定账户前只用一把明文保存的临时随机键封装 LDK；此时本机只有新生成的设备密钥，没有任何内容，写入被拒绝。账户创建或配对批准后，客户端取得 `unlock_secret`，用 LUK 重封 LDK 并删除临时键。
 - 日常解锁：经 dmsg.net 登录页的 II 登录（[dmsg-login/1](login-v1_zh.md)，30 天 delegation，会话私钥由 daemon 持有）→ `unlock_secret` → LUK → LDK → Bundle，全部只在内存。`login_unlocked_at` 记录最近一次登录解锁。
-- 快速解锁：登录解锁后默认开启，人关闭后保持关闭；`secure_storage = "file"` 时没有快速解锁。`K_fast` 只封装 LDK 的第二份副本：macOS 上由 Secure Enclave 的密钥协商恢复，每次解锁要求 Touch ID 或 Mac 登录密码，并恢复以 LDK 封存的 30 天登录；其他平台是存于凭据库的随机 32 字节，没有用户在场验证，也不保存登录。距上次登录解锁超过 30 天时拒绝；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据（封存的登录随之删除）。Secure Enclave 报告“暂时不能询问”（无 Touch ID 键盘、锁定等）时保留快速解锁，只有钥匙确定无法重建时才关闭它。
+- 快速解锁：登录解锁后默认开启，人关闭后保持关闭；`secure_storage = "file"` 时没有快速解锁。`K_fast` 只封装 LDK 的第二份副本：macOS 上由 Secure Enclave 的密钥协商恢复，每次解锁要求 Touch ID 或 Mac 登录密码，并恢复以 LDK 封存的 30 天登录；没有硬件在场验证的平台使用存于凭据库的随机 32 字节，没有用户在场验证，也不保存登录。硬件在场验证保护的快速解锁（含 macOS/iOS）不受 II 登录期限限制；只有无需在场验证的普通凭据库密钥在距上次登录解锁满 30 天后拒绝。II delegation 仍按自身期限失效，过期的封存登录删除，不阻止本机解锁与读取；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据（封存的登录随之删除）。Secure Enclave 报告“暂时不能询问”（无 Touch ID 键盘、锁定等）时保留快速解锁，只有钥匙确定无法重建时才关闭它。
 - 设备绑定（具备系统凭据库与硬件能力时默认）：保留同一个 LDK，只换封装。凭据库中另有独立槽位 `<name>:device-bound`，保存一把 Secure Enclave 密钥协商钥匙的句柄与软件对端；其秘密 `S` 每次解锁取得一次（要求在场）：
 
   ```text
@@ -88,6 +88,8 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 2026-10-31 默认绑定规则：注册、配对、恢复后的加入与普通登录共用本机绑定流程，复用已有 `unlock_secret` query 的结果，不增加 update 或日常 vetKD 调用。系统确认在客户端执行器之外；确认前不释放内容密钥，取消或失败不回退，确认后重新校验会话与设备授权。旧的未绑定快速解锁返回 `AuthRequired`，先经登录迁移。工作区元数据 `bound_declined` 缺省为 false，明确解除绑定时设为 true，手动重新绑定时清除；关闭快速解锁不改变它。没有系统凭据库或硬件能力时保留兼容路径，已有硬件锚但暂时不能询问时不能按无硬件降级。既有副本仍受此前的保护边界约束。
 
 换机通过旧机批准新设备与 `dmsg-device-transfer/1` 传输本机数据；新设备不继承旧设备身份或硬件槽位。旧机不可用且事先开启链上恢复时，只承诺恢复已上传的云端内容，硬件绑定副本中的未上传文件不能仅凭登录恢复。已有硬件快速解锁钥匙优先用于默认绑定；新绑定槽位记录 `created_at`（旧槽位缺省为 0），只有早于硬件锚的钥匙才能确认旧锚的归属，避免用新机生成的钥匙误认旧机副本。
+
+硬件快速解锁允许长期离线读取本机已有副本；远程撤销须在客户端取得认证撤销状态后才能清空该副本。首次绑定、关闭快速解锁、遗失硬件密钥和旧工作区的默认绑定迁移仍按原路径处理，不因 II 到期而自动降级保护。
 
 ## 不可变 RootBundle v3
 

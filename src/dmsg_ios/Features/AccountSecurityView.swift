@@ -62,6 +62,8 @@ struct AccountSecurityView: View {
         @Bindable var model = model
         Section("Privacy") {
             Toggle(Biometry.quickUnlockTitle, isOn: Binding(get: { model.session?.fastUnlock ?? false }, set: { enabled in Task { await model.setFastUnlock(enabled: enabled) } })).disabled(model.busy)
+            Text("Device authentication unlocks local content even after your Internet Identity login expires.")
+                .font(.footnote).foregroundStyle(.secondary)
             Toggle("Lock immediately in background", isOn: $model.immediateBackgroundLock)
             Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.").font(.footnote).foregroundStyle(.secondary)
             NavigationLink("Hardware security") { HardwareSecurityView() }.accessibilityIdentifier("account.hardware")

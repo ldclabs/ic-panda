@@ -349,7 +349,7 @@ async fn legacy_pairing_requires_a_ready_account() {
 }
 
 #[tokio::test]
-async fn fast_unlock_works_offline_for_thirty_days() {
+async fn plain_fast_unlock_works_offline_for_thirty_days() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
@@ -369,15 +369,87 @@ async fn fast_unlock_works_offline_for_thirty_days() {
     assert_eq!(client.vault_list(&Filter::default()).unwrap().len(), 1);
 
     client.lock();
+    // Display metadata cannot turn a plain key into hardware authentication.
+    client.workspace.meta.fast_presence = true;
     client.workspace.meta.login_unlocked_at = Some(now_ms() - FAST_UNLOCK_MS - 1);
     assert_eq!(client.unlock_fast().await.err(), Some(Error::AuthRequired));
     client.workspace.meta.login_unlocked_at = Some(now_ms());
+
+    let mut prepared = client.prepare_fast_unlock().unwrap();
+    let key = prepared.open();
+    prepared.deadline = Some(now_ms() - 1);
+    assert_eq!(prepared.open().err(), Some(Error::AuthRequired));
+    assert_eq!(
+        client.complete_fast_unlock(prepared, key).await.err(),
+        Some(Error::AuthRequired)
+    );
+    assert_eq!(client.session_state().state, "locked");
 
     // A key gone from the credential store turns fast unlock off.
     storage.delete(&client.fast_name().unwrap()).unwrap();
     assert_eq!(client.unlock_fast().await.err(), Some(Error::AuthRequired));
     assert!(!client.status().unwrap().fast_unlock);
     assert_eq!(client.unlock_fast().await.err(), Some(Error::NotFound));
+}
+
+#[tokio::test]
+async fn hardware_fast_unlock_reads_local_secrets_after_login_expires() {
+    use std::sync::atomic::Ordering::SeqCst;
+    for bound in [false, true] {
+        let dir = TempDir::new();
+        let storage = Arc::new(MemoryStorage::default());
+        let hardware = Arc::new(Hardware::default());
+        let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+        client.require_fast_presence();
+        client.set_presence_key(hardware.clone());
+        if bound {
+            bind_offline(&mut client, &hardware, &storage, false);
+        } else {
+            client.workspace.meta.bound_declined = true;
+            client.enable_fast_unlock().unwrap();
+        }
+        let changes = Changes {
+            title: Some("Saved password".into()),
+            fields: Some(vec![crate::vault::FieldChange {
+                id: Some("password".into()),
+                value: Some("synthetic-password".into()),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        };
+        let item = client.vault_create("login", &changes).unwrap();
+        let expired = crate::login::kept_for_tests(3, now_ms() - 1);
+        client
+            .workspace
+            .put_private(client.keys().unwrap(), KEPT_LOGIN, &expired)
+            .unwrap();
+        client.workspace.meta.login_unlocked_at = Some(now_ms() - 90 * DAY);
+        client.lock();
+
+        hardware.declines.store(true, SeqCst);
+        assert_eq!(client.unlock_fast().await.err(), Some(Error::Forbidden));
+        assert_eq!(client.session_state().state, "locked");
+        hardware.declines.store(false, SeqCst);
+        let status = client.unlock_fast().await.unwrap();
+        assert_eq!(status.state, "unlocked");
+        assert_eq!(status.principal, None);
+        assert_eq!(status.login_expires_at, None);
+        assert_eq!(client.session().err(), Some(Error::AuthRequired));
+        assert!(client.workspace.store.sealed(KEPT_LOGIN).unwrap().is_none());
+        assert_eq!(
+            client
+                .vault_show(&item.id)
+                .unwrap()
+                .item
+                .field("password")
+                .unwrap()
+                .value,
+            "synthetic-password"
+        );
+        assert_eq!(hardware.opened.load(SeqCst), 2);
+        client.lock();
+        assert_eq!(client.vault_show(&item.id).err(), Some(Error::Locked));
+    }
 }
 
 #[tokio::test]

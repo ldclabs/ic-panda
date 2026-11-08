@@ -137,6 +137,46 @@ impl Drop for Fixture {
 }
 
 #[tokio::test]
+async fn local_password_reads_do_not_require_an_ii_session() {
+    let fixture = Fixture::new(None).await;
+    let engine = &fixture.engine;
+    let item = engine
+        .host
+        .with(|c| {
+            c.vault_create(
+                "login",
+                &dmsg_client::vault::Changes {
+                    title: Some("Local password".into()),
+                    fields: Some(vec![dmsg_client::vault::FieldChange {
+                        id: Some("password".into()),
+                        value: Some("synthetic-password".into()),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                },
+            )
+        })
+        .await
+        .unwrap();
+    let session = engine.session_state().await.unwrap();
+    assert_eq!(session.state, "unlocked");
+    assert!(session.login_expires_at_ms.is_none());
+    let value = engine
+        .reveal_field(item.id.clone(), item.revision.clone(), "password".into())
+        .await
+        .unwrap();
+    assert_eq!(value.value, "synthetic-password");
+    let locked = engine.lock().await.unwrap();
+    assert_eq!(locked.state, "locked");
+    assert!(
+        engine
+            .reveal_field(item.id, item.revision, "password".into())
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
 async fn background_completion_never_starts_a_content_download_for_pending_edits() {
     let fixture = Fixture::new(None).await;
     let engine = &fixture.engine;

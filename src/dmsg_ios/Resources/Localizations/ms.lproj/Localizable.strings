@@ -768,6 +768,8 @@
 	<string>ID peranti yang dipaparkan pada peranti baharu</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>Pengesahan peranti tidak tersedia buat sementara waktu. Kunci anda disimpan; cuba lagi apabila peranti ini dibuka kuncinya.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Pengesahan peranti membuka kandungan setempat walaupun sesi Internet Identity anda telah tamat.</string>
 	<key>Device pairing request QR code</key>
 	<string>Permintaan pasangan peranti kod QR</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>Fail anda kekal peribadi</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Medan tersembunyi anda kekal tersembunyi sehingga anda memilih untuk mendedahkannya.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>Kandungan setempat anda masih tersedia. Log masuk dengan Internet Identity apabila tindakan akaun memerlukannya.</string>
 	<key>Your private workspace.</key>
 	<string>Ruang kerja peribadi anda.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

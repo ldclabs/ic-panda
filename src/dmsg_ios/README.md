@@ -101,6 +101,12 @@ history lists distinguish an unavailable read from an empty result.
 
 ## Account and settings
 
+Hardware quick unlock remains available after the II login expires: Face ID,
+Touch ID or the device passcode opens already cached local passwords. The account
+page offers a non-blocking login action when II authorization is absent or expired;
+copying a local secret does not start a login. Device revocation checks, automatic
+locking and clipboard expiry remain independent controls.
+
 Account setup shows a spinner and disables competing access actions while it
 runs. After 15 seconds, the screen explains that it is still waiting for network
 confirmation. An uncertain result refreshes the native session handle and makes

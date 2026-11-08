@@ -768,6 +768,8 @@
 	<string>নতুন ডিভাইসে দেখানো ডিভাইস ID</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>ডিভাইস প্রমাণীকরণ অস্থায়ীভাবে অনুপলব্ধ. আপনার চাবি রাখা হয়; এই ডিভাইসটি আনলক হলে আবার চেষ্টা করুন।</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Internet Identity লগইনের মেয়াদ শেষ হলেও ডিভাইস যাচাই করে স্থানীয় কনটেন্ট আনলক করা যায়।</string>
 	<key>Device pairing request QR code</key>
 	<string>ডিভাইস জোড়ার অনুরোধ QR কোড</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>আপনার ফাইলগুলি ব্যক্তিগত থাকে৷</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>আপনার লুকানো ক্ষেত্রগুলি গোপন থাকে যতক্ষণ না আপনি সেগুলি প্রকাশ করতে চান৷</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>আপনার স্থানীয় কনটেন্ট ব্যবহার করা যাবে। অ্যাকাউন্টের কোনো কাজের জন্য প্রয়োজন হলে Internet Identity দিয়ে লগইন করুন।</string>
 	<key>Your private workspace.</key>
 	<string>আপনার ব্যক্তিগত কর্মক্ষেত্র।</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

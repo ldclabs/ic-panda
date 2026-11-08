@@ -768,6 +768,8 @@
 	<string>Device ID shown on the new device</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Device authentication unlocks local content even after your Internet Identity login expires.</string>
 	<key>Device pairing request QR code</key>
 	<string>Device pairing request QR code</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>Your files stay private</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Your hidden fields stay concealed until you choose to reveal them.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>Your local content remains available. Sign in with Internet Identity when an account action requires it.</string>
 	<key>Your private workspace.</key>
 	<string>Your private workspace.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

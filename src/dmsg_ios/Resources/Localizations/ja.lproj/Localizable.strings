@@ -768,6 +768,8 @@
 	<string>新しいデバイスに表示されたデバイス ID</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>デバイス認証が一時的に利用できなくなりました。あなたの鍵は保管されます。このデバイスのロックが解除されてからもう一度お試しください。</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Internet Identity のログイン期限が切れても、デバイス認証でローカルの内容をロック解除できます。</string>
 	<key>Device pairing request QR code</key>
 	<string>デバイスペアリングリクエスト QR コード</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>ファイルは非公開のままです</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>非表示フィールドは、公開することを選択するまで非表示のままです。</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>ローカルの内容は引き続き利用できます。アカウント操作で必要になったときに Internet Identity でログインしてください。</string>
 	<key>Your private workspace.</key>
 	<string>あなたのプライベートワークスペース。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

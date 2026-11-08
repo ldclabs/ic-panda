@@ -768,6 +768,8 @@
 	<string>Device ID na ipinapakita sa bagong device</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>Pansamantalang hindi available ang pagpapatotoo ng device. Ang iyong mga susi ay itinatago; subukang muli kapag naka-unlock ang device na ito.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Nabubuksan ng pagpapatunay sa device ang lokal na nilalaman kahit mag-expire ang iyong Internet Identity login.</string>
 	<key>Device pairing request QR code</key>
 	<string>Humiling ng pagpapares ng device QR code</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>Ang iyong mga file ay mananatiling pribado</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Ang iyong mga nakatagong field ay mananatiling nakatago hanggang sa piliin mong ibunyag ang mga ito.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>Magagamit pa rin ang iyong lokal na nilalaman. Mag-login gamit ang Internet Identity kapag kailangan ito ng isang aksyon sa account.</string>
 	<key>Your private workspace.</key>
 	<string>Ang iyong pribadong workspace.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

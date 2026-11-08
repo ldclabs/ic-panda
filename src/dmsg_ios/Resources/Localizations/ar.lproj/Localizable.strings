@@ -768,6 +768,8 @@
 	<string>معرّف الجهاز المعروض على الجهاز الجديد</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>مصادقة الجهاز غير متاحة مؤقتًا. مفاتيحك محفوظة؛ حاول مجددًا بعد فتح قفل هذا الجهاز.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>تتيح مصادقة الجهاز فتح المحتوى المحلي حتى بعد انتهاء جلسة Internet Identity.</string>
 	<key>Device pairing request QR code</key>
 	<string>رمز QR لطلب اقتران الجهاز</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>تبقى ملفاتك خاصة</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>تبقى الحقول المخفية مخفية حتى تختار إظهارها.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>يظل محتواك المحلي متاحًا. سجّل الدخول عبر Internet Identity عندما يتطلب إجراء على الحساب ذلك.</string>
 	<key>Your private workspace.</key>
 	<string>مساحة عملك الخاصة.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

@@ -5,6 +5,7 @@
   import { localeDir } from '../../shared/locales'
   import Icon from '../components/Icon.svelte'
   import Tooltip from '../components/Tooltip.svelte'
+  import Notice from '../components/page/Notice.svelte'
   import { cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, sessionLabel, t } from '../i18n/index.svelte'
   import { call, onChange } from '../rpc'
@@ -123,8 +124,11 @@
         {/each}
       </DropdownMenu.Group>
       <DropdownMenu.Separator class="my-1 h-px bg-line" />
+      {#if unlockedAccount && !status?.principal}
+        <Notice testid="account-login-hint">{t('localAccessWithoutLogin')}</Notice>
+      {/if}
       <DropdownMenu.Item class={menuItemClass} onSelect={() => startLogin()} data-testid="account-login">
-        <span class="flex items-center gap-2"><Icon name="login" />{status?.state === 'logged_out' ? t('login') : t('loginOther')}</span>
+        <span class="flex items-center gap-2"><Icon name="login" />{unlockedAccount && !status?.principal ? t('loginWithIi') : status?.state === 'logged_out' ? t('login') : t('loginOther')}</span>
       </DropdownMenu.Item>
       {#if status?.state && status.state !== 'logged_out'}
         <DropdownMenu.Item class={menuItemClass} onSelect={logout} data-testid="account-logout">

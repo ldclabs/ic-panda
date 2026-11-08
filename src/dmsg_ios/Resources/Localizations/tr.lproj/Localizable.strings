@@ -768,6 +768,8 @@
 	<string>Yeni cihazda gösterilen cihaz kimliği</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>Cihaz kimlik doğrulaması geçici olarak kullanılamıyor. Anahtarlarınız saklanır; Bu cihazın kilidi açıldığında tekrar deneyin.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Internet Identity oturumunuz sona erse bile cihaz doğrulaması yerel içeriğin kilidini açar.</string>
 	<key>Device pairing request QR code</key>
 	<string>Cihaz eşleştirme isteği QR kodu</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>Dosyalarınız gizli kalır</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Gizli alanlarınız, siz onları açığa çıkarmayı seçene kadar gizli kalır.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>Yerel içeriğiniz kullanılabilir olmaya devam eder. Bir hesap işlemi gerektirdiğinde Internet Identity ile giriş yapın.</string>
 	<key>Your private workspace.</key>
 	<string>Özel çalışma alanınız.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

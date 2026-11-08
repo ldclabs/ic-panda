@@ -768,6 +768,8 @@
 	<string>ID mostrato sul nuovo dispositivo</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>L'autenticazione del dispositivo è temporaneamente non disponibile. Le tue chiavi sono conservate; riprova quando il dispositivo sarà sbloccato.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>L’autenticazione del dispositivo sblocca i contenuti locali anche dopo la scadenza dell’accesso a Internet Identity.</string>
 	<key>Device pairing request QR code</key>
 	<string>Richiesta associazione dispositivo Codice QR</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>I tuoi file rimangono privati</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>I tuoi campi nascosti rimangono nascosti finché non scegli di rivelarli.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>I tuoi contenuti locali restano disponibili. Accedi con Internet Identity quando un’operazione sull’account lo richiede.</string>
 	<key>Your private workspace.</key>
 	<string>Il tuo spazio di lavoro privato.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

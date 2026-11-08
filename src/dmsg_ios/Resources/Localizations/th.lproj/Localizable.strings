@@ -768,6 +768,8 @@
 	<string>ID อุปกรณ์ที่แสดงบนอุปกรณ์ใหม่</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>การรับรองความถูกต้องของอุปกรณ์ไม่พร้อมใช้งานชั่วคราว กุญแจของคุณจะถูกเก็บไว้ ลองอีกครั้งเมื่ออุปกรณ์นี้ถูกปลดล็อค</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>การยืนยันตัวตนบนอุปกรณ์ปลดล็อกเนื้อหาในเครื่องได้แม้เซสชัน Internet Identity จะหมดอายุ</string>
 	<key>Device pairing request QR code</key>
 	<string>คำขอจับคู่อุปกรณ์ขอรหัส QR</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>ไฟล์ของคุณยังคงเป็นส่วนตัว</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>ช่องที่ซ่อนอยู่ของคุณจะถูกปกปิดจนกว่าคุณจะเลือกที่จะเปิดเผย</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>เนื้อหาในเครื่องยังใช้งานได้ เข้าสู่ระบบด้วย Internet Identity เมื่อการดำเนินการในบัญชีจำเป็นต้องใช้</string>
 	<key>Your private workspace.</key>
 	<string>พื้นที่ทำงานส่วนตัวของคุณ</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

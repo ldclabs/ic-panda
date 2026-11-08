@@ -13,8 +13,8 @@ const account = '040g2081040g2081040g', token = 'vault-detail-fixture', itemId =
 const SECRET = 'SYNTHETIC-KEY-ONLY\n' + 'ABCD0123456789'.repeat(18) + '\nEND-SYNTHETIC-KEY'
 const LONG = Array.from({ length: 24 }, (_, i) => `${i + 1}. Synthetic recovery instruction — keep the complete value readable.`).join('\n')
 const calls = [], sockets = new Set(), errors = []
-let sequence = 0, locked = false, holdReveal = false, releaseReveal, rejectReveal = false, nextOtp
-const status = () => ({ state: locked ? 'locked' : 'unlocked', account, device_id: '55'.repeat(32), approvals_waiting: 0, pending_sync: 0, background_online: false, fast_unlock: false, idle_lock_ms: 900000 })
+let sequence = 0, locked = true, holdReveal = false, releaseReveal, rejectReveal = false, nextOtp
+const status = () => ({ state: locked ? 'locked' : 'unlocked', account, device_id: '55'.repeat(32), principal: null, login_expires_at: null, approvals_waiting: 0, pending_sync: 0, background_online: false, fast_unlock: true, idle_lock_ms: 900000 })
 const emit = (type, data = {}) => { for (const socket of sockets) socket.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: ++sequence, type, data } })) }
 const field = (id, type, value, label = '', section = '') => ({ id, type, value, label, section })
 const entry = (id, title, fields, type = 'login', tags = []) => ({ id, revision: '66'.repeat(32), synced: true, deleted: false, item: { type, title, tags, notes: '', files: [], favorite: false, createdAt: Date.now(), updatedAt: Date.now(), fields } })
@@ -26,7 +26,10 @@ const entries = [
 const methods = {
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'app/activity': () => null, 'daemon/status': status, 'session/status': status,
+  'session/accounts': () => [{ account, bound: true, current: true, fast_unlock: true, login_unlocked_at: Date.now() - 90 * 86400000 }],
+  'session/unlock': p => { assert.equal(p.fast, true); locked = false; emit('session/changed'); return status() },
   'profile/show': () => null, 'profile/pending': () => null,
+  'account/security': () => { throw Error('AUTH_REQUIRED') },
   'approval/list': () => [], 'attest/history': () => [], 'channel/list': () => [],
   'agent/ids': () => ({ agents: [] }), 'grants/list': () => [],
   'vault/templates': () => ({ types: ['login', 'key'], templates: {} }),
@@ -81,6 +84,14 @@ try {
   main.setDefaultTimeout(15000)
   main.on('pageerror', error => errors.push(error.message))
   await main.getByTestId('sidebar-toggle').waitFor()
+  // Rust covers the 90-day hardware key; this fixture covers the desktop
+  // handoff and copy flow with no restored II authorization.
+  await main.evaluate(() => { location.hash = '/vault' })
+  await main.getByTestId('locked-step').focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('vault-list').waitFor()
+  assert.equal(calls.filter(c => c.method === 'session/unlock').length, 1)
+  assert.equal(calls.filter(c => c.method === 'session/login').length, 0)
   await app.evaluate(({ BrowserWindow, clipboard, shell, Menu }) => {
     Object.assign(globalThis, { testClipboard: '', testOpened: [], testTextMenus: [] })
     for (const window of BrowserWindow.getAllWindows()) window.webContents.setBackgroundThrottling(false)
@@ -189,6 +200,7 @@ try {
   // Secret copies never reveal plaintext in the renderer; large viewing shares consent and lifetime.
   await row('password').getByTestId('copy-secret').click()
   await waitFor(async () => (await app.evaluate(() => globalThis.testClipboard)) === SECRET)
+  assert.equal(calls.filter(c => c.method === 'session/login').length, 0, 'copying a local password never starts II login')
   assert.equal(await row('password').getByTestId('vault-secret').getAttribute('data-shown'), 'false')
   if (process.platform === 'darwin') assert.ok((await app.evaluate(() => globalThis.testClipboardTypes)).some(type => type.includes('org.nspasteboard.ConcealedType')))
   const revealCount = () => calls.filter(c => c.method === 'vault/reveal').length
@@ -344,6 +356,18 @@ try {
     await main.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur())
     await main.mouse.move(10, 10)
     await screenshot(`vault-${lang}-${theme}-${width}.png`)
+    await main.getByTestId('account-switcher').click()
+    await main.getByTestId('account-login-hint').waitFor()
+    assert.equal(await main.getByTestId('account-menu').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true)
+    await main.getByTestId('account-login').focus()
+    await main.screenshot({ path: join(shots, `local-login-${lang}-${theme}-${width}.png`), animations: 'disabled' })
+    await main.keyboard.press('Escape')
+    await main.getByTestId('account-menu').waitFor({ state: 'detached' })
+    await main.evaluate(() => { location.hash = '/settings/security' })
+    await main.getByTestId('fast-unlock').scrollIntoViewIfNeeded()
+    assert.equal(await main.getByTestId('fast-unlock').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true)
+    await main.screenshot({ path: join(shots, `local-unlock-settings-${lang}-${theme}-${width}.png`), animations: 'disabled' })
+    await select()
     await openMenu('password')
     await screenshot(`menu-${lang}-${theme}-${width}.png`)
     await main.getByTestId('vault-field-view').click()
@@ -364,7 +388,7 @@ try {
   await writeFile(join(shots, 'viewer-ar-dark-zoom200.png'), Buffer.from(zoomCapture, 'base64'))
   await closeViewer('recovery')
   assert.deepEqual(errors, [])
-  console.log('vault detail Electron smoke passed: field menus, text selection, clipboard feedback, keyboard/focus, full values, secret consent/expiry and stale replies, history/managed policy, OTP lifetime/refresh, multilingual narrow and zoomed layouts')
+  console.log('vault detail Electron smoke passed: unlock and password copy without II login, non-blocking account notice, field menus, clipboard feedback, keyboard/focus, full values, secret consent/expiry and stale replies, history/managed policy, OTP lifetime/refresh, multilingual narrow and zoomed layouts')
 } catch (error) {
   for (const [index, page] of app.windows().entries()) {
     await page.screenshot({ path: join(shots, `failure-${index}.png`) }).catch(() => {})

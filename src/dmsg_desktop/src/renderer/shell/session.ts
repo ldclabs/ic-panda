@@ -48,9 +48,9 @@ function openOnce(work: () => Promise<unknown>): Promise<void> {
 /**
  * Open the account again: fast unlock when it is on (the daemon asks for
  * Touch ID or the device password where the Secure Enclave keeps its key),
- * else a login in the system browser. Fast unlock that has run out (thirty
- * days after the last login) or lost its key leads to a login instead; a
- * declined Touch ID leaves the device locked.
+ * else a login in the system browser. Only fast unlock without hardware
+ * presence has a thirty-day login deadline. A lost key leads to a login;
+ * a declined Touch ID leaves the device locked.
  */
 export function unlock(status: any) {
   if (status?.state === 'unlocked') return

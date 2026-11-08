@@ -108,15 +108,17 @@ under the service `dmsg`. `"file"`, the default elsewhere, keeps the owner
 credential in `owner.token`; fast unlock is then unavailable.
 
 Fast unlock turns on with every login unlock unless `fast-unlock disable`
-turned it off, and lasts thirty days after the last login unlock, as long as
-the login (`dmsg login` asks Internet Identity for thirty days). On macOS the
+turned it off. `dmsg login` asks Internet Identity for thirty days, independently
+of hardware-protected local unlock. On macOS the
 Secure Enclave keeps its key (`src/enclave.rs`, CryptoKit through
 `swift/Enclave.swift`, which `build.rs` compiles; building on macOS needs the
 Xcode Swift toolchain): each fast unlock asks for Touch ID, or the login
 password without it, and gives up after a minute unanswered; the login is
-kept sealed under the local data key and comes back with it. Elsewhere the
-key sits in the credential store, nothing asks for the person and no login is
-kept. Multisig wallet cosigner keys use the Secure Enclave the same way.
+kept sealed under the local data key and comes back only while valid. Expired
+login records are deleted; Touch ID/password still opens local content, including
+password copies, and only operations needing II identity require a new login.
+Elsewhere the key sits in the credential store, nothing asks for the person,
+no login is kept, and fast unlock stops thirty days after the last login unlock. Multisig wallet cosigner keys use the Secure Enclave the same way.
 
 With system credentials and supported hardware, the first login after
 registration, pairing, recovery or an upgrade binds the workspace by default.

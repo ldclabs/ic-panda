@@ -9,6 +9,12 @@ supported presence hardware. Verification runs outside the scoped client
 host, so locking cancels its result; it does not add a chain update. Old
 unbound fast unlock first requires login, and an explicit unbind is remembered.
 
+Hardware-presence quick unlock remains available after II authorization expires.
+The session snapshot exposes the login expiry separately from the local lock
+state, so iOS can offer a login without blocking local password copies. Every
+unlock still requires device authentication; expiry never restores an old II
+delegation or skips the certified device-revocation check.
+
 `notifications.rs` exposes named settings, status, reminder pagination, observed
 versions, snooze, Apple registration, reconciliation, local presentation results
 and opaque-route resolution. It uses the same scoped host/session fence and

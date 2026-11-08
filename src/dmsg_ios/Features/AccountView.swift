@@ -17,11 +17,21 @@ struct AccountView: View {
     @State private var planDisplay = DisplayLoad()
     @State private var planAccount: String?
     @State private var loadedPurchaseRevision = 0
+    @State private var loginCheckedAt = Date.now
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         List {
             accountHeader
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            if model.unlocked && (model.session?.loginExpiresAtMs ?? 0) <= UInt64(loginCheckedAt.timeIntervalSince1970 * 1000) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Your local content remains available. Sign in with Internet Identity when an account action requires it.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("account.login-hint")
+                    SettingsAction("Continue with Internet Identity") { Task { await model.login() } }
+                        .disabled(model.busy).accessibilityIdentifier("account.login")
+                }
+            }
             DisplayLoadStatus(state: planDisplay) { Task { await loadPlan(force: true) } }
             DisplayLoadStatus(state: display) { Task { await loadProfile(force: true) } }
             Section {
@@ -59,6 +69,15 @@ struct AccountView: View {
                 SettingsAction("Sign out", role: .destructive) { signingOut = true }.disabled(model.busy)
             }
         }.privateScreen().navigationTitle("Account").workspaceRootTitle()
+            .task(id: model.session?.loginExpiresAtMs) {
+                loginCheckedAt = .now
+                guard let expires = model.session?.loginExpiresAtMs else { return }
+                let delay = Double(expires) / 1000 - loginCheckedAt.timeIntervalSince1970
+                guard delay > 0 else { return }
+                do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+                guard !Task.isCancelled else { return }
+                loginCheckedAt = .now
+            }
             .navigationDestination(item: $destination) { target in
                 switch target {
                 case .profile: PublicProfileView()

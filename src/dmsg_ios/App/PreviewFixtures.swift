@@ -11,9 +11,10 @@ extension SessionModel {
         let pairing = ProcessInfo.processInfo.arguments.contains("--ui-pairing")
         let storeScreens = ProcessInfo.processInfo.arguments.contains("--ui-store-screenshots")
         let chinese = storeScreens && Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
+        let loginExpiry: UInt64? = ProcessInfo.processInfo.arguments.contains("--ui-login-expired") ? nil : UInt64(Date.now.timeIntervalSince1970 * 1000) + (ProcessInfo.processInfo.arguments.contains("--ui-login-expiring") ? 10_000 : 86_400_000)
         installFixtures(
             SessionSnapshot(generation: 0, sequence: 0, state: setup ? "no_account" : (access ? (pairing ? "pairing_required" : "root_required") : "unlocked"), account: setup ? nil : "040g2081040g2081040g", deviceId: "fixture-device",
-                            pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, setupPending: false, lastSyncAtMs: nil, syncError: nil),
+                            pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, loginExpiresAtMs: loginExpiry, setupPending: false, lastSyncAtMs: nil, syncError: nil),
             items: [
                 vaultFixtureItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: chinese ? "个人开发账号" : "Personal development account", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [],
                           fields: [VaultField(id: "username", kind: "text", label: "", section: "", value: "lin@studio.example", concealed: false),
@@ -98,7 +99,7 @@ extension SessionModel {
         let fails = attempt == 1 || (attempt == 2 && ProcessInfo.processInfo.arguments.contains("--ui-setup-failure"))
         let state = SessionSnapshot(generation: UInt64(attempt * 2), sequence: UInt64(attempt),
             state: fails ? "root_required" : "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
-            pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false,
+            pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil,
             setupPending: fails, lastSyncAtMs: nil, syncError: nil)
         installFixtures(state, items: [])
         if fails { throw MobileError.Failure(code: "EXECUTION_UNKNOWN") }

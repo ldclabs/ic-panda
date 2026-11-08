@@ -768,6 +768,8 @@
 	<string>Apparaat-ID op het nieuwe apparaat</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>Apparaatverificatie is tijdelijk niet beschikbaar. Je sleutels worden bewaard; probeer het opnieuw wanneer dit apparaat is ontgrendeld.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Apparaatverificatie ontgrendelt lokale inhoud ook nadat je Internet Identity-sessie is verlopen.</string>
 	<key>Device pairing request QR code</key>
 	<string>Apparaatkoppelingsverzoek QR-code</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>Je bestanden blijven privé</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Je verborgen velden blijven verborgen totdat je ervoor kiest ze te onthullen.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>Je lokale inhoud blijft beschikbaar. Log in met Internet Identity wanneer een accountactie dat vereist.</string>
 	<key>Your private workspace.</key>
 	<string>Jouw privéwerkplek.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

@@ -768,6 +768,8 @@
 	<string>نئے آلے پر دکھائی گئی آلہ ID</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>ڈیوائس کی توثیق عارضی طور پر دستیاب نہیں ہے۔ آپ کی چابیاں رکھی ہیں؛ جب یہ آلہ غیر مقفل ہو تو دوبارہ کوشش کریں۔</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Internet Identity لاگ ان کی مدت ختم ہونے کے بعد بھی آلے کی تصدیق سے مقامی مواد کھولا جا سکتا ہے۔</string>
 	<key>Device pairing request QR code</key>
 	<string>ڈیوائس جوڑا بنانے کی درخواست QR کوڈ</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>آپ کی فائلیں نجی رہتی ہیں</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>آپ کے پوشیدہ فیلڈز اس وقت تک پوشیدہ رہتے ہیں جب تک آپ انہیں ظاہر کرنے کا انتخاب نہیں کرتے۔</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>آپ کا مقامی مواد دستیاب رہے گا۔ اکاؤنٹ کے کسی عمل کے لیے ضرورت پڑنے پر Internet Identity سے لاگ ان کریں۔</string>
 	<key>Your private workspace.</key>
 	<string>آپ کی نجی کام کی جگہ۔</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

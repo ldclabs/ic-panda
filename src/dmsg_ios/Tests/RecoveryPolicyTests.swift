@@ -11,7 +11,7 @@ final class RecoveryPolicyTests: XCTestCase {
         let model = SessionModel()
         model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked",
             account: account, deviceId: "fixture-device", pendingSync: 0, conflicts: 0,
-            approvalsWaiting: 0, fastUnlock: false, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
+            approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
         return model
     }
 

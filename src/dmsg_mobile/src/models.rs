@@ -11,6 +11,8 @@ pub struct SessionSnapshot {
     pub conflicts: u64,
     pub approvals_waiting: u64,
     pub fast_unlock: bool,
+    /// II authorization expires independently of the local unlocked session.
+    pub login_expires_at_ms: Option<u64>,
     pub setup_pending: bool,
     pub last_sync_at_ms: Option<u64>,
     pub sync_error: Option<String>,
@@ -28,6 +30,7 @@ impl SessionSnapshot {
             conflicts: value.conflicts,
             approvals_waiting: value.approvals_waiting,
             fast_unlock: value.fast_unlock,
+            login_expires_at_ms: value.login_expires_at,
             setup_pending: value.setup_pending,
             last_sync_at_ms: value.last_sync.as_ref().and_then(|s| s.succeeded_at()),
             sync_error: value.last_sync.and_then(|s| s.error.or(s.upload_error)),

@@ -768,6 +768,8 @@
 	<string>नए उपकरण पर दिखी उपकरण ID</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>डिवाइस प्रमाणीकरण अस्थायी रूप से अनुपलब्ध है. आपकी चाबियाँ रखी हुई हैं; जब यह उपकरण अनलॉक हो जाए तो पुनः प्रयास करें।</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Internet Identity सत्र समाप्त होने के बाद भी डिवाइस प्रमाणीकरण से स्थानीय सामग्री अनलॉक की जा सकती है।</string>
 	<key>Device pairing request QR code</key>
 	<string>डिवाइस पेयरिंग अनुरोध QR कोड</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>आपकी फ़ाइलें निजी रहती हैं</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>आपके छिपे हुए फ़ील्ड तब तक छिपे रहते हैं जब तक आप उन्हें प्रकट करना नहीं चुनते।</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>आपकी स्थानीय सामग्री उपलब्ध रहती है। खाते की किसी कार्रवाई के लिए आवश्यक होने पर Internet Identity से लॉगिन करें।</string>
 	<key>Your private workspace.</key>
 	<string>आपका निजी कार्यक्षेत्र.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

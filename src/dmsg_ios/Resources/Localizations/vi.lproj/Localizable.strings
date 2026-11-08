@@ -768,6 +768,8 @@
 	<string>ID thiết bị hiển thị trên thiết bị mới</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>Xác thực thiết bị tạm thời không khả dụng. Chìa khóa của bạn được giữ; hãy thử lại khi thiết bị này được mở khóa.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Xác thực thiết bị mở khóa nội dung cục bộ ngay cả khi phiên đăng nhập Internet Identity hết hạn.</string>
 	<key>Device pairing request QR code</key>
 	<string>Yêu cầu ghép nối thiết bị Mã QR</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>Các tập tin của bạn luôn ở chế độ riêng tư</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Các trường ẩn của bạn sẽ được ẩn cho đến khi bạn chọn tiết lộ chúng.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>Nội dung cục bộ của bạn vẫn khả dụng. Đăng nhập bằng Internet Identity khi thao tác tài khoản yêu cầu.</string>
 	<key>Your private workspace.</key>
 	<string>Không gian làm việc riêng tư của bạn.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

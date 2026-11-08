@@ -27,8 +27,7 @@ use zeroize::Zeroizing;
 
 /// How long the callback listener lives.
 pub const LISTEN_MS: u64 = 10 * MINUTE;
-/// The delegation lifetime a login asks for (30 days, as long as fast unlock
-/// lasts after it).
+/// The delegation lifetime a login asks for (II's maximum of 30 days).
 pub const DEFAULT_TTL_MS: u64 = 30 * DAY;
 /// Most canisters a login delegation may reach.
 pub const MAX_TARGETS: usize = 32;

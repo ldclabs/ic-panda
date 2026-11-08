@@ -9,15 +9,16 @@
 //! workspace of the account it is bound to; `current` names the account
 //! selected last, which a restart and fast unlock use.
 //!
-//! Unlocking needs a login: the user home releases the device's unlock
-//! secret only to a Principal bound to the account. Fast unlock opens a
-//! second copy of the local data key with a key the operating system keeps,
-//! for thirty days after the last login unlock; a login unlock turns it on
-//! unless the person turned it off. Where hardware keeps that key and asks
-//! for the person (a [`PresenceKey`], such as the Secure Enclave behind Touch
-//! ID), the login is also kept, sealed under the local data key, and a fast
-//! unlock restores it until it expires. Locking drops the login together
-//! with every key; with "background online" (`background_online`, plan D-7)
+//! Login unlock uses the secret the user home releases only to a Principal
+//! bound to the account. Fast unlock opens a second copy of the local data
+//! key with a key the operating system keeps; a login unlock turns it on
+//! unless the person turned it off. Only plain credential-store keys have
+//! a thirty-day deadline after login unlock. Where hardware keeps the key
+//! and asks for the person (a [`PresenceKey`], such as the Secure Enclave
+//! behind Touch ID), the login is also kept, sealed under the local data
+//! key, and fast unlock restores it until it expires without limiting local
+//! access. Locking drops the login together with every key;
+//! with "background online" (`background_online`, plan D-7)
 //! only the device signing key stays, so presigned and already sealed
 //! versions keep moving while nothing can be read.
 //!
@@ -57,8 +58,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use zeroize::Zeroizing;
 
-/// Fast unlock is refused this long after the last login unlock, as long as
-/// the login lasts.
+/// Fast unlock without hardware user presence is refused this long after
+/// the last login unlock. Hardware-protected local access has no login TTL.
 pub const FAST_UNLOCK_MS: u64 = 30 * DAY;
 /// How long a fast unlock waits for the network before opening what this
 /// device already verified.
@@ -112,7 +113,7 @@ pub struct FastUnlock {
     name: String,
     account: AccountId,
     generation: u64,
-    deadline: u64,
+    deadline: Option<u64>,
     source: FastUnlockSource,
     hardware: Option<Arc<dyn PresenceKey>>,
 }
@@ -128,7 +129,10 @@ impl FastUnlock {
     /// # Errors
     /// Preserves cancellation, unavailable hardware and permanently lost keys.
     pub fn open(&self) -> Result<Zeroizing<Key>> {
-        ensure(now_ms() < self.deadline, Error::AuthRequired)?;
+        ensure(
+            self.deadline.is_none_or(|deadline| now_ms() < deadline),
+            Error::AuthRequired,
+        )?;
         match (&self.source, &self.hardware) {
             (FastUnlockSource::Bound(slot), Some(hardware)) => slot.open(hardware.as_ref()),
             (FastUnlockSource::Bound(_), None) => Err(Error::Unavailable("no hardware key".into())),
@@ -893,13 +897,6 @@ impl Client {
         // Older hardware-capable workspaces migrate through a login, which
         // supplies the existing query's secret for the new bound wrapping.
         ensure(!self.default_binding_needed()?, Error::AuthRequired)?;
-        let deadline = self
-            .workspace
-            .meta
-            .login_unlocked_at
-            .unwrap_or(0)
-            .saturating_add(FAST_UNLOCK_MS);
-        ensure(now_ms() < deadline, Error::AuthRequired)?;
         let name = self.fast_name()?;
         let source = match self.bound_slot()? {
             Some(slot) => FastUnlockSource::Bound(slot),
@@ -921,6 +918,19 @@ impl Client {
                 FastUnlockSource::Fast(stored)
             }
         };
+        // Only a key that can be read without the person has a login deadline.
+        // Use the actual wrapping source, not the display metadata.
+        let deadline = matches!(source, FastUnlockSource::Fast(FastKey::Plain(_))).then(|| {
+            self.workspace
+                .meta
+                .login_unlocked_at
+                .unwrap_or(0)
+                .saturating_add(FAST_UNLOCK_MS)
+        });
+        ensure(
+            deadline.is_none_or(|deadline| now_ms() < deadline),
+            Error::AuthRequired,
+        )?;
         Ok(FastUnlock {
             name,
             account,
@@ -945,7 +955,10 @@ impl Client {
                 && self.account()?.id == prepared.account,
             Error::Locked,
         )?;
-        ensure(now_ms() < prepared.deadline, Error::AuthRequired)?;
+        ensure(
+            prepared.deadline.is_none_or(|deadline| now_ms() < deadline),
+            Error::AuthRequired,
+        )?;
         self.hardware_ready()?;
         let key = match &prepared.source {
             FastUnlockSource::Bound(slot) => self.binding_hardware_key(slot, key),
@@ -1537,8 +1550,8 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::NotFound` when fast unlock is off, `Error::Forbidden`
-    /// when the person declines, `Error::AuthRequired` thirty days after the
-    /// last login unlock or when the key is gone, and
+    /// when the person declines, `Error::AuthRequired` when a plain key's
+    /// thirty-day login deadline passes or the key is gone, and
     /// `Error::DeviceNotApproved` for a revoked device, whose workspace is
     /// then erased.
     pub async fn unlock_fast(&mut self) -> Result<Status> {

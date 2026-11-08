@@ -171,9 +171,9 @@ enum Command {
     },
     /// Unlock with the current login, or with --fast without one.
     Unlock {
-        /// Use fast unlock (up to thirty days after a login unlock); with the
-        /// Secure Enclave it asks for Touch ID or the login password and
-        /// restores the login.
+        /// Use fast unlock (plain keys require login again after thirty days).
+        /// The Secure Enclave asks for Touch ID or the login password and
+        /// restores the login only while it remains valid.
         #[arg(long)]
         fast: bool,
         /// Select this account's workspace first.

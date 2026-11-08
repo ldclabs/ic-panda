@@ -768,6 +768,8 @@
 	<string>Идентификатор на новом устройстве</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>Аутентификация устройства временно недоступна. Ключи сохранены; повторите попытку после разблокировки устройства.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Проверка личности на устройстве открывает локальные данные даже после истечения сеанса Internet Identity.</string>
 	<key>Device pairing request QR code</key>
 	<string>QR-код запроса сопряжения</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>Ваши файлы остаются личными</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Скрытые поля остаются скрытыми, пока вы не решите их показать.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>Локальные данные остаются доступны. Войдите через Internet Identity, когда этого потребует действие с аккаунтом.</string>
 	<key>Your private workspace.</key>
 	<string>Ваше частное рабочее пространство.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>

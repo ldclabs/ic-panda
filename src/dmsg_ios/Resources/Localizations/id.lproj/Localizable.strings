@@ -768,6 +768,8 @@
 	<string>ID perangkat yang ditampilkan di perangkat baru</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>Otentikasi perangkat untuk sementara tidak tersedia. Kunci Anda disimpan; coba lagi saat perangkat ini tidak terkunci.</string>
+	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
+	<string>Autentikasi perangkat membuka konten lokal meskipun sesi Internet Identity Anda telah berakhir.</string>
 	<key>Device pairing request QR code</key>
 	<string>Permintaan pemasangan perangkat kode QR</string>
 	<key>Device permissions</key>
@@ -3008,6 +3010,8 @@
 	<string>File Anda tetap pribadi</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
 	<string>Bidang tersembunyi Anda akan tetap tersembunyi sampai Anda memilih untuk mengungkapkannya.</string>
+	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
+	<string>Konten lokal Anda tetap tersedia. Masuk dengan Internet Identity saat tindakan akun memerlukannya.</string>
 	<key>Your private workspace.</key>
 	<string>Ruang kerja pribadi Anda.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
