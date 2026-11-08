@@ -2890,6 +2890,8 @@
 	<string>ประวัติเวอร์ชัน</string>
 	<key>Versions</key>
 	<string>รุ่นต่างๆ</string>
+	<key>View approval</key>
+	<string>ดูการอนุมัติ</string>
 	<key>Viewer</key>
 	<string>ผู้ดู</string>
 	<key>Wait for the address book cooldown</key>

@@ -35,6 +35,7 @@ struct HardwareSecurityView: View {
     @State private var visible = true
     @State private var status: HardwareSecurityStatus?
     @State private var request: ApprovalView?
+    @State private var receipts = ApprovalReceipts()
     @State private var busy = false
     @State private var loading = true
     @State private var biometryOnly = false
@@ -64,12 +65,13 @@ struct HardwareSecurityView: View {
                     Text("Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.")
                         .font(.footnote).foregroundStyle(.secondary)
                     SettingsAction(LocalizedStringKey(status.key?.here == true ? "Review replacement key" : "Review key registration")) { Task { await register() } }
-                        .disabled(!status.available || busy)
+                        .disabled(!status.available || busy || receipts["hardware.key"] != nil)
                     SettingsAction("Create an administrator enrollment request") { Task { await enrollment() } }
                         .disabled(!status.available || busy)
                     if status.key != nil {
-                        SettingsAction("Review retiring this approval key", role: .destructive) { Task { await retire(nil) } }.disabled(busy)
+                        SettingsAction("Review retiring this approval key", role: .destructive) { Task { await retire(nil) } }.disabled(busy || receipts["hardware.key"] != nil)
                     }
+                    ApprovalReceiptRow(receipts: receipts, key: "hardware.key") { request = $0 }
                 }
                 if let enrollmentToken {
                     Section("Send to an administrator") {
@@ -96,13 +98,15 @@ struct HardwareSecurityView: View {
                     }
                 }
                 Section("Require hardware approval") {
+                    let submitted = receipts["hardware.policy"] != nil
                     Toggle("Account, devices and identities", isOn: Binding(
                         get: { !policy.isDisjoint(with: controlPurposes) },
-                        set: { if $0 { policy.formUnion(controlPurposes) } else { policy.removeAll() } }))
-                    purposeToggle("Payments", purpose: "payment").disabled(policy.isDisjoint(with: controlPurposes))
-                    purposeToggle("Attestations", purpose: "attestation").disabled(policy.isDisjoint(with: controlPurposes))
+                        set: { if $0 { policy.formUnion(controlPurposes) } else { policy.removeAll() } })).disabled(submitted)
+                    purposeToggle("Payments", purpose: "payment").disabled(submitted || policy.isDisjoint(with: controlPurposes))
+                    purposeToggle("Attestations", purpose: "attestation").disabled(submitted || policy.isDisjoint(with: controlPurposes))
                     SettingsAction("Review hardware policy changes") { Task { await changePolicy() } }
-                        .disabled(busy || policy == Set(status.policy))
+                        .disabled(busy || submitted || policy == Set(status.policy))
+                    ApprovalReceiptRow(receipts: receipts, key: "hardware.policy") { request = $0 }
                     Text("Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }.disabled(busy || !status.canManagePolicy)
@@ -113,7 +117,11 @@ struct HardwareSecurityView: View {
                             FingerprintRow(title: "Device ID", value: device.deviceId)
                             if let key = device.keyId {
                                 FingerprintRow(title: "Key fingerprint", value: key)
-                                if !device.thisDevice { Button("Review retiring this approval key", role: .destructive) { Task { await retire(device.deviceId) } }.disabled(busy || !status.canManagePolicy) }
+                                if !device.thisDevice {
+                                    Button("Review retiring this approval key", role: .destructive) { Task { await retire(device.deviceId) } }
+                                        .disabled(busy || !status.canManagePolicy || receipts["hardware.key.\(device.deviceId)"] != nil)
+                                    ApprovalReceiptRow(receipts: receipts, key: "hardware.key.\(device.deviceId)") { request = $0 }
+                                }
                             } else { Text("No registered approval key").font(.caption).foregroundStyle(.secondary) }
                         }.buttonStyle(.borderless).padding(.vertical, 4)
                     }
@@ -129,9 +137,7 @@ struct HardwareSecurityView: View {
         }.disabled(busy).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Hardware security").navigationBarTitleDisplayMode(.inline).confirmLeavingDraft(dirty)
             .task { scope = model.viewGeneration; await load() }
             .onDisappear { if dirty { model.keepFormDraft("hardware", value: Draft(policy: policy, biometry: biometryOnly, token: incomingToken, device: incomingDevice), generation: scope) } }.refreshable { await load() }
-            .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
-                if let request { ApprovalDetailView(request: request) }
-            }
+            .approvalDestination($request, receipts: receipts, model: model)
             .confirmationDialog(LocalizedStringKey(bindingChange == true ? "Bind this workspace to this iPhone?" : "Remove device binding?"),
                 isPresented: Binding(get: { bindingChange != nil }, set: { if !$0 { bindingChange = nil } })) {
                 Button(LocalizedStringKey(bindingChange == true ? "Bind workspace" : "Remove device binding"), role: bindingChange == true ? nil : .destructive) {
@@ -159,21 +165,27 @@ struct HardwareSecurityView: View {
             }
         } catch { if epoch == model.epoch && visible { model.report(error) } }
         local = await LocalOnly.load(model)
+        await receipts.settle(model)
     }
 
-    private func approval(_ action: @MainActor (MobileEngine) async throws -> ObjectSnapshot) async {
+    /// A change under `key` keeps its request until it ends, as on the desktop.
+    private func approval(_ key: String? = nil, _ action: @MainActor (MobileEngine) async throws -> ObjectSnapshot) async {
         guard let engine = model.engine, !busy else { return }
         let epoch = model.epoch; busy = true; model.activity()
         defer { busy = false }
         do {
-            let result = try await action(engine)
-            guard epoch == model.epoch && visible else { return }; request = try model.decode(result)
+            let shown: ApprovalView?
+            if let key { shown = try await receipts.request(key, model: model, create: action) }
+            else { shown = try model.decode(try await action(engine)) }
+            guard let shown, epoch == model.epoch && visible else { return }; request = shown
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
 
-    private func register() async { await approval { try await $0.registerApprovalKey(biometryOnly: biometryOnly) } }
-    private func retire(_ device: String?) async { await approval { try await $0.retireApprovalKey(device: device) } }
-    private func changePolicy() async { await approval { try await $0.setHardwarePolicy(purposes: policy.sorted()) } }
+    private func register() async { await approval("hardware.key") { try await $0.registerApprovalKey(biometryOnly: biometryOnly) } }
+    private func retire(_ device: String?) async {
+        await approval(device.map { "hardware.key.\($0)" } ?? "hardware.key") { try await $0.retireApprovalKey(device: device) }
+    }
+    private func changePolicy() async { await approval("hardware.policy") { try await $0.setHardwarePolicy(purposes: policy.sorted()) } }
     private func enrollOther() async { await approval { try await $0.approveApprovalKey(token: incomingToken, device: incomingDevice) } }
 
     private func enrollment() async {

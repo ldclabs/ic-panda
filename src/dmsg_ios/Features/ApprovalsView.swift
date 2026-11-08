@@ -1,4 +1,5 @@
 import SwiftUI
+@preconcurrency import DMsgCore
 
 struct ApprovalsView: View {
     var showsDone = false
@@ -289,4 +290,86 @@ func approvalFieldLabel(_ key: String) -> String {
 func approvalFieldValue(_ text: String, key: String) -> String {
     guard ["role", "capabilities", "purpose", "purposes"].contains(key) else { return text }
     return approvalFieldLabel(text)
+}
+
+/// Approval requests a screen created and has not seen end, by the change each
+/// makes. As on the desktop, that change stays unavailable and asking again shows
+/// the same request; a receipt clears only once its request reaches a final state,
+/// and one whose request cannot be read is kept.
+@MainActor @Observable final class ApprovalReceipts {
+    static let finalStates: Set<String> = ["done", "rejected", "cancelled", "expired", "failed", "elsewhere"]
+    private var requests: [String: ApprovalView] = [:]
+    private var generation: UInt64 = 0
+
+    subscript(key: String) -> ApprovalView? { requests[key] }
+
+    /// The kept request for `key`, or the one `create` makes, kept before it is shown.
+    func request(_ key: String, generation: UInt64, create: () async throws -> ApprovalView) async throws -> ApprovalView {
+        adopt(generation)
+        if let kept = requests[key] { return kept }
+        let created = try await create()
+        if self.generation == generation { requests[key] = created }
+        return created
+    }
+
+    /// Re-reads each kept request; `read` gives its state, or nil when it cannot be read.
+    func settle(generation: UInt64, read: (String) async -> String?) async {
+        adopt(generation)
+        for (key, kept) in requests {
+            guard let state = await read(kept.id), self.generation == generation, requests[key]?.id == kept.id else { continue }
+            if Self.finalStates.contains(state) { requests[key] = nil }
+        }
+    }
+
+    /// Receipts last while the account's views do: locking or switching accounts
+    /// clears them, a trip to the background does not.
+    private func adopt(_ generation: UInt64) {
+        if generation != self.generation { requests = [:]; self.generation = generation }
+    }
+
+    /// `request(_:generation:create:)` through the engine; nil without one or after the views were reset.
+    func request(_ key: String, model: SessionModel, create: @MainActor (MobileEngine) async throws -> ObjectSnapshot) async throws -> ApprovalView? {
+        guard let engine = model.engine else { return nil }
+        let generation = model.viewGeneration
+        let request = try await request(key, generation: generation) {
+            let created: ApprovalView = try model.decode(try await create(engine))
+            return created
+        }
+        return generation == model.viewGeneration ? request : nil
+    }
+
+    func settle(_ model: SessionModel) async {
+        guard let engine = model.engine else { return }
+        await settle(generation: model.viewGeneration) { id in
+            guard let value = try? await engine.approval(id: id), let view: ApprovalView = try? model.decode(value) else { return nil }
+            return view.state
+        }
+    }
+}
+
+/// A kept request's notice, with the way back to it.
+struct ApprovalReceiptRow: View {
+    let receipts: ApprovalReceipts
+    let key: String
+    let open: (ApprovalView) -> Void
+    var body: some View {
+        if let request = receipts[key] {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Waiting for approval", systemImage: "clock").font(.subheadline).foregroundStyle(.secondary)
+                Button("View approval") { open(request) }.buttonStyle(.borderless).frame(minHeight: 44)
+                    .accessibilityIdentifier("approval.receipt.\(key)")
+            }
+        }
+    }
+}
+
+extension View {
+    /// Shows `request`; closing it re-reads the screen's kept requests.
+    func approvalDestination(_ request: Binding<ApprovalView?>, receipts: ApprovalReceipts, model: SessionModel) -> some View {
+        navigationDestination(isPresented: Binding(get: { request.wrappedValue != nil }, set: {
+            if !$0 { request.wrappedValue = nil; Task { await receipts.settle(model) } }
+        })) {
+            if let shown = request.wrappedValue { ApprovalDetailView(request: shown) }
+        }
+    }
 }

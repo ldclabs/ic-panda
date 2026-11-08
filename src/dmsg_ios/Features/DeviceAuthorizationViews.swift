@@ -99,6 +99,7 @@ struct PairApprovalView: View {
     @Environment(SessionModel.self) private var model
     @State private var token = ""
     @State private var created: ApprovalView?
+    @State private var receipts = ApprovalReceipts()
     @State private var scanning = false
     @State private var working = false
     struct PairPreview: Decodable { let deviceId: String }
@@ -111,14 +112,13 @@ struct PairApprovalView: View {
                     if await AVCaptureDevice.requestAccess(for: .video) { scanning = true }
                 } }
             }
-            SettingsAction("Review request", prominent: true) { Task { await review() } }.disabled(clean.isEmpty)
+            SettingsAction("Review request", prominent: true) { Task { await review() } }.disabled(clean.isEmpty || receipts["pair.\(clean)"] != nil)
+            ApprovalReceiptRow(receipts: receipts, key: "pair.\(clean)") { created = $0 }
             if working { ProgressView() }
             NoticeBar(text: String(localized: "This creates a pending request. It does not authorize the device."))
         }.disabled(working).privateScreen().navigationTitle("Add device")
             .sheet(isPresented: $scanning) { QRCodeScanner { text in token = text; scanning = false; Task { await review() } } }
-            .navigationDestination(isPresented: Binding(get: { created != nil }, set: { if !$0 { created = nil } })) {
-                if let created { ApprovalDetailView(request: created) }
-            }
+            .approvalDestination($created, receipts: receipts, model: model)
     }
 
     private func review() async {
@@ -126,11 +126,13 @@ struct PairApprovalView: View {
         let epoch = model.epoch, input = clean
         working = true; defer { working = false }
         do {
+            // The same pairing request opens its existing approval again, as on the desktop.
+            if let kept = receipts["pair.\(input)"] { created = kept; return }
             let inspected: PairPreview = try model.decode(try await engine.inspectPairingRequest(token: input))
             guard epoch == model.epoch, input == clean else { return }
-            let result = try await engine.approvePairingRequest(token: input, device: inspected.deviceId)
-            guard epoch == model.epoch, input == clean else { return }
-            created = try model.decode(result)
+            let value = try await receipts.request("pair.\(input)", model: model) { try await $0.approvePairingRequest(token: input, device: inspected.deviceId) }
+            guard let value, epoch == model.epoch, input == clean else { return }
+            created = value
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 }

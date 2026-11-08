@@ -63,6 +63,7 @@ struct DeviceDetail: View {
     var canManage = false
     @Environment(SessionModel.self) private var model
     @State private var request: ApprovalView?
+    @State private var receipts = ApprovalReceipts()
     @State private var confirming = false
     @State private var working = false
     @State private var label = ""
@@ -89,7 +90,8 @@ struct DeviceDetail: View {
             }
             Section("Permissions") { ForEach(device.capabilities, id: \.self) { Text(deviceCapabilityTitle($0)) } }
             if device.revokedAt == nil {
-                SettingsAction("Revoke this device", role: .destructive) { confirming = true }.disabled(working || !canManage)
+                SettingsAction("Revoke this device", role: .destructive) { confirming = true }.disabled(working || !canManage || receipts["device.revoke"] != nil)
+                ApprovalReceiptRow(receipts: receipts, key: "device.revoke") { request = $0 }
                 if !canManage { Text("An administrator device is required to change account security.").font(.footnote).foregroundStyle(.secondary) }
             }
             NoticeBar(text: String(localized: "Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled."))
@@ -100,13 +102,13 @@ struct DeviceDetail: View {
                 Button("Review revocation", role: .destructive) { Task {
                     guard !working, canManage else { return }; working = true; defer { working = false }
                     let epoch = model.epoch
-                    do { if let result = try await model.engine?.revokeDevice(device: device.deviceId), epoch == model.epoch { request = try model.decode(result) } }
-                    catch { if epoch == model.epoch { model.report(error) } }
+                    do {
+                        let value = try await receipts.request("device.revoke", model: model) { try await $0.revokeDevice(device: device.deviceId) }
+                        if let value, epoch == model.epoch { request = value }
+                    } catch { if epoch == model.epoch { model.report(error) } }
                 } }
             }
-            .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
-                if let request { ApprovalDetailView(request: request) }
-            }
+            .approvalDestination($request, receipts: receipts, model: model)
     }
 
     private func refresh() async {
@@ -117,6 +119,7 @@ struct DeviceDetail: View {
             current = account.devices.first { $0.id == device.id }
             permission = account.devices.contains { $0.current && $0.managesAccount }; failed = false
         } catch { if epoch == model.epoch, !Task.isCancelled { failed = true } }
+        await receipts.settle(model)
     }
 
 }

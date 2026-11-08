@@ -2890,6 +2890,8 @@
 	<string>Sürüm geçmişi</string>
 	<key>Versions</key>
 	<string>Sürümler</string>
+	<key>View approval</key>
+	<string>Onayı görüntüle</string>
 	<key>Viewer</key>
 	<string>Görüntüleyici</string>
 	<key>Wait for the address book cooldown</key>

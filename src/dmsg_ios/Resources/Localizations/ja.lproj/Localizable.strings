@@ -2890,6 +2890,8 @@
 	<string>バージョン履歴</string>
 	<key>Versions</key>
 	<string>バージョン</string>
+	<key>View approval</key>
+	<string>承認の表示</string>
 	<key>Viewer</key>
 	<string>ビューア</string>
 	<key>Wait for the address book cooldown</key>

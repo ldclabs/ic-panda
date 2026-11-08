@@ -2890,6 +2890,8 @@
 	<string>版本历史</string>
 	<key>Versions</key>
 	<string>版本</string>
+	<key>View approval</key>
+	<string>查看审批</string>
 	<key>Viewer</key>
 	<string>查看者</string>
 	<key>Wait for the address book cooldown</key>

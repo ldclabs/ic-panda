@@ -2890,6 +2890,8 @@
 	<string>संस्करण इतिहास</string>
 	<key>Versions</key>
 	<string>संस्करण</string>
+	<key>View approval</key>
+	<string>अनुमोदन देखें</string>
 	<key>Viewer</key>
 	<string>दर्शक</string>
 	<key>Wait for the address book cooldown</key>

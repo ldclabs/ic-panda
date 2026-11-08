@@ -2890,6 +2890,8 @@
 	<string>Sejarah versi</string>
 	<key>Versions</key>
 	<string>Versi</string>
+	<key>View approval</key>
+	<string>Lihat kelulusan</string>
 	<key>Viewer</key>
 	<string>Penonton</string>
 	<key>Wait for the address book cooldown</key>

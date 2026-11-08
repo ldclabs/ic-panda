@@ -9,6 +9,7 @@ struct RecoveryView: View {
     @State private var failed = false
     @State private var visible = true
     @State private var request: ApprovalView?
+    @State private var receipts = ApprovalReceipts()
     struct RecoveryState: Decodable {
         let enabled: Bool
         let ready: Bool
@@ -55,7 +56,8 @@ struct RecoveryView: View {
                             if Double(pending.expiresAt) <= timeline.date.timeIntervalSince1970 * 1000 { Text("Expired").foregroundStyle(.secondary) }
                             if model.unlocked && recovery.member {
                                 SettingsAction("Cancel this recovery request", role: .destructive) { Task { await cancelRecovery(pending.opId) } }
-                                    .disabled(working).accessibilityIdentifier("recovery.cancel")
+                                    .disabled(working || receipts["recovery.cancel"] != nil).accessibilityIdentifier("recovery.cancel")
+                                ApprovalReceiptRow(receipts: receipts, key: "recovery.cancel") { request = $0 }
                             }
                         }
                     }
@@ -77,9 +79,7 @@ struct RecoveryView: View {
         }.privateScreen().navigationTitle("Account recovery")
             .onAppear { visible = true }.onDisappear { visible = false }
             .task(id: model.contentRevision) { await refresh() }
-            .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
-                if let request { ApprovalDetailView(request: request) }
-            }
+            .approvalDestination($request, receipts: receipts, model: model)
             .confirmationDialog("Start account recovery?", isPresented: $confirming) {
                 Button("Request recovery") { Task {
                     guard !working else { return }; working = true; defer { working = false }
@@ -109,6 +109,7 @@ struct RecoveryView: View {
             await display.load(model, kind: "recovery", force: force) { (next: RecoveryState) in
                 recovery = next
             }
+            await receipts.settle(model)
             return
         }
         do { if let result = try await model.engine?.recoveryStatus() {
@@ -120,13 +121,13 @@ struct RecoveryView: View {
     }
 
     private func cancelRecovery(_ operation: String) async {
-        guard let engine = model.engine, model.unlocked, recovery?.member == true, !working else { return }
+        guard model.unlocked, recovery?.member == true, !working else { return }
         let epoch = model.epoch
         working = true; model.activity(); defer { working = false }
         do {
-            let value = try await engine.disputeRecovery(operation: operation)
-            guard epoch == model.epoch, visible, !Task.isCancelled else { return }
-            request = try model.decode(value)
+            let value = try await receipts.request("recovery.cancel", model: model) { try await $0.disputeRecovery(operation: operation) }
+            guard let value, epoch == model.epoch, visible, !Task.isCancelled else { return }
+            request = value
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
     private func complete() async {

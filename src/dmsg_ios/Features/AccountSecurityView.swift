@@ -12,6 +12,7 @@ struct AccountSecurityView: View {
     @State private var display = DisplayLoad()
     @State private var security: SecurityInfo?
     @State private var request: ApprovalView?
+    @State private var receipts = ApprovalReceipts()
     @State private var token = ""
     @State private var delay = 3
     @State private var recoveryEnabled = false
@@ -46,9 +47,7 @@ struct AccountSecurityView: View {
             .task(id: model.contentRevision) { scope = model.viewGeneration; await load(force: true) }
             .onDisappear { if dirty { model.keepFormDraft("security", value: Draft(token: token, delay: delay, enabled: recoveryEnabled), generation: scope) } }
             .refreshable { await load(force: true) }
-            .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
-                if let request { ApprovalDetailView(request: request) }
-            }
+            .approvalDestination($request, receipts: receipts, model: model)
             .navigationDestination(isPresented: $settingUp) { NotificationSettingsView() }
     }
     private var title: LocalizedStringKey {
@@ -98,13 +97,15 @@ struct AccountSecurityView: View {
     }
 
     @ViewBuilder private var recoveryPolicy: some View {
+        let submitted = receipts["recovery.policy"] != nil
         Section {
-            Toggle("On-chain recovery", isOn: $recoveryEnabled).disabled(busy || security == nil)
+            Toggle("On-chain recovery", isOn: $recoveryEnabled).disabled(busy || security == nil || submitted)
             NoticeBar(text: String(localized: recoveryEnabled ? "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time." : "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content."))
-            if recoveryEnabled { Stepper("\(delay) days", value: $delay, in: 1...7).disabled(busy) }
+            if recoveryEnabled { Stepper("\(delay) days", value: $delay, in: 1...7).disabled(busy || submitted) }
             if security?.recoveryUpdating == true { Text("Finishing the security update. New content waits until it completes.").font(.caption) }
             SettingsAction("Review request") { Task { await reviewRecovery() } }
-                .disabled(busy || security == nil || (recoveryEnabled == security?.recoveryEnabled && (!recoveryEnabled || delay == Int((security?.recoveryDelayMs ?? 0) / 86_400_000))))
+                .disabled(busy || security == nil || submitted || (recoveryEnabled == security?.recoveryEnabled && (!recoveryEnabled || delay == Int((security?.recoveryDelayMs ?? 0) / 86_400_000))))
+            ApprovalReceiptRow(receipts: receipts, key: "recovery.policy") { request = $0 }
         }
         .disabled(busy || canManage != true)
     }
@@ -136,6 +137,7 @@ struct AccountSecurityView: View {
                 canManage = state.devices.contains { $0.current && $0.managesAccount }
             }
         } catch { if epoch == model.epoch && visible, !Task.isCancelled { permissionFailed = true } }
+        await receipts.settle(model)
     }
     private func reviewRecovery() async {
         guard !busy, let security else { return }
@@ -144,10 +146,11 @@ struct AccountSecurityView: View {
         defer { busy = false }
         do {
             let days = recoveryEnabled ? delay : Int(security.recoveryDelayMs / 86_400_000)
-            if let result = try await model.engine?.changeRecoveryPolicy(enabled: recoveryEnabled, days: UInt32(days)) {
-                guard epoch == model.epoch && visible, !Task.isCancelled else { return }
-                request = try model.decode(result)
+            let value = try await receipts.request("recovery.policy", model: model) {
+                try await $0.changeRecoveryPolicy(enabled: recoveryEnabled, days: UInt32(days))
             }
+            guard let value, epoch == model.epoch && visible, !Task.isCancelled else { return }
+            request = value
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
     private func remove(_ principal: String) async {

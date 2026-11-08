@@ -2890,6 +2890,8 @@
 	<string>Historial de versiones</string>
 	<key>Versions</key>
 	<string>Versiones</string>
+	<key>View approval</key>
+	<string>Ver solicitud</string>
 	<key>Viewer</key>
 	<string>Lector</string>
 	<key>Wait for the address book cooldown</key>

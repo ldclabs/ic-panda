@@ -2890,6 +2890,8 @@
 	<string>Kasaysayan ng bersyon</string>
 	<key>Versions</key>
 	<string>Mga bersyon</string>
+	<key>View approval</key>
+	<string>Tingnan ang pag-apruba</string>
 	<key>Viewer</key>
 	<string>manonood</string>
 	<key>Wait for the address book cooldown</key>

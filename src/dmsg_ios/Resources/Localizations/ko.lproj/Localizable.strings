@@ -2890,6 +2890,8 @@
 	<string>버전 기록</string>
 	<key>Versions</key>
 	<string>버전</string>
+	<key>View approval</key>
+	<string>승인 보기</string>
 	<key>Viewer</key>
 	<string>뷰어</string>
 	<key>Wait for the address book cooldown</key>

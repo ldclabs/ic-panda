@@ -2890,6 +2890,8 @@
 	<string>سجل الإصدارات</string>
 	<key>Versions</key>
 	<string>الإصدارات</string>
+	<key>View approval</key>
+	<string>عرض طلب الموافقة</string>
 	<key>Viewer</key>
 	<string>مشاهد</string>
 	<key>Wait for the address book cooldown</key>

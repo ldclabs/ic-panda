@@ -2890,6 +2890,8 @@
 	<string>Versiegeschiedenis</string>
 	<key>Versions</key>
 	<string>Versies</string>
+	<key>View approval</key>
+	<string>Goedkeuring bekijken</string>
 	<key>Viewer</key>
 	<string>Kijker</string>
 	<key>Wait for the address book cooldown</key>

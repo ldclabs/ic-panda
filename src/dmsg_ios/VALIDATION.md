@@ -2412,3 +2412,30 @@ cancellation. The iOS cancel action still creates a new approval request on each
 tap; the desktop reuses its pending one.
 
 Review and validation: Claude (Anthropic).
+
+## Pending approvals reused as on the desktop (2026-11-08)
+
+iOS now keeps the approval request a security change created, as the desktop
+does: cancelling a recovery, the on-chain recovery policy, the hardware policy,
+registering or retiring an approval key (per device for other devices), revoking
+a device and approving a pairing request. While a request is not done, rejected,
+cancelled, expired, failed or decided elsewhere, that change and its inputs are
+unavailable and the page shows Waiting for approval with View approval, which
+opens the same request. Closing the approval and each page refresh re-read the
+kept requests; an unreadable request stays kept. Receipts follow the account's
+views: locking or switching accounts clears them, going to the background does
+not. Agent, wallet, share and import requests are unchanged, as on the desktop.
+`View approval` uses the desktop's translations in all 23 catalogs.
+
+Actual local verification:
+
+- `localizations.py` verified all 23 localizations.
+- On iPhone 18 Pro / iOS 27.0 Simulator, `AccountSettingsTests` (11, including
+  `testApprovalReceiptsReuseARequestUntilItEndsLikeTheDesktop`) and five UI tests
+  for recovery, login identities, hardware security and device handover passed,
+  with no new compiler warnings in the changed files.
+
+UI test fixtures have no core engine, so creating, reopening and settling a real
+request was covered by the unit test only, not on screen or a physical device.
+
+Review and validation: Claude (Anthropic).

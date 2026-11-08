@@ -134,6 +134,12 @@ Pending recovery details and cancellation live only on Account recovery, includi
 when opened from a security reminder. The waiting-period end and request expiry
 show the local date and time. Cancelling creates an approval request; any authorized
 device may review it, while changing the policy still requires an administrator.
+As on the desktop, cancelling a recovery, the recovery policy, the hardware policy,
+registering or retiring an approval key, revoking a device and approving a pairing
+request each keep the request they created: until it is done, rejected, cancelled,
+expired, failed or decided elsewhere, that change stays unavailable and the page
+offers View approval instead of creating another request. An unreadable request
+stays kept, and locking or switching accounts clears these receipts.
 
 The public offline tour has been removed. Blocking and report history live under
 Messages → Message settings. Privacy remains available offline before sign-in;

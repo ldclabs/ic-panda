@@ -2890,6 +2890,8 @@
 	<string>সংস্করণ ইতিহাস</string>
 	<key>Versions</key>
 	<string>সংস্করণ</string>
+	<key>View approval</key>
+	<string>অনুমোদন দেখুন</string>
 	<key>Viewer</key>
 	<string>দর্শক</string>
 	<key>Wait for the address book cooldown</key>

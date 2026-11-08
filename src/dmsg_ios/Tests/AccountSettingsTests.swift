@@ -54,6 +54,42 @@ final class AccountSettingsTests: XCTestCase {
         XCTAssertFalse(state.canComplete(at: Date(timeIntervalSince1970: 1_799_000_000)))
     }
 
+    @MainActor func testApprovalReceiptsReuseARequestUntilItEndsLikeTheDesktop() async throws {
+        let receipts = ApprovalReceipts()
+        var created = 0
+        func make() -> ApprovalView {
+            created += 1
+            return ApprovalView(id: "request-\(created)", digest: "digest", type: "account", state: "awaiting_user", source: "gui",
+                                risk: "high", expiresAt: 0, mobileSupported: true, updatedAt: nil)
+        }
+        let first = try await receipts.request("recovery.cancel", generation: 1) { make() }
+        // Asking again shows the same request instead of creating another.
+        let again = try await receipts.request("recovery.cancel", generation: 1) { make() }
+        XCTAssertEqual(again.id, first.id); XCTAssertEqual(created, 1)
+        _ = try await receipts.request("hardware.policy", generation: 1) { make() }
+        XCTAssertEqual(created, 2)
+        // Waiting, running and unreadable requests stay kept.
+        for state: String? in ["awaiting_user", "executing", "unknown", nil] {
+            await receipts.settle(generation: 1) { _ in state }
+            XCTAssertEqual(receipts["recovery.cancel"]?.id, first.id)
+        }
+        // A final state clears only that request's receipt.
+        await receipts.settle(generation: 1) { $0 == first.id ? "rejected" : "awaiting_user" }
+        XCTAssertNil(receipts["recovery.cancel"]); XCTAssertNotNil(receipts["hardware.policy"])
+        // Locking or switching accounts starts empty.
+        await receipts.settle(generation: 2) { _ in "awaiting_user" }
+        XCTAssertNil(receipts["hardware.policy"])
+        for state in ApprovalReceipts.finalStates {
+            _ = try await receipts.request("device.revoke", generation: 2) { make() }
+            await receipts.settle(generation: 2) { _ in state }
+            XCTAssertNil(receipts["device.revoke"], state)
+        }
+        // A failed creation keeps nothing.
+        struct Failure: Error {}
+        do { _ = try await receipts.request("pair.token", generation: 2) { throw Failure() }; XCTFail("creation should fail") } catch {}
+        XCTAssertNil(receipts["pair.token"])
+    }
+
     func testRecoveryDeadlinesAllowAReplacementAfterExpiryAndCompletionOnlyInItsWindow() {
         let waiting = Date(timeIntervalSince1970: 1000)
         let ready = Date(timeIntervalSince1970: 1100)
