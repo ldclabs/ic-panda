@@ -6,6 +6,29 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.4.2] - 2026-11-08
+
+### Account recovery
+
+- Keep the recovery policy, pending request and cancellation in Settings ›
+  Account recovery. Account security and recovery reminders open this page.
+  Show the waiting-period end in local date and time, and reuse the pending
+  approval when reviewing a cancellation.
+- Clarify recovery controls and approval-key guidance across all 23 languages.
+
+### Privacy and security
+
+- Limit shared vault list previews to usernames or HTTP(S) website hosts for
+  account-like items. Do not fall back to notes or arbitrary field values,
+  and omit URL credentials, paths and query parameters.
+- Restrict Agent vault searches to the metadata available in their results;
+  hidden values and note bodies no longer affect search matches.
+- Preserve pending logins when callbacks have an invalid origin, format or
+  session state. Limit MCP webhook verification-key downloads while streaming
+  to prevent oversized responses from being fully buffered.
+- Require an independent password for Linux file-library mounts, passed to
+  GIO through private stdin. A visible mount URL alone no longer grants access.
+
 ## [1.4.1] - 2026-11-07
 
 ### Vault
@@ -705,6 +728,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.4.2]: https://github.com/ldclabs/ic-panda/compare/1.4.1...1.4.2
 [1.4.1]: https://github.com/ldclabs/ic-panda/compare/1.4.0...1.4.1
 [1.4.0]: https://github.com/ldclabs/ic-panda/compare/1.3.3...1.4.0
 [1.3.3]: https://github.com/ldclabs/ic-panda/compare/1.3.2...1.3.3
