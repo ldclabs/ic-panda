@@ -7,11 +7,13 @@ struct RecoveryView: View {
     @State private var recovery: RecoveryState?
     @State private var working = false
     @State private var failed = false
+    @State private var visible = true
+    @State private var request: ApprovalView?
     struct RecoveryState: Decodable {
         let enabled: Bool
         let ready: Bool
         let member: Bool
-        struct Pending: Decodable { let executeAfter: UInt64; let expiresAt: UInt64; let thisDevice: Bool }
+        struct Pending: Decodable { let opId: String; let executeAfter: UInt64; let expiresAt: UInt64; let thisDevice: Bool }
         var pending: Pending? = nil
         var recoveryDelayMs: UInt64? = nil
 
@@ -35,17 +37,27 @@ struct RecoveryView: View {
             List {
                 if model.unlocked { DisplayLoadStatus(state: display) { Task { await refresh(force: true) } } }
                 if recovery?.enabled == false { NoticeBar(text: String(localized: "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.")) }
-                NoticeBar(text: String(localized: "Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered."))
+                NoticeBar(text: String(localized: "Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered."))
                 if let recovery {
-                    Section("Recovery status") {
+                    Section {
                         LabeledContent("On-chain recovery", value: String(localized: recovery.enabled ? "Enabled" : "Disabled"))
                         if let delay = recovery.recoveryDelayMs { LabeledContent("Waiting period", value: String(localized: "\(delay / 86_400_000) days")) }
-                        if let pending = recovery.pending {
-                            LabeledContent("Available after") { Text(Date(timeIntervalSince1970: Double(pending.executeAfter) / 1000), style: .date) }
-                            LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(pending.expiresAt) / 1000), style: .date) }
+                        if recovery.pending == nil {
+                            if recovery.member { Label("This device is authorized", systemImage: "checkmark.circle") }
+                            Text("No recovery request")
+                        }
+                    }
+                    if let pending = recovery.pending {
+                        Section("Pending account recovery") {
+                            LabeledContent("Waiting period ends") { Text(Date(timeIntervalSince1970: Double(pending.executeAfter) / 1000), format: .dateTime) }
+                                .reminderVisible(.recovery(model.recoveryWarning?.digest ?? ""), ready: model.recoveryWarning?.pending == true)
+                            LabeledContent("Expires") { Text(Date(timeIntervalSince1970: Double(pending.expiresAt) / 1000), format: .dateTime) }
                             if Double(pending.expiresAt) <= timeline.date.timeIntervalSince1970 * 1000 { Text("Expired").foregroundStyle(.secondary) }
-                        } else if recovery.member { Label("This device is authorized", systemImage: "checkmark.circle") }
-                        else { Text("No recovery request") }
+                            if model.unlocked && recovery.member {
+                                SettingsAction("Cancel this recovery request", role: .destructive) { Task { await cancelRecovery(pending.opId) } }
+                                    .disabled(working).accessibilityIdentifier("recovery.cancel")
+                            }
+                        }
                     }
                     if recovery.canRequest(at: timeline.date) {
                         SettingsAction("Request account recovery") { confirming = true }.disabled(working)
@@ -55,11 +67,19 @@ struct RecoveryView: View {
                         SettingsAction("Complete recovery after waiting period", prominent: true) { Task { await complete() } }.disabled(working)
                             .accessibilityIdentifier("recovery.complete")
                     }
-                    if model.unlocked { NavigationLink("Account security") { AccountSecurityView() } }
+                }
+                if model.unlocked {
+                    NavigationLink("On-chain recovery") { AccountSecurityView(page: .recovery) }
+                        .accessibilityIdentifier("recovery.policy")
                 }
                 SettingsLoadStatus(loading: working, failed: failed) { Task { await refresh(force: true) } }
             }.refreshable { await refresh(force: true) }
-        }.privateScreen().navigationTitle("Recovery").task { await refresh() }
+        }.privateScreen().navigationTitle("Account recovery")
+            .onAppear { visible = true }.onDisappear { visible = false }
+            .task(id: model.contentRevision) { await refresh() }
+            .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
+                if let request { ApprovalDetailView(request: request) }
+            }
             .confirmationDialog("Start account recovery?", isPresented: $confirming) {
                 Button("Request recovery") { Task {
                     guard !working else { return }; working = true; defer { working = false }
@@ -75,7 +95,13 @@ struct RecoveryView: View {
         if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-recovery-expired") {
             let now = UInt64(Date.now.timeIntervalSince1970 * 1000)
             recovery = RecoveryState(enabled: true, ready: true, member: false,
-                pending: .init(executeAfter: now - 86_400_000, expiresAt: now - 1, thisDevice: true))
+                pending: .init(opId: String(repeating: "a", count: 64), executeAfter: now - 86_400_000, expiresAt: now - 1, thisDevice: true))
+            return
+        }
+        if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-member-security") {
+            let now = UInt64(Date.now.timeIntervalSince1970 * 1000)
+            recovery = RecoveryState(enabled: true, ready: false, member: true,
+                pending: .init(opId: String(repeating: "a", count: 64), executeAfter: now + 259200000, expiresAt: now + 864000000, thisDevice: false), recoveryDelayMs: 259200000)
             return
         }
         #endif
@@ -91,6 +117,17 @@ struct RecoveryView: View {
             recovery = try decoder.decode(RecoveryState.self, from: Data(result.json.utf8))
         } }
         catch { if epoch == model.epoch, !Task.isCancelled { failed = true } }
+    }
+
+    private func cancelRecovery(_ operation: String) async {
+        guard let engine = model.engine, model.unlocked, recovery?.member == true, !working else { return }
+        let epoch = model.epoch
+        working = true; model.activity(); defer { working = false }
+        do {
+            let value = try await engine.disputeRecovery(operation: operation)
+            guard epoch == model.epoch, visible, !Task.isCancelled else { return }
+            request = try model.decode(value)
+        } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
     private func complete() async {
         guard !working else { return }; working = true; defer { working = false }

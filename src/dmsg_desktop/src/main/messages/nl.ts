@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "De update wordt op de achtergrond gedownload. Kies daarna opnieuw opstarten om de update te installeren.",
   updateManual: "Dit exemplaar van dMsg kan zelf geen updates installeren. Download de nieuwe versie van de releasepagina en installeer deze hierover.",
   requestWaiting: "Er wacht een aanvraag op je goedkeuring.",
-  recoveryPending: "Er staat een herstelverzoek voor je account open. Heb je dit niet aangevraagd? Annuleer het bij Accountbeveiliging voordat de toegang wordt overgedragen.",
   eventsArrived: (n: number) => `Nieuwe gebeurtenissen voor je agents: ${n}.`,
   agentMailArrived: (n: number) => `Nieuwe brieven voor je agents: ${n}.`,
   refreshDue: "Het abonnement op gebeurtenissen van een agent moet worden verlengd.",

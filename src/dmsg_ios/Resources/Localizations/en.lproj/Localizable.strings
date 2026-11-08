@@ -360,6 +360,8 @@
 	<string>Cancel request</string>
 	<key>Cancel this pending request?</key>
 	<string>Cancel this pending request?</string>
+	<key>Cancel this recovery request</key>
+	<string>Cancel this recovery request</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>Cancellation applies to this undecided request. It does not undo a completed delivery.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Dismiss this observation</string>
 	<key>Dismiss this observation?</key>
 	<string>Dismiss this observation?</string>
-	<key>Dispute pending recovery</key>
-	<string>Dispute pending recovery</string>
 	<key>Done</key>
 	<string>Done</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Payment required</string>
 	<key>Payments</key>
 	<string>Payments</string>
+	<key>Pending account recovery</key>
+	<string>Pending account recovery</string>
 	<key>Pending backups</key>
 	<string>Pending backups</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Records added</string>
 	<key>Recovery</key>
 	<string>Recovery</string>
-	<key>Recovery status</key>
-	<string>Recovery status</string>
 	<key>Recovery status needs checking</key>
 	<string>Recovery status needs checking</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</string>
 	<key>Recovery waiting period</key>
 	<string>Recovery waiting period</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Waiting for your decision</string>
 	<key>Waiting period</key>
 	<string>Waiting period</string>
+	<key>Waiting period ends</key>
+	<string>Waiting period ends</string>
 	<key>Waiting to submit</key>
 	<string>Waiting to submit</string>
 	<key>Waiting to sync</key>

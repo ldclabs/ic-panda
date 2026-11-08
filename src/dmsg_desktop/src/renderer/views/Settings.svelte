@@ -32,6 +32,7 @@
   import Moved from './Moved.svelte'
   import Profile from './Profile.svelte'
   import Security from './Security.svelte'
+  import Recovery from './Recovery.svelte'
 
   /**
    * Settings in sections beside their list: this session, account security,
@@ -367,6 +368,8 @@
         {:else if part === 'security'}
           <LockSettings {status} />
           <Security {status} {go} />
+        {:else if part === 'recovery'}
+          <Recovery {status} />
         {:else if part === 'devices'}
           <Devices {status} {go} />
         {:else}

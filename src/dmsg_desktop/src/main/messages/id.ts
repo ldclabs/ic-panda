@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "Pembaruan diunduh di latar belakang; setelah selesai pilih Mulai Ulang untuk Memperbarui.",
   updateManual: "Salinan dMsg ini tidak dapat menginstal pembaruan sendiri. Unduh versi baru dari halaman rilisnya dan instal menimpa versi ini.",
   requestWaiting: "Ada permintaan yang menunggu persetujuan Anda.",
-  recoveryPending: "Pemulihan akun sedang tertunda. Jika Anda tidak memintanya, buka Keamanan akun untuk membatalkannya sebelum pengambilalihan.",
   eventsArrived: (n: number) => `Agen Anda menerima ${n} peristiwa baru.`,
   agentMailArrived: (n: number) => `Agen Anda menerima ${n} surat baru.`,
   refreshDue: "Langganan peristiwa agen perlu diperpanjang.",

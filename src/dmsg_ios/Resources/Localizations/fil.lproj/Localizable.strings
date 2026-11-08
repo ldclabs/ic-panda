@@ -360,6 +360,8 @@
 	<string>Kanselahin ang kahilingan</string>
 	<key>Cancel this pending request?</key>
 	<string>Kanselahin ang nakabinbing kahilingang ito?</string>
+	<key>Cancel this recovery request</key>
+	<string>Kanselahin ang kahilingang ito sa pagbawi</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>Nalalapat ang pagkansela sa hindi napagpasiyahang kahilingang ito. Hindi nito ina-undo ang nakumpletong paghahatid.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Iwaksi ang obserbasyon na ito</string>
 	<key>Dismiss this observation?</key>
 	<string>I-dismiss ang obserbasyon na ito?</string>
-	<key>Dispute pending recovery</key>
-	<string>Hindi pagkakaunawaan ang nakabinbing pagbawi</string>
 	<key>Done</key>
 	<string>Tapos na</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Kailangan ng bayad</string>
 	<key>Payments</key>
 	<string>Mga pagbabayad</string>
+	<key>Pending account recovery</key>
+	<string>Nakabinbing pagbawi ng account</string>
 	<key>Pending backups</key>
 	<string>Nakabinbing pag-backup</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Mga naidagdag na record</string>
 	<key>Recovery</key>
 	<string>Pag-recover</string>
-	<key>Recovery status</key>
-	<string>Katayuan ng pagbawi</string>
 	<key>Recovery status needs checking</key>
 	<string>Kailangang suriin ang katayuan sa pagbawi</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>Ginagamit ng pagbawi ang iyong nakatali na pag-log in at isang panahon ng paghihintay. Maaaring i-dispute ito ng isang awtorisadong device. Hindi na mababawi ang hindi naka-sync na lokal na nilalaman.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>Ginagamit ng pagbawi ang iyong nakatali na pag-log in at isang panahon ng paghihintay. Maaaring kanselahin ng isang awtorisadong device ang kahilingan sa pagbawi. Hindi na mababawi ang hindi naka-sync na lokal na nilalaman.</string>
 	<key>Recovery waiting period</key>
 	<string>Panahon ng paghihintay sa pagbawi</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Naghihintay sa iyong desisyon</string>
 	<key>Waiting period</key>
 	<string>Panahon ng paghihintay</string>
+	<key>Waiting period ends</key>
+	<string>Pagtatapos ng panahon ng paghihintay</string>
 	<key>Waiting to submit</key>
 	<string>Naghihintay na isumite</string>
 	<key>Waiting to sync</key>

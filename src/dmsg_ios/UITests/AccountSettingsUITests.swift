@@ -46,26 +46,33 @@ import XCTest
         capture(app, "Named account switcher · \(language)")
     }
 
-    func testMemberDeviceCanDisputeRecoveryWithoutEditingPolicy() {
+    func testMemberDeviceCanCancelRecoveryWithoutEditingPolicy() {
         let app = open(["--ui-member-security"])
         tap("account.security", in: app)
+        XCTAssertFalse(app.buttons["On-chain recovery"].exists)
+        XCTAssertFalse(app.buttons["recovery.cancel"].exists)
         tap("security.recovery", in: app)
+        XCTAssertTrue(app.navigationBars["Account recovery"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.collectionViews.buttons["Account security"].exists)
+        let cancel = app.buttons["recovery.cancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 5)); XCTAssertTrue(cancel.isEnabled)
+        XCTAssertTrue(app.staticTexts["Waiting period ends"].exists)
+        capture(app, "Pending recovery and cancellation belong to account recovery")
+        tap("recovery.policy", in: app)
         let toggle = app.switches["On-chain recovery"]
-        for _ in 0..<10 where !toggle.isHittable { app.swipeUp() }
-        XCTAssertTrue(toggle.exists); XCTAssertFalse(toggle.isEnabled)
-        let dispute = app.buttons["Dispute pending recovery"]
-        for _ in 0..<10 where !dispute.isHittable { app.swipeUp() }
-        XCTAssertTrue(dispute.isHittable); XCTAssertTrue(dispute.isEnabled)
-        capture(app, "Member can dispute recovery while policy stays read-only")
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5)); XCTAssertFalse(toggle.isEnabled)
+        XCTAssertFalse(app.buttons["recovery.cancel"].exists)
+        capture(app, "Member recovery policy remains read-only")
     }
 
     func testExpiredRecoveryOffersANewRequestInsteadOfCompletingTheExpiredOne() {
         let app = open(["--ui-recovery-expired"])
         tap("account.security", in: app)
-        tap("Account recovery", in: app)
+        tap("security.recovery", in: app)
         XCTAssertTrue(app.buttons["recovery.request"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["recovery.request"].isEnabled)
         XCTAssertFalse(app.buttons["recovery.complete"].exists)
+        XCTAssertFalse(app.buttons["recovery.cancel"].exists)
         XCTAssertTrue(app.staticTexts["Expired"].exists)
         capture(app, "Expired recovery can be requested again")
     }
@@ -143,18 +150,37 @@ import XCTest
         capture(app, "Republishing saved data retains the unsubmitted draft")
     }
 
-    func testAccountIDCopyDoesNotOpenProfile() {
+    func testAccountIDCopyIsAvailableInProfile() {
         let app = open()
-        tap("account.copy-id", in: app)
-        XCTAssertTrue(app.staticTexts["Copied"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["account.copy-id"].exists)
+        XCTAssertFalse(app.staticTexts["040g2081040g2081040g"].exists)
         XCTAssertFalse(app.textFields["profile.name"].exists)
         XCTAssertTrue(app.buttons["account.profile"].exists)
-        capture(app, "Account ID has an independent copy action")
+        capture(app, "Account header links to the profile without an ID copy action")
         tap("account.profile", in: app)
         XCTAssertTrue(app.textFields["profile.name"].waitForExistence(timeout: 5))
         tap("profile.copy-id", in: app)
         XCTAssertTrue(app.staticTexts["Copied"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.textFields["profile.name"].exists)
+    }
+
+    func testMemberDeviceCanCopyLoginIdentitiesWithoutManagingThem() {
+        let app = open(["--ui-member-security"])
+        tap("account.security", in: app)
+        tap("security.logins", in: app)
+        for principal in ["rrkah-fqaaa-aaaaa-aaaaq-cai", "ryjl3-tyaaa-aaaaa-aaaba-cai"] {
+            let copy = app.buttons["security.copy-login.\(principal)"]
+            XCTAssertTrue(copy.waitForExistence(timeout: 5))
+            XCTAssertTrue(copy.isEnabled)
+            XCTAssertEqual(copy.value as? String, principal)
+            tap("security.copy-login.\(principal)", in: app)
+            XCTAssertTrue(app.staticTexts["Copied"].waitForExistence(timeout: 3))
+        }
+        let removals = app.buttons.matching(identifier: "Review removing this login")
+        XCTAssertEqual(removals.count, 2)
+        for removal in removals.allElementsBoundByIndex { XCTAssertFalse(removal.isEnabled) }
+        XCTAssertFalse(app.buttons["Bind another Internet Identity"].isEnabled)
+        capture(app, "Login IDs can be copied while account management stays read-only")
     }
 
     func testAutoFillSelectionSurvivesSearchAndReopening() {

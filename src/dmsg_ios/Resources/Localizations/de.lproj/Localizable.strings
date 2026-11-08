@@ -360,6 +360,8 @@
 	<string>Anfrage abbrechen</string>
 	<key>Cancel this pending request?</key>
 	<string>Diese ausstehende Anfrage stornieren?</string>
+	<key>Cancel this recovery request</key>
+	<string>Diese Wiederherstellungsanfrage abbrechen</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>Für diesen noch nicht entschiedenen Antrag gilt die Stornierung. Eine abgeschlossene Lieferung wird dadurch nicht rückgängig gemacht.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Verwerfen Sie diese Beobachtung</string>
 	<key>Dismiss this observation?</key>
 	<string>Diese Beobachtung verwerfen?</string>
-	<key>Dispute pending recovery</key>
-	<string>Streit bis zur Beitreibung</string>
 	<key>Done</key>
 	<string>Fertig</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Zahlung erforderlich</string>
 	<key>Payments</key>
 	<string>Zahlungen</string>
+	<key>Pending account recovery</key>
+	<string>Ausstehende Kontowiederherstellung</string>
 	<key>Pending backups</key>
 	<string>Ausstehende Sicherungen</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Hinzugefügte Einträge</string>
 	<key>Recovery</key>
 	<string>Wiederherstellung</string>
-	<key>Recovery status</key>
-	<string>Wiederherstellungsstatus</string>
 	<key>Recovery status needs checking</key>
 	<string>Der Wiederherstellungsstatus muss überprüft werden</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>Die Wiederherstellung erfolgt über Ihr gebundenes Login und eine Wartezeit. Ein autorisiertes Gerät kann dies anfechten. Nicht synchronisierte lokale Inhalte können nicht wiederhergestellt werden.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>Die Wiederherstellung erfolgt über Ihr gebundenes Login und eine Wartezeit. Ein autorisiertes Gerät kann die Wiederherstellungsanfrage abbrechen. Nicht synchronisierte lokale Inhalte können nicht wiederhergestellt werden.</string>
 	<key>Recovery waiting period</key>
 	<string>Wartezeit für die Wiederherstellung</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Warten auf Ihre Entscheidung</string>
 	<key>Waiting period</key>
 	<string>Wartezeit</string>
+	<key>Waiting period ends</key>
+	<string>Ende der Wartezeit</string>
 	<key>Waiting to submit</key>
 	<string>Warten auf Einreichung</string>
 	<key>Waiting to sync</key>

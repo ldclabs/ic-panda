@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "Ida-download ito sa background. Pagkatapos, piliin ang I-restart para mag-update.",
   updateManual: "Ang kopyang ito ng dMsg ay hindi makakapag-install ng mga update mismo. I-download ang bagong bersyon mula sa pahina ng paglabas nito at i-install ito sa isang ito.",
   requestWaiting: "Isang kahilingan ang naghihintay para sa iyong pag-apruba.",
-  recoveryPending: "May nakabinbing pag-recover ng account. Kung hindi ikaw ang humiling nito, buksan ang Seguridad ng account at kanselahin bago mailipat ang access.",
   eventsArrived: (n: number) => `Nakatanggap ang mga agent mo ng ${n} bagong event.`,
   agentMailArrived: (n: number) => `Nakatanggap ang mga agent mo ng ${n} bagong liham.`,
   refreshDue: "Kailangang i-renew ang subscription ng isang agent sa mga event.",

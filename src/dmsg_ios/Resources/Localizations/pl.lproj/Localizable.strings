@@ -360,6 +360,8 @@
 	<string>Anuluj żądanie</string>
 	<key>Cancel this pending request?</key>
 	<string>Anulować to oczekujące żądanie?</string>
+	<key>Cancel this recovery request</key>
+	<string>Anuluj ten wniosek o odzyskanie</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>Anulowanie dotyczy tego niezdecydowanego żądania. Nie powoduje to cofnięcia zrealizowanej dostawy.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Odrzuć tę obserwację</string>
 	<key>Dismiss this observation?</key>
 	<string>Odrzucić tę obserwację?</string>
-	<key>Dispute pending recovery</key>
-	<string>Spór w oczekiwaniu na odzyskanie</string>
 	<key>Done</key>
 	<string>Gotowe</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Wymagana płatność</string>
 	<key>Payments</key>
 	<string>Płatności</string>
+	<key>Pending account recovery</key>
+	<string>Oczekujące odzyskiwanie konta</string>
 	<key>Pending backups</key>
 	<string>Oczekujące kopie zapasowe</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Dodane rekordy</string>
 	<key>Recovery</key>
 	<string>Odzyskiwanie</string>
-	<key>Recovery status</key>
-	<string>Stan odzyskiwania</string>
 	<key>Recovery status needs checking</key>
 	<string>Stan odzyskiwania wymaga sprawdzenia</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>Odzyskiwanie korzysta z powiązanego loginu i okresu oczekiwania. Autoryzowane urządzenie może to zakwestionować. Nie można odzyskać niezsynchronizowanej zawartości lokalnej.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>Odzyskiwanie korzysta z powiązanego loginu i okresu oczekiwania. Autoryzowane urządzenie może anulować wniosek o odzyskanie. Nie można odzyskać niezsynchronizowanej zawartości lokalnej.</string>
 	<key>Recovery waiting period</key>
 	<string>Okres oczekiwania na regenerację</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Czekam na Twoją decyzję</string>
 	<key>Waiting period</key>
 	<string>Okres oczekiwania</string>
+	<key>Waiting period ends</key>
+	<string>Koniec okresu oczekiwania</string>
 	<key>Waiting to submit</key>
 	<string>Oczekiwanie na przesłanie</string>
 	<key>Waiting to sync</key>

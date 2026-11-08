@@ -360,6 +360,8 @@
 	<string>অনুরোধ বাতিল করুন</string>
 	<key>Cancel this pending request?</key>
 	<string>এই মুলতুবি থাকা অনুরোধটি বাতিল করবেন?</string>
+	<key>Cancel this recovery request</key>
+	<string>এই পুনরুদ্ধারের অনুরোধ বাতিল করুন</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>বাতিল এই সিদ্ধান্তহীন অনুরোধ প্রযোজ্য. এটি একটি সম্পূর্ণ ডেলিভারি পূর্বাবস্থায় ফেরায় না।</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>এই পর্যবেক্ষণ খারিজ</string>
 	<key>Dismiss this observation?</key>
 	<string>এই পর্যবেক্ষণ খারিজ?</string>
-	<key>Dispute pending recovery</key>
-	<string>বিবাদ মুলতুবি পুনরুদ্ধার</string>
 	<key>Done</key>
 	<string>সম্পন্ন</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>অর্থ প্রদান প্রয়োজন</string>
 	<key>Payments</key>
 	<string>পেমেন্ট</string>
+	<key>Pending account recovery</key>
+	<string>অপেক্ষমাণ অ্যাকাউন্ট পুনরুদ্ধার</string>
 	<key>Pending backups</key>
 	<string>মুলতুবি ব্যাকআপ</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>যোগ হওয়া রেকর্ড</string>
 	<key>Recovery</key>
 	<string>পুনরুদ্ধার</string>
-	<key>Recovery status</key>
-	<string>পুনরুদ্ধারের অবস্থা</string>
 	<key>Recovery status needs checking</key>
 	<string>পুনরুদ্ধারের স্থিতি পরীক্ষা করা প্রয়োজন</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>পুনরুদ্ধার আপনার আবদ্ধ লগইন এবং একটি অপেক্ষার সময় ব্যবহার করে। একটি অনুমোদিত ডিভাইস এটি বিতর্ক করতে পারে. সিঙ্ক না করা স্থানীয় বিষয়বস্তু পুনরুদ্ধার করা যাবে না।</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>পুনরুদ্ধার আপনার আবদ্ধ লগইন এবং একটি অপেক্ষার সময় ব্যবহার করে। একটি অনুমোদিত ডিভাইস পুনরুদ্ধারের অনুরোধ বাতিল করতে পারে. সিঙ্ক না করা স্থানীয় বিষয়বস্তু পুনরুদ্ধার করা যাবে না।</string>
 	<key>Recovery waiting period</key>
 	<string>পুনরুদ্ধারের অপেক্ষার সময়কাল</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>আপনার সিদ্ধান্তের অপেক্ষায়</string>
 	<key>Waiting period</key>
 	<string>অপেক্ষার সময়</string>
+	<key>Waiting period ends</key>
+	<string>অপেক্ষার সময়কাল শেষ হবে</string>
 	<key>Waiting to submit</key>
 	<string>জমা দেওয়ার অপেক্ষায়</string>
 	<key>Waiting to sync</key>

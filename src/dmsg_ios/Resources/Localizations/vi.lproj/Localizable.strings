@@ -360,6 +360,8 @@
 	<string>Hủy yêu cầu</string>
 	<key>Cancel this pending request?</key>
 	<string>Hủy yêu cầu đang chờ xử lý này?</string>
+	<key>Cancel this recovery request</key>
+	<string>Hủy yêu cầu khôi phục này</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>Việc hủy bỏ áp dụng cho yêu cầu chưa quyết định này. Nó không hoàn tác việc giao hàng đã hoàn thành.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Loại bỏ quan sát này</string>
 	<key>Dismiss this observation?</key>
 	<string>Loại bỏ quan sát này?</string>
-	<key>Dispute pending recovery</key>
-	<string>Tranh chấp đang chờ giải quyết</string>
 	<key>Done</key>
 	<string>Xong</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Cần thanh toán</string>
 	<key>Payments</key>
 	<string>Thanh toán</string>
+	<key>Pending account recovery</key>
+	<string>Khôi phục tài khoản đang chờ</string>
 	<key>Pending backups</key>
 	<string>Đang chờ sao lưu</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Bản ghi đã thêm</string>
 	<key>Recovery</key>
 	<string>Khôi phục</string>
-	<key>Recovery status</key>
-	<string>Trạng thái khôi phục</string>
 	<key>Recovery status needs checking</key>
 	<string>Cần kiểm tra trạng thái khôi phục</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>Recovery sử dụng thông tin đăng nhập bị ràng buộc của bạn và thời gian chờ đợi. Một thiết bị được ủy quyền có thể tranh chấp nó. Không thể khôi phục nội dung cục bộ chưa được đồng bộ hóa.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>Recovery sử dụng thông tin đăng nhập bị ràng buộc của bạn và thời gian chờ đợi. Một thiết bị được ủy quyền có thể hủy yêu cầu khôi phục. Không thể khôi phục nội dung cục bộ chưa được đồng bộ hóa.</string>
 	<key>Recovery waiting period</key>
 	<string>Thời gian chờ phục hồi</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Chờ đợi quyết định của bạn</string>
 	<key>Waiting period</key>
 	<string>Thời gian chờ</string>
+	<key>Waiting period ends</key>
+	<string>Thời gian kết thúc chờ</string>
 	<key>Waiting to submit</key>
 	<string>Đang chờ nộp</string>
 	<key>Waiting to sync</key>

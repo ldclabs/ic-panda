@@ -360,6 +360,8 @@
 	<string>Aanvraag annuleren</string>
 	<key>Cancel this pending request?</key>
 	<string>Dit openstaande verzoek annuleren?</string>
+	<key>Cancel this recovery request</key>
+	<string>Dit herstelverzoek annuleren</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>Voor dit onbesliste verzoek geldt annulering. Het maakt een voltooide levering niet ongedaan.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Negeer deze observatie</string>
 	<key>Dismiss this observation?</key>
 	<string>Deze observatie afwijzen?</string>
-	<key>Dispute pending recovery</key>
-	<string>Geschil in afwachting van herstel</string>
 	<key>Done</key>
 	<string>Gereed</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Betaling vereist</string>
 	<key>Payments</key>
 	<string>Betalingen</string>
+	<key>Pending account recovery</key>
+	<string>Accountherstel in behandeling</string>
 	<key>Pending backups</key>
 	<string>Back-ups in behandeling</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Records toegevoegd</string>
 	<key>Recovery</key>
 	<string>Herstel</string>
-	<key>Recovery status</key>
-	<string>Herstelstatus</string>
 	<key>Recovery status needs checking</key>
 	<string>De herstelstatus moet worden gecontroleerd</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>Recovery maakt gebruik van je gebonden login en een wachtperiode. Een geautoriseerd apparaat kan dit betwisten. Niet-gesynchroniseerde lokale inhoud kan niet worden hersteld.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>Recovery maakt gebruik van je gebonden login en een wachtperiode. Een geautoriseerd apparaat kan het herstelverzoek annuleren. Niet-gesynchroniseerde lokale inhoud kan niet worden hersteld.</string>
 	<key>Recovery waiting period</key>
 	<string>Wachttijd voor herstel</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Wachten op je beslissing</string>
 	<key>Waiting period</key>
 	<string>Wachttijd</string>
+	<key>Waiting period ends</key>
+	<string>Einde van de wachttijd</string>
 	<key>Waiting to submit</key>
 	<string>Wachten op indiening</string>
 	<key>Waiting to sync</key>

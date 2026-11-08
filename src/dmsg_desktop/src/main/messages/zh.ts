@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: '更新正在后台下载，完成后选择“重启并更新”。',
   updateManual: '这份 dMsg 不能自行安装更新。请从发布页下载新版本，覆盖安装当前版本。',
   requestWaiting: '有请求等待你确认。',
-  recoveryPending: '账户有待处理的恢复申请。如非本人操作，请打开账户安全，在接管前取消恢复。',
   eventsArrived: (n: number) => `Agent 收到 ${n} 条新事件。`,
   agentMailArrived: (n: number) => `Agent 收到 ${n} 封新邮件。`,
   refreshDue: '有 Agent 的事件订阅需要续订。',

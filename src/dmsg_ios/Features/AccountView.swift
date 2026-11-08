@@ -12,21 +12,13 @@ struct AccountView: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         List {
-            VStack(alignment: .leading, spacing: 4) {
-                NavigationLink { PublicProfileView() } label: {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 12) { identityImage; identityText }
-                        VStack(alignment: .leading, spacing: 12) { identityImage; identityText }
-                    }
-                }.accessibilityIdentifier("account.profile")
-                if let account = model.session?.account {
-                    HStack(spacing: 4) {
-                        Text(account).font(.caption.monospaced()).foregroundStyle(.secondary)
-                            .lineLimit(1).truncationMode(.middle).environment(\.layoutDirection, .leftToRight)
-                        AccountIDCopyButton(account: account).accessibilityIdentifier("account.copy-id")
-                    }
+            NavigationLink { PublicProfileView() } label: {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { identityImage; identityText }
+                    VStack(alignment: .leading, spacing: 12) { identityImage; identityText }
                 }
-            }.listRowBackground(Color.clear).listRowSeparator(.hidden)
+            }.accessibilityIdentifier("account.profile")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
             DisplayLoadStatus(state: display) { Task { await loadProfile(force: true) } }
             Section {
                 NavigationLink { ApprovalsView() } label: {

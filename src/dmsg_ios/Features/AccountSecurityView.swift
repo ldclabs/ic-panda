@@ -23,8 +23,7 @@ struct AccountSecurityView: View {
     struct Draft: Codable { let token: String; let delay: Int; let enabled: Bool }
     private var dirty: Bool { !token.isEmpty || (security != nil && (recoveryEnabled != security?.recoveryEnabled || delay != Int((security?.recoveryDelayMs ?? 0) / 86_400_000))) }
     struct Login: Decodable, Identifiable { let principal: String; let current: Bool; var id: String { principal } }
-    struct Recovery: Decodable { let opId: String; let executeAfter: UInt64 }
-    struct SecurityInfo: Decodable { let logins: [Login]; let recoveryDelayMs: UInt64; let recoveryEnabled: Bool; let recoveryUpdating: Bool; let pendingRecovery: Recovery? }
+    struct SecurityInfo: Decodable { let logins: [Login]; let recoveryDelayMs: UInt64; let recoveryEnabled: Bool; let recoveryUpdating: Bool }
     var body: some View {
         Form {
             if page == .overview { overview }
@@ -35,16 +34,9 @@ struct AccountSecurityView: View {
             }
             if page == .logins { logins }
             if page == .recovery { recoveryPolicy }
-            if page != .logins, let recovery = security?.pendingRecovery {
-                Section("Recovery status") {
-                    Text(Date(timeIntervalSince1970: Double(recovery.executeAfter) / 1000), style: .date)
-                        .reminderVisible(.recovery(model.recoveryWarning?.digest ?? ""), ready: model.recoveryWarning != nil)
-                    SettingsAction("Dispute pending recovery", role: .destructive) { Task { await action { try await $0.disputeRecovery(operation: recovery.opId) } } }.disabled(busy)
-                }
-            }
             if page == .overview {
                 Section {
-                    NavigationLink("Account recovery") { RecoveryView() }
+                    NavigationLink("Account recovery") { RecoveryView() }.accessibilityIdentifier("security.recovery")
                     NavigationLink("Remove local data") { LocalAccountRemovalView() }.accessibilityIdentifier("account.local-data")
                     NavigationLink("Delete account") { AccountDeletionView() }.foregroundStyle(.red).accessibilityIdentifier("account.delete")
                 }
@@ -78,7 +70,6 @@ struct AccountSecurityView: View {
         Section { NotificationSetupPrompt { settingUp = true } }
         Section {
             NavigationLink("Login identities") { AccountSecurityView(page: .logins) }.accessibilityIdentifier("security.logins")
-            NavigationLink("On-chain recovery") { AccountSecurityView(page: .recovery) }.accessibilityIdentifier("security.recovery")
         }
     }
 
@@ -86,15 +77,19 @@ struct AccountSecurityView: View {
         Section {
             ForEach(security?.logins ?? []) { login in
                 VStack(alignment: .leading, spacing: 8) {
-                    FingerprintRow(title: "Login identity", value: login.principal)
+                    HStack {
+                        FingerprintRow(title: "Login identity", value: login.principal)
+                        Spacer(minLength: 8)
+                        IDCopyButton(value: login.principal, label: "Copy")
+                            .accessibilityIdentifier("security.copy-login.\(login.principal)")
+                    }
                     if login.current { Text("Current login").font(.caption).foregroundStyle(Theme.forest) }
                     Button("Review removing this login", role: .destructive) { Task { await remove(login.principal) } }
-                        .buttonStyle(.borderless).disabled(login.current || (security?.logins.count ?? 0) <= 1)
+                        .buttonStyle(.borderless).disabled(busy || canManage != true || login.current || (security?.logins.count ?? 0) <= 1)
                 }
             }
-            SettingsAction("Bind another Internet Identity") { Task { await bind() } }.disabled(busy)
+            SettingsAction("Bind another Internet Identity") { Task { await bind() } }.disabled(busy || canManage != true)
         }
-        .disabled(busy || canManage != true)
         Section("Approve a binding request") {
             SettingsField("Paste binding request") { TextField("Paste binding request", text: $token, axis: .vertical).lineLimit(2...4).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
             SettingsAction("Review binding") { Task { await action { try await $0.reviewBinding(token: token.trimmingCharacters(in: .whitespacesAndNewlines)) } } }.disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -117,7 +112,7 @@ struct AccountSecurityView: View {
     private func load(force: Bool = false) async {
         #if DEBUG
         if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-member-security") {
-            security = SecurityInfo(logins: [], recoveryDelayMs: 259200000, recoveryEnabled: true, recoveryUpdating: false, pendingRecovery: Recovery(opId: "fixture", executeAfter: 1800000000000))
+            security = SecurityInfo(logins: [Login(principal: "rrkah-fqaaa-aaaaa-aaaaq-cai", current: true), Login(principal: "ryjl3-tyaaa-aaaaa-aaaba-cai", current: false)], recoveryDelayMs: 259200000, recoveryEnabled: true, recoveryUpdating: false)
             recoveryEnabled = true; canManage = false; return
         }
         #endif

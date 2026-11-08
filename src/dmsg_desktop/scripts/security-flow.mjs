@@ -23,12 +23,13 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
     return make('account', { change: 'policy', ...security.policy, ...p, previous: security.policy })
   }
   methods['account/recovery_policy'] = p => make('account', { change: 'recovery_policy', enabled: p.enabled, delay_ms: p.days * 86400000 })
+  methods['recovery/dispute'] = () => make('account', { change: 'dispute_recovery', op_id: security.pending_recovery.op_id })
   methods['account/hardware_policy'] = p => make('hardware_policy', { purposes: p.purposes, previous: keys.policy, missing_devices: [] })
   methods['device/key_approve'] = p => make('approval_key', { device_id: p.device, key_id: '5a'.repeat(32) })
   const refresh = async () => {
-    const before = count('device/key')
+    const before = count('account/security')
     emit('approval/changed')
-    await waitFor(() => count('device/key') > before)
+    await waitFor(() => count('account/security') > before)
   }
   const dismissRequest = async (group, state = 'rejected') => {
     for (const r of requests.values()) if (r.source === 'gui') r.state = state
@@ -105,6 +106,28 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   assert.equal(await main.getByTestId('daily-executions').inputValue(), '8', 'untouched fields rebase independently from a dirty field')
   await closeEditor()
 
+  assert.equal(await main.getByTestId('pending-recovery').count(), 0)
+  await main.getByTestId('security-recovery-link').click()
+  await main.getByTestId('security-recovery-edit').waitFor()
+
+  // Cancellation opens an approval; creating or reopening it does not cancel the recovery.
+  security.pending_recovery = { op_id: 'ee'.repeat(32), new_auth: 'rdmx6-jaaaa-aaaaa-aaadq-cai', execute_after: Date.now() + 259200000, expires_at: Date.now() + 864000000 }
+  await refresh()
+  await main.getByTestId('pending-recovery').waitFor()
+  const cancellations = count('recovery/dispute')
+  await main.getByTestId('recovery-cancel').focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('security-pending-cancel').waitFor()
+  assert.equal(count('recovery/dispute'), cancellations + 1)
+  assert.equal(await main.getByTestId('pending-recovery').isVisible(), true)
+  assert.equal(await main.getByTestId('recovery-cancel').isDisabled(), true)
+  await main.getByTestId('security-pending-cancel').getByRole('button').click()
+  assert.equal(count('recovery/dispute'), cancellations + 1, 'reopening the cancellation approval never resubmits')
+  security.pending_recovery = null
+  await dismissRequest('cancel', 'done')
+  await main.getByTestId('pending-recovery').waitFor({ state: 'detached' })
+  await main.getByTestId('recovery-empty').waitFor()
+
   // Recovery change, reverting and cancellation all have distinct outcomes.
   await main.getByTestId('security-recovery-edit').click()
   assert.equal(await submit.isDisabled(), true)
@@ -142,6 +165,9 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   await main.getByTestId('recovery-enabled').click()
   assert.equal(await main.getByTestId('recovery-days').count(), 1)
   await closeEditor()
+
+  await main.evaluate(() => location.hash = '/settings/security')
+  await main.getByTestId('security-policy-edit').waitFor()
 
   // Hardware policy has its own draft and compares a set, not checkbox order.
   keys.key = { here: true, biometry_only: false, key_id: '5a'.repeat(32) }
@@ -201,9 +227,12 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
     await main.evaluate(async ({ locale, appearance }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(appearance) }, { locale, appearance })
     await main.waitForSelector(`html[lang|="${locale}"]`)
     await main.waitForFunction(dark => matchMedia('(prefers-color-scheme: dark)').matches === dark, appearance === 'dark')
+    await main.evaluate(() => location.hash = '/settings/security')
     await main.getByTestId('security').scrollIntoViewIfNeeded()
     await main.screenshot({ path: join(shots, `security-overview-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
     for (const [name, button] of [['policy', 'security-policy-edit'], ['recovery', 'security-recovery-edit'], ['hardware', 'approval-keys-require'], ['login', 'security-approve-login'], ['key', 'security-key-edit'], ['bound', 'device-bound-toggle'], ['key-approve', 'security-key-approve'], ['key-request', 'security-key-request']]) {
+      await main.evaluate(path => location.hash = path, name === 'recovery' ? '/settings/recovery' : '/settings/security')
+      if (['key-approve', 'key-request'].includes(name) && !await main.getByTestId(button).isVisible()) await main.getByTestId('security-key-transfer').getByRole('button').click()
       await main.getByTestId(button).click()
       const dialog = main.getByTestId('security-editor')
       await dialog.waitFor()
@@ -229,8 +258,21 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
       }
       await closeEditor()
     }
+    await main.evaluate(() => location.hash = '/settings/recovery')
+    security.pending_recovery = { op_id: 'ef'.repeat(32), new_auth: 'a-long-login-identity-'.repeat(6), execute_after: Date.now() + 259200000, expires_at: Date.now() + 864000000 }
+    await refresh()
+    await main.getByTestId('pending-recovery').waitFor()
+    await main.getByTestId('pending-recovery').scrollIntoViewIfNeeded()
+    await main.getByTestId('recovery-cancel').focus()
+    assert.ok(await main.getByTestId('pending-recovery').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `pending recovery fits ${locale}`)
+    await main.screenshot({ path: join(shots, `recovery-pending-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
+    security.pending_recovery = null
+    await refresh()
     assert.ok(await main.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `overview fits ${locale}`)
   }
+
+  await main.evaluate(() => location.hash = '/settings/security')
+  await main.getByTestId('security-policy-edit').waitFor()
 
   // Empty and failed reads remain usable; no invented applied values.
   security.logins = []

@@ -54,19 +54,20 @@ struct SettingsActionLabel: View {
     }
 }
 
-struct AccountIDCopyButton: View {
-    let account: String
+struct IDCopyButton: View {
+    let value: String
+    let label: LocalizedStringKey
     @Environment(SessionModel.self) private var model
 
     var body: some View {
         Button {
-            model.clipboard.copy(account)
+            model.clipboard.copy(value)
             model.notice = String(localized: "Copied")
         } label: {
             Image(systemName: "doc.on.doc").frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }.buttonStyle(.borderless)
-            .accessibilityLabel("Copy account ID").accessibilityValue(account)
+            .accessibilityLabel(label).accessibilityValue(value)
     }
 }
 

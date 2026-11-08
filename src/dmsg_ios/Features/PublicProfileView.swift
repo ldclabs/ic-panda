@@ -61,7 +61,7 @@ struct PublicProfileView: View {
                     HStack {
                         FingerprintRow(title: "Account ID", value: account)
                         Spacer(minLength: 8)
-                        AccountIDCopyButton(account: account).accessibilityIdentifier("profile.copy-id")
+                        IDCopyButton(value: account, label: "Copy account ID").accessibilityIdentifier("profile.copy-id")
                     }
                 }
             }

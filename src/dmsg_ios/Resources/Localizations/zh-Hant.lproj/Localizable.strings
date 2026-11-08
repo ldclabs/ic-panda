@@ -360,6 +360,8 @@
 	<string>取消請求</string>
 	<key>Cancel this pending request?</key>
 	<string>取消此待處理請求？</string>
+	<key>Cancel this recovery request</key>
+	<string>取消此恢復申請</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>取消僅適用於這個尚未決定的請求，不會撤銷已完成的交付。</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>忽略此次觀察結果</string>
 	<key>Dismiss this observation?</key>
 	<string>忽略此次觀察結果？</string>
-	<key>Dispute pending recovery</key>
-	<string>對待處理恢復提出爭議</string>
 	<key>Done</key>
 	<string>完成</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>需要付費</string>
 	<key>Payments</key>
 	<string>付款</string>
+	<key>Pending account recovery</key>
+	<string>待處理的帳號恢復</string>
 	<key>Pending backups</key>
 	<string>待處理備份</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>新增記錄</string>
 	<key>Recovery</key>
 	<string>恢復</string>
-	<key>Recovery status</key>
-	<string>恢復狀態</string>
 	<key>Recovery status needs checking</key>
 	<string>需要核查恢復狀態</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>使用已繫結的登入身份發起恢復，並經過等待期。已授權裝置可提出爭議。未同步的本機內容無法恢復。</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>使用已繫結的登入身份發起恢復，並經過等待期。已授權裝置可取消恢復申請。未同步的本機內容無法恢復。</string>
 	<key>Recovery waiting period</key>
 	<string>恢復等待期</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>等待你決定</string>
 	<key>Waiting period</key>
 	<string>等待期</string>
+	<key>Waiting period ends</key>
+	<string>等待期結束時間</string>
 	<key>Waiting to submit</key>
 	<string>等待提交</string>
 	<key>Waiting to sync</key>

@@ -360,6 +360,8 @@
 	<string>إلغاء الطلب</string>
 	<key>Cancel this pending request?</key>
 	<string>إلغاء هذا الطلب المعلّق؟</string>
+	<key>Cancel this recovery request</key>
+	<string>إلغاء طلب الاسترداد هذا</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>ينطبق الإلغاء على هذا الطلب الذي لم يُتخذ قرار بشأنه بعد. ولا يعكس تسليمًا مكتملًا.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>استبعاد هذه الملاحظة</string>
 	<key>Dismiss this observation?</key>
 	<string>استبعاد هذه الملاحظة؟</string>
-	<key>Dispute pending recovery</key>
-	<string>الاعتراض على الاسترداد المعلّق</string>
 	<key>Done</key>
 	<string>تم</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>الدفع مطلوب</string>
 	<key>Payments</key>
 	<string>المدفوعات</string>
+	<key>Pending account recovery</key>
+	<string>استرداد الحساب المعلّق</string>
 	<key>Pending backups</key>
 	<string>النسخ الاحتياطية المعلّقة</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>السجلات المضافة</string>
 	<key>Recovery</key>
 	<string>استعادة</string>
-	<key>Recovery status</key>
-	<string>حالة الاسترداد</string>
 	<key>Recovery status needs checking</key>
 	<string>حالة الاسترداد تحتاج إلى تحقق</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>يعتمد الاسترداد على هوية الدخول المرتبطة وفترة انتظار. يمكن لجهاز مفوّض الاعتراض عليه. لا يمكن استرداد المحتوى المحلي غير المتزامن.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>يعتمد الاسترداد على هوية الدخول المرتبطة وفترة انتظار. يمكن لجهاز مفوّض إلغاء طلب الاسترداد. لا يمكن استرداد المحتوى المحلي غير المتزامن.</string>
 	<key>Recovery waiting period</key>
 	<string>فترة انتظار الاسترداد</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>بانتظار قرارك</string>
 	<key>Waiting period</key>
 	<string>فترة الانتظار</string>
+	<key>Waiting period ends</key>
+	<string>نهاية فترة الانتظار</string>
 	<key>Waiting to submit</key>
 	<string>بانتظار الإرسال</string>
 	<key>Waiting to sync</key>

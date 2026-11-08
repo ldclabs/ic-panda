@@ -360,6 +360,8 @@
 	<string>Cancelar solicitação</string>
 	<key>Cancel this pending request?</key>
 	<string>Cancelar esta solicitação pendente?</string>
+	<key>Cancel this recovery request</key>
+	<string>Cancelar esta solicitação de recuperação</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>O cancelamento se aplica a este pedido indeciso. Isso não desfaz uma entrega concluída.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Ignore esta observação</string>
 	<key>Dismiss this observation?</key>
 	<string>Ignorar esta observação?</string>
-	<key>Dispute pending recovery</key>
-	<string>Disputa pendente de recuperação</string>
 	<key>Done</key>
 	<string>Concluído</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Pagamento necessário</string>
 	<key>Payments</key>
 	<string>Pagamentos</string>
+	<key>Pending account recovery</key>
+	<string>Recuperação de conta pendente</string>
 	<key>Pending backups</key>
 	<string>Backups pendentes</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Registros adicionados</string>
 	<key>Recovery</key>
 	<string>Recuperação</string>
-	<key>Recovery status</key>
-	<string>Status de recuperação</string>
 	<key>Recovery status needs checking</key>
 	<string>O status de recuperação precisa ser verificado</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>A recuperação usa seu login vinculado e um período de espera. Um dispositivo autorizado pode contestá-lo. O conteúdo local não sincronizado não pode ser recuperado.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>A recuperação usa seu login vinculado e um período de espera. Um dispositivo autorizado pode cancelar a solicitação de recuperação. O conteúdo local não sincronizado não pode ser recuperado.</string>
 	<key>Recovery waiting period</key>
 	<string>Período de espera de recuperação</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Esperando pela sua decisão</string>
 	<key>Waiting period</key>
 	<string>Período de espera</string>
+	<key>Waiting period ends</key>
+	<string>Fim do período de espera</string>
 	<key>Waiting to submit</key>
 	<string>Esperando para enviar</string>
 	<key>Waiting to sync</key>

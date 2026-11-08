@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "Aktualizacja pobierze się w tle. Następnie wybierz ponowne uruchomienie, aby ją zainstalować.",
   updateManual: "Ta kopia dMsg nie może sama instalować aktualizacji. Pobierz nową wersję ze strony wydania i zainstaluj ją na tej.",
   requestWaiting: "Żądanie oczekuje na Twoją akceptację.",
-  recoveryPending: "Odzyskiwanie konta oczekuje. Jeśli to nie Twoje żądanie, otwórz Bezpieczeństwo konta i anuluj je przed przejęciem dostępu.",
   eventsArrived: (n: number) => `Nowe zdarzenia otrzymane przez Twoich agentów: ${n}.`,
   agentMailArrived: (n: number) => `Nowe listy otrzymane przez Twoich agentów: ${n}.`,
   refreshDue: "Subskrypcja zdarzeń agenta wymaga odnowienia.",

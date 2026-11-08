@@ -360,6 +360,8 @@
 	<string>ยกเลิกคำขอ</string>
 	<key>Cancel this pending request?</key>
 	<string>ยกเลิกคำขอที่รอดำเนินการนี้หรือไม่</string>
+	<key>Cancel this recovery request</key>
+	<string>ยกเลิกคำขอกู้คืนนี้</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>การยกเลิกมีผลกับคำขอที่ยังไม่ได้ตัดสินใจนี้ มันไม่ได้ยกเลิกการจัดส่งที่เสร็จสมบูรณ์</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>ยกเลิกข้อสังเกตนี้</string>
 	<key>Dismiss this observation?</key>
 	<string>ยกเลิกข้อสังเกตนี้ใช่ไหม</string>
-	<key>Dispute pending recovery</key>
-	<string>ข้อพิพาทที่รอการกู้คืน</string>
 	<key>Done</key>
 	<string>เสร็จสิ้น</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>ต้องชำระเงิน</string>
 	<key>Payments</key>
 	<string>การชำระเงิน</string>
+	<key>Pending account recovery</key>
+	<string>การกู้คืนบัญชีที่รอดำเนินการ</string>
 	<key>Pending backups</key>
 	<string>การสำรองข้อมูลที่รอดำเนินการ</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>ระเบียนที่เพิ่ม</string>
 	<key>Recovery</key>
 	<string>การกู้คืน</string>
-	<key>Recovery status</key>
-	<string>สถานะการกู้คืน</string>
 	<key>Recovery status needs checking</key>
 	<string>จำเป็นต้องตรวจสอบสถานะการกู้คืน</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>การกู้คืนใช้การเข้าสู่ระบบที่ผูกมัดของคุณและระยะเวลารอคอย อุปกรณ์ที่ได้รับอนุญาตสามารถโต้แย้งได้ เนื้อหาในเครื่องที่ไม่ได้ซิงค์ไม่สามารถกู้คืนได้</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>การกู้คืนใช้การเข้าสู่ระบบที่ผูกมัดของคุณและระยะเวลารอคอย อุปกรณ์ที่ได้รับอนุญาตสามารถยกเลิกคำขอกู้คืนได้ เนื้อหาในเครื่องที่ไม่ได้ซิงค์ไม่สามารถกู้คืนได้</string>
 	<key>Recovery waiting period</key>
 	<string>ระยะเวลารอคอยการฟื้นตัว</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>รอการตัดสินใจของคุณ</string>
 	<key>Waiting period</key>
 	<string>ระยะเวลารอ</string>
+	<key>Waiting period ends</key>
+	<string>เวลาสิ้นสุดระยะเวลารอ</string>
 	<key>Waiting to submit</key>
 	<string>รอส่งครับ</string>
 	<key>Waiting to sync</key>

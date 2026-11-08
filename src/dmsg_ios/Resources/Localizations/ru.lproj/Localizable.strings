@@ -360,6 +360,8 @@
 	<string>Отменить запрос</string>
 	<key>Cancel this pending request?</key>
 	<string>Отменить этот ожидающий запрос?</string>
+	<key>Cancel this recovery request</key>
+	<string>Отменить этот запрос на восстановление</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>Отмена относится только к запросу, по которому ещё не принято решение. Завершённая передача не отменяется.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Скрыть это наблюдение</string>
 	<key>Dismiss this observation?</key>
 	<string>Скрыть это наблюдение?</string>
-	<key>Dispute pending recovery</key>
-	<string>Оспорить ожидающее восстановление</string>
 	<key>Done</key>
 	<string>Готово</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Требуется оплата</string>
 	<key>Payments</key>
 	<string>Платежи</string>
+	<key>Pending account recovery</key>
+	<string>Ожидающее восстановление аккаунта</string>
 	<key>Pending backups</key>
 	<string>Ожидающие резервные копии</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Добавлено записей</string>
 	<key>Recovery</key>
 	<string>Восстановление</string>
-	<key>Recovery status</key>
-	<string>Статус восстановления</string>
 	<key>Recovery status needs checking</key>
 	<string>Нужно проверить состояние восстановления</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>Для восстановления используются привязанная учётная запись входа и период ожидания. Авторизованное устройство может оспорить его. Несинхронизированные локальные данные восстановить нельзя.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>Для восстановления используются привязанная учётная запись входа и период ожидания. Авторизованное устройство может отменить запрос на восстановление. Несинхронизированные локальные данные восстановить нельзя.</string>
 	<key>Recovery waiting period</key>
 	<string>Период ожидания восстановления</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Ожидает вашего решения</string>
 	<key>Waiting period</key>
 	<string>Период ожидания</string>
+	<key>Waiting period ends</key>
+	<string>Окончание периода ожидания</string>
 	<key>Waiting to submit</key>
 	<string>Ожидает отправки</string>
 	<key>Waiting to sync</key>

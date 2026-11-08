@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
-  import { noticeVisibility } from '../notification-visibility'
   import { offerSetupAgain } from '../notice-setup.svelte'
   import NoticeSetup from './NoticeSetup.svelte'
   let { status, go }: { status: any; go: (path: string) => void } = $props()
@@ -14,30 +13,28 @@
   import TextField from '../components/TextField.svelte'
   import TextArea from '../components/TextArea.svelte'
   import Fact from '../components/page/Fact.svelte'
-  import Field from '../components/page/Field.svelte'
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
-  import Segmented from '../components/Segmented.svelte'
   import { copyText } from '../components/clipboard'
   import { buttonClass } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
+  import { bridge, call, code, errorText, onChange, single } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
   import { hardwarePurposeLabels, purposeLabels } from '../approval'
   import { dailyLimit, policyChanges, sameSelection } from './security'
   import LocalOnly from './LocalOnly.svelte'
 
   /** The page shows effective settings. One dialog edits one task; the approval window decides account changes. */
-  type Editor = 'policy' | 'recovery' | 'hardware' | 'login' | 'key' | 'key-request' | 'key-approve' | 'bound'
-  type Pending = 'policy' | 'recovery' | 'hardware' | 'key'
+  type Editor = 'policy' | 'hardware' | 'login' | 'key' | 'key-request' | 'key-approve' | 'bound'
+  type Pending = 'policy' | 'hardware' | 'key'
   const titles: Record<Editor, Label> = {
-    policy: 'signingPolicy', recovery: 'onChainRecovery', hardware: 'approvalKeys', login: 'approveLogin',
+    policy: 'signingPolicy', hardware: 'approvalKeys', login: 'approveLogin',
     key: 'approvalKey', 'key-request': 'keyRequest', 'key-approve': 'approveKeyRequest', bound: 'deviceBound'
   }
   const descriptions: Record<Editor, Label> = {
-    policy: 'securityApprovalHint', recovery: 'securityApprovalHint', hardware: 'securityApprovalHint', login: 'approveLoginHint',
+    policy: 'securityApprovalHint', hardware: 'securityApprovalHint', login: 'approveLoginHint',
     key: 'approvalKeysHint', 'key-request': 'keyRequestHint', 'key-approve': 'keyRequestHint', bound: 'deviceBoundHint'
   }
   const OPTIONAL = ['payment', 'attestation']
@@ -56,8 +53,6 @@
   let open = $state(false)
   let daily = $state('')
   let purposes = $state<string[]>([])
-  let days = $state('')
-  let recoveryEnabled = $state(false)
   let extra = $state<string[]>([])
   let request = $state('')
   let shown = $state('')
@@ -71,14 +66,12 @@
   const required = $derived((keys?.policy ?? []).length > 0)
   const missing = $derived((keys?.devices ?? []).filter((device: any) => !device.key_id))
   const policy = $derived(security ? policyChanges(security.policy, daily, purposes) : null)
-  const recoveryChanged = $derived(/^[1-7]$/.test(days) && (recoveryEnabled !== security?.recovery_enabled || (recoveryEnabled && Number(days) * 86_400_000 !== security?.recovery_delay_ms)))
   const hardwareChanged = $derived(!sameSelection([...CONTROL, ...extra], keys?.policy ?? []))
   const validDeviceId = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
   const canSubmit = $derived.by(() => {
     if (blocked) return false
     switch (editor) {
       case 'policy': return !!policy && !pending.policy
-      case 'recovery': return recoveryChanged && !pending.recovery
       case 'hardware': return hardwareChanged && !!own?.here && !own.fingerprints_changed && !keyError && !pending.hardware
       case 'login': return !!request.trim() && !!shown.trim()
       case 'key-approve': return !!request.trim() && validDeviceId && !keyError
@@ -87,7 +80,7 @@
       case 'bound': return !!keys?.available && !keys.device_bound && !keyError
     }
   })
-  const unchanged = $derived(editor === 'policy' ? dailyLimit(daily) !== null && !policy : editor === 'recovery' ? !recoveryChanged : editor === 'hardware' ? !hardwareChanged : false)
+  const unchanged = $derived(editor === 'policy' ? dailyLimit(daily) !== null && !policy : editor === 'hardware' ? !hardwareChanged : false)
   const purposeText = (list: string[]) => list.map((p) => hardwarePurposeLabels[p] ? t(hardwarePurposeLabels[p]) : p).join(', ')
 
   const reload = single(async (mode: Mode = 'swr') => {
@@ -98,8 +91,6 @@
       // Rebase untouched fields only; background refreshes must not erase a draft or its error.
       if (!security || dailyLimit(daily) === security.policy.daily_executions) daily = String(next.policy.daily_executions)
       if (!security || sameSelection(purposes, security.policy.allowed_purposes)) purposes = [...next.policy.allowed_purposes]
-      if (!security || Number(days) * 86_400_000 === security.recovery_delay_ms) days = String(next.recovery_delay_ms / 86_400_000)
-      if (!security || recoveryEnabled === security.recovery_enabled) recoveryEnabled = next.recovery_enabled
       // A newly bound login can start a recovery: offer security alerts again.
       if (security && next.logins.length > security.logins.length && status?.account) offerSetupAgain(status.account)
       security = next
@@ -133,17 +124,11 @@
     }
   })
 
-  const reportNotice = noticeVisibility(() => security?.notification && status?.state === 'unlocked'
-    ? { account: status.account, session: status.session, ...security.notification } : null, '[data-testid="pending-recovery"]')
-  $effect(() => { void security?.notification; void status?.session; reportNotice() })
-
   function begin(next: Editor) {
     if (blocked) return
     editor = next
     daily = String(security.policy.daily_executions)
     purposes = [...security.policy.allowed_purposes]
-    days = String(security.recovery_delay_ms / 86_400_000)
-    recoveryEnabled = security.recovery_enabled
     extra = (keys?.policy ?? []).filter((p: string) => OPTIONAL.includes(p))
     request = ''
     shown = ''
@@ -191,7 +176,6 @@
   function submit() {
     if (!canSubmit) return
     if (editor === 'policy') return ask('account/policy', policy, 'policy')
-    if (editor === 'recovery') return ask('account/recovery_policy', { enabled: recoveryEnabled, days: recoveryEnabled ? Number(days) : security.recovery_delay_ms / 86_400_000 }, 'recovery')
     if (editor === 'hardware') return ask('account/hardware_policy', { purposes: [...CONTROL, ...extra] }, 'hardware')
     if (editor === 'key') return ask('device/key_register', { biometry_only: biometryOnly }, 'key')
     if (editor === 'login') return ask('account/bind_approve', { token: request.trim(), principal: shown.trim() })
@@ -283,18 +267,8 @@
     {@render receipt('policy')}
   </Section>
 
-  <Section title={t('onChainRecovery')} description={t(security.recovery_enabled ? 'recoveryOnHint' : 'recoveryOffHint')} icon="recovery" testid="security-recovery">
-    <Pill tone={security.recovery_enabled ? 'forest' : 'neutral'}>{t(security.recovery_enabled ? 'on' : 'off')}</Pill>
-    {#if security.recovery_updating}<Notice tone="warn">{t('recoveryUpdating')}</Notice>{/if}
-    {#if security.recovery_enabled}<dl><Fact label={t('recoveryDays')}>{t('daysN', { n: security.recovery_delay_ms / 86_400_000 })}</Fact></dl>{/if}
-    <button class={buttonClass('secondary', 'sm', 'mt-3')} disabled={blocked || !!pending.recovery} aria-label={`${t('edit')} · ${t('recovery')}`} data-testid="security-recovery-edit" onclick={() => begin('recovery')}>{t('edit')}</button>
-    {@render receipt('recovery')}
-    {#if security.pending_recovery}
-      <Notice tone="warn" testid="pending-recovery">
-        {t('pendingRecovery')}: {t('loginPrincipal')} <span class="font-mono">{security.pending_recovery.new_auth}</span> · {t('executeAfter')} {when(security.pending_recovery.execute_after)}
-        {#snippet action()}<button class={buttonClass('danger', 'xs')} disabled={blocked} onclick={() => ask('recovery/dispute', {})}>{t('disputeRecovery')}</button>{/snippet}
-      </Notice>
-    {:else}<p class="mt-3 flex items-center gap-1.5 text-[12.5px] text-faint"><Icon name="check" class="text-ok" />{t('noRecovery')}</p>{/if}
+  <Section title={t('recovery')} icon="recovery">
+    <button class={buttonClass('secondary', 'sm')} data-testid="security-recovery-link" onclick={() => go('/settings/recovery')}>{t('recovery')}</button>
   </Section>
 
   {#if keyError}
@@ -347,7 +321,7 @@
   {/if}
 {/if}
 
-<Dialog bind:open={() => open, setOpen} title={editor === 'key' ? (own ? t('replaceKey') : t('registerKey')) : t(titles[editor])} description={t(descriptions[editor])} icon={editor === 'policy' ? 'signature' : editor === 'recovery' ? 'recovery' : editor === 'login' ? 'login' : 'key'} dismissible={!busy} testid="security-editor">
+<Dialog bind:open={() => open, setOpen} title={editor === 'key' ? (own ? t('replaceKey') : t('registerKey')) : t(titles[editor])} description={t(descriptions[editor])} icon={editor === 'policy' ? 'signature' : editor === 'login' ? 'login' : 'key'} dismissible={!busy} testid="security-editor">
   <div class="grid gap-4">
     {#if error}<Notice failure={error} tone="danger" testid="security-editor-error">{error}</Notice>{/if}
     {#if needsLogin || loadError}<Notice tone="warn">{needsLogin ? t('securityNeedsLogin') : loadError}</Notice>{/if}
@@ -362,11 +336,6 @@
       </fieldset>
       {#if dailyLimit(daily) === 0 || !purposes.length}<Notice tone="warn">{t('securityNoSigning')}</Notice>{/if}
       {@render receipt('policy')}
-    {:else if editor === 'recovery'}
-      <Checkbox bind:checked={recoveryEnabled} disabled={blocked || !!pending.recovery} testid="recovery-enabled">{t('onChainRecovery')}</Checkbox>
-      <Notice tone="warn">{t(recoveryEnabled ? 'recoveryOnHint' : 'recoveryOffHint')}</Notice>
-      {#if recoveryEnabled}<Field label={t('recoveryDays')}><Segmented bind:value={days} disabled={blocked || !!pending.recovery} label={t('recoveryDelay')} options={['1', '2', '3', '4', '5', '6', '7'].map((d) => ({ value: d, label: d }))} testid="recovery-days" /></Field>{/if}
-      {@render receipt('recovery')}
     {:else if editor === 'hardware'}
       <p class="text-[12.5px] text-muted">{t('keysRequiredFor')}: {purposeText(CONTROL)}</p>
       {#each OPTIONAL as p (p)}<Checkbox checked={extra.includes(p)} disabled={blocked || !!pending.hardware} onCheckedChange={(on) => (extra = on ? [...extra, p] : extra.filter((x) => x !== p))} testid={`security-hardware-${p}`}>{t(hardwarePurposeLabels[p])}</Checkbox>{/each}

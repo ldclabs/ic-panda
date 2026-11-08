@@ -114,12 +114,20 @@ account keeps its ID as the label. Failed refreshes preserve known names.
 Settings navigation rows and field content use leading alignment. Standalone
 actions center their labels, with native prominent buttons for primary actions
 such as publishing or saving; destructive actions retain their red text and
-confirmation steps. Account IDs have a direct copy button on Account and the
-public-profile editor, separate from profile navigation.
+confirmation steps. The Account header opens the public-profile editor, where
+the account ID is displayed with a direct copy button.
+Login identities also have direct copy buttons, including on devices without
+account-management permission.
 
 Password AutoFill and Files app copies are separate pages under Account → System
 integrations. Security keeps the frequent settings on its first page, with login
-identities and on-chain recovery on their own pages.
+identities and account recovery on their own pages. Account recovery shows recovery
+status and actions, and opens the on-chain recovery policy; it does not link back
+into account security.
+Pending recovery details and cancellation live only on Account recovery, including
+when opened from a security reminder. The waiting-period end and request expiry
+show the local date and time. Cancelling creates an approval request; any authorized
+device may review it, while changing the policy still requires an administrator.
 
 The public offline tour has been removed. Blocking and report history live under
 Messages → Message settings. Privacy remains available offline before sign-in;
@@ -163,7 +171,7 @@ from binding another login identity. See the
 
 ## On-chain recovery
 
-Account security offers one recovery toggle and an optional 1–7 day waiting
+Account security → Account recovery → On-chain recovery offers one recovery toggle and an optional 1–7 day waiting
 period. Changes go through the existing approval view; the shared core rotates
 the root automatically. New accounts default off and older accounts retain their
 policy. The recovery screen disables request/completion while the policy is off.

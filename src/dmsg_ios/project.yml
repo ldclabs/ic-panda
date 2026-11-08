@@ -47,7 +47,7 @@ targets:
         MARKETING_VERSION: "1.1.1"
         CURRENT_PROJECT_VERSION: "16"
         DMSG_USE_STAGING: NO
-        DMSG_IN_APP_PURCHASES_ENABLED: NO
+        DMSG_IN_APP_PURCHASES_ENABLED: YES
         DMSG_APNS_ENVIRONMENT: production
         DMSG_ATTEST_ENVIRONMENT: production
       configs:

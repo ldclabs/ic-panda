@@ -381,8 +381,12 @@ Rules (`src/main/policy.ts`):
 - Each account on the device keeps its own workspace. Logging in with another
   identity switches to its account; Settings lists the accounts here and
   switches between them (locked, then a login or fast unlock opens one).
+- Settings → Account recovery owns the on-chain recovery policy, pending recovery
+  details, waiting-period end time and cancellation. Account security and recovery
+  notifications open this page. Cancellation creates an approval request and does
+  not clear the pending recovery until the approved command succeeds.
 - Binding another login, removing one, the signing policy, the recovery delay
-  and disputing a recovery are approval requests. "Bind another login" starts
+  and cancelling a recovery request are approval requests. "Bind another login" starts
   a second login in the system browser, followed by the login dialog; once
   it arrives the approval window opens on the binding. Its live login stays
   in the daemon after acceptance, so a legacy holder can claim a name without

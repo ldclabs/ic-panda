@@ -135,7 +135,7 @@ export function noticeRoute(target: NoticeTarget): string {
     case 'channel': return `/channels?open=${target.id}`
     case 'inbox': return target.id ? `/inbox?open=${target.id}` : '/inbox'
     case 'approval': return `/approvals?open=${target.id}`
-    case 'recovery': return '/settings/security'
+    case 'recovery': return '/settings/recovery'
     case 'agent_mail': return `/agents/mail/${encodeURIComponent(target.id)}`
     case 'wallet': return `/wallet/${target.id.wallet}/${target.id.proposal}`
     case 'plan': return '/plan'

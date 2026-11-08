@@ -360,6 +360,8 @@
 	<string>リクエストのキャンセル</string>
 	<key>Cancel this pending request?</key>
 	<string>この保留中のリクエストをキャンセルしますか?</string>
+	<key>Cancel this recovery request</key>
+	<string>この復旧リクエストをキャンセル</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>この未定のリクエストはキャンセルが適用されます。完了した配信は取り消されません。</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>この観察を却下する</string>
 	<key>Dismiss this observation?</key>
 	<string>この観察を無視しますか?</string>
-	<key>Dispute pending recovery</key>
-	<string>回復保留中の紛争</string>
 	<key>Done</key>
 	<string>完了</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>支払いが必要</string>
 	<key>Payments</key>
 	<string>支払い</string>
+	<key>Pending account recovery</key>
+	<string>保留中のアカウント復旧</string>
 	<key>Pending backups</key>
 	<string>保留中のバックアップ</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>追加したレコード</string>
 	<key>Recovery</key>
 	<string>アカウント復旧</string>
-	<key>Recovery status</key>
-	<string>回復状況</string>
 	<key>Recovery status needs checking</key>
 	<string>回復ステータスの確認が必要</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>回復には、バインドされたログインと待機期間が使用されます。認可されたデバイスはそれに異議を唱えることができます。同期されていないローカル コンテンツは復元できません。</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>回復には、バインドされたログインと待機期間が使用されます。認可されたデバイスは復旧リクエストをキャンセルできます。同期されていないローカル コンテンツは復元できません。</string>
 	<key>Recovery waiting period</key>
 	<string>回復待機期間</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>あなたの決断を待っています</string>
 	<key>Waiting period</key>
 	<string>待機期間</string>
+	<key>Waiting period ends</key>
+	<string>待機期間の終了日時</string>
 	<key>Waiting to submit</key>
 	<string>提出を待っています</string>
 	<key>Waiting to sync</key>

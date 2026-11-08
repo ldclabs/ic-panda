@@ -149,7 +149,7 @@ private struct ReminderDestinationView: View {
                 case .channel: if let channel { ConversationView(channel: channel) }
                 case .inbox: if let letter { InboxDetail(letter: letter, changed: {}) }
                 case .approval: if let approval { ApprovalDetailView(request: approval) }
-                case .recovery: AccountSecurityView(page: .recovery)
+                case .recovery: RecoveryView()
                 case .wallet(let wallet, let proposal): if let id = UInt64(proposal) { WalletProposalView(wallet: wallet, proposal: id) }
                 case .plan: SubscriptionView()
                 case .task(let id): if id.hasPrefix("conflicts:") { ConflictsView() } else { AccountView() }

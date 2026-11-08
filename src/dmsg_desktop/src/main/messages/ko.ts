@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "백그라운드에서 다운로드 중입니다. 완료되면 ‘다시 시작하여 업데이트’를 선택하세요.",
   updateManual: "이 dMsg 사본은 자체적으로 업데이트를 설치할 수 없습니다. 릴리스 페이지에서 새 버전을 다운로드하여 덮어쓰기 설치하세요.",
   requestWaiting: "승인을 기다리는 요청이 있습니다.",
-  recoveryPending: "계정 복구가 진행 중입니다. 본인이 요청하지 않았다면 계정이 이전되기 전에 ‘계정 보안’을 열어 취소하세요.",
   eventsArrived: (n: number) => `에이전트가 새 이벤트 ${n}개를 수신했습니다.`,
   agentMailArrived: (n: number) => `에이전트가 새 서신 ${n}통을 수신했습니다.`,
   refreshDue: "에이전트의 이벤트 구독을 갱신해야 합니다.",

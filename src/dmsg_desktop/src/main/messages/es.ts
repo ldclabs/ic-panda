@@ -62,7 +62,6 @@ const text: Text = {
   updateManual:
     'Esta copia de dMsg no puede instalar actualizaciones por sí misma. Descarga la nueva versión desde su página de publicación e instálala encima de esta.',
   requestWaiting: 'Una solicitud espera tu aprobación.',
-  recoveryPending: 'Hay una recuperación de cuenta pendiente. Si no la solicitaste, abre Seguridad de la cuenta para cancelarla antes de que se transfiera el control.',
   eventsArrived: (n: number) => `Tus agentes recibieron ${n} evento(s) nuevo(s).`,
   agentMailArrived: (n: number) => `Tus agentes recibieron ${n} carta(s) nueva(s).`,
   refreshDue: 'Hay que renovar la suscripción a eventos de un agente.',

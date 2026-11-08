@@ -360,6 +360,8 @@
 	<string>अनुरोध रद्द करें</string>
 	<key>Cancel this pending request?</key>
 	<string>क्या यह लंबित अनुरोध रद्द करें?</string>
+	<key>Cancel this recovery request</key>
+	<string>यह पुनर्प्राप्ति अनुरोध रद्द करें</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>रद्दीकरण इस अनिर्णीत अनुरोध पर लागू होता है। यह पूर्ण डिलीवरी को पूर्ववत नहीं करता है।</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>इस अवलोकन को खारिज करें</string>
 	<key>Dismiss this observation?</key>
 	<string>इस अवलोकन को ख़ारिज करें?</string>
-	<key>Dispute pending recovery</key>
-	<string>विवाद की वसूली लंबित है</string>
 	<key>Done</key>
 	<string>हो गया</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>भुगतान आवश्यक है</string>
 	<key>Payments</key>
 	<string>भुगतान</string>
+	<key>Pending account recovery</key>
+	<string>लंबित खाता पुनर्प्राप्ति</string>
 	<key>Pending backups</key>
 	<string>लंबित बैकअप</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>जोड़े गए रिकॉर्ड</string>
 	<key>Recovery</key>
 	<string>खाता पुनर्प्राप्ति</string>
-	<key>Recovery status</key>
-	<string>पुनर्प्राप्ति स्थिति</string>
 	<key>Recovery status needs checking</key>
 	<string>पुनर्प्राप्ति स्थिति की जाँच की आवश्यकता है</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>पुनर्प्राप्ति आपके बाध्य लॉगिन और प्रतीक्षा अवधि का उपयोग करती है। एक अधिकृत उपकरण इस पर विवाद कर सकता है। असिंचित स्थानीय सामग्री को पुनर्प्राप्त नहीं किया जा सकता.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>पुनर्प्राप्ति आपके बाध्य लॉगिन और प्रतीक्षा अवधि का उपयोग करती है। एक अधिकृत उपकरण पुनर्प्राप्ति अनुरोध रद्द कर सकता है। असिंचित स्थानीय सामग्री को पुनर्प्राप्त नहीं किया जा सकता.</string>
 	<key>Recovery waiting period</key>
 	<string>पुनर्प्राप्ति प्रतीक्षा अवधि</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>आपके फैसले का इंतजार है</string>
 	<key>Waiting period</key>
 	<string>प्रतीक्षा अवधि</string>
+	<key>Waiting period ends</key>
+	<string>प्रतीक्षा अवधि समाप्त होने का समय</string>
 	<key>Waiting to submit</key>
 	<string>सबमिट करने की प्रतीक्षा की जा रही है</string>
 	<key>Waiting to sync</key>

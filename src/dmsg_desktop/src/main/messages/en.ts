@@ -61,7 +61,6 @@ const text = {
   updateDownloading: 'It downloads in the background; then choose Restart to Update.',
   updateManual: 'This copy of dMsg cannot install updates itself. Download the new version from its release page and install it over this one.',
   requestWaiting: 'A request is waiting for your approval.',
-  recoveryPending: 'Account recovery is pending. If you did not request it, open Account security to cancel it before takeover.',
   eventsArrived: (n: number) => `Your agents received ${n} new event(s).`,
   agentMailArrived: (n: number) => `Your agents received ${n} new letter(s).`,
   refreshDue: "An agent's event subscription is due for renewal.",

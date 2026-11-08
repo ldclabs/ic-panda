@@ -60,7 +60,7 @@ struct RecoveryNotice: View {
                     .accessibilityIdentifier("recovery.warning")
             }
         }
-        .sheet(isPresented: $reviewing) { NavigationStack { AccountSecurityView(page: .recovery) } }
+        .sheet(isPresented: $reviewing) { NavigationStack { RecoveryView() } }
         .onChange(of: model.epoch) { _, _ in reviewing = false }
     }
 }

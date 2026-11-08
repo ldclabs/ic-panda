@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "Kemas kini dimuat turun di latar belakang. Kemudian pilih Mulakan semula untuk mengemas kini.",
   updateManual: "Salinan dMsg ini tidak boleh memasang kemas kini itu sendiri. Muat turun versi baharu daripada halaman keluarannya dan pasangkannya pada versi ini.",
   requestWaiting: "Permintaan sedang menunggu kelulusan anda.",
-  recoveryPending: "Pemulihan akaun sedang menunggu. Jika anda tidak memintanya, buka Keselamatan akaun untuk membatalkannya sebelum akses diambil alih.",
   eventsArrived: (n: number) => `Ejen anda menerima ${n} peristiwa baharu.`,
   agentMailArrived: (n: number) => `Ejen anda menerima ${n} surat baharu.`,
   refreshDue: "Langganan peristiwa ejen perlu diperbaharui.",

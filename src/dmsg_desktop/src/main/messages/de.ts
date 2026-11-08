@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "Der Download erfolgt im Hintergrund; wählen Sie danach „Neu starten, um zu aktualisieren“.",
   updateManual: "Diese Kopie von dMsg kann Updates nicht selbst installieren. Laden Sie die neue Version von der Release-Seite herunter und installieren Sie sie darüber.",
   requestWaiting: "Eine Anfrage wartet auf Ihre Genehmigung.",
-  recoveryPending: "Die Kontowiederherstellung steht aus. Wenn Sie diese nicht angefordert haben, öffnen Sie die Kontosicherheit, um sie vor der Übernahme abzubrechen.",
   eventsArrived: (n: number) => `Ihre Agenten haben ${n} neue(s) Ereignis(se) erhalten.`,
   agentMailArrived: (n: number) => `Ihre Agenten haben ${n} neue(n) Brief(e) erhalten.`,
   refreshDue: "Das Ereignis-Abonnement eines Agenten muss erneuert werden.",

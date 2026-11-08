@@ -360,6 +360,8 @@
 	<string>요청 취소</string>
 	<key>Cancel this pending request?</key>
 	<string>대기 중인 요청을 취소하시겠습니까?</string>
+	<key>Cancel this recovery request</key>
+	<string>이 복구 요청 취소</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>취소는 결정되지 않은 요청에 적용됩니다. 완료된 배달은 취소되지 않습니다.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>이 관찰을 닫습니다</string>
 	<key>Dismiss this observation?</key>
 	<string>이 관찰 내용을 닫으시겠습니까?</string>
-	<key>Dispute pending recovery</key>
-	<string>분쟁 복구 보류 중</string>
 	<key>Done</key>
 	<string>완료</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>결제 필요</string>
 	<key>Payments</key>
 	<string>결제</string>
+	<key>Pending account recovery</key>
+	<string>대기 중인 계정 복구</string>
 	<key>Pending backups</key>
 	<string>보류 중인 백업</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>추가된 기록</string>
 	<key>Recovery</key>
 	<string>계정 복구</string>
-	<key>Recovery status</key>
-	<string>복구 상태</string>
 	<key>Recovery status needs checking</key>
 	<string>복구 상태 확인 필요</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>복구에는 바인딩된 로그인과 대기 기간이 사용됩니다. 승인된 장치는 이에 대해 이의를 제기할 수 있습니다. 동기화되지 않은 로컬 콘텐츠는 복구할 수 없습니다.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>복구에는 바인딩된 로그인과 대기 기간이 사용됩니다. 승인된 장치는 복구 요청을 취소할 수 있습니다. 동기화되지 않은 로컬 콘텐츠는 복구할 수 없습니다.</string>
 	<key>Recovery waiting period</key>
 	<string>회복 대기 기간</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>당신의 결정을 기다리고 있습니다</string>
 	<key>Waiting period</key>
 	<string>대기 기간</string>
+	<key>Waiting period ends</key>
+	<string>대기 기간 종료 시간</string>
 	<key>Waiting to submit</key>
 	<string>제출 대기 중</string>
 	<key>Waiting to sync</key>

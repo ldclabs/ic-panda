@@ -360,6 +360,8 @@
 	<string>Batalkan permintaan</string>
 	<key>Cancel this pending request?</key>
 	<string>Batalkan permintaan yang belum selesai ini?</string>
+	<key>Cancel this recovery request</key>
+	<string>Batalkan permintaan pemulihan ini</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>Pembatalan dikenakan pada permintaan yang belum diputuskan ini. Ia tidak membatalkan penghantaran yang lengkap.</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>Tolak pemerhatian ini</string>
 	<key>Dismiss this observation?</key>
 	<string>Tolak pemerhatian ini?</string>
-	<key>Dispute pending recovery</key>
-	<string>Pertikaian menunggu pemulihan</string>
 	<key>Done</key>
 	<string>Selesai</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>Bayaran diperlukan</string>
 	<key>Payments</key>
 	<string>Pembayaran</string>
+	<key>Pending account recovery</key>
+	<string>Pemulihan akaun belum selesai</string>
 	<key>Pending backups</key>
 	<string>Menunggu sandaran</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>Rekod ditambah</string>
 	<key>Recovery</key>
 	<string>Pemulihan</string>
-	<key>Recovery status</key>
-	<string>Status pemulihan</string>
 	<key>Recovery status needs checking</key>
 	<string>Status pemulihan perlu disemak</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>Pemulihan menggunakan log masuk terikat anda dan tempoh menunggu. Peranti yang dibenarkan boleh mempertikaikannya. Kandungan tempatan yang tidak disegerakkan tidak boleh dipulihkan.</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>Pemulihan menggunakan log masuk terikat anda dan tempoh menunggu. Peranti yang dibenarkan boleh membatalkan permintaan pemulihan. Kandungan tempatan yang tidak disegerakkan tidak boleh dipulihkan.</string>
 	<key>Recovery waiting period</key>
 	<string>Tempoh menunggu pemulihan</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>Menunggu keputusan anda</string>
 	<key>Waiting period</key>
 	<string>Tempoh menunggu</string>
+	<key>Waiting period ends</key>
+	<string>Tempoh menunggu tamat</string>
 	<key>Waiting to submit</key>
 	<string>Menunggu untuk diserahkan</string>
 	<key>Waiting to sync</key>

@@ -360,6 +360,8 @@
 	<string>درخواست منسوخ کریں</string>
 	<key>Cancel this pending request?</key>
 	<string>اس زیر التواء درخواست کو منسوخ کریں؟</string>
+	<key>Cancel this recovery request</key>
+	<string>بازیابی کی یہ درخواست منسوخ کریں</string>
 	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
 	<string>منسوخی کا اطلاق اس غیر فیصلہ شدہ درخواست پر ہوتا ہے۔ یہ مکمل ڈیلیوری کو کالعدم نہیں کرتا ہے۔</string>
 	<key>Cancelled</key>
@@ -802,8 +804,6 @@
 	<string>اس مشاہدے کو مسترد کریں</string>
 	<key>Dismiss this observation?</key>
 	<string>اس مشاہدے کو مسترد کریں؟</string>
-	<key>Dispute pending recovery</key>
-	<string>تنازعہ زیر التواء ریکوری</string>
 	<key>Done</key>
 	<string>مکمل</string>
 	<key>Download encrypted copy in background</key>
@@ -1622,6 +1622,8 @@
 	<string>ادائیگی درکار ہے</string>
 	<key>Payments</key>
 	<string>ادائیگیاں</string>
+	<key>Pending account recovery</key>
+	<string>اکاؤنٹ کی زیر التوا بازیابی</string>
 	<key>Pending backups</key>
 	<string>زیر التوا بیک اپس</string>
 	<key>Pending imports</key>
@@ -1808,12 +1810,10 @@
 	<string>شامل شدہ ریکارڈز</string>
 	<key>Recovery</key>
 	<string>بازیابی</string>
-	<key>Recovery status</key>
-	<string>بحالی کی حیثیت</string>
 	<key>Recovery status needs checking</key>
 	<string>بحالی کی حیثیت کی جانچ کی ضرورت ہے</string>
-	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>بازیابی آپ کے پابند لاگ ان اور انتظار کی مدت کا استعمال کرتی ہے۔ ایک مجاز آلہ اس پر تنازعہ کر سکتا ہے۔ غیر مطابقت پذیر مقامی مواد کو بازیافت نہیں کیا جا سکتا۔</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
+	<string>بازیابی آپ کے پابند لاگ ان اور انتظار کی مدت کا استعمال کرتی ہے۔ ایک مجاز آلہ بازیابی کی درخواست منسوخ کر سکتا ہے۔ غیر مطابقت پذیر مقامی مواد کو بازیافت نہیں کیا جا سکتا۔</string>
 	<key>Recovery waiting period</key>
 	<string>وصولی کے انتظار کی مدت</string>
 	<key>Refresh</key>
@@ -2912,6 +2912,8 @@
 	<string>آپ کے فیصلے کا انتظار ہے</string>
 	<key>Waiting period</key>
 	<string>انتظار کی مدت</string>
+	<key>Waiting period ends</key>
+	<string>انتظار کی مدت ختم ہونے کا وقت</string>
 	<key>Waiting to submit</key>
 	<string>جمع کرانے کا انتظار ہے</string>
 	<key>Waiting to sync</key>

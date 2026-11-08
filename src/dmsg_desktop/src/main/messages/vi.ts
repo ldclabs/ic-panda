@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "Bản cập nhật sẽ tải trong nền. Sau đó chọn Khởi động lại để cập nhật.",
   updateManual: "Bản sao dMsg này không thể tự cài đặt các bản cập nhật. Tải xuống phiên bản mới từ trang phát hành và cài đặt nó trên phiên bản này.",
   requestWaiting: "Một yêu cầu đang chờ sự chấp thuận của bạn.",
-  recoveryPending: "Đang chờ khôi phục tài khoản. Nếu bạn không yêu cầu, hãy hủy tại Bảo mật tài khoản trước khi quyền truy cập được chuyển giao.",
   eventsArrived: (n: number) => `Tác tử của bạn nhận được ${n} sự kiện mới.`,
   agentMailArrived: (n: number) => `Tác tử của bạn nhận được ${n} thư mới.`,
   refreshDue: "Cần gia hạn đăng ký sự kiện của một tác tử.",

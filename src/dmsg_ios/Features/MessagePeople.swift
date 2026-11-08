@@ -30,7 +30,7 @@ struct MessageIdentity: View {
                 if typeSize.isAccessibilitySize {
                     Button { model.clipboard.copy(account); model.notice = String(localized: "Copied") } label: { Label("Copy account ID", systemImage: "doc.on.doc") }
                         .buttonStyle(.borderless).frame(minHeight: 44)
-                } else { AccountIDCopyButton(account: account) }
+                } else { IDCopyButton(value: account, label: "Copy account ID") }
             }
         }.task(id: "\(account):\(model.profileRevision)") { model.people.request([account], model: model) }
     }

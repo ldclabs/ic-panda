@@ -61,7 +61,6 @@ const text: Text = {
   updateDownloading: "Arka planda indiriliyor; tamamlandığında Güncellemek İçin Yeniden Başlat'ı seçin.",
   updateManual: "Bu dMsg kopyası güncellemeleri kendisi yükleyemez. Yeni sürümü sürüm sayfasından indirip mevcut sürümün üzerine kurun.",
   requestWaiting: "Bir istek onayınızı bekliyor.",
-  recoveryPending: "Hesap kurtarma işlemi beklemede. Bunu siz talep etmediyseniz devralma gerçekleşmeden önce iptal etmek için Hesap güvenliği'ni açın.",
   eventsArrived: (n: number) => `Ajanlarınız ${n} yeni etkinlik aldı.`,
   agentMailArrived: (n: number) => `Ajanlarınız ${n} yeni mektup aldı.`,
   refreshDue: "Bir ajanın etkinlik aboneliğinin yenilenme zamanı geldi.",

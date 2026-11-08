@@ -46,7 +46,7 @@ final class AccountSettingsTests: XCTestCase {
 
     func testRecoveryStateDecodesCoreDeadlinesWhileLocked() throws {
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let value = #"{"enabled":true,"ready":false,"member":false,"recovery_delay_ms":259200000,"pending":{"execute_after":1800000000000,"expires_at":1800100000000,"this_device":true}}"#
+        let value = #"{"enabled":true,"ready":false,"member":false,"recovery_delay_ms":259200000,"pending":{"op_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","execute_after":1800000000000,"expires_at":1800100000000,"this_device":true}}"#
         let state = try decoder.decode(RecoveryView.RecoveryState.self, from: Data(value.utf8))
         XCTAssertEqual(state.recoveryDelayMs, 259200000)
         XCTAssertEqual(state.pending?.executeAfter, 1800000000000)
@@ -60,7 +60,7 @@ final class AccountSettingsTests: XCTestCase {
         let expired = Date(timeIntervalSince1970: 1200)
         // The core can retain an expired pending record and its ready flag.
         let state = RecoveryView.RecoveryState(enabled: true, ready: true, member: false,
-            pending: .init(executeAfter: 1_100_000, expiresAt: 1_200_000, thisDevice: true))
+            pending: .init(opId: String(repeating: "a", count: 64), executeAfter: 1_100_000, expiresAt: 1_200_000, thisDevice: true))
         XCTAssertFalse(state.canRequest(at: waiting))
         XCTAssertFalse(state.canComplete(at: waiting))
         XCTAssertFalse(state.canRequest(at: ready))
@@ -68,7 +68,7 @@ final class AccountSettingsTests: XCTestCase {
         XCTAssertTrue(state.canRequest(at: expired))
         XCTAssertFalse(state.canComplete(at: expired))
         let other = RecoveryView.RecoveryState(enabled: true, ready: false, member: false,
-            pending: .init(executeAfter: 1_100_000, expiresAt: 1_200_000, thisDevice: false))
+            pending: .init(opId: String(repeating: "a", count: 64), executeAfter: 1_100_000, expiresAt: 1_200_000, thisDevice: false))
         XCTAssertFalse(other.canComplete(at: ready))
         XCTAssertFalse(other.canRequest(at: ready))
         XCTAssertTrue(other.canRequest(at: expired))
