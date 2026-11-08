@@ -124,15 +124,20 @@ enum FastUnlockSource {
 }
 
 impl FastUnlock {
+    /// A plain key's login deadline; hardware presence has none.
+    fn check_deadline(&self) -> Result<()> {
+        ensure(
+            self.deadline.is_none_or(|deadline| now_ms() < deadline),
+            Error::AuthRequired,
+        )
+    }
+
     /// Ask for presence off the client's executor; contains no Client lock.
     ///
     /// # Errors
     /// Preserves cancellation, unavailable hardware and permanently lost keys.
     pub fn open(&self) -> Result<Zeroizing<Key>> {
-        ensure(
-            self.deadline.is_none_or(|deadline| now_ms() < deadline),
-            Error::AuthRequired,
-        )?;
+        self.check_deadline()?;
         match (&self.source, &self.hardware) {
             (FastUnlockSource::Bound(slot), Some(hardware)) => slot.open(hardware.as_ref()),
             (FastUnlockSource::Bound(_), None) => Err(Error::Unavailable("no hardware key".into())),
@@ -927,18 +932,16 @@ impl Client {
                 .unwrap_or(0)
                 .saturating_add(FAST_UNLOCK_MS)
         });
-        ensure(
-            deadline.is_none_or(|deadline| now_ms() < deadline),
-            Error::AuthRequired,
-        )?;
-        Ok(FastUnlock {
+        let prepared = FastUnlock {
             name,
             account,
             generation: self.session_generation,
             deadline,
             source,
             hardware: self.presence.clone(),
-        })
+        };
+        prepared.check_deadline()?;
+        Ok(prepared)
     }
 
     /// Complete only the prepared account/session after presence returned.
@@ -955,10 +958,7 @@ impl Client {
                 && self.account()?.id == prepared.account,
             Error::Locked,
         )?;
-        ensure(
-            prepared.deadline.is_none_or(|deadline| now_ms() < deadline),
-            Error::AuthRequired,
-        )?;
+        prepared.check_deadline()?;
         self.hardware_ready()?;
         let key = match &prepared.source {
             FastUnlockSource::Bound(slot) => self.binding_hardware_key(slot, key),

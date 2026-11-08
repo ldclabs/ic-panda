@@ -230,8 +230,10 @@ desktop is one of its clients, like the CLI.
   The main window asks once when it comes to the front, or opens locked in
   front; never right after the person locked it there, and not again after
   a decline, when the gate's Unlock with Touch ID asks. Locked views also
-  offer "Log in with Internet Identity". Fast unlock that has run out
-  (thirty days after the last login) goes to the login dialog.
+  offer "Log in with Internet Identity". Fast unlock with Touch ID or the
+  Mac password has no login deadline; a plain credential-store key that has
+  run out (thirty days after the last login) or a lost key goes to the login
+  dialog.
 
   Pages share a small kit (`components/page`): sections, notices, state
   pills, ID chips that copy the whole ID, fields, facts, tab bars and the

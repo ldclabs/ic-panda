@@ -502,7 +502,7 @@ export default {
     "fastUnlock": "高速ロック解除",
     "fastUnlockOn": "高速ロック解除をオンにする",
     "fastUnlockOff": "高速ロック解除をオフにする",
-    fastUnlockHint: "Internet Identity のログイン期限が切れても、デバイス認証でローカルの内容をロック解除できます。 デバイス認証を使わないクイック解除は、ログイン後30日間有効です。",
+    fastUnlockHint: "Internet Identity のログイン期限が切れても、デバイス認証でローカルの内容をロック解除できます。デバイス認証を使わないクイック解除は、ログイン後30日間有効です。",
     localAccessWithoutLogin: "ローカルの内容は引き続き利用できます。アカウント操作で必要になったときに Internet Identity でログインしてください。",
     "touchIdUnlock": "Touch IDでロックを解除します",
     "loginWithIi": "Internet Identityでログインします",

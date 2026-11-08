@@ -35,6 +35,17 @@ unlock and read policy with test hardware; these runs do not verify physical
 Face ID/Touch ID, production II or live canister revocation. Production deployment
 was not performed.
 
+Review fixes (2026-11-09): the expiring-login case now waits for the Account page
+before checking that no login action is shown, and its fixture login lasts 30
+seconds instead of 10, so a slow launch neither skips nor fails that check. The
+Simplified and Traditional Chinese hints name Internet Identity instead of "II".
+Both login-expiry UI cases passed on a cloned iPhone 17e / iOS 27.0 simulator in
+`LoginExpiryReview-20261109-retry.xcresult` (the three-language case took 122 s);
+a first run failed only because the shared simulator was shut down mid-run. The
+app used the previous native core build: the Rust change in this review only
+merges the fast-unlock deadline check, so `scripts/ios/build-core.sh` must run
+again before the next native build is verified.
+
 ## Vault detail and large type (2026-11-07)
 
 Vault details now copy a field by tapping its value. Native field menus provide

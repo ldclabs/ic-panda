@@ -13,8 +13,8 @@ const account = '040g2081040g2081040g', token = 'vault-detail-fixture', itemId =
 const SECRET = 'SYNTHETIC-KEY-ONLY\n' + 'ABCD0123456789'.repeat(18) + '\nEND-SYNTHETIC-KEY'
 const LONG = Array.from({ length: 24 }, (_, i) => `${i + 1}. Synthetic recovery instruction — keep the complete value readable.`).join('\n')
 const calls = [], sockets = new Set(), errors = []
-let sequence = 0, locked = true, holdReveal = false, releaseReveal, rejectReveal = false, nextOtp
-const status = () => ({ state: locked ? 'locked' : 'unlocked', account, device_id: '55'.repeat(32), principal: null, login_expires_at: null, approvals_waiting: 0, pending_sync: 0, background_online: false, fast_unlock: true, idle_lock_ms: 900000 })
+let sequence = 0, locked = true, login = null, holdReveal = false, releaseReveal, rejectReveal = false, nextOtp
+const status = () => ({ state: locked ? 'locked' : 'unlocked', account, device_id: '55'.repeat(32), principal: login?.principal ?? null, login_expires_at: login?.expiresAt ?? null, approvals_waiting: 0, pending_sync: 0, background_online: false, fast_unlock: true, idle_lock_ms: 900000 })
 const emit = (type, data = {}) => { for (const socket of sockets) socket.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: ++sequence, type, data } })) }
 const field = (id, type, value, label = '', section = '') => ({ id, type, value, label, section })
 const entry = (id, title, fields, type = 'login', tags = []) => ({ id, revision: '66'.repeat(32), synced: true, deleted: false, item: { type, title, tags, notes: '', files: [], favorite: false, createdAt: Date.now(), updatedAt: Date.now(), fields } })
@@ -347,6 +347,30 @@ try {
   await waitFor(() => entries[0].item.favorite)
   assert.equal(await main.getByTestId('vault-inspector').locator('header').getByTestId('vault-star').count(), 0)
   await main.getByTestId('vault-inspector').locator('header').getByRole('img', { name: 'Starred', exact: true }).waitFor()
+
+  // An II login that expires while the account stays unlocked changes no session state;
+  // the account menu checks the expiry as it opens and describes the login item.
+  const statusReads = () => calls.filter(c => c.method === 'daemon/status').length
+  const resync = async () => { const reads = statusReads(); emit('resync'); await waitFor(() => statusReads() > reads) }
+  login = { principal: 'aaaaa-aa', expiresAt: await main.evaluate(() => Date.now() + 60000) }
+  await resync()
+  await main.getByTestId('account-switcher').click()
+  await main.getByTestId('account-login').waitFor()
+  assert.equal(await main.getByTestId('account-login-hint').count(), 0)
+  assert.equal(await main.getByTestId('account-login').getAttribute('aria-describedby'), null)
+  assert.equal(await main.getByTestId('account-login').innerText(), 'Log in with another identity')
+  await main.keyboard.press('Escape')
+  await main.getByTestId('account-menu').waitFor({ state: 'detached' })
+  await main.clock.fastForward(61000)
+  await main.getByTestId('account-switcher').click()
+  await main.getByTestId('account-login-hint').waitFor()
+  assert.equal(await main.getByTestId('account-login').getAttribute('aria-describedby'), 'account-login-hint')
+  assert.equal(await main.getByTestId('account-login').innerText(), 'Log in with Internet Identity')
+  await main.keyboard.press('Escape')
+  await main.getByTestId('account-menu').waitFor({ state: 'detached' })
+  login = null
+  await resync()
+
   // Screenshot matrix includes Chinese, a longer translation, RTL and the minimum window.
   for (const [lang, theme, width, height] of [['zh', 'light', 1180, 760], ['zh', 'light', 760, 540], ['zh', 'dark', 760, 540], ['de', 'light', 760, 540], ['de', 'dark', 760, 540], ['ar', 'light', 760, 540], ['ar', 'dark', 760, 540]]) {
     await main.evaluate(async ([lang, theme]) => { await window.dmsg.setLocale(lang); await window.dmsg.setAppearance(theme) }, [lang, theme])

@@ -511,7 +511,7 @@ export default {
     fastUnlock: '快速解锁',
     fastUnlockOn: '开启快速解锁',
     fastUnlockOff: '关闭快速解锁',
-    fastUnlockHint: "II 登录过期后，仍可通过系统身份验证解锁本机内容。 无需系统身份验证的快速解锁仍限于登录后 30 天。",
+    fastUnlockHint: "Internet Identity 登录过期后，仍可通过系统身份验证解锁本机内容。无需系统身份验证的快速解锁仍限于登录后 30 天。",
     localAccessWithoutLogin: "本机内容可继续使用。需要账户身份的操作会要求重新登录 Internet Identity。",
     touchIdUnlock: '用 Touch ID 解锁',
     loginWithIi: '用 Internet Identity 登录',

@@ -48,8 +48,10 @@ import XCTest
 
     func testLoginExpiryOnlyAddsAnAccountAction() {
         let app = open(["--ui-login-expiring"])
+        // The account page shows well before the fixture login expires.
+        XCTAssertTrue(app.buttons["account.lock"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["account.login"].exists)
-        XCTAssertTrue(app.buttons["account.login"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["account.login"].waitForExistence(timeout: 40))
         XCTAssertTrue(app.buttons["account.lock"].exists)
         XCTAssertFalse(app.buttons["login.start"].exists)
         XCTAssertFalse(app.alerts.firstMatch.exists)

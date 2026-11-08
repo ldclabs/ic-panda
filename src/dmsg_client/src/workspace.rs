@@ -13,8 +13,9 @@
 //!
 //! Fast unlock seals a second copy of the LDK under a key the operating
 //! system keeps, or that hardware recovers only with the person present
-//! (encryption design §5.2; plan D-6); it is refused thirty days after the
-//! last unlock through a login.
+//! (encryption design §5.2; plan D-6). Only the plain credential-store key
+//! is refused thirty days after the last unlock through a login; hardware
+//! presence has no such deadline.
 //!
 //! A device-bound workspace keeps the same LDK but no copy under the LUK
 //! alone: a hardware secret `S` from a credential-store slot of its own

@@ -502,7 +502,7 @@ export default {
     "fastUnlock": "快速解鎖",
     "fastUnlockOn": "開啟快速解鎖",
     "fastUnlockOff": "關閉快速解鎖",
-    fastUnlockHint: "II 登入到期後，仍可透過系統身分驗證解鎖本機內容。 不需系統身分驗證的快速解鎖仍限於登入後 30 天。",
+    fastUnlockHint: "Internet Identity 登入到期後，仍可透過系統身分驗證解鎖本機內容。不需系統身分驗證的快速解鎖仍限於登入後 30 天。",
     localAccessWithoutLogin: "本機內容可繼續使用。需要帳戶身分的操作會要求重新登入 Internet Identity。",
     "touchIdUnlock": "用 Touch ID 解鎖",
     "loginWithIi": "用 Internet Identity 登入",

@@ -11,7 +11,7 @@ extension SessionModel {
         let pairing = ProcessInfo.processInfo.arguments.contains("--ui-pairing")
         let storeScreens = ProcessInfo.processInfo.arguments.contains("--ui-store-screenshots")
         let chinese = storeScreens && Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
-        let loginExpiry: UInt64? = ProcessInfo.processInfo.arguments.contains("--ui-login-expired") ? nil : UInt64(Date.now.timeIntervalSince1970 * 1000) + (ProcessInfo.processInfo.arguments.contains("--ui-login-expiring") ? 10_000 : 86_400_000)
+        let loginExpiry: UInt64? = ProcessInfo.processInfo.arguments.contains("--ui-login-expired") ? nil : UInt64(Date.now.timeIntervalSince1970 * 1000) + (ProcessInfo.processInfo.arguments.contains("--ui-login-expiring") ? 30_000 : 86_400_000)
         installFixtures(
             SessionSnapshot(generation: 0, sequence: 0, state: setup ? "no_account" : (access ? (pairing ? "pairing_required" : "root_required") : "unlocked"), account: setup ? nil : "040g2081040g2081040g", deviceId: "fixture-device",
                             pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, loginExpiresAtMs: loginExpiry, setupPending: false, lastSyncAtMs: nil, syncError: nil),

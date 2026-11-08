@@ -27,6 +27,10 @@
   let avatar = $state<string | null>(null)
   // Read on unlock and publication, without polling on each status refresh.
   const unlockedAccount = $derived(status?.state === 'unlocked' ? (status.account as string) : null)
+  // The II login can expire while the account stays unlocked, which changes no
+  // session state; check its expiry as the menu opens.
+  let openedAt = $state(0)
+  const loginMissing = $derived(!!unlockedAccount && !(status?.principal && status.login_expires_at > openedAt))
   const account = $derived<string | null>(status?.account ?? null)
   let profileRead = 0
 
@@ -72,7 +76,7 @@
   const initial = $derived((name || 'd').slice(0, 1).toUpperCase())
 </script>
 
-<DropdownMenu.Root bind:open dir={localeDir(locale())}>
+<DropdownMenu.Root bind:open onOpenChange={(next) => next && (openedAt = Date.now())} dir={localeDir(locale())}>
   <Tooltip content={account ?? sessionLabel(status?.state ?? '')} side="right" disabled={!collapsed}>
     {#snippet children(props)}
       <DropdownMenu.Trigger
@@ -124,11 +128,16 @@
         {/each}
       </DropdownMenu.Group>
       <DropdownMenu.Separator class="my-1 h-px bg-line" />
-      {#if unlockedAccount && !status?.principal}
-        <Notice testid="account-login-hint">{t('localAccessWithoutLogin')}</Notice>
+      {#if loginMissing}
+        <Notice id="account-login-hint" testid="account-login-hint">{t('localAccessWithoutLogin')}</Notice>
       {/if}
-      <DropdownMenu.Item class={menuItemClass} onSelect={() => startLogin()} data-testid="account-login">
-        <span class="flex items-center gap-2"><Icon name="login" />{unlockedAccount && !status?.principal ? t('loginWithIi') : status?.state === 'logged_out' ? t('login') : t('loginOther')}</span>
+      <DropdownMenu.Item
+        class={menuItemClass}
+        onSelect={() => startLogin()}
+        aria-describedby={loginMissing ? 'account-login-hint' : undefined}
+        data-testid="account-login"
+      >
+        <span class="flex items-center gap-2"><Icon name="login" />{loginMissing ? t('loginWithIi') : status?.state === 'logged_out' ? t('login') : t('loginOther')}</span>
       </DropdownMenu.Item>
       {#if status?.state && status.state !== 'logged_out'}
         <DropdownMenu.Item class={menuItemClass} onSelect={logout} data-testid="account-logout">

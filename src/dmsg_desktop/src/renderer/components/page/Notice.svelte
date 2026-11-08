@@ -11,6 +11,7 @@
     tone = 'info',
     failure,
     icon,
+    id,
     testid,
     class: className,
     action,
@@ -19,6 +20,8 @@
     tone?: 'info' | 'warn' | 'danger' | 'ok'
     failure?: string | string[]
     icon?: Glyph
+    /** For a control the notice describes (`aria-describedby`). */
+    id?: string
     testid?: string
     class?: string
     action?: Snippet
@@ -37,7 +40,7 @@
 </script>
 
 {#if !covered}
-<div class={cn('flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-[12.5px] leading-normal', tones[shownTone], className)} data-testid={testid} role={shownTone === 'danger' ? 'alert' : 'status'}>
+<div {id} class={cn('flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-[12.5px] leading-normal', tones[shownTone], className)} data-testid={testid} role={shownTone === 'danger' ? 'alert' : 'status'}>
   <Icon name={icon ?? icons[shownTone]} class="mt-px shrink-0" />
   <div class="min-w-0 flex-1 [overflow-wrap:anywhere]">{@render children()}</div>
   {#if action}<div class="-my-0.5 shrink-0">{@render action()}</div>{/if}
