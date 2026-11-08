@@ -152,8 +152,8 @@
 	<string>रकम</string>
 	<key>Amount in base units</key>
 	<string>मूल इकाइयों में राशि</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>एक खाता पुनर्प्राप्ति लंबित है. खाता सुरक्षा में इसकी समीक्षा करें.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>एक खाता पुनर्प्राप्ति लंबित है. खाता पुनर्प्राप्ति में इसकी समीक्षा करें.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>खाते की सुरक्षा बदलने के लिए प्रशासक डिवाइस चाहिए।</string>
 	<key>An administrator device is required to publish this profile.</key>

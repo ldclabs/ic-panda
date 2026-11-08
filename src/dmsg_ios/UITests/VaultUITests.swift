@@ -412,6 +412,30 @@ final class VaultUITests: XCTestCase {
         XCTAssertTrue(app.buttons["vault.item.fixture-created"].waitForExistence(timeout: 5))
     }
 
+    func testEverySaveAttemptReturnsToTheFirstInvalidField() {
+        let app = launch()
+        app.buttons["vault.scope.note"].tap(); app.buttons["vault.add"].tap()
+        let title = app.textFields["vault.edit.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText("Retry")
+        addField(app, kind: "text")
+        let name = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "vault.edit.name.field_")).firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        let id = String(name.identifier.dropFirst("vault.edit.name.".count))
+        // Named fields below the unnamed one push it offscreen at the end of the form.
+        for label in ["B", "C", "D"] { addField(app, kind: "text"); app.typeText("\(label)\n") }
+        let error = app.staticTexts["vault.edit.name-error.\(id)"]
+        let form = app.collectionViews["vault.edit.form"]
+        for _ in 0..<2 {
+            let done = app.buttons["vault.edit.keyboard-done"]
+            if done.exists && done.isHittable { done.tap() }
+            for _ in 0..<6 { form.swipeUp() }
+            XCTAssertFalse(error.isHittable)
+            app.buttons["vault.edit.save"].tap()
+            wait(for: [expectation(for: NSPredicate(format: "isHittable == true"), evaluatedWith: error)], timeout: 5)
+        }
+        capture(app, "A repeated save returns to the missing field name")
+    }
+
     func testCustomFieldEditorSupportsLanguagesAndLargeText() {
         for (language, extra) in [("zh-Hans", ["--ui-dark"]), ("de", []),
                                   ("ar", ["--ui-dark", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])] {

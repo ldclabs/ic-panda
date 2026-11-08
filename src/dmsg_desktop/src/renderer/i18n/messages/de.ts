@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Zahlungen",
     "hwAttestation": "Formelle Unterschriften",
     "approvalKeys": "Genehmigungsschlüssel",
-    approvalKeysHint: "Ein Hardwareschlüssel bestätigt geschützte Kontovorgänge. Die On-Chain-Wiederherstellung wird separat in der Kontosicherheit eingestellt.",
+    approvalKeysHint: "Ein Hardwareschlüssel bestätigt geschützte Kontovorgänge. Die On-Chain-Wiederherstellung wird separat unter Kontowiederherstellung eingestellt.",
     "keysRequired": "Erforderlich",
     "keysNotRequired": "Nicht erforderlich",
     "approvalKeysUnavailable": "Dieses Gerät kann keine Genehmigungsschlüssel behalten. Dazu ist ein Mac mit einem Secure Enclave und dem Systemschlüsselbund erforderlich.",

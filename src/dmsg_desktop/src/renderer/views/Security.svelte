@@ -267,8 +267,8 @@
     {@render receipt('policy')}
   </Section>
 
-  <Section title={t('recovery')} icon="recovery">
-    <button class={buttonClass('secondary', 'sm')} data-testid="security-recovery-link" onclick={() => go('/settings/recovery')}>{t('recovery')}</button>
+  <Section title={t('recovery')} description={t('recoveryHint')} icon="recovery">
+    <button class={buttonClass('secondary', 'sm')} aria-label={`${t('manage')} · ${t('recovery')}`} data-testid="security-recovery-link" onclick={() => go('/settings/recovery')}>{t('manage')}</button>
   </Section>
 
   {#if keyError}

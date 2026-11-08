@@ -152,8 +152,8 @@
 	<string>Amount</string>
 	<key>Amount in base units</key>
 	<string>Amount in base units</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>An account recovery is pending. Review it in Account security.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>An account recovery is pending. Review it in Account recovery.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>An administrator device is required to change account security.</string>
 	<key>An administrator device is required to publish this profile.</key>

@@ -152,8 +152,8 @@
 	<string>Jumlah</string>
 	<key>Amount in base units</key>
 	<string>Jumlah dalam satuan dasar</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>Pemulihan akun sedang menunggu. Tinjau di Keamanan akun.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>Pemulihan akun sedang menunggu. Tinjau di Pemulihan akun.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Perangkat administrator diperlukan untuk mengubah keamanan akun.</string>
 	<key>An administrator device is required to publish this profile.</key>

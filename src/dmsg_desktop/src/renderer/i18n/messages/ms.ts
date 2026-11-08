@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Pembayaran",
     "hwAttestation": "Tandatangan rasmi",
     "approvalKeys": "Kekunci kelulusan",
-    approvalKeysHint: "Kunci perkakasan mengesahkan operasi yang dilindungi akaun. Pemulihan pada rantaian ditetapkan berasingan dalam keselamatan akaun.",
+    approvalKeysHint: "Kunci perkakasan mengesahkan operasi yang dilindungi akaun. Pemulihan pada rantaian ditetapkan berasingan dalam Pemulihan akaun.",
     "keysRequired": "Diperlukan",
     "keysNotRequired": "Tidak diperlukan",
     "approvalKeysUnavailable": "Peranti ini tidak boleh menyimpan kunci kelulusan: yang memerlukan Mac dengan Secure Enclave dan rantai kunci sistem.",

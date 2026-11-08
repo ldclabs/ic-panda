@@ -152,8 +152,8 @@
 	<string>Số tiền</string>
 	<key>Amount in base units</key>
 	<string>Số lượng theo đơn vị cơ sở</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>Việc khôi phục tài khoản đang chờ xử lý. Xem lại nó trong Bảo mật tài khoản.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>Việc khôi phục tài khoản đang chờ xử lý. Xem lại nó trong Khôi phục tài khoản.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Cần thiết bị quản trị viên để thay đổi bảo mật tài khoản.</string>
 	<key>An administrator device is required to publish this profile.</key>

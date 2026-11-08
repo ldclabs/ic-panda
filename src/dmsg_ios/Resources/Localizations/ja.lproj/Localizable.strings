@@ -152,8 +152,8 @@
 	<string>金額</string>
 	<key>Amount in base units</key>
 	<string>基本単位での金額</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>アカウントの回復は保留中です。 「アカウントのセキュリティ」で確認してください。</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>アカウントの回復は保留中です。 「アカウントの回復」で確認してください。</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>アカウントのセキュリティ変更には管理者デバイスが必要です。</string>
 	<key>An administrator device is required to publish this profile.</key>

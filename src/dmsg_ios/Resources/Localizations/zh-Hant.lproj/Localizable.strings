@@ -152,8 +152,8 @@
 	<string>金額</string>
 	<key>Amount in base units</key>
 	<string>金額（最小單位）</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>有一個帳號恢復請求正在等待執行，請到「帳號安全」中審閱。</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>有一個帳號恢復請求正在等待執行，請到「帳號恢復」中審閱。</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>變更帳號安全設定需要管理員裝置。</string>
 	<key>An administrator device is required to publish this profile.</key>

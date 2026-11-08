@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Mga pagbabayad",
     "hwAttestation": "Mga pormal na pirma",
     "approvalKeys": "Mga susi sa pag-apruba",
-    approvalKeysHint: "Kinukumpirma ng hardware key ang mga operasyong protektado ng account. Hiwalay na itinatakda ang pagbawi sa blockchain sa seguridad ng account.",
+    approvalKeysHint: "Kinukumpirma ng hardware key ang mga operasyong protektado ng account. Hiwalay na itinatakda ang pagbawi sa blockchain sa Pagbawi ng account.",
     "keysRequired": "Kinakailangan",
     "keysNotRequired": "Hindi kinakailangan",
     "approvalKeysUnavailable": "Hindi mapanatili ng device na ito ang mga key ng pag-apruba: nangangailangan iyon ng Mac na may Secure Enclave at ang keychain ng system.",

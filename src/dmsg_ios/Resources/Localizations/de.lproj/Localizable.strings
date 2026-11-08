@@ -152,8 +152,8 @@
 	<string>Betrag</string>
 	<key>Amount in base units</key>
 	<string>Betrag in Basiseinheiten</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>Eine Kontowiederherstellung steht aus. Überprüfen Sie es unter Kontosicherheit.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>Eine Kontowiederherstellung steht aus. Überprüfen Sie es unter Kontowiederherstellung.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Zum Ändern der Kontosicherheit ist ein Administratorgerät erforderlich.</string>
 	<key>An administrator device is required to publish this profile.</key>

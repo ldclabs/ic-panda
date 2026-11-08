@@ -152,8 +152,8 @@
 	<string>Quantidade</string>
 	<key>Amount in base units</key>
 	<string>Quantidade em unidades básicas</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>Uma recuperação de conta está pendente. Revise-o em Segurança da conta.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>Uma recuperação de conta está pendente. Revise-o em Recuperação de conta.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>É necessário um dispositivo administrador para alterar a segurança da conta.</string>
 	<key>An administrator device is required to publish this profile.</key>

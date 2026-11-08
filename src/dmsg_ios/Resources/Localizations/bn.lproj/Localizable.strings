@@ -152,8 +152,8 @@
 	<string>পরিমাণ</string>
 	<key>Amount in base units</key>
 	<string>বেস ইউনিটে পরিমাণ</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>একটি অ্যাকাউন্ট পুনরুদ্ধার মুলতুবি আছে. অ্যাকাউন্ট নিরাপত্তায় এটি পর্যালোচনা করুন।</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>একটি অ্যাকাউন্ট পুনরুদ্ধার মুলতুবি আছে. অ্যাকাউন্ট পুনরুদ্ধারয় এটি পর্যালোচনা করুন।</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>অ্যাকাউন্টের নিরাপত্তা বদলাতে প্রশাসকের ডিভাইস প্রয়োজন।</string>
 	<key>An administrator device is required to publish this profile.</key>

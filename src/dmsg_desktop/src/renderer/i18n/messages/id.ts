@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Pembayaran",
     "hwAttestation": "Tanda tangan resmi",
     "approvalKeys": "Kunci persetujuan",
-    approvalKeysHint: "Kunci perangkat keras mengonfirmasi operasi yang dilindungi akun. Pemulihan on-chain diatur terpisah di keamanan akun.",
+    approvalKeysHint: "Kunci perangkat keras mengonfirmasi operasi yang dilindungi akun. Pemulihan on-chain diatur terpisah di Pemulihan akun.",
     "keysRequired": "Diperlukan",
     "keysNotRequired": "Tidak diperlukan",
     "approvalKeysUnavailable": "Perangkat ini tidak dapat menyimpan kunci persetujuan: perangkat ini memerlukan Mac dengan Secure Enclave dan gantungan kunci sistem.",

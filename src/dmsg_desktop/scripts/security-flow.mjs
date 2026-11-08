@@ -230,6 +230,8 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
     await main.evaluate(() => location.hash = '/settings/security')
     await main.getByTestId('security').scrollIntoViewIfNeeded()
     await main.screenshot({ path: join(shots, `security-overview-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
+    await main.getByTestId('security-recovery-link').scrollIntoViewIfNeeded()
+    await main.screenshot({ path: join(shots, `security-recovery-entry-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
     for (const [name, button] of [['policy', 'security-policy-edit'], ['recovery', 'security-recovery-edit'], ['hardware', 'approval-keys-require'], ['login', 'security-approve-login'], ['key', 'security-key-edit'], ['bound', 'device-bound-toggle'], ['key-approve', 'security-key-approve'], ['key-request', 'security-key-request']]) {
       await main.evaluate(path => location.hash = path, name === 'recovery' ? '/settings/recovery' : '/settings/security')
       if (['key-approve', 'key-request'].includes(name) && !await main.getByTestId(button).isVisible()) await main.getByTestId('security-key-transfer').getByRole('button').click()

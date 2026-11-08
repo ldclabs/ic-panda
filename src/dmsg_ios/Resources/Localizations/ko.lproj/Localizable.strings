@@ -152,8 +152,8 @@
 	<string>금액</string>
 	<key>Amount in base units</key>
 	<string>기본 단위 금액</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>계정 복구가 보류 중입니다. 계정 보안에서 검토하세요.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>계정 복구가 보류 중입니다. 계정 복구에서 검토하세요.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>계정 보안을 변경하려면 관리자 기기가 필요합니다.</string>
 	<key>An administrator device is required to publish this profile.</key>

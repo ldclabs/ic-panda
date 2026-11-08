@@ -152,8 +152,8 @@
 	<string>Montant</string>
 	<key>Amount in base units</key>
 	<string>Montant en unités de base</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>Une récupération de compte est en attente. Examinez-la dans Sécurité du compte.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>Une récupération de compte est en attente. Examinez-la dans Récupération du compte.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Un appareil administrateur est requis pour modifier la sécurité du compte.</string>
 	<key>An administrator device is required to publish this profile.</key>

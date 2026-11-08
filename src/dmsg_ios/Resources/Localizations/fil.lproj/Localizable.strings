@@ -152,8 +152,8 @@
 	<string>Halaga</string>
 	<key>Amount in base units</key>
 	<string>Halaga sa mga base unit</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>May nakabinbing pag-recover ng account. Suriin ito sa Seguridad ng account.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>May nakabinbing pag-recover ng account. Suriin ito sa Pagbawi ng account.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Kailangan ng administrator device para baguhin ang seguridad ng account.</string>
 	<key>An administrator device is required to publish this profile.</key>

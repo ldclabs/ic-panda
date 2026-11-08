@@ -152,8 +152,8 @@
 	<string>Tutar</string>
 	<key>Amount in base units</key>
 	<string>Temel birim cinsinden tutar</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>Hesap kurtarma işlemi bekleniyor. Bunu Hesap güvenliği bölümünde inceleyin.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>Hesap kurtarma işlemi bekleniyor. Bunu Hesap kurtarma bölümünde inceleyin.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Hesap güvenliğini değiştirmek için yönetici cihazı gerekir.</string>
 	<key>An administrator device is required to publish this profile.</key>

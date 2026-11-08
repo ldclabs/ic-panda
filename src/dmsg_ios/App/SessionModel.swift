@@ -1370,7 +1370,7 @@ final class SessionModel {
         recoveryWarning = next
         if next.pending, let digest = next.digest, seenRecoveryDigests[account] != digest {
             seenRecoveryDigests[account] = digest
-            notice = String(localized: "An account recovery is pending. Review it in Account security.")
+            notice = String(localized: "An account recovery is pending. Review it in Account recovery.")
         }
     }
 

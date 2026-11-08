@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "결제",
     "hwAttestation": "공식 서명",
     "approvalKeys": "승인 키",
-    approvalKeysHint: "하드웨어 키로 계정의 보호 대상 작업을 확인합니다. 온체인 복구는 계정 보안에서 별도로 설정합니다.",
+    approvalKeysHint: "하드웨어 키로 계정의 보호 대상 작업을 확인합니다. 온체인 복구는 계정 복구에서 별도로 설정합니다.",
     "keysRequired": "필수",
     "keysNotRequired": "필요하지 않음",
     "approvalKeysUnavailable": "이 장치는 승인 키를 유지할 수 없습니다. 이를 위해서는 Secure Enclave 및 시스템 키체인이 있는 Mac이 필요합니다.",

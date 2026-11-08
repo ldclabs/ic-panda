@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Pagamentos",
     "hwAttestation": "Assinaturas formais",
     "approvalKeys": "Chaves de aprovação",
-    approvalKeysHint: "Uma chave de hardware confirma operações protegidas pela conta. A recuperação on-chain é configurada separadamente em Segurança da conta.",
+    approvalKeysHint: "Uma chave de hardware confirma operações protegidas pela conta. A recuperação on-chain é configurada separadamente em Recuperação de conta.",
     "keysRequired": "Obrigatório",
     "keysNotRequired": "Não obrigatório",
     "approvalKeysUnavailable": "Este dispositivo não pode manter chaves de aprovação: isso precisa de um Mac com Secure Enclave e as chaves do sistema.",

@@ -152,8 +152,8 @@
 	<string>จำนวน</string>
 	<key>Amount in base units</key>
 	<string>จำนวนเงินในหน่วยฐาน</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>การกู้คืนบัญชีอยู่ระหว่างรอดำเนินการ ตรวจสอบได้ในความปลอดภัยของบัญชี</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>การกู้คืนบัญชีอยู่ระหว่างรอดำเนินการ ตรวจสอบได้ในการกู้คืนบัญชี</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>ต้องใช้อุปกรณ์ผู้ดูแลเพื่อเปลี่ยนความปลอดภัยของบัญชี</string>
 	<key>An administrator device is required to publish this profile.</key>

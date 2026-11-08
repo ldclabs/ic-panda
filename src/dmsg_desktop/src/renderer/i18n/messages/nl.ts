@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Betalingen",
     "hwAttestation": "Formele handtekeningen",
     "approvalKeys": "Goedkeuringssleutels",
-    approvalKeysHint: "Een hardwaresleutel bevestigt beschermde accountacties. Herstel via de blockchain wordt apart ingesteld bij accountbeveiliging.",
+    approvalKeysHint: "Een hardwaresleutel bevestigt beschermde accountacties. Herstel via de blockchain wordt apart ingesteld bij Accountherstel.",
     "keysRequired": "Verplicht",
     "keysNotRequired": "Niet vereist",
     "approvalKeysUnavailable": "Dit apparaat kan geen goedkeuringssleutels bewaren: daarvoor is een Mac nodig met een Secure Enclave en de systeemsleutelhanger.",

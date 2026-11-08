@@ -152,8 +152,8 @@
 	<string>المبلغ</string>
 	<key>Amount in base units</key>
 	<string>المبلغ بالوحدات الأساسية</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>يوجد طلب استرداد حساب معلّق. راجعه في أمان الحساب.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>يوجد طلب استرداد حساب معلّق. راجعه في استرداد الحساب.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>يلزم جهاز مسؤول لتغيير أمان الحساب.</string>
 	<key>An administrator device is required to publish this profile.</key>

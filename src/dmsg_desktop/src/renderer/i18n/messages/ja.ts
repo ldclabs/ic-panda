@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "支払い",
     "hwAttestation": "正式な署名",
     "approvalKeys": "承認キー",
-    approvalKeysHint: "ハードウェアキーでアカウントの保護対象操作を確認します。オンチェーン復元はアカウントのセキュリティで別途設定します。",
+    approvalKeysHint: "ハードウェアキーでアカウントの保護対象操作を確認します。オンチェーン復元はアカウントの回復で別途設定します。",
     "keysRequired": "必須",
     "keysNotRequired": "不要",
     "approvalKeysUnavailable": "このデバイスは承認キーを保持できません。それには、Secure Enclave とシステム キーチェーンを備えた Mac が必要です。",

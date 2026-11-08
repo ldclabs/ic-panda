@@ -69,7 +69,8 @@ struct VaultEditor: View {
     @State private var attachmentFiles: [String: LibraryFile] = [:]
     @State private var editMode: EditMode = .inactive
     @State private var addedField: String?
-    @State private var validationRequested = false
+    /// Each save attempt reveals every error and scrolls to the first one, even after an earlier attempt.
+    @State private var saveAttempts = 0
     @FocusState private var focus: VaultEditorFocus?
     private var dirty: Bool { draft != initial || !tagEntry.isEmpty }
     private var draftKey: String { "vault:" + target.id }
@@ -105,7 +106,7 @@ struct VaultEditor: View {
                                     Text(vaultFieldKindTitle(field.kind)).font(.caption).foregroundStyle(.secondary)
                                 }.padding(.vertical, 4)
                             } else {
-                                VaultEditorField(field: $field, existing: target.item != nil, validationRequested: validationRequested,
+                                VaultEditorField(field: $field, existing: target.item != nil, validationRequested: saveAttempts > 0,
                                                  addedField: $addedField, focus: $focus)
                             }
                         }.id(field.id)
@@ -191,8 +192,8 @@ struct VaultEditor: View {
                 .onChange(of: addedField) { _, id in
                     if let id { withAnimation { proxy.scrollTo(id, anchor: .top) } }
                 }
-                .onChange(of: validationRequested) { _, requested in
-                    if requested, let field = draft.fields.first(where: { vaultInputError($0, existing: target.item != nil) != nil }) {
+                .onChange(of: saveAttempts) { _, _ in
+                    if let field = draft.fields.first(where: { vaultInputError($0, existing: target.item != nil) != nil }) {
                         withAnimation { proxy.scrollTo(field.id, anchor: .top) }
                     }
                 }
@@ -228,7 +229,7 @@ struct VaultEditor: View {
         guard !saving else { return }
         focus = nil
         editMode = .inactive
-        validationRequested = true
+        saveAttempts += 1
         guard !draft.fields.contains(where: { vaultInputError($0, existing: target.item != nil) != nil }) else { return }
         saving = true; failure = nil; defer { saving = false }; let epoch = model.epoch
         // A tag still being typed counts.

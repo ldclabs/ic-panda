@@ -2379,3 +2379,36 @@ the checked interactions and exported screenshots completed correctly.
 These are local synthetic UI fixtures and native unit tests. Physical devices,
 the complete device/OS matrix, full repository tests and live cloud/account data
 were not exercised. No production deployment was performed.
+
+## Review of recovery consolidation and vault editing (2026-11-08)
+
+Review of `209fd719` and `a4d6975a` found three issues, fixed here:
+
+- The vault editor scrolled to the first invalid field only on the first failed
+  save. A later failed save, with the error offscreen, did nothing visible. Each
+  attempt now counts and scrolls back to the first invalid field.
+- The pending-recovery notice still said to review the request in Account
+  security, where it no longer appears. It now names Account recovery in all 23
+  catalogs, using each catalog's own page names.
+- On the desktop, the approval-key hint still placed the recovery toggle in
+  Account security, and the Chinese catalogs mixed 账号 into their 账户 wording.
+  The Account security entry for recovery now has a description and a Manage
+  button instead of repeating its title.
+
+Actual local verification:
+
+- `localizations.py` verified all 23 localizations; the script's unit tests passed.
+- `artifacts.py verify --profile release` confirmed the native slices match the source.
+- On iPhone 18 Pro / iOS 27.0 Simulator, `AccountSettingsTests` (10) and three
+  vault editor UI tests passed, including the new
+  `testEverySaveAttemptReturnsToTheFirstInvalidField`. With the previous
+  `VaultEditor.swift` that test failed at the second save, as expected.
+- Desktop `pnpm check` and `pnpm test` (188) passed, and the Electron security flow
+  passed with new screenshots of the recovery entry in Chinese light/dark, French,
+  Arabic RTL and the 760 px window.
+
+Not run: the full iOS and Rust suites, physical devices, and real recovery
+cancellation. The iOS cancel action still creates a new approval request on each
+tap; the desktop reuses its pending one.
+
+Review and validation: Claude (Anthropic).

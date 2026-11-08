@@ -152,8 +152,8 @@
 	<string>رقم</string>
 	<key>Amount in base units</key>
 	<string>بیس یونٹوں میں رقم</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>اکاؤنٹ کی بازیابی زیر التواء ہے۔ اکاؤنٹ سیکیورٹی میں اس کا جائزہ لیں۔</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>اکاؤنٹ کی بازیابی زیر التواء ہے۔ اکاؤنٹ کی بازیابی میں اس کا جائزہ لیں۔</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>اکاؤنٹ کی حفاظت بدلنے کے لیے منتظم کا آلہ درکار ہے۔</string>
 	<key>An administrator device is required to publish this profile.</key>

@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Ödemeler",
     "hwAttestation": "Resmi imzalar",
     "approvalKeys": "Onay anahtarları",
-    approvalKeysHint: "Donanım anahtarı hesabın koruduğu işlemleri onaylar. Zincir üzerinden kurtarma, hesap güvenliğinde ayrıca ayarlanır.",
+    approvalKeysHint: "Donanım anahtarı hesabın koruduğu işlemleri onaylar. Zincir üzerinden kurtarma, Hesap kurtarma bölümünde ayrıca ayarlanır.",
     "keysRequired": "Gerekli",
     "keysNotRequired": "Gerekli değil",
     "approvalKeysUnavailable": "Bu cihaz onay anahtarlarını saklayamaz: bunun için Secure Enclave içeren bir Mac ve sistem anahtarlığı gerekir.",

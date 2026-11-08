@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Thanh toán",
     "hwAttestation": "Chữ ký chính thức",
     "approvalKeys": "Khóa phê duyệt",
-    approvalKeysHint: "Khóa phần cứng xác nhận các thao tác được tài khoản bảo vệ. Khôi phục trên chuỗi được đặt riêng trong phần bảo mật tài khoản.",
+    approvalKeysHint: "Khóa phần cứng xác nhận các thao tác được tài khoản bảo vệ. Khôi phục trên chuỗi được đặt riêng trong phần Khôi phục tài khoản.",
     "keysRequired": "Bắt buộc",
     "keysNotRequired": "Không bắt buộc",
     "approvalKeysUnavailable": "Thiết bị này không thể giữ các khóa phê duyệt: cần có máy Mac có Secure Enclave và chuỗi khóa hệ thống.",

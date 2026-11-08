@@ -152,8 +152,8 @@
 	<string>Bedrag</string>
 	<key>Amount in base units</key>
 	<string>Bedrag in basiseenheden</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>Er is een accountherstel in behandeling. Bekijk het in Accountbeveiliging.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>Er is een accountherstel in behandeling. Bekijk het in Accountherstel.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Een beheerdersapparaat is nodig om de accountbeveiliging te wijzigen.</string>
 	<key>An administrator device is required to publish this profile.</key>

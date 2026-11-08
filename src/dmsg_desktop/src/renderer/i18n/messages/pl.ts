@@ -1154,7 +1154,7 @@ export default {
     "hwPayment": "Płatności",
     "hwAttestation": "Podpisy formalne",
     "approvalKeys": "Klucze zatwierdzające",
-    approvalKeysHint: "Klucz sprzętowy potwierdza chronione operacje konta. Odzyskiwanie on-chain ustawia się osobno w zabezpieczeniach konta.",
+    approvalKeysHint: "Klucz sprzętowy potwierdza chronione operacje konta. Odzyskiwanie on-chain ustawia się osobno w sekcji Odzyskiwanie konta.",
     "keysRequired": "Wymagane",
     "keysNotRequired": "Nie jest wymagane",
     "approvalKeysUnavailable": "To urządzenie nie może przechowywać kluczy zatwierdzających: wymaga komputera Mac z Secure Enclave i systemowym pękiem kluczy.",

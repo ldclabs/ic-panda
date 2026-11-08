@@ -152,8 +152,8 @@
 	<string>金额</string>
 	<key>Amount in base units</key>
 	<string>金额（最小单位）</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>有一个账号恢复请求正在等待执行，请到“账号安全”中审阅。</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>有一个账号恢复请求正在等待执行，请到“账号恢复”中审阅。</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>更改账号安全设置需要管理员设备。</string>
 	<key>An administrator device is required to publish this profile.</key>

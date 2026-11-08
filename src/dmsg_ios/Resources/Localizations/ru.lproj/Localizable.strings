@@ -152,8 +152,8 @@
 	<string>Сумма</string>
 	<key>Amount in base units</key>
 	<string>Сумма в базовых единицах</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>Ожидает выполнения запрос восстановления аккаунта. Проверьте его в разделе безопасности аккаунта.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>Ожидает выполнения запрос восстановления аккаунта. Проверьте его в разделе «Восстановление аккаунта».</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Для изменения безопасности аккаунта требуется устройство администратора.</string>
 	<key>An administrator device is required to publish this profile.</key>

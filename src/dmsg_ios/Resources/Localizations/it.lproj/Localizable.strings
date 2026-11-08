@@ -152,8 +152,8 @@
 	<string>Importo</string>
 	<key>Amount in base units</key>
 	<string>Importo in unità base</string>
-	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>È in sospeso il recupero dell'account. Controllalo in Sicurezza dell'account.</string>
+	<key>An account recovery is pending. Review it in Account recovery.</key>
+	<string>È in sospeso il recupero dell'account. Controllalo in Recupero del conto.</string>
 	<key>An administrator device is required to change account security.</key>
 	<string>Serve un dispositivo amministratore per modificare la sicurezza dell’account.</string>
 	<key>An administrator device is required to publish this profile.</key>
