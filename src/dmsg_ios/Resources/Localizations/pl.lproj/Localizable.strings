@@ -386,6 +386,8 @@
 	<string>Zmień ustawienia tożsamości</string>
 	<key>Change role</key>
 	<string>Zmień rolę</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Zmień plan lub anuluj odnowienie w sekcji Zarządzaj subskrypcjami.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Zmiany tworzą propozycje i nadal wymagają istniejących zatwierdzeń portfela. Istniejące pola zasad i uprawnienia agenta członkowskiego zostaną zachowane.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Aktualizuj klucze rozmowy</string>
 	<key>Updated</key>
 	<string>Zaktualizowano</string>
+	<key>Upgrade</key>
+	<string>Zmień plan</string>
 	<key>Uploading</key>
 	<string>Przesyłanie</string>
 	<key>Uploading encrypted backup</key>

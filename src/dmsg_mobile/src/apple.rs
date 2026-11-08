@@ -93,8 +93,10 @@ impl MobileEngine {
             _ => return Err(Error::UnsupportedProtocol.into()),
         };
         let selected = product.clone();
-        let snapshot = self
-            .held_object(move |h| {
+        // The independent commerce and gateway reads can overlap. Neither writes
+        // rights; transaction validation still happens after StoreKit succeeds.
+        let (snapshot, gateway) = tokio::try_join!(
+            self.held_object(move |h| {
                 Box::pin(async move {
                     dmsg_client::commerce::app_store_purchase_check(
                         h,
@@ -103,12 +105,12 @@ impl MobileEngine {
                     )
                     .await
                 })
-            })
-            .await?;
+            }),
+            self.mobile_read("configuration".into())
+        )?;
         let mut check: serde_json::Value =
             serde_json::from_str(&snapshot.json).map_err(|_| Error::IntegrityFailed)?;
         if check["eligible"] == true {
-            let gateway = self.mobile_read("configuration".into()).await?;
             let configured: serde_json::Value =
                 serde_json::from_str(&gateway.json).map_err(|_| Error::IntegrityFailed)?;
             if !purchase_gateway_matches(&configured, &check, &product, &environment) {

@@ -1826,7 +1826,9 @@ pub async fn app_store_purchase_check<H: Hold>(
         .find(|p| p.product_id == product)
         .ok_or(Error::UnsupportedProtocol)?
         .kind;
-    let status = plan_status(h, true).await?;
+    // Preflight only reads eligibility. Re-projecting on-chain rights and syncing
+    // cloud quotas belongs after delivery, not on the path to Apple's sheet.
+    let status = plan_status(h, false).await?;
     let reason = if config.accepts(environment) {
         app_store_purchase_reason(kind, &status, environment)
     } else {

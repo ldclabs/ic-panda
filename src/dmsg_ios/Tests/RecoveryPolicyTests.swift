@@ -31,7 +31,7 @@ final class RecoveryPolicyTests: XCTestCase {
             XCTAssertFalse(status.canComplete(at: .now))
         }
         let ready = try decoder.decode(RecoveryView.RecoveryState.self,
-            from: Data(#"{"enabled":true,"ready":true,"member":false,"pending":{"executeAfter":1000000,"expiresAt":1200000,"thisDevice":true}}"#.utf8))
+            from: Data(#"{"enabled":true,"ready":true,"member":false,"pending":{"opId":"fixture-recovery-operation","executeAfter":1000000,"expiresAt":1200000,"thisDevice":true}}"#.utf8))
         XCTAssertTrue(ready.canComplete(at: Date(timeIntervalSince1970: 1100)))
     }
 

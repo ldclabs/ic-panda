@@ -386,6 +386,8 @@
 	<string>شناخت کی ترتیبات کو تبدیل کریں</string>
 	<key>Change role</key>
 	<string>کردار بدلیں</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>سبسکرپشنز کا نظم کریں میں اپنا پلان تبدیل کریں یا تجدید منسوخ کریں۔</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>تبدیلیاں تجاویز تیار کرتی ہیں اور پھر بھی والیٹ کی موجودہ منظوریوں کی ضرورت ہوتی ہے۔ موجودہ پالیسی فیلڈز اور ممبر ایجنٹ کی اجازتیں محفوظ ہیں۔</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>گفتگو کی کلیدیں اپ ڈیٹ کریں</string>
 	<key>Updated</key>
 	<string>تازہ کاری</string>
+	<key>Upgrade</key>
+	<string>اپ گریڈ کریں</string>
 	<key>Uploading</key>
 	<string>اپ لوڈ ہو رہا ہے</string>
 	<key>Uploading encrypted backup</key>

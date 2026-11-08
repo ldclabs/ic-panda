@@ -386,6 +386,8 @@
 	<string>Tukar tetapan identiti</string>
 	<key>Change role</key>
 	<string>Tukar peranan</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Tukar pelan atau batalkan pembaharuan dalam Urus langganan.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Perubahan membuat cadangan dan masih memerlukan kelulusan sedia ada dompet. Medan dasar sedia ada dan kebenaran ejen ahli dikekalkan.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Kemas kini kunci perbualan</string>
 	<key>Updated</key>
 	<string>dikemas kini</string>
+	<key>Upgrade</key>
+	<string>Naik taraf</string>
 	<key>Uploading</key>
 	<string>Memuat naik</string>
 	<key>Uploading encrypted backup</key>

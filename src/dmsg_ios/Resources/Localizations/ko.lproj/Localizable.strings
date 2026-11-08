@@ -386,6 +386,8 @@
 	<string>ID 설정 변경</string>
 	<key>Change role</key>
 	<string>역할 변경</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>구독 관리에서 요금제를 변경하거나 갱신을 취소하세요.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>변경 사항은 제안서를 생성하며 여전히 지갑의 기존 승인이 필요합니다. 기존 정책 필드와 구성원 에이전트 권한은 유지됩니다.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>대화 키 업데이트</string>
 	<key>Updated</key>
 	<string>업데이트됨</string>
+	<key>Upgrade</key>
+	<string>업그레이드</string>
 	<key>Uploading</key>
 	<string>업로드 중</string>
 	<key>Uploading encrypted backup</key>

@@ -386,6 +386,8 @@
 	<string>Identitätseinstellungen ändern</string>
 	<key>Change role</key>
 	<string>Rolle wechseln</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Ändere deinen Tarif oder kündige die Verlängerung unter „Abonnements verwalten“.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Änderungen erstellen Vorschläge und erfordern weiterhin die vorhandenen Genehmigungen des Wallets. Vorhandene Richtlinienfelder und Mitgliedsagentenberechtigungen bleiben erhalten.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Unterhaltungsschlüssel aktualisieren</string>
 	<key>Updated</key>
 	<string>Aktualisiert</string>
+	<key>Upgrade</key>
+	<string>Upgrade</string>
 	<key>Uploading</key>
 	<string>Hochladen</string>
 	<key>Uploading encrypted backup</key>

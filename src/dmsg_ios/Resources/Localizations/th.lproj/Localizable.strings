@@ -386,6 +386,8 @@
 	<string>เปลี่ยนการตั้งค่าข้อมูลประจำตัว</string>
 	<key>Change role</key>
 	<string>เปลี่ยนบทบาท</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>เปลี่ยนแผนหรือยกเลิกการต่ออายุได้ในการจัดการการสมัครสมาชิก</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>การเปลี่ยนแปลงจะสร้างข้อเสนอและยังคงต้องได้รับการอนุมัติจากกระเป๋าเงินที่มีอยู่ ช่องนโยบายที่มีอยู่และสิทธิ์ของเอเจนต์สมาชิกจะยังคงอยู่</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>อัปเดตคีย์การสนทนา</string>
 	<key>Updated</key>
 	<string>อัปเดตแล้ว</string>
+	<key>Upgrade</key>
+	<string>อัปเกรด</string>
 	<key>Uploading</key>
 	<string>กำลังอัพโหลด</string>
 	<key>Uploading encrypted backup</key>

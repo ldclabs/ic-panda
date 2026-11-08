@@ -386,6 +386,8 @@
 	<string>Thay đổi cài đặt nhận dạng</string>
 	<key>Change role</key>
 	<string>Thay đổi vai trò</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Đổi gói hoặc hủy gia hạn trong phần Quản lý đăng ký.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Các thay đổi tạo ra đề xuất và vẫn yêu cầu phê duyệt hiện có của ví. Các trường chính sách hiện có và quyền của tác tử thành viên được giữ nguyên.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Cập nhật khóa cuộc trò chuyện</string>
 	<key>Updated</key>
 	<string>Đã cập nhật</string>
+	<key>Upgrade</key>
+	<string>Nâng cấp</string>
 	<key>Uploading</key>
 	<string>Đang tải lên</string>
 	<key>Uploading encrypted backup</key>

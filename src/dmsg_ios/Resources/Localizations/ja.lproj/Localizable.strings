@@ -386,6 +386,8 @@
 	<string>ID 設定を変更する</string>
 	<key>Change role</key>
 	<string>役割を変更する</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>プランの変更や自動更新の解除は「サブスクリプションを管理」から行えます。</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>変更によりプロポーザルが作成されますが、ウォレットの既存の承認が必要になります。既存のポリシー フィールドとメンバー エージェントの権限は保持されます。</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>会話の鍵を更新</string>
 	<key>Updated</key>
 	<string>更新されました</string>
+	<key>Upgrade</key>
+	<string>アップグレード</string>
 	<key>Uploading</key>
 	<string>アップロード中</string>
 	<key>Uploading encrypted backup</key>

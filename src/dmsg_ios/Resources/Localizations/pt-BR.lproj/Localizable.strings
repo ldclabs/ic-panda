@@ -386,6 +386,8 @@
 	<string>Alterar configurações de identidade</string>
 	<key>Change role</key>
 	<string>Mudar função</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Altere seu plano ou cancele a renovação em Gerenciar assinaturas.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>As alterações criam propostas e ainda exigem as aprovações existentes da carteira. Os campos de política existentes e as permissões do agente membro são preservados.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Atualizar chaves da conversa</string>
 	<key>Updated</key>
 	<string>Atualizado</string>
+	<key>Upgrade</key>
+	<string>Melhorar plano</string>
 	<key>Uploading</key>
 	<string>Enviando</string>
 	<key>Uploading encrypted backup</key>

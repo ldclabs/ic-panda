@@ -386,6 +386,8 @@
 	<string>Wijzig identiteitsinstellingen</string>
 	<key>Change role</key>
 	<string>Verander de rol</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Wijzig je abonnement of annuleer de verlenging via Abonnementen beheren.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Wijzigingen creëren voorstellen en vereisen nog steeds de bestaande goedkeuringen van de portemonnee. Bestaande beleidsvelden en machtigingen voor ledenagenten blijven behouden.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Gesprekssleutels bijwerken</string>
 	<key>Updated</key>
 	<string>Bijgewerkt</string>
+	<key>Upgrade</key>
+	<string>Upgraden</string>
 	<key>Uploading</key>
 	<string>Uploaden</string>
 	<key>Uploading encrypted backup</key>

@@ -2439,3 +2439,66 @@ UI test fixtures have no core engine, so creating, reopening and settling a real
 request was covered by the unit test only, not on screen or a physical device.
 
 Review and validation: Claude (Anthropic).
+
+## 2026-11-08 purchase preflight latency
+
+Source inspection found that every purchase preflight called `plan_status(true)`:
+before opening StoreKit, it re-projected commerce rights with an ICP update and
+synchronized cloud quotas. A live desktop invocation of this same full refresh
+took 6.7 seconds on the developer machine; this is not an iPhone benchmark.
+Preflight now reads the certified plan without those mutations, and the mobile
+commerce and gateway checks run concurrently. Existing product, environment,
+external-plan and unavailable-entitlement checks remain; authoritative transaction
+validation and the post-delivery refresh still run.
+
+`cargo test --locked -p dmsg_client -p dmsg_mobile --lib` passed 597 client and 27
+mobile tests (5 client tests ignored). Strict Clippy with all targets and Rust
+format checks passed. The source change leaves the configured 1.1.1 (17) version
+and enabled release purchase flag unchanged; the latency change needs a new
+TestFlight build.
+
+Separately, the user confirmed a successful Pro restore on their existing
+TestFlight installation after the service was fixed. A desktop query independently
+confirmed an active Sandbox Pro contract, 10 GiB storage and synchronized cloud
+limits. This establishes purchase restoration, not renewal/refund/expiry coverage.
+
+Implementation and validation: Codex (OpenAI).
+
+## 2026-11-08 membership entry and subscription management
+
+Account now loads the cached plan independently of the public profile and shows a
+membership badge with an Upgrade button near the top (Manage subscriptions for
+Max). Unknown data does not default to Free, and account changes clear the old
+badge. The existing Plan and usage row remains available.
+
+An active App Store membership in the current Apple environment replaces the new
+purchase cards with its current plan and Manage subscriptions. Sandbox membership
+does not suppress a new Production purchase. Returning from Apple's management
+sheet refreshes the plan; a refresh requested during an existing load is coalesced
+instead of dropped. Purchase work has a visible progress indicator. The static
+four-plan file-size table is removed here; File Backup retains its actual limit.
+
+UI fixture switches affect presentation only and never start real StoreKit work.
+The disabled-purchase unit test now explicitly supplies a disabled model instead
+of assuming the distribution flag is off. A pre-existing recovery test fixture was
+missing the required `opId`; its input was completed without changing recovery
+behavior. Read-only UI tests check the current tier before scrolling it out of
+the virtualized list.
+
+Device and simulator release libraries plus UniFFI bindings were rebuilt and
+verified against their source fingerprint. All 23 localization catalogs passed.
+On iPhone 18 Pro / iOS 27.0, all 113 Swift unit tests and the three new Free/Pro/Max
+UI cases passed in `.build/IAPMembershipUI-verified.xcresult`. Its three read-only
+failures were test scroll ordering, fixed and rerun successfully in
+`.build/IAPReadOnly-final.xcresult`. Earlier failed runs are not passing evidence.
+The final Chinese light and Arabic dark cases passed again in
+`.build/IAPMembershipUI-colors.xcresult` after improving dark-mode button contrast;
+the screenshots in `.build/MembershipPreview` were visually inspected. This is
+simulator fixture coverage, not a new TestFlight build or a measured phone latency
+result. The broader iPad, smallest-phone and Dynamic Type matrix was not run.
+
+No App Store metadata, subscription ranking or review submission was changed.
+The subscription list confirms a single dMsg Membership group with three products;
+the group's detail page failed to load, so its individual levels were not reverified.
+
+Implementation and validation: Codex (OpenAI).

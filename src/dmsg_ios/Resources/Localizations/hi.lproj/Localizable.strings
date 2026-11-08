@@ -386,6 +386,8 @@
 	<string>पहचान सेटिंग बदलें</string>
 	<key>Change role</key>
 	<string>भूमिका बदलें</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>सदस्यताएँ प्रबंधित करें में अपना प्लान बदलें या नवीनीकरण रद्द करें।</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>परिवर्तन प्रस्ताव बनाते हैं और फिर भी वॉलेट की मौजूदा मंजूरी की आवश्यकता होती है। मौजूदा नीति फ़ील्ड और सदस्य एजेंट अनुमतियाँ संरक्षित हैं।</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>बातचीत की कुंजियां अपडेट करें</string>
 	<key>Updated</key>
 	<string>अद्यतन किया गया</string>
+	<key>Upgrade</key>
+	<string>अपग्रेड करें</string>
 	<key>Uploading</key>
 	<string>अपलोड हो रहा है</string>
 	<key>Uploading encrypted backup</key>

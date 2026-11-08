@@ -386,6 +386,8 @@
 	<string>Change identity settings</string>
 	<key>Change role</key>
 	<string>Change role</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Change your plan or cancel renewal in Manage subscriptions.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Update conversation keys</string>
 	<key>Updated</key>
 	<string>Updated</string>
+	<key>Upgrade</key>
+	<string>Upgrade</string>
 	<key>Uploading</key>
 	<string>Uploading</string>
 	<key>Uploading encrypted backup</key>

@@ -386,6 +386,8 @@
 	<string>Baguhin ang mga setting ng pagkakakilanlan</string>
 	<key>Change role</key>
 	<string>Baguhin ang tungkulin</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Baguhin ang iyong plano o kanselahin ang pag-renew sa Pamahalaan ang mga subscription.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Lumilikha ng mga panukala ang mga pagbabago at nangangailangan pa rin ng mga kasalukuyang pag-apruba ng wallet. Ang mga kasalukuyang field ng patakaran at mga pahintulot ng agent ng miyembro ay pinapanatili.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>I-update ang mga key ng usapan</string>
 	<key>Updated</key>
 	<string>Na-update</string>
+	<key>Upgrade</key>
+	<string>Mag-upgrade</string>
 	<key>Uploading</key>
 	<string>Nag-a-upload</string>
 	<key>Uploading encrypted backup</key>

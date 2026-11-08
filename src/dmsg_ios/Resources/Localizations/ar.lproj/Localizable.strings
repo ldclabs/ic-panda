@@ -386,6 +386,8 @@
 	<string>تغيير إعدادات الهوية</string>
 	<key>Change role</key>
 	<string>تغيير الدور</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>يمكنك تغيير خطتك أو إلغاء التجديد من إدارة الاشتراكات.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>تنشئ التغييرات اقتراحات تخضع للموافقات الحالية. تُحفظ حقول السياسة الأخرى وصلاحيات وكلاء الأعضاء.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>تحديث مفاتيح المحادثة</string>
 	<key>Updated</key>
 	<string>آخر تحديث</string>
+	<key>Upgrade</key>
+	<string>ترقية</string>
 	<key>Uploading</key>
 	<string>جارٍ الرفع</string>
 	<key>Uploading encrypted backup</key>

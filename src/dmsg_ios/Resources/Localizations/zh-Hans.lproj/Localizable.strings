@@ -386,6 +386,8 @@
 	<string>变更身份设置</string>
 	<key>Change role</key>
 	<string>更改角色</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>更换套餐或取消自动续订，请前往“管理订阅”。</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>更改会创建提案，仍须满足钱包现有批准要求。其他策略字段和成员 Agent 权限会保留。</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>更新会话密钥</string>
 	<key>Updated</key>
 	<string>更新于</string>
+	<key>Upgrade</key>
+	<string>升级</string>
 	<key>Uploading</key>
 	<string>正在上传</string>
 	<key>Uploading encrypted backup</key>

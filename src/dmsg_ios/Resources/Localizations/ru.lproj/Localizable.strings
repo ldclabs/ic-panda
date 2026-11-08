@@ -386,6 +386,8 @@
 	<string>Изменить настройки личности</string>
 	<key>Change role</key>
 	<string>Изменить роль</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Изменить тариф или отменить продление можно в разделе управления подписками.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Изменения создают предложения с действующими требованиями одобрения. Остальные поля политики и разрешения агентов участников сохраняются.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Обновить ключи беседы</string>
 	<key>Updated</key>
 	<string>Изменено</string>
+	<key>Upgrade</key>
+	<string>Повысить тариф</string>
 	<key>Uploading</key>
 	<string>Загрузка</string>
 	<key>Uploading encrypted backup</key>

@@ -7,6 +7,25 @@ struct SubscriptionView: View {
         struct Limits: Decodable { let storageBytes: UInt64; let activeChannels: UInt64; let monthlyExecutionUnits: UInt64 }
         struct Term: Decodable { let endsAtMs: UInt64; let method: String; let storeEnvironment: String? }
         let plan: String; let source: String; let limits: Limits; let current: Term?
+
+        func managesSubscription(environment: String?, at: Date = .now) -> Bool {
+            guard source == "Active", let current, current.method == "AppStore",
+                  Double(current.endsAtMs) > at.timeIntervalSince1970 * 1000 else { return false }
+            return environment == nil || environment == (current.storeEnvironment ?? "Production")
+        }
+
+        #if DEBUG
+        static var fixture: Self {
+            let args = ProcessInfo.processInfo.arguments
+            let max = args.contains("--ui-max-subscription")
+            if max || args.contains("--ui-sandbox-subscription") {
+                return Plan(plan: max ? "Max" : "Pro", source: "Active",
+                    limits: Limits(storageBytes: max ? 107374182400 : 10737418240, activeChannels: max ? 200 : 100, monthlyExecutionUnits: max ? 200 : 100),
+                    current: Term(endsAtMs: UInt64(Date().addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
+            }
+            return Plan(plan: "Free", source: "Free", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5), current: nil)
+        }
+        #endif
     }
     struct Usage: Decodable {
         struct Cloud: Decodable {
@@ -25,6 +44,7 @@ struct SubscriptionView: View {
     @State private var managing = false
     @State private var loading = false
     @State private var failed = false
+    @State private var queuedRefresh = false
     var body: some View {
         List {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
@@ -67,30 +87,28 @@ struct SubscriptionView: View {
                     SettingsAction("Retry") { Task { await loadUsage() } }.disabled(usageLoading)
                 }
             }.accessibilityIdentifier("plan.usage")
-            Section("Cloud backup file limit") {
-                ForEach(["Free", "Plus", "Pro", "Max"], id: \.self) { tier in
-                    LabeledContent {
-                        Text(verbatim: tier == "Max" ? "1000 MiB" : "100 MiB")
-                    } label: { Text(verbatim: tier) }
-                        .accessibilityIdentifier("plan.backup-limit.\(tier)")
-                }
-            }
-            if model.purchases.enabled {
+            if model.purchases.showsControls {
                 Section("App Store subscriptions") {
                     if model.purchases.storeEnvironment == "Sandbox" {
                         Text("Test purchases do not charge you. An active paid plan takes priority.").font(.footnote).foregroundStyle(.secondary)
                     }
-                    productRows(model.purchases.products.filter { $0.type == .autoRenewable })
+                    if managesSubscription, let plan {
+                        LabeledContent("Plan", value: plan.plan).accessibilityIdentifier("plan.current-subscription")
+                        Text("Change your plan or cancel renewal in Manage subscriptions.").font(.footnote).foregroundStyle(.secondary)
+                    } else {
+                        productRows(model.purchases.products.filter { $0.type == .autoRenewable })
+                    }
                     if let term = plan?.current, term.method != "AppStore", model.purchases.storeEnvironment != "Sandbox" {
                         NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
                     } else if plan?.current == nil, model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
-                    if model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
+                    if !managesSubscription && model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
+                    if model.purchases.working { ProgressView("Loading…").accessibilityIdentifier("plan.purchase-progress") }
                     if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
                     SettingsAction("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
                         .accessibilityIdentifier("plan.restore")
-                    Button("Manage subscriptions") { managing = true }.accessibilityIdentifier("plan.manage")
+                    Button("Manage subscriptions") { managing = true }.disabled(model.purchases.working).accessibilityIdentifier("plan.manage")
                     Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.").font(.footnote).foregroundStyle(.secondary)
                 }
                 if model.purchases.products.contains(where: { $0.type == .consumable }) {
@@ -113,19 +131,27 @@ struct SubscriptionView: View {
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
             .task { await load() }.refreshable { await load(force: true) }
             .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true) } }
+            .onChange(of: managing) { wasPresented, isPresented in
+                if wasPresented && !isPresented { Task { await load(force: true) } }
+            }
     }
+    private var managesSubscription: Bool {
+        plan?.managesSubscription(environment: model.purchases.storeEnvironment) == true
+    }
+
     private func productRows(_ products: [Product]) -> some View {
                 ForEach(products) { product in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(product.displayName).font(.headline)
                         Text(product.description).font(.footnote).foregroundStyle(.secondary)
                         if let subscription = product.subscription { Text(Self.period(subscription.subscriptionPeriod)).font(.subheadline) }
-                        Button(product.displayPrice) { Task { await model.purchases.purchase(product, model: model) } }.disabled(model.purchases.working || !canPurchase(product))
+                        Button(product.displayPrice) { Task { await model.purchases.purchase(product, model: model) } }.disabled(model.purchases.working || !canPurchase(product)).accessibilityIdentifier("plan.purchase.\(product.id)")
                     }
                 }
     }
     private func canPurchase(_ product: Product) -> Bool {
         guard let plan, plan.source != "Unverifiable" else { return false }
+        if product.type == .autoRenewable && managesSubscription { return false }
         if model.purchases.storeEnvironment == "Sandbox" { return product.type == .autoRenewable }
         guard plan.current == nil || plan.current?.method == "AppStore" else { return false }
         return product.type == .autoRenewable || (product.type == .consumable && plan.current?.method == "AppStore" && plan.source == "Active" && plan.current?.storeEnvironment != "Sandbox")
@@ -143,23 +169,26 @@ struct SubscriptionView: View {
         return formatter.string(from: components) ?? ""
     }
     private func load(force: Bool = false) async {
-        guard !loading else { return }; loading = true; failed = false; defer { loading = false }
+        if loading { queuedRefresh = queuedRefresh || force; return }
+        loading = true; failed = false; defer { loading = false }
         #if DEBUG
         if model.uiTesting {
-            plan = Plan(plan: "Free", source: "Free", limits: Plan.Limits(storageBytes: 104857600,
-                activeChannels: 2, monthlyExecutionUnits: 3), current: nil)
-            if ProcessInfo.processInfo.arguments.contains("--ui-sandbox-subscription") {
-                plan = Plan(plan: "Max", source: "Active", limits: Plan.Limits(storageBytes: 107374182400, activeChannels: 200, monthlyExecutionUnits: 200), current: Plan.Term(endsAtMs: UInt64(Date().addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
-            }
+            plan = Plan.fixture
             usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: plan?.limits.storageBytes, activeChannels: 1, channelLimit: plan?.limits.activeChannels), execution: Usage.Execution(month: 202611, allowed: plan?.limits.monthlyExecutionUnits ?? 3, charged: 1, remaining: (plan?.limits.monthlyExecutionUnits ?? 3) - 1), cloudError: nil, executionError: nil)
             return
         }
         #endif
-        async let counts: Void = loadUsage()
-        async let saved: Void = display.load(model, kind: "plan", force: force) { (next: Plan) in plan = next }
-        async let products: Void = model.purchases.load(model)
-        _ = await (saved, products, counts)
-        failed = display.failed
+        var refresh = force
+        repeat {
+            queuedRefresh = false
+            let refreshThisLoad = refresh
+            async let counts: Void = loadUsage()
+            async let saved: Void = display.load(model, kind: "plan", force: refreshThisLoad) { (next: Plan) in plan = next }
+            async let products: Void = model.purchases.load(model)
+            _ = await (saved, products, counts)
+            failed = display.failed
+            refresh = queuedRefresh
+        } while refresh && !Task.isCancelled
     }
 
     private func loadUsage() async {

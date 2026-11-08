@@ -4,9 +4,26 @@ import StoreKit
 
 @MainActor @Observable
 final class PurchaseModel {
-    // Explicitly disabled in the current build, including transaction replay.
-    // Missing configuration fails closed; server-side verification is unchanged.
-    let enabled = (Bundle.main.object(forInfoDictionaryKey: "DMsgInAppPurchasesEnabled") as? String) == "YES"
+    // Missing configuration fails closed, including transaction replay.
+    let enabled: Bool
+
+    init(enabled: Bool = (Bundle.main.object(forInfoDictionaryKey: "DMsgInAppPurchasesEnabled") as? String) == "YES") {
+        #if DEBUG
+        // Presentation fixtures must never start real StoreKit operations.
+        self.enabled = ProcessInfo.processInfo.arguments.contains("--ui-testing") ? false : enabled
+        #else
+        self.enabled = enabled
+        #endif
+    }
+
+    var showsControls: Bool {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription")) { return true }
+        #endif
+        return enabled
+    }
+
     struct Catalogue: Decodable {
         struct Configuration: Decodable {
             struct ProductID: Decodable { let productId: String }

@@ -7,6 +7,16 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+### Membership
+
+- Show the current membership and an upgrade shortcut at the top of Account.
+  Max members get a subscription-management entry.
+- Use App Store subscription management for an existing subscription instead of
+  presenting all plans as new purchases. Remove the file-size comparison table
+  from Plan and usage; the backup screen still shows the applicable file limit.
+- Avoid a canister update and cloud quota synchronization before opening the
+  purchase sheet, and check membership and gateway configuration concurrently.
+
 ### Vault
 
 - Copy a field by tapping its value. Use its menu to reveal or hide secrets,

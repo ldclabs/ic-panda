@@ -120,6 +120,46 @@ final class NavigationTests: NavigationTestCase {
         capture(app, name: "Sandbox subscription · Chinese")
     }
 
+    func testMembershipEntryAndManagedProSubscriptionInChinese() {
+        assertMembershipEntry(language: "zh-Hans", locale: "zh_CN", accountTitle: "我的", tier: "Pro", action: "升级", dark: false)
+    }
+
+    func testMaxMembershipEntryInDarkArabic() {
+        assertMembershipEntry(language: "ar", locale: "ar_SA", accountTitle: "الحساب", tier: "Max", action: "", dark: true)
+    }
+
+    func testFreeMembershipUpgradeEntry() {
+        assertMembershipEntry(language: "en", locale: "en_US", accountTitle: "Account", tier: "Free", action: "Upgrade", dark: false)
+    }
+
+    private func assertMembershipEntry(language: String, locale: String, accountTitle: String, tier: String, action: String, dark: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-purchases", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+        if tier == "Pro" { app.launchArguments.append("--ui-sandbox-subscription") }
+        if tier == "Max" { app.launchArguments.append("--ui-max-subscription") }
+        if dark { app.launchArguments.append("--ui-dark") }
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: accountTitle).tap()
+        let badge = app.descendants(matching: .any).matching(identifier: "account.membership-badge").firstMatch
+        XCTAssertTrue(badge.waitForExistence(timeout: 10)); XCTAssertTrue(badge.label.contains(tier))
+        let upgrade = linkOrButton(app, "account.upgrade")
+        XCTAssertTrue(upgrade.isHittable)
+        if !action.isEmpty { XCTAssertTrue(upgrade.label.contains(action)) }
+        capture(app, name: "Membership entry · \(tier) · \(language)")
+        upgrade.tap()
+        let usage = app.descendants(matching: .any).matching(identifier: "plan.usage").firstMatch
+        XCTAssertTrue(usage.waitForExistence(timeout: 10))
+        let manage = app.buttons["plan.manage"]
+        for _ in 0..<5 where !manage.isHittable { app.swipeUp() }
+        XCTAssertTrue(manage.isHittable)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.backup-limit.Free").firstMatch.exists)
+        if tier != "Free" {
+            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "plan.current-subscription").firstMatch.exists)
+            XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "plan.purchase.")).count, 0)
+        }
+        capture(app, name: "Subscription management · \(tier) · \(language)")
+    }
+
     private func assertReadOnlyPlan(language: String, locale: String, accountTitle: String, dark: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
@@ -129,18 +169,13 @@ final class NavigationTests: NavigationTestCase {
         let plan = app.buttons["account.plan"]
         for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
         XCTAssertTrue(plan.isHittable); plan.tap()
-        for tier in ["Free", "Plus", "Pro", "Max"] {
-            let limit = app.descendants(matching: .any).matching(identifier: "plan.backup-limit.\(tier)").firstMatch
-            for _ in 0..<4 where !limit.isHittable { app.swipeUp() }
-            XCTAssertTrue(limit.exists)
-            XCTAssertTrue(limit.label.contains(tier == "Max" ? "1000 MiB" : "100 MiB"))
-        }
-        let disabled = app.staticTexts["plan.purchases-disabled"]
-        for _ in 0..<4 where !disabled.isHittable { app.swipeUp() }
-        XCTAssertTrue(disabled.exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.backup-limit.Free").firstMatch.exists)
         // LabeledContent exposes its localized label and value as one element.
         let currentPlan = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Free")).firstMatch
         XCTAssertTrue(currentPlan.exists)
+        let disabled = app.staticTexts["plan.purchases-disabled"]
+        for _ in 0..<4 where !disabled.isHittable { app.swipeUp() }
+        XCTAssertTrue(disabled.exists)
         XCTAssertFalse(app.buttons["plan.restore"].exists)
         XCTAssertFalse(app.buttons["plan.manage"].exists)
         let shot = XCTAttachment(screenshot: app.screenshot())

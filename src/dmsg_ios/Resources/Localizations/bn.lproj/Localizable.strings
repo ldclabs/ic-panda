@@ -386,6 +386,8 @@
 	<string>পরিচয় সেটিংস পরিবর্তন করুন</string>
 	<key>Change role</key>
 	<string>ভূমিকা পরিবর্তন করুন</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>সাবস্ক্রিপশন পরিচালনা থেকে প্ল্যান পরিবর্তন করুন বা নবায়ন বাতিল করুন।</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>পরিবর্তনগুলি প্রস্তাব তৈরি করে এবং এখনও ওয়ালেটের বিদ্যমান অনুমোদনের প্রয়োজন হয়৷ বিদ্যমান নীতি ক্ষেত্র এবং সদস্য এজেন্ট অনুমতি সংরক্ষণ করা হয়.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>কথোপকথনের কী আপডেট করুন</string>
 	<key>Updated</key>
 	<string>আপডেট করা হয়েছে</string>
+	<key>Upgrade</key>
+	<string>আপগ্রেড</string>
 	<key>Uploading</key>
 	<string>আপলোড হচ্ছে</string>
 	<key>Uploading encrypted backup</key>

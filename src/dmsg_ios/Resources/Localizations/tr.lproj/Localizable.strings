@@ -386,6 +386,8 @@
 	<string>Kimlik ayarlarını değiştir</string>
 	<key>Change role</key>
 	<string>Rolü değiştir</string>
+	<key>Change your plan or cancel renewal in Manage subscriptions.</key>
+	<string>Abonelikleri yönet bölümünden planınızı değiştirin veya yenilemeyi iptal edin.</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>Değişiklikler teklif oluşturur ve yine de cüzdanın mevcut onaylarını gerektirir. Mevcut politika alanları ve üye aracısı izinleri korunur.</string>
 	<key>Changes not yet synced</key>
@@ -2828,6 +2830,8 @@
 	<string>Sohbet anahtarlarını güncelle</string>
 	<key>Updated</key>
 	<string>Güncellendi</string>
+	<key>Upgrade</key>
+	<string>Yükselt</string>
 	<key>Uploading</key>
 	<string>Yükleniyor</string>
 	<key>Uploading encrypted backup</key>
