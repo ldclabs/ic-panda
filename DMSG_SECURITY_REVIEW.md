@@ -9,7 +9,7 @@
 ### 实现
 
 - **Linux WebDAV 凭据**：Linux 与 macOS 一样生成独立随机 Basic 密码；GIO URL 只带公开用户名，密码经私有 stdin 交付，不进入 argv、环境变量或挂载状态。URL token 单独不能读取、写入或查询文件元数据，挂载与卸载都不再暴露完整授权。保留 GIO 正常读写、锁定撤销与卸载流程，修正 token 仅在 daemon 内存中的旧文档描述。
-- **充值未知结果**：`TopUp.unsent` 在第一次网络发送前持久清除；旧作业缺字段时保守视为已发送。未知后的任何拒绝保留原参数与作业，不生成替代付款。发送、通知和对账按作业互斥，await 后仍重读和核对状态。首次明确拒绝仍可正常结束。
+- **充值未知结果**：`TopUp.unsent` 在第一次网络发送前持久清除；旧作业缺字段时保守视为已发送。未知后重试被拒为 `TooOld` 时保留原参数与作业，不生成替代付款；其他拒绝与普通转账同一规则，按明确失败结束。发送、通知和对账按作业互斥，await 后仍重读和核对状态。首次明确拒绝仍可正常结束。
 - **充值恢复**：增加仅非 Viewer 成员可调用的 `reconcile_top_up(id, block)`；`id=0` 为自动充值，其他 ID 为已批准的 `Refuel` 提案。只从固定账本读取真实区块，核对付款账户/子账户、CMC/目标子账户、金额、memo、时间和无 spender，读取后重查权限、配置与原作业。补记区块后由原 `refuel()` / `reconcile(id)` 继续通知，不再次付款。原请求使用默认手续费，不以当前手续费替代历史付款证明。
 - **CMC 未确认结果**：`InvalidTransaction` 和 `TransactionTooOld` 不再被当作退款；仅明确 `Refunded` 能清理为退款终态。这也使共享适配器的 hub 收入归集保留未确认付款。该语义已对照 [CMC 公开合同](https://github.com/dfinity/ic/blob/master/rs/nns/cmc/cmc.did)；并未据此声称线上模块已经升级。
 
@@ -64,6 +64,8 @@ Linux 首次默认 `opt-level=1` 编译因耗时主动中断，未计为通过�
 
 
 修复与复核署名：Codex <noreply@openai.com>。
+
+后续调整（Claude）：充值重试的拒绝改用与普通转账相同的 `refusal_hides_payment` 规则。原先任何重试拒绝都保留为未知，首次发送未到达账本、之后每次重试都被拒（如余额不足，24 小时后变为 `TooOld`）时，作业没有可对账的区块，会永久阻塞自动充值或停留在 Executing。去重窗口内若此前已付款，账本会先返回 `Duplicate`，因此只有 `TooOld` 不能排除付款。回归为 `top_up_retry_refusal_proves_no_payment_and_ends_the_job`。
 
 ---
 

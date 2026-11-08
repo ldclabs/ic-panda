@@ -83,10 +83,10 @@ EVM 取消和释放须指明原提案与 nonce。成员报告取消已结算不�
 
 新增 `reconcile_transfer(id, item, block)`：在原作业仍 Executing 时，核对指定账本的真实 ICRC-3 区块，找回未知转账结果。重试的 TooOld 不再删除作业或显示为可重做的普通失败；从未发送的批量项首次即被 TooOld 拒绝时明确失败，并保留已付款区块。
 
-2026-11-08：自动充值和 `Refuel` 提案在发送前持久记录已尝试；结果未知后任何重试拒绝（包括 `TooOld`）都保留原作业和付款时间，不创建替代付款。旧布局缺失发送标记时按已尝试读取。非 Viewer 成员可调用 `reconcile_top_up(id, block)`，其中 `id=0` 为自动充值、其他值为提案 ID；服务端读取固定 ICP 账本的真实 ICRC-3 区块，核对付款账户、CMC/目标子账户、金额、memo、时间及无 spender，等待后重查成员和作业身份。充值使用账本默认手续费，不将当前手续费当成历史付款证据。对账只补记区块，再调用 `refuel()` 或 `reconcile(id)` 继续通知 CMC。
+2026-11-08：自动充值和 `Refuel` 提案在发送前持久记录已尝试；结果未知后，重试被拒为 `TooOld` 时保留原作业和付款时间，不创建替代付款；其他拒绝与转账相同，证明此前没有付款，按明确失败结束。旧布局缺失发送标记时按已尝试读取。非 Viewer 成员可调用 `reconcile_top_up(id, block)`，其中 `id=0` 为自动充值、其他值为提案 ID；服务端读取固定 ICP 账本的真实 ICRC-3 区块，核对付款账户、CMC/目标子账户、金额、memo、时间及无 spender，等待后重查成员和作业身份。充值使用账本默认手续费，不将当前手续费当成历史付款证据。对账只补记区块，再调用 `refuel()` 或 `reconcile(id)` 继续通知 CMC。
 
 发送、通知和区块对账共用每作业的瞬时互斥，避免迟到拒绝覆盖并发付款；升级后仍由持久发送标记保持未知状态。CMC 只有明确 `Refunded` 才作为退款终态，`InvalidTransaction`、`TransactionTooOld` 等未确认铸币或退款的响应保留原付款，返回 `Pending`。
 
-回归包括丢失付款响应后跨去重窗口、重复/并发重试、作业升级、错误区块与旧作业证明拒绝、首次明确拒绝、CMC 未退款错误以及窗口内正常去重。旧版本到当前版本的升级测试可通过 `DMSG_PRE_TOP_UP_WALLET_WASM` 指向修复前构建的 Wasm，显式运行 `legacy_top_up_unknown_payment_survives_upgrade`。
+回归包括丢失付款响应后跨去重窗口、重复/并发重试、作业升级、错误区块与旧作业证明拒绝、首次明确拒绝、首次未到达账本后重试被拒、CMC 未退款错误以及窗口内正常去重。旧版本到当前版本的升级测试可通过 `DMSG_PRE_TOP_UP_WALLET_WASM` 指向修复前构建的 Wasm，显式运行 `legacy_top_up_unknown_payment_survives_upgrade`。
 
 `claim_code`/`release_code` 仅 hub 可用，领取期间拒绝变更接受记录。新增地址在公钥返回后重新检查所有协签引用与当前授权。详见 [公开合同](../../docs/protocol/wallet_zh.md)。回归入口为 `wallet::review::*`，实际外链用例需显式运行 ignored 测试并提供回环 RPC。

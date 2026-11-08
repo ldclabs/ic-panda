@@ -147,7 +147,7 @@
 
 `refuel()` 任何人可调：策略 `refuel` 规则下余额低于 `min_cycles` 且当日次数未满时，从指定 ICP 地址以 ICRC-1 memo `TPUP`（`0x50555054` 小端 8 字节）转入 CMC 的实例子账户并 `notify_top_up`。`Refuel` 意图做同样的事但需要批准。看门狗以 hub 的 `list_wallets(after, take)` 遍历实例。
 
-充值在首次发送前持久标记已尝试；结果未知后的拒绝（包括去重窗口后的 `TooOld`）不能清除作业或生成新的付款时间。旧作业缺少此标记时按已尝试处理。非 Viewer 成员可调用 `reconcile_top_up(id, block) -> Result<()>`：`id=0` 指自动充值，其余值指 `Refuel` 提案。只接受固定 ICP 账本中与原付款账户、CMC/实例子账户、金额、memo、时间完全对应且无 spender 的真实转账；手续费沿用原请求的账本默认值。外部读取后重新检查成员权限、配置及当前作业。成功只补记付款区块，随后调用 `refuel()` 或 `reconcile(id)` 继续 CMC 通知，不再扣款。
+充值在首次发送前持久标记已尝试；结果未知后，重试在去重窗口过后被拒为 `TooOld` 时不能清除作业或生成新的付款时间；其他拒绝与转账一样按明确失败结束作业，因为窗口内若此前已付款，账本会先返回 `Duplicate`。旧作业缺少此标记时按已尝试处理。非 Viewer 成员可调用 `reconcile_top_up(id, block) -> Result<()>`：`id=0` 指自动充值，其余值指 `Refuel` 提案。只接受固定 ICP 账本中与原付款账户、CMC/实例子账户、金额、memo、时间完全对应且无 spender 的真实转账；手续费沿用原请求的账本默认值。外部读取后重新检查成员权限、配置及当前作业。成功只补记付款区块，随后调用 `refuel()` 或 `reconcile(id)` 继续 CMC 通知，不再扣款。
 
 发送、CMC 通知和对账按作业互斥，并发调用返回 `Pending`。CMC 的 `InvalidTransaction`、`TransactionTooOld` 不证明已经退款；只有明确 `Refunded` 才清理为退款终态，其余未确认响应保留原付款并返回 `Pending`。
 

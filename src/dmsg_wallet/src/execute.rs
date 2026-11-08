@@ -501,10 +501,7 @@ async fn process_ledger(id: u64, mut at: u64) -> Result<ExecuteResult> {
                 let mut w = store::wallet();
                 let mut p = store::proposal(id)?;
                 let blocks: Vec<u64> = job.items.iter().filter_map(|x| x.block).collect();
-                // A first attempt rejected as TooOld never moved funds. Only
-                // retries can hide a payment outside the deduplication window.
-                let unknown = !first_attempt && reason.starts_with("TooOld");
-                if unknown {
+                if ledger::refusal_hides_payment(first_attempt, &reason) {
                     p.failure = Some(format!(
                         "item {i}: outcome unknown after the deduplication window; check the ledger"
                     ));
@@ -607,12 +604,12 @@ async fn run_top_up(key: u64, me: Principal) -> Result<TopUpEnd> {
                 job.block = Some(block);
                 store::save_job(key, &Job::TopUp(job.clone()));
             }
-            Sent::Refused(reason) if first_attempt => {
+            Sent::Refused(reason) if !ledger::refusal_hides_payment(first_attempt, &reason) => {
                 store::remove_job(key);
                 return Ok(TopUpEnd::Refused(reason));
             }
-            // A refusal of this retry cannot disprove an earlier payment,
-            // including after the ledger's deduplication window expires.
+            // A retry's TooOld cannot disprove an earlier payment once the
+            // deduplication window has passed; reconcile_top_up can prove it.
             Sent::Refused(_) | Sent::Unknown => return Err(Error::ExecutionUnknown),
         }
     }

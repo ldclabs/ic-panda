@@ -794,6 +794,45 @@ fn top_up_first_refusal_is_terminal_without_debiting_funds() {
 }
 
 #[test]
+fn top_up_retry_refusal_proves_no_payment_and_ends_the_job() {
+    for automatic in [false, true] {
+        let (t, id) = top_up_team(automatic, &wasm("dmsg_wallet"));
+        // The first send never reaches the ledger, so its outcome is unknown.
+        void(
+            &t.f.ic,
+            t.f.ledger,
+            person(1),
+            "reject_next_transfers",
+            (1u32,),
+        );
+        assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+        // A retry refused other than as TooOld would have been answered as
+        // Duplicate had the first send paid, so the job ends like a transfer.
+        void(
+            &t.f.ic,
+            t.f.ledger,
+            person(1),
+            "set_fee",
+            (1_000_000_000u128,),
+        );
+        assert!(matches!(
+            attempt_top_up(&t, id),
+            Err(Error::InvalidInput(reason)) if reason.starts_with("InsufficientFunds")
+        ));
+        assert_eq!(t.balance(account(t.wallet)), 1_000_000_000);
+        void(&t.f.ic, t.f.ledger, person(1), "set_fee", (10u128,));
+        if automatic {
+            // The stranded job no longer blocks automatic refuel.
+            assert_eq!(attempt_top_up(&t, id).unwrap(), Some(1_000_000_000_000));
+            assert_eq!(t.balance(account(t.wallet)), 899_999_990);
+        } else {
+            let p: Result<Proposal> = query(&t.f.ic, t.wallet, person(P), "get_proposal", (id,));
+            assert_eq!(p.unwrap().status, ProposalStatus::Failed);
+        }
+    }
+}
+
+#[test]
 fn top_up_non_refund_notification_errors_keep_the_paid_job() {
     #[derive(CandidType)]
     enum NotifyError {

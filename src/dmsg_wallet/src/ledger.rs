@@ -35,6 +35,13 @@ impl Drop for TopUpGuard {
     }
 }
 
+/// Whether a refused transfer may hide an earlier attempt's payment. Within
+/// the deduplication window the ledger answers Duplicate before any other
+/// refusal, so only a retry rejected as TooOld leaves the outcome open.
+pub(crate) fn refusal_hides_payment(first_attempt: bool, reason: &str) -> bool {
+    !first_attempt && reason.starts_with("TooOld")
+}
+
 /// One ICRC transfer with its exact arguments.
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct LedgerItem {
