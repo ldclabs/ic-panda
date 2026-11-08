@@ -1274,6 +1274,10 @@ service : (WalletInit) -> {
   prune : () -> (nat32);
   // Resend the exact arguments of an interrupted transfer or top-up.
   reconcile : (nat64) -> (Result_5);
+  // Record a proven top-up payment without sending another transfer. `id=0`
+  // identifies automatic refuel; other IDs identify approved Refuel proposals.
+  // Resume CMC notification through `refuel` or `reconcile` after this succeeds.
+  reconcile_top_up : (nat64, nat64) -> (Result_4);
   // Recover an unknown transfer from an authenticated ledger block. The caller
   // supplies only its index, never an assertion that money moved.
   reconcile_transfer : (nat64, nat16, nat64) -> (Result_5);

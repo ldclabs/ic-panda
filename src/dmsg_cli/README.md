@@ -677,11 +677,13 @@ name in its interface language; the CLI uses its own locale. The name is
 fixed for that mount, so a language change takes effect after remounting.
 Finder's separate server group uses the URL host (`127.0.0.1`); changing
 the volume name does not rename that system-managed group.
-The token is random for each mount and lives only in the
-daemon's memory; on macOS the mount also carries a random Basic password,
-which NetFS takes without asking the person. The daemon sends it over stdin
-to a short-lived `dmsg mount-netfs` child; no helper app or credential file
-is created. Reading decrypts one 1 MiB chunk at
+The token is random for each mount and appears in the system's mount URL.
+On macOS and Linux, the share also requires an independent random Basic
+password: the URL alone cannot authorize access. The daemon sends the password
+over private stdin to a short-lived `dmsg mount-netfs` child on macOS or to
+GIO's password prompt on Linux; it is absent from command arguments, environment
+variables and mount status. No credential file is created. Windows continues
+to authorize by the URL token. Reading decrypts one 1 MiB chunk at
 a time, ranges included; a file written to the disk waits, owner-only, in
 `mount/` until the whole of it has arrived, then becomes a new version of
 the file of that name or a new file; a folder maps to a folder, a delete
@@ -711,7 +713,13 @@ On macOS, after `cargo build -p dmsg_cli`, run
 for explicit system mount tests using temporary offline accounts. They need
 permission to mount a volume and exercise reads, writes, safe saves,
 unmounting on lock and reconciliation after an external eject.
-Windows and Linux require separate native validation.
+On Linux, with `gio`, the GVFS WebDAV backend and a session D-Bus available, run
+`cargo test -p dmsg_cli native_linux_mount_requires_a_private_password -- --ignored --nocapture --test-threads=1`.
+It checks URL-only and incorrect-password denial, native GIO reads/writes,
+and revocation on lock and unmount using a temporary offline account.
+When run as root in an isolated container, it also uses `curl` as UID 65534
+to verify that a different OS user cannot use the mount URL alone.
+Windows requires separate native validation.
 
 Approvals are decided by a person: `approvals approve|reject`, `connect
 browsers add` and the prompt after `attest …` or `device …` need an interactive

@@ -1,5 +1,6 @@
 //! Security and accounting regressions from the 2026-10-24 wallet review.
 use super::*;
+use icrc_ledger_types::icrc1::transfer::Memo;
 
 #[test]
 fn audit_wallet_decisions_recheck_device_approval_expiry_after_await() {
@@ -589,6 +590,417 @@ fn unknown_icrc_transfer_survives_deduplication_expiry_and_verifies_a_block() {
     );
     assert_eq!(done.unwrap().proposal.status, ProposalStatus::Settled);
     assert_eq!(t.balance(account(person(80))), 1_000);
+}
+
+fn top_up_team(automatic: bool, module: &[u8]) -> (Team, u64) {
+    let t = Team::with_module(1, module);
+    void(
+        &t.f.ic,
+        t.f.ledger,
+        person(1),
+        "mint_test",
+        (account(t.wallet), 1_000_000_000u128),
+    );
+    let id = if automatic {
+        let mut policy = t.view().policy;
+        policy.version += 1;
+        policy.refuel = Some(RefuelRule {
+            from: 0,
+            min_cycles: 100_000_000_000_000,
+            icp_e8s: 100_000_000,
+            max_per_day: 3,
+        });
+        let change = t.approve_p(t.propose(P, Intent::SetPolicy(policy)).id);
+        advance(&t, SENSITIVE_DELAY_MS + MINUTE);
+        t.execute(change.id, None, vec![]).unwrap();
+        0
+    } else {
+        t.approve_p(
+            t.propose(
+                P,
+                Intent::Refuel {
+                    from: 0,
+                    icp_e8s: 100_000_000,
+                },
+            )
+            .id,
+        )
+        .id
+    };
+    (t, id)
+}
+
+fn attempt_top_up(t: &Team, id: u64) -> Result<Option<u128>> {
+    if id == 0 {
+        // Automatic maintenance remains callable by a nonmember.
+        update(&t.f.ic, t.wallet, person(99), "refuel", ())
+    } else {
+        t.execute(id, None, vec![])
+            .map(|result| match result.proposal.outcome {
+                Some(Outcome::Refueled { cycles, .. }) => Some(cycles),
+                _ => None,
+            })
+    }
+}
+
+fn last_ledger_block(t: &Team) -> u64 {
+    let blocks: icrc_ledger_types::icrc3::blocks::GetBlocksResult = query(
+        &t.f.ic,
+        t.f.ledger,
+        person(P),
+        "icrc3_get_blocks",
+        (vec![icrc_ledger_types::icrc3::blocks::GetBlocksRequest {
+            start: 0u8.into(),
+            length: 100u8.into(),
+        }],),
+    );
+    dmsg_runtime::ledger::block_index(blocks.blocks.last().unwrap().id.clone()).unwrap()
+}
+
+fn check_unknown_top_up_after_expiry(automatic: bool) {
+    let (t, id) = top_up_team(automatic, &wasm("dmsg_wallet"));
+    void(&t.f.ic, t.f.ledger, person(1), "lose_next_response", ());
+    assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+    let paid_balance = t.balance(account(t.wallet));
+    assert_eq!(paid_balance, 899_999_990);
+    let block = last_ledger_block(&t);
+    advance(&t, DAY + 2 * MINUTE);
+    for _ in 0..2 {
+        assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+        assert_eq!(t.balance(account(t.wallet)), paid_balance);
+    }
+    // The sent marker and exact transfer survive a canister upgrade.
+    t.f.ic
+        .upgrade_canister(
+            t.wallet,
+            wasm("dmsg_wallet"),
+            candid::encode_one(None::<u32>).unwrap(),
+            Some(t.hub),
+        )
+        .unwrap();
+    assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+    if id != 0 {
+        let p: Result<Proposal> = query(&t.f.ic, t.wallet, person(P), "get_proposal", (id,));
+        assert_eq!(p.unwrap().status, ProposalStatus::Executing);
+    }
+    void(
+        &t.f.ic,
+        t.f.ledger,
+        person(1),
+        "mint_test",
+        (account(person(90)), 100u128),
+    );
+    let unrelated: std::result::Result<Nat, TransferError> = update(
+        &t.f.ic,
+        t.f.ledger,
+        person(90),
+        "icrc1_transfer",
+        (TransferArg {
+            from_subaccount: None,
+            to: account(person(91)),
+            amount: 1u8.into(),
+            fee: None,
+            memo: None,
+            created_at_time: None,
+        },),
+    );
+    let unrelated = dmsg_runtime::ledger::block_index(unrelated.unwrap()).unwrap();
+    let wrong: Result<()> = update(
+        &t.f.ic,
+        t.wallet,
+        person(P),
+        "reconcile_top_up",
+        (id, unrelated),
+    );
+    assert_eq!(wrong, Err(Error::IntegrityFailed));
+    for _ in 0..2 {
+        let recovered: Result<()> = update(
+            &t.f.ic,
+            t.wallet,
+            person(P),
+            "reconcile_top_up",
+            (id, block),
+        );
+        recovered.unwrap();
+    }
+    assert_eq!(attempt_top_up(&t, id).unwrap(), Some(1_000_000_000_000));
+    assert_eq!(t.balance(account(t.wallet)), paid_balance);
+    if id != 0 {
+        let p: Result<Proposal> = query(&t.f.ic, t.wallet, person(P), "get_proposal", (id,));
+        assert_eq!(p.unwrap().status, ProposalStatus::Settled);
+    } else {
+        // A later automatic job cannot reuse the previous job's proof.
+        void(&t.f.ic, t.f.ledger, person(1), "lose_next_response", ());
+        assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+        let stale: Result<()> = update(
+            &t.f.ic,
+            t.wallet,
+            person(P),
+            "reconcile_top_up",
+            (id, block),
+        );
+        assert_eq!(stale, Err(Error::IntegrityFailed));
+        assert_eq!(attempt_top_up(&t, id).unwrap(), Some(1_000_000_000_000));
+        assert_eq!(t.balance(account(t.wallet)), paid_balance - 100_000_010);
+    }
+}
+
+#[test]
+fn automatic_top_up_retains_unknown_payment_after_expiry_and_upgrade() {
+    check_unknown_top_up_after_expiry(true);
+}
+
+#[test]
+fn proposal_top_up_retains_unknown_payment_after_expiry_and_upgrade() {
+    check_unknown_top_up_after_expiry(false);
+}
+
+#[test]
+fn top_up_lost_response_is_deduplicated_inside_the_window() {
+    for automatic in [false, true] {
+        let (t, id) = top_up_team(automatic, &wasm("dmsg_wallet"));
+        void(&t.f.ic, t.f.ledger, person(1), "lose_next_response", ());
+        assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+        let paid_balance = t.balance(account(t.wallet));
+        assert_eq!(attempt_top_up(&t, id).unwrap(), Some(1_000_000_000_000));
+        assert_eq!(t.balance(account(t.wallet)), paid_balance);
+    }
+}
+
+#[test]
+fn top_up_first_refusal_is_terminal_without_debiting_funds() {
+    for automatic in [false, true] {
+        let (t, id) = top_up_team(automatic, &wasm("dmsg_wallet"));
+        void(
+            &t.f.ic,
+            t.f.ledger,
+            person(1),
+            "set_fee",
+            (1_000_000_000u128,),
+        );
+        assert!(matches!(
+            attempt_top_up(&t, id),
+            Err(Error::InvalidInput(_))
+        ));
+        assert_eq!(t.balance(account(t.wallet)), 1_000_000_000);
+        void(&t.f.ic, t.f.ledger, person(1), "set_fee", (10u128,));
+        if automatic {
+            assert_eq!(attempt_top_up(&t, id).unwrap(), Some(1_000_000_000_000));
+        } else {
+            let p: Result<Proposal> = query(&t.f.ic, t.wallet, person(P), "get_proposal", (id,));
+            assert_eq!(p.unwrap().status, ProposalStatus::Failed);
+        }
+    }
+}
+
+#[test]
+fn top_up_non_refund_notification_errors_keep_the_paid_job() {
+    #[derive(CandidType)]
+    enum NotifyError {
+        InvalidTransaction(String),
+        TransactionTooOld(u64),
+    }
+    for automatic in [false, true] {
+        let (t, id) = top_up_team(automatic, &wasm("dmsg_wallet"));
+        void(&t.f.ic, t.f.ledger, person(1), "lose_next_response", ());
+        assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+        let block = last_ledger_block(&t);
+        let blocks: icrc_ledger_types::icrc3::blocks::GetBlocksResult = query(
+            &t.f.ic,
+            t.f.ledger,
+            person(P),
+            "icrc3_get_blocks",
+            (vec![icrc_ledger_types::icrc3::blocks::GetBlocksRequest {
+                start: block.into(),
+                length: 1u8.into(),
+            }],),
+        );
+        let paid = dmsg_runtime::ledger::parse_transfer(block, &blocks.blocks[0].block).unwrap();
+        for error in [
+            NotifyError::InvalidTransaction("injected rejection without refund".into()),
+            NotifyError::TransactionTooOld(block + 1),
+        ] {
+            void(
+                &t.f.ic,
+                paid.to.owner,
+                person(1),
+                "fail_next_notification",
+                (error,),
+            );
+            assert_eq!(attempt_top_up(&t, id), Err(Error::Pending));
+            assert_eq!(t.balance(account(t.wallet)), 899_999_990);
+            advance(&t, DAY + 2 * MINUTE);
+        }
+        // Once the CMC can process the original block, no new transfer is sent.
+        assert_eq!(attempt_top_up(&t, id).unwrap(), Some(1_000_000_000_000));
+        assert_eq!(t.balance(account(t.wallet)), 899_999_990);
+    }
+}
+
+#[test]
+fn top_up_retries_and_proofs_wait_for_the_live_transfer() {
+    let (t, id) = top_up_team(true, &wasm("dmsg_wallet"));
+    void(
+        &t.f.ic,
+        t.f.ledger,
+        person(1),
+        "delay_next_response",
+        (30u8,),
+    );
+    let first =
+        t.f.ic
+            .submit_call(
+                t.wallet,
+                person(99),
+                "refuel",
+                candid::encode_args(()).unwrap(),
+            )
+            .unwrap();
+    for _ in 0..20 {
+        t.f.ic.tick();
+        if t.balance(account(t.wallet)) < 1_000_000_000 {
+            break;
+        }
+    }
+    assert_eq!(t.balance(account(t.wallet)), 899_999_990);
+    assert!(t.f.ic.ingress_status(first.clone()).is_none());
+    assert_eq!(attempt_top_up(&t, id), Err(Error::Pending));
+    let proof: Result<()> = update(
+        &t.f.ic,
+        t.wallet,
+        person(P),
+        "reconcile_top_up",
+        (id, last_ledger_block(&t)),
+    );
+    assert_eq!(proof, Err(Error::Pending));
+    let done: Result<Option<u128>> =
+        candid::decode_one(&t.f.ic.await_call(first).unwrap()).unwrap();
+    assert_eq!(done.unwrap(), Some(1_000_000_000_000));
+    assert_eq!(t.balance(account(t.wallet)), 899_999_990);
+}
+
+#[test]
+#[ignore = "requires DMSG_PRE_TOP_UP_WALLET_WASM built before the sent marker was added"]
+fn legacy_top_up_unknown_payment_survives_upgrade() {
+    let old = std::fs::read(std::env::var_os("DMSG_PRE_TOP_UP_WALLET_WASM").unwrap()).unwrap();
+    for automatic in [false, true] {
+        let (t, id) = top_up_team(automatic, &old);
+        void(&t.f.ic, t.f.ledger, person(1), "lose_next_response", ());
+        assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+        let block = last_ledger_block(&t);
+        t.f.ic
+            .upgrade_canister(
+                t.wallet,
+                wasm("dmsg_wallet"),
+                candid::encode_one(None::<u32>).unwrap(),
+                Some(t.hub),
+            )
+            .unwrap();
+        advance(&t, DAY + 2 * MINUTE);
+        assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+        let recovered: Result<()> = update(
+            &t.f.ic,
+            t.wallet,
+            person(P),
+            "reconcile_top_up",
+            (id, block),
+        );
+        recovered.unwrap();
+        assert_eq!(attempt_top_up(&t, id).unwrap(), Some(1_000_000_000_000));
+        assert_eq!(t.balance(account(t.wallet)), 899_999_990);
+    }
+}
+
+#[test]
+fn top_up_reconciliation_rejects_unrelated_transfer_fields() {
+    let (t, id) = top_up_team(false, &wasm("dmsg_wallet"));
+    void(&t.f.ic, t.f.ledger, person(1), "lose_next_response", ());
+    assert_eq!(attempt_top_up(&t, id), Err(Error::ExecutionUnknown));
+    let block = last_ledger_block(&t);
+    let blocks: icrc_ledger_types::icrc3::blocks::GetBlocksResult = query(
+        &t.f.ic,
+        t.f.ledger,
+        person(P),
+        "icrc3_get_blocks",
+        (vec![icrc_ledger_types::icrc3::blocks::GetBlocksRequest {
+            start: block.into(),
+            length: 1u8.into(),
+        }],),
+    );
+    let paid = dmsg_runtime::ledger::parse_transfer(block, &blocks.blocks[0].block).unwrap();
+    for field in [
+        "sender",
+        "subaccount",
+        "recipient",
+        "target",
+        "amount",
+        "memo",
+        "time",
+    ] {
+        let mut sender = t.wallet;
+        let mut arg = TransferArg {
+            from_subaccount: paid.from.subaccount,
+            to: paid.to,
+            amount: paid.amount.into(),
+            fee: None,
+            memo: paid.memo.clone().map(|m| Memo(m.into())),
+            created_at_time: paid.created_at_time,
+        };
+        match field {
+            "sender" => sender = person(90),
+            "subaccount" => arg.from_subaccount = Some([9; 32]),
+            "recipient" => arg.to.owner = person(91),
+            "target" => arg.to.subaccount = Some([9; 32]),
+            "amount" => arg.amount = (paid.amount - 1).into(),
+            "memo" => arg.memo = Some(Memo(vec![9].into())),
+            "time" => arg.created_at_time = paid.created_at_time.map(|at| at + 1),
+            _ => unreachable!(),
+        }
+        void(
+            &t.f.ic,
+            t.f.ledger,
+            person(1),
+            "mint_test",
+            (
+                Account {
+                    owner: sender,
+                    subaccount: arg.from_subaccount,
+                },
+                200_000_000u128,
+            ),
+        );
+        let sent: std::result::Result<Nat, TransferError> =
+            update(&t.f.ic, t.f.ledger, sender, "icrc1_transfer", (arg,));
+        let wrong_block = dmsg_runtime::ledger::block_index(sent.unwrap()).unwrap();
+        let wrong: Result<()> = update(
+            &t.f.ic,
+            t.wallet,
+            person(P),
+            "reconcile_top_up",
+            (id, wrong_block),
+        );
+        assert_eq!(wrong, Err(Error::IntegrityFailed), "{field}");
+    }
+    // A nonmember cannot attach even the correct proof.
+    assert!(
+        t.f.ic
+            .update_call(
+                t.wallet,
+                person(99),
+                "reconcile_top_up",
+                candid::encode_args((id, block)).unwrap(),
+            )
+            .is_err()
+    );
+    let recovered: Result<()> = update(
+        &t.f.ic,
+        t.wallet,
+        person(P),
+        "reconcile_top_up",
+        (id, block),
+    );
+    recovered.unwrap();
+    assert_eq!(attempt_top_up(&t, id).unwrap(), Some(1_000_000_000_000));
 }
 
 #[test]

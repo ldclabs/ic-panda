@@ -147,6 +147,10 @@ An administrative AcceptUpgrade { version, module_hash } proposal with 24-hour d
 
 Anyone may call refuel(): under policy, when below min_cycles and within daily count, transfer from the specified ICP address to the CMC instance subaccount using ICRC-1 memo TPUP (`0x50555054` as 8-byte little-endian), then notify_top_up. Refuel intent does the same with approval. Watchdogs enumerate hub list_wallets(after, take).
 
+Top-ups persist an attempted marker before the first send. After an unknown result, a retry refusal (including TooOld beyond the deduplication window) cannot clear the job or replace its payment timestamp. Legacy jobs without the marker count as attempted. Non-Viewer members may call `reconcile_top_up(id, block) -> Result<()>`, with `id=0` for automatic refuel and a proposal ID for an approved Refuel intent. It reads the fixed ICP ledger and verifies the original payer, CMC/instance subaccount, amount, memo, timestamp and absence of a spender. Top-ups retain the original request's default-ledger-fee semantics. Membership, configuration and the current job are rechecked after the ledger read. Success only records the proven block; call `refuel()` or `reconcile(id)` to resume CMC notification without another debit.
+
+Sending, CMC notification and reconciliation are serialized per job; concurrent calls return Pending. CMC InvalidTransaction and TransactionTooOld do not prove a refund. Only an explicit Refunded response ends the job as refunded; other unconfirmed results retain the original payment and return Pending.
+
 ## Vectors
 
 [Wallet vectors](../../tests/vectors/wallet/README.md) fix bytes: protocol-v1.json provides CBOR, complete preimages/digests for proposals, decisions, joins, unbinds, activation, cosigner messages, cosigner rotation, possession and key digests, deposits and audit, plus chain addresses, Taproot leaves/control blocks and receiving scripts. plans-v1.json provides external-chain plans, signatures and signed transactions; clients must accept all and reject tampered cases. Rust generates both files and tests compare every byte.

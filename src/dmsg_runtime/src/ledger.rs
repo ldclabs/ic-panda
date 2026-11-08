@@ -224,7 +224,7 @@ pub enum Notified {
     Cycles(u128),
     /// The CMC returned the ICP; the top-up is over.
     Refunded(String),
-    /// Ask again later.
+    /// Neither minting nor refund is confirmed; retain the payment record.
     Pending,
 }
 
@@ -243,10 +243,7 @@ pub async fn notify_top_up(cmc: Principal, block: u64, canister: Principal) -> N
     match reply {
         Ok(Ok(n)) => token_amount(n).map_or(Notified::Pending, Notified::Cycles),
         Ok(Err(NotifyError::Refunded { reason, .. })) => Notified::Refunded(reason),
-        Ok(Err(NotifyError::InvalidTransaction(reason))) => Notified::Refunded(reason),
-        Ok(Err(NotifyError::TransactionTooOld(_))) => {
-            Notified::Refunded("transaction too old".into())
-        }
+        // A non-retriable notification error is not evidence of a refund.
         Ok(Err(_)) | Err(_) => Notified::Pending,
     }
 }

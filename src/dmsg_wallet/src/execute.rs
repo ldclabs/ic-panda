@@ -319,6 +319,7 @@ async fn execute(args: ExecuteArgs) -> Result<ExecuteResult> {
                 amount: icp_e8s,
                 created_at_time: at * NANOS_PER_MILLISECOND,
                 block: None,
+                unsent: true,
             };
             w.commit_spend(p.id, at);
             begin(&mut w, &mut p, Job::TopUp(job), at);
@@ -582,29 +583,37 @@ enum TopUpEnd {
 
 /// Run the top-up job under `key`: send its transfer once, then notify the
 /// cycles minting canister. An unknown or pending outcome keeps the job, so
-/// a retry resends the same arguments; `None` means another call finished
-/// the job meanwhile.
-async fn run_top_up(key: u64, me: Principal) -> Result<Option<TopUpEnd>> {
+/// a retry resends the same arguments. Live calls are serialized per job.
+async fn run_top_up(key: u64, me: Principal) -> Result<TopUpEnd> {
+    let _call = ledger::TopUpGuard::acquire(key)?;
     let (cmc, ledger) = store::with(|w| (w.settings.cmc, w.settings.icp_ledger));
     let Some(Job::TopUp(mut job)) = store::job(key) else {
         return Err(Error::NotFound);
     };
     if job.block.is_none() {
+        let first_attempt = job.unsent;
+        if first_attempt {
+            job.unsent = false;
+            store::save_job(key, &Job::TopUp(job.clone()));
+        }
         let sent = ledger::send(ledger, job.arg(cmc, me)).await;
         let Some(Job::TopUp(stored)) = store::job(key) else {
-            return Ok(None);
+            return Err(Error::VersionConflict);
         };
+        ensure(stored == job, Error::VersionConflict)?;
         job = stored;
         match sent {
             Sent::Block(block) => {
                 job.block = Some(block);
                 store::save_job(key, &Job::TopUp(job.clone()));
             }
-            Sent::Refused(reason) => {
+            Sent::Refused(reason) if first_attempt => {
                 store::remove_job(key);
-                return Ok(Some(TopUpEnd::Refused(reason)));
+                return Ok(TopUpEnd::Refused(reason));
             }
-            Sent::Unknown => return Err(Error::ExecutionUnknown),
+            // A refusal of this retry cannot disprove an earlier payment,
+            // including after the ledger's deduplication window expires.
+            Sent::Refused(_) | Sent::Unknown => return Err(Error::ExecutionUnknown),
         }
     }
     let block = job.block.expect("sent");
@@ -613,11 +622,12 @@ async fn run_top_up(key: u64, me: Principal) -> Result<Option<TopUpEnd>> {
         Notified::Refunded(reason) => TopUpEnd::Refused(reason),
         Notified::Pending => return Err(Error::Pending),
     };
-    if store::job(key).is_none() {
-        return Ok(None);
-    }
+    ensure(
+        matches!(store::job(key), Some(Job::TopUp(current)) if current == job),
+        Error::VersionConflict,
+    )?;
     store::remove_job(key);
-    Ok(Some(end))
+    Ok(end)
 }
 
 /// The top-up of a Refuel proposal.
@@ -627,12 +637,11 @@ async fn top_up(id: u64, me: Principal) -> Result<ExecuteResult> {
     let mut w = store::wallet();
     let mut p = store::proposal(id)?;
     match end {
-        None => return Ok(result(p, None)),
-        Some(TopUpEnd::Minted { block, cycles }) => {
+        TopUpEnd::Minted { block, cycles } => {
             store::audit(&mut w, at, None, Some(id), AuditKind::Refueled { block });
             settle(&mut w, &mut p, Outcome::Refueled { block, cycles }, at);
         }
-        Some(TopUpEnd::Refused(reason)) => {
+        TopUpEnd::Refused(reason) => {
             fail(&mut w, &mut p, reason.clone(), true, at);
             finish(w, &p);
             return Err(Error::InvalidInput(reason));
@@ -802,6 +811,59 @@ async fn reconcile_transfer(id: u64, item: u16, block: u64) -> Result<ExecuteRes
     p.failure = None;
     store::save_proposal(&p);
     process_ledger(id, at).await
+}
+
+/// Record a proven top-up payment without sending another transfer. `id=0`
+/// identifies automatic refuel; other IDs identify approved Refuel proposals.
+/// Resume CMC notification through `refuel` or `reconcile` after this succeeds.
+#[ic_cdk::update]
+async fn reconcile_top_up(id: u64, block: u64) -> Result<()> {
+    let caller = ic_cdk::api::msg_caller();
+    let me = ic_cdk::api::canister_self();
+    store::with(|w| ensure(w.acting(caller)?.role != Role::Viewer, Error::Forbidden))?;
+    let _call = ledger::TopUpGuard::acquire(id)?;
+    let (cmc, ledger) = store::with(|w| (w.settings.cmc, w.settings.icp_ledger));
+    let Some(Job::TopUp(job)) = store::job(id) else {
+        return Err(Error::NotFound);
+    };
+    ensure(!job.unsent, Error::Pending)?;
+    let expected = job.arg(cmc, me);
+    let transfer = dmsg_runtime::ledger::read_transfer(ledger, block).await?;
+    store::with(|w| {
+        ensure(w.acting(caller)?.role != Role::Viewer, Error::Forbidden)?;
+        ensure(
+            (w.settings.cmc, w.settings.icp_ledger) == (cmc, ledger),
+            Error::VersionConflict,
+        )
+    })?;
+    ensure(
+        transfer.from
+            == icrc_ledger_types::icrc1::account::Account {
+                owner: me,
+                subaccount: expected.from_subaccount,
+            }
+            && transfer.to == expected.to
+            && expected.amount == transfer.amount
+            && transfer.created_at_time == expected.created_at_time
+            && transfer.memo == expected.memo.as_ref().map(|m| m.0.to_vec())
+            && transfer.spender.is_none(),
+        Error::IntegrityFailed,
+    )?;
+    // Top-ups use the ledger's default fee (fee=None), not a fixed fee.
+    let Some(Job::TopUp(mut current)) = store::job(id) else {
+        return Err(Error::VersionConflict);
+    };
+    ensure(
+        !current.unsent && current.arg(cmc, me) == expected,
+        Error::VersionConflict,
+    )?;
+    ensure(
+        current.block.is_none_or(|b| b == block),
+        Error::IntegrityFailed,
+    )?;
+    current.block = Some(block);
+    store::save_job(id, &Job::TopUp(current));
+    Ok(())
 }
 
 fn waiting_status(p: &Proposal) -> ProposalStatus {
@@ -1254,19 +1316,19 @@ async fn refuel() -> Result<Option<u128>> {
             amount: rule.icp_e8s,
             created_at_time: at * NANOS_PER_MILLISECOND,
             block: None,
+            unsent: true,
         };
         store::save_job(REFUEL_JOB, &Job::TopUp(job));
         store::save(w);
     }
     match run_top_up(REFUEL_JOB, me).await? {
-        None => Ok(None),
-        Some(TopUpEnd::Minted { block, cycles }) => {
+        TopUpEnd::Minted { block, cycles } => {
             let at = now();
             let mut w = store::wallet();
             store::audit(&mut w, at, None, None, AuditKind::Refueled { block });
             store::save(w);
             Ok(Some(cycles))
         }
-        Some(TopUpEnd::Refused(reason)) => Err(Error::InvalidInput(reason)),
+        TopUpEnd::Refused(reason) => Err(Error::InvalidInput(reason)),
     }
 }

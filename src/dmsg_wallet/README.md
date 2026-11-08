@@ -16,7 +16,7 @@ dMsg 多签钱包：每个钱包一个独立 canister，可用于个人或共同
 | 协签钥匙 | `rotate_cosigner(RotateCosignerArgs)`（旧钥匙授权、新钥匙证明持有，原地换钥） | 协签人所属成员；冻结时拒绝 |
 | 提案 | `propose(ProposeArgs)`、`cancel_proposal` | 非 Viewer 成员；Recovery 只提成员变更 |
 | 决定 | `approve_proposal`、`reject_proposal`、`veto_proposal`（`MemberApproval::Account` 或 `Principal`） | Admin / Approver |
-| 执行 | `prepare_execution`、`execute(ExecuteArgs)`、`report(ChainReport)`、`reconcile`、`reconcile_transfer` | 非 Viewer 成员 |
+| 执行 | `prepare_execution`、`execute(ExecuteArgs)`、`report(ChainReport)`、`reconcile`、`reconcile_transfer`、`reconcile_top_up` | 非 Viewer 成员 |
 | 冻结 | `freeze()` | Admin / Approver，立即生效 |
 | cycles | `refuel()` | 任何人，按策略规则 |
 | 维护 | `prune()` | 任何人；终态提案超过 10,000 条时从最旧的开始删除，每次最多 100 条；每个新提案也顺带删除 2 条 |
@@ -82,5 +82,11 @@ POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
 EVM 取消和释放须指明原提案与 nonce。成员报告取消已结算不会释放原付款额度，也不会把原付款强行标为失败；旧回报不能影响后续 nonce。
 
 新增 `reconcile_transfer(id, item, block)`：在原作业仍 Executing 时，核对指定账本的真实 ICRC-3 区块，找回未知转账结果。重试的 TooOld 不再删除作业或显示为可重做的普通失败；从未发送的批量项首次即被 TooOld 拒绝时明确失败，并保留已付款区块。
+
+2026-11-08：自动充值和 `Refuel` 提案在发送前持久记录已尝试；结果未知后任何重试拒绝（包括 `TooOld`）都保留原作业和付款时间，不创建替代付款。旧布局缺失发送标记时按已尝试读取。非 Viewer 成员可调用 `reconcile_top_up(id, block)`，其中 `id=0` 为自动充值、其他值为提案 ID；服务端读取固定 ICP 账本的真实 ICRC-3 区块，核对付款账户、CMC/目标子账户、金额、memo、时间及无 spender，等待后重查成员和作业身份。充值使用账本默认手续费，不将当前手续费当成历史付款证据。对账只补记区块，再调用 `refuel()` 或 `reconcile(id)` 继续通知 CMC。
+
+发送、通知和区块对账共用每作业的瞬时互斥，避免迟到拒绝覆盖并发付款；升级后仍由持久发送标记保持未知状态。CMC 只有明确 `Refunded` 才作为退款终态，`InvalidTransaction`、`TransactionTooOld` 等未确认铸币或退款的响应保留原付款，返回 `Pending`。
+
+回归包括丢失付款响应后跨去重窗口、重复/并发重试、作业升级、错误区块与旧作业证明拒绝、首次明确拒绝、CMC 未退款错误以及窗口内正常去重。旧版本到当前版本的升级测试可通过 `DMSG_PRE_TOP_UP_WALLET_WASM` 指向修复前构建的 Wasm，显式运行 `legacy_top_up_unknown_payment_survives_upgrade`。
 
 `claim_code`/`release_code` 仅 hub 可用，领取期间拒绝变更接受记录。新增地址在公钥返回后重新检查所有协签引用与当前授权。详见 [公开合同](../../docs/protocol/wallet_zh.md)。回归入口为 `wallet::review::*`，实际外链用例需显式运行 ignored 测试并提供回环 RPC。

@@ -843,6 +843,127 @@ async fn system_mount_checks_preserve_mounts_in_progress() {
     server.abort();
 }
 
+/// Uses a temporary offline account and a real session D-Bus/GVFS backend.
+#[cfg(target_os = "linux")]
+#[tokio::test]
+#[ignore = "requires gio, the GVFS WebDAV backend and a session D-Bus"]
+async fn native_linux_mount_requires_a_private_password() {
+    struct Mounted(String);
+    impl Drop for Mounted {
+        fn drop(&mut self) {
+            let _ = std::process::Command::new("gio")
+                .args(["mount", "-u", &gvfs_uri(&self.0)])
+                .output();
+        }
+    }
+
+    let (daemon, _dir, server, _) = daemon_share("unused").await;
+    *daemon.mount.lock().unwrap() = None;
+    daemon
+        .client()
+        .lock()
+        .await
+        .files_write(ROOT, "note.txt", b"private")
+        .unwrap();
+    let status = daemon
+        .call_mount("files/mount", &json!({"name": "dMsg Test 文件"}))
+        .await
+        .unwrap();
+    let url = status["url"].as_str().unwrap();
+    let _cleanup = Mounted(url.into());
+    let token = daemon.mount.lock().unwrap().as_ref().unwrap().token.clone();
+    // In the isolated root-run container, exercise the actual different-UID
+    // boundary as well. Only the public mount URL is passed to this process.
+    if unsafe { libc::geteuid() } == 0 {
+        let mut command = tokio::process::Command::new("curl");
+        command.uid(65534).gid(65534).args([
+            "--noproxy",
+            "*",
+            "--silent",
+            "--output",
+            "/dev/null",
+            "--write-out",
+            "%{http_code}",
+            &format!("{url}/note.txt"),
+        ]);
+        assert_eq!(run(&mut command, None).await.unwrap(), "401");
+    }
+    let http = reqwest::Client::builder().no_proxy().build().unwrap();
+    for method in ["GET", "PUT", "PROPFIND"] {
+        for password in [None, Some("wrong"), Some(token.as_str())] {
+            let mut request = http.request(method.parse().unwrap(), format!("{url}/note.txt"));
+            if let Some(password) = password {
+                request = request.basic_auth(USER, Some(password));
+            }
+            assert_eq!(
+                request.send().await.unwrap().status(),
+                StatusCode::UNAUTHORIZED,
+                "{method}: the URL and process arguments must not authorize access"
+            );
+        }
+    }
+    // GVFS receives the independent password on stdin and can read/write.
+    let uri = format!("{}/note.txt", gvfs_uri(url));
+    assert_eq!(
+        run(
+            tokio::process::Command::new("gio").args(["cat", &uri]),
+            None
+        )
+        .await
+        .unwrap(),
+        "private"
+    );
+    run(
+        tokio::process::Command::new("gio").args(["save", &uri]),
+        Some("updated"),
+    )
+    .await
+    .unwrap();
+    let password = daemon
+        .mount
+        .lock()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .password
+        .clone()
+        .unwrap();
+    assert!(!status.to_string().contains(&password));
+    assert!(!gvfs_uri(url).contains(&password));
+    assert_eq!(
+        http.get(format!("{url}/note.txt"))
+            .basic_auth(USER, Some(&password))
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap(),
+        "updated"
+    );
+    daemon.client().lock().await.lock();
+    assert_eq!(
+        http.get(format!("{url}/note.txt"))
+            .basic_auth(USER, Some(&password))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::FORBIDDEN
+    );
+    daemon.unmount_library().await.unwrap();
+    assert_eq!(
+        http.get(format!("{url}/note.txt"))
+            .basic_auth(USER, Some(&password))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::NOT_FOUND
+    );
+    server.abort();
+}
+
 #[cfg(target_os = "macos")]
 struct NativeMount(String);
 

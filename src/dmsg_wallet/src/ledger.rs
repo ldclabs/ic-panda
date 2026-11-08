@@ -10,6 +10,30 @@ use icrc_ledger_types::icrc1::{
     account::Account,
     transfer::{Memo, TransferArg},
 };
+use std::{cell::RefCell, collections::BTreeSet};
+
+thread_local! {
+    static TOP_UP_CALLS: RefCell<BTreeSet<u64>> = const { RefCell::new(BTreeSet::new()) };
+}
+
+/// Serialize live sends, notifications and reconciliation of one top-up.
+/// Cancellation/upgrade releases this guard; the durable sent marker remains.
+pub(crate) struct TopUpGuard(u64);
+
+impl TopUpGuard {
+    pub(crate) fn acquire(id: u64) -> Result<Self> {
+        TOP_UP_CALLS.with_borrow_mut(|calls| {
+            ensure(calls.insert(id), Error::Pending)?;
+            Ok(Self(id))
+        })
+    }
+}
+
+impl Drop for TopUpGuard {
+    fn drop(&mut self) {
+        TOP_UP_CALLS.with_borrow_mut(|calls| calls.remove(&self.0));
+    }
+}
 
 /// One ICRC transfer with its exact arguments.
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
@@ -63,6 +87,10 @@ pub(crate) struct TopUp {
     #[cbor(key = 4)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) block: Option<u64>,
+    /// Cleared before sending; legacy jobs may already have moved funds.
+    #[cbor(key = 5)]
+    #[serde(default, skip_serializing_if = "dmsg_runtime::stable_types::is_zero")]
+    pub(crate) unsent: bool,
 }
 
 fn transfer_arg(
@@ -109,5 +137,38 @@ impl TopUp {
             Some(MEMO_TOP_UP.to_le_bytes().to_vec()),
             self.created_at_time,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_top_up_is_treated_as_already_sent() {
+        // The released integer-keyed layout has no key 5. A pending payment
+        // from that layout must never become a fresh, definitely-unsent job.
+        #[derive(Cbor)]
+        struct LegacyTopUp {
+            #[cbor(key = 2)]
+            amount: u64,
+            #[cbor(key = 3)]
+            created_at_time: u64,
+        }
+        let bytes = cbor2::to_vec(&LegacyTopUp {
+            amount: 100_000_000,
+            created_at_time: 123,
+        })
+        .unwrap();
+        let mut job: TopUp = cbor2::from_slice(&bytes).unwrap();
+        assert!(!job.unsent);
+        assert_eq!(job.block, None);
+        assert_eq!(job.amount, 100_000_000);
+        assert_eq!(job.created_at_time, 123);
+        for unsent in [true, false] {
+            job.unsent = unsent;
+            let restored: TopUp = cbor2::from_slice(&cbor2::to_vec(&job).unwrap()).unwrap();
+            assert_eq!(restored, job);
+        }
     }
 }

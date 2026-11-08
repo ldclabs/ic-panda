@@ -23,7 +23,7 @@
 2. `quote_activation` 向 commerce 的 `refresh_entitlement` 读取账户的基础套餐（从未付费的账户为 Free），套餐配额减去该账户已占用的激活数；报价 15 分钟有效，收款子账户为 `deposit_subaccount(hub, quote_id)`。按当前账本手续费，收入的两笔转账付不出（`price ≤ share + 2·fee` 或 `share ≤ fee`）时不出报价。额度用完时仍返回报价（`remaining = 0`），由 `create_wallet` 和客户端拒绝，用户能看到套餐限制。
 3. `create_wallet` 核对调用者、报价未过期且未退款、未暂停（`pricing.paused`）、规格（`validate_spec`）、创建者的 `WalletCreate` 设备批准（经账户所在 user home 核验）与收款子账户余额，跨 canister 调用返回后以新读取的时间重查期限、退款、暂停与配额，记为 `Paid` 并占用配额；随后创建 canister（controllers = [hub]，冻结阈值 365 天，日志公开，附 `cycles_to_wallet`），把模块分块上传到实例的 chunk store 后 `install_chunked_code`，最后清空 chunk store。每步都写订单状态，同一订单的并发调用返回 `Pending`。订单已存在时，同一规格的 `create_wallet` 继续未完成的激活，Ready、Failed、Refunded 原样返回。
 4. 报价调用者以 `claim_activation_refund(quote_id, to)` 领取未预留资金：失败/过期款、成功钱包超额款和迟到款均可退，报价金额与尚未发送的收入腿保持预留。第一次领取固定账户、当前手续费、memo 与时间，未完成时按原参数续做；已完成后没有新款返回原区块，有新款则创建另一笔退款。`to` 必须在 hub 之外；客户端退到付款身份。未安装代码的中断激活可经 `abort_activation` 终止、删除空实例并释放配额。
-5. 订单就绪即进入 `collectable_activations`；维护任务对每个 ID 调 `collect_revenue`，把固定报价金额分两笔转出：`cycles_share_e8s` 以 ICRC-1 memo `TPUP` 转入 CMC 的 hub 子账户并 `notify_top_up`，报价扣除两笔手续费后的其余金额转入 `revenue`，多付款不归收入。每笔的参数与 `created_at_time` 固定保存，重试由账本去重；CMC 退回时记为铸得 0 cycles 并结束。拆分与收入账户在余额读取返回后读取。`hub_stats.uncollected` 是待归集数。
+5. 订单就绪即进入 `collectable_activations`；维护任务对每个 ID 调 `collect_revenue`，把固定报价金额分两笔转出：`cycles_share_e8s` 以 ICRC-1 memo `TPUP` 转入 CMC 的 hub 子账户并 `notify_top_up`，报价扣除两笔手续费后的其余金额转入 `revenue`，多付款不归收入。每笔的参数与 `created_at_time` 固定保存，重试由账本去重；CMC 明确 `Refunded` 时记为铸得 0 cycles 并结束，`InvalidTransaction`、`TransactionTooOld` 等未退款错误保留付款区块并返回 `Pending`。拆分与收入账户在余额读取返回后读取。`hub_stats.uncollected` 是待归集数。
 
 ## 模块与升级
 

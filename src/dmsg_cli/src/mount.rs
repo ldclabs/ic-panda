@@ -5,9 +5,9 @@
 //! version once the whole file has arrived; folders map to folders, a
 //! delete goes to the trash, a copy re-encrypts, and an editor's safe save
 //! (write a temporary file, move it over the original) becomes a new
-//! version of the original. The token is random for each mount and lives
-//! only in memory; on macOS the mount also carries a random Basic password,
-//! which NetFS keeps and the person never sees. A lock, an account switch
+//! version of the original. The random mount token is part of the system's
+//! URL; macOS and Linux also require an independent random Basic password,
+//! delivered over private stdin to NetFS or GIO. A lock, an account switch
 //! and the daemon's exit unmount.
 //!
 //! Finder's and Explorer's noise (`.DS_Store`, `._*`, `Thumbs.db`,
@@ -63,7 +63,7 @@ pub(crate) struct Mount {
     token: String,
     /// The caller's localized volume name, fixed until the next mount.
     name: String,
-    /// The Basic password, on macOS; the token alone elsewhere.
+    /// The Basic password on macOS/Linux; the token alone on Windows.
     password: Option<String>,
     /// The account whose library this is; another account's unlock revokes it.
     account: String,
@@ -265,14 +265,16 @@ async fn system_unmount(_url: &str, point: Option<&str>) -> Result<()> {
 
 #[cfg(target_os = "linux")]
 fn gvfs_uri(url: &str) -> String {
-    url.replacen("http://", "dav://", 1)
+    // Naming the user makes GIO ask only for the password on stdin.
+    url.replacen("http://", &format!("dav://{USER}@"), 1)
 }
 
 #[cfg(target_os = "linux")]
-async fn system_mount(url: &str, _token: &str, _password: Option<&str>) -> Result<Option<String>> {
+async fn system_mount(url: &str, _token: &str, password: Option<&str>) -> Result<Option<String>> {
+    let password = password.ok_or(Error::Forbidden)?;
     run(
         tokio::process::Command::new("gio").args(["mount", &gvfs_uri(url)]),
-        None,
+        Some(&format!("{password}\n")),
     )
     .await?;
     let parsed = reqwest::Url::parse(url).expect("mount URL");
@@ -280,7 +282,7 @@ async fn system_mount(url: &str, _token: &str, _password: Option<&str>) -> Resul
     let prefix = parsed.path().replace('/', "%2F");
     let point = std::env::var_os("XDG_RUNTIME_DIR").map(|runtime| {
         std::path::PathBuf::from(runtime).join("gvfs").join(format!(
-            "dav:host=127.0.0.1,port={port},ssl=false,prefix={prefix}"
+            "dav:host=127.0.0.1,port={port},ssl=false,user={USER},prefix={prefix}"
         ))
     });
     Ok(point
@@ -363,7 +365,7 @@ impl Daemon {
                     account.to_string()
                 };
                 let token = hex::encode(dmsg_client::crypto::random_id());
-                let password = cfg!(target_os = "macos")
+                let password = cfg!(any(target_os = "macos", target_os = "linux"))
                     .then(|| hex::encode(dmsg_client::crypto::random_id()));
                 let (prefix, url) = share_location(self.port(), &token, &name);
                 let handler = DavHandler::builder()

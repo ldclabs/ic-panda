@@ -11,6 +11,7 @@ const CYCLES_PER_E8S: u128 = 10_000;
 thread_local! {
     static LEDGER: RefCell<Option<Principal>> = const { RefCell::new(None) };
     static USED: RefCell<BTreeSet<u64>> = const { RefCell::new(BTreeSet::new()) };
+    static NEXT_ERROR: RefCell<Option<NotifyError>> = const { RefCell::new(None) };
 }
 
 #[ic_cdk::init]
@@ -39,6 +40,12 @@ enum NotifyError {
     },
 }
 
+/// Fault injection only: return an error without minting or refunding.
+#[ic_cdk::update]
+fn fail_next_notification(error: NotifyError) {
+    NEXT_ERROR.with_borrow_mut(|next| *next = Some(error));
+}
+
 fn subaccount(canister: Principal) -> [u8; 32] {
     let bytes = canister.as_slice();
     let mut sub = [0; 32];
@@ -49,6 +56,9 @@ fn subaccount(canister: Principal) -> [u8; 32] {
 
 #[ic_cdk::update]
 async fn notify_top_up(arg: NotifyTopUp) -> Result<Nat, NotifyError> {
+    if let Some(error) = NEXT_ERROR.with_borrow_mut(Option::take) {
+        return Err(error);
+    }
     let ledger = LEDGER.with_borrow(|l| l.expect("ledger"));
     let invalid = |m: &str| NotifyError::InvalidTransaction(m.into());
     let t = dmsg_runtime::ledger::read_transfer(ledger, arg.block_index)
