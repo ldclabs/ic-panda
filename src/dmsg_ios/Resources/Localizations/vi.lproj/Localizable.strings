@@ -1440,6 +1440,8 @@
 	<string>Không có khóa phê duyệt đã đăng ký</string>
 	<key>No reports</key>
 	<string>Chưa có hồ sơ nào</string>
+	<key>No section</key>
+	<string>Không có nhóm</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Không có người đồng ký được chọn có nghĩa là không có chính sách đồng ký bổ sung. Xem xét đề xuất hoàn chỉnh trước khi phê duyệt.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Việc xóa tham chiếu sẽ không xóa tệp. Các tài liệu tham khảo hiện có được lưu giữ ngay cả khi tệp của chúng bị thiếu trên thiết bị này.</string>
 	<key>Rename</key>
 	<string>Đổi tên</string>
+	<key>Reorder fields</key>
+	<string>Sắp xếp lại trường</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Sửa chữa tham chiếu trường không có sẵn trên thiết bị gốc của nó.</string>
 	<key>Replace AutoFill snapshot</key>

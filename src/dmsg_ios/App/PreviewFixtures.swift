@@ -19,7 +19,7 @@ extension SessionModel {
                           fields: [VaultField(id: "username", kind: "text", label: "", section: "", value: "lin@studio.example", concealed: false),
                                    VaultField(id: "password", kind: "concealed", label: "", section: "", value: "••••••••", concealed: true)]),
                 vaultFixtureItem(id: "fixture-mail", revision: "1", kind: "login", title: chinese ? "工作邮箱" : "Work email", subtitle: "hello@studio.example", notes: "", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [], fields: []),
-                vaultFixtureItem(id: "fixture-note", revision: "1", kind: "note", title: chinese ? "项目笔记" : "Project notes", subtitle: chinese ? "记录尚未完成的想法" : "A place for unfinished ideas", notes: "", favorite: false, tags: [], synced: storeScreens, conflict: false, reserved: false, files: [], fields: []),
+                vaultFixtureItem(id: "fixture-note", revision: "1", kind: "note", title: chinese ? "项目笔记" : "Project notes", subtitle: "", notes: chinese ? "记录尚未完成的想法" : "A place for unfinished ideas", favorite: false, tags: [], synced: storeScreens, conflict: false, reserved: false, files: [], fields: []),
             ])
         if ProcessInfo.processInfo.arguments.contains("--ui-first-sync") {
             if let session { installFixtures(session, items: []) }; channels = []
@@ -63,8 +63,9 @@ extension SessionModel {
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-vault-rich") {
             vault += (0..<75).map { index in
-                vaultFixtureItem(id: "fixture-rich-\(index)", revision: "1", kind: vaultKinds()[index % 11],
-                    title: String(format: "Entry %02d", index), subtitle: "example.org", notes: "", favorite: index < 8,
+                let kind = vaultKinds()[index % 11]
+                return vaultFixtureItem(id: "fixture-rich-\(index)", revision: "1", kind: kind,
+                    title: String(format: "Entry %02d", index), subtitle: ["login", "api", "server", "database"].contains(kind) ? "user@example.org" : "", notes: "", favorite: index < 8,
                     tags: [index % 2 == 0 ? "work" : "personal"], synced: true, conflict: false, reserved: false, files: [],
                     fields: [VaultField(id: "username", kind: "text", label: "", section: "Account", value: "user@example.org", concealed: false),
                              VaultField(id: "otp", kind: "otp", label: "", section: "Security", value: "JBSWY3DPEHPK3PXP", concealed: true)])
@@ -277,8 +278,18 @@ extension SessionModel {
                 value: field.value ?? previous?.fields.first(where: { $0.id == field.id })?.value ?? "",
                 concealed: ["concealed", "otp"].contains(field.kind))
         }
+        // Mirror the core's safe list metadata; free-form fields stay in details.
+        var subtitle = ""
+        if ["login", "api", "server", "database"].contains(edit.kind) {
+            let username = fields.first { $0.id == "username" && !$0.concealed }?.value.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !username.isEmpty { subtitle = String(username.split(separator: "\n").first ?? "") }
+            else if let field = fields.first(where: { $0.id == "url" && !$0.concealed }), let url = URLComponents(string: field.value),
+                    ["https", "http"].contains(url.scheme?.lowercased() ?? ""), let host = url.host {
+                subtitle = host + (url.port.map { ":\($0)" } ?? "")
+            }
+        }
         let item = VaultItem(id: id, revision: UUID().uuidString, kind: edit.kind, title: edit.title,
-            subtitle: fields.first(where: { !$0.concealed })?.value ?? "", notes: edit.notes, favorite: edit.favorite,
+            subtitle: String(subtitle.prefix(160)), notes: edit.notes, favorite: edit.favorite,
             tags: edit.tags, synced: false, conflict: false, reserved: false, files: edit.files ?? previous?.files ?? [],
             fields: fields, deleted: false, createdAt: previous?.createdAt ?? now, updatedAt: now)
         if let previous { fixtureVaultHistory[id, default: []].append(previous) }

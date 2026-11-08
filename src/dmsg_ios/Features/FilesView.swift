@@ -278,15 +278,19 @@ struct FilesView: View {
                 .accessibilityIdentifier("files.add")
             Menu("File tools", systemImage: "ellipsis.circle") {
                 if !root || model.filesScope == .local {
-                    Button(selecting ? "Done" : "Select files", systemImage: "checkmark.circle") { selecting.toggle(); selection = [] }
-                        .disabled(targets(current).isEmpty || !model.filesQueryIsCurrent)
+                    Section {
+                        Button(selecting ? "Done" : "Select files", systemImage: "checkmark.circle") { selecting.toggle(); selection = [] }
+                            .disabled(targets(current).isEmpty || !model.filesQueryIsCurrent)
+                    }
                 }
-                Button("Trash", systemImage: "trash") { sheet = .trash }
-                NavigationLink("Collect files") { FileRequestsView() }
-                NavigationLink("Share links") { FileLinksView() }
-                NavigationLink("Pending imports") { PendingImportsView() }
-                NavigationLink("Shared with dMsg") { IncomingSharesView() }
-                Button("About files and backups", systemImage: "info.circle") { sheet = .help }
+                Section {
+                    NavigationLink { FileRequestsView() } label: { Label("Collect files", systemImage: "tray.and.arrow.down") }
+                    NavigationLink { FileLinksView() } label: { Label("Share links", systemImage: "link") }
+                }
+                Section {
+                    Button("Trash", systemImage: "trash") { sheet = .trash }
+                    Button("About files and backups", systemImage: "info.circle") { sheet = .help }
+                }
             }.accessibilityIdentifier("files.tools")
         }
     }

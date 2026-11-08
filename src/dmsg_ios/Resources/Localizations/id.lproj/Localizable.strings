@@ -1440,6 +1440,8 @@
 	<string>Tidak ada kunci persetujuan terdaftar</string>
 	<key>No reports</key>
 	<string>Belum ada catatan</string>
+	<key>No section</key>
+	<string>Tanpa bagian</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Tidak ada pemberi tanda tangan yang dipilih berarti tidak ada kebijakan tanda tangan tambahan. Tinjau proposal lengkap sebelum menyetujui.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Menghapus referensi tidak menghapus file. Referensi yang ada disimpan meskipun filenya hilang di perangkat ini.</string>
 	<key>Rename</key>
 	<string>Ubah nama</string>
+	<key>Reorder fields</key>
+	<string>Urutkan ulang kolom</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Perbaiki referensi bidang yang tidak tersedia pada perangkat aslinya.</string>
 	<key>Replace AutoFill snapshot</key>

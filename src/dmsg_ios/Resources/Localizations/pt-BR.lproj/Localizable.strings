@@ -1440,6 +1440,8 @@
 	<string>Nenhuma chave de aprovação registrada</string>
 	<key>No reports</key>
 	<string>Ainda não há registros</string>
+	<key>No section</key>
+	<string>Sem seção</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Nenhum fiador selecionado significa nenhuma política de fiança adicional. Revise a proposta completa antes de aprovar.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>A remoção de uma referência não exclui o arquivo. As referências existentes são mantidas mesmo quando seus arquivos estão faltando neste dispositivo.</string>
 	<key>Rename</key>
 	<string>Renomear</string>
+	<key>Reorder fields</key>
+	<string>Reordenar campos</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Repare a referência de campo indisponível no dispositivo de origem.</string>
 	<key>Replace AutoFill snapshot</key>

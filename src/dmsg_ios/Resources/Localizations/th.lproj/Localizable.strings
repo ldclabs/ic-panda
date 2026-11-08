@@ -1440,6 +1440,8 @@
 	<string>ไม่มีรหัสอนุมัติที่ลงทะเบียน</string>
 	<key>No reports</key>
 	<string>ยังไม่มีบันทึก</string>
+	<key>No section</key>
+	<string>ไม่มีส่วน</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>ไม่มีผู้ลงนามร่วมที่เลือก หมายความว่าไม่มีนโยบายการลงนามร่วมเพิ่มเติม ตรวจสอบข้อเสนอที่สมบูรณ์ก่อนที่จะอนุมัติ</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>การลบข้อมูลอ้างอิงจะไม่ลบไฟล์ ข้อมูลอ้างอิงที่มีอยู่จะถูกเก็บไว้แม้ว่าไฟล์จะหายไปในอุปกรณ์นี้ก็ตาม</string>
 	<key>Rename</key>
 	<string>เปลี่ยนชื่อ</string>
+	<key>Reorder fields</key>
+	<string>จัดลำดับฟิลด์ใหม่</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>ซ่อมแซมการอ้างอิงฟิลด์ที่ไม่พร้อมใช้งานบนอุปกรณ์ต้นทาง</string>
 	<key>Replace AutoFill snapshot</key>

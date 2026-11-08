@@ -1440,6 +1440,8 @@
 	<string>Brak zarejestrowanego klucza zatwierdzającego</string>
 	<key>No reports</key>
 	<string>Nie ma jeszcze żadnych rekordów</string>
+	<key>No section</key>
+	<string>Bez sekcji</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Brak wybranych cosignerów oznacza brak dodatkowej polityki cosignature. Przed zatwierdzeniem przejrzyj całą propozycję.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Usunięcie odniesienia nie powoduje usunięcia pliku. Istniejące odniesienia zostaną zachowane nawet wtedy, gdy na tym urządzeniu brakuje ich plików.</string>
 	<key>Rename</key>
 	<string>Zmień nazwę</string>
+	<key>Reorder fields</key>
+	<string>Zmień kolejność pól</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Napraw niedostępne odwołanie do pola na urządzeniu źródłowym.</string>
 	<key>Replace AutoFill snapshot</key>

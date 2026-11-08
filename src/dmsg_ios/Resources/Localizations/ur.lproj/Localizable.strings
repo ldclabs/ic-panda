@@ -1440,6 +1440,8 @@
 	<string>کوئی رجسٹرڈ منظوری کلید نہیں ہے</string>
 	<key>No reports</key>
 	<string>ابھی تک کوئی ریکارڈ نہیں ہے</string>
+	<key>No section</key>
+	<string>کوئی سیکشن نہیں</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>کسی بھی منتخب cosigners کا مطلب کوئی اضافی cosignature پالیسی نہیں ہے۔ منظوری دینے سے پہلے مکمل تجویز کا جائزہ لیں۔</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>کسی حوالہ کو ہٹانے سے فائل حذف نہیں ہوتی ہے۔ موجودہ حوالہ جات اس وقت بھی رکھے جاتے ہیں جب ان کی فائلیں اس ڈیوائس پر غائب ہوں۔</string>
 	<key>Rename</key>
 	<string>نام بدلیں</string>
+	<key>Reorder fields</key>
+	<string>فیلڈز کی ترتیب بدلیں</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>اس کے شروع ہونے والے آلہ پر غیر دستیاب فیلڈ ریفرنس کی مرمت کریں۔</string>
 	<key>Replace AutoFill snapshot</key>

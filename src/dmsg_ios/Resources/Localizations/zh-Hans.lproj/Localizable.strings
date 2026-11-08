@@ -1440,6 +1440,8 @@
 	<string>未注册批准钥匙</string>
 	<key>No reports</key>
 	<string>暂无举报</string>
+	<key>No section</key>
+	<string>未分组</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>不选择联合签名者，表示不设置额外协签策略。批准前请核对完整提案。</string>
 	<key>No share links yet</key>
@@ -1497,7 +1499,7 @@
 	<key>On the device being replaced, open Devices → Replace a device → Review a request, scan or paste this request and enter this device's ID. Then check authorization here.</key>
 	<string>在被替换的设备上打开“设备 → 替换设备 → 审阅请求”，扫描或粘贴此请求并输入本设备的 ID。然后在这里检查授权状态。</string>
 	<key>On this device</key>
-	<string>保存在本机</string>
+	<string>本机</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>首次使用 dMsg 时，登录后按引导创建你的加密工作区。</string>
 	<key>On-chain recovery</key>
@@ -1896,6 +1898,8 @@
 	<string>移除引用不会删除文件。即使此设备上没有对应文件，现有引用也会保留。</string>
 	<key>Rename</key>
 	<string>重命名</string>
+	<key>Reorder fields</key>
+	<string>调整字段顺序</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>请在来源设备上修复不可用的字段引用。</string>
 	<key>Replace AutoFill snapshot</key>
@@ -2351,7 +2355,7 @@
 	<key>Shared snapshots</key>
 	<string>已分享的快照</string>
 	<key>Shared with dMsg</key>
-	<string>分享给 dMsg</string>
+	<string>从其他 App 导入</string>
 	<key>Show</key>
 	<string>显示</string>
 	<key>Show dismissed findings</key>

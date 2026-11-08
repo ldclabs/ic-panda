@@ -46,6 +46,9 @@ favorite filters are applied before sorting and pagination; counts describe the
 whole query. Sorting retains only non-hidden summaries while releasing the client
 between decryptions. The old duplicate Favorites grid and its separate read are
 removed. Empty, loading and failed reads have distinct actions.
+List previews follow the desktop: login, API, server and database entries may show
+a username or HTTP(S) host, while other types show their type name. Arbitrary field
+values, note bodies and URL credentials, paths or parameters do not enter previews.
 Search stays visible above the category bar. Switching categories retains their
 query counts and only scrolls the bar when the selected category is offscreen.
 Vault, Files and Messages share one capsule tab and keep 8 pt between their bar
@@ -84,8 +87,11 @@ field choices and checks the expected current revision before saving.
 Editors keep dirty drafts within the unlocked account session, confirm discard
 from Cancel or a swipe, preserve edits when changing type, and disable mutation
 while saving. Failures retain the draft with a visible retryable error. Fields can
-be reordered; date, month, email, website and OTP inputs have suitable input and
-validation. Password generation is local, and QR scanning only fills an OTP draft
+be reordered in a compact list. Each field puts its editable name before its value,
+with optional grouping below; adding a field focuses its name, and Next moves to
+its value. Validation appears after leaving an input or attempting to save. Date,
+month, email, website and OTP inputs have suitable input and validation.
+Password generation is local, and QR scanning only fills an OTP draft
 for review. AutoFill exports only an explicit selection: choosing it asks for
 system authentication, and while dMsg is open and unlocked the snapshot then
 follows those items without asking again. System authentication opens it, and

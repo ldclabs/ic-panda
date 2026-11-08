@@ -1440,6 +1440,8 @@
 	<string>Nessuna chiave di approvazione registrata</string>
 	<key>No reports</key>
 	<string>Nessun record ancora</string>
+	<key>No section</key>
+	<string>Nessuna sezione</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Nessun cofirmatario selezionato significa nessuna politica di cofirma aggiuntiva. Esaminare la proposta completa prima di approvarla.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>La rimozione di un riferimento non elimina il file. I riferimenti esistenti vengono mantenuti anche quando i relativi file mancano su questo dispositivo.</string>
 	<key>Rename</key>
 	<string>Rinomina</string>
+	<key>Reorder fields</key>
+	<string>Riordina campi</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Riparare il riferimento al campo non disponibile sul dispositivo di origine.</string>
 	<key>Replace AutoFill snapshot</key>

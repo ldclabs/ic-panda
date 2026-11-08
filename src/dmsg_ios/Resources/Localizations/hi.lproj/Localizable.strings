@@ -1440,6 +1440,8 @@
 	<string>कोई पंजीकृत अनुमोदन कुंजी नहीं</string>
 	<key>No reports</key>
 	<string>अभी तक कोई रिकॉर्ड नहीं</string>
+	<key>No section</key>
+	<string>कोई अनुभाग नहीं</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>कोई चयनित सहहस्ताक्षरकर्ता नहीं होने का मतलब कोई अतिरिक्त सहहस्ताक्षरकर्ता नीति नहीं है। मंजूरी देने से पहले पूरे प्रस्ताव की समीक्षा करें.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>किसी संदर्भ को हटाने से फ़ाइल नहीं हटती. मौजूदा संदर्भ तब भी रखे जाते हैं जब उनकी फ़ाइलें इस डिवाइस पर गायब होती हैं।</string>
 	<key>Rename</key>
 	<string>नाम बदलें</string>
+	<key>Reorder fields</key>
+	<string>फ़ील्ड का क्रम बदलें</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>इसके मूल उपकरण पर अनुपलब्ध फ़ील्ड संदर्भ को सुधारें।</string>
 	<key>Replace AutoFill snapshot</key>

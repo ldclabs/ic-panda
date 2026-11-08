@@ -32,7 +32,7 @@ pub struct Summary {
     pub kind: String,
     /// Display title.
     pub title: String,
-    /// A non-hidden preview, at most 160 characters.
+    /// A username or website host, at most 160 characters; otherwise empty.
     pub subtitle: String,
     /// Explicitly starred by the user.
     pub favorite: bool,
@@ -52,34 +52,36 @@ pub struct Summary {
     pub updated_at: u64,
 }
 
-/// Pick a useful, non-hidden preview for each type.
+/// Match the desktop list: preview only a username or web host for account-like
+/// items. Other types, including notes, use the localized type name in the UI.
 pub fn subtitle(item: &super::Item) -> String {
-    let preferred = match item.kind.as_str() {
-        "login" | "api" => "username",
-        "ssh" => "fingerprint",
-        "wallet" => "address",
-        "card" => "cardholder",
-        "identity" => "name",
-        "server" => "url",
-        "database" => "host",
-        "license" => "licensed_to",
-        _ => "",
+    if !matches!(item.kind.as_str(), "login" | "api" | "server" | "database") {
+        return String::new();
+    }
+    let shown = |id: &str| {
+        item.fields
+            .iter()
+            .find(|field| field.id == id && !field.hidden())
+            .map(|field| field.value.trim())
+            .unwrap_or_default()
     };
-    let value = item
-        .fields
-        .iter()
-        .find(|f| f.id == preferred && !f.hidden() && !f.value.is_empty())
-        .or_else(|| {
-            item.fields
-                .iter()
-                .find(|f| !f.hidden() && !f.value.is_empty())
-        })
-        .map(|f| f.value.as_str())
-        .unwrap_or(if item.kind == "note" { &item.notes } else { "" });
-    value
-        .lines()
-        .next()
-        .unwrap_or_default()
+    let username = shown("username");
+    if !username.is_empty() {
+        return username
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .chars()
+            .take(160)
+            .collect();
+    }
+    let Ok(url) = url::Url::parse(shown("url")) else {
+        return String::new();
+    };
+    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
+        return String::new();
+    }
+    url[url::Position::BeforeHost..url::Position::AfterPort]
         .chars()
         .take(160)
         .collect()
@@ -366,6 +368,48 @@ mod tests {
     use crate::vault::{Changes, FieldChange};
     use std::sync::Mutex;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn list_subtitles_match_desktop_and_never_fall_back_to_field_bodies() {
+        use crate::vault::{Field, Item};
+
+        let mut item = Item::new("note", "dmsg names", 1);
+        item.notes = "Private note body".into();
+        item.fields = vec![Field::new("field_custom", "text", "name")];
+        for kind in [
+            "note", "key", "ssh", "wallet", "card", "identity", "license",
+        ] {
+            item.kind = kind.into();
+            assert_eq!(subtitle(&item), "", "{kind}");
+        }
+        for kind in ["login", "api", "server", "database"] {
+            item.kind = kind.into();
+            assert_eq!(subtitle(&item), "", "{kind}");
+            item.fields = vec![
+                Field::new("username", "concealed", "hidden-user"),
+                Field::new(
+                    "url",
+                    "url",
+                    "https://user:password@example.org:8443/private?token=secret#key",
+                ),
+            ];
+            assert_eq!(subtitle(&item), "example.org:8443");
+            item.fields[0] = Field::new("username", "text", "  person@example.org\nsecond line  ");
+            assert_eq!(subtitle(&item), "person@example.org");
+            item.fields = vec![Field::new("field_custom", "text", "name")];
+        }
+        item.fields = vec![Field::new("url", "otp", "https://example.org")];
+        assert_eq!(subtitle(&item), "");
+        for value in [
+            "example.org",
+            "file:///private/secret",
+            "javascript:alert(1)",
+            "not a URL",
+        ] {
+            item.fields = vec![Field::new("url", "url", value)];
+            assert_eq!(subtitle(&item), "");
+        }
+    }
 
     // Lock between the first and second item, as a queued request would.
     struct LockDuringRead {

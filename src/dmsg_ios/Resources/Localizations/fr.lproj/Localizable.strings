@@ -1440,6 +1440,8 @@
 	<string>Aucune clé d’approbation enregistrée</string>
 	<key>No reports</key>
 	<string>Aucun enregistrement</string>
+	<key>No section</key>
+	<string>Sans section</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Sans cosignataire choisi, aucune politique de cosignature supplémentaire ne s’applique. Examinez toute la proposition avant d’approuver.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Retirer une référence ne supprime pas le fichier. Les références existantes sont conservées même si leurs fichiers sont absents de cet appareil.</string>
 	<key>Rename</key>
 	<string>Renommer</string>
+	<key>Reorder fields</key>
+	<string>Réorganiser les champs</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Réparez la référence de champ indisponible sur son appareil d’origine.</string>
 	<key>Replace AutoFill snapshot</key>

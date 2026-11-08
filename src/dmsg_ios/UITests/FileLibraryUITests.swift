@@ -65,6 +65,7 @@ final class FileLibraryUITests: FileLibraryTestCase {
         // reports it as hittable too, so only the screen shows whether it is drawn.
         let title = app.navigationBars.staticTexts["Files"]
         if !app.buttons["ToggleSidebar"].exists && title.exists { XCTAssertTrue(isBlank(title)) }
+        tap(app.buttons["files.options"], in: app)
         tap(app.buttons["files.transfers"], in: app)
         XCTAssertTrue(app.navigationBars.staticTexts["File transfers"].waitForExistence(timeout: 5))
         capture(app, "Pushed screen keeps a compact title")

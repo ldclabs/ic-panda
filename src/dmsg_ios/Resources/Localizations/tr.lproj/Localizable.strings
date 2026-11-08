@@ -1440,6 +1440,8 @@
 	<string>Kayıtlı onay anahtarı yok</string>
 	<key>No reports</key>
 	<string>Henüz kayıt yok</string>
+	<key>No section</key>
+	<string>Bölüm yok</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Seçilen ortak imzacının olmaması, ek ortak imza politikasının olmadığı anlamına gelir. Onaylamadan önce teklifin tamamını inceleyin.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Bir referansın kaldırılması dosyayı silmez. Mevcut referanslar, dosyaları bu cihazda eksik olsa bile tutulur.</string>
 	<key>Rename</key>
 	<string>Yeniden adlandır</string>
+	<key>Reorder fields</key>
+	<string>Alanları yeniden sırala</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Kaynak cihazındaki kullanılamayan alan referansını onarın.</string>
 	<key>Replace AutoFill snapshot</key>

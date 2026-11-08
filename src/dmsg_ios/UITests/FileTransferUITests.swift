@@ -9,6 +9,8 @@ final class FileTransferUITests: XCTestCase {
         app.launch()
         let files = app.tabBars.buttons.element(boundBy: 2)
         XCTAssertTrue(files.waitForExistence(timeout: 8)); files.tap()
+        let options = app.buttons["files.options"]
+        XCTAssertTrue(options.waitForExistence(timeout: 5)); options.tap()
         let transfers = app.buttons["files.transfers"]
         XCTAssertTrue(transfers.waitForExistence(timeout: 5)); transfers.tap()
         for id in ["preview-backup", "preview-download"] {
@@ -24,6 +26,7 @@ final class FileTransferUITests: XCTestCase {
         }
         // Navigation must not remove account-owned transfer progress.
         app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(options.waitForExistence(timeout: 5)); options.tap()
         XCTAssertTrue(transfers.waitForExistence(timeout: 5)); transfers.tap()
         let stage = app.staticTexts["transfer.stage.preview-backup"]
         for _ in 0..<7 where !stage.isHittable { app.swipeUp() }

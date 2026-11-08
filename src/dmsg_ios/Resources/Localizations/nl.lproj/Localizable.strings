@@ -1440,6 +1440,8 @@
 	<string>Geen geregistreerde goedkeuringssleutel</string>
 	<key>No reports</key>
 	<string>Nog geen gegevens</string>
+	<key>No section</key>
+	<string>Geen sectie</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Geen geselecteerde medeondertekenaars betekent geen aanvullend beleid voor medeondertekenaars. Controleer het volledige voorstel voordat je het goedkeurt.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Als je een referentie verwijdert, wordt het bestand niet verwijderd. Bestaande referenties blijven behouden, zelfs als hun bestanden ontbreken op dit apparaat.</string>
 	<key>Rename</key>
 	<string>Naam wijzigen</string>
+	<key>Reorder fields</key>
+	<string>Velden opnieuw ordenen</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Herstel de niet-beschikbare veldreferentie op het oorspronkelijke apparaat.</string>
 	<key>Replace AutoFill snapshot</key>

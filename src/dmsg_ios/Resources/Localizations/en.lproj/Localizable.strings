@@ -1440,6 +1440,8 @@
 	<string>No registered approval key</string>
 	<key>No reports</key>
 	<string>No reports</string>
+	<key>No section</key>
+	<string>No section</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</string>
 	<key>Rename</key>
 	<string>Rename</string>
+	<key>Reorder fields</key>
+	<string>Reorder fields</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Repair the unavailable field reference on its originating device.</string>
 	<key>Replace AutoFill snapshot</key>

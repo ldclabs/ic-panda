@@ -1440,6 +1440,8 @@
 	<string>لا يوجد مفتاح موافقة مسجّل</string>
 	<key>No reports</key>
 	<string>لا سجلات بعد</string>
+	<key>No section</key>
+	<string>بلا قسم</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>عدم اختيار مشاركي توقيع يعني عدم وجود سياسة توقيع إضافية. راجع الاقتراح كاملًا قبل الموافقة.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>إزالة المرجع لا تحذف الملف. تُحفظ المراجع الموجودة حتى عندما تكون ملفاتها غير موجودة على هذا الجهاز.</string>
 	<key>Rename</key>
 	<string>إعادة تسمية</string>
+	<key>Reorder fields</key>
+	<string>إعادة ترتيب الحقول</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>أصلح مرجع الحقل غير المتاح على الجهاز الأصلي.</string>
 	<key>Replace AutoFill snapshot</key>

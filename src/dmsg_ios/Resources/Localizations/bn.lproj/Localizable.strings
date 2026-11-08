@@ -1440,6 +1440,8 @@
 	<string>কোন নিবন্ধিত অনুমোদন কী</string>
 	<key>No reports</key>
 	<string>এখনও কোন রেকর্ড নেই</string>
+	<key>No section</key>
+	<string>কোনো বিভাগ নেই</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>কোন নির্বাচিত কসাইনার মানে কোন অতিরিক্ত কসাইনেচার নীতি নেই। অনুমোদন করার আগে সম্পূর্ণ প্রস্তাব পর্যালোচনা করুন.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>একটি রেফারেন্স মুছে ফেলা ফাইল মুছে ফেলা হয় না. এই ডিভাইসে তাদের ফাইলগুলি অনুপস্থিত থাকা সত্ত্বেও বিদ্যমান রেফারেন্সগুলি রাখা হয়৷</string>
 	<key>Rename</key>
 	<string>নাম পরিবর্তন করুন</string>
+	<key>Reorder fields</key>
+	<string>ফিল্ডের ক্রম পরিবর্তন করুন</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>এর উদ্ভব ডিভাইসে অনুপলব্ধ ক্ষেত্রের রেফারেন্স মেরামত করুন।</string>
 	<key>Replace AutoFill snapshot</key>

@@ -2336,3 +2336,46 @@ The purchase flag stays disabled, so the storage-pack change was compiled but no
 seen on screen. No real Apple purchase, full simulator UI matrix or deployment was run.
 
 Review and validation: Claude (Anthropic).
+
+## Vault field editing and list previews (2026-11-08)
+
+Field names now precede values and remain editable without opening field settings.
+New fields focus their name; Next moves to the value, and the keyboard has a Done
+action. Name and value errors appear beside the relevant input after leaving it
+or attempting to save. Optional sections show their current name, while reordering
+uses compact field rows with native move/delete controls. The add-field menu has
+an explicit full-row hit area. Both added labels are translated in all 23 locales.
+
+The client's list-summary policy now matches the desktop: login, API, server and
+database entries may preview a non-hidden username or HTTP(S) host. Notes and
+other types return no content preview and show their localized type in iOS.
+Arbitrary field values, note bodies and URL credentials, paths and parameters are
+excluded. The change does not alter the stored item or its detail fields.
+
+Actual local verification on the working tree based on `209fd719`:
+
+- `cargo test --locked -p dmsg_client vault::reading::tests:: --lib`: six passed;
+  the existing performance comparison remained ignored. Coverage includes a note
+  containing a custom `name` value, hidden usernames and URL credentials/tokens.
+- `cargo fmt --check -p dmsg_client` and strict library Clippy passed.
+- Release device and simulator native slices were rebuilt with `build-core.sh`;
+  `artifacts.py verify --profile release` verified their source fingerprint.
+- On iPhone 18 Pro / iOS 27.0 Simulator, seven Swift unit tests and eight distinct
+  targeted UI tests passed across the final and regression runs. They cover
+  name/value focus, validation, field preservation through reorder mode, note-list
+  presentation, Chinese dark and German layouts, Arabic RTL at maximum Dynamic
+  Type, cancel/discard, keyboard save, failed-save retry and optional date cancel.
+  The final native build reran the seven unit tests and the custom-field save and
+  multilingual layout tests (`VaultEditor-Final-20261108.xcresult`).
+- App/extension catalogs, compiler-extracted strings, format/plural parity and
+  offline privacy copies passed `localizations.py` for all 23 languages.
+
+Initial UI runs found a non-responsive blank area in the add-field row; the
+full-row label and borderless style fixed it. The test helper also closes the
+previous input through Done before opening the menu with the software keyboard.
+The simulator still logged non-finite-frame warnings during keyboard transitions;
+the checked interactions and exported screenshots completed correctly.
+
+These are local synthetic UI fixtures and native unit tests. Physical devices,
+the complete device/OS matrix, full repository tests and live cloud/account data
+were not exercised. No production deployment was performed.

@@ -1440,6 +1440,8 @@
 	<string>등록된 승인키가 없습니다.</string>
 	<key>No reports</key>
 	<string>아직 기록이 없습니다</string>
+	<key>No section</key>
+	<string>그룹 없음</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>선택한 공동 서명자가 없다는 것은 추가 공동 서명 정책이 없음을 의미합니다. 승인하기 전에 전체 제안을 검토하세요.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>참조를 제거해도 파일은 삭제되지 않습니다. 이 장치에 해당 파일이 없어도 기존 참조는 유지됩니다.</string>
 	<key>Rename</key>
 	<string>이름 변경</string>
+	<key>Reorder fields</key>
+	<string>필드 순서 변경</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>원래 장치에서 사용할 수 없는 필드 참조를 복구합니다.</string>
 	<key>Replace AutoFill snapshot</key>

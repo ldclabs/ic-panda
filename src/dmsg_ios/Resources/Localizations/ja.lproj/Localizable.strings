@@ -1440,6 +1440,8 @@
 	<string>承認キーが登録されていません</string>
 	<key>No reports</key>
 	<string>まだ記録がありません</string>
+	<key>No section</key>
+	<string>グループなし</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>連帯署名者が選択されていないということは、追加の連署ポリシーがないことを意味します。承認する前に、提案全体を確認してください。</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>参照を削除してもファイルは削除されません。既存の参照は、そのファイルがこのデバイス上に存在しない場合でも保持されます。</string>
 	<key>Rename</key>
 	<string>名前を変更</string>
+	<key>Reorder fields</key>
+	<string>フィールドを並べ替え</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>元のデバイスで使用できないフィールド参照を修復します。</string>
 	<key>Replace AutoFill snapshot</key>

@@ -1440,6 +1440,8 @@
 	<string>Walang nakarehistrong key ng pag-apruba</string>
 	<key>No reports</key>
 	<string>Wala pang record</string>
+	<key>No section</key>
+	<string>Walang seksyon</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Walang mga napiling cosigner ang ibig sabihin ay walang karagdagang patakaran sa cosignature. Suriin ang kumpletong panukala bago aprubahan.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Ang pag-alis ng reference ay hindi nagtatanggal ng file. Ang mga kasalukuyang sanggunian ay pinapanatili kahit na nawawala ang kanilang mga file sa device na ito.</string>
 	<key>Rename</key>
 	<string>Palitan ang pangalan</string>
+	<key>Reorder fields</key>
+	<string>Ayusin ang pagkakasunod ng mga field</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Ayusin ang hindi available na field reference sa pinagmulan nitong device.</string>
 	<key>Replace AutoFill snapshot</key>

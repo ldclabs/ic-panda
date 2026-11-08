@@ -1,6 +1,11 @@
 import SwiftUI
 @preconcurrency import DMsgCore
 
+enum VaultEditorFocus: Hashable {
+    case title, tags, notes
+    case name(String), value(String), section(String)
+}
+
 struct VaultDraft: Codable, Equatable {
     struct Field: Codable, Equatable, Identifiable {
         var id: String
@@ -10,6 +15,11 @@ struct VaultDraft: Codable, Equatable {
         var value: String
         var concealed: Bool
         var changed: Bool
+
+        var title: String {
+            if !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return label }
+            return id.hasPrefix("field_") || kind == "otp" ? vaultFieldKindTitle(kind) : vaultFieldName(id)
+        }
     }
     var title = ""
     var kind = "login"
@@ -58,9 +68,11 @@ struct VaultEditor: View {
     @State private var choosingAttachment = false
     @State private var attachmentFiles: [String: LibraryFile] = [:]
     @State private var editMode: EditMode = .inactive
+    @State private var addedField: String?
+    @State private var validationRequested = false
+    @FocusState private var focus: VaultEditorFocus?
     private var dirty: Bool { draft != initial || !tagEntry.isEmpty }
     private var draftKey: String { "vault:" + target.id }
-    private var invalid: Bool { draft.fields.contains { vaultInputError($0, existing: target.item != nil) != nil } }
 
     init(target: VaultEditorTarget) {
         self.target = target
@@ -69,97 +81,138 @@ struct VaultEditor: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                VStack(alignment: .leading) {
-                    Text("Title").font(.caption).foregroundStyle(.secondary)
-                    TextField("Title", text: $draft.title).accessibilityIdentifier("vault.edit.title")
+        ScrollViewReader { proxy in
+            Form {
+                Section {
+                    VStack(alignment: .leading) {
+                        Text("Title").font(.caption).foregroundStyle(.secondary)
+                        TextField("Title", text: $draft.title).focused($focus, equals: .title).accessibilityIdentifier("vault.edit.title")
+                    }
+                    if target.item == nil {
+                        Picker("Type", selection: $draft.kind) {
+                            ForEach(vaultKinds(), id: \.self) { Text(vaultKindName($0)).tag($0) }
+                        }.accessibilityIdentifier("vault.edit.type")
+                    }
+                    Toggle("Favorite", isOn: $draft.favorite)
+                    VaultTagEditor(tags: $draft.tags, entry: $tagEntry).focused($focus, equals: .tags)
                 }
-                if target.item == nil {
-                    Picker("Type", selection: $draft.kind) {
-                        ForEach(vaultKinds(), id: \.self) { Text(vaultKindName($0)).tag($0) }
-                    }.accessibilityIdentifier("vault.edit.type")
-                }
-                Toggle("Favorite", isOn: $draft.favorite)
-                VaultTagEditor(tags: $draft.tags, entry: $tagEntry)
-            }
-            Section {
-                ForEach($draft.fields) { $field in
-                    VaultEditorField(field: $field, existing: target.item != nil)
-                }.onMove { draft.fields.move(fromOffsets: $0, toOffset: $1) }
-                    .onDelete { draft.fields.remove(atOffsets: $0) }
-                Menu("Add field", systemImage: "plus") {
-                    addField("Text", kind: "text"); addField("Hidden value", kind: "concealed")
-                    addField("Website", kind: "url"); addField("Email", kind: "email"); addField("Phone", kind: "phone")
-                    addField("Date", kind: "date"); addField("Month", kind: "month"); addField("One-time code", kind: "otp")
-                }.disabled(draft.fields.count >= 64).accessibilityIdentifier("vault.edit.add-field")
-            } header: { HStack { Text("Fields"); Spacer(); EditButton().frame(minWidth: 44, minHeight: 44) } }
-            Section("Notes") { TextEditor(text: $draft.notes).frame(minHeight: 120).accessibilityLabel("Notes") }
-            Section("Item attachments") {
-                ForEach(draft.files, id: \.self) { id in
+                Section {
+                    ForEach($draft.fields) { $field in
+                        Group {
+                            if editMode.isEditing {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(field.title)
+                                    Text(vaultFieldKindTitle(field.kind)).font(.caption).foregroundStyle(.secondary)
+                                }.padding(.vertical, 4)
+                            } else {
+                                VaultEditorField(field: $field, existing: target.item != nil, validationRequested: validationRequested,
+                                                 addedField: $addedField, focus: $focus)
+                            }
+                        }.id(field.id)
+                    }.onMove { draft.fields.move(fromOffsets: $0, toOffset: $1) }
+                        .onDelete { draft.fields.remove(atOffsets: $0) }
+                    if !editMode.isEditing {
+                        Menu {
+                            addField("Text", kind: "text"); addField("Hidden value", kind: "concealed")
+                            addField("Website", kind: "url"); addField("Email", kind: "email"); addField("Phone", kind: "phone")
+                            addField("Date", kind: "date"); addField("Month", kind: "month"); addField("One-time code", kind: "otp")
+                        } label: {
+                            Label("Add field", systemImage: "plus")
+                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                        }.buttonStyle(.borderless).disabled(draft.fields.count >= 64).accessibilityIdentifier("vault.edit.add-field")
+                    }
+                } header: {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(attachmentFiles[id]?.name ?? id).lineLimit(2)
-                            if attachmentFiles[id] == nil { Text("File not available on this device").font(.caption).foregroundStyle(.secondary) }
-                        }
+                        Text("Fields")
                         Spacer()
-                        Button("Remove attachment reference", systemImage: "minus.circle", role: .destructive) { draft.files.removeAll { $0 == id } }
-                            .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                        Button(editMode.isEditing ? "Done" : "Reorder fields") {
+                            focus = nil
+                            withAnimation { editMode = editMode.isEditing ? .inactive : .active }
+                        }.frame(minWidth: 44, minHeight: 44).disabled(draft.fields.isEmpty)
+                            .accessibilityIdentifier("vault.edit.reorder")
                     }
                 }
-                Button("Attach a file", systemImage: "paperclip") { choosingAttachment = true }.disabled(draft.files.count >= 20)
-                Text("Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            Text("Saved locally first. Sync status is shown separately.").font(.footnote).foregroundStyle(.secondary)
-        }.environment(\.editMode, $editMode).disabled(saving)
-            .accessibilityIdentifier("vault.edit.form")
-            .safeAreaInset(edge: .top) {
-                if let failure {
-                    NoticeBar(text: failure).padding(.horizontal, 16).padding(.vertical, 4)
-                        .accessibilityElement(children: .combine).accessibilityIdentifier("vault.edit.failure")
+                Section("Notes") { TextEditor(text: $draft.notes).focused($focus, equals: .notes).frame(minHeight: 120).accessibilityLabel("Notes") }
+                Section("Item attachments") {
+                    ForEach(draft.files, id: \.self) { id in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(attachmentFiles[id]?.name ?? id).lineLimit(2)
+                                if attachmentFiles[id] == nil { Text("File not available on this device").font(.caption).foregroundStyle(.secondary) }
+                            }
+                            Spacer()
+                            Button("Remove attachment reference", systemImage: "minus.circle", role: .destructive) { draft.files.removeAll { $0 == id } }
+                                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                        }
+                    }
+                    Button("Attach a file", systemImage: "paperclip") { choosingAttachment = true }.disabled(draft.files.count >= 20)
+                    Text("Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
-            }.privateScreen()
-            .navigationTitle(target.item == nil ? "New secret" : "Edit secret").navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if dirty { discard = true } else { dismiss() } }.disabled(saving).keyboardShortcut(.cancelAction) }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button { Task { await save() } } label: { if saving { ProgressView() } else { Text("Save") } }
-                        .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || invalid || saving)
-                        .accessibilityIdentifier("vault.edit.save")
-                        .keyboardShortcut("s", modifiers: .command)
+                Text("Saved locally first. Sync status is shown separately.").font(.footnote).foregroundStyle(.secondary)
+            }.environment(\.editMode, $editMode).disabled(saving)
+                .accessibilityIdentifier("vault.edit.form")
+                .safeAreaInset(edge: .top) {
+                    if let failure {
+                        NoticeBar(text: failure).padding(.horizontal, 16).padding(.vertical, 4)
+                            .accessibilityElement(children: .combine).accessibilityIdentifier("vault.edit.failure")
+                    }
+                }.privateScreen()
+                .navigationTitle(target.item == nil ? "New secret" : "Edit secret").navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if dirty { discard = true } else { dismiss() } }.disabled(saving).keyboardShortcut(.cancelAction) }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button { Task { await save() } } label: { if saving { ProgressView() } else { Text("Save") } }
+                            .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving)
+                            .accessibilityIdentifier("vault.edit.save")
+                            .keyboardShortcut("s", modifiers: .command)
+                    }
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") { focus = nil }.accessibilityIdentifier("vault.edit.keyboard-done")
+                    }
                 }
-            }
-            .background(DraftDismissGuard(blocked: dirty || saving) { if !saving { discard = true } }.frame(width: 0, height: 0))
-            .confirmationDialog("Discard unsaved changes?", isPresented: $discard, titleVisibility: .visible) {
-                Button("Discard", role: .destructive) { model.settingsDrafts[draftKey] = nil; dismiss() }
-                Button("Cancel", role: .cancel) {}
-            }
-            .onAppear {
-                guard !initialized else { return }
-                openingGeneration = model.viewGeneration
-                if let data = model.settingsDrafts[draftKey], let saved = try? JSONDecoder().decode(VaultDraft.self, from: data) { draft = saved }
-                initialized = true
-            }
-            .onChange(of: draft.kind) { previous, _ in if target.item == nil { draft.addTemplate(from: previous) } }
-            .onChange(of: draft) { _, _ in
-                guard initialized, openingGeneration == model.viewGeneration, model.unlocked else { return }
-                model.activity(); model.settingsDrafts[draftKey] = try? JSONEncoder().encode(draft)
-            }
-            .task { await loadAttachments() }
-            .sheet(isPresented: $choosingAttachment) {
-                NavigationStack { AttachmentPicker(folder: "root") { file in
-                    if !draft.files.contains(file.id) { draft.files.append(file.id) }
-                    attachmentFiles[file.id] = file; choosingAttachment = false
-                } }
-            }
+                .background(DraftDismissGuard(blocked: dirty || saving) { if !saving { discard = true } }.frame(width: 0, height: 0))
+                .confirmationDialog("Discard unsaved changes?", isPresented: $discard, titleVisibility: .visible) {
+                    Button("Discard", role: .destructive) { model.settingsDrafts[draftKey] = nil; dismiss() }
+                    Button("Cancel", role: .cancel) {}
+                }
+                .onAppear {
+                    guard !initialized else { return }
+                    openingGeneration = model.viewGeneration
+                    if let data = model.settingsDrafts[draftKey], let saved = try? JSONDecoder().decode(VaultDraft.self, from: data) { draft = saved }
+                    initialized = true
+                }
+                .onChange(of: draft.kind) { previous, _ in if target.item == nil { draft.addTemplate(from: previous) } }
+                .onChange(of: draft) { _, _ in
+                    guard initialized, openingGeneration == model.viewGeneration, model.unlocked else { return }
+                    model.activity(); model.settingsDrafts[draftKey] = try? JSONEncoder().encode(draft)
+                }
+                .onChange(of: addedField) { _, id in
+                    if let id { withAnimation { proxy.scrollTo(id, anchor: .top) } }
+                }
+                .onChange(of: validationRequested) { _, requested in
+                    if requested, let field = draft.fields.first(where: { vaultInputError($0, existing: target.item != nil) != nil }) {
+                        withAnimation { proxy.scrollTo(field.id, anchor: .top) }
+                    }
+                }
+                .task { await loadAttachments() }
+                .sheet(isPresented: $choosingAttachment) {
+                    NavigationStack { AttachmentPicker(folder: "root") { file in
+                        if !draft.files.contains(file.id) { draft.files.append(file.id) }
+                        attachmentFiles[file.id] = file; choosingAttachment = false
+                    } }
+                }
+        }
     }
 
     private func addField(_ title: LocalizedStringKey, kind: String) -> some View {
         Button(title) {
-            draft.fields.append(.init(id: "field_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).lowercased(),
+            let id = "field_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).lowercased()
+            draft.fields.append(.init(id: id,
                 kind: kind, label: "", section: "", value: "", concealed: ["concealed", "otp"].contains(kind), changed: true))
-        }
+            addedField = id
+        }.accessibilityIdentifier("vault.edit.add-field.\(kind)")
     }
 
     private func loadAttachments() async {
@@ -173,6 +226,10 @@ struct VaultEditor: View {
 
     private func save() async {
         guard !saving else { return }
+        focus = nil
+        editMode = .inactive
+        validationRequested = true
+        guard !draft.fields.contains(where: { vaultInputError($0, existing: target.item != nil) != nil }) else { return }
         saving = true; failure = nil; defer { saving = false }; let epoch = model.epoch
         // A tag still being typed counts.
         draft.tags = (vaultTags(draft.tags) + vaultTags(tagEntry)).joined(separator: ", "); tagEntry = ""

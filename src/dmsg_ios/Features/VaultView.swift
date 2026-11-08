@@ -43,14 +43,20 @@ struct VaultView: View {
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button("Add item", systemImage: "plus") { add() }.accessibilityIdentifier("vault.add").keyboardShortcut("n", modifiers: .command)
                         Menu("Vault tools", systemImage: "ellipsis.circle") {
-                            NavigationLink("Import passwords") { VaultImportView() }
-                            NavigationLink("Import secret package") { SecretPackageImportView() }
-                            NavigationLink("Shared snapshots") { SecretSharesView() }
-                            NavigationLink("Local security review") { SecretHealthView() }
-                            NavigationLink("Password AutoFill") { SystemExportsView(section: .autoFill) }
-                            NavigationLink("Activity on this device") { SecretActivityView() }
-                            Button("Trash", systemImage: "trash") { trash = true }
-                        }
+                            Section {
+                                NavigationLink { SystemExportsView(section: .autoFill) } label: { Label("Password AutoFill", systemImage: "key") }
+                                NavigationLink { SecretHealthView() } label: { Label("Local security review", systemImage: "checkmark.shield") }
+                            }
+                            Section {
+                                NavigationLink { VaultImportView() } label: { Label("Import passwords", systemImage: "square.and.arrow.down") }
+                                NavigationLink { SecretPackageImportView() } label: { Label("Import secret package", systemImage: "shippingbox") }
+                                NavigationLink { SecretSharesView() } label: { Label("Shared snapshots", systemImage: "link") }
+                            }
+                            Section {
+                                NavigationLink { SecretActivityView() } label: { Label("Activity on this device", glyph: .audit) }
+                                Button("Trash", systemImage: "trash") { trash = true }
+                            }
+                        }.accessibilityIdentifier("vault.tools")
                     }
                 }
                 .task(id: model.vaultQueryKey) {

@@ -1440,6 +1440,8 @@
 	<string>Tiada kunci kelulusan berdaftar</string>
 	<key>No reports</key>
 	<string>Tiada rekod lagi</string>
+	<key>No section</key>
+	<string>Tiada bahagian</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Tiada kosigner terpilih bermakna tiada dasar cosignature tambahan. Semak cadangan lengkap sebelum diluluskan.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Mengalih keluar rujukan tidak memadamkan fail. Rujukan sedia ada disimpan walaupun failnya tiada pada peranti ini.</string>
 	<key>Rename</key>
 	<string>Namakan semula</string>
+	<key>Reorder fields</key>
+	<string>Susun semula medan</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Baiki rujukan medan yang tidak tersedia pada peranti asalnya.</string>
 	<key>Replace AutoFill snapshot</key>

@@ -29,6 +29,19 @@ final class VaultUITests: XCTestCase {
         XCTAssertTrue(app.buttons["vault.enlarge.\(field)"].waitForExistence(timeout: 5))
     }
 
+    private func addField(_ app: XCUIApplication, kind: String) {
+        let done = app.buttons["vault.edit.keyboard-done"]
+        if done.exists && done.isHittable { done.tap() }
+        let menu = app.descendants(matching: .any).matching(identifier: "vault.edit.add-field").firstMatch
+        let form = app.collectionViews["vault.edit.form"]
+        for _ in 0..<6 where !menu.isHittable { form.swipeUp() }
+        XCTAssertTrue(menu.isHittable)
+        // Use the same Menu AX workaround as the field action menu above.
+        menu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let option = app.buttons["vault.edit.add-field.\(kind)"]
+        XCTAssertTrue(option.waitForExistence(timeout: 5)); option.tap()
+    }
+
     func testSearchAndCategoryPositionsStayStableWhileLoading() {
         let app = launch(["--ui-vault-slow-load"])
         XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 8))
@@ -339,6 +352,85 @@ final class VaultUITests: XCTestCase {
         app.typeKey("s", modifierFlags: .command)
         XCTAssertTrue(app.buttons["vault.item.fixture-created"].waitForExistence(timeout: 5))
         capture(app, "Keyboard creates and saves a vault item")
+    }
+
+    func testCustomFieldStartsWithNameAndKeepsItsValueOutOfTheNoteList() {
+        let app = launch()
+        app.buttons["vault.scope.note"].tap(); app.buttons["vault.add"].tap()
+        let title = app.textFields["vault.edit.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText("dmsg names")
+        addField(app, kind: "text")
+        let name = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "vault.edit.name.field_")).firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Field name is required."].exists)
+        // The new row must focus its name, and Next must move to its value.
+        app.typeText("Project\n")
+        XCTAssertEqual(name.value as? String, "Project")
+        let id = String(name.identifier.dropFirst("vault.edit.name.".count))
+        app.typeText("Apollo")
+        let value = app.descendants(matching: .any).matching(identifier: "vault.edit.field.\(id)").firstMatch
+        XCTAssertEqual(value.value as? String, "Apollo")
+        capture(app, "New field names precede values")
+        app.buttons["vault.edit.keyboard-done"].tap()
+        app.buttons["vault.edit.reorder"].tap()
+        XCTAssertFalse(value.exists)
+        capture(app, "Compact fields for reordering")
+        app.buttons["vault.edit.reorder"].tap()
+        XCTAssertEqual(value.value as? String, "Apollo")
+        app.buttons["vault.edit.save"].tap()
+        let row = app.buttons["vault.item.fixture-created"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("Note")); XCTAssertFalse(row.label.contains("Apollo"))
+        capture(app, "Note list shows its type without field contents")
+        row.tap()
+        XCTAssertTrue(app.buttons["vault.copy.\(id)"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["vault.copy.\(id)"].value as? String, "Apollo")
+    }
+
+    func testUnnamedFieldReportsItsNameAfterEditingAndPreservesTheValue() {
+        let app = launch(language: "zh-Hans")
+        app.buttons["vault.scope.note"].tap(); app.buttons["vault.add"].tap()
+        let title = app.textFields["vault.edit.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText("字段草稿")
+        addField(app, kind: "text")
+        let name = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "vault.edit.name.field_")).firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        let id = String(name.identifier.dropFirst("vault.edit.name.".count))
+        let error = app.staticTexts["vault.edit.name-error.\(id)"]
+        XCTAssertFalse(error.exists)
+        app.typeText("\n")
+        let value = app.descendants(matching: .any).matching(identifier: "vault.edit.field.\(id)").firstMatch
+        app.typeText("name")
+        XCTAssertTrue(error.waitForExistence(timeout: 5))
+        XCTAssertEqual(value.value as? String, "name")
+        app.buttons["vault.edit.save"].tap()
+        XCTAssertTrue(name.exists)
+        capture(app, "Missing field name stays beside its input")
+        name.tap(); name.typeText("项目名称")
+        XCTAssertFalse(error.exists)
+        app.buttons["vault.edit.save"].tap()
+        XCTAssertTrue(app.buttons["vault.item.fixture-created"].waitForExistence(timeout: 5))
+    }
+
+    func testCustomFieldEditorSupportsLanguagesAndLargeText() {
+        for (language, extra) in [("zh-Hans", ["--ui-dark"]), ("de", []),
+                                  ("ar", ["--ui-dark", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])] {
+            let app = launch(extra, language: language)
+            app.buttons["vault.scope.note"].tap(); app.buttons["vault.add"].tap()
+            addField(app, kind: "concealed")
+            let name = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "vault.edit.name.field_")).firstMatch
+            XCTAssertTrue(name.waitForExistence(timeout: 5))
+            app.typeText("Project token\n")
+            let id = String(name.identifier.dropFirst("vault.edit.name.".count))
+            let value = app.secureTextFields["vault.edit.field.\(id)"]
+            XCTAssertTrue(value.waitForExistence(timeout: 5))
+            app.typeText("sample-draft")
+            XCTAssertFalse(app.staticTexts["vault.edit.name-error.\(id)"].exists)
+            capture(app, "Named hidden field with keyboard \(language)")
+            app.buttons["vault.edit.keyboard-done"].tap()
+            capture(app, "Named hidden field layout \(language)")
+            app.terminate()
+        }
     }
 
     func testVaultControlsHaveAccessibleTargetsAndDescriptions() throws {

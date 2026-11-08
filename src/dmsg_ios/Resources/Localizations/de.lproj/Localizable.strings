@@ -1440,6 +1440,8 @@
 	<string>Kein registrierter Genehmigungsschlüssel</string>
 	<key>No reports</key>
 	<string>Noch keine Aufzeichnungen</string>
+	<key>No section</key>
+	<string>Kein Abschnitt</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Keine ausgewählten Mitunterzeichner bedeuten, dass keine zusätzliche Mitunterzeichnungsrichtlinie gilt. Überprüfen Sie den vollständigen Vorschlag, bevor Sie ihn genehmigen.</string>
 	<key>No share links yet</key>
@@ -1896,6 +1898,8 @@
 	<string>Durch das Entfernen einer Referenz wird die Datei nicht gelöscht. Vorhandene Referenzen bleiben auch dann erhalten, wenn ihre Dateien auf diesem Gerät fehlen.</string>
 	<key>Rename</key>
 	<string>Umbenennen</string>
+	<key>Reorder fields</key>
+	<string>Felder neu anordnen</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Reparieren Sie die nicht verfügbare Feldreferenz auf dem Ursprungsgerät.</string>
 	<key>Replace AutoFill snapshot</key>
