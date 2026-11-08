@@ -491,17 +491,6 @@
   color: #c1e6cc;
   text-decoration-color: #93b49d;
 }
-.home .audit-note {
-  font-size: 14px;
-  line-height: 1.75;
-  border-top: 1px solid #426052;
-  padding-top: 24px;
-  margin: 30px 0 0;
-  color: #c0d2c5;
-}
-.home .audit-note strong {
-  color: #fff;
-}
 .home .release-grid {
   align-items: start;
 }
