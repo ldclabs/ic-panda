@@ -6,7 +6,7 @@ dMsg 付费来信的资金托管 canister，实现公开的 delivery profile 2�
 
 完整接口见 [dmsg_payment.did](dmsg_payment.did)。公开类型见 [payment](../dmsg_types/src/payment.rs) 与 [profiles::delivery](../dmsg_types/src/profiles/delivery.rs)，费率规则见 [billing](../dmsg_protocol/src/billing.rs)，账本适配器见 [dmsg_runtime::ledger](../dmsg_runtime/src/ledger.rs)。
 
-> 状态：开发中，稳定布局 schema 12，未审计，未在主网用真实资产验收。容量与多实例见[容量与扩展](#容量与扩展)。
+> 状态：开发中，稳定布局 schema 12，未在主网用真实资产验收。容量与多实例见[容量与扩展](#容量与扩展)。
 
 ## 架构设计
 

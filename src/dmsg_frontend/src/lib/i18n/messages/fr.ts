@@ -527,7 +527,6 @@ export default {
     'Un engagement sur la racine de votre contenu',
   'A hint wakes your desktop, no content':
     'Un signal réveille votre ordinateur, sans contenu',
-  'A release is not an audit.': 'Une version n’est pas un audit.',
   'API key': 'Clé d’API',
   'Account and device changes': 'Modifier le compte ou les appareils',
   'Account and sync status': 'État du compte et de la synchronisation',
@@ -660,7 +659,6 @@ export default {
   'Never your messages or files': 'Jamais vos messages ni vos fichiers',
   'New address-book entries': 'Nouvelles entrées du carnet',
   'Next step': 'Étape suivante',
-  'Not audited yet.': 'Pas encore audité.',
   "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
     "Les applications mobiles sont en cours de développement. La version iOS est déjà en bêta privée, et le développement de la version Android devrait bientôt être terminé.",
   'Note': 'Note',
@@ -748,8 +746,6 @@ export default {
   'Synced': 'Synchronisé',
   'Team treasury': 'Trésorerie d’équipe',
   "Multisig wallets": "Portefeuilles multisignatures",
-  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
-    "Les portefeuilles multisignatures sont en développement. Jusqu’à un audit indépendant, utilisez-les seulement pour tester, avec de petits montants.",
   "Multisig wallets, their proposals and approvals":
     "Portefeuilles multisignatures, leurs propositions et approbations",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
@@ -814,8 +810,6 @@ export default {
   'approval window': 'fenêtre d’approbation',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net transmet l’origine que votre navigateur lui a donnée. Elle ne peut ni approuver, ni signer, ni lire votre coffre, et la fenêtre d’approbation indique d’où vient l’origine.',
-  'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
-    'dMsg n’a pas encore été audité de façon indépendante. Un dépôt public ne prouve ni un audit ni le code réellement déployé.',
   'dMsg relay': 'Relais dMsg',
   'dMsg · Approval': 'dMsg · Approbation',
   'device': 'appareil',

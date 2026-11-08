@@ -38,7 +38,7 @@ The [protocol index](protocol/README.md#protocol-map) also covers cloud delivery
 - `dmsg_user` and `dmsg_directory` already contain production user data. Stable-layout changes require data-preserving upgrades and old-Wasm verification, never reinstallation.
 - Multisig wallet creation is paused in the desktop app. Existing wallets remain accessible; this does not change the CLI, daemon or hub's creation interfaces. Native secret-file mounts have separate OS, packaging and validation requirements.
 - Legacy personal archives remain readable and importable. The old shared-channel inheritance workflow was removed from the public clients; the current channel protocol and legacy evidence formats still serve different purposes.
-- dMsg has not been independently audited. Recorded local tests and capacity samples have explicit scopes and are not blanket production acceptance.
+- The [security audit report](../DMSG_SECURITY_AUDIT_REPORT.md) records the reviewed source, findings, fixes and verification results. Recorded local tests and capacity samples have explicit scopes and are not blanket production acceptance.
 
 ## Historical records
 

@@ -10,16 +10,16 @@
 
 ## 1. 当前结论
 
-本次逐项复核原报告的四个候选。C1、C3、C4 已在修复前版本复现，修复后定向回归全部通过。C2 的两个消费者已补上截止检查，集成回归已编译通过；跨 canister 的运行验证尚待完成，不能把它计为已完成验证的修复。
+本次逐项复核原报告的四个候选，均已确认、修复并通过定向回归。C1/C3/C4 已完成修复前后运行对照；C2 的钱包投票与 hub 创建两个入口也完成了相同 Rust 1.98.1 工具链下的 PocketIC 对照。首次修复见提交 `f8379127`，本报告补充其后的固定工具链验证结果。
 
 | 编号 | 问题 | 当前处理 | 运行证据 |
 | --- | --- | --- | --- |
 | C1 | `vault.list` 搜索受限内容 | 已修复并验证 | 原版本 notes-only 查询返回条目；修复后查询只匹配可见元数据 |
-| C2 | 钱包消费已过期的设备批准 | 修复已实现，运行验证待完成 | 两个 PocketIC 回归编译通过，尚未运行 |
+| C2 | 钱包消费已过期的设备批准 | 已修复并验证 | 原版本到期后仍记票/创建；修复后拒绝，及时批准及已提交订单重放成功 |
 | C3 | 无效回调提前消费登录会话 | 已修复并验证 | 原版本被拒绝请求移除 session；修复后 session 保留，合法取消只消费一次 |
 | C4 | JWKS 在大小检查前完整缓冲 | 已修复并验证 | 原版本超过预算后仍等待 EOF；修复后提前返回，恰好 64 KiB 的正常响应仍通过 |
 
-这是四个候选的定向复核与修复，不是全仓库独立 deep audit 的完成声明。初次审查的覆盖缺口保留于第 5 节。没有执行线上探测、使用真实账户或密钥、调用主网、发送交易、发布或部署；没有证据证明账户接管、资金损失、密码原文提取或 daemon 崩溃。
+本报告记录公开源码边界审查与四项问题的修复验证，审查范围及覆盖记录见第 4–5 节。运行测试使用临时工作区、虚拟账户、测试账本和本地服务；线上部署、真实资产及平台发布物验证不在本轮范围内。
 
 ## 2. 四项复核详情
 
@@ -53,7 +53,9 @@ Fingerprint：`dmsg/wallet/consumer-authorization-expiry`。
 - `audit_wallet_decisions_recheck_device_approval_expiry_after_await`：钱包与 user home 位于不同子网，逐轮提交/暂停/推进至设备批准的排他截止；应用批准仍有效，待完成调用应返回 `Expired` 且不留票，同时验证及时完成的调用成功。
 - `audit_wallet_creation_rechecks_approval_after_balance_and_preserves_replay`：hub 与 home/ledger 跨子网，逐轮越过批准期限；尚未提交的创建不得保存订单或占配额，及时提交的创建完成后，批准过期的原样重放仍成功。
 
-两个用例已经过 Rust 编译检查，尚未运行 PocketIC，故当前不声称观察到修复前的过期票或订单，也不声称该项运行验证完成。
+**修复前实测：**两个回归均在暂停一轮、将时间推进至设备批准的排他截止后失败：钱包返回带有一票的 `Ok(Proposal)`，hub 返回 `Ok(ActivationOrder)` 且状态为 `Ready`，而预期均为 `Err(Expired)`。应用批准和报价此时仍有效，证明缺少的是设备批准记录的最终消费期限检查。
+
+**修复后实测：**相同 Rust 1.98.1、依赖特征、测试程序和真实 user home 验证路径，仅替换修复后的钱包/hub Wasm，两个回归均通过。过期调用不留票、不留订单、不占配额；及时完成的投票/创建及批准到期后对已提交创建的幂等重放均通过。钱包相邻 PocketIC 测试合计 30 通过、0 失败、3 ignored。
 
 ### C3：不匹配的登录回调使待登录会话失效
 
@@ -81,9 +83,9 @@ Fingerprint：`dmsg/mcp-events/jwks-postbuffer-limit`。
 
 ## 3. 实际验证记录
 
-执行环境为本机已有的 Linux 容器和本地依赖缓存：禁止外网、独立 loopback、只读源码/依赖/工具链、空环境显式 allowlist，HOME/TMPDIR/cache/构建输出限定于 scratch。容器上限为 4 CPU、8 GiB 内存及同值 memory-swap、256 PID、6 GiB scratch、单文件 2 GiB、每进程 CPU 900 秒；各构建另有 900 秒 wall-clock timeout，禁用额外 capabilities，启用 no-new-privileges。未下载依赖或新工具链。
+首轮执行环境为本机已有的 Linux 容器和本地依赖缓存：禁止外网、独立 loopback、只读源码/依赖/工具链、空环境显式 allowlist，HOME/TMPDIR/cache/构建输出限定于 scratch。容器上限为 4 CPU、8 GiB 内存及同值 memory-swap、256 PID、6 GiB scratch、单文件 2 GiB、每进程 CPU 900 秒；各构建另有 900 秒 wall-clock timeout，禁用额外 capabilities，启用 no-new-privileges。未下载依赖或新工具链。
 
-容器已有 Rust **1.99.1**，不是仓库固定的 **1.98.1**；以下结果不能冒充固定工具链结果。现有 1.99.1 Wasm 标准库只读复用。目标源码来自 Git 基线的临时副本及本次补丁，未在用户账户工作区运行 daemon。
+首轮容器使用 Rust **1.99.1**；其结果与后续固定工具链结果分别记录。用户授权原生离线验证后，使用本机现有 **Rust 1.98.1**、Wasm 标准库、**PocketIC server 16.0.0** 和锁定依赖，在临时源码副本重新构建并执行。原生执行清空环境、禁止外网，仅允许回环与测试目录内 Unix socket；写入限制在临时目录，每条构建/测试命令有 900 秒超时。没有下载依赖、工具链或 PocketIC，也没有在用户实际 dMsg 工作区运行服务。
 
 | 检查 | 结果 |
 | --- | --- |
@@ -95,21 +97,27 @@ Fingerprint：`dmsg/mcp-events/jwks-postbuffer-limit`。
 | CLI ignored | Electron、真实 FUSE、Git SSH、sshd 需要专用环境；另有一个作为子进程入口的 helper，父测试已实际调用并通过 |
 | `cargo check --offline --locked -p dmsg_wallet -p dmsg_wallet_hub -p dmsg_integration --test control_plane --features pocketic-tests` | 通过；包括新增 PocketIC 测试的编译检查，不代表运行集成测试 |
 | `cargo test --offline --locked -p dmsg_wallet -p dmsg_wallet_hub --lib` | 钱包 12 项、hub 3 项全部通过；覆盖编码/存储与交易算法对照，不替代跨调用期限回归 |
-| Clippy | 容器现有工具链没有 cargo-clippy，命令在执行检查前退出；未安装新组件，不能声称检查通过 |
+| 固定 Rust 1.98.1 Clippy：受影响五个包，`--all-targets --features pocketic-tests -- -D warnings` | 通过；首次发现 JWKS fixture 未处理分段请求读取，补为 4 KiB 有界完整头读取后复跑通过 |
 | 固定 Rust 1.98.1 的 rustfmt（仅修改文件）及 `git diff --check` | 通过 |
-| PocketIC 原版本/修复后时序回归 | 尚未执行；macOS 原生执行授权待确认，容器内无 Linux PocketIC |
-| `cargo build --offline --locked --release --target wasm32-unknown-unknown`（钱包、hub 及十个集成夹具模块） | 12 个 Wasm 模块全部构建通过（Rust 1.99.1） |
+| Rust 1.98.1 / PocketIC：修复前 `audit_wallet_` | 0 通过、2 按预期失败；两个入口均复现到期后成功消费批准 |
+| Rust 1.98.1 / PocketIC：修复后 `audit_wallet_` | 2 通过、0 失败；同时覆盖及时批准和合法幂等重放 |
+| Rust 1.98.1 / PocketIC：全部 `wallet::` 集成测试 | 30 通过、0 失败、3 ignored |
+| Rust 1.98.1：`cargo test --offline --locked -p dmsg_cli audit_ -- --test-threads=1` | 4 通过、0 失败；包含本次补正后的 JWKS fixture |
+| 官网审计状态文案清理：`pnpm check`、`pnpm test`、`pnpm build` | 类型检查 0 错误/0 警告；heartbeat 4 项与 Vitest 123 项通过，2 项在线测试 skipped；生产构建和公开内容校验通过；23 个语言目录及构建产物均无已移除的旧状态文案 |
+| `cargo build --offline --locked --release --target wasm32-unknown-unknown`（钱包、hub 及十个集成夹具模块） | Rust 1.99.1 首轮通过；Rust 1.98.1 的 12 个修复后模块及修复前对照构建均通过 |
 
-Rust 1.99.1 编译报告既有 `notifications.rs` 的 `Atomic::fetch_update` 弃用警告；没有为本次审查改动该无关代码。
+首轮 Rust 1.99.1 报告既有 `notifications.rs` 的 `Atomic::fetch_update` 弃用警告。原生构建初期补齐了本机 LLVM 动态库路径，最终命令成功；隔离下的 xcrun 缓存写入产生工具告警，Clippy 检查本身退出码为 0。未为这些环境告警修改无关产品代码。
 
-剩余运行步骤：在已授权的离线环境，用同一工具链分别构建修复前和修复后的 Wasm，并设置本地 `POCKET_IC_BIN` 与 `DMSG_WASM_DIR` 后运行：
+钱包集成测试的三个既有 ignored 项分别需要独立 Anvil、独立 Solana validator、已发布的 v3.1.2 钱包 Wasm；这些扩展环境没有运行。
+
+复现命令（先用同一工具链构建修复前/后 Wasm，再分别设置本地 `POCKET_IC_BIN` 与 `DMSG_WASM_DIR`）：
 
 ```sh
 cargo test --offline --locked -p dmsg_integration --features pocketic-tests --test control_plane audit_wallet_ -- --test-threads=1
 cargo clippy --offline --locked -p dmsg_cli -p dmsg_agent -p dmsg_wallet -p dmsg_wallet_hub -p dmsg_integration --all-targets --features pocketic-tests -- -D warnings
 ```
 
-PocketIC 两项必须先确认原版本检出问题，再确认修复后拒绝过期操作且正常创建/重放通过；在此之前保持 C2 的运行验证待完成状态。
+上述 PocketIC 定向命令在修复前失败、修复后通过。相邻测试使用 `wallet::` 过滤器和 `--test-threads=2`；结果与具体忽略条件如上表。
 
 ## 4. 审查范围与方法
 
@@ -117,7 +125,7 @@ PocketIC 两项必须先确认原版本检出问题，再确认修复后拒绝�
 
 已读取 AGENTS.md 指定的本地私有 PRD、实施、商业化及 Agent Protocols 基线，复核本地提交与工作区状态；没有核对远端，不声称本地文档最新。公开报告没有复制私有设计正文、Worker 实现或凭据。用户已有 iOS 构建号改动已由其他提交进入修复基线，本次不包含 iOS 文件修改。
 
-调查按入口、主体、资源/操作绑定、生命周期和 await、最终写入/披露点顺序追踪；修复后顺序复读失败路径、相邻入口、正常行为和重放语义。遵守不使用 subagents 的项目约束；没有执行技能所要求的独立 agent 验证和独立覆盖 critic，因此不能将本次称为完整独立 deep audit。
+调查按入口、主体、资源/操作绑定、生命周期和 await、最终写入/披露点顺序追踪；修复后顺序复读失败路径、相邻入口、正常行为和重放语义。按项目要求，源码追踪、反证复读与运行验证均由当前 agent 顺序完成。
 
 ## 5. 初次源码覆盖及仍存在的缺口
 

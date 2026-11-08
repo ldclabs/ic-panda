@@ -472,12 +472,6 @@
             )}</p
           >
           <TeamWallet />
-          <p class="caveat"
-            ><strong>{$t('Not audited yet.')}</strong>
-            {$t(
-              'Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.'
-            )}</p
-          >
         </Demo>
         <Demo id="connect" title={$t('Follow a request from a website')}>
           <p class="demo-intro"
@@ -638,12 +632,6 @@
             ></article
           >
         </div>
-        <p class="audit-note"
-          ><strong>{$t('A release is not an audit.')}</strong>
-          {$t(
-            'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.'
-          )}</p
-        >
       </div>
     </section>
 

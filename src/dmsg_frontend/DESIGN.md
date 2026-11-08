@@ -337,7 +337,7 @@ The landing rhythm is:
    explicit decisions, with the multisig wallet and website demos.
 5. 04 Agent network: the three protocols, three notes, and the agent demo.
 6. 05 Privacy & trust (Ink band): boundaries, the privacy demo, public code,
-   recovery, the signature verifier, and the statement that no audit exists.
+   recovery, and the signature verifier.
 7. 06 Membership: a four-tier comparison of annual price, encrypted cloud
    storage, active devices and channels, formal signatures and multisig wallets.
    Use aligned columns and rules, stacking on phones; one download action

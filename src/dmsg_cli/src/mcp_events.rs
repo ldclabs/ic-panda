@@ -572,7 +572,12 @@ mod tests {
             let server = tokio::spawn(async move {
                 let (mut stream, _) = listener.accept().await.unwrap();
                 let mut request = [0; 4096];
-                stream.read(&mut request).await.unwrap();
+                let mut read = 0;
+                while !request[..read].ends_with(b"\r\n\r\n") {
+                    let n = stream.read(&mut request[read..]).await.unwrap();
+                    assert!(n > 0, "complete request headers must fit in the buffer");
+                    read += n;
+                }
                 let header = if chunked {
                     "Transfer-Encoding: chunked\r\n".to_string()
                 } else {

@@ -521,7 +521,6 @@ export default {
     'Хэш-обязательство корня вашего контента',
   'A hint wakes your desktop, no content':
     'Подсказка будит компьютер — без содержимого',
-  'A release is not an audit.': 'Выпуск — не аудит.',
   'API key': 'API-ключ',
   'Account and device changes': 'Изменения аккаунта и устройств',
   'Account and sync status': 'Статус аккаунта и синхронизации',
@@ -651,7 +650,6 @@ export default {
   'Never your messages or files': 'Никогда — ваши сообщения или файлы',
   'New address-book entries': 'Новые записи адресной книги',
   'Next step': 'Следующий шаг',
-  'Not audited yet.': 'Аудита пока не было.',
   "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
     "Мобильные приложения находятся в разработке. Версия для iOS уже проходит закрытое бета-тестирование, а разработку версии для Android планируется завершить в ближайшее время.",
   'Note': 'Заметка',
@@ -738,8 +736,6 @@ export default {
   'Synced': 'Синхронизировано',
   'Team treasury': 'Казна команды',
   "Multisig wallets": "Мультиподписные кошельки",
-  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
-    "Мультиподписные кошельки в разработке. До независимого аудита используйте их только для проверки, с небольшими суммами.",
   "Multisig wallets, their proposals and approvals":
     "Мультиподписные кошельки, их предложения и одобрения",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
@@ -803,8 +799,6 @@ export default {
   'approval window': 'окно подтверждения',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net передаёт источник, который сообщил ваш браузер. Она не может одобрять, подписывать или читать ваше хранилище, а окно подтверждения указывает, откуда взят источник.',
-  'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
-    'dMsg ещё не проходил независимый аудит. Публичный репозиторий не доказывает ни аудит, ни то, какой код развёрнут.',
   'dMsg relay': 'Ретранслятор dMsg',
   'dMsg · Approval': 'dMsg · Подтверждение',
   'device': 'устройство',

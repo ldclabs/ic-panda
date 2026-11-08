@@ -1524,20 +1524,6 @@ html[dir='rtl'] .home .fl-bar {
   padding: 8px 16px;
   font-size: 14px;
 }
-.home .caveat {
-  max-width: 880px;
-  margin: 40px 0 0;
-  padding: 18px 22px;
-  border: 1px solid var(--line);
-  border-inline-start: 3px solid var(--amber);
-  border-radius: 12px;
-  background: #fff;
-  font-size: 14px;
-}
-.home .caveat strong {
-  color: var(--ink);
-}
-
 @container ticket (max-width: 520px) {
   .home .wl-track {
     grid-template-columns: repeat(3, minmax(0, 1fr));

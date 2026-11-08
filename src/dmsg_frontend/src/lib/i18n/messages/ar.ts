@@ -505,7 +505,6 @@ export default {
   '2 of 2, then 24 hours': '2 من 2، ثم 24 ساعة',
   'A commitment to your content root': 'التزام تشفيري بجذر محتواك',
   'A hint wakes your desktop, no content': 'تنبيه يوقظ حاسوبك، بلا أي محتوى',
-  'A release is not an audit.': 'الإصدار ليس تدقيقًا.',
   'API key': 'مفتاح API',
   'Account and device changes': 'تغييرات الحساب والأجهزة',
   'Account and sync status': 'حالة الحساب والمزامنة',
@@ -633,7 +632,6 @@ export default {
   'Never your messages or files': 'لا رسائلك ولا ملفاتك أبدًا',
   'New address-book entries': 'إدخالات دفتر العناوين الجديدة',
   'Next step': 'الخطوة التالية',
-  'Not audited yet.': 'لم يُدقَّق بعد.',
   "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
     "تطبيقات الهاتف قيد التطوير. دخل تطبيق iOS بالفعل مرحلة الاختبار التجريبي الخاص، ومن المتوقع اكتمال تطوير تطبيق Android قريبًا.",
   'Note': 'ملاحظة',
@@ -717,8 +715,6 @@ export default {
   'Synced': 'تمت المزامنة',
   'Team treasury': 'خزينة الفريق',
   "Multisig wallets": "محافظ متعددة التوقيعات",
-  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
-    "المحافظ متعددة التوقيعات قيد التطوير. وحتى يُجرى تدقيق مستقل، استخدمها للاختبار فقط وبمبالغ صغيرة.",
   "Multisig wallets, their proposals and approvals":
     "المحافظ متعددة التوقيعات ومقترحاتها وموافقاتها",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
@@ -781,8 +777,6 @@ export default {
   'approval window': 'نافذة الموافقة',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'ينقل connect.dmsg.net المصدر الذي أبلغه به متصفحك. لا يستطيع الموافقة أو التوقيع أو قراءة خزنتك، وتوضح نافذة الموافقة من أين جاء المصدر.',
-  'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
-    'لم يخضع dMsg لتدقيق مستقل بعد. المستودع العام لا يثبت وجود تدقيق ولا أي شيفرة منشورة فعلًا.',
   'dMsg relay': 'مرحّل dMsg',
   'dMsg · Approval': 'dMsg · الموافقة',
   'device': 'الجهاز',

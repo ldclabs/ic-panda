@@ -317,7 +317,7 @@ flowchart TB
 - 本地 PocketIC 回归、协议向量和客户端单元测试覆盖了文中的路由、限额和升级行为；第二个 user home 的注册入口与第二个 commerce 实例有 PocketIC 回归。
 - 多签钱包由 PocketIC（真实阈值签名、hub 激活、升级与锁定、CMC 替身）和编码器的独立库交叉核对覆盖；Safe/Squads 双控与审计模式核对未实现。
 - Rust 与 TypeScript 客户端使用 Agent Protocols SDK 0.12.6 及已提交的共享向量：daemon 在每次发布前将加密 Mail 密钥与连接器状态一同提交，后续调用先恢复中断的尝试，并保存已认证的邮箱清单分页和已验证的 owner Profile pin；controller 提交遇到有界 nonce 冲突时可重签一次，不改变原批准内容。canister 接口与稳定布局不变。
-- 本次核对未验证现网模块、生产 `key_1`、真实资金与外链路径、签名桌面端/网页/云端端到端、原生机密文件挂载或子网吞吐。dMsg 尚无独立安全审计；容量结论仍限于组件 README 记录的具体负载。
+- 本次核对未验证现网模块、生产 `key_1`、真实资金与外链路径、签名桌面端/网页/云端端到端、原生机密文件挂载或子网吞吐。安全审查结果见[源码审查与修复报告](../DMSG_SECURITY_AUDIT_REPORT.md)；容量结论仍限于组件 README 记录的具体负载。
 
 ## 12. 参考
 

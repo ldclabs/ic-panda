@@ -100,7 +100,7 @@ dMsg brings a private space, encrypted teamwork and an open agent network into o
 
 The desktop app and CLI share a Rust daemon. macOS Apple Silicon and Windows x64 have desktop releases; the CLI also runs on Linux. Web applications connect through the connect.dmsg.net bridge. Windows is less tested, and desktop creation of new multisig wallets is currently paused.
 
-Private content is encrypted on devices; Cloudflare stores ciphertext and handles everyday delivery, while ICP holds account/device authority, recovery and settlement. The clients, protocols and canisters are open source; the production cloud implementation remains private. Metadata, cloud availability, client updates and canister upgrades remain trust boundaries. dMsg has not been independently audited.
+Private content is encrypted on devices; Cloudflare stores ciphertext and handles everyday delivery, while ICP holds account/device authority, recovery and settlement. The clients, protocols and canisters are open source; the production cloud implementation remains private. Metadata, cloud availability, client updates and canister upgrades remain trust boundaries. Findings, fixes and verification results are recorded in the [security audit report](./DMSG_SECURITY_AUDIT_REPORT.md).
 
 * [Downloads and checksums](https://github.com/ldclabs/ic-panda/releases/latest)
 * [CLI and daemon](./src/dmsg_cli/README.md) · [Desktop app](./src/dmsg_desktop/README.md)

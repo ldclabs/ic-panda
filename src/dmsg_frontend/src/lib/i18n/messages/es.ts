@@ -530,7 +530,6 @@ export default {
     'Un compromiso sobre la raíz de tu contenido',
   'A hint wakes your desktop, no content':
     'Un aviso despierta tu escritorio, sin contenido',
-  'A release is not an audit.': 'Una versión no es una auditoría.',
   'API key': 'Clave de API',
   'Account and device changes': 'Cambios de cuenta y dispositivos',
   'Account and sync status': 'Estado de la cuenta y la sincronización',
@@ -661,7 +660,6 @@ export default {
   'Never your messages or files': 'Nunca tus mensajes ni archivos',
   'New address-book entries': 'Entradas nuevas de la libreta',
   'Next step': 'Siguiente paso',
-  'Not audited yet.': 'Aún sin auditar.',
   "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
     "Las aplicaciones móviles están en desarrollo. La versión para iOS ya está en beta privada y se espera que el desarrollo de la versión para Android termine pronto.",
   'Note': 'Nota',
@@ -749,8 +747,6 @@ export default {
   'Synced': 'Sincronizado',
   'Team treasury': 'Tesorería del equipo',
   "Multisig wallets": "Monederos multifirma",
-  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
-    "Los monederos multifirma están en desarrollo. Hasta una auditoría independiente, úsalos solo para probar, con importes pequeños.",
   "Multisig wallets, their proposals and approvals":
     "Monederos multifirma, sus propuestas y aprobaciones",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
@@ -814,8 +810,6 @@ export default {
   'approval window': 'ventana de aprobación',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net transmite el origen que le dio tu navegador. No puede aprobar, firmar ni leer tu bóveda, y la ventana de aprobación indica de dónde viene el origen.',
-  'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
-    'dMsg aún no tiene una auditoría independiente. Un repositorio público no demuestra una auditoría ni qué código está desplegado.',
   'dMsg relay': 'Relé de dMsg',
   'dMsg · Approval': 'dMsg · Aprobación',
   'device': 'dispositivo',

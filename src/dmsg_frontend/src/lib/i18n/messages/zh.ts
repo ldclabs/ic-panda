@@ -501,7 +501,6 @@ export default {
   '2 of 2, then 24 hours': '2 人都批准，再等 24 小时',
   'A commitment to your content root': '你的内容根承诺值',
   'A hint wakes your desktop, no content': '仅发送提示唤醒桌面端，不含内容',
-  'A release is not an audit.': '发布不等于审计。',
   'API key': 'API 密钥',
   'Account and device changes': '账户与设备变更',
   'Account and sync status': '账户与同步状态',
@@ -626,7 +625,6 @@ export default {
   'Never your messages or files': '绝不包含你的消息或文件',
   'New address-book entries': '新加入地址簿的地址',
   'Next step': '下一步',
-  'Not audited yet.': '尚未经过审计。',
   "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
     "手机应用正在开发中。iOS 版已进入内测，Android 版也将很快完成开发。",
   'Note': '笔记',
@@ -709,8 +707,6 @@ export default {
   'Synced': '已同步',
   'Team treasury': '团队金库',
   "Multisig wallets": "多签钱包",
-  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
-    "多签钱包仍在开发中。在完成独立审计之前，请只用小额资金测试。",
   "Multisig wallets, their proposals and approvals": "多签钱包及其提案与批准",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     '客户端、守护进程、协议和 canister 都在公开仓库中。生产环境的云服务有其独立的运营信任边界。',
@@ -769,8 +765,6 @@ export default {
   'approval window': '审批窗口',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net 转述的是你的浏览器提供的来源。它无法批准、签名或读取你的保险库，审批窗口也会标明来源由谁转述。',
-  'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
-    'dMsg 尚未经过独立审计。公开仓库既不代表已有审计覆盖，也无法证明实际部署的是哪份代码。',
   'dMsg relay': 'dMsg 中继',
   'dMsg · Approval': 'dMsg · 审批',
   'device': '设备',

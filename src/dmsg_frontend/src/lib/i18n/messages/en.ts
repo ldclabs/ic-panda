@@ -514,7 +514,6 @@ const en = {
   'A commitment to your content root': 'A commitment to your content root',
   'A hint wakes your desktop, no content':
     'A hint wakes your desktop, no content',
-  'A release is not an audit.': 'A release is not an audit.',
   'API key': 'API key',
   'Account and device changes': 'Account and device changes',
   'Account and sync status': 'Account and sync status',
@@ -643,7 +642,6 @@ const en = {
   'Never your messages or files': 'Never your messages or files',
   'New address-book entries': 'New address-book entries',
   'Next step': 'Next step',
-  'Not audited yet.': 'Not audited yet.',
   "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
     "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.",
   'Note': 'Note',
@@ -729,8 +727,6 @@ const en = {
   'Synced': 'Synced',
   'Team treasury': 'Team treasury',
   "Multisig wallets": "Multisig wallets",
-  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
-    "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.",
   "Multisig wallets, their proposals and approvals":
     "Multisig wallets, their proposals and approvals",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
@@ -794,8 +790,6 @@ const en = {
   'approval window': 'approval window',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.',
-  'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
-    'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.',
   'dMsg relay': 'dMsg relay',
   'dMsg · Approval': 'dMsg · Approval',
   'device': 'device',
