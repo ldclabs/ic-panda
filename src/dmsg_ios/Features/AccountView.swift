@@ -1,10 +1,13 @@
 import SwiftUI
+import StoreKit
 import DMsgCore
 
 struct AccountView: View {
+    private enum Destination: Hashable { case profile, plan }
     @Environment(SessionModel.self) private var model
     @State private var signingOut = false
-    @State private var showingPlan = false
+    @State private var destination: Destination?
+    @State private var managing = false
     @State private var profile: AccountProfile?
     @State private var avatar: UIImage?
     @State private var display = DisplayLoad()
@@ -17,32 +20,8 @@ struct AccountView: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         List {
-            NavigationLink { PublicProfileView() } label: {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) { identityImage; identityText }
-                    VStack(alignment: .leading, spacing: 12) { identityImage; identityText }
-                }
-            }.accessibilityIdentifier("account.profile")
+            accountHeader
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
-            HStack(spacing: 12) {
-                if let plan {
-                    Label { Text(verbatim: plan.plan) } icon: { AppGlyph.plan.image }
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.forest)
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(Theme.forest.opacity(0.08), in: Capsule())
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(Text("Plan") + Text(verbatim: ": \(plan.plan)"))
-                        .accessibilityIdentifier("account.membership-badge")
-                } else if planDisplay.failed {
-                    Text("Plan and usage").font(.subheadline).foregroundStyle(.secondary)
-                } else { ProgressView().controlSize(.small).accessibilityLabel("Loading…") }
-                Spacer(minLength: 8)
-                Button { showingPlan = true } label: {
-                    if !model.purchases.showsControls || plan == nil { Text("Plan and usage") }
-                    else if plan?.plan == "Max" { Text("Manage subscriptions") }
-                    else { Text("Upgrade") }
-                }.buttonStyle(.borderedProminent).foregroundStyle(Theme.paper).controlSize(.small).accessibilityIdentifier("account.upgrade")
-            }.listRowBackground(Color.clear).listRowSeparator(.hidden)
             DisplayLoadStatus(state: planDisplay) { Task { await loadPlan(force: true) } }
             DisplayLoadStatus(state: display) { Task { await loadProfile(force: true) } }
             Section {
@@ -80,10 +59,21 @@ struct AccountView: View {
                 SettingsAction("Sign out", role: .destructive) { signingOut = true }.disabled(model.busy)
             }
         }.privateScreen().navigationTitle("Account").workspaceRootTitle()
-            .navigationDestination(isPresented: $showingPlan) { SubscriptionView() }
-            .task(id: "\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0):\(model.profileRevision)") { await loadProfile(force: loadedProfileRevision != model.profileRevision) }
-            .task(id: "plan:\(model.session?.account ?? ""):\(model.session?.generation ?? 0):\(model.purchases.revision)") {
+            .navigationDestination(item: $destination) { target in
+                switch target {
+                case .profile: PublicProfileView()
+                case .plan: SubscriptionView()
+                }
+            }
+            .manageSubscriptionsSheet(isPresented: $managing)
+            .task(id: "\(model.epoch):\(model.concealed):\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0):\(model.profileRevision)") { await loadProfile(force: loadedProfileRevision != model.profileRevision) }
+            // Unlock can create this view before authentication removes the privacy
+            // shield. Resume reads when it lifts, even if the account is unchanged.
+            .task(id: "plan:\(model.epoch):\(model.concealed):\(model.session?.account ?? ""):\(model.session?.generation ?? 0):\(model.purchases.revision)") {
                 await loadPlan(force: loadedPurchaseRevision != model.purchases.revision)
+            }
+            .onChange(of: managing) { wasPresented, isPresented in
+                if wasPresented && !isPresented { Task { await loadPlan(force: true) } }
             }
             .onDisappear { avatarTask?.cancel() }
             .toolbar {
@@ -93,6 +83,50 @@ struct AccountView: View {
             .confirmationDialog("Sign out of this account?", isPresented: $signingOut) {
                 Button("Sign out", role: .destructive) { Task { await logout() } }
             } message: { Text("Your encrypted files remain here. Saved login and quick unlock are removed.") }
+    }
+
+    private var managesSubscription: Bool {
+        model.purchases.showsControls && plan?.managesSubscription(environment: model.purchases.storeEnvironment) == true
+    }
+
+    @ViewBuilder private var accountHeader: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) { profileButton; membershipBadge }
+        } else {
+            HStack(spacing: 12) { profileButton; membershipBadge.fixedSize(horizontal: true, vertical: false) }
+        }
+    }
+
+    private var profileButton: some View {
+        Button { destination = .profile } label: {
+            HStack(spacing: 12) { identityImage; identityText }
+                .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityIdentifier("account.profile")
+    }
+
+    @ViewBuilder private var membershipBadge: some View {
+        if let plan {
+            Button {
+                if managesSubscription { managing = true }
+                else { destination = .plan }
+            } label: {
+                HStack(spacing: 8) {
+                    AppGlyph.plan.image
+                    Text(verbatim: plan.plan)
+                    Image(systemName: "chevron.forward").font(.caption.weight(.semibold))
+                }
+                .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.forest)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(Theme.forest.opacity(0.08), in: Capsule())
+                .frame(minHeight: 44).contentShape(Rectangle())
+            }.buttonStyle(.plain).disabled(model.purchases.working)
+                .accessibilityLabel(Text("Plan") + Text(verbatim: ": \(plan.plan)"))
+                .accessibilityHint(managesSubscription ? Text("Manage subscriptions") : Text("Plan and usage"))
+                .accessibilityIdentifier("account.membership-badge")
+        } else if !planDisplay.failed {
+            ProgressView().controlSize(.small).accessibilityLabel("Loading…")
+                .accessibilityIdentifier("account.membership-loading")
+        }
     }
 
     private var identityImage: some View {
@@ -108,12 +142,16 @@ struct AccountView: View {
             Text(profile?.displayName ?? String(localized: "My account"))
                 .font(.headline).lineLimit(typeSize.isAccessibilitySize ? 3 : 2)
                 .accessibilityIdentifier("account.name")
-            Text("Public profile").font(.caption).foregroundStyle(Theme.forest)
+            HStack(spacing: 4) {
+                Text("Public profile")
+                Image(systemName: "chevron.forward").font(.caption2).accessibilityHidden(true)
+            }.font(.caption).foregroundStyle(Theme.forest)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func loadPlan(force: Bool = false) async {
         if planAccount != model.session?.account { plan = nil; planAccount = model.session?.account }
+        guard model.unlocked, !model.concealed, !Task.isCancelled else { return }
         #if DEBUG
         if model.uiTesting { plan = SubscriptionView.Plan.fixture; return }
         #endif
@@ -121,10 +159,11 @@ struct AccountView: View {
         await planDisplay.load(model, kind: "plan", force: force) { (incoming: SubscriptionView.Plan) in
             plan = incoming
         }
-        if epoch == model.epoch, !Task.isCancelled, !planDisplay.failed { loadedPurchaseRevision = revision }
+        if epoch == model.epoch, !Task.isCancelled, planDisplay.loaded, !planDisplay.failed { loadedPurchaseRevision = revision }
     }
 
     private func loadProfile(force: Bool = false) async {
+        guard model.unlocked, !model.concealed, !Task.isCancelled else { return }
         #if DEBUG
         if model.uiTesting {
             let name = ProcessInfo.processInfo.arguments.contains("--ui-long-profile")

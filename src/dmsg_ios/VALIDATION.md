@@ -2502,3 +2502,51 @@ The subscription list confirms a single dMsg Membership group with three product
 the group's detail page failed to load, so its individual levels were not reverified.
 
 Implementation and validation: Codex (OpenAI).
+
+## 2026-11-08 membership badge unlock and direct management
+
+Account's plan loader could return while the privacy shield still concealed the
+unlocked workspace. Its task identity did not include that shield or the local
+request epoch, so uncovering the same account did not restart the read. Navigating
+away and back happened to do so. Both membership and profile reads now follow
+those lifecycle transitions, retain cached values while refreshing, and do not
+mark a skipped or cancelled read as an observed purchase revision.
+
+The badge itself is the entry point, beside the avatar and name, with a directional
+chevron and at least a 44-point tap target. Accessibility text sizes use a stacked
+layout. Profile and membership remain separate buttons with separate destinations.
+An active App Store membership matching the current purchase
+environment opens Apple's management sheet directly; other plans open Plan and
+usage. The standalone Upgrade / Plan and usage button is removed, as are its
+unused translations. The existing Plan and usage list row remains. Dismissing the
+management sheet refreshes the badge. Lock and account changes continue to clear
+the account view through the existing session lifecycle.
+
+A DEBUG-only presentation fixture reproduces delayed uncovering on Account
+without changing the account or session generation. The regression failed before
+the task identity fix (`.build/IAPBadgeUnlock-red.xcresult`). This tests the
+presentation lifecycle, not real biometric authentication or a StoreKit purchase.
+
+All 113 Swift unit tests passed in `.build/IAPBadgeUnlock-green.xcresult`; that
+run also exposed a badge accessibility wrapper that discarded its button identity.
+Removing the wrapper preserves the native button semantics. After the compact
+header update, all eight targeted UI tests passed in
+`.build/IAPBadgeCompact-final.xcresult`: delayed uncovering and foreground return,
+independent profile / Free-plan navigation, Chinese Pro, Arabic dark Max, largest
+accessibility text with a long name, and read-only plans in English/Chinese/Arabic.
+Screenshots in `.build/MembershipBadgePreview` were visually checked. All 23
+localizations passed, including the current build's Swift string extraction.
+
+The earlier native artifacts no longer matched the workspace version metadata.
+Release libraries for device and simulator plus UniFFI bindings were rebuilt;
+`scripts/ios/artifacts.py verify --profile release` passed against the current
+source fingerprint. This patch does not change Rust source or the purchase protocol.
+
+The native Apple management content did not appear during the simulator probe.
+The new entry calls the same StoreKit management modifier as Plan and usage;
+its real subscription content still needs verification in the next TestFlight
+build. No purchase, subscription change, App Store upload or server deployment was
+performed. The source remains 1.1.1 (18). iPad and smallest-phone coverage were not
+run for this change.
+
+Implementation and validation: Codex (OpenAI).

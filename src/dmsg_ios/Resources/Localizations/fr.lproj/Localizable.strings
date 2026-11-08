@@ -2830,8 +2830,6 @@
 	<string>Mettre à jour les clés de la conversation</string>
 	<key>Updated</key>
 	<string>Modifié</string>
-	<key>Upgrade</key>
-	<string>Changer d’offre</string>
 	<key>Uploading</key>
 	<string>Envoi en cours</string>
 	<key>Uploading encrypted backup</key>

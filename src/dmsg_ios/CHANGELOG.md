@@ -9,8 +9,12 @@ tracked separately. Build and device-test evidence is recorded in
 
 ### Membership
 
-- Show the current membership and an upgrade shortcut at the top of Account.
-  Max members get a subscription-management entry.
+- Place a tappable membership badge beside the avatar and name in Account,
+  with a stacked layout for accessibility text sizes. Existing App Store
+  subscribers open Apple's subscription management directly; other members open
+  Plan and usage. Keep one Plan and usage row and remove the separate upgrade button.
+- Reload membership after unlocking or returning to the app without requiring a
+  tab switch, including when authentication initially hides the Account screen.
 - Use App Store subscription management for an existing subscription instead of
   presenting all plans as new purchases. Remove the file-size comparison table
   from Plan and usage; the backup screen still shows the applicable file limit.

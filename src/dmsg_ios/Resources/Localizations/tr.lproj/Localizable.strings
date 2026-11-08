@@ -2830,8 +2830,6 @@
 	<string>Sohbet anahtarlarını güncelle</string>
 	<key>Updated</key>
 	<string>Güncellendi</string>
-	<key>Upgrade</key>
-	<string>Yükselt</string>
 	<key>Uploading</key>
 	<string>Yükleniyor</string>
 	<key>Uploading encrypted backup</key>

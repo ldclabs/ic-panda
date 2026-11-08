@@ -2830,8 +2830,6 @@
 	<string>Cập nhật khóa cuộc trò chuyện</string>
 	<key>Updated</key>
 	<string>Đã cập nhật</string>
-	<key>Upgrade</key>
-	<string>Nâng cấp</string>
 	<key>Uploading</key>
 	<string>Đang tải lên</string>
 	<key>Uploading encrypted backup</key>

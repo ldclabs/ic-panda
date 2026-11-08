@@ -121,18 +121,52 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testMembershipEntryAndManagedProSubscriptionInChinese() {
-        assertMembershipEntry(language: "zh-Hans", locale: "zh_CN", accountTitle: "我的", tier: "Pro", action: "升级", dark: false)
+        assertMembershipEntry(language: "zh-Hans", locale: "zh_CN", accountTitle: "我的", tier: "Pro", dark: false)
     }
 
     func testMaxMembershipEntryInDarkArabic() {
-        assertMembershipEntry(language: "ar", locale: "ar_SA", accountTitle: "الحساب", tier: "Max", action: "", dark: true)
+        assertMembershipEntry(language: "ar", locale: "ar_SA", accountTitle: "الحساب", tier: "Max", dark: true)
     }
 
-    func testFreeMembershipUpgradeEntry() {
-        assertMembershipEntry(language: "en", locale: "en_US", accountTitle: "Account", tier: "Free", action: "Upgrade", dark: false)
+    func testFreeMembershipBadgeOpensPlanSelection() {
+        assertMembershipEntry(language: "en", locale: "en_US", accountTitle: "Account", tier: "Free", dark: false)
     }
 
-    private func assertMembershipEntry(language: String, locale: String, accountTitle: String, tier: String, action: String, dark: Bool) {
+    func testMembershipLoadsWhenUnlockUncoversAccountWithoutSwitchingTabs() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-account-unlock", "--ui-sandbox-subscription", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let badge = app.buttons["account.membership-badge"]
+        XCTAssertTrue(badge.waitForExistence(timeout: 10))
+        XCTAssertTrue(badge.label.contains("Pro"))
+        XCTAssertTrue(app.buttons["account.profile"].exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "account.membership-loading").firstMatch.exists)
+        capture(app, name: "Membership after uncovering Account")
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        let visible = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: badge)
+        XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 10), .completed)
+        XCTAssertTrue(badge.label.contains("Pro"))
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "account.membership-loading").firstMatch.exists)
+        capture(app, name: "Membership after returning to Account")
+    }
+
+    func testMembershipHeaderAdaptsToLongNameAndAccessibilityText() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-sandbox-subscription", "--ui-long-profile", "--ui-dark",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: "Account").tap()
+        let profile = app.buttons["account.profile"], badge = app.buttons["account.membership-badge"]
+        XCTAssertTrue(badge.waitForExistence(timeout: 10))
+        XCTAssertGreaterThanOrEqual(badge.frame.minY, profile.frame.maxY)
+        XCTAssertTrue(badge.isHittable)
+        XCTAssertFalse(linkOrButton(app, "account.upgrade").exists)
+        capture(app, name: "Membership header · long name · largest text")
+    }
+
+    private func assertMembershipEntry(language: String, locale: String, accountTitle: String, tier: String, dark: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-purchases", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         if tier == "Pro" { app.launchArguments.append("--ui-sandbox-subscription") }
@@ -140,13 +174,29 @@ final class NavigationTests: NavigationTestCase {
         if dark { app.launchArguments.append("--ui-dark") }
         app.launch()
         tab(app, symbol: "Glyph-account", title: accountTitle).tap()
-        let badge = app.descendants(matching: .any).matching(identifier: "account.membership-badge").firstMatch
+        let badge = app.buttons["account.membership-badge"]
         XCTAssertTrue(badge.waitForExistence(timeout: 10)); XCTAssertTrue(badge.label.contains(tier))
-        let upgrade = linkOrButton(app, "account.upgrade")
-        XCTAssertTrue(upgrade.isHittable)
-        if !action.isEmpty { XCTAssertTrue(upgrade.label.contains(action)) }
+        XCTAssertTrue(badge.isHittable)
+        XCTAssertGreaterThanOrEqual(badge.frame.height, 44)
+        let profile = app.buttons["account.profile"]
+        XCTAssertEqual(profile.frame.midY, badge.frame.midY, accuracy: 2)
+        XCTAssertFalse(profile.frame.intersects(badge.frame))
+        XCTAssertFalse(linkOrButton(app, "account.upgrade").exists)
         capture(app, name: "Membership entry · \(tier) · \(language)")
-        upgrade.tap()
+        if tier == "Free" {
+            profile.tap()
+            XCTAssertTrue(app.textFields["profile.name"].waitForExistence(timeout: 10))
+            back(app)
+            XCTAssertTrue(badge.waitForExistence(timeout: 10))
+        }
+        // The Free badge opens plan selection. Paid membership uses Apple's
+        // sheet; inspect the dMsg plan screen through its remaining list row.
+        if tier == "Free" { badge.tap() }
+        else {
+            let plan = app.buttons["account.plan"]
+            for _ in 0..<4 where !plan.isHittable { app.swipeUp() }
+            XCTAssertTrue(plan.isHittable); plan.tap()
+        }
         let usage = app.descendants(matching: .any).matching(identifier: "plan.usage").firstMatch
         XCTAssertTrue(usage.waitForExistence(timeout: 10))
         let manage = app.buttons["plan.manage"]

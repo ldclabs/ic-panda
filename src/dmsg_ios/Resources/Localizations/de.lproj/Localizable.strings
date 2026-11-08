@@ -2830,8 +2830,6 @@
 	<string>Unterhaltungsschlüssel aktualisieren</string>
 	<key>Updated</key>
 	<string>Aktualisiert</string>
-	<key>Upgrade</key>
-	<string>Upgrade</string>
 	<key>Uploading</key>
 	<string>Hochladen</string>
 	<key>Uploading encrypted backup</key>

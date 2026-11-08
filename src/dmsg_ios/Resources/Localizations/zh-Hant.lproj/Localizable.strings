@@ -2830,8 +2830,6 @@
 	<string>更新對話金鑰</string>
 	<key>Updated</key>
 	<string>更新於</string>
-	<key>Upgrade</key>
-	<string>升級</string>
 	<key>Uploading</key>
 	<string>正在上傳</string>
 	<key>Uploading encrypted backup</key>

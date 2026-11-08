@@ -2830,8 +2830,6 @@
 	<string>बातचीत की कुंजियां अपडेट करें</string>
 	<key>Updated</key>
 	<string>अद्यतन किया गया</string>
-	<key>Upgrade</key>
-	<string>अपग्रेड करें</string>
 	<key>Uploading</key>
 	<string>अपलोड हो रहा है</string>
 	<key>Uploading encrypted backup</key>

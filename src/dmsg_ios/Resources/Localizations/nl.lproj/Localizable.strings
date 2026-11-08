@@ -2830,8 +2830,6 @@
 	<string>Gesprekssleutels bijwerken</string>
 	<key>Updated</key>
 	<string>Bijgewerkt</string>
-	<key>Upgrade</key>
-	<string>Upgraden</string>
 	<key>Uploading</key>
 	<string>Uploaden</string>
 	<key>Uploading encrypted backup</key>

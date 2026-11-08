@@ -2830,8 +2830,6 @@
 	<string>কথোপকথনের কী আপডেট করুন</string>
 	<key>Updated</key>
 	<string>আপডেট করা হয়েছে</string>
-	<key>Upgrade</key>
-	<string>আপগ্রেড</string>
 	<key>Uploading</key>
 	<string>আপলোড হচ্ছে</string>
 	<key>Uploading encrypted backup</key>

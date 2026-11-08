@@ -235,7 +235,15 @@ final class SessionModel {
         isForeground = UIApplication.shared.applicationState == .active
         opening = true; defer { opening = false }
         #if DEBUG
-        if uiTesting { if !fixtureLoaded { loadFixtures(); fixtureLoaded = true }; concealed = false; return }
+        if uiTesting {
+            if !fixtureLoaded { loadFixtures(); fixtureLoaded = true }
+            // Reproduce an unlocked view appearing before authentication uncovers it.
+            if ProcessInfo.processInfo.arguments.contains("--ui-account-unlock") {
+                selectedTab = .account; concealed = true
+                try? await Task.sleep(for: .seconds(2))
+            }
+            concealed = false; return
+        }
         #endif
         guard UIApplication.shared.isProtectedDataAvailable else {
             error = String(localized: "Unlock this iPhone to open dMsg."); return

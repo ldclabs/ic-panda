@@ -2830,8 +2830,6 @@
 	<string>대화 키 업데이트</string>
 	<key>Updated</key>
 	<string>업데이트됨</string>
-	<key>Upgrade</key>
-	<string>업그레이드</string>
 	<key>Uploading</key>
 	<string>업로드 중</string>
 	<key>Uploading encrypted backup</key>

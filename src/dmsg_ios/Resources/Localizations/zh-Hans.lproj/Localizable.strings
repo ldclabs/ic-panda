@@ -2830,8 +2830,6 @@
 	<string>更新会话密钥</string>
 	<key>Updated</key>
 	<string>更新于</string>
-	<key>Upgrade</key>
-	<string>升级</string>
 	<key>Uploading</key>
 	<string>正在上传</string>
 	<key>Uploading encrypted backup</key>

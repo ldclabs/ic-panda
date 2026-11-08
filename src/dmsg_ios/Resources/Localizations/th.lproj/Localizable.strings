@@ -2830,8 +2830,6 @@
 	<string>อัปเดตคีย์การสนทนา</string>
 	<key>Updated</key>
 	<string>อัปเดตแล้ว</string>
-	<key>Upgrade</key>
-	<string>อัปเกรด</string>
 	<key>Uploading</key>
 	<string>กำลังอัพโหลด</string>
 	<key>Uploading encrypted backup</key>

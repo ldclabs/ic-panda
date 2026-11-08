@@ -2830,8 +2830,6 @@
 	<string>Aktualizuj klucze rozmowy</string>
 	<key>Updated</key>
 	<string>Zaktualizowano</string>
-	<key>Upgrade</key>
-	<string>Zmień plan</string>
 	<key>Uploading</key>
 	<string>Przesyłanie</string>
 	<key>Uploading encrypted backup</key>

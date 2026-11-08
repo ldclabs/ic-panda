@@ -2830,8 +2830,6 @@
 	<string>تحديث مفاتيح المحادثة</string>
 	<key>Updated</key>
 	<string>آخر تحديث</string>
-	<key>Upgrade</key>
-	<string>ترقية</string>
 	<key>Uploading</key>
 	<string>جارٍ الرفع</string>
 	<key>Uploading encrypted backup</key>

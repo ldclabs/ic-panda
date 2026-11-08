@@ -2830,8 +2830,6 @@
 	<string>Update conversation keys</string>
 	<key>Updated</key>
 	<string>Updated</string>
-	<key>Upgrade</key>
-	<string>Upgrade</string>
 	<key>Uploading</key>
 	<string>Uploading</string>
 	<key>Uploading encrypted backup</key>

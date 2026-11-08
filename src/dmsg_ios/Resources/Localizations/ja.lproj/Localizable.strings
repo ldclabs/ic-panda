@@ -2830,8 +2830,6 @@
 	<string>会話の鍵を更新</string>
 	<key>Updated</key>
 	<string>更新されました</string>
-	<key>Upgrade</key>
-	<string>アップグレード</string>
 	<key>Uploading</key>
 	<string>アップロード中</string>
 	<key>Uploading encrypted backup</key>

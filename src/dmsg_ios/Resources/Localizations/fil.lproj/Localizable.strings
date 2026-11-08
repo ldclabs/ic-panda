@@ -2830,8 +2830,6 @@
 	<string>I-update ang mga key ng usapan</string>
 	<key>Updated</key>
 	<string>Na-update</string>
-	<key>Upgrade</key>
-	<string>Mag-upgrade</string>
 	<key>Uploading</key>
 	<string>Nag-a-upload</string>
 	<key>Uploading encrypted backup</key>
