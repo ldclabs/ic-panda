@@ -105,12 +105,22 @@ impl McpEvents {
             .send()
             .await
         {
-            Ok(response) if response.status().is_success() => match response.bytes().await {
-                Ok(bytes) if bytes.len() <= MAX_JWKS => serde_json::from_slice(&bytes)
-                    .map(|jwks: Value| jwks_keys(&jwks))
-                    .unwrap_or_default(),
-                _ => Vec::new(),
-            },
+            Ok(mut response) if response.status().is_success() => {
+                let mut bytes = Vec::new();
+                loop {
+                    match response.chunk().await {
+                        Ok(Some(chunk)) if chunk.len() <= MAX_JWKS.saturating_sub(bytes.len()) => {
+                            bytes.extend_from_slice(&chunk);
+                        }
+                        Ok(None) => {
+                            break serde_json::from_slice(&bytes)
+                                .map(|jwks: Value| jwks_keys(&jwks))
+                                .unwrap_or_default();
+                        }
+                        _ => break Vec::new(),
+                    }
+                }
+            }
             _ => Vec::new(),
         };
         self.state
@@ -547,6 +557,84 @@ impl Daemon {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn audit_jwks_stops_reading_at_the_limit() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        // The body crosses the limit but never ends. A post-buffer check
+        // waits for EOF/the HTTP timeout; a bounded reader returns now.
+        for chunked in [false, true] {
+            let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+                .await
+                .unwrap();
+            let origin = format!("http://{}", listener.local_addr().unwrap());
+            let (sent, ready) = tokio::sync::oneshot::channel();
+            let server = tokio::spawn(async move {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = [0; 4096];
+                stream.read(&mut request).await.unwrap();
+                let header = if chunked {
+                    "Transfer-Encoding: chunked\r\n".to_string()
+                } else {
+                    format!("Content-Length: {}\r\n", MAX_JWKS * 2)
+                };
+                stream
+                    .write_all(format!("HTTP/1.1 200 OK\r\n{header}\r\n").as_bytes())
+                    .await
+                    .unwrap();
+                if chunked {
+                    stream
+                        .write_all(format!("{:x}\r\n", MAX_JWKS + 1).as_bytes())
+                        .await
+                        .unwrap();
+                }
+                stream.write_all(&vec![b' '; MAX_JWKS + 1]).await.unwrap();
+                if chunked {
+                    stream.write_all(b"\r\n").await.unwrap();
+                }
+                stream.flush().await.unwrap();
+                let _ = sent.send(());
+                std::future::pending::<()>().await;
+            });
+            let events = Arc::new(McpEvents::new(&[]).unwrap());
+            let task = tokio::spawn({
+                let events = events.clone();
+                let origin = origin.clone();
+                async move { events.keys(&origin, 1).await }
+            });
+            ready.await.unwrap();
+            let result = tokio::time::timeout(Duration::from_secs(2), task).await;
+            server.abort();
+            assert!(
+                result
+                    .expect("reject before EOF or the 10s HTTP timeout")
+                    .unwrap()
+                    .is_empty()
+            );
+            assert!(events.keys(&origin, 2).await.is_empty()); // negative cache
+        }
+    }
+
+    #[tokio::test]
+    async fn audit_jwks_accepts_exact_limit_and_caches_valid_keys() {
+        use axum::{Router, routing::get};
+        let key = dmsg_client::codec::b64(&[7; 32]);
+        let mut body = json!({"keys":[{"kty":"OKP","crv":"Ed25519","x":key}]}).to_string();
+        body.push_str(&" ".repeat(MAX_JWKS - body.len()));
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        let app = Router::new().route(
+            "/.well-known/mcp-webhook-jwks.json",
+            get(async move || body),
+        );
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let events = McpEvents::new(&[]).unwrap();
+        assert_eq!(events.keys(&origin, 1).await, vec![Hash::new([7; 32])]);
+        server.abort();
+        assert_eq!(events.keys(&origin, 2).await, vec![Hash::new([7; 32])]);
+    }
 
     #[test]
     fn acknowledgements_require_a_valid_explicit_position_and_selection() {

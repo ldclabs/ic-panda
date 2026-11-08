@@ -1209,9 +1209,10 @@ impl Daemon {
             }
             "dmsg_vault_list" => {
                 client.capability_check(did, "vault.list")?;
+                let query = input["query"].as_str().map(|q| q.trim().to_lowercase());
                 let filter = Filter {
                     trash: false,
-                    query: input["query"].as_str().map(str::to_string),
+                    query: None,
                 };
                 // dMsg's own keys stay out of every agent's reach.
                 Ok(Value::Array(
@@ -1219,6 +1220,15 @@ impl Daemon {
                         .vault_list(&filter)?
                         .into_iter()
                         .filter(|e| !e.item.reserved())
+                        // Search only what this capability discloses. Owner
+                        // full-text search also examines notes and fields.
+                        .filter(|e| {
+                            query.as_ref().is_none_or(|q| {
+                                e.item.title.to_lowercase().contains(q)
+                                    || e.item.kind.to_lowercase().contains(q)
+                                    || e.item.tags.iter().any(|t| t.to_lowercase().contains(q))
+                            })
+                        })
                         .map(|e| {
                             json!({
                                 "id": e.id,
@@ -1742,6 +1752,94 @@ mod tests {
         assert!(changed["error"].is_null());
         assert!(!changed.to_string().contains("review-hidden-fixture"));
         assert_eq!(changed["result"]["item"]["notes"], "safe head edit");
+    }
+
+    #[tokio::test]
+    async fn audit_vault_list_queries_only_disclosed_metadata() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = crate::home::Home {
+            dir: dir.0.join("home"),
+        };
+        let mut client = dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, None);
+        let changes: Changes = serde_json::from_value(json!({
+            "title": "Public title", "tags": ["work"], "notes": "private-note-marker",
+            "set": [
+                {"label": "private-label-marker", "type": "text", "value": "private-value-marker"},
+                {"label": "Password", "type": "concealed", "value": "hidden-value-marker"}
+            ]
+        }))
+        .unwrap();
+        let item = client.vault_create("note", &changes).unwrap();
+        for query in [
+            "private-note-marker",
+            "private-label-marker",
+            "private-value-marker",
+        ] {
+            assert_eq!(
+                client
+                    .vault_list(&Filter {
+                        trash: false,
+                        query: Some(query.into())
+                    })
+                    .unwrap()
+                    .len(),
+                1
+            );
+        }
+        let agent = client.agent_create("list-only").unwrap();
+        client
+            .capability_grant("cli", &agent.agent_id, vec!["vault.list".into()], None)
+            .unwrap();
+        let daemon = Daemon::new(
+            "owner".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        );
+        let read = daemon
+            .call_agent(
+                &agent,
+                "mcp/call",
+                &json!({"tool":"dmsg_vault_read", "input":{"id":item.id}}),
+            )
+            .await
+            .unwrap();
+        assert_eq!(read["error"]["code"], "FORBIDDEN");
+        for query in [
+            "private-note-marker",
+            "private-label-marker",
+            "private-value-marker",
+            "hidden-value-marker",
+            "dmsg-agent",
+            "absent-marker",
+        ] {
+            let result = daemon
+                .call_agent(
+                    &agent,
+                    "mcp/call",
+                    &json!({"tool":"dmsg_vault_list", "input":{"query":query}}),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result["result"], json!([]), "{query}");
+        }
+        for query in [" PUBLIC ", "WORK", "note", ""] {
+            let result = daemon
+                .call_agent(
+                    &agent,
+                    "mcp/call",
+                    &json!({"tool":"dmsg_vault_list", "input":{"query":query}}),
+                )
+                .await
+                .unwrap();
+            let entries = result["result"].as_array().unwrap();
+            assert_eq!(entries.len(), 1, "{query}");
+            assert_eq!(entries[0]["id"], item.id);
+            assert!(entries[0].get("notes").is_none());
+            assert!(entries[0].get("fields").is_none());
+        }
     }
 
     #[tokio::test]

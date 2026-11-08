@@ -1,6 +1,165 @@
 //! Security and accounting regressions from the 2026-10-24 wallet review.
 use super::*;
 
+#[test]
+fn audit_wallet_decisions_recheck_device_approval_expiry_after_await() {
+    let t = Team::activate_on_subnet(2, &wasm("dmsg_wallet"), true);
+    t.join_b();
+    let joined: Result<Member> = update(&t.f.ic, t.wallet, person(P), "join", (principal_join(),));
+    joined.unwrap();
+    assert_ne!(t.f.ic.get_subnet(t.wallet), t.f.ic.get_subnet(t.f.user));
+    // Cross-subnet replies occupy distinct rounds. Move the clock across
+    // the exclusive device deadline at each possible suspension boundary.
+    let mut pending = 0;
+    let mut completed = false;
+    for rounds in 0..20 {
+        let p = t.propose(P, transfer(AssetKey::Icp, 0, 1_000 + rounds));
+        let app = application(
+            &t.f,
+            t.hub,
+            t.wallet,
+            t.b,
+            person(B),
+            ApprovalPurpose::WalletProposal,
+            decision_digest(&p.digest, Decision::Approve),
+        );
+        let deadline = time(&t.f.ic) + 30 * SECOND;
+        let approval_id = approve_app_until(&t.f, B, &t.b, &app, deadline);
+        let call =
+            t.f.ic
+                .submit_call(
+                    t.wallet,
+                    person(B),
+                    "approve_proposal",
+                    candid::encode_args((
+                        p.id,
+                        MemberApproval::Account {
+                            approval_id,
+                            approval: app.clone(),
+                        },
+                    ))
+                    .unwrap(),
+                )
+                .unwrap();
+        for _ in 0..rounds {
+            t.f.ic.tick();
+        }
+        if t.f.ic.ingress_status(call.clone()).is_some() {
+            let result: Result<Proposal> =
+                candid::decode_one(&t.f.ic.await_call(call).unwrap()).unwrap();
+            assert_eq!(result.unwrap().votes.len(), 1);
+            completed = true;
+            break;
+        }
+        pending += 1;
+        t.f.ic
+            .advance_time(Duration::from_millis(deadline - time(&t.f.ic)));
+        assert!(
+            time(&t.f.ic) < app.expires_at_ms,
+            "only the device approval expired"
+        );
+        let result: Result<Proposal> =
+            candid::decode_one(&t.f.ic.await_call(call).unwrap()).unwrap();
+        assert_eq!(
+            result,
+            Err(Error::Expired),
+            "suspended after {rounds} rounds"
+        );
+        let stored: Result<Proposal> = query(&t.f.ic, t.wallet, person(B), "get_proposal", (p.id,));
+        assert!(stored.unwrap().votes.is_empty());
+    }
+    assert!(
+        pending > 0 && completed,
+        "cover both suspended and completed calls"
+    );
+}
+
+#[test]
+fn audit_wallet_creation_rechecks_approval_after_balance_and_preserves_replay() {
+    let t = Team::activate_on_subnet(1, &wasm("dmsg_wallet"), true);
+    assert_ne!(t.f.ic.get_subnet(t.hub), t.f.ic.get_subnet(t.f.ledger));
+    let mut pending = 0;
+    let mut committed = None;
+    for rounds in 0..40 {
+        let quote: Result<ActivationQuote> =
+            update(&t.f.ic, t.hub, person(A), "quote_activation", (t.a,));
+        let quote = quote.unwrap();
+        assert_eq!(
+            quote.remaining, 1,
+            "rejected creations must not occupy quota"
+        );
+        void(
+            &t.f.ic,
+            t.f.ledger,
+            person(1),
+            "mint_test",
+            (quote.deposit, u128::from(PRICE)),
+        );
+        let mut spec = spec(1);
+        spec.members[0].id = MemberId::Account(t.b);
+        let app = application(
+            &t.f,
+            t.hub,
+            t.hub,
+            t.a,
+            person(A),
+            ApprovalPurpose::WalletCreate,
+            activation_digest(&quote, &spec),
+        );
+        let deadline = time(&t.f.ic) + 30 * SECOND;
+        let approval_id = approve_app_until(&t.f, A, &t.a, &app, deadline);
+        let request = CreateWallet {
+            quote_id: quote.quote_id,
+            spec,
+            approval_id,
+            approval: app.clone(),
+        };
+        let call =
+            t.f.ic
+                .submit_call(
+                    t.hub,
+                    person(A),
+                    "create_wallet",
+                    candid::encode_args((request.clone(),)).unwrap(),
+                )
+                .unwrap();
+        for _ in 0..rounds {
+            t.f.ic.tick();
+        }
+        // An order committed before expiry is a legitimate operation even
+        // while later activation calls remain pending.
+        let stored: Option<ActivationOrder> =
+            query(&t.f.ic, t.hub, person(A), "get_order", (quote.quote_id,));
+        if stored.is_some() {
+            let result: Result<ActivationOrder> =
+                candid::decode_one(&t.f.ic.await_call(call).unwrap()).unwrap();
+            assert_eq!(result.unwrap().status, ActivationStatus::Ready);
+            committed = Some(request);
+            break;
+        }
+        pending += 1;
+        t.f.ic
+            .advance_time(Duration::from_millis(deadline - time(&t.f.ic)));
+        assert!(time(&t.f.ic) < app.expires_at_ms && time(&t.f.ic) < quote.expires_at_ms);
+        let result: Result<ActivationOrder> =
+            candid::decode_one(&t.f.ic.await_call(call).unwrap()).unwrap();
+        assert_eq!(
+            result,
+            Err(Error::Expired),
+            "suspended after {rounds} rounds"
+        );
+        let stored: Option<ActivationOrder> =
+            query(&t.f.ic, t.hub, person(A), "get_order", (quote.quote_id,));
+        assert!(stored.is_none());
+    }
+    assert!(pending > 0);
+    let request = committed.expect("also exercise a timely authorized creation");
+    t.f.ic.advance_time(Duration::from_millis(5 * MINUTE));
+    let replay: Result<ActivationOrder> =
+        update(&t.f.ic, t.hub, person(A), "create_wallet", (request,));
+    assert_eq!(replay.unwrap().status, ActivationStatus::Ready);
+}
+
 fn advance(t: &Team, millis: u64) {
     t.f.ic.advance_time(Duration::from_millis(millis));
     t.f.ic.tick();

@@ -103,6 +103,10 @@ fn setup(f: &Fixture) -> Principal {
 }
 
 fn setup_with_module(f: &Fixture, module: &[u8]) -> Principal {
+    setup_on_subnet(f, module, None)
+}
+
+fn setup_on_subnet(f: &Fixture, module: &[u8], subnet: Option<Principal>) -> Principal {
     let cmc = f.ic.create_canister();
     f.ic.add_cycles(cmc, 10_000_000_000_000_000);
     f.ic.install_canister(
@@ -111,7 +115,10 @@ fn setup_with_module(f: &Fixture, module: &[u8]) -> Principal {
         candid::encode_one(f.ledger).unwrap(),
         None,
     );
-    let hub = f.ic.create_canister();
+    let hub = match subnet {
+        Some(subnet) => f.ic.create_canister_on_subnet(None, None, subnet),
+        None => f.ic.create_canister(),
+    };
     f.ic.add_cycles(hub, 100_000_000_000_000);
     f.ic.install_canister(
         hub,
@@ -186,6 +193,16 @@ fn setup_with_module(f: &Fixture, module: &[u8]) -> Principal {
 
 /// Device `n` of `account` approves `application`; returns the approval ID.
 fn approve_app(f: &Fixture, n: u8, account: &AccountId, application: &ApplicationApproval) -> Hash {
+    approve_app_until(f, n, account, application, time(&f.ic) + 4 * MINUTE)
+}
+
+fn approve_app_until(
+    f: &Fixture,
+    n: u8,
+    account: &AccountId,
+    application: &ApplicationApproval,
+    expires_at: u64,
+) -> Hash {
     let s = f.account_id(n, account);
     let device = Hash::new([n; 32]);
     let mut approval = Approval {
@@ -196,7 +213,7 @@ fn approve_app(f: &Fixture, n: u8, account: &AccountId, application: &Applicatio
             "wallet-test-approval",
             &(application, s.devices[&device].next_sequence),
         ),
-        expires_at: time(&f.ic) + 4 * MINUTE,
+        expires_at,
         signature: Default::default(),
         hardware: None,
     };
@@ -378,8 +395,13 @@ impl Team {
     }
 
     fn activate(approvers: u8, module: &[u8]) -> Self {
+        Self::activate_on_subnet(approvers, module, false)
+    }
+
+    fn activate_on_subnet(approvers: u8, module: &[u8], separate_subnet: bool) -> Self {
         let f = Fixture::new();
-        let hub = setup_with_module(&f, module);
+        let subnet = separate_subnet.then(|| f.ic.topology().get_fiduciary().unwrap());
+        let hub = setup_on_subnet(&f, module, subnet);
         let a = create_member(&f, A);
         let b = create_member(&f, B);
         let quote: Result<ActivationQuote> =

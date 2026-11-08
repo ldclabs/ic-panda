@@ -368,12 +368,13 @@ async fn create_wallet(req: CreateWallet) -> Result<ActivationOrder> {
         (req.approval_id, req.approval.clone()),
     )
     .await?;
-    verified?;
+    let authorization = verified?;
     let paid = balance(ledger, quote.deposit).await?;
     ensure(paid >= u128::from(quote.price_e8s), Error::FeeBlocked)?;
     // The deadline, a refund claimed meanwhile, the pause and the quota are
     // rechecked.
     let at = now();
+    ensure(at < authorization.valid_until_ms, Error::Expired)?;
     ensure(at < quote.expires_at_ms, Error::Expired)?;
     ensure(store::payout(&id).is_none(), Error::Forbidden)?;
     ensure(store::module(quote.version).is_some(), Error::NotFound)?;

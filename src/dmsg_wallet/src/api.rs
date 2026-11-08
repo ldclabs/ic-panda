@@ -1416,9 +1416,10 @@ async fn decide(id: u64, evidence: MemberApproval, decision: Decision) -> Result
             at,
         )?;
         let home = member_home(&account).await?;
-        verify_account(home, *approval_id, approval).await?;
+        let authorization = verify_account(home, *approval_id, approval).await?;
         // Time, membership and the proposal are reread after the home's reply.
         at = now();
+        ensure(at < authorization.valid_until_ms, Error::Expired)?;
     }
     let mut w = store::wallet();
     let mut p = store::proposal(id)?;

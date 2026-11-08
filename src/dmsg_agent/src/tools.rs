@@ -96,7 +96,7 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 38] = [
     ),
     (
         "dmsg_vault_list",
-        "Titles, types and tags of vault items, optionally matching a query; needs vault.list.",
+        "Titles, types and tags of vault items, optionally matching a query against those metadata only; needs vault.list. Notes and fields are not searched.",
         true,
         r#"{"type":"object","properties":{"query":{"type":"string"}}}"#,
     ),

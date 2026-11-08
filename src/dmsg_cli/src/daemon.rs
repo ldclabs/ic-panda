@@ -2211,20 +2211,6 @@ async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: B
 }
 
 async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) -> Response {
-    let now = now_ms();
-    // One POST per login, whatever its fate.
-    let (session, bind) = {
-        let mut login = daemon.login.lock().expect("login state");
-        let session = login.session.take().filter(|s| s.deadline > now);
-        login.checking = session.is_some();
-        (session, login.bind.clone())
-    };
-    let Some(session) = session else {
-        return StatusCode::NOT_FOUND.into_response();
-    };
-    // The windows show the check, then its outcome, through
-    // `session/login_result`.
-    daemon.emit("login/changed", Value::Null);
     let origin = headers.get(header::ORIGIN).and_then(|v| v.to_str().ok());
     let own = [
         format!("http://127.0.0.1:{}", daemon.port),
@@ -2234,51 +2220,70 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
         == Some("application/cbor");
-    let outcome = if !origin.is_some_and(|o| own.iter().any(|x| x == o)) || !cbor {
-        Err(Error::Forbidden)
-    } else {
-        match session.accept(&body, now) {
-            // A second login for the unlocked account: it waits for the
-            // person to approve binding it. Either checks the login on the
-            // IC under the client, which `session/login_result` answers
-            // beside.
-            Ok(delegated) => match bind {
-                Some(source) => daemon
-                    .under_lock(async |client| {
-                        client
-                            .bind_login(&source, delegated.identity, delegated.expires_at)
-                            .await
-                    })
-                    .await
-                    .map(|approval| {
-                        daemon.login.lock().expect("login state").approval = Some(approval);
-                        daemon.emit("approval/changed", Value::Null);
-                    }),
-                None => {
-                    let login = async {
-                        let prepared = daemon
-                            .under_lock(async |client| client.prepare_login(delegated).await)
-                            .await?;
-                        daemon.finish_login_unlock(prepared).await.map(|_| ())
-                    }
-                    .await;
-                    let state = daemon.client.lock().await.session_state().state;
-                    // The login may have selected another account.
-                    *daemon.last_connect.lock().expect("connect report") = None;
-                    // No method call carries it, so the windows hear of it
-                    // here, as they hear of `session/unlock`; a failed login
-                    // has dropped the one before.
-                    crate::logs::write("session/changed", &[("state", &state)]);
-                    daemon.emit("session/changed", json!({"state": state}));
-                    daemon.emit("approval/changed", Value::Null);
-                    if login.is_ok() && state == "unlocked" {
-                        daemon.request_sync();
-                    }
-                    login
-                }
-            },
-            Err(error) => Err(error),
+    if !origin.is_some_and(|o| own.iter().any(|x| x == o)) || !cbor {
+        return (StatusCode::FORBIDDEN, "refused").into_response();
+    }
+    let now = now_ms();
+    let (accepted, bind) = {
+        let mut login = daemon.login.lock().expect("login state");
+        let Some(session) = login.session.as_ref().filter(|s| s.deadline > now) else {
+            return StatusCode::NOT_FOUND.into_response();
+        };
+        let accepted = session.accept(&body, now);
+        match &accepted {
+            // Unavailable is a login-page error whose version and state
+            // accept has checked. It ends the login just like a result.
+            Ok(_) | Err(Error::Unavailable(_)) => {}
+            Err(error) => return (StatusCode::BAD_REQUEST, error.to_string()).into_response(),
         }
+        // Validate and claim atomically: foreign/malformed callbacks leave
+        // the real session intact, and only one matching callback wins.
+        login.session = None;
+        login.checking = true;
+        (accepted, login.bind.clone())
+    };
+    daemon.emit("login/changed", Value::Null);
+    let outcome = match accepted {
+        // A second login for the unlocked account: it waits for the
+        // person to approve binding it. Either checks the login on the
+        // IC under the client, which `session/login_result` answers
+        // beside.
+        Ok(delegated) => match bind {
+            Some(source) => daemon
+                .under_lock(async |client| {
+                    client
+                        .bind_login(&source, delegated.identity, delegated.expires_at)
+                        .await
+                })
+                .await
+                .map(|approval| {
+                    daemon.login.lock().expect("login state").approval = Some(approval);
+                    daemon.emit("approval/changed", Value::Null);
+                }),
+            None => {
+                let login = async {
+                    let prepared = daemon
+                        .under_lock(async |client| client.prepare_login(delegated).await)
+                        .await?;
+                    daemon.finish_login_unlock(prepared).await.map(|_| ())
+                }
+                .await;
+                let state = daemon.client.lock().await.session_state().state;
+                // The login may have selected another account.
+                *daemon.last_connect.lock().expect("connect report") = None;
+                // No method call carries it, so the windows hear of it
+                // here, as they hear of `session/unlock`; a failed login
+                // has dropped the one before.
+                crate::logs::write("session/changed", &[("state", &state)]);
+                daemon.emit("session/changed", json!({"state": state}));
+                daemon.emit("approval/changed", Value::Null);
+                if login.is_ok() && state == "unlocked" {
+                    daemon.request_sync();
+                }
+                login
+            }
+        },
+        Err(error) => Err(error),
     };
     // The person acted in the browser, where no client reports activity.
     if outcome.is_ok() {
@@ -2617,6 +2622,86 @@ mod tests {
                 .unwrap_err()
                 .code,
             "AUTH_REQUIRED"
+        );
+    }
+
+    #[tokio::test]
+    async fn audit_invalid_login_callbacks_preserve_the_pending_session() {
+        use dmsg_client::codec::{canonical, decode, unb64};
+        use dmsg_types::login::{LoginCallback, LoginError, LoginErrorCode, LoginRequest};
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        let client = dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, None);
+        let session = LoginSession::new(
+            &[candid::Principal::anonymous()],
+            "https://dmsg.net",
+            1234,
+            DEFAULT_TTL_MS,
+            now_ms(),
+        )
+        .unwrap();
+        let url = session.url(&dmsg_client::config::Config::production().unwrap());
+        let request: LoginRequest =
+            decode(&unb64(url.split_once('#').unwrap().1).unwrap(), 65536).unwrap();
+        let daemon = Arc::new(Daemon::new(
+            "owner".into(),
+            1234,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        ));
+        daemon.login.lock().unwrap().session = Some(session);
+        let mut headers = HeaderMap::new();
+        headers.insert(header::ORIGIN, "http://127.0.0.1:1234".parse().unwrap());
+        headers.insert(header::CONTENT_TYPE, "application/cbor".parse().unwrap());
+        let cancelled = |state| {
+            Bytes::from(canonical(&LoginCallback::Error(LoginError {
+                v: 1,
+                state,
+                error: LoginErrorCode::UserCancelled,
+            })))
+        };
+        for (request_headers, body, status) in [
+            (HeaderMap::new(), Bytes::new(), StatusCode::FORBIDDEN),
+            (
+                headers.clone(),
+                Bytes::from_static(b"bad cbor"),
+                StatusCode::BAD_REQUEST,
+            ),
+            (
+                headers.clone(),
+                cancelled(dmsg_types::Hash::new([0; 32])),
+                StatusCode::BAD_REQUEST,
+            ),
+        ] {
+            assert_eq!(
+                check_callback(daemon.clone(), request_headers, body)
+                    .await
+                    .status(),
+                status
+            );
+            let login = daemon.login.lock().unwrap();
+            assert!(login.session.is_some());
+            assert!(!login.checking);
+            assert!(login.outcome.is_none());
+        }
+        let (first, second) = tokio::join!(
+            check_callback(daemon.clone(), headers.clone(), cancelled(request.state)),
+            check_callback(daemon.clone(), headers, cancelled(request.state)),
+        );
+        assert_eq!(
+            [first.status(), second.status()],
+            [StatusCode::BAD_REQUEST, StatusCode::NOT_FOUND]
+        );
+        let login = daemon.login.lock().unwrap();
+        assert!(login.session.is_none());
+        assert!(!login.checking);
+        assert_eq!(
+            login.outcome,
+            Some(Err(Error::Unavailable("login: user_cancelled".into())))
         );
     }
 
