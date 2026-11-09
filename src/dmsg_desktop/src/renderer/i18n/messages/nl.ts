@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "Naam niet gevonden. Controleer de spelling of vraag de ontvanger om de account-ID.",
+    "letterRecipientInvalid": "Voer een account-ID of naam in, zoals panda of @panda.",
+    "letterReceivingNotFound": "Geen ontvangstinstellingen gevonden voor dit account. Controleer de ontvanger of vraag deze om ontvangst in te schakelen in de inboxinstellingen van dMsg en probeer het opnieuw.",
+    "letterContactNotAllowed": "De contactinstellingen van de ontvanger staan deze brief niet toe. Vraag de ontvanger om contact toe te staan voordat je het opnieuw probeert.",
     "letterPendingContact": "Je vorige brief staat nog open. Vraag de ontvanger om die in de desktop-app te archiveren of op iOS in het briefmenu “Nog een brief toestaan” te kiezen. Probeer deze brief daarna opnieuw.",
     "letterRecipientKeyStale": "De ontvangstinstellingen van de ontvanger moeten worden bijgewerkt. Vraag de ontvanger om dMsg te ontgrendelen en te synchroniseren en probeer deze brief daarna opnieuw.",
     "letterPolicyStale": "De verzend- of ontvangstinstellingen zijn gewijzigd. Probeer deze brief opnieuw. Als het blijft mislukken, moeten jij en de ontvanger dMsg ontgrendelen en synchroniseren voordat je het opnieuw probeert.",

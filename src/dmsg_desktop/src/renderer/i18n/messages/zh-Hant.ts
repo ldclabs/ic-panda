@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "未找到這個 handle。請檢查拼寫，或向對方索取帳戶 ID。",
+    "letterRecipientInvalid": "請輸入帳戶 ID 或 handle，例如 panda 或 @panda。",
+    "letterReceivingNotFound": "未找到此帳戶的收信設定。請核對收件人；若帳戶正確，請對方在 dMsg 的收件匣設定中開啟收信，再重試。",
+    "letterContactNotAllowed": "對方的聯絡規則暫不允許這封來信。請對方允許聯絡後，再重試這封信。",
     "letterPendingContact": "上一封信還在等待對方處理。請對方在桌面端歸檔舊信，或在 iOS 的來信選單中選擇「允許再次來信」，然後重試這封信。",
     "letterRecipientKeyStale": "對方的收信設定需要更新。請對方解鎖 dMsg 並完成同步，再重試這封信。",
     "letterPolicyStale": "收發設定剛剛發生變化。請重試這封信；如果仍失敗，請你和對方都解鎖 dMsg 並完成同步後再試。",

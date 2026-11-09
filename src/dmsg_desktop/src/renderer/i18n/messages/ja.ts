@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "名前が見つかりません。つづりを確認するか、相手にアカウント ID を尋ねてください。",
+    "letterRecipientInvalid": "アカウント ID または名前を入力してください（例：panda、@panda）。",
+    "letterReceivingNotFound": "このアカウントの受信設定が見つかりません。宛先を確認するか、相手に dMsg の受信箱設定で受信を有効にしてもらい、再試行してください。",
+    "letterContactNotAllowed": "相手の連絡設定では、この手紙を受信できません。相手に連絡を許可してもらってから再試行してください。",
     "letterPendingContact": "前の手紙がまだ処理されていません。受信者にデスクトップでその手紙をアーカイブするか、iOS の手紙メニューで「次の手紙を許可」を選んでもらい、この手紙を再試行してください。",
     "letterRecipientKeyStale": "受信者の受信設定を更新する必要があります。相手に dMsg のロックを解除して同期してもらい、この手紙を再試行してください。",
     "letterPolicyStale": "送信または受信の設定が変わりました。この手紙を再試行してください。再び失敗する場合は、あなたと受信者の両方が dMsg のロックを解除して同期した後、もう一度お試しください。",

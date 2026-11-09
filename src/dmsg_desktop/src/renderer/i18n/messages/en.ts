@@ -5,6 +5,10 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+    "letterHandleNotFound": "Handle not found. Check the spelling or ask the recipient for their account ID.",
+    "letterRecipientInvalid": "Enter an account ID or handle, such as panda or @panda.",
+    "letterReceivingNotFound": "Receiving settings were not found for this account. Check the recipient, or ask them to enable receiving in dMsg’s Inbox settings, then retry.",
+    "letterContactNotAllowed": "The recipient’s contact settings do not allow this letter. Ask them to allow contact before retrying.",
   "letterPendingContact": "Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.",
   "letterRecipientKeyStale": "The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.",
   "letterPolicyStale": "Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.",

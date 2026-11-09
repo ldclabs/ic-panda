@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "Hindi nakita ang pangalan. Suriin ang baybay o hingin ang account ID ng tatanggap.",
+    "letterRecipientInvalid": "Maglagay ng account ID o pangalan, gaya ng panda o @panda.",
+    "letterReceivingNotFound": "Hindi nakita ang mga setting sa pagtanggap para sa account na ito. Suriin ang tatanggap o hilingin sa kanilang paganahin ang pagtanggap sa mga setting ng inbox ng dMsg, saka subukang muli.",
+    "letterContactNotAllowed": "Hindi pinapayagan ng mga setting ng tatanggap ang liham na ito. Hilingin sa kanilang payagan ang pakikipag-ugnayan bago subukang muli.",
     "letterPendingContact": "Nakabinbin pa ang nauna mong liham. Hilingin sa tatanggap na i-archive ito sa desktop o piliin ang “Payagan ang isa pang liham” sa menu ng liham sa iOS, saka subukang muli ang liham na ito.",
     "letterRecipientKeyStale": "Kailangang i-update ang mga setting sa pagtanggap ng tatanggap. Hilingin sa kanilang i-unlock ang dMsg at mag-sync, saka subukang muli ang liham na ito.",
     "letterPolicyStale": "Nagbago ang mga setting sa pagpapadala o pagtanggap. Subukang muli ang liham na ito. Kung mabigo pa rin, ikaw at ang tatanggap ay kailangang mag-unlock ng dMsg at mag-sync bago muling subukan.",

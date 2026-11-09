@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "letterHandleNotFound": "Nom introuvable. Vérifiez l’orthographe ou demandez au destinataire son identifiant de compte.",
+    "letterRecipientInvalid": "Saisissez un identifiant de compte ou un nom, par exemple panda ou @panda.",
+    "letterReceivingNotFound": "Aucun paramètre de réception trouvé pour ce compte. Vérifiez le destinataire ou demandez-lui d’activer la réception dans les paramètres de boîte de réception de dMsg, puis réessayez.",
+    "letterContactNotAllowed": "Les règles de contact du destinataire n’autorisent pas cette lettre. Demandez-lui d’autoriser le contact avant de réessayer.",
     "letterPendingContact": "Votre lettre précédente est encore en attente. Demandez au destinataire de l’archiver sur ordinateur ou de choisir « Autoriser un autre courrier » dans le menu de la lettre sur iOS, puis réessayez cette lettre.",
     "letterRecipientKeyStale": "Les paramètres de réception du destinataire doivent être mis à jour. Demandez-lui de déverrouiller dMsg et de synchroniser, puis réessayez cette lettre.",
     "letterPolicyStale": "Les paramètres d’envoi ou de réception ont changé. Réessayez cette lettre. Si l’envoi échoue encore, le destinataire et vous devez déverrouiller dMsg et synchroniser avant de réessayer.",

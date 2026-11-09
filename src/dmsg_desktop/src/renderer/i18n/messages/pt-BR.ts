@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "Nome não encontrado. Confira a grafia ou peça ao destinatário o ID da conta.",
+    "letterRecipientInvalid": "Digite um ID de conta ou nome, como panda ou @panda.",
+    "letterReceivingNotFound": "Não foram encontradas configurações de recebimento para esta conta. Confira o destinatário ou peça que ative o recebimento nas configurações da caixa de entrada do dMsg e tente novamente.",
+    "letterContactNotAllowed": "As regras de contato do destinatário não permitem esta carta. Peça que permita o contato antes de tentar novamente.",
     "letterPendingContact": "Sua carta anterior ainda está pendente. Peça ao destinatário para arquivá-la no computador ou escolher “Permitir outra carta” no menu da carta no iOS. Depois, tente enviar esta carta novamente.",
     "letterRecipientKeyStale": "As configurações de recebimento do destinatário precisam ser atualizadas. Peça que desbloqueie o dMsg e sincronize; depois, tente enviar esta carta novamente.",
     "letterPolicyStale": "As configurações de envio ou recebimento mudaram. Tente enviar esta carta novamente. Se ainda falhar, você e o destinatário devem desbloquear o dMsg e sincronizar antes de tentar de novo.",

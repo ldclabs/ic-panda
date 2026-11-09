@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "Name nicht gefunden. Prüfe die Schreibweise oder bitte den Empfänger um seine Konto-ID.",
+    "letterRecipientInvalid": "Gib eine Konto-ID oder einen Namen ein, zum Beispiel panda oder @panda.",
+    "letterReceivingNotFound": "Für dieses Konto wurden keine Empfangseinstellungen gefunden. Prüfe den Empfänger oder bitte ihn, den Empfang in den Posteingangseinstellungen von dMsg zu aktivieren. Versuche es danach erneut.",
+    "letterContactNotAllowed": "Die Kontakteinstellungen des Empfängers erlauben diesen Brief nicht. Bitte ihn, den Kontakt zu erlauben, bevor du es erneut versuchst.",
     "letterPendingContact": "Dein vorheriger Brief ist noch offen. Bitte den Empfänger, ihn in der Desktop-App zu archivieren oder im Briefmenü unter iOS „Weiteren Brief erlauben“ zu wählen. Sende diesen Brief danach erneut.",
     "letterRecipientKeyStale": "Die Empfangseinstellungen des Empfängers müssen aktualisiert werden. Bitte ihn, dMsg zu entsperren und zu synchronisieren. Sende diesen Brief danach erneut.",
     "letterPolicyStale": "Die Sende- oder Empfangseinstellungen haben sich geändert. Versuche erneut, diesen Brief zu senden. Falls es weiterhin fehlschlägt, sollten du und der Empfänger dMsg entsperren und vor dem nächsten Versuch synchronisieren.",

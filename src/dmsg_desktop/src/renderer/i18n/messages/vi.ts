@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "Không tìm thấy tên. Kiểm tra cách viết hoặc xin ID tài khoản của người nhận.",
+    "letterRecipientInvalid": "Nhập ID tài khoản hoặc tên, ví dụ panda hoặc @panda.",
+    "letterReceivingNotFound": "Không tìm thấy cài đặt nhận thư của tài khoản này. Kiểm tra người nhận hoặc nhờ họ bật nhận thư trong cài đặt hộp thư đến của dMsg, rồi thử lại.",
+    "letterContactNotAllowed": "Cài đặt liên hệ của người nhận không cho phép thư này. Hãy nhờ họ cho phép liên hệ trước khi thử lại.",
     "letterPendingContact": "Thư trước của bạn vẫn đang chờ xử lý. Hãy nhờ người nhận lưu trữ thư đó trên máy tính hoặc chọn “Cho phép thư tiếp theo” trong menu thư trên iOS, rồi thử gửi lại thư này.",
     "letterRecipientKeyStale": "Cài đặt nhận thư của người nhận cần được cập nhật. Hãy nhờ họ mở khóa dMsg và đồng bộ, rồi thử gửi lại thư này.",
     "letterPolicyStale": "Cài đặt gửi hoặc nhận đã thay đổi. Hãy thử gửi lại thư này. Nếu vẫn thất bại, bạn và người nhận cần mở khóa dMsg và đồng bộ trước khi thử lại.",

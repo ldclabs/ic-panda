@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "Kullanıcı adı bulunamadı. Yazımı kontrol edin veya alıcıdan hesap kimliğini isteyin.",
+    "letterRecipientInvalid": "panda veya @panda gibi bir kullanıcı adı ya da hesap kimliği girin.",
+    "letterReceivingNotFound": "Bu hesabın alım ayarları bulunamadı. Alıcıyı kontrol edin veya dMsg gelen kutusu ayarlarından alımı etkinleştirmesini isteyin, ardından yeniden deneyin.",
+    "letterContactNotAllowed": "Alıcının iletişim ayarları bu mektuba izin vermiyor. Tekrar denemeden önce alıcıdan iletişime izin vermesini isteyin.",
     "letterPendingContact": "Önceki mektubunuz hâlâ bekliyor. Alıcıdan masaüstünde arşivlemesini veya iOS mektup menüsünde “Başka bir mektuba izin ver” seçmesini isteyin, ardından bu mektubu yeniden deneyin.",
     "letterRecipientKeyStale": "Alıcının alım ayarlarının güncellenmesi gerekiyor. Alıcıdan dMsg kilidini açıp eşitlemesini isteyin, ardından bu mektubu yeniden deneyin.",
     "letterPolicyStale": "Gönderme veya alma ayarları değişti. Bu mektubu yeniden deneyin. Yine başarısız olursa siz ve alıcı, tekrar denemeden önce dMsg kilidini açıp eşitlemelisiniz.",

@@ -21,7 +21,7 @@
    */
   let { open = $bindable(false), to = '', mod }: { open?: boolean; to?: string; mod: string } = $props()
 
-  type Pending = { key: string; order: string } | null
+  type Pending = { key: string; order: string; account: string } | null
   const draft = rememberedPlain<{ recipient: string; text: string; pay: boolean; pending: Pending }>('inbox.compose')
   let recipient = $state(draft?.recipient ?? '')
   let text = $state(draft?.text ?? '')
@@ -36,6 +36,11 @@
     else if (to) recipient = to
   })
 
+  $effect(() => {
+    void recipient; void text; void pay
+    error = ''
+  })
+
   onDestroy(() => {
     generation += 1
     rememberPlain('inbox.compose', { recipient, text, pay, pending })
@@ -46,14 +51,19 @@
     const at = generation
     busy = true
     error = ''
+    let stage: 'recipient' | 'send' | 'payment' = 'recipient'
     try {
-      const account = await accountOf(recipient)
+      const key = JSON.stringify([recipient.trim().replace(/^@/, '').toLowerCase(), text, pay])
+      // Keep the resolved account after an uncertain send. A transferred
+      // handle must not redirect a retry to a different person.
+      const account = pending?.key === key ? pending.account : await accountOf(recipient)
       if (at !== generation || !open) return
-      const key = JSON.stringify([account, text, pay])
-      if (pending?.key !== key) pending = { key, order: Array.from(crypto.getRandomValues(new Uint8Array(32)), (n) => n.toString(16).padStart(2, '0')).join('') }
+      if (pending?.key !== key) pending = { key, account, order: Array.from(crypto.getRandomValues(new Uint8Array(32)), (n) => n.toString(16).padStart(2, '0')).join('') }
+      stage = 'send'
       const sent: any = await call('inbox/send', { recipient: account, text, pay, order: pending.order })
       if (at !== generation || !open) return
       if (sent.state === 'quoted') {
+        stage = 'payment'
         const request: any = await call('inbox/pay', { recipient: account, order: sent.order_id })
         if (at !== generation || !open) return
         await bridge(() => window.dmsg.openApproval(request.id))
@@ -69,7 +79,11 @@
       open = false
     } catch (e) {
       if (at === generation && open) {
-        error = code(e) === 'VERSION_CONFLICT' ? t('letterPendingContact')
+        error = stage === 'recipient' && code(e) === 'NOT_FOUND' ? t('letterHandleNotFound')
+          : stage === 'recipient' && code(e) === 'INVALID_INPUT' ? t('letterRecipientInvalid')
+          : stage === 'send' && code(e) === 'NOT_FOUND' ? t('letterReceivingNotFound')
+          : stage === 'send' && code(e) === 'FORBIDDEN' ? t('letterContactNotAllowed')
+          : code(e) === 'VERSION_CONFLICT' ? t('letterPendingContact')
           : code(e) === 'REKEY_REQUIRED' ? t('letterRecipientKeyStale')
           : code(e) === 'POLICY_STALE' ? t('letterPolicyStale')
           : errorText(e)
@@ -90,10 +104,10 @@
 <Dialog bind:open title={t('writeLetter')} description={t('letterHint')} icon="mail" testid="letter-dialog">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="grid gap-3" onkeydown={onKey}>
-    <TextField label={t('to')} disabled={busy} bind:value={recipient} placeholder={t('accountOrName')} spellcheck={false} data-testid="letter-recipient" />
+    <TextField label={t('to')} hint={t('accountOrName')} dir="ltr" disabled={busy} bind:value={recipient} placeholder="panda / @panda" spellcheck={false} data-testid="letter-recipient" />
     <TextArea label={t('message')} disabled={busy} bind:value={text} rows={7} data-testid="letter-text" />
     <Checkbox disabled={busy} bind:checked={pay} class="text-[12.5px] text-ink-2">{t('paidLetterHint')}</Checkbox>
-    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+    {#if error}<Notice failure={error} tone="danger" testid="letter-send-error">{error}</Notice>{/if}
   </div>
   {#snippet footer()}
     <span class="flex-1"></span>

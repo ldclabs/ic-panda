@@ -1,4 +1,4 @@
-import { call } from '../../rpc'
+import { call, CallError } from '../../rpc'
 import { shortId } from '../../shell/session'
 
 /**
@@ -139,7 +139,9 @@ const XID = /^[0-9a-v]{19}[0g]$/
 export async function accountOf(text: string): Promise<string> {
   const value = text.trim().replace(/^@/, '')
   if (XID.test(value)) return value
-  const found = await call<{ account: string } | null>('handle/resolve', { name: value })
-  if (!found?.account) throw new Error('NOT_FOUND: name')
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_]{0,18}$/.test(value)) throw new CallError('INVALID_INPUT: recipient')
+  const found = await call<{ account: string } | null>('handle/resolve', { name: value.toLowerCase() })
+  if (!found) throw new CallError('NOT_FOUND: name')
+  if (!XID.test(found.account)) throw new CallError('INTEGRITY_FAILED: recipient')
   return found.account
 }

@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "이름을 찾을 수 없습니다. 철자를 확인하거나 상대방에게 계정 ID를 요청하세요.",
+    "letterRecipientInvalid": "계정 ID나 이름을 입력하세요. 예: panda 또는 @panda.",
+    "letterReceivingNotFound": "이 계정의 수신 설정을 찾을 수 없습니다. 받는 사람을 확인하거나 상대방에게 dMsg 수신함 설정에서 수신을 켜 달라고 요청한 후 다시 시도하세요.",
+    "letterContactNotAllowed": "받는 사람의 연락 설정이 이 편지를 허용하지 않습니다. 상대방에게 연락을 허용해 달라고 요청한 후 다시 시도하세요.",
     "letterPendingContact": "이전 편지가 아직 처리되지 않았습니다. 받는 사람에게 데스크톱에서 이전 편지를 보관하거나 iOS 편지 메뉴에서 “다음 편지 허용”을(를) 선택해 달라고 요청한 후 이 편지를 다시 보내세요.",
     "letterRecipientKeyStale": "받는 사람의 수신 설정을 업데이트해야 합니다. 상대방에게 dMsg 잠금을 해제하고 동기화해 달라고 요청한 후 이 편지를 다시 보내세요.",
     "letterPolicyStale": "발신 또는 수신 설정이 변경되었습니다. 이 편지를 다시 보내세요. 계속 실패하면 본인과 받는 사람 모두 dMsg 잠금을 해제하고 동기화한 후 다시 시도하세요.",

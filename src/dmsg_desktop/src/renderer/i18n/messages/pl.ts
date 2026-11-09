@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "Nie znaleziono nazwy. Sprawdź pisownię lub poproś odbiorcę o identyfikator konta.",
+    "letterRecipientInvalid": "Wpisz identyfikator konta lub nazwę, na przykład panda albo @panda.",
+    "letterReceivingNotFound": "Nie znaleziono ustawień odbierania dla tego konta. Sprawdź odbiorcę lub poproś go o włączenie odbierania w ustawieniach skrzynki odbiorczej dMsg, a następnie spróbuj ponownie.",
+    "letterContactNotAllowed": "Ustawienia kontaktu odbiorcy nie zezwalają na ten list. Poproś odbiorcę o zezwolenie na kontakt przed kolejną próbą.",
     "letterPendingContact": "Twój poprzedni list nadal oczekuje na obsługę. Poproś odbiorcę, aby zarchiwizował go w aplikacji komputerowej lub wybrał „Zezwól na kolejny list” w menu listu w iOS. Następnie ponów wysłanie tego listu.",
     "letterRecipientKeyStale": "Ustawienia odbierania u odbiorcy wymagają aktualizacji. Poproś odbiorcę o odblokowanie dMsg i synchronizację, a następnie ponów wysłanie tego listu.",
     "letterPolicyStale": "Ustawienia wysyłania lub odbierania się zmieniły. Ponów wysłanie tego listu. Jeśli nadal się nie uda, Ty i odbiorca powinniście odblokować dMsg i zsynchronizować dane przed kolejną próbą.",

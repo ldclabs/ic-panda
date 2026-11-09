@@ -3,6 +3,10 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterHandleNotFound": "Nama tidak ditemukan. Periksa ejaan atau minta ID akun penerima.",
+    "letterRecipientInvalid": "Masukkan ID akun atau nama, seperti panda atau @panda.",
+    "letterReceivingNotFound": "Pengaturan penerimaan akun ini tidak ditemukan. Periksa penerima atau minta mereka mengaktifkan penerimaan di pengaturan kotak masuk dMsg, lalu coba lagi.",
+    "letterContactNotAllowed": "Pengaturan kontak penerima tidak mengizinkan surat ini. Minta mereka mengizinkan kontak sebelum mencoba lagi.",
     "letterPendingContact": "Surat Anda sebelumnya masih tertunda. Minta penerima mengarsipkannya di desktop atau memilih “Izinkan surat lain” dari menu surat di iOS, lalu coba kirim surat ini lagi.",
     "letterRecipientKeyStale": "Pengaturan penerimaan penerima perlu diperbarui. Minta mereka membuka kunci dMsg dan menyinkronkan, lalu coba kirim surat ini lagi.",
     "letterPolicyStale": "Pengaturan pengiriman atau penerimaan telah berubah. Coba kirim surat ini lagi. Jika masih gagal, Anda dan penerima perlu membuka kunci dMsg dan menyinkronkan sebelum mencoba lagi.",
