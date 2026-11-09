@@ -26,6 +26,8 @@
     options,
     placeholder = '',
     label,
+    id,
+    'aria-describedby': describedBy,
     disabled = false,
     onChange,
     testid,
@@ -35,6 +37,8 @@
     options: Option[]
     placeholder?: string
     label?: string
+    id?: string
+    'aria-describedby'?: string
     disabled?: boolean
     onChange?: (value: string) => void
     testid?: string
@@ -58,12 +62,14 @@
 
 <DropdownMenu.Root bind:open dir={localeDir(locale())}>
   <DropdownMenu.Trigger
+    {id}
     class={cn(
       'group inline-flex h-8 max-w-full shrink-0 items-center justify-between gap-2 rounded-lg border border-edge bg-surface ps-2.5 pe-2 text-start text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 hover:not-disabled:border-forest/60 focus-visible:border-forest focus-visible:ring-3 focus-visible:ring-forest/18 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-forest',
       className
     )}
     disabled={disabled || !options.length}
     aria-label={label}
+    aria-describedby={describedBy}
     data-testid={testid}
   >
     <span class={cn('max-w-[260px] truncate', chosen?.mono && 'font-mono text-xs', !chosen && 'text-faint')}>{chosen?.label ?? placeholder}</span>

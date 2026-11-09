@@ -5,6 +5,7 @@
   import Select from '../../components/Select.svelte'
   import TextArea from '../../components/TextArea.svelte'
   import TextField from '../../components/TextField.svelte'
+  import Field from '../../components/page/Field.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import { buttonClass } from '../../components/ui'
   import { copyText } from '../../components/clipboard'
@@ -23,6 +24,7 @@
     onCreated: () => void
   } = $props()
 
+  const uid = $props.id()
   const MIB = 1024 * 1024
   let title = $state('')
   let instructions = $state('')
@@ -161,8 +163,28 @@
         data-testid="request-names"
       />
       <div class="grid gap-3 sm:grid-cols-2">
-        <Select label={t('requestExpiry')} bind:value={days} options={dayOptions} disabled={working} testid="request-days" />
-        <Select label={t('requestTotal')} bind:value={total} options={totalOptions} disabled={working} testid="request-total" />
+        <Field label={t('requestExpiry')} hint={t('requestExpiryHint')} for={`${uid}-days`} hintId={`${uid}-days-hint`}>
+          <Select
+            id={`${uid}-days`}
+            label={t('requestExpiry')}
+            aria-describedby={`${uid}-days-hint`}
+            bind:value={days}
+            options={dayOptions}
+            disabled={working}
+            testid="request-days"
+          />
+        </Field>
+        <Field label={t('requestTotal')} hint={t('requestTotalHint')} for={`${uid}-total`} hintId={`${uid}-total-hint`}>
+          <Select
+            id={`${uid}-total`}
+            label={t('requestTotal')}
+            aria-describedby={`${uid}-total-hint`}
+            bind:value={total}
+            options={totalOptions}
+            disabled={working}
+            testid="request-total"
+          />
+        </Field>
       </div>
     </div>
   {/if}
