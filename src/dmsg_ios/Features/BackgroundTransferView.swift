@@ -16,7 +16,7 @@ struct BackgroundTransferSection: View {
                         if state.ready { Button("Verify and finish") { Task { await finish(state) } }.disabled(working) }
                         else if Double(state.transfer.expiresAt) <= Date.now.timeIntervalSince1970 * 1000 {
                             Text("The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.").font(.footnote)
-                        } else if state.paused || state.failure != nil {
+                        } else if state.phase == .paused || state.failure != nil {
                             Text("The transfer paused. Retry the original encrypted blocks.").font(.footnote)
                             Button("Retry") { Task { do { try await BackgroundTransfers.shared.retry(); load() } catch { model.reportFileError(error) } } }.disabled(working)
                         } else { Button("Pause transfer") { Task { await BackgroundTransfers.shared.pause(); load() } } }

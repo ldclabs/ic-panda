@@ -2596,3 +2596,60 @@ performed. The source remains 1.1.1 (18). iPad and smallest-phone coverage were 
 run for this change.
 
 Implementation and validation: Codex (OpenAI).
+
+
+## 2026-11-09 explicit lifecycle and operation stages
+
+Replaced overlapping scene visibility and busy-operation flags with explicit
+lifecycle phases and one token carrying its operation kind. Login validity and
+content unlock remain separate. Device transfer phases now own their receiving
+or sending plan and pending approval. Only a suspended receiver can automatically
+resume; sending again still needs a reviewed export.
+
+Background ciphertext transfers now have transferring, paused, failed and
+awaiting-verification phases. They retain the installed JSON format, progress,
+attempt numbers and bounded block retries. Old-attempt callbacks cannot complete
+a retried transfer, and late failures cannot replace its awaiting-verification
+state. Foreground core verification/finalization remains required.
+
+Wallet transfers, control changes, cosigner registrations and replacements use
+one proposal submission state. Unknown, pending and completed-but-unread results
+keep the original request for reconciliation; only an absent or rejected journal
+permits a new ID. Returning from an interrupted submission does not leave the
+form permanently submitting. No new state-machine dependency or Rust protocol
+change was introduced.
+
+Actual local validation on iPhone SE (3rd generation), iOS 18.4 Simulator:
+
+- Debug build, all 122 Swift unit tests and the Account uncover/foreground UI
+  regression passed in `.build/ExplicitStates-20261109.xcresult` (123 tests).
+- Eleven additional UI regressions passed in
+  `.build/ExplicitStates-UI-20261109.xcresult`: explicit lock, background return,
+  unknown/slow account initialization, device handover navigation and file
+  transfer presentation. These include English light, Chinese dark, French long
+  copy and Arabic RTL/dark scenarios.
+- After removing an unused derived device-transfer property, the final build
+  and all four `DeviceTransferTests` passed in
+  `.build/ExplicitStates-final-20261109.xcresult`.
+- Visually checked the compact Chinese Account foreground screenshot, English
+  and Arabic device-transfer screens, Chinese dark transfer progress, and French
+  transfer progress from the test attachments. Files are under
+  `.build/ExplicitStates-screenshots` and `.build/ExplicitStates-UI-screenshots`.
+- Native artifact/source fingerprint verification, 23 localization catalogs,
+  current Debug compiler string extraction, 35 shared icons and `git diff --check`
+  passed. A whole-DerivedData localization check initially included stale Release
+  extraction files; checking the current Debug intermediates passed.
+- Notification catalog parity did not pass: `sync-notifications.mjs --check`
+  reported `Notification copy drift: en`. Its source catalogs, native fallback,
+  translations and checker have no changes in this patch.
+
+Eight new unit tests cover operation ownership during lifecycle transitions,
+receiver-only automatic resumption, legacy transfer records, restart/retry
+callback fencing, verification pending after byte completion, and wallet journal
+reconciliation. UI tests use existing presentation fixtures. Real two-device
+handover, OS background network completion, physical-device authentication,
+live wallet proposals and the full iPad/OS matrix were not run. Rust tests and
+the full `verify.sh` suite were not rerun; this patch changes only Swift and docs.
+No production deployment, version change or App Store upload was performed.
+
+Implementation and validation: Codex (OpenAI).

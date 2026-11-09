@@ -19,9 +19,7 @@ struct WalletControlsView: View {
     @State private var administrators: UInt8 = 1
     @State private var working = false
     @State private var confirming: WalletChange?
-    @State private var requestID = NativeApple.requestID()
-    @State private var attempted = false
-    @State private var result: DisplayValue?
+    @State private var submission = WalletProposalSubmission()
     @State private var freezing = false
     struct Details: Decodable {
         struct Address: Decodable, Identifiable { let id: UInt32; let text: String; let label: String; let chain: String; let verified: Bool }
@@ -94,10 +92,10 @@ struct WalletControlsView: View {
                     else { Button("Freeze wallet", role: .destructive) { freezing = true } }
                 }
             } else { ProgressView() }
-        }.disabled(working || attempted || result != nil)
+        }.disabled(working || submission.attempted)
             .safeAreaInset(edge: .bottom) {
-                if attempted && result == nil { Button("Reconcile original proposal") { Task { await submit(nil) } }.buttonStyle(.borderedProminent).padding().disabled(working) }
-                if result != nil { Text("Proposal created. Review it in the wallet's proposal list.").font(.footnote).padding() }
+                if submission.attempted && submission.result == nil { Button("Reconcile original proposal") { Task { await submit(nil) } }.buttonStyle(.borderedProminent).padding().disabled(working) }
+                if submission.result != nil { Text("Proposal created. Review it in the wallet's proposal list.").font(.footnote).padding() }
             }
             .privateScreen().navigationTitle("Wallet controls").task { await load() }
             .confirmationDialog("Create this wallet proposal?", isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } })) {
@@ -121,17 +119,20 @@ struct WalletControlsView: View {
         await balanceDisplay.load(model, kind: "balances", id: wallet, force: true) { (next: DisplayValue) in balances = next }
     }
     private func submit(_ change: WalletChange?) async {
-        guard let engine = model.engine, !working else { return }; let epoch = model.epoch; working = true; confirming = nil; model.activity(); defer { working = false }
+        guard let engine = model.engine, !working else { return }; let epoch = model.epoch; working = true; confirming = nil; model.activity(); defer { working = false; submission.interrupted() }
         do {
+            guard submission.attempted || change != nil, let attempt = submission.begin() else { return }
             let value: ObjectSnapshot
-            if attempted { value = try await engine.resumeWalletProposal(requestId: requestID) }
-            else { guard let change else { return }; attempted = true; value = try await engine.walletChange(wallet: wallet, change: change, requestId: requestID) }
-            guard epoch == model.epoch else { return }; result = try model.decode(value)
-        } catch {
-            if let state = try? await engine.walletProposalAttempt(requestId: requestID), epoch == model.epoch {
-                attempted = state == "pending" || state == "completed"
-                if !attempted { requestID = NativeApple.requestID() }
+            switch attempt {
+            case .reconcile(let id): value = try await engine.resumeWalletProposal(requestId: id)
+            case .create(let id):
+                guard let change else { return }
+                value = try await engine.walletChange(wallet: wallet, change: change, requestId: id)
             }
+            guard epoch == model.epoch else { return }; submission.confirm(try model.decode(value))
+        } catch {
+            let state = try? await engine.walletProposalAttempt(requestId: submission.requestID)
+            if epoch == model.epoch { submission.failed(journal: state) }
             if epoch == model.epoch { model.report(error) }
         }
     }

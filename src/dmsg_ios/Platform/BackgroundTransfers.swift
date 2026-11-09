@@ -7,26 +7,83 @@ struct CipherTransfer: Codable, Sendable, Identifiable {
     let uploadId: String; let expiresAt: UInt64; let parts: [Part]
 }
 struct CipherTransferState: Codable, Sendable {
+    enum Phase: Equatable, Sendable {
+        case transferring, paused, failed(String), awaitingVerification
+    }
     let transfer: CipherTransfer
-    var completed: Set<String> = []
-    var failure: String?
-    var paused = false
-    var attempt = 0
-    var failures: [String: Int]?
-    var retryAfter: [String: Date]?
+    private(set) var phase: Phase = .transferring
+    private(set) var completed: Set<String> = []
+    private(set) var attempt = 0
+    private(set) var failures: [String: Int]?
+    private(set) var retryAfter: [String: Date]?
+
+    init(transfer: CipherTransfer) { self.transfer = transfer }
+
+    var ready: Bool { phase == .awaitingVerification }
+    var failure: String? { if case .failed(let reason) = phase { reason } else { nil } }
+
+    func accepts(_ attempt: Int) -> Bool { self.attempt == attempt && phase == .transferring }
+
+    mutating func pause() { if phase == .transferring { phase = .paused } }
+
+    mutating func retry(now: Date = .now) throws {
+        guard Double(transfer.expiresAt) > now.timeIntervalSince1970 * 1000 else { throw CocoaError(.userCancelled) }
+        attempt += 1; failures = nil; retryAfter = nil
+        phase = completed.count == transfer.parts.count ? .awaitingVerification : .transferring
+    }
+
+    mutating func complete(_ slot: String) {
+        guard phase == .transferring else { return }
+        completed.insert(slot); retryAfter?[slot] = nil; failures?[slot] = nil
+        if completed.count == transfer.parts.count { phase = .awaitingVerification }
+    }
+
+    mutating func fail(_ reason: String) {
+        guard phase == .transferring else { return }
+        phase = .failed(reason)
+    }
 
     mutating func failed(slot: String, status: Int?, transient: Bool, now: Date = .now) {
+        guard phase == .transferring else { return }
         if now.timeIntervalSince1970 * 1000 >= Double(transfer.expiresAt) || status == 403 {
-            failure = "expired"; return
+            fail("expired"); return
         }
         let count = (failures?[slot] ?? 0) + 1
         if failures == nil { failures = [:] }; failures?[slot] = count
         if transient, count <= 3 {
             if retryAfter == nil { retryAfter = [:] }
             retryAfter?[slot] = now.addingTimeInterval(Double(1 << count))
-        } else { failure = "transfer_failed" }
+        } else { fail("transfer_failed") }
     }
-    var ready: Bool { completed.count == transfer.parts.count }
+
+    // Keep the existing on-disk shape: installed versions may already have a
+    // paused or partially completed OS transfer. Runtime stages have one owner.
+    private enum CodingKeys: String, CodingKey { case transfer, completed, failure, paused, attempt, failures, retryAfter }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        transfer = try values.decode(CipherTransfer.self, forKey: .transfer)
+        completed = try values.decode(Set<String>.self, forKey: .completed)
+        attempt = try values.decode(Int.self, forKey: .attempt)
+        failures = try values.decodeIfPresent([String: Int].self, forKey: .failures)
+        retryAfter = try values.decodeIfPresent([String: Date].self, forKey: .retryAfter)
+        let failure = try values.decodeIfPresent(String.self, forKey: .failure)
+        let paused = try values.decode(Bool.self, forKey: .paused)
+        if completed.count == transfer.parts.count { phase = .awaitingVerification }
+        else if let failure { phase = .failed(failure) }
+        else { phase = paused ? .paused : .transferring }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(transfer, forKey: .transfer)
+        try values.encode(completed, forKey: .completed)
+        try values.encode(attempt, forKey: .attempt)
+        try values.encode(phase == .paused, forKey: .paused)
+        try values.encodeIfPresent(failure, forKey: .failure)
+        try values.encodeIfPresent(failures, forKey: .failures)
+        try values.encodeIfPresent(retryAfter, forKey: .retryAfter)
+    }
 }
 
 /// This directory holds only opaque transfer metadata and ciphertext. It is
@@ -84,11 +141,11 @@ final class CipherTransferStore: @unchecked Sendable {
     }
     func receive(_ id: String, attempt: Int, slot: String, temporary: URL) throws {
         try lock.withLock {
-            guard var value = try read(), value.transfer.id == id, value.attempt == attempt, !value.paused,
+            guard var value = try read(), value.transfer.id == id, value.accepts(attempt),
                   let part = value.transfer.parts.first(where: { $0.slot == slot }),
                   (try temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) == Int(part.size) else { throw CocoaError(.userCancelled) }
             let bytes = try Data(contentsOf: temporary); try stage(value.transfer, slot: slot, bytes: bytes)
-            value.completed.insert(slot); try save(value)
+            value.complete(slot); try save(value)
         }
     }
     func discard(_ transfer: CipherTransfer) throws {
@@ -113,8 +170,8 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
     static let identifier = "net.dmsg.ios.ciphertext.v1"
     private let mutex = NSLock()
     private var connection: URLSession?
-    private var scheduling = false
-    private var rescheduling = false
+    private enum Scheduling { case idle, running, rerun }
+    private var scheduling = Scheduling.idle
     let store: CipherTransferStore?
     override init() { store = try? CipherTransferStore(); super.init() }
     private var session: URLSession {
@@ -134,13 +191,13 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
         try store.start(transfer); schedule(); changed()
     }
     func pause() async {
-        if let state = try? store?.snapshot() { try? store?.update(state.transfer.id) { $0.paused = true } }
+        if let state = try? store?.snapshot() { try? store?.update(state.transfer.id) { $0.pause() } }
         let tasks = await session.allTasks; for task in tasks { task.cancel() }; changed()
     }
     func retry() async throws {
         await pause()
         guard let store, let state = try store.snapshot(), Double(state.transfer.expiresAt) > Date.now.timeIntervalSince1970 * 1000 else { throw CocoaError(.userCancelled) }
-        try store.update(state.transfer.id) { $0.failure = nil; $0.paused = false; $0.attempt += 1; $0.failures = nil; $0.retryAfter = nil }; schedule(); changed()
+        try store.update(state.transfer.id) { try $0.retry() }; schedule(); changed()
     }
     func discard(_ transfer: CipherTransfer) async throws { await pause(); try store?.discard(transfer); changed() }
     private func changed() { NotificationCenter.default.post(name: .dmsgCipherTransfer, object: nil) }
@@ -150,15 +207,15 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
     private func schedule() {
         // A completion that arrives mid-pass may be missing from its task list;
         // run once more so the last finished task always schedules the rest.
-        guard mutex.withLock({ if scheduling { rescheduling = true; return false }; scheduling = true; return true }) else { return }
+        guard mutex.withLock({ if scheduling != .idle { scheduling = .rerun; return false }; scheduling = .running; return true }) else { return }
         session.getAllTasks { [self] tasks in
             defer {
-                let again = mutex.withLock { () -> Bool in let again = rescheduling; scheduling = false; rescheduling = false; return again }
+                let again = mutex.withLock { () -> Bool in let again = scheduling == .rerun; scheduling = .idle; return again }
                 if again { schedule() }
             }
-            guard let store, let state = try? store.snapshot(), !state.paused, state.failure == nil, !state.ready else { return }
+            guard let store, let state = try? store.snapshot(), state.phase == .transferring else { return }
             guard Double(state.transfer.expiresAt) > Date.now.timeIntervalSince1970 * 1000 else {
-                try? store.update(state.transfer.id) { $0.failure = "expired" }; changed(); return
+                try? store.update(state.transfer.id) { $0.fail("expired") }; changed(); return
             }
             let active = tasks.filter { $0.state != .completed && $0.state != .canceling }
             let scheduled = Set(active.compactMap { taskPart($0) }.filter { $0.0 == state.transfer.id && $0.1 == state.attempt }.map { $0.2 })
@@ -168,7 +225,7 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
                 request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
                 let task: URLSessionTask
                 if state.transfer.method == "PUT" {
-                    guard let path = try? store.path(state.transfer, part.slot), FileManager.default.fileExists(atPath: path.path) else { try? store.update(state.transfer.id) { $0.failure = "missing_ciphertext" }; changed(); return }
+                    guard let path = try? store.path(state.transfer, part.slot), FileManager.default.fileExists(atPath: path.path) else { try? store.update(state.transfer.id) { $0.fail("missing_ciphertext") }; changed(); return }
                     task = session.uploadTask(with: request, fromFile: path)
                 } else { task = session.downloadTask(with: request) }
                 task.earliestBeginDate = state.retryAfter?[part.slot]
@@ -187,19 +244,18 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
             guard let store else { throw CocoaError(.fileReadUnknown) }
             // Consume the temporary URL before returning to URLSession.
             try store.receive(id, attempt: attempt, slot: slot, temporary: location)
-        } catch { try? store?.update(id) { if $0.attempt == attempt && !$0.paused { $0.failure = "download_verification_failed" } }; changed() }
+        } catch { try? store?.update(id) { if $0.accepts(attempt) { $0.fail("download_verification_failed") } }; changed() }
     }
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let (id,attempt,slot) = taskPart(task) else { return }
         try? store?.update(id) { value in
-            guard !value.paused, value.attempt == attempt else { return }
+            guard value.accepts(attempt) else { return }
             let status = (task.response as? HTTPURLResponse)?.statusCode
             if error != nil || !(status.map { (200..<300).contains($0) } ?? false) {
                 let network = (error as? URLError).map { [.timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed].contains($0.code) } ?? false
                 value.failed(slot: slot, status: status, transient: network || [408, 429, 500, 502, 503, 504].contains(status ?? 0))
             } else {
-                if value.transfer.method == "PUT" { value.completed.insert(slot) }
-                value.retryAfter?[slot] = nil; value.failures?[slot] = nil
+                if value.transfer.method == "PUT" { value.complete(slot) }
             }
         }
         changed(); schedule()

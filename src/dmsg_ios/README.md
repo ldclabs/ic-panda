@@ -508,6 +508,25 @@ available; an authentication dialog's inactive/active transition does not
 retrigger it. Explicit and idle locks stay locked during the current visit.
 The existing Secure Enclave, presence and account checks still perform unlock.
 
+The scene has explicit inactive, background, resuming, active and protected-data
+unavailable phases. Visibility remains independent of login and content unlock;
+only the active phase uncovers the workspace. A single operation token and kind
+own busy/unlock/setup/sync feedback, so an older completion cannot clear its
+replacement. Existing session and view generations still fence asynchronous work.
+
+Device transfers keep their plan in the phase that owns it: waiting for export
+approval, transferring or suspended. Returning to the foreground can resume the
+same receiving session; sending again requires another reviewed export. System
+ciphertext transfers distinguish transferring, paused, failed and awaiting
+foreground verification. They retain the existing on-disk format and attempt
+numbers, including across retries and restarts.
+
+Wallet transfer, control-change, cosigner registration and replacement proposals
+share editing, submitting, unconfirmed and created stages. An interrupted or
+unreadable result retains the original request ID for reconciliation. Only a
+confirmed absent/rejected journal permits a new ID; a completed journal is read
+back before showing the proposal as created.
+
 The app follows iOS language preferences unless a per-app language is selected.
 The **Language** link on the access screen and in **Account** opens iOS
 Settings, where the dMsg language option is always shown. Supported languages

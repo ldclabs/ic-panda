@@ -4,6 +4,20 @@ import XCTest
 
 @MainActor
 final class DeviceTransferTests: XCTestCase {
+    func testBackgroundKeepsTheReceivingSessionButNeverAutomaticallyResends() {
+        var receiver = DeviceTransferModel.Phase.transferring(.receive(session: "same-session", succession: "handover"))
+        receiver.suspend()
+        guard case .receive(let session, let succession)? = receiver.automaticResume else { return XCTFail("Receiver must resume its existing session") }
+        XCTAssertEqual(session, "same-session")
+        XCTAssertEqual(succession, "handover")
+        var sender = DeviceTransferModel.Phase.transferring(.send(session: "same-session", to: "peer", address: nil, succession: nil))
+        sender.suspend()
+        XCTAssertNil(sender.automaticResume, "Sending again needs a newly reviewed export")
+        var starting = DeviceTransferModel.Phase.starting
+        starting.suspend()
+        XCTAssertNil(starting.automaticResume, "An unfinished start cannot invent a resumable session")
+    }
+
     func testTypedAddressesTakeAPortAndBracketedIPv6() {
         let v4 = DeviceTransferModel.parse(" 192.168.1.20:52411 ")
         XCTAssertEqual(v4?.host, "192.168.1.20"); XCTAssertEqual(v4?.port, 52411)

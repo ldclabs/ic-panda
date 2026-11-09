@@ -3,6 +3,29 @@ import XCTest
 
 @MainActor
 final class SessionPolicyTests: XCTestCase {
+    func testLifecycleCoverAndOperationKindStayIndependent() async {
+        let model = SessionModel()
+        model.lifecycle = .active
+        let unlocking = model.beginBusyOperation(.unlocking)
+        model.inactive()
+        XCTAssertTrue(model.concealed)
+        XCTAssertTrue(model.unlocking, "The system authentication dialog makes the app inactive")
+        model.lifecycle = .resuming
+        XCTAssertTrue(model.concealed, "Scene activation alone must not reveal content")
+        model.lifecycle = .active
+        XCTAssertFalse(model.concealed)
+        let setup = model.beginBusyOperation(.initializingAccount)
+        XCTAssertFalse(model.finishBusyOperation(unlocking))
+        XCTAssertTrue(model.initializingAccount)
+        XCTAssertFalse(model.unlocking)
+        XCTAssertFalse(model.synchronizing)
+        model.protectedDataUnavailable()
+        XCTAssertEqual(model.lifecycle, .protectedDataUnavailable)
+        XCTAssertTrue(model.concealed)
+        XCTAssertFalse(model.busy)
+        XCTAssertFalse(model.finishBusyOperation(setup))
+    }
+
     func testAutomaticUnlockWaitsForALockedReadySession() {
         var policy = AutomaticUnlockPolicy()
         XCTAssertFalse(policy.consume(locked: false, fastUnlock: true, busy: false))
@@ -180,16 +203,16 @@ final class SessionPolicyTests: XCTestCase {
 
     func testCancelledBusyOperationCannotClearItsReplacementAfterLock() async {
         let model = SessionModel()
-        let old = model.beginBusyOperation(synchronizing: true)
+        let old = model.beginBusyOperation(.synchronizing)
         XCTAssertTrue(model.synchronizing)
         model.background()
         XCTAssertTrue(model.finishBusyOperation(old))
         XCTAssertFalse(model.busy)
         XCTAssertFalse(model.synchronizing)
-        let locked = model.beginBusyOperation(synchronizing: true)
+        let locked = model.beginBusyOperation(.synchronizing)
         await model.lock()
         XCTAssertFalse(model.synchronizing)
-        let current = model.beginBusyOperation(synchronizing: true)
+        let current = model.beginBusyOperation(.synchronizing)
         XCTAssertFalse(model.finishBusyOperation(locked))
         XCTAssertTrue(model.busy)
         XCTAssertTrue(model.synchronizing)

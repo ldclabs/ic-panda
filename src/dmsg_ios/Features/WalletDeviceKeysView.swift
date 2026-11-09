@@ -37,9 +37,7 @@ struct WalletDeviceKeysView: View {
     @State private var replacing: UInt32?
     @State private var replacement = ""
     @State private var confirming = false
-    @State private var replaceID = NativeApple.requestID()
-    @State private var replaceAttempted = false
-    @State private var replaced = false
+    @State private var replacementSubmission = WalletProposalSubmission()
     @State private var working = false
     @State private var request: ApprovalView?
 
@@ -103,15 +101,15 @@ struct WalletDeviceKeysView: View {
                                 Spacer()
                                 if replacing == key.id { Image(systemName: "checkmark").accessibilityHidden(true) }
                             }
-                        }.disabled(replaceAttempted)
+                        }.disabled(replacementSubmission.attempted)
                     }
                     if spare.isEmpty { NavigationLink("Hardware cosigners") { WalletCosignersView() } }
-                    else if replacing != nil && !replaceAttempted {
+                    else if replacing != nil && !replacementSubmission.attempted {
                         Picker("Replacement key", selection: $replacement) { ForEach(spare) { Text(verbatim: $0.label).tag($0.label) } }
                         Button("Replace key") { confirming = true }.disabled(working || replacement.isEmpty)
                     }
-                    if replaced { Text("Proposal created. Review it in the wallet's proposal list.").font(.footnote) }
-                    else if replaceAttempted { Button("Reconcile original proposal") { Task { await resume() } }.disabled(working) }
+                    if replacementSubmission.result != nil { Text("Proposal created. Review it in the wallet's proposal list.").font(.footnote) }
+                    else if replacementSubmission.attempted { Button("Reconcile original proposal") { Task { await replace() } }.disabled(working) }
                 } header: { Text("Replace key") } footer: {
                     Text("For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.")
                 }
@@ -176,25 +174,24 @@ struct WalletDeviceKeysView: View {
 
     private func replace() async {
         guard let engine = model.engine, let cosigner = replacing, !working else { return }
-        working = true; defer { working = false }
+        working = true; defer { working = false; replacementSubmission.interrupted() }
+        let epoch = model.epoch
         do {
-            replaceAttempted = true
-            _ = try await engine.replaceWalletCosigner(wallet: wallet, cosigner: cosigner, label: replacement, requestId: replaceID)
-            replaced = true
-        } catch {
-            if let state = try? await engine.walletProposalAttempt(requestId: replaceID) {
-                replaceAttempted = state == "pending" || state == "completed"
-                if !replaceAttempted { replaceID = NativeApple.requestID() }
+            guard let attempt = replacementSubmission.begin() else { return }
+            let value: ObjectSnapshot
+            switch attempt {
+            case .create(let id): value = try await engine.replaceWalletCosigner(wallet: wallet, cosigner: cosigner, label: replacement, requestId: id)
+            case .reconcile(let id): value = try await engine.resumeWalletProposal(requestId: id)
             }
+            guard epoch == model.epoch else { return }
+            replacementSubmission.confirm(try model.decode(value))
+        } catch {
+            guard epoch == model.epoch else { return }
+            let state = try? await engine.walletProposalAttempt(requestId: replacementSubmission.requestID)
+            guard epoch == model.epoch else { return }
+            replacementSubmission.failed(journal: state)
             model.report(error)
         }
-    }
-
-    private func resume() async {
-        guard let engine = model.engine, !working else { return }
-        working = true; defer { working = false }
-        do { _ = try await engine.resumeWalletProposal(requestId: replaceID); replaced = true }
-        catch { model.report(error) }
     }
 
     private func unbindDevices() async {

@@ -227,33 +227,39 @@ struct WalletCosignersView: View {
     @State private var created: DisplayValue?
     @State private var label = ""
     @State private var wallet = ""
-    @State private var registrationID = NativeApple.requestID()
-    @State private var registrationAttempted = false
+    @State private var registration = WalletProposalSubmission()
     @State private var working = false
     var body: some View {
         Form {
             if let keys { Section("Hardware keys on this device") { CanonicalDetails(value: keys) } }
-            TextField("Key label", text: $label).textInputAutocapitalization(.never).disabled(registrationAttempted)
+            TextField("Key label", text: $label).textInputAutocapitalization(.never).disabled(registration.attempted)
             Button("Create hardware cosigner") { Task {
                 guard !working else { return }; working = true; defer { working = false }
                 do { if let value = try await model.engine?.newWalletCosigner(label: label) { created = try model.decode(value) }; await load() }
                 catch { model.report(error) }
-            } }.disabled(working || label.isEmpty)
-            TextField("Wallet canister ID", text: $wallet).textInputAutocapitalization(.never).autocorrectionDisabled().disabled(registrationAttempted)
-            Button("Propose registering this key") { Task {
-                guard let engine = model.engine, !working else { return }; working = true; defer { working = false }
+            } }.disabled(working || label.isEmpty || registration.attempted)
+            TextField("Wallet canister ID", text: $wallet).textInputAutocapitalization(.never).autocorrectionDisabled().disabled(registration.attempted)
+            Button(LocalizedStringKey(registration.attempted ? "Reconcile original proposal" : "Propose registering this key")) { Task {
+                guard let engine = model.engine, !working else { return }; working = true; defer { working = false; registration.interrupted() }
+                let epoch = model.epoch
                 do {
-                    registrationAttempted = true
-                    created = try model.decode(try await engine.registerWalletCosigner(wallet: wallet, label: label, requestId: registrationID))
-                } catch {
-                    if let state = try? await engine.walletProposalAttempt(requestId: registrationID) {
-                        registrationAttempted = state == "pending" || state == "completed"
-                        if !registrationAttempted { registrationID = NativeApple.requestID() }
+                    guard let attempt = registration.begin() else { return }
+                    let value: ObjectSnapshot
+                    switch attempt {
+                    case .create(let id): value = try await engine.registerWalletCosigner(wallet: wallet, label: label, requestId: id)
+                    case .reconcile(let id): value = try await engine.resumeWalletProposal(requestId: id)
                     }
+                    guard epoch == model.epoch else { return }
+                    registration.confirm(try model.decode(value))
+                } catch {
+                    guard epoch == model.epoch else { return }
+                    let state = try? await engine.walletProposalAttempt(requestId: registration.requestID)
+                    guard epoch == model.epoch else { return }
+                    registration.failed(journal: state)
                     model.report(error)
                 }
-            } }.disabled(wallet.isEmpty || label.isEmpty || working)
-            if let created { Section("Register this public key through a wallet proposal") { CanonicalDetails(value: created) } }
+            } }.disabled(wallet.isEmpty || label.isEmpty || working || registration.result != nil)
+            if let value = registration.result ?? created { Section("Register this public key through a wallet proposal") { CanonicalDetails(value: value) } }
         }.privateScreen().navigationTitle("Hardware cosigners").task { await load() }
     }
     private func load() async { do { if let value = try await model.engine?.walletCosigners() { keys = try model.decode(value) } } catch { model.report(error) } }

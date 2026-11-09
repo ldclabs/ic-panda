@@ -9,7 +9,7 @@ final class FileTransferTests: XCTestCase {
         model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked",
             account: "040g2081040g2081040g", deviceId: "fixture-device", pendingSync: 0, conflicts: 0,
             approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, loginRenewable: false, passkeyAvailable: false, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
-        model.concealed = true
+        model.lifecycle = .resuming
         var exited = false
         let watch = Task {
             await model.fileTransfers.watch(model)
@@ -18,7 +18,7 @@ final class FileTransferTests: XCTestCase {
         defer { watch.cancel() }
         try await Task.sleep(for: .milliseconds(50))
         XCTAssertFalse(exited, "Scene activation can precede the asynchronous foreground resume")
-        model.concealed = false
+        model.lifecycle = .active
         // With no engine installed, reaching the uncovered iteration finishes.
         await watch.value
         XCTAssertTrue(exited)

@@ -40,25 +40,53 @@ final class DeviceTransferModel {
     }
 
     /// What runs, to start again in the foreground.
-    private enum Plan {
+    enum Plan {
         case receive(session: String?, succession: String?)
         case send(session: String, to: String?, address: (host: String, port: UInt16)?, succession: String?)
     }
 
     private(set) var status: Status?
-    private(set) var approval: ApprovalView?
-    private(set) var starting = false
+    enum Phase {
+        case idle
+        case starting
+        case awaitingApproval(Plan, ApprovalView)
+        case checkingApproval(Plan, ApprovalView)
+        case transferring(Plan)
+        case suspended(Plan)
+        case stopped
+
+        var automaticResume: Plan? {
+            guard case .suspended(let plan) = self, case .receive = plan else { return nil }
+            return plan
+        }
+
+        mutating func suspend() {
+            switch self {
+            case .transferring(let plan): self = .suspended(plan)
+            case .checkingApproval(let plan, let request): self = .awaitingApproval(plan, request)
+            case .starting: self = .stopped
+            default: break
+            }
+        }
+    }
+    private(set) var phase: Phase = .idle
+    var approval: ApprovalView? {
+        if case .awaitingApproval(_, let request) = phase { return request }
+        return nil
+    }
+    private enum Discovery { case available, denied, failed }
+    private var discovery = Discovery.available
     /// Local network access is off for dMsg; the person turns it on in Settings.
-    private(set) var localNetworkDenied = false
+    var localNetworkDenied: Bool { discovery == .denied }
     /// Bonjour could not advertise or find the session: the address is typed in.
-    private(set) var bonjourFailed = false
-    private var plan: Plan?
+    var bonjourFailed: Bool { discovery == .failed }
     private var advert: BonjourAdvert?
     private var watching: Task<Void, Never>?
-    private var pendingPlan: Plan?
     private var epoch = 0
 
-    var running: Bool { starting || status?.running == true }
+    var running: Bool {
+        switch phase { case .starting, .checkingApproval, .transferring: true; default: false }
+    }
 
     /// Receive the file library from another device of the account, for
     /// `succession` when given.
@@ -82,37 +110,39 @@ final class DeviceTransferModel {
     }
 
     func cancel(_ model: SessionModel) {
-        epoch += 1; starting = false; plan = nil; approval = nil; pendingPlan = nil
+        epoch += 1; phase = .stopped
         if let engine = model.engine { status = try? model.decode(engine.transferCancel()) }
         settle()
     }
 
     /// The device locks: nothing starts again by itself.
     func reset() {
-        epoch += 1; starting = false; plan = nil; status = nil; approval = nil; pendingPlan = nil
-        localNetworkDenied = false; bonjourFailed = false; settle()
+        epoch += 1; phase = .idle; status = nil
+        discovery = .available; settle()
     }
 
     /// The app leaves the foreground, and the core stops the transfer.
-    func background() { epoch += 1; starting = false; settle() }
+    func background() { epoch += 1; phase.suspend(); settle() }
 
     /// Back in the foreground: start an interrupted transfer again.
     func foreground(_ model: SessionModel) async {
-        guard let plan, let engine = model.engine else { return }
+        guard case .suspended(let plan) = phase, let engine = model.engine else { return }
         status = try? model.decode(engine.transferStatus())
-        guard status?.running != true else { return watch(model) }
+        if status?.running == true { phase = .transferring(plan); watch(model); return }
         // Sending again needs another reviewed export; receive can reopen.
-        if case .receive = plan { await start(model, plan) }
+        if let next = phase.automaticResume { await start(model, next) }
     }
 
     /// Returning from the existing approval screen starts only that reviewed send.
     func approved(_ model: SessionModel) async {
-        guard let approval, let next = pendingPlan, let engine = model.engine else { return }
-        self.approval = nil; pendingPlan = nil
+        guard case .awaitingApproval(let next, let approval) = phase, let engine = model.engine else { return }
+        phase = .checkingApproval(next, approval)
         let current = epoch
+        defer { if current == epoch, case .checkingApproval = phase { phase = .stopped } }
         do {
             let fresh: ApprovalView = try model.decode(try await engine.approval(id: approval.id))
             guard current == epoch, fresh.state == "done" else { return }
+            phase = .idle
             await start(model, next, approval: approval.id)
         } catch { if current == epoch { model.report(error) } }
     }
@@ -129,8 +159,8 @@ final class DeviceTransferModel {
     private func start(_ model: SessionModel, _ next: Plan, approval: String? = nil) async {
         guard let engine = model.engine, !running else { return }
         let current = epoch
-        starting = true; localNetworkDenied = false; bonjourFailed = false
-        defer { if current == epoch { starting = false } }
+        phase = .starting; discovery = .available
+        defer { if current == epoch, case .starting = phase { phase = .stopped } }
         do {
             let snapshot: ObjectSnapshot
             switch next {
@@ -146,8 +176,7 @@ final class DeviceTransferModel {
                 guard current == epoch, !Task.isCancelled else { return }
                 let request: ExportRequest = try model.decode(snapshot)
                 if let request = request.approval {
-                    pendingPlan = .send(session: session, to: to, address: target, succession: succession)
-                    self.approval = request
+                    phase = .awaitingApproval(.send(session: session, to: to, address: target, succession: succession), request)
                     return
                 }
             }
@@ -156,8 +185,8 @@ final class DeviceTransferModel {
             status = started
             switch next {
             // A receiving session resumes under its own ID.
-            case .receive(_, let succession): plan = .receive(session: started.session, succession: succession)
-            case .send: plan = next
+            case .receive(_, let succession): phase = .transferring(.receive(session: started.session, succession: succession))
+            case .send: phase = .transferring(next)
             }
             if started.role == "receive", let port = started.port { await advertise(started.advert, port: port, epoch: current) }
             guard current == epoch, !Task.isCancelled else { return }
@@ -165,10 +194,10 @@ final class DeviceTransferModel {
             watch(model)
         } catch {
             guard current == epoch else { return }
-            plan = nil
+            phase = .stopped
             switch error as? Bonjour.Failure {
-            case .denied?: localNetworkDenied = true
-            case .some: bonjourFailed = true
+            case .denied?: discovery = .denied
+            case .some: discovery = .failed
             case nil: model.report(error)
             }
         }
@@ -180,8 +209,8 @@ final class DeviceTransferModel {
             guard self.epoch == epoch, !Task.isCancelled else { made.stop(); return }
             advert = made
         }
-        catch Bonjour.Failure.denied { if self.epoch == epoch { localNetworkDenied = true } }
-        catch { if self.epoch == epoch { bonjourFailed = true } }
+        catch Bonjour.Failure.denied { if self.epoch == epoch { discovery = .denied } }
+        catch { if self.epoch == epoch { discovery = .failed } }
     }
 
     private func watch(_ model: SessionModel) {
@@ -196,7 +225,8 @@ final class DeviceTransferModel {
                 moved = next.report.bytes
                 if !next.running {
                     // One the app stopped by leaving the foreground starts again.
-                    if next.error?.code != "LOCKED" { self.plan = nil }
+                    if next.error?.code == "LOCKED" { self.phase.suspend() }
+                    else { self.phase = .stopped }
                     self.settle()
                     return
                 }

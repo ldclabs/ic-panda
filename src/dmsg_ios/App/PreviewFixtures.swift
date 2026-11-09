@@ -62,7 +62,7 @@ extension SessionModel {
             selectedTab = .messages
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-inbox") { selectedTab = .messages }
-        if ProcessInfo.processInfo.arguments.contains("--ui-syncing") { _ = beginBusyOperation(synchronizing: true) }
+        if ProcessInfo.processInfo.arguments.contains("--ui-syncing") { _ = beginBusyOperation(.synchronizing) }
         if ProcessInfo.processInfo.arguments.contains("--ui-recovery-pending") {
             let account = "040g2081040g2081040g"
             recordRecoveryObservation(RecoveryObservation(account: account, pending: true,

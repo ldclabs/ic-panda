@@ -46,9 +46,7 @@ struct WalletTransferView: View {
     @State private var working = false
     @State private var loading = false
     @State private var failed = false
-    @State private var requestID = NativeApple.requestID()
-    @State private var attempted = false
-    @State private var result: DisplayValue?
+    @State private var submission = WalletProposalSubmission()
     @State private var scope: UInt64 = 0
     struct Draft: Codable, Equatable { var from: UInt32 = 0; var asset = ""; var recipient = ""; var amount = ""; var maxFee = "" }
     struct SavedDraft: Codable { let draft: Draft; let request: String; let attempted: Bool }
@@ -96,9 +94,9 @@ struct WalletTransferView: View {
                 if feeDecimals != nil {
                     SettingsField("Maximum fee") { TextField("Suggested fee", text: $draft.maxFee).keyboardType(.decimalPad).environment(\.layoutDirection, .leftToRight) }
                 }
-            }.disabled(working || attempted)
+            }.disabled(working || submission.attempted)
             Text("Review the asset, destination, balance and fee before creating a proposal. No funds move until the wallet's approvals and execution are complete.").font(.footnote).foregroundStyle(.secondary)
-            if !attempted { SettingsAction("Preview transfer") { Task { await inspect() } }.disabled(working || !inputValid) }
+            if !submission.attempted { SettingsAction("Preview transfer") { Task { await inspect() } }.disabled(working || !inputValid) }
             if let preview {
                 Section("Preview") {
                     LabeledContent("Balance", value: AtomicAmount.display(preview.assetBalance, decimals: selectedAsset?.decimals ?? 0) + " " + (selectedAsset?.symbol ?? ""))
@@ -111,14 +109,14 @@ struct WalletTransferView: View {
                     ForEach(preview.blockers, id: \.self) { blocker in Text(blockerTitle(blocker)).foregroundStyle(.red) }
                 }
             }
-            SettingsAction(LocalizedStringKey(attempted ? "Reconcile original proposal" : "Create transfer proposal"), prominent: true) { Task { await submit() } }
-                .disabled(working || result != nil || (!attempted && (preview == nil || preview?.blockers.isEmpty != true)))
+            SettingsAction(LocalizedStringKey(submission.attempted ? "Reconcile original proposal" : "Create transfer proposal"), prominent: true) { Task { await submit() } }
+                .disabled(working || submission.result != nil || (!submission.attempted && (preview == nil || preview?.blockers.isEmpty != true)))
             if working { ProgressView() }
-            if let result { Label("Proposal created", systemImage: "checkmark.circle"); DisclosureGroup("Details") { CanonicalDetails(value: result) } }
-        }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Propose transfer").confirmLeavingDraft(!attempted && draft != Draft())
+            if let result = submission.result { Label("Proposal created", systemImage: "checkmark.circle"); DisclosureGroup("Details") { CanonicalDetails(value: result) } }
+        }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Propose transfer").confirmLeavingDraft(!submission.attempted && draft != Draft())
             .task {
                 scope = model.viewGeneration
-                if let restored = model.formDraft("transfer:" + wallet, as: SavedDraft.self) { draft = restored.draft; requestID = restored.request; attempted = restored.attempted }
+                if let restored = model.formDraft("transfer:" + wallet, as: SavedDraft.self) { draft = restored.draft; submission = WalletProposalSubmission(requestID: restored.request, attempted: restored.attempted) }
                 await load()
             }
             .onChange(of: draft) { _, _ in preview = nil }
@@ -127,12 +125,12 @@ struct WalletTransferView: View {
                 if let source = sources.first { draft.from = source.id }
             }
             .onDisappear {
-                if result == nil { model.keepFormDraft("transfer:" + wallet, value: SavedDraft(draft: draft, request: requestID, attempted: attempted), generation: scope) }
+                if submission.result == nil { model.keepFormDraft("transfer:" + wallet, value: SavedDraft(draft: draft, request: submission.requestID, attempted: submission.attempted), generation: scope) }
             }
     }
 
     private func transfer(fee: String) -> WalletTransfer {
-        WalletTransfer(wallet: wallet, from: draft.from, asset: draft.asset, recipient: draft.recipient.trimmingCharacters(in: .whitespacesAndNewlines), amount: amount ?? "", maxFee: fee, memo: nil, requestId: requestID)
+        WalletTransfer(wallet: wallet, from: draft.from, asset: draft.asset, recipient: draft.recipient.trimmingCharacters(in: .whitespacesAndNewlines), amount: amount ?? "", maxFee: fee, memo: nil, requestId: submission.requestID)
     }
 
     private func load() async {
@@ -164,26 +162,25 @@ struct WalletTransferView: View {
 
     private func submit() async {
         guard let engine = model.engine, !working else { return }
-        if !attempted, preview == nil || preview?.blockers.isEmpty != true || Date.now.timeIntervalSince1970 * 1000 - Double(preview?.readAt ?? 0) > 60_000 {
+        if !submission.attempted, preview == nil || preview?.blockers.isEmpty != true || Date.now.timeIntervalSince1970 * 1000 - Double(preview?.readAt ?? 0) > 60_000 {
             preview = nil; model.notice = String(localized: "Refresh the preview before continuing."); return
         }
-        let epoch = model.epoch; working = true; defer { working = false }; model.activity()
+        let epoch = model.epoch; working = true; defer { working = false; submission.interrupted() }; model.activity()
         do {
+            guard let attempt = submission.begin() else { return }
             let value: ObjectSnapshot
-            if attempted { value = try await engine.resumeWalletProposal(requestId: requestID) }
-            else {
-                let input = transfer(fee: preview?.maxFee ?? "")
-                attempted = true; value = try await engine.walletTransfer(transfer: input)
+            switch attempt {
+            case .reconcile(let id): value = try await engine.resumeWalletProposal(requestId: id)
+            case .create: value = try await engine.walletTransfer(transfer: transfer(fee: preview?.maxFee ?? ""))
             }
             guard epoch == model.epoch && visible else { return }
-            result = try model.decode(value); model.settingsDrafts.removeValue(forKey: "transfer:" + wallet)
+            submission.confirm(try model.decode(value)); model.settingsDrafts.removeValue(forKey: "transfer:" + wallet)
         } catch {
             guard epoch == model.epoch && visible else { return }
-            if let state = try? await engine.walletProposalAttempt(requestId: requestID) {
-                guard epoch == model.epoch && visible else { return }
-                attempted = state == "pending" || state == "completed"
-                if !attempted { requestID = NativeApple.requestID(); preview = nil }
-            }
+            let state = try? await engine.walletProposalAttempt(requestId: submission.requestID)
+            guard epoch == model.epoch && visible else { return }
+            submission.failed(journal: state)
+            if !submission.attempted { preview = nil }
             model.report(error)
         }
     }

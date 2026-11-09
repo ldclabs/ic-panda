@@ -42,7 +42,7 @@ final class CipherTransferTests: XCTestCase {
         try Data(repeating: 0, count: bytes.count).write(to: input)
         XCTAssertThrowsError(try store.receive(transfer.id, attempt: 0, slot: "0", temporary: input))
         XCTAssertFalse(try XCTUnwrap(store.snapshot()).ready)
-        try bytes.write(to: input); try store.update(transfer.id) { $0.attempt = 1 }
+        try bytes.write(to: input); try store.update(transfer.id) { $0.pause(); try $0.retry() }
         XCTAssertThrowsError(try store.receive(transfer.id, attempt: 0, slot: "0", temporary: input))
         try store.receive(transfer.id, attempt: 1, slot: "0", temporary: input)
         XCTAssertTrue(try XCTUnwrap(store.snapshot()).ready)
@@ -61,8 +61,51 @@ final class CipherTransferTests: XCTestCase {
         }
         try store.update(transfer.id) { $0.failed(slot: "0", status: 503, transient: true, now: now) }
         XCTAssertEqual(try store.snapshot()?.failure, "transfer_failed")
-        try store.update(transfer.id) { $0.failure = nil; $0.failed(slot: "0", status: 403, transient: false) }
+        try store.update(transfer.id) { try $0.retry(); $0.failed(slot: "0", status: 403, transient: false) }
         XCTAssertEqual(try store.snapshot()?.failure, "expired")
     }
 
+    func testInstalledTransferRecordsKeepTheirProgressAndWireFormat() throws {
+        let (_, transfer, _, _) = try fixture()
+        // The format written by installed versions, including a paused failure.
+        let legacy: [String: Any] = [
+            "transfer": try JSONSerialization.jsonObject(with: JSONEncoder().encode(transfer)),
+            "completed": [], "paused": true, "failure": "transfer_failed", "attempt": 2,
+            "failures": ["0": 4]
+        ]
+        let value = try JSONDecoder().decode(CipherTransferState.self, from: JSONSerialization.data(withJSONObject: legacy))
+        XCTAssertEqual(value.phase, .failed("transfer_failed"))
+        XCTAssertEqual(value.attempt, 2)
+        XCTAssertEqual(value.failures?["0"], 4)
+        let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) as? [String: Any])
+        XCTAssertNil(encoded["phase"])
+        XCTAssertEqual(encoded["failure"] as? String, "transfer_failed")
+        XCTAssertNotNil(encoded["paused"])
+        XCTAssertEqual(try JSONDecoder().decode(CipherTransferState.self, from: JSONEncoder().encode(value)).phase, value.phase)
+    }
+
+    func testPauseSurvivesRestartAndRejectsCallbacksUntilExplicitRetry() throws {
+        let (store, transfer, input, _) = try fixture()
+        try store.start(transfer)
+        try store.update(transfer.id) { $0.pause() }
+        let reopened = try CipherTransferStore(root: store.root)
+        XCTAssertEqual(try reopened.snapshot()?.phase, .paused)
+        XCTAssertThrowsError(try reopened.receive(transfer.id, attempt: 0, slot: "0", temporary: input))
+        try reopened.update(transfer.id) { try $0.retry() }
+        XCTAssertThrowsError(try reopened.receive(transfer.id, attempt: 0, slot: "0", temporary: input))
+        try reopened.receive(transfer.id, attempt: 1, slot: "0", temporary: input)
+        XCTAssertEqual(try reopened.snapshot()?.phase, .awaitingVerification)
+    }
+
+    func testCompletedCiphertextStillNeedsVerificationAndIgnoresLateFailure() throws {
+        let (store, transfer, input, _) = try fixture()
+        try store.start(transfer)
+        try store.receive(transfer.id, attempt: 0, slot: "0", temporary: input)
+        try store.update(transfer.id) { $0.pause(); $0.failed(slot: "0", status: 503, transient: true) }
+        let value = try XCTUnwrap(store.snapshot())
+        XCTAssertEqual(value.phase, .awaitingVerification)
+        XCTAssertFalse(value.accepts(0))
+        XCTAssertNil(value.failure)
+        XCTAssertNotNil(try CipherTransferStore(root: store.root).snapshot(), "OS completion must not delete a transfer before foreground verification")
+    }
 }

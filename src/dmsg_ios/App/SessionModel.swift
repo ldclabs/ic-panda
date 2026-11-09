@@ -13,11 +13,12 @@ final class SessionModel {
     private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); resetFilePresentation() } }
     // Background invalidates reads through epoch while retaining this workspace's forms.
     private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset(); people.reset(); thumbnails.reset() } }
-    var concealed = true
-    var busy = false
-    private(set) var unlocking = false
-    private(set) var initializingAccount = false
-    private(set) var synchronizing = false
+    var lifecycle = SessionLifecycle.inactive
+    var concealed: Bool { lifecycle != .active }
+    var busy: Bool { busyOperation != nil }
+    var unlocking: Bool { busyOperation?.kind == .unlocking }
+    var initializingAccount: Bool { busyOperation?.kind == .initializingAccount }
+    var synchronizing: Bool { busyOperation?.kind == .synchronizing }
     var contentSync: ContentSyncStatus?
     private var syncClock = Date.now
     var error: String?
@@ -145,9 +146,9 @@ final class SessionModel {
     private var cursorReports: [String: Task<Void, Never>] = [:]
     private var channelChecked: [String: ContinuousClock.Instant] = [:]
     private var channelReadAhead: [String: ContinuousClock.Instant] = [:]
-    private var isForeground = false
+    private var isForeground: Bool { lifecycle == .active || lifecycle == .resuming }
     private var automaticUnlock = AutomaticUnlockPolicy()
-    private var busyOperation: UUID?
+    private var busyOperation: (id: UUID, kind: SessionOperation)?
     private var lastSessionSequence: UInt64 = 0
     private var fixtureLoaded = false
     /// Accounts that turned automatic sync off; every other account syncs.
@@ -234,17 +235,17 @@ final class SessionModel {
 
     func start() async {
         guard !opening, engine == nil else { return }
-        isForeground = UIApplication.shared.applicationState == .active
+        lifecycle = UIApplication.shared.applicationState == .active ? .resuming : .inactive
         opening = true; defer { opening = false }
         #if DEBUG
         if uiTesting {
             if !fixtureLoaded { loadFixtures(); fixtureLoaded = true }
             // Reproduce an unlocked view appearing before authentication uncovers it.
             if ProcessInfo.processInfo.arguments.contains("--ui-account-unlock") {
-                selectedTab = .account; concealed = true
+                selectedTab = .account; lifecycle = .resuming
                 try? await Task.sleep(for: .seconds(2))
             }
-            concealed = false; return
+            lifecycle = .active; return
         }
         #endif
         guard UIApplication.shared.isProtectedDataAvailable else {
@@ -517,17 +518,15 @@ final class SessionModel {
     /// A device transfer moved bytes, which keeps the app from locking for idleness.
     func transferMoved() { lastActivity = .now }
 
-    func beginBusyOperation(synchronizing: Bool = false) -> UUID {
-        let token = UUID(); busyOperation = token; busy = true
-        unlocking = false
-        self.synchronizing = synchronizing
+    func beginBusyOperation(_ kind: SessionOperation = .other) -> UUID {
+        let token = UUID(); busyOperation = (token, kind)
         return token
     }
 
     @discardableResult
     func finishBusyOperation(_ token: UUID) -> Bool {
-        guard busyOperation == token else { return false }
-        busyOperation = nil; busy = false; synchronizing = false; unlocking = false; initializingAccount = false
+        guard busyOperation?.id == token else { return false }
+        busyOperation = nil
         return true
     }
 
@@ -560,7 +559,7 @@ final class SessionModel {
 
     private func uncoverIfActive() {
         guard isForeground, UIApplication.shared.applicationState == .active else { return }
-        concealed = false; privacyShield.hide()
+        lifecycle = .active; privacyShield.hide()
     }
 
     /// On for every account until the person turns it off in settings,
@@ -915,7 +914,7 @@ final class SessionModel {
         if unlocked && !concealed && lastActivity.duration(to: .now) >= .seconds(15 * 60) { await lock() }
     }
 
-    func inactive() { lifecycleGeneration &+= 1; isForeground = false; concealed = true; if unlocked { privacyShield.show() } }
+    func inactive() { lifecycleGeneration &+= 1; lifecycle = .inactive; if unlocked { privacyShield.show() } }
 
     func background() {
         let letterDrafts = letters.pendingInputs
@@ -925,8 +924,7 @@ final class SessionModel {
         stopAutomaticSync(.background)
         automaticUnlock.rearm()
         lifecycleGeneration &+= 1
-        isForeground = false
-        concealed = true
+        lifecycle = .background
         recoveryOperation?.cancel()
         epoch &+= 1
         fileTransfers.stop()
@@ -987,7 +985,7 @@ final class SessionModel {
     func foreground() async {
         guard UIApplication.shared.applicationState == .active else { return }
         endBackgroundFinish()
-        isForeground = true
+        lifecycle = .resuming
         lifecycleGeneration &+= 1
         let activation = lifecycleGeneration
         let away = backgroundAt.map { $0.duration(to: .now) }
@@ -1041,16 +1039,16 @@ final class SessionModel {
         automaticUnlock.rearm()
         (try? SystemExports(.files))?.lockFiles()
         lifecycleGeneration &+= 1
-        isForeground = false
+        lifecycle = .protectedDataUnavailable
         fileTransfers.stop()
         transfer.cancel()
         deviceTransfer.reset()
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
-        authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); canResetPasskeySessions = false; busy = false
-        busyOperation = nil; synchronizing = false; unlocking = false; initializingAccount = false
+        authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); canResetPasskeySessions = false
+        busyOperation = nil
         privacyShield.show()
-        concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
+        epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
         clearCloudBackups()
         if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.close() } }
@@ -1087,8 +1085,8 @@ final class SessionModel {
         viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
-        busy = false; notice = nil; error = nil
-        busyOperation = nil; synchronizing = false; unlocking = false; initializingAccount = false
+        notice = nil; error = nil
+        busyOperation = nil
         if clearClipboard { clipboard.clearOwned() }
         if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); engine?.cancelLogin() }
         security?.cancelPresence()
@@ -1157,8 +1155,8 @@ final class SessionModel {
     func fastUnlock() async {
         guard let engine, !busy else { return }
         automaticUnlock.suppress()
-        let operation = beginBusyOperation()
-        unlocking = true; error = nil
+        let operation = beginBusyOperation(.unlocking)
+        error = nil
         activity()
         let current = epoch
         defer { finishBusyOperation(operation) }
@@ -1174,8 +1172,8 @@ final class SessionModel {
     func initializeAccount() async {
         guard !busy, engine != nil || uiTesting else { return }
         automaticUnlock.suppress()
-        let operation = beginBusyOperation(), current = epoch
-        initializingAccount = true; error = nil
+        let operation = beginBusyOperation(.initializingAccount), current = epoch
+        error = nil
         activity()
         defer { finishBusyOperation(operation) }
         for attempt in 0..<2 {
@@ -1294,7 +1292,7 @@ final class SessionModel {
     func synchronize() async {
         activity(); syncClock = .now
         guard engine != nil, !busy, !syncCoolingDown else { return }
-        let operation = beginBusyOperation(synchronizing: true), current = epoch
+        let operation = beginBusyOperation(.synchronizing), current = epoch
         defer { finishBusyOperation(operation) }
         async let backups: Void = refreshSyncBackups()
         do { try await coreOperation { try await syncPass(operation: $0, automatic: false) } }
@@ -1480,6 +1478,12 @@ final class SessionModel {
         } else { self.error = String(localized: "The operation could not be completed. Please try again.") }
     }
 }
+
+/// Visibility is independent of login validity and the content lock. Resuming
+/// keeps the privacy cover until the core has adopted the current session.
+enum SessionLifecycle { case inactive, background, resuming, active, protectedDataUnavailable }
+
+enum SessionOperation { case other, unlocking, initializingAccount, synchronizing }
 
 enum AppTab: String, CaseIterable, Identifiable {
     case vault, messages, files, account
