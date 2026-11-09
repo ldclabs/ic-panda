@@ -42,7 +42,6 @@ impl MobileEngine {
         )?;
         login.pending = Some(PendingLogin {
             session: InteractiveLogin::Passkey(Box::new(session)),
-            generation,
             binding_generation: matches!(operation, PasskeyOperation::Bind).then_some(generation),
         });
         Ok(started)

@@ -612,6 +612,14 @@ impl Daemon {
             .await
     }
 
+    /// After any sign-out: the account's mounts and connect report go at once
+    /// rather than at the next background check.
+    async fn signed_out(&self) {
+        *self.last_connect.lock().expect("connect report") = None;
+        self.stop_secret_mounts().await;
+        let _ = self.unmount_library().await;
+    }
+
     /// Announcements for local transports waiting on a person's decision.
     #[cfg(unix)]
     pub(crate) fn subscribe_events(&self) -> broadcast::Receiver<Value> {
@@ -1002,8 +1010,10 @@ impl Daemon {
     async fn reconcile_pass(&self) -> Result<usize> {
         let _turn = self.turn("reconcile").await;
         let h = self.hold();
+        // Renew before the locked runner below; without a login its jobs stay
+        // retryable while relay-only reconciliation still proceeds.
         if h.with(|c| c.reconciliation_needs_login()).await? {
-            h.ensure_login().await?;
+            let _ = h.ensure_login().await;
         }
         let attested = dmsg_client::approval::reconcile_attestations(&self.hold()).await?;
         let wallets = {
@@ -1451,9 +1461,7 @@ impl Daemon {
                     *login = LoginState::default();
                 }
                 dmsg_client::passkey::logout(&self.hold()).await?;
-                *self.last_connect.lock().expect("connect report") = None;
-                self.stop_secret_mounts().await;
-                let _ = self.unmount_library().await;
+                self.signed_out().await;
                 self.status().await
             }
             "session/fast_unlock" => {
@@ -1476,11 +1484,16 @@ impl Daemon {
                         self.under_lock(async |client| client.bind_device(biometry_only).await)
                             .await
                     }
-                    Some(false) => Ok(to_json(
-                        &self
+                    Some(false) => {
+                        let status = self
                             .under_lock(async |client| client.unbind_device().await)
-                            .await?,
-                    )),
+                            .await?;
+                        // Unbinding a Passkey login also signs this device out.
+                        if status.state == "logged_out" {
+                            self.signed_out().await;
+                        }
+                        Ok(to_json(&status))
+                    }
                     None => Err(Error::InvalidInput("missing enable".into())),
                 }
             }
@@ -2367,7 +2380,7 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
             }
         },
         Ok(None) => {
-            daemon
+            let signed_out = daemon
                 .hold()
                 .with(|c| {
                     dmsg_types::ensure(
@@ -2378,7 +2391,11 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
                     daemon.emit("session/changed", Value::Null);
                     Ok(())
                 })
-                .await
+                .await;
+            if signed_out.is_ok() {
+                daemon.signed_out().await;
+            }
+            signed_out
         }
         Err(error) => Err(error),
     };

@@ -62,10 +62,11 @@ fn client(dir: &TempDir, secure: Arc<MemoryStorage>) -> Client {
 async fn reject(stream: &mut tokio::net::TcpStream) -> String {
     let mut bytes = vec![0; 8192];
     let size = stream.read(&mut bytes).await.unwrap();
+    // A pooled connection can close without a request; it counts as none.
     let path = String::from_utf8_lossy(&bytes[..size])
         .lines()
         .next()
-        .unwrap()
+        .unwrap_or_default()
         .to_owned();
     stream
         .write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
@@ -120,6 +121,33 @@ async fn concurrent_failure_is_shared_and_retry_keeps_local_content() {
 }
 
 #[tokio::test]
+async fn a_current_login_does_not_wait_for_a_renewal_in_progress() {
+    let dir = TempDir::new();
+    let mut c = client(&dir, Arc::new(MemoryStorage::default()));
+    let login = crate::login::kept_for_tests(3, now_ms() + DAY)
+        .delegated()
+        .unwrap();
+    c.login = Some(crate::client::Login {
+        ic: Ic::connect(&c.config, login.identity).await.unwrap(),
+        principal: login.principal,
+        expires_at: login.expires_at,
+        kept: login.kept,
+    });
+    // Whole-client operations hold the client while asking; a renewal holding
+    // the gate would wait for that client to finish.
+    let gate = c.login_renewal.clone();
+    let _renewing = gate.lock().await;
+    let h = Shared(Mutex::new(c));
+    tokio::time::timeout(
+        std::time::Duration::from_secs(1),
+        ensure_login(&h, MIN_VALIDITY),
+    )
+    .await
+    .expect("no wait on the gate")
+    .unwrap();
+}
+
+#[tokio::test]
 async fn lock_during_network_rejects_the_late_result() {
     let dir = TempDir::new();
     let mut c = client(&dir, Arc::new(MemoryStorage::default()));
@@ -148,6 +176,48 @@ async fn lock_during_network_rejects_the_late_result() {
     })
     .await
     .unwrap();
+}
+
+struct Person;
+
+impl crate::secure::PresenceKey for Person {
+    fn presence(&self) -> Option<crate::secure::Presence> {
+        Some(crate::secure::Presence::Biometrics)
+    }
+
+    fn create(&self, _: bool) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<crate::crypto::Key>)> {
+        Ok((vec![3; 10], vec![3; 65], Zeroizing::new([5; 32])))
+    }
+
+    fn open(&self, _: &[u8], _: &[u8], _: bool) -> Result<Zeroizing<crate::crypto::Key>> {
+        Ok(Zeroizing::new([5; 32]))
+    }
+
+    fn biometry_state(&self) -> Option<Hash> {
+        None
+    }
+
+    fn confirm(&self, _: &str) -> Result<()> {
+        Ok(())
+    }
+}
+
+#[test]
+fn passkey_login_binds_hardware_again_after_an_explicit_unbind() {
+    let dir = TempDir::new();
+    let secure = Arc::new(MemoryStorage::default());
+    let mut c = client(&dir, secure.clone());
+    c.set_presence_key(Arc::new(Person));
+    // Unbinding a Passkey login signs out and records the decline.
+    c.workspace.meta.bound_declined = true;
+    let prepared = c
+        .prepare_login_keys(Zeroizing::new(testing::SECRET))
+        .unwrap()
+        .unwrap();
+    let key = prepared.open().unwrap();
+    c.apply_login_keys(prepared, &key, now_ms()).unwrap();
+    assert!(c.workspace.bound().unwrap() && !c.workspace.meta.bound_declined);
+    assert!(secure.get(&c.passkey_slot().unwrap()).unwrap().is_some());
 }
 
 #[test]

@@ -1409,12 +1409,17 @@ impl Client {
         Ok(None)
     }
 
-    /// Whether the next login must install a hardware factor. A deliberate
-    /// unbind is remembered for II; choosing Passkey again requires binding.
-    /// Without a keystore or usable hardware, the II path remains available.
+    /// A deliberate unbind is remembered for II; choosing Passkey again
+    /// requires binding, so a Passkey login does not honour it.
+    fn binding_declined(&self) -> bool {
+        self.workspace.meta.bound_declined && self.passkey.is_none()
+    }
+
+    /// Whether the next login must install a hardware factor. Without a
+    /// keystore or usable hardware, the II path remains available.
     fn default_binding_needed(&self) -> Result<bool> {
         Ok(!self.workspace.provisional()
-            && (!self.workspace.meta.bound_declined || self.passkey.is_some())
+            && !self.binding_declined()
             && !self.workspace.bound()?
             && self.secure.is_some()
             && self
@@ -1496,7 +1501,7 @@ impl Client {
         ensure(
             self.session_generation == prepared.presence.generation
                 && self.account()?.id == prepared.presence.account
-                && !self.workspace.meta.bound_declined
+                && !self.binding_declined()
                 && !self.workspace.bound()?,
             Error::Locked,
         )
@@ -1504,7 +1509,12 @@ impl Client {
 
     /// Apply only the hardware answer for this login. The async caller
     /// revalidates device authorization immediately before this local step.
-    fn apply_login_keys(&mut self, prepared: LoginUnlock, device: &Key, now: u64) -> Result<()> {
+    pub(crate) fn apply_login_keys(
+        &mut self,
+        prepared: LoginUnlock,
+        device: &Key,
+        now: u64,
+    ) -> Result<()> {
         self.check_login_unlock(&prepared)?;
         let slot = prepared.presence.slot.id();
         if let Some(initializing) = &prepared.initializing {
@@ -1807,7 +1817,8 @@ impl Client {
     }
 
     /// Undo [`Self::bind_device`]: the LUK alone opens the workspace again,
-    /// and fast unlock gets a key of its own.
+    /// and fast unlock gets a key of its own. A renewable Passkey login is
+    /// signed out, as [`crate::passkey::logout`] does.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked, `Error::AuthRequired` without
@@ -1816,6 +1827,8 @@ impl Client {
         self.keys()?;
         let account = self.account()?.clone();
         let secret = self.unlock_secret(account.home, &account.id).await?;
+        // Only a bound workspace yields its remembered login.
+        let remote = self.passkey_logout();
         let keys = self.keys.take().ok_or(Error::Locked)?;
         let unbound = self.workspace.unbind_device(&keys, &secret);
         self.keys = Some(keys);
@@ -1824,7 +1837,13 @@ impl Client {
             secure.delete(&self.bound_name()?)?;
         }
         if self.renewable() {
-            return self.logout();
+            // Unbinding signs this device out, ending its service session as
+            // a local logout does; this caller already waits on the network.
+            let status = self.logout()?;
+            if let Some(remote) = remote {
+                remote.send().await;
+            }
+            return Ok(status);
         }
         self.after_login_unlock()?;
         self.status()

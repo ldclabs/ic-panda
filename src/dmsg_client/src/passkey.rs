@@ -83,7 +83,7 @@ struct Renewal {
     device: Hash,
 }
 
-struct LogoutRequest {
+pub(crate) struct LogoutRequest {
     config: Config,
     key: DeviceLogin,
     hardware: Arc<dyn HardwareAnchor>,
@@ -519,8 +519,33 @@ impl Client {
         )
     }
 
+    /// The remote end of a local logout, captured while the login is still remembered.
+    pub(crate) fn passkey_logout(&mut self) -> Option<LogoutRequest> {
+        let key = self.remembered_passkey().ok().flatten()?;
+        Some(LogoutRequest {
+            config: self.config.clone(),
+            key,
+            hardware: self.anchor.clone()?,
+        })
+    }
+
+    fn login_valid(&self, min_validity: u64) -> bool {
+        self.login
+            .as_ref()
+            .is_some_and(|l| l.expires_at > now_ms().saturating_add(min_validity))
+    }
+
     pub(crate) fn forget_passkey(&mut self) -> Result<()> {
-        if self.renewable()
+        // A marker left by another auth configuration still owns its slot.
+        let remembered = self.passkey.is_some()
+            || self
+                .workspace
+                .store
+                .meta::<Marker>(MARKER)
+                .ok()
+                .flatten()
+                .is_some();
+        if remembered
             && !self.workspace.provisional()
             && let Some(secure) = self.secure()
         {
@@ -537,24 +562,27 @@ impl Client {
 /// # Errors
 /// Transient failures preserve the remembered grant; definitive revocation forgets it.
 pub async fn ensure_login<H: Hold + ?Sized>(h: &H, min_validity: u64) -> Result<()> {
-    let (gate, generation, sequence) = h
+    // A current login never waits for the gate: whole-client operations call
+    // this while holding the client a renewal needs to finish.
+    let Some((gate, generation, sequence)) = h
         .with(|c| {
-            Ok((
-                c.login_renewal.clone(),
-                c.session_generation,
-                c.login_renewal_sequence,
-            ))
+            Ok((!c.login_valid(min_validity)).then(|| {
+                (
+                    c.login_renewal.clone(),
+                    c.session_generation,
+                    c.login_renewal_sequence,
+                )
+            }))
         })
-        .await?;
+        .await?
+    else {
+        return Ok(());
+    };
     let _turn = gate.lock().await;
     let prepared = h
         .with(|c| {
             ensure(c.session_generation == generation, Error::Locked)?;
-            let now = now_ms();
-            if c.login
-                .as_ref()
-                .is_some_and(|l| l.expires_at > now.saturating_add(min_validity))
-            {
+            if c.login_valid(min_validity) {
                 return Ok(None);
             }
             if c.login_renewal_sequence != sequence
@@ -615,6 +643,11 @@ pub async fn ensure_login<H: Hold + ?Sized>(h: &H, min_validity: u64) -> Result<
             };
             key.parent = Some(parent?);
             ensure(key.principal()? == expected, Error::IntegrityFailed)?;
+            // A remembered device never logs in again, so each renewal keeps
+            // the scope current; the previous one stays usable if this fails.
+            if let Ok(targets) = crate::account::login_targets(&config).await {
+                key.targets = targets;
+            }
         }
         let delegated = key.derive(hardware.as_ref(), &ic.root_key(), &key.targets, now_ms())?;
         ensure(
@@ -660,33 +693,26 @@ pub async fn ensure_login<H: Hold + ?Sized>(h: &H, min_validity: u64) -> Result<
 pub async fn logout<H: Hold>(h: &H) -> Result<crate::Status> {
     let (status, remote) = h
         .with(|c| {
-            let remote = c
-                .remembered_passkey()
-                .ok()
-                .flatten()
-                .zip(c.anchor.clone())
-                .map(|(key, hardware)| LogoutRequest {
-                    config: c.config.clone(),
-                    key,
-                    hardware,
-                });
+            let remote = c.passkey_logout();
             Ok((c.logout()?, remote))
         })
         .await?;
-    if let Some(LogoutRequest {
-        config,
-        key,
-        hardware,
-    }) = remote
-    {
+    if let Some(remote) = remote {
+        remote.send().await;
+    }
+    Ok(status)
+}
+
+impl LogoutRequest {
+    /// Best effort: the local logout stands whatever the service answers.
+    pub(crate) async fn send(self) {
         let attempt = async {
-            let ic = Ic::connect(&config, key.identity(hardware)).await?;
-            let result: Result<()> = ic.update(key.auth, "logout", ()).await?;
+            let ic = Ic::connect(&self.config, self.key.identity(self.hardware)).await?;
+            let result: Result<()> = ic.update(self.key.auth, "logout", ()).await?;
             result
         };
         let _ = tokio::time::timeout(std::time::Duration::from_secs(3), attempt).await;
     }
-    Ok(status)
 }
 
 #[cfg(test)]

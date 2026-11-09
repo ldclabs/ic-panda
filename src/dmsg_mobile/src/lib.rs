@@ -125,7 +125,6 @@ pub struct MobileEngine {
 struct PendingLogin {
     session: InteractiveLogin,
     binding_generation: Option<u64>,
-    generation: u64,
 }
 #[derive(Default)]
 struct LoginState {
@@ -498,7 +497,6 @@ impl MobileEngine {
         state.pending = Some(PendingLogin {
             session: session.into(),
             binding_generation: None,
-            generation,
         });
         Ok(started)
     }
@@ -560,10 +558,7 @@ impl MobileEngine {
         let proof = pending
             .session
             .accept(&dmsg_client::codec::unb64(fragment)?, dmsg_client::now_ms())?;
-        ensure(
-            self.host.inner.generation() == pending.generation,
-            Error::Locked,
-        )?;
+        ensure(self.host.inner.generation() == generation, Error::Locked)?;
         let delegated = runtime()
             .spawn(async move { pending.session.complete(proof).await })
             .await
@@ -600,12 +595,12 @@ impl MobileEngine {
         ensure(session.binding_generation.is_none(), Error::Forbidden)?;
         let bytes = dmsg_client::codec::unb64(fragment)?;
         let proof = session.session.accept(&bytes, dmsg_client::now_ms())?;
-        let generation = session.generation;
+        // Backgrounding during the login pauses the host without ending it;
+        // logout, account switches and the app's lock cancel the pending login.
         let delegated = runtime()
             .spawn(async move { session.session.complete(proof).await })
             .await
             .map_err(|_| Error::Unavailable("login worker".into()))??;
-        ensure(self.host.inner.generation() == generation, Error::Locked)?;
         let Some(delegated) = delegated else {
             return self.logout().await;
         };
@@ -1002,8 +997,10 @@ impl MobileEngine {
                 let shared = self
                     .held(move |h| {
                         Box::pin(async move {
+                            // Without a login its jobs stay retryable while
+                            // relay-only reconciliation still proceeds.
                             if h.with(|c| c.reconciliation_needs_login()).await? {
-                                h.ensure_login().await?;
+                                let _ = h.ensure_login().await;
                             }
                             let attestations =
                                 dmsg_client::approval::reconcile_attestations(h).await?;
