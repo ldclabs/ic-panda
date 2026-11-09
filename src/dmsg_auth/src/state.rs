@@ -7,6 +7,15 @@ use dmsg_types::{auth::*, *};
 use hmac::{KeyInit, Mac, SimpleHmac};
 use sha2::Sha256;
 
+const REQUESTS_PER_CALLER: u8 = 8;
+const MAX_RATE_CALLERS: usize = 100_000;
+
+enum Request {
+    Prepare,
+    Complete,
+    Renew,
+}
+
 pub(crate) fn validate_limits(l: &AuthLimits) -> Result<()> {
     ensure_valid(
         l.max_identities > 0
@@ -18,20 +27,52 @@ pub(crate) fn validate_limits(l: &AuthLimits) -> Result<()> {
     )
 }
 
-fn rate(now: u64, limits: &AuthLimits, renewal: bool) -> Result<()> {
+fn rate(caller: Principal, now: u64, limits: &AuthLimits, request: Request) -> Result<()> {
     TRANSIENT.with_borrow_mut(|t| {
         if t.minute != now / MINUTE {
             t.minute = now / MINUTE;
             t.requests = 0;
+            t.preparations = 0;
+            // Keep a counter slot for every live challenge across the minute
+            // boundary, so new callers cannot crowd out its completion.
+            t.callers = t
+                .pending
+                .iter()
+                .filter(|(_, p)| now < p.challenge.expires_at)
+                .map(|(caller, _)| (*caller, 0))
+                .collect();
             t.renewals = 0;
         }
-        let (used, limit) = if renewal {
-            (&mut t.renewals, limits.renewals_per_minute)
-        } else {
-            (&mut t.requests, limits.requests_per_minute)
-        };
-        ensure(*used < limit, Error::QuotaExceeded)?;
-        *used += 1;
+        if matches!(request, Request::Renew) {
+            ensure(
+                t.renewals < limits.renewals_per_minute,
+                Error::QuotaExceeded,
+            )?;
+            t.renewals += 1;
+            return Ok(());
+        }
+        let previous = t.callers.get(&caller).copied();
+        let used = previous.unwrap_or(0);
+        ensure(used < REQUESTS_PER_CALLER, Error::QuotaExceeded)?;
+        ensure(
+            previous.is_some() || t.callers.len() < MAX_RATE_CALLERS,
+            Error::QuotaExceeded,
+        )?;
+        ensure(
+            t.requests < limits.requests_per_minute,
+            Error::QuotaExceeded,
+        )?;
+        if matches!(request, Request::Prepare) {
+            // Leave at least half the shared budget for challenge completions.
+            // A one-request budget can still prepare now and finish next minute.
+            ensure(
+                t.preparations < (limits.requests_per_minute / 2).max(1),
+                Error::QuotaExceeded,
+            )?;
+            t.preparations += 1;
+        }
+        t.requests += 1;
+        t.callers.insert(caller, used + 1);
         Ok(())
     })
 }
@@ -53,7 +94,6 @@ pub(crate) fn prepare(
         .salt
         .ok_or_else(|| Error::Unavailable("auth initialization".into()))?;
     let limits: AuthLimits = cfg.limits.clone().into();
-    rate(now, &limits, false)?;
     TRANSIENT.with_borrow_mut(|t| {
         for _ in 0..50 {
             let Some(&(expires, who)) = t.expirations.first() else {
@@ -70,6 +110,7 @@ pub(crate) fn prepare(
             Error::QuotaExceeded,
         )
     })?;
+    rate(caller, now, &limits, Request::Prepare)?;
     cfg.nonce = cfg.nonce.checked_add(1).ok_or(Error::QuotaExceeded)?;
     let expires_at = now.checked_add(CHALLENGE_TTL_MS).ok_or(Error::Expired)?;
     let mut mac = SimpleHmac::<Sha256>::new_from_slice(salt.as_slice()).expect("32-byte HMAC key");
@@ -104,8 +145,6 @@ pub(crate) fn prepare(
 }
 
 fn pending(caller: Principal, challenge: &Hash, action: AuthAction, now: u64) -> Result<Pending> {
-    let cfg = config();
-    rate(now, &cfg.limits.into(), false)?;
     let p = TRANSIENT
         .with_borrow(|t| t.pending.get(&caller).cloned())
         .ok_or(Error::AuthRequired)?;
@@ -114,6 +153,7 @@ fn pending(caller: Principal, challenge: &Hash, action: AuthAction, now: u64) ->
         p.challenge.action == action && p.challenge.challenge == *challenge,
         Error::IntegrityFailed,
     )?;
+    rate(caller, now, &config().limits.into(), Request::Complete)?;
     Ok(p)
 }
 
@@ -210,17 +250,21 @@ pub(crate) fn login(caller: Principal, input: AuthenticatePasskey, now: u64) -> 
     remember(caller, id, identity, p, now)
 }
 
-pub(crate) fn renew(caller: Principal, now: u64) -> Result<Session> {
+pub(crate) fn renew(
+    caller: Principal,
+    now: u64,
+    signature_missing: impl FnOnce(&Session) -> Result<bool>,
+) -> Result<Session> {
     let mut session = session(caller).ok_or(Error::AuthRequired)?;
-    ensure(
-        now >= session.renewed_at.saturating_add(MINUTE),
-        Error::QuotaExceeded,
-    )?;
+    let due = now >= session.renewed_at.saturating_add(MINUTE);
+    ensure(due || signature_missing(&session)?, Error::QuotaExceeded)?;
     let cfg = config();
-    rate(now, &cfg.limits.into(), true)?;
-    session.expiration = millis_to_nanos(now.checked_add(AUTH_TTL_MS).ok_or(Error::Expired)?)?;
-    session.renewed_at = now;
-    SESSIONS.with_borrow_mut(|m| m.insert(caller.as_slice().to_vec(), Stored(session.clone())));
+    rate(caller, now, &cfg.limits.into(), Request::Renew)?;
+    if due {
+        session.expiration = millis_to_nanos(now.checked_add(AUTH_TTL_MS).ok_or(Error::Expired)?)?;
+        session.renewed_at = now;
+        SESSIONS.with_borrow_mut(|m| m.insert(caller.as_slice().to_vec(), Stored(session.clone())));
+    }
     Ok(session)
 }
 

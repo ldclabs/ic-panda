@@ -37,6 +37,24 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test passkey
 
 样本规模很小，测量未包含大量同时待取签名、网络延迟或主网目标吞吐。不承诺千万级容量、固定单次费用或每天最多两次续期。预算由部署测量确定。
 
+## 2026-11-09 限流与升级签名恢复回归
+
+本节记录基于 `ic-panda@db276843` 的修复工作区，前文保留首次功能验收的数据。修改范围为 `dmsg_auth` 交互限流、升级后缺失 witness 的补发及对应测试；稳定记录格式和公开方法签名不变。
+
+- `cargo test --offline --locked -p dmsg_auth --lib`：8 项通过。覆盖无效 challenge 不消耗共享额度、准备请求为完成请求保留空间、单 caller 限流、跨分钟保留已有 challenge 的计数位置、计数表上限，以及补发不改变稳定会话且计入续期预算。
+- `cargo test --offline --locked -p dmsg_protocol --lib passkey`：4 项通过。
+- `dmsg_auth --all-targets` 与启用 `pocketic-tests` 的 `dmsg_integration --test passkey` 均通过 Clippy `-D warnings`；相关包格式检查通过。
+- release Wasm 构建通过，`candid-extractor` 输出与提交的 Candid 文件逐字节一致。
+- `cargo test --offline --locked -p dmsg_integration --features pocketic-tests --test passkey -- --nocapture`：3 项通过。验证真实入口下的完成额度、升级后立即补发且保持原到期时间、重复补发被拒绝、退出全部后再升级不能恢复会话，并保留 P-256 ingress、嵌套委托与 180 天后续期检查。
+
+环境：Rust 1.98.1，锁定的 PocketIC 客户端 16.1.0，显式使用本地 PocketIC server 16.0.0；NNS 根子网与 application 子网。集成测试及其 Clippy 使用 `CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0`，不关闭测试断言。
+
+- 完整常规续期 update：**7,324,315 cycles**。
+- 一个身份、曾建立 16 个会话的 fixture：**513 stable pages，32.0625 MiB**。
+- Wasm：**1,329,544 bytes**，SHA-256 `d307ea023420a13f81ee1d0e647c1c0631a95b469fae3ac271b47f06973cafb1`。
+
+上述测量仍为小规模本地 fixture，不能推算生产吞吐或容量；未重跑桌面、iOS 或真实硬件流程，也未执行生产部署或主网压测。
+
 ## 尚未执行
 
 - 签名真机上的首次 Passkey 创建/登录、AuthenticationServices 的实际 origin、Keychain/Secure Enclave 跨重启和系统锁定后的恢复。

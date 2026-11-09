@@ -82,7 +82,9 @@ fn inspect_message() {
         return;
     }
     let allowed = match ic_cdk::api::msg_method_name().as_str() {
-        "renew" => session(caller).is_some_and(|s| now >= s.renewed_at.saturating_add(MINUTE)),
+        "renew" => session(caller).is_some_and(|s| {
+            now >= s.renewed_at.saturating_add(MINUTE) || signature_missing(&s).unwrap_or(false)
+        }),
         "admin_set_limits" | "admin_set_admission_key" => {
             admin::check_admin(caller, config().governance).is_ok()
         }
@@ -108,6 +110,17 @@ fn issue(session: Session) -> Result<u64> {
     });
     publish();
     Ok(session.expiration)
+}
+
+fn signature_missing(session: &Session) -> Result<bool> {
+    let seed = state::seed(&config(), &session.identity)?;
+    let message = delegation_signature_msg(&session.public, session.expiration, None);
+    let inputs = CanisterSigInputs {
+        domain: DELEGATION_SIG_DOMAIN,
+        seed: seed.as_slice(),
+        message: &message,
+    };
+    Ok(SIGNATURES.with_borrow(|s| s.witness(inputs.seed, inputs.message_hash()).is_none()))
 }
 
 #[ic_cdk::update]
@@ -140,7 +153,7 @@ fn login(input: AuthenticatePasskey) -> Result<u64> {
 fn renew() -> Result<u64> {
     let caller = ic_cdk::api::msg_caller();
     let now = nanos_to_millis(ic_cdk::api::time());
-    issue(state::renew(caller, now)?)
+    issue(state::renew(caller, now, signature_missing)?)
 }
 
 #[ic_cdk::update]

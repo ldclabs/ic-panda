@@ -108,6 +108,8 @@ pub(crate) struct Transient {
     pub expirations: BTreeSet<(u64, Principal)>,
     pub minute: u64,
     pub requests: u32,
+    pub preparations: u32,
+    pub callers: BTreeMap<Principal, u8>,
     pub renewals: u32,
 }
 

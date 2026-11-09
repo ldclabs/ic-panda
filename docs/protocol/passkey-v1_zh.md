@@ -18,6 +18,10 @@
 
 新增会话触及每身份 16 个会话上限时返回 `SessionLimitExceeded`，客户端错误码为 `SESSION_LIMIT_EXCEEDED`。全局限流、续期间隔及其他容量限制继续返回 `QuotaExceeded` / `QUOTA_EXCEEDED`。桌面和 iOS 仅在 Passkey 登录收到会话上限错误时提示退出所有设备的登录；普通额度错误保留重试入口。
 
+交互总预算同时计入准备与完成请求；准备阶段每分钟最多使用总预算的一半（向下取整，最少一次），为完成请求保留额度。不存在、过期或不匹配的 challenge 不消耗共享额度；匹配 challenge 后的认证失败仍计入预算。每个 caller 每分钟最多八次交互请求，替换 challenge 或退出不会重置计数；临时计数表每分钟最多跟踪十万个 caller，满时拒绝新 caller，不驱逐已跟踪者。总预算设为一时，准备和完成须分属不同分钟。
+
+会话每分钟最多延长一次 delegation。升级清空签名缓存后，仍处于该间隔内的会话可通过 `renew` 补发原授权，保持原到期时间；补发仍计入全局续期预算，签名恢复后不能再次绕过间隔。已经退出的会话不能补发。
+
 服务端仅接受 RP ID `dmsg.net`、精确 origin `https://dmsg.net`、ES256、UP 与 UV 标志。注册要求 none attestation，凭据 ID 与 attested data 一致；登录验证 authenticatorData 和原始 clientDataJSON 的签名。检查 crossOrigin/topOrigin，拒绝子域 origin。同步 Passkey 的签名计数不作为是否有效的判断依据。
 
 ## 浏览器与 iOS

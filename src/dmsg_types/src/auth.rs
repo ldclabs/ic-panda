@@ -37,6 +37,7 @@ pub struct AuthLimits {
     /// New identities per UTC day.
     pub daily_registrations: u32,
     /// Interactive requests per minute, challenges included.
+    /// Preparation uses at most half this budget (minimum one).
     pub requests_per_minute: u32,
     /// Renewals per minute across the service.
     pub renewals_per_minute: u32,

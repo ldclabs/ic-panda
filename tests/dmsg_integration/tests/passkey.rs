@@ -261,6 +261,22 @@ fn upgrade_renewal_replay_and_session_budget() {
     assert_eq!(f.stats().sessions, 1);
     assert_eq!(f.stats().challenges, 0);
     assert!(f.delegation(&first).is_err());
+    // Upgrade loses the witness, not the grant or its one-minute interval.
+    // An ingress renewal must restore the same delegation immediately.
+    assert_eq!(
+        f.update::<Result<u64>>(first.sender().unwrap(), "renew", Encode!().unwrap()),
+        Ok(original.expiration)
+    );
+    let restored = f.delegation(&first).unwrap();
+    f.verify(&restored);
+    assert_eq!(restored.user_key, original.user_key);
+    assert_eq!(restored.public_key, original.public_key);
+    assert_eq!(restored.expiration, original.expiration);
+    assert!(
+        f.ic.update_call(f.auth, first.sender().unwrap(), "renew", Encode!().unwrap())
+            .is_err(),
+        "the restored witness must not bypass the renewal interval again"
+    );
     f.ic.advance_time(Duration::from_secs(180 * 24 * 3600));
     f.ic.tick();
     let before = f.ic.cycle_balance(f.auth);
@@ -361,6 +377,9 @@ fn upgrade_renewal_replay_and_session_budget() {
         )
         .is_err()
     );
+    f.ic.upgrade_canister(f.auth, wasm(), Encode!().unwrap(), Some(f.controller))
+        .unwrap();
+    assert_eq!(f.delegation(&first), Err(Error::AuthRequired));
     assert!(
         f.ic.update_call(f.auth, first.sender().unwrap(), "renew", Encode!().unwrap())
             .is_err()
@@ -370,6 +389,65 @@ fn upgrade_renewal_replay_and_session_budget() {
         f.stats().stable_pages,
         wasm().len()
     );
+}
+
+#[test]
+fn invalid_requests_and_preparations_cannot_spend_completion_capacity() {
+    let f = Fixture::new();
+    let first = Device::new(1);
+    f.register(&first);
+    let mut budget = limits();
+    budget.requests_per_minute = 4;
+    f.update::<Result<()>>(f.controller, "admin_set_limits", Encode!(&budget).unwrap())
+        .unwrap();
+    let minute = MINUTE * NANOS_PER_MILLISECOND;
+    let now = f.ic.get_time().as_nanos_since_unix_epoch();
+    f.ic.advance_time(Duration::from_nanos(minute - now % minute));
+    f.ic.tick();
+    let end = f.challenge(&first, AuthAction::LogoutAll);
+    let second = Device::new(2);
+    let c = f.challenge(&second, AuthAction::Login);
+    let outsider = Device::new(3);
+    let proof = AuthenticatePasskey {
+        challenge: c.challenge,
+        response: response(&c.challenge, false),
+    };
+    for _ in 0..8 {
+        assert_eq!(
+            f.update::<Result<u64>>(
+                outsider.sender().unwrap(),
+                "login",
+                Encode!(&proof).unwrap(),
+            ),
+            Err(Error::AuthRequired)
+        );
+        assert_eq!(
+            f.update::<Result<AuthChallenge>>(
+                outsider.sender().unwrap(),
+                "prepare_challenge",
+                Encode!(&ChallengeRequest {
+                    public_key: outsider.der().into(),
+                    action: AuthAction::Login,
+                })
+                .unwrap(),
+            ),
+            Err(Error::QuotaExceeded)
+        );
+    }
+    f.update::<Result<u64>>(second.sender().unwrap(), "login", Encode!(&proof).unwrap())
+        .unwrap();
+    f.verify(&f.delegation(&second).unwrap());
+    f.update::<Result<()>>(
+        first.sender().unwrap(),
+        "logout_all",
+        Encode!(&AuthenticatePasskey {
+            challenge: end.challenge,
+            response: response(&end.challenge, false),
+        })
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(f.stats().sessions, 0);
 }
 
 #[test]

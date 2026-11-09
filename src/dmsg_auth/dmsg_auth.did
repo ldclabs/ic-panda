@@ -50,6 +50,7 @@ type AuthLimits = record {
   // New identities per UTC day.
   daily_registrations : nat32;
   // Interactive requests per minute, challenges included.
+  // Preparation uses at most half this budget (minimum one).
   requests_per_minute : nat32;
   // Renewals per minute across the service.
   renewals_per_minute : nat32;

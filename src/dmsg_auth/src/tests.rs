@@ -136,7 +136,10 @@ fn logout_and_logout_all_cannot_be_undone_by_replaying_authentication() {
         response: response(&c.challenge, false),
     };
     logout_all(device(3).0, proof.clone(), 3001).unwrap();
-    assert!(matches!(renew(device(1).0, DAY), Err(Error::AuthRequired)));
+    assert!(matches!(
+        renew(device(1).0, DAY, |_| Ok(false)),
+        Err(Error::AuthRequired)
+    ));
     assert!(matches!(
         logout_all(device(3).0, proof, 3002),
         Err(Error::AuthRequired)
@@ -164,7 +167,7 @@ fn logout_and_logout_all_cannot_be_undone_by_replaying_authentication() {
     )
     .unwrap();
     assert_eq!(session.identity, first.identity);
-    assert!(renew(device(1).0, 180 * DAY).is_ok());
+    assert!(renew(device(1).0, 180 * DAY, |_| Ok(false)).is_ok());
 }
 
 #[test]
@@ -224,10 +227,10 @@ fn stable_records_survive_transient_reset_and_budgets_bound_renewals() {
     TRANSIENT.with_borrow_mut(|t| *t = Transient::default());
     assert_eq!(session(device(1).0).unwrap().identity, first.identity);
     assert!(matches!(
-        renew(device(1).0, 1002),
+        renew(device(1).0, 1002, |_| Ok(false)),
         Err(Error::QuotaExceeded)
     ));
-    let renewed = renew(device(1).0, MINUTE + 1001).unwrap();
+    let renewed = renew(device(1).0, MINUTE + 1001, |_| Ok(false)).unwrap();
     assert_eq!(
         renewed.expiration,
         (MINUTE + 1001 + AUTH_TTL_MS) * NANOS_PER_MILLISECOND
@@ -302,4 +305,249 @@ fn logout_does_not_allow_reusing_a_registration_caller() {
         Some(Error::IdempotencyConflict)
     );
     assert_eq!(IDENTITIES.with_borrow(|m| m.len()), 1);
+}
+
+#[test]
+fn invalid_challenges_and_preparation_floods_leave_room_for_completions() {
+    setup();
+    enroll();
+    let mut cfg = config();
+    let mut limits: AuthLimits = cfg.limits.into();
+    limits.requests_per_minute = 4;
+    cfg.limits = limits.into();
+    save_config(cfg);
+    let now = 2 * MINUTE;
+    let end = challenge(1, AuthAction::LogoutAll, now);
+    let c = challenge(2, AuthAction::Login, now);
+    let proof = AuthenticatePasskey {
+        challenge: c.challenge,
+        response: response(&c.challenge, false),
+    };
+    let (outsider, public) = device(3);
+    let mut wrong = proof.clone();
+    wrong.challenge[0] ^= 1;
+    for _ in 0..10 {
+        assert_eq!(
+            login(outsider, proof.clone(), now + 1).err(),
+            Some(Error::AuthRequired)
+        );
+        assert_eq!(
+            login(device(2).0, wrong.clone(), now + 1).err(),
+            Some(Error::IntegrityFailed)
+        );
+        assert_eq!(
+            logout_all(device(2).0, proof.clone(), now + 1),
+            Err(Error::IntegrityFailed)
+        );
+        assert_eq!(
+            prepare(
+                outsider,
+                Principal::from_slice(&[9]),
+                ChallengeRequest {
+                    public_key: public.clone().into(),
+                    action: AuthAction::Login,
+                },
+                now + 1,
+            ),
+            Err(Error::QuotaExceeded)
+        );
+    }
+    assert_eq!(TRANSIENT.with_borrow(|t| t.requests), 2);
+    login(device(2).0, proof, now + 2).unwrap();
+    logout_all(
+        device(1).0,
+        AuthenticatePasskey {
+            challenge: end.challenge,
+            response: response(&end.challenge, false),
+        },
+        now + 3,
+    )
+    .unwrap();
+    assert_eq!(TRANSIENT.with_borrow(|t| t.requests), 4);
+    assert_eq!(SESSIONS.with_borrow(|m| m.len()), 0);
+
+    let c = challenge(3, AuthAction::Login, now + MINUTE);
+    let used = TRANSIENT.with_borrow(|t| (t.minute, t.requests));
+    assert_eq!(
+        login(
+            outsider,
+            AuthenticatePasskey {
+                challenge: c.challenge,
+                response: response(&c.challenge, false),
+            },
+            c.expires_at,
+        )
+        .err(),
+        Some(Error::Expired)
+    );
+    assert_eq!(TRANSIENT.with_borrow(|t| (t.minute, t.requests)), used);
+}
+
+#[test]
+fn caller_budget_survives_challenge_replacement_and_logout() {
+    setup();
+    enroll();
+    let now = 2 * MINUTE;
+    let (caller, public) = device(2);
+    let c = challenge(2, AuthAction::Login, now);
+    let mut bad = AuthenticatePasskey {
+        challenge: c.challenge,
+        response: response(&c.challenge, false),
+    };
+    bad.response.signature[5] ^= 1;
+    for _ in 1..REQUESTS_PER_CALLER {
+        assert_eq!(
+            login(caller, bad.clone(), now + 1).err(),
+            Some(Error::IntegrityFailed)
+        );
+    }
+    assert_eq!(
+        login(caller, bad, now + 1).err(),
+        Some(Error::QuotaExceeded)
+    );
+    logout(caller).unwrap();
+    assert_eq!(
+        prepare(
+            caller,
+            Principal::from_slice(&[9]),
+            ChallengeRequest {
+                public_key: public.into(),
+                action: AuthAction::Login,
+            },
+            now + 2,
+        ),
+        Err(Error::QuotaExceeded)
+    );
+    assert_eq!(
+        TRANSIENT.with_borrow(|t| t.requests),
+        u32::from(REQUESTS_PER_CALLER)
+    );
+
+    // A different caller can still complete a real authentication.
+    let end = challenge(3, AuthAction::LogoutAll, now + 3);
+    logout_all(
+        device(3).0,
+        AuthenticatePasskey {
+            challenge: end.challenge,
+            response: response(&end.challenge, false),
+        },
+        now + 4,
+    )
+    .unwrap();
+
+    // The next minute admits the caller again, but replacing a challenge does
+    // not reset its new per-caller budget.
+    for _ in 0..REQUESTS_PER_CALLER {
+        challenge(2, AuthAction::Login, now + MINUTE);
+    }
+    assert_eq!(
+        TRANSIENT.with_borrow(|t| t.requests),
+        u32::from(REQUESTS_PER_CALLER)
+    );
+    let (caller, public) = device(2);
+    assert_eq!(
+        prepare(
+            caller,
+            Principal::from_slice(&[9]),
+            ChallengeRequest {
+                public_key: public.into(),
+                action: AuthAction::Login,
+            },
+            now + MINUTE,
+        ),
+        Err(Error::QuotaExceeded)
+    );
+}
+
+#[test]
+fn caller_tracking_is_bounded_without_evicting_existing_callers() {
+    setup();
+    let c = challenge(1, AuthAction::Register, 1000);
+    // A challenge from the previous minute keeps its completion slot.
+    challenge(2, AuthAction::Login, MINUTE);
+    TRANSIENT.with_borrow_mut(|t| {
+        for n in 0..MAX_RATE_CALLERS - 2 {
+            t.callers
+                .insert(Principal::from_slice(&(n as u64).to_be_bytes()), 1);
+        }
+        assert_eq!(t.callers.len(), MAX_RATE_CALLERS);
+    });
+    let (caller, public) = device(3);
+    assert_eq!(
+        prepare(
+            caller,
+            Principal::from_slice(&[9]),
+            ChallengeRequest {
+                public_key: public.into(),
+                action: AuthAction::Login,
+            },
+            MINUTE + 1,
+        ),
+        Err(Error::QuotaExceeded)
+    );
+    register(
+        device(1).0,
+        Principal::from_slice(&[9]),
+        RegisterPasskey {
+            challenge: c.challenge,
+            response: response(&c.challenge, true),
+            admission: None,
+        },
+        MINUTE + 2,
+    )
+    .unwrap();
+    assert_eq!(TRANSIENT.with_borrow(|t| t.callers.len()), MAX_RATE_CALLERS);
+    challenge(3, AuthAction::Login, 2 * MINUTE);
+    assert_eq!(TRANSIENT.with_borrow(|t| t.callers.len()), 2);
+}
+
+#[test]
+fn signature_restoration_preserves_the_grant_and_uses_the_renewal_budget() {
+    setup();
+    let first = enroll();
+    let c = challenge(2, AuthAction::Login, 2000);
+    login(
+        device(2).0,
+        AuthenticatePasskey {
+            challenge: c.challenge,
+            response: response(&c.challenge, false),
+        },
+        2001,
+    )
+    .unwrap();
+    let mut cfg = config();
+    let mut limits: AuthLimits = cfg.limits.into();
+    limits.renewals_per_minute = 1;
+    cfg.limits = limits.into();
+    save_config(cfg);
+    assert_eq!(
+        renew(device(1).0, 3000, |_| Ok(false)).err(),
+        Some(Error::QuotaExceeded)
+    );
+    assert_eq!(TRANSIENT.with_borrow(|t| t.renewals), 0);
+    let restored = renew(device(1).0, 3000, |_| Ok(true)).unwrap();
+    let original = cbor2::to_vec(&first).unwrap();
+    assert_eq!(cbor2::to_vec(&restored).unwrap(), original);
+    assert_eq!(
+        cbor2::to_vec(&session(device(1).0).unwrap()).unwrap(),
+        original
+    );
+    assert_eq!(
+        renew(device(2).0, 3001, |_| Ok(true)).err(),
+        Some(Error::QuotaExceeded)
+    );
+    let renewed = renew(device(1).0, MINUTE + 1001, |_| {
+        panic!("a normal renewal does not need a witness lookup")
+    })
+    .unwrap();
+    assert_eq!(renewed.renewed_at, MINUTE + 1001);
+    assert!(renewed.expiration > first.expiration);
+    logout(device(1).0).unwrap();
+    assert_eq!(
+        renew(device(1).0, MINUTE + 1002, |_| {
+            panic!("a logged-out device cannot restore a signature")
+        })
+        .err(),
+        Some(Error::AuthRequired)
+    );
 }
