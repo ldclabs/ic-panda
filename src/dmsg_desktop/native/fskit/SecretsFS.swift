@@ -11,11 +11,19 @@ let diagnostics = Logger(subsystem: "net.dmsg.desktop.SecretsFS", category: "vol
 }
 
 final class SecretsFileSystem: FSUnaryFileSystem, FSUnaryFileSystemOperations {
-    var resource: FSPathURLResource?
-    var volume: SecretVolume?
-    var loading: ContentRequest?
+    private enum State {
+        case idle
+        case loading(resource: FSPathURLResource, token: UUID, request: ContentRequest?)
+        case loaded(resource: FSPathURLResource, volume: SecretVolume)
+    }
+    private var state: State = .idle
     let lifecycle = NSLock()
-    var loadID: UUID?
+
+    /// Called under the lifecycle lock, including when a load finishes after unload.
+    private func loading(_ token: UUID) -> Bool {
+        if case .loading(_, let current, _) = state { return current == token }
+        return false
+    }
 
     func probeResource(resource: FSResource, replyHandler reply: @escaping (FSProbeResult?, Error?) -> Void) {
         guard resource is FSPathURLResource else { return reply(nil, POSIXError(.ENOTSUP)) }
@@ -28,8 +36,8 @@ final class SecretsFileSystem: FSUnaryFileSystem, FSUnaryFileSystemOperations {
         guard path.url.startAccessingSecurityScopedResource() else { diagnostics.error("load refused: no security-scoped access"); return reply(nil, POSIXError(.EACCES)) }
         let token = UUID()
         lifecycle.lock()
-        if self.resource != nil { lifecycle.unlock(); path.url.stopAccessingSecurityScopedResource(); return reply(nil, POSIXError(.EBUSY)) }
-        self.resource = path; loadID = token
+        guard case .idle = state else { lifecycle.unlock(); path.url.stopAccessingSecurityScopedResource(); return reply(nil, POSIXError(.EBUSY)) }
+        state = .loading(resource: path, token: token, request: nil)
         lifecycle.unlock()
         // The daemon's socket, in the team's App Group container (see the daemon's `IPC_SOCKET`).
         let socket = path.url.appendingPathComponent("c").path
@@ -38,34 +46,40 @@ final class SecretsFileSystem: FSUnaryFileSystem, FSUnaryFileSystemOperations {
             do {
                 let volume = try SecretVolume(socket: socket, metadata: result.get())
                 self.lifecycle.lock()
-                let live = self.loadID == token
-                if live { self.volume = volume; self.loadID = nil; self.loading = nil }
+                let live = self.loading(token)
+                if live { self.state = .loaded(resource: path, volume: volume) }
                 self.lifecycle.unlock()
                 guard live else { volume.stop(); return reply(nil, POSIXError(.ECANCELED)) }
                 self.containerStatus = .ready; reply(volume, nil); volume.watch()
             } catch {
                 diagnostics.error("load refused: content service \((error as NSError).code, privacy: .public)")
                 self.lifecycle.lock()
-                let live = self.loadID == token
-                if live { self.resource = nil; self.loading = nil; self.loadID = nil }
+                let live = self.loading(token)
+                if live { self.state = .idle }
                 self.lifecycle.unlock()
                 if live { path.url.stopAccessingSecurityScopedResource() }
                 reply(nil, POSIXError(.EACCES))
             }
         }
         lifecycle.lock()
-        let live = loadID == token
-        if live { loading = job }
+        let live = loading(token)
+        if live { state = .loading(resource: path, token: token, request: job) }
         lifecycle.unlock()
         if !live { job.cancel() }
     }
 
     func unloadResource(resource: FSResource, options: FSTaskOptions, replyHandler reply: @escaping (Error?) -> Void) {
         lifecycle.lock()
-        let pending = loading, current = volume, path = self.resource
-        loading = nil; volume = nil; self.resource = nil; loadID = nil
+        let previous = state
+        state = .idle
         lifecycle.unlock()
-        pending?.cancel(); current?.stop(); path?.url.stopAccessingSecurityScopedResource()
+        switch previous {
+        case .idle: break
+        case .loading(let path, _, let request):
+            request?.cancel(); path.url.stopAccessingSecurityScopedResource()
+        case .loaded(let path, let volume):
+            volume.stop(); path.url.stopAccessingSecurityScopedResource()
+        }
         reply(nil)
     }
 

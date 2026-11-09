@@ -25,6 +25,7 @@ export function term(key: string) {
     uploading: 'pending',
     publishing: 'pending',
     revoke_pending: 'pending',
+    stopping: 'pending',
     done: 'complete',
     finished: 'complete',
     scanning: 'running',

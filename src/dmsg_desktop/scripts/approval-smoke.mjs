@@ -167,6 +167,21 @@ try {
   })
   await approval.getByTestId('approve').click()
   assert.equal(calls.filter(c => c.method === 'approval/respond').length, 0)
+  // A changed digest ends the current hold and starts a fresh reading delay.
+  await approval.getByTestId('approve').focus()
+  await approval.keyboard.down('Space')
+  await approval.waitForTimeout(150)
+  const changed = [...requests.values()][0]
+  changed.digest = 'de'.repeat(32)
+  emit('approval/changed')
+  await approval.waitForFunction(() => document.querySelector('[data-testid="approve"]')?.disabled)
+  await approval.keyboard.up('Space')
+  await approval.waitForTimeout(1100)
+  assert.equal(calls.filter(c => c.method === 'approval/respond').length, 0, 'the old hold must not decide a changed request')
+  await approval.waitForFunction(() => {
+    const button = document.querySelector('[data-testid="approve"]')
+    return button && !button.disabled
+  })
   await approval.getByTestId('approve').focus()
   await approval.keyboard.down('Space')
   try { await approval.getByTestId('approval-outcome').waitFor() }
@@ -211,9 +226,24 @@ try {
     assert.equal(calls.filter(c => c.method === 'approval/respond').at(-1).params.id, request.id)
   }
 
+  // Locking during a hold clears its timer/frame and cannot submit a late decision.
+  const beforeLock = calls.filter(c => c.method === 'approval/respond').length
+  const interrupted = makeRequest('secret_ssh_binding', binding)
+  await main.evaluate(id => window.dmsg.openApproval(id), interrupted.id)
+  await summary.waitFor()
+  await approval.waitForFunction(() => {
+    const button = document.querySelector('[data-testid="approve"]')
+    return button && !button.disabled
+  })
+  await approval.getByTestId('approve').focus()
+  await approval.keyboard.down('Space')
+  await approval.waitForTimeout(150)
   locked = true
   emit('session/changed')
   await approval.getByTestId('approval-locked').waitFor()
+  await approval.keyboard.up('Space')
+  await approval.waitForTimeout(1100)
+  assert.equal(calls.filter(c => c.method === 'approval/respond').length, beforeLock)
   assert.equal(await summary.count(), 0)
   assert.equal(await approval.getByTestId('approve').count(), 0)
   assert.deepEqual(pageErrors, [])

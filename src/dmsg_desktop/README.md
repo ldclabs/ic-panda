@@ -830,6 +830,55 @@ edits. Each queued display read carries its own mode, so unrelated completions
 cannot turn a cache-event local reread into an entitlement refresh. Visible
 windows periodically reread profile/name snapshots; the daemon alone owns TTLs.
 
+## Explicit operation states (2026-11-09)
+
+The desktop uses local state unions for operations whose phases own different
+resources or reviewed inputs. It keeps the existing message, file-task, login and
+update states, and ordinary control state stays local.
+
+- The daemon connection owns its startup attempt, initialized socket or retry
+  timer. Business RPCs wait for initialization; closing releases pending calls,
+  and a previous attempt cannot revive or disconnect a replacement connection.
+  The renderer distinguishes verification, disconnection and a verified session;
+  only a confirmed same-session reconnect restores the retained forms.
+- Approval review owns its reading-delay timer or hold animation. Work identifies
+  approve/reject, quoting and file comparison separately. Completion and the
+  user's choice to keep the window open remain independent of the review phase.
+- Native file imports and secret-mount previews use one-shot prepared operations.
+  Only the ready phase holds the selected path/digest or prepared mapping. Taking
+  it for submission consumes it before awaiting RPC; cancellation and session
+  changes invalidate pending preparation. Renderers likewise distinguish choosing,
+  reviewing and submitting.
+- Wallet setup keeps its original approval together with the activation result.
+  Transfer review owns the exact draft and policy version it will submit. Creation
+  freezes the form before funding checks and quoting; its existing product pause
+  remains in force. Files use separate phases for quotes, backup confirmation and
+  link creation, retaining retryable drafts and rejecting superseded reads.
+- The native secret mount keeps starting, running, stopping and unconfirmed
+  unmounts distinct. A failed unmount retains its configuration for retry, without
+  retaining a stopped content backend. FSKit loading owns the resource, request
+  and load token; a loaded state owns the resource and volume.
+
+Validation on macOS: `pnpm check`, `pnpm test` (192 tests), `pnpm build`, the
+complete `node scripts/smoke.mjs`, and the approval, wallet, transfers and secrets
+Electron flows passed. Checks include changed-digest/lock cancellation during a
+hold, one-shot native previews, retained failure drafts, keyboard operation,
+light/dark themes, minimum window sizes, Chinese/long translations and Arabic
+RTL. Representative screenshots were inspected. Two stale fixture assertions
+were updated to the existing login `action` and container-inert/portal-mask
+contracts.
+
+`cargo test --offline -p dmsg_cli --bin dmsg secret_mounts::` passed both tests,
+including synthetic backend cleanup and unconfirmed-unmount retry. The ignored
+`real_electron_cached_profile_and_reconnection` test also passed against the real
+Rust daemon: same-session edits survive disconnection, while a lock clears the
+form even with a delayed status response. Native FSKit sources passed Swift type
+checking with the macOS 27.2 SDK; existing SDK deprecation warnings remain.
+
+This validation uses temporary profiles and synthetic accounts. It does not
+exercise production payments, the paused wallet-creation UI, real OS file/presence
+dialogs, a signed FSKit mount/unmount, or Windows/Linux integration.
+
 ## Localization verification (2026-10-28)
 
 All 23 locales include the main window, approval window, tray, notifications,

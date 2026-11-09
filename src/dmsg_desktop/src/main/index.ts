@@ -38,6 +38,7 @@ import { single } from '../shared/single'
 import { walletHistoryCsv } from '../shared/wallet-report'
 import { Daemon, reasonOf } from './daemon'
 import { DaemonError } from './error'
+import { PreparedOperation } from './prepared-operation'
 import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { requireRuntimeVersion, resolveRuntime } from './runtime'
 import { Notifications } from './notifications'
@@ -681,14 +682,14 @@ handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | nu
   return { clear_after_ms: clearAfter }
 })
 /** The export last previewed, by the path the person picked; the window never names a path. */
-let importing: { path: string; digest: string } | null = null
+const importing = new PreparedOperation<{ path: string; digest: string }>()
+const preparedSecretMount = new PreparedOperation<any>()
 let importSession = 0
 function cancelImport() {
   importSession += 1
-  importing = null
+  importing.cancel()
+  preparedSecretMount.cancel()
 }
-let secretMountSerial = 0
-let preparedSecretMount: { session: number; epoch: number; params: any } | null = null
 handle('dmsg:secret-scan', 'main', async () => {
   const session = importSession
   const selected = await dialog.showOpenDialog(main!, { title: text.pickScanDirectory, properties: ['openDirectory'] })
@@ -696,24 +697,23 @@ handle('dmsg:secret-scan', 'main', async () => {
   return daemon.call('secrets/discovery/start', { path: selected.filePaths[0] })
 })
 handle('dmsg:secret-mount-prepare', 'main', async (_event, input: any, windowMs: number) => {
-  preparedSecretMount = null
-  const session = ++secretMountSerial
-  const epoch = importSession
-  if (!input || typeof input.project_label !== 'string' || !Array.isArray(input.entries)) throw new DaemonError('INVALID_INPUT', 'Mapping')
-  const selected = await dialog.showOpenDialog(main!, { title: text.pickProject, properties: ['openDirectory'] })
-  if (selected.canceled || !selected.filePaths[0] || epoch !== importSession || session !== secretMountSerial) return null
-  const project = selected.filePaths[0]
-  const params = { input: { project_label: input.project_label, project_directory: project, mount_point: join(project, '.dmsg-secrets'), entries: input.entries, aliases: input.aliases ?? [] }, ...(process.platform === 'darwin' ? { window_ms: windowMs } : {}) }
-  const prepared: any = await daemon.call('secrets/mounts/prepare', params)
-  if (epoch !== importSession || session !== secretMountSerial) return null
-  preparedSecretMount = { session, epoch, params: { ...params, input: prepared.input, source: 'gui' } }
-  return { ...prepared, session }
+  const session = preparedSecretMount.begin()
+  try {
+    if (!input || typeof input.project_label !== 'string' || !Array.isArray(input.entries)) throw new DaemonError('INVALID_INPUT', 'Mapping')
+    const selected = await dialog.showOpenDialog(main!, { title: text.pickProject, properties: ['openDirectory'] })
+    if (selected.canceled || !selected.filePaths[0] || !preparedSecretMount.preparing(session)) return null
+    const project = selected.filePaths[0]
+    const params = { input: { project_label: input.project_label, project_directory: project, mount_point: join(project, '.dmsg-secrets'), entries: input.entries, aliases: input.aliases ?? [] }, ...(process.platform === 'darwin' ? { window_ms: windowMs } : {}) }
+    const prepared: any = await daemon.call('secrets/mounts/prepare', params)
+    if (!preparedSecretMount.ready(session, { ...params, input: prepared.input, source: 'gui' })) return null
+    return { ...prepared, session }
+  } finally { preparedSecretMount.finish(session) }
 })
 handle('dmsg:secret-mount-save', 'main', async (_event, session: number) => {
-  const prepared = preparedSecretMount
-  if (!prepared || prepared.session !== session || prepared.epoch !== importSession || session !== secretMountSerial) throw new DaemonError('VERSION_CONFLICT', 'Mapping preview expired')
-  preparedSecretMount = null
-  return daemon.call('secrets/mounts/save_request', prepared.params)
+  const params = preparedSecretMount.take(session)
+  if (!params) throw new DaemonError('VERSION_CONFLICT', 'Mapping preview expired')
+  try { return await daemon.call('secrets/mounts/save_request', params) }
+  finally { preparedSecretMount.finish(session) }
 })
 /** A fixed System Settings pane; a window never names what to open. */
 handle('dmsg:open-extension-settings', 'main', async () => {
@@ -723,28 +723,28 @@ handle('dmsg:open-extension-settings', 'main', async () => {
 handle('dmsg:vault-import-cancel', 'main', cancelImport)
 handle('dmsg:vault-import-preview', 'main', async () => {
   cancelImport()
-  const session = importSession
-  const path = await pickFile({
-    title: text.pickExport,
-    filters: [
-      { name: text.exportFile, extensions: ['1pux', 'csv', 'json'] },
-      { name: text.allFiles, extensions: ['*'] }
-    ]
-  })
-  if (!path || session !== importSession) return null
-  const preview = (await daemon.call('vault/import_preview', { path })) as { digest: string }
-  if (session !== importSession) return null
-  importing = { path, digest: preview.digest }
-  return { ...preview, session }
+  const session = importing.begin()
+  try {
+    const path = await pickFile({
+      title: text.pickExport,
+      filters: [
+        { name: text.exportFile, extensions: ['1pux', 'csv', 'json'] },
+        { name: text.allFiles, extensions: ['*'] }
+      ]
+    })
+    if (!path || !importing.preparing(session)) return null
+    const preview = (await daemon.call('vault/import_preview', { path })) as { digest: string }
+    if (!importing.ready(session, { path, digest: preview.digest })) return null
+    return { ...preview, session }
+  } finally { importing.finish(session) }
 })
 handle('dmsg:vault-import', 'main', async (_event, session: number, picks: number[], attachments: string[] = [], folder = 'root') => {
-  if (!importing || session !== importSession) throw new DaemonError('VERSION_CONFLICT', 'Preview expired')
   if (!Array.isArray(picks) || picks.some((n) => !Number.isInteger(n) || n < 0) || !Array.isArray(attachments) || attachments.some((v) => typeof v !== 'string') || typeof folder !== 'string') throw new DaemonError('INVALID_INPUT', 'Import selection')
-  const chosen = picks
-  const source = importing
   // Consume before awaiting: two clicks must never submit the same batch twice.
-  importing = null
-  return daemon.call('vault/import', { ...source, picks: chosen, attachments, folder })
+  const source = importing.take(session)
+  if (!source) throw new DaemonError('VERSION_CONFLICT', 'Preview expired')
+  try { return await daemon.call('vault/import', { ...source, picks, attachments, folder }) }
+  finally { importing.finish(session) }
 })
 /** Camera permission and picked images stay behind the main-process bridge. */
 handle('dmsg:camera-access', 'main', () => process.platform === 'darwin' ? systemPreferences.askForMediaAccess('camera') : true)

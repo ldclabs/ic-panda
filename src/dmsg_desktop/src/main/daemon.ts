@@ -36,6 +36,13 @@ function settled(read: boolean, code: string): string {
 
 type Waiting = { method: string; read: boolean; resolve(value: unknown): void; reject(error: Error): void; timer?: NodeJS.Timeout }
 
+type ConnectionAttempt = { task: Promise<void>; socket: WebSocket | null }
+type Connection =
+  | { kind: 'stopped' }
+  | { kind: 'connecting' | 'initializing'; attempt: ConnectionAttempt }
+  | { kind: 'ready'; socket: WebSocket }
+  | { kind: 'waiting'; timer: NodeJS.Timeout }
+
 /**
  * Library work that lasts as long as its bytes: a folder imported, a file
  * written out, the whole library checked. It has no time limit; a daemon
@@ -58,17 +65,26 @@ export interface DaemonOptions {
 
 export class Daemon extends EventEmitter {
   readonly options: DaemonOptions
-  connected = false
   lastError: string | undefined
-  private socket: WebSocket | null = null
+  private connection: Connection = { kind: 'stopped' }
   private waiting = new Map<number, Waiting>()
   private next = 0
-  private retry: NodeJS.Timeout | undefined
   private delay = 1000
-  private closed = false
   private inFlight = new Map<string, Promise<unknown>>()
-  private connecting: Promise<void> | null = null
   readonly recovery: ReadRecovery
+
+  get connected() { return this.connection.kind === 'ready' }
+
+  private get socket(): WebSocket | null {
+    const state = this.connection
+    return state.kind === 'ready' ? state.socket
+      : state.kind === 'initializing' ? state.attempt.socket : null
+  }
+
+  private owns(attempt: ConnectionAttempt) {
+    const state = this.connection
+    return (state.kind === 'connecting' || state.kind === 'initializing') && state.attempt === attempt
+  }
 
   constructor(options: DaemonOptions) {
     super()
@@ -97,57 +113,76 @@ export class Daemon extends EventEmitter {
 
   /** Connect now; a try already under way, such as the backoff's, is the same try. */
   connect(): Promise<void> {
-    this.closed = false
-    clearTimeout(this.retry)
-    return (this.connecting ??= this.tryConnect().finally(() => { this.connecting = null }))
+    const state = this.connection
+    if (state.kind === 'ready') return Promise.resolve()
+    if (state.kind === 'connecting' || state.kind === 'initializing') return state.attempt.task
+    if (state.kind === 'waiting') clearTimeout(state.timer)
+    const task = Promise.resolve().then(() => this.tryConnect(attempt))
+    const attempt: ConnectionAttempt = { task, socket: null }
+    this.connection = { kind: 'connecting', attempt }
+    return task
   }
 
-  private async tryConnect(): Promise<void> {
+  private async tryConnect(attempt: ConnectionAttempt): Promise<void> {
     try {
       const { url, token } = await this.credential()
+      if (!this.owns(attempt)) return
       const ws = url.replace(/^http/, 'ws') + '/ws/app/v1'
       const socket = new WebSocket(ws, { handshakeTimeout: 10_000, headers: { authorization: `Bearer ${token}` } })
+      attempt.socket = socket
       await new Promise<void>((resolve, reject) => {
         socket.once('open', () => resolve())
         socket.once('error', reject)
+        socket.once('close', () => reject(new Error('connection closed')))
       })
-      this.socket = socket
+      if (!this.owns(attempt)) { socket.terminate(); return }
+      this.connection = { kind: 'initializing', attempt }
       socket.on('message', (data) => this.receive(String(data)))
-      socket.on('close', () => this.lost('connection closed'))
-      socket.on('error', (error) => this.lost(error.message))
-      this.connected = true
+      socket.on('close', () => { if (this.socket === socket) this.lost('connection closed') })
+      socket.on('error', (error) => { if (this.socket === socket) this.lost(error.message) })
+      // No business call can use this socket before initialization finishes.
+      await this.requestOnce('app/initialize', { activity: 'reported' })
+      if (!this.owns(attempt)) return
+      this.connection = { kind: 'ready', socket }
       this.lastError = undefined
       this.delay = 1000
       // Windows hear of the connection once their reads no longer count as a person's activity.
-      await this.call('app/initialize', { activity: 'reported' })
       this.emit('state')
       this.emit('event', { type: 'resync' })
     } catch (error) {
-      this.lost(reasonOf(error))
+      if (this.owns(attempt)) this.lost(reasonOf(error))
     }
   }
 
-  private lost(reason: string) {
+  /** Release the current attempt/socket before another one can take its place. */
+  private stopConnection() {
+    const state = this.connection
+    this.connection = { kind: 'stopped' }
+    if (state.kind === 'waiting') clearTimeout(state.timer)
+    if (state.kind === 'connecting') {
+      // Keep the handshake listeners: termination must settle its promise too.
+      state.attempt.socket?.terminate()
+    } else if (state.kind === 'initializing' || state.kind === 'ready') {
+      const socket = state.kind === 'ready' ? state.socket : state.attempt.socket
+      socket?.removeAllListeners().on('error', () => {}).terminate()
+    }
     this.inFlight.clear()
-    // A connection given up on, such as one whose `app/initialize` failed, closes too.
-    this.socket?.removeAllListeners().on('error', () => {}).terminate()
-    this.socket = null
-    const was = this.connected
-    const changed = this.lastError !== reason
-    this.connected = false
-    this.lastError = reason
     this.recovery.reset()
     for (const [, w] of this.waiting) {
       clearTimeout(w.timer)
       w.reject(new DaemonError(w.read ? 'DAEMON_DISCONNECTED' : 'EXECUTION_UNKNOWN', 'daemon connection lost'))
     }
     this.waiting.clear()
+  }
+
+  private lost(reason: string) {
+    const was = this.connected
+    const changed = this.lastError !== reason
+    this.stopConnection()
+    this.lastError = reason
+    this.connection = { kind: 'waiting', timer: setTimeout(() => void this.connect(), this.delay) }
+    this.delay = Math.min(this.delay * 2, 30_000)
     if (was || changed) this.emit('state')
-    if (!this.closed) {
-      clearTimeout(this.retry)
-      this.retry = setTimeout(() => void this.connect(), this.delay)
-      this.delay = Math.min(this.delay * 2, 30_000)
-    }
   }
 
   private receive(text: string) {
@@ -203,7 +238,7 @@ export class Daemon extends EventEmitter {
    * its daemon journal remains responsible for reconciliation. */
   private requestOnce(method: string, params: unknown = null): Promise<unknown> {
     const socket = this.socket
-    if (!socket || !this.connected) return Promise.reject(new DaemonError('DAEMON_DISCONNECTED', 'daemon disconnected'))
+    if (!socket || (!this.connected && method !== 'app/initialize')) return Promise.reject(new DaemonError('DAEMON_DISCONNECTED', 'daemon disconnected'))
     const id = ++this.next
     // Keep only classification while awaiting a reply, not a write's plaintext
     // parameters for the entire timeout (including after the account locks).
@@ -226,9 +261,8 @@ export class Daemon extends EventEmitter {
   }
 
   close() {
-    this.closed = true
-    clearTimeout(this.retry)
-    this.recovery.reset()
-    this.socket?.close()
+    const was = this.connected
+    this.stopConnection()
+    if (was) this.emit('state')
   }
 }

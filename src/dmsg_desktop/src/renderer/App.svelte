@@ -26,11 +26,16 @@
   const Single = isMain ? null : import('./views/Approval.svelte')
 
   let route = $state(location.hash.slice(1) || '/channels')
-  let status = $state<any>(null)
-  let connected = $state(true)
-  let verifiedConnection = $state(false)
-  let viewSession = $state<string | null>(null)
-  let connectionError = $state<string | undefined>()
+  type ViewSession = { key: string; status: any }
+  type Connection =
+    | { kind: 'verifying'; view: ViewSession | null }
+    | { kind: 'disconnected'; view: ViewSession | null; error?: string }
+    | { kind: 'verified'; view: ViewSession }
+  let connection = $state<Connection>({ kind: 'verifying', view: null })
+  const status = $derived(connection.view?.status ?? null)
+  const viewSession = $derived(connection.view?.key ?? null)
+  const verifiedConnection = $derived(connection.kind === 'verified')
+  const connectionError = $derived(connection.kind === 'disconnected' ? connection.error : undefined)
   let reconnecting = $state(false)
   /** The status last read: the shell keeps showing it while the next is read, where the views are gone at once. */
   let lastStatus = $state<any>(null)
@@ -39,20 +44,19 @@
   /** How many accounts this device holds, read while logged out: none means a first run. */
   let accounts = $state<number | null>(null)
 
-  const blocked = $derived(!connected || !verifiedConnection)
+  const blocked = $derived(!verifiedConnection)
   // A session change destroyed the views at once, so nothing needs covering
   // unless the wait lasts. A lost connection keeps its forms: those cover at once.
   const covered = $derived(blocked && (viewSession !== null || waited))
-  const failed = $derived(waited && !connected && !!connectionError)
+  const failed = $derived(waited && connection.kind === 'disconnected' && !!connectionError)
 
   let stateRevision = 0
 
   const refresh = single(async () => {
     const revision = stateRevision
-    const connection = await window.dmsg.connection()
+    const remote = await window.dmsg.connection()
     if (revision !== stateRevision) return
-    ;({ connected, error: connectionError } = connection)
-    if (!connected) { verifiedConnection = false; return }
+    if (!remote.connected) { connection = { kind: 'disconnected', view: connection.view, error: remote.error }; return }
     try {
       const next: any = await call('daemon/status')
       if (revision !== stateRevision) return
@@ -67,12 +71,11 @@
       if (viewSession !== key) clearDisplays()
       namesSession(next)
       settleMemory(next)
-      viewSession = key
-      status = lastStatus = next
-      verifiedConnection = true
+      lastStatus = next
+      connection = { kind: 'verified', view: { key, status: next } }
     } catch {
       if (revision !== stateRevision) return
-      verifiedConnection = false
+      connection = { kind: 'verifying', view: connection.view }
     }
   })
 
@@ -115,13 +118,11 @@
     offs.push(window.dmsg.onEvent((event) => {
       if (event.type === 'session/changed' || event.type === 'connection/changed') {
         stateRevision++
-        verifiedConnection = false
+        connection = { kind: 'verifying', view: event.type === 'session/changed' ? null : connection.view }
         document.body.setAttribute('data-daemon-unverified', '')
         if (event.type === 'session/changed') {
           // Destroy plaintext views immediately, even if the subsequent status
           // query is blocked or the daemon disconnects before it can answer.
-          status = null
-          viewSession = null
           namesSession(null)
           forgetPlain()
           clearDisplays()

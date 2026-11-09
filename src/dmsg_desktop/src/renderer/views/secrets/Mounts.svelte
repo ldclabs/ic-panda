@@ -40,8 +40,12 @@
     variable = $state('TOKEN'),
     alias = $state(''),
     windowSeconds = $state(30),
-    mappings = $state<any[]>([]),
-    preview = $state<any>(null)
+    mappings = $state<any[]>([])
+  type Preparation =
+    | { kind: 'editing' | 'preparing' }
+    | { kind: 'ready' | 'submitting'; preview: any }
+  let preparation = $state.raw<Preparation>({ kind: 'editing' })
+  const preview = $derived('preview' in preparation ? preparation.preview : null)
   const draft = new DraftVersion()
   const model = panel(
     async () =>
@@ -85,7 +89,7 @@
   )
   function changed() {
     draft.change()
-    preview = null
+    preparation = { kind: 'editing' }
   }
   onDestroy(() => draft.change())
   async function selectFile() {
@@ -183,7 +187,10 @@
     )
   }
   async function prepare() {
+    if (model.state.busy) return
     const at = draft.capture()
+    const preparing: Preparation = { kind: 'preparing' }
+    preparation = preparing
     // Native IPC cannot clone Svelte proxies. Freeze the exact metadata at click time.
     const input = JSON.parse(
       JSON.stringify({
@@ -198,10 +205,22 @@
     await model.act(
       () => bridge(() => window.dmsg.secretMountPrepare(input, windowMs)),
       (r) => {
-        if (draft.current(at)) preview = r
+        if (preparation === preparing && draft.current(at) && r) preparation = { kind: 'ready', preview: r }
       },
       false
     )
+    if (preparation === preparing) preparation = { kind: 'editing' }
+  }
+  async function save() {
+    if (model.state.busy || preparation.kind !== 'ready') return
+    const submitting: Preparation = { kind: 'submitting', preview: preparation.preview }
+    preparation = submitting
+    await model.act(
+      () => bridge(() => window.dmsg.secretMountSave(submitting.preview.session)),
+      (r: any) => open(r.id)
+    )
+    // The native preparation was consumed even if the reply was lost.
+    if (preparation === submitting) preparation = { kind: 'editing' }
   }
   const settings = () =>
     model.act(
@@ -416,14 +435,7 @@
       <button
         class={buttonClass('primary')}
         disabled={model.state.busy}
-        onclick={() =>
-          model.act(
-            () => bridge(() => window.dmsg.secretMountSave(preview.session)),
-            (r: any) => {
-              preview = null
-              open(r.id)
-            }
-          )}>{w('review')}</button
+        onclick={save}>{w('review')}</button
       >
     </div>{/if}
   <Notice>{ux('mountSaved')}</Notice>

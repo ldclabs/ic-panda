@@ -112,12 +112,20 @@
     manageOpen = $state(false),
     detailOpen = $state(false),
     detailId = $state<number | null>(null)
-  let activation = $state<any>(null)
-  let abortQuote = $state<string | null>(null), abortBusy = $state(false), abortError = $state<unknown>(null)
+  type Setup =
+    | { kind: 'idle' }
+    | { kind: 'approval'; request: any }
+    | { kind: 'activation'; request: any; activation: any }
+  let setup = $state.raw<Setup>({ kind: 'idle' })
+  const pending = $derived(setup.kind === 'idle' ? null : setup.request)
+  const activation = $derived(setup.kind === 'activation' ? setup.activation : null)
+  type Abort = { kind: 'closed' } | { kind: 'confirming'; quote: string; error?: unknown } | { kind: 'submitting'; quote: string }
+  let abort = $state.raw<Abort>({ kind: 'closed' })
+  const abortQuote = $derived(abort.kind === 'closed' ? null : abort.quote)
+  const abortBusy = $derived(abort.kind === 'submitting')
+  const abortError = $derived(abort.kind === 'confirming' ? abort.error : null)
   let abortCancel = $state<HTMLButtonElement | null>(null)
-  let pendingRead = false
-  let pending = $state<any>(null),
-    drafts = $state<Record<string, any>>({})
+  let drafts = $state<Record<string, any>>({})
   const scope = new ViewScope()
   let epoch = 0,
     listEpoch = 0,
@@ -166,11 +174,8 @@
         audit = null
         book = []
         deposits = []
-        pending = null
-        activation = null
-        abortQuote = null
-        abortError = null
-        abortBusy = false
+        setup = { kind: 'idle' }
+        abort = { kind: 'closed' }
         drafts = {}
         error = ''
         depositError = ''
@@ -483,38 +488,41 @@
   }
   function request(request: any, owner: string) {
     if (owner !== account) return
-    pending = request
-    activation = null
+    setup = { kind: 'approval', request }
     void readPending()
     newOpen = false
   }
   function dismissPending() {
-    pending = null
-    activation = null
+    setup = { kind: 'idle' }
   }
-  async function readPending() {
-    if (!pending || pendingRead) return
-    pendingRead = true
-    const requestId = pending.id
+  const readPending = single(async () => {
+    if (setup.kind === 'idle') return
+    let current = setup
+    const requestId = current.request.id
     const owner = account
+    const valid = () => active && unlocked && owner === account && setup === current
     try {
       const r: any = await call('approval/show', { id: requestId })
-      if (!active || !unlocked || owner !== account || pending?.id !== requestId) return
-      pending = r
+      if (!valid()) return
+      // Keep the last activation visible while rereading this same quote.
+      setup = current = current.kind === 'activation' && r.detail?.quote_id === current.request.detail?.quote_id
+        ? { kind: 'activation', request: r, activation: current.activation }
+        : { kind: 'approval', request: r }
+      let phase: any = null
       if (r.detail?.action === 'create' && r.detail.quote_id) {
-        const phase = await call('wallet/activation', { quote: r.detail.quote_id }).catch((e) => ({
+        phase = await call('wallet/activation', { quote: r.detail.quote_id }).catch((e) => ({
           stage: 'unknown',
           reason: errorText(e)
         }))
-        if (!active || !unlocked || owner !== account || pending?.id !== requestId) return
-        activation = phase
-      } else activation = null
+        if (!valid()) return
+        setup = current = { kind: 'activation', request: r, activation: phase }
+      }
       const completed =
         r.detail?.action === 'create'
-          ? activation?.stage === 'ready' || (r.state === 'done' && r.detail?.result?.status === 'Ready')
+          ? phase?.stage === 'ready' || (r.state === 'done' && r.detail?.result?.status === 'Ready')
           : r.state === 'done'
       if (completed) {
-        const id = activation?.wallet ?? r.detail?.result?.wallet ?? r.detail?.wallet
+        const id = phase?.wallet ?? r.detail?.result?.wallet ?? r.detail?.wallet
         dismissPending()
         if (id && validPrincipal(id)) {
           joinOpen = false
@@ -524,12 +532,9 @@
         }
       }
     } catch (e) {
-      if (owner === account && pending?.id === requestId) error = errorText(e)
-    } finally {
-      pendingRead = false
-      if (active && unlocked && pending && pending.id !== requestId) void readPending()
+      if (valid()) error = errorText(e)
     }
-  }
+  })
   async function run(method: string, params: any = {}) {
     if (busy) return
     const owner = account,
@@ -543,15 +548,12 @@
       })
       if (!active || !unlocked || owner !== account) return
       if (result.kind === 'wallet' && result.digest) {
-        pending = result
-        activation = null
-        void readPending()
+        request(result, owner)
         await bridge(() => window.dmsg.openApproval(result.id))
       }
       if (method === 'wallet/activation_continue') {
         if (result.stage === 'ready' && validPrincipal(result.wallet ?? '')) {
-          pending = null
-          activation = null
+          dismissPending()
           go(walletRoute(result.wallet))
           void open(result.wallet)
           void loadList()
@@ -576,18 +578,16 @@
   }
   async function abortActivation() {
     if (abortBusy || busy || !abortQuote || !deposits.some((d) => d.quote_id === abortQuote && d.abortable)) return
-    const quote = abortQuote, owner = account, generation = epoch
-    abortBusy = true
-    abortError = null
+    const quote = abortQuote, generation = epoch
+    const submitting: Abort = { kind: 'submitting', quote }
+    abort = submitting
     try {
       await call('wallet/activation_abort', { quote })
-      if (!fresh(generation) || owner !== account || abortQuote !== quote) return
-      abortQuote = null
+      if (!fresh(generation) || abort !== submitting) return
+      abort = { kind: 'closed' }
       await loadDeposits()
     } catch (e) {
-      if (fresh(generation) && owner === account && abortQuote === quote) abortError = e
-    } finally {
-      if (fresh(generation) && owner === account) abortBusy = false
+      if (fresh(generation) && abort === submitting) abort = { kind: 'confirming', quote, error: e }
     }
   }
   onMount(() => {
@@ -1063,7 +1063,7 @@
                 >{#if d.abortable}<button
                     class={buttonClass('danger', 'sm')}
                     disabled={busy || abortBusy}
-                    onclick={() => { abortError = null; abortQuote = d.quote_id }} data-testid="wallet-abort">{w('abortActivation')}</button
+                    onclick={() => { abort = { kind: 'confirming', quote: d.quote_id } }} data-testid="wallet-abort">{w('abortActivation')}</button
                   >{/if}{#if d.refundable}<button
                     class={buttonClass('primary', 'sm')}
                     disabled={busy}
@@ -1080,14 +1080,14 @@
   </div>
 </div>
 {#if unlocked}
-  <Dialog bind:open={() => !!abortQuote, (open) => { if (!open && !abortBusy) { abortQuote = null; abortError = null } }}
+  <Dialog bind:open={() => !!abortQuote, (open) => { if (!open && !abortBusy) abort = { kind: 'closed' } }}
     title={w('abortActivation')} description={w('abortActivationHint')} icon="warning" tone="danger"
     dismissible={!abortBusy} onOpenAutoFocus={(event) => { event.preventDefault(); abortCancel?.focus() }} testid="wallet-abort-dialog">
     {#if abortQuote}<Id id={abortQuote} full />{/if}
     {#if abortError}<Notice failure={errorText(abortError)} tone="danger">{errorText(abortError)}</Notice>{/if}
     {#snippet footer()}
       <span class="flex-1"></span>
-      <button bind:this={abortCancel} class={buttonClass('ghost')} disabled={abortBusy} onclick={() => { abortQuote = null; abortError = null }} data-testid="wallet-abort-cancel">{t('cancel')}</button>
+      <button bind:this={abortCancel} class={buttonClass('ghost')} disabled={abortBusy} onclick={() => { abort = { kind: 'closed' } }} data-testid="wallet-abort-cancel">{t('cancel')}</button>
       <button class={buttonClass('danger')} disabled={abortBusy || busy || !deposits.some((d) => d.quote_id === abortQuote && d.abortable)} aria-busy={abortBusy} onclick={abortActivation} data-testid="wallet-abort-confirm">{w('abortActivation')}</button>
     {/snippet}
   </Dialog>

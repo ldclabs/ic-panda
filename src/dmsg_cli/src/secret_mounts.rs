@@ -27,13 +27,50 @@ pub(crate) struct Manager {
 }
 struct Active {
     config: Config,
-    #[cfg(target_os = "macos")]
-    source: Option<PathBuf>,
-    backend: Backend,
-    failed: bool,
-    starting: bool,
-    started_at: std::time::Instant,
+    phase: MountPhase,
 }
+
+struct Mounted {
+    #[cfg(target_os = "macos")]
+    source: PathBuf,
+    backend: Backend,
+}
+
+enum MountPhase {
+    #[cfg(target_os = "macos")]
+    Starting {
+        mount: Mounted,
+        since: std::time::Instant,
+    },
+    Running(Mounted),
+    Stopping,
+    UnmountUnconfirmed,
+}
+
+impl MountPhase {
+    fn name(&self) -> &'static str {
+        match self {
+            #[cfg(target_os = "macos")]
+            Self::Starting { .. } => "starting",
+            Self::Running(_) => "running",
+            Self::Stopping => "stopping",
+            Self::UnmountUnconfirmed => "unmount_unconfirmed",
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    fn started(&mut self) -> Result<()> {
+        let Self::Starting { .. } = self else {
+            return Err(Error::Expired);
+        };
+        let Self::Starting { mount, .. } = std::mem::replace(self, Self::Stopping) else {
+            unreachable!()
+        };
+        *self = Self::Running(mount);
+        Ok(())
+    }
+}
+
 enum Backend {
     #[cfg(target_os = "macos")]
     Native(tokio::task::JoinHandle<()>),
@@ -265,7 +302,7 @@ impl Daemon {
                     .lock()
                     .expect("mounts")
                     .get(&id)
-                    .map(|a| (a.config.input.mount_point.clone(), a.failed, a.starting));
+                    .map(|a| a.phase.name());
                 let mut c = self.client().lock().await;
                 let path = c
                     .secret_mount_configs()?
@@ -275,12 +312,13 @@ impl Daemon {
                     .input
                     .mount_point;
                 let orphan = active.is_none() && is_secret_mount(&path);
+                let state = active.unwrap_or(if orphan { "orphaned_mount" } else { "stopped" });
                 match c.secret_mount_status(&id) {
                     Ok(core) => Ok(
-                        json!({"state":if active.as_ref().is_some_and(|(_,failed,_)|*failed){"unmount_unconfirmed"}else if active.as_ref().is_some_and(|(_,_,starting)|*starting){"starting"}else if active.is_some(){"running"}else if orphan{"orphaned_mount"}else{"stopped"},"error":self.secret_mounts.faults.lock().expect("mount faults").get(&id).cloned(),"mount_point":path,"core":core}),
+                        json!({"state":state,"error":self.secret_mounts.faults.lock().expect("mount faults").get(&id).cloned(),"mount_point":path,"core":core}),
                     ),
                     Err(Error::NotFound) => Ok(
-                        json!({"state":if active.as_ref().is_some_and(|(_,failed,_)|*failed){"unmount_unconfirmed"}else if orphan{"orphaned_mount"}else{"stopped"},"error":self.secret_mounts.faults.lock().expect("mount faults").get(&id).cloned(),"mount_point":path}),
+                        json!({"state":state,"error":self.secret_mounts.faults.lock().expect("mount faults").get(&id).cloned(),"mount_point":path}),
                     ),
                     Err(e) => Err(e),
                 }
@@ -340,34 +378,73 @@ impl Daemon {
             .expect("mount acknowledgements")
             .retain(|(mount, _), _| mount != id);
         let metadata = self.client().lock().await.secret_mount_start(id)?;
-        let prepared=async {
+        let prepared = async {
             #[cfg(unix)]
-            prepare_aliases(&mut config.input.clone(),true)?;
+            prepare_aliases(&mut config.input.clone(), true)?;
             #[cfg(unix)]
-            {use std::os::unix::fs::DirBuilderExt;let path=Path::new(&config.input.mount_point);if !path.exists(){std::fs::DirBuilder::new().mode(0o700).create(path).map_err(|_|Error::VersionConflict)?;}}
-            #[cfg(target_os="macos")]
             {
-                let source=native_directory()?;
-                let server=match native_server(host.clone(),id.into(),&source){Ok(server)=>server,Err(error)=>{let _=std::fs::remove_dir(&source);return Err(error);}};
-                // Track before invoking the OS: a dropped RPC still has a discoverable, stoppable operation.
-                self.secret_mounts.active.lock().expect("mounts").insert(id.into(),Active{config:config.clone(),source:Some(source.clone()),backend:Backend::Native(server),failed:false,starting:true,started_at:std::time::Instant::now()});
-                let status=tokio::time::timeout(Duration::from_secs(30),tokio::process::Command::new("/sbin/mount").kill_on_drop(true).args(["-F","-k","-t","dmsgsecrets","-o","rdonly,nosuid,nodev,noexec,owners"]).arg(&source).arg(&config.input.mount_point).output()).await;
-                if !matches!(&status,Ok(Ok(o)) if o.status.success()) {
+                use std::os::unix::fs::DirBuilderExt;
+                let path = Path::new(&config.input.mount_point);
+                if !path.exists() {
+                    std::fs::DirBuilder::new().mode(0o700).create(path)
+                        .map_err(|_| Error::VersionConflict)?;
+                }
+            }
+            #[cfg(target_os = "macos")]
+            {
+                let source = native_directory()?;
+                let server = match native_server(host.clone(), id.into(), &source) {
+                    Ok(server) => server,
+                    Err(error) => {
+                        let _ = std::fs::remove_dir(&source);
+                        return Err(error);
+                    }
+                };
+                // Track before invoking the OS: a dropped RPC remains discoverable and stoppable.
+                self.secret_mounts.active.lock().expect("mounts").insert(
+                    id.into(),
+                    Active {
+                        config: config.clone(),
+                        phase: MountPhase::Starting {
+                            mount: Mounted { source: source.clone(), backend: Backend::Native(server) },
+                            since: std::time::Instant::now(),
+                        },
+                    },
+                );
+                let status = tokio::time::timeout(
+                    Duration::from_secs(30),
+                    tokio::process::Command::new("/sbin/mount")
+                        .kill_on_drop(true)
+                        .args(["-F", "-k", "-t", "dmsgsecrets", "-o", "rdonly,nosuid,nodev,noexec,owners"])
+                        .arg(&source)
+                        .arg(&config.input.mount_point)
+                        .output(),
+                ).await;
+                if !matches!(&status, Ok(Ok(o)) if o.status.success()) {
                     self.stop_secret_mount(id).await?;
-                    let failure=match &status {Ok(Ok(o))=>fskit_failure(&String::from_utf8_lossy(&o.stderr)),_=>"FSKIT_UNAVAILABLE: the system did not mount the volume"};
+                    let failure = match &status {
+                        Ok(Ok(o)) => fskit_failure(&String::from_utf8_lossy(&o.stderr)),
+                        _ => "FSKIT_UNAVAILABLE: the system did not mount the volume",
+                    };
                     return Err(Error::Unavailable(failure.into()));
                 }
-                let live=self.client().lock().await.secret_mount_entries(id);
-                if let Err(error)=live {self.stop_secret_mount(id).await?;return Err(error);}
-                let mut active=self.secret_mounts.active.lock().expect("mounts");
-                let active=active.get_mut(id).ok_or(Error::Expired)?;active.starting=false;
+                let live = self.client().lock().await.secret_mount_entries(id);
+                if let Err(error) = live {
+                    self.stop_secret_mount(id).await?;
+                    return Err(error);
+                }
+                let mut active = self.secret_mounts.active.lock().expect("mounts");
+                active.get_mut(id).ok_or(Error::Expired)?.phase.started()?;
             }
-            #[cfg(target_os="linux")]
+            #[cfg(target_os = "linux")]
             {
-                let entries=self.client().lock().await.secret_mount_entries(id)?;
-                let backend=linux::start(host,id.into(),config.clone(),entries).await?;
+                let entries = self.client().lock().await.secret_mount_entries(id)?;
+                let backend = linux::start(host, id.into(), config.clone(), entries).await?;
                 self.client().lock().await.secret_mount_entries(id)?;
-                self.secret_mounts.active.lock().expect("mounts").insert(id.into(),Active{config:config.clone(),backend:Backend::Fuse(backend),failed:false,starting:false,started_at:std::time::Instant::now()});
+                self.secret_mounts.active.lock().expect("mounts").insert(
+                    id.into(),
+                    Active { config: config.clone(), phase: MountPhase::Running(Mounted { backend: Backend::Fuse(backend) }) },
+                );
             }
             #[cfg(not(unix))]
             return Err(Error::UnsupportedProtocol);
@@ -394,8 +471,20 @@ impl Daemon {
 
     pub(crate) async fn stop_secret_mount(&self, id: &str) -> Result<Value> {
         let _ = self.client().lock().await.secret_mount_stop(id);
-        let active = self.secret_mounts.active.lock().expect("mounts").remove(id);
-        let Some(active) = active else {
+        let active = {
+            let mut mounts = self.secret_mounts.active.lock().expect("mounts");
+            if let Some(active) = mounts.get_mut(id) {
+                ensure(
+                    !matches!(active.phase, MountPhase::Stopping),
+                    Error::VersionConflict,
+                )?;
+                let phase = std::mem::replace(&mut active.phase, MountPhase::Stopping);
+                Some((active.config.clone(), phase))
+            } else {
+                None
+            }
+        };
+        let Some((config, phase)) = active else {
             let config = self
                 .client()
                 .lock()
@@ -407,51 +496,60 @@ impl Daemon {
             unmount_orphan(&config.input.mount_point).await?;
             return Ok(json!({"stopped":id,"os_unmounted":true}));
         };
-        match active.backend {
-            #[cfg(target_os = "macos")]
-            Backend::Native(server) => {
-                let unmounted = !is_our_native_mount(&active.config.input.mount_point)
-                    || tokio::time::timeout(
-                        Duration::from_secs(10),
-                        tokio::process::Command::new("/sbin/umount")
-                            .kill_on_drop(true)
-                            .arg("-f")
-                            .arg(&active.config.input.mount_point)
-                            .output(),
-                    )
-                    .await
-                    .is_ok_and(|r| r.is_ok_and(|o| o.status.success()));
-                server.abort();
-                if let Some(source) = active.source {
-                    let _ = std::fs::remove_file(source.join(IPC_SOCKET));
-                    let _ = std::fs::remove_dir(source);
+        let result = async {
+            let mount = match phase {
+                #[cfg(target_os = "macos")]
+                MountPhase::Starting { mount, .. } => mount,
+                MountPhase::Running(mount) => mount,
+                MountPhase::UnmountUnconfirmed => {
+                    return unmount_orphan(&config.input.mount_point).await;
                 }
-                if !unmounted {
-                    self.secret_mounts.active.lock().expect("mounts").insert(
-                        id.into(),
-                        Active {
-                            config: active.config,
-                            source: None,
-                            backend: Backend::Native(server),
-                            failed: true,
-                            starting: false,
-                            started_at: active.started_at,
-                        },
-                    );
-                    return Err(Error::Unavailable(
-                        "FSKIT_UNMOUNT_UNCONFIRMED: content service stopped".into(),
-                    ));
+                MountPhase::Stopping => unreachable!(),
+            };
+            match mount.backend {
+                #[cfg(target_os = "macos")]
+                Backend::Native(server) => {
+                    let unmounted = !is_our_native_mount(&config.input.mount_point)
+                        || tokio::time::timeout(
+                            Duration::from_secs(10),
+                            tokio::process::Command::new("/sbin/umount")
+                                .kill_on_drop(true)
+                                .arg("-f")
+                                .arg(&config.input.mount_point)
+                                .output(),
+                        )
+                        .await
+                        .is_ok_and(|r| r.is_ok_and(|o| o.status.success()));
+                    server.abort();
+                    let _ = std::fs::remove_file(mount.source.join(IPC_SOCKET));
+                    let _ = std::fs::remove_dir(mount.source);
+                    if !unmounted {
+                        return Err(Error::Unavailable(
+                            "FSKIT_UNMOUNT_UNCONFIRMED: content service stopped".into(),
+                        ));
+                    }
+                }
+                #[cfg(target_os = "linux")]
+                Backend::Fuse(session) => {
+                    tokio::time::timeout(Duration::from_secs(10), session.unmount())
+                        .await
+                        .map_err(|_| Error::Unavailable("FUSE_UNMOUNT_UNCONFIRMED".into()))?
+                        .map_err(|_| Error::Unavailable("FUSE_UNMOUNT_UNCONFIRMED".into()))?;
+                    unmount_orphan(&config.input.mount_point).await?;
                 }
             }
-            #[cfg(target_os = "linux")]
-            Backend::Fuse(session) => {
-                tokio::time::timeout(Duration::from_secs(10), session.unmount())
-                    .await
-                    .map_err(|_| Error::Unavailable("FUSE_UNMOUNT_UNCONFIRMED".into()))?
-                    .map_err(|_| Error::Unavailable("FUSE_UNMOUNT_UNCONFIRMED".into()))?;
-                unmount_orphan(&active.config.input.mount_point).await?;
+            Ok(())
+        }
+        .await;
+        {
+            let mut mounts = self.secret_mounts.active.lock().expect("mounts");
+            if result.is_ok() {
+                mounts.remove(id);
+            } else if let Some(active) = mounts.get_mut(id) {
+                active.phase = MountPhase::UnmountUnconfirmed;
             }
         }
+        result?;
         Ok(json!({"stopped":id,"os_unmounted":true}))
     }
 
@@ -514,12 +612,13 @@ impl Daemon {
             .lock()
             .expect("mounts")
             .iter()
-            .filter(|(_, a)| !a.failed)
-            .map(|(id, a)| {
-                (
-                    id.clone(),
-                    a.starting && a.started_at.elapsed() > Duration::from_secs(35),
-                )
+            .filter_map(|(id, a)| match &a.phase {
+                #[cfg(target_os = "macos")]
+                MountPhase::Starting { since, .. } => {
+                    Some((id.clone(), since.elapsed() > Duration::from_secs(35)))
+                }
+                MountPhase::Running(_) => Some((id.clone(), false)),
+                MountPhase::Stopping | MountPhase::UnmountUnconfirmed => None,
             })
             .collect();
         for (id, abandoned) in ids {
@@ -993,6 +1092,100 @@ pub(crate) fn configure_clock(client: &mut dmsg_client::Client) {
 #[cfg(all(test, target_os = "macos"))]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn stopping_releases_starting_and_running_backends_and_retries_unconfirmed_unmounts() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let client = dmsg_client::testing::unlocked(&dir.path("workspace"), false, None);
+        let home = crate::home::Home {
+            dir: dir.path("home"),
+        };
+        let d = Daemon::new(
+            "fixture-owner".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        );
+        let config = Config {
+            id: "fixture-mount".into(),
+            version: 1,
+            account_id: "fixture-account".into(),
+            device_id: "fixture-device".into(),
+            input: MountInput {
+                project_label: "Fixture".into(),
+                project_directory: dir.0.to_string_lossy().into(),
+                mount_point: dir.path("unmounted").to_string_lossy().into(),
+                parent_identity: String::new(),
+                entries: vec![],
+                aliases: vec![],
+            },
+            mode: Mode::MacosFileWindow {
+                owner_uid: uid(),
+                window_ms: 30000,
+            },
+        };
+        // No filesystem is mounted: exercise cleanup using only a synthetic worker/socket file.
+        for starting in [true, false] {
+            let source = dir.path("content-service");
+            std::fs::create_dir(&source).unwrap();
+            std::fs::write(source.join(IPC_SOCKET), b"fixture").unwrap();
+            let server = tokio::spawn(std::future::pending::<()>());
+            let worker = server.abort_handle();
+            let mount = Mounted {
+                source: source.clone(),
+                backend: Backend::Native(server),
+            };
+            let phase = if starting {
+                MountPhase::Starting {
+                    mount,
+                    since: std::time::Instant::now(),
+                }
+            } else {
+                MountPhase::Running(mount)
+            };
+            d.secret_mounts.active.lock().unwrap().insert(
+                config.id.clone(),
+                Active {
+                    config: config.clone(),
+                    phase,
+                },
+            );
+            assert_eq!(
+                d.stop_secret_mount(&config.id).await.unwrap()["os_unmounted"],
+                true
+            );
+            tokio::task::yield_now().await;
+            assert!(worker.is_finished());
+            assert!(!source.exists());
+            assert!(
+                !d.secret_mounts
+                    .active
+                    .lock()
+                    .unwrap()
+                    .contains_key(&config.id)
+            );
+        }
+        d.secret_mounts.active.lock().unwrap().insert(
+            config.id.clone(),
+            Active {
+                config: config.clone(),
+                phase: MountPhase::UnmountUnconfirmed,
+            },
+        );
+        assert_eq!(
+            d.stop_secret_mount(&config.id).await.unwrap()["os_unmounted"],
+            true
+        );
+        assert!(
+            !d.secret_mounts
+                .active
+                .lock()
+                .unwrap()
+                .contains_key(&config.id)
+        );
+    }
 
     #[test]
     fn mount_failures_name_what_the_person_can_do() {

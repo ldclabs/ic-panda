@@ -50,9 +50,12 @@
     busy = false
   })
   let attempted = $state(false)
-  let error = $state(''),
-    preview = $state<any>(null),
-    lastAsset = ''
+  let error = $state(''), lastAsset = ''
+  type Reviewed = { preview: any; input: ReturnType<typeof payload>; wallet: string }
+  type Operation = { kind: 'editing' | 'estimating' } | ({ kind: 'reviewed' | 'submitting' } & Reviewed)
+  let operation = $state.raw<Operation>({ kind: 'editing' })
+  const preview = $derived('preview' in operation ? operation.preview : null)
+  $effect(() => { busy = operation.kind === 'estimating' || operation.kind === 'submitting' })
   const address = $derived(wallet.addresses.find((a) => String(a.id) === draft.from))
   const available = $derived(metadata.filter((a) => assetChain(a) === address?.chain))
   const asset = $derived(available.find((a) => assetKey(a) === draft.asset))
@@ -60,12 +63,15 @@
   const fingerprint = $derived(JSON.stringify([draft, asset?.decimals, fee?.decimals, wallet.policy.version]))
   const reviewed = $derived(preview?.fingerprint === fingerprint)
   $effect(() => {
+    if (operation.kind === 'reviewed' && !reviewed) operation = { kind: 'editing' }
+  })
+  $effect(() => {
     const key = `${draft.from}/${draft.asset}/${asset?.decimals ?? 'atomic'}`
     if (lastAsset && key !== lastAsset) {
       draft.maxFee = ''
       if (!alive) return
       draft.outputs = draft.outputs.map((o: any) => ({ ...o, amount: '' }))
-      preview = null
+      if (operation.kind !== 'submitting') operation = { kind: 'editing' }
     }
     lastAsset = key
   })
@@ -104,47 +110,52 @@
     }
   }
   async function estimate() {
+    if (operation.kind === 'estimating' || operation.kind === 'submitting') return
     attempted = true
     if (rowErrors.some(Boolean) || draft.outputs.length > batchLimit(address?.chain)) return
-    busy = true
+    const estimating: Operation = { kind: 'estimating' }
+    operation = estimating
     error = ''
-    preview = null
     const form = fingerprint,
       target = wallet.wallet
     try {
       const result: any = await call('wallet/preview', { wallet: target, draft: payload() })
-      if (!alive || form !== fingerprint || target !== wallet.wallet) return
+      if (!alive || operation !== estimating || form !== fingerprint || target !== wallet.wallet) return
       if (!draft.maxFee) draft.maxFee = decimal(result.max_fee, result.fee_decimals)
-      preview = { ...result, fingerprint: JSON.stringify([draft, asset?.decimals, fee?.decimals, wallet.policy.version]) }
+      operation = { kind: 'reviewed', input: payload(), wallet: target, preview: { ...result, fingerprint: JSON.stringify([draft, asset?.decimals, fee?.decimals, wallet.policy.version]) } }
     } catch (e) {
-      if (alive) error = e instanceof Error && ['amount', 'precision', 'overflow'].includes(e.message) ? w('invalidAmount') : errorText(e)
+      if (alive && operation === estimating) error = e instanceof Error && ['amount', 'precision', 'overflow'].includes(e.message) ? w('invalidAmount') : errorText(e)
     } finally {
-      if (alive) busy = false
+      if (operation === estimating) operation = { kind: 'editing' }
     }
   }
   async function submit() {
-    if (!reviewed || preview.blockers.length) return
-    busy = true
+    if (operation.kind !== 'reviewed' || !reviewed || preview.blockers.length) return
+    const accepted = operation
+    const submitting: Operation = { ...accepted, kind: 'submitting' }
+    operation = submitting
     error = ''
     try {
       const note = draft.note?.trim() ?? ''
-      const p: any = await call('wallet/transfer', { wallet: wallet.wallet, draft: payload(), policy_version: preview.policy_version })
-      if (!alive) return
+      const p: any = await call('wallet/transfer', { wallet: accepted.wallet, draft: accepted.input, policy_version: accepted.preview.policy_version })
+      if (!alive || operation !== submitting) return
       if (note) {
         try {
-          await call('wallet/notes', { wallet: wallet.wallet, proposal: p.id, note })
+          await call('wallet/notes', { wallet: accepted.wallet, proposal: p.id, note })
+          if (!alive || operation !== submitting) return
           draft.note = ''
         } catch {
           p.note_error = true
         }
       }
+      if (!alive || operation !== submitting) return
       draft.outputs = [{ to: '', amount: '' }]
-      preview = null
+      operation = { kind: 'editing' }
       onDone(p)
     } catch (e) {
-      if (alive) error = errorText(e)
+      if (alive && operation === submitting) error = errorText(e)
     } finally {
-      if (alive) busy = false
+      if (operation === submitting) operation = accepted
     }
   }
 </script>
@@ -274,7 +285,7 @@
       >
       <p class="text-muted text-[12px]">{w('previewHint')}</p>
       {#each preview.blockers as blocker}<Notice tone="danger">{w(blocker)}</Notice>{/each}
-      <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => (preview = null)}>{w('editTransfer')}</button>
+      <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => (operation = { kind: 'editing' })}>{w('editTransfer')}</button>
       <button
         class={buttonClass('primary', 'sm', 'justify-self-end')}
         disabled={busy || preview.blockers.length > 0}

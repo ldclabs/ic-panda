@@ -24,12 +24,18 @@
   let preview = $state<any>(null),
     readiness = $state<any>(null),
     quoteLoading = $state(false),
-    busy = $state(false),
     error = $state('')
   let alive = true
-  let name = $state(''),
-    nextDraft = 0,
-    submitted = $state<any>(null)
+  type CreationInput = { name: string; members: ReturnType<typeof memberInputs>; approvals: number; admin_approvals: number }
+  type Creation =
+    | { kind: 'editing' }
+    | { kind: 'checking' | 'quoting'; input: CreationInput }
+    | { kind: 'submitting'; input: CreationInput; quote: string }
+    | { kind: 'submitted'; request: any }
+  let creation = $state.raw<Creation>({ kind: 'editing' })
+  const busy = $derived(!['editing', 'submitted'].includes(creation.kind))
+  const submitted = $derived(creation.kind === 'submitted' ? creation.request : null)
+  let name = $state(''), nextDraft = 0
   const blankDraft = (): MemberDraft => ({ key: nextDraft++, id: '', role: 'approver', label: '', touched: false })
   let drafts = $state<MemberDraft[]>([blankDraft()]),
     approvals = $state(1),
@@ -65,10 +71,11 @@
     error = ''
     try {
       const [q, r] = await Promise.all([call('wallet/quote_preview'), call('wallet/readiness', { funding: true })])
+      if (!alive) return
       preview = q
       readiness = r
     } catch (e) {
-      error = errorText(e)
+      if (alive) error = errorText(e)
     } finally {
       quoteLoading = false
     }
@@ -93,14 +100,19 @@
       await bridge(() => window.dmsg.openApproval(submitted.id))
       return
     }
-    if (!canCreate) return
-    busy = true
+    if (busy || !canCreate) return
+    const input: CreationInput = { name: name.trim(), members: memberInputs(drafts), approvals, admin_approvals: adminApprovals }
+    let current: Creation = { kind: 'checking', input }
+    creation = current
     error = ''
     const owner = creator
     try {
       readiness = await call('wallet/readiness', { funding: true })
+      if (!alive || creator !== owner || creation !== current) return
       if (readiness.blockers.length) return
+      creation = current = { kind: 'quoting', input }
       const quote: any = await call('wallet/quote')
+      if (!alive || creator !== owner || creation !== current) return
       preview = quote
       if (!quote.remaining) {
         return
@@ -109,21 +121,16 @@
         error = w('INSUFFICIENT_NATIVE_BALANCE')
         return
       }
-      const request = await call('wallet/create', {
-        quote: quote.quote_id,
-        name: name.trim(),
-        members: memberInputs(drafts),
-        approvals,
-        admin_approvals: adminApprovals
-      })
-      if (!alive || creator !== owner) return
-      submitted = request
+      creation = current = { kind: 'submitting', input, quote: quote.quote_id }
+      const request = await call('wallet/create', { quote: current.quote, ...input })
+      if (!alive || creator !== owner || creation !== current) return
+      creation = { kind: 'submitted', request }
       onRequest(request, owner)
       await bridge(() => window.dmsg.openApproval(request.id))
     } catch (e) {
-      error = errorText(e)
+      if (alive && creator === owner) error = errorText(e)
     } finally {
-      busy = false
+      if (creation === current) creation = { kind: 'editing' }
     }
   }
   onMount(() => {

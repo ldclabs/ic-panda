@@ -12,6 +12,60 @@ async function until(check: () => boolean) {
 }
 const unavailable = () => Object.assign(new Error('private URL'), { code: 'NETWORK_UNAVAILABLE' })
 
+test('initialization owns the connection attempt and business calls wait for it', async (t) => {
+  const server = new WebSocketServer({ port: 0, host: '127.0.0.1' })
+  await new Promise<void>(resolve => server.on('listening', resolve))
+  let initialize: (() => void) | undefined
+  const methods: string[] = []
+  server.on('connection', socket => socket.on('message', bytes => {
+    const { id, method } = JSON.parse(String(bytes))
+    methods.push(method)
+    const reply = () => socket.send(JSON.stringify({ id, result: {} }))
+    if (method === 'app/initialize') initialize = reply
+    else reply()
+  }))
+  const daemon = new Daemon({ binary: '', home: '', fixed: { url: `http://127.0.0.1:${(server.address() as { port: number }).port}`, token: 'test' } })
+  t.after(() => { daemon.close(); for (const socket of server.clients) socket.terminate(); server.close() })
+  const opening = daemon.connect()
+  assert.equal(daemon.connect(), opening)
+  await until(() => !!initialize)
+  assert.equal(daemon.connected, false)
+  await assert.rejects(daemon.call('vault/list'), { code: 'DAEMON_DISCONNECTED' })
+  assert.deepEqual(methods, ['app/initialize'])
+  initialize!()
+  await opening
+  assert.equal(daemon.connected, true)
+  await daemon.call('vault/list')
+  assert.deepEqual(methods, ['app/initialize', 'vault/list'])
+})
+
+test('closing an initializing connection cannot revive it or close its replacement', async (t) => {
+  const server = new WebSocketServer({ port: 0, host: '127.0.0.1' })
+  await new Promise<void>(resolve => server.on('listening', resolve))
+  let initialized = 0, resyncs = 0
+  server.on('connection', socket => socket.on('message', bytes => {
+    const { id, method } = JSON.parse(String(bytes))
+    if (method === 'app/initialize' && ++initialized > 1) socket.send(JSON.stringify({ id, result: {} }))
+  }))
+  const daemon = new Daemon({ binary: '', home: '', fixed: { url: `http://127.0.0.1:${(server.address() as { port: number }).port}`, token: 'test' } })
+  t.after(() => { daemon.close(); for (const socket of server.clients) socket.terminate(); server.close() })
+  daemon.on('event', event => { if (event.type === 'resync') resyncs++ })
+  const old = daemon.connect()
+  await until(() => initialized === 1)
+  daemon.close()
+  await Promise.all([old, daemon.connect()])
+  assert.equal(initialized, 2)
+  assert.equal(resyncs, 1)
+  assert.equal(daemon.connected, true)
+  const read = assert.rejects(daemon.call('vault/list'), { code: 'DAEMON_DISCONNECTED' })
+  const write = assert.rejects(daemon.call('vault/add', { title: 'fixture' }), { code: 'EXECUTION_UNKNOWN' })
+  daemon.close()
+  await Promise.all([read, write])
+  assert.equal(daemon.connected, false)
+  await wait(30)
+  assert.equal(resyncs, 1)
+})
+
 test('only reviewed reads recover; account changes discard an old retry result', async () => {
   for (const method of ['plan/quote','wallet/quote','approval/respond','approval/quote','wallet/execute','wallet/propose','plan/checkout','agent/grant','ap/call','channel/send','inbox/ack','new/method']) assert.equal(isRead(method), false, method)
   let finish!: () => void

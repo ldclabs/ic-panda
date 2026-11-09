@@ -20,21 +20,23 @@
    */
   let { open = $bindable(false) }: { open?: boolean } = $props()
 
-  let preview = $state<any>(null)
+  type ImportState =
+    | { kind: 'empty' | 'choosing' }
+    | { kind: 'ready' | 'importing'; preview: any }
+  let operation = $state.raw<ImportState>({ kind: 'empty' })
+  const preview = $derived('preview' in operation ? operation.preview : null)
+  const busy = $derived(operation.kind === 'choosing' || operation.kind === 'importing')
   let ticked = $state<Set<number>>(new Set())
   let attachments = $state<Set<string>>(new Set())
   let folder=$state('root'), folders=$state<any[]>([]), folderPicker=$state(false)
-  let busy = $state(false)
   let error = $state('')
-  let generation = 0
 
   const count = $derived(ticked.size)
 
   $effect(() => {
     if (!open) {
-      generation += 1
+      operation = { kind: 'empty' }
       folderPicker=false;folder='root';folders=[]
-      preview = null
       ticked = new Set(); attachments = new Set()
       error = ''
       void window.dmsg.vaultImportCancel().catch(() => {})
@@ -42,26 +44,25 @@
   })
 
   onDestroy(() => {
-    generation += 1
+    operation = { kind: 'empty' }
     void window.dmsg.vaultImportCancel().catch(() => {})
   })
 
   async function choose() {
     if (busy) return
-    const current = ++generation
-    busy = true
-    preview = null
+    const choosing: ImportState = { kind: 'choosing' }
+    operation = choosing
     ticked = new Set(); attachments = new Set()
     error = ''
     try {
       const read = await bridge<any>(() => window.dmsg.vaultImportPreview())
-      if (!read || current !== generation || !open) return
-      preview = read
+      if (!read || operation !== choosing || !open) return
+      operation = { kind: 'ready', preview: read }
       ticked = new Set(read.items.filter((i: any) => !i.duplicate).map((i: any) => i.index))
     } catch (e) {
-      if (current === generation && open) error = errorText(e)
+      if (operation === choosing && open) error = errorText(e)
     } finally {
-      busy = false
+      if (operation === choosing) operation = { kind: 'empty' }
     }
   }
 
@@ -73,23 +74,23 @@
   }
 
   async function add() {
-    if (busy || !preview) return
-    const current = generation
-    const session = preview.session
-    busy = true
+    if (operation.kind !== 'ready') return
+    const source = operation.preview
+    const importing: ImportState = { kind: 'importing', preview: source }
+    operation = importing
     error = ''
     try {
-      const added = await bridge<{ ids: string[] }>(() => window.dmsg.vaultImport(session, [...ticked], [...attachments].filter((id) => preview.attachments.some((a: any) => a.entry_id === id && ticked.has(a.item_index))), folder))
-      if (current === generation) open = false
+      const added = await bridge<{ ids: string[] }>(() => window.dmsg.vaultImport(source.session, [...ticked], [...attachments].filter((id) => source.attachments.some((a: any) => a.entry_id === id && ticked.has(a.item_index))), folder))
+      if (operation !== importing || !open) return
+      open = false
       toast(() => t('imported', { n: added.ids.length }), { ms: 8000 })
     } catch (e) {
-      if (current === generation && open) {
-        preview = null
+      if (operation === importing && open) {
         ticked = new Set(); attachments = new Set()
         error = errorText(e)
       }
     } finally {
-      busy = false
+      if (operation === importing) operation = { kind: 'empty' }
     }
   }
 </script>
@@ -132,7 +133,7 @@
           <span class="break-words">{a.name} · {size(a.size)} {a.reason ?? ''}</span>
         </Checkbox>
       {/each}
-      {#if preview.attachments?.length}<p class="text-xs text-warn">{w('localFiles')}</p><p class="text-xs text-warn">{w('filesPermissions')}</p><p class="text-xs">{w('destination')}: {folder==='root'?t('library'):folders.find((f)=>f.id===folder)?.name??folder}</p><button class={buttonClass('secondary','sm')} disabled={busy} onclick={async()=>{const current=generation;try{const tree:any[]=await call('files/tree');if(current===generation && open){folders=tree;folderPicker=true}}catch(e){if(current===generation && open)error=errorText(e)}}}>{w('choose')}</button>{/if}
+      {#if preview.attachments?.length}<p class="text-xs text-warn">{w('localFiles')}</p><p class="text-xs text-warn">{w('filesPermissions')}</p><p class="text-xs">{w('destination')}: {folder==='root'?t('library'):folders.find((f)=>f.id===folder)?.name??folder}</p><button class={buttonClass('secondary','sm')} disabled={busy} onclick={async()=>{const current=operation;try{const tree:any[]=await call('files/tree');if(current===operation && open){folders=tree;folderPicker=true}}catch(e){if(current===operation && open)error=errorText(e)}}}>{w('choose')}</button>{/if}
       {#if preview.incomplete}<p class="text-[12px] text-warn" data-testid="vault-import-incomplete">{t('importIncomplete', { n: preview.incomplete })}</p>{/if}
       <p class="flex items-start gap-1.5 text-[12px] text-warn"><Icon name="warning" class="mt-0.5 shrink-0" />{t('deleteExport')}</p>
     </div>

@@ -42,16 +42,16 @@
   let { id }: { id: string } = $props()
   let alive = true
   let revision = 0
-  let work = 0
+  type Work = { kind: 'idle' | 'approve' | 'reject' | 'quote' | 'check-file' }
+  let work = $state.raw<Work>({ kind: 'idle' })
   const valid = (at: number, target = id) => alive && at === revision && target === id && status?.state === 'unlocked'
   let request = $state<any>(null)
   let status = $state<any>(null)
   let error = $state('')
-  let busy = $state(false)
-  let approving = $state(false)
+  const busy = $derived(work.kind !== 'idle')
+  const approving = $derived(work.kind === 'approve')
   /** A decision made in this window, and whether the person went on using it since. */
-  let decided = $state(false)
-  let staying = $state(false)
+  let completion = $state<'undecided' | 'decided' | 'staying'>('undecided')
   let assets = $state<any[]>([])
   let selection = $state('')
   let readiness = $state<any>(null)
@@ -60,11 +60,15 @@
   let queue = $state<string[]>([])
   let agents = $state<Record<string, string>>({})
   let now = $state(Date.now())
-  let ready = $state(false)
-  let held = $state(0)
+  type Review =
+    | { kind: 'inactive' }
+    | { kind: 'waiting'; digest: string; timer: ReturnType<typeof setTimeout> }
+    | { kind: 'ready'; digest: string }
+    | { kind: 'holding'; digest: string; started: number; progress: number; frame: number }
+  let review = $state<Review>({ kind: 'inactive' })
+  const ready = $derived(review.kind === 'ready' || review.kind === 'holding')
+  const held = $derived(review.kind === 'holding' ? review.progress : 0)
   let rejectButton = $state<HTMLButtonElement>()
-  let delay: ReturnType<typeof setTimeout> | undefined
-  let frame = 0
   /** This window read the device's state once already. */
   let offered = false
   /** The deadline passed here, and the daemon was asked once. */
@@ -76,13 +80,22 @@
 
   /** A request seen for the first time or changed is reviewed afresh: Approve waits again, and a hold under way stops. */
   function arm() {
-    ready = false
-    stopHold()
-    clearTimeout(delay)
+    resetReview()
     const digest = request?.digest
-    delay = setTimeout(() => {
-      if (alive && status?.state === 'unlocked' && request?.digest === digest) ready = true
+    if (!digest) return
+    lapsed = false
+    review = { kind: 'waiting', digest, timer: 0 }
+    const waiting = review
+    waiting.timer = setTimeout(() => {
+      if (review === waiting && alive && status?.state === 'unlocked' && request?.digest === digest)
+        review = { kind: 'ready', digest }
     }, APPROVE_DELAY_MS)
+  }
+
+  function resetReview() {
+    if (review.kind === 'waiting') clearTimeout(review.timer)
+    if (review.kind === 'holding') cancelAnimationFrame(review.frame)
+    review = { kind: 'inactive' }
   }
 
   async function load() {
@@ -167,7 +180,7 @@
       request = null
       readiness = null
       walletReadiness = null
-      stopHold()
+      resetReview()
       // Opened while locked: ask for the fast unlock once, as the main
       // window does; a lock while it is open asks nothing.
       if (opening && status.state === 'locked' && status.fast_presence) void unlockHere()
@@ -195,18 +208,18 @@
   /** Decide exactly what is shown: the digest of this view goes with the answer. */
   async function decide(approve: boolean) {
     if (busy || !request) return
-    const run = ++work
+    const run: Work = { kind: approve ? 'approve' : 'reject' }
+    work = run
     const at = ++revision
     const shown = request
-    busy = true
-    approving = approve
+    stopHold()
     error = ''
     try {
       const next = await bridge(() => window.dmsg.decide(shown.id, shown.digest, approve))
       if (!valid(at)) return
       revision += 1
       request = next
-      decided = true
+      completion = 'decided'
       void loadQueue()
     } catch (e) {
       if (!valid(at)) return
@@ -215,15 +228,15 @@
       error = label ? t(label) : errorText(e)
       await reload()
     } finally {
-      if (run === work) { busy = false; approving = false }
+      if (work === run) work = { kind: 'idle' }
     }
   }
 
   // Decided here and nothing else is waiting: the window has done its work.
   // An outcome that needs reading stays; so does a window the person goes on using.
   $effect(() => {
-    if (!decided || staying || busy || queue.length || !['done', 'rejected'].includes(request?.state)) return
-    const stay = () => (staying = true)
+    if (completion !== 'decided' || busy || queue.length || !['done', 'rejected'].includes(request?.state)) return
+    const stay = () => (completion = 'staying')
     const timer = setTimeout(() => void window.dmsg.closeApproval(), 2000)
     window.addEventListener('pointerdown', stay)
     window.addEventListener('keydown', stay)
@@ -237,10 +250,10 @@
   /** A web checkout is quoted here first, so the amount approved is the amount shown. */
   async function quote() {
     if (busy || !request) return
-    const run = ++work
+    const run: Work = { kind: 'quote' }
+    work = run
     const at = ++revision
     const target = request.id
-    busy = true
     error = ''
     try {
       const next = await call('approval/quote', { id: target, selection: selection.trim() })
@@ -251,17 +264,17 @@
     } catch (e) {
       if (valid(at)) error = errorText(e)
     } finally {
-      if (run === work) busy = false
+      if (work === run) work = { kind: 'idle' }
     }
   }
 
   /** Compare a file the person has with the digest to sign; what is approved stays the same. */
   async function checkFile() {
     if (busy || !request) return
-    const run = ++work
+    const run: Work = { kind: 'check-file' }
+    work = run
     const at = ++revision
     const target = request.id
-    busy = true
     error = ''
     try {
       const checked = await bridge(() => window.dmsg.checkFile(target))
@@ -271,7 +284,7 @@
     } catch (e) {
       if (valid(at)) error = errorText(e)
     } finally {
-      if (run === work) busy = false
+      if (work === run) work = { kind: 'idle' }
     }
   }
 
@@ -286,25 +299,26 @@
   }
 
   function startHold() {
-    if (!canApprove || frame) return
-    const started = performance.now()
+    if (!canApprove || review.kind !== 'ready') return
+    review = { kind: 'holding', digest: review.digest, started: performance.now(), progress: 0, frame: 0 }
+    const holding = review
     const step = (time: number) => {
-      held = Math.min(1, (time - started) / HOLD_MS)
-      if (held < 1) {
-        frame = requestAnimationFrame(step)
+      if (review !== holding) return
+      holding.progress = Math.min(1, (time - holding.started) / HOLD_MS)
+      if (holding.progress < 1) {
+        holding.frame = requestAnimationFrame(step)
         return
       }
-      frame = 0
-      held = 0
+      review = { kind: 'ready', digest: holding.digest }
       if (canApprove) void decide(true)
     }
-    frame = requestAnimationFrame(step)
+    holding.frame = requestAnimationFrame(step)
   }
 
   function stopHold() {
-    if (frame) cancelAnimationFrame(frame)
-    frame = 0
-    held = 0
+    if (review.kind !== 'holding') return
+    cancelAnimationFrame(review.frame)
+    review = { kind: 'ready', digest: review.digest }
   }
 
   function holdKey(event: KeyboardEvent, down: boolean) {
@@ -334,22 +348,20 @@
       }
     })
     const offs = [onChange(['approval/changed'], reload), onChange(['session/changed'], () => {
-      revision += 1; work += 1
+      revision += 1; work = { kind: 'idle' }
       request = readiness = walletReadiness = null
       queue = []; assets = []; walletAssets = []; agents = {}
-      ready = busy = approving = false
-      clearTimeout(delay)
-      stopHold()
+      completion = 'undecided'
+      resetReview()
       void refreshStatus()
     })]
     const clock = setInterval(() => (now = Date.now()), 1000)
     window.addEventListener('focus', refocus)
     return () => {
-      alive = false; revision += 1; work += 1
+      alive = false; revision += 1; work = { kind: 'idle' }
       for (const off of offs) off()
       clearInterval(clock)
-      clearTimeout(delay)
-      stopHold()
+      resetReview()
       window.removeEventListener('focus', refocus)
     }
   })
@@ -412,6 +424,7 @@
   $effect(() => {
     if (waiting && expired && !lapsed) {
       lapsed = true
+      resetReview()
       void reload()
     }
   })

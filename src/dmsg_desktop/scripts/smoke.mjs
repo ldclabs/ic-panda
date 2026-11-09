@@ -2778,7 +2778,7 @@ smoke: try {
   const claims = calls.filter((c) => c.method === 'handle/claim').length
   await main.click('[data-testid="handle-login-claim"]')
   await main.waitForSelector('[data-testid="login-steps"][data-phase="browser"]')
-  assert.deepEqual(latest('session/login').params, { origin: 'https://panda.fans', bind: false, source: 'gui' })
+  assert.deepEqual(latest('session/login').params, { origin: 'https://panda.fans', bind: false, action: 'login', source: 'gui' })
   legacyHolderLoggedIn = true
   loginResult = { pending: false, checking: false, done: true, error: null, approval: null }
   emit('session/changed', { state: 'unlocked' })

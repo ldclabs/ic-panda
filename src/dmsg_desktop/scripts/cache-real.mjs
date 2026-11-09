@@ -82,7 +82,8 @@ try {
   holdStatus = true
   await page.evaluate(() => window.dmsg.call('session/lock'))
   await page.waitForFunction(() => !document.querySelector('[data-testid="daily-executions"]'), { timeout: 3000 })
-  assert.equal(await page.locator('body').getAttribute('inert'), '')
+  assert.equal(await page.locator('body').getAttribute('data-daemon-unverified'), '')
+  assert.equal(await page.getByTestId('sidebar-toggle').evaluate(element => element.closest('[inert]') !== null), true)
   holdStatus = false
   for (const send of heldStatus) send()
   heldStatus = []

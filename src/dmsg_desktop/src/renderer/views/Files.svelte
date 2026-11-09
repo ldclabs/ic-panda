@@ -85,7 +85,10 @@
   let purging = $state<string[] | 'all' | null>(null)
   let copiesOpen = $state(false)
   let sharing = $state<{ id: string; version: string | null; name: string; channel: string; text: string; channels: any[] } | null>(null)
-  let backing = $state<{ ids: string[]; allVersions: boolean; count: number; bytes: number; usage: any } | null>(null)
+  type BackupPlan = { ids: string[]; allVersions: boolean; count: number; bytes: number; usage: any }
+  type Backup = { kind: 'idle' | 'preparing' } | { kind: 'ready' | 'submitting'; plan: BackupPlan }
+  let backupState = $state.raw<Backup>({ kind: 'idle' })
+  const backing = $derived('plan' in backupState ? backupState.plan : null)
   let deletingCloud = $state<string[] | null>(null)
   let changedCopy = $state<any | null>(null)
   /** The trashed file shown beside the trash, and its details. */
@@ -96,15 +99,23 @@
   let mounting = $state(false)
   /** `files/share_links`: the links this device made, for the detail's list. */
   let links = $state<any[]>([])
-  let linking = $state<{ id: string; version: string | null; name: string; upload: string | null; remote: boolean; days: number; maxDownloads: number; password: string; progress: { stage: string; done: number; total: number } | null; result: any | null } | null>(null)
-  let quote = $state<any>(null)
-  let quoteError = $state('')
-  let quoting = $state(false)
-  let quoteSerial = 0
+  type LinkSubmission =
+    | { kind: 'editing'; error: string }
+    | { kind: 'creating'; progress: { stage: string; done: number; total: number } | null }
+    | { kind: 'created'; result: any }
+  let linking = $state<{ id: string; version: string | null; name: string; upload: string | null; remote: boolean; days: number; maxDownloads: number; password: string; submission: LinkSubmission } | null>(null)
+  const linkResult = $derived(linking?.submission.kind === 'created' ? linking.submission.result : null)
+  const linkError = $derived(linking?.submission.kind === 'editing' ? linking.submission.error : '')
+  type Quote = { kind: 'idle' | 'loading' } | { kind: 'ready'; value: any } | { kind: 'failed'; error: string }
+  let quoteState = $state.raw<Quote>({ kind: 'idle' })
+  const quote = $derived(quoteState.kind === 'ready' ? quoteState.value : null)
+  const quoteError = $derived(quoteState.kind === 'failed' ? quoteState.error : '')
+  const quoting = $derived(quoteState.kind === 'loading')
   let draft = $state('')
   /** The names of files a backup card names by ID, read once each. */
   let resolved = $state<Record<string, string>>({})
   let cancelling = false
+  let alive = true
 
   $effect(() => scopeJobs(status?.account ?? null))
 
@@ -566,6 +577,9 @@
    * not yet in the cloud; `known` gives a single file's versions.
    */
   async function askBackup(ids: string[], allVersions: boolean, known?: { count: number; bytes: number }) {
+    ids = [...ids]
+    const preparing: Backup = { kind: 'preparing' }
+    backupState = preparing
     let count = known?.count ?? 0
     let bytes = known?.bytes ?? 0
     if (!known) {
@@ -576,16 +590,25 @@
       count = pending.length
       bytes = pending.reduce((n, f) => n + (f.size ?? 0), 0)
     }
-    if (!count) return toast(() => t('nothingToBackUp'))
+    if (!alive || backupState !== preparing) return
+    if (!count) { backupState = { kind: 'idle' }; return toast(() => t('nothingToBackUp')) }
     const usage = await call('files/cloud_usage').catch(() => null)
-    backing = { ids, allVersions, count, bytes, usage }
+    if (alive && backupState === preparing) backupState = { kind: 'ready', plan: { ids, allVersions, count, bytes, usage } }
   }
   const backup = () =>
     attempt(async () => {
-      if (!backing) return
-      const request: any = await call('files/backup', { ids: backing.ids, all_versions: backing.allVersions })
-      backing = null
-      if (request.skipped?.length) toast(() => t('backupSkipped', { n: request.skipped.length }))
+      if (backupState.kind !== 'ready') return
+      const accepted = backupState
+      const submitting: Backup = { kind: 'submitting', plan: accepted.plan }
+      backupState = submitting
+      try {
+        const request: any = await call('files/backup', { ids: accepted.plan.ids, all_versions: accepted.plan.allVersions })
+        if (!alive || backupState !== submitting) return
+        backupState = { kind: 'idle' }
+        if (request.skipped?.length) toast(() => t('backupSkipped', { n: request.skipped.length }))
+      } finally {
+        if (backupState === submitting) backupState = accepted
+      }
     }, () => t('backupStarted'))
 
   async function askShare(id: string, version: string | null, name: string) {
@@ -597,17 +620,16 @@
     const item = sharing ?? linking
     const channel = sharing?.channel
     const upload = sharing ? null : linking?.upload
-    const serial = ++quoteSerial
-    quote = null; quoteError = ''
+    quoteState = { kind: 'idle' }
     if (!item) return
-    quoting = true
+    const loading: Quote = { kind: 'loading' }
+    quoteState = loading
     call('files/share_quote', upload ? { upload_id: upload } : { id: item.id, version: item.version, channel: channel || null })
-      .then((value) => { if (serial === quoteSerial) quote = value })
-      .catch((e) => { if (serial === quoteSerial) quoteError = errorText(e) })
-      .finally(() => { if (serial === quoteSerial) quoting = false })
+      .then((value) => { if (alive && quoteState === loading) quoteState = { kind: 'ready', value } })
+      .catch((e) => { if (alive && quoteState === loading) quoteState = { kind: 'failed', error: errorText(e) } })
   })
   $effect(() => {
-    if (!unlocked) { placesOpen = false; program = null; sharing = null; linking = null; quote = null; quoteSerial++ }
+    if (!unlocked) { placesOpen = false; program = null; sharing = null; linking = null; quoteState = { kind: 'idle' }; backupState = { kind: 'idle' } }
   })
   const share = () =>
     attempt(async () => {
@@ -618,23 +640,22 @@
 
   /** `remote` says the chunks must come down from a backup first; `upload` shares that backup instead of a library version. */
   const askLink = (id: string, version: string | null, name: string, remote: boolean, upload: string | null = null) =>
-    (linking = { id, version, name, upload, remote, days: 7, maxDownloads: 0, password: '', progress: null, result: null })
-  let linkError = $state('')
-  $effect(() => { linking?.id; linkError = '' })
+    (linking = { id, version, name, upload, remote, days: 7, maxDownloads: 0, password: '', submission: { kind: 'editing', error: '' } })
   async function createLink() {
-    if (!linking || busy) return
+    if (!linking || busy || linking.submission.kind !== 'editing') return
     const draft = linking
+    draft.submission = { kind: 'creating', progress: null }
+    const creating = draft.submission
     busy = true
-    linkError = ''
     try {
       const result = await call('files/share_link', {
         ...(draft.upload ? { upload_id: draft.upload } : { id: draft.id, version: draft.version }),
         expires_in_ms: draft.days * 86_400_000, max_downloads: draft.maxDownloads, password: draft.password || null
       })
-      if (linking === draft) { draft.result = result; draft.password = '' }
+      if (alive && linking === draft && draft.submission === creating) { draft.submission = { kind: 'created', result }; draft.password = '' }
     } catch (e) {
-      if (linking === draft) linkError = failure(e)
-    } finally { busy = false; draft.progress = null }
+      if (alive && linking === draft && draft.submission === creating) draft.submission = { kind: 'editing', error: failure(e) }
+    } finally { busy = false }
   }
   const revokeLink = (shareId: string) => attempt(() => call('files/share_revoke', { share_id: shareId }), t('linkRevoked'))
   const refreshLinks = () => attempt(async () => (links = await call('files/share_links', { refresh: true })))
@@ -698,13 +719,14 @@
     const offWork = window.dmsg.onEvent((event) => {
       const data = (event.data ?? {}) as any
       if (event.type === 'files/adding') picked(Array.isArray(data.names) ? data.names : [], Array.isArray(data.folders) ? data.folders : [])
-      else if (event.type === 'files/progress' && data.job === 'share') { if (linking && busy) linking.progress = { stage: data.stage, done: data.done, total: data.total } }
+      else if (event.type === 'files/progress' && data.job === 'share') { if (linking?.submission.kind === 'creating') linking.submission.progress = { stage: data.stage, done: data.done, total: data.total } }
       else if (event.type === 'files/progress') progress(data)
       else if (event.type === 'files/open_changed') changedCopy = data
       // A mount or unmount names only its method; the daemon's own announcement carries the status.
       else if (event.type === 'files/mount_changed') void call('files/mount_status').then((next) => (mount = next)).catch(() => {})
     })
     return () => {
+      alive = false
       offChange()
       clearInterval(transferTimer)
       clearInterval(inventoryTimer)
@@ -1129,7 +1151,7 @@
   {/snippet}
 </Dialog>
 
-<Dialog bind:open={() => !!backing, (next) => !next && (backing = null)} title={t('backupTitle')} icon="cloud-up" testid="files-backup-dialog">
+<Dialog bind:open={() => !!backing, (next) => !next && (backupState = { kind: 'idle' })} title={t('backupTitle')} icon="cloud-up" testid="files-backup-dialog">
   {#if backing}
     <p class="text-[13.5px] leading-relaxed">{t('backupHint', { n: backing.count, size: size(backing.bytes) })} {t(status?.background_online ? 'transferLockOnline' : 'transferLockPauses')}</p>
     <Notice tone={backing.usage?.storage_limit && backing.usage.reserved + backing.usage.committed + backing.bytes > backing.usage.storage_limit ? 'warn' : 'info'} class="mt-3" icon="sync">
@@ -1138,7 +1160,7 @@
   {/if}
   {#snippet footer()}
     <span class="flex-1"></span>
-    <button class={buttonClass('ghost')} onclick={() => (backing = null)}>{t('cancel')}</button>
+    <button class={buttonClass('ghost')} onclick={() => (backupState = { kind: 'idle' })}>{t('cancel')}</button>
     <button class={buttonClass('primary')} disabled={busy} onclick={backup} data-testid="files-backup-confirm"><Icon name="cloud-up" />{t('backUp')}</button>
   {/snippet}
 </Dialog>
@@ -1152,19 +1174,19 @@
 {/snippet}
 
 <Dialog bind:open={() => !!linking, (next) => !next && (linking = null)} title={t('linkTitle')} description={linking?.name} icon="link" testid="files-link-dialog">
-  {#if linking?.result}
+  {#if linkResult}
     <div class="grid gap-3">
       <p class="text-[13.5px] leading-relaxed">{t('linkReady')}</p>
       <div class="flex min-w-0 items-start gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
-        <code class="min-w-0 flex-1 whitespace-normal font-mono text-[12px] leading-relaxed text-ink [overflow-wrap:anywhere]" data-testid="files-link-url">{linking.result.url}</code>
-        <button class={buttonClass('secondary', 'xs')} onclick={() => copyText(linking?.result.url)} data-testid="files-link-copy"><Icon name="copy" />{t('linkCopy')}</button>
+        <code class="min-w-0 flex-1 whitespace-normal font-mono text-[12px] leading-relaxed text-ink [overflow-wrap:anywhere]" data-testid="files-link-url">{linkResult.url}</code>
+        <button class={buttonClass('secondary', 'xs')} onclick={() => copyText(linkResult.url)} data-testid="files-link-copy"><Icon name="copy" />{t('linkCopy')}</button>
       </div>
-      <Notice tone="info">{linking.result.password ? t('linkPasswordSent') : t('linkSendHint')}</Notice>
+      <Notice tone="info">{linkResult.password ? t('linkPasswordSent') : t('linkSendHint')}</Notice>
     </div>
   {:else if linking}
     <div class="grid gap-3">
-      {#if busy}
-        {@const moving = linking.progress}
+      {#if linking.submission.kind === 'creating'}
+        {@const moving = linking.submission.progress}
         <Progress value={moving?.total ? moving.done : null} max={moving?.total || 100} label={t(moving?.stage === 'downloading' ? 'linkDownloading' : moving?.stage === 'uploading' ? 'linkUploading' : 'linkPreparing')} testid="files-link-progress" />
       {/if}
       <Notice tone="info">{t('linkHint')}</Notice>
@@ -1186,7 +1208,7 @@
   {/if}
   {#snippet footer()}
     <span class="flex-1"></span>
-    {#if linking?.result}
+    {#if linkResult}
       <button class={buttonClass('primary')} onclick={() => (linking = null)}>{t('done')}</button>
     {:else}
       <button class={buttonClass('ghost')} onclick={() => (linking = null)}>{t('cancel')}</button>
