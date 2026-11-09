@@ -216,12 +216,17 @@ desktop is one of its clients, like the CLI.
 
   Every login, from the gate rail, a locked view, the account menu, the
   palette, Settings or "Bind another login", runs one flow
-  (`shell/login.svelte.ts`) shown in a dialog: the page opening, the login
+  (`shell/login.svelte.ts`). The default Passkey entry first offers an existing
+  credential or explicit creation of a separate login identity; this choice
+  starts no authentication and keeps Internet Identity available. The dialog
+  then follows the page opening, the login
   in the browser (with the page's expiry, Open the page again and Copy
   link), and the daemon's check, read from `session/login_result` on its
   `login/changed` and `session/changed` events. A failure says why (no
   network, cancelled in the browser, expired, refused) with localized text,
-  a stable error code and Retry; closing the dialog leaves a login finished later to
+  a stable error code and Retry. Unconfirmed Passkey registration instead offers
+  login with the saved credential, preserving the current account's binding
+  flow when applicable. Closing the dialog leaves a login finished later to
   open the device. A first login without an account goes on to Settings.
 
   A locked device with fast unlock opens without a login
@@ -229,7 +234,8 @@ desktop is one of its clients, like the CLI.
   where the Secure Enclave keeps the key, and brings the login back too.
   The main window asks once when it comes to the front, or opens locked in
   front; never right after the person locked it there, and not again after
-  a decline, when the gate's Unlock with Touch ID asks. Locked views also
+  a decline, when the gate's Unlock with Touch ID asks. An open login dialog
+  also suppresses automatic local unlock. Locked views also
   offer "Log in with Internet Identity". Fast unlock with Touch ID or the
   Mac password has no login deadline; a plain credential-store key that has
   run out (thirty days after the last login) or a lost key goes to the login

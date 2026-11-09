@@ -13,6 +13,11 @@ const messages = {
   "letterRecipientKeyStale": "The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.",
   "letterPolicyStale": "Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.",
 
+    "passkeyExistingTitle": "Use an existing passkey",
+    "passkeyExistingHint": "Use a login already linked to the account you want to open.",
+    "passkeyCreateHint": "Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.",
+    "passkeyNotRegistered": "This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.",
+    "passkeyRegistrationUnconfirmed": "Passkey setup was not confirmed. If a passkey was saved, try signing in with it before creating another.",
     "loginWithPasskey": "Continue with a passkey",
     "createPasskey": "Create a passkey",
     "bindPasskey": "Add a passkey login",

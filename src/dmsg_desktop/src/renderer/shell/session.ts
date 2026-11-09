@@ -3,7 +3,7 @@ import { toast } from '../components/toast.svelte'
 import { writable } from 'svelte/store'
 import { t, type Label } from '../i18n/index.svelte'
 import { call, code, errorText } from '../rpc'
-import { closeLogin, startLogin } from './login.svelte'
+import { closeLogin, login, startLogin } from './login.svelte'
 
 /**
  * The session actions the sidebar, the locked pages and the command palette
@@ -73,7 +73,7 @@ export function unlock(status: any) {
  * it in front of the window, and not again once it asked.
  */
 export function offerUnlock(status: any) {
-  if (opening || offered || status?.state !== 'locked' || !status.fast_presence) return
+  if (opening || offered || login.phase !== 'idle' || status?.state !== 'locked' || !status.fast_presence) return
   void unlock(status)
 }
 

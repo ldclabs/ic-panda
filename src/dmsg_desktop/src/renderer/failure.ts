@@ -21,7 +21,7 @@ const network = new Set<string>()
 
 /** A language this window has shown: what it stored in that language still reads as what it is. */
 export function rememberFailures({ messages }: Catalog) {
-  for (const text of [messages.networkUnavailable, messages.operationUnknown, messages.serviceUnavailable, messages.networkReconnecting, messages.syncBusy]) temporary.add(text)
+  for (const text of [messages.networkUnavailable, messages.operationUnknown, messages.passkeyRegistrationUnconfirmed, messages.serviceUnavailable, messages.networkReconnecting, messages.syncBusy]) temporary.add(text)
   network.add(messages.networkUnavailable)
 }
 

@@ -12,10 +12,10 @@
   import { checkLogin, closeLogin, login, reopenLogin, startLogin } from './login.svelte'
 
   /**
-   * The login under way, in three steps: the page opens in the browser, the
-   * person logs in there, and the daemon checks what came back. A failure
-   * says why and offers to start again. Closing leaves a login finished in
-   * the browser later to open the device all the same.
+   * Passkeys first offer existing login or explicit creation. Authentication
+   * then follows three steps: open the page, authenticate, check the result.
+   * An unconfirmed creation offers login with the saved credential. Closing
+   * leaves a login finished in the browser later to open the device all the same.
    */
   const steps: { label: Label; phase: 'starting' | 'browser' | 'checking' }[] = [
     { label: 'loginStepOpen', phase: 'starting' },
@@ -25,8 +25,8 @@
 
   const current = $derived(steps.findIndex((step) => step.phase === login.phase))
   const until = $derived(login.expiresAt ? new Date(login.expiresAt).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' }) : '')
-  const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.action === 'logout_all' ? t('logoutAllLogins') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
-  const icon = $derived<Glyph>(login.phase === 'failed' ? 'warning' : 'login')
+  const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.phase === 'choose' ? t('loginWithPasskey') : login.action === 'logout_all' ? t('logoutAllLogins') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
+  const icon = $derived<Glyph>(login.phase === 'failed' ? 'warning' : login.phase === 'choose' ? 'key' : 'login')
 
   onMount(() => onChange(['login/changed', 'session/changed'], checkLogin))
 </script>
@@ -38,7 +38,19 @@
   tone={login.phase === 'failed' && !temporaryFailure(t(login.reason)) ? 'danger' : 'forest'}
   testid="login-dialog"
 >
-  {#if login.phase === 'failed'}
+  {#if login.phase === 'choose'}
+    <div class="grid gap-5" data-testid="passkey-choices">
+      <div class="grid justify-items-start gap-2.5">
+        <p class="text-[13px] leading-relaxed text-muted">{t('passkeyExistingHint')}</p>
+        <button class={buttonClass('primary', 'md', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(false, login.origin, 'passkey', 'login')} data-testid="passkey-login"><Icon name="key" />{t('passkeyExistingTitle')}</button>
+      </div>
+      <div class="grid justify-items-start gap-2.5 border-t border-line pt-5">
+        <h3 class="text-[14px] font-semibold">{t('createPasskey')}</h3>
+        <p class="text-[13px] leading-relaxed text-muted">{t('passkeyCreateHint')}</p>
+        <button class={buttonClass('secondary', 'md', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(false, login.origin, 'passkey', 'register')} data-testid="passkey-create"><Icon name="add" />{t('createPasskey')}</button>
+      </div>
+    </div>
+  {:else if login.phase === 'failed'}
     <Notice failure={t(login.reason)} tone="danger" testid="login-error">
       {t(login.reason)}
       {#if login.detail}<span class="mt-1 block font-mono text-[11.5px] break-words text-muted">{login.detail}</span>{/if}
@@ -67,7 +79,11 @@
     {/if}
   {/if}
   {#snippet footer()}
-    {#if login.phase === 'browser'}
+    {#if login.phase === 'choose'}
+      <button class={buttonClass('ghost', 'sm', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(false, login.origin, 'ii')} data-testid="passkey-login-ii">{t('loginWithIi')}</button>
+      <span class="flex-1"></span>
+      <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>
+    {:else if login.phase === 'browser'}
       <button class={buttonClass('ghost', 'sm')} onclick={() => copyText(login.url)} data-testid="login-copy"><Icon name="copy" />{t('copyLink')}</button>
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={reopenLogin} data-testid="login-reopen"><Icon name="external" />{t('loginReopen')}</button>
@@ -77,7 +93,11 @@
       {/if}
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>
-      <button class={buttonClass('primary', 'sm')} onclick={() => startLogin(login.bind, login.origin, login.provider, login.action)} data-testid="login-retry"><Icon name="sync-now" />{t('retry')}</button>
+      {#if login.reason === 'passkeyRegistrationUnconfirmed'}
+        <button class={buttonClass('primary', 'sm', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(login.bind, login.origin, 'passkey', 'login')} data-testid="login-use-saved"><Icon name="key" />{t('passkeyExistingTitle')}</button>
+      {:else}
+        <button class={buttonClass('primary', 'sm')} onclick={() => startLogin(login.bind, login.origin, login.provider, login.action)} data-testid="login-retry"><Icon name="sync-now" />{t('retry')}</button>
+      {/if}
     {:else}
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>

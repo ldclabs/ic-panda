@@ -68,6 +68,17 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test passkey
 
 验证后工作区出现并行的收件箱相关修改，已保留，未纳入本次 Passkey 改动。整包 `cargo fmt --check -p dmsg_client` 随后在这些文件上报告格式差异；原生库最终指纹检查也因后续源码变化不再通过。上述构建与测试对应本轮已构建的 Passkey 版本，合并并行修改后须重新构建原生库与校验指纹。本轮没有执行真实系统 Passkey 注册、原账户绑定链路、生产部署或客户端发布。
 
+## 2026-11-09 桌面入口与失败恢复补齐
+
+本节基于 `ic-panda@e8bcc601` 的修复工作区。共享 Rust 注册预检查已由 `0f2fb3b3` 提供；本轮补齐桌面欢迎页和账号菜单的单一 Passkey 入口。统一登录对话框先区分使用已有凭据与创建独立身份，保留 II 入口；预检查失败可重试，已打开浏览器的注册结果未确认则先尝试使用已保存凭据，不直接重复创建。绑定入口的恢复保留绑定语义，登录对话框打开时不自动解锁原账户。
+
+- 桌面 `pnpm check`：0 错误、0 警告；`pnpm test`：192 项通过、0 失败。
+- `pnpm audit:controls`：0 个未经允许的用法；`pnpm build` 通过。
+- `DMSG_DESKTOP_SMOKE=passkey node scripts/smoke.mjs` 通过。使用隔离 Electron 配置与 mock daemon，覆盖打开入口不启动认证、明确选择后才注册、注册预检查重试、未知结果转为登录、未注册凭据说明、账号菜单、II fallback、原账户绑定恢复、会话满额/普通限流区别、退出全部、续期过期以及键盘与 Escape 焦点返回。
+- 人工检查中文明暗主题、法语长文案、阿拉伯语 RTL 的入口与错误恢复截图，包含 760×540 最小窗口。23 种语言齐全，截图在本次 `src/dmsg_desktop/test-results/passkey-*.png`。
+
+本轮未修改 Rust 或登录网页协议，未重跑真实系统浏览器 WebAuthn、Secure Enclave 或跨设备同步；未生成或发布安装包。发布桌面新版时必须包含更新后的 Rust daemon，单独替换 renderer 不会把注册预检查带到已安装的旧 daemon。
+
 ## 尚未执行
 
 - 签名真机上的首次 Passkey 创建/登录、AuthenticationServices 的实际 origin、Keychain/Secure Enclave 跨重启和系统锁定后的恢复。

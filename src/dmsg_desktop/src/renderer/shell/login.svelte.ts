@@ -11,7 +11,7 @@ import { failureLabel } from '../failure'
  * the page's time runs out. A failure stays in the dialog with its reason
  * and a way to start again; a binding login opens its approval request.
  */
-type Phase = 'idle' | 'starting' | 'browser' | 'checking' | 'failed'
+type Phase = 'idle' | 'starting' | 'choose' | 'browser' | 'checking' | 'failed'
 
 export const login = $state({
   phase: 'idle' as Phase,
@@ -44,6 +44,16 @@ export async function startLogin(bind = false, origin = 'https://dmsg.net', prov
   clearTimeout(expiry)
   Object.assign(login, { phase: 'starting', bind, origin, provider, action, url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
   try {
+    // Choosing a passkey action never creates a hardware key or opens a browser.
+    // Explicit providers, including account binding, keep their existing flow.
+    if (!provider && !bind && origin === 'https://dmsg.net' && action === 'login') {
+      const status: any = await call('daemon/status')
+      if (id !== run) return
+      if (status.passkey_available) {
+        Object.assign(login, { phase: 'choose', provider: 'passkey' })
+        return
+      }
+    }
     const started = await bridge(() => window.dmsg.login(origin, bind, { provider, action }))
     if (id !== run) return
     Object.assign(login, { phase: 'browser', provider: started.provider ?? 'ii', url: started.url, expiresAt: started.expires_at })
@@ -105,9 +115,15 @@ function fail(failure: string, message = '') {
   clearTimeout(expiry)
   // The login page's own errors reach the daemon as `login: <code>`.
   const page = /(?:^|: )login: (\w+)$/.exec(message)?.[1]
+  let reason: Label = page ? (page === 'user_cancelled' ? 'loginCancelled' : login.provider === 'passkey' ? 'loginFailedHint' : 'loginPageFailed') : (failureLabel(failure) ?? reasons[failure] ?? 'loginFailedHint')
+  if (!page && login.provider === 'passkey') {
+    if (login.action === 'login' && failure === 'NOT_FOUND') reason = 'passkeyNotRegistered'
+    else if (login.action === 'register' && login.url) reason = 'passkeyRegistrationUnconfirmed'
+    else if (login.action === 'register' && failure === 'EXECUTION_UNKNOWN') reason = 'loginUnavailable'
+  }
   Object.assign(login, {
     phase: 'failed',
-    reason: page ? (page === 'user_cancelled' ? 'loginCancelled' : login.provider === 'passkey' ? 'loginFailedHint' : 'loginPageFailed') : (failureLabel(failure) ?? reasons[failure] ?? 'loginFailedHint'),
+    reason,
     detail: /^[A-Z_]+$/.test(failure) ? failure : ''
   })
 }

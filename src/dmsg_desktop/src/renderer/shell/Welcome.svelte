@@ -102,7 +102,6 @@
             <Icon name="login" />{t(status?.passkey_available ? 'loginWithPasskey' : 'login')}
           </button>
           {#if status?.passkey_available}
-            <button class={buttonClass('secondary', 'sm')} disabled={login.phase === 'starting'} onclick={() => startLogin(false, 'https://dmsg.net', 'passkey', 'register')} data-testid="welcome-create-passkey">{t('createPasskey')}</button>
             <button class={buttonClass('ghost', 'sm')} disabled={login.phase === 'starting'} onclick={() => startLogin(false, 'https://dmsg.net', 'ii')} data-testid="welcome-login-ii">{t('loginWithIi')}</button>
           {/if}
           <p class="text-[12.5px] text-faint">{t(status?.passkey_available ? 'passkeyLoginHint' : 'welcomeLoginHint')}</p>

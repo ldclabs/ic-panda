@@ -476,11 +476,16 @@ inline editors alone handle their own cancel shortcut.
   approve, and after a decision the steps the daemon reports.
 - **Empty and locked states** — an icon tile, one sentence, and the next
   action (log in, unlock, continue setup, new item, import).
-- **Login** — one dialog wherever it starts: three numbered steps (open
+- **Login** — one dialog wherever it starts. The default Passkey entry first
+  distinguishes an existing credential from creating a new login identity,
+  with Internet Identity as an alternate. Opening the choices does not start
+  registration. Authentication then shows three numbered steps (open
   the page, log in in the browser, finish on this device) with the current
   one shimmering, the page's expiry, Open the page again and Copy link; a
   failure names its cause in a Danger notice with the daemon's message in
-  mono and Retry. The gate rail's next step is a Primary button while
+  mono and Retry. An unconfirmed Passkey creation instead offers login with
+  the saved credential, preserving account binding when applicable. Automatic
+  local unlock waits while this dialog is open. The gate rail's next step is a Primary button while
   logged out.
 
 ## Interaction Integrity
