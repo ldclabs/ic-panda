@@ -25,6 +25,7 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
     await main.getByTestId('account-menu').waitFor({ state: 'detached' })
   }
   model.items.clear()
+  model.settings.set(other, structuredClone(model.settings.get(account)))
   model.row({ kind: 'task', id: 'conflicts:1' })
   const otherApproval = '77'.repeat(32)
   const original = model.row({ kind: 'approval', id: otherApproval }, {}, other)
@@ -40,12 +41,39 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
   assert.equal(await main.getByTestId('palette').getByText('Log in with another identity', { exact: true }).count(), 0)
   await main.keyboard.press('Escape')
 
+  emit('notifications/changed')
+  await waitFor(async () => await main.getByTestId('reminders-count').textContent() === '1')
+  await main.getByTestId('reminders-open').focus()
+  await main.keyboard.press('Enter')
+  await waitFor(async () => await main.getByTestId('reminder-row').count() === 1)
+  const releasePopover = hold('notifications/list', params => params?.account === account)
+  const popoverReads = calls.filter(call => call.method === 'notifications/list').length
+  emit('notifications/changed')
+  await waitFor(() => calls.filter(call => call.method === 'notifications/list').length > popoverReads)
+  // An external session change must also close the old popover, without a click outside it.
+  active = other; state = 'locked'
+  emit('session/changed')
+  await main.getByTestId('reminders-popover').waitFor({ state: 'detached' })
+  await waitFor(async () => await main.getByTestId('reminders-count').textContent() === '2')
+  await releasePopover()
+  await main.getByTestId('reminders-open').focus()
+  await main.keyboard.press('Enter')
+  await waitFor(async () => await main.getByTestId('reminder-row').count() === 2)
+  assert.equal(latest('notifications/list').params.account, other)
+  await main.keyboard.press('Escape')
+  await switchTo(account)
+  await waitFor(async () => await main.getByTestId('reminders-count').textContent() === '1')
+  state = 'unlocked'
+  emit('session/changed')
+  await main.getByTestId('gate-lock').waitFor()
+
+  const switches = calls.filter(call => call.method === 'session/switch').length
   await go(`/reminders?account=${other}&item=${original.id}`)
   await main.getByTestId('reminders-original-account').waitFor()
   await waitFor(async () => await main.getByTestId('reminder-item').count() === 1)
   assert.equal(latest('notifications/list').params.account, account)
   assert.equal(await main.getByTestId('reminders-account').count(), 0)
-  assert.equal(calls.filter(call => call.method === 'session/switch').length, 0)
+  assert.equal(calls.filter(call => call.method === 'session/switch').length, switches)
   assert.equal(calls.filter(call => call.method === 'approval/show' && call.params.id === otherApproval).length, 0)
 
   // A response from the old workspace must not repaint the new account's list.
@@ -55,6 +83,7 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
   await waitFor(() => calls.filter(call => call.method === 'notifications/list').length > reads)
   await switchTo(other)
   await waitFor(async () => await main.getByTestId('reminder-item').count() === 2)
+  await waitFor(async () => await main.getByTestId('reminders-count').textContent() === '2')
   assert.equal(latest('notifications/list').params.account, other)
   await release()
   assert.equal(await main.getByTestId('reminder-item').count(), 2)
@@ -82,6 +111,19 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
       await main.screenshot({ path: join(shots, `accounts-${page}-${language}-${appearance}.png`), animations: 'disabled' })
       assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
       assert.equal(await main.getByTestId('account-switcher').count(), 1)
+      if (page === 'reminders') {
+        await main.getByTestId('reminders-open').focus()
+        await main.keyboard.press('Enter')
+        await waitFor(async () => await main.getByTestId('reminder-row').count() === 1)
+        await main.screenshot({ path: join(shots, `accounts-bell-${language}-${appearance}.png`), animations: 'disabled' })
+        assert.equal(await main.getByTestId('reminders-count').textContent(), '1')
+        assert.ok(await main.getByTestId('reminders-popover').evaluate(el => {
+          const rect = el.getBoundingClientRect()
+          return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight
+        }))
+        await main.keyboard.press('Escape')
+        await waitFor(() => main.getByTestId('reminders-open').evaluate(el => el === document.activeElement))
+      }
     }
   }
   // Logging out must not fall back to a different locally remembered account.
@@ -91,6 +133,7 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
   await go('/reminders')
   await main.getByTestId('reminders-list').waitFor()
   await waitFor(async () => await main.getByTestId('reminder-item').count() === 0)
+  assert.equal(await main.getByTestId('reminders-count').count(), 0)
   assert.equal(calls.filter(call => call.method === 'notifications/list').length, before)
-  console.log('Single account: keyboard switching, original-account routes, stale replies, scoped clear, empty session and 760×540 locale/theme screenshots passed')
+  console.log('Single account: scoped bell counts, keyboard switching, original-account routes, stale page/popover replies, scoped clear, empty session and 760×540 locale/theme screenshots passed')
 }

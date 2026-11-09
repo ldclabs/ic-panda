@@ -56,8 +56,9 @@ export function notificationsFixture(account, changed) {
     },
     'notifications/status': () => {
       const values = [...items.values()].filter((item) => item.open)
-      const counts = { actionable: values.filter((item) => item.actionable).length, unread: values.filter((item) => category(item.target) === 'message' && !item.muted && item.target.kind !== 'agent_mail').reduce((sum, item) => sum + (item.unread ?? 0), 0), unverified: values.some((item) => item.unread === null) }
-      return { counts, accounts: [...settings].map(([account, value]) => ({ account, enabled: value.enabled, counts, pending_sync: value.revision > value.remote_revision })), badge: global.badge === 'off' ? 0 : counts.actionable + (global.badge === 'actions' ? 0 : counts.unread), enabled: global.enabled }
+      const count = values => ({ actionable: values.filter((item) => item.actionable).length, unread: values.filter((item) => category(item.target) === 'message' && !item.muted && item.target.kind !== 'agent_mail').reduce((sum, item) => sum + (item.unread ?? 0), 0), unverified: values.some((item) => item.unread === null) })
+      const counts = count(values)
+      return { counts, accounts: [...settings].map(([account, value]) => ({ account, enabled: value.enabled, counts: count(values.filter(item => item.account === account)), pending_sync: value.revision > value.remote_revision })), badge: global.badge === 'off' ? 0 : counts.actionable + (global.badge === 'actions' ? 0 : counts.unread), enabled: global.enabled }
     },
     'notifications/next': (p = {}) => {
       const plans = pending.splice(0).filter((plan) => global.enabled && settings.get(plan.account)?.enabled && settings.get(plan.account).categories[plan.category].enabled

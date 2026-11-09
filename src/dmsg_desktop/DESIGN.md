@@ -612,8 +612,10 @@ or an event coalesce; the palette never scans every list on each character.
 link opens only after `LinkConfirm` shows its real address; nothing fetches a
 preview.
 
-**Reminders.** The title bar's bell lists the latest and opens each one; the
-whole list is one step further. Each row opens what it is about.
+**Reminders.** The title bar's bell and its count belong to the active account,
+as does the full reminder page. Switching sessions closes the popover and drops
+its old responses. The Dock and tray keep the installation-wide totals. Each
+row opens what it is about; the whole list is one step further.
 
 **Locking.** Security holds what closes the account: the idle time, which the
 daemon applies from `preferences.json`, and the screen lock or sleep, on by

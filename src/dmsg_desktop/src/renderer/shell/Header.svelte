@@ -43,7 +43,9 @@
       <h1 class="truncate" data-testid="view-title">{t(view.label)}</h1>
     </div>
   </div>
-  <RemindersPopover {status} count={reminders} {go} />
+  {#key `${status?.session ?? ''}:${status?.account ?? ''}:${status?.state ?? ''}`}
+    <RemindersPopover {status} count={reminders} {go} />
+  {/key}
   <button
     class="flex h-8 w-64 max-w-[40%] shrink items-center gap-2 rounded-lg bg-wash ps-2.5 pe-1.5 text-[13px] text-muted outline-none transition-colors duration-150 hover:bg-pale focus-visible:ring-3 focus-visible:ring-focus/35 [-webkit-app-region:no-drag]"
     onclick={onPalette}

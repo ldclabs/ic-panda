@@ -54,31 +54,48 @@ export async function notificationBadgeFlow({ app, methods, emit, waitFor }) {
   }
 }
 
-/** The active account owns the page's verification state; the bell stays global. */
+/** The bell and reminder list belong to the same active account. */
 export async function remindersFlow({ app, main, shots, methods, emit, waitFor, account }) {
   const native = await app.browserWindow(main)
   const nextAccount = methods['session/accounts']().find((entry) => entry.account !== account).account
   await main.evaluate(() => { location.hash = '/reminders' })
   await main.getByTestId('reminders-page').waitFor()
-  // The installation bell includes other accounts, but this page's pending
-  // verification belongs only to the selected account.
+  // Another account's reminder must not leave a badge over an empty workspace.
   const readNoticeStatus = methods['notifications/status']
-  let currentUnverified = false
+  let currentCounts = { actionable: 0, unread: 0, unverified: false }, includeCurrent = true
   methods['notifications/status'] = () => ({
     ...readNoticeStatus(),
-    counts: { actionable: 0, unread: 1, unverified: true },
+    counts: { ...currentCounts, actionable: currentCounts.actionable + 1, unverified: true },
+    badge: currentCounts.actionable + currentCounts.unread + 1,
     accounts: [
-      { account, enabled: true, pending_sync: false, counts: { actionable: 0, unread: 0, unverified: currentUnverified } },
-      { account: nextAccount, enabled: true, pending_sync: false, counts: { actionable: 0, unread: 1, unverified: true } }
+      ...(includeCurrent ? [{ account, enabled: false, pending_sync: false, counts: { ...currentCounts } }] : []),
+      { account: nextAccount, enabled: true, pending_sync: false, counts: { actionable: 1, unread: 0, unverified: true } }
     ]
   })
   emit('notifications/changed')
-  await waitFor(async () => await main.getByTestId('reminders-count').textContent() === '1')
+  await waitFor(async () => await main.getByTestId('reminders-count').count() === 0)
   const refreshReminders = main.getByTestId('reminders-page').getByRole('button', { name: 'Refresh', exact: true })
   await refreshReminders.click()
   await waitFor(async () => !await refreshReminders.isDisabled())
   assert.equal(await main.getByTestId('reminders-unverified').count(), 0)
-  currentUnverified = true
+  // Known counts clear on read/completion, even while the other account remains pending.
+  // Turning system alerts off does not hide the selected account's business counts.
+  for (const [actionable, unread, unverified, expected] of [
+    [0, 3, false, '3'], [0, 0, false, null],
+    [2, 3, false, '5'], [2, 0, false, '2'],
+    [0, 0, true, null], [0, 105, false, '99+']
+  ]) {
+    currentCounts = { actionable, unread, unverified }
+    emit('notifications/changed')
+    await waitFor(async () => expected === null
+      ? await main.getByTestId('reminders-count').count() === 0
+      : await main.getByTestId('reminders-count').textContent() === expected)
+  }
+  includeCurrent = false
+  emit('notifications/changed')
+  await main.getByTestId('reminders-count').waitFor({ state: 'detached' })
+  includeCurrent = true
+  currentCounts = { actionable: 0, unread: 0, unverified: true }
   emit('notifications/changed')
   await main.getByTestId('reminders-unverified').waitFor()
   for (const [language, appearance] of [['zh', 'light'], ['zh', 'dark'], ['de', 'light'], ['ar', 'dark']]) {
@@ -96,11 +113,11 @@ export async function remindersFlow({ app, main, shots, methods, emit, waitFor, 
   await main.keyboard.press('Enter')
   await recent.waitFor({ state: 'detached' })
   await main.getByTestId('reminders-unverified').waitFor()
-  currentUnverified = false
+  currentCounts.unverified = false
   await refreshReminders.focus()
   await main.keyboard.press('Enter')
   await main.getByTestId('reminders-unverified').waitFor({ state: 'detached' })
-  assert.equal(await main.getByTestId('reminders-count').textContent(), '1')
+  assert.equal(await main.getByTestId('reminders-count').count(), 0)
   methods['notifications/status'] = readNoticeStatus
   emit('notifications/changed')
   await native.evaluate((window) => window.setContentSize(1180, 760))

@@ -76,7 +76,8 @@
   const travelKeys = inset ? { back: '⌘[', forward: '⌘]' } : { back: 'Alt+←', forward: 'Alt+→' }
   const travelCodes: Record<string, -1 | 1> = inset ? { BracketLeft: -1, BracketRight: 1 } : { ArrowLeft: -1, ArrowRight: 1 }
 
-  let reminders = $state(0)
+  let reminderCount = $state<{ session: string; account: string; value: number } | null>(null)
+  const reminders = $derived(reminderCount?.session === viewSession && reminderCount?.account === status?.account ? reminderCount?.value ?? 0 : 0)
   let deliveries = $state<Delivery[]>([])
   const messageDeliveries = new MessageDeliveries((rows) => { deliveries = rows }, () => verified && status?.state === 'unlocked')
   let palette = $state(false)
@@ -150,11 +151,21 @@
   })
 
   const loadReminders = single(async () => {
-    const session = viewSession
+    const session = viewSession, account = status?.account
+    if (!session || !account) return
     try {
       const next = await call<NoticeStatus>('notifications/status')
-      if (session === viewSession && next.counts) reminders = next.counts.actionable + next.counts.unread
+      if (session !== viewSession || account !== status?.account) return
+      // The bell opens this workspace's list. Installation totals belong to the Dock/tray.
+      const counts = next.accounts.find((entry) => entry.account === account)?.counts
+      reminderCount = { session, account, value: counts ? counts.actionable + counts.unread : 0 }
     } catch { /* Keep the last verified count while disconnected/locked. */ }
+  })
+
+  $effect(() => {
+    void viewSession
+    void status?.account
+    untrack(() => void loadReminders())
   })
 
   // The offers change on unlock and with legacy state, never on a status refresh.
@@ -238,7 +249,6 @@
   }
 
   onMount(() => {
-    void loadReminders()
     const online = () => messageDeliveries.resume()
     const onNarrow = () => {
       compact = narrowWindow.matches
@@ -257,7 +267,7 @@
     const offs = [
       () => window.removeEventListener('online', online),
       () => narrowWindow.removeEventListener('change', onNarrow),
-      onChange(['notifications/changed', 'session/changed', 'resync'], loadReminders),
+      onChange(['notifications/changed', 'resync'], loadReminders),
       onChange(['approval/changed', 'sync/changed', 'sync/finished', 'channel/changed', 'channel/read'], refresh),
       onChange(['sync/progress'], onProgress),
       onChange(['sync/finished'], () => messageDeliveries.resume()),
