@@ -7,6 +7,31 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+### Login and local unlock
+
+- Add native Passkey registration and login with hardware-backed session renewal
+  when online access is needed. Keep Internet Identity and the existing flow
+  for binding another login identity to an account.
+- Support local sign-out and Passkey-confirmed sign-out of all login sessions.
+  Offer the latter when the session limit is reached; retain retry guidance for
+  other capacity errors. Already-issued delegations can remain valid for up to
+  12 hours after signing out all sessions.
+- Use the shared production Passkey issuer by default. Server setup and signed
+  real-device acceptance remain release prerequisites.
+- Keep hardware-protected local content available after Internet Identity
+  login expires, with an optional login action on Account for online access.
+- Accept a pending login result after returning from the background, while
+  still discarding results after logout, account switching or locking.
+
+### Transfers and wallet operations
+
+- Make foreground visibility, busy operations and transfer phases explicit,
+  keeping automatic device-transfer resumption limited to the receiver and
+  preserving background ciphertext-transfer retry state.
+- Keep uncertain wallet transfers, control changes and cosigner submissions
+  on their original request IDs. Restore editing only after the journal
+  confirms that a proposal is absent or rejected.
+
 ### Membership
 
 - Place a tappable membership badge beside the avatar and name in Account,

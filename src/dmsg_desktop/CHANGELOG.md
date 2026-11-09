@@ -6,6 +6,36 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.0-beta.1] - 2026-11-09
+
+### Login and local unlock
+
+- Add Passkey registration and login through the system browser on supported
+  hardware-bound devices, with automatic renewal when online access is needed.
+  Keep Internet Identity available and use the existing account-binding flow
+  to add a Passkey identity to an existing account.
+- Support signing out locally or confirming with a Passkey to sign out all
+  login sessions. Only reaching the session limit prompts this recovery action;
+  other capacity errors retain retry guidance. Already-issued delegations can
+  remain valid for up to 12 hours after signing out all sessions.
+- Use the built-in production Passkey issuer when an existing production
+  configuration omits it, while preserving explicit overrides. Server setup
+  and real-hardware acceptance remain release prerequisites.
+- Keep hardware-protected local reading, search and copying available after
+  Internet Identity login expires. Show an optional login action in the account
+  menu, including when expiry occurs while unlocked; online actions still
+  require a valid login.
+
+### Reliability
+
+- Reject stale results after connection attempts, approval reviews, wallet
+  setup and file operations are superseded. Wait for daemon initialization
+  before accepting business requests.
+- Keep interrupted secret-mount stops retryable until unmounting is confirmed,
+  including during lock and sign-out cleanup.
+- Settle cancelled wallet activation dialogs and report completed vault imports
+  even when their dialog has already closed.
+
 ## [1.4.2] - 2026-11-08
 
 ### Account recovery
@@ -728,6 +758,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.5.0-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.4.2...1.5.0-beta.1
 [1.4.2]: https://github.com/ldclabs/ic-panda/compare/1.4.1...1.4.2
 [1.4.1]: https://github.com/ldclabs/ic-panda/compare/1.4.0...1.4.1
 [1.4.0]: https://github.com/ldclabs/ic-panda/compare/1.3.3...1.4.0
