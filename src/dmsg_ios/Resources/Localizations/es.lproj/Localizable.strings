@@ -3166,5 +3166,11 @@
 	<string>La configuración de recepción del destinatario necesita actualizarse. Pídele que desbloquee dMsg y sincronice; después, reintenta esta carta.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>La configuración de envío o recepción ha cambiado. Reintenta esta carta. Si vuelve a fallar, tanto tú como el destinatario debéis desbloquear dMsg y sincronizar antes de intentarlo de nuevo.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Si ya creaste una llave de acceso, usa la guardada. Crea una nueva solo si necesitas otra identidad de inicio de sesión.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>La llave de acceso está guardada. Reintenta para terminar de vincularla a esta cuenta; no se creará otra llave.</string>
+	<key>Continue adding this passkey</key>
+	<string>Continuar añadiendo esta llave</string>
 </dict>
 </plist>

@@ -171,6 +171,22 @@ pub fn ic_to(client: &mut Client, origin: &str) {
     client.config.ic_host = origin.into();
 }
 
+/// Install a valid test delegation without performing account discovery.
+pub async fn login(client: &mut Client, seed: u8) -> crate::login::Delegated {
+    let delegated = crate::login::kept_for_tests(seed, crate::now_ms() + dmsg_types::DAY)
+        .delegated()
+        .unwrap();
+    client.login = Some(crate::client::Login {
+        ic: crate::ic::Ic::connect(&client.config, delegated.identity.clone())
+            .await
+            .unwrap(),
+        principal: delegated.principal,
+        expires_at: delegated.expires_at,
+        kept: delegated.kept.clone(),
+    });
+    delegated
+}
+
 /// Give `client` fresh certified security the relay is taken to hold, and
 /// the user homes, as a warmup brings them: its relay requests are signed
 /// at once.

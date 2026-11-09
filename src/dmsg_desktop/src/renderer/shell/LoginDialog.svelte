@@ -25,7 +25,7 @@
 
   const current = $derived(steps.findIndex((step) => step.phase === login.phase))
   const until = $derived(login.expiresAt ? new Date(login.expiresAt).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' }) : '')
-  const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.phase === 'choose' ? t('loginWithPasskey') : login.action === 'logout_all' ? t('logoutAllLogins') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
+  const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.phase === 'choose' ? t(login.bind ? 'bindPasskey' : 'loginWithPasskey') : login.action === 'logout_all' ? t('logoutAllLogins') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
   const icon = $derived<Glyph>(login.phase === 'failed' ? 'warning' : login.phase === 'choose' ? 'key' : 'login')
 
   onMount(() => onChange(['login/changed', 'session/changed'], checkLogin))
@@ -41,13 +41,13 @@
   {#if login.phase === 'choose'}
     <div class="grid gap-5" data-testid="passkey-choices">
       <div class="grid justify-items-start gap-2.5">
-        <p class="text-[13px] leading-relaxed text-muted">{t('passkeyExistingHint')}</p>
-        <button class={buttonClass('primary', 'md', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(false, login.origin, 'passkey', 'login')} data-testid="passkey-login"><Icon name="key" />{t('passkeyExistingTitle')}</button>
+        <p class="text-[13px] leading-relaxed text-muted">{t(login.bind ? 'passkeyBindingHint' : 'passkeyExistingHint')}</p>
+        <button class={buttonClass('primary', 'md', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(login.bind, login.origin, 'passkey', 'login')} data-testid="passkey-login"><Icon name="key" />{t('passkeyExistingTitle')}</button>
       </div>
       <div class="grid justify-items-start gap-2.5 border-t border-line pt-5">
         <h3 class="text-[14px] font-semibold">{t('createPasskey')}</h3>
-        <p class="text-[13px] leading-relaxed text-muted">{t('passkeyCreateHint')}</p>
-        <button class={buttonClass('secondary', 'md', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(false, login.origin, 'passkey', 'register')} data-testid="passkey-create"><Icon name="add" />{t('createPasskey')}</button>
+        {#if !login.bind}<p class="text-[13px] leading-relaxed text-muted">{t('passkeyCreateHint')}</p>{/if}
+        <button class={buttonClass('secondary', 'md', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(login.bind, login.origin, 'passkey', 'register')} data-testid="passkey-create"><Icon name="add" />{t('createPasskey')}</button>
       </div>
     </div>
   {:else if login.phase === 'failed'}
@@ -80,7 +80,7 @@
   {/if}
   {#snippet footer()}
     {#if login.phase === 'choose'}
-      <button class={buttonClass('ghost', 'sm', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(false, login.origin, 'ii')} data-testid="passkey-login-ii">{t('loginWithIi')}</button>
+      <button class={buttonClass('ghost', 'sm', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(login.bind, login.origin, 'ii')} data-testid="passkey-login-ii">{t('loginWithIi')}</button>
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>
     {:else if login.phase === 'browser'}

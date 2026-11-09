@@ -10,14 +10,17 @@ impl MobileEngine {
         let revision = self.login.lock().map_err(|_| Error::Locked)?.revision;
         let generation = self.host.generation();
         let action = match operation {
-            PasskeyOperation::Login => AuthAction::Login,
+            PasskeyOperation::Login | PasskeyOperation::BindExisting => AuthAction::Login,
             PasskeyOperation::Register | PasskeyOperation::Bind => AuthAction::Register,
             PasskeyOperation::LogoutAll => AuthAction::LogoutAll,
         };
         let session = self
             .held(move |h| {
                 Box::pin(async move {
-                    if matches!(operation, PasskeyOperation::Bind) {
+                    if matches!(
+                        operation,
+                        PasskeyOperation::Bind | PasskeyOperation::BindExisting
+                    ) {
                         h.ensure_login().await?;
                         h.with(|c| ensure(c.session_state().state == "unlocked", Error::Locked))
                             .await?;
@@ -42,7 +45,13 @@ impl MobileEngine {
         )?;
         login.pending = Some(PendingLogin {
             session: InteractiveLogin::Passkey(Box::new(session)),
-            binding_generation: matches!(operation, PasskeyOperation::Bind).then_some(generation),
+            binding_generation: matches!(
+                operation,
+                PasskeyOperation::Bind | PasskeyOperation::BindExisting
+            )
+            .then_some(generation),
+            callback: None,
+            delegated: None,
         });
         Ok(started)
     }
@@ -91,7 +100,11 @@ impl MobileEngine {
             matches!(pending.session, InteractiveLogin::Passkey(_)),
             Error::Forbidden,
         )?;
-        pending.session.accept(&bytes, dmsg_client::now_ms())?;
+        if let Some(accepted) = &pending.callback {
+            ensure(*accepted == bytes, Error::IntegrityFailed)?;
+        } else {
+            pending.session.accept(&bytes, dmsg_client::now_ms())?;
+        }
         Ok(format!(
             "{}#{}",
             dmsg_protocol::login::IOS_CALLBACK,

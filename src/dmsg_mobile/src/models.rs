@@ -53,6 +53,8 @@ pub enum PasskeyOperation {
     Login,
     Register,
     Bind,
+    /// Authenticate a saved credential to bind it to the current account.
+    BindExisting,
     LogoutAll,
 }
 

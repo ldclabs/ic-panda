@@ -3166,5 +3166,11 @@
 	<string>Kailangang i-update ang mga setting sa pagtanggap ng tatanggap. Hilingin sa kanilang i-unlock ang dMsg at mag-sync, saka subukang muli ang liham na ito.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>Nagbago ang mga setting sa pagpapadala o pagtanggap. Subukang muli ang liham na ito. Kung mabigo pa rin, ikaw at ang tatanggap ay kailangang mag-unlock ng dMsg at mag-sync bago muling subukan.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Kung nakagawa ka na ng passkey, gamitin ang na-save. Gumawa lang ng bago kung kailangan mo ng isa pang pagkakakilanlan sa pag-login.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Na-save na ang passkey. Subukang muli para matapos ang pag-link sa account na ito; walang bagong passkey na gagawin.</string>
+	<key>Continue adding this passkey</key>
+	<string>Ipagpatuloy ang pagdagdag ng passkey</string>
 </dict>
 </plist>

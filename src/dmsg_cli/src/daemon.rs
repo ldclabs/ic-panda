@@ -2308,7 +2308,7 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
         return (StatusCode::FORBIDDEN, "refused").into_response();
     }
     let now = now_ms();
-    let (accepted, session, bind, generation) = {
+    let (accepted, mut session, bind, generation) = {
         let mut login = daemon.login.lock().expect("login state");
         let Some(session) = login.session.as_ref().filter(|s| s.deadline() > now) else {
             return StatusCode::NOT_FOUND.into_response();

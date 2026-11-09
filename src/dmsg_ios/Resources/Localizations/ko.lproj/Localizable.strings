@@ -3166,5 +3166,11 @@
 	<string>받는 사람의 수신 설정을 업데이트해야 합니다. 상대방에게 dMsg 잠금을 해제하고 동기화해 달라고 요청한 후 이 편지를 다시 보내세요.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>발신 또는 수신 설정이 변경되었습니다. 이 편지를 다시 보내세요. 계속 실패하면 본인과 받는 사람 모두 dMsg 잠금을 해제하고 동기화한 후 다시 시도하세요.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>이미 패스키를 만들었다면 저장된 패스키를 사용하세요. 다른 로그인 ID가 필요한 경우에만 새로 만드세요.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>패스키가 저장되었습니다. 다시 시도하면 이 계정에 연결하는 작업을 계속합니다. 새 패스키는 만들지 않습니다.</string>
+	<key>Continue adding this passkey</key>
+	<string>이 패스키 추가 계속</string>
 </dict>
 </plist>

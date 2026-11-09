@@ -85,7 +85,7 @@ impl InteractiveLogin {
     /// Verify the correlated result outside the client lock.
     /// # Errors
     /// Propagates remote verification failures; None means logout-all succeeded.
-    pub async fn complete(self, proof: LoginProof) -> Result<Option<Delegated>> {
+    pub async fn complete(&mut self, proof: LoginProof) -> Result<Option<Delegated>> {
         match (self, proof) {
             (Self::InternetIdentity(_), LoginProof::InternetIdentity(login)) => Ok(Some(*login)),
             (Self::Passkey(session), LoginProof::Passkey(response)) => {
@@ -111,6 +111,7 @@ pub struct LoginSession {
 }
 
 /// A login the callback delivered.
+#[derive(Clone)]
 pub struct Delegated {
     /// The session key acting for the login Principal.
     pub identity: Arc<dyn Identity>,
@@ -431,7 +432,7 @@ impl LoginSession {
 }
 
 /// A login of the key `[seed; 32]`, delegated to a scoped key, for tests.
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 pub(crate) fn kept_for_tests(seed: u8, expires_at: u64) -> KeptLogin {
     let root = BasicIdentity::from_raw_key(&[seed; 32]);
     let scoped = [seed.wrapping_add(1); 32];

@@ -3166,5 +3166,11 @@
 	<string>Настройки приёма писем получателя нужно обновить. Попросите его разблокировать dMsg и выполнить синхронизацию, затем повторите отправку этого письма.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>Настройки отправки или приёма изменились. Повторите отправку этого письма. Если снова не получится, вам и получателю нужно разблокировать dMsg и выполнить синхронизацию перед новой попыткой.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Если ключ доступа уже создан, используйте сохранённый. Создавайте новый ключ только для другой учётной записи входа.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Ключ доступа сохранён. Повторите попытку, чтобы завершить привязку к этому аккаунту. Новый ключ не будет создан.</string>
+	<key>Continue adding this passkey</key>
+	<string>Продолжить добавление этого ключа</string>
 </dict>
 </plist>

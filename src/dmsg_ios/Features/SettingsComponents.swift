@@ -7,26 +7,31 @@ struct SettingsAction: View {
     let icon: Image?
     let role: ButtonRole?
     let prominent: Bool
+    let working: Bool
     let action: () -> Void
 
     init(_ title: LocalizedStringKey, systemImage: String? = nil, glyph: AppGlyph? = nil, role: ButtonRole? = nil,
-         prominent: Bool = false, action: @escaping () -> Void) {
+         prominent: Bool = false, working: Bool = false, action: @escaping () -> Void) {
         self.title = title; icon = glyph?.image ?? systemImage.map { Image(systemName: $0) }; self.role = role
-        self.prominent = prominent; self.action = action
+        self.prominent = prominent; self.working = working; self.action = action
     }
 
     var body: some View {
         if prominent && role != .destructive {
-            Button(role: role, action: action) { SettingsActionLabel(title, icon: icon) }
+            Button(role: role, action: action) { SettingsActionLabel(title, icon: icon, working: working) }
                 .buttonStyle(.borderedProminent).controlSize(.large)
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                .disabled(working)
+                .accessibilityValue(working ? String(localized: "In progress") : "")
         } else {
             Button(role: role, action: action) {
-                SettingsActionLabel(title, icon: icon)
+                SettingsActionLabel(title, icon: icon, working: working)
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.borderless)
+                .disabled(working)
+                .accessibilityValue(working ? String(localized: "In progress") : "")
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 20 }
         }
@@ -36,18 +41,20 @@ struct SettingsAction: View {
 struct SettingsActionLabel: View {
     let title: LocalizedStringKey
     let icon: Image?
+    var working = false
 
     init(_ title: LocalizedStringKey, systemImage: String? = nil) {
         self.title = title; icon = systemImage.map { Image(systemName: $0) }
     }
 
-    init(_ title: LocalizedStringKey, icon: Image?) {
-        self.title = title; self.icon = icon
+    init(_ title: LocalizedStringKey, icon: Image?, working: Bool = false) {
+        self.title = title; self.icon = icon; self.working = working
     }
 
     var body: some View {
         HStack(spacing: 8) {
-            if let icon { icon.accessibilityHidden(true) }
+            if working { ProgressView().controlSize(.small).accessibilityHidden(true) }
+            else if let icon { icon.accessibilityHidden(true) }
             Text(title)
         }.frame(maxWidth: .infinity).multilineTextAlignment(.center)
             .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }

@@ -10,6 +10,7 @@ export default {
     "letterPendingContact": "Önceki mektubunuz hâlâ bekliyor. Alıcıdan masaüstünde arşivlemesini veya iOS mektup menüsünde “Başka bir mektuba izin ver” seçmesini isteyin, ardından bu mektubu yeniden deneyin.",
     "letterRecipientKeyStale": "Alıcının alım ayarlarının güncellenmesi gerekiyor. Alıcıdan dMsg kilidini açıp eşitlemesini isteyin, ardından bu mektubu yeniden deneyin.",
     "letterPolicyStale": "Gönderme veya alma ayarları değişti. Bu mektubu yeniden deneyin. Yine başarısız olursa siz ve alıcı, tekrar denemeden önce dMsg kilidini açıp eşitlemelisiniz.",
+    "passkeyBindingHint": "Daha önce bir geçiş anahtarı oluşturduysanız kayıtlı olanı kullanın. Yalnızca başka bir giriş kimliği gerekiyorsa yeni anahtar oluşturun.",
     "passkeyExistingTitle": "Mevcut bir geçiş anahtarını kullan",
     "passkeyExistingHint": "Açmak istediğiniz hesaba zaten bağlı bir giriş yöntemi kullanın.",
     "passkeyCreateHint": "Her yeni geçiş anahtarı ayrı bir giriş kimliği oluşturur. Mevcut hesabınıza eklemek için hesap güvenliğindeki Geçiş anahtarıyla giriş ekle seçeneğini kullanın.",

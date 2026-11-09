@@ -38,6 +38,8 @@ mod vault;
 pub use vault::VaultBrowseRequest;
 
 #[cfg(test)]
+mod binding_tests;
+#[cfg(test)]
 mod sync_tests;
 
 use dmsg_client::hold::Hold;
@@ -125,11 +127,14 @@ pub struct MobileEngine {
 struct PendingLogin {
     session: InteractiveLogin,
     binding_generation: Option<u64>,
+    callback: Option<Vec<u8>>,
+    delegated: Option<dmsg_client::login::Delegated>,
 }
 #[derive(Default)]
 struct LoginState {
     revision: u64,
     pending: Option<PendingLogin>,
+    completing: Option<tokio::task::AbortHandle>,
 }
 
 impl MobileEngine {
@@ -388,6 +393,7 @@ impl MobileEngine {
     }
 
     pub fn lock_now(&self) {
+        self.cancel_login();
         self.host.inner.lock();
         self.platform.cancel_presence();
     }
@@ -497,6 +503,8 @@ impl MobileEngine {
         state.pending = Some(PendingLogin {
             session: session.into(),
             binding_generation: None,
+            callback: None,
+            delegated: None,
         });
         Ok(started)
     }
@@ -505,6 +513,9 @@ impl MobileEngine {
         if let Ok(mut login) = self.login.lock() {
             login.revision = login.revision.wrapping_add(1);
             login.pending = None;
+            if let Some(task) = login.completing.take() {
+                task.abort();
+            }
         }
     }
 
@@ -547,32 +558,61 @@ impl MobileEngine {
             target == dmsg_protocol::login::IOS_CALLBACK,
             "callback target",
         )?;
-        let pending = self
-            .login
-            .lock()
-            .map_err(|_| Error::Locked)?
-            .pending
-            .take()
-            .ok_or(Error::Expired)?;
-        let generation = pending.binding_generation.ok_or(Error::Forbidden)?;
-        let proof = pending
-            .session
-            .accept(&dmsg_client::codec::unb64(fragment)?, dmsg_client::now_ms())?;
-        ensure(self.host.inner.generation() == generation, Error::Locked)?;
-        let delegated = runtime()
-            .spawn(async move { pending.session.complete(proof).await })
-            .await
-            .map_err(|_| Error::Unavailable("login worker".into()))??
-            .ok_or(Error::Forbidden)?;
-        let json = self
-            .host
-            .run_at(generation, move |c| {
-                Box::pin(async move {
-                    let view = c.bind_delegated_login("gui", delegated).await?;
-                    serde_json::to_string(&view).map_err(|_| Error::IntegrityFailed)
-                })
-            })
-            .await?;
+        let bytes = dmsg_client::codec::unb64(fragment)?;
+        let (revision, generation, task) = {
+            let mut login = self.login.lock().map_err(|_| Error::Locked)?;
+            let pending = login.pending.as_mut().ok_or(Error::Expired)?;
+            let generation = pending.binding_generation.ok_or(Error::Forbidden)?;
+            ensure(self.host.inner.generation() == generation, Error::Locked)?;
+            if let Some(accepted) = &pending.callback {
+                ensure(*accepted == bytes, Error::IntegrityFailed)?;
+            }
+            // Validate before claiming. Once authentication succeeded, a retry
+            // resumes binding the cached identity, not the expired challenge.
+            let proof = if pending.delegated.is_none() {
+                Some(pending.session.accept(&bytes, dmsg_client::now_ms())?)
+            } else {
+                None
+            };
+            pending.callback = Some(bytes);
+            let mut pending = login.pending.take().expect("validated binding callback");
+            let host = self.host.clone();
+            let task = runtime().spawn(async move {
+                let result = async {
+                    if let Some(proof) = proof {
+                        pending.delegated = pending.session.complete(proof).await?;
+                    }
+                    let delegated = pending.delegated.clone().ok_or(Error::Forbidden)?;
+                    host.run_at(generation, move |c| {
+                        Box::pin(async move {
+                            let view = c.bind_delegated_login("gui", delegated).await?;
+                            serde_json::to_string(&view).map_err(|_| Error::IntegrityFailed)
+                        })
+                    })
+                    .await
+                }
+                .await;
+                (pending, result)
+            });
+            login.completing = Some(task.abort_handle());
+            (login.revision, generation, task)
+        };
+        let (pending, result) = task.await.map_err(|_| Error::Locked)?;
+        {
+            let mut login = self.login.lock().map_err(|_| Error::Locked)?;
+            ensure(
+                login.revision == revision && self.host.inner.generation() == generation,
+                Error::Locked,
+            )?;
+            login.completing = None;
+            if matches!(
+                &result,
+                Err(Error::ExecutionUnknown | Error::Unavailable(_))
+            ) {
+                login.pending = Some(pending);
+            }
+        }
+        let json = result?;
         Ok(ObjectSnapshot { generation, json })
     }
 
@@ -585,7 +625,7 @@ impl MobileEngine {
             target == dmsg_protocol::login::IOS_CALLBACK,
             "callback target",
         )?;
-        let session = self
+        let mut session = self
             .login
             .lock()
             .map_err(|_| Error::Locked)?

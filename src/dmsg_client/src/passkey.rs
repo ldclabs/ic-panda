@@ -227,6 +227,8 @@ pub struct PasskeySession {
     request: PasskeyRequest,
     expected_credential: Option<ByteBuf>,
     admission: Option<dmsg_types::user::AdmissionTicket>,
+    submitted: Option<Hash>,
+    confirmed: bool,
     /// Exclusive callback deadline in milliseconds.
     pub deadline: u64,
 }
@@ -244,7 +246,7 @@ impl PasskeySession {
     ) -> Result<Self> {
         dmsg_protocol::login::callback_target(&next_url)?;
         let auth = config.auth.ok_or(Error::UnsupportedProtocol)?;
-        let key = DeviceLogin::new(auth, hardware.as_ref())?;
+        let mut key = DeviceLogin::new(auth, hardware.as_ref())?;
         let expected_credential = if action == AuthAction::LogoutAll {
             previous.map(|key| key.credential)
         } else {
@@ -271,6 +273,9 @@ impl PasskeySession {
         } else {
             None
         };
+        // Discover deployment targets before the system saves a credential.
+        // Finishing authentication must not depend on another configuration scan.
+        key.targets = crate::account::login_targets(&config).await?;
         let challenge: Result<AuthChallenge> = ic
             .update(
                 auth,
@@ -295,6 +300,8 @@ impl PasskeySession {
             hardware,
             deadline,
             admission,
+            submitted: None,
+            confirmed: false,
             expected_credential: expected_credential.clone(),
             request: PasskeyRequest {
                 protocol: PROTOCOL.into(),
@@ -357,9 +364,11 @@ impl PasskeySession {
     }
 
     /// Finish authentication outside the client. None means logout-all succeeded.
+    /// Retained attempts first retrieve the original grant; only an unconfirmed
+    /// absent grant can redeliver the same proof and one-use challenge.
     /// # Errors
     /// Returns the service or verification error without extending its challenge.
-    pub async fn complete(mut self, response: PasskeyResponse) -> Result<Option<Delegated>> {
+    pub async fn complete(&mut self, response: PasskeyResponse) -> Result<Option<Delegated>> {
         ensure(now_ms() < self.deadline, Error::Expired)?;
         if let Some(id) = &self.expected_credential {
             ensure(*id == response.credential_id, Error::Forbidden)?;
@@ -367,61 +376,105 @@ impl PasskeySession {
         let ic = Ic::connect(&self.config, self.key.identity(self.hardware.clone())).await?;
         let auth = self.key.auth;
         let challenge = self.request.challenge.challenge;
-        self.key.credential = response.credential_id.clone();
-        let result: Result<Result<u64>> = match self.request.challenge.action {
-            AuthAction::Register => {
-                ic.update(
-                    auth,
-                    "register",
-                    (RegisterPasskey {
-                        challenge,
-                        response,
-                        admission: self.admission,
-                    },),
-                )
-                .await
+        let digest = dmsg_protocol::sha256(&canonical(&response));
+        let retrying = self.submitted.is_some();
+        let existing = if let Some(submitted) = self.submitted {
+            ensure(submitted == digest, Error::IntegrityFailed)?;
+            ensure(
+                self.request.challenge.action != AuthAction::LogoutAll,
+                Error::ExecutionUnknown,
+            )?;
+            let grant: Result<AuthDelegation> = ic
+                .query(auth, "get_delegation", (self.key.public.clone(),))
+                .await?;
+            match grant {
+                Ok(grant) => Some(grant),
+                // A lost request may never have reached the issuer. Reuse its
+                // exact proof and one-use challenge; never create another key.
+                Err(Error::AuthRequired) if !self.confirmed => None,
+                Err(error) => return Err(error),
             }
-            AuthAction::Login => {
-                ic.update(
-                    auth,
-                    "login",
-                    (AuthenticatePasskey {
-                        challenge,
-                        response,
-                    },),
-                )
-                .await
-            }
-            AuthAction::LogoutAll => {
-                let result: Result<()> = ic
-                    .update(
+        } else {
+            None
+        };
+        let mut rejection = None;
+        if existing.is_none() {
+            ensure(now_ms() < self.deadline, Error::Expired)?;
+            self.key.credential = response.credential_id.clone();
+            // The issuer atomically consumes the challenge and also prevents
+            // registering a second identity for this caller. An identical
+            // request racing its earlier delivery therefore has one effect.
+            self.submitted = Some(digest);
+            let result: Result<Result<u64>> = match self.request.challenge.action {
+                AuthAction::Register => {
+                    ic.update(
                         auth,
-                        "logout_all",
+                        "register",
+                        (RegisterPasskey {
+                            challenge,
+                            response,
+                            admission: self.admission.clone(),
+                        },),
+                    )
+                    .await
+                }
+                AuthAction::Login => {
+                    ic.update(
+                        auth,
+                        "login",
                         (AuthenticatePasskey {
                             challenge,
                             response,
                         },),
                     )
-                    .await?;
-                result?;
-                return Ok(None);
+                    .await
+                }
+                AuthAction::LogoutAll => {
+                    let result: Result<()> = ic
+                        .update(
+                            auth,
+                            "logout_all",
+                            (AuthenticatePasskey {
+                                challenge,
+                                response,
+                            },),
+                        )
+                        .await?;
+                    result?;
+                    return Ok(None);
+                }
+            };
+            match result {
+                Ok(Ok(_)) => self.confirmed = true,
+                Ok(Err(error)) if retrying => rejection = Some(error),
+                Ok(Err(error)) => return Err(error),
+                Err(Error::ExecutionUnknown) => {}
+                Err(error) => return Err(error),
+            }
+        }
+        let parent: Result<AuthDelegation> = match existing {
+            Some(grant) => Ok(grant),
+            None => {
+                ic.query(auth, "get_delegation", (self.key.public.clone(),))
+                    .await?
             }
         };
-        match result {
-            Ok(result) => {
-                result?;
+        self.key.parent = Some(match (parent, rejection) {
+            (Ok(grant), _) => grant,
+            (Err(_), Some(error)) => return Err(error),
+            (Err(Error::AuthRequired), None) if !self.confirmed => {
+                return Err(Error::ExecutionUnknown);
             }
-            Err(Error::ExecutionUnknown) => {}
-            Err(error) => return Err(error),
-        }
-        let parent: Result<AuthDelegation> = ic
-            .query(auth, "get_delegation", (self.key.public.clone(),))
-            .await?;
-        self.key.parent = Some(parent?);
-        let targets = crate::account::login_targets(&self.config).await?;
-        self.key.targets = targets.clone();
+            (Err(error), None) => return Err(error),
+        });
+        self.confirmed = true;
         self.key
-            .derive(self.hardware.as_ref(), &ic.root_key(), &targets, now_ms())
+            .derive(
+                self.hardware.as_ref(),
+                &ic.root_key(),
+                &self.key.targets,
+                now_ms(),
+            )
             .map(Some)
     }
 }

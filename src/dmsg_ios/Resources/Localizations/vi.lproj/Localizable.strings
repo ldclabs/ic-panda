@@ -3166,5 +3166,11 @@
 	<string>Cài đặt nhận thư của người nhận cần được cập nhật. Hãy nhờ họ mở khóa dMsg và đồng bộ, rồi thử gửi lại thư này.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>Cài đặt gửi hoặc nhận đã thay đổi. Hãy thử gửi lại thư này. Nếu vẫn thất bại, bạn và người nhận cần mở khóa dMsg và đồng bộ trước khi thử lại.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Nếu đã tạo khóa truy cập, hãy dùng khóa đã lưu. Chỉ tạo khóa mới khi cần danh tính đăng nhập khác.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Khóa truy cập đã được lưu. Thử lại để hoàn tất liên kết với tài khoản này; sẽ không tạo khóa mới.</string>
+	<key>Continue adding this passkey</key>
+	<string>Tiếp tục thêm khóa truy cập này</string>
 </dict>
 </plist>

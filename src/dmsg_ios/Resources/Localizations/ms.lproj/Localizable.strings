@@ -3166,5 +3166,11 @@
 	<string>Tetapan penerimaan penerima perlu dikemas kini. Minta mereka membuka kunci dMsg dan menyegerakkan, kemudian cuba hantar surat ini semula.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>Tetapan penghantaran atau penerimaan telah berubah. Cuba hantar surat ini semula. Jika masih gagal, anda dan penerima perlu membuka kunci dMsg dan menyegerakkan sebelum mencuba lagi.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Jika sudah mencipta passkey, gunakan yang disimpan. Cipta yang baharu hanya jika memerlukan identiti log masuk lain.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Passkey telah disimpan. Cuba lagi untuk melengkapkan pautannya kepada akaun ini; tiada passkey baharu akan dicipta.</string>
+	<key>Continue adding this passkey</key>
+	<string>Teruskan menambah passkey ini</string>
 </dict>
 </plist>

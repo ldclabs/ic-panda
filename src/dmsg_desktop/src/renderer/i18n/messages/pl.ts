@@ -10,6 +10,7 @@ export default {
     "letterPendingContact": "Twój poprzedni list nadal oczekuje na obsługę. Poproś odbiorcę, aby zarchiwizował go w aplikacji komputerowej lub wybrał „Zezwól na kolejny list” w menu listu w iOS. Następnie ponów wysłanie tego listu.",
     "letterRecipientKeyStale": "Ustawienia odbierania u odbiorcy wymagają aktualizacji. Poproś odbiorcę o odblokowanie dMsg i synchronizację, a następnie ponów wysłanie tego listu.",
     "letterPolicyStale": "Ustawienia wysyłania lub odbierania się zmieniły. Ponów wysłanie tego listu. Jeśli nadal się nie uda, Ty i odbiorca powinniście odblokować dMsg i zsynchronizować dane przed kolejną próbą.",
+    "passkeyBindingHint": "Jeśli klucz dostępu został już utworzony, użyj zapisanego. Nowy utwórz tylko wtedy, gdy potrzebujesz innej tożsamości logowania.",
     "passkeyExistingTitle": "Użyj istniejącego klucza dostępu",
     "passkeyExistingHint": "Użyj metody logowania już powiązanej z kontem, które chcesz otworzyć.",
     "passkeyCreateHint": "Każdy nowy klucz dostępu tworzy osobną tożsamość logowania. Aby dodać go do bieżącego konta, wybierz dodanie logowania kluczem dostępu w ustawieniach zabezpieczeń konta.",

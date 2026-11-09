@@ -10,6 +10,7 @@ export default {
     "letterPendingContact": "Votre lettre précédente est encore en attente. Demandez au destinataire de l’archiver sur ordinateur ou de choisir « Autoriser un autre courrier » dans le menu de la lettre sur iOS, puis réessayez cette lettre.",
     "letterRecipientKeyStale": "Les paramètres de réception du destinataire doivent être mis à jour. Demandez-lui de déverrouiller dMsg et de synchroniser, puis réessayez cette lettre.",
     "letterPolicyStale": "Les paramètres d’envoi ou de réception ont changé. Réessayez cette lettre. Si l’envoi échoue encore, le destinataire et vous devez déverrouiller dMsg et synchroniser avant de réessayer.",
+    "passkeyBindingHint": "Si vous avez déjà créé une clé d’accès, utilisez celle enregistrée. Créez-en une nouvelle seulement pour une autre identité de connexion.",
     "passkeyExistingTitle": "Utiliser une clé d’accès existante",
     "passkeyExistingHint": "Utilisez un identifiant déjà lié au compte à ouvrir.",
     "passkeyCreateHint": "Chaque nouvelle clé d’accès crée une identité de connexion distincte. Pour en ajouter une à votre compte actuel, utilisez Ajouter une connexion par clé d’accès dans la sécurité du compte.",

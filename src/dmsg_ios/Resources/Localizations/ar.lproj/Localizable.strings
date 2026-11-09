@@ -3166,5 +3166,11 @@
 	<string>تحتاج إعدادات الاستلام لدى المستلم إلى تحديث. اطلب منه فتح قفل dMsg والمزامنة، ثم أعد محاولة إرسال هذه الرسالة.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>تغيّرت إعدادات الإرسال أو الاستلام. أعد محاولة إرسال هذه الرسالة. إذا استمر الفشل، فعليك أنت والمستلم فتح قفل dMsg والمزامنة قبل المحاولة مجددًا.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>إذا سبق أن أنشأت مفتاح مرور، فاستخدم المفتاح المحفوظ. أنشئ مفتاحًا جديدًا فقط إذا احتجت إلى هوية دخول أخرى.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>مفتاح المرور محفوظ. أعد المحاولة لإكمال ربطه بهذا الحساب؛ لن يُنشأ مفتاح جديد.</string>
+	<key>Continue adding this passkey</key>
+	<string>متابعة إضافة مفتاح المرور هذا</string>
 </dict>
 </plist>

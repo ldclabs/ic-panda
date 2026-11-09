@@ -34,6 +34,13 @@ export const setupStates = ['no_account', 'pairing_required', 'root_required']
 let run = 0
 let expiry: ReturnType<typeof setTimeout> | undefined
 
+/** Bind a saved credential or explicitly create another identity for this account. */
+export function choosePasskeyBinding() {
+  run++
+  clearTimeout(expiry)
+  Object.assign(login, { phase: 'choose', bind: true, origin: 'https://dmsg.net', provider: 'passkey', action: 'login', url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
+}
+
 /**
  * Start a login, or with `bind` a second login to bind to the unlocked
  * account. `origin` https://panda.fans logs in with an identity of the old

@@ -16,7 +16,14 @@ struct AccountSecurityView: View {
     @State private var token = ""
     @State private var delay = 3
     @State private var recoveryEnabled = false
-    @State private var busy = false
+    @State private var actionBusy = false
+    @State private var bindingInternetIdentity = false
+    @State private var passkeyBinding = PasskeyBinding()
+    @State private var passkeyChoices = false
+    #if DEBUG
+    @State private var fixtureCompletions = 0
+    #endif
+    private var busy: Bool { actionBusy || passkeyBinding.working }
     @State private var settingUp = false
     @State private var canManage: Bool?
     @State private var permissionFailed = false
@@ -42,13 +49,26 @@ struct AccountSecurityView: View {
                     NavigationLink("Delete account") { AccountDeletionView() }.foregroundStyle(.red).accessibilityIdentifier("account.delete")
                 }
             }
-            if busy { ProgressView() }
+            if actionBusy && !bindingInternetIdentity { ProgressView() }
         }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle(title).confirmLeavingDraft(dirty)
             .task(id: model.contentRevision) { scope = model.viewGeneration; await load(force: true) }
             .onDisappear { if dirty { model.keepFormDraft("security", value: Draft(token: token, delay: delay, enabled: recoveryEnabled), generation: scope) } }
             .refreshable { await load(force: true) }
             .approvalDestination($request, receipts: receipts, model: model)
             .navigationDestination(isPresented: $settingUp) { NotificationSettingsView() }
+            .confirmationDialog("Add a passkey login", isPresented: $passkeyChoices, titleVisibility: .visible) {
+                Button("Use an existing passkey") { Task { await bind(passkey: .bindExisting) } }.accessibilityIdentifier("security.use-passkey")
+                Button("Create a passkey") { Task { await bind(passkey: .bind) } }.accessibilityIdentifier("security.create-passkey")
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.")
+            }
+            .onDisappear {
+                if passkeyBinding.working || passkeyBinding.hasSavedCredential || bindingInternetIdentity {
+                    model.passkeyLogin.cancel(); model.webLogin.cancel(); model.engine?.cancelLogin()
+                    passkeyBinding.cancel()
+                }
+            }
     }
     private var title: LocalizedStringKey {
         switch page {
@@ -89,9 +109,17 @@ struct AccountSecurityView: View {
                         .buttonStyle(.borderless).disabled(busy || canManage != true || login.current || (security?.logins.count ?? 0) <= 1)
                 }
             }
-            SettingsAction("Bind another Internet Identity") { Task { await bind() } }.disabled(busy || canManage != true)
+            SettingsAction("Bind another Internet Identity", working: bindingInternetIdentity) { Task { await bind() } }
+                .disabled(busy || canManage != true).accessibilityIdentifier("security.bind-ii")
             if model.session?.passkeyAvailable == true {
-                SettingsAction("Add a passkey login") { Task { await bind(passkey: true) } }.disabled(busy || canManage != true)
+                SettingsAction(passkeyBinding.hasSavedCredential && !passkeyBinding.working ? "Continue adding this passkey" : "Add a passkey login", working: passkeyBinding.working) {
+                    if passkeyBinding.hasSavedCredential { Task { await bind(passkey: .bind) } }
+                    else { passkeyChoices = true }
+                }.disabled(busy || canManage != true).accessibilityIdentifier("security.bind-passkey")
+                if passkeyBinding.hasSavedCredential && !passkeyBinding.working {
+                    NoticeBar(text: String(localized: "The passkey is saved. Retry to finish linking it to this account; no new passkey will be created."))
+                        .accessibilityIdentifier("security.passkey-pending")
+                }
             }
             if model.session?.loginRenewable == true {
                 SettingsAction("Sign out all devices", role: .destructive) { Task { await model.login(passkeyOperation: .logoutAll) } }
@@ -123,6 +151,10 @@ struct AccountSecurityView: View {
 
     private func load(force: Bool = false) async {
         #if DEBUG
+        if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-passkey-binding") {
+            security = SecurityInfo(logins: [Login(principal: "rrkah-fqaaa-aaaaa-aaaaq-cai", current: true)], recoveryDelayMs: 259200000, recoveryEnabled: false, recoveryUpdating: false)
+            canManage = true; return
+        }
         if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-member-security") {
             security = SecurityInfo(logins: [Login(principal: "rrkah-fqaaa-aaaaa-aaaaq-cai", current: true), Login(principal: "ryjl3-tyaaa-aaaaa-aaaba-cai", current: false)], recoveryDelayMs: 259200000, recoveryEnabled: true, recoveryUpdating: false)
             recoveryEnabled = true; canManage = false; return
@@ -152,9 +184,9 @@ struct AccountSecurityView: View {
     }
     private func reviewRecovery() async {
         guard !busy, let security else { return }
-        busy = true
+        actionBusy = true
         let epoch = model.epoch
-        defer { busy = false }
+        defer { actionBusy = false }
         do {
             let days = recoveryEnabled ? delay : Int(security.recoveryDelayMs / 86_400_000)
             let value = try await receipts.request("recovery.policy", model: model) {
@@ -170,35 +202,75 @@ struct AccountSecurityView: View {
 
     private func action(_ operation: @MainActor (MobileEngine) async throws -> ObjectSnapshot) async {
         guard let engine = model.engine, !busy else { return }
-        let epoch = model.epoch; busy = true; model.activity(); defer { busy = false }
+        let epoch = model.epoch; actionBusy = true; model.activity(); defer { actionBusy = false }
         do {
             let value = try await operation(engine)
             guard epoch == model.epoch && visible, !Task.isCancelled else { return }; request = try model.decode(value)
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
 
-    private func bind(passkey: Bool = false) async {
+    private func bind(passkey: PasskeyOperation? = nil) async {
+        #if DEBUG
+        if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-passkey-binding"), let passkey {
+            await bindFixture(passkey); return
+        }
+        #endif
         guard let engine = model.engine, !busy else { return }
-        busy = true
+        model.activity()
         let epoch = model.epoch
-        defer { busy = false }
         do {
             let result: ObjectSnapshot
-            if passkey {
-                let started = try await engine.beginPasskey(operation: .bind)
-                let response = try await model.passkeyLogin.authenticate(started)
-                await model.waitUntilActive()
-                guard epoch == model.epoch && visible else { return }
-                result = try await engine.completePasskeyBinding(state: started.state, response: response)
+            if let passkey {
+                result = try await passkeyBinding.run {
+                    try await engine.beginPasskey(operation: passkey)
+                } authenticate: { started in
+                    try await model.passkeyLogin.authenticate(started)
+                } complete: { started, response in
+                    await model.waitUntilActive()
+                    guard epoch == model.epoch && visible else { throw CancellationError() }
+                    _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
+                    return try await engine.completePasskeyBinding(state: started.state, response: response)
+                }
             } else {
+                actionBusy = true; bindingInternetIdentity = true
+                defer { actionBusy = false; bindingInternetIdentity = false }
+                passkeyBinding.cancel()
                 let started = try await engine.beginBinding()
                 guard let url = URL(string: started.url) else { throw CancellationError() }
                 let callback = try await model.webLogin.authenticate(url: url)
                 await model.waitUntilActive()
                 guard epoch == model.epoch && visible else { return }
+                _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
                 result = try await engine.completeBinding(callback: callback.absoluteString)
             }
             guard epoch == model.epoch && visible else { return }; request = try model.decode(result)
-        } catch { if epoch == model.epoch && visible { engine.cancelLogin(); model.report(error) } }
+        } catch { if epoch == model.epoch && visible {
+            if !passkeyBinding.hasSavedCredential { engine.cancelLogin() }
+            if passkey == .bindExisting, case MobileError.Failure(code: "NOT_FOUND") = error {
+                model.error = String(localized: "This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.")
+            } else { model.report(error) }
+        } }
     }
+
+    #if DEBUG
+    /// The real retry controller with a deterministic post-authentication outage.
+    private func bindFixture(_ operation: PasskeyOperation) async {
+        guard !busy else { return }
+        do {
+            let value = try await passkeyBinding.run {
+                precondition(fixtureCompletions == 0, "Retry must not create another credential")
+                return PasskeyStart(state: Data(repeating: 1, count: 32), challenge: Data(repeating: 2, count: 32), userId: Data(repeating: 3, count: 32), credentialId: nil, operation: operation, deadlineMs: UInt64(Date.now.timeIntervalSince1970 * 1000) + 300_000)
+            } authenticate: { _ in
+                NativePasskeyResponse(credentialId: Data([3]), clientDataJson: Data([4]), authenticatorData: Data([5]), signature: Data())
+            } complete: { _, _ in
+                fixtureCompletions += 1
+                try await Task.sleep(for: .seconds(3))
+                if fixtureCompletions == 1 { throw MobileError.Failure(code: "NETWORK_UNAVAILABLE") }
+                return ObjectSnapshot(generation: model.session?.generation ?? 0, json: "{\"id\":\"fixture-passkey-binding\",\"digest\":\"fixture\",\"type\":\"account\",\"state\":\"awaiting_user\",\"source\":\"gui\",\"risk\":\"high\",\"expires_at\":1999999999999,\"mobile_supported\":true}")
+            }
+            guard visible else { return }
+            request = try model.decode(value)
+        } catch { if visible { model.report(error) } }
+    }
+    #endif
 }

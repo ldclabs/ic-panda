@@ -17,11 +17,11 @@ final class PasskeyLogin: NSObject, ASAuthorizationControllerDelegate, ASAuthori
         let request: ASAuthorizationRequest
         switch start.operation {
         case .register, .bind:
-            let creation = provider.createCredentialRegistrationRequest(challenge: start.challenge, name: "dMsg", userID: start.userId)
+            let creation = provider.createCredentialRegistrationRequest(challenge: start.challenge, name: Self.credentialName(start.userId), userID: start.userId)
             creation.userVerificationPreference = .required
             creation.attestationPreference = .none
             request = creation
-        case .login, .logoutAll:
+        case .login, .bindExisting, .logoutAll:
             let assertion = provider.createCredentialAssertionRequest(challenge: start.challenge)
             assertion.userVerificationPreference = .required
             if let id = start.credentialId {
@@ -39,6 +39,10 @@ final class PasskeyLogin: NSObject, ASAuthorizationControllerDelegate, ASAuthori
                 controller.performRequests()
             }
         } onCancel: { Task { @MainActor [weak self] in self?.cancel() } }
+    }
+
+    static func credentialName(_ userID: Data) -> String {
+        "dMsg · " + userID.prefix(4).map { String(format: "%02x", $0) }.joined()
     }
 
     func cancel() {

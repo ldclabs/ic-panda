@@ -10,6 +10,7 @@ export default {
     "letterPendingContact": "上一封信还在等待对方处理。请对方在桌面端归档旧信，或在 iOS 的来信菜单中选择“允许再次来信”，然后重试这封信。",
     "letterRecipientKeyStale": "对方的收信设置需要更新。请对方解锁 dMsg 并完成同步，再重试这封信。",
     "letterPolicyStale": "收发设置刚刚发生变化。请重试这封信；如果仍失败，请你和对方都解锁 dMsg 并完成同步后再试。",
+    "passkeyBindingHint": "如果已经创建过通行密钥，请使用已保存的密钥。只有需要另一个登录身份时才创建新密钥。",
     "passkeyExistingTitle": "使用已有通行密钥",
     "passkeyExistingHint": "请使用已关联目标账号的登录方式。",
     "passkeyCreateHint": "每次创建都会生成独立的登录身份。要为当前账号添加通行密钥，请前往账号安全中的“添加通行密钥登录”。",

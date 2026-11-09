@@ -138,6 +138,41 @@ import XCTest
         app.terminate()
     }
 
+    func testPasskeyBindingShowsButtonProgressAndContinuesTheSavedAttempt() {
+        for (language, dark) in [("en", false), ("zh-Hans", false), ("zh-Hans", true), ("fr", true), ("ar", true)] {
+            let app = XCUIApplication()
+            let appearance = dark ? "dark" : "light"
+            app.launchArguments = ["--ui-testing", "--ui-passkey", "--ui-passkey-binding", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            let account = app.buttons["account.tab"]
+            if account.waitForExistence(timeout: 2) { account.tap() }
+            else { app.tabBars.buttons.element(boundBy: 3).tap() }
+            tap("account.security", in: app)
+            tap("security.logins", in: app)
+            let add = app.buttons["security.bind-passkey"]
+            XCTAssertTrue(add.waitForExistence(timeout: 5)); add.tap()
+            let create = app.buttons["security.create-passkey"]
+            XCTAssertTrue(create.waitForExistence(timeout: 3)); create.tap()
+            let busy = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: add)
+            XCTAssertEqual(XCTWaiter.wait(for: [busy], timeout: 2), .completed)
+            XCTAssertFalse((add.value as? String ?? "").isEmpty)
+            capture(app, "Passkey binding progress on action · \(language) · \(appearance)")
+            XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 6))
+            let dismiss = app.alerts.firstMatch.buttons.firstMatch
+            let dismissReady = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: dismiss)
+            XCTAssertEqual(XCTWaiter.wait(for: [dismissReady], timeout: 3), .completed)
+            dismiss.tap()
+            XCTAssertTrue(app.alerts.firstMatch.waitForNonExistence(timeout: 3))
+            XCTAssertTrue(app.staticTexts["security.passkey-pending"].exists || app.otherElements["security.passkey-pending"].exists)
+            capture(app, "Passkey binding retry kept · \(language) · \(appearance)")
+            add.tap()
+            XCTAssertTrue(app.staticTexts["gui"].waitForExistence(timeout: 7), "Retry proceeds to the approval without creating another credential")
+            XCTAssertTrue(add.waitForNonExistence(timeout: 3))
+            capture(app, "Passkey binding approval after retry · \(language) · \(appearance)")
+            app.terminate()
+        }
+    }
+
     func testLoginExpiryOnlyAddsAnAccountAction() {
         let app = open(["--ui-login-expiring"])
         // The account page shows well before the fixture login expires.

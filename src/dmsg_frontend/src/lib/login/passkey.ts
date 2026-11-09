@@ -117,13 +117,14 @@ export async function completePasskey(
     if (!supportsPasskey(credentials))
       throw new DOMException('WebAuthn unavailable', 'NotSupportedError')
     const registration = request.challenge.action === 'register'
+    const credentialName = `dMsg · ${Array.from(request.state.slice(0, 4), b => b.toString(16).padStart(2, '0')).join('')}`
     const credential = (
       registration
         ? await credentials.create({
             publicKey: {
               challenge: request.challenge.challenge,
               rp: { id: 'dmsg.net', name: 'dMsg' },
-              user: { id: request.state, name: 'dMsg', displayName: 'dMsg' },
+              user: { id: request.state, name: credentialName, displayName: credentialName },
               pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
               authenticatorSelection: {
                 residentKey: 'required',

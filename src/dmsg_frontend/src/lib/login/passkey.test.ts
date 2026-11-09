@@ -66,6 +66,7 @@ describe('first-party Passkey transport', () => {
     const options = create.mock.calls[0]![0].publicKey
     expect(options).toMatchObject({
       rp: { id: 'dmsg.net' },
+      user: { id: value.state, name: 'dMsg · 01010101', displayName: 'dMsg · 01010101' },
       pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
       authenticatorSelection: {
         residentKey: 'required',

@@ -3166,5 +3166,11 @@
 	<string>De ontvangstinstellingen van de ontvanger moeten worden bijgewerkt. Vraag de ontvanger om dMsg te ontgrendelen en te synchroniseren en probeer deze brief daarna opnieuw.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>De verzend- of ontvangstinstellingen zijn gewijzigd. Probeer deze brief opnieuw. Als het blijft mislukken, moeten jij en de ontvanger dMsg ontgrendelen en synchroniseren voordat je het opnieuw probeert.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Gebruik de opgeslagen passkey als je er al een hebt gemaakt. Maak alleen een nieuwe als je een andere aanmeldidentiteit nodig hebt.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>De passkey is opgeslagen. Probeer opnieuw om deze aan dit account te koppelen; er wordt geen nieuwe passkey gemaakt.</string>
+	<key>Continue adding this passkey</key>
+	<string>Doorgaan met deze passkey toevoegen</string>
 </dict>
 </plist>

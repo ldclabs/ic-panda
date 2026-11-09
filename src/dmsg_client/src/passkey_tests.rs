@@ -208,6 +208,86 @@ async fn lock_during_network_rejects_the_late_result() {
 
 struct Person;
 
+#[tokio::test]
+async fn completion_retry_retrieves_the_same_grant_without_registering_again() {
+    let dir = TempDir::new();
+    let mut c = client(&dir, Arc::new(MemoryStorage::default()));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    c.config.environment = Environment::Production;
+    c.config.ic_host = format!("http://{}", listener.local_addr().unwrap());
+    let updates = Arc::new(AtomicUsize::new(0));
+    let queries = Arc::new(AtomicUsize::new(0));
+    let counts = (updates.clone(), queries.clone());
+    let server = tokio::spawn(async move {
+        loop {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let path = reject(&mut stream).await;
+            if path.contains("/call ") {
+                counts.0.fetch_add(1, Ordering::Relaxed);
+            }
+            if path.contains("/query ") {
+                counts.1.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    });
+    let mut session = PasskeySession {
+        key: DeviceLogin::new(c.config.auth.unwrap(), &Hardware).unwrap(),
+        config: c.config,
+        hardware: Arc::new(Hardware),
+        request: PasskeyRequest {
+            protocol: PROTOCOL.into(),
+            state: Hash::new([1; 32]),
+            challenge: AuthChallenge {
+                challenge: Hash::new([2; 32]),
+                expires_at: now_ms() + MINUTE,
+                action: AuthAction::Register,
+            },
+            next_url: dmsg_protocol::login::IOS_CALLBACK.into(),
+            credential_id: None,
+        },
+        expected_credential: None,
+        admission: None,
+        submitted: None,
+        confirmed: false,
+        deadline: now_ms() + MINUTE,
+    };
+    let response = PasskeyResponse {
+        credential_id: vec![3; 32].into(),
+        client_data_json: vec![4].into(),
+        authenticator_data: vec![5].into(),
+        signature: vec![].into(),
+    };
+    for _ in 0..2 {
+        assert!(matches!(
+            session.complete(response.clone()).await,
+            Err(Error::Unavailable(_))
+        ));
+    }
+    assert_eq!(
+        updates.load(Ordering::Relaxed),
+        1,
+        "a failed grant lookup never replays registration"
+    );
+    assert_eq!(
+        queries.load(Ordering::Relaxed),
+        2,
+        "retry checks the original hardware grant"
+    );
+    let mut foreign = response.clone();
+    foreign.credential_id[0] ^= 1;
+    assert!(matches!(
+        session.complete(foreign).await,
+        Err(Error::IntegrityFailed)
+    ));
+    session.deadline = 0;
+    assert!(matches!(
+        session.complete(response).await,
+        Err(Error::Expired)
+    ));
+    assert_eq!(updates.load(Ordering::Relaxed), 1);
+    server.abort();
+}
+
 impl crate::secure::PresenceKey for Person {
     fn presence(&self) -> Option<crate::secure::Presence> {
         Some(crate::secure::Presence::Biometrics)

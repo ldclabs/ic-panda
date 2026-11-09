@@ -79,6 +79,22 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test passkey
 
 本轮未修改 Rust 或登录网页协议，未重跑真实系统浏览器 WebAuthn、Secure Enclave 或跨设备同步；未生成或发布安装包。发布桌面新版时必须包含更新后的 Rust daemon，单独替换 renderer 不会把注册预检查带到已安装的旧 daemon。
 
+## 2026-11-09 iOS 绑定中断恢复与重复创建防护
+
+本节基于 `ic-panda@462b0c21` 的修复工作区。用户确认系统已保存凭据，但没有设备日志，因此无法断定原始超时发生在哪个网络请求。代码检查确认绑定在系统认证后未显式恢复 host，网络失败又会丢弃认证响应与已验证身份，下一次操作重新创建凭据。
+
+- 共享核心在系统创建前完成部署目标发现。重试先查询原硬件会话的授权；仅当原提交尚未确认、授权确实不存在且原 challenge 未过期时，才重新递交完全相同的证明。服务端已有的一次性 challenge 与 caller 检查保证重复递交不会创建另一个身份或恢复已退出会话，本轮没有修改认证服务生产逻辑。
+- iOS 在系统认证返回后显式恢复 host；临时失败保留原响应和已验证身份，继续操作不再次调用系统创建。锁定、取消或离开页面会取消任务并丢弃待办，迟到结果不能恢复旧状态。等待图标位于绑定按钮内。
+- iOS 与桌面的添加入口均支持使用已保存的凭据；重新创建是独立选择。iOS 与网页的新凭据名称带 8 位十六进制短标识。旧密码管理器条目不自动修改或删除。
+- `cargo test --offline --locked -p dmsg_client -p dmsg_mobile -p dmsg_auth --lib`：分别 611、30、9 项通过，客户端原有 5 项忽略测试未运行。覆盖绑定读取失败后复用身份、取消网络任务、拒绝异源回调、失效 challenge、注册结果查询失败不重复提交，以及相同注册证明重复递交只产生一次效果。
+- 四个修改包（client、mobile、CLI、auth）的 `--all-targets` Clippy `-D warnings` 与修改 Rust 文件格式检查通过。测试使用 `CARGO_INCREMENTAL=0`。
+- 桌面 `pnpm check`、192 项测试、控件审查（0 个未经允许的用法）、构建与 Electron Passkey fixture 通过。绑定选择页不提前开始认证，已有凭据使用 `login + bind`，未知创建结果保留绑定语义；检查中文明暗主题、法语长文案和阿拉伯语 RTL 的 760×540 窗口截图及键盘操作。
+- 网页类型检查与构建通过；Passkey 逻辑及页面的两组测试共 21 项通过，包含可区分的名称与不变的 user ID。未重跑网页全部测试。
+- 最终 Debug 设备/模拟器 Rust slice、UniFFI 与 XCFramework 重建通过，源码指纹校验通过。Debug 链接仍有 `__eh_frame` 大小警告。早先 Release 构建期间源码发生变化，指纹检查拒绝该产物，故不计作最终 Release 验证。23 种语言资源检查通过。
+- iPhone SE 小屏模拟器、iOS 18.4：129 项 Swift 单元测试和 4 项相关 UI 测试通过，0 失败、0 跳过。绑定测试补强了弹窗可点击与转场结束等待；发现旧测试缓存后，使用全新构建目录与重新安装的测试 runner 单独重跑该项，通过英文浅色、中文明暗、法语长文案、阿拉伯语 RTL 五个场景，并查看最终截图。故障 fixture 验证原响应重试和审批页导航，不代表真实系统认证或完整链上审批；结果包分别为本次 `dmsg-binding-tests.xcresult` 与 `dmsg-binding-ui-fresh.xcresult`。
+
+本轮没有真机系统 Passkey、Secure Enclave 或跨设备同步验收，也没有生产部署或发行包发布。桌面新增凭据名称依赖登录网页更新；现有失败凭据是否已注册，不能只从系统列表的名称或顺序判断。
+
 ## 尚未执行
 
 - 签名真机上的首次 Passkey 创建/登录、AuthenticationServices 的实际 origin、Keychain/Secure Enclave 跨重启和系统锁定后的恢复。

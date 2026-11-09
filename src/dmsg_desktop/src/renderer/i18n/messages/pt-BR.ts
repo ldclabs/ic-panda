@@ -10,6 +10,7 @@ export default {
     "letterPendingContact": "Sua carta anterior ainda está pendente. Peça ao destinatário para arquivá-la no computador ou escolher “Permitir outra carta” no menu da carta no iOS. Depois, tente enviar esta carta novamente.",
     "letterRecipientKeyStale": "As configurações de recebimento do destinatário precisam ser atualizadas. Peça que desbloqueie o dMsg e sincronize; depois, tente enviar esta carta novamente.",
     "letterPolicyStale": "As configurações de envio ou recebimento mudaram. Tente enviar esta carta novamente. Se ainda falhar, você e o destinatário devem desbloquear o dMsg e sincronizar antes de tentar de novo.",
+    "passkeyBindingHint": "Se já criou uma chave de acesso, use a chave salva. Crie uma nova apenas se precisar de outra identidade de login.",
     "passkeyExistingTitle": "Usar uma chave de acesso existente",
     "passkeyExistingHint": "Use um login já vinculado à conta que deseja abrir.",
     "passkeyCreateHint": "Cada nova chave de acesso cria uma identidade de login separada. Para adicionar uma à conta atual, use Adicionar login com chave de acesso na segurança da conta.",

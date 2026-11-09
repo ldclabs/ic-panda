@@ -3166,5 +3166,11 @@
 	<string>প্রাপকের চিঠি পাওয়ার সেটিংস আপডেট করা দরকার। তাঁকে dMsg আনলক করে সিঙ্ক করতে বলুন, তারপর এই চিঠিটি আবার পাঠান।</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>পাঠানো বা গ্রহণের সেটিংস বদলেছে। এই চিঠিটি আবার পাঠান। তবুও ব্যর্থ হলে আপনি ও প্রাপক দুজনেই dMsg আনলক করে সিঙ্ক করুন, তারপর আবার চেষ্টা করুন।</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>আগে পাসকি তৈরি করে থাকলে সংরক্ষিত পাসকি ব্যবহার করুন। অন্য লগইন পরিচয় প্রয়োজন হলেই শুধু নতুন পাসকি তৈরি করুন।</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>পাসকি সংরক্ষিত হয়েছে। এই অ্যাকাউন্টের সঙ্গে যুক্ত করা শেষ করতে আবার চেষ্টা করুন; নতুন পাসকি তৈরি হবে না।</string>
+	<key>Continue adding this passkey</key>
+	<string>এই পাসকি যোগ করা চালিয়ে যান</string>
 </dict>
 </plist>

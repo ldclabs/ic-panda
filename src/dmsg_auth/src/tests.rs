@@ -114,6 +114,31 @@ fn enroll() -> Session {
 }
 
 #[test]
+fn redelivering_the_same_registration_never_creates_another_identity_or_session() {
+    setup();
+    let c = challenge(1, AuthAction::Register, 1000);
+    let input = RegisterPasskey {
+        challenge: c.challenge,
+        response: response(&c.challenge, true),
+        admission: None,
+    };
+    let caller = device(1).0;
+    let canister = Principal::from_slice(&[9]);
+    register(caller, canister, input.clone(), 1001).unwrap();
+    assert!(register(caller, canister, input.clone(), 1002).is_err());
+    assert_eq!(IDENTITIES.with_borrow(|m| m.len()), 1);
+    assert_eq!(SESSIONS.with_borrow(|m| m.len()), 1);
+    assert_eq!(config().registered, 1);
+    logout(caller).unwrap();
+    assert!(register(caller, canister, input, 1003).is_err());
+    assert_eq!(
+        SESSIONS.with_borrow(|m| m.len()),
+        0,
+        "a replay cannot undo logout"
+    );
+}
+
+#[test]
 fn logout_and_logout_all_cannot_be_undone_by_replaying_authentication() {
     setup();
     let first = enroll();

@@ -21,7 +21,7 @@
   import { buttonClass } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single } from '../rpc'
-  import { startLogin } from '../shell/login.svelte'
+  import { choosePasskeyBinding, startLogin } from '../shell/login.svelte'
   import { hardwarePurposeLabels, purposeLabels } from '../approval'
   import { dailyLimit, policyChanges, sameSelection } from './security'
   import LocalOnly from './LocalOnly.svelte'
@@ -248,7 +248,7 @@
     </ul>
     <div class="mt-3 flex flex-wrap gap-2 px-5">
       {#if status?.passkey_available}
-        <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="bind-passkey" onclick={() => startLogin(true, 'https://dmsg.net', 'passkey', 'register')}><Icon name="add" />{t('bindPasskey')}</button>
+        <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="bind-passkey" onclick={choosePasskeyBinding}><Icon name="add" />{t('bindPasskey')}</button>
       {/if}
       <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="bind-login" onclick={() => startLogin(true, 'https://dmsg.net', 'ii')}><Icon name="add" />{t('bindLogin')}</button>
       <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="security-approve-login" onclick={() => begin('login')}><Icon name="login" />{t('approveLogin')}</button>

@@ -484,7 +484,9 @@ inline editors alone handle their own cancel shortcut.
   one shimmering, the page's expiry, Open the page again and Copy link; a
   failure names its cause in a Danger notice with the daemon's message in
   mono and Retry. An unconfirmed Passkey creation instead offers login with
-  the saved credential, preserving account binding when applicable. Automatic
+  the saved credential, preserving account binding when applicable. The
+  account-security binding entry also starts with this choice, so a saved credential
+  can be linked without creating another identity. Automatic
   local unlock waits while this dialog is open. The gate rail's next step is a Primary button while
   logged out.
 

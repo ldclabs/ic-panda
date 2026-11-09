@@ -3166,5 +3166,11 @@
 	<string>وصول کنندہ کی وصولی کی ترتیبات اپ ڈیٹ ہونی چاہئیں۔ ان سے dMsg کا لاک کھول کر سنک کرنے کو کہیں، پھر یہ خط دوبارہ بھیجیں۔</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>بھیجنے یا وصول کرنے کی ترتیبات بدل گئی ہیں۔ یہ خط دوبارہ بھیجیں۔ اگر پھر بھی ناکام ہو تو آپ اور وصول کنندہ دونوں dMsg کا لاک کھول کر سنک کریں، پھر دوبارہ کوشش کریں۔</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>اگر پہلے پاس کی بنا چکے ہیں تو محفوظ شدہ پاس کی استعمال کریں۔ نئی پاس کی صرف کسی دوسری لاگ ان شناخت کے لیے بنائیں۔</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>پاس کی محفوظ ہے۔ اسے اس اکاؤنٹ سے منسلک کرنا مکمل کرنے کے لیے دوبارہ کوشش کریں؛ نئی پاس کی نہیں بنے گی۔</string>
+	<key>Continue adding this passkey</key>
+	<string>یہ پاس کی شامل کرنا جاری رکھیں</string>
 </dict>
 </plist>

@@ -3166,5 +3166,11 @@
 	<string>Die Empfangseinstellungen des Empfängers müssen aktualisiert werden. Bitte ihn, dMsg zu entsperren und zu synchronisieren. Sende diesen Brief danach erneut.</string>
 	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
 	<string>Die Sende- oder Empfangseinstellungen haben sich geändert. Versuche erneut, diesen Brief zu senden. Falls es weiterhin fehlschlägt, sollten du und der Empfänger dMsg entsperren und vor dem nächsten Versuch synchronisieren.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Wenn du bereits einen Passkey erstellt hast, verwende den gespeicherten. Erstelle nur für eine weitere Anmeldeidentität einen neuen.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Der Passkey ist gespeichert. Versuche erneut, ihn mit diesem Konto zu verknüpfen. Es wird kein neuer Passkey erstellt.</string>
+	<key>Continue adding this passkey</key>
+	<string>Diesen Passkey weiter hinzufügen</string>
 </dict>
 </plist>

@@ -10,6 +10,7 @@ export default {
     "letterPendingContact": "Surat Anda sebelumnya masih tertunda. Minta penerima mengarsipkannya di desktop atau memilih “Izinkan surat lain” dari menu surat di iOS, lalu coba kirim surat ini lagi.",
     "letterRecipientKeyStale": "Pengaturan penerimaan penerima perlu diperbarui. Minta mereka membuka kunci dMsg dan menyinkronkan, lalu coba kirim surat ini lagi.",
     "letterPolicyStale": "Pengaturan pengiriman atau penerimaan telah berubah. Coba kirim surat ini lagi. Jika masih gagal, Anda dan penerima perlu membuka kunci dMsg dan menyinkronkan sebelum mencoba lagi.",
+    "passkeyBindingHint": "Jika sudah membuat passkey, gunakan yang tersimpan. Buat passkey baru hanya jika memerlukan identitas login lain.",
     "passkeyExistingTitle": "Gunakan passkey yang sudah ada",
     "passkeyExistingHint": "Gunakan login yang sudah ditautkan ke akun yang ingin dibuka.",
     "passkeyCreateHint": "Setiap passkey baru membuat identitas login terpisah. Untuk menambahkannya ke akun saat ini, gunakan Tambahkan login passkey di keamanan akun.",
