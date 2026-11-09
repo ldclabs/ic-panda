@@ -578,16 +578,17 @@
   }
   async function abortActivation() {
     if (abortBusy || busy || !abortQuote || !deposits.some((d) => d.quote_id === abortQuote && d.abortable)) return
-    const quote = abortQuote, generation = epoch
+    const quote = abortQuote
     const submitting: Abort = { kind: 'submitting', quote }
     abort = submitting
+    // Deposits belong to the account, whose change resets `abort`; opening another wallet keeps this dialog current.
     try {
       await call('wallet/activation_abort', { quote })
-      if (!fresh(generation) || abort !== submitting) return
+      if (abort !== submitting) return
       abort = { kind: 'closed' }
       await loadDeposits()
     } catch (e) {
-      if (fresh(generation) && abort === submitting) abort = { kind: 'confirming', quote, error: e }
+      if (abort === submitting) abort = { kind: 'confirming', quote, error: e }
     }
   }
   onMount(() => {

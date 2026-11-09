@@ -12,7 +12,7 @@ async function until(check: () => boolean) {
 }
 const unavailable = () => Object.assign(new Error('private URL'), { code: 'NETWORK_UNAVAILABLE' })
 
-test('initialization owns the connection attempt and business calls wait for it', async (t) => {
+test('initialization owns the connection attempt and business calls are refused until it finishes', async (t) => {
   const server = new WebSocketServer({ port: 0, host: '127.0.0.1' })
   await new Promise<void>(resolve => server.on('listening', resolve))
   let initialize: (() => void) | undefined

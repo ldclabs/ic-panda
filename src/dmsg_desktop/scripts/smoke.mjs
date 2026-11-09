@@ -4207,11 +4207,16 @@ smoke: try {
   await answer('__open', join(picks, 'export.csv'))
   await main.click('[data-testid="vault-import-choose"]')
   await main.waitForSelector('[data-testid="vault-import-items"]')
+  const finishAdd = hold('vault/import')
   await main.click('[data-testid="vault-import-add"]')
-  await waitFor(() => latest('vault/import'))
+  await waitFor(() => held.get('vault/import'))
   // A CSV has no attachments; the library folder they would go to stays the root.
   assert.deepEqual(latest('vault/import').params, { path: join(picks, 'export.csv'), digest: 'd1', picks: [0], attachments: [], folder: 'root' })
+  // Closing while the daemon imports still reports what it added.
+  await main.keyboard.press('Escape')
   await main.waitForSelector('[data-testid="vault-import"]', { state: 'detached' })
+  await finishAdd()
+  await main.waitForSelector('text=Imported 1 items')
   // The main process rejects an obsolete preview, including after a session change,
   // and consumes a preview before awaiting the daemon's reply.
   await answer('__open', join(picks, 'export.csv'))

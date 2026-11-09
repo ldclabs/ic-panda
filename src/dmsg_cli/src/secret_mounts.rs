@@ -60,14 +60,33 @@ impl MountPhase {
 
     #[cfg(target_os = "macos")]
     fn started(&mut self) -> Result<()> {
-        let Self::Starting { .. } = self else {
-            return Err(Error::Expired);
-        };
-        let Self::Starting { mount, .. } = std::mem::replace(self, Self::Stopping) else {
-            unreachable!()
-        };
-        *self = Self::Running(mount);
-        Ok(())
+        match std::mem::replace(self, Self::Stopping) {
+            Self::Starting { mount, .. } => {
+                *self = Self::Running(mount);
+                Ok(())
+            }
+            other => {
+                *self = other;
+                Err(Error::Expired)
+            }
+        }
+    }
+}
+
+/// A stop that ends without a settled unmount, including one whose RPC is
+/// dropped while the system unmounts, leaves its mount retryable.
+struct Teardown<'a> {
+    active: &'a Mutex<BTreeMap<String, Active>>,
+    id: &'a str,
+}
+
+impl Drop for Teardown<'_> {
+    fn drop(&mut self) {
+        if let Some(active) = self.active.lock().expect("mounts").get_mut(self.id)
+            && matches!(active.phase, MountPhase::Stopping)
+        {
+            active.phase = MountPhase::UnmountUnconfirmed;
+        }
     }
 }
 
@@ -496,6 +515,10 @@ impl Daemon {
             unmount_orphan(&config.input.mount_point).await?;
             return Ok(json!({"stopped":id,"os_unmounted":true}));
         };
+        let _teardown = Teardown {
+            active: &self.secret_mounts.active,
+            id,
+        };
         let result = async {
             let mount = match phase {
                 #[cfg(target_os = "macos")]
@@ -541,15 +564,8 @@ impl Daemon {
             Ok(())
         }
         .await;
-        {
-            let mut mounts = self.secret_mounts.active.lock().expect("mounts");
-            if result.is_ok() {
-                mounts.remove(id);
-            } else if let Some(active) = mounts.get_mut(id) {
-                active.phase = MountPhase::UnmountUnconfirmed;
-            }
-        }
         result?;
+        self.secret_mounts.active.lock().expect("mounts").remove(id);
         Ok(json!({"stopped":id,"os_unmounted":true}))
     }
 
@@ -1167,13 +1183,22 @@ mod tests {
                     .contains_key(&config.id)
             );
         }
+        // A stop whose RPC was dropped mid-unmount is retried, not left stopping.
         d.secret_mounts.active.lock().unwrap().insert(
             config.id.clone(),
             Active {
                 config: config.clone(),
-                phase: MountPhase::UnmountUnconfirmed,
+                phase: MountPhase::Stopping,
             },
         );
+        drop(Teardown {
+            active: &d.secret_mounts.active,
+            id: &config.id,
+        });
+        assert!(matches!(
+            d.secret_mounts.active.lock().unwrap()[&config.id].phase,
+            MountPhase::UnmountUnconfirmed
+        ));
         assert_eq!(
             d.stop_secret_mount(&config.id).await.unwrap()["os_unmounted"],
             true

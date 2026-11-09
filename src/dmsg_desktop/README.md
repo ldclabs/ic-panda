@@ -837,7 +837,8 @@ resources or reviewed inputs. It keeps the existing message, file-task, login an
 update states, and ordinary control state stays local.
 
 - The daemon connection owns its startup attempt, initialized socket or retry
-  timer. Business RPCs wait for initialization; closing releases pending calls,
+  timer. Business RPCs are refused with `DAEMON_DISCONNECTED` until
+  initialization finishes; closing releases pending calls,
   and a previous attempt cannot revive or disconnect a replacement connection.
   The renderer distinguishes verification, disconnection and a verified session;
   only a confirmed same-session reconnect restores the retained forms.
@@ -855,8 +856,9 @@ update states, and ordinary control state stays local.
   remains in force. Files use separate phases for quotes, backup confirmation and
   link creation, retaining retryable drafts and rejecting superseded reads.
 - The native secret mount keeps starting, running, stopping and unconfirmed
-  unmounts distinct. A failed unmount retains its configuration for retry, without
-  retaining a stopped content backend. FSKit loading owns the resource, request
+  unmounts distinct. A failed unmount, or a stop whose request is dropped while
+  the system unmounts, retains its configuration for retry, without retaining a
+  stopped content backend. FSKit loading owns the resource, request
   and load token; a loaded state owns the resource and volume.
 
 Validation on macOS: `pnpm check`, `pnpm test` (192 tests), `pnpm build`, the

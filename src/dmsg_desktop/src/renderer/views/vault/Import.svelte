@@ -81,9 +81,9 @@
     error = ''
     try {
       const added = await bridge<{ ids: string[] }>(() => window.dmsg.vaultImport(source.session, [...ticked], [...attachments].filter((id) => source.attachments.some((a: any) => a.entry_id === id && ticked.has(a.item_index))), folder))
-      if (operation !== importing || !open) return
-      open = false
+      // The daemon imported them even when the dialog closed meanwhile.
       toast(() => t('imported', { n: added.ids.length }), { ms: 8000 })
+      if (operation === importing) open = false
     } catch (e) {
       if (operation === importing && open) {
         ticked = new Set(); attachments = new Set()
