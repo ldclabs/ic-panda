@@ -275,7 +275,10 @@ impl PasskeySession {
         };
         // Discover deployment targets before the system saves a credential.
         // Finishing authentication must not depend on another configuration scan.
-        key.targets = crate::account::login_targets(&config).await?;
+        // Logout-all derives no delegation, so it never waits for this scan.
+        if action != AuthAction::LogoutAll {
+            key.targets = crate::account::login_targets(&config).await?;
+        }
         let challenge: Result<AuthChallenge> = ic
             .update(
                 auth,
@@ -384,10 +387,7 @@ impl PasskeySession {
                 self.request.challenge.action != AuthAction::LogoutAll,
                 Error::ExecutionUnknown,
             )?;
-            let grant: Result<AuthDelegation> = ic
-                .query(auth, "get_delegation", (self.key.public.clone(),))
-                .await?;
-            match grant {
+            match self.grant(&ic).await? {
                 Ok(grant) => Some(grant),
                 // A lost request may never have reached the issuer. Reuse its
                 // exact proof and one-use challenge; never create another key.
@@ -452,12 +452,9 @@ impl PasskeySession {
                 Err(error) => return Err(error),
             }
         }
-        let parent: Result<AuthDelegation> = match existing {
+        let parent = match existing {
             Some(grant) => Ok(grant),
-            None => {
-                ic.query(auth, "get_delegation", (self.key.public.clone(),))
-                    .await?
-            }
+            None => self.grant(&ic).await?,
         };
         self.key.parent = Some(match (parent, rejection) {
             (Ok(grant), _) => grant,
@@ -476,6 +473,24 @@ impl PasskeySession {
                 now_ms(),
             )
             .map(Some)
+    }
+
+    /// The issuer's grant for this hardware key. Its certified signature is
+    /// pruned a minute after issue, so a later retry renews the same session.
+    async fn grant(&self, ic: &Ic) -> Result<Result<AuthDelegation>> {
+        let auth = self.key.auth;
+        let grant: Result<AuthDelegation> = ic
+            .query(auth, "get_delegation", (self.key.public.clone(),))
+            .await?;
+        if !matches!(grant, Err(Error::Unavailable(_))) {
+            return Ok(grant);
+        }
+        let renewed: Result<u64> = ic.update(auth, "renew", ()).await?;
+        if let Err(error) = renewed {
+            return Ok(Err(error));
+        }
+        ic.query(auth, "get_delegation", (self.key.public.clone(),))
+            .await
     }
 }
 

@@ -95,6 +95,18 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test passkey
 
 本轮没有真机系统 Passkey、Secure Enclave 或跨设备同步验收，也没有生产部署或发行包发布。桌面新增凭据名称依赖登录网页更新；现有失败凭据是否已注册，不能只从系统列表的名称或顺序判断。
 
+## 2026-11-09 复核修正
+
+本节基于 `ic-panda@65fd390d` 的复核工作区，修正上一节的实现与说明。
+
+- 上一节把“绑定在系统认证后未显式恢复 host”列为原因之一，复核不成立：host 每次暂停都会推进会话代际，而待完成的绑定固定在开始时的代际，被暂停的 host 只会以界面不提示的 `LOCKED` 结束。截图中的“暂时无法连接”是 `NETWORK_UNAVAILABLE`，来自真实网络错误。iOS 两条绑定路径新增的 `resume` 不起作用，已移除。
+- 签发方的证书签名在签发一分钟后会被其他签发修剪，此后重试的 `get_delegation` 只返回 `Unavailable`，直到挑战过期。重试取授权遇到这种情况时，先对同一硬件会话调用 `renew` 再读取。整个重试仍限于原挑战有效期内，过期后改用“使用已有通行密钥”。
+- “注销所有设备”不派生委托，不再在系统认证前读取部署 targets，避免为逃生入口增加查询与失败点。
+- iOS“继续”只续用已保存的尝试，不会落回创建凭据，续用时保留原操作。会话代际变化（后台暂停、锁定）或开始“注销所有设备”时丢弃已无法完成的尝试，不再显示会静默失败的“继续”；之后由“使用已有通行密钥”关联已保存的凭据。
+- `cargo test --offline --locked -p dmsg_client -p dmsg_mobile --lib`（独立 `CARGO_TARGET_DIR`、`CARGO_INCREMENTAL=0`）：分别 611、30 项通过，客户端原有 5 项忽略测试未运行。签名修剪后的续签路径没有自动化测试；本地模拟需要可签名的查询响应或 PocketIC 网关，本轮未搭建。
+- 两个包的 `--all-targets` Clippy `-D warnings` 与 `cargo fmt --check` 通过。
+- iPhone 16e 模拟器：`PasskeyBindingTests` 6 项（新增“继续不会落回创建凭据”）与绑定 UI 测试通过，覆盖英文浅色、中文明暗、法语、阿拉伯语 RTL，并查看中文浅色的保留尝试截图。本轮只改 Swift 与客户端 Rust，未改 UniFFI 接口；模拟器使用上一节构建的 XCFramework，未重建 Rust slice，因此续签逻辑未进入这次模拟器运行。没有真机 Passkey 验收。
+
 ## 尚未执行
 
 - 签名真机上的首次 Passkey 创建/登录、AuthenticationServices 的实际 origin、Keychain/Secure Enclave 跨重启和系统锁定后的恢复。

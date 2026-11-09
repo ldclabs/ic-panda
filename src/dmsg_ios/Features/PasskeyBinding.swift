@@ -14,13 +14,16 @@ final class PasskeyBinding {
     private var revision: UInt64 = 0
     private(set) var working = false
     var hasSavedCredential: Bool { attempt != nil }
+    var savedOperation: PasskeyOperation? { attempt?.start.operation }
 
+    /// `resuming` continues only the saved attempt; it never opens a creation prompt.
     func run(
+        resuming: Bool = false,
         begin: () async throws -> PasskeyStart,
         authenticate: (PasskeyStart) async throws -> NativePasskeyResponse,
         complete: (PasskeyStart, NativePasskeyResponse) async throws -> ObjectSnapshot
     ) async throws -> ObjectSnapshot {
-        guard !working else { throw CancellationError() }
+        guard !working, !resuming || attempt != nil else { throw CancellationError() }
         working = true
         let current = revision
         defer { if revision == current { working = false } }

@@ -18,7 +18,7 @@ final class PasskeyBindingTests: XCTestCase {
             let failures = ["NETWORK_UNAVAILABLE", "EXECUTION_UNKNOWN", "HARDWARE_UNAVAILABLE", "LOCAL_STORAGE_UNAVAILABLE"]
             for attempt in 0...failures.count {
                 do {
-                    let result = try await flow.run {
+                    let result = try await flow.run(resuming: attempt > 0) {
                         starts += 1; return self.start(operation)
                     } authenticate: { _ in
                         authentications += 1; return self.response
@@ -34,10 +34,24 @@ final class PasskeyBindingTests: XCTestCase {
                     XCTAssertEqual(attempt, failures.count)
                 } catch { XCTAssertLessThan(attempt, failures.count) }
                 XCTAssertEqual(flow.hasSavedCredential, attempt < failures.count)
+                XCTAssertEqual(flow.savedOperation, attempt < failures.count ? operation : nil)
                 XCTAssertFalse(flow.working)
             }
             XCTAssertEqual(starts, 1); XCTAssertEqual(authentications, 1); XCTAssertEqual(completions, failures.count + 1)
         }
+    }
+
+    func testContinuingADiscardedAttemptNeverOpensACreationPrompt() async {
+        let flow = PasskeyBinding()
+        do {
+            _ = try await flow.run(resuming: true) {
+                XCTFail("Continue must not begin another credential"); return self.start()
+            } authenticate: { _ in
+                XCTFail("No system prompt"); return self.response
+            } complete: { _, _ in XCTFail("No completion"); return ObjectSnapshot(generation: 0, json: "{}") }
+            XCTFail("Expected cancellation")
+        } catch { XCTAssertTrue(error is CancellationError) }
+        XCTAssertFalse(flow.working); XCTAssertNil(flow.savedOperation)
     }
 
     func testPreflightFailureDoesNotClaimASavedCredential() async {

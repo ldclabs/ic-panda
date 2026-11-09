@@ -69,6 +69,11 @@ struct AccountSecurityView: View {
                     passkeyBinding.cancel()
                 }
             }
+            .onChange(of: model.session?.generation) {
+                // The core binds the attempt to the session it began in. After a
+                // background pause or lock, offer the saved passkey instead of Continue.
+                if passkeyBinding.hasSavedCredential && !passkeyBinding.working { passkeyBinding.cancel(); model.engine?.cancelLogin() }
+            }
     }
     private var title: LocalizedStringKey {
         switch page {
@@ -113,7 +118,7 @@ struct AccountSecurityView: View {
                 .disabled(busy || canManage != true).accessibilityIdentifier("security.bind-ii")
             if model.session?.passkeyAvailable == true {
                 SettingsAction(passkeyBinding.hasSavedCredential && !passkeyBinding.working ? "Continue adding this passkey" : "Add a passkey login", working: passkeyBinding.working) {
-                    if passkeyBinding.hasSavedCredential { Task { await bind(passkey: .bind) } }
+                    if let saved = passkeyBinding.savedOperation { Task { await bind(passkey: saved, resuming: true) } }
                     else { passkeyChoices = true }
                 }.disabled(busy || canManage != true).accessibilityIdentifier("security.bind-passkey")
                 if passkeyBinding.hasSavedCredential && !passkeyBinding.working {
@@ -122,7 +127,7 @@ struct AccountSecurityView: View {
                 }
             }
             if model.session?.loginRenewable == true {
-                SettingsAction("Sign out all devices", role: .destructive) { Task { await model.login(passkeyOperation: .logoutAll) } }
+                SettingsAction("Sign out all devices", role: .destructive) { passkeyBinding.cancel(); Task { await model.login(passkeyOperation: .logoutAll) } }
                     .disabled(busy || model.busy).accessibilityIdentifier("security.logout-all")
                 Text("Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -209,10 +214,10 @@ struct AccountSecurityView: View {
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
 
-    private func bind(passkey: PasskeyOperation? = nil) async {
+    private func bind(passkey: PasskeyOperation? = nil, resuming: Bool = false) async {
         #if DEBUG
         if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-passkey-binding"), let passkey {
-            await bindFixture(passkey); return
+            await bindFixture(passkey, resuming: resuming); return
         }
         #endif
         guard let engine = model.engine, !busy else { return }
@@ -221,14 +226,13 @@ struct AccountSecurityView: View {
         do {
             let result: ObjectSnapshot
             if let passkey {
-                result = try await passkeyBinding.run {
+                result = try await passkeyBinding.run(resuming: resuming) {
                     try await engine.beginPasskey(operation: passkey)
                 } authenticate: { started in
                     try await model.passkeyLogin.authenticate(started)
                 } complete: { started, response in
                     await model.waitUntilActive()
                     guard epoch == model.epoch && visible else { throw CancellationError() }
-                    _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
                     return try await engine.completePasskeyBinding(state: started.state, response: response)
                 }
             } else {
@@ -240,7 +244,6 @@ struct AccountSecurityView: View {
                 let callback = try await model.webLogin.authenticate(url: url)
                 await model.waitUntilActive()
                 guard epoch == model.epoch && visible else { return }
-                _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
                 result = try await engine.completeBinding(callback: callback.absoluteString)
             }
             guard epoch == model.epoch && visible else { return }; request = try model.decode(result)
@@ -254,10 +257,10 @@ struct AccountSecurityView: View {
 
     #if DEBUG
     /// The real retry controller with a deterministic post-authentication outage.
-    private func bindFixture(_ operation: PasskeyOperation) async {
+    private func bindFixture(_ operation: PasskeyOperation, resuming: Bool) async {
         guard !busy else { return }
         do {
-            let value = try await passkeyBinding.run {
+            let value = try await passkeyBinding.run(resuming: resuming) {
                 precondition(fixtureCompletions == 0, "Retry must not create another credential")
                 return PasskeyStart(state: Data(repeating: 1, count: 32), challenge: Data(repeating: 2, count: 32), userId: Data(repeating: 3, count: 32), credentialId: nil, operation: operation, deadlineMs: UInt64(Date.now.timeIntervalSince1970 * 1000) + 300_000)
             } authenticate: { _ in

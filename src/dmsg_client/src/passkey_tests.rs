@@ -206,8 +206,6 @@ async fn lock_during_network_rejects_the_late_result() {
     .unwrap();
 }
 
-struct Person;
-
 #[tokio::test]
 async fn completion_retry_retrieves_the_same_grant_without_registering_again() {
     let dir = TempDir::new();
@@ -287,6 +285,8 @@ async fn completion_retry_retrieves_the_same_grant_without_registering_again() {
     assert_eq!(updates.load(Ordering::Relaxed), 1);
     server.abort();
 }
+
+struct Person;
 
 impl crate::secure::PresenceKey for Person {
     fn presence(&self) -> Option<crate::secure::Presence> {
