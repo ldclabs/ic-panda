@@ -53,7 +53,7 @@ iOS 用 AuthenticationServices 原生生成相同数据，经 UniFFI 提交共�
 1. 构建、安装一个 `dmsg_auth`，指定治理 Principal、准入 Ed25519 公钥及实际预算；检查 `auth_stats.ready`。正常升级保留 canister ID 和 salt，不使用重装。
 2. 给准入票据服务配置该 auth canister。请求仍为 `/v1/account-admission` 的 `{home, principal}`，此处 home 为 auth ID，principal 为硬件 caller；签名字节不变。auth 不加入账户 user-home 信任列表。
 3. 发布支持 dmsg-passkey/1 的 `/_/login`；核对已有 AASA 与实际 iOS 签名身份。
-4. 在桌面 `config.toml` 或共用 `src/dmsg_client/production.toml` 中设置 `auth = "<实际 canister ID>"`；iOS staging 部署文件也支持 `auth`。缺省不启用，不能填占位 Principal。桌面和 iOS 都重建发布，iOS 同步重建 Rust/UniFFI。
+4. 桌面/CLI 和 iOS 共用 `src/dmsg_client/production.toml` 中的生产 auth 默认值 `mpld4-maaaa-aaaas-qhepa-cai`。旧的生产 `config.toml` 缺少 `auth` 时自动使用该默认值，无需用户修改文件；显式 `auth` 优先。local/staging 不继承生产 issuer，仍需配置各自的 `auth`，iOS staging 部署文件也支持该字段。桌面和 iOS 都重建发布，iOS 同步重建 Rust/UniFFI。
 5. 对真实硬件验收创建、登录、重启后续期、离线复制、绑定原账户和退出，再开放注册。容量预算依据部署测量设置；此实现不承诺千万级容量或主网吞吐。
 
-该配置目前未填写生产 auth ID；本次实现不等于已部署。实际验证记录见 [passkey-validation_zh.md](../passkey-validation_zh.md)。
+生产 auth ID 已内置；源码配置不代表服务端已部署，发布客户端前仍须完成上述服务端准备与真机验收。此前验证记录见 [passkey-validation_zh.md](../passkey-validation_zh.md)。

@@ -29,7 +29,7 @@ pub struct Config {
     pub relay: String,
     /// Name registry, the authority on the deployment's user homes.
     pub handle: Principal,
-    /// First-party Passkey issuer; enabled after deploying dmsg_auth.
+    /// First-party Passkey issuer; production has a compiled default.
     pub auth: Option<Principal>,
     /// User homes pinned by the configuration; the registry may list more.
     pub user_homes: Vec<Principal>,
@@ -120,11 +120,7 @@ impl Config {
             ic_host: value("ic_host")?.into(),
             relay: value("relay")?.into(),
             handle: principal("handle")?,
-            auth: file
-                .get("auth")
-                .and_then(|v| v.as_str())
-                .map(|v| Principal::from_text(v).map_err(|_| dmsg_types::invalid("auth")))
-                .transpose()?,
+            auth: Some(principal("auth")?),
             user_homes: vec![],
             root_key: None,
             login_url: LOGIN_URL.into(),
@@ -299,6 +295,7 @@ mod staging_tests {
         )
         .unwrap();
         assert_eq!(staged.environment, Environment::Staging);
+        assert!(staged.auth.is_none());
         assert!(staged.root_key.is_none());
         assert!(staged.legacy.is_none());
         assert_eq!(staged.login_url, LOGIN_URL);

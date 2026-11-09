@@ -34,9 +34,11 @@ targets. The desktop exposes this action in the account menu as **Log out**.
 A home without `config.toml` uses [`production.toml`](../dmsg_client/production.toml),
 compiled into the binary: the production relay, IC host, name registry and
 Agent Protocols hosts, so the desktop app and a fresh install work without
-setup. A `config.toml` replaces it whole (nothing is merged), and `dmsg
-validate-config` and `dmsg doctor` say which one applies. A release's built-in
-settings change with the release; a `config.toml` stays as written.
+setup. A custom production `config.toml` also uses the built-in Passkey issuer
+when `auth` is omitted; an explicit `auth` takes precedence. Local and staging
+deployments do not inherit that issuer. Other deployment endpoints remain
+explicit, and the file is not rewritten. `dmsg validate-config` and `dmsg doctor`
+say which configuration applies.
 
 ```toml
 environment = "local"            # local, staging or production

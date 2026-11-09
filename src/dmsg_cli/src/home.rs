@@ -1,9 +1,10 @@
 //! The dMsg home directory: `config.toml`, the owner credential, the daemon
 //! lock and discovery file, and one workspace directory per environment.
 //!
-//! Security settings live only in `config.toml`, or without one in the
-//! production configuration built into this binary (`production.toml`);
-//! nothing a running daemon receives can change them. The desktop's file
+//! Deployment settings come from `config.toml`, or without one from the
+//! compiled `production.toml`. A missing production `auth` uses that compiled
+//! issuer even with a custom file. Nothing a running daemon receives can
+//! change these settings. The desktop's file
 //! settings live beside it in `preferences.json`, which only the desktop's
 //! main process writes, allowing the disk mount after the person confirms
 //! in a system dialog; the daemon reads that file and never takes the
@@ -271,12 +272,20 @@ impl Home {
         };
         let file: ConfigFile =
             toml::from_str(&text).map_err(|e| Error::InvalidInput(format!("config.toml: {e}")))?;
+        let environment = parse_environment(&file.environment)?;
+        let auth = match file.auth.as_deref() {
+            Some(auth) => Some(principal(auth)?),
+            None if environment == dmsg_types::Environment::Production => {
+                Config::production()?.auth
+            }
+            None => None,
+        };
         let config = Config {
-            environment: parse_environment(&file.environment)?,
+            environment,
             ic_host: file.ic_host,
             relay: file.relay,
             handle: principal(&file.handle)?,
-            auth: file.auth.as_deref().map(principal).transpose()?,
+            auth,
             user_homes: file
                 .user_homes
                 .iter()
@@ -500,6 +509,10 @@ mod tests {
             settings.config.handle.to_text(),
             "wfxrt-2iaaa-aaaaj-qsjwa-cai"
         );
+        assert_eq!(
+            settings.config.auth.unwrap().to_text(),
+            "mpld4-maaaa-aaaas-qhepa-cai"
+        );
         assert_eq!(settings.config.login_url, LOGIN_URL);
         let legacy = settings.config.legacy.as_ref().unwrap();
         assert_eq!(legacy.channels.len(), 3);
@@ -545,10 +558,46 @@ mod tests {
         fs::write(&settings.preferences, r#"{"relay": "x"}"#).unwrap();
         assert!(Preferences::read(&settings.preferences).is_err());
         fs::remove_file(&settings.preferences).unwrap();
-        // A config.toml replaces the built-in settings whole.
+        // Other deployment endpoints must still be explicitly configured.
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join("config.toml"), "environment = \"production\"\n").unwrap();
         assert!(matches!(home.settings(), Err(Error::InvalidInput(_))));
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn existing_configs_default_auth_only_in_production_and_keep_explicit_values() {
+        let dir = std::env::temp_dir().join(format!("dmsg-auth-config-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let home = Home { dir: dir.clone() };
+        let path = dir.join("config.toml");
+        let custom = Principal::self_authenticating(b"custom auth issuer");
+        for environment in ["production", "staging", "local"] {
+            let text = format!(
+                "environment = \"{environment}\"\nic_host = \"https://icp-api.io\"\nrelay = \"https://relay.example\"\nhandle = \"wfxrt-2iaaa-aaaaj-qsjwa-cai\"\n"
+            );
+            fs::write(&path, &text).unwrap();
+            let settings = home.settings().unwrap();
+            assert!(!settings.built_in);
+            assert_eq!(
+                settings.config.auth,
+                if environment == "production" {
+                    Config::production().unwrap().auth
+                } else {
+                    None
+                }
+            );
+            assert_eq!(settings.config.relay, "https://relay.example");
+            assert!(settings.config.legacy.is_none());
+            assert!(settings.config.wallet.hub.is_none());
+            assert_eq!(fs::read_to_string(&path).unwrap(), text);
+
+            fs::write(&path, format!("{text}auth = \"{custom}\"\n")).unwrap();
+            assert_eq!(home.settings().unwrap().config.auth, Some(custom));
+
+            fs::write(&path, format!("{text}auth = \"invalid principal\"\n")).unwrap();
+            assert!(matches!(home.settings(), Err(Error::InvalidInput(_))));
+        }
         fs::remove_dir_all(dir).unwrap();
     }
 }

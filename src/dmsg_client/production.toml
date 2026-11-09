@@ -1,14 +1,11 @@
-# The production deployment, built into `dmsg`: a home without config.toml
-# uses it. A config.toml replaces it whole; `dmsg validate-config` says which
-# one applies.
+# The production deployment shared by desktop/CLI and iOS. A home without
+# config.toml uses it. Custom production configs also use this auth issuer
+# when auth is omitted; other deployment endpoints remain explicit.
 environment = "production"
 ic_host = "https://icp-api.io"
 relay = "https://api.dmsg.net"
 handle = "wfxrt-2iaaa-aaaaj-qsjwa-cai"
-# Set auth to the deployed dmsg_auth canister ID when enabling Passkey login.
-# An absent auth keeps Internet Identity as the available login provider.
-# Reserved on mainnet; enable only after installing and verifying dmsg_auth:
-# auth = "mpld4-maaaa-aaaas-qhepa-cai"
+auth = "mpld4-maaaa-aaaas-qhepa-cai"
 agent_hosts = [
   { host = "https://api.dmsg.net", label = "dMsg" },
   { host = "https://discourse.dmsg.net", label = "discourse", profile_service = "https://api.dmsg.net" },
