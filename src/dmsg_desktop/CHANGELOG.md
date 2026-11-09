@@ -6,6 +6,23 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.1] - 2026-11-10
+
+### Passkey login and account binding
+
+- Choose an existing Passkey or explicitly create a new one when binding a
+  login to an existing account.
+- Resume interrupted bindings with the original credential and verified login,
+  avoiding duplicate credential creation after temporary failures. Keep retries
+  usable throughout the original challenge window.
+- When a Passkey reaches its session limit, reset sessions for that specific
+  credential and continue login or account binding with the same Passkey.
+  Preserve the current local workspace and ignore results from superseded flows.
+
+### Maintenance
+
+- Update Electron and client dependencies, including SQLite and WebDAV support.
+
 ## [1.5.0] - 2026-11-09
 
 ### Login and local unlock
@@ -758,6 +775,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.5.1]: https://github.com/ldclabs/ic-panda/compare/1.5.0...1.5.1
 [1.5.0]: https://github.com/ldclabs/ic-panda/compare/1.4.2...1.5.0
 [1.4.2]: https://github.com/ldclabs/ic-panda/compare/1.4.1...1.4.2
 [1.4.1]: https://github.com/ldclabs/ic-panda/compare/1.4.0...1.4.1
