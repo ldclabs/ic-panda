@@ -3150,5 +3150,15 @@
 	<string>모든 기기에서 로그아웃</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>기존 로그인 권한은 최대 12시간 동안 유효할 수 있습니다. 기기의 콘텐츠 접근 권한은 유지됩니다.</string>
+	<key>Use an existing passkey</key>
+	<string>기존 패스키 사용</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>열려는 계정에 이미 연결된 로그인 방법을 사용하세요.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>새 패스키를 만들 때마다 별도의 로그인 ID가 생성됩니다. 현재 계정에 추가하려면 계정 보안에서 패스키 로그인 추가를 사용하세요.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>이 패스키는 dMsg에 등록되지 않았습니다. 다른 패스키를 선택하세요. 이전 생성이 실패했다면 비밀번호 관리자에서 사용하지 않는 해당 패스키를 삭제한 후 새로 만드세요.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>비밀번호 관리자가 패스키를 저장했지만 dMsg에서 등록을 확인하지 못했습니다. 다른 패스키를 만들기 전에 이 패스키로 로그인을 시도하세요.</string>
 </dict>
 </plist>

@@ -52,12 +52,14 @@ import XCTest
             app.launchArguments = ["--ui-testing", "--ui-passkey", "--ui-welcome", "--ui-passkey-full", "-AppleLanguages", "(\(language))"] + (language == "en" ? [] : ["--ui-dark"])
             app.launch()
             XCTAssertTrue(app.buttons["login.start"].waitForExistence(timeout: 8))
-            XCTAssertTrue(app.buttons["login.create-passkey"].exists)
+            XCTAssertFalse(app.buttons["login.create-passkey"].exists)
             XCTAssertTrue(app.buttons["login.ii"].exists)
-            XCTAssertTrue(app.buttons["login.reset-devices"].exists)
             capture(app, "Passkey welcome · \(language)")
             XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
             app.alerts.firstMatch.buttons.firstMatch.tap()
+            app.buttons["login.start"].tap()
+            XCTAssertTrue(app.buttons["passkey.login"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.buttons["login.create-passkey"].exists)
             let reset = app.buttons["login.reset-devices"]
             for _ in 0..<4 where !reset.isHittable { app.swipeUp() }
             XCTAssertTrue(reset.isHittable)
@@ -88,10 +90,52 @@ import XCTest
             XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
             capture(app, "Passkey rate limit error · \(language)")
             app.alerts.firstMatch.buttons.firstMatch.tap()
-            XCTAssertTrue(app.buttons["login.start"].isHittable)
+            app.buttons["login.start"].tap()
+            XCTAssertTrue(app.buttons["passkey.login"].waitForExistence(timeout: 3))
+            XCTAssertFalse(app.buttons["login.reset-devices"].exists)
+            XCTAssertTrue(app.buttons["passkey.login"].isHittable)
             capture(app, "Passkey rate limit keeps login retry · \(language)")
             app.terminate()
         }
+    }
+
+    func testOtherAccountUsesOnePasskeyEntryAndCanReturnToLocalUnlock() {
+        for language in ["en", "zh-Hans", "fr", "ar"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-passkey", "--ui-access", "--ui-sign-in-another", "-AppleLanguages", "(\(language))"] + (language == "en" ? [] : ["--ui-dark"])
+            app.launch()
+            let login = app.buttons["login.start"]
+            XCTAssertTrue(login.waitForExistence(timeout: 8))
+            XCTAssertFalse(app.buttons["login.unlock"].exists)
+            XCTAssertFalse(app.buttons["login.authorize"].exists)
+            XCTAssertFalse(app.buttons["login.create-passkey"].exists)
+            XCTAssertTrue(app.buttons["login.ii"].exists)
+            capture(app, "Other account login · \(language)")
+            login.tap()
+            XCTAssertTrue(app.buttons["passkey.login"].waitForExistence(timeout: 3))
+            let create = app.buttons["login.create-passkey"]
+            for _ in 0..<5 where !create.isHittable { app.swipeUp() }
+            XCTAssertTrue(create.isHittable)
+            capture(app, "Passkey login and new identity explanation · \(language)")
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+            let cancel = app.buttons["login.cancel-account"]
+            XCTAssertTrue(cancel.waitForExistence(timeout: 3)); cancel.tap()
+            XCTAssertTrue(app.buttons["login.unlock"].waitForExistence(timeout: 3))
+            app.terminate()
+        }
+    }
+
+    func testUnregisteredPasskeyHasAnActionableError() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-passkey", "--ui-welcome", "--ui-passkey-missing", "-AppleLanguages", "(zh-Hans)"]
+        app.launch()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertFalse(app.alerts.staticTexts["NOT_FOUND"].exists)
+        capture(app, "Unregistered passkey guidance · zh-Hans")
+        app.alerts.firstMatch.buttons.firstMatch.tap()
+        app.buttons["login.start"].tap()
+        XCTAssertTrue(app.buttons["passkey.login"].waitForExistence(timeout: 3))
+        app.terminate()
     }
 
     func testLoginExpiryOnlyAddsAnAccountAction() {

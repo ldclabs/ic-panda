@@ -3150,5 +3150,15 @@
 	<string>सभी डिवाइस से साइन आउट करें</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>मौजूदा लॉगिन अनुमतियाँ 12 घंटे तक मान्य रह सकती हैं। डिवाइस की सामग्री अनुमतियाँ बनी रहती हैं।</string>
+	<key>Use an existing passkey</key>
+	<string>मौजूदा पासकी का उपयोग करें</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>उस खाते से पहले से जुड़े लॉगिन का उपयोग करें जिसे आप खोलना चाहते हैं।</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>हर नई पासकी एक अलग लॉगिन पहचान बनाती है। मौजूदा खाते में पासकी जोड़ने के लिए खाता सुरक्षा में पासकी लॉगिन जोड़ें का उपयोग करें।</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>यह पासकी dMsg में पंजीकृत नहीं है। दूसरी पासकी चुनें। यदि पहले इसे बनाना विफल हुआ था, तो नई पासकी बनाने से पहले पासवर्ड मैनेजर से उस अनुपयोगी पासकी को हटाएँ।</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>पासवर्ड मैनेजर ने पासकी सहेज ली, लेकिन dMsg पंजीकरण की पुष्टि नहीं कर सका। दूसरी पासकी बनाने से पहले इससे लॉगिन करने का प्रयास करें।</string>
 </dict>
 </plist>

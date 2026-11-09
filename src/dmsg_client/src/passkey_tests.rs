@@ -76,6 +76,34 @@ async fn reject(stream: &mut tokio::net::TcpStream) -> String {
 }
 
 #[tokio::test]
+async fn registration_preflight_failure_never_starts_a_creation_challenge() {
+    let dir = TempDir::new();
+    let mut c = client(&dir, Arc::new(MemoryStorage::default()));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    c.config.environment = Environment::Production;
+    c.config.ic_host = format!("http://{}", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        reject(&mut stream).await
+    });
+    assert!(matches!(
+        PasskeySession::start(
+            c.config,
+            Arc::new(Hardware),
+            AuthAction::Register,
+            dmsg_protocol::login::IOS_CALLBACK.into(),
+            None
+        )
+        .await,
+        Err(Error::Unavailable(_))
+    ));
+    assert!(
+        server.await.unwrap().contains("/query "),
+        "readiness is checked before prepare_challenge"
+    );
+}
+
+#[tokio::test]
 async fn concurrent_failure_is_shared_and_retry_keeps_local_content() {
     let dir = TempDir::new();
     let mut c = client(&dir, Arc::new(MemoryStorage::default()));

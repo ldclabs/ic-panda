@@ -226,6 +226,7 @@ pub struct PasskeySession {
     hardware: Arc<dyn HardwareAnchor>,
     request: PasskeyRequest,
     expected_credential: Option<ByteBuf>,
+    admission: Option<dmsg_types::user::AdmissionTicket>,
     /// Exclusive callback deadline in milliseconds.
     pub deadline: u64,
 }
@@ -250,6 +251,26 @@ impl PasskeySession {
             None
         };
         let ic = Ic::connect(&config, key.identity(hardware.clone())).await?;
+        // Finish registration preflight before asking the authenticator to save
+        // a credential. A failed ticket request must not leave an orphan passkey.
+        let admission = if action == AuthAction::Register {
+            let stats: AuthStats = ic.query(auth, "auth_stats", ()).await?;
+            ensure(
+                stats.ready,
+                Error::Unavailable("auth initialization".into()),
+            )?;
+            if stats.admission_required {
+                Some(
+                    Cloud::new(&config.relay, config.environment == Environment::Local)?
+                        .admission(auth, ic.principal()?)
+                        .await?,
+                )
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         let challenge: Result<AuthChallenge> = ic
             .update(
                 auth,
@@ -261,13 +282,19 @@ impl PasskeySession {
             )
             .await?;
         let challenge = challenge?;
-        dmsg_protocol::expiry(now_ms(), challenge.expires_at, CHALLENGE_TTL_MS + MINUTE)?;
+        let now = now_ms();
+        dmsg_protocol::expiry(now, challenge.expires_at, CHALLENGE_TTL_MS + MINUTE)?;
         ensure(challenge.action == action, Error::IntegrityFailed)?;
+        let deadline = admission.as_ref().map_or(challenge.expires_at, |ticket| {
+            challenge.expires_at.min(ticket.expires_at)
+        });
+        ensure(now < deadline, Error::Expired)?;
         Ok(Self {
             config,
             key,
             hardware,
-            deadline: challenge.expires_at,
+            deadline,
+            admission,
             expected_credential: expected_credential.clone(),
             request: PasskeyRequest {
                 protocol: PROTOCOL.into(),
@@ -343,26 +370,13 @@ impl PasskeySession {
         self.key.credential = response.credential_id.clone();
         let result: Result<Result<u64>> = match self.request.challenge.action {
             AuthAction::Register => {
-                let stats: AuthStats = ic.query(auth, "auth_stats", ()).await?;
-                let admission = if stats.admission_required {
-                    Some(
-                        Cloud::new(
-                            &self.config.relay,
-                            self.config.environment == Environment::Local,
-                        )?
-                        .admission(auth, ic.principal()?)
-                        .await?,
-                    )
-                } else {
-                    None
-                };
                 ic.update(
                     auth,
                     "register",
                     (RegisterPasskey {
                         challenge,
                         response,
-                        admission,
+                        admission: self.admission,
                     },),
                 )
                 .await

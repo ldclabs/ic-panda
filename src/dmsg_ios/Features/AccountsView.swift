@@ -28,8 +28,8 @@ struct AccountsView: View {
             if !loading && !failed && accounts.isEmpty { ContentUnavailableView("No accounts", systemImage: "person.crop.circle") }
             SettingsAction("Sign in to another account") { Task {
                 guard !working else { return }; working = true; defer { working = false }
-                await model.lock(); await model.login()
-            } }.disabled(working)
+                await model.lock(); model.signingIntoAnotherAccount = true
+            } }.disabled(working).accessibilityIdentifier("accounts.sign-in")
             if working { ProgressView() }
         }.privateScreen().navigationTitle("Accounts").task { await load() }.refreshable { await load() }
     }

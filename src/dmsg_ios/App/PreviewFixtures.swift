@@ -24,7 +24,10 @@ extension SessionModel {
                 vaultFixtureItem(id: "fixture-mail", revision: "1", kind: "login", title: chinese ? "工作邮箱" : "Work email", subtitle: "hello@studio.example", notes: "", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [], fields: []),
                 vaultFixtureItem(id: "fixture-note", revision: "1", kind: "note", title: chinese ? "项目笔记" : "Project notes", subtitle: "", notes: chinese ? "记录尚未完成的想法" : "A place for unfinished ideas", favorite: false, tags: [], synced: storeScreens, conflict: false, reserved: false, files: [], fields: []),
             ])
-        if ProcessInfo.processInfo.arguments.contains("--ui-passkey-full") {
+        signingIntoAnotherAccount = ProcessInfo.processInfo.arguments.contains("--ui-sign-in-another")
+        if ProcessInfo.processInfo.arguments.contains("--ui-passkey-missing") {
+            reportLoginFailure(MobileError.Failure(code: "NOT_FOUND"), usingPasskey: passkey, operation: .login)
+        } else if ProcessInfo.processInfo.arguments.contains("--ui-passkey-full") {
             reportLoginFailure(MobileError.Failure(code: "SESSION_LIMIT_EXCEEDED"), usingPasskey: passkey, operation: .login)
         } else if ProcessInfo.processInfo.arguments.contains("--ui-passkey-quota") {
             reportLoginFailure(MobileError.Failure(code: "QUOTA_EXCEEDED"), usingPasskey: passkey, operation: .login)

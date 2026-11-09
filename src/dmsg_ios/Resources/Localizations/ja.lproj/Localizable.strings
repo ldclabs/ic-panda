@@ -3150,5 +3150,15 @@
 	<string>すべてのデバイスからログアウト</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>発行済みのログイン権限は最大 12 時間有効です。コンテンツへのデバイス権限は維持されます。</string>
+	<key>Use an existing passkey</key>
+	<string>既存のパスキーを使う</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>開きたいアカウントに連携済みのログイン方法を使ってください。</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>新しいパスキーを作成するたびに、別のログインIDが作られます。現在のアカウントに追加するには、アカウントのセキュリティ設定でパスキーログインを追加してください。</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>このパスキーはdMsgに登録されていません。別のパスキーを選んでください。以前の作成に失敗した場合は、パスワードマネージャーからその未使用のパスキーを削除してから、新しく作成してください。</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>パスワードマネージャーにパスキーは保存されましたが、dMsgで登録を確認できませんでした。別のパスキーを作る前に、このパスキーでログインを試してください。</string>
 </dict>
 </plist>

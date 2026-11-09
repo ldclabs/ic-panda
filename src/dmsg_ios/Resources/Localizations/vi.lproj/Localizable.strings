@@ -3150,5 +3150,15 @@
 	<string>Đăng xuất mọi thiết bị</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>Quyền đăng nhập đã cấp có thể còn hiệu lực tối đa 12 giờ. Quyền truy cập nội dung của thiết bị được giữ nguyên.</string>
+	<key>Use an existing passkey</key>
+	<string>Dùng khóa truy cập hiện có</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Dùng phương thức đăng nhập đã liên kết với tài khoản bạn muốn mở.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Mỗi khóa truy cập mới tạo một danh tính đăng nhập riêng. Để thêm vào tài khoản hiện tại, dùng Thêm đăng nhập bằng khóa truy cập trong bảo mật tài khoản.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Khóa truy cập này chưa đăng ký với dMsg. Hãy chọn khóa khác. Nếu lần tạo trước thất bại, hãy xóa khóa chưa dùng đó khỏi trình quản lý mật khẩu trước khi tạo khóa mới.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Trình quản lý mật khẩu đã lưu khóa truy cập nhưng dMsg chưa xác nhận được đăng ký. Hãy thử đăng nhập bằng khóa đó trước khi tạo khóa khác.</string>
 </dict>
 </plist>

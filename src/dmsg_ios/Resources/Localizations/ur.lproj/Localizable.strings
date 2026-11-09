@@ -3150,5 +3150,15 @@
 	<string>تمام آلات سے سائن آؤٹ کریں</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>موجودہ لاگ اِن اجازتیں مزید 12 گھنٹے تک مؤثر رہ سکتی ہیں۔ آلات کی مواد تک رسائی برقرار رہتی ہے۔</string>
+	<key>Use an existing passkey</key>
+	<string>موجودہ پاس کی استعمال کریں</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>اس اکاؤنٹ سے پہلے سے منسلک لاگ ان استعمال کریں جسے آپ کھولنا چاہتے ہیں۔</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>ہر نئی پاس کی ایک الگ لاگ ان شناخت بناتی ہے۔ اسے موجودہ اکاؤنٹ میں شامل کرنے کے لیے اکاؤنٹ سیکیورٹی میں پاس کی لاگ ان شامل کریں استعمال کریں۔</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>یہ پاس کی dMsg میں رجسٹرڈ نہیں ہے۔ دوسری پاس کی منتخب کریں۔ اگر پہلے بنانے میں ناکامی ہوئی تھی تو نئی بنانے سے پہلے وہ غیر استعمال شدہ پاس کی پاس ورڈ مینیجر سے ہٹا دیں۔</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>پاس ورڈ مینیجر نے پاس کی محفوظ کر لی، لیکن dMsg رجسٹریشن کی تصدیق نہیں کر سکا۔ دوسری بنانے سے پہلے اس سے لاگ ان کرنے کی کوشش کریں۔</string>
 </dict>
 </plist>

@@ -3150,5 +3150,15 @@
 	<string>Sair de todos os dispositivos</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>As autorizações de login existentes podem continuar válidas por até 12 horas. Os dispositivos mantêm acesso ao conteúdo.</string>
+	<key>Use an existing passkey</key>
+	<string>Usar uma chave de acesso existente</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Use um login já vinculado à conta que deseja abrir.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Cada nova chave de acesso cria uma identidade de login separada. Para adicionar uma à conta atual, use Adicionar login com chave de acesso na segurança da conta.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Esta chave de acesso não está registrada no dMsg. Escolha outra. Se a criação anterior falhou, remova essa chave não utilizada do gerenciador de senhas antes de criar uma nova.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>O gerenciador de senhas salvou a chave de acesso, mas o dMsg não confirmou o registro. Tente entrar com ela antes de criar outra.</string>
 </dict>
 </plist>

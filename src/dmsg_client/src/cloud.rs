@@ -611,7 +611,10 @@ impl Cloud {
         binary: bool,
     ) -> Result<Reply> {
         let finalize = url.path().ends_with("/uploads/finalize");
-        let mutation = method != reqwest::Method::GET;
+        // Issuing a short-lived admission signature does not create an account
+        // or consume the ticket. It is safe to retry despite using POST.
+        let admission = method == reqwest::Method::POST && url.path() == "/v1/account-admission";
+        let mutation = method != reqwest::Method::GET && !admission;
         let inventory = !mutation && url.path().contains("/exports/");
         let mut request = self.http.request(method, url);
         if let Some((bytes, content_type)) = body {
@@ -734,7 +737,8 @@ impl Cloud {
     /// for a home that requires one.
     ///
     /// # Errors
-    /// Relay errors as returned; a malformed ticket is `Error::IntegrityFailed`.
+    /// Relay errors as returned; transient failures are retryable, not an
+    /// unknown account creation. A malformed ticket is `Error::IntegrityFailed`.
     pub async fn admission(
         &self,
         home: candid::Principal,

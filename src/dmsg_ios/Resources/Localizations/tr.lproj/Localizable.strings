@@ -3150,5 +3150,15 @@
 	<string>Tüm cihazlardan çıkış yap</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>Mevcut giriş yetkileri 12 saate kadar geçerli kalabilir. Cihazların içerik yetkileri korunur.</string>
+	<key>Use an existing passkey</key>
+	<string>Mevcut bir geçiş anahtarını kullan</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Açmak istediğiniz hesaba zaten bağlı bir giriş yöntemi kullanın.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Her yeni geçiş anahtarı ayrı bir giriş kimliği oluşturur. Mevcut hesabınıza eklemek için hesap güvenliğindeki Geçiş anahtarıyla giriş ekle seçeneğini kullanın.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Bu geçiş anahtarı dMsg’de kayıtlı değil. Başka bir anahtar seçin. Önceki oluşturma başarısız olduysa yeni bir anahtar oluşturmadan önce kullanılmayan anahtarı parola yöneticinizden kaldırın.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Parola yöneticiniz geçiş anahtarını kaydetti, ancak dMsg kaydı doğrulayamadı. Başka bir anahtar oluşturmadan önce bununla giriş yapmayı deneyin.</string>
 </dict>
 </plist>

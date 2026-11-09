@@ -3150,5 +3150,15 @@
 	<string>تسجيل الخروج من جميع الأجهزة</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>قد تبقى أذونات تسجيل الدخول الحالية صالحة لمدة تصل إلى 12 ساعة. تحتفظ أجهزة المحتوى بأذوناتها.</string>
+	<key>Use an existing passkey</key>
+	<string>استخدام مفتاح مرور موجود</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>استخدم وسيلة دخول مرتبطة بالفعل بالحساب الذي تريد فتحه.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>ينشئ كل مفتاح مرور جديد هوية دخول مستقلة. لإضافته إلى حسابك الحالي، استخدم إضافة تسجيل دخول بمفتاح مرور في أمان الحساب.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>مفتاح المرور هذا غير مسجل لدى dMsg. اختر مفتاحًا آخر. إذا فشل إنشاؤه سابقًا، فاحذف ذلك المفتاح غير المستخدم من مدير كلمات المرور قبل إنشاء مفتاح جديد.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>حفظ مدير كلمات المرور مفتاح المرور، لكن dMsg لم يتمكن من تأكيد التسجيل. جرّب تسجيل الدخول به قبل إنشاء مفتاح آخر.</string>
 </dict>
 </plist>

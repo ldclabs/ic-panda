@@ -3150,5 +3150,15 @@
 	<string>ออกจากระบบทุกอุปกรณ์</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>สิทธิ์เข้าสู่ระบบที่ออกแล้วอาจยังใช้ได้อีกสูงสุด 12 ชั่วโมง สิทธิ์เข้าถึงเนื้อหาของอุปกรณ์ยังคงอยู่</string>
+	<key>Use an existing passkey</key>
+	<string>ใช้พาสคีย์ที่มีอยู่</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>ใช้วิธีเข้าสู่ระบบที่เชื่อมโยงกับบัญชีที่คุณต้องการเปิดอยู่แล้ว</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>พาสคีย์ใหม่แต่ละรายการจะสร้างข้อมูลระบุตัวตนสำหรับเข้าสู่ระบบแยกกัน หากต้องการเพิ่มให้บัญชีปัจจุบัน ให้ใช้เพิ่มการเข้าสู่ระบบด้วยพาสคีย์ในการรักษาความปลอดภัยของบัญชี</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>พาสคีย์นี้ยังไม่ได้ลงทะเบียนกับ dMsg โปรดเลือกพาสคีย์อื่น หากการสร้างครั้งก่อนล้มเหลว ให้ลบพาสคีย์ที่ไม่ได้ใช้นั้นจากตัวจัดการรหัสผ่านก่อนสร้างใหม่</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>ตัวจัดการรหัสผ่านบันทึกพาสคีย์แล้ว แต่ dMsg ยังยืนยันการลงทะเบียนไม่ได้ ลองเข้าสู่ระบบด้วยพาสคีย์นั้นก่อนสร้างรายการใหม่</string>
 </dict>
 </plist>

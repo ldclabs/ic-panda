@@ -4,6 +4,24 @@ import XCTest
 
 final class AccountSettingsTests: XCTestCase {
     @MainActor
+    func testPasskeyFailuresExplainRegistrationAndKeepOtherLoginErrors() {
+        let model = SessionModel()
+        let missing = MobileError.Failure(code: "NOT_FOUND")
+        model.reportLoginFailure(missing, usingPasskey: true, operation: .login)
+        XCTAssertEqual(model.error, String(localized: "This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one."))
+        XCTAssertFalse(model.canResetPasskeySessions)
+        model.reportLoginFailure(missing, usingPasskey: false, operation: .login)
+        XCTAssertTrue(model.error?.hasSuffix("(NOT_FOUND)") == true)
+        model.reportLoginFailure(MobileError.Failure(code: "EXECUTION_UNKNOWN"), usingPasskey: true, operation: .register, credentialCreated: true)
+        XCTAssertEqual(model.error, String(localized: "Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey."))
+        model.reportLoginFailure(MobileError.Failure(code: "UNAVAILABLE"), usingPasskey: true, operation: .register)
+        XCTAssertNotEqual(model.error, String(localized: "Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey."))
+        model.error = nil
+        model.reportLoginFailure(CancellationError(), usingPasskey: true, operation: .register, credentialCreated: true)
+        XCTAssertNil(model.error)
+    }
+
+    @MainActor
     func testOnlyPasskeySessionCapacityOffersSigningOutAllDevices() {
         let model = SessionModel()
         let full = MobileError.Failure(code: "SESSION_LIMIT_EXCEEDED")

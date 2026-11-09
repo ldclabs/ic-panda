@@ -3150,5 +3150,15 @@
 	<string>Mag-sign out sa lahat ng device</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>Maaaring manatiling bisa ang mga kasalukuyang pahintulot sa login nang hanggang 12 oras. Mananatili ang pahintulot ng mga device sa nilalaman.</string>
+	<key>Use an existing passkey</key>
+	<string>Gumamit ng kasalukuyang passkey</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Gumamit ng login na naka-link na sa account na gusto mong buksan.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Bawat bagong passkey ay lumilikha ng hiwalay na pagkakakilanlan sa pag-login. Para idagdag ito sa kasalukuyang account, gamitin ang Magdagdag ng passkey login sa seguridad ng account.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Hindi nakarehistro sa dMsg ang passkey na ito. Pumili ng iba. Kung nabigo ang paggawa nito dati, alisin muna ang hindi nagamit na passkey sa password manager bago gumawa ng bago.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Na-save ng password manager ang passkey, pero hindi nakumpirma ng dMsg ang pagpaparehistro. Subukang mag-login gamit ito bago gumawa ng isa pa.</string>
 </dict>
 </plist>

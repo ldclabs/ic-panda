@@ -55,11 +55,24 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test passkey
 
 上述测量仍为小规模本地 fixture，不能推算生产吞吐或容量；未重跑桌面、iOS 或真实硬件流程，也未执行生产部署或主网压测。
 
+## 2026-11-09 注册预检查与 iOS 登录入口回归
+
+本节基于 `ic-panda@a6f7a2a2` 的修复工作区。注册先取得准入票据，再启动系统凭据创建；票据签发的临时网络失败按安全请求有界重试，不再误报未知注册结果。iOS 将创建与登录收进同一个入口，并说明新凭据与原账户绑定的区别；切换账号期间隐藏且抑制原账号本机解锁。
+
+- `cargo test --offline --locked -p dmsg_client --lib passkey`：7 项通过，包含注册预检查失败不进入创建 challenge。
+- `cargo test --offline --locked -p dmsg_client --lib cloud::tests`：11 项通过，包含准入请求临时失败重试、明确拒绝，以及普通写请求仍保持未知结果语义。
+- `cargo test --offline --locked -p dmsg_auth --lib`：8 项通过；`cargo clippy --offline --locked -p dmsg_client --lib --tests -- -D warnings` 通过。本次修改的四个 Rust 文件单独格式检查通过。
+- 重建设备/模拟器 Rust slice、UniFFI 与 XCFramework，源码指纹校验通过；Debug 链接仍有 `__eh_frame` 过大的警告，构建成功。
+- iPhone SE 小屏模拟器、iOS 18.4：App 构建与启动通过，123 项 Swift 单元测试和 5 项 UI 测试通过，0 失败、0 跳过。测试结果保存在本次运行的 `dmsg-passkey-tests.xcresult`。
+- 检查英文、简体中文、法语长文案、阿拉伯语 RTL 的合成界面与截图，覆盖浅色/深色、账号切换及取消、登录与创建入口、会话满额、普通限流和未注册凭据提示。另人工检查中文浅色页面。23 种语言资源检查通过。
+
+验证后工作区出现并行的收件箱相关修改，已保留，未纳入本次 Passkey 改动。整包 `cargo fmt --check -p dmsg_client` 随后在这些文件上报告格式差异；原生库最终指纹检查也因后续源码变化不再通过。上述构建与测试对应本轮已构建的 Passkey 版本，合并并行修改后须重新构建原生库与校验指纹。本轮没有执行真实系统 Passkey 注册、原账户绑定链路、生产部署或客户端发布。
+
 ## 尚未执行
 
 - 签名真机上的首次 Passkey 创建/登录、AuthenticationServices 的实际 origin、Keychain/Secure Enclave 跨重启和系统锁定后的恢复。
 - 真实桌面与 iOS 设备之间的 Passkey 同步、原账户绑定与设备批准整条链路。
 - 测试网或主网的目标容量、并发吞吐与长期运行测量，以及签名发行包发布验收。
-- 生产安装、升级或发布。只读核对已登记的 `mpld4-maaaa-aaaas-qhepa-cai` 时，`module_hash` 为空；客户端 `production.toml` 的 `auth` 仍为注释，没有启用生产入口。
+- 本轮未执行生产安装、升级或客户端发布。首次功能验证时 issuer 尚未安装；2026-11-09 本轮只读查询 `auth_stats` 已返回 `ready=true`、`admission_required=true`，源码 `production.toml` 也已启用生产 issuer。这不代替真实硬件注册与登录验收。
 
 部署顺序与公开合同见 [dmsg-passkey/1](protocol/passkey-v1_zh.md)。本次未修改 `dmsg_user` 的业务接口或状态布局，未部署私有 Worker，未重新声明历史互操作 fixture 的来源。

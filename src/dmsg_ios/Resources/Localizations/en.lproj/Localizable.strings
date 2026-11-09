@@ -3150,5 +3150,15 @@
 	<string>Sign out all devices</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</string>
+	<key>Use an existing passkey</key>
+	<string>Use an existing passkey</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Use a login already linked to the account you want to open.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</string>
 </dict>
 </plist>

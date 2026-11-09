@@ -194,6 +194,67 @@ fn relay_origins_are_https_or_local_loopback() {
 }
 
 #[tokio::test]
+async fn admission_retries_without_reporting_an_unknown_registration() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!("http://{}", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move {
+        let mut bodies = Vec::new();
+        for attempt in 0..3 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            let mut buffer = [0; 4096];
+            loop {
+                let size = socket.read(&mut buffer).await.unwrap();
+                assert_ne!(size, 0);
+                request.extend_from_slice(&buffer[..size]);
+                let text = String::from_utf8_lossy(&request).to_ascii_lowercase();
+                if let Some(end) = text.find("\r\n\r\n") {
+                    let length = text
+                        .lines()
+                        .find_map(|line| line.strip_prefix("content-length:"))
+                        .unwrap()
+                        .trim()
+                        .parse::<usize>()
+                        .unwrap();
+                    if request.len() >= end + 4 + length {
+                        assert!(text.starts_with("post /v1/account-admission "));
+                        bodies.push(request[end + 4..].to_vec());
+                        break;
+                    }
+                }
+            }
+            let (status, body) = match attempt {
+                0 => ("503 Service Unavailable", "unavailable".into()),
+                1 => (
+                    "200 OK",
+                    serde_json::json!({"ok": true, "data": {
+                        "expires_at": 123456, "signature": b64(&[7; 64])
+                    }})
+                    .to_string(),
+                ),
+                _ => ("403 Forbidden", "blocked".into()),
+            };
+            socket.write_all(format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        }
+        assert_eq!(
+            bodies[0], bodies[1],
+            "retry keeps the same ticket recipient"
+        );
+    });
+    let cloud = Cloud::new(&origin, true).unwrap();
+    let home = candid::Principal::from_slice(&[1]);
+    let caller = candid::Principal::self_authenticating([7; 32]);
+    let ticket = cloud.admission(home, caller).await.unwrap();
+    assert_eq!(ticket.expires_at, 123456);
+    assert!(matches!(
+        cloud.admission(home, caller).await,
+        Err(Error::Unavailable(_))
+    ));
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn an_edge_error_page_is_a_lost_reply() {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -233,6 +294,15 @@ async fn an_edge_error_page_is_a_lost_reply() {
     let cloud = Cloud::new(&origin, true).unwrap();
     assert!(matches!(
         cloud.public("/public/accounts/x/avatar/y").await,
+        Err(Error::Unavailable(_))
+    ));
+    assert!(matches!(
+        cloud
+            .admission(
+                candid::Principal::from_slice(&[1]),
+                candid::Principal::from_slice(&[2])
+            )
+            .await,
         Err(Error::Unavailable(_))
     ));
     let evidence = Evidence {

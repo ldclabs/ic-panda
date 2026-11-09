@@ -23,6 +23,7 @@ final class SessionModel {
     private var syncClock = Date.now
     var error: String?
     var canResetPasskeySessions = false
+    var signingIntoAnotherAccount = false
     var notice: String? { didSet { noticeRevision &+= 1 } }
     private(set) var noticeRevision: UInt64 = 0
     /// Visible screens form a presentation stack; only its last screen shows feedback.
@@ -1075,6 +1076,7 @@ final class SessionModel {
     }
 
     private func clearContent(clearClipboard: Bool) {
+        if clearClipboard { signingIntoAnotherAccount = false }
         stopAutomaticSync(.locked); contentSync = nil
         notifications.clearVisibility()
         (try? SystemExports(.files))?.lockFiles()
@@ -1101,17 +1103,15 @@ final class SessionModel {
         error = nil; canResetPasskeySessions = false; activity()
         authenticationGeneration &+= 1
         let current = authenticationGeneration
+        var credentialCreated = false
+        let usePasskey = !usingInternetIdentity && (passkeyOperation != .login || session?.passkeyAvailable == true)
         defer { finishBusyOperation(operation) }
         do {
             let state: SessionSnapshot
-            let usePasskey: Bool
-            switch passkeyOperation {
-            case .login: usePasskey = !usingInternetIdentity && session?.passkeyAvailable == true
-            default: usePasskey = !usingInternetIdentity
-            }
             if usePasskey {
                 let start = try await engine.beginPasskey(operation: passkeyOperation)
                 let response = try await passkeyLogin.authenticate(start)
+                credentialCreated = passkeyOperation == .register
                 await waitUntilActive()
                 guard current == authenticationGeneration else { return }
                 _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
@@ -1126,15 +1126,17 @@ final class SessionModel {
                 state = try await engine.completeLogin(callback: callback.absoluteString)
             }
             guard current == authenticationGeneration else { return }
-            try adopt(state); uncoverIfActive()
+            try adopt(state); signingIntoAnotherAccount = false; uncoverIfActive()
             if unlocked { await refresh() }
         } catch { if current == authenticationGeneration {
             engine.cancelLogin(); await updateSession()
-            reportLoginFailure(error, usingPasskey: !usingInternetIdentity && session?.passkeyAvailable == true, operation: passkeyOperation)
+            reportLoginFailure(error, usingPasskey: usePasskey, operation: passkeyOperation, credentialCreated: credentialCreated)
         } }
     }
 
-    func reportLoginFailure(_ failure: Error, usingPasskey: Bool, operation: PasskeyOperation) {
+    func reportLoginFailure(_ failure: Error, usingPasskey: Bool, operation: PasskeyOperation, credentialCreated: Bool = false) {
+        if failure is CancellationError || Task.isCancelled { return }
+        if let failure = failure as? MobileError, case .Failure(let code) = failure, code == "CANCELLED" || code == "LOCKED" { return }
         report(failure)
         canResetPasskeySessions = false
         if let failure = failure as? MobileError, case .Failure(let code) = failure {
@@ -1142,6 +1144,12 @@ final class SessionModel {
             if code == "QUOTA_EXCEEDED" {
                 self.error = String(localized: "The operation could not be completed. Please try again.")
             }
+            if usingPasskey && operation == .login && code == "NOT_FOUND" {
+                self.error = String(localized: "This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.")
+            }
+        }
+        if usingPasskey && operation == .register && credentialCreated {
+            self.error = String(localized: "Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.")
         }
     }
 
@@ -1211,7 +1219,7 @@ final class SessionModel {
     }
 
     private func unlockAutomaticallyIfNeeded() async {
-        guard isForeground, !concealed, engine != nil,
+        guard isForeground, !concealed, engine != nil, !signingIntoAnotherAccount,
               UIApplication.shared.applicationState == .active,
               UIApplication.shared.isProtectedDataAvailable,
               automaticUnlock.consume(locked: session?.state == "locked",

@@ -3150,5 +3150,15 @@
 	<string>Log keluar semua peranti</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>Kebenaran log masuk sedia ada boleh kekal sah sehingga 12 jam. Kebenaran kandungan peranti dikekalkan.</string>
+	<key>Use an existing passkey</key>
+	<string>Gunakan passkey sedia ada</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Gunakan log masuk yang sudah dipautkan kepada akaun yang ingin dibuka.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Setiap passkey baharu mencipta identiti log masuk berasingan. Untuk menambahnya kepada akaun semasa, gunakan Tambah log masuk passkey dalam keselamatan akaun.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Passkey ini belum didaftarkan dengan dMsg. Pilih passkey lain. Jika penciptaan terdahulu gagal, alih keluar passkey yang tidak digunakan itu daripada pengurus kata laluan sebelum mencipta yang baharu.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Pengurus kata laluan telah menyimpan passkey, tetapi dMsg tidak dapat mengesahkan pendaftaran. Cuba log masuk dengannya sebelum mencipta passkey lain.</string>
 </dict>
 </plist>

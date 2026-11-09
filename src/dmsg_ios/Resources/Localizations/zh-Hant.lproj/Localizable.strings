@@ -3141,7 +3141,7 @@
 	<key>not available</key>
 	<string>無法使用</string>
 	<key>Continue with a passkey</key>
-	<string>使用通行密鑰登入</string>
+	<string>使用通行密鑰</string>
 	<key>Create a passkey</key>
 	<string>建立通行密鑰</string>
 	<key>Add a passkey login</key>
@@ -3150,5 +3150,15 @@
 	<string>登出所有裝置</string>
 	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
 	<string>已簽發的登入授權最長仍可使用 12 小時。內容裝置的授權保持不變。</string>
+	<key>Use an existing passkey</key>
+	<string>使用現有通行密鑰</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>請使用已連結目標帳號的登入方式。</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>每次建立都會產生獨立的登入身分。要為目前帳號新增通行密鑰，請前往帳號安全中的「新增通行密鑰登入」。</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>此通行密鑰尚未在 dMsg 註冊，請選擇其他密鑰。如果先前建立失敗，請先從密碼管理器移除那枚未使用的密鑰，再重新建立。</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>密碼管理器已儲存通行密鑰，但 dMsg 尚未確認註冊。請先嘗試用它登入，再決定是否建立新的密鑰。</string>
 </dict>
 </plist>
