@@ -121,6 +121,8 @@ impl MobileEngine {
         wallet_access_reviewed: bool,
         request_id: String,
     ) -> Result<ObjectSnapshot> {
+        self.held(|h| Box::pin(async { dmsg_client::hold::Hold::ensure_login(h).await }))
+            .await?;
         let preview: Value = serde_json::from_str(&self.account_deletion_preview().await?.json)
             .map_err(|_| Error::IntegrityFailed)?;
         ensure(preview["digest"] == digest, Error::VersionConflict)?;

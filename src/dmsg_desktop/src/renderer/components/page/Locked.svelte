@@ -16,7 +16,7 @@
       ? 'loggedOutHint'
       : status?.state === 'moved'
         ? 'movedHint'
-        : locked && !status.fast_unlock
+        : locked && !status.fast_unlock && !status.login_renewable
           ? 'lockedNeedsLogin'
           : locked && status.fast_presence
             ? 'lockedPresence'
@@ -32,7 +32,7 @@
       <button class={buttonClass('primary')} onclick={step.run} disabled={$unlocking} aria-busy={$unlocking} data-testid="locked-step"><Icon name={$unlocking ? 'pending' : step.icon} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : t(step.label)}</button>
     {/if}
     {#if locked && status.fast_unlock}
-      <button class={buttonClass('ghost', 'sm')} disabled={$unlocking} onclick={() => startLogin()} data-testid="locked-login">{t('loginWithIi')}</button>
+      <button class={buttonClass('ghost', 'sm')} disabled={$unlocking} onclick={() => startLogin()} data-testid="locked-login">{t(status?.passkey_available ? 'loginWithPasskey' : 'loginWithIi')}</button>
     {/if}
   </div>
 </div>

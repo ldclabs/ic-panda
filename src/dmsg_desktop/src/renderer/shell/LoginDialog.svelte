@@ -25,7 +25,7 @@
 
   const current = $derived(steps.findIndex((step) => step.phase === login.phase))
   const until = $derived(login.expiresAt ? new Date(login.expiresAt).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' }) : '')
-  const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
+  const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.action === 'logout_all' ? t('logoutAllLogins') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
   const icon = $derived<Glyph>(login.phase === 'failed' ? 'warning' : 'login')
 
   onMount(() => onChange(['login/changed', 'session/changed'], checkLogin))
@@ -55,12 +55,12 @@
           >
             {#if index < current}<Icon name="check" class="size-3.5" />{:else}{index + 1}{/if}
           </span>
-          <span class={cn(index === current && 'shimmer font-medium')}>{t(step.label)}</span>
+          <span class={cn(index === current && 'shimmer font-medium')}>{t(index === 1 && login.provider === 'passkey' ? 'passkeyStep' : step.label)}</span>
         </li>
       {/each}
     </ol>
     {#if login.phase === 'browser'}
-      <p class="mt-4 text-[13px] leading-relaxed text-ink-2">{login.bind ? t('loginBindBody') : t('loginWaitBody')}</p>
+      <p class="mt-4 text-[13px] leading-relaxed text-ink-2">{login.action === 'logout_all' ? t('logoutAllLoginsHint') : login.provider === 'passkey' ? t('passkeyWaitBody') : login.bind ? t('loginBindBody') : t('loginWaitBody')}</p>
       {#if until}<p class="mt-1.5 text-[12px] text-faint">{t('loginValidUntil', { time: until })}</p>{/if}
     {:else if login.phase === 'checking'}
       <p class="mt-4 text-[13px] leading-relaxed text-ink-2">{t('loginCheckingBody')}</p>
@@ -72,9 +72,12 @@
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={reopenLogin} data-testid="login-reopen"><Icon name="external" />{t('loginReopen')}</button>
     {:else if login.phase === 'failed'}
+      {#if login.provider === 'passkey' && login.action === 'login' && login.detail === 'QUOTA_EXCEEDED'}
+        <button class={buttonClass('secondary', 'sm')} onclick={() => startLogin(false, 'https://dmsg.net', 'passkey', 'logout_all')} data-testid="login-reset-devices">{t('logoutAllLogins')}</button>
+      {/if}
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>
-      <button class={buttonClass('primary', 'sm')} onclick={() => startLogin(login.bind, login.origin)} data-testid="login-retry"><Icon name="sync-now" />{t('retry')}</button>
+      <button class={buttonClass('primary', 'sm')} onclick={() => startLogin(login.bind, login.origin, login.provider, login.action)} data-testid="login-retry"><Icon name="sync-now" />{t('retry')}</button>
     {:else}
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>

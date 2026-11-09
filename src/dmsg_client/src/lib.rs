@@ -48,6 +48,8 @@ pub mod moved;
 pub mod notifications;
 pub mod outbox;
 pub mod pairing;
+/// First-party Passkey login and shared on-demand renewal.
+pub mod passkey;
 pub mod payer;
 pub mod payment;
 pub mod principal;

@@ -3140,5 +3140,15 @@
 	<string>তৈরি হয়েছে</string>
 	<key>not available</key>
 	<string>উপলব্ধ নয়</string>
+	<key>Continue with a passkey</key>
+	<string>পাসকি দিয়ে চালিয়ে যান</string>
+	<key>Create a passkey</key>
+	<string>পাসকি তৈরি করুন</string>
+	<key>Add a passkey login</key>
+	<string>পাসকি লগইন যোগ করুন</string>
+	<key>Sign out all devices</key>
+	<string>সব ডিভাইস থেকে সাইন আউট করুন</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>বর্তমান লগইন অনুমতি আরও ১২ ঘণ্টা পর্যন্ত বৈধ থাকতে পারে। ডিভাইসের বিষয়বস্তুর অনুমতি অপরিবর্তিত থাকে।</string>
 </dict>
 </plist>

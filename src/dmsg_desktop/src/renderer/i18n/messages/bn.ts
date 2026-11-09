@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "পাসকি দিয়ে চালিয়ে যান",
+    "createPasskey": "পাসকি তৈরি করুন",
+    "bindPasskey": "পাসকি লগইন যোগ করুন",
+    "logoutAllLogins": "সব ডিভাইস থেকে সাইন আউট করুন",
+    "loggedOut": "সাইন আউট হয়েছে",
+    "passkeyStep": "পাসকি দিয়ে নিশ্চিত করুন",
+    "passkeyLoginHint": "এই ডিভাইস আপনাকে সাইন ইন রাখে। স্থানীয় বিষয়বস্তু আনলক করতে এখনও আপনার নিশ্চিতকরণ প্রয়োজন।",
+    "passkeyWaitBody": "ব্রাউজারে পাসকি দিয়ে নিশ্চিত করে dMsg-এ ফিরে আসুন।",
+    "logoutAllLoginsHint": "বর্তমান লগইন অনুমতি আরও ১২ ঘণ্টা পর্যন্ত বৈধ থাকতে পারে। ডিভাইসের বিষয়বস্তুর অনুমতি অপরিবর্তিত থাকে।",
     "orderQuoted": "পেমেন্টের অপেক্ষায়",
     "orderAdmitted": "পৌঁছানো হচ্ছে",
     "orderDelivered": "পৌঁছেছে",

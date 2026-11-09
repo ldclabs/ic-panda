@@ -111,6 +111,18 @@ impl MobileEngine {
         };
         let generation = self.host.generation();
         let (read_id, shown) = (id.clone(), digest.clone());
+        if approve {
+            let login_id = id.clone();
+            self.held(move |h| {
+                Box::pin(async move {
+                    if h.with(|c| c.approval_needs_login(&login_id)).await? {
+                        h.ensure_login().await?;
+                    }
+                    Ok(())
+                })
+            })
+            .await?;
+        }
         let ask = self
             .host
             .run_at(generation, move |c| {

@@ -108,7 +108,15 @@ under the service `dmsg`. `"file"`, the default elsewhere, keeps the owner
 credential in `owner.token`; fast unlock is then unavailable.
 
 Fast unlock turns on with every login unlock unless `fast-unlock disable`
-turned it off. `dmsg login` asks Internet Identity for thirty days, independently
+turned it off. With `auth` configured and supported hardware, `dmsg login` defaults
+to Passkey. `login --provider ii` selects Internet Identity;
+`login --provider passkey --action register` creates a Passkey identity;
+`login --bind --provider passkey` binds a new one to the current account;
+`login --provider passkey --action logout_all` confirms ending all login grants,
+including when a new device cannot log in because the session limit was reached.
+The Passkey grant renews on demand; see the [contract](../../docs/protocol/passkey-v1_zh.md).
+
+Internet Identity login asks for thirty days, independently
 of hardware-protected local unlock. On macOS the
 Secure Enclave keeps its key (`src/enclave.rs`, CryptoKit through
 `swift/Enclave.swift`, which `build.rs` compiles; building on macOS needs the

@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "パスキーで続ける",
+  "Create a passkey": "パスキーを作成",
+  "Sign out all devices": "すべてのデバイスからログアウト",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "このデバイスではログインが維持されます。ローカルの内容を開くには引き続き本人確認が必要です。",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "発行済みのログイン権限は最大 12 時間有効です。コンテンツへのデバイス権限は維持されます。",
+  "Confirm with your passkey to sign out all devices.": "パスキーで確認して、すべてのデバイスからログアウトします。",
+  "Use your passkey to continue to the dMsg app.": "パスキーを使って dMsg に進んでください。",
+  "Waiting for your passkey…": "パスキーを待っています…",
   'Documentation': 'ドキュメント',
   "Pricing": "料金",
   "Membership": "メンバーシップ",

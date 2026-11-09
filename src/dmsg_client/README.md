@@ -810,3 +810,7 @@ is separate from the final whole-file integrity check and catalog update. Failed
 integrity checks never mark a task done. Completed task records age out when new
 work is queued. These jobs require a host runner; they do not start network work
 merely because the core was opened.
+
+## Passkey login
+
+With a configured `auth` canister and hardware presence support, `passkey` supplies independent P-256 login keys and fixed 12-hour canister delegations. `Hold::ensure_login` derives scoped memory keys locally or renews outside the client lock, coalescing concurrent requests. Credential slots are separate from the content LDK and persist only after device binding. Lock keeps the grant; local logout deletes it and makes a bounded remote attempt; unbinding also logs out. Local browsing/copying never invokes renewal. II remains available. See [the public contract](../../docs/protocol/passkey-v1_zh.md) and [validation record](../../docs/passkey-validation_zh.md).

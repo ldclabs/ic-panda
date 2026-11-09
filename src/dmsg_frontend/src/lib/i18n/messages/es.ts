@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "Continuar con una clave de acceso",
+  "Create a passkey": "Crear una clave de acceso",
+  "Sign out all devices": "Cerrar sesión en todos los dispositivos",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "Este dispositivo mantiene tu sesión. Desbloquear el contenido local sigue requiriendo tu confirmación.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "Las autorizaciones de acceso existentes pueden seguir siendo válidas hasta 12 horas. Los dispositivos conservan su acceso al contenido.",
+  "Confirm with your passkey to sign out all devices.": "Confirma con tu clave de acceso para cerrar sesión en todos los dispositivos.",
+  "Use your passkey to continue to the dMsg app.": "Usa tu clave de acceso para continuar en dMsg.",
+  "Waiting for your passkey…": "Esperando tu clave de acceso…",
   'Documentation': 'Documentación',
   "Pricing": "Precios",
   "Membership": "Membresía",

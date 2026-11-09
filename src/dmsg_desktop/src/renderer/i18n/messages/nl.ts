@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "Doorgaan met een toegangssleutel",
+    "createPasskey": "Toegangssleutel maken",
+    "bindPasskey": "Aanmelding met toegangssleutel toevoegen",
+    "logoutAllLogins": "Alle apparaten afmelden",
+    "loggedOut": "Afgemeld",
+    "passkeyStep": "Bevestig met je toegangssleutel",
+    "passkeyLoginHint": "Dit apparaat houdt je aangemeld. Het ontgrendelen van lokale inhoud vereist nog steeds je bevestiging.",
+    "passkeyWaitBody": "Bevestig met je toegangssleutel in de browser en keer terug naar dMsg.",
+    "logoutAllLoginsHint": "Bestaande aanmeldrechten kunnen nog maximaal 12 uur geldig blijven. Apparaten behouden hun toegang tot inhoud.",
     "orderQuoted": "Wacht op betaling",
     "orderAdmitted": "Onderweg",
     "orderDelivered": "Bezorgd",

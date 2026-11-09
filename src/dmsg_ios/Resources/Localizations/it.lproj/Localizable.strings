@@ -3140,5 +3140,15 @@
 	<string>creata</string>
 	<key>not available</key>
 	<string>non disponibile</string>
+	<key>Continue with a passkey</key>
+	<string>Continua con una passkey</string>
+	<key>Create a passkey</key>
+	<string>Crea una passkey</string>
+	<key>Add a passkey login</key>
+	<string>Aggiungi un accesso con passkey</string>
+	<key>Sign out all devices</key>
+	<string>Esci da tutti i dispositivi</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Le autorizzazioni di accesso esistenti possono restare valide fino a 12 ore. I dispositivi mantengono l’accesso ai contenuti.</string>
 </dict>
 </plist>

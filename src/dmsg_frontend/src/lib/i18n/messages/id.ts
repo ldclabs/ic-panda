@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "Lanjutkan dengan kunci sandi",
+  "Create a passkey": "Buat kunci sandi",
+  "Sign out all devices": "Keluar dari semua perangkat",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "Perangkat ini mempertahankan login Anda. Membuka konten lokal tetap memerlukan konfirmasi Anda.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "Otorisasi login yang ada dapat tetap berlaku hingga 12 jam. Izin konten perangkat tetap dipertahankan.",
+  "Confirm with your passkey to sign out all devices.": "Konfirmasikan dengan kunci sandi untuk keluar dari semua perangkat.",
+  "Use your passkey to continue to the dMsg app.": "Gunakan kunci sandi untuk melanjutkan ke dMsg.",
+  "Waiting for your passkey…": "Menunggu kunci sandi…",
   'Documentation': 'Dokumentasi',
   "Pricing": "Harga",
   "Membership": "Keanggotaan",

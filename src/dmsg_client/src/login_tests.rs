@@ -163,6 +163,7 @@ fn test_config() -> Config {
         ic_host: "https://icp-api.io".into(),
         relay: "https://api.dmsg.test".into(),
         handle: Principal::anonymous(),
+        auth: None,
         user_homes: vec![],
         root_key: None,
         login_url: crate::config::LOGIN_URL.into(),

@@ -53,7 +53,7 @@ body: { home: bstr(user home Principal), principal: bstr(创建账户的登录 P
 200 { ok: true, data: { expires_at: <Unix 毫秒>, signature: <base64url> } }
 ```
 
-签名是准入私钥对 `digest("dmsg/account-admission/v1", (home, principal, expires_at))` 的 Ed25519 签名，字节规则见协议向量 `account_admission_v1`。请求不带 PoP：票据绑定了 principal，只有该 principal 自己调用 `create_account` 才能使用，每个 principal 在一个 home 只能建一个账户。服务端只为配置的 user home 签发，按请求来源限流；限流耗尽返回 `QUOTA_EXCEEDED`。`expires_at` 不超过签发后 5 分钟，home 接受最长 10 分钟的剩余期限，余量覆盖时钟误差。票据不授予账户或设备权限，未使用的票据过期即作废。
+签名是准入私钥对 `digest("dmsg/account-admission/v1", (home, principal, expires_at))` 的 Ed25519 签名，字节规则见协议向量 `account_admission_v1`。请求不带 PoP：票据绑定了 principal，只有该 principal 自己调用 `create_account` 才能使用，每个 principal 在一个 home 只能建一个账户。同一票据也用于 `dmsg_auth.register`：home 为配置的 auth canister ID，principal 为硬件钥匙 caller。准入服务只为配置的 user home 或 auth issuer 签发；auth 不加入账户信任列表。服务按请求来源限流；限流耗尽返回 `QUOTA_EXCEEDED`。`expires_at` 不超过签发后 5 分钟，home 接受最长 10 分钟的剩余期限，余量覆盖时钟误差。票据不授予账户或设备权限，未使用的票据过期即作废。
 
 ## 账户证据
 

@@ -125,7 +125,7 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     /// cannot open is another iPhone's.
     func signAnchor(handle: Data, message: Data) throws -> Data {
         guard SecureEnclave.isAvailable else { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
-        guard !handle.isEmpty, message.count == 32 else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+        guard !handle.isEmpty, !message.isEmpty, message.count <= 512 else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
         let context = LAContext()
         context.interactionNotAllowed = true
         let key: SecureEnclave.P256.Signing.PrivateKey

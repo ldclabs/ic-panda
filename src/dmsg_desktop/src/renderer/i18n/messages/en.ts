@@ -5,6 +5,15 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+    "loginWithPasskey": "Continue with a passkey",
+    "createPasskey": "Create a passkey",
+    "bindPasskey": "Add a passkey login",
+    "logoutAllLogins": "Sign out all devices",
+    "loggedOut": "Signed out",
+    "passkeyStep": "Confirm with your passkey",
+    "passkeyLoginHint": "Your device keeps you signed in. Unlocking your local content still requires your confirmation.",
+    "passkeyWaitBody": "Use your passkey in the browser, then return to dMsg.",
+    "logoutAllLoginsHint": "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.",
     "orderQuoted": "Waiting for payment",
     "orderAdmitted": "On its way",
     "orderDelivered": "Delivered",

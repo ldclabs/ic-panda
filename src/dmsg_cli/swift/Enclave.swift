@@ -237,7 +237,17 @@ public func dmsgSeAnchorSign(
     _ handle: UnsafePointer<UInt8>, _ length: Int, _ message: UnsafePointer<UInt8>,
     _ signature: UnsafeMutablePointer<UInt8>
 ) -> Int32 {
+    dmsgSeLoginSign(handle, length, message, 32, signature)
+}
+
+/// IC ingress and delegation signatures with an independent silent login key.
+@_cdecl("dmsg_se_login_sign")
+public func dmsgSeLoginSign(
+    _ handle: UnsafePointer<UInt8>, _ length: Int, _ message: UnsafePointer<UInt8>,
+    _ messageLength: Int, _ signature: UnsafeMutablePointer<UInt8>
+) -> Int32 {
     guard SecureEnclave.isAvailable else { return unavailable }
+    guard length > 0, length <= 4096, messageLength > 0, messageLength <= 512 else { return unusable }
     let context = LAContext()
     context.interactionNotAllowed = true
     let key: SecureEnclave.P256.Signing.PrivateKey
@@ -248,7 +258,7 @@ public func dmsgSeAnchorSign(
         return unusable
     }
     do {
-        let signed = try key.signature(for: Data(bytes: message, count: 32))
+        let signed = try key.signature(for: Data(bytes: message, count: messageLength))
         return copy(signed.rawRepresentation, signature, 64) ? done : unavailable
     } catch {
         return systemFailure(error)

@@ -1069,6 +1069,7 @@ pub(crate) async fn authorize<H: Hold>(
     purpose: ApprovalPurpose,
     action_digest: Hash,
 ) -> Result<(Hash, ApplicationApproval)> {
+    h.ensure_login().await?;
     if job.approval.is_none() {
         let (app, _) = registrations(h).await?;
         let (actor, _) = identity(h).await?;

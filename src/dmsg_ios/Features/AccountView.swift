@@ -23,12 +23,12 @@ struct AccountView: View {
         List {
             accountHeader
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
-            if model.unlocked && (model.session?.loginExpiresAtMs ?? 0) <= UInt64(loginCheckedAt.timeIntervalSince1970 * 1000) {
+            if model.unlocked && model.session?.loginRenewable != true && (model.session?.loginExpiresAtMs ?? 0) <= UInt64(loginCheckedAt.timeIntervalSince1970 * 1000) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Your local content remains available. Sign in with Internet Identity when an account action requires it.")
                         .font(.footnote).foregroundStyle(.secondary)
                         .accessibilityIdentifier("account.login-hint")
-                    SettingsAction("Continue with Internet Identity") { Task { await model.login() } }
+                    SettingsAction("Continue with Internet Identity") { Task { await model.login(usingInternetIdentity: true) } }
                         .disabled(model.busy).accessibilityIdentifier("account.login")
                 }
             }

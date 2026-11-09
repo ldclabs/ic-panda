@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "패스키로 계속",
+  "Create a passkey": "패스키 만들기",
+  "Sign out all devices": "모든 기기에서 로그아웃",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "이 기기는 로그인 상태를 유지합니다. 로컬 콘텐츠를 잠금 해제하려면 여전히 본인 확인이 필요합니다.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "기존 로그인 권한은 최대 12시간 동안 유효할 수 있습니다. 기기의 콘텐츠 접근 권한은 유지됩니다.",
+  "Confirm with your passkey to sign out all devices.": "패스키로 확인하여 모든 기기에서 로그아웃하세요.",
+  "Use your passkey to continue to the dMsg app.": "패스키를 사용하여 dMsg로 계속하세요.",
+  "Waiting for your passkey…": "패스키를 기다리는 중…",
   'Documentation': '문서',
   "Pricing": "요금",
   "Membership": "멤버십",

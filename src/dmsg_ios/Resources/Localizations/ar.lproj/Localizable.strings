@@ -3140,5 +3140,15 @@
 	<string>مُنشأ</string>
 	<key>not available</key>
 	<string>غير متاح</string>
+	<key>Continue with a passkey</key>
+	<string>المتابعة بمفتاح مرور</string>
+	<key>Create a passkey</key>
+	<string>إنشاء مفتاح مرور</string>
+	<key>Add a passkey login</key>
+	<string>إضافة تسجيل دخول بمفتاح مرور</string>
+	<key>Sign out all devices</key>
+	<string>تسجيل الخروج من جميع الأجهزة</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>قد تبقى أذونات تسجيل الدخول الحالية صالحة لمدة تصل إلى 12 ساعة. تحتفظ أجهزة المحتوى بأذوناتها.</string>
 </dict>
 </plist>

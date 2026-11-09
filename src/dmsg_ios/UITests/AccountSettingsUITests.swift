@@ -46,6 +46,35 @@ import XCTest
         }
     }
 
+    func testPasskeyWelcomeAndRenewableExpiry() {
+        for language in ["en", "zh-Hans", "fr", "ar"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-passkey", "--ui-welcome", "--ui-passkey-full", "-AppleLanguages", "(\(language))"] + (language == "en" ? [] : ["--ui-dark"])
+            app.launch()
+            XCTAssertTrue(app.buttons["login.start"].waitForExistence(timeout: 8))
+            XCTAssertTrue(app.buttons["login.create-passkey"].exists)
+            XCTAssertTrue(app.buttons["login.ii"].exists)
+            XCTAssertTrue(app.buttons["login.reset-devices"].exists)
+            capture(app, "Passkey welcome · \(language)")
+            let reset = app.buttons["login.reset-devices"]
+            for _ in 0..<4 where !reset.isHittable { app.swipeUp() }
+            XCTAssertTrue(reset.isHittable)
+            capture(app, "Passkey session limit action · \(language)")
+            app.terminate()
+        }
+        let app = open(["--ui-passkey", "--ui-login-expired"])
+        XCTAssertTrue(app.buttons["account.lock"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["account.login"].exists)
+        app.buttons["Vault"].tap()
+        app.buttons["vault.item.fixture-github"].tap()
+        let copy = app.buttons["vault.copy.password"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 5)); copy.tap()
+        XCTAssertTrue(app.staticTexts.matching(identifier: "workspace.notice").firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.sheets.firstMatch.exists)
+        capture(app, "Expired renewable login keeps local copy available")
+        app.terminate()
+    }
+
     func testLoginExpiryOnlyAddsAnAccountAction() {
         let app = open(["--ui-login-expiring"])
         // The account page shows well before the fixture login expires.

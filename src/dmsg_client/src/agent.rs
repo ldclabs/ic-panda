@@ -989,6 +989,7 @@ pub async fn controller_request<H: Hold>(
 /// # Errors
 /// As [`Client::principal_publish`].
 pub async fn principal_publish<H: Hold>(h: &H) -> Result<u64> {
+    h.ensure_login().await?;
     let h = Unlocked::new(h).await?;
     let (account, ic) = h
         .with(|c| Ok((c.account()?.clone(), c.session()?.ic.clone())))

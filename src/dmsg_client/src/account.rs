@@ -1118,6 +1118,7 @@ pub(crate) async fn read_account(
 /// # Errors
 /// As [`Client::pair_request`]; locking or switching the workspace cancels it.
 pub async fn pair_request<H: Hold>(h: &H, role: ControllerRole) -> Result<PairingToken> {
+    h.ensure_login().await?;
     let h = crate::hold::Session::new(h).await?;
     let (ic, handle, pins) = h
         .with(|c| {
@@ -1153,6 +1154,7 @@ pub async fn pair_request<H: Hold>(h: &H, role: ControllerRole) -> Result<Pairin
 /// # Errors
 /// Returns `Error::AuthRequired` without a login, and as [`Client::refresh`].
 pub(crate) async fn refreshed<H: Hold>(h: &H) -> Result<AccountState> {
+    h.ensure_login().await?;
     let (ic, account) = h
         .with(|c| Ok((c.session()?.ic.clone(), c.account()?.clone())))
         .await?;

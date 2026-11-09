@@ -18,6 +18,8 @@ export const login = $state({
   bind: false,
   /** The derivation origin: https://dmsg.net, or https://panda.fans for an identity of the old site. */
   origin: 'https://dmsg.net',
+  provider: undefined as 'ii' | 'passkey' | undefined,
+  action: 'login' as 'login' | 'register' | 'logout_all',
   url: '',
   expiresAt: 0,
   /** Why it failed, as a label so it follows the language. */
@@ -37,14 +39,14 @@ let expiry: ReturnType<typeof setTimeout> | undefined
  * account. `origin` https://panda.fans logs in with an identity of the old
  * site, such as the holder of a frozen name.
  */
-export async function startLogin(bind = false, origin = 'https://dmsg.net') {
+export async function startLogin(bind = false, origin = 'https://dmsg.net', provider?: 'ii' | 'passkey', action: 'login' | 'register' | 'logout_all' = bind ? 'register' : 'login') {
   const id = ++run
   clearTimeout(expiry)
-  Object.assign(login, { phase: 'starting', bind, origin, url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
+  Object.assign(login, { phase: 'starting', bind, origin, provider, action, url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
   try {
-    const started = await bridge<{ url: string; expires_at: number }>(() => window.dmsg.login(origin, bind))
+    const started = await bridge(() => window.dmsg.login(origin, bind, { provider, action }))
     if (id !== run) return
-    Object.assign(login, { phase: 'browser', url: started.url, expiresAt: started.expires_at })
+    Object.assign(login, { phase: 'browser', provider: started.provider ?? 'ii', url: started.url, expiresAt: started.expires_at })
     expiry = setTimeout(() => void checkLogin(), Math.max(0, started.expires_at - Date.now()) + 1000)
   } catch (error) {
     if (id === run) fail(code(error), error instanceof CallError ? error.message : String(error))
@@ -87,12 +89,13 @@ export async function checkLogin() {
   if (result.error) return fail(result.error.code, result.error.message)
   if (!result.done) return fail('EXPIRED')
   const bind = login.bind
+  const action = login.action
   closeLogin()
   if (bind) {
     if (result.approval) await bridge(() => window.dmsg.openApproval(result.approval.id)).catch(() => {})
     return
   }
-  toast(() => t('loggedIn'))
+  toast(() => t(action === 'logout_all' ? 'loggedOut' : 'loggedIn'))
   if (setupStates.includes(result.status?.state)) location.hash = '/settings/session'
 }
 
@@ -104,7 +107,7 @@ function fail(failure: string, message = '') {
   const page = /(?:^|: )login: (\w+)$/.exec(message)?.[1]
   Object.assign(login, {
     phase: 'failed',
-    reason: page ? (page === 'user_cancelled' ? 'loginCancelled' : 'loginPageFailed') : (failureLabel(failure) ?? reasons[failure] ?? 'loginFailedHint'),
+    reason: page ? (page === 'user_cancelled' ? 'loginCancelled' : login.provider === 'passkey' ? 'loginFailedHint' : 'loginPageFailed') : (failureLabel(failure) ?? reasons[failure] ?? 'loginFailedHint'),
     detail: /^[A-Z_]+$/.test(failure) ? failure : ''
   })
 }

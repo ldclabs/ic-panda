@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "पासकी से जारी रखें",
+  "Create a passkey": "पासकी बनाएँ",
+  "Sign out all devices": "सभी डिवाइस से साइन आउट करें",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "यह डिवाइस आपको साइन इन रखता है। स्थानीय सामग्री अनलॉक करने के लिए अब भी आपकी पुष्टि चाहिए।",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "मौजूदा लॉगिन अनुमतियाँ 12 घंटे तक मान्य रह सकती हैं। डिवाइस की सामग्री अनुमतियाँ बनी रहती हैं।",
+  "Confirm with your passkey to sign out all devices.": "सभी डिवाइस से साइन आउट करने के लिए पासकी से पुष्टि करें।",
+  "Use your passkey to continue to the dMsg app.": "dMsg में जारी रखने के लिए अपनी पासकी इस्तेमाल करें।",
+  "Waiting for your passkey…": "आपकी पासकी की प्रतीक्षा है…",
   'Documentation': 'दस्तावेज़',
   "Pricing": "मूल्य",
   "Membership": "सदस्यता",

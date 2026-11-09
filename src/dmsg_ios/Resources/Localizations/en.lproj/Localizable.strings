@@ -3140,5 +3140,15 @@
 	<string>made</string>
 	<key>not available</key>
 	<string>not available</string>
+	<key>Continue with a passkey</key>
+	<string>Continue with a passkey</string>
+	<key>Create a passkey</key>
+	<string>Create a passkey</string>
+	<key>Add a passkey login</key>
+	<string>Add a passkey login</string>
+	<key>Sign out all devices</key>
+	<string>Sign out all devices</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</string>
 </dict>
 </plist>

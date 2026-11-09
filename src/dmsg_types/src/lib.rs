@@ -3,6 +3,8 @@
 pub mod account;
 pub mod agent;
 pub mod app_store;
+/// Passkey login and renewable device sessions.
+pub mod auth;
 pub mod billing;
 /// dmsg-connect/1 messages between the bridge page, the relay and devices.
 pub mod connect;

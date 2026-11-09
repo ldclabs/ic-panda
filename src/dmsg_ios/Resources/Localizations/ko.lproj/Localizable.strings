@@ -3140,5 +3140,15 @@
 	<string>생성됨</string>
 	<key>not available</key>
 	<string>사용 불가</string>
+	<key>Continue with a passkey</key>
+	<string>패스키로 계속</string>
+	<key>Create a passkey</key>
+	<string>패스키 만들기</string>
+	<key>Add a passkey login</key>
+	<string>패스키 로그인 추가</string>
+	<key>Sign out all devices</key>
+	<string>모든 기기에서 로그아웃</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>기존 로그인 권한은 최대 12시간 동안 유효할 수 있습니다. 기기의 콘텐츠 접근 권한은 유지됩니다.</string>
 </dict>
 </plist>

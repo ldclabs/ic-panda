@@ -460,6 +460,7 @@ async fn reconcile_read<H: Hold>(h: &H, key: &str) -> Result<()> {
 }
 
 pub(super) async fn authentication_result<H: Hold>(h: &H, job: &AuthJob) -> Result<Json> {
+    h.ensure_login().await?;
     let (account, ic) = h
         .with(|c| Ok((c.account()?.clone(), c.session()?.ic.clone())))
         .await?;

@@ -95,7 +95,7 @@ pub(crate) struct Login {
     pub(crate) principal: Principal,
     pub(crate) expires_at: u64,
     /// What restores it after a fast unlock.
-    kept: KeptLogin,
+    pub(crate) kept: KeptLogin,
 }
 
 /// What the credential store keeps for fast unlock.
@@ -313,6 +313,10 @@ pub struct Status {
     pub principal: Option<String>,
     /// When the login's delegation expires, in Unix milliseconds.
     pub login_expires_at: Option<u64>,
+    /// This login can renew without interactive authentication.
+    pub login_renewable: bool,
+    /// First-party Passkey entry is configured and hardware is available.
+    pub passkey_available: bool,
     /// `logged_out`, `locked`, `no_account`, `pairing_required`,
     /// `root_required` or `unlocked`.
     pub state: &'static str,
@@ -443,6 +447,10 @@ pub struct Client {
     pub(crate) workspace: Workspace,
     pub(crate) cloud: Cloud,
     pub(crate) login: Option<Login>,
+    pub(crate) passkey: Option<crate::passkey::DeviceLogin>,
+    pub(crate) login_renewal: Arc<tokio::sync::Mutex<()>>,
+    pub(crate) login_renewal_sequence: u64,
+    pub(crate) login_renewal_failure: Option<Error>,
     pub(crate) anonymous: Option<Ic>,
     pub(crate) keys: Option<Keys>,
     resident: Option<Zeroizing<Key>>,
@@ -815,6 +823,10 @@ impl Client {
             workspace,
             cloud,
             login: None,
+            passkey: None,
+            login_renewal: Arc::new(tokio::sync::Mutex::new(())),
+            login_renewal_sequence: 0,
+            login_renewal_failure: None,
             anonymous: None,
             keys: None,
             resident: None,
@@ -1198,8 +1210,13 @@ impl Client {
             device_id: (self.slot != Slot::Idle).then(|| hex::encode(*meta.device_id)),
             account: session.account,
             home: meta.account.as_ref().map(|a| a.home.to_text()),
-            principal: login.map(|l| l.principal.to_text()),
+            principal: login
+                .map(|l| l.principal)
+                .or_else(|| self.remembered_principal())
+                .map(|p| p.to_text()),
             login_expires_at: login.map(|l| l.expires_at),
+            login_renewable: self.renewable(),
+            passkey_available: self.passkey_available(),
             state: session.state,
             root_generation: self.root.as_ref().map(|r| r.generation),
             setup_pending: session.state == "root_required"
@@ -1293,6 +1310,7 @@ impl Client {
         let ic = Ic::connect(&self.config, login.identity).await?;
         let principal = ic.principal()?;
         self.lock();
+        self.passkey = login.passkey;
         self.login = Some(Login {
             ic,
             principal,
@@ -1392,11 +1410,11 @@ impl Client {
     }
 
     /// Whether the next login must install a hardware factor. A deliberate
-    /// unbind is remembered; without a keystore or usable hardware, the
-    /// existing compatibility path remains available.
+    /// unbind is remembered for II; choosing Passkey again requires binding.
+    /// Without a keystore or usable hardware, the II path remains available.
     fn default_binding_needed(&self) -> Result<bool> {
         Ok(!self.workspace.provisional()
-            && !self.workspace.meta.bound_declined
+            && (!self.workspace.meta.bound_declined || self.passkey.is_some())
             && !self.workspace.bound()?
             && self.secure.is_some()
             && self
@@ -1805,13 +1823,20 @@ impl Client {
         if let Some(secure) = &self.secure {
             secure.delete(&self.bound_name()?)?;
         }
+        if self.renewable() {
+            return self.logout();
+        }
         self.after_login_unlock()?;
         self.status()
     }
 
     /// Seal the current login under the LDK while fast unlock asks for the
     /// person; without that, no login stays on disk.
-    fn keep_login(&self) -> Result<()> {
+    pub(crate) fn keep_login(&self) -> Result<()> {
+        if self.passkey.is_some() {
+            self.remember_passkey()?;
+            return self.workspace.delete_private(KEPT_LOGIN);
+        }
         if !self.workspace.meta.fast_presence {
             return self.workspace.delete_private(KEPT_LOGIN);
         }
@@ -1975,6 +2000,8 @@ impl Client {
             self.resident = None;
         }
         self.login = None;
+        self.passkey = None;
+        self.login_renewal_failure = None;
         self.keys = None;
         self.root = None;
         self.security = None;
@@ -2011,6 +2038,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::Unavailable` when local storage cannot be updated.
     pub fn logout(&mut self) -> Result<Status> {
+        self.forget_passkey().inspect_err(|_| self.lock())?;
         let mut notifications = crate::notifications::settings(&self.workspace.store)?;
         if notifications.enabled {
             notifications.enabled = false;
@@ -2068,6 +2096,7 @@ impl Client {
             self.hardware != Verdict::Moved && !matches!(self.slot, Slot::Moved(_)),
             Error::Forbidden,
         )?;
+        self.forget_passkey().inspect_err(|_| self.lock())?;
         self.retire_notifications()?;
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;

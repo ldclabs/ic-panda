@@ -32,6 +32,7 @@
 // in place when it collapses the sidebar, and that closing the main window
 // hides it, after leaving macOS full screen.
 // Run with `pnpm test:e2e`.
+import { passkeyFlow } from './passkey-flow.mjs'
 import { cacheFlow } from './cache-flow.mjs'
 import { languagesFlow } from './languages-flow.mjs'
 import { walletFixture } from './wallet-fixture.mjs'
@@ -1630,6 +1631,11 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'passkey') {
+    await passkeyFlow({ app, main, shots, methods, emit, calls, waitFor, setState: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'unfunded-order') {
     const created = Date.now() - 2 * DAY
     const id = '88'.repeat(32)

@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "Tiếp tục bằng khóa truy cập",
+  "Create a passkey": "Tạo khóa truy cập",
+  "Sign out all devices": "Đăng xuất mọi thiết bị",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "Thiết bị này duy trì đăng nhập. Mở khóa nội dung cục bộ vẫn cần bạn xác nhận.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "Quyền đăng nhập đã cấp có thể còn hiệu lực tối đa 12 giờ. Quyền truy cập nội dung của thiết bị được giữ nguyên.",
+  "Confirm with your passkey to sign out all devices.": "Xác nhận bằng khóa truy cập để đăng xuất mọi thiết bị.",
+  "Use your passkey to continue to the dMsg app.": "Dùng khóa truy cập để tiếp tục vào dMsg.",
+  "Waiting for your passkey…": "Đang chờ khóa truy cập…",
   'Documentation': 'Tài liệu',
   "Pricing": "Bảng giá",
   "Membership": "Thành viên",

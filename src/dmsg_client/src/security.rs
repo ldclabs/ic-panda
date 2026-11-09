@@ -67,6 +67,7 @@ pub(crate) struct PendingBinding {
     ic: Ic,
     expires_at: u64,
     accept_until: u64,
+    passkey: Option<(crate::login::KeptLogin, crate::passkey::DeviceLogin)>,
 }
 
 /// A pending recovery for display.
@@ -363,6 +364,7 @@ impl Client {
             ic,
             expires_at,
             accept_until: expires_at.min(now + ACCEPT_MS),
+            passkey: None,
         });
         self.account_request(
             source,
@@ -372,6 +374,26 @@ impl Client {
             },
         )
         .await
+    }
+
+    /// Bind a callback's identity, retaining a first-party credential until the
+    /// administrator approves it. Only that approval makes it the primary login.
+    /// # Errors
+    /// As bind_login; persistent Passkey login also requires device binding.
+    pub async fn bind_delegated_login(
+        &mut self,
+        source: &str,
+        login: crate::login::Delegated,
+    ) -> Result<Json> {
+        if login.passkey.is_some() {
+            ensure(self.workspace.bound()?, Error::Forbidden)?;
+        }
+        let renewable = login.passkey.map(|key| (login.kept, key));
+        let view = self
+            .bind_login(source, login.identity, login.expires_at)
+            .await?;
+        self.binding.as_mut().ok_or(Error::IntegrityFailed)?.passkey = renewable;
+        Ok(view)
     }
 
     /// [`account_request`], for callers that hold the client throughout.
@@ -523,7 +545,17 @@ impl Client {
         self.bound_logins.retain(|_, (_, expires)| *expires > now);
         if binding.expires_at > now {
             self.bound_logins
-                .insert(binding.principal, (binding.ic, binding.expires_at));
+                .insert(binding.principal, (binding.ic.clone(), binding.expires_at));
+            if let Some((kept, key)) = binding.passkey {
+                self.passkey = Some(key);
+                self.login = Some(crate::client::Login {
+                    ic: binding.ic,
+                    principal: binding.principal,
+                    expires_at: binding.expires_at,
+                    kept,
+                });
+                self.keep_login()?;
+            }
         }
         Ok(())
     }

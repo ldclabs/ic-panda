@@ -3140,5 +3140,15 @@
 	<string>بن گئی</string>
 	<key>not available</key>
 	<string>دستیاب نہیں</string>
+	<key>Continue with a passkey</key>
+	<string>پاس کی کے ساتھ جاری رکھیں</string>
+	<key>Create a passkey</key>
+	<string>پاس کی بنائیں</string>
+	<key>Add a passkey login</key>
+	<string>پاس کی لاگ اِن شامل کریں</string>
+	<key>Sign out all devices</key>
+	<string>تمام آلات سے سائن آؤٹ کریں</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>موجودہ لاگ اِن اجازتیں مزید 12 گھنٹے تک مؤثر رہ سکتی ہیں۔ آلات کی مواد تک رسائی برقرار رہتی ہے۔</string>
 </dict>
 </plist>

@@ -30,7 +30,7 @@
   // The II login can expire while the account stays unlocked, which changes no
   // session state; check its expiry as the menu opens.
   let openedAt = $state(0)
-  const loginMissing = $derived(!!unlockedAccount && !(status?.principal && status.login_expires_at > openedAt))
+  const loginMissing = $derived(!!unlockedAccount && !status?.login_renewable && !(status?.principal && status.login_expires_at > openedAt))
   const account = $derived<string | null>(status?.account ?? null)
   let profileRead = 0
 
@@ -137,8 +137,16 @@
         aria-describedby={loginMissing ? 'account-login-hint' : undefined}
         data-testid="account-login"
       >
-        <span class="flex items-center gap-2"><Icon name="login" />{loginMissing ? t('loginWithIi') : status?.state === 'logged_out' ? t('login') : t('loginOther')}</span>
+        <span class="flex items-center gap-2"><Icon name="login" />{loginMissing ? t(status?.passkey_available ? 'loginWithPasskey' : 'loginWithIi') : status?.state === 'logged_out' ? t('login') : t('loginOther')}</span>
       </DropdownMenu.Item>
+      {#if status?.passkey_available}
+        <DropdownMenu.Item class={menuItemClass} onSelect={() => startLogin(false, 'https://dmsg.net', 'passkey', 'register')} data-testid="account-create-passkey">
+          <span class="flex items-center gap-2"><Icon name="add" />{t('createPasskey')}</span>
+        </DropdownMenu.Item>
+        <DropdownMenu.Item class={menuItemClass} onSelect={() => startLogin(false, 'https://dmsg.net', 'ii')} data-testid="account-login-ii">
+          <span class="flex items-center gap-2"><Icon name="login" />{t('loginWithIi')}</span>
+        </DropdownMenu.Item>
+      {/if}
       {#if status?.state && status.state !== 'logged_out'}
         <DropdownMenu.Item class={menuItemClass} onSelect={logout} data-testid="account-logout">
           <span class="flex items-center gap-2"><Icon name="leave" />{t('logout')}</span>

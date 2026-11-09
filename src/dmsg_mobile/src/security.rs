@@ -70,17 +70,13 @@ impl MobileEngine {
 #[uniffi::export]
 impl MobileEngine {
     pub async fn hardware_security(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| {
-            Box::pin(async { approval_key::owner_security_status(&c.cooperative_hold()).await })
-        })
-        .await
+        self.held_object(|h| Box::pin(async { approval_key::owner_security_status(h).await }))
+            .await
     }
 
     pub async fn register_approval_key(&self, biometry_only: bool) -> Result<ObjectSnapshot> {
-        self.object(move |c| {
-            Box::pin(async move {
-                approval_key::register_request(&c.cooperative_hold(), "gui", biometry_only).await
-            })
+        self.held_object(move |h| {
+            Box::pin(async move { approval_key::register_request(h, "gui", biometry_only).await })
         })
         .await
     }
@@ -88,11 +84,8 @@ impl MobileEngine {
     pub async fn approval_key_request(&self, biometry_only: bool) -> Result<ObjectSnapshot> {
         let generation = self.host.generation();
         let prepared = self
-            .host
-            .run_at(generation, move |c| {
-                Box::pin(async move {
-                    approval_key::prepare_key_request(&c.cooperative_hold(), biometry_only).await
-                })
+            .held(move |h| {
+                Box::pin(async move { approval_key::prepare_key_request(h, biometry_only).await })
             })
             .await?;
         let proved = runtime()
@@ -104,11 +97,9 @@ impl MobileEngine {
         ensure(generation == self.host.inner.generation(), Error::Locked)?;
         let proved = proved.map_err(hardware_failure)?;
         let json = self
-            .host
-            .run_at(generation, move |c| {
+            .held(move |h| {
                 Box::pin(async move {
-                    let token =
-                        approval_key::complete_key_request(&c.cooperative_hold(), proved).await?;
+                    let token = approval_key::complete_key_request(h, proved).await?;
                     Ok(serde_json::json!({"token": token}).to_string())
                 })
             })
@@ -125,10 +116,8 @@ impl MobileEngine {
             token.len() <= 16 * 1024 && device.len() == 64,
             "approval key request",
         )?;
-        self.object(move |c| {
-            Box::pin(async move {
-                approval_key::approve_request(&c.cooperative_hold(), "gui", &token, &device).await
-            })
+        self.held_object(move |h| {
+            Box::pin(async move { approval_key::approve_request(h, "gui", &token, &device).await })
         })
         .await
     }
@@ -143,10 +132,8 @@ impl MobileEngine {
                 Ok::<_, Error>(Hash::new(bytes))
             })
             .transpose()?;
-        self.object(move |c| {
-            Box::pin(async move {
-                approval_key::retire_request(&c.cooperative_hold(), "gui", device).await
-            })
+        self.held_object(move |h| {
+            Box::pin(async move { approval_key::retire_request(h, "gui", device).await })
         })
         .await
     }
@@ -157,10 +144,8 @@ impl MobileEngine {
             .iter()
             .map(|p| approval_key::purpose_named(p))
             .collect::<dmsg_types::Result<Vec<_>>>()?;
-        self.object(move |c| {
-            Box::pin(async move {
-                approval_key::policy_request(&c.cooperative_hold(), "gui", purposes).await
-            })
+        self.held_object(move |h| {
+            Box::pin(async move { approval_key::policy_request(h, "gui", purposes).await })
         })
         .await
     }
@@ -170,6 +155,14 @@ impl MobileEngine {
         enabled: bool,
         biometry_only: bool,
     ) -> Result<ObjectSnapshot> {
+        self.held(|h| {
+            Box::pin(async {
+                use dmsg_client::hold::Hold;
+                h.with(|c| c.display_session().map(|_| ())).await?;
+                h.ensure_login().await
+            })
+        })
+        .await?;
         let generation = self.host.generation();
         let json = if enabled {
             let prepared = self
@@ -199,8 +192,12 @@ impl MobileEngine {
             self.host
                 .run_at(generation, |c| {
                     Box::pin(async {
-                        c.unbind_device().await?;
-                        c.device_binding_status().map(|v| v.to_string())
+                        let status = c.unbind_device().await?;
+                        if status.state == "logged_out" {
+                            Ok(serde_json::json!({"device_bound": false}).to_string())
+                        } else {
+                            c.device_binding_status().map(|v| v.to_string())
+                        }
                     })
                 })
                 .await?

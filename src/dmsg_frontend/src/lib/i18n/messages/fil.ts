@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "Magpatuloy gamit ang passkey",
+  "Create a passkey": "Gumawa ng passkey",
+  "Sign out all devices": "Mag-sign out sa lahat ng device",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "Pinapanatili ka ng device na ito na naka-sign in. Kailangan pa rin ang iyong kumpirmasyon para buksan ang lokal na nilalaman.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "Maaaring manatiling bisa ang mga kasalukuyang pahintulot sa login nang hanggang 12 oras. Mananatili ang pahintulot ng mga device sa nilalaman.",
+  "Confirm with your passkey to sign out all devices.": "Kumpirmahin gamit ang passkey para mag-sign out sa lahat ng device.",
+  "Use your passkey to continue to the dMsg app.": "Gamitin ang iyong passkey para magpatuloy sa dMsg.",
+  "Waiting for your passkey…": "Hinihintay ang iyong passkey…",
   'Documentation': 'Dokumentasyon',
   "Pricing": "Presyo",
   "Membership": "Membership",

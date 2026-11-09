@@ -135,6 +135,24 @@ pub struct Transition {
     completed: bool,
 }
 
+impl dmsg_client::hold::Hold for Transition {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        ensure(
+            self.gate.active.load(Ordering::Acquire) == self.token,
+            Error::Locked,
+        )?;
+        self.inner
+            .with_at(self.generation, |client| {
+                ensure(
+                    self.gate.active.load(Ordering::Acquire) == self.token,
+                    Error::Locked,
+                )?;
+                step(client)
+            })
+            .await
+    }
+}
+
 impl Transition {
     pub fn generation(&self) -> u64 {
         self.generation

@@ -57,7 +57,7 @@ use dmsg_client::{
     error_code,
     hold::{Hold, Unlocked},
     library::{Check, VersionCheck, blobs::Blobs},
-    login::{DEFAULT_TTL_MS, LoginSession},
+    login::{DEFAULT_TTL_MS, InteractiveLogin, LoginSession},
     now_ms,
     principal::{self as profile, PrincipalDocument},
 };
@@ -234,7 +234,8 @@ const CALLBACK_PAGE: &str = r#"<!doctype html>
 
 #[derive(Default)]
 struct LoginState {
-    session: Option<LoginSession>,
+    session: Option<InteractiveLogin>,
+    generation: Option<u64>,
     /// A login started to bind another identity to the unlocked account,
     /// with the source of the approval it asks for.
     bind: Option<String>,
@@ -916,6 +917,10 @@ impl Daemon {
     /// windows' reads go on meanwhile; any other approved request carries
     /// itself out under the client, the key's answer signing it there.
     async fn respond(&self, id: &str, digest: &str, approve: bool, via: &str) -> Result<Value> {
+        let h = self.hold();
+        if approve && h.with(|c| c.approval_needs_login(id)).await? {
+            h.ensure_login().await?;
+        }
         let mut confirmed = false;
         let mut authorized = None;
         if approve {
@@ -996,6 +1001,10 @@ impl Daemon {
     /// were.
     async fn reconcile_pass(&self) -> Result<usize> {
         let _turn = self.turn("reconcile").await;
+        let h = self.hold();
+        if h.with(|c| c.reconciliation_needs_login()).await? {
+            h.ensure_login().await?;
+        }
         let attested = dmsg_client::approval::reconcile_attestations(&self.hold()).await?;
         let wallets = {
             let _turn = self.turn("wallet-approval").await;
@@ -1091,7 +1100,7 @@ impl Daemon {
         login
             .session
             .as_ref()
-            .is_some_and(|s| s.deadline > now_ms())
+            .is_some_and(|s| s.deadline() > now_ms())
     }
 
     async fn status(&self) -> Result<Value> {
@@ -1126,17 +1135,73 @@ impl Daemon {
     }
 
     async fn start_login(&self, params: &Value) -> Result<Value> {
+        if params["bind"] == true {
+            self.hold().ensure_login().await?;
+        }
         let origin = params["origin"].as_str().unwrap_or("https://dmsg.net");
-        let config = self.client.lock().await.config().clone();
-        let targets = login_targets(&config).await?;
-        let session = LoginSession::new(&targets, origin, self.port, DEFAULT_TTL_MS, now_ms())?;
-        let reply = json!({"url": session.url(&config), "expires_at": session.deadline});
+        let (config, generation, available) = self
+            .hold()
+            .with(|c| {
+                Ok((
+                    c.config().clone(),
+                    c.session_generation(),
+                    c.passkey_available(),
+                ))
+            })
+            .await?;
+        let provider =
+            params["provider"]
+                .as_str()
+                .unwrap_or(if available && origin == "https://dmsg.net" {
+                    "passkey"
+                } else {
+                    "ii"
+                });
+        let session: InteractiveLogin = match provider {
+            "passkey" => {
+                use dmsg_types::auth::AuthAction;
+                dmsg_types::ensure_valid(origin == "https://dmsg.net", "Passkey origin")?;
+                let action = match params["action"]
+                    .as_str()
+                    .unwrap_or(if params["bind"] == true {
+                        "register"
+                    } else {
+                        "login"
+                    }) {
+                    "register" => AuthAction::Register,
+                    "login" => AuthAction::Login,
+                    "logout_all" if params["bind"] != true => AuthAction::LogoutAll,
+                    _ => return Err(dmsg_types::invalid("login action")),
+                };
+                let setup = self.hold().with(|c| c.passkey_start(action)).await?;
+                InteractiveLogin::Passkey(Box::new(
+                    setup
+                        .start(format!("http://127.0.0.1:{}/auth/callback", self.port))
+                        .await?,
+                ))
+            }
+            "ii" => {
+                match params["action"].as_str() {
+                    None | Some("login") => {}
+                    Some("register") if params["bind"] == true => {}
+                    _ => return Err(dmsg_types::invalid("II login action")),
+                }
+                let targets = login_targets(&config).await?;
+                LoginSession::new(&targets, origin, self.port, DEFAULT_TTL_MS, now_ms())?.into()
+            }
+            _ => return Err(dmsg_types::invalid("login provider")),
+        };
+        self.hold()
+            .with(|c| dmsg_types::ensure(c.session_generation() == generation, Error::Locked))
+            .await?;
+        let reply = json!({"url": session.url(&config), "expires_at": session.deadline(), "provider": provider});
         let bind = match params["bind"] == true {
             true => Some(source(params)?.to_string()),
             false => None,
         };
         *self.login.lock().expect("login state") = LoginState {
             session: Some(session),
+            generation: Some(generation),
             bind,
             ..LoginState::default()
         };
@@ -1231,7 +1296,7 @@ impl Daemon {
                     let waiting = login
                         .session
                         .as_ref()
-                        .is_some_and(|s| s.deadline > now_ms());
+                        .is_some_and(|s| s.deadline() > now_ms());
                     let outcome = login.outcome.clone();
                     (waiting, login.checking, outcome, login.approval.clone())
                 };
@@ -1347,6 +1412,7 @@ impl Daemon {
                         .await?;
                     (status, true)
                 } else {
+                    self.hold().ensure_login().await?;
                     let prepared = self
                         .under_lock(async |client| {
                             if client.session_generation() != selected_generation {
@@ -1376,7 +1442,6 @@ impl Daemon {
             }
             "session/logout" => {
                 {
-                    let mut client = self.client.lock().await;
                     let mut login = self.login.lock().expect("login state");
                     // A callback already accepted must finish before signing
                     // out; a browser page still waiting loses its session.
@@ -1384,8 +1449,8 @@ impl Daemon {
                         return Err(Error::Pending);
                     }
                     *login = LoginState::default();
-                    client.logout()?;
                 }
+                dmsg_client::passkey::logout(&self.hold()).await?;
                 *self.last_connect.lock().expect("connect report") = None;
                 self.stop_secret_mounts().await;
                 let _ = self.unmount_library().await;
@@ -1403,22 +1468,26 @@ impl Daemon {
             // Binding rewraps the local data key under the client: it reads
             // the unlock secret and asks for the person once, so nothing
             // else unlocks or locks meanwhile.
-            "session/device_bound" => match params["enable"].as_bool() {
-                Some(true) => {
-                    let biometry_only = params["biometry_only"].as_bool().unwrap_or(false);
-                    self.under_lock(async |client| client.bind_device(biometry_only).await)
-                        .await
+            "session/device_bound" => {
+                self.hold().ensure_login().await?;
+                match params["enable"].as_bool() {
+                    Some(true) => {
+                        let biometry_only = params["biometry_only"].as_bool().unwrap_or(false);
+                        self.under_lock(async |client| client.bind_device(biometry_only).await)
+                            .await
+                    }
+                    Some(false) => Ok(to_json(
+                        &self
+                            .under_lock(async |client| client.unbind_device().await)
+                            .await?,
+                    )),
+                    None => Err(Error::InvalidInput("missing enable".into())),
                 }
-                Some(false) => Ok(to_json(
-                    &self
-                        .under_lock(async |client| client.unbind_device().await)
-                        .await?,
-                )),
-                None => Err(Error::InvalidInput("missing enable".into())),
-            },
+            }
             // Account and device changes still wait
             // on the IC and the relay under the client.
             "account/create" => {
+                self.hold().ensure_login().await?;
                 // Persist account setup under the operation lock; its hardware
                 // confirmation waits outside it before content root creation.
                 let (prepared, session) = self
@@ -1537,6 +1606,7 @@ impl Daemon {
             "profile/show" => Ok(to_json(&profile::show(&self.hold()).await?)),
             "profile/pending" => Ok(json!(self.hold().with(|c| c.document_pending()).await?)),
             "profile/publish" => {
+                self.hold().ensure_login().await?;
                 let document: PrincipalDocument = serde_json::from_value(params.clone())
                     .map_err(|e| Error::InvalidInput(format!("profile: {e}")))?;
                 let _turn = self.turn("profile").await;
@@ -1553,6 +1623,7 @@ impl Daemon {
                 )
             }
             "profile/retry" => {
+                self.hold().ensure_login().await?;
                 let _turn = self.turn("profile").await;
                 // Settles the same account mutation journal before republishing.
                 let info = self
@@ -2224,9 +2295,9 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
         return (StatusCode::FORBIDDEN, "refused").into_response();
     }
     let now = now_ms();
-    let (accepted, bind) = {
+    let (accepted, session, bind, generation) = {
         let mut login = daemon.login.lock().expect("login state");
-        let Some(session) = login.session.as_ref().filter(|s| s.deadline > now) else {
+        let Some(session) = login.session.as_ref().filter(|s| s.deadline() > now) else {
             return StatusCode::NOT_FOUND.into_response();
         };
         let accepted = session.accept(&body, now);
@@ -2238,22 +2309,28 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
         }
         // Validate and claim atomically: foreign/malformed callbacks leave
         // the real session intact, and only one matching callback wins.
-        login.session = None;
+        let session = login.session.take().expect("claimed callback");
         login.checking = true;
-        (accepted, login.bind.clone())
+        (accepted, session, login.bind.clone(), login.generation)
     };
     daemon.emit("login/changed", Value::Null);
+    let accepted = match accepted {
+        Ok(proof) => session.complete(proof).await,
+        Err(error) => Err(error),
+    };
     let outcome = match accepted {
         // A second login for the unlocked account: it waits for the
         // person to approve binding it. Either checks the login on the
         // IC under the client, which `session/login_result` answers
         // beside.
-        Ok(delegated) => match bind {
+        Ok(Some(delegated)) => match bind {
             Some(source) => daemon
                 .under_lock(async |client| {
-                    client
-                        .bind_login(&source, delegated.identity, delegated.expires_at)
-                        .await
+                    dmsg_types::ensure(
+                        generation.is_none_or(|g| client.session_generation() == g),
+                        Error::Locked,
+                    )?;
+                    client.bind_delegated_login(&source, delegated).await
                 })
                 .await
                 .map(|approval| {
@@ -2263,7 +2340,13 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
             None => {
                 let login = async {
                     let prepared = daemon
-                        .under_lock(async |client| client.prepare_login(delegated).await)
+                        .under_lock(async |client| {
+                            dmsg_types::ensure(
+                                generation.is_none_or(|g| client.session_generation() == g),
+                                Error::Locked,
+                            )?;
+                            client.prepare_login(delegated).await
+                        })
                         .await?;
                     daemon.finish_login_unlock(prepared).await.map(|_| ())
                 }
@@ -2283,6 +2366,20 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
                 login
             }
         },
+        Ok(None) => {
+            daemon
+                .hold()
+                .with(|c| {
+                    dmsg_types::ensure(
+                        generation.is_none_or(|g| c.session_generation() == g),
+                        Error::Locked,
+                    )?;
+                    c.logout()?;
+                    daemon.emit("session/changed", Value::Null);
+                    Ok(())
+                })
+                .await
+        }
         Err(error) => Err(error),
     };
     // The person acted in the browser, where no client reports activity.
@@ -2653,7 +2750,7 @@ mod tests {
             dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
             crate::mcp_events::McpEvents::new(&[]).unwrap(),
         ));
-        daemon.login.lock().unwrap().session = Some(session);
+        daemon.login.lock().unwrap().session = Some(session.into());
         let mut headers = HeaderMap::new();
         headers.insert(header::ORIGIN, "http://127.0.0.1:1234".parse().unwrap());
         headers.insert(header::CONTENT_TYPE, "application/cbor".parse().unwrap());
@@ -2768,7 +2865,8 @@ mod tests {
                     DEFAULT_TTL_MS,
                     now_ms(),
                 )
-                .unwrap(),
+                .unwrap()
+                .into(),
             );
         }
         assert_eq!(

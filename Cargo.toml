@@ -7,6 +7,7 @@ members = [
   "src/dmsg_agent",
   "src/dmsg_cli",
   "src/dmsg_runtime",
+  "src/dmsg_auth",
   "src/dmsg_handle",
   "src/dmsg_user",
   "src/dmsg_cose",

@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "Geçiş anahtarıyla devam et",
+    "createPasskey": "Geçiş anahtarı oluştur",
+    "bindPasskey": "Geçiş anahtarıyla giriş ekle",
+    "logoutAllLogins": "Tüm cihazlardan çıkış yap",
+    "loggedOut": "Çıkış yapıldı",
+    "passkeyStep": "Geçiş anahtarınızla onaylayın",
+    "passkeyLoginHint": "Bu cihaz oturumunuzu açık tutar. Yerel içeriğin kilidini açmak yine onayınızı gerektirir.",
+    "passkeyWaitBody": "Tarayıcıda geçiş anahtarınızla onaylayıp dMsg’ye dönün.",
+    "logoutAllLoginsHint": "Mevcut giriş yetkileri 12 saate kadar geçerli kalabilir. Cihazların içerik yetkileri korunur.",
     "orderQuoted": "Ödeme bekleniyor",
     "orderAdmitted": "Teslim ediliyor",
     "orderDelivered": "Teslim edildi",

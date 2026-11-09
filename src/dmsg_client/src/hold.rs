@@ -28,6 +28,12 @@ const DOWNLOADS: usize = 8;
 
 /// Where an operation finds the client; see the module.
 pub trait Hold: Sync {
+    /// Refresh the first-party identity before an operation requiring login.
+    /// Local reads and device-authenticated relay operations do not call this.
+    fn ensure_login(&self) -> impl Future<Output = Result<()>> + Send {
+        crate::passkey::ensure_login(self, crate::passkey::MIN_VALIDITY)
+    }
+
     /// Run `step` on the client.
     fn with<T: Send>(
         &self,

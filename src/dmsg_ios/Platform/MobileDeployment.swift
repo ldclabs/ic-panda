@@ -21,11 +21,11 @@ enum MobileDeployment {
         guard (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 16 * 1024 else { throw CocoaError(.fileReadTooLarge) }
         let data = try Data(contentsOf: url)
         guard let fields = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              Set(fields.keys).isSubset(of: ["relay","handle","user_homes","wallet_hub","connect_url"]) else { throw CocoaError(.fileReadCorruptFile) }
-        struct Settings: Decodable { let relay: String; let handle: String; let userHomes: [String]; let walletHub: String?; let connectUrl: String }
+              Set(fields.keys).isSubset(of: ["relay","handle","auth","user_homes","wallet_hub","connect_url"]) else { throw CocoaError(.fileReadCorruptFile) }
+        struct Settings: Decodable { let relay: String; let handle: String; let auth: String?; let userHomes: [String]; let walletHub: String?; let connectUrl: String }
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
         let config = try decoder.decode(Settings.self, from: data)
-        return .staging(StagingDeployment(relay: config.relay, handle: config.handle, userHomes: config.userHomes, walletHub: config.walletHub, connectUrl: config.connectUrl))
+        return .staging(StagingDeployment(relay: config.relay, handle: config.handle, auth: config.auth, userHomes: config.userHomes, walletHub: config.walletHub, connectUrl: config.connectUrl))
     }
     /// Only a public realm marker; credentials/preferences live in separate roots.
     func recordSelection() throws -> Bool {

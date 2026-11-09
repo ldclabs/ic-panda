@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "Teruskan dengan kunci laluan",
+    "createPasskey": "Cipta kunci laluan",
+    "bindPasskey": "Tambah log masuk kunci laluan",
+    "logoutAllLogins": "Log keluar semua peranti",
+    "loggedOut": "Telah log keluar",
+    "passkeyStep": "Sahkan dengan kunci laluan",
+    "passkeyLoginHint": "Peranti ini mengekalkan log masuk anda. Membuka kandungan setempat masih memerlukan pengesahan anda.",
+    "passkeyWaitBody": "Sahkan dengan kunci laluan dalam pelayar, kemudian kembali ke dMsg.",
+    "logoutAllLoginsHint": "Kebenaran log masuk sedia ada boleh kekal sah sehingga 12 jam. Kebenaran kandungan peranti dikekalkan.",
     "orderQuoted": "Menunggu pembayaran",
     "orderAdmitted": "Sedang dihantar",
     "orderDelivered": "Dihantar",

@@ -3140,5 +3140,15 @@
 	<string>dibuat</string>
 	<key>not available</key>
 	<string>tidak tersedia</string>
+	<key>Continue with a passkey</key>
+	<string>Lanjutkan dengan kunci sandi</string>
+	<key>Create a passkey</key>
+	<string>Buat kunci sandi</string>
+	<key>Add a passkey login</key>
+	<string>Tambahkan login kunci sandi</string>
+	<key>Sign out all devices</key>
+	<string>Keluar dari semua perangkat</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Otorisasi login yang ada dapat tetap berlaku hingga 12 jam. Izin konten perangkat tetap dipertahankan.</string>
 </dict>
 </plist>

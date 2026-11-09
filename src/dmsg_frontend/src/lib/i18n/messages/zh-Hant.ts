@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "使用通行密鑰登入",
+  "Create a passkey": "建立通行密鑰",
+  "Sign out all devices": "登出所有裝置",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "此裝置會自動保持登入，解鎖本機內容仍需你確認。",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "已簽發的登入授權最長仍可使用 12 小時。內容裝置的授權保持不變。",
+  "Confirm with your passkey to sign out all devices.": "使用通行密鑰確認，登出所有裝置。",
+  "Use your passkey to continue to the dMsg app.": "使用通行密鑰繼續進入 dMsg。",
+  "Waiting for your passkey…": "正在等待通行密鑰…",
   'Documentation': '文件',
   "Pricing": "價格",
   "Membership": "會員權益",

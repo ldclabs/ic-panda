@@ -70,6 +70,13 @@ unsafe extern "C" {
         message: *const u8,
         signature: *mut u8,
     ) -> i32;
+    fn dmsg_se_login_sign(
+        handle: *const u8,
+        length: isize,
+        message: *const u8,
+        message_length: isize,
+        signature: *mut u8,
+    ) -> i32;
     fn dmsg_se_sign_batch(
         handle: *const u8,
         length: isize,
@@ -272,6 +279,20 @@ impl ApprovalKeys for SecureEnclave {
 }
 
 impl HardwareAnchor for SecureEnclave {
+    fn sign_message(&self, handle: &[u8], message: &[u8]) -> Result<[u8; 64]> {
+        let mut signature = [0u8; 64];
+        checked(unsafe {
+            dmsg_se_login_sign(
+                handle.as_ptr(),
+                handle.len() as isize,
+                message.as_ptr(),
+                message.len() as isize,
+                signature.as_mut_ptr(),
+            )
+        })?;
+        Ok(signature)
+    }
+
     fn platform(&self) -> Option<Hash> {
         let mut identity = [0; 32];
         (unsafe { dmsg_platform_identity(identity.as_mut_ptr()) } == 0).then(|| Hash::new(identity))

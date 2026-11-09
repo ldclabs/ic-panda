@@ -7,7 +7,7 @@ final class FileLibraryTests: XCTestCase {
     func testFileFailuresPreserveSessionRevocationAndIgnoreCancellation() {
         let model = SessionModel()
         model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked", account: "test-account", deviceId: "test-device",
-            pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
+            pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, loginRenewable: false, passkeyAvailable: false, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
         XCTAssertNil(model.fileFailureMessage(CocoaError(.userCancelled)))
         XCTAssertNil(model.fileFailureMessage(MobileError.Failure(code: "CANCELLED")))
         XCTAssertTrue(model.unlocked)

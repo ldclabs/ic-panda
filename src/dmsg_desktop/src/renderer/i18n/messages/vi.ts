@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "Tiếp tục bằng khóa truy cập",
+    "createPasskey": "Tạo khóa truy cập",
+    "bindPasskey": "Thêm đăng nhập bằng khóa truy cập",
+    "logoutAllLogins": "Đăng xuất mọi thiết bị",
+    "loggedOut": "Đã đăng xuất",
+    "passkeyStep": "Xác nhận bằng khóa truy cập",
+    "passkeyLoginHint": "Thiết bị này duy trì đăng nhập. Mở khóa nội dung cục bộ vẫn cần bạn xác nhận.",
+    "passkeyWaitBody": "Xác nhận bằng khóa truy cập trong trình duyệt rồi quay lại dMsg.",
+    "logoutAllLoginsHint": "Quyền đăng nhập đã cấp có thể còn hiệu lực tối đa 12 giờ. Quyền truy cập nội dung của thiết bị được giữ nguyên.",
     "orderQuoted": "Đang chờ thanh toán",
     "orderAdmitted": "Đang gửi",
     "orderDelivered": "Đã gửi đến",

@@ -401,6 +401,7 @@ pub(crate) async fn request_moved<H: Hold>(
     predecessor: Hash,
     moved_actor: Option<Principal>,
 ) -> Result<Json> {
+    h.ensure_login().await?;
     let bound = crate::hold::Session::new(h).await?;
     let h = &bound;
     let (ic, located, device_id) = h
@@ -660,6 +661,7 @@ async fn wallets<H: Hold>(h: &H) -> Result<Json> {
 /// The account as this device reads it: through its login before it joins,
 /// otherwise as its own.
 async fn account<H: Hold>(h: &H) -> Result<AccountInfo> {
+    h.ensure_login().await?;
     let (ic, located, provisional) = h
         .with(|c| {
             Ok((

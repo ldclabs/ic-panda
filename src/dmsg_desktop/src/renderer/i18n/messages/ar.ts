@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "loginWithPasskey": "المتابعة بمفتاح مرور",
+    "createPasskey": "إنشاء مفتاح مرور",
+    "bindPasskey": "إضافة تسجيل دخول بمفتاح مرور",
+    "logoutAllLogins": "تسجيل الخروج من جميع الأجهزة",
+    "loggedOut": "تم تسجيل الخروج",
+    "passkeyStep": "التأكيد بمفتاح المرور",
+    "passkeyLoginHint": "يحافظ هذا الجهاز على تسجيل دخولك. لا يزال فتح المحتوى المحلي يتطلب تأكيدك.",
+    "passkeyWaitBody": "أكّد بمفتاح المرور في المتصفح ثم عد إلى dMsg.",
+    "logoutAllLoginsHint": "قد تبقى أذونات تسجيل الدخول الحالية صالحة لمدة تصل إلى 12 ساعة. تحتفظ أجهزة المحتوى بأذوناتها.",
     "orderQuoted": "بانتظار الدفع",
     "orderAdmitted": "قيد التسليم",
     "orderDelivered": "تم التسليم",

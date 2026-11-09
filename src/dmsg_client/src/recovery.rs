@@ -400,6 +400,7 @@ impl Client {
 /// Read the recovery overview without holding the client over its network waits.
 /// The certified digest is checked again; this projection never completes recovery.
 pub async fn status<H: crate::hold::Hold>(h: &H) -> Result<Json> {
+    h.ensure_login().await?;
     let (home, account, device, generation, principal, ic) = h
         .with(|c| {
             let (home, account) = c.recovery_target()?;

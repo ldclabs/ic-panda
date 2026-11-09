@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "پاس کی کے ساتھ جاری رکھیں",
+    "createPasskey": "پاس کی بنائیں",
+    "bindPasskey": "پاس کی لاگ اِن شامل کریں",
+    "logoutAllLogins": "تمام آلات سے سائن آؤٹ کریں",
+    "loggedOut": "سائن آؤٹ ہو گیا",
+    "passkeyStep": "اپنی پاس کی سے تصدیق کریں",
+    "passkeyLoginHint": "یہ آلہ آپ کو سائن اِن رکھتا ہے۔ مقامی مواد کھولنے کے لیے اب بھی آپ کی تصدیق درکار ہے۔",
+    "passkeyWaitBody": "براؤزر میں پاس کی سے تصدیق کریں، پھر dMsg پر واپس آئیں۔",
+    "logoutAllLoginsHint": "موجودہ لاگ اِن اجازتیں مزید 12 گھنٹے تک مؤثر رہ سکتی ہیں۔ آلات کی مواد تک رسائی برقرار رہتی ہے۔",
     "orderQuoted": "ادائیگی کا انتظار",
     "orderAdmitted": "پہنچایا جا رہا ہے",
     "orderDelivered": "پہنچ گیا",

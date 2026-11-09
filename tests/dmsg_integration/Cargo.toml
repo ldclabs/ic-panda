@@ -31,6 +31,10 @@ required-features = ["pocketic-tests"]
 name = "signin_with"
 required-features = ["pocketic-tests"]
 
+[[test]]
+name = "passkey"
+required-features = ["pocketic-tests"]
+
 [dev-dependencies]
 tokio.workspace = true
 ic_cose_types.workspace = true

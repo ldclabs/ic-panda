@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "Magpatuloy gamit ang passkey",
+    "createPasskey": "Gumawa ng passkey",
+    "bindPasskey": "Magdagdag ng login gamit ang passkey",
+    "logoutAllLogins": "Mag-sign out sa lahat ng device",
+    "loggedOut": "Naka-sign out na",
+    "passkeyStep": "Kumpirmahin gamit ang passkey",
+    "passkeyLoginHint": "Pinapanatili ka ng device na ito na naka-sign in. Kailangan pa rin ang iyong kumpirmasyon para buksan ang lokal na nilalaman.",
+    "passkeyWaitBody": "Kumpirmahin gamit ang passkey sa browser, pagkatapos ay bumalik sa dMsg.",
+    "logoutAllLoginsHint": "Maaaring manatiling bisa ang mga kasalukuyang pahintulot sa login nang hanggang 12 oras. Mananatili ang pahintulot ng mga device sa nilalaman.",
     "orderQuoted": "Naghihintay ng bayad",
     "orderAdmitted": "Inihahatid",
     "orderDelivered": "Naihatid",

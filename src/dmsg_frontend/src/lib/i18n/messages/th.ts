@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "ดำเนินการต่อด้วยพาสคีย์",
+  "Create a passkey": "สร้างพาสคีย์",
+  "Sign out all devices": "ออกจากระบบทุกอุปกรณ์",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "อุปกรณ์นี้จะคงการเข้าสู่ระบบไว้ การปลดล็อกเนื้อหาในเครื่องยังต้องได้รับการยืนยันจากคุณ",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "สิทธิ์เข้าสู่ระบบที่ออกแล้วอาจยังใช้ได้อีกสูงสุด 12 ชั่วโมง สิทธิ์เข้าถึงเนื้อหาของอุปกรณ์ยังคงอยู่",
+  "Confirm with your passkey to sign out all devices.": "ยืนยันด้วยพาสคีย์เพื่อออกจากระบบทุกอุปกรณ์",
+  "Use your passkey to continue to the dMsg app.": "ใช้พาสคีย์เพื่อดำเนินการต่อใน dMsg",
+  "Waiting for your passkey…": "กำลังรอพาสคีย์…",
   'Documentation': 'เอกสาร',
   "Pricing": "ราคา",
   "Membership": "สมาชิก",

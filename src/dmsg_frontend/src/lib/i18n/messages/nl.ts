@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "Doorgaan met een toegangssleutel",
+  "Create a passkey": "Toegangssleutel maken",
+  "Sign out all devices": "Alle apparaten afmelden",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "Dit apparaat houdt je aangemeld. Het ontgrendelen van lokale inhoud vereist nog steeds je bevestiging.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "Bestaande aanmeldrechten kunnen nog maximaal 12 uur geldig blijven. Apparaten behouden hun toegang tot inhoud.",
+  "Confirm with your passkey to sign out all devices.": "Bevestig met je toegangssleutel om alle apparaten af te melden.",
+  "Use your passkey to continue to the dMsg app.": "Gebruik je toegangssleutel om door te gaan naar dMsg.",
+  "Waiting for your passkey…": "Wachten op je toegangssleutel…",
   'Documentation': 'Documentatie',
   "Pricing": "Prijzen",
   "Membership": "Lidmaatschap",

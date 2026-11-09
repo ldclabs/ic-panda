@@ -120,7 +120,7 @@ final class AccountSettingsTests: XCTestCase {
     @MainActor func testAccountNamesFillOlderAccountsPreserveOwnProfileAndIgnoreLateReads() async {
         let current = "040g2081040g2081040g", other = "040g2082040g2082040g"
         let model = SessionModel()
-        model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked", account: current, deviceId: "device", pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
+        model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked", account: current, deviceId: "device", pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, loginRenewable: false, passkeyAvailable: false, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
         let epoch = model.epoch
         model.rememberIdentity(name: "New profile name", avatar: nil)
         model.rememberAccountNames([current: "Older public name", other: "  Personal  "], epoch: epoch)
@@ -137,7 +137,7 @@ final class AccountSettingsTests: XCTestCase {
 
     @MainActor func testSettingsDraftsSurviveBackgroundButClearOnLockAndIgnoreOldViewWrites() async {
         let model = SessionModel()
-        model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked", account: "040g2081040g2081040g", deviceId: "device", pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
+        model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked", account: "040g2081040g2081040g", deviceId: "device", pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, loginRenewable: false, passkeyAvailable: false, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
         let epoch = model.epoch, generation = model.viewGeneration
         model.keepFormDraft("profile", value: ProfileDraft(name: "Draft"), generation: generation)
         XCTAssertNotNil(model.formDraft("profile", as: ProfileDraft.self))

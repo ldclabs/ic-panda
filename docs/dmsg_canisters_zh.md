@@ -4,15 +4,18 @@
 
 核对日期：2026-10-24，公开源码基线 `9fd70dca`。本文导航当前实现，不是部署清单或审计报告。整体架构与实测容量见 [dmsg_architecture_zh.md](dmsg_architecture_zh.md)；精确接口与字节以各 canister 的 Candid 和[公开协议](protocol/README_zh.md)为准。
 
+2026-11-09 新增 Passkey 签发服务与桌面/iOS 接入；生产 auth ID 未配置，未部署。新增服务及客户端验证记录见 [Passkey 验证](passkey-validation_zh.md)，其他组件保留各自历史基线。
+
 ## 组件
 
-控制面有七类服务，另有多签钱包工厂与各自独立的钱包实例。客户端、桥接页与私有云端分别承担自己的职责。
+控制面有八类服务，另有多签钱包工厂与各自独立的钱包实例。客户端、桥接页与私有云端分别承担自己的职责。
 
 | 包 | 职责 | 文档 |
 | --- | --- | --- |
 | dmsg_types | 公开数据合同，包含基础签名、ICP 接口和可选应用协议 | [README](../src/dmsg_types/README_zh.md) |
 | dmsg_protocol | 确定性编码、批准构造、标准 COSE 验签、CTT 摘要 | [README](../src/dmsg_protocol/README_zh.md) |
 | dmsg_runtime | 参考实现共用的稳定记录、认证树、账本和调用工具 | [README](../src/dmsg_runtime/README.md) |
+| dmsg_auth | Passkey 身份、硬件登录续期、退出本机与全部登录 | [README](../src/dmsg_auth/README.md) / [Candid](../src/dmsg_auth/dmsg_auth.did) |
 | dmsg_user | 主体、认证、设备、登录恢复、本机解锁秘密、根承诺与设备签名认证 | [README](../src/dmsg_user/README.md) / [Candid](../src/dmsg_user/dmsg_user.did) |
 | dmsg_cose | 内容根 vetKD 公钥与恢复派生 | [README](../src/dmsg_cose/README.md) / [Candid](../src/dmsg_cose/dmsg_cose.did) |
 | dmsg_handle | 名称权属、导入、收费和转移 | [README](../src/dmsg_handle/README.md) / [Candid](../src/dmsg_handle/dmsg_handle.did) |

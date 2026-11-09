@@ -363,6 +363,7 @@ impl Daemon {
                 .await;
             }
             "recovery/complete" => {
+                self.hold().ensure_login().await?;
                 // The takeover journal is serialized; its local hardware
                 // confirmation must not hold Client while waiting for a person.
                 let (prepared, session) = self
@@ -385,6 +386,17 @@ impl Daemon {
         }
         // Logins, recovery, handles and payments still wait on the IC under
         // the client.
+        if matches!(
+            method,
+            "account/bind_request"
+                | "account/bind_accept"
+                | "recovery/request"
+                | "recovery/dispute"
+                | "handle/reconcile"
+                | "approval/quote"
+        ) {
+            self.hold().ensure_login().await?;
+        }
         self.under_lock(async |client| match method {
             "account/bind_request" => {
                 let token = client.bind_request(&account(params, "account")?).await?;

@@ -256,6 +256,9 @@ impl Client {
 /// # Errors
 /// Returns `Error::AuthRequired` without a login or payer.
 pub(crate) async fn payer<H: Hold>(h: &H) -> Result<(Principal, Ic)> {
+    if h.with(|c| c.payer_uses_login()).await? {
+        h.ensure_login().await?;
+    }
     let found = h
         .with(|c| {
             let Some(path) = c.workspace.store.meta::<String>(PAYER_PEM)? else {
@@ -276,6 +279,12 @@ pub(crate) async fn payer<H: Hold>(h: &H) -> Result<(Principal, Ic)> {
     let ic = Ic::connect(&config, pem_identity(std::path::Path::new(&path))?).await?;
     let payer = (ic.principal()?, ic);
     h.with(|c| Ok(c.payer.get_or_insert(payer).clone())).await
+}
+
+impl Client {
+    pub(crate) fn payer_uses_login(&self) -> Result<bool> {
+        Ok(self.workspace.store.meta::<String>(PAYER_PEM)?.is_none())
+    }
 }
 
 /// The payer's Principal and its balance on `ledger`.

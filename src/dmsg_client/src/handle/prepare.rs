@@ -7,6 +7,7 @@ use super::*;
 /// # Errors
 /// As [`Client::handle_claim_prepare`].
 pub async fn claim_prepare<H: Hold>(h: &H, name: &str) -> Result<HandleJob> {
+    h.ensure_login().await?;
     let h = Unlocked::new(h).await?;
     let name = normalize_handle(name)?;
     let (registry, account, ic) = h
@@ -154,6 +155,7 @@ pub async fn transfer_prepare<H: Hold>(
         record.owner_account == owner && *target != owner,
         Error::Forbidden,
     )?;
+    h.ensure_login().await?;
     h.with(|c| {
         let op_id = Hash::new(crate::crypto::random_id());
         let registry = c.config.handle;
@@ -197,6 +199,7 @@ pub async fn transfer_prepare<H: Hold>(
 /// # Errors
 /// As [`Client::handle_accept_prepare`].
 pub async fn accept_prepare<H: Hold>(h: &H, token: &str) -> Result<HandleJob> {
+    h.ensure_login().await?;
     let h = Unlocked::new(h).await?;
 
     ensure(token.len() <= 4096, Error::QuotaExceeded)?;

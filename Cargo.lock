@@ -2423,6 +2423,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "dmsg_auth"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "candid",
+ "cbor2",
+ "dmsg_protocol",
+ "dmsg_runtime",
+ "dmsg_types",
+ "hmac 0.13.0",
+ "ic-canister-sig-creation",
+ "ic-cdk",
+ "ic-cdk-management-canister 0.3.0",
+ "ic-cdk-timers",
+ "ic-certification 4.0.0",
+ "ic-stable-structures 0.7.2",
+ "lib_dummy_getrandom",
+ "p256 0.14.0",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha2 0.11.1",
+]
+
+[[package]]
 name = "dmsg_cli"
 version = "1.4.2"
 dependencies = [

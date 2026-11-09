@@ -3140,5 +3140,15 @@
 	<string>สร้างแล้ว</string>
 	<key>not available</key>
 	<string>ไม่พร้อมใช้งาน</string>
+	<key>Continue with a passkey</key>
+	<string>ดำเนินการต่อด้วยพาสคีย์</string>
+	<key>Create a passkey</key>
+	<string>สร้างพาสคีย์</string>
+	<key>Add a passkey login</key>
+	<string>เพิ่มการเข้าสู่ระบบด้วยพาสคีย์</string>
+	<key>Sign out all devices</key>
+	<string>ออกจากระบบทุกอุปกรณ์</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>สิทธิ์เข้าสู่ระบบที่ออกแล้วอาจยังใช้ได้อีกสูงสุด 12 ชั่วโมง สิทธิ์เข้าถึงเนื้อหาของอุปกรณ์ยังคงอยู่</string>
 </dict>
 </plist>

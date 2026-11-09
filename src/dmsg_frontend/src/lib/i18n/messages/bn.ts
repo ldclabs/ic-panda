@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "পাসকি দিয়ে চালিয়ে যান",
+  "Create a passkey": "পাসকি তৈরি করুন",
+  "Sign out all devices": "সব ডিভাইস থেকে সাইন আউট করুন",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "এই ডিভাইস আপনাকে সাইন ইন রাখে। স্থানীয় বিষয়বস্তু আনলক করতে এখনও আপনার নিশ্চিতকরণ প্রয়োজন।",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "বর্তমান লগইন অনুমতি আরও ১২ ঘণ্টা পর্যন্ত বৈধ থাকতে পারে। ডিভাইসের বিষয়বস্তুর অনুমতি অপরিবর্তিত থাকে।",
+  "Confirm with your passkey to sign out all devices.": "সব ডিভাইস থেকে সাইন আউট করতে পাসকি দিয়ে নিশ্চিত করুন।",
+  "Use your passkey to continue to the dMsg app.": "dMsg-এ এগিয়ে যেতে আপনার পাসকি ব্যবহার করুন।",
+  "Waiting for your passkey…": "আপনার পাসকির জন্য অপেক্ষা করা হচ্ছে…",
   'Documentation': 'নথিপত্র',
   "Pricing": "মূল্য",
   "Membership": "সদস্যতা",

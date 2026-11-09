@@ -11,8 +11,10 @@ pub struct SessionSnapshot {
     pub conflicts: u64,
     pub approvals_waiting: u64,
     pub fast_unlock: bool,
-    /// II authorization expires independently of the local unlocked session.
+    /// Online authorization expires independently of the local unlocked session.
     pub login_expires_at_ms: Option<u64>,
+    pub login_renewable: bool,
+    pub passkey_available: bool,
     pub setup_pending: bool,
     pub last_sync_at_ms: Option<u64>,
     pub sync_error: Option<String>,
@@ -31,6 +33,8 @@ impl SessionSnapshot {
             approvals_waiting: value.approvals_waiting,
             fast_unlock: value.fast_unlock,
             login_expires_at_ms: value.login_expires_at,
+            login_renewable: value.login_renewable,
+            passkey_available: value.passkey_available,
             setup_pending: value.setup_pending,
             last_sync_at_ms: value.last_sync.as_ref().and_then(|s| s.succeeded_at()),
             sync_error: value.last_sync.and_then(|s| s.error.or(s.upload_error)),
@@ -42,6 +46,32 @@ impl SessionSnapshot {
 pub struct LoginStart {
     pub url: String,
     pub deadline_ms: u64,
+}
+
+#[derive(Clone, Copy, uniffi::Enum)]
+pub enum PasskeyOperation {
+    Login,
+    Register,
+    Bind,
+    LogoutAll,
+}
+
+#[derive(uniffi::Record)]
+pub struct PasskeyStart {
+    pub state: Vec<u8>,
+    pub challenge: Vec<u8>,
+    pub user_id: Vec<u8>,
+    pub credential_id: Option<Vec<u8>>,
+    pub operation: PasskeyOperation,
+    pub deadline_ms: u64,
+}
+
+#[derive(uniffi::Record)]
+pub struct NativePasskeyResponse {
+    pub credential_id: Vec<u8>,
+    pub client_data_json: Vec<u8>,
+    pub authenticator_data: Vec<u8>,
+    pub signature: Vec<u8>,
 }
 
 #[derive(Clone, uniffi::Record)]
@@ -335,6 +365,7 @@ pub struct MessageDraft {
 pub struct StagingDeployment {
     pub relay: String,
     pub handle: String,
+    pub auth: Option<String>,
     pub user_homes: Vec<String>,
     pub wallet_hub: Option<String>,
     pub connect_url: String,

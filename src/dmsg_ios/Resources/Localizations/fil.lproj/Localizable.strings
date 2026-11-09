@@ -3140,5 +3140,15 @@
 	<string>nagawa na</string>
 	<key>not available</key>
 	<string>hindi available</string>
+	<key>Continue with a passkey</key>
+	<string>Magpatuloy gamit ang passkey</string>
+	<key>Create a passkey</key>
+	<string>Gumawa ng passkey</string>
+	<key>Add a passkey login</key>
+	<string>Magdagdag ng login gamit ang passkey</string>
+	<key>Sign out all devices</key>
+	<string>Mag-sign out sa lahat ng device</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Maaaring manatiling bisa ang mga kasalukuyang pahintulot sa login nang hanggang 12 oras. Mananatili ang pahintulot ng mga device sa nilalaman.</string>
 </dict>
 </plist>

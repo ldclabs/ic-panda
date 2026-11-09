@@ -31,6 +31,70 @@ pub const LISTEN_MS: u64 = 10 * MINUTE;
 pub const DEFAULT_TTL_MS: u64 = 30 * DAY;
 /// Most canisters a login delegation may reach.
 pub const MAX_TARGETS: usize = 32;
+/// An interactive login carried by either supported first-party transport.
+pub enum InteractiveLogin {
+    /// Existing Internet Identity flow.
+    InternetIdentity(Box<LoginSession>),
+    /// Native or browser Passkey flow.
+    Passkey(Box<crate::passkey::PasskeySession>),
+}
+
+/// A correlated callback, before remote identity verification.
+pub enum LoginProof {
+    /// II delegation, verified by the IC when entering the account.
+    InternetIdentity(Box<Delegated>),
+    /// Exact WebAuthn response for the auth canister.
+    Passkey(dmsg_types::auth::PasskeyResponse),
+}
+
+impl From<LoginSession> for InteractiveLogin {
+    fn from(value: LoginSession) -> Self {
+        Self::InternetIdentity(Box::new(value))
+    }
+}
+
+impl InteractiveLogin {
+    /// Exclusive callback deadline.
+    pub fn deadline(&self) -> u64 {
+        match self {
+            Self::InternetIdentity(s) => s.deadline,
+            Self::Passkey(s) => s.deadline,
+        }
+    }
+
+    /// System-browser URL.
+    pub fn url(&self, config: &Config) -> String {
+        match self {
+            Self::InternetIdentity(s) => s.url(config),
+            Self::Passkey(s) => s.url(),
+        }
+    }
+
+    /// Check correlation before claiming a callback.
+    /// # Errors
+    /// Foreign, expired or malformed callbacks are refused.
+    pub fn accept(&self, body: &[u8], now: u64) -> Result<LoginProof> {
+        match self {
+            Self::InternetIdentity(s) => s
+                .accept(body, now)
+                .map(|login| LoginProof::InternetIdentity(Box::new(login))),
+            Self::Passkey(s) => s.accept(body, now).map(LoginProof::Passkey),
+        }
+    }
+
+    /// Verify the correlated result outside the client lock.
+    /// # Errors
+    /// Propagates remote verification failures; None means logout-all succeeded.
+    pub async fn complete(self, proof: LoginProof) -> Result<Option<Delegated>> {
+        match (self, proof) {
+            (Self::InternetIdentity(_), LoginProof::InternetIdentity(login)) => Ok(Some(*login)),
+            (Self::Passkey(session), LoginProof::Passkey(response)) => {
+                session.complete(response).await
+            }
+            _ => Err(Error::IntegrityFailed),
+        }
+    }
+}
 const MAX_CALLBACK: usize = 64 * 1024;
 /// How far this clock may run behind the IC's, which Internet Identity
 /// dates the delegation's expiration by.
@@ -56,6 +120,8 @@ pub struct Delegated {
     pub expires_at: u64,
     /// What restores this login.
     pub kept: KeptLogin,
+    /// First-party renewable credential, absent for Internet Identity.
+    pub passkey: Option<crate::passkey::DeviceLogin>,
 }
 
 /// A login's scoped key and chain, which the client seals under the local
@@ -82,7 +148,12 @@ struct KeptLink {
 }
 
 impl KeptLogin {
-    fn new(from: Vec<u8>, key: &Key, links: &[SignedDelegation], expires_at: u64) -> Self {
+    pub(crate) fn new(
+        from: Vec<u8>,
+        key: &Key,
+        links: &[SignedDelegation],
+        expires_at: u64,
+    ) -> Self {
         Self {
             from: from.into(),
             key: ByteArray::new(*key),
@@ -146,6 +217,7 @@ impl KeptLogin {
             principal: Principal::self_authenticating(&self.from),
             expires_at: self.expires_at,
             kept: self.clone(),
+            passkey: None,
         })
     }
 }

@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "Mit Passkey fortfahren",
+    "createPasskey": "Passkey erstellen",
+    "bindPasskey": "Passkey-Anmeldung hinzufügen",
+    "logoutAllLogins": "Alle Geräte abmelden",
+    "loggedOut": "Abgemeldet",
+    "passkeyStep": "Mit Passkey bestätigen",
+    "passkeyLoginHint": "Dieses Gerät hält Sie angemeldet. Zum Entsperren lokaler Inhalte ist weiterhin Ihre Bestätigung nötig.",
+    "passkeyWaitBody": "Bestätigen Sie mit Ihrem Passkey im Browser und kehren Sie zu dMsg zurück.",
+    "logoutAllLoginsHint": "Bestehende Anmeldeberechtigungen können noch bis zu 12 Stunden gelten. Geräte behalten ihre Inhaltsberechtigungen.",
     "orderQuoted": "Wartet auf Zahlung",
     "orderAdmitted": "Wird zugestellt",
     "orderDelivered": "Zugestellt",

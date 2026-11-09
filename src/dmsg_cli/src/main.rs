@@ -155,12 +155,18 @@ enum Command {
         #[arg(long, short = 'n', default_value_t = 100)]
         lines: usize,
     },
-    /// Log in with Internet Identity through the dMsg login page; a login
+    /// Log in through the dMsg login page; a login
     /// of another account selects that account's workspace.
     Login {
         /// Derivation origin: dmsg.net or, for older logins, panda.fans.
         #[arg(long, default_value = "dmsg.net")]
         origin: String,
+        /// Choose a login provider; defaults to Passkey on supported deployments.
+        #[arg(long, value_parser = ["ii", "passkey"])]
+        provider: Option<String>,
+        /// Passkey operation: login, create an identity, or end all login grants.
+        #[arg(long, value_parser = ["login", "register", "logout_all"])]
+        action: Option<String>,
         /// Print the login URL instead of opening the browser.
         #[arg(long)]
         no_browser: bool,
@@ -658,9 +664,22 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
     match command {
         Command::Login {
             origin,
+            provider,
+            action,
             no_browser,
             bind,
-        } => account_commands::login(remote, json, &origin, no_browser, bind).await,
+        } => {
+            account_commands::login(
+                remote,
+                json,
+                &origin,
+                no_browser,
+                bind,
+                provider.as_deref(),
+                action.as_deref(),
+            )
+            .await
+        }
         Command::Unlock { fast, account } => {
             let params = json!({"fast": fast, "account": account});
             session(remote, json, "session/unlock", params).await

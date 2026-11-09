@@ -3140,5 +3140,15 @@
 	<string>oluşturuldu</string>
 	<key>not available</key>
 	<string>kullanılamıyor</string>
+	<key>Continue with a passkey</key>
+	<string>Geçiş anahtarıyla devam et</string>
+	<key>Create a passkey</key>
+	<string>Geçiş anahtarı oluştur</string>
+	<key>Add a passkey login</key>
+	<string>Geçiş anahtarıyla giriş ekle</string>
+	<key>Sign out all devices</key>
+	<string>Tüm cihazlardan çıkış yap</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Mevcut giriş yetkileri 12 saate kadar geçerli kalabilir. Cihazların içerik yetkileri korunur.</string>
 </dict>
 </plist>

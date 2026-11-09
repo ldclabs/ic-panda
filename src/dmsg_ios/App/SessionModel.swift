@@ -21,6 +21,7 @@ final class SessionModel {
     var contentSync: ContentSyncStatus?
     private var syncClock = Date.now
     var error: String?
+    var canResetPasskeySessions = false
     var notice: String? { didSet { noticeRevision &+= 1 } }
     private(set) var noticeRevision: UInt64 = 0
     /// Visible screens form a presentation stack; only its last screen shows feedback.
@@ -131,6 +132,7 @@ final class SessionModel {
     let notifications = NativeNotifications()
     let purchases = PurchaseModel()
     let webLogin = WebLogin()
+    let passkeyLogin = PasskeyLogin()
     private let privacyShield = PrivacyShield()
     private var backgroundAt: ContinuousClock.Instant?
     private var lastActivity = ContinuousClock.now
@@ -1045,7 +1047,7 @@ final class SessionModel {
         deviceTransfer.reset()
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
-        authenticationGeneration &+= 1; webLogin.cancel(); busy = false
+        authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); canResetPasskeySessions = false; busy = false
         busyOperation = nil; synchronizing = false; unlocking = false; initializingAccount = false
         privacyShield.show()
         concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
@@ -1088,32 +1090,53 @@ final class SessionModel {
         busy = false; notice = nil; error = nil
         busyOperation = nil; synchronizing = false; unlocking = false; initializingAccount = false
         if clearClipboard { clipboard.clearOwned() }
-        if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); engine?.cancelLogin() }
+        if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); engine?.cancelLogin() }
         security?.cancelPresence()
         // Remove the unlocked UI before awaiting the Rust barrier.
         session = nil
     }
 
-    func login() async {
+    func login(usingInternetIdentity: Bool = false, passkeyOperation: PasskeyOperation = .login) async {
         guard let engine, !busy else { return }
         automaticUnlock.suppress()
         let operation = beginBusyOperation()
-        error = nil; activity()
+        error = nil; canResetPasskeySessions = false; activity()
         authenticationGeneration &+= 1
         let current = authenticationGeneration
         defer { finishBusyOperation(operation) }
         do {
-            let start = try await engine.beginLogin()
-            guard let url = URL(string: start.url) else { throw CocoaError(.coderInvalidValue) }
-            let callback = try await webLogin.authenticate(url: url)
-            await waitUntilActive()
-            guard current == authenticationGeneration else { return }
-            _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
-            let state = try await engine.completeLogin(callback: callback.absoluteString)
+            let state: SessionSnapshot
+            let usePasskey: Bool
+            switch passkeyOperation {
+            case .login: usePasskey = !usingInternetIdentity && session?.passkeyAvailable == true
+            default: usePasskey = !usingInternetIdentity
+            }
+            if usePasskey {
+                let start = try await engine.beginPasskey(operation: passkeyOperation)
+                let response = try await passkeyLogin.authenticate(start)
+                await waitUntilActive()
+                guard current == authenticationGeneration else { return }
+                _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
+                state = try await engine.completePasskey(state: start.state, response: response)
+            } else {
+                let start = try await engine.beginLogin()
+                guard let url = URL(string: start.url) else { throw CocoaError(.coderInvalidValue) }
+                let callback = try await webLogin.authenticate(url: url)
+                await waitUntilActive()
+                guard current == authenticationGeneration else { return }
+                _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
+                state = try await engine.completeLogin(callback: callback.absoluteString)
+            }
             guard current == authenticationGeneration else { return }
             try adopt(state); uncoverIfActive()
             if unlocked { await refresh() }
-        } catch { if current == authenticationGeneration { engine.cancelLogin(); await updateSession(); report(error) } }
+        } catch { if current == authenticationGeneration {
+            engine.cancelLogin(); await updateSession(); report(error)
+            if !usingInternetIdentity, passkeyOperation == .login, session?.passkeyAvailable == true,
+               let failure = error as? MobileError, case .Failure(let code) = failure, code == "QUOTA_EXCEEDED" {
+                canResetPasskeySessions = true
+            }
+        } }
     }
 
     func waitUntilActive() async {
@@ -1132,7 +1155,9 @@ final class SessionModel {
         let current = epoch
         defer { finishBusyOperation(operation) }
         do {
-            let state = try await engine.unlockFast()
+            let state: SessionSnapshot
+            if session?.fastUnlock == true { state = try await engine.unlockFast() }
+            else { state = try await engine.refreshAccount() }
             guard current == epoch else { return }
             try adopt(state); await refresh()
         } catch { if current == epoch { await updateSession(); report(error) } }

@@ -641,6 +641,8 @@ pub async fn login(
     origin: &str,
     no_browser: bool,
     bind: bool,
+    provider: Option<&str>,
+    action: Option<&str>,
 ) -> Result<(), Failure> {
     let origin = match origin {
         "dmsg.net" | "https://dmsg.net" => "https://dmsg.net",
@@ -655,7 +657,7 @@ pub async fn login(
     let started = remote
         .call(
             "session/login",
-            json!({"origin": origin, "bind": bind, "source": "cli"}),
+            json!({"origin": origin, "bind": bind, "source": "cli", "provider": provider, "action": action}),
         )
         .await?;
     let url = started["url"].as_str().unwrap_or_default();

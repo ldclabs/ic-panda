@@ -131,6 +131,7 @@ fn name_resolution_is_partial_and_locked_daemon_names_are_private() {
     // The network resolver has per-account results. The locked owner API must
     // not expose it; local encrypted persistence is covered by daemon tests.
     let config = dmsg_client::config::Config {
+        auth: None,
         environment: dmsg_types::Environment::Local,
         ic_host: deployment.gateway.clone(),
         relay: "http://127.0.0.1:9".into(),

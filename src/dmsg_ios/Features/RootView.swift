@@ -202,7 +202,7 @@ struct AccessView: View {
             return String(localized: "To use your existing account on this iPhone, approve this device from one of your authorized devices.")
         }
         if model.session?.account != nil {
-            return fastUnlock
+            return fastUnlock || model.session?.loginRenewable == true
                 ? String(localized: "Use system authentication to unlock the encrypted workspace on this iPhone.")
                 : String(localized: "Sign in again to unlock your encrypted workspace on this iPhone.")
         }
@@ -220,7 +220,7 @@ struct AccessView: View {
                         .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(spacing: 12) {
-                    if fastUnlock {
+                    if fastUnlock || model.session?.loginRenewable == true {
                         Button { Task {
                             await model.fastUnlock()
                         } } label: {
@@ -251,9 +251,22 @@ struct AccessView: View {
                         signingIn = true; defer { signingIn = false }
                         await model.login()
                     } } label: {
-                        AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle", working: signingIn)
+                        AccessActionLabel(model.session?.passkeyAvailable == true ? "Continue with a passkey" : "Continue with Internet Identity", symbol: "person.crop.circle", working: signingIn)
                     }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsSetup && !needsAuthorization, quiet: fastUnlock || needsSetup || needsAuthorization))
                         .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
+                    if model.session?.passkeyAvailable == true {
+                        Button { Task { await model.login(passkeyOperation: .register) } } label: {
+                            AccessActionLabel("Create a passkey", symbol: "person.crop.circle.badge.plus")
+                        }.modifier(AccessActionStyle(prominent: false)).accessibilityIdentifier("login.create-passkey")
+                        Button { Task { await model.login(usingInternetIdentity: true) } } label: {
+                            AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle")
+                        }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.ii")
+                        if model.canResetPasskeySessions {
+                            Button { Task { await model.login(passkeyOperation: .logoutAll) } } label: {
+                                AccessActionLabel("Sign out all devices", symbol: "rectangle.portrait.and.arrow.right")
+                            }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.reset-devices")
+                        }
+                    }
                 }.disabled(model.busy)
                 NoticeBar(text: guidance)
                 MovedCopiesSection(copies: copies) { await loadCopies() }

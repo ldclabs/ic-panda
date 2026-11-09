@@ -1061,6 +1061,46 @@ impl Client {
         decision
     }
 
+    /// Whether approving this request needs the account's online login identity.
+    /// Hosts renew before taking the legacy execution lock or prompting the person.
+    /// # Errors
+    /// Locked or missing requests are refused.
+    pub fn approval_needs_login(&self, id: &str) -> Result<bool> {
+        self.action_needs_login(&self.approval_record(id)?.action)
+    }
+
+    /// Whether unfinished legacy IC jobs need an identity before reconciliation.
+    /// # Errors
+    /// Propagates workspace read failures.
+    pub fn reconciliation_needs_login(&mut self) -> Result<bool> {
+        for request in self.unsettled(false)? {
+            if self.action_needs_login(&request.action)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn action_needs_login(&self, action: &Action) -> Result<bool> {
+        Ok(match action {
+            Action::Letter { .. } => self.payer_uses_login()?,
+            Action::Attest { .. }
+            | Action::AttestAction { .. }
+            | Action::DeviceCapabilities { .. }
+            | Action::DeviceRevoke { .. }
+            | Action::DevicePair { .. }
+            | Action::Connect { .. }
+            | Action::Checkout { .. }
+            | Action::Handle { .. }
+            | Action::Account { .. }
+            | Action::Principal { .. }
+            | Action::ApprovalKey { .. }
+            | Action::ApprovalKeyRetire { .. }
+            | Action::HardwarePolicy { .. } => true,
+            _ => false,
+        })
+    }
+
     async fn decide(
         &mut self,
         id: &str,

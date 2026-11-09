@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "loginWithPasskey": "使用通行密钥登录",
+    "createPasskey": "创建通行密钥",
+    "bindPasskey": "添加通行密钥登录",
+    "logoutAllLogins": "退出所有设备的登录",
+    "loggedOut": "已退出登录",
+    "passkeyStep": "使用通行密钥确认",
+    "passkeyLoginHint": "此设备会自动保持登录，解锁本机内容仍需你确认。",
+    "passkeyWaitBody": "请在浏览器中使用通行密钥确认，然后返回 dMsg。",
+    "logoutAllLoginsHint": "已签发的登录授权最多还能使用 12 小时。内容设备的授权保持不变。",
     "orderQuoted": "等待付款",
     "orderAdmitted": "正在投递",
     "orderDelivered": "已送达",

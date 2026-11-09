@@ -54,12 +54,12 @@ function openOnce(work: () => Promise<unknown>): Promise<void> {
  */
 export function unlock(status: any) {
   if (status?.state === 'unlocked') return
-  if (!status?.fast_unlock) return startLogin()
+  if (!status?.fast_unlock && !status?.login_renewable) return startLogin()
   // The system's question takes the focus; the window it returns to does not ask again.
   offered = true
   return openOnce(async () => {
     try {
-      await call('session/unlock', { fast: true })
+      await call('session/unlock', { fast: !!status.fast_unlock })
     } catch (error) {
       if (['AUTH_REQUIRED', 'NOT_FOUND'].includes(code(error))) return startLogin()
       if (code(error) !== 'FORBIDDEN') toast(() => errorText(error))
@@ -89,7 +89,7 @@ export function nextStep(status: any): { label: Label; icon: Glyph; run: () => u
   const state = status?.state
   if (state === 'logged_out') return { label: 'login', icon: 'login', run: () => startLogin() }
   if (state === 'locked') {
-    const label: Label = !status.fast_unlock ? 'login' : status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock'
+    const label: Label = !status.fast_unlock && !status.login_renewable ? 'login' : status.fast_presence === 'biometrics' || status.login_renewable ? 'touchIdUnlock' : 'fastUnlock'
     return { label, icon: 'unlock', run: () => unlock(status) }
   }
   if (state === 'moved') return { label: 'movedReview', icon: 'device', run: () => (location.hash = '/settings/session') }

@@ -948,3 +948,9 @@ The existing theme and compact file rows are reused. Maximum Dynamic Type uses a
 wrapping scope menu; the local warning keeps its count and a labelled help control.
 All added copy is included in the 23 supported languages. The implementation and
 actual simulator/device coverage are recorded in `VALIDATION.md`.
+
+## Passkey login and renewable sessions
+
+A configured `auth` issuer enables the primary native Passkey entry, with Internet Identity as the alternate. AuthenticationServices uses RP `dmsg.net`, user verification and none attestation; the existing Associated Domains/AASA must match the signed app. UniFFI passes the authenticator's exact bytes to the shared Rust core. Independent Secure Enclave signing keys enable demand-only renewal; local content still requires hardware presence. The UI keeps local password copying available when the online delegation expires, and offers Passkey-confirmed sign-out of all login grants. There is no software-key fallback, session inventory or credential-management subsystem.
+
+The production issuer ID is not filled in by this implementation. Simulator UI fixtures cannot validate a real Passkey origin or Secure Enclave persistence. Build, protocol, simulator and outstanding real-device checks are recorded in [Passkey validation](../../docs/passkey-validation_zh.md).

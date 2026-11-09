@@ -40,7 +40,7 @@ struct DesktopPairingView: View {
             if working { ProgressView().accessibilityIdentifier("pair.desktop.working") }
             if needsLogin {
                 NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
-                Button("Continue with Internet Identity") { Task { await model.login() } }.disabled(working || model.busy)
+                Button("Continue with Internet Identity") { Task { await model.login(usingInternetIdentity: true) } }.disabled(working || model.busy)
             }
             if failed {
                 NoticeBar(text: String(localized: "Device request delivery is unconfirmed. Check your connection and the desktop before retrying."))

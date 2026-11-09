@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "Lanjutkan dengan kunci sandi",
+    "createPasskey": "Buat kunci sandi",
+    "bindPasskey": "Tambahkan login kunci sandi",
+    "logoutAllLogins": "Keluar dari semua perangkat",
+    "loggedOut": "Sudah keluar",
+    "passkeyStep": "Konfirmasi dengan kunci sandi",
+    "passkeyLoginHint": "Perangkat ini mempertahankan login Anda. Membuka konten lokal tetap memerlukan konfirmasi Anda.",
+    "passkeyWaitBody": "Konfirmasikan dengan kunci sandi di browser, lalu kembali ke dMsg.",
+    "logoutAllLoginsHint": "Otorisasi login yang ada dapat tetap berlaku hingga 12 jam. Izin konten perangkat tetap dipertahankan.",
     "orderQuoted": "Menunggu pembayaran",
     "orderAdmitted": "Sedang dikirim",
     "orderDelivered": "Terkirim",

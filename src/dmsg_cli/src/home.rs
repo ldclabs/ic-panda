@@ -34,6 +34,7 @@ struct ConfigFile {
     ic_host: String,
     relay: String,
     handle: String,
+    auth: Option<String>,
     #[serde(default)]
     user_homes: Vec<String>,
     root_key: Option<String>,
@@ -275,6 +276,7 @@ impl Home {
             ic_host: file.ic_host,
             relay: file.relay,
             handle: principal(&file.handle)?,
+            auth: file.auth.as_deref().map(principal).transpose()?,
             user_homes: file
                 .user_homes
                 .iter()

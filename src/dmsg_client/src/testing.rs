@@ -96,6 +96,7 @@ pub fn config(background_online: bool) -> Config {
         ic_host: "http://127.0.0.1:9".into(),
         relay: "http://127.0.0.1:9".into(),
         handle: Principal::from_text("aaaaa-aa").unwrap(),
+        auth: None,
         user_homes: vec![],
         root_key: Some(vec![]),
         login_url: LOGIN_URL.into(),

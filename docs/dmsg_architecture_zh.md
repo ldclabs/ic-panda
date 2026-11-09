@@ -1,5 +1,7 @@
 # dMsg 技术架构
 
+2026-11-09 增量：第 3、4.9、8.2 节加入 Passkey 登录签发与按需续期；以本次工作树为准，未部署。验证记录见 [Passkey](passkey-validation_zh.md)，其他组件保留各自核对基线。
+
 [English](dmsg_architecture.md) | 简体中文
 
 核对日期：2026-10-24，公开源码基线 `9fd70dca`。本文概述桌面/iOS/CLI/MCP 客户端、公开合同、canister 职责与扩容方式；接口与实测容量以各组件 README 和 Candid 为准。历史容量样本保留原测量范围，不包含后来新增的资料元数据，也不证明生产吞吐。私有服务只通过公开合同描述；源码核对不等于部署核验或安全审计。
@@ -76,6 +78,7 @@ flowchart LR
 
 | Canister | 权威数据 | 部署数量 | 单实例主要上限 |
 | --- | --- | --- | --- |
+| [dmsg_auth](../src/dmsg_auth/README.md) | Passkey 身份、硬件会话及 12 小时 delegation；按需续期不查询账户 | 全局 1 个 | 每身份 16 个会话；部署总量按实测配置 |
 | [dmsg_user](../src/dmsg_user/README.md) | 登录绑定、设备与能力、恢复申请、内容根承诺、认证回执、执行月账、本机解锁秘密、Agent principal 记录 | 每部署 1–64 个（user home） | `max_accounts` ≤ 2,100 万 |
 | [dmsg_handle](../src/dmsg_handle/README.md) | 规范化名称 → `AccountId`、注册收费、旧名认领与转移；部署的 home 列表 | 全局 1 个 | 1,000 万活跃名称 |
 | [dmsg_cose](../src/dmsg_cose/README.md) | 内容根 vetKD 公钥、恢复派生的去重与预算 | 通常 1 个，服务全部 home | 100 万个做过恢复派生的账户 |
@@ -136,6 +139,10 @@ hub 按 commerce 的套餐配额报价，核对创建者的 `WalletCreate` 设�
 ### 4.8 本设备凭据使用
 
 owner 审批配置本地策略；Agent 凭 `secret.use:<policy_id>` 申请固定 GitHub issue 创建，再由人核对完整计划。核心复用原审批记录保存提交点和受限结果，网络在客户端锁外执行；不确定结果终结为 lost，不自动重发。策略、权限与记录不跨设备，不新增 canister 或链上热路径。MCP 不提供 `vault.secret` 明文入口。owner 审批的进程交付、SSH/Git 签名、机密文件挂载、快照分享/导入、扫描和轮换依赖核对也已实现；它们不向 MCP 开放通用明文取密。挂载可用性取决于 OS、打包的原生模块及平台实测。接口与验证见[凭据使用合同](protocol/secrets_zh.md)。
+
+### 4.9 Passkey 登录与静默续期
+
+配置 `auth` 后，具备硬件能力的桌面与 iOS 优先使用 Passkey，II 继续提供。`dmsg_auth` 单实例只签发登录身份，账户与内容设备权限仍由 user home 检查。客户端在需要在线身份时才调用共享 `ensure_login`；缓存父委托未到期时本机派生会话，过期后用独立硬件钥匙续期。锁定保留登录凭据但清除内容密钥；本机读取和复制秘密不触发续期。服务端结束会话不撤销已经签发的委托，最长仍有效 12 小时。公开合同、部署与验证边界见 [Passkey](protocol/passkey-v1_zh.md) 和 [dmsg_auth](../src/dmsg_auth/README.md)。
 
 ## 5. 链上负载画像
 
@@ -200,6 +207,7 @@ owner 审批配置本地策略；Agent 凭 `secret.use:<policy_id>` 申请固定
 
 | 服务 | 实例数 | 与 user home 的关系 | 原因 |
 | --- | --- | --- | --- |
+| dmsg_auth | 1 | 客户端 `auth` 配置固定 issuer | canister ID 与 salt 决定 Principal；不分片 |
 | dmsg_user | 1–64 | — | 账户状态按 home 分区，home 之间没有共享写入 |
 | dmsg_handle | 1 | `user_homes` 列出全部 home，`registration_homes` 选出接收新账户的 home | 规范化名称必须全局唯一；它同时是客户端读取 home 列表的权威 |
 | dmsg_directory | 1 | `user_homes` 列出全部 home；已发布账户的 home 记录固定 | 一个 ICP 自定义域只能指向一个 canister，文档 URL 必须等于其 `id`，不能重定向到分片 |

@@ -1,4 +1,12 @@
 const en = {
+  "Continue with a passkey": "Continue with a passkey",
+  "Create a passkey": "Create a passkey",
+  "Sign out all devices": "Sign out all devices",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "Your device keeps you signed in. Unlocking your local content still requires your confirmation.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.",
+  "Confirm with your passkey to sign out all devices.": "Confirm with your passkey to sign out all devices.",
+  "Use your passkey to continue to the dMsg app.": "Use your passkey to continue to the dMsg app.",
+  "Waiting for your passkey…": "Waiting for your passkey…",
   'Documentation': 'Documentation',
   "Pricing": "Pricing",
   "Membership": "Membership",

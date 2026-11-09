@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "패스키로 계속",
+    "createPasskey": "패스키 만들기",
+    "bindPasskey": "패스키 로그인 추가",
+    "logoutAllLogins": "모든 기기에서 로그아웃",
+    "loggedOut": "로그아웃됨",
+    "passkeyStep": "패스키로 확인",
+    "passkeyLoginHint": "이 기기는 로그인 상태를 유지합니다. 로컬 콘텐츠를 잠금 해제하려면 여전히 본인 확인이 필요합니다.",
+    "passkeyWaitBody": "브라우저에서 패스키로 확인한 뒤 dMsg로 돌아오세요.",
+    "logoutAllLoginsHint": "기존 로그인 권한은 최대 12시간 동안 유효할 수 있습니다. 기기의 콘텐츠 접근 권한은 유지됩니다.",
     "orderQuoted": "결제 대기 중",
     "orderAdmitted": "전달 중",
     "orderDelivered": "전달됨",

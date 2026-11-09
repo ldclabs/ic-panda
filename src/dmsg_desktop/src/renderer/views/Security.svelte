@@ -227,7 +227,7 @@
   <Notice icon="login" testid="security-needs-login">
     {t('securityNeedsLogin')}
     {#snippet action()}
-      <button class={buttonClass('primary', 'sm')} onclick={() => startLogin()} data-testid="security-login"><Icon name="login" />{t('loginWithIi')}</button>
+      <button class={buttonClass('primary', 'sm')} onclick={() => startLogin()} data-testid="security-login"><Icon name="login" />{t(status?.passkey_available ? 'loginWithPasskey' : 'loginWithIi')}</button>
     {/snippet}
   </Notice>
 {/if}
@@ -247,9 +247,18 @@
       {:else}<li class="px-5 py-2 text-[13px] text-muted">{t('securityNoLogins')}</li>{/each}
     </ul>
     <div class="mt-3 flex flex-wrap gap-2 px-5">
-      <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="bind-login" onclick={() => startLogin(true)}><Icon name="add" />{t('bindLogin')}</button>
+      {#if status?.passkey_available}
+        <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="bind-passkey" onclick={() => startLogin(true, 'https://dmsg.net', 'passkey', 'register')}><Icon name="add" />{t('bindPasskey')}</button>
+      {/if}
+      <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="bind-login" onclick={() => startLogin(true, 'https://dmsg.net', 'ii')}><Icon name="add" />{t('bindLogin')}</button>
       <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="security-approve-login" onclick={() => begin('login')}><Icon name="login" />{t('approveLogin')}</button>
     </div>
+    {#if status?.login_renewable}
+      <div class="mt-3 grid justify-items-start gap-2 px-5">
+        <button class={buttonClass('danger', 'sm')} disabled={busy} data-testid="logout-all-logins" onclick={() => startLogin(false, 'https://dmsg.net', 'passkey', 'logout_all')}>{t('logoutAllLogins')}</button>
+        <p class="text-[12.5px] text-muted">{t('logoutAllLoginsHint')}</p>
+      </div>
+    {/if}
   </Section>
 
   <Section title={t('signingPolicy')} description={t('signingPolicyHint')} icon="signature" testid="security-policy">

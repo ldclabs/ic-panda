@@ -3140,5 +3140,15 @@
 	<string>已生成</string>
 	<key>not available</key>
 	<string>不可用</string>
+	<key>Continue with a passkey</key>
+	<string>使用通行密钥登录</string>
+	<key>Create a passkey</key>
+	<string>创建通行密钥</string>
+	<key>Add a passkey login</key>
+	<string>添加通行密钥登录</string>
+	<key>Sign out all devices</key>
+	<string>退出所有设备的登录</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>已签发的登录授权最多还能使用 12 小时。内容设备的授权保持不变。</string>
 </dict>
 </plist>

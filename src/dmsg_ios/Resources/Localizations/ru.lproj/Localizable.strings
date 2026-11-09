@@ -3140,5 +3140,15 @@
 	<string>создан</string>
 	<key>not available</key>
 	<string>недоступен</string>
+	<key>Continue with a passkey</key>
+	<string>Продолжить с ключом доступа</string>
+	<key>Create a passkey</key>
+	<string>Создать ключ доступа</string>
+	<key>Add a passkey login</key>
+	<string>Добавить вход по ключу доступа</string>
+	<key>Sign out all devices</key>
+	<string>Выйти на всех устройствах</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Выданные разрешения на вход могут действовать ещё до 12 часов. Доступ устройств к содержимому сохраняется.</string>
 </dict>
 </plist>

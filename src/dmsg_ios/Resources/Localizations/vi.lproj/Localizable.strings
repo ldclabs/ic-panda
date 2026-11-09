@@ -3140,5 +3140,15 @@
 	<string>đã tạo</string>
 	<key>not available</key>
 	<string>không khả dụng</string>
+	<key>Continue with a passkey</key>
+	<string>Tiếp tục bằng khóa truy cập</string>
+	<key>Create a passkey</key>
+	<string>Tạo khóa truy cập</string>
+	<key>Add a passkey login</key>
+	<string>Thêm đăng nhập bằng khóa truy cập</string>
+	<key>Sign out all devices</key>
+	<string>Đăng xuất mọi thiết bị</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Quyền đăng nhập đã cấp có thể còn hiệu lực tối đa 12 giờ. Quyền truy cập nội dung của thiết bị được giữ nguyên.</string>
 </dict>
 </plist>

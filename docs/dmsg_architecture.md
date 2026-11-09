@@ -1,5 +1,7 @@
 # dMsg Technical Architecture
 
+2026-11-09 increment: sections 3, 4.9 and 8.2 cover Passkey issuance and on-demand renewal in this working tree, not a production deployment. See [validation](passkey-validation_zh.md); other components retain their own evidence baselines.
+
 English | [简体中文](dmsg_architecture_zh.md)
 
 Reviewed against public source `9fd70dca` on 2026-10-24. This document describes the desktop/iOS/CLI/MCP clients, public contracts, canister roles and scaling model. Interfaces and measured capacity follow each component README and Candid file. Historical capacity samples retain their original measurement scope; they do not include later profile metadata or prove production throughput. Private services appear only through public contracts. A source review is not a deployment verification or security audit.
@@ -76,6 +78,7 @@ flowchart LR
 
 | Canister | Authoritative data | Instances | Main per-instance limit |
 | --- | --- | --- | --- |
+| [dmsg_auth](../src/dmsg_auth/README.md) | Passkey identities, hardware sessions and 12-hour delegations; renewal does not query accounts | 1 globally | 16 sessions per identity; deployment budgets require measurements |
 | [dmsg_user](../src/dmsg_user/README.md) | Login bindings, devices and capabilities, recovery requests, content-root commitments, attestation receipts, monthly execution ledger, device unlock secrets, Agent principal records | 1–64 per deployment (user homes) | `max_accounts` ≤ 21,000,000 |
 | [dmsg_handle](../src/dmsg_handle/README.md) | Canonical handle → `AccountId`, registration charges, legacy claims and transfers; the deployment's home list | 1 globally | 10 million active handles |
 | [dmsg_cose](../src/dmsg_cose/README.md) | Content-root vetKD public key, recovery-derivation deduplication and budgets | Usually 1, serving every home | 1 million accounts that have performed a recovery derivation |
@@ -147,6 +150,10 @@ They do not expose a general plaintext-secret tool to MCP. Mount availability
 depends on the OS, packaged native module and platform validation. See
 [the credential-use contract](protocol/secrets.md).
 
+### 4.9 Passkey Login and On-Demand Renewal
+
+With `auth` configured, hardware-capable desktop and iOS clients offer Passkey as the primary login, with II still available. One `dmsg_auth` issues login identities; user homes continue enforcing account and content-device permissions. Shared `ensure_login` derives a scoped memory session from a cached parent, or renews using an independent hardware key when required. Locking preserves the login grant but drops content keys. Local reads and password copying never trigger renewal. Ending a grant stops future issuance; existing delegations can remain usable for 12 hours. See the [public contract](protocol/passkey-v1_zh.md) and [issuer README](../src/dmsg_auth/README.md) for deployment and verification boundaries.
+
 ## 5. On-Chain Load Profile
 
 | Operation | Work on ICP |
@@ -210,6 +217,7 @@ An account ID is a 12-byte Xid: `timestamp_seconds[4] ‖ allocator_fingerprint[
 
 | Service | Instances | Relation to user homes | Reason |
 | --- | --- | --- | --- |
+| dmsg_auth | 1 | Client `auth` pins the issuer | Canister ID and salt determine principals; no sharding |
 | dmsg_user | 1–64 | — | Account state is partitioned by home; homes share no writes |
 | dmsg_handle | 1 | `user_homes` lists every home and `registration_homes` selects those accepting new accounts | Canonical handles must be globally unique; it is also the authority clients read the home list from |
 | dmsg_directory | 1 | `user_homes` lists every home; a published account's home is fixed | An ICP custom domain points to one canister, and a document's URL must equal its `id`, so it cannot redirect to shards |

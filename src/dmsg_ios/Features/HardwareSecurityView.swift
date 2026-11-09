@@ -208,7 +208,8 @@ struct HardwareSecurityView: View {
         do {
             model.invalidateSystemExports()
             _ = try await engine.setDeviceBound(enabled: enabled, biometryOnly: enabled && biometryOnly)
-            guard epoch == model.epoch && visible else { return }; await model.updateSession(); await load()
+            guard epoch == model.epoch && visible else { return }; await model.updateSession()
+            if model.session?.state == "unlocked" { await load() }
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
 }

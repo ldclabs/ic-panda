@@ -125,6 +125,10 @@ canisters:
     recipe:
       type: file://recipes/rust.hbs
 
+  - name: dmsg_auth
+    recipe:
+      type: file://recipes/rust.hbs
+
   - name: dmsg_user
     recipe:
       type: file://recipes/rust.hbs

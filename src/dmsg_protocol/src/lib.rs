@@ -33,6 +33,9 @@ pub mod authentication;
 /// dmsg-login/1 request and callback checks.
 pub mod login;
 
+/// First-party Passkey registration and assertion verification.
+pub mod passkey;
+
 /// dmsg-connect/1 digests, sealing contexts and structural checks.
 pub mod connect;
 

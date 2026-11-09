@@ -30,7 +30,7 @@ const api: DesktopBridge = {
   call: (method, params) => unwrap(ipcRenderer.invoke('dmsg:call', method, params ?? null)),
   decide: (id, digest, approve) => unwrap(ipcRenderer.invoke('dmsg:decide', id, digest, approve)),
   grant: (invite, pairing) => unwrap(ipcRenderer.invoke('dmsg:grant', invite, pairing)),
-  login: (origin, bind) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true)),
+  login: (origin, bind, options) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true, options)),
   openLogin: (url) => unwrap(ipcRenderer.invoke('dmsg:open-login', url)),
   runtime: () => unwrap(ipcRenderer.invoke('dmsg:runtime')),
   filesAdd: (folder, dropped, directory, attach) => {

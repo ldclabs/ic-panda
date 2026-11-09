@@ -1,0 +1,163 @@
+use super::*;
+use crate::{
+    secure::SecureStorage,
+    testing::{self, MemoryStorage, TempDir},
+};
+use p256::ecdsa::{SigningKey, signature::Signer};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpListener,
+    sync::Mutex,
+};
+
+struct Hardware;
+
+impl HardwareAnchor for Hardware {
+    fn create(&self) -> Result<(Vec<u8>, Vec<u8>)> {
+        let key = SigningKey::from_slice(&[7; 32]).unwrap();
+        Ok((
+            vec![7],
+            key.verifying_key().to_sec1_point(false).as_bytes().to_vec(),
+        ))
+    }
+
+    fn sign(&self, handle: &[u8], message: &Hash) -> Result<[u8; 64]> {
+        self.sign_message(handle, message.as_slice())
+    }
+
+    fn sign_message(&self, _handle: &[u8], message: &[u8]) -> Result<[u8; 64]> {
+        let key = SigningKey::from_slice(&[7; 32]).unwrap();
+        let signature: p256::ecdsa::Signature = key.sign(message);
+        Ok(signature.to_bytes().into())
+    }
+}
+
+struct Shared(Mutex<Client>);
+
+impl Hold for Shared {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        step(&mut *self.0.lock().await)
+    }
+}
+
+fn client(dir: &TempDir, secure: Arc<MemoryStorage>) -> Client {
+    let mut c = testing::unlocked(&dir.0, false, Some(secure));
+    let auth = Principal::from_slice(&[1, 1]);
+    c.config.auth = Some(auth);
+    c.anchor = Some(Arc::new(Hardware));
+    let mut key = DeviceLogin::new(auth, &Hardware).unwrap();
+    let user_key = ic_auth_verifier::CanisterSigPublicKey::new(auth, vec![9; 32]).to_der();
+    key.parent = Some(AuthDelegation {
+        user_key: user_key.into(),
+        public_key: key.public.clone(),
+        expiration: 1,
+        signature: vec![].into(),
+    });
+    key.targets = vec![auth];
+    c.passkey = Some(key);
+    c
+}
+
+async fn reject(stream: &mut tokio::net::TcpStream) -> String {
+    let mut bytes = vec![0; 8192];
+    let size = stream.read(&mut bytes).await.unwrap();
+    let path = String::from_utf8_lossy(&bytes[..size])
+        .lines()
+        .next()
+        .unwrap()
+        .to_owned();
+    stream
+        .write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+        .await
+        .unwrap();
+    path
+}
+
+#[tokio::test]
+async fn concurrent_failure_is_shared_and_retry_keeps_local_content() {
+    let dir = TempDir::new();
+    let mut c = client(&dir, Arc::new(MemoryStorage::default()));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    c.config.ic_host = format!("http://{}", listener.local_addr().unwrap());
+    let h = Shared(Mutex::new(c));
+    let requests = Arc::new(AtomicUsize::new(0));
+    let count = requests.clone();
+    let server = tokio::spawn(async move {
+        loop {
+            let Ok((mut stream, _)) = listener.accept().await else {
+                break;
+            };
+            let path = reject(&mut stream).await;
+            // Query signature verification can also read the subnet certificate.
+            if path.contains("/call ") || path.contains("/query ") {
+                count.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    });
+    let outcomes =
+        futures_util::future::join_all((0..12).map(|_| ensure_login(&h, MIN_VALIDITY))).await;
+    assert!(outcomes.iter().all(|v| v.is_err()));
+    assert!(outcomes.iter().all(|v| v == &outcomes[0]));
+    assert_eq!(
+        requests.load(Ordering::Relaxed),
+        2,
+        "one update and recovery query, shared by waiters"
+    );
+    h.with(|c| {
+        assert!(c.keys.is_some() && c.root.is_some() && c.renewable());
+        Ok(())
+    })
+    .await
+    .unwrap();
+    assert!(ensure_login(&h, MIN_VALIDITY).await.is_err());
+    assert_eq!(
+        requests.load(Ordering::Relaxed),
+        4,
+        "a later operation can retry"
+    );
+    server.abort();
+}
+
+#[tokio::test]
+async fn lock_during_network_rejects_the_late_result() {
+    let dir = TempDir::new();
+    let mut c = client(&dir, Arc::new(MemoryStorage::default()));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    c.config.ic_host = format!("http://{}", listener.local_addr().unwrap());
+    let h = Arc::new(Shared(Mutex::new(c)));
+    let task = {
+        let h = h.clone();
+        tokio::spawn(async move { ensure_login(h.as_ref(), MIN_VALIDITY).await })
+    };
+    let (mut request, _) = listener.accept().await.unwrap();
+    // This lock is available while the request is pending.
+    h.with(|c| {
+        c.lock();
+        Ok(())
+    })
+    .await
+    .unwrap();
+    reject(&mut request).await;
+    let (mut query, _) = listener.accept().await.unwrap();
+    reject(&mut query).await;
+    assert_eq!(task.await.unwrap(), Err(Error::Locked));
+    h.with(|c| {
+        assert!(c.login.is_none() && c.keys.is_none());
+        Ok(())
+    })
+    .await
+    .unwrap();
+}
+
+#[test]
+fn provisional_and_unbound_workspaces_do_not_persist_login() {
+    let dir = TempDir::new();
+    let secure = Arc::new(MemoryStorage::default());
+    let mut c = client(&dir, secure.clone());
+    assert_eq!(c.remember_passkey(), Err(Error::Forbidden));
+    assert!(secure.get(&c.passkey_slot().unwrap()).unwrap().is_none());
+    c.forget_passkey().unwrap();
+    assert!(!c.renewable());
+    assert!(c.keys.is_some() && c.root.is_some());
+}

@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "loginWithPasskey": "Продолжить с ключом доступа",
+    "createPasskey": "Создать ключ доступа",
+    "bindPasskey": "Добавить вход по ключу доступа",
+    "logoutAllLogins": "Выйти на всех устройствах",
+    "loggedOut": "Вы вышли",
+    "passkeyStep": "Подтвердить ключом доступа",
+    "passkeyLoginHint": "Это устройство сохраняет вход. Для разблокировки локальных данных по-прежнему нужно ваше подтверждение.",
+    "passkeyWaitBody": "Подтвердите вход ключом доступа в браузере и вернитесь в dMsg.",
+    "logoutAllLoginsHint": "Выданные разрешения на вход могут действовать ещё до 12 часов. Доступ устройств к содержимому сохраняется.",
     "orderQuoted": "Ожидает оплаты",
     "orderAdmitted": "В пути",
     "orderDelivered": "Доставлено",

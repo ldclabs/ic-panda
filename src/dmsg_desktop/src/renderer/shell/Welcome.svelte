@@ -99,9 +99,13 @@
         </ul>
         <div class="grid justify-items-start gap-2 pt-2">
           <button class={buttonClass('primary', 'lg')} disabled={login.phase === 'starting'} aria-busy={login.phase === 'starting'} onclick={() => startLogin()} data-testid="welcome-login">
-            <Icon name="login" />{t('login')}
+            <Icon name="login" />{t(status?.passkey_available ? 'loginWithPasskey' : 'login')}
           </button>
-          <p class="text-[12.5px] text-faint">{t('welcomeLoginHint')}</p>
+          {#if status?.passkey_available}
+            <button class={buttonClass('secondary', 'sm')} disabled={login.phase === 'starting'} onclick={() => startLogin(false, 'https://dmsg.net', 'passkey', 'register')} data-testid="welcome-create-passkey">{t('createPasskey')}</button>
+            <button class={buttonClass('ghost', 'sm')} disabled={login.phase === 'starting'} onclick={() => startLogin(false, 'https://dmsg.net', 'ii')} data-testid="welcome-login-ii">{t('loginWithIi')}</button>
+          {/if}
+          <p class="text-[12.5px] text-faint">{t(status?.passkey_available ? 'passkeyLoginHint' : 'welcomeLoginHint')}</p>
         </div>
       </div>
     {:else if step === 1}

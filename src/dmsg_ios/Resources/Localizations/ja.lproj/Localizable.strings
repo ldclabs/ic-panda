@@ -3140,5 +3140,15 @@
 	<string>作成済み</string>
 	<key>not available</key>
 	<string>利用不可</string>
+	<key>Continue with a passkey</key>
+	<string>パスキーで続ける</string>
+	<key>Create a passkey</key>
+	<string>パスキーを作成</string>
+	<key>Add a passkey login</key>
+	<string>パスキーによるログインを追加</string>
+	<key>Sign out all devices</key>
+	<string>すべてのデバイスからログアウト</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>発行済みのログイン権限は最大 12 時間有効です。コンテンツへのデバイス権限は維持されます。</string>
 </dict>
 </plist>

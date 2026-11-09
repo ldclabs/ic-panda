@@ -90,6 +90,15 @@ struct AccountSecurityView: View {
                 }
             }
             SettingsAction("Bind another Internet Identity") { Task { await bind() } }.disabled(busy || canManage != true)
+            if model.session?.passkeyAvailable == true {
+                SettingsAction("Add a passkey login") { Task { await bind(passkey: true) } }.disabled(busy || canManage != true)
+            }
+            if model.session?.loginRenewable == true {
+                SettingsAction("Sign out all devices", role: .destructive) { Task { await model.login(passkeyOperation: .logoutAll) } }
+                    .disabled(busy || model.busy).accessibilityIdentifier("security.logout-all")
+                Text("Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
         }
         Section("Approve a binding request") {
             SettingsField("Paste binding request") { TextField("Paste binding request", text: $token, axis: .vertical).lineLimit(2...4).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
@@ -168,18 +177,27 @@ struct AccountSecurityView: View {
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
 
-    private func bind() async {
+    private func bind(passkey: Bool = false) async {
         guard let engine = model.engine, !busy else { return }
         busy = true
         let epoch = model.epoch
         defer { busy = false }
         do {
-            let started = try await engine.beginBinding()
-            guard let url = URL(string: started.url) else { throw CancellationError() }
-            let callback = try await model.webLogin.authenticate(url: url)
-            await model.waitUntilActive()
-            guard epoch == model.epoch && visible else { return }
-            let result = try await engine.completeBinding(callback: callback.absoluteString)
+            let result: ObjectSnapshot
+            if passkey {
+                let started = try await engine.beginPasskey(operation: .bind)
+                let response = try await model.passkeyLogin.authenticate(started)
+                await model.waitUntilActive()
+                guard epoch == model.epoch && visible else { return }
+                result = try await engine.completePasskeyBinding(state: started.state, response: response)
+            } else {
+                let started = try await engine.beginBinding()
+                guard let url = URL(string: started.url) else { throw CancellationError() }
+                let callback = try await model.webLogin.authenticate(url: url)
+                await model.waitUntilActive()
+                guard epoch == model.epoch && visible else { return }
+                result = try await engine.completeBinding(callback: callback.absoluteString)
+            }
             guard epoch == model.epoch && visible else { return }; request = try model.decode(result)
         } catch { if epoch == model.epoch && visible { engine.cancelLogin(); model.report(error) } }
     }

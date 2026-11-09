@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "Продолжить с ключом доступа",
+  "Create a passkey": "Создать ключ доступа",
+  "Sign out all devices": "Выйти на всех устройствах",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "Это устройство сохраняет вход. Для разблокировки локальных данных по-прежнему нужно ваше подтверждение.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "Выданные разрешения на вход могут действовать ещё до 12 часов. Доступ устройств к содержимому сохраняется.",
+  "Confirm with your passkey to sign out all devices.": "Подтвердите ключом доступа выход на всех устройствах.",
+  "Use your passkey to continue to the dMsg app.": "Используйте ключ доступа, чтобы продолжить в dMsg.",
+  "Waiting for your passkey…": "Ожидание ключа доступа…",
   'Documentation': 'Документация',
   "Pricing": "Цены",
   "Membership": "Подписка",

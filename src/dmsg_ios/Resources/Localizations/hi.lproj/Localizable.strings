@@ -3140,5 +3140,15 @@
 	<string>बनी</string>
 	<key>not available</key>
 	<string>उपलब्ध नहीं</string>
+	<key>Continue with a passkey</key>
+	<string>पासकी से जारी रखें</string>
+	<key>Create a passkey</key>
+	<string>पासकी बनाएँ</string>
+	<key>Add a passkey login</key>
+	<string>पासकी लॉगिन जोड़ें</string>
+	<key>Sign out all devices</key>
+	<string>सभी डिवाइस से साइन आउट करें</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>मौजूदा लॉगिन अनुमतियाँ 12 घंटे तक मान्य रह सकती हैं। डिवाइस की सामग्री अनुमतियाँ बनी रहती हैं।</string>
 </dict>
 </plist>

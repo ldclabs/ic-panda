@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "loginWithPasskey": "Continuar con una clave de acceso",
+    "createPasskey": "Crear una clave de acceso",
+    "bindPasskey": "Añadir un acceso con clave de acceso",
+    "logoutAllLogins": "Cerrar sesión en todos los dispositivos",
+    "loggedOut": "Sesión cerrada",
+    "passkeyStep": "Confirmar con tu clave de acceso",
+    "passkeyLoginHint": "Este dispositivo mantiene tu sesión. Desbloquear el contenido local sigue requiriendo tu confirmación.",
+    "passkeyWaitBody": "Confirma con tu clave de acceso en el navegador y vuelve a dMsg.",
+    "logoutAllLoginsHint": "Las autorizaciones de acceso existentes pueden seguir siendo válidas hasta 12 horas. Los dispositivos conservan su acceso al contenido.",
     "orderQuoted": "Pendiente de pago",
     "orderAdmitted": "En camino",
     "orderDelivered": "Entregado",

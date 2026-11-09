@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "パスキーで続ける",
+    "createPasskey": "パスキーを作成",
+    "bindPasskey": "パスキーによるログインを追加",
+    "logoutAllLogins": "すべてのデバイスからログアウト",
+    "loggedOut": "ログアウトしました",
+    "passkeyStep": "パスキーで確認",
+    "passkeyLoginHint": "このデバイスではログインが維持されます。ローカルの内容を開くには引き続き本人確認が必要です。",
+    "passkeyWaitBody": "ブラウザでパスキーを使って確認し、dMsg に戻ってください。",
+    "logoutAllLoginsHint": "発行済みのログイン権限は最大 12 時間有効です。コンテンツへのデバイス権限は維持されます。",
     "orderQuoted": "支払い待ち",
     "orderAdmitted": "配送中",
     "orderDelivered": "配達済み",

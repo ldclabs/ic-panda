@@ -210,6 +210,16 @@
       "gzip": true,
       "type": "rust"
     },
+    "dmsg_auth": {
+      "candid": "src/dmsg_auth/dmsg_auth.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "dmsg_auth",
+      "optimize": "cycles",
+      "gzip": true,
+      "type": "rust"
+    },
     "dmsg_user": {
       "candid": "src/dmsg_user/dmsg_user.did",
       "declarations": {

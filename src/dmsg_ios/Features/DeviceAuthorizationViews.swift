@@ -42,7 +42,7 @@ struct PairView: View {
             } else if model.engine != nil { ProgressView().frame(maxWidth: .infinity) }
             if needsLogin {
                 NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
-                SettingsAction("Continue with Internet Identity") { Task { await model.login(); needsLogin = false } }.disabled(model.busy)
+                SettingsAction("Continue with Internet Identity") { Task { await model.login(usingInternetIdentity: true); needsLogin = false } }.disabled(model.busy)
             }
             NoticeBar(text: String(localized: "On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically."))
             NavigationLink("All devices lost?") { RecoveryView() }

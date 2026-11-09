@@ -29,6 +29,8 @@ pub struct Config {
     pub relay: String,
     /// Name registry, the authority on the deployment's user homes.
     pub handle: Principal,
+    /// First-party Passkey issuer; enabled after deploying dmsg_auth.
+    pub auth: Option<Principal>,
     /// User homes pinned by the configuration; the registry may list more.
     pub user_homes: Vec<Principal>,
     /// DER root key of a local replica; mainnet roots are built in.
@@ -118,6 +120,11 @@ impl Config {
             ic_host: value("ic_host")?.into(),
             relay: value("relay")?.into(),
             handle: principal("handle")?,
+            auth: file
+                .get("auth")
+                .and_then(|v| v.as_str())
+                .map(|v| Principal::from_text(v).map_err(|_| dmsg_types::invalid("auth")))
+                .transpose()?,
             user_homes: vec![],
             root_key: None,
             login_url: LOGIN_URL.into(),
@@ -165,6 +172,9 @@ impl Config {
     /// # Errors
     /// Returns `Error::InvalidInput` naming the offending setting.
     pub fn validate(&self) -> Result<()> {
+        if let Some(auth) = self.auth {
+            dmsg_protocol::authenticated(auth)?;
+        }
         let local = self.environment == Environment::Local;
         let endpoints = [
             ("ic_host", &self.ic_host),
@@ -230,6 +240,7 @@ impl Config {
         origin(relay)?;
         origin(connect)?;
         config.environment = Environment::Staging;
+        config.auth = None;
         config.relay = relay.trim_end_matches('/').into();
         config.connect_url = connect.trim_end_matches('/').into();
         config.handle = Principal::from_text(handle).map_err(|_| dmsg_types::invalid("handle"))?;

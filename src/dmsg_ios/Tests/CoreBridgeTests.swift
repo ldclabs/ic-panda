@@ -28,6 +28,10 @@ final class CoreBridgeTests: XCTestCase {
             staging: base.appending(path: "imports").path, platform: NoHardware())
         let initial = try await engine.sessionState()
         XCTAssertNotEqual(initial.state, "unlocked")
+        XCTAssertFalse(initial.passkeyAvailable)
+        XCTAssertFalse(initial.loginRenewable)
+        do { _ = try await engine.beginPasskey(operation: .login); XCTFail("Passkey without hardware/configuration") }
+        catch MobileError.Failure(let code) { XCTAssertEqual(code, "UNSUPPORTED_PROTOCOL") }
         let recovery = try await engine.recoveryWarning()
         XCTAssertEqual(recovery.json, "null")
         do { _ = try await engine.hardwareSecurity(); XCTFail("Locked hardware management") }

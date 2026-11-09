@@ -128,6 +128,14 @@ pub trait Authorized: Send + Sync {
 /// has not been copied to other hardware, such as by a system migration or
 /// a restored backup.
 pub trait HardwareAnchor: Send + Sync {
+    /// Sign a bounded IC request or delegation message with an independent
+    /// login key, using P-256 ECDSA over SHA-256. Never asks for presence.
+    /// # Errors
+    /// Unsupported providers refuse rather than using a software key.
+    fn sign_message(&self, _handle: &[u8], _message: &[u8]) -> Result<[u8; 64]> {
+        Err(dmsg_types::Error::UnsupportedProtocol)
+    }
+
     /// A platform identifier for hosts without an enclave (older Macs).
     /// This only detects ordinary system copies, not deliberate tampering.
     fn platform(&self) -> Option<Hash> {

@@ -182,6 +182,7 @@ async fn unlock_secret(
 
 /// Copy `id` opened as the device it was.
 async fn opened<H: Hold>(h: &H, id: &str) -> Result<Client> {
+    h.ensure_login().await?;
     let (ic, home, account, device) = h.with(|c| moved_secret_query(c, id)).await?;
     let secret = unlock_secret(&ic, home, &account, device).await?;
     h.with(|c| c.moved_client(id, &secret)).await
@@ -289,6 +290,7 @@ pub async fn import<H: Hold>(h: &H, id: &str, succession: Option<Hash>) -> Resul
 /// Returns `Error::Forbidden` when the copy's device cannot approve, and as
 /// [`import`] and [`crate::succession::request`].
 pub async fn approve_successor<H: Hold>(h: &H, source: &str, id: &str) -> Result<Json> {
+    h.ensure_login().await?;
     let bound = crate::hold::Session::new(h).await?;
     let h = &bound;
     let copy = opened(h, id).await?;

@@ -1,6 +1,14 @@
 import type { Messages } from './en'
 
 export default {
+  "Continue with a passkey": "Geçiş anahtarıyla devam et",
+  "Create a passkey": "Geçiş anahtarı oluştur",
+  "Sign out all devices": "Tüm cihazlardan çıkış yap",
+  "Your device keeps you signed in. Unlocking your local content still requires your confirmation.": "Bu cihaz oturumunuzu açık tutar. Yerel içeriğin kilidini açmak yine onayınızı gerektirir.",
+  "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.": "Mevcut giriş yetkileri 12 saate kadar geçerli kalabilir. Cihazların içerik yetkileri korunur.",
+  "Confirm with your passkey to sign out all devices.": "Tüm cihazlardan çıkış yapmak için geçiş anahtarınızla onaylayın.",
+  "Use your passkey to continue to the dMsg app.": "dMsg’ye devam etmek için geçiş anahtarınızı kullanın.",
+  "Waiting for your passkey…": "Geçiş anahtarınız bekleniyor…",
   'Documentation': 'Belgeler',
   "Pricing": "Fiyatlar",
   "Membership": "Üyelik",

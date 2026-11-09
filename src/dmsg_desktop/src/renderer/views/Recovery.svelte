@@ -111,7 +111,7 @@
 {#if error && !open}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#if needsLogin}
   <Notice>{t('securityNeedsLogin')}
-    {#snippet action()}<button class={buttonClass('primary', 'sm')} onclick={() => startLogin()}>{t('loginWithIi')}</button>{/snippet}
+    {#snippet action()}<button class={buttonClass('primary', 'sm')} onclick={() => startLogin()}>{t('login')}</button>{/snippet}
   </Notice>
 {/if}
 {#if loading && !security}<p role="status" class="text-[13px] text-muted">{t('loading')}</p>{/if}

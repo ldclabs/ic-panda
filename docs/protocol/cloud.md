@@ -53,7 +53,7 @@ body: { home: bstr(user home Principal), principal: bstr(creating login Principa
 200 { ok: true, data: { expires_at: <Unix milliseconds>, signature: <base64url> } }
 ```
 
-The admission key signs `digest("dmsg/account-admission/v1", (home, principal, expires_at))` with Ed25519; see vector `account_admission_v1`. No PoP is needed: only the bound principal can use the ticket by calling create_account, and each principal can create one account per home. The service issues only for configured homes and rate-limits request sources, returning `QUOTA_EXCEEDED` when exhausted. Expiry is at most 5 minutes after issuance; the home accepts at most 10 remaining minutes to allow clock margin. Tickets grant no account/device permissions and unused tickets expire.
+The admission key signs `digest("dmsg/account-admission/v1", (home, principal, expires_at))` with Ed25519; see vector `account_admission_v1`. No PoP is needed: only the bound principal can use the ticket by calling create_account, and each principal can create one account per home. The same ticket authorizes `dmsg_auth.register`, with home set to the configured issuer and principal to the hardware caller. Issuers are admitted separately from trusted account homes. The service issues only for configured registration canisters and rate-limits request sources, returning `QUOTA_EXCEEDED` when exhausted. Expiry is at most 5 minutes after issuance; the home accepts at most 10 remaining minutes to allow clock margin. Tickets grant no account/device permissions and unused tickets expire.
 
 ## Account evidence
 

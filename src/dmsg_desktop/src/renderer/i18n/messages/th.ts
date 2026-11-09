@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "ดำเนินการต่อด้วยพาสคีย์",
+    "createPasskey": "สร้างพาสคีย์",
+    "bindPasskey": "เพิ่มการเข้าสู่ระบบด้วยพาสคีย์",
+    "logoutAllLogins": "ออกจากระบบทุกอุปกรณ์",
+    "loggedOut": "ออกจากระบบแล้ว",
+    "passkeyStep": "ยืนยันด้วยพาสคีย์",
+    "passkeyLoginHint": "อุปกรณ์นี้จะคงการเข้าสู่ระบบไว้ การปลดล็อกเนื้อหาในเครื่องยังต้องได้รับการยืนยันจากคุณ",
+    "passkeyWaitBody": "ยืนยันด้วยพาสคีย์ในเบราว์เซอร์ แล้วกลับไปที่ dMsg",
+    "logoutAllLoginsHint": "สิทธิ์เข้าสู่ระบบที่ออกแล้วอาจยังใช้ได้อีกสูงสุด 12 ชั่วโมง สิทธิ์เข้าถึงเนื้อหาของอุปกรณ์ยังคงอยู่",
     "orderQuoted": "รอการชำระเงิน",
     "orderAdmitted": "กำลังนำส่ง",
     "orderDelivered": "นำส่งแล้ว",

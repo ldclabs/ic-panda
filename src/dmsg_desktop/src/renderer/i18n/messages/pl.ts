@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "loginWithPasskey": "Kontynuuj z kluczem dostępu",
+    "createPasskey": "Utwórz klucz dostępu",
+    "bindPasskey": "Dodaj logowanie kluczem dostępu",
+    "logoutAllLogins": "Wyloguj wszystkie urządzenia",
+    "loggedOut": "Wylogowano",
+    "passkeyStep": "Potwierdź kluczem dostępu",
+    "passkeyLoginHint": "To urządzenie utrzymuje zalogowanie. Odblokowanie lokalnej zawartości nadal wymaga potwierdzenia.",
+    "passkeyWaitBody": "Potwierdź kluczem dostępu w przeglądarce, a następnie wróć do dMsg.",
+    "logoutAllLoginsHint": "Istniejące uprawnienia logowania mogą być ważne jeszcze do 12 godzin. Urządzenia zachowują uprawnienia do treści.",
     "orderQuoted": "Oczekuje na płatność",
     "orderAdmitted": "W trakcie dostarczania",
     "orderDelivered": "Dostarczono",

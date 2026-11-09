@@ -54,7 +54,7 @@ pub trait Platform: Send + Sync {
     /// works after the first unlock since the device started; its public
     /// key in SEC1 form.
     fn create_anchor(&self) -> std::result::Result<SigningKey, MobileError>;
-    /// Sign a 32-byte message with an anchor, asking nothing:
+    /// Sign a bounded message with an anchor or independent login key, asking nothing:
     /// `INTEGRITY_FAILED` when this device cannot use `handle`.
     fn sign_anchor(
         &self,
@@ -196,6 +196,18 @@ impl ApprovalKeys for Adapter {
 }
 
 impl HardwareAnchor for Adapter {
+    fn sign_message(&self, handle: &[u8], message: &[u8]) -> Result<[u8; 64]> {
+        ensure(
+            !message.is_empty() && message.len() <= 512,
+            Error::IntegrityFailed,
+        )?;
+        self.0
+            .sign_anchor(handle.into(), message.into())
+            .map_err(platform_error)?
+            .try_into()
+            .map_err(|_| Error::IntegrityFailed)
+    }
+
     fn create(&self) -> Result<(Vec<u8>, Vec<u8>)> {
         let key = self.0.create_anchor().map_err(platform_error)?;
         ensure(!key.handle.is_empty(), Error::IntegrityFailed)?;

@@ -4,15 +4,18 @@ English | [简体中文](dmsg_canisters_zh.md)
 
 Reviewed against public source `9fd70dca` on 2026-10-24. This is a guide to the current implementation, not a deployment inventory or an audit report. Architecture and measured capacity are in [dmsg_architecture.md](dmsg_architecture.md); exact interfaces and bytes are in the canister Candid files and [public protocols](protocol/README.md).
 
+2026-11-09: added Passkey issuance and desktop/iOS integration. The production auth ID is not configured and no deployment has occurred. See [Passkey validation](passkey-validation_zh.md); other components retain their historical baselines.
+
 ## Components
 
-The control plane has seven service roles, plus a multisig wallet factory and per-multisig wallet instances. The client, bridge page and private cloud have separate responsibilities.
+The control plane has eight service roles, plus a multisig wallet factory and per-multisig wallet instances. The client, bridge page and private cloud have separate responsibilities.
 
 | Package | Responsibilities | Documentation |
 | --- | --- | --- |
 | dmsg_types | Public data contracts, including base signatures, ICP interfaces, and optional application protocols | [README](../src/dmsg_types/README.md) |
 | dmsg_protocol | Deterministic encoding, approval construction, standard COSE verification, and CTT digests | [README](../src/dmsg_protocol/README.md) |
 | dmsg_runtime | Shared stable records, certified trees, ledger helpers, and call utilities for reference implementations | [README](../src/dmsg_runtime/README.md) |
+| dmsg_auth | Passkey identities, hardware login renewal, local/all-login logout | [README](../src/dmsg_auth/README.md) / [Candid](../src/dmsg_auth/dmsg_auth.did) |
 | dmsg_user | Identities, authentications, devices, login recovery, device unlock secrets, root commitments, and device-signed attestations | [README](../src/dmsg_user/README.md) / [Candid](../src/dmsg_user/dmsg_user.did) |
 | dmsg_cose | Content-root vetKD public key and recovery derivations | [README](../src/dmsg_cose/README.md) / [Candid](../src/dmsg_cose/dmsg_cose.did) |
 | dmsg_handle | Name ownership, imports, pricing, and transfers | [README](../src/dmsg_handle/README.md) / [Candid](../src/dmsg_handle/dmsg_handle.did) |

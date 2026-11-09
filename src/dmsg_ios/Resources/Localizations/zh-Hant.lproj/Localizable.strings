@@ -3140,5 +3140,15 @@
 	<string>已產生</string>
 	<key>not available</key>
 	<string>無法使用</string>
+	<key>Continue with a passkey</key>
+	<string>使用通行密鑰登入</string>
+	<key>Create a passkey</key>
+	<string>建立通行密鑰</string>
+	<key>Add a passkey login</key>
+	<string>新增通行密鑰登入</string>
+	<key>Sign out all devices</key>
+	<string>登出所有裝置</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>已簽發的登入授權最長仍可使用 12 小時。內容裝置的授權保持不變。</string>
 </dict>
 </plist>

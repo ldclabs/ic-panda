@@ -29,8 +29,8 @@ jobs:
           ic-wasm --version
           "$WASM_OPT" --version
           mkdir out
-          cargo build --target wasm32-unknown-unknown --release --locked -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_directory -p dmsg_payment -p membership -p dmsg_commerce -p dmsg_wallet -p dmsg_wallet_hub -p ic_delegation_store -p ic_signin_with
-          for CAN in dmsg_user dmsg_handle dmsg_cose dmsg_directory dmsg_payment membership dmsg_commerce dmsg_wallet dmsg_wallet_hub ic_delegation_store ic_signin_with
+          cargo build --target wasm32-unknown-unknown --release --locked -p dmsg_auth -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_directory -p dmsg_payment -p membership -p dmsg_commerce -p dmsg_wallet -p dmsg_wallet_hub -p ic_delegation_store -p ic_signin_with
+          for CAN in dmsg_auth dmsg_user dmsg_handle dmsg_cose dmsg_directory dmsg_payment membership dmsg_commerce dmsg_wallet dmsg_wallet_hub ic_delegation_store ic_signin_with
           do
             cp "target/wasm32-unknown-unknown/release/$CAN.wasm" out/
             cp "src/$CAN/$CAN.did" "out/$CAN.did"

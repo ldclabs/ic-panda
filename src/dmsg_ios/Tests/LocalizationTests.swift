@@ -12,7 +12,7 @@ final class LocalizationTests: XCTestCase {
             let label = bundle.localizedString(forKey: "Language", value: nil, table: nil)
             XCTAssertFalse(label.isEmpty, language)
             if language != "en" { XCTAssertNotEqual(label, "Language", language) }
-            for key in ["Welcome back.", "Unlock with system authentication", "Authorize this device"] {
+            for key in ["Welcome back.", "Unlock with system authentication", "Authorize this device", "Continue with a passkey", "Create a passkey", "Add a passkey login", "Sign out all devices", "Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized."] {
                 let value = bundle.localizedString(forKey: key, value: nil, table: nil)
                 if language != "en" { XCTAssertNotEqual(value, key, "\(language): \(key)") }
             }
