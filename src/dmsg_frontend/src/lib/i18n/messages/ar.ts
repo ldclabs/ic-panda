@@ -1,6 +1,8 @@
 import type { Messages } from './en'
 
 export default {
+  "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "مفاتيح المرور غير متاحة في هذا المتصفح. استخدم متصفحًا محدّثًا أو اختر Internet Identity في dMsg.",
+  "Return to the dMsg app": "العودة إلى تطبيق dMsg",
   "Continue with a passkey": "المتابعة بمفتاح مرور",
   "Create a passkey": "إنشاء مفتاح مرور",
   "Sign out all devices": "تسجيل الخروج من جميع الأجهزة",

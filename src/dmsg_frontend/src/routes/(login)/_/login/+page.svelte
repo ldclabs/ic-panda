@@ -11,6 +11,7 @@
   import {
     completePasskey,
     parsePasskeyRequest,
+    supportsPasskey,
     type PasskeyRequest
   } from '$lib/login/passkey'
   import {
@@ -25,6 +26,7 @@
 
   let request = $state<LoginRequest | null>(null)
   let passkey = $state<PasskeyRequest | null>(null)
+  let passkeyAvailable = $state(false)
   let invalid = $state(false)
   let busy = $state(false)
 
@@ -36,6 +38,7 @@
         request = parseRequest(fragment)
       } catch {
         passkey = parsePasskeyRequest(fragment)
+        passkeyAvailable = supportsPasskey(navigator.credentials)
       }
     } catch {
       invalid = true
@@ -90,11 +93,19 @@
       )}
     </p>
   {:else if passkey}
-    <p class="utility-lead"
-      >{passkey.challenge.action === 'logout_all'
-        ? $t('Confirm with your passkey to sign out all devices.')
-        : $t('Use your passkey to continue to the dMsg app.')}</p
-    >
+    {#if passkeyAvailable}
+      <p class="utility-lead"
+        >{passkey.challenge.action === 'logout_all'
+          ? $t('Confirm with your passkey to sign out all devices.')
+          : $t('Use your passkey to continue to the dMsg app.')}</p
+      >
+    {:else}
+      <p class="utility-status error" role="alert">
+        {$t(
+          'Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.'
+        )}
+      </p>
+    {/if}
     <button
       type="button"
       class="button primary utility-action"
@@ -102,23 +113,27 @@
       onclick={start}
       aria-busy={busy}
     >
-      {busy
-        ? $t('Waiting for your passkey…')
-        : passkey.challenge.action === 'register'
-          ? $t('Create a passkey')
-          : passkey.challenge.action === 'logout_all'
-            ? $t('Sign out all devices')
-            : $t('Continue with a passkey')}
+      {!passkeyAvailable
+        ? $t('Return to the dMsg app')
+        : busy
+          ? $t('Waiting for your passkey…')
+          : passkey.challenge.action === 'register'
+            ? $t('Create a passkey')
+            : passkey.challenge.action === 'logout_all'
+              ? $t('Sign out all devices')
+              : $t('Continue with a passkey')}
     </button>
-    <p class="utility-note"
-      >{passkey.challenge.action === 'logout_all'
-        ? $t(
-            'Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.'
-          )
-        : $t(
-            'Your device keeps you signed in. Unlocking your local content still requires your confirmation.'
-          )}</p
-    >
+    {#if passkeyAvailable}
+      <p class="utility-note"
+        >{passkey.challenge.action === 'logout_all'
+          ? $t(
+              'Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.'
+            )
+          : $t(
+              'Your device keeps you signed in. Unlocking your local content still requires your confirmation.'
+            )}</p
+      >
+    {/if}
   {:else if request}
     <p class="utility-lead"
       >{#if callbackTarget(request.next_url) === 'ios'}

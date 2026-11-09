@@ -38,6 +38,8 @@
 
 成功回调：`{protocol, state, response: {credential_id, client_data_json, authenticator_data, signature}, error: null}`，四个响应字段均为 bytes。注册的 `authenticator_data` 是完整 attestationObject，signature 为空；登录为原始 authenticatorData 与 DER ES256 签名。失败时 response 为 null，error 仅为 `user_cancelled/passkey_error/timeout`。回调通过顶层导航携带 fragment。固定向量见 [passkey-v1.json](../../tests/vectors/client/passkey-v1.json)。
 
+网页检查安全上下文、`PublicKeyCredential` 及 credentials 的 create/get 能力，不以本机是否有平台认证器判断外接安全钥匙能否使用。不支持时显示浏览器提示，并允许返回应用，回调为 `passkey_error`。注册同时设置 `residentKey: required` 和 `requireResidentKey: true`。`NotAllowedError` 的原因可能是取消、超时、无可用凭据或权限限制，统一返回 `passkey_error`；只有 `AbortError` 映射为 `user_cancelled`，明确的 `TimeoutError` 或请求已过期返回 `timeout`。回调不携带浏览器原始错误文本。
+
 iOS 用 AuthenticationServices 原生生成相同数据，经 UniFFI 提交共享 Rust 流程；Associated Domains 使用已有的 `webcredentials:dmsg.net` 和 AASA。原生 origin 须在真实签名设备验证，不能用模拟器结果替代。
 
 ## 本机会话与内容解锁

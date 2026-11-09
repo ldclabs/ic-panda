@@ -1,6 +1,8 @@
 import type { Messages } from './en'
 
 export default {
+  "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Le passkey non sono disponibili in questo browser. Usa un browser aggiornato o scegli Internet Identity in dMsg.",
+  "Return to the dMsg app": "Torna all’app dMsg",
   "Continue with a passkey": "Continua con una passkey",
   "Create a passkey": "Crea una passkey",
   "Sign out all devices": "Esci da tutti i dispositivi",

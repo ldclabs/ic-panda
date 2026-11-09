@@ -1,6 +1,8 @@
 import type { Messages } from './en'
 
 export default {
+  "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "이 브라우저에서는 패스키를 사용할 수 없습니다. 최신 브라우저를 사용하거나 dMsg에서 Internet Identity를 선택하세요.",
+  "Return to the dMsg app": "dMsg 앱으로 돌아가기",
   "Continue with a passkey": "패스키로 계속",
   "Create a passkey": "패스키 만들기",
   "Sign out all devices": "모든 기기에서 로그아웃",

@@ -1,6 +1,8 @@
 import type { Messages } from './en'
 
 export default {
+  "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "此浏览器无法使用通行密钥。请使用最新版浏览器，或在 dMsg 中选择 Internet Identity 登录。",
+  "Return to the dMsg app": "返回 dMsg 应用",
   "Continue with a passkey": "使用通行密钥登录",
   "Create a passkey": "创建通行密钥",
   "Sign out all devices": "退出所有设备的登录",

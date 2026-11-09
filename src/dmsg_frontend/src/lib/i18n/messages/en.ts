@@ -1,4 +1,6 @@
 const en = {
+  "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.",
+  "Return to the dMsg app": "Return to the dMsg app",
   "Continue with a passkey": "Continue with a passkey",
   "Create a passkey": "Create a passkey",
   "Sign out all devices": "Sign out all devices",

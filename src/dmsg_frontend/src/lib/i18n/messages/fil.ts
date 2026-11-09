@@ -1,6 +1,8 @@
 import type { Messages } from './en'
 
 export default {
+  "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Hindi magagamit ang mga passkey sa browser na ito. Gumamit ng na-update na browser o piliin ang Internet Identity sa dMsg.",
+  "Return to the dMsg app": "Bumalik sa dMsg app",
   "Continue with a passkey": "Magpatuloy gamit ang passkey",
   "Create a passkey": "Gumawa ng passkey",
   "Sign out all devices": "Mag-sign out sa lahat ng device",

@@ -14,6 +14,20 @@ export interface PasskeyRequest {
   credential_id: Uint8Array<ArrayBuffer> | null
 }
 
+type PasskeyCredentials = Pick<CredentialsContainer, 'create' | 'get'>
+
+// External security keys do not require a platform authenticator.
+export function supportsPasskey(
+  credentials: Partial<PasskeyCredentials> | undefined
+): credentials is PasskeyCredentials {
+  return (
+    globalThis.isSecureContext === true &&
+    typeof globalThis.PublicKeyCredential !== 'undefined' &&
+    typeof credentials?.create === 'function' &&
+    typeof credentials?.get === 'function'
+  )
+}
+
 function check(value: unknown, name: string): asserts value {
   if (!value) throw new Error(name)
 }
@@ -92,7 +106,7 @@ export function parsePasskeyRequest(
 
 export async function completePasskey(
   request: PasskeyRequest,
-  credentials: Pick<CredentialsContainer, 'create' | 'get'>,
+  credentials: Partial<PasskeyCredentials> | undefined,
   navigate: (url: string) => void
 ) {
   let response = null
@@ -100,6 +114,8 @@ export async function completePasskey(
   try {
     const timeout = Math.min(60_000, request.challenge.expires_at - Date.now())
     if (timeout <= 0) throw new DOMException('Expired', 'TimeoutError')
+    if (!supportsPasskey(credentials))
+      throw new DOMException('WebAuthn unavailable', 'NotSupportedError')
     const registration = request.challenge.action === 'register'
     const credential = (
       registration
@@ -111,6 +127,7 @@ export async function completePasskey(
               pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
               authenticatorSelection: {
                 residentKey: 'required',
+                requireResidentKey: true,
                 userVerification: 'required'
               },
               attestation: 'none',
@@ -134,7 +151,10 @@ export async function completePasskey(
           })
     ) as PublicKeyCredential | null
     if (!credential || credential.type !== 'public-key')
-      throw new DOMException('Cancelled', 'NotAllowedError')
+      throw new DOMException(
+        'Authentication did not complete',
+        'NotAllowedError'
+      )
     const result = credential.response
     response = {
       credential_id: new Uint8Array(credential.rawId),
@@ -150,8 +170,10 @@ export async function completePasskey(
     }
   } catch (cause) {
     const name = (cause as { name?: string })?.name
+    // NotAllowedError also covers timeout, unavailable credentials and policy
+    // restrictions. It cannot establish that the user cancelled.
     error =
-      name === 'NotAllowedError' || name === 'AbortError'
+      name === 'AbortError'
         ? 'user_cancelled'
         : name === 'TimeoutError'
           ? 'timeout'
