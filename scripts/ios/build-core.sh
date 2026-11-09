@@ -10,7 +10,9 @@ bridge="$PWD/src/dmsg_ios/CoreBridge"
 mkdir -p "$bridge/Generated" "$bridge/Headers" "$bridge/Artifacts"
 build_source_sha256="$(python3 scripts/ios/artifacts.py fingerprint)"
 cargo build --locked -p dmsg_mobile "${flags[@]}"
-cargo run --locked -p dmsg_mobile --features bindgen --bin dmsg-mobile-bindgen -- generate \
+# cargo run also builds the package library; keep it in the selected profile
+# instead of linking an unoptimized host library during release builds.
+cargo run --locked -p dmsg_mobile "${flags[@]}" --features bindgen --bin dmsg-mobile-bindgen -- generate \
   --library "target/$profile/libdmsg_mobile.dylib" --language swift \
   --out-dir "$bridge/Generated"
 cp "$bridge/Generated/DMsgCoreFFI.h" "$bridge/Headers/"
