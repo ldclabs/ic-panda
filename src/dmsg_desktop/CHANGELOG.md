@@ -6,7 +6,7 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
-## [1.5.0-beta.1] - 2026-11-09
+## [1.5.0] - 2026-11-09
 
 ### Login and local unlock
 
@@ -758,7 +758,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
-[1.5.0-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.4.2...1.5.0-beta.1
+[1.5.0]: https://github.com/ldclabs/ic-panda/compare/1.4.2...1.5.0
 [1.4.2]: https://github.com/ldclabs/ic-panda/compare/1.4.1...1.4.2
 [1.4.1]: https://github.com/ldclabs/ic-panda/compare/1.4.0...1.4.1
 [1.4.0]: https://github.com/ldclabs/ic-panda/compare/1.3.3...1.4.0
