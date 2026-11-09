@@ -3172,5 +3172,9 @@
 	<string>패스키가 저장되었습니다. 다시 시도하면 이 계정에 연결하는 작업을 계속합니다. 새 패스키는 만들지 않습니다.</string>
 	<key>Continue adding this passkey</key>
 	<string>이 패스키 추가 계속</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>이 패스키의 기기를 로그아웃하고 계속</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>이 패스키로 로그인한 기기가 너무 많습니다. 해당 기기를 로그아웃한 후 계속하세요. 다른 패스키와 저장된 콘텐츠에는 영향을 주지 않습니다.</string>
 </dict>
 </plist>

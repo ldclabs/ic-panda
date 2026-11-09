@@ -10,6 +10,8 @@ export default {
     "letterPendingContact": "Dein vorheriger Brief ist noch offen. Bitte den Empfänger, ihn in der Desktop-App zu archivieren oder im Briefmenü unter iOS „Weiteren Brief erlauben“ zu wählen. Sende diesen Brief danach erneut.",
     "letterRecipientKeyStale": "Die Empfangseinstellungen des Empfängers müssen aktualisiert werden. Bitte ihn, dMsg zu entsperren und zu synchronisieren. Sende diesen Brief danach erneut.",
     "letterPolicyStale": "Die Sende- oder Empfangseinstellungen haben sich geändert. Versuche erneut, diesen Brief zu senden. Falls es weiterhin fehlschlägt, sollten du und der Empfänger dMsg entsperren und vor dem nächsten Versuch synchronisieren.",
+    "passkeyResetSessions": "Geräte dieses Passkeys abmelden und fortfahren",
+    "passkeyResetHint": "Mit diesem Passkey sind zu viele Geräte angemeldet. Melde sie ab, um fortzufahren. Andere Passkeys und gespeicherte Inhalte bleiben unverändert.",
     "passkeyBindingHint": "Wenn du bereits einen Passkey erstellt hast, verwende den gespeicherten. Erstelle nur für eine weitere Anmeldeidentität einen neuen.",
     "passkeyExistingTitle": "Vorhandenen Passkey verwenden",
     "passkeyExistingHint": "Verwende einen bereits mit dem gewünschten Konto verknüpften Login.",

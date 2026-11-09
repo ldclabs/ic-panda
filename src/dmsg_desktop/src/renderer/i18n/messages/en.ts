@@ -13,6 +13,8 @@ const messages = {
   "letterRecipientKeyStale": "The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.",
   "letterPolicyStale": "Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.",
 
+    "passkeyResetSessions": "Sign out this passkey’s devices and continue",
+    "passkeyResetHint": "This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.",
     "passkeyBindingHint": "Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.",
     "passkeyExistingTitle": "Use an existing passkey",
     "passkeyExistingHint": "Use a login already linked to the account you want to open.",

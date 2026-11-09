@@ -3172,5 +3172,9 @@
 	<string>پاس کی محفوظ ہے۔ اسے اس اکاؤنٹ سے منسلک کرنا مکمل کرنے کے لیے دوبارہ کوشش کریں؛ نئی پاس کی نہیں بنے گی۔</string>
 	<key>Continue adding this passkey</key>
 	<string>یہ پاس کی شامل کرنا جاری رکھیں</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>اس پاس کی کے آلات سے سائن آؤٹ کر کے جاری رکھیں</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>اس پاس کی سے بہت زیادہ آلات سائن ان ہیں۔ جاری رکھنے کے لیے ان سے سائن آؤٹ کریں۔ دوسری پاس کیز اور محفوظ مواد متاثر نہیں ہوں گے۔</string>
 </dict>
 </plist>

@@ -3172,5 +3172,9 @@
 	<string>Klucz dostępu jest zapisany. Spróbuj ponownie, aby dokończyć powiązanie z tym kontem. Nowy klucz nie zostanie utworzony.</string>
 	<key>Continue adding this passkey</key>
 	<string>Kontynuuj dodawanie tego klucza</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Wyloguj urządzenia tego klucza i kontynuuj</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Za pomocą tego klucza dostępu zalogowano zbyt wiele urządzeń. Wyloguj je, aby kontynuować. Inne klucze i zapisane dane pozostaną bez zmian.</string>
 </dict>
 </plist>

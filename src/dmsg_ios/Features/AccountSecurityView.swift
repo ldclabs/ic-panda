@@ -18,6 +18,7 @@ struct AccountSecurityView: View {
     @State private var recoveryEnabled = false
     @State private var actionBusy = false
     @State private var bindingInternetIdentity = false
+    @State private var resettingPasskey = false
     @State private var passkeyBinding = PasskeyBinding()
     @State private var passkeyChoices = false
     #if DEBUG
@@ -49,7 +50,7 @@ struct AccountSecurityView: View {
                     NavigationLink("Delete account") { AccountDeletionView() }.foregroundStyle(.red).accessibilityIdentifier("account.delete")
                 }
             }
-            if actionBusy && !bindingInternetIdentity { ProgressView() }
+            if actionBusy && !bindingInternetIdentity && !resettingPasskey { ProgressView() }
         }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle(title).confirmLeavingDraft(dirty)
             .task(id: model.contentRevision) { scope = model.viewGeneration; await load(force: true) }
             .onDisappear { if dirty { model.keepFormDraft("security", value: Draft(token: token, delay: delay, enabled: recoveryEnabled), generation: scope) } }
@@ -64,7 +65,7 @@ struct AccountSecurityView: View {
                 Text("Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.")
             }
             .onDisappear {
-                if passkeyBinding.working || passkeyBinding.hasSavedCredential || bindingInternetIdentity {
+                if passkeyBinding.working || passkeyBinding.hasPending || bindingInternetIdentity || resettingPasskey {
                     model.passkeyLogin.cancel(); model.webLogin.cancel(); model.engine?.cancelLogin()
                     passkeyBinding.cancel()
                 }
@@ -72,7 +73,7 @@ struct AccountSecurityView: View {
             .onChange(of: model.session?.generation) {
                 // The core binds the attempt to the session it began in. After a
                 // background pause or lock, offer the saved passkey instead of Continue.
-                if passkeyBinding.hasSavedCredential && !passkeyBinding.working { passkeyBinding.cancel(); model.engine?.cancelLogin() }
+                if passkeyBinding.hasPending && !passkeyBinding.working { passkeyBinding.cancel(); model.engine?.cancelLogin() }
             }
     }
     private var title: LocalizedStringKey {
@@ -124,6 +125,13 @@ struct AccountSecurityView: View {
                 if passkeyBinding.hasSavedCredential && !passkeyBinding.working {
                     NoticeBar(text: String(localized: "The passkey is saved. Retry to finish linking it to this account; no new passkey will be created."))
                         .accessibilityIdentifier("security.passkey-pending")
+                }
+                if passkeyBinding.limitedCredential != nil {
+                    NoticeBar(text: String(localized: "This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected."))
+                        .accessibilityIdentifier("security.passkey-capacity")
+                    SettingsAction("Sign out this passkey’s devices and continue", role: .destructive, working: resettingPasskey) {
+                        Task { await resetPasskeySessions() }
+                    }.disabled(busy || canManage != true).accessibilityIdentifier("security.reset-passkey")
                 }
             }
             if model.session?.loginRenewable == true {
@@ -214,10 +222,10 @@ struct AccountSecurityView: View {
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
 
-    private func bind(passkey: PasskeyOperation? = nil, resuming: Bool = false) async {
+    private func bind(passkey: PasskeyOperation? = nil, resuming: Bool = false, credentialID: Data? = nil) async {
         #if DEBUG
         if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-passkey-binding"), let passkey {
-            await bindFixture(passkey, resuming: resuming); return
+            await bindFixture(passkey, resuming: resuming, credentialID: credentialID); return
         }
         #endif
         guard let engine = model.engine, !busy else { return }
@@ -227,7 +235,7 @@ struct AccountSecurityView: View {
             let result: ObjectSnapshot
             if let passkey {
                 result = try await passkeyBinding.run(resuming: resuming) {
-                    try await engine.beginPasskey(operation: passkey)
+                    try await engine.beginPasskey(operation: passkey, credentialId: credentialID)
                 } authenticate: { started in
                     try await model.passkeyLogin.authenticate(started)
                 } complete: { started, response in
@@ -249,31 +257,77 @@ struct AccountSecurityView: View {
             guard epoch == model.epoch && visible else { return }; request = try model.decode(result)
         } catch { if epoch == model.epoch && visible {
             if !passkeyBinding.hasSavedCredential { engine.cancelLogin() }
-            if passkey == .bindExisting, case MobileError.Failure(code: "NOT_FOUND") = error {
-                model.error = String(localized: "This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.")
-            } else { model.report(error) }
+            reportBindingFailure(error, operation: passkey)
         } }
+    }
+
+    private func reportBindingFailure(_ error: Error, operation: PasskeyOperation?) {
+        if operation == .bindExisting, case MobileError.Failure(code: "NOT_FOUND") = error {
+            model.error = String(localized: "This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.")
+        } else if passkeyBinding.limitedCredential != nil {
+            model.error = String(localized: "This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.")
+        } else { model.report(error) }
+    }
+
+    private func resetPasskeySessions() async {
+        guard let credential = passkeyBinding.limitedCredential, !busy else { return }
+        #if DEBUG
+        if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-passkey-capacity") {
+            await resetFixture(credential); return
+        }
+        #endif
+        guard let engine = model.engine else { return }
+        let epoch = model.epoch
+        model.activity()
+        do {
+            actionBusy = true; resettingPasskey = true
+            defer { actionBusy = false; resettingPasskey = false }
+            let started = try await engine.beginPasskey(operation: .resetSessions, credentialId: credential)
+            let response = try await model.passkeyLogin.authenticate(started)
+            await model.waitUntilActive()
+            guard epoch == model.epoch && visible else { return }
+            _ = try await engine.completePasskey(state: started.state, response: response)
+            guard epoch == model.epoch && visible else { return }
+            passkeyBinding.cancel()
+        } catch {
+            if epoch == model.epoch && visible { engine.cancelLogin(); model.report(error) }
+            return
+        }
+        // The reset does not end the current account's session. Authenticate the
+        // same saved credential again, keeping this operation an account binding.
+        await bind(passkey: .bindExisting, credentialID: credential)
     }
 
     #if DEBUG
     /// The real retry controller with a deterministic post-authentication outage.
-    private func bindFixture(_ operation: PasskeyOperation, resuming: Bool) async {
+    private func bindFixture(_ operation: PasskeyOperation, resuming: Bool, credentialID: Data? = nil) async {
         guard !busy else { return }
+        let capacity = ProcessInfo.processInfo.arguments.contains("--ui-passkey-capacity")
         do {
             let value = try await passkeyBinding.run(resuming: resuming) {
-                precondition(fixtureCompletions == 0, "Retry must not create another credential")
+                precondition(fixtureCompletions == 0 || (capacity && operation == .bindExisting && credentialID == Data([3])), "Retry must keep the selected credential and binding intent")
                 return PasskeyStart(state: Data(repeating: 1, count: 32), challenge: Data(repeating: 2, count: 32), userId: Data(repeating: 3, count: 32), credentialId: nil, operation: operation, deadlineMs: UInt64(Date.now.timeIntervalSince1970 * 1000) + 300_000)
             } authenticate: { _ in
                 NativePasskeyResponse(credentialId: Data([3]), clientDataJson: Data([4]), authenticatorData: Data([5]), signature: Data())
             } complete: { _, _ in
                 fixtureCompletions += 1
                 try await Task.sleep(for: .seconds(3))
-                if fixtureCompletions == 1 { throw MobileError.Failure(code: "NETWORK_UNAVAILABLE") }
+                if fixtureCompletions == 1 { throw MobileError.Failure(code: capacity ? "SESSION_LIMIT_EXCEEDED" : "NETWORK_UNAVAILABLE") }
                 return ObjectSnapshot(generation: model.session?.generation ?? 0, json: "{\"id\":\"fixture-passkey-binding\",\"digest\":\"fixture\",\"type\":\"account\",\"state\":\"awaiting_user\",\"source\":\"gui\",\"risk\":\"high\",\"expires_at\":1999999999999,\"mobile_supported\":true}")
             }
             guard visible else { return }
             request = try model.decode(value)
-        } catch { if visible { model.report(error) } }
+        } catch { if visible { reportBindingFailure(error, operation: operation) } }
+    }
+
+    private func resetFixture(_ credential: Data) async {
+        precondition(credential == Data([3]) && model.session?.loginRenewable == false)
+        actionBusy = true; resettingPasskey = true
+        try? await Task.sleep(for: .seconds(3))
+        actionBusy = false; resettingPasskey = false
+        guard visible else { return }
+        passkeyBinding.cancel()
+        await bindFixture(.bindExisting, resuming: false, credentialID: credential)
     }
     #endif
 }

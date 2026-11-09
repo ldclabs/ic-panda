@@ -65,6 +65,22 @@ final class PasskeyBindingTests: XCTestCase {
         XCTAssertFalse(flow.working); XCTAssertFalse(flow.hasSavedCredential)
     }
 
+    func testCapacityRecoveryKeepsOnlyTheSelectedCredentialAndNeverCreatesAnother() async {
+        let flow = PasskeyBinding()
+        do {
+            _ = try await flow.run { self.start(.bindExisting) } authenticate: { _ in self.response } complete: { _, _ in
+                throw MobileError.Failure(code: "SESSION_LIMIT_EXCEEDED")
+            }
+            XCTFail("Expected capacity failure")
+        } catch {}
+        XCTAssertFalse(flow.hasSavedCredential)
+        XCTAssertTrue(flow.hasPending)
+        XCTAssertEqual(flow.limitedCredential, response.credentialId)
+        flow.cancel()
+        XCTAssertFalse(flow.hasPending)
+        XCTAssertNil(flow.limitedCredential)
+    }
+
     func testLeavingDuringAuthenticationDiscardsTheLateResponse() async {
         let flow = PasskeyBinding()
         var answer: CheckedContinuation<NativePasskeyResponse, Error>?

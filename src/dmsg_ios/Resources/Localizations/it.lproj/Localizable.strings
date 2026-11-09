@@ -3172,5 +3172,9 @@
 	<string>La passkey è salvata. Riprova per completare il collegamento a questo account; non verrà creata una nuova passkey.</string>
 	<key>Continue adding this passkey</key>
 	<string>Continua ad aggiungere questa passkey</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Disconnetti i dispositivi di questa passkey e continua</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Troppi dispositivi hanno effettuato l’accesso con questa passkey. Disconnettili per continuare. Le altre passkey e i contenuti salvati non saranno interessati.</string>
 </dict>
 </plist>

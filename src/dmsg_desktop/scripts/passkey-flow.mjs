@@ -4,6 +4,7 @@ import { join } from 'node:path'
 /** UI coverage with the smoke daemon; real delegation verification lives in PocketIC. */
 export async function passkeyFlow({ app, main, shots, methods, emit, calls, waitFor, setState }) {
   let available = true, renewable = false, failed = false
+  const credentialB = Buffer.from('passkey-B').toString('base64url')
   const read = methods['daemon/status']
   methods['daemon/status'] = () => ({ ...read(), passkey_available: available, login_renewable: renewable, login_expires_at: 1 })
   methods['session/login'] = p => {
@@ -20,7 +21,7 @@ export async function passkeyFlow({ app, main, shots, methods, emit, calls, wait
     assert.equal(calls.filter(c => c.method === 'session/login').length, before, 'opening the entry does not create a credential or start login')
   }
   const fail = (code, message = '') => {
-    methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code, message } })
+    methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code, message }, credential_id: code === 'SESSION_LIMIT_EXCEEDED' ? credentialB : undefined })
     emit('login/changed')
   }
   methods['session/accounts'] = () => []
@@ -44,13 +45,19 @@ export async function passkeyFlow({ app, main, shots, methods, emit, calls, wait
   methods['session/login_result'] = pending
   await main.getByTestId('login-retry').click()
   await main.locator('[data-testid="login-steps"][data-phase="browser"]').waitFor()
-  methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code: 'SESSION_LIMIT_EXCEEDED' } })
+  methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code: 'SESSION_LIMIT_EXCEEDED' }, credential_id: credentialB })
   emit('login/changed')
   await main.getByTestId('login-reset-devices').waitFor()
   methods['session/login_result'] = pending
-  await main.getByTestId('login-reset-devices').click()
+  await main.getByTestId('login-reset-devices').focus(); await main.keyboard.press('Enter')
   await main.locator('[data-testid="login-steps"][data-phase="browser"]').waitFor()
-  assert.equal(last().action, 'logout_all', 'a new device can reset full sessions with fresh Passkey verification')
+  assert.equal(last().action, 'reset_sessions', 'capacity recovery is separate from the current account logout')
+  assert.equal(last().credential_id, credentialB)
+  methods['session/login_result'] = () => ({ done: true, pending: false, credential_id: credentialB })
+  emit('login/changed')
+  await waitFor(() => last().action === 'login' && last().credential_id === credentialB)
+  methods['session/login_result'] = pending
+  await browser()
   await close()
   await main.getByTestId('welcome-login-ii').click()
   await browser()
@@ -102,11 +109,16 @@ export async function passkeyFlow({ app, main, shots, methods, emit, calls, wait
     methods['session/login_result'] = pending
     await main.getByTestId('login-retry').click()
     await main.locator('[data-testid="login-steps"][data-phase="browser"]').waitFor()
-    methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code: 'SESSION_LIMIT_EXCEEDED' } })
+    methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code: 'SESSION_LIMIT_EXCEEDED' }, credential_id: credentialB })
     emit('login/changed')
     await main.getByTestId('login-reset-devices').waitFor()
     assert.ok(await main.getByTestId('login-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `session-limit actions fit ${locale}`)
     await main.screenshot({ path: join(shots, `passkey-capacity-${locale}-${appearance}.png`), animations: 'disabled' })
+    methods['session/login_result'] = pending
+    await main.getByTestId('login-reset-devices').click(); await browser()
+    assert.equal(last().credential_id, credentialB)
+    assert.ok(await main.getByTestId('login-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    await main.screenshot({ path: join(shots, `passkey-reset-${locale}-${appearance}.png`), animations: 'disabled' })
     methods['session/login_result'] = pending
     await close()
     await choose()
@@ -148,6 +160,18 @@ export async function passkeyFlow({ app, main, shots, methods, emit, calls, wait
   await main.getByTestId('passkey-login').click()
   await browser()
   assert.equal(last().bind, true); assert.equal(last().action, 'login', 'a saved passkey can be linked without new registration')
+  fail('SESSION_LIMIT_EXCEEDED')
+  await main.getByTestId('login-reset-devices').waitFor()
+  methods['session/login_result'] = pending
+  await main.getByTestId('login-reset-devices').click(); await browser()
+  assert.equal(last().bind, true); assert.equal(last().action, 'reset_sessions')
+  assert.equal(last().credential_id, credentialB)
+  methods['session/login_result'] = () => ({ done: true, pending: false, credential_id: credentialB })
+  emit('login/changed')
+  await waitFor(() => last().action === 'login' && last().bind === true && last().credential_id === credentialB)
+  methods['session/login_result'] = pending
+  await browser()
+  assert.equal((await methods['daemon/status']()).state, 'unlocked', 'resetting B keeps the original account unlocked')
   await close()
   await main.getByTestId('bind-passkey').click()
   await main.getByTestId('passkey-choices').waitFor()

@@ -234,11 +234,15 @@ const CALLBACK_PAGE: &str = r#"<!doctype html>
 
 #[derive(Default)]
 struct LoginState {
+    revision: u64,
     session: Option<InteractiveLogin>,
     generation: Option<u64>,
     /// A login started to bind another identity to the unlocked account,
     /// with the source of the approval it asks for.
     bind: Option<String>,
+    /// Capacity recovery clears the selected credential, keeping this workspace.
+    resetting: bool,
+    credential_id: Option<String>,
     /// The callback is checking what the browser returned.
     checking: bool,
     outcome: Option<Result<()>>,
@@ -1145,7 +1149,8 @@ impl Daemon {
     }
 
     async fn start_login(&self, params: &Value) -> Result<Value> {
-        if params["bind"] == true {
+        let resetting = params["action"] == "reset_sessions";
+        if params["bind"] == true && !resetting {
             self.hold().ensure_login().await?;
         }
         let origin = params["origin"].as_str().unwrap_or("https://dmsg.net");
@@ -1181,9 +1186,31 @@ impl Daemon {
                     "register" => AuthAction::Register,
                     "login" => AuthAction::Login,
                     "logout_all" if params["bind"] != true => AuthAction::LogoutAll,
+                    "reset_sessions" => AuthAction::LogoutAll,
                     _ => return Err(dmsg_types::invalid("login action")),
                 };
-                let setup = self.hold().with(|c| c.passkey_start(action)).await?;
+                let credential = match params.get("credential_id").filter(|v| !v.is_null()) {
+                    Some(value) => {
+                        let value = value
+                            .as_str()
+                            .ok_or_else(|| dmsg_types::invalid("credential"))?;
+                        dmsg_types::ensure_valid(value.len() <= 1368, "credential size")?;
+                        Some(dmsg_client::codec::unb64(value)?)
+                    }
+                    None => None,
+                };
+                dmsg_types::ensure_valid(
+                    !resetting || credential.is_some(),
+                    "reset credential required",
+                )?;
+                dmsg_types::ensure_valid(
+                    params["action"] != "logout_all" || credential.is_none(),
+                    "unexpected credential",
+                )?;
+                let setup = self
+                    .hold()
+                    .with(|c| c.passkey_start(action, credential))
+                    .await?;
                 InteractiveLogin::Passkey(Box::new(
                     setup
                         .start(format!("http://127.0.0.1:{}/auth/callback", self.port))
@@ -1209,10 +1236,14 @@ impl Daemon {
             true => Some(source(params)?.to_string()),
             false => None,
         };
-        *self.login.lock().expect("login state") = LoginState {
+        let mut login = self.login.lock().expect("login state");
+        *login = LoginState {
+            revision: login.revision.wrapping_add(1),
             session: Some(session),
             generation: Some(generation),
             bind,
+            resetting,
+            credential_id: params["credential_id"].as_str().map(str::to_owned),
             ..LoginState::default()
         };
         Ok(reply)
@@ -1301,14 +1332,20 @@ impl Daemon {
             "session/status" => self.status().await,
             "session/login" => self.start_login(params).await,
             "session/login_result" => {
-                let (waiting, checking, outcome, approval) = {
+                let (waiting, checking, outcome, approval, credential_id) = {
                     let login = self.login.lock().expect("login state");
                     let waiting = login
                         .session
                         .as_ref()
                         .is_some_and(|s| s.deadline() > now_ms());
                     let outcome = login.outcome.clone();
-                    (waiting, login.checking, outcome, login.approval.clone())
+                    (
+                        waiting,
+                        login.checking,
+                        outcome,
+                        login.approval.clone(),
+                        login.credential_id.clone(),
+                    )
                 };
                 let pending = waiting || checking;
                 let done = outcome.is_some();
@@ -1325,6 +1362,7 @@ impl Daemon {
                     "done": done,
                     "error": error.map(|e| json!({"code": error_code(&e), "message": e.to_string()})),
                     "approval": approval,
+                    "credential_id": credential_id,
                     "status": status,
                 }))
             }
@@ -1458,7 +1496,10 @@ impl Daemon {
                     if login.checking {
                         return Err(Error::Pending);
                     }
-                    *login = LoginState::default();
+                    *login = LoginState {
+                        revision: login.revision.wrapping_add(1),
+                        ..LoginState::default()
+                    };
                 }
                 dmsg_client::passkey::logout(&self.hold()).await?;
                 self.signed_out().await;
@@ -2308,7 +2349,7 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
         return (StatusCode::FORBIDDEN, "refused").into_response();
     }
     let now = now_ms();
-    let (accepted, mut session, bind, generation) = {
+    let (accepted, mut session, bind, generation, resetting, revision) = {
         let mut login = daemon.login.lock().expect("login state");
         let Some(session) = login.session.as_ref().filter(|s| s.deadline() > now) else {
             return StatusCode::NOT_FOUND.into_response();
@@ -2324,13 +2365,29 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
         // the real session intact, and only one matching callback wins.
         let session = login.session.take().expect("claimed callback");
         login.checking = true;
-        (accepted, session, login.bind.clone(), login.generation)
+        (
+            accepted,
+            session,
+            login.bind.clone(),
+            login.generation,
+            login.resetting,
+            login.revision,
+        )
     };
     daemon.emit("login/changed", Value::Null);
+    let selected_credential = match &accepted {
+        Ok(dmsg_client::login::LoginProof::Passkey(response)) => {
+            Some(dmsg_client::codec::b64(&response.credential_id))
+        }
+        _ => None,
+    };
     let accepted = match accepted {
         Ok(proof) => session.complete(proof).await,
         Err(error) => Err(error),
     };
+    let full_credential = matches!(&accepted, Err(Error::SessionLimitExceeded))
+        .then_some(selected_credential)
+        .flatten();
     let outcome = match accepted {
         // A second login for the unlocked account: it waits for the
         // person to approve binding it. Either checks the login on the
@@ -2340,20 +2397,32 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
             Some(source) => daemon
                 .under_lock(async |client| {
                     dmsg_types::ensure(
+                        daemon.login.lock().expect("login state").revision == revision,
+                        Error::Expired,
+                    )?;
+                    dmsg_types::ensure(
                         generation.is_none_or(|g| client.session_generation() == g),
                         Error::Locked,
                     )?;
                     client.bind_delegated_login(&source, delegated).await
                 })
                 .await
-                .map(|approval| {
-                    daemon.login.lock().expect("login state").approval = Some(approval);
+                .and_then(|approval| {
+                    let mut login = daemon.login.lock().expect("login state");
+                    dmsg_types::ensure(login.revision == revision, Error::Expired)?;
+                    login.approval = Some(approval);
+                    drop(login);
                     daemon.emit("approval/changed", Value::Null);
+                    Ok(())
                 }),
             None => {
                 let login = async {
                     let prepared = daemon
                         .under_lock(async |client| {
+                            dmsg_types::ensure(
+                                daemon.login.lock().expect("login state").revision == revision,
+                                Error::Expired,
+                            )?;
                             dmsg_types::ensure(
                                 generation.is_none_or(|g| client.session_generation() == g),
                                 Error::Locked,
@@ -2384,15 +2453,21 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
                 .hold()
                 .with(|c| {
                     dmsg_types::ensure(
+                        daemon.login.lock().expect("login state").revision == revision,
+                        Error::Expired,
+                    )?;
+                    dmsg_types::ensure(
                         generation.is_none_or(|g| c.session_generation() == g),
                         Error::Locked,
                     )?;
-                    c.logout()?;
-                    daemon.emit("session/changed", Value::Null);
+                    if !resetting {
+                        c.logout()?;
+                        daemon.emit("session/changed", Value::Null);
+                    }
                     Ok(())
                 })
                 .await;
-            if signed_out.is_ok() {
+            if signed_out.is_ok() && !resetting {
                 daemon.signed_out().await;
             }
             signed_out
@@ -2405,8 +2480,15 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
     }
     {
         let mut login = daemon.login.lock().expect("login state");
+        // A callback from a replaced flow must not retarget its recovery action.
+        if login.revision != revision {
+            return (StatusCode::CONFLICT, "superseded").into_response();
+        }
         login.checking = false;
         login.outcome = Some(outcome.clone());
+        if full_credential.is_some() {
+            login.credential_id = full_credential;
+        }
     }
     daemon.emit("login/changed", Value::Null);
     match outcome {
@@ -2866,6 +2948,28 @@ mod tests {
             ),
             (&json!(false), &json!(false), &json!("unlocked"))
         );
+        {
+            let mut login = daemon.login.lock().expect("login state");
+            login.revision = 7;
+            login.outcome = Some(Err(Error::SessionLimitExceeded));
+            login.credential_id = Some(dmsg_client::codec::b64(b"passkey-B"));
+        }
+        let full = daemon
+            .call_daemon("session/login_result", &Value::Null)
+            .await
+            .unwrap();
+        assert_eq!(full["error"]["code"], "SESSION_LIMIT_EXCEEDED");
+        assert_eq!(full["credential_id"], dmsg_client::codec::b64(b"passkey-B"));
+        assert_eq!(full["status"]["state"], "unlocked");
+        assert!(
+            matches!(
+                daemon
+                    .start_login(&json!({"provider":"passkey", "action":"reset_sessions"}))
+                    .await,
+                Err(Error::InvalidInput(_))
+            ),
+            "A missing recovery target must not fall back to the current account"
+        );
         daemon.login.lock().expect("login state").checking = true;
         assert_eq!(
             daemon.call_daemon("session/logout", &Value::Null).await,
@@ -2894,6 +2998,15 @@ mod tests {
             "logged_out"
         );
         assert!(daemon.login.lock().expect("login state").session.is_none());
+        assert!(
+            daemon
+                .login
+                .lock()
+                .expect("login state")
+                .credential_id
+                .is_none()
+        );
+        assert_eq!(daemon.login.lock().expect("login state").revision, 8);
         assert_eq!(
             events_of(Module::Daemon, "session/logout"),
             ["session/changed", "approval/changed", "login/changed"]

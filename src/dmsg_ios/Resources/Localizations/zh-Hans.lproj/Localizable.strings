@@ -3172,5 +3172,9 @@
 	<string>通行密钥已保存。重试会继续将它关联到此账号，不会创建新密钥。</string>
 	<key>Continue adding this passkey</key>
 	<string>继续添加此通行密钥</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>退出此通行密钥的设备登录并继续</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>此通行密钥的登录设备已达上限。退出它的设备登录后可继续；其他通行密钥和已保存的内容不受影响。</string>
 </dict>
 </plist>

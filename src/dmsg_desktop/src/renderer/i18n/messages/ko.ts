@@ -10,6 +10,8 @@ export default {
     "letterPendingContact": "이전 편지가 아직 처리되지 않았습니다. 받는 사람에게 데스크톱에서 이전 편지를 보관하거나 iOS 편지 메뉴에서 “다음 편지 허용”을(를) 선택해 달라고 요청한 후 이 편지를 다시 보내세요.",
     "letterRecipientKeyStale": "받는 사람의 수신 설정을 업데이트해야 합니다. 상대방에게 dMsg 잠금을 해제하고 동기화해 달라고 요청한 후 이 편지를 다시 보내세요.",
     "letterPolicyStale": "발신 또는 수신 설정이 변경되었습니다. 이 편지를 다시 보내세요. 계속 실패하면 본인과 받는 사람 모두 dMsg 잠금을 해제하고 동기화한 후 다시 시도하세요.",
+    "passkeyResetSessions": "이 패스키의 기기를 로그아웃하고 계속",
+    "passkeyResetHint": "이 패스키로 로그인한 기기가 너무 많습니다. 해당 기기를 로그아웃한 후 계속하세요. 다른 패스키와 저장된 콘텐츠에는 영향을 주지 않습니다.",
     "passkeyBindingHint": "이미 패스키를 만들었다면 저장된 패스키를 사용하세요. 다른 로그인 ID가 필요한 경우에만 새로 만드세요.",
     "passkeyExistingTitle": "기존 패스키 사용",
     "passkeyExistingHint": "열려는 계정에 이미 연결된 로그인 방법을 사용하세요.",

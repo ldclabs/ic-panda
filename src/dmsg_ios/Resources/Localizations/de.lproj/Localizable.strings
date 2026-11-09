@@ -3172,5 +3172,9 @@
 	<string>Der Passkey ist gespeichert. Versuche erneut, ihn mit diesem Konto zu verknüpfen. Es wird kein neuer Passkey erstellt.</string>
 	<key>Continue adding this passkey</key>
 	<string>Diesen Passkey weiter hinzufügen</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Geräte dieses Passkeys abmelden und fortfahren</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Mit diesem Passkey sind zu viele Geräte angemeldet. Melde sie ab, um fortzufahren. Andere Passkeys und gespeicherte Inhalte bleiben unverändert.</string>
 </dict>
 </plist>

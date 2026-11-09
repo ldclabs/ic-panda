@@ -246,7 +246,11 @@ impl Store {
     /// Copy a consistent SQLite image, including committed WAL pages.
     pub(crate) fn backup_to(&self, path: &Path) -> Result<()> {
         self.conn()
-            .backup(rusqlite::MAIN_DB, path, None)
+            .backup(
+                rusqlite::MAIN_DB,
+                path,
+                None::<fn(rusqlite::backup::Progress)>,
+            )
             .map_err(storage)
     }
 

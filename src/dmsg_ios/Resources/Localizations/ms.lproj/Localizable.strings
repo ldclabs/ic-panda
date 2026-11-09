@@ -3172,5 +3172,9 @@
 	<string>Passkey telah disimpan. Cuba lagi untuk melengkapkan pautannya kepada akaun ini; tiada passkey baharu akan dicipta.</string>
 	<key>Continue adding this passkey</key>
 	<string>Teruskan menambah passkey ini</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Log keluar peranti kunci laluan ini dan teruskan</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Terlalu banyak peranti dilog masuk dengan kunci laluan ini. Log keluar peranti tersebut untuk meneruskan. Kunci laluan lain dan kandungan tersimpan tidak terjejas.</string>
 </dict>
 </plist>

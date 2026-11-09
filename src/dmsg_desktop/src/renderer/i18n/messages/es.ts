@@ -10,6 +10,8 @@ export default {
     "letterPendingContact": "Tu carta anterior sigue pendiente. Pide al destinatario que la archive en la app de escritorio o elija «Permitir otra carta» en el menú de la carta en iOS; después, reintenta esta carta.",
     "letterRecipientKeyStale": "La configuración de recepción del destinatario necesita actualizarse. Pídele que desbloquee dMsg y sincronice; después, reintenta esta carta.",
     "letterPolicyStale": "La configuración de envío o recepción ha cambiado. Reintenta esta carta. Si vuelve a fallar, tanto tú como el destinatario debéis desbloquear dMsg y sincronizar antes de intentarlo de nuevo.",
+    "passkeyResetSessions": "Cerrar las sesiones de esta llave y continuar",
+    "passkeyResetHint": "Hay demasiados dispositivos conectados con esta llave de acceso. Cierra sus sesiones para continuar. Las demás llaves y el contenido guardado no se verán afectados.",
     "passkeyBindingHint": "Si ya creaste una llave de acceso, usa la guardada. Crea una nueva solo si necesitas otra identidad de inicio de sesión.",
     "passkeyExistingTitle": "Usar una llave de acceso existente",
     "passkeyExistingHint": "Usa un inicio de sesión ya vinculado a la cuenta que quieres abrir.",

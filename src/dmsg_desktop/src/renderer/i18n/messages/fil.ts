@@ -10,6 +10,8 @@ export default {
     "letterPendingContact": "Nakabinbin pa ang nauna mong liham. Hilingin sa tatanggap na i-archive ito sa desktop o piliin ang “Payagan ang isa pang liham” sa menu ng liham sa iOS, saka subukang muli ang liham na ito.",
     "letterRecipientKeyStale": "Kailangang i-update ang mga setting sa pagtanggap ng tatanggap. Hilingin sa kanilang i-unlock ang dMsg at mag-sync, saka subukang muli ang liham na ito.",
     "letterPolicyStale": "Nagbago ang mga setting sa pagpapadala o pagtanggap. Subukang muli ang liham na ito. Kung mabigo pa rin, ikaw at ang tatanggap ay kailangang mag-unlock ng dMsg at mag-sync bago muling subukan.",
+    "passkeyResetSessions": "Mag-sign out sa mga device ng passkey na ito at magpatuloy",
+    "passkeyResetHint": "Masyadong maraming device ang naka-sign in gamit ang passkey na ito. I-sign out ang mga ito para magpatuloy. Hindi maaapektuhan ang ibang passkey at naka-save na nilalaman.",
     "passkeyBindingHint": "Kung nakagawa ka na ng passkey, gamitin ang na-save. Gumawa lang ng bago kung kailangan mo ng isa pang pagkakakilanlan sa pag-login.",
     "passkeyExistingTitle": "Gumamit ng kasalukuyang passkey",
     "passkeyExistingHint": "Gumamit ng login na naka-link na sa account na gusto mong buksan.",

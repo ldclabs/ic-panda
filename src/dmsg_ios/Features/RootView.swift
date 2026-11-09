@@ -319,8 +319,8 @@ private struct PasskeyAccessView: View {
                     AccessActionLabel("Continue with a passkey", symbol: "key", working: model.busy && !creating)
                 }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("passkey.login")
                 if model.canResetPasskeySessions {
-                    Button { Task { await model.login(passkeyOperation: .logoutAll) } } label: {
-                        AccessActionLabel("Sign out all devices", symbol: "rectangle.portrait.and.arrow.right")
+                    Button { Task { await model.login(passkeyOperation: .resetSessions) } } label: {
+                        AccessActionLabel("Sign out this passkey’s devices and continue", symbol: "rectangle.portrait.and.arrow.right")
                     }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.reset-devices")
                 }
                 Divider()

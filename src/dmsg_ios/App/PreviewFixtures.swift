@@ -16,7 +16,7 @@ extension SessionModel {
         let loginExpiry: UInt64? = ProcessInfo.processInfo.arguments.contains("--ui-login-expired") ? nil : UInt64(Date.now.timeIntervalSince1970 * 1000) + (ProcessInfo.processInfo.arguments.contains("--ui-login-expiring") ? 30_000 : 86_400_000)
         installFixtures(
             SessionSnapshot(generation: 0, sequence: 0, state: welcome ? "logged_out" : setup ? "no_account" : (access ? (pairing ? "pairing_required" : "root_required") : "unlocked"), account: (setup || welcome) ? nil : "040g2081040g2081040g", deviceId: "fixture-device",
-                            pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, loginExpiresAtMs: loginExpiry, loginRenewable: passkey && !welcome, passkeyAvailable: passkey, setupPending: false, lastSyncAtMs: nil, syncError: nil),
+                            pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, loginExpiresAtMs: loginExpiry, loginRenewable: passkey && !welcome && !ProcessInfo.processInfo.arguments.contains("--ui-passkey-capacity"), passkeyAvailable: passkey, setupPending: false, lastSyncAtMs: nil, syncError: nil),
             items: [
                 vaultFixtureItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: chinese ? "个人开发账号" : "Personal development account", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [],
                           fields: [VaultField(id: "username", kind: "text", label: "", section: "", value: "lin@studio.example", concealed: false),
@@ -28,7 +28,7 @@ extension SessionModel {
         if ProcessInfo.processInfo.arguments.contains("--ui-passkey-missing") {
             reportLoginFailure(MobileError.Failure(code: "NOT_FOUND"), usingPasskey: passkey, operation: .login)
         } else if ProcessInfo.processInfo.arguments.contains("--ui-passkey-full") {
-            reportLoginFailure(MobileError.Failure(code: "SESSION_LIMIT_EXCEEDED"), usingPasskey: passkey, operation: .login)
+            reportLoginFailure(MobileError.Failure(code: "SESSION_LIMIT_EXCEEDED"), usingPasskey: passkey, operation: .login, credentialID: Data([3]))
         } else if ProcessInfo.processInfo.arguments.contains("--ui-passkey-quota") {
             reportLoginFailure(MobileError.Failure(code: "QUOTA_EXCEEDED"), usingPasskey: passkey, operation: .login)
         }

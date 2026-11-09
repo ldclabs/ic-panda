@@ -50,6 +50,8 @@ iOS 的当前绑定流程在临时网络、硬件或存储失败时保留原生�
 
 ## 本机会话与内容解锁
 
+会话满额的恢复必须固定到这次认证返回的 `credential_id`，不能回退到当前工作区已记住的其他凭据。桌面 `session/login_result` 在满额失败时返回该凭据的 base64url ID；`session/login` 的 `reset_sessions` 动作要求显式 `credential_id`，向签发方提交的仍是新鲜 `logout_all` challenge 与系统确认。iOS 使用对应的 `ResetSessions` 操作。完成后保留当前工作区，再用同一凭据重新登录；原来发起的是绑定时仍进入原账户的绑定审批。普通 `logout_all` 继续针对当前登录，并退出本机会话。两种操作不新增 canister 方法，不改变已签发委托的最长有效期。
+
 每个登录设备单独创建 Secure Enclave P-256 钥匙，与内容解锁/批准钥匙分开。句柄和父 delegation 保存在系统凭据库独立槽位，只有已批准且完成本机硬件绑定的工作区才保存。硬件不可用的平台不提供此入口，继续使用 II。
 
 父 delegation 不限 targets。客户端为内存 Ed25519 钥匙追加一级限定 targets 的 delegation，范围沿用 dmsg-login/1，每次在线续期按当前部署刷新，截止不超过父级。共享 `Hold::ensure_login` 默认保留十分钟余量：先用内存身份，再使用本机缓存父委托，最后才在线续期。并发续期合并；暂时网络或 Keychain 故障保留凭据；明确失效则要求重新登录。返回时核对工作区与会话代数，锁定/切换/退出后不接纳迟到结果。

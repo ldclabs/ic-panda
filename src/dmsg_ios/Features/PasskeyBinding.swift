@@ -13,7 +13,9 @@ final class PasskeyBinding {
     private var attempt: Attempt?
     private var revision: UInt64 = 0
     private(set) var working = false
+    private(set) var limitedCredential: Data?
     var hasSavedCredential: Bool { attempt != nil }
+    var hasPending: Bool { hasSavedCredential || limitedCredential != nil }
     var savedOperation: PasskeyOperation? { attempt?.start.operation }
 
     /// `resuming` continues only the saved attempt; it never opens a creation prompt.
@@ -29,6 +31,7 @@ final class PasskeyBinding {
         defer { if revision == current { working = false } }
         do {
             if attempt == nil {
+                limitedCredential = nil
                 let start = try await begin()
                 guard current == revision, !Task.isCancelled else { throw CancellationError() }
                 let response = try await authenticate(start)
@@ -39,9 +42,15 @@ final class PasskeyBinding {
             let result = try await complete(attempt.start, attempt.response)
             guard current == revision, !Task.isCancelled else { throw CancellationError() }
             self.attempt = nil
+            limitedCredential = nil
             return result
         } catch {
-            if current == revision && !Self.canRetry(error) { attempt = nil }
+            if current == revision {
+                if case MobileError.Failure(code: "SESSION_LIMIT_EXCEEDED") = error {
+                    limitedCredential = attempt?.response.credentialId
+                }
+                if !Self.canRetry(error) { attempt = nil }
+            }
             throw error
         }
     }
@@ -49,6 +58,7 @@ final class PasskeyBinding {
     func cancel() {
         revision &+= 1
         attempt = nil
+        limitedCredential = nil
         working = false
     }
 

@@ -10,6 +10,8 @@ export default {
     "letterPendingContact": "Je vorige brief staat nog open. Vraag de ontvanger om die in de desktop-app te archiveren of op iOS in het briefmenu “Nog een brief toestaan” te kiezen. Probeer deze brief daarna opnieuw.",
     "letterRecipientKeyStale": "De ontvangstinstellingen van de ontvanger moeten worden bijgewerkt. Vraag de ontvanger om dMsg te ontgrendelen en te synchroniseren en probeer deze brief daarna opnieuw.",
     "letterPolicyStale": "De verzend- of ontvangstinstellingen zijn gewijzigd. Probeer deze brief opnieuw. Als het blijft mislukken, moeten jij en de ontvanger dMsg ontgrendelen en synchroniseren voordat je het opnieuw probeert.",
+    "passkeyResetSessions": "Apparaten van deze passkey afmelden en doorgaan",
+    "passkeyResetHint": "Er zijn te veel apparaten aangemeld met deze passkey. Meld ze af om door te gaan. Andere passkeys en opgeslagen inhoud blijven ongewijzigd.",
     "passkeyBindingHint": "Gebruik de opgeslagen passkey als je er al een hebt gemaakt. Maak alleen een nieuwe als je een andere aanmeldidentiteit nodig hebt.",
     "passkeyExistingTitle": "Een bestaande passkey gebruiken",
     "passkeyExistingHint": "Gebruik een login die al aan het gewenste account is gekoppeld.",

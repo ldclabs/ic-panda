@@ -3172,5 +3172,9 @@
 	<string>บันทึกพาสคีย์แล้ว ลองอีกครั้งเพื่อเชื่อมโยงกับบัญชีนี้ให้เสร็จ โดยจะไม่สร้างพาสคีย์ใหม่</string>
 	<key>Continue adding this passkey</key>
 	<string>เพิ่มพาสคีย์นี้ต่อ</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>ออกจากระบบอุปกรณ์ของพาสคีย์นี้แล้วดำเนินการต่อ</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>มีอุปกรณ์ลงชื่อเข้าใช้ด้วยพาสคีย์นี้มากเกินไป ออกจากระบบอุปกรณ์เหล่านั้นเพื่อดำเนินการต่อ พาสคีย์อื่นและเนื้อหาที่บันทึกไว้จะไม่ได้รับผลกระทบ</string>
 </dict>
 </plist>

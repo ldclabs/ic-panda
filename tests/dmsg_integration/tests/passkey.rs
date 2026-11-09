@@ -117,6 +117,91 @@ fn limits() -> AuthLimits {
     }
 }
 
+impl dmsg_client::secure::HardwareAnchor for Device {
+    fn create(&self) -> Result<(Vec<u8>, Vec<u8>)> {
+        Ok((
+            vec![1],
+            self.0
+                .verifying_key()
+                .to_sec1_point(false)
+                .as_bytes()
+                .to_vec(),
+        ))
+    }
+
+    fn sign(&self, handle: &[u8], message: &Hash) -> Result<[u8; 64]> {
+        self.sign_message(handle, message.as_slice())
+    }
+
+    fn sign_message(&self, _: &[u8], message: &[u8]) -> Result<[u8; 64]> {
+        let signature: p256::ecdsa::Signature = self.0.sign(message);
+        Ok(signature.to_bytes().into())
+    }
+}
+
+#[test]
+fn client_recovers_a_pruned_registration_grant_without_another_identity() {
+    let mut f = Fixture::new();
+    let device = Device::new(1);
+    let challenge = f.challenge(&device, AuthAction::Register);
+    let proof = response(&challenge.challenge, true);
+    f.update::<Result<u64>>(
+        device.sender().unwrap(),
+        "register",
+        Encode!(&RegisterPasskey {
+            challenge: challenge.challenge,
+            response: proof.clone(),
+            admission: None,
+        })
+        .unwrap(),
+    )
+    .unwrap();
+
+    // The registration reached the issuer, but its response was lost. A later
+    // device issues a signature after the one-minute retention window.
+    f.ic.advance_time(Duration::from_secs(61));
+    let second = Device::new(2);
+    let another = f.challenge(&second, AuthAction::Login);
+    f.update::<Result<u64>>(
+        second.sender().unwrap(),
+        "login",
+        Encode!(&AuthenticatePasskey {
+            challenge: another.challenge,
+            response: response(&another.challenge, false),
+        })
+        .unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(f.delegation(&device), Err(Error::Unavailable(_))));
+
+    let mut config = dmsg_client::testing::config(false);
+    config.auth = Some(f.auth);
+    config.root_key = Some(f.ic.root_key().unwrap());
+    config.ic_host = f.ic.make_live(None).to_string();
+    let mut session = dmsg_client::testing::passkey_session(
+        config,
+        std::sync::Arc::new(device.clone()),
+        PasskeyRequest {
+            protocol: dmsg_client::passkey::PROTOCOL.into(),
+            state: Hash::new([7; 32]),
+            challenge,
+            next_url: dmsg_protocol::login::IOS_CALLBACK.into(),
+            credential_id: None,
+        },
+        vec![f.auth],
+        Some(&proof),
+    )
+    .unwrap();
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let first = session.complete(proof.clone()).await.unwrap().unwrap();
+        let repeated = session.complete(proof).await.unwrap().unwrap();
+        assert_eq!(first.principal, repeated.principal);
+    });
+    f.verify(&f.delegation(&device).unwrap());
+    assert_eq!(f.stats().identities, 1);
+    assert_eq!(f.stats().sessions, 2);
+}
+
 struct Fixture {
     ic: PocketIc,
     auth: Principal,

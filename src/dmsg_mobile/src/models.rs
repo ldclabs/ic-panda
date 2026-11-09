@@ -56,6 +56,8 @@ pub enum PasskeyOperation {
     /// Authenticate a saved credential to bind it to the current account.
     BindExisting,
     LogoutAll,
+    /// Clear the selected credential's full sessions without logging out this workspace.
+    ResetSessions,
 }
 
 #[derive(uniffi::Record)]

@@ -25,7 +25,7 @@
 
   const current = $derived(steps.findIndex((step) => step.phase === login.phase))
   const until = $derived(login.expiresAt ? new Date(login.expiresAt).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' }) : '')
-  const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.phase === 'choose' ? t(login.bind ? 'bindPasskey' : 'loginWithPasskey') : login.action === 'logout_all' ? t('logoutAllLogins') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
+  const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.phase === 'choose' ? t(login.bind ? 'bindPasskey' : 'loginWithPasskey') : login.action === 'reset_sessions' ? t('passkeyResetSessions') : login.action === 'logout_all' ? t('logoutAllLogins') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
   const icon = $derived<Glyph>(login.phase === 'failed' ? 'warning' : login.phase === 'choose' ? 'key' : 'login')
 
   onMount(() => onChange(['login/changed', 'session/changed'], checkLogin))
@@ -55,6 +55,9 @@
       {t(login.reason)}
       {#if login.detail}<span class="mt-1 block font-mono text-[11.5px] break-words text-muted">{login.detail}</span>{/if}
     </Notice>
+    {#if login.provider === 'passkey' && login.detail === 'SESSION_LIMIT_EXCEEDED' && login.credentialId}
+      <p class="mt-3 text-[13px] leading-relaxed text-muted">{t('passkeyResetHint')}</p>
+    {/if}
   {:else}
     <ol class="grid gap-2.5" data-testid="login-steps" data-phase={login.phase}>
       {#each steps as step, index (step.phase)}
@@ -72,7 +75,8 @@
       {/each}
     </ol>
     {#if login.phase === 'browser'}
-      <p class="mt-4 text-[13px] leading-relaxed text-ink-2">{login.action === 'logout_all' ? t('logoutAllLoginsHint') : login.provider === 'passkey' ? t('passkeyWaitBody') : login.bind ? t('loginBindBody') : t('loginWaitBody')}</p>
+      <p class="mt-4 text-[13px] leading-relaxed text-ink-2">{login.action === 'reset_sessions' ? t('passkeyResetHint') : login.action === 'logout_all' ? t('logoutAllLoginsHint') : login.provider === 'passkey' ? t('passkeyWaitBody') : login.bind ? t('loginBindBody') : t('loginWaitBody')}</p>
+      {#if login.action === 'reset_sessions'}<p class="mt-2 text-[12px] leading-relaxed text-muted">{t('logoutAllLoginsHint')}</p>{/if}
       {#if until}<p class="mt-1.5 text-[12px] text-faint">{t('loginValidUntil', { time: until })}</p>{/if}
     {:else if login.phase === 'checking'}
       <p class="mt-4 text-[13px] leading-relaxed text-ink-2">{t('loginCheckingBody')}</p>
@@ -88,15 +92,15 @@
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={reopenLogin} data-testid="login-reopen"><Icon name="external" />{t('loginReopen')}</button>
     {:else if login.phase === 'failed'}
-      {#if login.provider === 'passkey' && login.action === 'login' && login.detail === 'SESSION_LIMIT_EXCEEDED'}
-        <button class={buttonClass('secondary', 'sm')} onclick={() => startLogin(false, 'https://dmsg.net', 'passkey', 'logout_all')} data-testid="login-reset-devices">{t('logoutAllLogins')}</button>
+      {#if login.provider === 'passkey' && login.action === 'login' && login.detail === 'SESSION_LIMIT_EXCEEDED' && login.credentialId}
+        <button class={buttonClass('danger', 'sm', 'h-auto min-h-8 min-w-0 shrink whitespace-normal py-1.5 text-start')} onclick={() => startLogin(login.bind, 'https://dmsg.net', 'passkey', 'reset_sessions', login.credentialId)} data-testid="login-reset-devices">{t('passkeyResetSessions')}</button>
       {/if}
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>
       {#if login.reason === 'passkeyRegistrationUnconfirmed'}
         <button class={buttonClass('primary', 'sm', 'h-auto min-h-8 whitespace-normal py-1.5 text-start')} onclick={() => startLogin(login.bind, login.origin, 'passkey', 'login')} data-testid="login-use-saved"><Icon name="key" />{t('passkeyExistingTitle')}</button>
       {:else}
-        <button class={buttonClass('primary', 'sm')} onclick={() => startLogin(login.bind, login.origin, login.provider, login.action)} data-testid="login-retry"><Icon name="sync-now" />{t('retry')}</button>
+        <button class={buttonClass('primary', 'sm')} onclick={() => startLogin(login.bind, login.origin, login.provider, login.action, login.credentialId || undefined)} data-testid="login-retry"><Icon name="sync-now" />{t('retry')}</button>
       {/if}
     {:else}
       <span class="flex-1"></span>

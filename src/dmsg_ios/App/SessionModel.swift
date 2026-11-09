@@ -22,7 +22,8 @@ final class SessionModel {
     var contentSync: ContentSyncStatus?
     private var syncClock = Date.now
     var error: String?
-    var canResetPasskeySessions = false
+    private(set) var passkeySessionLimitCredential: Data?
+    var canResetPasskeySessions: Bool { passkeySessionLimitCredential != nil }
     var signingIntoAnotherAccount = false
     var notice: String? { didSet { noticeRevision &+= 1 } }
     private(set) var noticeRevision: UInt64 = 0
@@ -544,6 +545,7 @@ final class SessionModel {
             (session?.deviceId != nil && session?.deviceId != state.deviceId) {
             fileTransfers.stop()
             stopAutomaticSync(.sessionChanged); contentSync = nil
+            passkeySessionLimitCredential = nil
             epoch &+= 1; viewGeneration &+= 1
             vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
             clearCloudBackups()
@@ -1046,7 +1048,7 @@ final class SessionModel {
         deviceTransfer.reset()
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
-        authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); canResetPasskeySessions = false
+        authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); passkeySessionLimitCredential = nil
         busyOperation = nil
         privacyShield.show()
         epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
@@ -1087,7 +1089,7 @@ final class SessionModel {
         viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
-        notice = nil; error = nil
+        notice = nil; error = nil; passkeySessionLimitCredential = nil
         busyOperation = nil
         if clearClipboard { clipboard.clearOwned() }
         if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); engine?.cancelLogin() }
@@ -1096,21 +1098,28 @@ final class SessionModel {
         session = nil
     }
 
-    func login(usingInternetIdentity: Bool = false, passkeyOperation: PasskeyOperation = .login) async {
+    func login(usingInternetIdentity: Bool = false, passkeyOperation: PasskeyOperation = .login, credentialID: Data? = nil) async {
         guard let engine, !busy else { return }
+        let resetting = passkeyOperation == .resetSessions
+        let credential = resetting ? passkeySessionLimitCredential : credentialID
+        guard !resetting || credential != nil else { return }
         automaticUnlock.suppress()
         let operation = beginBusyOperation()
-        error = nil; canResetPasskeySessions = false; activity()
+        error = nil
+        if !resetting { passkeySessionLimitCredential = nil }
+        activity()
         authenticationGeneration &+= 1
         let current = authenticationGeneration
         var credentialCreated = false
+        var selectedCredential = credential
         let usePasskey = !usingInternetIdentity && (passkeyOperation != .login || session?.passkeyAvailable == true)
         defer { finishBusyOperation(operation) }
         do {
             let state: SessionSnapshot
             if usePasskey {
-                let start = try await engine.beginPasskey(operation: passkeyOperation)
+                let start = try await engine.beginPasskey(operation: passkeyOperation, credentialId: credential)
                 let response = try await passkeyLogin.authenticate(start)
+                selectedCredential = resetting ? credential : response.credentialId
                 credentialCreated = passkeyOperation == .register
                 await waitUntilActive()
                 guard current == authenticationGeneration else { return }
@@ -1126,21 +1135,31 @@ final class SessionModel {
                 state = try await engine.completeLogin(callback: callback.absoluteString)
             }
             guard current == authenticationGeneration else { return }
-            try adopt(state); signingIntoAnotherAccount = false; uncoverIfActive()
+            try adopt(state)
+            if resetting {
+                passkeySessionLimitCredential = nil
+                finishBusyOperation(operation)
+                await login(passkeyOperation: .login, credentialID: credential)
+                return
+            }
+            signingIntoAnotherAccount = false; uncoverIfActive()
             if unlocked { await refresh() }
         } catch { if current == authenticationGeneration {
             engine.cancelLogin(); await updateSession()
-            reportLoginFailure(error, usingPasskey: usePasskey, operation: passkeyOperation, credentialCreated: credentialCreated)
+            reportLoginFailure(error, usingPasskey: usePasskey, operation: passkeyOperation, credentialCreated: credentialCreated, credentialID: selectedCredential)
         } }
     }
 
-    func reportLoginFailure(_ failure: Error, usingPasskey: Bool, operation: PasskeyOperation, credentialCreated: Bool = false) {
+    func reportLoginFailure(_ failure: Error, usingPasskey: Bool, operation: PasskeyOperation, credentialCreated: Bool = false, credentialID: Data? = nil) {
         if failure is CancellationError || Task.isCancelled { return }
         if let failure = failure as? MobileError, case .Failure(let code) = failure, code == "CANCELLED" || code == "LOCKED" { return }
         report(failure)
-        canResetPasskeySessions = false
+        passkeySessionLimitCredential = operation == .resetSessions ? credentialID : nil
         if let failure = failure as? MobileError, case .Failure(let code) = failure {
-            canResetPasskeySessions = usingPasskey && operation == .login && code == "SESSION_LIMIT_EXCEEDED"
+            if usingPasskey && operation == .login && code == "SESSION_LIMIT_EXCEEDED" {
+                passkeySessionLimitCredential = credentialID
+                self.error = String(localized: "This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.")
+            }
             if code == "QUOTA_EXCEEDED" {
                 self.error = String(localized: "The operation could not be completed. Please try again.")
             }

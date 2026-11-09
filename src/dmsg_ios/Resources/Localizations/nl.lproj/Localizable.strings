@@ -3172,5 +3172,9 @@
 	<string>De passkey is opgeslagen. Probeer opnieuw om deze aan dit account te koppelen; er wordt geen nieuwe passkey gemaakt.</string>
 	<key>Continue adding this passkey</key>
 	<string>Doorgaan met deze passkey toevoegen</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Apparaten van deze passkey afmelden en doorgaan</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Er zijn te veel apparaten aangemeld met deze passkey. Meld ze af om door te gaan. Andere passkeys en opgeslagen inhoud blijven ongewijzigd.</string>
 </dict>
 </plist>

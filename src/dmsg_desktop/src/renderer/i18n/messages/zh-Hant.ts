@@ -10,6 +10,8 @@ export default {
     "letterPendingContact": "上一封信還在等待對方處理。請對方在桌面端歸檔舊信，或在 iOS 的來信選單中選擇「允許再次來信」，然後重試這封信。",
     "letterRecipientKeyStale": "對方的收信設定需要更新。請對方解鎖 dMsg 並完成同步，再重試這封信。",
     "letterPolicyStale": "收發設定剛剛發生變化。請重試這封信；如果仍失敗，請你和對方都解鎖 dMsg 並完成同步後再試。",
+    "passkeyResetSessions": "登出此通行密鑰的裝置並繼續",
+    "passkeyResetHint": "此通行密鑰的登入裝置已達上限。登出這些裝置後即可繼續；其他通行密鑰和已儲存的內容不受影響。",
     "passkeyBindingHint": "如果已經建立過通行密鑰，請使用已儲存的密鑰。只有需要另一個登入身分時才建立新密鑰。",
     "passkeyExistingTitle": "使用現有通行密鑰",
     "passkeyExistingHint": "請使用已連結目標帳號的登入方式。",

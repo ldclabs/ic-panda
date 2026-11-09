@@ -21,7 +21,7 @@ final class PasskeyLogin: NSObject, ASAuthorizationControllerDelegate, ASAuthori
             creation.userVerificationPreference = .required
             creation.attestationPreference = .none
             request = creation
-        case .login, .bindExisting, .logoutAll:
+        case .login, .bindExisting, .logoutAll, .resetSessions:
             let assertion = provider.createCredentialAssertionRequest(challenge: start.challenge)
             assertion.userVerificationPreference = .required
             if let id = start.credentialId {

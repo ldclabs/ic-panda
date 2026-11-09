@@ -30,8 +30,10 @@ final class CoreBridgeTests: XCTestCase {
         XCTAssertNotEqual(initial.state, "unlocked")
         XCTAssertFalse(initial.passkeyAvailable)
         XCTAssertFalse(initial.loginRenewable)
-        do { _ = try await engine.beginPasskey(operation: .login); XCTFail("Passkey without hardware/configuration") }
+        do { _ = try await engine.beginPasskey(operation: .login, credentialId: nil); XCTFail("Passkey without hardware/configuration") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "UNSUPPORTED_PROTOCOL") }
+        do { _ = try await engine.beginPasskey(operation: .resetSessions, credentialId: nil); XCTFail("A capacity reset needs its failed credential") }
+        catch MobileError.Failure(let code) { XCTAssertEqual(code, "INVALID_INPUT") }
         let recovery = try await engine.recoveryWarning()
         XCTAssertEqual(recovery.json, "null")
         do { _ = try await engine.hardwareSecurity(); XCTFail("Locked hardware management") }

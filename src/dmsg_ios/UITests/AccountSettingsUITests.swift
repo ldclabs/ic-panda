@@ -173,6 +173,38 @@ import XCTest
         }
     }
 
+    func testFullPasskeyCanBeResetAndBoundFromAnInternetIdentityAccount() {
+        for (language, dark) in [("en", false), ("zh-Hans", false), ("zh-Hans", true), ("fr", true), ("ar", true)] {
+            let app = XCUIApplication()
+            let appearance = dark ? "dark" : "light"
+            app.launchArguments = ["--ui-testing", "--ui-passkey", "--ui-passkey-binding", "--ui-passkey-capacity", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            XCTAssertTrue(app.tabBars.buttons.element(boundBy: 3).waitForExistence(timeout: 8))
+            app.tabBars.buttons.element(boundBy: 3).tap()
+            tap("account.security", in: app); tap("security.logins", in: app)
+            tap("security.bind-passkey", in: app); tap("security.use-passkey", in: app)
+            XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 7))
+            XCTAssertFalse(app.alerts.firstMatch.staticTexts.allElementsBoundByIndex.contains { $0.label.contains("SESSION_LIMIT_EXCEEDED") })
+            let dismiss = app.alerts.firstMatch.buttons.firstMatch
+            let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: dismiss)
+            XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 3), .completed); dismiss.tap()
+            XCTAssertTrue(app.alerts.firstMatch.waitForNonExistence(timeout: 3))
+            XCTAssertFalse(app.buttons["security.logout-all"].exists, "The current account uses Internet Identity")
+            let reset = app.buttons["security.reset-passkey"]
+            XCTAssertTrue(reset.waitForExistence(timeout: 3))
+            for _ in 0..<4 where !reset.isHittable { app.swipeUp() }
+            capture(app, "Reset full passkey before binding · \(language) · \(appearance)")
+            reset.tap()
+            let busy = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: reset)
+            XCTAssertEqual(XCTWaiter.wait(for: [busy], timeout: 2), .completed)
+            capture(app, "Reset selected passkey progress · \(language) · \(appearance)")
+            XCTAssertTrue(app.staticTexts["gui"].waitForExistence(timeout: 8))
+            XCTAssertTrue(app.buttons["security.bind-passkey"].waitForNonExistence(timeout: 3))
+            capture(app, "Same passkey binding approval after reset · \(language) · \(appearance)")
+            app.terminate()
+        }
+    }
+
     func testLoginExpiryOnlyAddsAnAccountAction() {
         let app = open(["--ui-login-expiring"])
         // The account page shows well before the fixture login expires.

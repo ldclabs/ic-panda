@@ -10,6 +10,8 @@ export default {
     "letterPendingContact": "La tua lettera precedente è ancora in attesa. Chiedi al destinatario di archiviarla nell’app desktop o di scegliere «Consenti un’altra lettera» nel menu della lettera su iOS, poi riprova a inviare questa lettera.",
     "letterRecipientKeyStale": "Le impostazioni di ricezione del destinatario vanno aggiornate. Chiedigli di sbloccare dMsg e sincronizzare, poi riprova a inviare questa lettera.",
     "letterPolicyStale": "Le impostazioni di invio o ricezione sono cambiate. Riprova a inviare questa lettera. Se non riesci ancora, tu e il destinatario dovete sbloccare dMsg e sincronizzare prima di riprovare.",
+    "passkeyResetSessions": "Disconnetti i dispositivi di questa passkey e continua",
+    "passkeyResetHint": "Troppi dispositivi hanno effettuato l’accesso con questa passkey. Disconnettili per continuare. Le altre passkey e i contenuti salvati non saranno interessati.",
     "passkeyBindingHint": "Se hai già creato una passkey, usa quella salvata. Creane una nuova solo se ti serve un’altra identità di accesso.",
     "passkeyExistingTitle": "Usa una passkey esistente",
     "passkeyExistingHint": "Usa un accesso già collegato all’account che vuoi aprire.",

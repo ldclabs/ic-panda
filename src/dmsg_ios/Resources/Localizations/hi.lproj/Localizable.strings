@@ -3172,5 +3172,9 @@
 	<string>पासकी सहेज ली गई है। इसे इस खाते से जोड़ना पूरा करने के लिए फिर प्रयास करें; नई पासकी नहीं बनेगी।</string>
 	<key>Continue adding this passkey</key>
 	<string>इस पासकी को जोड़ना जारी रखें</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>इस पासकी के डिवाइसों से साइन आउट करके जारी रखें</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>इस पासकी से बहुत अधिक डिवाइस साइन इन हैं। जारी रखने के लिए उनसे साइन आउट करें। अन्य पासकी और सहेजी गई सामग्री प्रभावित नहीं होंगी।</string>
 </dict>
 </plist>

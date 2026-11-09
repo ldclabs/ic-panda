@@ -3172,5 +3172,9 @@
 	<string>La llave de acceso está guardada. Reintenta para terminar de vincularla a esta cuenta; no se creará otra llave.</string>
 	<key>Continue adding this passkey</key>
 	<string>Continuar añadiendo esta llave</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Cerrar las sesiones de esta llave y continuar</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Hay demasiados dispositivos conectados con esta llave de acceso. Cierra sus sesiones para continuar. Las demás llaves y el contenido guardado no se verán afectados.</string>
 </dict>
 </plist>

@@ -3172,5 +3172,9 @@
 	<string>La clé d’accès est enregistrée. Réessayez pour terminer son association à ce compte ; aucune nouvelle clé ne sera créée.</string>
 	<key>Continue adding this passkey</key>
 	<string>Continuer à ajouter cette clé d’accès</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Déconnecter les appareils de cette clé et continuer</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Trop d’appareils sont connectés avec cette clé d’accès. Déconnectez-les pour continuer. Les autres clés et le contenu enregistré ne sont pas affectés.</string>
 </dict>
 </plist>

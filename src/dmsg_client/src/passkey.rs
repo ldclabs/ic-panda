@@ -56,7 +56,7 @@ struct HardwareIdentity {
 pub struct PasskeySetup {
     config: Config,
     hardware: Arc<dyn HardwareAnchor>,
-    previous: Option<DeviceLogin>,
+    credential: Option<ByteBuf>,
     action: AuthAction,
 }
 
@@ -70,7 +70,7 @@ impl PasskeySetup {
             self.hardware,
             self.action,
             callback,
-            self.previous,
+            self.credential,
         )
         .await
     }
@@ -242,16 +242,11 @@ impl PasskeySession {
         hardware: Arc<dyn HardwareAnchor>,
         action: AuthAction,
         next_url: String,
-        previous: Option<DeviceLogin>,
+        expected_credential: Option<ByteBuf>,
     ) -> Result<Self> {
         dmsg_protocol::login::callback_target(&next_url)?;
         let auth = config.auth.ok_or(Error::UnsupportedProtocol)?;
         let mut key = DeviceLogin::new(auth, hardware.as_ref())?;
-        let expected_credential = if action == AuthAction::LogoutAll {
-            previous.map(|key| key.credential)
-        } else {
-            None
-        };
         let ic = Ic::connect(&config, key.identity(hardware.clone())).await?;
         // Finish registration preflight before asking the authenticator to save
         // a credential. A failed ticket request must not leave an orphan passkey.
@@ -335,7 +330,7 @@ impl PasskeySession {
         dmsg_protocol::sha256(&self.key.public).to_vec()
     }
 
-    /// Restrict logout-all to the credential of the selected login.
+    /// Restrict authentication to the credential explicitly selected for this flow.
     pub fn credential(&self) -> Option<Vec<u8>> {
         self.expected_credential.as_ref().map(|v| v.to_vec())
     }
@@ -506,18 +501,31 @@ impl Client {
 
     /// Dependencies captured in a short step before an interactive login.
     /// # Errors
-    /// Unsupported hardware or missing remembered credentials are refused.
-    pub fn passkey_start(&mut self, action: AuthAction) -> Result<PasskeySetup> {
+    /// Unsupported hardware or invalid credential restrictions are refused.
+    /// An explicit credential is used for capacity recovery and its next login;
+    /// only ordinary logout-all falls back to the current workspace's login.
+    pub fn passkey_start(
+        &mut self,
+        action: AuthAction,
+        credential: Option<Vec<u8>>,
+    ) -> Result<PasskeySetup> {
         ensure(self.passkey_available(), Error::UnsupportedProtocol)?;
-        let previous = if action == AuthAction::LogoutAll {
-            self.remembered_passkey()?
+        let credential = if let Some(credential) = credential {
+            ensure_valid(action != AuthAction::Register, "registration credential")?;
+            ensure_valid(
+                !credential.is_empty() && credential.len() <= 1024,
+                "credential size",
+            )?;
+            Some(credential.into())
+        } else if action == AuthAction::LogoutAll {
+            self.remembered_passkey()?.map(|key| key.credential)
         } else {
             None
         };
         Ok(PasskeySetup {
             config: self.config.clone(),
             hardware: self.anchor.clone().ok_or(Error::UnsupportedProtocol)?,
-            previous,
+            credential,
             action,
         })
     }
@@ -795,6 +803,39 @@ impl LogoutRequest {
         };
         let _ = tokio::time::timeout(std::time::Duration::from_secs(3), attempt).await;
     }
+}
+
+/// An already-prepared authentication, optionally interrupted after submission.
+/// Only test hosts can bypass deployment discovery and inject this boundary.
+/// # Errors
+/// Returns missing issuer configuration or hardware-key creation errors.
+#[cfg(any(test, feature = "testing"))]
+pub fn test_session(
+    config: Config,
+    hardware: Arc<dyn HardwareAnchor>,
+    request: PasskeyRequest,
+    targets: Vec<Principal>,
+    submitted: Option<&PasskeyResponse>,
+) -> Result<PasskeySession> {
+    let mut key = DeviceLogin::new(
+        config.auth.ok_or(Error::UnsupportedProtocol)?,
+        hardware.as_ref(),
+    )?;
+    key.targets = targets;
+    if let Some(response) = submitted {
+        key.credential = response.credential_id.clone();
+    }
+    Ok(PasskeySession {
+        config,
+        key,
+        hardware,
+        expected_credential: request.credential_id.clone(),
+        deadline: request.challenge.expires_at,
+        request,
+        admission: None,
+        submitted: submitted.map(|response| dmsg_protocol::sha256(&canonical(response))),
+        confirmed: false,
+    })
 }
 
 #[cfg(test)]

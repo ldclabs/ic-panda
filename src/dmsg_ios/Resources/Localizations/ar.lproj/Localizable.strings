@@ -3172,5 +3172,9 @@
 	<string>مفتاح المرور محفوظ. أعد المحاولة لإكمال ربطه بهذا الحساب؛ لن يُنشأ مفتاح جديد.</string>
 	<key>Continue adding this passkey</key>
 	<string>متابعة إضافة مفتاح المرور هذا</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>تسجيل خروج أجهزة مفتاح المرور هذا والمتابعة</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>بلغت الأجهزة المسجّلة بهذا المفتاح الحد الأقصى. سجّل خروجها للمتابعة. لن تتأثر مفاتيح المرور الأخرى أو المحتوى المحفوظ.</string>
 </dict>
 </plist>

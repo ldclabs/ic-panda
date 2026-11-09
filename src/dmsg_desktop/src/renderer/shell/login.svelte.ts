@@ -19,7 +19,8 @@ export const login = $state({
   /** The derivation origin: https://dmsg.net, or https://panda.fans for an identity of the old site. */
   origin: 'https://dmsg.net',
   provider: undefined as 'ii' | 'passkey' | undefined,
-  action: 'login' as 'login' | 'register' | 'logout_all',
+  action: 'login' as 'login' | 'register' | 'logout_all' | 'reset_sessions',
+  credentialId: '',
   url: '',
   expiresAt: 0,
   /** Why it failed, as a label so it follows the language. */
@@ -38,7 +39,7 @@ let expiry: ReturnType<typeof setTimeout> | undefined
 export function choosePasskeyBinding() {
   run++
   clearTimeout(expiry)
-  Object.assign(login, { phase: 'choose', bind: true, origin: 'https://dmsg.net', provider: 'passkey', action: 'login', url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
+  Object.assign(login, { phase: 'choose', bind: true, origin: 'https://dmsg.net', provider: 'passkey', action: 'login', credentialId: '', url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
 }
 
 /**
@@ -46,10 +47,10 @@ export function choosePasskeyBinding() {
  * account. `origin` https://panda.fans logs in with an identity of the old
  * site, such as the holder of a frozen name.
  */
-export async function startLogin(bind = false, origin = 'https://dmsg.net', provider?: 'ii' | 'passkey', action: 'login' | 'register' | 'logout_all' = bind ? 'register' : 'login') {
+export async function startLogin(bind = false, origin = 'https://dmsg.net', provider?: 'ii' | 'passkey', action: 'login' | 'register' | 'logout_all' | 'reset_sessions' = bind ? 'register' : 'login', credentialId?: string) {
   const id = ++run
   clearTimeout(expiry)
-  Object.assign(login, { phase: 'starting', bind, origin, provider, action, url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
+  Object.assign(login, { phase: 'starting', bind, origin, provider, action, credentialId: credentialId ?? '', url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
   try {
     // Choosing a passkey action never creates a hardware key or opens a browser.
     // Explicit providers, including account binding, keep their existing flow.
@@ -61,7 +62,7 @@ export async function startLogin(bind = false, origin = 'https://dmsg.net', prov
         return
       }
     }
-    const started = await bridge(() => window.dmsg.login(origin, bind, { provider, action }))
+    const started = await bridge(() => window.dmsg.login(origin, bind, { provider, action, credentialId }))
     if (id !== run) return
     Object.assign(login, { phase: 'browser', provider: started.provider ?? 'ii', url: started.url, expiresAt: started.expires_at })
     expiry = setTimeout(() => void checkLogin(), Math.max(0, started.expires_at - Date.now()) + 1000)
@@ -103,11 +104,17 @@ export async function checkLogin() {
     return
   }
   if (result.pending) return
+  if (typeof result.credential_id === 'string') login.credentialId = result.credential_id
   if (result.error) return fail(result.error.code, result.error.message)
   if (!result.done) return fail('EXPIRED')
   const bind = login.bind
   const action = login.action
+  const credentialId = login.credentialId
   closeLogin()
+  if (action === 'reset_sessions') {
+    await startLogin(bind, 'https://dmsg.net', 'passkey', 'login', credentialId)
+    return
+  }
   if (bind) {
     if (result.approval) await bridge(() => window.dmsg.openApproval(result.approval.id)).catch(() => {})
     return

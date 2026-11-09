@@ -34,6 +34,7 @@ async fn fixture(origin: &str) -> (MobileEngine, testing::TempDir, String) {
     engine.login.lock().unwrap().pending = Some(PendingLogin {
         session: session.into(),
         binding_generation: Some(0),
+        resetting: false,
         callback: Some(bytes.clone()),
         delegated: Some(delegated),
     });
@@ -117,5 +118,34 @@ async fn cancelling_binding_stops_the_pending_network_step_without_restoring_it(
         matches!(tokio::time::timeout(std::time::Duration::from_secs(1), task).await.unwrap().unwrap(), Err(MobileError::Failure { code }) if code == "LOCKED")
     );
     assert!(engine.login.lock().unwrap().pending.is_none());
+    engine.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn capacity_reset_preserves_the_current_account_and_rejects_a_stale_completion() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let before = engine.session_state().await.unwrap();
+    let after = engine
+        .finish_passkey_logout(Some(before.generation))
+        .await
+        .unwrap();
+    assert_eq!(after.state, "unlocked");
+    assert_eq!(after.account, before.account);
+    assert_eq!(after.generation, before.generation);
+    engine.suspend();
+    engine.resume(engine.control_generation()).await.unwrap();
+    assert!(
+        matches!(engine.finish_passkey_logout(Some(before.generation)).await,
+        Err(MobileError::Failure { code }) if code == "LOCKED")
+    );
+    assert_eq!(engine.session_state().await.unwrap().state, "unlocked");
+    engine.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn ordinary_passkey_logout_still_ends_the_current_local_session() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let after = engine.finish_passkey_logout(None).await.unwrap();
+    assert_ne!(after.state, "unlocked");
     engine.close().await.unwrap();
 }

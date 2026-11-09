@@ -136,6 +136,10 @@ impl DavMetaData for Meta {
         self.dir
     }
 
+    fn is_symlink(&self) -> bool {
+        false
+    }
+
     fn etag(&self) -> Option<String> {
         match &self.sha256 {
             Some(sha256) => Some(sha256[..32].to_string()),
@@ -206,6 +210,11 @@ fn folder_at(client: &mut Client, path: &str) -> FsResult<String> {
 }
 
 impl DavFileSystem for LibraryFs {
+    // Library entries are virtual files and folders, never filesystem symlinks.
+    fn symlink_metadata<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, Box<dyn DavMetaData>> {
+        self.metadata(path)
+    }
+
     fn open<'a>(
         &'a self,
         path: &'a DavPath,

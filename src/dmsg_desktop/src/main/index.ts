@@ -409,10 +409,11 @@ handle('dmsg:decide', 'approval', (_event, id: string, digest: string, approve: 
   daemon.call('approval/respond', { id, digest, approve: approve === true, human: true, source: 'gui' })
 )
 handle('dmsg:grant', 'main', (_event, invite: string, pairing: string) => daemon.call('connect/grant', { invite, pairing, human: true }))
-handle('dmsg:login', 'main', async (_event, origin: string, bind: boolean, options?: { provider?: string; action?: string }) => {
+handle('dmsg:login', 'main', async (_event, origin: string, bind: boolean, options?: { provider?: string; action?: string; credentialId?: string }) => {
   if (options?.provider !== undefined && !['ii', 'passkey'].includes(options.provider)) throw new DaemonError('INVALID_INPUT', 'Login provider')
-  if (options?.action !== undefined && !['login', 'register', 'logout_all'].includes(options.action)) throw new DaemonError('INVALID_INPUT', 'Login action')
-  const started = (await daemon.call('session/login', { origin, bind: bind === true, provider: options?.provider, action: options?.action, source: 'gui' })) as { url: string }
+  if (options?.action !== undefined && !['login', 'register', 'logout_all', 'reset_sessions'].includes(options.action)) throw new DaemonError('INVALID_INPUT', 'Login action')
+  if (options?.credentialId !== undefined && (typeof options.credentialId !== 'string' || !options.credentialId.length || options.credentialId.length > 1368)) throw new DaemonError('INVALID_INPUT', 'Passkey credential')
+  const started = (await daemon.call('session/login', { origin, bind: bind === true, provider: options?.provider, action: options?.action, credential_id: options?.credentialId, source: 'gui' })) as { url: string }
   if (externalAllowed(started.url, pages().login, [])) await shell.openExternal(started.url)
   return started
 })

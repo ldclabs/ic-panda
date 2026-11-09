@@ -486,7 +486,10 @@ inline editors alone handle their own cancel shortcut.
   mono and Retry. An unconfirmed Passkey creation instead offers login with
   the saved credential, preserving account binding when applicable. The
   account-security binding entry also starts with this choice, so a saved credential
-  can be linked without creating another identity. Automatic
+  can be linked without creating another identity. Session-capacity recovery names
+  the selected Passkey, confirms sign-out of its devices, and resumes the same
+  credential's login or binding while preserving the current workspace. It is
+  separate from signing out the current login. Automatic
   local unlock waits while this dialog is open. The gate rail's next step is a Primary button while
   logged out.
 

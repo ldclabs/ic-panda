@@ -92,7 +92,7 @@ export interface DesktopBridge {
    * Start a login in the system browser; with `bind`, a second login to bind
    * to the unlocked account. Resolves to `{url, expires_at}` once the page opened.
    */
-  login(origin: string, bind?: boolean, options?: { provider?: 'ii' | 'passkey'; action?: 'login' | 'register' | 'logout_all' }): Promise<{ url: string; expires_at: number; provider?: 'ii' | 'passkey' }>
+  login(origin: string, bind?: boolean, options?: { provider?: 'ii' | 'passkey'; action?: 'login' | 'register' | 'logout_all' | 'reset_sessions'; credentialId?: string }): Promise<{ url: string; expires_at: number; provider?: 'ii' | 'passkey' }>
   /** Open a started login's page again, such as after its browser tab was closed. */
   openLogin(url: string): Promise<void>
   /** The `dmsg` binary and home an MCP client runs `dmsg mcp` with. */

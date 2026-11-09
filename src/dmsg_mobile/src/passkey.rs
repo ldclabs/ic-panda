@@ -5,14 +5,29 @@ use dmsg_types::auth::{AuthAction, PasskeyCallback, PasskeyResponse};
 
 #[uniffi::export]
 impl MobileEngine {
-    pub async fn begin_passkey(&self, operation: PasskeyOperation) -> Result<PasskeyStart> {
+    pub async fn begin_passkey(
+        &self,
+        operation: PasskeyOperation,
+        credential_id: Option<Vec<u8>>,
+    ) -> Result<PasskeyStart> {
+        ensure_valid(
+            !matches!(operation, PasskeyOperation::ResetSessions) || credential_id.is_some(),
+            "reset credential required",
+        )?;
+        ensure_valid(
+            !matches!(
+                operation,
+                PasskeyOperation::Register | PasskeyOperation::Bind | PasskeyOperation::LogoutAll
+            ) || credential_id.is_none(),
+            "unexpected credential",
+        )?;
         self.cancel_login();
         let revision = self.login.lock().map_err(|_| Error::Locked)?.revision;
         let generation = self.host.generation();
         let action = match operation {
             PasskeyOperation::Login | PasskeyOperation::BindExisting => AuthAction::Login,
             PasskeyOperation::Register | PasskeyOperation::Bind => AuthAction::Register,
-            PasskeyOperation::LogoutAll => AuthAction::LogoutAll,
+            PasskeyOperation::LogoutAll | PasskeyOperation::ResetSessions => AuthAction::LogoutAll,
         };
         let session = self
             .held(move |h| {
@@ -25,7 +40,7 @@ impl MobileEngine {
                         h.with(|c| ensure(c.session_state().state == "unlocked", Error::Locked))
                             .await?;
                     }
-                    let setup = h.with(|c| c.passkey_start(action)).await?;
+                    let setup = h.with(|c| c.passkey_start(action, credential_id)).await?;
                     setup.start(dmsg_protocol::login::IOS_CALLBACK.into()).await
                 })
             })
@@ -47,9 +62,12 @@ impl MobileEngine {
             session: InteractiveLogin::Passkey(Box::new(session)),
             binding_generation: matches!(
                 operation,
-                PasskeyOperation::Bind | PasskeyOperation::BindExisting
+                PasskeyOperation::Bind
+                    | PasskeyOperation::BindExisting
+                    | PasskeyOperation::ResetSessions
             )
             .then_some(generation),
+            resetting: matches!(operation, PasskeyOperation::ResetSessions),
             callback: None,
             delegated: None,
         });

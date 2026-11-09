@@ -19,6 +19,8 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 
+pub use crate::passkey::test_session as passkey_session;
+
 /// The test account's unlock secret.
 pub const SECRET: [u8; 32] = [9; 32];
 

@@ -127,6 +127,7 @@ pub struct MobileEngine {
 struct PendingLogin {
     session: InteractiveLogin,
     binding_generation: Option<u64>,
+    resetting: bool,
     callback: Option<Vec<u8>>,
     delegated: Option<dmsg_client::login::Delegated>,
 }
@@ -138,6 +139,19 @@ struct LoginState {
 }
 
 impl MobileEngine {
+    /// Apply a verified logout-all result. Capacity recovery only clears the
+    /// remote target; ordinary logout also ends the selected local workspace.
+    async fn finish_passkey_logout(
+        &self,
+        reset_generation: Option<u64>,
+    ) -> Result<SessionSnapshot> {
+        if let Some(generation) = reset_generation {
+            ensure(self.host.inner.generation() == generation, Error::Locked)?;
+            return self.session_state().await;
+        }
+        self.logout().await
+    }
+
     async fn held<T: Send + 'static>(
         &self,
         work: impl for<'a> FnOnce(&'a ScopedHost) -> dmsg_client::host::Work<'a, T> + Send + 'static,
@@ -503,6 +517,7 @@ impl MobileEngine {
         state.pending = Some(PendingLogin {
             session: session.into(),
             binding_generation: None,
+            resetting: false,
             callback: None,
             delegated: None,
         });
@@ -562,6 +577,7 @@ impl MobileEngine {
         let (revision, generation, task) = {
             let mut login = self.login.lock().map_err(|_| Error::Locked)?;
             let pending = login.pending.as_mut().ok_or(Error::Expired)?;
+            ensure(!pending.resetting, Error::Forbidden)?;
             let generation = pending.binding_generation.ok_or(Error::Forbidden)?;
             ensure(self.host.inner.generation() == generation, Error::Locked)?;
             if let Some(accepted) = &pending.callback {
@@ -632,7 +648,15 @@ impl MobileEngine {
             .pending
             .take()
             .ok_or(Error::Expired)?;
-        ensure(session.binding_generation.is_none(), Error::Forbidden)?;
+        let reset_generation = if session.resetting {
+            Some(session.binding_generation.ok_or(Error::Forbidden)?)
+        } else {
+            ensure(session.binding_generation.is_none(), Error::Forbidden)?;
+            None
+        };
+        if let Some(generation) = reset_generation {
+            ensure(self.host.inner.generation() == generation, Error::Locked)?;
+        }
         let bytes = dmsg_client::codec::unb64(fragment)?;
         let proof = session.session.accept(&bytes, dmsg_client::now_ms())?;
         // Backgrounding during the login pauses the host without ending it;
@@ -642,8 +666,9 @@ impl MobileEngine {
             .await
             .map_err(|_| Error::Unavailable("login worker".into()))??;
         let Some(delegated) = delegated else {
-            return self.logout().await;
+            return self.finish_passkey_logout(reset_generation).await;
         };
+        ensure(reset_generation.is_none(), Error::Forbidden)?;
         // A newly authenticated identity starts a new content session. Even a
         // handle captured on the locked screen may not act for this new account.
         let controller = self.host.scoped(self.host.inner.generation())?;

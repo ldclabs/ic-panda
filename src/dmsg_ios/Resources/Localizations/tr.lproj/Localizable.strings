@@ -3172,5 +3172,9 @@
 	<string>Geçiş anahtarı kaydedildi. Bu hesaba bağlamayı tamamlamak için tekrar deneyin; yeni anahtar oluşturulmayacak.</string>
 	<key>Continue adding this passkey</key>
 	<string>Bu geçiş anahtarını eklemeye devam et</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Bu geçiş anahtarının cihazlarından çıkış yap ve devam et</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Bu geçiş anahtarıyla çok fazla cihazda oturum açılmış. Devam etmek için bu oturumları kapatın. Diğer geçiş anahtarları ve kaydedilmiş içerik etkilenmez.</string>
 </dict>
 </plist>

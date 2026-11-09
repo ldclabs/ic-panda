@@ -3172,5 +3172,9 @@
 	<string>পাসকি সংরক্ষিত হয়েছে। এই অ্যাকাউন্টের সঙ্গে যুক্ত করা শেষ করতে আবার চেষ্টা করুন; নতুন পাসকি তৈরি হবে না।</string>
 	<key>Continue adding this passkey</key>
 	<string>এই পাসকি যোগ করা চালিয়ে যান</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>এই পাসকির ডিভাইসগুলো থেকে সাইন আউট করে এগিয়ে যান</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>এই পাসকি দিয়ে অনেক বেশি ডিভাইসে সাইন ইন করা হয়েছে। এগিয়ে যেতে সেগুলো থেকে সাইন আউট করুন। অন্য পাসকি ও সংরক্ষিত বিষয়বস্তু প্রভাবিত হবে না।</string>
 </dict>
 </plist>

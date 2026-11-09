@@ -3172,5 +3172,9 @@
 	<string>Na-save na ang passkey. Subukang muli para matapos ang pag-link sa account na ito; walang bagong passkey na gagawin.</string>
 	<key>Continue adding this passkey</key>
 	<string>Ipagpatuloy ang pagdagdag ng passkey</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Mag-sign out sa mga device ng passkey na ito at magpatuloy</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Masyadong maraming device ang naka-sign in gamit ang passkey na ito. I-sign out ang mga ito para magpatuloy. Hindi maaapektuhan ang ibang passkey at naka-save na nilalaman.</string>
 </dict>
 </plist>

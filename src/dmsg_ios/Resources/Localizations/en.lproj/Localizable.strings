@@ -3172,5 +3172,9 @@
 	<string>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</string>
 	<key>Continue adding this passkey</key>
 	<string>Continue adding this passkey</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Sign out this passkey’s devices and continue</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</string>
 </dict>
 </plist>

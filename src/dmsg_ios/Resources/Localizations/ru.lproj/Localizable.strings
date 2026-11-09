@@ -3172,5 +3172,9 @@
 	<string>Ключ доступа сохранён. Повторите попытку, чтобы завершить привязку к этому аккаунту. Новый ключ не будет создан.</string>
 	<key>Continue adding this passkey</key>
 	<string>Продолжить добавление этого ключа</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Выйти на устройствах этого ключа и продолжить</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>С этим ключом доступа выполнен вход на слишком многих устройствах. Выйдите на них, чтобы продолжить. Другие ключи и сохранённые данные не затрагиваются.</string>
 </dict>
 </plist>

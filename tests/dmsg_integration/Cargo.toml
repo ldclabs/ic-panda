@@ -64,7 +64,7 @@ k256 = { workspace = true, features = ["ecdsa", "schnorr"] }
 # The wallet tests check signed transactions with independent libraries.
 alloy-consensus = { workspace = true, features = ["k256"] }
 alloy-eips.workspace = true
-dmsg_client = { path = "../../src/dmsg_client" }
+dmsg_client = { path = "../../src/dmsg_client", features = ["testing"] }
 bitcoin.workspace = true
 ic-ed25519.workspace = true
 ic-secp256k1.workspace = true

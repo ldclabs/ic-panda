@@ -3172,5 +3172,9 @@
 	<string>Khóa truy cập đã được lưu. Thử lại để hoàn tất liên kết với tài khoản này; sẽ không tạo khóa mới.</string>
 	<key>Continue adding this passkey</key>
 	<string>Tiếp tục thêm khóa truy cập này</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Đăng xuất các thiết bị dùng khóa này và tiếp tục</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Có quá nhiều thiết bị đăng nhập bằng khóa truy cập này. Hãy đăng xuất chúng để tiếp tục. Các khóa khác và nội dung đã lưu không bị ảnh hưởng.</string>
 </dict>
 </plist>

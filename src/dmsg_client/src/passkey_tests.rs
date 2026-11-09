@@ -311,6 +311,87 @@ impl crate::secure::PresenceKey for Person {
 }
 
 #[test]
+fn capacity_reset_pins_the_failed_credential_and_preserves_the_remembered_login() {
+    let dir = TempDir::new();
+    let mut c = client(&dir, Arc::new(MemoryStorage::default()));
+    c.set_presence_key(Arc::new(Person));
+    c.passkey.as_mut().unwrap().credential = vec![11; 32].into();
+    let prepared = c
+        .prepare_login_keys(Zeroizing::new(testing::SECRET))
+        .unwrap()
+        .unwrap();
+    let key = prepared.open().unwrap();
+    c.apply_login_keys(prepared, &key, now_ms()).unwrap();
+    let target = vec![22; 32];
+    let reset = c
+        .passkey_start(AuthAction::LogoutAll, Some(target.clone()))
+        .unwrap();
+    assert_eq!(
+        reset.credential.as_ref().map(|v| v.as_ref()),
+        Some(target.as_slice())
+    );
+    let retry = c
+        .passkey_start(AuthAction::Login, Some(target.clone()))
+        .unwrap();
+    assert_eq!(retry.credential, reset.credential);
+    assert_eq!(
+        c.remembered_passkey().unwrap().unwrap().credential.as_ref(),
+        &[11; 32]
+    );
+    let ordinary = c.passkey_start(AuthAction::LogoutAll, None).unwrap();
+    assert_eq!(
+        ordinary.credential.as_ref().map(|v| v.as_ref()),
+        Some([11; 32].as_slice())
+    );
+    assert!(matches!(
+        c.passkey_start(AuthAction::Register, Some(target.clone())),
+        Err(Error::InvalidInput(_))
+    ));
+    assert!(matches!(
+        c.passkey_start(AuthAction::LogoutAll, Some(vec![])),
+        Err(Error::InvalidInput(_))
+    ));
+
+    let state = Hash::new([7; 32]);
+    let request = PasskeyRequest {
+        protocol: PROTOCOL.into(),
+        state,
+        challenge: AuthChallenge {
+            challenge: Hash::new([8; 32]),
+            expires_at: now_ms() + MINUTE,
+            action: AuthAction::LogoutAll,
+        },
+        next_url: dmsg_protocol::login::IOS_CALLBACK.into(),
+        credential_id: reset.credential,
+    };
+    let session = test_session(reset.config, reset.hardware, request, vec![], None).unwrap();
+    let mut callback = PasskeyCallback {
+        protocol: PROTOCOL.into(),
+        state,
+        error: None,
+        response: Some(PasskeyResponse {
+            credential_id: vec![11; 32].into(),
+            client_data_json: vec![].into(),
+            authenticator_data: vec![].into(),
+            signature: vec![].into(),
+        }),
+    };
+    assert_eq!(
+        session.accept(&canonical(&callback), now_ms()),
+        Err(Error::Forbidden)
+    );
+    callback.response.as_mut().unwrap().credential_id = target.clone().into();
+    assert_eq!(
+        session
+            .accept(&canonical(&callback), now_ms())
+            .unwrap()
+            .credential_id
+            .as_ref(),
+        target.as_slice()
+    );
+}
+
+#[test]
 fn passkey_login_binds_hardware_again_after_an_explicit_unbind() {
     let dir = TempDir::new();
     let secure = Arc::new(MemoryStorage::default());

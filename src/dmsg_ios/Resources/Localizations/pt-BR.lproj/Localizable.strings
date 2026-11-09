@@ -3172,5 +3172,9 @@
 	<string>A chave de acesso foi salva. Tente novamente para concluir o vínculo com esta conta; nenhuma nova chave será criada.</string>
 	<key>Continue adding this passkey</key>
 	<string>Continuar adicionando esta chave</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Sair dos dispositivos desta chave e continuar</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Há dispositivos demais conectados com esta chave de acesso. Saia deles para continuar. As outras chaves e o conteúdo salvo não serão afetados.</string>
 </dict>
 </plist>

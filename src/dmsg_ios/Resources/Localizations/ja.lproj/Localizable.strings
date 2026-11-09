@@ -3172,5 +3172,9 @@
 	<string>パスキーは保存されています。再試行すると、このアカウントへの連携を続けます。新しいパスキーは作成しません。</string>
 	<key>Continue adding this passkey</key>
 	<string>このパスキーの追加を続ける</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>このパスキーのデバイスをログアウトして続ける</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>このパスキーでログインしているデバイスが上限に達しました。それらをログアウトすると続行できます。他のパスキーや保存済みの内容には影響しません。</string>
 </dict>
 </plist>

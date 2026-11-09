@@ -107,6 +107,19 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test passkey
 - 两个包的 `--all-targets` Clippy `-D warnings` 与 `cargo fmt --check` 通过。
 - iPhone 16e 模拟器：`PasskeyBindingTests` 6 项（新增“继续不会落回创建凭据”）与绑定 UI 测试通过，覆盖英文浅色、中文明暗、法语、阿拉伯语 RTL，并查看中文浅色的保留尝试截图。本轮只改 Swift 与客户端 Rust，未改 UniFFI 接口；模拟器使用上一节构建的 XCFramework，未重建 Rust slice，因此续签逻辑未进入这次模拟器运行。没有真机 Passkey 验收。
 
+## 2026-11-10 满额恢复目标与绑定语义
+
+本节基于 `ic-panda@4363743c`。满额恢复固定到失败认证返回的凭据，清理其会话后仍用同一凭据继续登录或原账户绑定；保留当前工作区，普通“注销所有设备”仍退出当前登录。桌面拒绝没有目标凭据的恢复请求，已被替换的认证回调不能覆盖新流程的目标；iOS 的 II 账户也有对应恢复入口。
+
+- 共享客户端新增目标固定回归：当前记住 A 时，恢复与后续登录都限制为 B，A 的凭据保持不变，错误的 A 回调被拒绝。移动核心验证恢复后账户、解锁状态和代际不变，过期的完成结果被拒绝；普通注销仍结束本机会话。
+- 当前依赖组合的完整 Rust 回归：client 612 项、mobile 32 项、CLI 122 项通过，原有忽略测试分别为 5、0、6 项，未执行这些忽略项。三个包的 `--all-targets` Clippy `-D warnings` 及修改文件格式检查通过。隔离检出还验证了提交时的旧依赖基线；daemon 最后增量的 29 项回归在两种依赖组合下均通过。
+- 新增真实 PocketIC 回归：注册响应丢失后推进 61 秒，由另一设备签发触发清理，再由实际客户端 `complete` 调用 `renew` 并取回授权。重复完成仍使用同一身份，最终只有原有 1 个身份、2 个会话。Passkey 集成测试共 4 项通过，使用合成 P-256 钥匙及本轮构建的 auth Wasm，不调用生产服务。
+- iOS Debug 的设备/模拟器 Rust slice、UniFFI、XCFramework、源码指纹及 App 构建启动通过。131 项 Swift 单元测试和 4 项 UI 测试共 135 项通过，0 失败、0 跳过。MCP 等待超时后，直接读取已完成的 `dmsg-capacity-tests.xcresult` 核实结果。查看英文、中文明暗、法语长文案、阿拉伯语 RTL 的小屏模拟器截图，覆盖 II 账户绑定满额、按钮内等待及重置后进入原绑定审批页；fixture 不代替真机系统认证或链上绑定验收。
+- 桌面类型检查、192 项测试、控件审查（0 个未经允许的用法）及构建通过。Electron fixture 验证目标凭据跨恢复和登录保持不变，绑定标志不丢失，原账户保持解锁，并覆盖键盘、中文明暗、法语、RTL 和 760×540 最小窗口。使用提交基线的 Electron 45.2.1 官方缓存包，已按官方 SHA-256 校验；用户依赖升级中的 45.2.3 下载失败，未将该版本算作运行验证。
+- 按用户追加要求兼容 SQLite backup 回调类型；同时显式实现 WebDAV 虚拟文件系统原有的“没有符号链接、查询相同元数据”行为，兼容 dav-server 新版移除默认实现。依赖版本文件保留用户已有改动，不纳入本次提交。新旧依赖基线分别检查，未进行 Linux FUSE 或真机发布验收。
+
+本轮没有发布安装包、部署 canister 或执行真实跨设备 Passkey 操作；最终原生验证为 Debug，Release 发行构建仍需按发布脚本重建。
+
 ## 尚未执行
 
 - 签名真机上的首次 Passkey 创建/登录、AuthenticationServices 的实际 origin、Keychain/Secure Enclave 跨重启和系统锁定后的恢复。

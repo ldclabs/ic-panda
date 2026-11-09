@@ -3172,5 +3172,9 @@
 	<string>Passkey telah disimpan. Coba lagi untuk menyelesaikan penautannya ke akun ini; tidak ada passkey baru yang dibuat.</string>
 	<key>Continue adding this passkey</key>
 	<string>Lanjutkan menambahkan passkey ini</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Keluar dari perangkat kunci sandi ini dan lanjutkan</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Terlalu banyak perangkat masuk dengan kunci sandi ini. Keluarkan perangkat tersebut untuk melanjutkan. Kunci sandi lain dan konten tersimpan tidak terpengaruh.</string>
 </dict>
 </plist>

@@ -10,6 +10,8 @@ export default {
     "letterPendingContact": "Surat anda yang terdahulu masih menunggu tindakan. Minta penerima mengarkibkannya pada desktop atau memilih “Benarkan surat lain” dalam menu surat pada iOS, kemudian cuba hantar surat ini semula.",
     "letterRecipientKeyStale": "Tetapan penerimaan penerima perlu dikemas kini. Minta mereka membuka kunci dMsg dan menyegerakkan, kemudian cuba hantar surat ini semula.",
     "letterPolicyStale": "Tetapan penghantaran atau penerimaan telah berubah. Cuba hantar surat ini semula. Jika masih gagal, anda dan penerima perlu membuka kunci dMsg dan menyegerakkan sebelum mencuba lagi.",
+    "passkeyResetSessions": "Log keluar peranti kunci laluan ini dan teruskan",
+    "passkeyResetHint": "Terlalu banyak peranti dilog masuk dengan kunci laluan ini. Log keluar peranti tersebut untuk meneruskan. Kunci laluan lain dan kandungan tersimpan tidak terjejas.",
     "passkeyBindingHint": "Jika sudah mencipta passkey, gunakan yang disimpan. Cipta yang baharu hanya jika memerlukan identiti log masuk lain.",
     "passkeyExistingTitle": "Gunakan passkey sedia ada",
     "passkeyExistingHint": "Gunakan log masuk yang sudah dipautkan kepada akaun yang ingin dibuka.",
