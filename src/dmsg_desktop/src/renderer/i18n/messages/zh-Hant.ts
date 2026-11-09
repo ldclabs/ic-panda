@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "上一封信還在等待對方處理。請對方在桌面端歸檔舊信，或在 iOS 的來信選單中選擇「允許再次來信」，然後重試這封信。",
+    "letterRecipientKeyStale": "對方的收信設定需要更新。請對方解鎖 dMsg 並完成同步，再重試這封信。",
+    "letterPolicyStale": "收發設定剛剛發生變化。請重試這封信；如果仍失敗，請你和對方都解鎖 dMsg 並完成同步後再試。",
     "loginWithPasskey": "使用通行密鑰登入",
     "createPasskey": "建立通行密鑰",
     "bindPasskey": "新增通行密鑰登入",

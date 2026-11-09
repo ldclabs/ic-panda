@@ -3160,5 +3160,11 @@
 	<string>Passkey ini belum terdaftar di dMsg. Pilih passkey lain. Jika pembuatannya sebelumnya gagal, hapus passkey yang tidak terpakai itu dari pengelola kata sandi sebelum membuat yang baru.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>Pengelola kata sandi menyimpan passkey, tetapi dMsg belum dapat mengonfirmasi pendaftaran. Coba masuk dengan passkey itu sebelum membuat yang lain.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Surat Anda sebelumnya masih tertunda. Minta penerima mengarsipkannya di desktop atau memilih “Izinkan surat lain” dari menu surat di iOS, lalu coba kirim surat ini lagi.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Pengaturan penerimaan penerima perlu diperbarui. Minta mereka membuka kunci dMsg dan menyinkronkan, lalu coba kirim surat ini lagi.</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Pengaturan pengiriman atau penerimaan telah berubah. Coba kirim surat ini lagi. Jika masih gagal, Anda dan penerima perlu membuka kunci dMsg dan menyinkronkan sebelum mencoba lagi.</string>
 </dict>
 </plist>

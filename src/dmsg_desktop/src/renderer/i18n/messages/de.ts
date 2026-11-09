@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "Dein vorheriger Brief ist noch offen. Bitte den Empfänger, ihn in der Desktop-App zu archivieren oder im Briefmenü unter iOS „Weiteren Brief erlauben“ zu wählen. Sende diesen Brief danach erneut.",
+    "letterRecipientKeyStale": "Die Empfangseinstellungen des Empfängers müssen aktualisiert werden. Bitte ihn, dMsg zu entsperren und zu synchronisieren. Sende diesen Brief danach erneut.",
+    "letterPolicyStale": "Die Sende- oder Empfangseinstellungen haben sich geändert. Versuche erneut, diesen Brief zu senden. Falls es weiterhin fehlschlägt, sollten du und der Empfänger dMsg entsperren und vor dem nächsten Versuch synchronisieren.",
     "loginWithPasskey": "Mit Passkey fortfahren",
     "createPasskey": "Passkey erstellen",
     "bindPasskey": "Passkey-Anmeldung hinzufügen",

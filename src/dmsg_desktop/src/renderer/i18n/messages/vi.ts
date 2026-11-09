@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "Thư trước của bạn vẫn đang chờ xử lý. Hãy nhờ người nhận lưu trữ thư đó trên máy tính hoặc chọn “Cho phép thư tiếp theo” trong menu thư trên iOS, rồi thử gửi lại thư này.",
+    "letterRecipientKeyStale": "Cài đặt nhận thư của người nhận cần được cập nhật. Hãy nhờ họ mở khóa dMsg và đồng bộ, rồi thử gửi lại thư này.",
+    "letterPolicyStale": "Cài đặt gửi hoặc nhận đã thay đổi. Hãy thử gửi lại thư này. Nếu vẫn thất bại, bạn và người nhận cần mở khóa dMsg và đồng bộ trước khi thử lại.",
     "loginWithPasskey": "Tiếp tục bằng khóa truy cập",
     "createPasskey": "Tạo khóa truy cập",
     "bindPasskey": "Thêm đăng nhập bằng khóa truy cập",

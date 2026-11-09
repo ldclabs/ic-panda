@@ -216,16 +216,25 @@ fn verify_recipient_policy(security: &Security, policy: &Json) -> Result<()> {
     let cose = policy["key_descriptor"]["cose_sign1"]
         .as_str()
         .ok_or(Error::IntegrityFailed)?;
-    let (device, descriptor): (Hash, KeyDescriptor) = crate::cloud::verify_signed_command(
-        cose,
-        &security.snapshot.issuer,
-        &security.devices,
-        "dmsg/inbox/key/v1",
-    )?;
+    let command = crate::cloud::SignedCommand::parse(cose)?;
     ensure(
-        security.active(&device).is_ok()
-            && policy["security_epoch"].as_u64() == Some(security.snapshot.security_epoch),
-        Error::PolicyStale,
+        command.issuer == security.snapshot.issuer,
+        Error::IntegrityFailed,
+    )?;
+    let device = security
+        .device(&command.kid)
+        .ok_or(Error::IntegrityFailed)?;
+    let body =
+        command.verify::<KeyDescriptor>(&device.input.signing_pub, Some("dmsg/inbox/key/v1"))?;
+    let descriptor = body.payload;
+    ensure(
+        device.revoked_at.is_none()
+            && body.security_epoch == security.snapshot.security_epoch
+            && policy["security_epoch"].as_u64() == Some(security.snapshot.security_epoch)
+            && policy["root_generation"].as_u64()
+                == Some(security.snapshot.content_root_generation)
+            && security.snapshot.vault_write_state == dmsg_types::user::VaultWriteState::Ready,
+        Error::RekeyRequired,
     )?;
     ensure(
         policy["inbox_hpke_pub"] == descriptor.inbox_hpke_pub.as_str()
@@ -449,6 +458,17 @@ pub async fn configure<H: Hold>(h: &H, input: &PolicyInput) -> Result<Json> {
         _ => None,
     };
     let old = policy(&h).await?;
+    configure_observed(&h, input, payee, price, old, "policy").await
+}
+
+pub(super) async fn configure_observed<H: Hold>(
+    h: &Unlocked<'_, H>,
+    input: &PolicyInput,
+    payee: Principal,
+    price: Option<u128>,
+    old: Option<Json>,
+    journal: &str,
+) -> Result<Json> {
     let (_, unchanged) = h
         .signed(|c| {
             let state = c.fresh_state().ok_or(Error::PolicyStale)?;
@@ -470,7 +490,7 @@ pub async fn configure<H: Hold>(h: &H, input: &PolicyInput) -> Result<Json> {
         .as_ref()
         .and_then(|o| o["version"].as_u64())
         .unwrap_or(0);
-    let key = format!("policy:{expected}");
+    let key = format!("{journal}:{expected}");
     let pending = h.with(|c| c.inbox_job::<Operation>(&key)).await?;
     let now = now_ms();
     let payload = if let Some(job) = pending
@@ -492,7 +512,7 @@ pub async fn configure<H: Hold>(h: &H, input: &PolicyInput) -> Result<Json> {
         job.payload.clone()
     } else {
         let terms = if price.is_some() {
-            let canister = payment_home(&h).await?;
+            let canister = payment_home(h).await?;
             let home = h.with(|c| Ok(c.account()?.home)).await?;
             let ic = h.reader().await?;
             Some((
@@ -534,7 +554,7 @@ pub async fn configure<H: Hold>(h: &H, input: &PolicyInput) -> Result<Json> {
         key
     };
     let result = post(
-        &h,
+        h,
         &key,
         &format!("/v1/inboxes/{}/policy", h.account),
         POLICY,
@@ -542,11 +562,10 @@ pub async fn configure<H: Hold>(h: &H, input: &PolicyInput) -> Result<Json> {
         false,
     )
     .await?;
-    h.with(|c| {
-        c.cache_invalidate(&[crate::cache::Kind::Inbox])?;
-        c.cache_save(crate::cache::Kind::Inbox, "", &result, now_ms())
-    })
-    .await?;
+    // The acknowledgement contains only version/hash/in-flight counts, not
+    // the editable policy. Do not replace a full display snapshot with it.
+    h.with(|c| c.cache_invalidate(&[crate::cache::Kind::Inbox]))
+        .await?;
     Ok(result)
 }
 
@@ -755,4 +774,62 @@ pub async fn revise<H: Hold>(h: &H, escrow: &Hash, leg: u64) -> Result<Json> {
         .unwrap_or(revised);
     h.with(|c| c.ensure_payer(payer)).await?;
     Ok(leg_view(&sent))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stale_recipient_keys_require_owner_rotation_not_sender_evidence_refresh() {
+        let (id, device) = crate::testing::device(1, None);
+        let mut security =
+            crate::testing::security(3, std::collections::BTreeMap::from([(id, device)]));
+        let signer = crate::cloud::Signer {
+            issuer: &security.snapshot.issuer,
+            device_id: id,
+            security_epoch: 3,
+            seed: &[1; 32],
+            expires_at: now_ms() + 60_000,
+        };
+        let descriptor = KeyDescriptor {
+            inbox_key_version: 1,
+            inbox_hpke_pub: "ab".repeat(32),
+            root_generation: 1,
+        };
+        let cose = sign_command(
+            &signer,
+            "dmsg/inbox/key/v1",
+            &descriptor,
+            &random_hex(),
+            now_ms() + 40_000,
+        );
+        let mut policy = json!({"key_descriptor":{"cose_sign1":cose},"inbox_key_version":1,
+            "inbox_hpke_pub":descriptor.inbox_hpke_pub,"root_generation":1,"security_epoch":3,"offer":null});
+        verify_recipient_policy(&security, &policy).unwrap();
+        security.snapshot.security_epoch = 5;
+        assert_eq!(
+            verify_recipient_policy(&security, &policy),
+            Err(Error::RekeyRequired)
+        );
+        // Unsigned relay metadata cannot upgrade an old signed descriptor.
+        policy["security_epoch"] = json!(5);
+        assert_eq!(
+            verify_recipient_policy(&security, &policy),
+            Err(Error::RekeyRequired)
+        );
+        security.snapshot.security_epoch = 3;
+        policy["security_epoch"] = json!(3);
+        security.snapshot.content_root_generation = 3;
+        assert_eq!(
+            verify_recipient_policy(&security, &policy),
+            Err(Error::RekeyRequired)
+        );
+        security.snapshot.content_root_generation = 1;
+        security.snapshot.vault_write_state = dmsg_types::user::VaultWriteState::RekeyRequired;
+        assert_eq!(
+            verify_recipient_policy(&security, &policy),
+            Err(Error::RekeyRequired)
+        );
+    }
 }

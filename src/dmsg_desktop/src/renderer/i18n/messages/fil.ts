@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "Nakabinbin pa ang nauna mong liham. Hilingin sa tatanggap na i-archive ito sa desktop o piliin ang “Payagan ang isa pang liham” sa menu ng liham sa iOS, saka subukang muli ang liham na ito.",
+    "letterRecipientKeyStale": "Kailangang i-update ang mga setting sa pagtanggap ng tatanggap. Hilingin sa kanilang i-unlock ang dMsg at mag-sync, saka subukang muli ang liham na ito.",
+    "letterPolicyStale": "Nagbago ang mga setting sa pagpapadala o pagtanggap. Subukang muli ang liham na ito. Kung mabigo pa rin, ikaw at ang tatanggap ay kailangang mag-unlock ng dMsg at mag-sync bago muling subukan.",
     "loginWithPasskey": "Magpatuloy gamit ang passkey",
     "createPasskey": "Gumawa ng passkey",
     "bindPasskey": "Magdagdag ng login gamit ang passkey",

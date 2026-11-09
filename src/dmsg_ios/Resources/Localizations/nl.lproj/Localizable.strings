@@ -3160,5 +3160,11 @@
 	<string>Deze passkey is niet geregistreerd bij dMsg. Kies een andere. Als het aanmaken eerder is mislukt, verwijder dan die ongebruikte passkey uit je wachtwoordmanager voordat je een nieuwe maakt.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>Je wachtwoordmanager heeft de passkey opgeslagen, maar dMsg kon de registratie niet bevestigen. Probeer ermee in te loggen voordat je een andere maakt.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Je vorige brief staat nog open. Vraag de ontvanger om die in de desktop-app te archiveren of op iOS in het briefmenu “Nog een brief toestaan” te kiezen. Probeer deze brief daarna opnieuw.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>De ontvangstinstellingen van de ontvanger moeten worden bijgewerkt. Vraag de ontvanger om dMsg te ontgrendelen en te synchroniseren en probeer deze brief daarna opnieuw.</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>De verzend- of ontvangstinstellingen zijn gewijzigd. Probeer deze brief opnieuw. Als het blijft mislukken, moeten jij en de ontvanger dMsg ontgrendelen en synchroniseren voordat je het opnieuw probeert.</string>
 </dict>
 </plist>

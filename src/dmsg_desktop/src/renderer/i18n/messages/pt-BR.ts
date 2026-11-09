@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "Sua carta anterior ainda está pendente. Peça ao destinatário para arquivá-la no computador ou escolher “Permitir outra carta” no menu da carta no iOS. Depois, tente enviar esta carta novamente.",
+    "letterRecipientKeyStale": "As configurações de recebimento do destinatário precisam ser atualizadas. Peça que desbloqueie o dMsg e sincronize; depois, tente enviar esta carta novamente.",
+    "letterPolicyStale": "As configurações de envio ou recebimento mudaram. Tente enviar esta carta novamente. Se ainda falhar, você e o destinatário devem desbloquear o dMsg e sincronizar antes de tentar de novo.",
     "loginWithPasskey": "Continuar com uma chave de acesso",
     "createPasskey": "Criar uma chave de acesso",
     "bindPasskey": "Adicionar login com chave de acesso",

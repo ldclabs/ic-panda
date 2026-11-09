@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "Surat Anda sebelumnya masih tertunda. Minta penerima mengarsipkannya di desktop atau memilih “Izinkan surat lain” dari menu surat di iOS, lalu coba kirim surat ini lagi.",
+    "letterRecipientKeyStale": "Pengaturan penerimaan penerima perlu diperbarui. Minta mereka membuka kunci dMsg dan menyinkronkan, lalu coba kirim surat ini lagi.",
+    "letterPolicyStale": "Pengaturan pengiriman atau penerimaan telah berubah. Coba kirim surat ini lagi. Jika masih gagal, Anda dan penerima perlu membuka kunci dMsg dan menyinkronkan sebelum mencoba lagi.",
     "loginWithPasskey": "Lanjutkan dengan kunci sandi",
     "createPasskey": "Buat kunci sandi",
     "bindPasskey": "Tambahkan login kunci sandi",

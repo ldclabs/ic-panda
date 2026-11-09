@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "Twój poprzedni list nadal oczekuje na obsługę. Poproś odbiorcę, aby zarchiwizował go w aplikacji komputerowej lub wybrał „Zezwól na kolejny list” w menu listu w iOS. Następnie ponów wysłanie tego listu.",
+    "letterRecipientKeyStale": "Ustawienia odbierania u odbiorcy wymagają aktualizacji. Poproś odbiorcę o odblokowanie dMsg i synchronizację, a następnie ponów wysłanie tego listu.",
+    "letterPolicyStale": "Ustawienia wysyłania lub odbierania się zmieniły. Ponów wysłanie tego listu. Jeśli nadal się nie uda, Ty i odbiorca powinniście odblokować dMsg i zsynchronizować dane przed kolejną próbą.",
     "loginWithPasskey": "Kontynuuj z kluczem dostępu",
     "createPasskey": "Utwórz klucz dostępu",
     "bindPasskey": "Dodaj logowanie kluczem dostępu",

@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "letterPendingContact": "Tu carta anterior sigue pendiente. Pide al destinatario que la archive en la app de escritorio o elija «Permitir otra carta» en el menú de la carta en iOS; después, reintenta esta carta.",
+    "letterRecipientKeyStale": "La configuración de recepción del destinatario necesita actualizarse. Pídele que desbloquee dMsg y sincronice; después, reintenta esta carta.",
+    "letterPolicyStale": "La configuración de envío o recepción ha cambiado. Reintenta esta carta. Si vuelve a fallar, tanto tú como el destinatario debéis desbloquear dMsg y sincronizar antes de intentarlo de nuevo.",
     "loginWithPasskey": "Continuar con una clave de acceso",
     "createPasskey": "Crear una clave de acceso",
     "bindPasskey": "Añadir un acceso con clave de acceso",

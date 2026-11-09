@@ -3160,5 +3160,11 @@
 	<string>Esta chave de acesso não está registrada no dMsg. Escolha outra. Se a criação anterior falhou, remova essa chave não utilizada do gerenciador de senhas antes de criar uma nova.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>O gerenciador de senhas salvou a chave de acesso, mas o dMsg não confirmou o registro. Tente entrar com ela antes de criar outra.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Sua carta anterior ainda está pendente. Peça ao destinatário para arquivá-la no computador ou escolher “Permitir outra carta” no menu da carta no iOS. Depois, tente enviar esta carta novamente.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>As configurações de recebimento do destinatário precisam ser atualizadas. Peça que desbloqueie o dMsg e sincronize; depois, tente enviar esta carta novamente.</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>As configurações de envio ou recebimento mudaram. Tente enviar esta carta novamente. Se ainda falhar, você e o destinatário devem desbloquear o dMsg e sincronizar antes de tentar de novo.</string>
 </dict>
 </plist>

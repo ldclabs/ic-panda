@@ -1224,6 +1224,11 @@ async fn sync_once<H: Hold>(
     let paused = h
         .with(|c| c.workspace.store.meta::<String>(pull::UPLOAD_BLOCKED))
         .await?;
+    let inbox = if unlocked && !receive_only && paused.is_none() {
+        crate::inbox::maintenance::prepare(h).await?
+    } else {
+        None
+    };
     let (sent, blocked) = if receive_only || paused.is_some() {
         report.upload_error = paused;
         (0, 0)
@@ -1234,6 +1239,9 @@ async fn sync_once<H: Hold>(
     };
     if unlocked && sent + blocked > 0 {
         pull::run(h, stage, &mut report).await?;
+    }
+    if let Some(inbox) = inbox {
+        crate::inbox::maintenance::finish(h, inbox).await?;
     }
     stage.stage(SyncStage::Finish);
     if unlocked {

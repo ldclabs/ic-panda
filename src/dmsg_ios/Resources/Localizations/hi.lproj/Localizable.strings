@@ -3160,5 +3160,11 @@
 	<string>यह पासकी dMsg में पंजीकृत नहीं है। दूसरी पासकी चुनें। यदि पहले इसे बनाना विफल हुआ था, तो नई पासकी बनाने से पहले पासवर्ड मैनेजर से उस अनुपयोगी पासकी को हटाएँ।</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>पासवर्ड मैनेजर ने पासकी सहेज ली, लेकिन dMsg पंजीकरण की पुष्टि नहीं कर सका। दूसरी पासकी बनाने से पहले इससे लॉगिन करने का प्रयास करें।</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>आपका पिछला पत्र अभी लंबित है। प्राप्तकर्ता से उसे डेस्कटॉप पर संग्रहित करने या iOS में पत्र के मेन्यू से “एक और पत्र की अनुमति दें” चुनने को कहें, फिर इस पत्र को दोबारा भेजें।</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>प्राप्तकर्ता की पत्र पाने की सेटिंग अपडेट करनी है। उनसे dMsg अनलॉक करके सिंक करने को कहें, फिर इस पत्र को दोबारा भेजें।</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>पत्र भेजने या पाने की सेटिंग बदल गई है। इस पत्र को दोबारा भेजें। अगर फिर भी विफल हो, तो आप और प्राप्तकर्ता दोनों dMsg अनलॉक करके सिंक करें और फिर कोशिश करें।</string>
 </dict>
 </plist>

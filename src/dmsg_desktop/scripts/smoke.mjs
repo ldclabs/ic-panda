@@ -46,6 +46,7 @@ import { settingsFlow } from './settings-flow.mjs'
 import { uxFlow } from './ux-flow.mjs'
 import { uxRegressionsFlow } from './ux-regressions-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
+import { lettersFlow } from './letters-flow.mjs'
 import { fileRequestsFlow } from './file-requests-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
 import { fileTransfersFlow } from './file-transfers-flow.mjs'
@@ -1631,6 +1632,11 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'letters') {
+    await lettersFlow({ app, main, shots, methods, calls, peer })
+    assert.deepEqual(pageErrors, [])
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'passkey') {
     await passkeyFlow({ app, main, shots, methods, emit, calls, waitFor, setState: value => { session = value } })
     assert.deepEqual(pageErrors, [])

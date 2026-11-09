@@ -44,6 +44,22 @@ func letterStateTitle(_ state: String) -> String {
     }
 }
 
+@MainActor
+func letterSendFailure(_ error: Error) -> String {
+    if case MobileError.Failure(let code) = error {
+        switch code {
+        case "VERSION_CONFLICT":
+            return String(localized: "Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.")
+        case "REKEY_REQUIRED":
+            return String(localized: "The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.")
+        case "POLICY_STALE":
+            return String(localized: "Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.")
+        default: break
+        }
+    }
+    return InboxLoading.message(error)
+}
+
 /// Drafts and delivery belong to the unlocked account, not a navigation page.
 @MainActor @Observable
 final class LetterWorkspace {
@@ -173,8 +189,16 @@ final class LetterWorkspace {
                 #if DEBUG
                 if model.uiTesting {
                     if let draft {
-                        history.insert(SentLetter(id: id, recipient: draft.recipient, text: draft.text, createdAt: UInt64(Date.now.timeIntervalSince1970 * 1000), state: "visible", error: nil, pending: false, editable: false), at: 0)
+                        let args = ProcessInfo.processInfo.arguments
+                        let failure = args.contains("--ui-letter-stale-key") ? "REKEY_REQUIRED"
+                            : args.contains("--ui-letter-policy-stale") ? "POLICY_STALE"
+                            : args.contains("--ui-letter-pending") ? "VERSION_CONFLICT" : nil
+                        history.insert(SentLetter(id: id, recipient: draft.recipient, text: draft.text, createdAt: UInt64(Date.now.timeIntervalSince1970 * 1000), state: failure == nil ? "visible" : "failed", error: failure, pending: failure != nil, editable: failure == "REKEY_REQUIRED" || failure == "POLICY_STALE"), at: 0)
                         revision &+= 1; drafts.removeValue(forKey: id); dirty.remove(id)
+                        if let failure, !args.contains("--ui-letter-stored-failure") { throw MobileError.Failure(code: failure) }
+                    } else if let index = history.firstIndex(where: { $0.id == id }) {
+                        let old = history[index]
+                        history[index] = SentLetter(id: old.id, recipient: old.recipient, text: old.text, createdAt: old.createdAt, state: "visible", error: nil, pending: false, editable: false)
                     }
                     return
                 }
@@ -187,7 +211,7 @@ final class LetterWorkspace {
                 }
                 await load(model)
                 _ = try await coreOperation { try await engine.sendFreeLetter(id: id, operation: $0) }
-            } catch { if epoch == model.epoch, !Task.isCancelled { failures[id] = InboxLoading.message(error) } }
+            } catch { if epoch == model.epoch, !Task.isCancelled { failures[id] = letterSendFailure(error) } }
             if epoch == model.epoch, !Task.isCancelled { await load(model) }
         }
     }

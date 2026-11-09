@@ -431,6 +431,26 @@ network waits, and uploads batch up to eight device envelopes plus their
 manifest before finalizing. These are client optimizations; they neither
 change the wire contract nor relax security-evidence freshness.
 
+## Letters
+
+An inbox key is bound to the recipient's account security epoch and content
+root generation. After either changes, ordinary unlocked content sync renews
+an existing free/contacts/closed policy: it verifies the original signed
+rules, uploads the new key, then publishes with the observed policy version
+and hash. It preserves blocks, allowances, invitations, capacity and mode.
+Concurrent settings edits are reread on the next pass, and a lost publish
+reply is reconciled before another rotation. Receive-only and locked sync
+never publish rules. Paid offers still require explicit renewal by an
+authorized device; background sync does not extend payment terms.
+
+A sender reports `REKEY_REQUIRED` when the recipient's signed key belongs to
+an earlier security epoch/root, including when unsigned policy metadata
+claims otherwise. The recipient must update the key before the original
+letter can be retried. `VERSION_CONFLICT` on contact submission means another
+letter from this sender is still pending: the recipient must reopen contact
+(desktop archiving also reopens it), or the people can continue in a channel.
+An uncertain send retains its original order and ciphertext for reconciliation.
+
 ## Multisig wallets
 
 A multisig wallet signs every transaction itself; this client never holds a

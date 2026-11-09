@@ -91,11 +91,11 @@ struct SentLetterContent: View {
             Section("Status") {
                 Label(letterStateTitle(letter.state), systemImage: letter.state == "visible" ? "checkmark.circle" : "clock")
                 if letter.state == "visible" { Text("Service acceptance does not mean the recipient has read your letter.").font(.footnote).foregroundStyle(.secondary) }
-                if let error = model.letters.failures[letter.id] { NoticeBar(text: error) }
-                else if let error = letter.error { NoticeBar(text: InboxLoading.message(DMsgCore.MobileError.Failure(code: error))) }
+                if let error = model.letters.failures[letter.id] { NoticeBar(text: error).accessibilityIdentifier("letter.send.failure") }
+                else if let error = letter.error { NoticeBar(text: letterSendFailure(DMsgCore.MobileError.Failure(code: error))).accessibilityIdentifier("letter.send.failure") }
                 if working { ProgressView() }
                 if letter.pending {
-                    SettingsAction("Retry original letter", prominent: true) { model.letters.send(nil, id: letter.id, model: model) }.disabled(working)
+                    SettingsAction("Retry original letter", prominent: true) { model.letters.send(nil, id: letter.id, model: model) }.disabled(working).accessibilityIdentifier("letter.retry")
                     if letter.editable { SettingsAction("Edit draft") { Task { editing = await model.letters.edit(letter.id, model: model) } }.disabled(working) }
                 } else { SettingsAction("Check delivery status") { Task { await model.letters.check(letter.id, model: model) } }.disabled(working) }
             }

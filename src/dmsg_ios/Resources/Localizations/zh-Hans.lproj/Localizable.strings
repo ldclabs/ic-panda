@@ -3160,5 +3160,11 @@
 	<string>此通行密钥尚未在 dMsg 注册，请选择其他密钥。如果之前创建失败，请先从密码管理器中移除那枚未使用的密钥，再重新创建。</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>密码管理器已保存通行密钥，但 dMsg 尚未确认注册。请先尝试用它登录，再决定是否创建新的密钥。</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>上一封信还在等待对方处理。请对方在桌面端归档旧信，或在 iOS 的来信菜单中选择“允许再次来信”，然后重试这封信。</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>对方的收信设置需要更新。请对方解锁 dMsg 并完成同步，再重试这封信。</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>收发设置刚刚发生变化。请重试这封信；如果仍失败，请你和对方都解锁 dMsg 并完成同步后再试。</string>
 </dict>
 </plist>

@@ -3160,5 +3160,11 @@
 	<string>Dieser Passkey ist nicht bei dMsg registriert. Wähle einen anderen. Falls die Erstellung zuvor fehlgeschlagen ist, entferne diesen ungenutzten Passkey aus dem Passwortmanager, bevor du einen neuen erstellst.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>Der Passwortmanager hat den Passkey gespeichert, aber dMsg konnte die Registrierung nicht bestätigen. Versuche, dich damit anzumelden, bevor du einen weiteren erstellst.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Dein vorheriger Brief ist noch offen. Bitte den Empfänger, ihn in der Desktop-App zu archivieren oder im Briefmenü unter iOS „Weiteren Brief erlauben“ zu wählen. Sende diesen Brief danach erneut.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Die Empfangseinstellungen des Empfängers müssen aktualisiert werden. Bitte ihn, dMsg zu entsperren und zu synchronisieren. Sende diesen Brief danach erneut.</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Die Sende- oder Empfangseinstellungen haben sich geändert. Versuche erneut, diesen Brief zu senden. Falls es weiterhin fehlschlägt, sollten du und der Empfänger dMsg entsperren und vor dem nächsten Versuch synchronisieren.</string>
 </dict>
 </plist>

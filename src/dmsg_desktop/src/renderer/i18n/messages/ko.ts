@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "이전 편지가 아직 처리되지 않았습니다. 받는 사람에게 데스크톱에서 이전 편지를 보관하거나 iOS 편지 메뉴에서 “다음 편지 허용”을(를) 선택해 달라고 요청한 후 이 편지를 다시 보내세요.",
+    "letterRecipientKeyStale": "받는 사람의 수신 설정을 업데이트해야 합니다. 상대방에게 dMsg 잠금을 해제하고 동기화해 달라고 요청한 후 이 편지를 다시 보내세요.",
+    "letterPolicyStale": "발신 또는 수신 설정이 변경되었습니다. 이 편지를 다시 보내세요. 계속 실패하면 본인과 받는 사람 모두 dMsg 잠금을 해제하고 동기화한 후 다시 시도하세요.",
     "loginWithPasskey": "패스키로 계속",
     "createPasskey": "패스키 만들기",
     "bindPasskey": "패스키 로그인 추가",

@@ -3160,5 +3160,11 @@
 	<string>Khóa truy cập này chưa đăng ký với dMsg. Hãy chọn khóa khác. Nếu lần tạo trước thất bại, hãy xóa khóa chưa dùng đó khỏi trình quản lý mật khẩu trước khi tạo khóa mới.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>Trình quản lý mật khẩu đã lưu khóa truy cập nhưng dMsg chưa xác nhận được đăng ký. Hãy thử đăng nhập bằng khóa đó trước khi tạo khóa khác.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Thư trước của bạn vẫn đang chờ xử lý. Hãy nhờ người nhận lưu trữ thư đó trên máy tính hoặc chọn “Cho phép thư tiếp theo” trong menu thư trên iOS, rồi thử gửi lại thư này.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Cài đặt nhận thư của người nhận cần được cập nhật. Hãy nhờ họ mở khóa dMsg và đồng bộ, rồi thử gửi lại thư này.</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Cài đặt gửi hoặc nhận đã thay đổi. Hãy thử gửi lại thư này. Nếu vẫn thất bại, bạn và người nhận cần mở khóa dMsg và đồng bộ trước khi thử lại.</string>
 </dict>
 </plist>

@@ -5,6 +5,10 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  "letterPendingContact": "Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.",
+  "letterRecipientKeyStale": "The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.",
+  "letterPolicyStale": "Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.",
+
     "loginWithPasskey": "Continue with a passkey",
     "createPasskey": "Create a passkey",
     "bindPasskey": "Add a passkey login",

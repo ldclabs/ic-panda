@@ -3160,5 +3160,11 @@
 	<string>Hindi nakarehistro sa dMsg ang passkey na ito. Pumili ng iba. Kung nabigo ang paggawa nito dati, alisin muna ang hindi nagamit na passkey sa password manager bago gumawa ng bago.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>Na-save ng password manager ang passkey, pero hindi nakumpirma ng dMsg ang pagpaparehistro. Subukang mag-login gamit ito bago gumawa ng isa pa.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Nakabinbin pa ang nauna mong liham. Hilingin sa tatanggap na i-archive ito sa desktop o piliin ang “Payagan ang isa pang liham” sa menu ng liham sa iOS, saka subukang muli ang liham na ito.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Kailangang i-update ang mga setting sa pagtanggap ng tatanggap. Hilingin sa kanilang i-unlock ang dMsg at mag-sync, saka subukang muli ang liham na ito.</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Nagbago ang mga setting sa pagpapadala o pagtanggap. Subukang muli ang liham na ito. Kung mabigo pa rin, ikaw at ang tatanggap ay kailangang mag-unlock ng dMsg at mag-sync bago muling subukan.</string>
 </dict>
 </plist>

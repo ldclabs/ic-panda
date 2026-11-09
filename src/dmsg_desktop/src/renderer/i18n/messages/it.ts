@@ -3,6 +3,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "letterPendingContact": "La tua lettera precedente è ancora in attesa. Chiedi al destinatario di archiviarla nell’app desktop o di scegliere «Consenti un’altra lettera» nel menu della lettera su iOS, poi riprova a inviare questa lettera.",
+    "letterRecipientKeyStale": "Le impostazioni di ricezione del destinatario vanno aggiornate. Chiedigli di sbloccare dMsg e sincronizzare, poi riprova a inviare questa lettera.",
+    "letterPolicyStale": "Le impostazioni di invio o ricezione sono cambiate. Riprova a inviare questa lettera. Se non riesci ancora, tu e il destinatario dovete sbloccare dMsg e sincronizzare prima di riprovare.",
     "loginWithPasskey": "Continua con una passkey",
     "createPasskey": "Crea una passkey",
     "bindPasskey": "Aggiungi un accesso con passkey",

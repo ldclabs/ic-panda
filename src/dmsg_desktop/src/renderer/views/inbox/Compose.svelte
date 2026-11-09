@@ -8,7 +8,7 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, call, errorText } from '../../rpc'
+  import { bridge, call, code, errorText } from '../../rpc'
   import { rememberedPlain, rememberPlain } from '../../view-memory'
   import { accountOf } from '../channels/names.svelte'
 
@@ -68,7 +68,12 @@
       pay = false
       open = false
     } catch (e) {
-      if (at === generation && open) error = errorText(e)
+      if (at === generation && open) {
+        error = code(e) === 'VERSION_CONFLICT' ? t('letterPendingContact')
+          : code(e) === 'REKEY_REQUIRED' ? t('letterRecipientKeyStale')
+          : code(e) === 'POLICY_STALE' ? t('letterPolicyStale')
+          : errorText(e)
+      }
     } finally {
       busy = false
     }

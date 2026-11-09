@@ -14,6 +14,7 @@
 //! operation ID and never pays or admits twice. After the acceptance
 //! deadline the payer recovers the funds from the canister alone.
 
+pub(crate) mod maintenance;
 mod operations;
 pub use operations::{configure, escrow, mark, mark_contact, order, refund, request, revise, send};
 

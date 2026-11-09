@@ -3160,5 +3160,11 @@
 	<string>Этот ключ доступа не зарегистрирован в dMsg. Выберите другой. Если создание ранее не удалось, удалите неиспользуемый ключ из менеджера паролей перед созданием нового.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>Менеджер паролей сохранил ключ доступа, но dMsg не смог подтвердить регистрацию. Попробуйте войти с этим ключом, прежде чем создавать другой.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Ваше предыдущее письмо ещё ожидает обработки. Попросите получателя архивировать его в приложении для компьютера или выбрать «Разрешить ещё одно письмо» в меню письма на iOS, затем повторите отправку этого письма.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Настройки приёма писем получателя нужно обновить. Попросите его разблокировать dMsg и выполнить синхронизацию, затем повторите отправку этого письма.</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Настройки отправки или приёма изменились. Повторите отправку этого письма. Если снова не получится, вам и получателю нужно разблокировать dMsg и выполнить синхронизацию перед новой попыткой.</string>
 </dict>
 </plist>

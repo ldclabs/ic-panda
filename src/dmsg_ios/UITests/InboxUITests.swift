@@ -16,6 +16,34 @@ final class InboxUITests: XCTestCase {
         shot.name = name; shot.lifetime = .keepAlways; add(shot)
     }
 
+    func testReplyFailuresExplainRecoveryAndKeepTheOriginalLetter() {
+        for (language, failure, dark) in [("zh-Hans", "--ui-letter-policy-stale", true), ("zh-Hans", "--ui-letter-stale-key", false), ("ar", "--ui-letter-policy-stale", false), ("de", "--ui-letter-pending", true)] {
+            let stored = failure == "--ui-letter-policy-stale" ? ["--ui-letter-stored-failure"] : []
+            let app = open([failure, "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : []) + stored)
+            let row = app.buttons["inbox.row.fixture-letter"]
+            XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+            let reply = app.buttons["inbox.reply"]
+            XCTAssertTrue(reply.waitForExistence(timeout: 5)); reply.tap()
+            let text = app.textViews["letter.text"].exists ? app.textViews["letter.text"] : app.textFields["letter.text"]
+            XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap(); text.typeText("Keep this original letter")
+            app.buttons["letter.send"].tap()
+            let notice = app.descendants(matching: .any)["letter.send.failure"].firstMatch
+            XCTAssertTrue(notice.waitForExistence(timeout: 5))
+            XCTAssertFalse(notice.label.contains("REKEY_REQUIRED"))
+            XCTAssertFalse(notice.label.contains("VERSION_CONFLICT"))
+            XCTAssertFalse(notice.label.contains("POLICY_STALE"))
+            XCTAssertTrue(app.staticTexts["Keep this original letter"].exists)
+            app.swipeUp()
+            capture(app, "Letter recovery · \(language) · \(failure)")
+            let retry = app.buttons["letter.retry"]
+            XCTAssertTrue(retry.waitForExistence(timeout: 5)); retry.tap()
+            XCTAssertTrue(notice.waitForNonExistence(timeout: 5))
+            XCTAssertFalse(retry.exists)
+            XCTAssertTrue(app.staticTexts["Keep this original letter"].exists)
+            app.terminate()
+        }
+    }
+
     func testMissingKeyRetryLoadsAndReadArchiveRestoreUpdateImmediately() {
         let app = open(["--ui-inbox-failure", "--ui-dark", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"])
         let retry = app.buttons["inbox.retry"]

@@ -4,6 +4,18 @@ import XCTest
 
 @MainActor
 final class InboxTests: XCTestCase {
+    func testSendFailuresNameTheRecipientActionWithoutChangingGenericConflicts() {
+        let pending = letterSendFailure(MobileError.Failure(code: "VERSION_CONFLICT"))
+        let rekey = letterSendFailure(MobileError.Failure(code: "REKEY_REQUIRED"))
+        let stale = letterSendFailure(MobileError.Failure(code: "POLICY_STALE"))
+        XCTAssertFalse(pending.contains("VERSION_CONFLICT"))
+        XCTAssertFalse(rekey.contains("REKEY_REQUIRED"))
+        XCTAssertFalse(stale.contains("POLICY_STALE"))
+        XCTAssertNotEqual(pending, rekey)
+        XCTAssertNotEqual(stale, rekey)
+        XCTAssertEqual(letterSendFailure(MobileError.Failure(code: "EXECUTION_UNKNOWN")), InboxLoading.message(MobileError.Failure(code: "EXECUTION_UNKNOWN")))
+    }
+
     private func letter(_ id: String = "one") -> InboxLetter {
         InboxLetter(orderId: id, sender: "sender", state: "visible", text: "Private letter",
                     createdAt: 1, read: false, archived: false, abortReason: nil)

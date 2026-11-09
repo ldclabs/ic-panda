@@ -3160,5 +3160,11 @@
 	<string>Bu geçiş anahtarı dMsg’de kayıtlı değil. Başka bir anahtar seçin. Önceki oluşturma başarısız olduysa yeni bir anahtar oluşturmadan önce kullanılmayan anahtarı parola yöneticinizden kaldırın.</string>
 	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
 	<string>Parola yöneticiniz geçiş anahtarını kaydetti, ancak dMsg kaydı doğrulayamadı. Başka bir anahtar oluşturmadan önce bununla giriş yapmayı deneyin.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Önceki mektubunuz hâlâ bekliyor. Alıcıdan masaüstünde arşivlemesini veya iOS mektup menüsünde “Başka bir mektuba izin ver” seçmesini isteyin, ardından bu mektubu yeniden deneyin.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Alıcının alım ayarlarının güncellenmesi gerekiyor. Alıcıdan dMsg kilidini açıp eşitlemesini isteyin, ardından bu mektubu yeniden deneyin.</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Gönderme veya alma ayarları değişti. Bu mektubu yeniden deneyin. Yine başarısız olursa siz ve alıcı, tekrar denemeden önce dMsg kilidini açıp eşitlemelisiniz.</string>
 </dict>
 </plist>
