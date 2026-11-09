@@ -3,6 +3,23 @@ import XCTest
 @testable import dMsg
 
 final class AccountSettingsTests: XCTestCase {
+    @MainActor
+    func testOnlyPasskeySessionCapacityOffersSigningOutAllDevices() {
+        let model = SessionModel()
+        let full = MobileError.Failure(code: "SESSION_LIMIT_EXCEEDED")
+        model.reportLoginFailure(full, usingPasskey: true, operation: .login)
+        XCTAssertTrue(model.canResetPasskeySessions)
+        model.reportLoginFailure(MobileError.Failure(code: "QUOTA_EXCEEDED"), usingPasskey: true, operation: .login)
+        XCTAssertFalse(model.canResetPasskeySessions)
+        XCTAssertNotNil(model.error)
+        model.reportLoginFailure(full, usingPasskey: false, operation: .login)
+        XCTAssertFalse(model.canResetPasskeySessions)
+        model.reportLoginFailure(full, usingPasskey: true, operation: .register)
+        XCTAssertFalse(model.canResetPasskeySessions)
+        model.reportLoginFailure(full, usingPasskey: true, operation: .logoutAll)
+        XCTAssertFalse(model.canResetPasskeySessions)
+    }
+
     func testMoneyKeepsAllDigitsAndRejectsRoundingOverflowAndExponentNotation() {
         XCTAssertEqual(AtomicAmount.parse("9007199254740993.00000001", decimals: 8, separator: "."), "900719925474099300000001")
         XCTAssertEqual(AtomicAmount.display("900719925474099300000001", decimals: 8), "9007199254740993.00000001")

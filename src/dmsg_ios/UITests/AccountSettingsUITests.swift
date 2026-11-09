@@ -56,6 +56,8 @@ import XCTest
             XCTAssertTrue(app.buttons["login.ii"].exists)
             XCTAssertTrue(app.buttons["login.reset-devices"].exists)
             capture(app, "Passkey welcome · \(language)")
+            XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+            app.alerts.firstMatch.buttons.firstMatch.tap()
             let reset = app.buttons["login.reset-devices"]
             for _ in 0..<4 where !reset.isHittable { app.swipeUp() }
             XCTAssertTrue(reset.isHittable)
@@ -73,6 +75,23 @@ import XCTest
         XCTAssertFalse(app.sheets.firstMatch.exists)
         capture(app, "Expired renewable login keeps local copy available")
         app.terminate()
+    }
+
+    func testPasskeyRateLimitDoesNotOfferSigningOutDevices() {
+        for language in ["en", "zh-Hans", "fr", "ar"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-passkey", "--ui-welcome", "--ui-passkey-quota", "-AppleLanguages", "(\(language))"] + (language == "en" ? [] : ["--ui-dark"])
+            app.launch()
+            XCTAssertTrue(app.buttons["login.start"].waitForExistence(timeout: 8))
+            XCTAssertTrue(app.buttons["login.start"].isEnabled)
+            XCTAssertFalse(app.buttons["login.reset-devices"].exists)
+            XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+            capture(app, "Passkey rate limit error · \(language)")
+            app.alerts.firstMatch.buttons.firstMatch.tap()
+            XCTAssertTrue(app.buttons["login.start"].isHittable)
+            capture(app, "Passkey rate limit keeps login retry · \(language)")
+            app.terminate()
+        }
     }
 
     func testLoginExpiryOnlyAddsAnAccountAction() {

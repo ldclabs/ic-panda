@@ -82,6 +82,8 @@ pub enum Error {
     IdempotencyConflict,
     /// An execution, cycle, storage or admission limit was exceeded.
     QuotaExceeded,
+    /// This Passkey identity already has the maximum number of login sessions.
+    SessionLimitExceeded,
     /// A digest, signature, proof or accounting invariant failed validation.
     IntegrityFailed,
     /// Required recovery setup/confirmation has not completed.

@@ -204,7 +204,7 @@ fn operation_key_expiry_and_session_limits_are_enforced() {
             },
             4001
         ),
-        Err(Error::QuotaExceeded)
+        Err(Error::SessionLimitExceeded)
     ));
     assert!(session(device(1).0).is_some());
     assert_eq!(SESSIONS.with_borrow(|m| m.len()), 16);
@@ -237,7 +237,20 @@ fn stable_records_survive_transient_reset_and_budgets_bound_renewals() {
     limits.requests_per_minute = 1;
     cfg.limits = limits.into();
     save_config(cfg);
-    challenge(3, AuthAction::Login, 2 * MINUTE);
+    let c = challenge(3, AuthAction::Login, 2 * MINUTE);
+    assert!(matches!(
+        login(
+            device(3).0,
+            AuthenticatePasskey {
+                challenge: c.challenge,
+                response: response(&c.challenge, false)
+            },
+            2 * MINUTE + 1
+        ),
+        Err(Error::QuotaExceeded)
+    ));
+    assert!(session(device(3).0).is_none());
+    assert_eq!(SESSIONS.with_borrow(|m| m.len()), 1);
     let (caller, public) = device(4);
     assert!(matches!(
         prepare(

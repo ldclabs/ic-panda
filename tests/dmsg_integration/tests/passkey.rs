@@ -309,8 +309,38 @@ fn upgrade_renewal_replay_and_session_budget() {
             })
             .unwrap()
         ),
+        Err(Error::SessionLimitExceeded)
+    );
+    let mut throttled = limits();
+    throttled.requests_per_minute = 1;
+    f.update::<Result<()>>(
+        f.controller,
+        "admin_set_limits",
+        Encode!(&throttled).unwrap(),
+    )
+    .unwrap();
+    f.ic.advance_time(Duration::from_secs(60));
+    f.ic.tick();
+    let c = f.challenge(&outsider, AuthAction::Login);
+    assert_eq!(
+        f.update::<Result<u64>>(
+            outsider.sender().unwrap(),
+            "login",
+            Encode!(&AuthenticatePasskey {
+                challenge: c.challenge,
+                response: response(&c.challenge, false)
+            })
+            .unwrap()
+        ),
         Err(Error::QuotaExceeded)
     );
+    assert_eq!(f.stats().sessions, 16);
+    f.update::<Result<()>>(
+        f.controller,
+        "admin_set_limits",
+        Encode!(&limits()).unwrap(),
+    )
+    .unwrap();
     let c = f.challenge(&outsider, AuthAction::LogoutAll);
     let proof = AuthenticatePasskey {
         challenge: c.challenge,

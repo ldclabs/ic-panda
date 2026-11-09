@@ -16,6 +16,8 @@
 
 时间通常为 Unix 毫秒；delegation `expiration` 为 IC 纳秒。Candid 与浏览器 CBOR 操作名均为 `register/login/logout_all`。
 
+新增会话触及每身份 16 个会话上限时返回 `SessionLimitExceeded`，客户端错误码为 `SESSION_LIMIT_EXCEEDED`。全局限流、续期间隔及其他容量限制继续返回 `QuotaExceeded` / `QUOTA_EXCEEDED`。桌面和 iOS 仅在 Passkey 登录收到会话上限错误时提示退出所有设备的登录；普通额度错误保留重试入口。
+
 服务端仅接受 RP ID `dmsg.net`、精确 origin `https://dmsg.net`、ES256、UP 与 UV 标志。注册要求 none attestation，凭据 ID 与 attested data 一致；登录验证 authenticatorData 和原始 clientDataJSON 的签名。检查 crossOrigin/topOrigin，拒绝子域 origin。同步 Passkey 的签名计数不作为是否有效的判断依据。
 
 ## 浏览器与 iOS

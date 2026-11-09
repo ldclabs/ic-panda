@@ -130,7 +130,7 @@ fn remember(
     if !identity.sessions.contains(&caller) {
         ensure(
             identity.sessions.len() < MAX_AUTH_SESSIONS,
-            Error::QuotaExceeded,
+            Error::SessionLimitExceeded,
         )?;
         identity.sessions.push(caller);
     }

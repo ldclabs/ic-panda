@@ -72,7 +72,7 @@
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={reopenLogin} data-testid="login-reopen"><Icon name="external" />{t('loginReopen')}</button>
     {:else if login.phase === 'failed'}
-      {#if login.provider === 'passkey' && login.action === 'login' && login.detail === 'QUOTA_EXCEEDED'}
+      {#if login.provider === 'passkey' && login.action === 'login' && login.detail === 'SESSION_LIMIT_EXCEEDED'}
         <button class={buttonClass('secondary', 'sm')} onclick={() => startLogin(false, 'https://dmsg.net', 'passkey', 'logout_all')} data-testid="login-reset-devices">{t('logoutAllLogins')}</button>
       {/if}
       <span class="flex-1"></span>

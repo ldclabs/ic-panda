@@ -22,6 +22,13 @@ export async function passkeyFlow({ app, main, shots, methods, emit, calls, wait
   const pending = methods['session/login_result']
   methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code: 'QUOTA_EXCEEDED' } })
   emit('login/changed')
+  await main.getByTestId('login-error').waitFor()
+  assert.equal(await main.getByTestId('login-reset-devices').count(), 0, 'global limits must not offer signing out devices')
+  methods['session/login_result'] = pending
+  await main.getByTestId('login-retry').click()
+  await main.locator('[data-testid="login-steps"][data-phase="browser"]').waitFor()
+  methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code: 'SESSION_LIMIT_EXCEEDED' } })
+  emit('login/changed')
   await main.getByTestId('login-reset-devices').waitFor()
   methods['session/login_result'] = pending
   await main.getByTestId('login-reset-devices').click()
@@ -55,6 +62,14 @@ export async function passkeyFlow({ app, main, shots, methods, emit, calls, wait
     await main.screenshot({ path: join(shots, `passkey-login-${locale}-${appearance}.png`), animations: 'disabled' })
     methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code: 'QUOTA_EXCEEDED' } })
     emit('login/changed')
+    await main.getByTestId('login-error').waitFor()
+    assert.equal(await main.getByTestId('login-reset-devices').count(), 0, `global limits have no device reset action in ${locale}`)
+    await main.screenshot({ path: join(shots, `passkey-quota-${locale}-${appearance}.png`), animations: 'disabled' })
+    methods['session/login_result'] = pending
+    await main.getByTestId('login-retry').click()
+    await main.locator('[data-testid="login-steps"][data-phase="browser"]').waitFor()
+    methods['session/login_result'] = () => ({ pending: false, checking: false, done: false, error: { code: 'SESSION_LIMIT_EXCEEDED' } })
+    emit('login/changed')
     await main.getByTestId('login-reset-devices').waitFor()
     assert.ok(await main.getByTestId('login-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `session-limit actions fit ${locale}`)
     await main.screenshot({ path: join(shots, `passkey-capacity-${locale}-${appearance}.png`), animations: 'disabled' })
@@ -87,5 +102,5 @@ export async function passkeyFlow({ app, main, shots, methods, emit, calls, wait
   await main.locator('[data-testid="login-steps"][data-phase="browser"]').waitFor()
   assert.match(await main.getByTestId('login-steps').innerText(), /Internet Identity/)
   await close()
-  console.log('Passkey UI passed: primary login, II fallback, registration retry, binding, logout-all, renewable expiry, keyboard and locale/theme/width matrix')
+  console.log('Passkey UI passed: primary login, II fallback, registration retry, session capacity vs quota errors, binding, logout-all, renewable expiry, keyboard and locale/theme/width matrix')
 }

@@ -589,6 +589,8 @@ type Error = variant {
   MigrationKeyUnavailable;
   // Legacy business writes are frozen.
   LegacyWriteDisabled;
+  // This Passkey identity already has the maximum number of login sessions.
+  SessionLimitExceeded;
   // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
   // Another accepted operation owns the same product interval.

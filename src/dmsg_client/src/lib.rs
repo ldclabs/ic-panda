@@ -158,6 +158,15 @@ mod error_tests {
     use super::*;
 
     #[test]
+    fn passkey_session_capacity_has_a_distinct_wire_code() {
+        assert_eq!(
+            error_code(&Error::SessionLimitExceeded),
+            "SESSION_LIMIT_EXCEEDED"
+        );
+        assert_eq!(error_code(&Error::QuotaExceeded), "QUOTA_EXCEEDED");
+    }
+
+    #[test]
     fn a_fundless_payer_keeps_its_code() {
         assert_eq!(
             insufficient_funds().to_string(),

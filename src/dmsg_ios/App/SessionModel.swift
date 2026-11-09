@@ -1131,12 +1131,20 @@ final class SessionModel {
             try adopt(state); uncoverIfActive()
             if unlocked { await refresh() }
         } catch { if current == authenticationGeneration {
-            engine.cancelLogin(); await updateSession(); report(error)
-            if !usingInternetIdentity, passkeyOperation == .login, session?.passkeyAvailable == true,
-               let failure = error as? MobileError, case .Failure(let code) = failure, code == "QUOTA_EXCEEDED" {
-                canResetPasskeySessions = true
-            }
+            engine.cancelLogin(); await updateSession()
+            reportLoginFailure(error, usingPasskey: !usingInternetIdentity && session?.passkeyAvailable == true, operation: passkeyOperation)
         } }
+    }
+
+    func reportLoginFailure(_ failure: Error, usingPasskey: Bool, operation: PasskeyOperation) {
+        report(failure)
+        canResetPasskeySessions = false
+        if let failure = failure as? MobileError, case .Failure(let code) = failure {
+            canResetPasskeySessions = usingPasskey && operation == .login && code == "SESSION_LIMIT_EXCEEDED"
+            if code == "QUOTA_EXCEEDED" {
+                self.error = String(localized: "The operation could not be completed. Please try again.")
+            }
+        }
     }
 
     func waitUntilActive() async {
