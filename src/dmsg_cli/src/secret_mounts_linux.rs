@@ -85,9 +85,7 @@ impl FilesystemAdapter {
 }
 impl Filesystem for FilesystemAdapter {
     async fn init(&self, _req: Request) -> fuse3::Result<ReplyInit> {
-        Ok(ReplyInit {
-            max_write: NonZeroU32::new(1048576).expect("nonzero"),
-        })
+        Ok(ReplyInit::new(NonZeroU32::new(1048576).expect("nonzero")))
     }
 
     async fn destroy(&self, _req: Request) {
