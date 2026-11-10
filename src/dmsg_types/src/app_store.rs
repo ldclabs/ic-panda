@@ -66,7 +66,8 @@ pub struct StoreTransaction {
     pub beneficiary: Beneficiary,
     /// Immutable Apple transaction ID, retained across retries.
     pub transaction_id: String,
-    /// Original subscription transaction ID, bound to one beneficiary forever.
+    /// Original subscription chain. Each paid transaction keeps its beneficiary;
+    /// a new term after expiry may bind the chain to another account.
     pub original_transaction_id: String,
     /// Exact configured product ID.
     pub product_id: String,

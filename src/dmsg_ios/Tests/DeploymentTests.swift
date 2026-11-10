@@ -56,31 +56,73 @@ final class DeploymentTests: XCTestCase {
         XCTAssertFalse(external.managesSubscription(environment: "Production", at: now))
     }
 
-    func testAppleSubscriptionCannotMoveAccountsByChangingPurchaseToken() {
+    func testLatestAppleTransactionIdentifiesOneAccountWithoutRequiringHistoricalTokens() {
         let a = UUID(), b = UUID()
+        // Apple can retain A on the original transaction while the latest uses B.
+        // Requiring both tokens previously reported "another account" for A and B.
         for active in [true, false] {
-            XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: a, renewalToken: a, expected: b, active: active), .otherAccount)
-            // Even if Apple accepted B's token during a change, the original belongs to A.
-            XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: b, renewalToken: b, expected: b, active: active), .otherAccount)
+            let latest = PurchaseModel.SubscriptionStatus(token: b, state: active ? .subscribed : .expired)
+            XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: [latest], expected: a).ownership, active ? .otherAccount : .available)
+            XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: [latest], expected: b).ownership, active ? .current : .available)
         }
-        XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: a, renewalToken: b, expected: a, active: true), .unverified)
     }
 
-    func testSubscriptionOwnershipRequiresVerifiedOriginalAndCurrentTokens() {
-        let a = UUID()
-        XCTAssertEqual(PurchaseModel.ownership(originalToken: nil, transactionToken: a, renewalToken: a, expected: a, active: true), .unverified)
-        XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: nil, renewalToken: a, expected: a, active: true), .unverified)
-        XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: a, renewalToken: nil, expected: a, active: true), .current)
-        XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: a, renewalToken: a, expected: a, active: false), .available)
+    func testSubscriptionStatusDoesNotLetAnotherHistoryHideTheMatchingAccount() {
+        let a = UUID(), b = UUID()
+        for active in [true, false] {
+            let first = PurchaseModel.SubscriptionStatus(token: a, state: active ? .subscribed : .expired)
+            let second = PurchaseModel.SubscriptionStatus(token: b, state: active ? .subscribed : .expired)
+            for statuses in [[first, second], [second, first]] {
+                for account in [a, b] {
+                    XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: statuses, expected: account).ownership, active ? .current : .available)
+                }
+            }
+        }
+    }
+
+    func testActiveForeignSubscriptionStillBlocksAnExpiredMatchingHistory() {
+        let a = UUID(), b = UUID()
+        let statuses = [PurchaseModel.SubscriptionStatus(token: a, state: .expired), .init(token: b, state: .subscribed)]
+        XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: statuses, expected: a).ownership, .otherAccount)
+        XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: statuses, expected: b).ownership, .current)
+    }
+
+    func testMissingTransactionTokenDoesNotInventAnOwner() {
+        let account = UUID()
+        let unknown = PurchaseModel.SubscriptionStatus(token: nil, state: .subscribed)
+        XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: [unknown], expected: account).ownership, .unverified)
+        XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: [], expected: account).ownership, .available)
+    }
+
+    func testExpiredSubscriptionAllowsRepurchaseButRestoreCannotMoveItsReceipt() {
+        let a = UUID(), b = UUID()
+        let expired = PurchaseModel.SubscriptionStatus(token: a, state: .expired)
+        XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: [expired], expected: b).ownership, .available)
+        XCTAssertEqual(PurchaseModel.deliveryIssue(token: a, expected: b), .otherAccount)
+        for state in [Product.SubscriptionInfo.RenewalState.subscribed, .inGracePeriod, .inBillingRetryPeriod, .revoked] {
+            let unfinished = PurchaseModel.SubscriptionStatus(token: a, state: state)
+            XCTAssertEqual(PurchaseModel.subscription(group: "annual", statuses: [unfinished], expected: b).ownership, .otherAccount)
+        }
+    }
+
+    func testNextRenewalIsShownOnlyForTheMatchingActiveSubscription() {
+        let account = UUID(), next = Date(timeIntervalSince1970: 2000)
+        let current = PurchaseModel.SubscriptionStatus(token: account, state: .subscribed, nextProduct: "Plus", renewalDate: next)
+        let result = PurchaseModel.subscription(group: "annual", statuses: [current], expected: account)
+        XCTAssertEqual(result.nextProduct, "Plus")
+        XCTAssertEqual(result.renewalDate, next)
+        XCTAssertNil(PurchaseModel.subscription(group: "annual", statuses: [current], expected: UUID()).nextProduct)
+        let expired = PurchaseModel.SubscriptionStatus(token: account, state: .expired, nextProduct: "Plus", renewalDate: next)
+        XCTAssertNil(PurchaseModel.subscription(group: "annual", statuses: [expired], expected: account).nextProduct)
     }
 
     func testForeignRestoreCannotDeliverOrFinishTheTransaction() {
         let a = UUID(), b = UUID()
-        XCTAssertEqual(PurchaseModel.deliveryIssue(token: a, expected: b, subscription: .otherAccount), .otherAccount)
-        XCTAssertEqual(PurchaseModel.deliveryIssue(token: b, expected: b, subscription: .otherAccount), .otherAccount)
-        XCTAssertEqual(PurchaseModel.deliveryIssue(token: nil, expected: b, subscription: nil), .unverified)
-        XCTAssertEqual(PurchaseModel.deliveryIssue(token: b, expected: b, subscription: .unverified), .unverified)
-        XCTAssertNil(PurchaseModel.deliveryIssue(token: b, expected: b, subscription: .available))
+        XCTAssertEqual(PurchaseModel.deliveryIssue(token: a, expected: b), .otherAccount)
+        XCTAssertEqual(PurchaseModel.deliveryIssue(token: nil, expected: b), .unverified)
+        // A group can be foreign or unavailable while an unfinished transaction
+        // belongs to B. Only that transaction is submitted; the service must apply it.
+        XCTAssertNil(PurchaseModel.deliveryIssue(token: b, expected: b))
     }
 
     func testPurchaseRequiresACompletedSubscriptionGroupCheck() {

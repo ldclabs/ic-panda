@@ -42,9 +42,11 @@ flowchart LR
 
 ### App Store 适配
 
+2026-11-11 账号接续修复：50 项 commerce 单元测试通过（2 项容量测试忽略），3 项 App Store PocketIC 测试通过，覆盖正式/沙盒环境下到期换账号重购、旧收据不可迁移、退款、关闭沙盒准入、月度裁剪与升级；旧版 pre-IAP Wasm 迁移测试本次未运行。Clippy 和生成 Candid 核对通过。应先升级 commerce，再发布允许到期换账号购买的 iOS 版本；未部署、未执行真实 Apple 交易验证。客户端与截图记录见 [iOS 验证](../dmsg_ios/VALIDATION.md#app-store-account-detection-and-expired-repurchase-2026-11-11)。
+
 `set_app_store_config` 由 controller/governance 配置验证方、bundle ID、Apple ID、环境和真实商品映射，提案前可用同参数的 `validate_set_app_store_config` 预检；`get_app_store_config` 读取当前配置。只有登记验证方可调用 `apply_app_store_transaction`，客户端不能自行提交付款成功状态。公开数据与设备合同见 [mobile](../../docs/protocol/mobile_zh.md)。
 
-交易绑定 user home、账号和确定性的 `appAccountToken`，原始交易不能迁移到另一账号。交易观察按签名时间和验证时间单调推进，重复交付不叠加权益，退款不能被旧观察复活。验证方每次必须先向 Apple 查询当前状态；认证权益最长信任一小时的新鲜观察。已有有效非 Apple 基础合同与正式 Apple 基础套餐互斥；反过来，正式 Apple 基础合同结束前 `prepare_account_subscription` 也拒绝现金或 PANDA 基础套餐报价，续订由 Apple 完成。Apple 存储包要求有效的 Apple 基础套餐。
+交易绑定 user home、账号和确定性的 `appAccountToken`，同一笔付费交易不能迁移到另一账号。原账号的订阅期结束后，另一账号可以用自己的 token 发起新购买；即使 Apple 沿用原始订阅 ID，也允许新的有效交易接续。服务端核对原账号已记录的到期边界，拒绝重叠的新交易；旧交易的恢复、退款和重试仍归原账号，不能改写当前订阅归属或延长到新账号的期限。月度裁剪保留的历史结束时间继续作为下界，稳定记录布局不变。交易观察按签名时间和验证时间单调推进，重复交付不叠加权益，退款不能被旧观察复活。验证方每次必须先向 Apple 查询当前状态；认证权益最长信任一小时的新鲜观察。已有有效非 Apple 基础合同与正式 Apple 基础套餐互斥；反过来，正式 Apple 基础合同结束前 `prepare_account_subscription` 也拒绝现金或 PANDA 基础套餐报价，续订由 Apple 完成。Apple 存储包要求有效的 Apple 基础套餐。
 
 Production 配置可通过 `accept_sandbox = opt true` 接受 Sandbox 年度套餐；缺失/false 默认不接收新的沙盒原始订阅。已登记原始订阅继续恢复、续订、撤销与对账。Sandbox 不发放存储包，不要求测试账号白名单。TestFlight 继续使用线上账户和业务服务，生产认证信任根不因交易环境改变。
 
@@ -224,7 +226,7 @@ Production 配置可通过 `accept_sandbox = opt true` 接受 Sandbox 年度套�
 |     34 | 出金腿的到期子索引，为派发保留批次名额 |
 |     35 | Apple 配置：验证方、应用、环境与商品映射 |
 |     36 | 按环境与交易号去重的 Apple 交易观察与指纹 |
-|     37 | 原始 Apple 交易绑定的唯一受益账号 |
+|     37 | 原始 Apple 订阅当前接续的受益账号；每笔交易仍按 36 中的记录固定归属 |
 | 28、29 | 认证 map 的叶子（key → 认证值哈希）与按 id 定址的内部节点  |
 
 heap 保存配置缓存（含调用计数）、目录缓存、调用 guard 和定时器运行状态。认证树用 `dmsg_runtime::cert_map` 存放在 stable memory，只保存 key 与哈希；注册、目录和付费主体视图的认证值在查询时从记录重新生成，并与已认证哈希核对。订单、出金腿和资产没有认证叶。`post_upgrade` 加载目录缓存，按当前时间刷新目录叶后发布根，不扫描订单或主体；新增结算索引由定时任务有界补建，已有订单和转账记录仍用 schema 8，补建游标跨升级保留。升级在日志中记录 `commerce_upgrade subjects=… instructions=…`。

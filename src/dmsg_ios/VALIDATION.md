@@ -2923,3 +2923,49 @@ The full iOS suite and live APNs/App Attest or physical-device acceptance were n
 run. No archive, upload or production deployment was performed.
 
 Review, implementation and validation: Codex (OpenAI).
+
+## App Store account detection and expired repurchase (2026-11-11)
+
+Subscription inspection now uses verified current transaction tokens instead of
+requiring historical and current tokens to agree. Matching records are not hidden
+by other account histories, and restore checks each receipt independently of
+product/status availability. Fully expired groups allow a new purchase from the
+selected account; active, grace and billing-retry states retain their guard.
+Notices use the row's separator alignment, both subscription actions use the
+shared centered control, and the spinner stays beside its loading label.
+
+Commerce keeps each transaction's beneficiary immutable, while allowing a new
+account's paid term after the previous term ends, including reused original IDs.
+Old receipt retries/refunds cannot change the current owner. Closing Sandbox
+admission still permits previously recorded receipts from an earlier owner.
+Deploy commerce before distributing the new iOS repurchase behavior.
+
+- Commerce: 50 unit tests passed, 2 capacity tests remained ignored. The 2
+  selected client purchase/preflight tests passed. The new cash Pro / Apple Max
+  regression rejects a formal Apple purchase and keeps cash Pro above Sandbox Max.
+- Three App Store PocketIC tests passed against rebuilt optimized Wasm. The
+  new case covers both Production and Sandbox, active-period rejection, A to B
+  and B back to A after expiry, immutable receipts, late refunds, closed Sandbox
+  admission, monthly pruning and an upgrade. The older pre-IAP migration test
+  remained ignored because its historical Wasm was not built.
+- Commerce Clippy with warnings denied, Rust formatting, generated Candid
+  agreement, regenerated declarations and `git diff --check` passed. Candid
+  changes are comments only; stable layouts and public argument types are unchanged.
+- Both native ARM64 slices and Swift bindings rebuilt; the debug artifact/source
+  fingerprint and all 23 localizations, including compiler-extracted strings, passed.
+- iPhone 17e / iOS 27.0 and iPhone SE / iOS 18.4 each passed all 13 deployment/
+  subscription unit tests and the alignment UI flow. Existing foreign-account
+  navigation and scheduled-renewal UI flows also passed on iOS 27.0. An initial
+  alignment-test query incorrectly expected separate text nodes inside SwiftUI
+  buttons; it was corrected for combined accessibility elements and rerun.
+- Sixteen alignment screenshots were reviewed: Chinese light/dark, German light
+  and Arabic dark/RTL, each idle and loading on both devices. Result bundles:
+  `.build/SubscriptionFix-20261110-R2.xcresult` and
+  `.build/SubscriptionFix-20261111-SE.xcresult`; images are in
+  `.build/subscription-fix-shots/` and `.build/subscription-fix-se-shots/`.
+
+The full iOS suite, physical-device Apple purchase/restore, live App Attest and
+production account reconciliation were not run. No canister deployment, archive,
+upload or App Store release was performed.
+
+Implementation and validation: Codex (OpenAI).

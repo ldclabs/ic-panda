@@ -1174,7 +1174,8 @@ type StoreTransaction = record {
   beneficiary : Beneficiary;
   // Apple's signedDate, used to reject older observations.
   signed_at_ms : nat64;
-  // Original subscription transaction ID, bound to one beneficiary forever.
+  // Original subscription chain. Each paid transaction keeps its beneficiary;
+  // a new term after expiry may bind the chain to another account.
   original_transaction_id : text;
   // Apple purchase time in Unix milliseconds.
   purchased_at_ms : nat64;

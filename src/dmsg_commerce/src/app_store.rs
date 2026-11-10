@@ -124,7 +124,7 @@ fn validate_transaction(
             && (config.accepts(&t.environment)
                 || (config.environment == StoreEnvironment::Production
                     && t.environment == StoreEnvironment::Sandbox
-                    && OWNERS
+                    && (OWNERS
                         .with_borrow(|m| {
                             m.load(
                                 digest(
@@ -134,7 +134,18 @@ fn validate_transaction(
                                 .as_slice(),
                             )
                         })
-                        .is_some_and(|owner| owner == t.beneficiary))),
+                        .is_some_and(|owner| owner == t.beneficiary)
+                        || TRANSACTIONS
+                            .with_borrow(|m| {
+                                m.load(
+                                    digest(
+                                        "dmsg/app-store/transaction/v1",
+                                        &(&t.environment, &t.transaction_id),
+                                    )
+                                    .as_slice(),
+                                )
+                            })
+                            .is_some_and(|o| o.transaction.beneficiary == t.beneficiary)))),
         Error::Forbidden,
     )?;
     for id in [&t.transaction_id, &t.original_transaction_id] {
@@ -302,6 +313,49 @@ fn apply(
     Ok(())
 }
 
+/// A new paid term may belong to another account only after the old term's
+/// full expiry. Cancelling renewal, refunding or losing a resource lease does
+/// not transfer the remaining paid interval.
+fn check_reassignment(
+    previous_expiry: u64,
+    t: &StoreTransaction,
+    kind: &StoreProductKind,
+    at: u64,
+) -> Result<()> {
+    ensure(
+        matches!(kind, StoreProductKind::Plan(_))
+            && t.revoked_at_ms.is_none()
+            && t.expires_at_ms.is_some_and(|end| end > at)
+            && t.purchased_at_ms <= at
+            && t.purchased_at_ms >= previous_expiry,
+        Error::Forbidden,
+    )
+}
+
+fn previous_subscription_expiry(owner: &Beneficiary, t: &StoreTransaction) -> Result<u64> {
+    let subject = store::load(owner)?;
+    // Pruning retains the end of older terms. This also covers original bindings
+    // written before this policy, without a stable-layout migration or full scan.
+    let mut expiry = match t.environment {
+        StoreEnvironment::Production => subject.last_service_end_ms,
+        StoreEnvironment::Sandbox => subject.last_sandbox_service_end_ms,
+    }
+    .unwrap_or(0);
+    for contract in &subject.contracts {
+        if let ContractSource::AppStore { transaction_id, .. } = &contract.source
+            && TRANSACTIONS
+                .with_borrow(|m| m.load(transaction_id.as_slice()))
+                .is_some_and(|o| {
+                    o.transaction.environment == t.environment
+                        && o.transaction.original_transaction_id == t.original_transaction_id
+                })
+        {
+            expiry = expiry.max(contract.expires_at_ms);
+        }
+    }
+    Ok(expiry)
+}
+
 #[ic_cdk::update]
 fn apply_app_store_transaction(transaction: StoreTransaction) -> Result<EntitlementView> {
     let caller = ic_cdk::api::msg_caller();
@@ -332,18 +386,29 @@ fn apply_app_store_transaction(transaction: StoreTransaction) -> Result<Entitlem
     apple_facts.checked_at_ms = 0;
     let fingerprint = digest("dmsg/app-store/observation/v1", &apple_facts);
     let mut business_changed = true;
-    if let Some(owner) = OWNERS.with_borrow(|m| m.load(original.as_slice())) {
-        ensure(owner == transaction.beneficiary, Error::Forbidden)?;
-    }
-    if let Some(previous) = TRANSACTIONS.with_borrow(|m| m.load(key.as_slice())) {
+    let owner = OWNERS.with_borrow(|m| m.load(original.as_slice()));
+    let previous = TRANSACTIONS.with_borrow(|m| m.load(key.as_slice()));
+    let new_transaction = previous.is_none();
+    if let Some(previous) = previous {
         let old = previous.transaction;
+        ensure(old.beneficiary == transaction.beneficiary, Error::Forbidden)?;
         ensure(
-            old.beneficiary == transaction.beneficiary
-                && old.original_transaction_id == transaction.original_transaction_id
+            old.original_transaction_id == transaction.original_transaction_id
                 && old.product_id == transaction.product_id
                 && old.purchased_at_ms == transaction.purchased_at_ms,
             Error::IdempotencyConflict,
         )?;
+        if owner
+            .as_ref()
+            .is_some_and(|owner| owner != &transaction.beneficiary)
+        {
+            // Restoring/refunding an old account's receipt remains possible, but
+            // cannot extend it into the successor account's term or rebind it.
+            ensure(
+                transaction.expires_at_ms <= old.expires_at_ms,
+                Error::Forbidden,
+            )?;
+        }
         ensure(
             transaction.signed_at_ms >= old.signed_at_ms,
             Error::VersionConflict,
@@ -366,6 +431,15 @@ fn apply_app_store_transaction(transaction: StoreTransaction) -> Result<Entitlem
             old.revoked_at_ms.is_none() || old.revoked_at_ms == transaction.revoked_at_ms,
             Error::VersionConflict,
         )?;
+    } else if let Some(owner) = &owner
+        && owner != &transaction.beneficiary
+    {
+        check_reassignment(
+            previous_subscription_expiry(owner, &transaction)?,
+            &transaction,
+            &kind,
+            at,
+        )?;
     }
     apply(&mut subject, &transaction, &kind, &store::catalog(at), at)?;
     if business_changed {
@@ -382,7 +456,9 @@ fn apply_app_store_transaction(transaction: StoreTransaction) -> Result<Entitlem
         store::next_catalog_at(at),
     )?;
     // No await splits these durable changes.
-    OWNERS.with_borrow_mut(|m| m.put(original.as_slice(), &transaction.beneficiary));
+    if new_transaction {
+        OWNERS.with_borrow_mut(|m| m.put(original.as_slice(), &transaction.beneficiary));
+    }
     TRANSACTIONS.with_borrow_mut(|m| {
         m.put(
             key.as_slice(),
@@ -403,6 +479,94 @@ mod tests {
     use candid::Principal;
     use dmsg_protocol::billing::{beneficiary, default_plans};
     const NOW: u64 = 1_800_000_000_000;
+
+    #[test]
+    fn another_account_requires_a_new_live_term_after_full_expiry() {
+        let kind = StoreProductKind::Plan(PlanId::Max);
+        let mut t = transaction("102", NOW);
+        assert!(check_reassignment(NOW, &t, &kind, NOW).is_ok());
+        assert_eq!(
+            check_reassignment(NOW + 1, &t, &kind, NOW),
+            Err(Error::Forbidden)
+        );
+        t.purchased_at_ms = NOW - 1;
+        assert_eq!(
+            check_reassignment(NOW, &t, &kind, NOW),
+            Err(Error::Forbidden)
+        );
+        t.purchased_at_ms = NOW + 1;
+        assert_eq!(
+            check_reassignment(NOW, &t, &kind, NOW),
+            Err(Error::Forbidden)
+        );
+        t.purchased_at_ms = NOW;
+        t.revoked_at_ms = Some(NOW);
+        assert_eq!(
+            check_reassignment(NOW, &t, &kind, NOW),
+            Err(Error::Forbidden)
+        );
+        t.revoked_at_ms = None;
+        t.expires_at_ms = Some(NOW);
+        assert_eq!(
+            check_reassignment(NOW, &t, &kind, NOW),
+            Err(Error::Forbidden)
+        );
+        t.expires_at_ms = Some(NOW + DAY);
+        assert_eq!(
+            check_reassignment(NOW, &t, &StoreProductKind::Storage(Hash::new([1; 32])), NOW),
+            Err(Error::Forbidden)
+        );
+    }
+
+    #[test]
+    fn paid_pro_blocks_production_apple_max_but_remains_above_sandbox_max() {
+        let catalog = catalog();
+        let mut paid = transaction("201", NOW - DAY);
+        paid.environment = StoreEnvironment::Production;
+        let mut subject = model::Subject::new(paid.beneficiary.clone());
+        apply(
+            &mut subject,
+            &paid,
+            &StoreProductKind::Plan(PlanId::Pro),
+            &catalog,
+            NOW,
+        )
+        .unwrap();
+        subject.contracts[0].source = ContractSource::Cash {
+            order_id: Hash::new([9; 32]),
+        };
+        let mut apple = transaction("202", NOW);
+        apple.environment = StoreEnvironment::Production;
+        assert_eq!(
+            apply(
+                &mut subject,
+                &apple,
+                &StoreProductKind::Plan(PlanId::Max),
+                &catalog,
+                NOW
+            ),
+            Err(Error::Forbidden)
+        );
+        assert_eq!(subject.contracts.len(), 1);
+        apple.environment = StoreEnvironment::Sandbox;
+        apply(
+            &mut subject,
+            &apple,
+            &StoreProductKind::Plan(PlanId::Max),
+            &catalog,
+            NOW,
+        )
+        .unwrap();
+        let view = model::project(
+            Principal::from_slice(&[1]),
+            &mut subject,
+            &catalog,
+            NOW,
+            None,
+        )
+        .unwrap();
+        assert_eq!(view.plan_snapshot.plan_id, PlanId::Pro);
+    }
 
     fn catalog() -> Catalog {
         Catalog {

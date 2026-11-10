@@ -244,22 +244,30 @@ Verified pages appear before the remaining history and attachment metadata
 finish downloading. Loading, an empty conversation and a failed refresh have
 distinct states; retry keeps the available messages visible.
 
-App Store purchases first check verified subscription-group status and the
-original transaction’s account token. An existing subscription bound to another
-dMsg account offers account switching instead of a purchase, including when a
-tier change supplied a new token. Missing or inconsistent ownership information
-blocks purchasing until it can be verified. The check runs again immediately
-before Apple’s purchase sheet; late purchase and restore results cannot update a
-replacement session. Restore reports another-account, unavailable, applied or
-empty results and does not transfer a subscription. Only authoritative service
-application permits finishing a matching Apple transaction.
+App Store purchases first check verified subscription-group status and each
+current transaction's account token. Historical original tokens can differ and
+do not establish the service's durable binding. A matching transaction takes
+priority over other records in the same group; active records take priority over
+expired history. An active foreign subscription offers account switching, and missing
+ownership information blocks purchasing. A fully expired group permits a new
+purchase with the selected account's token; billing retry, grace and revocation
+do not qualify as full expiry. The check runs again immediately before
+Apple's purchase sheet; late purchase and restore results cannot update a
+replacement session. Restore checks each transaction's token independently, even
+when product/status lookup is unavailable. It reports another-account,
+unavailable, applied or empty results and does not transfer a subscription.
+Only authoritative service application permits finishing a matching transaction.
+The service keeps each transaction's beneficiary immutable and permits a new
+account on the same original subscription only for a new, non-overlapping term.
+Deploy that commerce policy before distributing the iOS repurchase change;
+older servers reject a new account when Apple reuses the original subscription ID.
 
 The plan page keeps the current entitlement separate from the product scheduled
 for the next renewal. Returning from Apple subscription management or foregrounding
 the page refreshes that schedule. While a purchase or restore is in progress, the
 inactive return from Apple’s sheet does not start a second reload; the flow reloads
 after delivery. These local checks do not change the commerce
-service’s original-subscription ownership rule, grant extra entitlements, or
+service's per-transaction ownership rule, grant extra entitlements, or
 cancel an already scheduled change in Apple’s system.
 
 The named UniFFI methods in `dmsg_mobile::notifications` share the desktop's

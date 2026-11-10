@@ -5,6 +5,18 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
+## Unreleased
+
+- Fix App Store subscription account detection when historical and current
+  transaction tokens differ or a subscription group includes multiple histories.
+  Restore matching transactions independently while retaining service-side
+  account binding and delivery confirmation.
+- Align subscription notices, restore/manage actions and inline loading progress.
+- Allow a new subscription on another dMsg account after the previous Apple
+  subscription expires. Requires the matching commerce upgrade; restoring an old
+  receipt cannot transfer it. Active subscriptions and external paid plans retain
+  their purchase guards.
+
 ## 1.1.1 - 2026-11-10
 
 Available on the [App Store](https://apps.apple.com/app/id6827050680) for

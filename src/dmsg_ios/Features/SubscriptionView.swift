@@ -95,6 +95,7 @@ struct SubscriptionView: View {
                     }
                     if let message = model.purchases.subscriptionMessage {
                         NoticeBar(text: message).accessibilityElement(children: .combine).accessibilityIdentifier("plan.subscription-account")
+                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                         if model.purchases.subscriptions.contains(where: { $0.ownership == .otherAccount }) {
                             NavigationLink("Switch account") { AccountsView() }.accessibilityIdentifier("plan.switch-account")
                         }
@@ -122,7 +123,14 @@ struct SubscriptionView: View {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
                     if !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
-                    if model.purchases.working { ProgressView("Loading…").accessibilityIdentifier("plan.purchase-progress") }
+                    if model.purchases.working {
+                        HStack(spacing: 8) {
+                            ProgressView().accessibilityHidden(true)
+                            Text("Loading…")
+                        }.frame(maxWidth: .infinity, minHeight: 44).foregroundStyle(.secondary)
+                            .accessibilityElement(children: .combine).accessibilityIdentifier("plan.purchase-progress")
+                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                    }
                     if let feedback = model.purchases.feedback, feedback != model.purchases.subscriptionMessage {
                         NoticeBar(text: feedback).accessibilityElement(children: .combine).accessibilityIdentifier("plan.purchase-result")
                     }
@@ -132,7 +140,7 @@ struct SubscriptionView: View {
                     if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
                     SettingsAction("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
                         .accessibilityIdentifier("plan.restore")
-                    Button("Manage subscriptions") { managing = true }.disabled(model.purchases.working).accessibilityIdentifier("plan.manage")
+                    SettingsAction("Manage subscriptions") { managing = true }.disabled(model.purchases.working).accessibilityIdentifier("plan.manage")
                     Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.").font(.footnote).foregroundStyle(.secondary)
                 }
                 if model.purchases.subscriptionMessage == nil && model.purchases.products.contains(where: { $0.type == .consumable }) {

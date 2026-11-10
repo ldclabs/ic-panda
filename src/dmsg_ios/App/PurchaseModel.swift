@@ -43,6 +43,14 @@ final class PurchaseModel {
         var nextProduct: String? = nil
         var renewalDate: Date? = nil
     }
+    struct SubscriptionStatus {
+        let token: UUID?
+        let state: Product.SubscriptionInfo.RenewalState
+        var nextProduct: String? = nil
+        var renewalDate: Date? = nil
+
+        var active: Bool { state != .expired && state != .revoked }
+    }
     enum Delivery: Equatable { case applied, otherAccount, unverified, stale }
     private(set) var subscriptions: [Subscription] = []
     private(set) var feedback: String?
@@ -72,73 +80,57 @@ final class PurchaseModel {
         return subscriptions.first(where: { $0.id == group })?.ownership == .available
     }
 
-    // A changed token cannot claim an existing original subscription. Expired
-    // originals keep their account binding, just as commerce does.
-    static func ownership(originalToken: UUID?, transactionToken: UUID?, renewalToken: UUID?, expected: UUID, active: Bool) -> Ownership {
-        guard let originalToken, let transactionToken else { return .unverified }
-        guard originalToken == expected, transactionToken == expected else { return .otherAccount }
-        if let renewalToken, renewalToken != expected { return .unverified }
-        return active ? .current : .available
+    // Apple's historical token is not commerce's durable original-subscription
+    // binding. It can differ from the latest token after an earlier purchase or
+    // account-token update. Only the service can accept or reject that binding.
+    static func subscription(group: String, statuses: [SubscriptionStatus], expected: UUID) -> Subscription {
+        let active = statuses.filter(\.active)
+        // A fully expired group is a new purchase, with the new account's token.
+        // Billing retry/grace and revocation do not count as full expiry here.
+        if statuses.allSatisfy({ $0.state == .expired }) { return Subscription(id: group, ownership: .available) }
+        let relevant = active.isEmpty ? statuses : active
+        if let owned = relevant.first(where: { $0.token == expected }) {
+            return Subscription(id: group, ownership: owned.active ? .current : .available,
+                nextProduct: owned.active ? owned.nextProduct : nil, renewalDate: owned.active ? owned.renewalDate : nil)
+        }
+        if relevant.contains(where: { $0.token == nil }) { return Subscription(id: group, ownership: .unverified) }
+        return Subscription(id: group, ownership: relevant.isEmpty ? .available : .otherAccount)
     }
 
     private func current(_ model: SessionModel, epoch: UInt64, account: String?) -> Bool {
         !Task.isCancelled && model.epoch == epoch && model.unlocked && model.session?.account == account
     }
 
-    /// Reads verified subscription-group status, including billing retry and the
-    /// next renewal. The original transaction prevents re-binding after a tier change.
+    /// Reads current verified transactions, including billing retry and renewal.
+    /// Historical transactions must not veto a matching current transaction.
     private func inspect(_ products: [Product], token: UUID, environment: String) async throws -> [Subscription] {
         let groups = Set(products.compactMap { $0.subscription?.subscriptionGroupID })
-        var statuses: [String: [Product.SubscriptionInfo.Status]] = [:]
-        var originals = Set<UInt64>()
-        for group in groups {
+        var subscriptions: [Subscription] = []
+        for group in groups.sorted() {
             let values = try await Product.SubscriptionInfo.status(for: group)
             try Task.checkCancellation()
-            statuses[group] = values
-            for value in values {
+            let statuses = try values.map { value -> SubscriptionStatus in
                 guard case .verified(let transaction) = value.transaction,
+                      case .verified(let renewal) = value.renewalInfo,
                       Self.environmentName(transaction.environment) == environment else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
-                originals.insert(transaction.originalID)
+                // Renewal metadata describes a future transaction, not ownership
+                // of the current one. Only show its plan for the same account.
+                let sameRenewalAccount = renewal.appAccountToken == nil || renewal.appAccountToken == transaction.appAccountToken
+                return SubscriptionStatus(token: transaction.appAccountToken, state: value.state,
+                    nextProduct: sameRenewalAccount && renewal.willAutoRenew && renewal.autoRenewPreference != transaction.productID ? renewal.autoRenewPreference : nil,
+                    renewalDate: sameRenewalAccount ? renewal.renewalDate : nil)
             }
+            subscriptions.append(Self.subscription(group: group, statuses: statuses, expected: token))
         }
-        var originalTokens: [UInt64: UUID] = [:]
-        if !originals.isEmpty {
-            for await value in Transaction.all {
-                try Task.checkCancellation()
-                guard case .verified(let transaction) = value,
-                      Self.environmentName(transaction.environment) == environment,
-                      transaction.id == transaction.originalID, originals.contains(transaction.id) else { continue }
-                originalTokens[transaction.id] = transaction.appAccountToken
-                originals.remove(transaction.id)
-                if originals.isEmpty { break }
-            }
-        }
-        return try groups.sorted().map { group in
-            var summary = Subscription(id: group, ownership: .available)
-            let values = statuses[group] ?? []
-            let activeValues = values.filter { $0.state != .expired && $0.state != .revoked }
-            for status in activeValues.isEmpty ? values : activeValues {
-                guard case .verified(let transaction) = status.transaction,
-                      case .verified(let renewal) = status.renewalInfo else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
-                let active = status.state != .expired && status.state != .revoked
-                let owner = Self.ownership(originalToken: originalTokens[transaction.originalID], transactionToken: transaction.appAccountToken,
-                    renewalToken: renewal.appAccountToken, expected: token, active: active)
-                if owner == .otherAccount || owner == .unverified { return Subscription(id: group, ownership: owner) }
-                if owner == .current {
-                    summary = Subscription(id: group, ownership: owner,
-                        nextProduct: renewal.willAutoRenew && renewal.autoRenewPreference != transaction.productID ? renewal.autoRenewPreference : nil,
-                        renewalDate: renewal.renewalDate)
-                }
-            }
-            return summary
-        }
+        return subscriptions
     }
 
     func load(_ model: SessionModel, reportErrors: Bool = true) async {
         guard enabled else { return }
         guard let engine = model.engine, model.unlocked else { return }; let epoch = model.epoch
         loadRevision &+= 1; let read = loadRevision
-        if account != model.session?.account { products = []; token = nil; pending = false; feedback = nil; subscriptions = []; account = model.session?.account }
+        if account != model.session?.account { products = []; pending = false; feedback = nil; subscriptions = []; storeEnvironment = nil; account = model.session?.account }
+        token = nil
         let expectedAccount = account
         do {
             guard case .verified(let app) = try await AppTransaction.shared,
@@ -150,6 +142,9 @@ final class PurchaseModel {
             guard let config = catalogue.configuration else { products = []; token = nil; subscriptions = []; return }
             guard config.bundleId == "net.dmsg.ios", config.appAppleId == 6827050680,
                   let token = UUID(uuidString: catalogue.accountToken) else { throw CocoaError(.coderInvalidValue) }
+            // Restore needs the account token, even if Apple's product/status
+            // lookup fails. Each submitted transaction is verified independently.
+            self.token = token
             let found = try await Product.products(for: config.products.map(\.productId))
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
             // Sandbox admits annual subscriptions only; commerce refuses its storage packs.
@@ -160,7 +155,7 @@ final class PurchaseModel {
             if feedback == Self.unverifiedMessage { feedback = nil }
         } catch {
             if current(model, epoch: epoch, account: expectedAccount), read == loadRevision {
-                token = nil; products = []; subscriptions = []; feedback = Self.unverifiedMessage
+                products = []; subscriptions = []; feedback = Self.unverifiedMessage
                 if reportErrors { model.report(error) }
             }
         }
@@ -214,7 +209,7 @@ final class PurchaseModel {
         do {
             try await AppStore.sync()
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
-            await load(model)
+            await load(model, reportErrors: false)
             guard current(model, epoch: epoch, account: expectedAccount), token != nil else { return }
             var applied = false, foreign = false, unverified = false
             var seen = Set<UInt64>()
@@ -263,11 +258,9 @@ final class PurchaseModel {
         }
     }
 
-    static func deliveryIssue(token: UUID?, expected: UUID, subscription: Ownership?) -> Delivery? {
+    static func deliveryIssue(token: UUID?, expected: UUID) -> Delivery? {
         guard let token else { return .unverified }
-        if token != expected || subscription == .otherAccount { return .otherAccount }
-        if subscription == .unverified { return .unverified }
-        return nil
+        return token == expected ? nil : .otherAccount
     }
 
     private func deliver(_ value: VerificationResult<Transaction>, model: SessionModel) async throws -> Delivery {
@@ -275,8 +268,7 @@ final class PurchaseModel {
         guard case .verified(let transaction) = value, Self.environmentName(transaction.environment) != nil else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
         guard let token, let account, account == model.session?.account,
               model.unlocked, !Task.isCancelled, let engine = model.engine, let files = model.files else { return .stale }
-        let owner = subscriptions.first { $0.id == transaction.subscriptionGroupID }?.ownership
-        if let issue = Self.deliveryIssue(token: transaction.appAccountToken, expected: token, subscription: owner) { return issue }
+        if let issue = Self.deliveryIssue(token: transaction.appAccountToken, expected: token) { return issue }
         let epoch = model.epoch
         pending = true
         try await model.apple.submitPurchase(engine: engine, files: files, account: account, jws: value.jwsRepresentation)
@@ -291,6 +283,7 @@ final class PurchaseModel {
     #if DEBUG
     func installSubscriptionFixture() {
         let args = ProcessInfo.processInfo.arguments
+        working = args.contains("--ui-purchase-working")
         if args.contains("--ui-foreign-subscription") {
             subscriptions = [Subscription(id: "fixture", ownership: .otherAccount)]
         } else if args.contains("--ui-scheduled-subscription") {

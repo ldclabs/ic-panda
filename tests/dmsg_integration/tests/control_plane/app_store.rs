@@ -2,6 +2,151 @@ use super::*;
 use dmsg_types::app_store::*;
 
 #[test]
+fn expired_apple_subscription_can_be_purchased_by_another_account_without_moving_receipts() {
+    for environment in [StoreEnvironment::Production, StoreEnvironment::Sandbox] {
+        assert_expired_subscription_repurchase(environment);
+    }
+}
+
+fn assert_expired_subscription_repurchase(environment: StoreEnvironment) {
+    let f = Fixture::commercial();
+    let a = f.create(1);
+    let b = f.create(2);
+    let verifier = person(90);
+    let mut config = AppStoreConfig {
+        verifiers: vec![verifier],
+        bundle_id: "net.dmsg.ios".into(),
+        app_apple_id: 6827050680,
+        environment: StoreEnvironment::Production,
+        accept_sandbox: Some(true),
+        products: vec![StoreProduct {
+            product_id: "test.max.annual".into(),
+            kind: StoreProductKind::Plan(PlanId::Max),
+        }],
+    };
+    let configured: Result<()> = update(
+        &f.ic,
+        f.commerce,
+        f.sns,
+        "set_app_store_config",
+        (config.clone(),),
+    );
+    configured.unwrap();
+    let deliver = |t: &StoreTransaction| -> Result<EntitlementView> {
+        update(
+            &f.ic,
+            f.commerce,
+            verifier,
+            "apply_app_store_transaction",
+            (t.clone(),),
+        )
+    };
+    let now = time(&f.ic);
+    let original = StoreTransaction {
+        beneficiary: beneficiary(f.user, &a),
+        transaction_id: "3001".into(),
+        original_transaction_id: "3000".into(),
+        product_id: "test.max.annual".into(),
+        app_account_token: dmsg_protocol::app_store::account_token(f.user, &a),
+        bundle_id: "net.dmsg.ios".into(),
+        environment,
+        purchased_at_ms: now,
+        expires_at_ms: Some(now + DAY),
+        revoked_at_ms: None,
+        signed_at_ms: now,
+        checked_at_ms: now,
+    };
+    assert_eq!(
+        deliver(&original).unwrap().plan_snapshot.plan_id,
+        PlanId::Max
+    );
+    let mut second = original.clone();
+    second.beneficiary = beneficiary(f.user, &b);
+    second.app_account_token = dmsg_protocol::app_store::account_token(f.user, &b);
+    // The same paid transaction can never move, even with a changed token.
+    assert_eq!(deliver(&second), Err(Error::Forbidden));
+    second.transaction_id = "3002".into();
+    assert_eq!(deliver(&second), Err(Error::Forbidden));
+    f.ic.advance_time(Duration::from_secs(2 * 86400));
+    second.purchased_at_ms = time(&f.ic);
+    second.expires_at_ms = Some(second.purchased_at_ms + DAY);
+    second.signed_at_ms = second.purchased_at_ms;
+    second.checked_at_ms = second.purchased_at_ms;
+    let accepted = deliver(&second).unwrap();
+    assert_eq!(accepted.plan_snapshot.plan_id, PlanId::Max);
+    assert_eq!(
+        deliver(&second).unwrap().business_revision,
+        accepted.business_revision
+    );
+
+    // Closing Sandbox admission must still admit old-account refunds after B
+    // takes over the original subscription, but cannot admit a new account.
+    config.accept_sandbox = Some(false);
+    let configured: Result<()> = update(
+        &f.ic,
+        f.commerce,
+        f.sns,
+        "set_app_store_config",
+        (config.clone(),),
+    );
+    configured.unwrap();
+
+    let mut old = original.clone();
+    old.signed_at_ms = time(&f.ic);
+    old.checked_at_ms = time(&f.ic);
+    // Old-account restore/refund stays with A and cannot take B's current term.
+    assert_eq!(deliver(&old).unwrap().plan_snapshot.plan_id, PlanId::Free);
+    old.revoked_at_ms = Some(original.purchased_at_ms + DAY / 2);
+    old.signed_at_ms += 1;
+    assert_eq!(deliver(&old).unwrap().plan_snapshot.plan_id, PlanId::Free);
+    old.expires_at_ms = second.expires_at_ms;
+    old.signed_at_ms += 1;
+    assert_eq!(deliver(&old), Err(Error::Forbidden));
+    let mut third = second.clone();
+    third.beneficiary = original.beneficiary.clone();
+    third.app_account_token = original.app_account_token.clone();
+    third.transaction_id = "3003".into();
+    assert_eq!(deliver(&third), Err(Error::Forbidden));
+
+    // Monthly pruning and upgrade must not make an overlapping term eligible.
+    f.ic.advance_time(Duration::from_secs(40 * 86400));
+    let refreshed: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "refresh_entitlement",
+        (&second.beneficiary,),
+    );
+    assert_eq!(refreshed.unwrap().plan_snapshot.plan_id, PlanId::Free);
+    f.ic.upgrade_canister(
+        f.commerce,
+        wasm("dmsg_commerce"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    third.signed_at_ms = time(&f.ic);
+    third.checked_at_ms = time(&f.ic);
+    third.expires_at_ms = Some(time(&f.ic) + DAY);
+    assert_eq!(deliver(&third), Err(Error::Forbidden));
+    third.purchased_at_ms = time(&f.ic);
+    if third.environment == StoreEnvironment::Sandbox {
+        assert_eq!(deliver(&third), Err(Error::Forbidden));
+    }
+    config.accept_sandbox = Some(true);
+    let configured: Result<()> =
+        update(&f.ic, f.commerce, f.sns, "set_app_store_config", (config,));
+    configured.unwrap();
+    assert_eq!(deliver(&third).unwrap().plan_snapshot.plan_id, PlanId::Max);
+    let mut moved_receipt = second.clone();
+    moved_receipt.beneficiary = original.beneficiary;
+    moved_receipt.app_account_token = original.app_account_token;
+    moved_receipt.signed_at_ms = time(&f.ic);
+    moved_receipt.checked_at_ms = time(&f.ic);
+    assert_eq!(deliver(&moved_receipt), Err(Error::Forbidden));
+}
+
+#[test]
 fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
     let f = Fixture::commercial();
     let account = f.create(1);

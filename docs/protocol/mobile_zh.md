@@ -50,9 +50,9 @@ dmsg/apple/account/1、换行、user home Principal 文本、换行、AccountId 
 
 POST purchase 提交安装标识、Apple 交易 JWS 和对应断言。服务验证 Apple 签名、证书、应用、环境、商品、购买所有权及账号 token，并查询当前 Apple 状态。治理配置的验证者才可调用 commerce 的 apply_app_store_transaction。事实包含交易及原始交易 ID、受益主体、商品、购买／到期／撤销时间、Apple signedDate 和状态复核时间 checked_at_ms。
 
-同一原始交易永久绑定同一受益主体；旧观察不能覆盖新观察，重复交易不重复授予权益。权益由 commerce 的认证结果提供，客户端没有本地 isPro 开关。可撤销的 Apple 权益使用短期资格租约，验证服务失联不能无限延长。退款更新原合同；旧订阅晚到不能在替代订阅退款后重新生效。
+同一笔交易永久绑定同一受益主体。原订阅期结束后，允许另一账号以自己的 `appAccountToken` 发起新购买；即使 Apple 沿用原始订阅 ID，也必须是新交易，且不能与原账号已记录的订阅期重叠。恢复旧交易不换绑，旧账号的退款或重试不改写接续账号。旧观察不能覆盖新观察，重复交易不重复授予权益。权益由 commerce 的认证结果提供，客户端没有本地 isPro 开关。可撤销的 Apple 权益使用短期资格租约，验证服务失联不能无限延长。退款更新原合同；旧订阅晚到不能在替代订阅退款后重新生效。
 
-原生端只在权威服务应用成功后 finish StoreKit 交易，未完成交易留待恢复购买和更新监听重试。删除 dMsg 账号不会取消 Apple 自动续订。生产 commerce 拒绝 Sandbox 事实。
+原生端只在权威服务应用成功后 finish StoreKit 交易，未完成交易留待恢复购买和更新监听重试。删除 dMsg 账号不会取消 Apple 自动续订。生产 commerce 默认拒绝新的 Sandbox 购买，仅在显式准入后接受沙盒年度套餐。
 
 ### 3.1 App Store 服务端通知
 

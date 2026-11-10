@@ -149,6 +149,34 @@ final class NavigationTests: NavigationTestCase {
         }
     }
 
+    func testSubscriptionActionsAndProgressAlignInChineseGermanAndArabic() {
+        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+            for working in [false, true] {
+                let app = XCUIApplication()
+                app.launchArguments = ["--ui-testing", "--ui-foreign-subscription", "-AppleLanguages", "(\(language))"]
+                    + (dark ? ["--ui-dark"] : []) + (working ? ["--ui-purchase-working"] : [])
+                app.launch()
+                tab(app, symbol: "Glyph-account", title: title).tap()
+                let plan = app.buttons["account.plan"]
+                for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+                XCTAssertTrue(plan.isHittable); plan.tap()
+                let restore = app.buttons["plan.restore"], manage = app.buttons["plan.manage"]
+                for _ in 0..<8 where !manage.isHittable { app.swipeUp() }
+                XCTAssertTrue(restore.exists); XCTAssertTrue(manage.exists)
+                XCTAssertEqual(restore.isEnabled, !working)
+                XCTAssertEqual(manage.isEnabled, !working)
+                XCTAssertEqual(restore.frame.midX, manage.frame.midX, accuracy: 1)
+                let progress = app.descendants(matching: .any).matching(identifier: "plan.purchase-progress").firstMatch
+                XCTAssertEqual(progress.exists, working)
+                if working {
+                    XCTAssertEqual(progress.frame.midX, restore.frame.midX, accuracy: 1)
+                }
+                capture(app, name: "Subscription alignment · \(language) · \(dark ? "dark" : "light") · \(working ? "loading" : "ready")")
+                app.terminate()
+            }
+        }
+    }
+
     func testSandboxSubscriptionNoticeInChinese() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-sandbox-subscription", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
