@@ -153,7 +153,10 @@ struct SubscriptionView: View {
                 Link("Terms of service", destination: URL(string: "https://dmsg.net/_/terms")!)
             }
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
-            .task(id: scenePhase) { if scenePhase == .active { await load(force: true) } }.refreshable { await load(force: true) }
+            // Apple's purchase and restore sheets make the scene inactive. Those
+            // flows reload when they finish; a concurrent failed reload would
+            // clear the account token their delivery still needs.
+            .task(id: scenePhase) { if scenePhase == .active, !model.purchases.working { await load(force: true) } }.refreshable { await load(force: true) }
             .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true) } }
             .onChange(of: managing) { wasPresented, isPresented in
                 if wasPresented && !isPresented { Task { await load(force: true) } }

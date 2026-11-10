@@ -243,7 +243,9 @@ application permits finishing a matching Apple transaction.
 
 The plan page keeps the current entitlement separate from the product scheduled
 for the next renewal. Returning from Apple subscription management or foregrounding
-the page refreshes that schedule. These local checks do not change the commerce
+the page refreshes that schedule. While a purchase or restore is in progress, the
+inactive return from Apple’s sheet does not start a second reload; the flow reloads
+after delivery. These local checks do not change the commerce
 service’s original-subscription ownership rule, grant extra entitlements, or
 cancel an already scheduled change in Apple’s system.
 
