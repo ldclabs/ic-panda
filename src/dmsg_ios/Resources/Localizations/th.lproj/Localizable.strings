@@ -82,6 +82,8 @@
 	<string>กิจกรรม</string>
 	<key>Activity on this device</key>
 	<string>กิจกรรมบนอุปกรณ์นี้</string>
+	<key>Add a passkey login</key>
+	<string>เพิ่มการเข้าสู่ระบบด้วยพาสคีย์</string>
 	<key>Add account</key>
 	<string>เพิ่มบัญชี</string>
 	<key>Add device</key>
@@ -135,7 +137,7 @@
 	<key>Allow another letter</key>
 	<string>อนุญาตจดหมายอีกฉบับ</string>
 	<key>Allow key rotation</key>
-	<string>อนุญาตให้หมุนคีย์</string>
+	<string>อนุญาตการหมุนเวียนคีย์</string>
 	<key>Allow this account to send another letter?</key>
 	<string>อนุญาตให้บัญชีนี้ส่งจดหมายอีกฉบับหรือไม่?</string>
 	<key>Allowed</key>
@@ -431,7 +433,7 @@
 	<key>Checklist completed</key>
 	<string>รายการตรวจสอบเสร็จสมบูรณ์</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
-	<string>รายการตรวจสอบเสร็จสมบูรณ์จากใบแจ้งยอดของคุณ สถานะอัปสตรีมยังคงตรวจสอบได้โดยอิสระกับผู้ให้บริการเท่านั้น</string>
+	<string>รายการตรวจสอบเสร็จสมบูรณ์ตามคำชี้แจงของคุณ สถานะฝั่งผู้ให้บริการยังต้องตรวจสอบกับผู้ให้บริการโดยตรงเท่านั้น</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>เลือกสำรองข้อมูลไปยังคลาวด์จากไฟล์ในเครื่องเพื่อสร้างข้อมูลสำรองครั้งแรก</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
@@ -519,7 +521,7 @@
 	<key>Confirm it is done</key>
 	<string>ยืนยันว่าเสร็จแล้ว</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
-	<string>ยืนยันเฉพาะงานที่คุณทำเสร็จแล้วจริงเท่านั้น สิ่งนี้จะบันทึกคำสั่งของคุณ มันไม่ได้ดำเนินการตามผู้ให้บริการ</string>
+	<string>ยืนยันเฉพาะงานที่คุณทำเสร็จจริงเท่านั้น ระบบจะบันทึกคำชี้แจงของคุณโดยไม่ได้ดำเนินการฝั่งผู้ให้บริการ</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>ยืนยันคำขอ dMsg ที่คุณตรวจสอบแล้ว</string>
 	<key>Confirm this account security change</key>
@@ -548,6 +550,8 @@
 	<string>ติดต่อฝ่ายสนับสนุน</string>
 	<key>Content signing</key>
 	<string>การลงนามเนื้อหา</string>
+	<key>Continue adding this passkey</key>
+	<string>เพิ่มพาสคีย์นี้ต่อ</string>
 	<key>Continue import</key>
 	<string>ดำเนินการนำเข้าต่อไป</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>ดำเนินการนำเข้านี้ต่อในบัญชีที่คุณเลือกไว้ตั้งแต่แรก</string>
 	<key>Continue with Internet Identity</key>
 	<string>ดำเนินการต่อด้วย Internet Identity</string>
+	<key>Continue with a passkey</key>
+	<string>ดำเนินการต่อด้วยพาสคีย์</string>
 	<key>Controller ID</key>
 	<string>Controller ไอดี</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>สร้างข้อมูลประจำตัวใหม่ที่ผู้ให้บริการและบันทึกไว้ในห้องนิรภัย</string>
 	<key>Create a new pairing request</key>
 	<string>สร้างคำขอจับคู่ใหม่</string>
+	<key>Create a passkey</key>
+	<string>สร้างพาสคีย์</string>
 	<key>Create a revocation request?</key>
 	<string>สร้างคำขอเพิกถอน?</string>
 	<key>Create agent</key>
@@ -767,7 +775,7 @@
 	<key>Device ID shown on the new device</key>
 	<string>ID อุปกรณ์ที่แสดงบนอุปกรณ์ใหม่</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
-	<string>การรับรองความถูกต้องของอุปกรณ์ไม่พร้อมใช้งานชั่วคราว กุญแจของคุณจะถูกเก็บไว้ ลองอีกครั้งเมื่ออุปกรณ์นี้ถูกปลดล็อค</string>
+	<string>การยืนยันตัวตนของอุปกรณ์ไม่พร้อมใช้งานชั่วคราว คีย์ของคุณยังคงอยู่ โปรดลองอีกครั้งเมื่อปลดล็อกอุปกรณ์นี้</string>
 	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
 	<string>การยืนยันตัวตนบนอุปกรณ์ปลดล็อกเนื้อหาในเครื่องได้แม้เซสชัน Internet Identity จะหมดอายุ</string>
 	<key>Device pairing request QR code</key>
@@ -795,11 +803,11 @@
 	<key>Discard draft</key>
 	<string>ทิ้ง</string>
 	<key>Discard staged copy</key>
-	<string>ทิ้งสำเนาแบบจัดฉาก</string>
+	<string>ทิ้งสำเนาที่พักไว้</string>
 	<key>Discard this draft?</key>
 	<string>ยกเลิกการเปลี่ยนแปลงใช่ไหม</string>
 	<key>Discard this staged copy?</key>
-	<string>ทิ้งสำเนาแบบทีละขั้นนี้ไหม</string>
+	<string>ทิ้งสำเนาที่พักไว้นี้หรือไม่?</string>
 	<key>Discard unsaved changes?</key>
 	<string>ยกเลิกการเปลี่ยนแปลงใช่ไหม</string>
 	<key>Dismiss</key>
@@ -840,6 +848,8 @@
 	<string>อีวีเอ็ม</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>แพ็กเกจมือถือแต่ละแพ็กเกจจำกัดอยู่ที่ 8 MiB รวมถึงไฟล์แนบที่เลือก การอนุมัติขั้นสุดท้ายจะแสดงการเลือกและปลายทางที่ไม่เปลี่ยนรูปอย่างแน่นอน</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>พาสคีย์ใหม่แต่ละรายการจะสร้างข้อมูลระบุตัวตนสำหรับเข้าสู่ระบบแยกกัน หากต้องการเพิ่มให้บัญชีปัจจุบัน ให้ใช้เพิ่มการเข้าสู่ระบบด้วยพาสคีย์ในการรักษาความปลอดภัยของบัญชี</string>
 	<key>Edit</key>
 	<string>แก้ไข</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>ดำเนินการด้วยลายเซ็นที่รวบรวมแล้ว</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>กฎการบล็อก คำเชิญ และความจุของกล่องจดหมายที่มีอยู่จะยังคงอยู่ การเลือกนโยบายแบบฟรีหรือแบบปิดจะแทนที่การตั้งค่าการติดต่อแบบชำระเงินก่อนหน้านี้</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>สิทธิ์เข้าสู่ระบบที่ออกแล้วอาจยังใช้ได้อีกสูงสุด 12 ชั่วโมง สิทธิ์เข้าถึงเนื้อหาของอุปกรณ์ยังคงอยู่</string>
 	<key>Expired</key>
 	<string>หมดอายุ</string>
 	<key>Expires</key>
@@ -953,7 +965,7 @@
 	<key>Files</key>
 	<string>ไฟล์</string>
 	<key>Files app copies</key>
-	<string>คัดลอกแอปไฟล์</string>
+	<string>สำเนาในแอปไฟล์</string>
 	<key>Files app snapshot updated</key>
 	<string>อัปเดตภาพรวมของแอป Files แล้ว</string>
 	<key>Files are backed up only when you explicitly choose to do so.</key>
@@ -1159,7 +1171,7 @@
 	<key>Key label</key>
 	<string>ป้ายคีย์</string>
 	<key>Keys</key>
-	<string>กุญแจ</string>
+	<string>คีย์</string>
 	<key>L1 spends from native Taproot addresses need this device's BIP-340 key. One root on this device holds every wallet's key; using it asks for you.</key>
 	<string>การใช้จ่าย L1 จากที่อยู่ Taproot native ต้องใช้คีย์ BIP-340 ของอุปกรณ์นี้ รากเดียวบนอุปกรณ์นี้เก็บคีย์ของทุกกระเป๋าเงิน การใช้งานต้องให้คุณยืนยัน</string>
 	<key>L1 · old device cosigns</key>
@@ -1299,7 +1311,7 @@
 	<key>Monthly execution limit</key>
 	<string>ขีดจำกัดการดำเนินการรายเดือน</string>
 	<key>Monthly execution units</key>
-	<string>หน่วยปฏิบัติการรายเดือน</string>
+	<string>หน่วยการดำเนินการรายเดือน</string>
 	<key>More types</key>
 	<string>ประเภท</string>
 	<key>Move a native address</key>
@@ -1525,7 +1537,7 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>ตอนนี้ย้ายได้เฉพาะเอาต์พุตที่ลึกอย่างน้อย %lld บล็อก เอาต์พุตอื่นแสดงบล็อกที่เริ่มย้ายได้</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>เฉพาะสำเนาที่เลือกและไม่เปลี่ยนรูปเท่านั้นที่จะปรากฏในแอพไฟล์ การเข้าถึงจำเป็นต้องมีการรับรองความถูกต้องของระบบ การล็อก dMsg จะสิ้นสุดเซสชันการเข้าถึงปัจจุบัน ไฟล์อาจเก็บสำเนาและชื่อไฟล์ที่ดาวน์โหลดไว้ ซึ่ง dMsg ไม่สามารถจำได้</string>
+	<string>เฉพาะสำเนาที่เลือกและแก้ไขไม่ได้เท่านั้นที่จะแสดงในแอปไฟล์ การเข้าถึงต้องยืนยันตัวตนผ่านระบบ และการล็อก dMsg จะสิ้นสุดเซสชันการเข้าถึงปัจจุบัน แอปไฟล์อาจเก็บสำเนาที่ดาวน์โหลดและชื่อไฟล์ไว้ ซึ่ง dMsg ไม่สามารถเรียกคืนได้</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>เฉพาะไฟล์ที่เข้ารหัสที่เลือกเท่านั้นที่สามารถถ่ายโอนได้ในขณะที่ dMsg ถูกล็อค iOS ควบคุมการตั้งเวลา บังคับให้เลิกหยุดการส่งจนกว่าคุณจะเปิดแอปอีกครั้ง เปิดบัญชีเดิมเพื่อตรวจสอบและเสร็จสิ้น</string>
 	<key>Open</key>
@@ -1731,13 +1743,13 @@
 	<key>Protector %lld</key>
 	<string>คีย์ป้องกัน %lld</string>
 	<key>Public Key</key>
-	<string>กุญแจสาธารณะ</string>
+	<string>คีย์สาธารณะ</string>
 	<key>Public avatar</key>
 	<string>อวตารสาธารณะ</string>
 	<key>Public profile</key>
 	<string>โปรไฟล์สาธารณะ</string>
 	<key>Publication pending</key>
-	<string>อยู่ระหว่างการตีพิมพ์</string>
+	<string>รอการเผยแพร่</string>
 	<key>Publish</key>
 	<string>เผยแพร่</string>
 	<key>Publish a secret snapshot</key>
@@ -1751,7 +1763,7 @@
 	<key>Publisher</key>
 	<string>สำนักพิมพ์</string>
 	<key>Publishing is paused while conversation keys are updated.</key>
-	<string>การเผยแพร่จะหยุดชั่วคราวระหว่างอัปเดตกุญแจการสนทนา</string>
+	<string>การเผยแพร่จะหยุดชั่วคราวระหว่างอัปเดตคีย์การสนทนา</string>
 	<key>Purchased</key>
 	<string>ซื้อแล้ว</string>
 	<key>Purchases are not currently available.</key>
@@ -1845,7 +1857,7 @@
 	<key>Register this device's key</key>
 	<string>ลงทะเบียนคีย์ของอุปกรณ์นี้</string>
 	<key>Register this public key through a wallet proposal</key>
-	<string>ลงทะเบียนกุญแจสาธารณะนี้ผ่านข้อเสนอกระเป๋าเงิน</string>
+	<string>ลงทะเบียนคีย์สาธารณะนี้ผ่านข้อเสนอกระเป๋าเงิน</string>
 	<key>Registered on this device</key>
 	<string>ลงทะเบียนบนอุปกรณ์นี้แล้ว</string>
 	<key>Registers the new device's approval key.</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>ตรวจสอบสิทธิ์</string>
 	<key>Review publication or resume</key>
-	<string>ตรวจสอบสิ่งพิมพ์หรือประวัติย่อ</string>
+	<string>ตรวจสอบการเผยแพร่หรือดำเนินการต่อ</string>
 	<key>Review rejection</key>
 	<string>ตรวจสอบการปฏิเสธ</string>
 	<key>Review removing this login</key>
@@ -2197,7 +2209,7 @@
 	<key>Saved to your library</key>
 	<string>บันทึกลงคลังแล้ว</string>
 	<key>Saved. Publication is pending.</key>
-	<string>บันทึกแล้ว อยู่ระหว่างการตีพิมพ์</string>
+	<string>บันทึกแล้ว รอการเผยแพร่</string>
 	<key>Saving draft…</key>
 	<string>กำลังบันทึกฉบับร่าง…</string>
 	<key>Saving…</key>
@@ -2298,6 +2310,8 @@
 	<string>บัญชีผู้ส่ง</string>
 	<key>Sending</key>
 	<string>กำลังส่ง</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>การตั้งค่าการส่งหรือรับมีการเปลี่ยนแปลง ลองส่งจดหมายฉบับนี้อีกครั้ง หากยังไม่สำเร็จ ทั้งคุณและผู้รับควรปลดล็อก dMsg และซิงค์ก่อนลองอีกครั้ง</string>
 	<key>Sent</key>
 	<string>ส่งแล้ว</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>ลงชื่อเข้าใช้บัญชีเดียวกันบนอุปกรณ์ใหม่ สแกน QR ของคอมพิวเตอร์ แล้วตรวจสอบและอนุมัติบนคอมพิวเตอร์</string>
 	<key>Sign out</key>
 	<string>ออกจากระบบ</string>
+	<key>Sign out all devices</key>
+	<string>ออกจากระบบทุกอุปกรณ์</string>
 	<key>Sign out of this account?</key>
 	<string>ออกจากระบบบัญชีนี้ใช่ไหม</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>ออกจากระบบอุปกรณ์ของพาสคีย์นี้แล้วดำเนินการต่อ</string>
 	<key>Sign the statement you reviewed</key>
 	<string>ลงนามในคำชี้แจงที่คุณตรวจสอบ</string>
 	<key>Signatures collected</key>
@@ -2437,7 +2455,7 @@
 	<key>Spending approvals %u</key>
 	<string>การอนุมัติการใช้จ่าย %u</string>
 	<key>Stage selected files, then choose an account and import them in dMsg.</key>
-	<string>จัดการไฟล์ที่เลือก จากนั้นเลือกบัญชีและนำเข้าใน dMsg</string>
+	<string>เตรียมไฟล์ที่เลือก จากนั้นเลือกบัญชีแล้วนำเข้าใน dMsg</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>เริ่มรายการตรวจสอบจากหน้าอ้างอิงของฟิลด์</string>
 	<key>Start a rotation checklist</key>
@@ -2563,7 +2581,7 @@
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>การสังเกตที่ตรวจสอบแล้วครั้งล่าสุดจะถูกเก็บไว้ ไม่สามารถยืนยันสถานะปัจจุบันได้</string>
 	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
-	<string>ลิงก์พร้อมแล้ว ลิงก์มีกุญแจของไฟล์นี้ จึงควรส่งผ่านช่องทางส่วนตัว</string>
+	<string>ลิงก์พร้อมแล้ว ลิงก์มีคีย์ของไฟล์นี้ จึงควรส่งผ่านช่องทางส่วนตัว</string>
 	<key>The link opens only with its password. Send the password another way.</key>
 	<string>ลิงก์เปิดได้ด้วยรหัสผ่านเท่านั้น โปรดส่งรหัสผ่านด้วยวิธีอื่น</string>
 	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
@@ -2600,6 +2618,10 @@
 	<string>ไม่พบอุปกรณ์อีกเครื่องบนเครือข่ายภายใน ให้ป้อนที่อยู่ของอุปกรณ์นั้น</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>ผลลัพธ์ก็ไม่แน่นอน ตรวจสอบงานเดิมก่อนที่จะทำอะไรอีกครั้ง</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>บันทึกพาสคีย์แล้ว ลองอีกครั้งเพื่อเชื่อมโยงกับบัญชีนี้ให้เสร็จ โดยจะไม่สร้างพาสคีย์ใหม่</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>ต้องอัปเดตการตั้งค่ารับจดหมายของผู้รับ ขอให้ผู้รับปลดล็อก dMsg และซิงค์ จากนั้นลองส่งจดหมายฉบับนี้อีกครั้ง</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>บันทึกมีการเปลี่ยนแปลง รีเฟรชและตรวจสอบการแก้ไขของคุณก่อนที่จะบันทึกอีกครั้ง</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2613,7 +2635,7 @@
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
 	<string>รูปภาพที่เลือกจะยังคงอยู่ในอุปกรณ์นี้จนกว่าคุณจะเผยแพร่ อวตารที่เผยแพร่เป็นแบบสาธารณะ และสำเนาอาจยังคงอยู่นอก dMsg</string>
 	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
-	<string>รายการที่เลือกไม่สามารถจัดฉากได้ เปิด dMsg แล้วลองนำเข้าที่นั่น</string>
+	<string>ไม่สามารถเตรียมรายการที่เลือกได้ โปรดเปิด dMsg แล้วลองนำเข้าที่นั่น</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>สำเนาต้นฉบับถูกขัดจังหวะ ทิ้งและเลือกแหล่งที่มาอีกครั้ง</string>
 	<key>The test deployment is not configured.</key>
@@ -2657,7 +2679,7 @@
 	<key>This device</key>
 	<string>อุปกรณ์นี้</string>
 	<key>This device does not have this link’s key yet.</key>
-	<string>อุปกรณ์นี้ยังไม่มีกุญแจของลิงก์นี้</string>
+	<string>อุปกรณ์นี้ยังไม่มีคีย์ของลิงก์นี้</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>อุปกรณ์นี้มีการเปลี่ยนแปลงที่ยังไม่ได้ซิงค์ บันทึกสิ่งที่คุณต้องการก่อนที่จะลบบัญชี</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2720,6 +2742,10 @@
 	<string>การดำเนินการนี้ไม่สามารถใช้งานได้ชั่วคราว ข้อมูลที่บันทึกไว้ของคุณจะถูกเก็บไว้</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>แพ็คเกจนี้ถูกนำเข้าบนอุปกรณ์นี้แล้ว สำเนาที่มีอยู่ยังคงเป็นอิสระ</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>มีอุปกรณ์ลงชื่อเข้าใช้ด้วยพาสคีย์นี้มากเกินไป ออกจากระบบอุปกรณ์เหล่านั้นเพื่อดำเนินการต่อ พาสคีย์อื่นและเนื้อหาที่บันทึกไว้จะไม่ได้รับผลกระทบ</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>พาสคีย์นี้ยังไม่ได้ลงทะเบียนกับ dMsg โปรดเลือกพาสคีย์อื่น หากการสร้างครั้งก่อนล้มเหลว ให้ลบพาสคีย์ที่ไม่ได้ใช้นั้นจากตัวจัดการรหัสผ่านก่อนสร้างใหม่</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>โปรไฟล์นี้เป็นแบบสาธารณะ อย่าใส่ความลับหรือข้อมูลติดต่อส่วนตัว</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2731,7 +2757,7 @@
 	<key>This request requires a supported desktop client.</key>
 	<string>คำขอนี้ต้องการไคลเอ็นต์เดสก์ท็อปที่รองรับ</string>
 	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
-	<string>สิ่งนี้ขอยุติการดึงข้อมูลในอนาคต สำเนาที่บันทึกไว้แล้วยังคงใช้งานได้ สิ่งพิมพ์ที่ไม่แน่นอนยังต้องได้รับการกระทบยอด</string>
+	<string>คำขอนี้จะยุติการดึงข้อมูลในอนาคต สำเนาที่บันทึกไว้แล้วยังคงใช้งานได้ การเผยแพร่ที่ยังไม่แน่นอนยังต้องได้รับการตรวจสอบให้ตรงกัน</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
 	<string>สแนปชอตนี้ต้องการความสนใจ ตรวจสอบสถานะก่อนดำเนินการต่อ</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
@@ -2842,14 +2868,20 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>การใช้งาน</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>ใช้วิธีเข้าสู่ระบบที่เชื่อมโยงกับบัญชีที่คุณต้องการเปิดอยู่แล้ว</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>ใช้ชื่อยาว 1–255 อักขระ โดยไม่มีเครื่องหมายทับหรืออักขระควบคุม</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>ใช้รหัสผ่านจากสแน็ปช็อตที่คุณส่งออกอย่างชัดเจนใน dMsg</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>หากเคยสร้างพาสคีย์แล้ว ให้ใช้พาสคีย์ที่บันทึกไว้ สร้างใหม่เฉพาะเมื่อต้องการข้อมูลระบุตัวตนสำหรับเข้าสู่ระบบอีกชุดเท่านั้น</string>
 	<key>Use a secret through a device policy</key>
 	<string>ใช้ข้อมูลลับผ่านนโยบายด้านอุปกรณ์</string>
 	<key>Use an SSH signing key</key>
 	<string>ใช้คีย์การเซ็นชื่อ SSH</string>
+	<key>Use an existing passkey</key>
+	<string>ใช้พาสคีย์ที่มีอยู่</string>
 	<key>Use conflicting version</key>
 	<string>ใช้เวอร์ชันที่ขัดแย้งกัน</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -2989,7 +3021,7 @@
 	<key>You have read-only access to this conversation.</key>
 	<string>คุณมีสิทธิ์อ่านการสนทนานี้เท่านั้น</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
-	<string>คุณดำเนินการเปลี่ยนแปลงผู้ให้บริการด้วยตนเอง dMsg บันทึกใบแจ้งยอดของคุณและตรวจสอบการแก้ไขในท้องถิ่น ไม่สามารถตรวจสอบการสร้าง การทดสอบ หรือการเพิกถอนอัปสตรีมได้</string>
+	<string>คุณเป็นผู้ดำเนินการเปลี่ยนแปลงกับผู้ให้บริการด้วยตนเอง dMsg จะบันทึกคำชี้แจงของคุณและตรวจสอบการแก้ไขในเครื่อง แต่ไม่สามารถตรวจสอบการสร้าง การทดสอบ หรือการเพิกถอนฝั่งผู้ให้บริการได้</string>
 	<key>Your assets. Your approval rules.</key>
 	<string>สินทรัพย์ของคุณ กฎการอนุมัติของคุณ</string>
 	<key>Your authorized channels appear after synchronization.</key>
@@ -3012,6 +3044,10 @@
 	<string>ช่องที่ซ่อนอยู่ของคุณจะถูกปกปิดจนกว่าคุณจะเลือกที่จะเปิดเผย</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>เนื้อหาในเครื่องยังใช้งานได้ เข้าสู่ระบบด้วย Internet Identity เมื่อการดำเนินการในบัญชีจำเป็นต้องใช้</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>ตัวจัดการรหัสผ่านบันทึกพาสคีย์แล้ว แต่ dMsg ยังยืนยันการลงทะเบียนไม่ได้ ลองเข้าสู่ระบบด้วยพาสคีย์นั้นก่อนสร้างรายการใหม่</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>จดหมายก่อนหน้าของคุณยังรอดำเนินการ ขอให้ผู้รับเก็บจดหมายเก่าเข้าคลังบนเดสก์ท็อป หรือเลือก “อนุญาตจดหมายอีกฉบับ” ในเมนูจดหมายบน iOS แล้วลองส่งจดหมายฉบับนี้อีกครั้ง</string>
 	<key>Your private workspace.</key>
 	<string>พื้นที่ทำงานส่วนตัวของคุณ</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>สร้างแล้ว</string>
 	<key>not available</key>
 	<string>ไม่พร้อมใช้งาน</string>
-	<key>Continue with a passkey</key>
-	<string>ดำเนินการต่อด้วยพาสคีย์</string>
-	<key>Create a passkey</key>
-	<string>สร้างพาสคีย์</string>
-	<key>Add a passkey login</key>
-	<string>เพิ่มการเข้าสู่ระบบด้วยพาสคีย์</string>
-	<key>Sign out all devices</key>
-	<string>ออกจากระบบทุกอุปกรณ์</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>สิทธิ์เข้าสู่ระบบที่ออกแล้วอาจยังใช้ได้อีกสูงสุด 12 ชั่วโมง สิทธิ์เข้าถึงเนื้อหาของอุปกรณ์ยังคงอยู่</string>
-	<key>Use an existing passkey</key>
-	<string>ใช้พาสคีย์ที่มีอยู่</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>ใช้วิธีเข้าสู่ระบบที่เชื่อมโยงกับบัญชีที่คุณต้องการเปิดอยู่แล้ว</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>พาสคีย์ใหม่แต่ละรายการจะสร้างข้อมูลระบุตัวตนสำหรับเข้าสู่ระบบแยกกัน หากต้องการเพิ่มให้บัญชีปัจจุบัน ให้ใช้เพิ่มการเข้าสู่ระบบด้วยพาสคีย์ในการรักษาความปลอดภัยของบัญชี</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>พาสคีย์นี้ยังไม่ได้ลงทะเบียนกับ dMsg โปรดเลือกพาสคีย์อื่น หากการสร้างครั้งก่อนล้มเหลว ให้ลบพาสคีย์ที่ไม่ได้ใช้นั้นจากตัวจัดการรหัสผ่านก่อนสร้างใหม่</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>ตัวจัดการรหัสผ่านบันทึกพาสคีย์แล้ว แต่ dMsg ยังยืนยันการลงทะเบียนไม่ได้ ลองเข้าสู่ระบบด้วยพาสคีย์นั้นก่อนสร้างรายการใหม่</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>จดหมายก่อนหน้าของคุณยังรอดำเนินการ ขอให้ผู้รับเก็บจดหมายเก่าเข้าคลังบนเดสก์ท็อป หรือเลือก “อนุญาตจดหมายอีกฉบับ” ในเมนูจดหมายบน iOS แล้วลองส่งจดหมายฉบับนี้อีกครั้ง</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>ต้องอัปเดตการตั้งค่ารับจดหมายของผู้รับ ขอให้ผู้รับปลดล็อก dMsg และซิงค์ จากนั้นลองส่งจดหมายฉบับนี้อีกครั้ง</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>การตั้งค่าการส่งหรือรับมีการเปลี่ยนแปลง ลองส่งจดหมายฉบับนี้อีกครั้ง หากยังไม่สำเร็จ ทั้งคุณและผู้รับควรปลดล็อก dMsg และซิงค์ก่อนลองอีกครั้ง</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>หากเคยสร้างพาสคีย์แล้ว ให้ใช้พาสคีย์ที่บันทึกไว้ สร้างใหม่เฉพาะเมื่อต้องการข้อมูลระบุตัวตนสำหรับเข้าสู่ระบบอีกชุดเท่านั้น</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>บันทึกพาสคีย์แล้ว ลองอีกครั้งเพื่อเชื่อมโยงกับบัญชีนี้ให้เสร็จ โดยจะไม่สร้างพาสคีย์ใหม่</string>
-	<key>Continue adding this passkey</key>
-	<string>เพิ่มพาสคีย์นี้ต่อ</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>ออกจากระบบอุปกรณ์ของพาสคีย์นี้แล้วดำเนินการต่อ</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>มีอุปกรณ์ลงชื่อเข้าใช้ด้วยพาสคีย์นี้มากเกินไป ออกจากระบบอุปกรณ์เหล่านั้นเพื่อดำเนินการต่อ พาสคีย์อื่นและเนื้อหาที่บันทึกไว้จะไม่ได้รับผลกระทบ</string>
 </dict>
 </plist>

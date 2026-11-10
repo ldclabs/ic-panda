@@ -93,7 +93,7 @@ Cuando un periodo de pago termina y no se renueva, tu cuenta vuelve a los límit
 
 ## 11. Cambios, interrupciones y cese
 
-Podemos cambiar estos términos publicando una nueva versión, con un nuevo número de versión y un nuevo resumen, en https://dmsg.net/_/terms. Una nueva versión se aplica a las compras aprobadas después de su entrada en vigor y a tu uso continuado después de que la anunciemos. Las compras ya aprobadas conservan la versión que registraron. Las versiones anteriores siguen disponibles.
+Podemos cambiar estos términos publicando una nueva versión, con un nuevo número de versión y un nuevo resumen criptográfico (digest), en https://dmsg.net/_/terms. Una nueva versión se aplica a las compras aprobadas después de su entrada en vigor y a tu uso continuado después de que la anunciemos. Las compras ya aprobadas conservan la versión que registraron. Las versiones anteriores siguen disponibles.
 
 El servicio se presta según su disponibilidad y puede interrumpirse. Si dejamos de ofrecer una función de pago antes del fin de un periodo pagado en efectivo, reembolsaremos la parte no utilizada de ese periodo y te daremos un plazo razonable para exportar tu contenido.
 

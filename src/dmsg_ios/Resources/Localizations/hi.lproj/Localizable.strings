@@ -82,6 +82,8 @@
 	<string>गतिविधि</string>
 	<key>Activity on this device</key>
 	<string>इस डिवाइस पर गतिविधि</string>
+	<key>Add a passkey login</key>
+	<string>पासकी लॉगिन जोड़ें</string>
 	<key>Add account</key>
 	<string>खाता जोड़ें</string>
 	<key>Add device</key>
@@ -135,7 +137,7 @@
 	<key>Allow another letter</key>
 	<string>एक और पत्र की अनुमति दें</string>
 	<key>Allow key rotation</key>
-	<string>कुंजी घुमाने की अनुमति दें</string>
+	<string>कुंजी रोटेशन की अनुमति दें</string>
 	<key>Allow this account to send another letter?</key>
 	<string>क्या इस खाते को एक और पत्र भेजने दें?</string>
 	<key>Allowed</key>
@@ -548,6 +550,8 @@
 	<string>समर्थन से संपर्क करें</string>
 	<key>Content signing</key>
 	<string>सामग्री पर हस्ताक्षर</string>
+	<key>Continue adding this passkey</key>
+	<string>इस पासकी को जोड़ना जारी रखें</string>
 	<key>Continue import</key>
 	<string>आयात जारी रखें</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>इस आयात को आपके द्वारा मूल रूप से चयनित खाते में जारी रखें।</string>
 	<key>Continue with Internet Identity</key>
 	<string>Internet Identity के साथ जारी रखें</string>
+	<key>Continue with a passkey</key>
+	<string>पासकी से जारी रखें</string>
 	<key>Controller ID</key>
 	<string>नियंत्रक आईडी</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>इसके प्रदाता पर एक नया क्रेडेंशियल बनाएं और इसे वॉल्ट में सहेजें</string>
 	<key>Create a new pairing request</key>
 	<string>एक नया युग्मन अनुरोध बनाएँ</string>
+	<key>Create a passkey</key>
+	<string>पासकी बनाएँ</string>
 	<key>Create a revocation request?</key>
 	<string>निरस्तीकरण अनुरोध बनाएं?</string>
 	<key>Create agent</key>
@@ -795,11 +803,11 @@
 	<key>Discard draft</key>
 	<string>त्यागें</string>
 	<key>Discard staged copy</key>
-	<string>चरणबद्ध प्रति त्यागें</string>
+	<string>अस्थायी प्रति हटाएँ</string>
 	<key>Discard this draft?</key>
 	<string>परिवर्तन त्यागें?</string>
 	<key>Discard this staged copy?</key>
-	<string>इस चरणबद्ध प्रतिलिपि को त्यागें?</string>
+	<string>क्या यह अस्थायी प्रतिलिपि हटाएँ?</string>
 	<key>Discard unsaved changes?</key>
 	<string>परिवर्तन त्यागें?</string>
 	<key>Dismiss</key>
@@ -840,6 +848,8 @@
 	<string>ईवीएम</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>प्रत्येक मोबाइल पैकेज चयनित अनुलग्नकों सहित 8 MiB तक सीमित है। अंतिम अनुमोदन सटीक अपरिवर्तनीय चयन और गंतव्य को दर्शाता है।</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>हर नई पासकी एक अलग लॉगिन पहचान बनाती है। मौजूदा खाते में पासकी जोड़ने के लिए खाता सुरक्षा में पासकी लॉगिन जोड़ें का उपयोग करें।</string>
 	<key>Edit</key>
 	<string>संपादित करें</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>एकत्र किए गए हस्ताक्षरों से निष्पादित करें</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>मौजूदा ब्लॉक नियम, निमंत्रण और इनबॉक्स क्षमता संरक्षित हैं। मुफ़्त या बंद पॉलिसी चुनने से कोई भी पिछली भुगतान संपर्क सेटिंग बदल जाती है।</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>मौजूदा लॉगिन अनुमतियाँ 12 घंटे तक मान्य रह सकती हैं। डिवाइस की सामग्री अनुमतियाँ बनी रहती हैं।</string>
 	<key>Expired</key>
 	<string>समाप्त हो गया</string>
 	<key>Expires</key>
@@ -1049,7 +1061,7 @@
 	<key>Import a file or photo to attach it.</key>
 	<string>फ़ाइल या फ़ोटो संलग्न करने के लिए आयात करें।</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
-	<string>एक अनएन्क्रिप्टेड 1 पासवर्ड, बिटवर्डन या ब्राउज़र पासवर्ड निर्यात आयात करें। स्रोत इस उपकरण पर रहता है; केवल चयनित रिकॉर्ड ही जोड़े जाते हैं।</string>
+	<string>बिना एन्क्रिप्ट किया गया 1Password, Bitwarden या ब्राउज़र पासवर्ड निर्यात आयात करें। स्रोत इसी डिवाइस पर रहता है; केवल चुने गए रिकॉर्ड जोड़े जाते हैं।</string>
 	<key>Import completed</key>
 	<string>आयात पूरा हुआ</string>
 	<key>Import cosign packet</key>
@@ -1525,7 +1537,7 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>अभी केवल कम से कम %lld ब्लॉक गहरे आउटपुट जाते हैं; बाकी दिखाते हैं कि वे किस ब्लॉक से जा सकेंगे।</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>फ़ाइलें ऐप में केवल चयनित, अपरिवर्तनीय प्रतियां ही दिखाई देती हैं। एक्सेस के लिए सिस्टम प्रमाणीकरण की आवश्यकता होती है; dMsg को लॉक करने से वर्तमान एक्सेस सत्र समाप्त हो जाता है। फ़ाइलें डाउनलोड की गई प्रतियां और फ़ाइल नाम बनाए रख सकती हैं, जिन्हें dMsg याद नहीं रख सकता है।</string>
+	<string>Files ऐप में केवल चयनित, अपरिवर्तनीय प्रतियाँ ही दिखाई देती हैं। एक्सेस के लिए सिस्टम प्रमाणीकरण आवश्यक है; dMsg लॉक करने से वर्तमान सत्र समाप्त हो जाता है। Files डाउनलोड की गई प्रतियाँ और फ़ाइल नाम रख सकता है, जिन्हें dMsg वापस नहीं ले सकता।</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg लॉक होने पर केवल चयनित एन्क्रिप्टेड फ़ाइल ही स्थानांतरित हो सकती है। iOS शेड्यूलिंग को नियंत्रित करता है; फोर्स क्विटिंग से डिलीवरी तब तक रुक जाती है जब तक आप ऐप को दोबारा नहीं खोलते। सत्यापित करने और समाप्त करने के लिए मूल खाता खोलें।</string>
 	<key>Open</key>
@@ -1867,7 +1879,7 @@
 	<key>Remove AutoFill snapshot</key>
 	<string>स्वतः भरण स्नैपशॉट निकालें</string>
 	<key>Remove Files app snapshot</key>
-	<string>फ़ाइलें हटाएँ ऐप स्नैपशॉट</string>
+	<string>Files ऐप स्नैपशॉट हटाएँ</string>
 	<key>Remove attachment reference</key>
 	<string>अनुलग्नक संदर्भ हटाएँ</string>
 	<key>Remove avatar</key>
@@ -1909,7 +1921,7 @@
 	<key>Replace AutoFill snapshot</key>
 	<string>स्वतः भरण स्नैपशॉट बदलें</string>
 	<key>Replace Files app snapshot</key>
-	<string>फ़ाइलें ऐप स्नैपशॉट बदलें</string>
+	<string>Files ऐप स्नैपशॉट बदलें</string>
 	<key>Replace a device</key>
 	<string>उपकरण बदलें</string>
 	<key>Replace cosignature policy</key>
@@ -1987,7 +1999,7 @@
 	<key>Resume</key>
 	<string>फिर से शुरू करें</string>
 	<key>Retire a hardware approval key</key>
-	<string>हार्डवेयर अनुमोदन कुंजी को रिटायर करें</string>
+	<string>हार्डवेयर अनुमोदन कुंजी को सेवा से हटाएँ</string>
 	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
 	<string>किसी कुंजी को सेवानिवृत्त करने से संरक्षित कार्यों को स्वीकृत करने की उसकी क्षमता समाप्त हो जाती है। जांचें कि कोई अन्य अधिकृत अनुमोदन पथ उपलब्ध है।</string>
 	<key>Retry</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>अनुमतियों की समीक्षा करें</string>
 	<key>Review publication or resume</key>
-	<string>प्रकाशन या बायोडाटा की समीक्षा करें</string>
+	<string>प्रकाशन की समीक्षा करें या जारी रखें</string>
 	<key>Review rejection</key>
 	<string>अस्वीकृति की समीक्षा करें</string>
 	<key>Review removing this login</key>
@@ -2103,7 +2115,7 @@
 	<key>Revocation pending</key>
 	<string>निरसन लंबित है</string>
 	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
-	<string>सुरक्षा स्थिति ताज़ा होने और कुंजियाँ घुमाने के बाद निरस्तीकरण नई पहुँच को रोक देता है। पहले कॉपी की गई सामग्री को वापस नहीं लिया जा सकता.</string>
+	<string>सुरक्षा स्थिति रिफ़्रेश होने और कुंजियाँ रोटेट होने के बाद निरस्तीकरण नई पहुँच को रोक देता है। पहले कॉपी की गई सामग्री वापस नहीं ली जा सकती।</string>
 	<key>Revoke</key>
 	<string>निरस्त करें</string>
 	<key>Revoke a device</key>
@@ -2127,7 +2139,7 @@
 	<key>Revoke this device</key>
 	<string>इस उपकरण को निरस्त करें</string>
 	<key>Revoke this device and rotate content keys</key>
-	<string>इस डिवाइस को निरस्त करें और सामग्री कुंजियाँ घुमाएँ</string>
+	<string>इस डिवाइस को निरस्त करें और सामग्री कुंजियाँ रोटेट करें</string>
 	<key>Revoke this link?</key>
 	<string>यह लिंक रद्द करें?</string>
 	<key>Revoke this snapshot link?</key>
@@ -2298,6 +2310,8 @@
 	<string>प्रेषक खाता</string>
 	<key>Sending</key>
 	<string>भेजना</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>पत्र भेजने या पाने की सेटिंग बदल गई है। इस पत्र को दोबारा भेजें। अगर फिर भी विफल हो, तो आप और प्राप्तकर्ता दोनों dMsg अनलॉक करके सिंक करें और फिर कोशिश करें।</string>
 	<key>Sent</key>
 	<string>भेजा गया</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>नए डिवाइस पर उसी खाते में साइन इन करें, कंप्यूटर का QR कोड स्कैन करें, फिर कंप्यूटर पर जाँचकर मंज़ूरी दें।</string>
 	<key>Sign out</key>
 	<string>साइन आउट करें</string>
+	<key>Sign out all devices</key>
+	<string>सभी डिवाइस से साइन आउट करें</string>
 	<key>Sign out of this account?</key>
 	<string>इस खाते से साइन आउट करें?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>इस पासकी के डिवाइसों से साइन आउट करके जारी रखें</string>
 	<key>Sign the statement you reviewed</key>
 	<string>आपके द्वारा समीक्षा किए गए कथन पर हस्ताक्षर करें</string>
 	<key>Signatures collected</key>
@@ -2437,7 +2455,7 @@
 	<key>Spending approvals %u</key>
 	<string>व्यय अनुमोदन %u</string>
 	<key>Stage selected files, then choose an account and import them in dMsg.</key>
-	<string>चयनित फ़ाइलों को चरणबद्ध करें, फिर एक खाता चुनें और उन्हें dMsg में आयात करें।</string>
+	<string>चयनित फ़ाइलें तैयार करें, फिर खाता चुनें और उन्हें dMsg में आयात करें।</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>किसी फ़ील्ड के संदर्भ पृष्ठ से एक चेकलिस्ट प्रारंभ करें।</string>
 	<key>Start a rotation checklist</key>
@@ -2600,6 +2618,10 @@
 	<string>दूसरा उपकरण स्थानीय नेटवर्क पर नहीं मिला। उसका पता दर्ज करें।</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>परिणाम अनिश्चित है. दोबारा कुछ भी प्रयास करने से पहले मूल कार्य की जाँच करें।</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>पासकी सहेज ली गई है। इसे इस खाते से जोड़ना पूरा करने के लिए फिर प्रयास करें; नई पासकी नहीं बनेगी।</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>प्राप्तकर्ता की पत्र पाने की सेटिंग अपडेट करनी है। उनसे dMsg अनलॉक करके सिंक करने को कहें, फिर इस पत्र को दोबारा भेजें।</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>रिकार्ड बदल गया. पुनः सहेजने से पहले अपने संपादनों को ताज़ा करें और उनकी समीक्षा करें।</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2613,7 +2635,7 @@
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
 	<string>चयनित छवि आपके प्रकाशित होने तक इस डिवाइस पर रहती है। प्रकाशित अवतार सार्वजनिक हैं और प्रतियां dMsg के बाहर रह सकती हैं।</string>
 	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
-	<string>चयनित आइटम का मंचन नहीं किया जा सका. dMsg खोलें और उन्हें वहां आयात करने का प्रयास करें।</string>
+	<string>चयनित आइटम तैयार नहीं किए जा सके। dMsg खोलें और वहाँ उन्हें आयात करने का प्रयास करें।</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>स्रोत प्रतिलिपि बाधित हो गई थी. इसे त्यागें और फिर से स्रोत का चयन करें।</string>
 	<key>The test deployment is not configured.</key>
@@ -2720,6 +2742,10 @@
 	<string>यह ऑपरेशन अस्थायी रूप से अनुपलब्ध है. आपका सहेजा गया डेटा रखा जाता है.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>यह पैकेज इस डिवाइस पर पहले ही आयात किया जा चुका है. मौजूदा प्रतियां स्वतंत्र रहती हैं।</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>इस पासकी से बहुत अधिक डिवाइस साइन इन हैं। जारी रखने के लिए उनसे साइन आउट करें। अन्य पासकी और सहेजी गई सामग्री प्रभावित नहीं होंगी।</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>यह पासकी dMsg में पंजीकृत नहीं है। दूसरी पासकी चुनें। यदि पहले इसे बनाना विफल हुआ था, तो नई पासकी बनाने से पहले पासवर्ड मैनेजर से उस अनुपयोगी पासकी को हटाएँ।</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>यह प्रोफ़ाइल सार्वजनिक है. रहस्य या निजी संपर्क जानकारी शामिल न करें.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>यूआरएल</string>
 	<key>Usage</key>
 	<string>उपयोग</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>उस खाते से पहले से जुड़े लॉगिन का उपयोग करें जिसे आप खोलना चाहते हैं।</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>1–255 वर्णों का नाम इस्तेमाल करें जिसमें स्लैश या कंट्रोल वर्ण न हों।</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>आपके द्वारा dMsg में स्पष्ट रूप से निर्यात किए गए स्नैपशॉट से पासवर्ड का उपयोग करें।</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>यदि आप पहले ही पासकी बना चुके हैं, तो सहेजी गई पासकी का उपयोग करें। नई पासकी केवल दूसरी लॉगिन पहचान के लिए बनाएँ।</string>
 	<key>Use a secret through a device policy</key>
 	<string>डिवाइस नीति के माध्यम से एक रहस्य का प्रयोग करें</string>
 	<key>Use an SSH signing key</key>
 	<string>SSH हस्ताक्षर कुंजी का उपयोग करें</string>
+	<key>Use an existing passkey</key>
+	<string>मौजूदा पासकी का उपयोग करें</string>
 	<key>Use conflicting version</key>
 	<string>विरोधाभासी संस्करण का प्रयोग करें</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -3012,6 +3044,10 @@
 	<string>आपके छिपे हुए फ़ील्ड तब तक छिपे रहते हैं जब तक आप उन्हें प्रकट करना नहीं चुनते।</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>आपकी स्थानीय सामग्री उपलब्ध रहती है। खाते की किसी कार्रवाई के लिए आवश्यक होने पर Internet Identity से लॉगिन करें।</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>पासवर्ड मैनेजर ने पासकी सहेज ली, लेकिन dMsg पंजीकरण की पुष्टि नहीं कर सका। दूसरी पासकी बनाने से पहले इससे लॉगिन करने का प्रयास करें।</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>आपका पिछला पत्र अभी लंबित है। प्राप्तकर्ता से उसे डेस्कटॉप पर संग्रहित करने या iOS में पत्र के मेन्यू से “एक और पत्र की अनुमति दें” चुनने को कहें, फिर इस पत्र को दोबारा भेजें।</string>
 	<key>Your private workspace.</key>
 	<string>आपका निजी कार्यक्षेत्र.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>बनी</string>
 	<key>not available</key>
 	<string>उपलब्ध नहीं</string>
-	<key>Continue with a passkey</key>
-	<string>पासकी से जारी रखें</string>
-	<key>Create a passkey</key>
-	<string>पासकी बनाएँ</string>
-	<key>Add a passkey login</key>
-	<string>पासकी लॉगिन जोड़ें</string>
-	<key>Sign out all devices</key>
-	<string>सभी डिवाइस से साइन आउट करें</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>मौजूदा लॉगिन अनुमतियाँ 12 घंटे तक मान्य रह सकती हैं। डिवाइस की सामग्री अनुमतियाँ बनी रहती हैं।</string>
-	<key>Use an existing passkey</key>
-	<string>मौजूदा पासकी का उपयोग करें</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>उस खाते से पहले से जुड़े लॉगिन का उपयोग करें जिसे आप खोलना चाहते हैं।</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>हर नई पासकी एक अलग लॉगिन पहचान बनाती है। मौजूदा खाते में पासकी जोड़ने के लिए खाता सुरक्षा में पासकी लॉगिन जोड़ें का उपयोग करें।</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>यह पासकी dMsg में पंजीकृत नहीं है। दूसरी पासकी चुनें। यदि पहले इसे बनाना विफल हुआ था, तो नई पासकी बनाने से पहले पासवर्ड मैनेजर से उस अनुपयोगी पासकी को हटाएँ।</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>पासवर्ड मैनेजर ने पासकी सहेज ली, लेकिन dMsg पंजीकरण की पुष्टि नहीं कर सका। दूसरी पासकी बनाने से पहले इससे लॉगिन करने का प्रयास करें।</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>आपका पिछला पत्र अभी लंबित है। प्राप्तकर्ता से उसे डेस्कटॉप पर संग्रहित करने या iOS में पत्र के मेन्यू से “एक और पत्र की अनुमति दें” चुनने को कहें, फिर इस पत्र को दोबारा भेजें।</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>प्राप्तकर्ता की पत्र पाने की सेटिंग अपडेट करनी है। उनसे dMsg अनलॉक करके सिंक करने को कहें, फिर इस पत्र को दोबारा भेजें।</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>पत्र भेजने या पाने की सेटिंग बदल गई है। इस पत्र को दोबारा भेजें। अगर फिर भी विफल हो, तो आप और प्राप्तकर्ता दोनों dMsg अनलॉक करके सिंक करें और फिर कोशिश करें।</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>यदि आप पहले ही पासकी बना चुके हैं, तो सहेजी गई पासकी का उपयोग करें। नई पासकी केवल दूसरी लॉगिन पहचान के लिए बनाएँ।</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>पासकी सहेज ली गई है। इसे इस खाते से जोड़ना पूरा करने के लिए फिर प्रयास करें; नई पासकी नहीं बनेगी।</string>
-	<key>Continue adding this passkey</key>
-	<string>इस पासकी को जोड़ना जारी रखें</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>इस पासकी के डिवाइसों से साइन आउट करके जारी रखें</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>इस पासकी से बहुत अधिक डिवाइस साइन इन हैं। जारी रखने के लिए उनसे साइन आउट करें। अन्य पासकी और सहेजी गई सामग्री प्रभावित नहीं होंगी।</string>
 </dict>
 </plist>

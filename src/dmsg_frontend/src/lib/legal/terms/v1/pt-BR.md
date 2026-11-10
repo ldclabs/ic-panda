@@ -1,116 +1,116 @@
-# dMsg Termos de Serviço
+# Termos de Serviço do dMsg
 
-Versão 1. Última atualização: 07/11/2026.
+Versão 1. Última atualização: 2026-11-07.
 
-Estes termos regem o uso do dMsg: o site dmsg.net, o aplicativo da web herdado dMsg, a extensão do navegador dMsg, o serviço de nuvem dMsg e o dMsg canisters no computador da Internet (ICP). "dMsg", "nós" e "nos" significam a equipe que opera o serviço dMsg sob a governança de ICPanda DAO. "Você" significa a pessoa ou organização que usa dMsg.
+Estes termos regem o seu uso do dMsg: o site dmsg.net, o aplicativo web legado do dMsg, a extensão de navegador do dMsg, o serviço em nuvem do dMsg e os canisters do dMsg no Internet Computer (ICP). "dMsg", "nós" e "nosso" referem-se à equipe que opera o serviço dMsg sob a governança da ICPanda DAO. "Você" refere-se à pessoa física ou organização que utiliza o dMsg.
 
-## 1. Aceitando estes termos
+## 1. Aceitação destes termos
 
-Ao criar uma conta dMsg, instalar a extensão ou usar qualquer serviço dMsg, você concorda com estes termos e com a Política de Privacidade em https://dmsg.net/_/privacy.. Se não concordar, não use dMsg.
+Ao criar uma conta no dMsg, instalar a extensão ou utilizar qualquer serviço do dMsg, você concorda com estes termos e com a Política de Privacidade disponível em https://dmsg.net/_/privacy. Se você não concordar, não utilize o dMsg.
 
-Você deve ter idade suficiente para usar serviços online sem o consentimento dos pais no local onde mora e, em qualquer caso, pelo menos 13 anos. Se você usar dMsg para uma organização, você confirma que pode aceitar estes termos em nome dela.
+Você deve ter idade suficiente para usar serviços online sem o consentimento dos pais ou responsáveis no local onde reside e, em qualquer caso, ter pelo menos 13 anos. Se você utilizar o dMsg em nome de uma organização, confirma que tem autoridade para aceitar estes termos em nome dela.
 
 ## 2. O serviço
 
-dMsg é um espaço de trabalho privado e serviço de assinatura de identidade. A extensão criptografa e descriptografa suas notas, mensagens e arquivos em dispositivos que você aprova. O serviço em nuvem armazena e entrega texto cifrado e executa canais, regras de contato e caixa de entrada. Canisters em ICP conta de retenção, dispositivo, recuperação, identificador, recibo de assinatura, pagamento e estado de direito.
+O dMsg é um espaço de trabalho privado e um serviço de assinatura de identidade. A extensão criptografa e descriptografa suas notas, mensagens e arquivos nos dispositivos que você aprova. O serviço em nuvem armazena e entrega textos cifrados e opera canais, regras de contato e a caixa de entrada. Os canisters no ICP mantêm o estado das contas, dispositivos, recuperação, handles (nomes de usuário), recibos de assinatura, pagamentos e direitos de uso.
 
-dMsg está em desenvolvimento ativo. Podemos adicionar, alterar, limitar ou remover recursos. Os recursos descritos no site podem ainda não estar disponíveis. O aplicativo Web legado é somente leitura.
+O dMsg está em desenvolvimento ativo. Podemos adicionar, alterar, limitar ou remover recursos. Recursos descritos no site podem ainda não estar disponíveis. O aplicativo web legado é somente leitura.
 
 ## 3. Sua conta, dispositivos e recuperação
 
-Você controla sua conta por meio de sua identidade de login e dos dispositivos que você aprova. Mantenha-os, seus backups e quaisquer materiais de recuperação em segurança. Qualquer pessoa que os controle pode agir como você.
+Você controla sua conta por meio da sua identidade de login e dos dispositivos que aprova. Mantenha-os em segurança, juntamente com seus backups e quaisquer materiais de recuperação. Qualquer pessoa que tenha controle sobre eles poderá agir em seu nome.
 
-Não mantemos suas chaves de conteúdo e não podemos redefini-las para você. A recuperação segue as regras mostradas na extensão, que podem incluir um período de espera durante o qual seus dispositivos aprovados podem cancelá-la. Se você perder todos os dispositivos, sua identidade de login e seus materiais de recuperação, poderemos não conseguir restaurar sua conta ou seu conteúdo. O conteúdo que nunca foi sincronizado com a nuvem é perdido com o dispositivo que o continha.
+Não possuímos suas chaves de conteúdo e não podemos redefini-las para você. A recuperação segue as regras exibidas na extensão, que podem incluir um período de espera durante o qual seus dispositivos aprovados podem cancelá-la. Se você perder todos os seus dispositivos, sua identidade de login e seus materiais de recuperação, não poderemos restaurar sua conta nem o seu conteúdo. Conteúdos que nunca foram sincronizados com a nuvem são perdidos junto com o dispositivo onde estavam armazenados.
 
 ## 4. Seu conteúdo e conduta
 
-Você mantém a propriedade do seu conteúdo. Você nos permite armazená-los, copiá-los e entregá-los em formato criptografado e processar os metadados relacionados apenas conforme necessário para executar o dMsg. Você é responsável pelo conteúdo que cria ou compartilha e por ter o direito de compartilhá-lo. As pessoas com quem você compartilha conteúdo podem manter cópias.
+Você mantém a propriedade do seu conteúdo. Você nos autoriza a armazená-lo, copiá-lo e entregá-lo de forma criptografada, bem como a processar os metadados relacionados, apenas na medida necessária para operar o dMsg. Você é responsável pelo conteúdo que cria ou compartilha e por ter o direito de compartilhá-lo. As pessoas com quem você compartilha conteúdo podem manter cópias.
 
-Não use dMsg para:
+Não utilize o dMsg para:
 
-- infringir a lei ou ajudar outros a infringi-la;
-- enviar spam, solicitações não solicitadas em massa ou conteúdo enganoso;
-- assediar, ameaçar, fraudar ou explorar qualquer pessoa, ou fazer-se passar por uma pessoa ou organização;
+- violar a lei ou ajudar terceiros a violá-la;
+- enviar spam, solicitações em massa não solicitadas ou conteúdo enganoso;
+- assediar, ameaçar, fraudar ou explorar qualquer pessoa, ou passar-se por outra pessoa ou organização;
 - distribuir malware ou phishing;
-- infringir direitos de propriedade intelectual ou privacidade;
-- interferir, sobrecarregar ou atacar o serviço, contornar limites de tarifas ou cotas, ou abusar dos fluxos de pagamento, reembolso ou direitos.
+- violar direitos de propriedade intelectual ou de privacidade;
+- interferir, sobrecarregar ou atacar o serviço, contornar limites de uso ou cotas, ou abusar dos fluxos de pagamento, reembolso ou concessão de direitos.
 
-A pesquisa de segurança é bem-vinda se você relatar o que encontrou de forma privada por meio do https://dmsg.net/_/support e não acessar os dados de outras pessoas.
+Pesquisas de segurança são bem-vindas, desde que você relate suas descobertas de forma privada em https://dmsg.net/_/support e não acesse dados de terceiros.
 
-Como o conteúdo é criptografado, geralmente não podemos vê-lo. Poderemos agir com base em relatórios, metadados e outras informações que nos sejam disponibilizadas. Poderemos recusar a entrega, limitar ou suspender recursos da nuvem de uma conta ou fechar o acesso a eles. Não podemos remover cópias mantidas em dispositivos de outras pessoas e não podemos apagar registros gravados em ICP.
+Como o conteúdo é criptografado, normalmente não podemos visualizá-lo. Podemos agir com base em denúncias, metadados e outras informações disponíveis para nós: podemos recusar a entrega, limitar ou suspender recursos em nuvem de uma conta ou encerrar o acesso a eles. Não podemos remover cópias mantidas nos dispositivos de outras pessoas nem apagar registros gravados no ICP.
 
-## 5. Identificadores, perfis e registros públicos
+## 5. Handles, perfis e registros públicos
 
-Um identificador é um nome público registrado em ICP. Seu preço depende do comprimento, é pago em PANDA e é mostrado antes de você aprovar o registro. Um identificador não tem taxa de renovação. Ele é transferido para outra conta somente por meio de uma transferência aprovada por ambas as contas. Um pagamento identificador concluído não é reembolsável.
+Um handle é um nome público registrado no ICP. Seu preço depende do comprimento, é pago em PANDA e é exibido antes de você aprovar o registro. Um handle não tem taxa de renovação e só pode ser transferido para outra conta mediante uma transferência aprovada por ambas as contas. Pagamentos concluídos pelo registro de um handle não são reembolsáveis.
 
-Identificadores, perfis públicos, documentos de diretório e registros na cadeia são públicos. Outros podem lê-los, copiá-los e armazená-los em cache, e não podemos apagá-los do ICP. Não escolha um identificador nem publique um perfil que se faça passar por alguém ou viole seus direitos.
+Handles, perfis públicos, documentos de diretório e registros on-chain são públicos. Terceiros podem lê-los, copiá-los e armazená-los em cache, e nós não podemos apagá-los do ICP. Não escolha um handle nem publique um perfil que se passe por outra pessoa ou viole direitos de terceiros.
 
 ## 6. Assinaturas e aplicativos conectados
 
-Uma aprovação na extensão autoriza apenas a solicitação que você analisou: seu conteúdo, finalidade, identidade e origem solicitante. A assinatura que você faz é um ato seu, pode ser verificada por terceiros e não pode ser retirada depois de feita. Conectar um aplicativo nunca dá acesso ao seu cofre ou permissão para assinar automaticamente.
+Uma aprovação na extensão autoriza exclusivamente a solicitação que você revisou: seu conteúdo, finalidade, identidade e origem solicitante. Uma assinatura feita por você é um ato próprio, pode ser verificada por terceiros e não pode ser revogada após ser realizada. Conectar um aplicativo nunca concede a ele acesso ao seu cofre (Vault) nem permissão para assinar automaticamente.
 
-Os aplicativos conectados são executados por seus próprios operadores. Seus serviços, termos e decisões são de sua responsabilidade.
+Os aplicativos conectados são operados por seus respectivos responsáveis, que respondem integralmente por seus serviços, termos e decisões.
 
 ## 7. Planos e pagamentos
 
 ### 7.1 Assinaturas da App Store
 
-Plus, Pro e Max comprados pela App Store são assinaturas de um ano que se renovam automaticamente a cada ano, a menos que você cancele antes da renovação. A Apple cobra na sua Conta Apple. O preço, a moeda, o período e os benefícios incluídos são exibidos antes da confirmação da compra. Renovações, alterações de preço e mudanças de plano seguem os termos e as confirmações fornecidos pela Apple. Estas regras se aplicam quando as compras no app estão disponíveis; as regras de pagamento por carteira e renovação manual da seção 7.2 não se aplicam a essas assinaturas.
+Os planos Plus, Pro e Max adquiridos pela App Store são assinaturas anuais que se renovam automaticamente a cada ano, a menos que você cancele antes da renovação. A cobrança é feita pela Apple na sua Conta Apple. O preço, a moeda, o período e os benefícios incluídos são exibidos antes da confirmação da compra. Renovações, alterações de preço e mudanças de plano seguem os termos e confirmações fornecidos pela Apple. Estas regras da App Store aplicam-se quando as compras no aplicativo estão disponíveis; as regras de pagamento via carteira e renovação manual da seção 7.2 não se aplicam a essas assinaturas.
 
 ### 7.2 Pagamentos fora da App Store
 
-dMsg oferece um plano gratuito e planos pagos. Os planos, limites de recursos e preços são publicados no catálogo certificado do comércio dMsg canister e mostrados a você antes de você pagar. Os preços são definidos em dólares americanos.
+O dMsg oferece um plano Gratuito e planos pagos. Os planos, limites de recursos e preços são publicados no catálogo certificado do canister de comércio do dMsg e exibidos antes do pagamento. Os preços são fixados em dólares americanos (USD).
 
-- Os pagamentos em dinheiro usam stablecoins listados na finalização da compra, como ckUSDC. A cotação converte o preço do dólar americano em um preço de liquidação publicado e fixa o valor, a conta de depósito e os prazos. Pague exatamente o valor cotado nessa conta antes do prazo.
-- Você paga cada pedido com sua própria carteira. dMsg nunca possui permissão permanente para cobrar de você e os planos não são renovados automaticamente.
-- Os planos pagos duram um ano. Você pode renovar 30 dias antes do término do prazo atual; a renovação começa quando o prazo atual termina. Um upgrade cobra a diferença de preço pelo restante do prazo atual. Um complemento de armazenamento termina com o plano ao qual pertence.
-- Quando oferecido, um neurônio PANDA qualificado pode dispensar o preço de um período de plano. Você mantém o neurônio; dMsg não assume a custódia dele ou de seus tokens. O neurônio deve listar os usos de principal dMsg, e sua data de participação e dissolução deve atender aos requisitos mostrados na cotação para todo o prazo. Se o neurônio parar de se qualificar, os benefícios dispensados ​​serão pausados ​​e poderão terminar antes do término do prazo. Um prazo renunciado não pode ser cancelado.
-- Você paga as taxas de rede de suas próprias transações e quaisquer impostos aplicáveis a você.
-- Um novo catálogo é agendado pelo menos 30 dias antes de entrar em vigor. Um pedido existente mantém os termos com os quais foi aprovado.
+- Pagamentos em moeda estável utilizam as stablecoins listadas no checkout, como ckUSDC. A cotação converte o valor em dólares americanos pelo preço de liquidação publicado e define o valor exato, a conta de destino para depósito e os prazos. Pague exatamente o valor cotado para essa conta antes do vencimento do prazo.
+- Você paga cada pedido a partir da sua própria carteira. O dMsg nunca retém autorização permanente para cobrar de você, e os planos não se renovam automaticamente.
+- Os planos pagos têm duração de um ano. Você pode renovar dentro dos 30 dias anteriores ao término do período atual; a renovação começa quando o período atual termina. Um upgrade cobra a diferença proporcional de preço pelo restante do período atual. Pacotes adicionais de armazenamento expiram junto com o plano ao qual pertencem.
+- Quando disponível, um neurônio PANDA elegível pode isentar o preço de um período de plano. Você mantém a titularidade do neurônio; o dMsg não assume a custódia dele nem dos seus tokens. O neurônio deve listar o principal utilizado pelo dMsg, e seu stake e data de dissolução devem atender aos requisitos exibidos na cotação durante todo o período. Se o neurônio deixar de atender aos requisitos, os benefícios da isenção serão pausados e poderão ser encerrados antes do fim do período. Um período isento por neurônio não pode ser cancelado.
+- Você arca com as taxas de rede das suas próprias transações e com quaisquer impostos aplicáveis.
+- Um novo catálogo é programado com pelo menos 30 dias de antecedência antes de entrar em vigor. Pedidos existentes mantêm as condições vigentes no momento em que foram aprovados.
 
 ## 8. Cancelamentos e reembolsos
 
 ### 8.1 Assinaturas da App Store
 
-Você pode gerenciar ou cancelar a renovação automática nos ajustes de assinaturas da sua Conta Apple, inclusive pela opção de gerenciar assinaturas no dMsg. O cancelamento normalmente mantém o acesso até o fim do período pago; um reembolso ou uma revogação pode encerrá-lo antes. Excluir o dMsg ou sua conta dMsg não cancela uma assinatura Apple.
+Você pode gerenciar ou cancelar a renovação automática nos ajustes de assinaturas da sua Conta Apple, inclusive pela opção de gerenciar assinaturas dentro do dMsg. O cancelamento normalmente mantém o acesso até o fim do período já pago; um reembolso ou revogação pode encerrá-lo antes. Excluir o aplicativo dMsg ou sua conta dMsg não cancela uma assinatura da Apple.
 
-A Apple processa a cobrança e os pedidos de reembolso da App Store. Solicite um reembolso em https://reportaproblem.apple.com ou ao Suporte Apple. Aplicam-se as regras da Apple e a legislação vigente; as restrições de reembolso à carteira e as taxas do registro da seção 8.2 não se aplicam às compras na App Store. Se uma compra não aparecer no dMsg, restaure-a com a Conta Apple original e a mesma conta dMsg em vez de pagar novamente.
+A Apple processa o faturamento e as solicitações de reembolso da App Store. Solicite reembolsos em https://reportaproblem.apple.com ou junto ao Suporte da Apple. A elegibilidade segue as regras da Apple e a legislação aplicável; as restrições de reembolso para carteira e as taxas de ledger da seção 8.2 não se aplicam às compras feitas na App Store. Se uma compra ainda não aparecer no dMsg, restaure-a usando a Conta Apple original e a mesma conta dMsg, em vez de pagar novamente.
 
 ### 8.2 Pagamentos fora da App Store
 
-- Um período pago iniciado não será reembolsado, exceto conforme indicado na seção 11 ou quando a lei assim o exigir.
-- Uma renovação que não tenha começado pode ser cancelada. O valor pago por isso é então reembolsado.
-- Se uma encomenda não for entregue, ou se o pagamento for atrasado, curto, excessivo, duplicado ou enviado após cancelamento, o valor reembolsável será devolvido à conta de origem do pagamento.
-- Uma transferência de reembolso deduz a taxa contábil dessa transferência. Os reembolsos nunca vão para um endereço diferente da conta de pagamento.
+- Um período pago que já tenha começado não é reembolsável, exceto conforme previsto na seção 11 ou quando exigido por lei.
+- Uma renovação que ainda não tenha começado pode ser cancelada, e o valor pago por ela será reembolsado.
+- Se um pedido deixar de ser entregue, ou se um pagamento chegar atrasado, com valor insuficiente, valor excedente, em duplicidade ou após o cancelamento, o valor reembolsável será devolvido à conta de origem do pagamento.
+- A transferência de reembolso desconta a taxa de ledger correspondente a essa transação. Os reembolsos nunca são enviados para um endereço diferente da conta pagadora.
 
 ## 9. Solicitações pagas
 
-Um destinatário pode exigir uma taxa de entrega para novas solicitações de contato. A taxa paga apenas pela entrega qualificada, não por uma resposta, status de contato ou qualquer permissão de assinatura. Antes de pagar, o orçamento mostra o valor, a taxa de serviço e os prazos. Se o serviço em nuvem aceitar a solicitação antes do prazo, o pagamento será feito para o destinatário e a taxa de serviço para dMsg. Caso contrário, o pagamento será reembolsado para a conta de onde veio.
+Um destinatário pode exigir uma taxa de entrega para novas solicitações de contato. Essa taxa cobre apenas a entrega qualificada, não garantindo resposta, adição aos contatos nem qualquer permissão de assinatura. Antes do pagamento, a cotação mostra o valor, a taxa de serviço e os prazos. Se o serviço em nuvem aceitar a solicitação dentro do prazo, o pagamento é liquidado para o destinatário e a taxa de serviço vai para o dMsg. Caso contrário, o pagamento é reembolsado para a conta de origem.
 
 ## 10. Quando um plano termina
 
-Quando um prazo pago termina e não é renovado, sua conta retorna aos limites Gratuitos. O conteúdo que você já armazenou não é retirado porque o plano terminou e as assinaturas que você fez permanecem válidas. Se o seu conteúdo armazenado exceder os limites Gratuitos, novas gravações além desses limites serão restritas, enquanto a leitura, exclusão e exportação permanecerão disponíveis por pelo menos 30 dias.
+Quando um período pago termina e não é renovado, sua conta volta aos limites do plano Gratuito. O conteúdo que você já armazenou não é removido pelo término do plano, e as assinaturas que você realizou permanecem válidas. Se o conteúdo armazenado exceder os limites do plano Gratuito, novas gravações acima desses limites ficarão restritas, mas a leitura, exclusão e exportação permanecerão disponíveis por pelo menos 30 dias.
 
-## 11. Mudanças, interrupções e descontinuação
+## 11. Alterações, interrupções e descontinuação
 
-Podemos alterar estes termos publicando uma nova versão, com um novo número de versão e resumo, em https://dmsg.net/_/terms.. Uma nova versão se aplica a compras aprovadas após entrar em vigor e ao seu uso continuado após ser anunciada. As compras já aprovadas mantêm a versão que registraram. Versões anteriores permanecem disponíveis.
+Podemos alterar estes termos publicando uma nova versão, com um novo número de versão e resumo criptográfico (digest), em https://dmsg.net/_/terms. A nova versão aplica-se às compras aprovadas após sua entrada em vigor e ao seu uso continuado após o nosso anúncio. Compras já aprovadas mantêm a versão registrada no momento da compra. As versões anteriores permanecem disponíveis para consulta.
 
-O serviço é prestado conforme disponível e pode ser interrompido. Se descontinuarmos um recurso pago antes do final de um período pago em dinheiro, reembolsaremos a parte não utilizada desse período e daremos a você um período razoável para exportar seu conteúdo.
+O serviço é fornecido conforme a disponibilidade e está sujeito a interrupções. Se descontinuarmos um recurso pago antes do fim de um período pago diretamente, reembolsaremos a parte não utilizada desse período e daremos um prazo razoável para que você exporte seu conteúdo.
 
 ## 12. Código aberto e terceiros
 
-O código dMsg público é licenciado sob a Licença Apache 2.0 no repositório ICPanda. Estes termos não limitam os seus direitos sob essa licença. O serviço em nuvem dMsg não é de código aberto.
+O código público do dMsg é licenciado sob a Licença Apache 2.0 no repositório da ICPanda. Estes termos não limitam seus direitos sob essa licença. O serviço em nuvem do dMsg não é de código aberto.
 
-dMsg depende de terceiros, incluindo o Internet Computer, Internet Identity, token ledgers, wallets, Cloudflare e a Chrome Web Store. Seus próprios termos se aplicam ao uso deles.
+O dMsg depende de serviços de terceiros, incluindo o Internet Computer, Internet Identity, ledgers de tokens, carteiras, Cloudflare e a Chrome Web Store. Os termos próprios desses serviços aplicam-se ao seu uso deles.
 
-## 13. Riscos, isenções de responsabilidade e responsabilidade
+## 13. Riscos, isenções e limitação de responsabilidade
 
-As transações nos livros ICP são irreversíveis e os preços dos tokens podem mudar. O software pode conter defeitos e o canisters pode ser atualizado por seu controlador sob a governança ICPanda DAO.
+As transações nos ledgers do ICP são irreversíveis e os preços dos tokens podem variar. O software pode conter defeitos e os canisters podem ser atualizados por seu controlador sob a governança da ICPanda DAO.
 
-Na extensão máxima permitida por lei, dMsg é fornecido "como está" e "conforme disponível", sem garantias de qualquer tipo. Na extensão máxima permitida por lei, não somos responsáveis ​​por danos indiretos, incidentais, especiais, consequenciais ou punitivos, ou por perda de dados, chaves, tokens, lucros ou boa vontade. Nossa responsabilidade total por qualquer reclamação é limitada ao valor que você pagou a dMsg nos 12 meses anteriores à reclamação.
+Na extensão máxima permitida por lei, o dMsg é fornecido "no estado em que se encontra" e "conforme disponível", sem garantias de qualquer espécie. Na extensão máxima permitida por lei, não nos responsabilizamos por danos indiretos, incidentais, especiais, consequenciais ou punitivos, nem pela perda de dados, chaves, tokens, lucros ou fundo de comércio. Nossa responsabilidade total por qualquer reivindicação limita-se ao valor pago por você ao dMsg nos 12 meses anteriores à reivindicação.
 
 ## 14. Idioma e contato
 
-Esses termos estão escritos em inglês. As traduções são fornecidas por conveniência; se uma tradução diferir deste texto em inglês, este texto prevalecerá.
+Estes termos foram redigidos em inglês. As traduções são fornecidas apenas por conveniência; caso haja divergência entre uma tradução e o texto em inglês, o texto em inglês prevalecerá.
 
-Para dúvidas sobre esses termos, consulte https://dmsg.net/_/support.
+Em caso de dúvidas sobre estes termos, acesse https://dmsg.net/_/support.

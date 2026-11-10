@@ -71,7 +71,7 @@
   <text x="914" y="457" text-anchor="middle" font-size="12" font-weight="600" fill="#4e6257">dMsg · การอนุมัติ</text>
   <path d="M742 485l4.5 4.5-4.5 4.5-4.5-4.5Z" fill="#b45309"/>
   <text x="754" y="494" direction="ltr" text-anchor="start" font-size="13" font-weight="600" fill="#92400e">ลายเซ็น</text>
-  <text x="740" y="519" direction="ltr" text-anchor="start" font-size="17" font-weight="650" fill="#10251f">ลงนามในแถลงการณ์เผยแพร่</text>
+  <text x="740" y="519" direction="ltr" text-anchor="start" font-size="17" font-weight="650" fill="#10251f">ลงนามในคำรับรองการปล่อยรุ่น</text>
   <rect x="900" y="530" width="88" height="26" rx="7" fill="#fff" stroke="#c8d5ca"/>
   <rect x="996" y="530" width="92" height="26" rx="7" fill="#145c45"/>
   <text x="944" y="547" text-anchor="middle" font-size="12" font-weight="550" fill="#10251f">ปฏิเสธ</text>

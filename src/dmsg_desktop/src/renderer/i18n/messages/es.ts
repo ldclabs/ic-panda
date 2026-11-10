@@ -2530,7 +2530,7 @@ export default {
     "experience.notLocal": "Descarga primero esta versión en este dispositivo.",
     "experience.setup": "Comenzar",
     "experience.policyIntro": "Crear issues de GitHub sin entregar el token al agente.",
-    "experience.policySteps": "1. Guarda el token en la bóveda. 2. Elige repositorio y agente. 3. Revisa la política. 4. Aprueba cada issue.",
+    "experience.policySteps": "1. Guarda un token de GitHub en la bóveda. 2. Elige repositorio y agente. 3. Revisa la política. 4. Aprueba cada issue solicitado.",
     "experience.openVault": "Abrir bóveda",
     "experience.openFiles": "Abrir archivos",
     "experience.openAgents": "Gestionar agentes",

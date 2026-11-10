@@ -82,6 +82,8 @@
 	<string>Активность</string>
 	<key>Activity on this device</key>
 	<string>Действия на этом устройстве</string>
+	<key>Add a passkey login</key>
+	<string>Добавить вход по ключу доступа</string>
 	<key>Add account</key>
 	<string>Добавить аккаунт</string>
 	<key>Add device</key>
@@ -103,7 +105,7 @@
 	<key>Add the new address</key>
 	<string>Добавить новый адрес</string>
 	<key>Added</key>
-	<string>добавлено</string>
+	<string>Добавлено</string>
 	<key>Additional reserve / rent</key>
 	<string>Резерв / рента</string>
 	<key>Address</key>
@@ -203,7 +205,7 @@
 	<key>Approve this request</key>
 	<string>Одобрить этот запрос</string>
 	<key>Approved by</key>
-	<string>одобрено устройством</string>
+	<string>Одобрено устройством</string>
 	<key>Approver</key>
 	<string>Одобряющий</string>
 	<key>Approving enrolls the new device and moves the content root to it.</key>
@@ -247,7 +249,7 @@
 	<key>Audience origins or Agent IDs, one per line</key>
 	<string>Источники получателей или ID агентов, по одному в строке</string>
 	<key>Authenticate to access the file copies you exported from dMsg. Access lasts five minutes; the snapshot expires after 24 hours.</key>
-	<string>Подтвердите личность для доступа к экспортированным копиям. Доступ длится пять минут; снимок истекает через 24 часа.</string>
+	<string>Подтвердите личность для доступа к копиям файлов, экспортированным из dMsg. Доступ длится пять минут; снимок истекает через 24 часа.</string>
 	<key>Authenticate to continue</key>
 	<string>Подтвердить личность и продолжить</string>
 	<key>Authorize a new device</key>
@@ -548,6 +550,8 @@
 	<string>Связаться с поддержкой</string>
 	<key>Content signing</key>
 	<string>Подпись содержимого</string>
+	<key>Continue adding this passkey</key>
+	<string>Продолжить добавление этого ключа</string>
 	<key>Continue import</key>
 	<string>Продолжить импорт</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>Продолжите импорт в первоначально выбранном аккаунте.</string>
 	<key>Continue with Internet Identity</key>
 	<string>Продолжить с Internet Identity</string>
+	<key>Continue with a passkey</key>
+	<string>Продолжить с ключом доступа</string>
 	<key>Controller ID</key>
 	<string>ID контроллера</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>Создать новые учётные данные у поставщика и сохранить их в хранилище</string>
 	<key>Create a new pairing request</key>
 	<string>Создать новый запрос сопряжения</string>
+	<key>Create a passkey</key>
+	<string>Создать ключ доступа</string>
 	<key>Create a revocation request?</key>
 	<string>Создать запрос отзыва?</string>
 	<key>Create agent</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Размер мобильного пакета ограничен 8 MiB, включая выбранные вложения. Перед утверждением будут показаны точный неизменяемый состав и получатель.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Каждый новый ключ доступа создаёт отдельную учётную запись для входа. Чтобы добавить ключ к текущему аккаунту, выберите добавление входа с ключом доступа в настройках безопасности аккаунта.</string>
 	<key>Edit</key>
 	<string>Изменить</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>Выполнить с собранными подписями</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Блокировки, приглашения и вместимость сохраняются. Бесплатный или закрытый режим заменяет прежние настройки платного общения.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Выданные разрешения на вход могут действовать ещё до 12 часов. Доступ устройств к содержимому сохраняется.</string>
 	<key>Expired</key>
 	<string>Срок истёк</string>
 	<key>Expires</key>
@@ -1859,7 +1871,7 @@
 	<key>Reload saved profile</key>
 	<string>Загрузить сохранённый профиль</string>
 	<key>Remaining</key>
-	<string>осталось</string>
+	<string>Осталось</string>
 	<key>Removal date</key>
 	<string>Дата окончательного удаления</string>
 	<key>Remove</key>
@@ -2133,7 +2145,7 @@
 	<key>Revoke this snapshot link?</key>
 	<string>Отозвать ссылку на этот снимок?</string>
 	<key>Revoked</key>
-	<string>отозвано</string>
+	<string>Отозвано</string>
 	<key>Revokes the old device once nothing is left behind unnoticed.</key>
 	<string>Отзывает старое устройство, когда ничего не остаётся незамеченным.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
@@ -2298,6 +2310,8 @@
 	<string>Аккаунт отправителя</string>
 	<key>Sending</key>
 	<string>Отправка</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Настройки отправки или приёма изменились. Повторите отправку этого письма. Если снова не получится, вам и получателю нужно разблокировать dMsg и выполнить синхронизацию перед новой попыткой.</string>
 	<key>Sent</key>
 	<string>Отправлено</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>Войдите в тот же аккаунт на новом устройстве, отсканируйте QR-код компьютера, затем проверьте и подтвердите запрос на компьютере.</string>
 	<key>Sign out</key>
 	<string>Выйти</string>
+	<key>Sign out all devices</key>
+	<string>Выйти на всех устройствах</string>
 	<key>Sign out of this account?</key>
 	<string>Выйти из этого аккаунта?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Выйти на устройствах этого ключа и продолжить</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Подписать проверенное заявление</string>
 	<key>Signatures collected</key>
@@ -2600,6 +2618,10 @@
 	<string>Другое устройство не найдено в локальной сети. Введите его адрес.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>Результат неизвестен. Перед новой попыткой проверьте исходную задачу.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Ключ доступа сохранён. Повторите попытку, чтобы завершить привязку к этому аккаунту. Новый ключ не будет создан.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Настройки приёма писем получателя нужно обновить. Попросите его разблокировать dMsg и выполнить синхронизацию, затем повторите отправку этого письма.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>Запись изменилась. Обновите её и проверьте правки перед сохранением.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2720,6 +2742,10 @@
 	<string>Операция временно недоступна. Сохранённые данные не удалены.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Этот пакет уже импортировался на это устройство. Существующие копии остаются независимыми.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>С этим ключом доступа выполнен вход на слишком многих устройствах. Выйдите на них, чтобы продолжить. Другие ключи и сохранённые данные не затрагиваются.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Этот ключ доступа не зарегистрирован в dMsg. Выберите другой. Если создание ранее не удалось, удалите неиспользуемый ключ из менеджера паролей перед созданием нового.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Этот профиль общедоступен. Не включайте секреты или личные контактные данные.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Использование</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Используйте способ входа, уже связанный с нужным аккаунтом.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>Используйте имя длиной 1–255 символов без косых черт и управляющих символов.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Используйте пароль из снимка, явно экспортированного в dMsg.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Если ключ доступа уже создан, используйте сохранённый. Создавайте новый ключ только для другой учётной записи входа.</string>
 	<key>Use a secret through a device policy</key>
 	<string>Использовать секрет по правилу устройства</string>
 	<key>Use an SSH signing key</key>
 	<string>Использовать ключ подписи SSH</string>
+	<key>Use an existing passkey</key>
+	<string>Использовать существующий ключ доступа</string>
 	<key>Use conflicting version</key>
 	<string>Использовать конфликтующую версию</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -3012,6 +3044,10 @@
 	<string>Скрытые поля остаются скрытыми, пока вы не решите их показать.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Локальные данные остаются доступны. Войдите через Internet Identity, когда этого потребует действие с аккаунтом.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Менеджер паролей сохранил ключ доступа, но dMsg не смог подтвердить регистрацию. Попробуйте войти с этим ключом, прежде чем создавать другой.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Ваше предыдущее письмо ещё ожидает обработки. Попросите получателя архивировать его в приложении для компьютера или выбрать «Разрешить ещё одно письмо» в меню письма на iOS, затем повторите отправку этого письма.</string>
 	<key>Your private workspace.</key>
 	<string>Ваше частное рабочее пространство.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>создан</string>
 	<key>not available</key>
 	<string>недоступен</string>
-	<key>Continue with a passkey</key>
-	<string>Продолжить с ключом доступа</string>
-	<key>Create a passkey</key>
-	<string>Создать ключ доступа</string>
-	<key>Add a passkey login</key>
-	<string>Добавить вход по ключу доступа</string>
-	<key>Sign out all devices</key>
-	<string>Выйти на всех устройствах</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>Выданные разрешения на вход могут действовать ещё до 12 часов. Доступ устройств к содержимому сохраняется.</string>
-	<key>Use an existing passkey</key>
-	<string>Использовать существующий ключ доступа</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>Используйте способ входа, уже связанный с нужным аккаунтом.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>Каждый новый ключ доступа создаёт отдельную учётную запись для входа. Чтобы добавить ключ к текущему аккаунту, выберите добавление входа с ключом доступа в настройках безопасности аккаунта.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>Этот ключ доступа не зарегистрирован в dMsg. Выберите другой. Если создание ранее не удалось, удалите неиспользуемый ключ из менеджера паролей перед созданием нового.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>Менеджер паролей сохранил ключ доступа, но dMsg не смог подтвердить регистрацию. Попробуйте войти с этим ключом, прежде чем создавать другой.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>Ваше предыдущее письмо ещё ожидает обработки. Попросите получателя архивировать его в приложении для компьютера или выбрать «Разрешить ещё одно письмо» в меню письма на iOS, затем повторите отправку этого письма.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>Настройки приёма писем получателя нужно обновить. Попросите его разблокировать dMsg и выполнить синхронизацию, затем повторите отправку этого письма.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>Настройки отправки или приёма изменились. Повторите отправку этого письма. Если снова не получится, вам и получателю нужно разблокировать dMsg и выполнить синхронизацию перед новой попыткой.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>Если ключ доступа уже создан, используйте сохранённый. Создавайте новый ключ только для другой учётной записи входа.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>Ключ доступа сохранён. Повторите попытку, чтобы завершить привязку к этому аккаунту. Новый ключ не будет создан.</string>
-	<key>Continue adding this passkey</key>
-	<string>Продолжить добавление этого ключа</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>Выйти на устройствах этого ключа и продолжить</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>С этим ключом доступа выполнен вход на слишком многих устройствах. Выйдите на них, чтобы продолжить. Другие ключи и сохранённые данные не затрагиваются.</string>
 </dict>
 </plist>

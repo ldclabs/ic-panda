@@ -82,6 +82,8 @@
 	<string>动态</string>
 	<key>Activity on this device</key>
 	<string>本设备活动</string>
+	<key>Add a passkey login</key>
+	<string>添加通行密钥登录</string>
 	<key>Add account</key>
 	<string>添加账号</string>
 	<key>Add device</key>
@@ -548,6 +550,8 @@
 	<string>联系支持</string>
 	<key>Content signing</key>
 	<string>内容签名</string>
+	<key>Continue adding this passkey</key>
+	<string>继续添加此通行密钥</string>
 	<key>Continue import</key>
 	<string>继续导入</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>请在最初选择的账号中继续此导入。</string>
 	<key>Continue with Internet Identity</key>
 	<string>使用 Internet Identity 登录</string>
+	<key>Continue with a passkey</key>
+	<string>使用通行密钥</string>
 	<key>Controller ID</key>
 	<string>控制器 ID</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>在服务提供方创建新凭据，并保存到保险库</string>
 	<key>Create a new pairing request</key>
 	<string>生成新的配对请求</string>
+	<key>Create a passkey</key>
+	<string>创建通行密钥</string>
 	<key>Create a revocation request?</key>
 	<string>创建撤销请求？</string>
 	<key>Create agent</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>每个移动端包上限为 8 MiB，含所选附件。最终审批会显示确切且不可变的内容选择与目标位置。</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>每次创建都会生成独立的登录身份。要为当前账号添加通行密钥，请前往账号安全中的“添加通行密钥登录”。</string>
 	<key>Edit</key>
 	<string>编辑</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>用已收集的签名执行</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>现有屏蔽规则、邀请和收件箱容量会保留。选择免费或关闭，会替换原有的付费联系设置。</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>已签发的登录授权最多还能使用 12 小时。内容设备的授权保持不变。</string>
 	<key>Expired</key>
 	<string>已过期</string>
 	<key>Expires</key>
@@ -1579,7 +1591,7 @@
 	<key>Other logins</key>
 	<string>其他登录项</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
-	<string>关闭后，离开应用 3 分钟将锁定。设备锁屏时始终立即锁定。</string>
+	<string>关闭后，离开 dMsg 3 分钟将锁定。设备锁屏时始终立即锁定工作区。</string>
 	<key>Outcome no longer available</key>
 	<string>执行结果已不可用</string>
 	<key>Outputs swept</key>
@@ -2298,6 +2310,8 @@
 	<string>发送者账号</string>
 	<key>Sending</key>
 	<string>发送</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>收发设置刚刚发生变化。请重试这封信；如果仍失败，请你和对方都解锁 dMsg 并完成同步后再试。</string>
 	<key>Sent</key>
 	<string>已发送</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>新设备先登录同一账号，扫描桌面二维码，然后在桌面核对并批准。</string>
 	<key>Sign out</key>
 	<string>退出登录</string>
+	<key>Sign out all devices</key>
+	<string>退出所有设备的登录</string>
 	<key>Sign out of this account?</key>
 	<string>退出这个账号？</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>退出此通行密钥的设备登录并继续</string>
 	<key>Sign the statement you reviewed</key>
 	<string>签署你已核对的声明</string>
 	<key>Signatures collected</key>
@@ -2600,6 +2618,10 @@
 	<string>在本地网络中找不到另一台设备。请输入它的地址。</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>结果尚不确定。再次尝试前，请先核对此原始任务。</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>通行密钥已保存。重试会继续将它关联到此账号，不会创建新密钥。</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>对方的收信设置需要更新。请对方解锁 dMsg 并完成同步，再重试这封信。</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>记录已更改，请刷新并核对修改后再保存。</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2720,6 +2742,10 @@
 	<string>此操作暂时不可用，已保存的数据会保留。</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>此包已经在本设备导入过。已有副本保持独立。</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>此通行密钥的登录设备已达上限。退出它的设备登录后可继续；其他通行密钥和已保存的内容不受影响。</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>此通行密钥尚未在 dMsg 注册，请选择其他密钥。如果之前创建失败，请先从密码管理器中移除那枚未使用的密钥，再重新创建。</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>这些资料将公开展示，请勿填写秘密或私密联系方式。</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>网址</string>
 	<key>Usage</key>
 	<string>用量</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>请使用已关联目标账号的登录方式。</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>名称须为 1–255 个字符，且不能包含斜杠或控制字符。</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>使用你在 dMsg 中明确导出的快照里的密码。</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>如果已经创建过通行密钥，请使用已保存的密钥。只有需要另一个登录身份时才创建新密钥。</string>
 	<key>Use a secret through a device policy</key>
 	<string>按设备策略使用秘密</string>
 	<key>Use an SSH signing key</key>
 	<string>使用 SSH 签名钥匙</string>
+	<key>Use an existing passkey</key>
+	<string>使用已有通行密钥</string>
 	<key>Use conflicting version</key>
 	<string>采用冲突版本</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -3012,6 +3044,10 @@
 	<string>隐藏字段将保持隐藏，直到你主动查看。</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>本机内容可继续使用。需要账户身份的操作会要求重新登录 Internet Identity。</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>密码管理器已保存通行密钥，但 dMsg 尚未确认注册。请先尝试用它登录，再决定是否创建新的密钥。</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>上一封信还在等待对方处理。请对方在桌面端归档旧信，或在 iOS 的来信菜单中选择“允许再次来信”，然后重试这封信。</string>
 	<key>Your private workspace.</key>
 	<string>你的私密工作台。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>已生成</string>
 	<key>not available</key>
 	<string>不可用</string>
-	<key>Continue with a passkey</key>
-	<string>使用通行密钥</string>
-	<key>Create a passkey</key>
-	<string>创建通行密钥</string>
-	<key>Add a passkey login</key>
-	<string>添加通行密钥登录</string>
-	<key>Sign out all devices</key>
-	<string>退出所有设备的登录</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>已签发的登录授权最多还能使用 12 小时。内容设备的授权保持不变。</string>
-	<key>Use an existing passkey</key>
-	<string>使用已有通行密钥</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>请使用已关联目标账号的登录方式。</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>每次创建都会生成独立的登录身份。要为当前账号添加通行密钥，请前往账号安全中的“添加通行密钥登录”。</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>此通行密钥尚未在 dMsg 注册，请选择其他密钥。如果之前创建失败，请先从密码管理器中移除那枚未使用的密钥，再重新创建。</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>密码管理器已保存通行密钥，但 dMsg 尚未确认注册。请先尝试用它登录，再决定是否创建新的密钥。</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>上一封信还在等待对方处理。请对方在桌面端归档旧信，或在 iOS 的来信菜单中选择“允许再次来信”，然后重试这封信。</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>对方的收信设置需要更新。请对方解锁 dMsg 并完成同步，再重试这封信。</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>收发设置刚刚发生变化。请重试这封信；如果仍失败，请你和对方都解锁 dMsg 并完成同步后再试。</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>如果已经创建过通行密钥，请使用已保存的密钥。只有需要另一个登录身份时才创建新密钥。</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>通行密钥已保存。重试会继续将它关联到此账号，不会创建新密钥。</string>
-	<key>Continue adding this passkey</key>
-	<string>继续添加此通行密钥</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>退出此通行密钥的设备登录并继续</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>此通行密钥的登录设备已达上限。退出它的设备登录后可继续；其他通行密钥和已保存的内容不受影响。</string>
 </dict>
 </plist>

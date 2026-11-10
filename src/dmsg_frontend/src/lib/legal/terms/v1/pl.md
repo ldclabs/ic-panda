@@ -2,115 +2,115 @@
 
 Wersja 1. Ostatnia aktualizacja: 2026-11-07.
 
-Niniejsze warunki dotyczą korzystania z dMsg: witryny dmsg.net, starszej aplikacji internetowej dMsg, rozszerzenia przeglądarki dMsg, usługi chmurowej dMsg oraz canisterów dMsg w sieci Internet Computer (ICP). Określenia "dMsg" i "my" oznaczają zespół prowadzący usługę dMsg pod nadzorem ICPanda DAO. "Ty" oznacza osobę lub organizację korzystającą z dMsg.
+Niniejsze warunki regulują korzystanie z dMsg: witryny dmsg.net, starszej aplikacji internetowej dMsg, rozszerzenia przeglądarki dMsg, usługi chmurowej dMsg oraz canisterów dMsg w sieci Internet Computer (ICP). Określenia „dMsg” oraz „my” oznaczają zespół prowadzący usługę dMsg w ramach zarządzania ICPanda DAO. „Ty” oznacza osobę fizyczną lub organizację korzystającą z dMsg.
 
-## 1. Akceptacja niniejszego regulaminu
+## 1. Akceptacja niniejszych warunków
 
-Tworząc konto dMsg, instalując rozszerzenie lub korzystając z dowolnej usługi dMsg, wyrażasz zgodę na niniejsze warunki i Politykę prywatności na stronie https://dmsg.net/_/privacy.. Jeśli się nie zgadzasz, nie używaj dMsg.
+Tworząc konto dMsg, instalując rozszerzenie lub korzystając z dowolnej usługi dMsg, zgadzasz się na niniejsze warunki oraz Politykę prywatności dostępną pod adresem https://dmsg.net/_/privacy. Jeśli nie wyrażasz zgody, nie korzystaj z dMsg.
 
-Musisz być na tyle dorosły, aby móc korzystać z usług online bez zgody rodziców w miejscu zamieszkania, a w każdym razie mieć co najmniej 13 lat. Jeśli używasz dMsg dla organizacji, potwierdzasz, że możesz zaakceptować te warunki w jej imieniu.
+Musisz mieć ukończony wiek wymagany w Twoim miejscu zamieszkania do korzystania z usług internetowych bez zgody rodziców lub opiekunów, a w każdym przypadku mieć co najmniej 13 lat. Jeśli korzystasz z dMsg w imieniu organizacji, potwierdzasz, że masz uprawnienia do zaakceptowania niniejszych warunków w jej imieniu.
 
 ## 2. Usługa
 
-dMsg to prywatna przestrzeń robocza i usługa podpisywania tożsamości. Rozszerzenie szyfruje i odszyfrowuje Twoje notatki, wiadomości i pliki na zatwierdzonych urządzeniach. Usługa w chmurze przechowuje i dostarcza szyfrogram oraz obsługuje kanały, reguły kontaktu i skrzynkę odbiorczą. Canisters na ICP wstrzymaj konto, urządzenie, odzyskiwanie, nazwę użytkownika, potwierdzenie podpisu, płatność i stan uprawnień.
+dMsg to prywatna przestrzeń robocza i usługa podpisywania tożsamością. Rozszerzenie szyfruje i odszyfrowuje Twoje notatki, wiadomości oraz pliki na zatwierdzonych przez Ciebie urządzeniach. Usługa chmurowa przechowuje i dostarcza szyfrogramy oraz obsługuje kanały, reguły kontaktu i skrzynkę odbiorczą. Canistery w sieci ICP przechowują stan kont, urządzeń, procedur odzyskiwania, nazw użytkownika (handle), potwierdzeń podpisów, płatności oraz uprawnień.
 
-dMsg jest w fazie aktywnego rozwoju. Możemy dodawać, zmieniać, ograniczać lub usuwać funkcje. Funkcje opisane na stronie mogą jeszcze nie być dostępne. Starsza aplikacja internetowa jest przeznaczona tylko do odczytu.
+dMsg jest aktywnie rozwijane. Możemy dodawać, zmieniać, ograniczać lub usuwać funkcje. Funkcje opisane w witrynie mogą jeszcze nie być dostępne. Starsza aplikacja internetowa działa wyłącznie w trybie do odczytu.
 
-## 3. Twoje konto, urządzenia i odzyskiwanie
+## 3. Twoje konto, urządzenia i odzyskiwanie dostępu
 
-Kontrolujesz swoje konto poprzez swoją tożsamość logowania i urządzenia, które zatwierdzasz. Przechowuj je, swoje kopie zapasowe i wszelkie materiały do ​​odzyskiwania w bezpiecznym miejscu. Każdy, kto je kontroluje, może działać jako Ty.
+Kontrolujesz swoje konto za pomocą tożsamości logowania oraz zatwierdzonych przez siebie urządzeń. Chroń je, swoje kopie zapasowe oraz wszelkie materiały do odzyskiwania dostępu. Każda osoba, która uzyska nad nimi kontrolę, może działać w Twoim imieniu.
 
-Nie przechowujemy Twoich kluczy do treści i nie możemy ich zresetować. Odzyskiwanie odbywa się zgodnie z zasadami przedstawionymi w rozszerzeniu, które mogą obejmować okres oczekiwania, podczas którego zatwierdzone urządzenia mogą je anulować. Jeśli utracisz każde urządzenie, swoją tożsamość logowania i materiały do ​​odzyskiwania, możemy nie być w stanie przywrócić Twojego konta lub treści. Treści, które nigdy nie były zsynchronizowane z chmurą, zostaną utracone wraz z urządzeniem, na którym je przechowywano.
+Nie przechowujemy Twoich kluczy do treści i nie możemy ich dla Ciebie zresetować. Odzyskiwanie dostępu odbywa się według zasad wyświetlanych w rozszerzeniu, które mogą obejmować okres oczekiwania, podczas którego zatwierdzone urządzenia mogą anulować tę operację. Jeśli utracisz wszystkie urządzenia, tożsamość logowania oraz materiały do odzyskiwania dostępu, nie będziemy w stanie przywrócić Twojego konta ani treści. Treści, które nigdy nie zostały zsynchronizowane z chmurą, zostają bezpowrotnie utracone wraz z urządzeniem, na którym się znajdowały.
 
-## 4. Twoje treści i zachowanie
+## 4. Twoje treści i zasady korzystania
 
-Zachowujesz własność swoich treści. Zezwalasz nam na przechowywanie, kopiowanie i dostarczanie ich w formie zaszyfrowanej oraz przetwarzanie powiązanych metadanych, tylko w zakresie niezbędnym do uruchomienia dMsg. Jesteś odpowiedzialny za treści, które tworzysz lub udostępniasz oraz za to, że masz prawo do ich udostępniania. Osoby, którym udostępniasz treści, mogą zachować ich kopie.
+Zachowujesz prawa własności do swoich treści. Zezwalasz nam na ich przechowywanie, kopiowanie i dostarczanie w postaci zaszyfrowanej oraz na przetwarzanie powiązanych metadanych wyłącznie w zakresie niezbędnym do działania dMsg. Ponosisz odpowiedzialność za treści, które tworzysz lub udostępniasz, oraz za posiadanie praw do ich udostępniania. Osoby, którym udostępniasz treści, mogą zachować ich kopie.
 
-Nie używaj dMsg do:
+Nie używaj dMsg, aby:
 
-- łamać prawo lub pomagać innym je łamać;
-- wysyłać spam, masowe niechciane żądania lub oszukańcze treści;
-- nękać, grozić, oszukiwać lub wykorzystywać kogokolwiek, ani podszywać się pod osobę lub organizację;
-- rozpowszechniać złośliwe oprogramowanie lub phishing;
-- naruszają własność intelektualną lub prawa do prywatności;
-- zakłócać, przeciążać lub atakować usługę, omijać limity stawek lub kwot, lub nadużywać przepływów płatności, zwrotów lub uprawnień.
+- łamać prawo lub pomagać innym w jego łamaniu;
+- wysyłać spam, masowe niezamówione prośby o kontakt lub treści wprowadzające w błąd;
+- nękać, zastraszać, oszukiwać lub wykorzystywać kogokolwiek, bądź podszywać się pod inną osobę lub organizację;
+- rozpowszechniać złośliwe oprogramowanie (malware) lub treści phishingowe;
+- naruszać prawa własności intelektualnej lub prawo do prywatności;
+- zakłócać działanie usługi, przeciążać ją lub atakować, omijać limity zapytań lub przydziały zasobów, bądź nadużywać procesów płatności, zwrotów lub przyznawania uprawnień.
 
-Badania bezpieczeństwa są mile widziane, jeśli zgłosisz swoje odkrycie prywatnie za pośrednictwem https://dmsg.net/_/support i nie będziesz mieć dostępu do danych innych osób.
+Badania nad bezpieczeństwem są mile widziane, pod warunkiem że zgłosisz swoje ustalenia poufnie przez https://dmsg.net/_/support i nie będziesz uzyskiwać dostępu do danych innych użytkowników.
 
-Ponieważ treść jest zaszyfrowana, zwykle jej nie widzimy. Możemy działać na podstawie raportów, metadanych i innych dostępnych nam informacji. Możemy odmówić dostawy, ograniczyć lub zawiesić funkcje chmury dla konta lub zamknąć do nich dostęp. Nie możemy usunąć kopii przechowywanych na urządzeniach innych osób ani danych zapisanych na urządzeniu ICP.
+Ponieważ treści są zaszyfrowane, zazwyczaj nie mamy do nich wglądu. Możemy podejmować działania na podstawie zgłoszeń, metadanych i innych dostępnych nam informacji: możemy odmówić dostarczenia wiadomości, ograniczyć lub zawiesić funkcje chmurowe dla danego konta bądź zablokować do nich dostęp. Nie możemy usunąć kopii przechowywanych na urządzeniach innych osób ani wymazać wpisów zapisanych w sieci ICP.
 
-## 5. Klamki, profile i rejestry publiczne
+## 5. Nazwy użytkownika (handle), profile i rejestry publiczne
 
-Nazwa użytkownika to nazwa publiczna zarejestrowana w ICP. Jego cena zależy od długości, jest płatna w PANDA i wyświetlana przed zatwierdzeniem rejestracji. Nazwa użytkownika nie podlega opłacie za odnowienie. Przechodzi na inny rachunek jedynie poprzez przelew zaakceptowany przez oba konta. Dokonana płatność za nazwę użytkownika nie podlega zwrotowi.
+Nazwa użytkownika (handle) to publiczny identyfikator zapisany w sieci ICP. Jej cena zależy od długości, jest płatna w tokenach PANDA i wyświetlana przed zatwierdzeniem rejestracji. Nazwa użytkownika nie wymaga opłat za odnowienie. Można ją przenieść na inne konto wyłącznie w drodze transferu zatwierdzonego przez oba konta. Zrealizowana płatność za rejestrację nazwy użytkownika nie podlega zwrotowi.
 
-Uchwyty, profile publiczne, dokumenty katalogowe i rekordy w łańcuchu są publiczne. Inni mogą je czytać, kopiować i buforować, a my nie możemy ich usunąć z ICP. Nie wybieraj nazwy użytkownika ani nie publikuj profilu, który podszywa się pod inną osobę lub narusza jej prawa.
+Nazwy użytkownika, profile publiczne, dokumenty katalogowe i wpisy on-chain mają charakter publiczny. Inni mogą je odczytywać, kopiować i zapisywać w pamięci podręcznej, a my nie mamy możliwości usunięcia ich z sieci ICP. Nie wybieraj nazwy użytkownika ani nie publikuj profilu, który podszywa się pod inną osobę lub narusza jej prawa.
 
 ## 6. Podpisy i połączone aplikacje
 
-Zatwierdzenie w rozszerzeniu autoryzuje tylko wniosek, który sprawdziłeś: jego treść, cel, tożsamość i pochodzenie żądania. Podpis, który składasz, jest Twoim aktem, może być weryfikowany przez innych i nie może być wycofany po jego złożeniu. Podłączenie aplikacji nigdy nie zapewnia jej dostępu do skarbca ani pozwolenia na automatyczne podpisywanie.
+Zatwierdzenie operacji w rozszerzeniu autoryzuje wyłącznie żądanie, które zostało przez Ciebie sprawdzone: jego treść, cel, tożsamość oraz źródło żądania (origin). Złożony przez Ciebie podpis jest Twoim własnym oświadczeniem, może zostać zweryfikowany przez inne podmioty i po złożeniu nie może zostać cofnięty. Połączenie zewnętrznej aplikacji nigdy nie daje jej dostępu do Twojego sejfu (Vault) ani uprawnień do automatycznego składania podpisów.
 
-Połączone aplikacje są obsługiwane przez własnych operatorów. Ich usługi, warunki i decyzje są ich odpowiedzialnością.
+Połączone aplikacje są prowadzone przez ich własnych operatorów. Odpowiedzialność za ich usługi, regulaminy i decyzje spoczywa wyłącznie na nich.
 
 ## 7. Plany i płatności
 
-### 7.1 Subskrypcje App Store
+### 7.1 Subskrypcje w App Store
 
-Plus, Pro i Max kupione w App Store to roczne subskrypcje odnawiane automatycznie co roku, chyba że anulujesz je przed odnowieniem. Apple obciąża Twoje konto Apple. Cena, waluta, okres subskrypcji i korzyści są wyświetlane przed potwierdzeniem zakupu. Odnowienia, zmiany cen i planów podlegają warunkom oraz potwierdzeniom Apple. Zasady te obowiązują, gdy dostępne są zakupy w aplikacji; zasady płatności portfelem i ręcznego odnawiania z sekcji 7.2 nie mają do nich zastosowania.
+Plany Plus, Pro i Max kupowane przez App Store to roczne subskrypcje, które odnawiają się automatycznie co roku, chyba że anulujesz je przed terminem odnowienia. Opłatę pobiera Apple z Twojego konta Apple Account. Cena, waluta, okres subskrypcji i objęte nią korzyści są wyświetlane przed potwierdzeniem zakupu. Odnowienia, zmiany cen i zmiany planu podlegają warunkom oraz potwierdzeniom zapewnianym przez Apple. Powyższe zasady App Store obowiązują, gdy dostępne są zakupy w aplikacji; zasady płatności z portfela i ręcznego odnawiania opisane w sekcji 7.2 nie mają zastosowania do tych subskrypcji.
 
 ### 7.2 Płatności poza App Store
 
-dMsg oferuje plan bezpłatny i płatny. Plany, limity zasobów i ceny są publikowane w certyfikowanym katalogu handlu dMsg canister i pokazywane przed dokonaniem płatności. Ceny ustalane są w dolarach amerykańskich.
+dMsg oferuje plan bezpłatny (Free) oraz plany płatne. Plany, limity zasobów i ceny są publikowane w certyfikowanym katalogu canistera handlowego dMsg i wyświetlane przed dokonaniem płatności. Ceny są wyrażone w dolarach amerykańskich (USD).
 
-- Płatności gotówkowe wykorzystują monety stabilne wymienione przy kasie, takie jak ckUSDC. Kwotowanie przelicza cenę w dolarach amerykańskich po opublikowanym kursie rozliczeniowym i ustala kwotę, rachunek depozytowy oraz terminy. Wpłać dokładnie podaną kwotę na to konto przed upływem terminu.
-- Każde zamówienie płacisz z własnego portfela. dMsg nigdy nie posiada stałego pozwolenia na pobieranie opłat, a plany nie odnawiają się automatycznie.
-- Plany płatne obowiązują przez rok. Możesz odnowić w ciągu 30 dni przed końcem bieżącego okresu; odnowienie rozpoczyna się w momencie zakończenia bieżącej kadencji. Za uaktualnienie pobierana jest różnica w cenie przez resztę bieżącego okresu. Dodatek pamięci masowej kończy się wraz z planem, do którego należy.
-- Jeśli jest to oferowane, kwalifikujący się neuron PANDA może zrezygnować z ceny jednego okresu planu. Zatrzymujesz neuron; dMsg nie sprawuje opieki nad nim ani nad Twoimi tokenami. Neuron musi wykazywać zastosowania principal dMsg, a data jego stawki i rozwiązania musi spełniać wymagania wskazane w wycenie przez cały okres. Jeśli neuron przestanie się kwalifikować, zrzeczone świadczenia zostaną wstrzymane i mogą wygasnąć przed upływem terminu. Odroczonego terminu nie można anulować.
-- Płacisz opłaty sieciowe za własne transakcje i wszelkie podatki, które Cię dotyczą.
-- Nowy katalog planowany jest co najmniej 30 dni przed jego wejściem w życie. Istniejące zamówienie zachowuje warunki, na jakich zostało zatwierdzone.
+- Płatności bezpośrednie realizowane są w stablecoinach wskazanych podczas finalizacji zamówienia, takich jak ckUSDC. Wycena przelicza cenę w dolarach amerykańskich według opublikowanego kursu rozliczeniowego i określa dokładną kwotę, docelowe konto wpłaty oraz terminy płatności. Wpłać dokładnie wyliczoną kwotę na wskazane konto przed upływem terminu.
+- Każde zamówienie opłacasz z własnego portfela. dMsg nigdy nie posiada stałego upoważnienia do obciążania Twojego portfela, a plany nie odnawiają się automatycznie.
+- Plany płatne trwają jeden rok. Możesz odnowić plan w ciągu 30 dni przed końcem bieżącego okresu; nowy okres rozpoczyna się z chwilą zakończenia bieżącego. Przejście na wyższy plan (upgrade) wiąże się z opłatą równą różnicy w cenie za pozostałą część bieżącego okresu. Dodatkowy pakiet przestrzeni dyskowej wygasa wraz z planem, do którego jest przypisany.
+- Jeśli taka opcja jest dostępna, spełniający wymogi neuron PANDA może zwolnić z opłaty za jeden okres planu. Zachowujesz własność neuronu; dMsg nie przejmuje pieczy nad nim ani nad Twoimi tokenami. Neuron musi wskazywać identyfikator principal używany przez dMsg, a wartość jego stawki (stake) oraz data rozwiązania (dissolve date) muszą spełniać wymogi określone w wycenie przez cały okres obowiązywania planu. Jeśli neuron przestanie spełniać te warunki, przyznane korzyści zostaną wstrzymane i mogą wygasnąć przed końcem okresu. Okresu aktywowanego za pomocą neuronu nie można anulować.
+- Pokrywasz opłaty sieciowe za własne transakcje oraz wszelkie należne podatki.
+- Nowy katalog jest publikowany z co najmniej 30-dniowym wyprzedzeniem przed wejściem w życie. Istniejące zamówienia zachowują warunki obowiązujące w chwili ich zatwierdzenia.
 
-## 8. Anulowanie i zwrot pieniędzy
+## 8. Anulowanie i zwroty
 
-### 8.1 Subskrypcje App Store
+### 8.1 Subskrypcje w App Store
 
-Możesz zarządzać automatycznym odnawianiem lub je anulować w ustawieniach subskrypcji konta Apple, także poprzez zarządzanie subskrypcjami w dMsg. Anulowanie zwykle zachowuje dostęp do końca opłaconego okresu; zwrot pieniędzy lub cofnięcie uprawnień może zakończyć go wcześniej. Usunięcie dMsg lub konta dMsg nie anuluje subskrypcji Apple.
+Automatycznym odnawianiem możesz zarządzać lub je anulować w ustawieniach subskrypcji na koncie Apple Account, w tym przechodząc tam z sekcji zarządzania subskrypcjami w dMsg. Anulowanie zazwyczaj zachowuje dostęp do końca opłaconego okresu; zwrot środków lub cofnięcie uprawnień może zakończyć go wcześniej. Usunięcie aplikacji dMsg lub konta dMsg nie anuluje subskrypcji w Apple.
 
-Apple obsługuje rozliczenia i wnioski o zwrot pieniędzy za zakupy w App Store. Złóż wniosek na https://reportaproblem.apple.com lub skontaktuj się ze Wsparciem Apple. Obowiązują zasady Apple i właściwe prawo; ograniczenia zwrotów na portfel oraz opłaty rejestru z sekcji 8.2 nie dotyczą zakupów w App Store. Jeśli zakup nie pojawił się w dMsg, odtwórz go przy użyciu pierwotnego konta Apple i tego samego konta dMsg zamiast płacić ponownie.
+Apple obsługuje rozliczenia i wnioski o zwrot środków za zakupy w App Store. Wniosek o zwrot możesz złożyć na stronie https://reportaproblem.apple.com lub kontaktując się ze Wsparciem Apple. Kwalifikowalność do zwrotu podlega zasadom Apple oraz obowiązującemu prawu; ograniczenia zwrotów na portfel i opłaty księgi głównej z sekcji 8.2 nie dotyczą zakupów w App Store. Jeśli zakup nie jest widoczny w dMsg, przywróć go przy użyciu pierwotnego konta Apple Account i tego samego konta dMsg, zamiast płacić ponownie.
 
 ### 8.2 Płatności poza App Store
 
-- Rozpoczęty płatny okres nie podlega zwrotowi, z wyjątkiem przypadków określonych w sekcji 11 lub gdy wymaga tego prawo.
-- Odnowienie, które się nie rozpoczęło, można anulować. Zapłacona za nie kwota zostaje następnie zwrócona.
-- Jeżeli zamówienie nie zostanie zrealizowane, płatność jest opóźniona, krótka, nadmierna, zdublowana lub wysłana po anulowaniu, kwota podlegająca zwrotowi zostaje zwrócona na konto, z którego nastąpiła płatność.
-- W przypadku przelewu zwrotnego pobierana jest opłata księgowa za ten przelew. Zwroty pieniędzy nigdy nie trafiają na adres inny niż konto dokonujące płatności.
+- Rozpoczęty okres płatny nie podlega zwrotowi, z wyjątkiem przypadków określonych w sekcji 11 lub sytuacjach wymaganych przez prawo.
+- Odnowienie, które jeszcze się nie rozpoczęło, można anulować; wpłacona za nie kwota zostaje wówczas zwrócona.
+- Jeśli zamówienie nie zostanie zrealizowane albo płatność wpłynie po terminie, w niewystarczającej lub nadmiernej kwocie, zostanie zduplikowana lub wysłana po anulowaniu zamówienia, kwota podlegająca zwrotowi zostanie odesłana na konto, z którego dokonano płatności.
+- Od kwoty przelewu zwrotnego potrącana jest opłata sieciowa księgi (ledger fee) za ten przelew. Zwroty nigdy nie są wysyłane na adres inny niż konto, z którego wpłynęła płatność.
 
-## 9. Płatne żądania
+## 9. Płatne prośby o kontakt
 
-Odbiorca może zażądać opłaty za dostawę w przypadku nowych próśb o kontakt. Opłata dotyczy wyłącznie kwalifikującej się dostawy, a nie odpowiedzi, statusu kontaktu ani pozwolenia na podpisanie. Zanim zapłacisz, wycena pokazuje kwotę, opłatę za usługę i terminy. Jeżeli usługa chmurowa zaakceptuje żądanie przed upływem terminu, płatność zostanie zrealizowana na rzecz odbiorcy, a opłata za usługę na rzecz dMsg. W przeciwnym razie płatność zostanie zwrócona na konto, z którego pochodziła.
+Odbiorca może wymagać opłaty za dostarczenie nowych próśb o kontakt. Opłata ta pokrywa wyłącznie dostarczenie spełniającego wymogi zgłoszenia i nie gwarantuje odpowiedzi, dodania do kontaktów ani żadnych uprawnień do podpisywania. Przed dokonaniem płatności w wycenie widoczna jest kwota, opłata serwisowa oraz terminy. Jeśli usługa chmurowa przyjmie prośbę przed upływem terminu, płatność trafia do odbiorcy, a opłata serwisowa do dMsg. W przeciwnym razie wpłacona kwota zostaje zwrócona na konto źródłowe.
 
-## 10. Kiedy plan się kończy
+## 10. Zakończenie planu
 
-Kiedy płatny okres dobiegnie końca i nie zostanie odnowiony, Twoje konto powróci do bezpłatnych limitów. Treści, które już przechowujesz, nie zostaną wycofane z powodu zakończenia planu, a złożone podpisy pozostaną ważne. Jeśli przechowywana zawartość przekracza limity bezpłatne, nowe zapisy przekraczające te limity są ograniczone, a czytanie, usuwanie i eksportowanie pozostają dostępne przez co najmniej 30 dni.
+Gdy płatny okres dobiegnie końca i nie zostanie odnowiony, Twoje konto powraca do limitów planu bezpłatnego (Free). Treści już zapisane nie są usuwane z powodu wygaśnięcia planu, a złożone wcześniej podpisy pozostają ważne. Jeśli przechowywane treści przekraczają limity planu bezpłatnego, zapisywanie nowych danych powyżej tych limitów zostaje zablokowane, natomiast odczyt, usuwanie i eksportowanie danych pozostają dostępne przez co najmniej 30 dni.
 
-## 11. Zmiany, przerwy i zaprzestanie
+## 11. Zmiany warunków, przerwy w działaniu i wycofanie funkcji
 
-Możemy zmienić te warunki, publikując nową wersję, z nowym numerem wersji i skrótem, pod adresem https://dmsg.net/_/terms.. Nowa wersja ma zastosowanie do zakupów zatwierdzonych po jej wejściu w życie oraz do dalszego użytkowania po jej ogłoszeniu. Zakupy już zatwierdzone, zachowaj zapisaną wersję. Wcześniejsze wersje pozostają dostępne.
+Możemy zmienić niniejsze warunki, publikując nową wersję – oznaczoną nowym numerem wersji i skrótem kryptograficznym (digest) – pod adresem https://dmsg.net/_/terms. Nowa wersja ma zastosowanie do zakupów zatwierdzonych po jej wejściu w życie oraz do dalszego korzystania z usługi po ogłoszeniu zmian. Zakupy zatwierdzone wcześniej zachowują wersję warunków zapisaną w momencie zakupu. Poprzednie wersje pozostają dostępne do wglądu.
 
-Usługa jest świadczona w miarę dostępności i może zostać przerwana. Jeśli zaprzestaniemy korzystania z płatnej funkcji przed końcem okresu płatnego gotówką, zwrócimy Ci niewykorzystaną część tego okresu i damy Ci rozsądny okres na wyeksportowanie treści.
+Usługa jest świadczona w miarę dostępności i może podlegać przerwom w działaniu. Jeśli wycofamy płatną funkcję przed końcem okresu opłaconego bezpośrednią płatnością, zwrócimy proporcjonalnie niewykorzystaną część opłaty za ten okres i zapewnimy rozsądny czas na wyeksportowanie treści.
 
-## 12. Otwarte oprogramowanie i strony trzecie
+## 12. Otwarte oprogramowanie i podmioty zewnętrzne
 
-Publiczny kod dMsg jest objęty licencją Apache License 2.0 w repozytorium ICPanda. Niniejsze warunki nie ograniczają Twoich praw wynikających z tej licencji. Usługa w chmurze dMsg nie jest usługą typu open source.
+Publiczny kod źródłowy dMsg jest udostępniany na licencji Apache License 2.0 w repozytorium ICPanda. Niniejsze warunki nie ograniczają Twoich praw wynikających z tej licencji. Usługa chmurowa dMsg nie jest oprogramowaniem otwartoźródłowym (open source).
 
-dMsg korzysta z usług stron trzecich, w tym komputera internetowego, Internet Identity, ksiąg tokenowych, portfeli, Cloudflare i sklepu Chrome Web Store. Do korzystania z nich mają zastosowanie ich własne warunki.
+dMsg korzysta z usług podmiotów zewnętrznych, w tym sieci Internet Computer, Internet Identity, ksiąg tokenów (token ledgers), portfeli, Cloudflare oraz sklepu Chrome Web Store. Korzystanie z tych usług podlega warunkom określonym przez ich dostawców.
 
-## 13. Ryzyko, zastrzeżenia i odpowiedzialność
+## 13. Ryzyko, wyłączenie gwarancji i ograniczenie odpowiedzialności
 
-Transakcje na księgach ICP są nieodwracalne, a ceny tokenów mogą ulec zmianie. Oprogramowanie może zawierać defekty, a canisters można zaktualizować za pomocą Controller w ramach zarządzania ICPanda DAO.
+Transakcje w księgach sieci ICP są nieodwracalne, a ceny tokenów mogą ulegać wahaniom. Oprogramowanie może zawierać błędy, a canistery mogą być aktualizowane przez ich kontrolera w ramach zarządzania ICPanda DAO.
 
-W maksymalnym zakresie dozwolonym przez prawo dMsg jest dostarczany w stanie „takim, jakim jest” i „w miarę dostępności”, bez jakichkolwiek gwarancji. W maksymalnym zakresie dozwolonym przez prawo nie ponosimy odpowiedzialności za szkody pośrednie, przypadkowe, szczególne, wynikowe lub karne, ani za utratę danych, kluczy, tokenów, zysków lub wartości firmy. Nasza całkowita odpowiedzialność za jakiekolwiek roszczenie jest ograniczona do kwoty, którą zapłaciłeś dMsg w ciągu 12 miesięcy przed roszczeniem.
+W maksymalnym zakresie dozwolonym przez prawo usługa dMsg jest dostarczana w stanie „takim, w jakim jest” (as is) oraz „w miarę dostępności” (as available), bez jakichkolwiek gwarancji. W maksymalnym zakresie dozwolonym przez prawo nie ponosimy odpowiedzialności za szkody pośrednie, uboczne, szczególne, wynikowe ani nawiązki, a także za utratę danych, kluczy, tokenów, korzyści majątkowych lub renomy. Nasza łączna odpowiedzialność z tytułu wszelkich roszczeń jest ograniczona do kwoty zapłaconej przez Ciebie na rzecz dMsg w okresie 12 miesięcy poprzedzających powstanie roszczenia.
 
 ## 14. Język i kontakt
 
-Warunki te są napisane w języku angielskim. Tłumaczenia są dostarczane dla wygody; jeżeli tłumaczenie różni się od tekstu w języku angielskim, obowiązujący jest ten tekst.
+Niniejsze warunki zostały sporządzone w języku angielskim. Tłumaczenia są udostępniane wyłącznie dla wygody użytkowników; w razie rozbieżności między tłumaczeniem a tekstem angielskim wiążąca jest wersja angielska.
 
-Pytania dotyczące tych warunków można znaleźć w https://dmsg.net/_/support.
+W razie pytań dotyczących niniejszych warunków odwiedź stronę https://dmsg.net/_/support.

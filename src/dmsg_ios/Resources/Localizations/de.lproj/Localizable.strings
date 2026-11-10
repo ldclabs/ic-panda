@@ -17,7 +17,7 @@
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
 	<string>Eine Hintergrundübertragung gehört zu einem anderen Konto. Wechseln Sie zu diesem Konto, um den Vorgang abzuschließen oder zu kündigen.</string>
 	<key>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</key>
-	<string>Für Mitglieder mit Zugriff auf diese Epoche, einschließlich späterer Geschichtszuschüsse, steht ein Kanal-Snapshot zur Verfügung. Es gibt keinen Linkablauf, kein Download-Sitzungslimit oder keinen Rückruf.</string>
+	<string>Ein Kanal-Snapshot ist für Mitglieder mit Zugriff auf diese Epoche verfügbar, einschließlich später erteilter Zugriffsrechte auf den Verlauf. Es gibt kein Ablaufdatum für den Link, kein Sitzungslimit für Downloads und keinen Widerruf.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Bei einer Download-Sitzung handelt es sich um ein Abrufkontingent, nicht um die Anzahl der Dateilesevorgänge. Durch Ablauf oder Widerruf können bereits gespeicherte Kopien nicht gelöscht werden.</string>
 	<key>A file or folder with this name already exists.</key>
@@ -82,6 +82,8 @@
 	<string>Aktivität</string>
 	<key>Activity on this device</key>
 	<string>Aktivität auf diesem Gerät</string>
+	<key>Add a passkey login</key>
+	<string>Passkey-Anmeldung hinzufügen</string>
 	<key>Add account</key>
 	<string>Konto hinzufügen</string>
 	<key>Add device</key>
@@ -431,7 +433,7 @@
 	<key>Checklist completed</key>
 	<string>Checkliste abgeschlossen</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
-	<string>Ausgefüllte Checkliste anhand Ihrer Abrechnungen. Der Upstream-Status bleibt nur beim Anbieter unabhängig überprüfbar.</string>
+	<string>Die Checkliste wurde anhand Ihrer Angaben abgeschlossen. Der Status beim Anbieter lässt sich weiterhin nur dort unabhängig überprüfen.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Wähle bei einer lokalen Datei In der Cloud sichern, um deine erste Sicherung zu erstellen.</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
@@ -519,7 +521,7 @@
 	<key>Confirm it is done</key>
 	<string>Als erledigt bestätigen</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
-	<string>Bestätigen Sie nur Arbeiten, die Sie tatsächlich abgeschlossen haben. Hier wird Ihre Aussage erfasst; Die Anbieteraktion wird nicht ausgeführt.</string>
+	<string>Bestätigen Sie nur Schritte, die Sie tatsächlich durchgeführt haben. Dies protokolliert Ihre Angabe und führt keine Aktion beim Anbieter aus.</string>
 	<key>Confirm the dMsg request you reviewed</key>
 	<string>Bestätigen Sie die von Ihnen überprüfte dMsg-Anfrage</string>
 	<key>Confirm this account security change</key>
@@ -548,6 +550,8 @@
 	<string>Kontaktieren Sie den Support</string>
 	<key>Content signing</key>
 	<string>Inhalte signieren</string>
+	<key>Continue adding this passkey</key>
+	<string>Diesen Passkey weiter hinzufügen</string>
 	<key>Continue import</key>
 	<string>Importieren Sie weiter</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>Setzen Sie diesen Import in dem Konto fort, das Sie ursprünglich ausgewählt haben.</string>
 	<key>Continue with Internet Identity</key>
 	<string>Fahren Sie mit Internet Identity fort</string>
+	<key>Continue with a passkey</key>
+	<string>Mit Passkey fortfahren</string>
 	<key>Controller ID</key>
 	<string>Controller-ID</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>Erstellen Sie bei seinem Anbieter einen neuen Berechtigungsnachweis und speichern Sie ihn im Tresor</string>
 	<key>Create a new pairing request</key>
 	<string>Erstellen Sie eine neue Pairing-Anfrage</string>
+	<key>Create a passkey</key>
+	<string>Passkey erstellen</string>
 	<key>Create a revocation request?</key>
 	<string>Widerrufsantrag erstellen?</string>
 	<key>Create agent</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Jedes Mobilpaket ist auf 8 MiB begrenzt, einschließlich ausgewählter Anhänge. Die endgültige Genehmigung zeigt die genaue unveränderliche Auswahl und das Ziel.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Jeder neue Passkey erstellt eine separate Anmeldeidentität. Um einen zum aktuellen Konto hinzuzufügen, verwende Passkey-Login hinzufügen in der Kontosicherheit.</string>
 	<key>Edit</key>
 	<string>Bearbeiten</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>Mit gesammelten Signaturen ausführen</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Bestehende Blockierungsregeln, Einladungen und Posteingangskapazität bleiben erhalten. Die Auswahl einer kostenlosen oder geschlossenen Richtlinie ersetzt alle vorherigen kostenpflichtigen Kontakteinstellungen.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Bestehende Anmeldeberechtigungen können noch bis zu 12 Stunden gelten. Geräte behalten ihre Inhaltsberechtigungen.</string>
 	<key>Expired</key>
 	<string>Abgelaufen</string>
 	<key>Expires</key>
@@ -1523,9 +1535,9 @@
 	<key>Only on this device</key>
 	<string>Nur auf diesem Gerät</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
-	<string>Jetzt bewegen sich nur Ausgaben mit mindestens %lld Blöcken Tiefe; die übrigen zeigen, ab welchem Block sie es können.</string>
+	<string>Jetzt werden nur Ausgänge (Outputs) mit mindestens %lld Blöcken Tiefe übertragen; bei den übrigen wird angezeigt, ab welchem Block dies möglich ist.</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>In der Dateien-App werden nur ausgewählte, unveränderliche Kopien angezeigt. Für den Zugriff ist eine Systemauthentifizierung erforderlich. Mit der Sperre dMsg wird die aktuelle Zugriffssitzung beendet. Dateien können heruntergeladene Kopien und Dateinamen enthalten, an die sich dMsg nicht erinnern kann.</string>
+	<string>In der Dateien-App erscheinen nur ausgewählte, unveränderliche Kopien. Der Zugriff erfordert eine Systemauthentifizierung; das Sperren von dMsg beendet die aktuelle Sitzung. „Dateien“ kann heruntergeladene Kopien und Dateinamen behalten, die dMsg nicht zurückholen kann.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Während dMsg gesperrt ist, kann nur die ausgewählte verschlüsselte Datei übertragen werden. iOS steuert die Planung; Durch Erzwingen des Beendens wird die Zustellung gestoppt, bis Sie die App erneut öffnen. Öffnen Sie das ursprüngliche Konto, um es zu überprüfen und abzuschließen.</string>
 	<key>Open</key>
@@ -1583,7 +1595,7 @@
 	<key>Outcome no longer available</key>
 	<string>Ergebnis nicht mehr verfügbar</string>
 	<key>Outputs swept</key>
-	<string>Abgezogene Ausgaben</string>
+	<string>Abgezogene Ausgänge (Outputs)</string>
 	<key>Owner</key>
 	<string>Besitzer</string>
 	<key>Package size</key>
@@ -1859,7 +1871,7 @@
 	<key>Reload saved profile</key>
 	<string>Gespeichertes Profil neu laden</string>
 	<key>Remaining</key>
-	<string>verbleibend</string>
+	<string>Verbleibend</string>
 	<key>Removal date</key>
 	<string>Entfernungsdatum</string>
 	<key>Remove</key>
@@ -1909,7 +1921,7 @@
 	<key>Replace AutoFill snapshot</key>
 	<string>Ersetzen Sie den AutoFill-Snapshot</string>
 	<key>Replace Files app snapshot</key>
-	<string>Schnappschuss der App „Dateien ersetzen“.</string>
+	<string>Snapshot der Dateien-App ersetzen</string>
 	<key>Replace a device</key>
 	<string>Gerät ersetzen</string>
 	<key>Replace cosignature policy</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>Überprüfen Sie die Berechtigungen</string>
 	<key>Review publication or resume</key>
-	<string>Überprüfen Sie die Veröffentlichung oder den Lebenslauf</string>
+	<string>Veröffentlichung prüfen oder fortsetzen</string>
 	<key>Review rejection</key>
 	<string>Ablehnung der Rezension</string>
 	<key>Review removing this login</key>
@@ -2127,7 +2139,7 @@
 	<key>Revoke this device</key>
 	<string>Dieses Gerät widerrufen</string>
 	<key>Revoke this device and rotate content keys</key>
-	<string>Sperren Sie dieses Gerät und drehen Sie die Inhaltsschlüssel</string>
+	<string>Dieses Gerät widerrufen und Inhaltsschlüssel wechseln</string>
 	<key>Revoke this link?</key>
 	<string>Diesen Link widerrufen?</string>
 	<key>Revoke this snapshot link?</key>
@@ -2298,6 +2310,8 @@
 	<string>Absenderkonto</string>
 	<key>Sending</key>
 	<string>Senden</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Die Sende- oder Empfangseinstellungen haben sich geändert. Versuche erneut, diesen Brief zu senden. Falls es weiterhin fehlschlägt, sollten du und der Empfänger dMsg entsperren und vor dem nächsten Versuch synchronisieren.</string>
 	<key>Sent</key>
 	<string>Gesendet</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>Melden Sie das neue Gerät beim selben Konto an, scannen Sie den QR-Code des Computers und prüfen und bestätigen Sie dort die Anfrage.</string>
 	<key>Sign out</key>
 	<string>Abmelden</string>
+	<key>Sign out all devices</key>
+	<string>Alle Geräte abmelden</string>
 	<key>Sign out of this account?</key>
 	<string>Von diesem Konto abmelden?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Geräte dieses Passkeys abmelden und fortfahren</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Unterschreiben Sie die von Ihnen überprüfte Erklärung</string>
 	<key>Signatures collected</key>
@@ -2600,6 +2618,10 @@
 	<string>Das andere Gerät wurde im lokalen Netzwerk nicht gefunden. Geben Sie seine Adresse ein.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>Der Ausgang ist ungewiss. Überprüfen Sie den ursprünglichen Auftrag, bevor Sie erneut versuchen.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Der Passkey ist gespeichert. Versuche erneut, ihn mit diesem Konto zu verknüpfen. Es wird kein neuer Passkey erstellt.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Die Empfangseinstellungen des Empfängers müssen aktualisiert werden. Bitte ihn, dMsg zu entsperren und zu synchronisieren. Sende diesen Brief danach erneut.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>Der Datensatz wurde geändert. Aktualisieren und überprüfen Sie Ihre Änderungen, bevor Sie sie erneut speichern.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2635,7 +2657,7 @@
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
 	<string>Diese Exporte enthalten niemals Konto-Stammschlüssel oder Signaturschlüssel des Geräts. Kopien in der Dateien-App folgen Änderungen der Quelldateien nicht; dafür ist ein neuer Snapshot nötig.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
-	<string>Diese nativen Adressen brauchen für L1 weiterhin das alte Gerät. Die Mitglieder können sie über L2 abziehen, sobald jede Ausgabe alt genug ist.</string>
+	<string>Diese nativen Adressen benötigen für L1 weiterhin das alte Gerät. Mitglieder können sie über L2 abziehen, sobald jeder Ausgang (Output) alt genug ist.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Für dieses Konto ist ein registrierter Genehmigungsschlüssel erforderlich. Richten Sie dieses Gerät in der Hardwaresicherheit ein oder fragen Sie ein anderes autorisiertes Gerät.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2720,6 +2742,10 @@
 	<string>Dieser Vorgang ist vorübergehend nicht verfügbar. Ihre gespeicherten Daten bleiben erhalten.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Dieses Paket wurde bereits auf diesem Gerät importiert. Vorhandene Kopien bleiben unabhängig.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Mit diesem Passkey sind zu viele Geräte angemeldet. Melde sie ab, um fortzufahren. Andere Passkeys und gespeicherte Inhalte bleiben unverändert.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Dieser Passkey ist nicht bei dMsg registriert. Wähle einen anderen. Falls die Erstellung zuvor fehlgeschlagen ist, entferne diesen ungenutzten Passkey aus dem Passwortmanager, bevor du einen neuen erstellst.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Dieses Profil ist öffentlich. Geben Sie keine Geheimnisse oder privaten Kontaktinformationen an.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Nutzung</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Verwende einen bereits mit dem gewünschten Konto verknüpften Login.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>Verwende einen Namen mit 1–255 Zeichen ohne Schrägstriche oder Steuerzeichen.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Verwenden Sie ein Passwort aus dem Snapshot, den Sie explizit in dMsg exportiert haben.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Wenn du bereits einen Passkey erstellt hast, verwende den gespeicherten. Erstelle nur für eine weitere Anmeldeidentität einen neuen.</string>
 	<key>Use a secret through a device policy</key>
 	<string>Verwenden Sie ein Geheimnis über eine Geräterichtlinie</string>
 	<key>Use an SSH signing key</key>
 	<string>Verwenden Sie einen SSH-Signaturschlüssel</string>
+	<key>Use an existing passkey</key>
+	<string>Vorhandenen Passkey verwenden</string>
 	<key>Use conflicting version</key>
 	<string>Verwenden Sie eine widersprüchliche Version</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -2897,7 +2929,7 @@
 	<key>View approval</key>
 	<string>Genehmigung anzeigen</string>
 	<key>Viewer</key>
-	<string>Zuschauer</string>
+	<string>Betrachter</string>
 	<key>Wait for the address book cooldown</key>
 	<string>Wartezeit des Adressbuchs abwarten</string>
 	<key>Wait for the proposal</key>
@@ -2989,7 +3021,7 @@
 	<key>You have read-only access to this conversation.</key>
 	<string>Sie haben in dieser Unterhaltung nur Lesezugriff.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
-	<string>Den Providerwechsel führen Sie selbst durch. dMsg zeichnet Ihre Abrechnungen auf und prüft lokale Revisionen; Es kann die Upstream-Erstellung, -Prüfung oder -Widerrufung nicht überprüfen.</string>
+	<string>Änderungen beim Anbieter nehmen Sie selbst vor. dMsg protokolliert Ihre Angaben und prüft lokale Versionen; Erstellung, Tests oder Widerruf beim Anbieter können nicht überprüft werden.</string>
 	<key>Your assets. Your approval rules.</key>
 	<string>Ihre Vermögenswerte. Ihre Freigaberegeln.</string>
 	<key>Your authorized channels appear after synchronization.</key>
@@ -3012,6 +3044,10 @@
 	<string>Ihre verborgenen Felder bleiben verborgen, bis Sie sie enthüllen.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Deine lokalen Inhalte bleiben verfügbar. Melde dich mit Internet Identity an, wenn eine Kontoaktion dies erfordert.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Der Passwortmanager hat den Passkey gespeichert, aber dMsg konnte die Registrierung nicht bestätigen. Versuche, dich damit anzumelden, bevor du einen weiteren erstellst.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Dein vorheriger Brief ist noch offen. Bitte den Empfänger, ihn in der Desktop-App zu archivieren oder im Briefmenü unter iOS „Weiteren Brief erlauben“ zu wählen. Sende diesen Brief danach erneut.</string>
 	<key>Your private workspace.</key>
 	<string>Ihr privater Arbeitsbereich.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>erstellt</string>
 	<key>not available</key>
 	<string>nicht verfügbar</string>
-	<key>Continue with a passkey</key>
-	<string>Mit Passkey fortfahren</string>
-	<key>Create a passkey</key>
-	<string>Passkey erstellen</string>
-	<key>Add a passkey login</key>
-	<string>Passkey-Anmeldung hinzufügen</string>
-	<key>Sign out all devices</key>
-	<string>Alle Geräte abmelden</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>Bestehende Anmeldeberechtigungen können noch bis zu 12 Stunden gelten. Geräte behalten ihre Inhaltsberechtigungen.</string>
-	<key>Use an existing passkey</key>
-	<string>Vorhandenen Passkey verwenden</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>Verwende einen bereits mit dem gewünschten Konto verknüpften Login.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>Jeder neue Passkey erstellt eine separate Anmeldeidentität. Um einen zum aktuellen Konto hinzuzufügen, verwende Passkey-Login hinzufügen in der Kontosicherheit.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>Dieser Passkey ist nicht bei dMsg registriert. Wähle einen anderen. Falls die Erstellung zuvor fehlgeschlagen ist, entferne diesen ungenutzten Passkey aus dem Passwortmanager, bevor du einen neuen erstellst.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>Der Passwortmanager hat den Passkey gespeichert, aber dMsg konnte die Registrierung nicht bestätigen. Versuche, dich damit anzumelden, bevor du einen weiteren erstellst.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>Dein vorheriger Brief ist noch offen. Bitte den Empfänger, ihn in der Desktop-App zu archivieren oder im Briefmenü unter iOS „Weiteren Brief erlauben“ zu wählen. Sende diesen Brief danach erneut.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>Die Empfangseinstellungen des Empfängers müssen aktualisiert werden. Bitte ihn, dMsg zu entsperren und zu synchronisieren. Sende diesen Brief danach erneut.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>Die Sende- oder Empfangseinstellungen haben sich geändert. Versuche erneut, diesen Brief zu senden. Falls es weiterhin fehlschlägt, sollten du und der Empfänger dMsg entsperren und vor dem nächsten Versuch synchronisieren.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>Wenn du bereits einen Passkey erstellt hast, verwende den gespeicherten. Erstelle nur für eine weitere Anmeldeidentität einen neuen.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>Der Passkey ist gespeichert. Versuche erneut, ihn mit diesem Konto zu verknüpfen. Es wird kein neuer Passkey erstellt.</string>
-	<key>Continue adding this passkey</key>
-	<string>Diesen Passkey weiter hinzufügen</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>Geräte dieses Passkeys abmelden und fortfahren</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>Mit diesem Passkey sind zu viele Geräte angemeldet. Melde sie ab, um fortzufahren. Andere Passkeys und gespeicherte Inhalte bleiben unverändert.</string>
 </dict>
 </plist>

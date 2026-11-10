@@ -82,6 +82,8 @@
 	<string>سرگرمی</string>
 	<key>Activity on this device</key>
 	<string>اس آلہ پر سرگرمی</string>
+	<key>Add a passkey login</key>
+	<string>پاس کی لاگ اِن شامل کریں</string>
 	<key>Add account</key>
 	<string>اکاؤنٹ شامل کریں</string>
 	<key>Add device</key>
@@ -135,7 +137,7 @@
 	<key>Allow another letter</key>
 	<string>ایک اور خط کی اجازت دیں</string>
 	<key>Allow key rotation</key>
-	<string>کلید کو گھمانے کی اجازت دیں</string>
+	<string>کلید کی تبدیلی (روٹیشن) کی اجازت دیں</string>
 	<key>Allow this account to send another letter?</key>
 	<string>کیا اس اکاؤنٹ کو ایک اور خط بھیجنے کی اجازت دیں؟</string>
 	<key>Allowed</key>
@@ -548,6 +550,8 @@
 	<string>سپورٹ سے رابطہ کریں</string>
 	<key>Content signing</key>
 	<string>مواد پر دستخط</string>
+	<key>Continue adding this passkey</key>
+	<string>یہ پاس کی شامل کرنا جاری رکھیں</string>
 	<key>Continue import</key>
 	<string>درآمد جاری رکھیں</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>اس درآمد کو اس اکاؤنٹ میں جاری رکھیں جسے آپ نے اصل میں منتخب کیا ہے۔</string>
 	<key>Continue with Internet Identity</key>
 	<string>Internet Identity کے ساتھ جاری رکھیں</string>
+	<key>Continue with a passkey</key>
+	<string>پاس کی کے ساتھ جاری رکھیں</string>
 	<key>Controller ID</key>
 	<string>Controller ID</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>اس کے فراہم کنندہ پر ایک نئی سند بنائیں اور اسے والٹ میں محفوظ کریں۔</string>
 	<key>Create a new pairing request</key>
 	<string>جوڑا بنانے کی ایک نئی درخواست بنائیں</string>
+	<key>Create a passkey</key>
+	<string>پاس کی بنائیں</string>
 	<key>Create a revocation request?</key>
 	<string>منسوخی کی درخواست بنائیں؟</string>
 	<key>Create agent</key>
@@ -737,7 +745,7 @@
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
 	<string>آپ کے dMsg سروس اکاؤنٹ کو حذف کرنے سے اس کا کلاؤڈ سائفر ٹیکسٹ، پرائیویٹ سروس ڈیٹا، ڈیوائس نوٹیفکیشن رجسٹریشنز اور عوامی اوتار کی اصل کاپیاں مستقل طور پر ہٹ جاتی ہیں۔ یہ بلاکچین ریکارڈز، دیگر وصول کنندگان کی کاپیاں، یا دیگر خدمات کے پاس موجود ڈیٹا کو نہیں مٹا سکتا۔</string>
 	<key>Deletion does not transfer funds. Removing local keys and cloud copies can permanently remove this device's access to wallets and external credentials.</key>
-	<string>حذف کرنے سے رقوم کی منتقلی نہیں ہوتی ہے۔ مقامی چابیاں اور کلاؤڈ کاپیاں ہٹانے سے اس ڈیوائس کی بٹوے اور بیرونی اسناد تک رسائی مستقل طور پر ختم ہو سکتی ہے۔</string>
+	<string>حذف کرنے سے رقوم منتقل نہیں ہوتیں۔ مقامی کلیدیں اور کلاؤڈ کاپیاں ہٹانے سے اس ڈیوائس کی والٹس اور بیرونی اسناد تک رسائی مستقل طور پر ختم ہو سکتی ہے۔</string>
 	<key>Deletion is in progress</key>
 	<string>حذف کرنے کا عمل جاری ہے</string>
 	<key>Deletion status</key>
@@ -767,7 +775,7 @@
 	<key>Device ID shown on the new device</key>
 	<string>نئے آلے پر دکھائی گئی آلہ ID</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
-	<string>ڈیوائس کی توثیق عارضی طور پر دستیاب نہیں ہے۔ آپ کی چابیاں رکھی ہیں؛ جب یہ آلہ غیر مقفل ہو تو دوبارہ کوشش کریں۔</string>
+	<string>ڈیوائس کی توثیق عارضی طور پر دستیاب نہیں ہے۔ آپ کی کلیدیں محفوظ ہیں؛ جب یہ ڈیوائس ان لاک ہو تو دوبارہ کوشش کریں۔</string>
 	<key>Device authentication unlocks local content even after your Internet Identity login expires.</key>
 	<string>Internet Identity لاگ ان کی مدت ختم ہونے کے بعد بھی آلے کی تصدیق سے مقامی مواد کھولا جا سکتا ہے۔</string>
 	<key>Device pairing request QR code</key>
@@ -840,6 +848,8 @@
 	<string>ای وی ایم</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>ہر موبائل پیکیج 8 MiB تک محدود ہے، بشمول منتخب منسلکات۔ حتمی منظوری درست ناقابل تغیر انتخاب اور منزل کو ظاہر کرتی ہے۔</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>ہر نئی پاس کی ایک الگ لاگ ان شناخت بناتی ہے۔ اسے موجودہ اکاؤنٹ میں شامل کرنے کے لیے اکاؤنٹ سیکیورٹی میں پاس کی لاگ ان شامل کریں استعمال کریں۔</string>
 	<key>Edit</key>
 	<string>ترمیم</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>جمع شدہ دستخطوں سے عمل کریں</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>موجودہ بلاک رولز، دعوت نامے اور ان باکس کی گنجائش محفوظ ہے۔ مفت یا بند پالیسی کا انتخاب کسی بھی پچھلی بامعاوضہ رابطے کی ترتیب کو بدل دیتا ہے۔</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>موجودہ لاگ اِن اجازتیں مزید 12 گھنٹے تک مؤثر رہ سکتی ہیں۔ آلات کی مواد تک رسائی برقرار رہتی ہے۔</string>
 	<key>Expired</key>
 	<string>میعاد ختم</string>
 	<key>Expires</key>
@@ -1049,7 +1061,7 @@
 	<key>Import a file or photo to attach it.</key>
 	<string>منسلک کرنے کے لیے فائل یا تصویر درآمد کریں۔</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
-	<string>ایک غیر خفیہ کردہ 1 پاس ورڈ، بٹ وارڈن یا براؤزر پاس ورڈ برآمد درآمد کریں۔ ماخذ اس آلہ پر رہتا ہے؛ صرف منتخب ریکارڈز شامل کیے جاتے ہیں۔</string>
+	<string>ایک غیر خفیہ کردہ 1Password، Bitwarden یا براؤزر پاس ورڈ ایکسپورٹ درآمد کریں۔ ماخذ اسی ڈیوائس پر رہتا ہے؛ صرف منتخب ریکارڈز شامل کیے جاتے ہیں۔</string>
 	<key>Import completed</key>
 	<string>درآمد مکمل</string>
 	<key>Import cosign packet</key>
@@ -1153,13 +1165,13 @@
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>اپنے راز، گفتگو اور فائلیں ساتھ رکھیں۔ صرف آپ کے مجاز آلات ہی انہیں کھول سکتے ہیں۔</string>
 	<key>Key</key>
-	<string>چابی</string>
+	<string>کلید</string>
 	<key>Key fingerprint</key>
 	<string>کلیدی فنگر پرنٹ</string>
 	<key>Key label</key>
 	<string>کلیدی لیبل</string>
 	<key>Keys</key>
-	<string>چابیاں</string>
+	<string>کلیدیں</string>
 	<key>L1 spends from native Taproot addresses need this device's BIP-340 key. One root on this device holds every wallet's key; using it asks for you.</key>
 	<string>مقامی Taproot پتوں سے L1 اخراجات کے لیے اس آلے کی BIP-340 کلید درکار ہے۔ اس آلے پر ایک جڑ ہر والٹ کی کلید رکھتی ہے؛ اسے استعمال کرنے پر آپ سے تصدیق مانگی جاتی ہے۔</string>
 	<key>L1 · old device cosigns</key>
@@ -1257,7 +1269,7 @@
 	<key>Login identity</key>
 	<string>لاگ ان شناخت</string>
 	<key>Manage Apple subscriptions</key>
-	<string>ایپل سبسکرپشنز کا نظم کریں</string>
+	<string>Apple سبسکرپشنز کا نظم کریں</string>
 	<key>Manage file</key>
 	<string>فائل کا نظم کریں</string>
 	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
@@ -1299,7 +1311,7 @@
 	<key>Monthly execution limit</key>
 	<string>ماہانہ عمل درآمد کی حد</string>
 	<key>Monthly execution units</key>
-	<string>ماہانہ آپریشن یونٹس</string>
+	<string>ماہانہ ایگزیکیوشن یونٹس</string>
 	<key>More types</key>
 	<string>اقسام</string>
 	<key>Move a native address</key>
@@ -1515,7 +1527,7 @@
 	<key>One-time code</key>
 	<string>ایک بار کا کوڈ</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
-	<string>یہ صرف اس وقت کریں جب آپ اسے استعمال کرنے کے لیے تیار ہوں۔ کاپیاں اس ڈیوائس پر رہتی ہیں اور 30 ​​سیکنڈ کے بعد ختم ہوجاتی ہیں۔</string>
+	<string>یہ صرف اس وقت کریں جب آپ اسے استعمال کرنے کے لیے تیار ہوں۔ کاپیاں اس ڈیوائس پر رہتی ہیں اور 30 سیکنڈ کے بعد ختم ہوجاتی ہیں۔</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>یہاں صرف مفت رابطے کی سہولت ہے۔ یہ کارروائی وصول کنندہ کی فیس ادا یا منظور نہیں کر سکتی۔</string>
 	<key>Only in cloud</key>
@@ -1525,7 +1537,7 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>ابھی صرف کم از کم %lld بلاک گہرے آؤٹ پٹس منتقل ہوتے ہیں؛ باقی دکھاتے ہیں کہ کس بلاک سے منتقل ہو سکیں گے۔</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>فائلز ایپ میں صرف منتخب شدہ، ناقابل تغیر کاپیاں ظاہر ہوتی ہیں۔ رسائی کے لیے سسٹم کی توثیق کی ضرورت ہے۔ dMsg کو لاک کرنے سے موجودہ رسائی سیشن ختم ہو جاتا ہے۔ فائلیں ڈاؤن لوڈ کی گئی کاپیاں اور فائل نام رکھ سکتی ہیں، جنہیں dMsg یاد نہیں کر سکتا۔</string>
+	<string>Files ایپ میں صرف منتخب شدہ، ناقابلِ تغیر کاپیاں ظاہر ہوتی ہیں۔ رسائی کے لیے سسٹم کی توثیق درکار ہے؛ dMsg کو لاک کرنے سے موجودہ رسائی سیشن ختم ہو جاتا ہے۔ Files ڈاؤن لوڈ کی گئی کاپیاں اور فائل کے نام محفوظ رکھ سکتی ہے، جنہیں dMsg واپس نہیں لے سکتا۔</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg لاک ہونے کے دوران صرف منتخب کردہ انکرپٹڈ فائل ہی منتقل ہو سکتی ہے۔ iOS نظام الاوقات کو کنٹرول کرتا ہے۔ جب تک آپ ایپ کو دوبارہ نہیں کھولتے تب تک زبردستی چھوڑنے سے ترسیل رک جاتی ہے۔ تصدیق اور ختم کرنے کے لیے اصل اکاؤنٹ کھولیں۔</string>
 	<key>Open</key>
@@ -1987,7 +1999,7 @@
 	<key>Resume</key>
 	<string>دوبارہ شروع کریں</string>
 	<key>Retire a hardware approval key</key>
-	<string>ہارڈ ویئر کی منظوری کی کلید کو ریٹائر کریں</string>
+	<string>ہارڈ ویئر منظوری کی کلید کو ریٹائر (غیر فعال) کریں</string>
 	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
 	<string>کلید کو ریٹائر کرنے سے اس کی محفوظ کارروائیوں کو منظور کرنے کی صلاحیت ختم ہوجاتی ہے۔ چیک کریں کہ کوئی اور منظور شدہ منظوری کا راستہ دستیاب ہے۔</string>
 	<key>Retry</key>
@@ -2103,7 +2115,7 @@
 	<key>Revocation pending</key>
 	<string>منسوخی زیر التواء ہے</string>
 	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
-	<string>سیکیورٹی اسٹیٹ ریفریش ہونے اور چابیاں گھمائے جانے کے بعد منسوخی نئی رسائی کو روک دیتی ہے۔ پہلے کاپی کیا گیا مواد واپس نہیں بلایا جا سکتا۔</string>
+	<string>سیکیورٹی اسٹیٹ ریفریش ہونے اور کلیدیں تبدیل ہونے کے بعد منسوخی نئی رسائی کو روک دیتی ہے۔ پہلے سے کاپی کیا گیا مواد واپس نہیں لیا جا سکتا۔</string>
 	<key>Revoke</key>
 	<string>اجازت واپس لیں</string>
 	<key>Revoke a device</key>
@@ -2127,7 +2139,7 @@
 	<key>Revoke this device</key>
 	<string>اس آلہ کو منسوخ کریں</string>
 	<key>Revoke this device and rotate content keys</key>
-	<string>اس آلہ کو منسوخ کریں اور مواد کی کلیدوں کو گھمائیں</string>
+	<string>اس ڈیوائس کو منسوخ کریں اور مواد کی کلیدیں تبدیل کریں</string>
 	<key>Revoke this link?</key>
 	<string>یہ لنک منسوخ کریں؟</string>
 	<key>Revoke this snapshot link?</key>
@@ -2143,7 +2155,7 @@
 	<key>Role</key>
 	<string>کردار</string>
 	<key>Rotate conversation keys</key>
-	<string>گفتگو کی چابیاں گھمائیں</string>
+	<string>گفتگو کی کلیدیں تبدیل کریں</string>
 	<key>Rotation checklists</key>
 	<string>گردش چیک لسٹ</string>
 	<key>Run</key>
@@ -2298,6 +2310,8 @@
 	<string>بھیجنے والا اکاؤنٹ</string>
 	<key>Sending</key>
 	<string>ارسال</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>بھیجنے یا وصول کرنے کی ترتیبات بدل گئی ہیں۔ یہ خط دوبارہ بھیجیں۔ اگر پھر بھی ناکام ہو تو آپ اور وصول کنندہ دونوں dMsg کا لاک کھول کر سنک کریں، پھر دوبارہ کوشش کریں۔</string>
 	<key>Sent</key>
 	<string>بھیج دیا گیا</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>نئے آلے پر اسی اکاؤنٹ میں سائن ان کریں، کمپیوٹر کا QR کوڈ اسکین کریں، پھر کمپیوٹر پر جائزہ لے کر منظوری دیں۔</string>
 	<key>Sign out</key>
 	<string>سائن آؤٹ کریں</string>
+	<key>Sign out all devices</key>
+	<string>تمام آلات سے سائن آؤٹ کریں</string>
 	<key>Sign out of this account?</key>
 	<string>اس اکاؤنٹ سے سائن آؤٹ کریں؟</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>اس پاس کی کے آلات سے سائن آؤٹ کر کے جاری رکھیں</string>
 	<key>Sign the statement you reviewed</key>
 	<string>اس بیان پر دستخط کریں جس کا آپ نے جائزہ لیا ہے</string>
 	<key>Signatures collected</key>
@@ -2475,7 +2493,7 @@
 	<key>Submit report</key>
 	<string>رپورٹ جمع کروائیں</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
-	<string>سبسکرپشنز خود بخود تجدید ہوجاتی ہیں جب تک کہ آپ کے ایپل اکاؤنٹ کی ترتیبات میں منسوخ نہ ہوں۔ اپنے dMsg اکاؤنٹ کو حذف کرنے سے ایپل کی رکنیت منسوخ نہیں ہوتی ہے۔</string>
+	<string>سبسکرپشنز خودکار طور پر تجدید ہوتی ہیں جب تک کہ آپ کے Apple اکاؤنٹ کی ترتیبات میں منسوخ نہ کی جائیں۔ اپنا dMsg اکاؤنٹ حذف کرنے سے Apple سبسکرپشن منسوخ نہیں ہوتی۔</string>
 	<key>Suggested fee</key>
 	<string>تجویز کردہ فیس</string>
 	<key>Suspended</key>
@@ -2600,6 +2618,10 @@
 	<string>دوسرا آلہ مقامی نیٹ ورک پر نہیں ملا۔ اس کا پتہ درج کریں۔</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>نتیجہ غیر یقینی ہے۔ دوبارہ کوشش کرنے سے پہلے اصل کام کو چیک کریں۔</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>پاس کی محفوظ ہے۔ اسے اس اکاؤنٹ سے منسلک کرنا مکمل کرنے کے لیے دوبارہ کوشش کریں؛ نئی پاس کی نہیں بنے گی۔</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>وصول کنندہ کی وصولی کی ترتیبات اپ ڈیٹ ہونی چاہئیں۔ ان سے dMsg کا لاک کھول کر سنک کرنے کو کہیں، پھر یہ خط دوبارہ بھیجیں۔</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>ریکارڈ بدل گیا۔ ریفریش کریں اور دوبارہ محفوظ کرنے سے پہلے اپنی ترامیم کا جائزہ لیں۔</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2720,6 +2742,10 @@
 	<string>یہ آپریشن عارضی طور پر دستیاب نہیں ہے۔ آپ کا محفوظ کردہ ڈیٹا محفوظ ہے۔</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>یہ پیکیج پہلے ہی اس ڈیوائس پر درآمد کیا جا چکا ہے۔ موجودہ کاپیاں آزاد رہتی ہیں۔</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>اس پاس کی سے بہت زیادہ آلات سائن ان ہیں۔ جاری رکھنے کے لیے ان سے سائن آؤٹ کریں۔ دوسری پاس کیز اور محفوظ مواد متاثر نہیں ہوں گے۔</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>یہ پاس کی dMsg میں رجسٹرڈ نہیں ہے۔ دوسری پاس کی منتخب کریں۔ اگر پہلے بنانے میں ناکامی ہوئی تھی تو نئی بنانے سے پہلے وہ غیر استعمال شدہ پاس کی پاس ورڈ مینیجر سے ہٹا دیں۔</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>یہ پروفائل عوامی ہے۔ راز یا نجی رابطے کی معلومات شامل نہ کریں۔</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>یو آر ایل</string>
 	<key>Usage</key>
 	<string>استعمال</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>اس اکاؤنٹ سے پہلے سے منسلک لاگ ان استعمال کریں جسے آپ کھولنا چاہتے ہیں۔</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>۱–۲۵۵ حروف کا نام استعمال کریں جس میں سلیش یا کنٹرول حروف نہ ہوں۔</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>اسنیپ شاٹ سے پاس ورڈ استعمال کریں جو آپ نے واضح طور پر dMsg میں برآمد کیا ہے۔</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>اگر پہلے پاس کی بنا چکے ہیں تو محفوظ شدہ پاس کی استعمال کریں۔ نئی پاس کی صرف کسی دوسری لاگ ان شناخت کے لیے بنائیں۔</string>
 	<key>Use a secret through a device policy</key>
 	<string>ڈیوائس پالیسی کے ذریعے خفیہ استعمال کریں</string>
 	<key>Use an SSH signing key</key>
 	<string>SSH سائننگ کلید استعمال کریں</string>
+	<key>Use an existing passkey</key>
+	<string>موجودہ پاس کی استعمال کریں</string>
 	<key>Use conflicting version</key>
 	<string>متضاد ورژن استعمال کریں</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -3012,6 +3044,10 @@
 	<string>آپ کے پوشیدہ فیلڈز اس وقت تک پوشیدہ رہتے ہیں جب تک آپ انہیں ظاہر کرنے کا انتخاب نہیں کرتے۔</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>آپ کا مقامی مواد دستیاب رہے گا۔ اکاؤنٹ کے کسی عمل کے لیے ضرورت پڑنے پر Internet Identity سے لاگ ان کریں۔</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>پاس ورڈ مینیجر نے پاس کی محفوظ کر لی، لیکن dMsg رجسٹریشن کی تصدیق نہیں کر سکا۔ دوسری بنانے سے پہلے اس سے لاگ ان کرنے کی کوشش کریں۔</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>آپ کا پچھلا خط ابھی زیر التوا ہے۔ وصول کنندہ سے اسے ڈیسک ٹاپ پر آرکائیو کرنے یا iOS میں خط کے مینو سے ”ایک اور خط کی اجازت دیں“ منتخب کرنے کو کہیں، پھر یہ خط دوبارہ بھیجیں۔</string>
 	<key>Your private workspace.</key>
 	<string>آپ کی نجی کام کی جگہ۔</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3019,7 +3055,7 @@
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
 	<string>آپ کے وصولی کے اصول لاگو رہیں گے۔ اس سے کوئی رابطہ یا چینل کا رکن شامل نہیں ہوتا۔</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
-	<string>آپ کی رپورٹ اور کوئی بھی متن جو آپ واضح طور پر شامل کرتے ہیں ماڈریشن ٹیم کو بھیج دیا جائے گا۔ دیگر نجی مواد اور چابیاں شامل نہیں ہیں۔</string>
+	<string>آپ کی رپورٹ اور جو بھی متن آپ واضح طور پر شامل کریں گے وہ ماڈریشن ٹیم کو بھیجا جائے گا۔ دیگر نجی مواد اور کلیدیں شامل نہیں ہیں۔</string>
 	<key>Your reports</key>
 	<string>آپ کی رپورٹس</string>
 	<key>Your vault syncs automatically while dMsg is open.</key>
@@ -3140,41 +3176,5 @@
 	<string>بن گئی</string>
 	<key>not available</key>
 	<string>دستیاب نہیں</string>
-	<key>Continue with a passkey</key>
-	<string>پاس کی کے ساتھ جاری رکھیں</string>
-	<key>Create a passkey</key>
-	<string>پاس کی بنائیں</string>
-	<key>Add a passkey login</key>
-	<string>پاس کی لاگ اِن شامل کریں</string>
-	<key>Sign out all devices</key>
-	<string>تمام آلات سے سائن آؤٹ کریں</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>موجودہ لاگ اِن اجازتیں مزید 12 گھنٹے تک مؤثر رہ سکتی ہیں۔ آلات کی مواد تک رسائی برقرار رہتی ہے۔</string>
-	<key>Use an existing passkey</key>
-	<string>موجودہ پاس کی استعمال کریں</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>اس اکاؤنٹ سے پہلے سے منسلک لاگ ان استعمال کریں جسے آپ کھولنا چاہتے ہیں۔</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>ہر نئی پاس کی ایک الگ لاگ ان شناخت بناتی ہے۔ اسے موجودہ اکاؤنٹ میں شامل کرنے کے لیے اکاؤنٹ سیکیورٹی میں پاس کی لاگ ان شامل کریں استعمال کریں۔</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>یہ پاس کی dMsg میں رجسٹرڈ نہیں ہے۔ دوسری پاس کی منتخب کریں۔ اگر پہلے بنانے میں ناکامی ہوئی تھی تو نئی بنانے سے پہلے وہ غیر استعمال شدہ پاس کی پاس ورڈ مینیجر سے ہٹا دیں۔</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>پاس ورڈ مینیجر نے پاس کی محفوظ کر لی، لیکن dMsg رجسٹریشن کی تصدیق نہیں کر سکا۔ دوسری بنانے سے پہلے اس سے لاگ ان کرنے کی کوشش کریں۔</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>آپ کا پچھلا خط ابھی زیر التوا ہے۔ وصول کنندہ سے اسے ڈیسک ٹاپ پر آرکائیو کرنے یا iOS میں خط کے مینو سے ”ایک اور خط کی اجازت دیں“ منتخب کرنے کو کہیں، پھر یہ خط دوبارہ بھیجیں۔</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>وصول کنندہ کی وصولی کی ترتیبات اپ ڈیٹ ہونی چاہئیں۔ ان سے dMsg کا لاک کھول کر سنک کرنے کو کہیں، پھر یہ خط دوبارہ بھیجیں۔</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>بھیجنے یا وصول کرنے کی ترتیبات بدل گئی ہیں۔ یہ خط دوبارہ بھیجیں۔ اگر پھر بھی ناکام ہو تو آپ اور وصول کنندہ دونوں dMsg کا لاک کھول کر سنک کریں، پھر دوبارہ کوشش کریں۔</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>اگر پہلے پاس کی بنا چکے ہیں تو محفوظ شدہ پاس کی استعمال کریں۔ نئی پاس کی صرف کسی دوسری لاگ ان شناخت کے لیے بنائیں۔</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>پاس کی محفوظ ہے۔ اسے اس اکاؤنٹ سے منسلک کرنا مکمل کرنے کے لیے دوبارہ کوشش کریں؛ نئی پاس کی نہیں بنے گی۔</string>
-	<key>Continue adding this passkey</key>
-	<string>یہ پاس کی شامل کرنا جاری رکھیں</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>اس پاس کی کے آلات سے سائن آؤٹ کر کے جاری رکھیں</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>اس پاس کی سے بہت زیادہ آلات سائن ان ہیں۔ جاری رکھنے کے لیے ان سے سائن آؤٹ کریں۔ دوسری پاس کیز اور محفوظ مواد متاثر نہیں ہوں گے۔</string>
 </dict>
 </plist>

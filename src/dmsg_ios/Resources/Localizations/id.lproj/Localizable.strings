@@ -82,6 +82,8 @@
 	<string>Aktivitas</string>
 	<key>Activity on this device</key>
 	<string>Aktivitas di perangkat ini</string>
+	<key>Add a passkey login</key>
+	<string>Tambahkan login kunci sandi</string>
 	<key>Add account</key>
 	<string>Tambah akun</string>
 	<key>Add device</key>
@@ -548,6 +550,8 @@
 	<string>Hubungi dukungan</string>
 	<key>Content signing</key>
 	<string>Penandatanganan konten</string>
+	<key>Continue adding this passkey</key>
+	<string>Lanjutkan menambahkan passkey ini</string>
 	<key>Continue import</key>
 	<string>Lanjutkan impor</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>Lanjutkan impor ini di akun yang Anda pilih semula.</string>
 	<key>Continue with Internet Identity</key>
 	<string>Lanjutkan dengan Internet Identity</string>
+	<key>Continue with a passkey</key>
+	<string>Lanjutkan dengan kunci sandi</string>
 	<key>Controller ID</key>
 	<string>ID Pengontrol</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>Buat kredensial baru di penyedianya dan simpan di brankas</string>
 	<key>Create a new pairing request</key>
 	<string>Buat permintaan pemasangan baru</string>
+	<key>Create a passkey</key>
+	<string>Buat kunci sandi</string>
 	<key>Create a revocation request?</key>
 	<string>Buat permintaan pencabutan?</string>
 	<key>Create agent</key>
@@ -693,7 +701,7 @@
 	<key>Current login</key>
 	<string>Login saat ini</string>
 	<key>Current plan and limits</key>
-	<string>Rencana dan batasan saat ini</string>
+	<string>Paket dan batas saat ini</string>
 	<key>Current policy requires payment</key>
 	<string>Kebijakan saat ini memerlukan pembayaran</string>
 	<key>Current term ends</key>
@@ -795,11 +803,11 @@
 	<key>Discard draft</key>
 	<string>Buang</string>
 	<key>Discard staged copy</key>
-	<string>Buang salinan bertahap</string>
+	<string>Buang salinan sementara</string>
 	<key>Discard this draft?</key>
 	<string>Hapus perubahannya?</string>
 	<key>Discard this staged copy?</key>
-	<string>Buang salinan bertahap ini?</string>
+	<string>Buang salinan sementara ini?</string>
 	<key>Discard unsaved changes?</key>
 	<string>Hapus perubahannya?</string>
 	<key>Dismiss</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Setiap paket seluler dibatasi hingga 8 MiB, termasuk lampiran yang dipilih. Persetujuan akhir menunjukkan pilihan dan tujuan yang tidak dapat diubah.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Setiap passkey baru membuat identitas login terpisah. Untuk menambahkannya ke akun saat ini, gunakan Tambahkan login passkey di keamanan akun.</string>
 	<key>Edit</key>
 	<string>Edit</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>Jalankan dengan tanda tangan terkumpul</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Aturan pemblokiran, undangan, dan kapasitas kotak masuk yang ada tetap dipertahankan. Memilih kebijakan gratis atau tertutup akan menggantikan pengaturan kontak berbayar sebelumnya.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Otorisasi login yang ada dapat tetap berlaku hingga 12 jam. Izin konten perangkat tetap dipertahankan.</string>
 	<key>Expired</key>
 	<string>Kedaluwarsa</string>
 	<key>Expires</key>
@@ -1339,7 +1351,7 @@
 	<key>Mute notifications</key>
 	<string>Bisukan notifikasi</string>
 	<key>My account</key>
-	<string>akun saya</string>
+	<string>Akun saya</string>
 	<key>Name</key>
 	<string>Nama</string>
 	<key>Native Taproot key</key>
@@ -1525,7 +1537,7 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>Hanya output dengan kedalaman minimal %lld blok yang dapat dipindahkan sekarang; output lain menampilkan blok mulai kapan dapat dipindahkan.</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>Hanya salinan terpilih dan tidak dapat diubah yang muncul di aplikasi File. Akses memerlukan otentikasi sistem; mengunci dMsg mengakhiri sesi akses saat ini. File mungkin menyimpan salinan dan nama file yang diunduh, yang tidak dapat diingat oleh dMsg.</string>
+	<string>Hanya salinan terpilih yang tidak dapat diubah yang muncul di app File. Akses memerlukan autentikasi sistem; mengunci dMsg mengakhiri sesi akses saat ini. App File dapat menyimpan salinan yang diunduh dan nama file, yang tidak dapat ditarik kembali oleh dMsg.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Hanya file terenkripsi yang dipilih yang dapat ditransfer saat dMsg terkunci. iOS mengontrol penjadwalan; penghentian paksa akan menghentikan pengiriman hingga Anda membuka aplikasi lagi. Buka akun asli untuk memverifikasi dan menyelesaikan.</string>
 	<key>Open</key>
@@ -1651,9 +1663,9 @@
 	<key>Pin</key>
 	<string>Sematkan</string>
 	<key>Plan</key>
-	<string>Rencana</string>
+	<string>Paket</string>
 	<key>Plan and usage</key>
-	<string>Rencana dan penggunaan</string>
+	<string>Paket dan penggunaan</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>Paket tidak dapat diubah di versi aplikasi ini. Paket dan penggunaan Anda saat ini tetap tersedia.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -1859,7 +1871,7 @@
 	<key>Reload saved profile</key>
 	<string>Muat ulang profil tersimpan</string>
 	<key>Remaining</key>
-	<string>tersisa</string>
+	<string>Tersisa</string>
 	<key>Removal date</key>
 	<string>Tanggal penghapusan</string>
 	<key>Remove</key>
@@ -1987,7 +1999,7 @@
 	<key>Resume</key>
 	<string>Lanjutkan</string>
 	<key>Retire a hardware approval key</key>
-	<string>Pensiunkan kunci persetujuan perangkat keras</string>
+	<string>Nonaktifkan kunci persetujuan perangkat keras</string>
 	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
 	<string>Memensiunkan kunci menghilangkan kemampuannya untuk menyetujui tindakan yang dilindungi. Periksa apakah jalur persetujuan resmi lainnya masih tersedia.</string>
 	<key>Retry</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>Tinjau izin</string>
 	<key>Review publication or resume</key>
-	<string>Tinjau publikasi atau resume</string>
+	<string>Tinjau publikasi atau lanjutkan</string>
 	<key>Review rejection</key>
 	<string>Tinjau penolakan</string>
 	<key>Review removing this login</key>
@@ -2103,7 +2115,7 @@
 	<key>Revocation pending</key>
 	<string>Pencabutan tertunda</string>
 	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
-	<string>Pencabutan menghentikan akses baru setelah status keamanan disegarkan dan kunci diputar. Konten yang disalin sebelumnya tidak dapat ditarik kembali.</string>
+	<string>Pencabutan menghentikan akses baru setelah status keamanan diperbarui dan kunci dirotasi. Konten yang telah disalin sebelumnya tidak dapat ditarik kembali.</string>
 	<key>Revoke</key>
 	<string>Cabut</string>
 	<key>Revoke a device</key>
@@ -2298,12 +2310,14 @@
 	<string>Akun pengirim</string>
 	<key>Sending</key>
 	<string>Mengirim</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Pengaturan pengiriman atau penerimaan telah berubah. Coba kirim surat ini lagi. Jika masih gagal, Anda dan penerima perlu membuka kunci dMsg dan menyinkronkan sebelum mencoba lagi.</string>
 	<key>Sent</key>
 	<string>Terkirim</string>
 	<key>Sent letters</key>
 	<string>Mengirim surat</string>
 	<key>Server</key>
-	<string>pelayan</string>
+	<string>Pelayan</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
 	<string>Penerimaan oleh layanan tidak berarti penerima telah membaca surat Anda.</string>
 	<key>Session code</key>
@@ -2386,8 +2400,12 @@
 	<string>Masuk ke akun yang sama di perangkat baru, pindai QR komputer, lalu tinjau dan setujui di komputer.</string>
 	<key>Sign out</key>
 	<string>Keluar</string>
+	<key>Sign out all devices</key>
+	<string>Keluar dari semua perangkat</string>
 	<key>Sign out of this account?</key>
 	<string>Keluar dari akun ini?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Keluar dari perangkat kunci sandi ini dan lanjutkan</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Tanda tangani pernyataan yang Anda ulas</string>
 	<key>Signatures collected</key>
@@ -2437,7 +2455,7 @@
 	<key>Spending approvals %u</key>
 	<string>Persetujuan pengeluaran %u</string>
 	<key>Stage selected files, then choose an account and import them in dMsg.</key>
-	<string>Tahapkan file yang dipilih, lalu pilih akun dan impor di dMsg.</string>
+	<string>Siapkan file yang dipilih, lalu pilih akun dan impor di dMsg.</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>Mulai daftar periksa dari halaman referensi bidang.</string>
 	<key>Start a rotation checklist</key>
@@ -2600,6 +2618,10 @@
 	<string>Perangkat lain tidak ditemukan di jaringan lokal. Masukkan alamatnya.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>Hasilnya tidak pasti. Periksa pekerjaan asli sebelum mencoba melakukan apa pun lagi.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Passkey telah disimpan. Coba lagi untuk menyelesaikan penautannya ke akun ini; tidak ada passkey baru yang dibuat.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Pengaturan penerimaan penerima perlu diperbarui. Minta mereka membuka kunci dMsg dan menyinkronkan, lalu coba kirim surat ini lagi.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>Rekornya berubah. Segarkan dan tinjau hasil edit Anda sebelum menyimpannya lagi.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2613,7 +2635,7 @@
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
 	<string>Gambar yang dipilih tetap ada di perangkat ini hingga Anda mempublikasikannya. Avatar yang dipublikasikan bersifat publik dan salinannya mungkin tetap berada di luar dMsg.</string>
 	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
-	<string>Item yang dipilih tidak dapat dipentaskan. Buka dMsg dan coba impor ke sana.</string>
+	<string>Item yang dipilih tidak dapat disiapkan. Buka dMsg dan coba impor di sana.</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>Salinan sumber terputus. Buang dan pilih sumbernya lagi.</string>
 	<key>The test deployment is not configured.</key>
@@ -2691,7 +2713,7 @@
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Riwayat ini milik perangkat ini. Itu tidak mencerminkan CLI lokal-desktop, SSH, atau persetujuan pemasangan file dari perangkat lain.</string>
 	<key>This iPhone</key>
-	<string>iPhone ini</string>
+	<string>IPhone ini</string>
 	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
 	<string>IPhone ini mengelola identitas dan izin agen. Itu tidak membuat agen tetap berjalan saat iOS menangguhkan aplikasi.</string>
 	<key>This iPhone's keys</key>
@@ -2720,6 +2742,10 @@
 	<string>Operasi ini untuk sementara tidak tersedia. Data Anda yang disimpan disimpan.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Paket ini telah diimpor ke perangkat ini. Salinan yang ada tetap independen.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Terlalu banyak perangkat masuk dengan kunci sandi ini. Keluarkan perangkat tersebut untuk melanjutkan. Kunci sandi lain dan konten tersimpan tidak terpengaruh.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Passkey ini belum terdaftar di dMsg. Pilih passkey lain. Jika pembuatannya sebelumnya gagal, hapus passkey yang tidak terpakai itu dari pengelola kata sandi sebelum membuat yang baru.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Profil ini bersifat publik. Jangan sertakan rahasia atau informasi kontak pribadi.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>Url</string>
 	<key>Usage</key>
 	<string>Penggunaan</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Gunakan login yang sudah ditautkan ke akun yang ingin dibuka.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>Gunakan nama sepanjang 1–255 karakter tanpa garis miring atau karakter kontrol.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Gunakan kata sandi dari snapshot yang Anda ekspor secara eksplisit di dMsg.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Jika sudah membuat passkey, gunakan yang tersimpan. Buat passkey baru hanya jika memerlukan identitas login lain.</string>
 	<key>Use a secret through a device policy</key>
 	<string>Gunakan rahasia melalui kebijakan perangkat</string>
 	<key>Use an SSH signing key</key>
 	<string>Gunakan kunci penandatanganan SSH</string>
+	<key>Use an existing passkey</key>
+	<string>Gunakan passkey yang sudah ada</string>
 	<key>Use conflicting version</key>
 	<string>Gunakan versi yang bertentangan</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -2965,7 +2997,7 @@
 	<key>Whoever has the link sees these, as plain text.</key>
 	<string>Siapa pun yang punya tautan melihatnya sebagai teks biasa.</string>
 	<key>Withdraw</key>
-	<string>Menarik diri</string>
+	<string>Tarik kembali</string>
 	<key>Withdraw message</key>
 	<string>Tarik pesan</string>
 	<key>Withdraw this message?</key>
@@ -3012,6 +3044,10 @@
 	<string>Bidang tersembunyi Anda akan tetap tersembunyi sampai Anda memilih untuk mengungkapkannya.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Konten lokal Anda tetap tersedia. Masuk dengan Internet Identity saat tindakan akun memerlukannya.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Pengelola kata sandi menyimpan passkey, tetapi dMsg belum dapat mengonfirmasi pendaftaran. Coba masuk dengan passkey itu sebelum membuat yang lain.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Surat Anda sebelumnya masih tertunda. Minta penerima mengarsipkannya di desktop atau memilih “Izinkan surat lain” dari menu surat di iOS, lalu coba kirim surat ini lagi.</string>
 	<key>Your private workspace.</key>
 	<string>Ruang kerja pribadi Anda.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>dibuat</string>
 	<key>not available</key>
 	<string>tidak tersedia</string>
-	<key>Continue with a passkey</key>
-	<string>Lanjutkan dengan kunci sandi</string>
-	<key>Create a passkey</key>
-	<string>Buat kunci sandi</string>
-	<key>Add a passkey login</key>
-	<string>Tambahkan login kunci sandi</string>
-	<key>Sign out all devices</key>
-	<string>Keluar dari semua perangkat</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>Otorisasi login yang ada dapat tetap berlaku hingga 12 jam. Izin konten perangkat tetap dipertahankan.</string>
-	<key>Use an existing passkey</key>
-	<string>Gunakan passkey yang sudah ada</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>Gunakan login yang sudah ditautkan ke akun yang ingin dibuka.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>Setiap passkey baru membuat identitas login terpisah. Untuk menambahkannya ke akun saat ini, gunakan Tambahkan login passkey di keamanan akun.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>Passkey ini belum terdaftar di dMsg. Pilih passkey lain. Jika pembuatannya sebelumnya gagal, hapus passkey yang tidak terpakai itu dari pengelola kata sandi sebelum membuat yang baru.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>Pengelola kata sandi menyimpan passkey, tetapi dMsg belum dapat mengonfirmasi pendaftaran. Coba masuk dengan passkey itu sebelum membuat yang lain.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>Surat Anda sebelumnya masih tertunda. Minta penerima mengarsipkannya di desktop atau memilih “Izinkan surat lain” dari menu surat di iOS, lalu coba kirim surat ini lagi.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>Pengaturan penerimaan penerima perlu diperbarui. Minta mereka membuka kunci dMsg dan menyinkronkan, lalu coba kirim surat ini lagi.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>Pengaturan pengiriman atau penerimaan telah berubah. Coba kirim surat ini lagi. Jika masih gagal, Anda dan penerima perlu membuka kunci dMsg dan menyinkronkan sebelum mencoba lagi.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>Jika sudah membuat passkey, gunakan yang tersimpan. Buat passkey baru hanya jika memerlukan identitas login lain.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>Passkey telah disimpan. Coba lagi untuk menyelesaikan penautannya ke akun ini; tidak ada passkey baru yang dibuat.</string>
-	<key>Continue adding this passkey</key>
-	<string>Lanjutkan menambahkan passkey ini</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>Keluar dari perangkat kunci sandi ini dan lanjutkan</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>Terlalu banyak perangkat masuk dengan kunci sandi ini. Keluarkan perangkat tersebut untuk melanjutkan. Kunci sandi lain dan konten tersimpan tidak terpengaruh.</string>
 </dict>
 </plist>

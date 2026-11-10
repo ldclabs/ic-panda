@@ -2530,7 +2530,7 @@ export default {
     "experience.notLocal": "Téléchargez d’abord cette version sur cet appareil.",
     "experience.setup": "Commencer",
     "experience.policyIntro": "Créer des issues GitHub sans transmettre le jeton à l’agent.",
-    "experience.policySteps": "1. Enregistrer le jeton au coffre. 2. Choisir dépôt et agent. 3. Examiner la politique. 4. Approuver chaque issue.",
+    "experience.policySteps": "1. Enregistrez un jeton GitHub dans le coffre. 2. Choisissez un dépôt et un agent. 3. Examinez la politique. 4. Approuvez chaque issue demandée.",
     "experience.openVault": "Ouvrir le coffre",
     "experience.openFiles": "Ouvrir les fichiers",
     "experience.openAgents": "Gérer les agents",

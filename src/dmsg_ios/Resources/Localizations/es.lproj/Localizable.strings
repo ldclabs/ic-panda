@@ -82,6 +82,8 @@
 	<string>Actividad</string>
 	<key>Activity on this device</key>
 	<string>Actividad en este dispositivo</string>
+	<key>Add a passkey login</key>
+	<string>Añadir un acceso con clave de acceso</string>
 	<key>Add account</key>
 	<string>Añadir cuenta</string>
 	<key>Add device</key>
@@ -103,7 +105,7 @@
 	<key>Add the new address</key>
 	<string>Añadir la dirección nueva</string>
 	<key>Added</key>
-	<string>añadido</string>
+	<string>Añadido</string>
 	<key>Additional reserve / rent</key>
 	<string>Reserva / renta</string>
 	<key>Address</key>
@@ -203,7 +205,7 @@
 	<key>Approve this request</key>
 	<string>Aprobar esta solicitud</string>
 	<key>Approved by</key>
-	<string>aprobado por</string>
+	<string>Aprobado por</string>
 	<key>Approver</key>
 	<string>Aprobador</string>
 	<key>Approving enrolls the new device and moves the content root to it.</key>
@@ -548,6 +550,8 @@
 	<string>Contactar con soporte</string>
 	<key>Content signing</key>
 	<string>Firma de contenido</string>
+	<key>Continue adding this passkey</key>
+	<string>Continuar añadiendo esta llave</string>
 	<key>Continue import</key>
 	<string>Continuar importación</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>Continúa la importación en la cuenta elegida originalmente.</string>
 	<key>Continue with Internet Identity</key>
 	<string>Continuar con Internet Identity</string>
+	<key>Continue with a passkey</key>
+	<string>Continuar con una clave de acceso</string>
 	<key>Controller ID</key>
 	<string>ID del controlador</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>Crear una credencial nueva en su proveedor y guardarla en la bóveda</string>
 	<key>Create a new pairing request</key>
 	<string>Crear otra solicitud de emparejamiento</string>
+	<key>Create a passkey</key>
+	<string>Crear una clave de acceso</string>
 	<key>Create a revocation request?</key>
 	<string>¿Crear una solicitud de revocación?</string>
 	<key>Create agent</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Cada paquete móvil tiene un límite de 8 MiB, incluidos los adjuntos seleccionados. La aprobación final muestra la selección inmutable exacta y su destino.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Cada nueva llave de acceso crea una identidad de inicio de sesión independiente. Para añadir una a tu cuenta actual, usa Añadir inicio de sesión con llave de acceso en la seguridad de la cuenta.</string>
 	<key>Edit</key>
 	<string>Editar</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>Ejecutar con las firmas reunidas</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Se conservan bloqueos, invitaciones y capacidad. Elegir Gratis o Cerrado reemplaza la configuración de contacto de pago anterior.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Las autorizaciones de acceso existentes pueden seguir siendo válidas hasta 12 horas. Los dispositivos conservan su acceso al contenido.</string>
 	<key>Expired</key>
 	<string>Caducado</string>
 	<key>Expires</key>
@@ -1859,7 +1871,7 @@
 	<key>Reload saved profile</key>
 	<string>Recargar perfil guardado</string>
 	<key>Remaining</key>
-	<string>restantes</string>
+	<string>Restantes</string>
 	<key>Removal date</key>
 	<string>Fecha de borrado definitivo</string>
 	<key>Remove</key>
@@ -2133,7 +2145,7 @@
 	<key>Revoke this snapshot link?</key>
 	<string>¿Revocar este enlace de instantánea?</string>
 	<key>Revoked</key>
-	<string>revocada</string>
+	<string>Revocada</string>
 	<key>Revokes the old device once nothing is left behind unnoticed.</key>
 	<string>Revoca el dispositivo anterior cuando no quede nada pendiente sin advertir.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
@@ -2298,6 +2310,8 @@
 	<string>Cuenta del remitente</string>
 	<key>Sending</key>
 	<string>Envío</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>La configuración de envío o recepción ha cambiado. Reintenta esta carta. Si vuelve a fallar, tanto tú como el destinatario debéis desbloquear dMsg y sincronizar antes de intentarlo de nuevo.</string>
 	<key>Sent</key>
 	<string>Enviado</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>Inicia sesión con la misma cuenta en el dispositivo nuevo, escanea el QR del ordenador y revisa y aprueba allí la solicitud.</string>
 	<key>Sign out</key>
 	<string>Cerrar sesión</string>
+	<key>Sign out all devices</key>
+	<string>Cerrar sesión en todos los dispositivos</string>
 	<key>Sign out of this account?</key>
 	<string>¿Cerrar sesión en esta cuenta?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Cerrar las sesiones de esta llave y continuar</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Firmar la declaración que has revisado</string>
 	<key>Signatures collected</key>
@@ -2600,6 +2618,10 @@
 	<string>No se encontró el otro dispositivo en la red local. Introduce su dirección.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>El resultado es incierto. Comprueba la tarea original antes de volver a intentarlo.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>La llave de acceso está guardada. Reintenta para terminar de vincularla a esta cuenta; no se creará otra llave.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>La configuración de recepción del destinatario necesita actualizarse. Pídele que desbloquee dMsg y sincronice; después, reintenta esta carta.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>El registro cambió. Actualiza y revisa tus cambios antes de guardar de nuevo.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2720,6 +2742,10 @@
 	<string>Esta operación no está disponible temporalmente. Tus datos guardados se conservan.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Este paquete ya se ha importado en este dispositivo. Las copias existentes siguen siendo independientes.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Hay demasiados dispositivos conectados con esta llave de acceso. Cierra sus sesiones para continuar. Las demás llaves y el contenido guardado no se verán afectados.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Esta llave de acceso no está registrada en dMsg. Elige otra. Si su creación falló, elimina esa llave sin usar de tu gestor de contraseñas antes de crear una nueva.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Este perfil es público. No incluyas secretos ni datos de contacto privados.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Uso</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Usa un inicio de sesión ya vinculado a la cuenta que quieres abrir.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>Usa un nombre de 1 a 255 caracteres sin barras ni caracteres de control.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Usa una contraseña de la instantánea que exportaste en dMsg.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Si ya creaste una llave de acceso, usa la guardada. Crea una nueva solo si necesitas otra identidad de inicio de sesión.</string>
 	<key>Use a secret through a device policy</key>
 	<string>Usar un secreto mediante una política del dispositivo</string>
 	<key>Use an SSH signing key</key>
 	<string>Usar una clave de firma SSH</string>
+	<key>Use an existing passkey</key>
+	<string>Usar una llave de acceso existente</string>
 	<key>Use conflicting version</key>
 	<string>Usar versión en conflicto</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -3012,6 +3044,10 @@
 	<string>Los campos ocultos permanecen ocultos hasta que decidas mostrarlos.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Tu contenido local sigue disponible. Inicia sesión con Internet Identity cuando una acción de la cuenta lo requiera.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Tu gestor de contraseñas guardó la llave de acceso, pero dMsg no pudo confirmar el registro. Intenta iniciar sesión con ella antes de crear otra.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Tu carta anterior sigue pendiente. Pide al destinatario que la archive en la app de escritorio o elija «Permitir otra carta» en el menú de la carta en iOS; después, reintenta esta carta.</string>
 	<key>Your private workspace.</key>
 	<string>Tu espacio de trabajo privado.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>creada</string>
 	<key>not available</key>
 	<string>no disponible</string>
-	<key>Continue with a passkey</key>
-	<string>Continuar con una clave de acceso</string>
-	<key>Create a passkey</key>
-	<string>Crear una clave de acceso</string>
-	<key>Add a passkey login</key>
-	<string>Añadir un acceso con clave de acceso</string>
-	<key>Sign out all devices</key>
-	<string>Cerrar sesión en todos los dispositivos</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>Las autorizaciones de acceso existentes pueden seguir siendo válidas hasta 12 horas. Los dispositivos conservan su acceso al contenido.</string>
-	<key>Use an existing passkey</key>
-	<string>Usar una llave de acceso existente</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>Usa un inicio de sesión ya vinculado a la cuenta que quieres abrir.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>Cada nueva llave de acceso crea una identidad de inicio de sesión independiente. Para añadir una a tu cuenta actual, usa Añadir inicio de sesión con llave de acceso en la seguridad de la cuenta.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>Esta llave de acceso no está registrada en dMsg. Elige otra. Si su creación falló, elimina esa llave sin usar de tu gestor de contraseñas antes de crear una nueva.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>Tu gestor de contraseñas guardó la llave de acceso, pero dMsg no pudo confirmar el registro. Intenta iniciar sesión con ella antes de crear otra.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>Tu carta anterior sigue pendiente. Pide al destinatario que la archive en la app de escritorio o elija «Permitir otra carta» en el menú de la carta en iOS; después, reintenta esta carta.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>La configuración de recepción del destinatario necesita actualizarse. Pídele que desbloquee dMsg y sincronice; después, reintenta esta carta.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>La configuración de envío o recepción ha cambiado. Reintenta esta carta. Si vuelve a fallar, tanto tú como el destinatario debéis desbloquear dMsg y sincronizar antes de intentarlo de nuevo.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>Si ya creaste una llave de acceso, usa la guardada. Crea una nueva solo si necesitas otra identidad de inicio de sesión.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>La llave de acceso está guardada. Reintenta para terminar de vincularla a esta cuenta; no se creará otra llave.</string>
-	<key>Continue adding this passkey</key>
-	<string>Continuar añadiendo esta llave</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>Cerrar las sesiones de esta llave y continuar</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>Hay demasiados dispositivos conectados con esta llave de acceso. Cierra sus sesiones para continuar. Las demás llaves y el contenido guardado no se verán afectados.</string>
 </dict>
 </plist>

@@ -82,6 +82,8 @@
 	<string>Etkinlik</string>
 	<key>Activity on this device</key>
 	<string>Bu cihazdaki etkinlik</string>
+	<key>Add a passkey login</key>
+	<string>Geçiş anahtarıyla giriş ekle</string>
 	<key>Add account</key>
 	<string>Hesap ekle</string>
 	<key>Add device</key>
@@ -325,7 +327,7 @@
 	<key>Birthday</key>
 	<string>Doğum günü</string>
 	<key>Bitcoin</key>
-	<string>bitcoin</string>
+	<string>Bitcoin</string>
 	<key>Block this account</key>
 	<string>Bu hesabı engelle</string>
 	<key>Blocked accounts</key>
@@ -548,6 +550,8 @@
 	<string>Desteğe başvurun</string>
 	<key>Content signing</key>
 	<string>İçerik imzalama</string>
+	<key>Continue adding this passkey</key>
+	<string>Bu geçiş anahtarını eklemeye devam et</string>
 	<key>Continue import</key>
 	<string>İçe aktarmaya devam et</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>Bu içe aktarma işlemine başlangıçta seçtiğiniz hesapta devam edin.</string>
 	<key>Continue with Internet Identity</key>
 	<string>Internet Identity ile devam edin</string>
+	<key>Continue with a passkey</key>
+	<string>Geçiş anahtarıyla devam et</string>
 	<key>Controller ID</key>
 	<string>Denetleyici Kimliği</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>Sağlayıcısında yeni bir kimlik bilgisi oluşturun ve bunu kasaya kaydedin</string>
 	<key>Create a new pairing request</key>
 	<string>Yeni bir eşleştirme isteği oluştur</string>
+	<key>Create a passkey</key>
+	<string>Geçiş anahtarı oluştur</string>
 	<key>Create a revocation request?</key>
 	<string>İptal talebi oluşturulsun mu?</string>
 	<key>Create agent</key>
@@ -795,11 +803,11 @@
 	<key>Discard draft</key>
 	<string>At</string>
 	<key>Discard staged copy</key>
-	<string>Aşamalı kopyayı sil</string>
+	<string>Hazırlanan kopyayı sil</string>
 	<key>Discard this draft?</key>
 	<string>Değişiklikler silinsin mi?</string>
 	<key>Discard this staged copy?</key>
-	<string>Bu aşamalı kopya silinsin mi?</string>
+	<string>Hazırlanan bu kopya silinsin mi?</string>
 	<key>Discard unsaved changes?</key>
 	<string>Değişiklikler silinsin mi?</string>
 	<key>Dismiss</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Her mobil paket, seçilen eklentiler de dahil olmak üzere 8 MiB ile sınırlıdır. Nihai onay, kesin değişmez seçimi ve hedefi gösterir.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Her yeni geçiş anahtarı ayrı bir giriş kimliği oluşturur. Mevcut hesabınıza eklemek için hesap güvenliğindeki Geçiş anahtarıyla giriş ekle seçeneğini kullanın.</string>
 	<key>Edit</key>
 	<string>Düzenle</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>Toplanan imzalarla yürüt</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Mevcut engelleme kuralları, davetiyeler ve gelen kutusu kapasitesi korunur. Ücretsiz veya kapalı bir politikanın seçilmesi, daha önceki ücretli iletişim ayarlarının yerine geçer.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Mevcut giriş yetkileri 12 saate kadar geçerli kalabilir. Cihazların içerik yetkileri korunur.</string>
 	<key>Expired</key>
 	<string>Süresi dolmuş</string>
 	<key>Expires</key>
@@ -1493,7 +1505,7 @@
 	<key>Number</key>
 	<string>Sayı</string>
 	<key>OK</key>
-	<string>tamam</string>
+	<string>Tamam</string>
 	<key>Observed on this device</key>
 	<string>Bu cihazda gözlemlendi</string>
 	<key>Old address</key>
@@ -1525,7 +1537,7 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>Şu an yalnızca en az %lld blok derinliğindeki çıktılar taşınır; diğerleri hangi bloktan itibaren taşınabileceğini gösterir.</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>Dosyalar uygulamasında yalnızca seçilen, değiştirilemez kopyalar görünür. Erişim, sistem kimlik doğrulamasını gerektirir; dMsg'nun kilitlenmesi mevcut erişim oturumunu sonlandırır. Dosyalar, dMsg'nun hatırlayamadığı indirilen kopyaları ve dosya adlarını saklayabilir.</string>
+	<string>Dosyalar uygulamasında yalnızca seçilen, değiştirilemez kopyalar görünür. Erişim için sistem kimlik doğrulaması gerekir; dMsg'nin kilitlenmesi mevcut erişim oturumunu sonlandırır. Dosyalar uygulaması, indirilen kopyaları ve dosya adlarını saklayabilir; dMsg bunları geri alamaz.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg kilitliyken yalnızca seçilen şifrelenmiş dosya aktarılabilir. iOS planlamayı kontrol eder; zorla bırakma, siz uygulamayı tekrar açana kadar dağıtımı durdurur. Doğrulamak ve tamamlamak için orijinal hesabı açın.</string>
 	<key>Open</key>
@@ -1859,7 +1871,7 @@
 	<key>Reload saved profile</key>
 	<string>Kayıtlı profili yeniden yükle</string>
 	<key>Remaining</key>
-	<string>kalan</string>
+	<string>Kalan</string>
 	<key>Removal date</key>
 	<string>Kaldırılma tarihi</string>
 	<key>Remove</key>
@@ -2037,7 +2049,7 @@
 	<key>Review deletion</key>
 	<string>Silme işlemini inceleyin</string>
 	<key>Review enabling a principal</key>
-	<string>principal etkinleştirmeyi inceleyin</string>
+	<string>Principal etkinleştirmeyi inceleyin</string>
 	<key>Review field and dependencies</key>
 	<string>Alanı ve bağımlılıkları inceleyin</string>
 	<key>Review hardware policy changes</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>İzinleri inceleyin</string>
 	<key>Review publication or resume</key>
-	<string>Yayını inceleyin veya özgeçmişi inceleyin</string>
+	<string>Yayını inceleyin veya sürdürün</string>
 	<key>Review rejection</key>
 	<string>Reddi inceleyin</string>
 	<key>Review removing this login</key>
@@ -2298,6 +2310,8 @@
 	<string>Gönderen hesabı</string>
 	<key>Sending</key>
 	<string>Gönderme</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Gönderme veya alma ayarları değişti. Bu mektubu yeniden deneyin. Yine başarısız olursa siz ve alıcı, tekrar denemeden önce dMsg kilidini açıp eşitlemelisiniz.</string>
 	<key>Sent</key>
 	<string>Gönderildi</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>Yeni cihazda aynı hesaba giriş yapın, bilgisayarın QR kodunu tarayın, ardından bilgisayarda inceleyip onaylayın.</string>
 	<key>Sign out</key>
 	<string>Oturumu kapat</string>
+	<key>Sign out all devices</key>
+	<string>Tüm cihazlardan çıkış yap</string>
 	<key>Sign out of this account?</key>
 	<string>Bu hesaptaki oturum kapatılsın mı?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Bu geçiş anahtarının cihazlarından çıkış yap ve devam et</string>
 	<key>Sign the statement you reviewed</key>
 	<string>İncelediğiniz beyanı imzalayın</string>
 	<key>Signatures collected</key>
@@ -2437,7 +2455,7 @@
 	<key>Spending approvals %u</key>
 	<string>Harcama onayları %u</string>
 	<key>Stage selected files, then choose an account and import them in dMsg.</key>
-	<string>Seçilen dosyaları hazırlayın, ardından bir hesap seçin ve bunları dMsg'ya aktarın.</string>
+	<string>Seçilen dosyaları hazırlayın, ardından bir hesap seçip dMsg'de içe aktarın.</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>Bir alanın referans sayfasından bir kontrol listesi başlatın.</string>
 	<key>Start a rotation checklist</key>
@@ -2600,6 +2618,10 @@
 	<string>Diğer cihaz yerel ağda bulunamadı. Adresini girin.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>Sonuç belirsiz. Tekrar bir şey denemeden önce orijinal işi kontrol edin.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Geçiş anahtarı kaydedildi. Bu hesaba bağlamayı tamamlamak için tekrar deneyin; yeni anahtar oluşturulmayacak.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Alıcının alım ayarlarının güncellenmesi gerekiyor. Alıcıdan dMsg kilidini açıp eşitlemesini isteyin, ardından bu mektubu yeniden deneyin.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>Kayıt değişti. Tekrar kaydetmeden önce düzenlemelerinizi yenileyin ve inceleyin.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2613,7 +2635,7 @@
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
 	<string>Seçilen resim siz yayınlayana kadar bu cihazda kalır. Yayınlanan avatarlar herkese açıktır ve kopyaları dMsg dışında kalabilir.</string>
 	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
-	<string>Seçilen öğeler aşamalandırılamadı. dMsg'yu açın ve bunları oraya aktarmayı deneyin.</string>
+	<string>Seçilen öğeler hazırlanamadı. dMsg'yi açın ve oradan içe aktarmayı deneyin.</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>Kaynak kopya kesildi. Atın ve kaynağı tekrar seçin.</string>
 	<key>The test deployment is not configured.</key>
@@ -2720,6 +2742,10 @@
 	<string>Bu işlem geçici olarak kullanılamıyor. Kaydedilen verileriniz saklanır.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Bu paket zaten bu cihaza aktarıldı. Mevcut kopyalar bağımsız kalır.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Bu geçiş anahtarıyla çok fazla cihazda oturum açılmış. Devam etmek için bu oturumları kapatın. Diğer geçiş anahtarları ve kaydedilmiş içerik etkilenmez.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Bu geçiş anahtarı dMsg’de kayıtlı değil. Başka bir anahtar seçin. Önceki oluşturma başarısız olduysa yeni bir anahtar oluşturmadan önce kullanılmayan anahtarı parola yöneticinizden kaldırın.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Bu profil herkese açıktır. Sırları veya özel iletişim bilgilerini eklemeyin.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,18 +2868,24 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Kullanım</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Açmak istediğiniz hesaba zaten bağlı bir giriş yöntemi kullanın.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>Eğik çizgi veya kontrol karakteri içermeyen, 1–255 karakter uzunluğunda bir ad kullanın.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>dMsg'da açıkça dışa aktardığınız anlık görüntüden bir parola kullanın.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Daha önce bir geçiş anahtarı oluşturduysanız kayıtlı olanı kullanın. Yalnızca başka bir giriş kimliği gerekiyorsa yeni anahtar oluşturun.</string>
 	<key>Use a secret through a device policy</key>
 	<string>Cihaz politikası aracılığıyla bir gizli dizi kullanma</string>
 	<key>Use an SSH signing key</key>
 	<string>SSH imzalama anahtarı kullanın</string>
+	<key>Use an existing passkey</key>
+	<string>Mevcut bir geçiş anahtarını kullan</string>
 	<key>Use conflicting version</key>
 	<string>Çakışan sürümü kullan</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
-	<string>icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol veya sol:mint kullanın.</string>
+	<string>Icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol veya sol:mint kullanın.</string>
 	<key>Use password</key>
 	<string>Parolayı kullan</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
@@ -2989,7 +3021,7 @@
 	<key>You have read-only access to this conversation.</key>
 	<string>Bu sohbete yalnızca okuma erişiminiz var.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
-	<string>Sağlayıcı değişikliklerini kendiniz gerçekleştirirsiniz. dMsg ekstrelerinizi kaydeder ve yerel revizyonları kontrol eder; yukarı akış oluşturmayı, test etmeyi veya iptal etmeyi doğrulayamaz.</string>
+	<string>Sağlayıcı değişikliklerini kendiniz yaparsınız. dMsg beyanlarınızı kaydeder ve yerel sürümleri denetler; sağlayıcı tarafındaki oluşturma, test veya iptal işlemlerini doğrulayamaz.</string>
 	<key>Your assets. Your approval rules.</key>
 	<string>Varlıklarınız. Onay kurallarınız.</string>
 	<key>Your authorized channels appear after synchronization.</key>
@@ -3012,6 +3044,10 @@
 	<string>Gizli alanlarınız, siz onları açığa çıkarmayı seçene kadar gizli kalır.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Yerel içeriğiniz kullanılabilir olmaya devam eder. Bir hesap işlemi gerektirdiğinde Internet Identity ile giriş yapın.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Parola yöneticiniz geçiş anahtarını kaydetti, ancak dMsg kaydı doğrulayamadı. Başka bir anahtar oluşturmadan önce bununla giriş yapmayı deneyin.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Önceki mektubunuz hâlâ bekliyor. Alıcıdan masaüstünde arşivlemesini veya iOS mektup menüsünde “Başka bir mektuba izin ver” seçmesini isteyin, ardından bu mektubu yeniden deneyin.</string>
 	<key>Your private workspace.</key>
 	<string>Özel çalışma alanınız.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>oluşturuldu</string>
 	<key>not available</key>
 	<string>kullanılamıyor</string>
-	<key>Continue with a passkey</key>
-	<string>Geçiş anahtarıyla devam et</string>
-	<key>Create a passkey</key>
-	<string>Geçiş anahtarı oluştur</string>
-	<key>Add a passkey login</key>
-	<string>Geçiş anahtarıyla giriş ekle</string>
-	<key>Sign out all devices</key>
-	<string>Tüm cihazlardan çıkış yap</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>Mevcut giriş yetkileri 12 saate kadar geçerli kalabilir. Cihazların içerik yetkileri korunur.</string>
-	<key>Use an existing passkey</key>
-	<string>Mevcut bir geçiş anahtarını kullan</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>Açmak istediğiniz hesaba zaten bağlı bir giriş yöntemi kullanın.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>Her yeni geçiş anahtarı ayrı bir giriş kimliği oluşturur. Mevcut hesabınıza eklemek için hesap güvenliğindeki Geçiş anahtarıyla giriş ekle seçeneğini kullanın.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>Bu geçiş anahtarı dMsg’de kayıtlı değil. Başka bir anahtar seçin. Önceki oluşturma başarısız olduysa yeni bir anahtar oluşturmadan önce kullanılmayan anahtarı parola yöneticinizden kaldırın.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>Parola yöneticiniz geçiş anahtarını kaydetti, ancak dMsg kaydı doğrulayamadı. Başka bir anahtar oluşturmadan önce bununla giriş yapmayı deneyin.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>Önceki mektubunuz hâlâ bekliyor. Alıcıdan masaüstünde arşivlemesini veya iOS mektup menüsünde “Başka bir mektuba izin ver” seçmesini isteyin, ardından bu mektubu yeniden deneyin.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>Alıcının alım ayarlarının güncellenmesi gerekiyor. Alıcıdan dMsg kilidini açıp eşitlemesini isteyin, ardından bu mektubu yeniden deneyin.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>Gönderme veya alma ayarları değişti. Bu mektubu yeniden deneyin. Yine başarısız olursa siz ve alıcı, tekrar denemeden önce dMsg kilidini açıp eşitlemelisiniz.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>Daha önce bir geçiş anahtarı oluşturduysanız kayıtlı olanı kullanın. Yalnızca başka bir giriş kimliği gerekiyorsa yeni anahtar oluşturun.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>Geçiş anahtarı kaydedildi. Bu hesaba bağlamayı tamamlamak için tekrar deneyin; yeni anahtar oluşturulmayacak.</string>
-	<key>Continue adding this passkey</key>
-	<string>Bu geçiş anahtarını eklemeye devam et</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>Bu geçiş anahtarının cihazlarından çıkış yap ve devam et</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>Bu geçiş anahtarıyla çok fazla cihazda oturum açılmış. Devam etmek için bu oturumları kapatın. Diğer geçiş anahtarları ve kaydedilmiş içerik etkilenmez.</string>
 </dict>
 </plist>

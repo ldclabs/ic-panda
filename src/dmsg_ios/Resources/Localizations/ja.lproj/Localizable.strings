@@ -82,6 +82,8 @@
 	<string>アクティビティ</string>
 	<key>Activity on this device</key>
 	<string>このデバイスでのアクティビティ</string>
+	<key>Add a passkey login</key>
+	<string>パスキーによるログインを追加</string>
 	<key>Add account</key>
 	<string>アカウントを追加</string>
 	<key>Add device</key>
@@ -548,6 +550,8 @@
 	<string>サポートに連絡する</string>
 	<key>Content signing</key>
 	<string>コンテンツの署名</string>
+	<key>Continue adding this passkey</key>
+	<string>このパスキーの追加を続ける</string>
 	<key>Continue import</key>
 	<string>インポートを続行する</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>最初に選択したアカウントでこのインポートを続行します。</string>
 	<key>Continue with Internet Identity</key>
 	<string>Internet Identity で続行します</string>
+	<key>Continue with a passkey</key>
+	<string>パスキーで続ける</string>
 	<key>Controller ID</key>
 	<string>コントローラID</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>プロバイダーで新しい認証情報を作成し、ボールトに保存します。</string>
 	<key>Create a new pairing request</key>
 	<string>新しいペアリング要求を作成する</string>
+	<key>Create a passkey</key>
+	<string>パスキーを作成</string>
 	<key>Create a revocation request?</key>
 	<string>取り消しリクエストを作成しますか?</string>
 	<key>Create agent</key>
@@ -799,7 +807,7 @@
 	<key>Discard this draft?</key>
 	<string>変更を破棄しますか?</string>
 	<key>Discard this staged copy?</key>
-	<string>この段階的に作成されたコピーを破棄しますか?</string>
+	<string>この一時コピーを破棄しますか？</string>
 	<key>Discard unsaved changes?</key>
 	<string>変更を破棄しますか?</string>
 	<key>Dismiss</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>各モバイル パッケージは、選択された添付ファイルを含めて 8 MiB に制限されています。最終的な承認には、正確な不変の選択と宛先が示されます。</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>新しいパスキーを作成するたびに、別のログインIDが作られます。現在のアカウントに追加するには、アカウントのセキュリティ設定でパスキーログインを追加してください。</string>
 	<key>Edit</key>
 	<string>編集</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>集まった署名で実行</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>既存のブロック ルール、招待状、受信トレイの容量は維持されます。無料または非公開ポリシーを選択すると、以前の有料連絡先設定が置き換えられます。</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>発行済みのログイン権限は最大 12 時間有効です。コンテンツへのデバイス権限は維持されます。</string>
 	<key>Expired</key>
 	<string>期限切れ</string>
 	<key>Expires</key>
@@ -1365,7 +1377,7 @@
 	<key>New folder</key>
 	<string>新しいフォルダー</string>
 	<key>New free letter</key>
-	<string>新しいフリーレター</string>
+	<string>新しい無料の手紙</string>
 	<key>New link</key>
 	<string>新しいリンク</string>
 	<key>New revision</key>
@@ -1425,7 +1437,7 @@
 	<key>No items</key>
 	<string>まだ記録がありません</string>
 	<key>No letters yet</key>
-	<string>まだ文字はありません</string>
+	<string>まだ手紙はありません</string>
 	<key>No links yet. Make one and send it to whoever should send you files.</key>
 	<string>リンクはまだありません。作成して、ファイルを送ってほしい人に渡しましょう。</string>
 	<key>No matching accounts</key>
@@ -1525,7 +1537,7 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>今移せるのは %lld ブロック以上前の出力だけです。その他の出力には、移せるようになるブロックが表示されます。</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>ファイル アプリには、選択された不変のコピーのみが表示されます。アクセスにはシステム認証が必要です。 dMsg をロックすると、現在のアクセス セッションが終了します。ファイルにはダウンロードされたコピーとファイル名が保持される場合がありますが、dMsg はそれを呼び出すことができません。</string>
+	<string>「ファイル」Appには選択した変更不可のコピーのみが表示されます。アクセスにはシステム認証が必要で、dMsgをロックすると現在のアクセスセッションは終了します。「ファイル」Appにダウンロード済みのコピーやファイル名が残る場合があり、dMsgから取り消すことはできません。</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg がロックされている間は、選択した暗号化ファイルのみを転送できます。 iOS はスケジュールを制御します。強制終了すると、アプリを再度開くまで配信が停止します。元のアカウントを開いて確認し、完了します。</string>
 	<key>Open</key>
@@ -1737,7 +1749,7 @@
 	<key>Public profile</key>
 	<string>公開プロフィール</string>
 	<key>Publication pending</key>
-	<string>出版保留中</string>
+	<string>公開保留中</string>
 	<key>Publish</key>
 	<string>発行する</string>
 	<key>Publish a secret snapshot</key>
@@ -1867,7 +1879,7 @@
 	<key>Remove AutoFill snapshot</key>
 	<string>自動入力スナップショットを削除する</string>
 	<key>Remove Files app snapshot</key>
-	<string>ファイル削除アプリのスナップショット</string>
+	<string>「ファイル」Appのスナップショットを削除</string>
 	<key>Remove attachment reference</key>
 	<string>添付ファイルの参照を削除する</string>
 	<key>Remove avatar</key>
@@ -1909,7 +1921,7 @@
 	<key>Replace AutoFill snapshot</key>
 	<string>自動入力スナップショットを置き換える</string>
 	<key>Replace Files app snapshot</key>
-	<string>ファイルを置換アプリのスナップショット</string>
+	<string>「ファイル」Appのスナップショットを置換</string>
 	<key>Replace a device</key>
 	<string>デバイスを置き換える</string>
 	<key>Replace cosignature policy</key>
@@ -2001,7 +2013,7 @@
 	<key>Retry original change</key>
 	<string>元の変更を再試行します</string>
 	<key>Retry original letter</key>
-	<string>元の手紙を再試行してください</string>
+	<string>元の手紙を再送</string>
 	<key>Retry preview</key>
 	<string>プレビューを再試行する</string>
 	<key>Retry publication</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>権限の確認</string>
 	<key>Review publication or resume</key>
-	<string>出版物または履歴書を確認する</string>
+	<string>公開内容を確認するか再開</string>
 	<key>Review rejection</key>
 	<string>レビュー拒否</string>
 	<key>Review removing this login</key>
@@ -2103,7 +2115,7 @@
 	<key>Revocation pending</key>
 	<string>失効保留中</string>
 	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
-	<string>取り消しにより、セキュリティ状態が更新され、キーがローテーションされた後、新しいアクセスが停止されます。以前にコピーしたコンテンツを呼び出すことはできません。</string>
+	<string>セキュリティ状態が更新されキーがローテーションされると、取り消しにより新しいアクセスは停止されます。すでにコピーされた内容は取り消せません。</string>
 	<key>Revoke</key>
 	<string>取り消し</string>
 	<key>Revoke a device</key>
@@ -2197,7 +2209,7 @@
 	<key>Saved to your library</key>
 	<string>ライブラリに保存しました</string>
 	<key>Saved. Publication is pending.</key>
-	<string>保存されました。出版は保留中です。</string>
+	<string>保存しました。公開は保留中です。</string>
 	<key>Saving draft…</key>
 	<string>下書きを保存中…</string>
 	<key>Saving…</key>
@@ -2298,6 +2310,8 @@
 	<string>送信者アカウント</string>
 	<key>Sending</key>
 	<string>送信</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>送信または受信の設定が変わりました。この手紙を再試行してください。再び失敗する場合は、あなたと受信者の両方が dMsg のロックを解除して同期した後、もう一度お試しください。</string>
 	<key>Sent</key>
 	<string>送信済み</string>
 	<key>Sent letters</key>
@@ -2351,7 +2365,7 @@
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>このリクエストを権限のある管理者と共有してください。単独でキーを登録または承認することはありません。</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
-	<string>共有コピーは dMsg の保護を離れ、リコールできません。</string>
+	<string>共有されたコピーは dMsg の保護対象外となり、取り消すことはできません。</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
 	<string>共有アイテムは利用できません。このデバイスのロックを解除した後、アプリを再度開きます。</string>
 	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
@@ -2386,8 +2400,12 @@
 	<string>新しいデバイスで同じアカウントにログインし、パソコンのQRコードをスキャンして、パソコンで内容を確認し承認してください。</string>
 	<key>Sign out</key>
 	<string>サインアウト</string>
+	<key>Sign out all devices</key>
+	<string>すべてのデバイスからログアウト</string>
 	<key>Sign out of this account?</key>
 	<string>このアカウントからサインアウトしますか?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>このパスキーのデバイスをログアウトして続ける</string>
 	<key>Sign the statement you reviewed</key>
 	<string>確認した声明に署名します</string>
 	<key>Signatures collected</key>
@@ -2600,6 +2618,10 @@
 	<string>ローカルネットワークでもう一方のデバイスが見つかりませんでした。アドレスを入力してください。</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>結果は不確実です。再度実行する前に、元のジョブを確認してください。</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>パスキーは保存されています。再試行すると、このアカウントへの連携を続けます。新しいパスキーは作成しません。</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>受信者の受信設定を更新する必要があります。相手に dMsg のロックを解除して同期してもらい、この手紙を再試行してください。</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>記録が変わりました。再度保存する前に、編集内容を更新して確認してください。</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2720,6 +2742,10 @@
 	<string>この操作は一時的に利用できなくなります。保存したデータは保持されます。</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>このパッケージはすでにこのデバイスにインポートされています。既存のコピーは独立したままになります。</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>このパスキーでログインしているデバイスが上限に達しました。それらをログアウトすると続行できます。他のパスキーや保存済みの内容には影響しません。</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>このパスキーはdMsgに登録されていません。別のパスキーを選んでください。以前の作成に失敗した場合は、パスワードマネージャーからその未使用のパスキーを削除してから、新しく作成してください。</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>このプロフィールは公開されています。秘密や個人的な連絡先情報は含めないでください。</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2731,7 +2757,7 @@
 	<key>This request requires a supported desktop client.</key>
 	<string>このリクエストには、サポートされているデスクトップ クライアントが必要です。</string>
 	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
-	<string>これは、今後の取得の終了を要求します。すでに保存されているコピーは引き続き使用できます。不確実な出版物でも調整する必要があります。</string>
+	<string>今後の取得を停止するよう要求します。すでに保存されているコピーは引き続き使用できます。状態が確定していない公開は引き続き照合が必要です。</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
 	<string>このスナップショットには注意が必要です。続行する前にステータスを確認してください。</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
@@ -2842,14 +2868,20 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>使用法</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>開きたいアカウントに連携済みのログイン方法を使ってください。</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>スラッシュや制御文字を含まない、1～255文字の名前を使用してください。</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>dMsg で明示的にエクスポートしたスナップショットのパスワードを使用します。</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>すでにパスキーを作成した場合は、保存済みのパスキーを使ってください。別のログインIDが必要な場合のみ、新しく作成してください。</string>
 	<key>Use a secret through a device policy</key>
 	<string>デバイスポリシーを通じてシークレットを使用する</string>
 	<key>Use an SSH signing key</key>
 	<string>SSH 署名キーを使用する</string>
+	<key>Use an existing passkey</key>
+	<string>既存のパスキーを使う</string>
 	<key>Use conflicting version</key>
 	<string>競合するバージョンを使用する</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -3012,6 +3044,10 @@
 	<string>非表示フィールドは、公開することを選択するまで非表示のままです。</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>ローカルの内容は引き続き利用できます。アカウント操作で必要になったときに Internet Identity でログインしてください。</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>パスワードマネージャーにパスキーは保存されましたが、dMsgで登録を確認できませんでした。別のパスキーを作る前に、このパスキーでログインを試してください。</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>前の手紙がまだ処理されていません。受信者にデスクトップでその手紙をアーカイブするか、iOS の手紙メニューで「次の手紙を許可」を選んでもらい、この手紙を再試行してください。</string>
 	<key>Your private workspace.</key>
 	<string>あなたのプライベートワークスペース。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>作成済み</string>
 	<key>not available</key>
 	<string>利用不可</string>
-	<key>Continue with a passkey</key>
-	<string>パスキーで続ける</string>
-	<key>Create a passkey</key>
-	<string>パスキーを作成</string>
-	<key>Add a passkey login</key>
-	<string>パスキーによるログインを追加</string>
-	<key>Sign out all devices</key>
-	<string>すべてのデバイスからログアウト</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>発行済みのログイン権限は最大 12 時間有効です。コンテンツへのデバイス権限は維持されます。</string>
-	<key>Use an existing passkey</key>
-	<string>既存のパスキーを使う</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>開きたいアカウントに連携済みのログイン方法を使ってください。</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>新しいパスキーを作成するたびに、別のログインIDが作られます。現在のアカウントに追加するには、アカウントのセキュリティ設定でパスキーログインを追加してください。</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>このパスキーはdMsgに登録されていません。別のパスキーを選んでください。以前の作成に失敗した場合は、パスワードマネージャーからその未使用のパスキーを削除してから、新しく作成してください。</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>パスワードマネージャーにパスキーは保存されましたが、dMsgで登録を確認できませんでした。別のパスキーを作る前に、このパスキーでログインを試してください。</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>前の手紙がまだ処理されていません。受信者にデスクトップでその手紙をアーカイブするか、iOS の手紙メニューで「次の手紙を許可」を選んでもらい、この手紙を再試行してください。</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>受信者の受信設定を更新する必要があります。相手に dMsg のロックを解除して同期してもらい、この手紙を再試行してください。</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>送信または受信の設定が変わりました。この手紙を再試行してください。再び失敗する場合は、あなたと受信者の両方が dMsg のロックを解除して同期した後、もう一度お試しください。</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>すでにパスキーを作成した場合は、保存済みのパスキーを使ってください。別のログインIDが必要な場合のみ、新しく作成してください。</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>パスキーは保存されています。再試行すると、このアカウントへの連携を続けます。新しいパスキーは作成しません。</string>
-	<key>Continue adding this passkey</key>
-	<string>このパスキーの追加を続ける</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>このパスキーのデバイスをログアウトして続ける</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>このパスキーでログインしているデバイスが上限に達しました。それらをログアウトすると続行できます。他のパスキーや保存済みの内容には影響しません。</string>
 </dict>
 </plist>

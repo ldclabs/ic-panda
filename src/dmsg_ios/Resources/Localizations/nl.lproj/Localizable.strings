@@ -82,6 +82,8 @@
 	<string>Activiteit</string>
 	<key>Activity on this device</key>
 	<string>Activiteit op dit apparaat</string>
+	<key>Add a passkey login</key>
+	<string>Aanmelding met toegangssleutel toevoegen</string>
 	<key>Add account</key>
 	<string>Account toevoegen</string>
 	<key>Add device</key>
@@ -431,7 +433,7 @@
 	<key>Checklist completed</key>
 	<string>Controlelijst voltooid</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
-	<string>Checklist ingevuld op basis van je afschriften. De upstreamstatus blijft alleen onafhankelijk verifieerbaar bij de provider.</string>
+	<string>Checklist voltooid op basis van je verklaringen. De status bij de provider blijft alleen rechtstreeks bij de provider verifieerbaar.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Kies Back-up in de cloud bij een lokaal bestand om je eerste back-up te maken.</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
@@ -548,6 +550,8 @@
 	<string>Neem contact op met ondersteuning</string>
 	<key>Content signing</key>
 	<string>Inhoud ondertekenen</string>
+	<key>Continue adding this passkey</key>
+	<string>Doorgaan met deze passkey toevoegen</string>
 	<key>Continue import</key>
 	<string>Ga door met importeren</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>Ga door met deze import in het account dat je oorspronkelijk hebt geselecteerd.</string>
 	<key>Continue with Internet Identity</key>
 	<string>Ga verder met Internet Identity</string>
+	<key>Continue with a passkey</key>
+	<string>Doorgaan met een toegangssleutel</string>
 	<key>Controller ID</key>
 	<string>Controller-ID</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>Maak een nieuwe referentie aan bij de provider en sla deze op in de kluis</string>
 	<key>Create a new pairing request</key>
 	<string>Maak een nieuw koppelingsverzoek aan</string>
+	<key>Create a passkey</key>
+	<string>Toegangssleutel maken</string>
 	<key>Create a revocation request?</key>
 	<string>Een intrekkingsverzoek aanmaken?</string>
 	<key>Create agent</key>
@@ -693,7 +701,7 @@
 	<key>Current login</key>
 	<string>Huidige login</string>
 	<key>Current plan and limits</key>
-	<string>Huidig plan en limieten</string>
+	<string>Huidig abonnement en limieten</string>
 	<key>Current policy requires payment</key>
 	<string>Het huidige beleid vereist betaling</string>
 	<key>Current term ends</key>
@@ -719,7 +727,7 @@
 	<key>Days before removal</key>
 	<string>Bewaartermijn in dagen</string>
 	<key>Delegations</key>
-	<string>delegaties</string>
+	<string>Delegaties</string>
 	<key>Delete account</key>
 	<string>Account verwijderen</string>
 	<key>Delete cloud backup</key>
@@ -795,11 +803,11 @@
 	<key>Discard draft</key>
 	<string>Gooi weg</string>
 	<key>Discard staged copy</key>
-	<string>Gooi de geënsceneerde kopie weg</string>
+	<string>Voorbereide kopie verwijderen</string>
 	<key>Discard this draft?</key>
 	<string>De wijzigingen negeren?</string>
 	<key>Discard this staged copy?</key>
-	<string>Deze geënsceneerde kopie weggooien?</string>
+	<string>Deze voorbereide kopie verwijderen?</string>
 	<key>Discard unsaved changes?</key>
 	<string>De wijzigingen negeren?</string>
 	<key>Dismiss</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Elk mobiel pakket is beperkt tot 8 MiB, inclusief geselecteerde bijlagen. De definitieve goedkeuring toont de exacte onveranderlijke selectie en bestemming.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Elke nieuwe passkey maakt een aparte aanmeldidentiteit. Gebruik Passkey-login toevoegen bij accountbeveiliging om er een aan je huidige account toe te voegen.</string>
 	<key>Edit</key>
 	<string>Bewerken</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>Uitvoeren met verzamelde handtekeningen</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Bestaande blokkeerregels, uitnodigingen en inboxcapaciteit blijven behouden. Als je een gratis of gesloten polis kiest, vervangt je alle eerdere betaalde contactinstellingen.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Bestaande aanmeldrechten kunnen nog maximaal 12 uur geldig blijven. Apparaten behouden hun toegang tot inhoud.</string>
 	<key>Expired</key>
 	<string>Verlopen</string>
 	<key>Expires</key>
@@ -953,7 +965,7 @@
 	<key>Files</key>
 	<string>Bestanden</string>
 	<key>Files app copies</key>
-	<string>Kopieën van bestanden-apps</string>
+	<string>Kopieën in Bestanden-app</string>
 	<key>Files app snapshot updated</key>
 	<string>Momentopname van de app Bestanden bijgewerkt</string>
 	<key>Files are backed up only when you explicitly choose to do so.</key>
@@ -1055,7 +1067,7 @@
 	<key>Import cosign packet</key>
 	<string>Medeondertekeningspakket importeren</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
-	<string>Importeren creëert nieuwe onafhankelijke items. Bestanden blijven op dit apparaat staan ​​en nemen de toegangsrechten van de geselecteerde map over. Er wordt niets automatisch geselecteerd.</string>
+	<string>Importeren creëert nieuwe onafhankelijke items. Bestanden blijven op dit apparaat staan en nemen de toegangsrechten van de geselecteerde map over. Er wordt niets automatisch geselecteerd.</string>
 	<key>Import desktop-discovered secrets</key>
 	<string>Importeer op het bureaublad ontdekte geheimen</string>
 	<key>Import file</key>
@@ -1243,7 +1255,7 @@
 	<key>Local security review</key>
 	<string>Lokale veiligheidsbeoordeling</string>
 	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
-	<string>Lokale opslag is niet beschikbaar. Ontgrendel dit apparaat en probeer het opnieuw; reset de werkruimte niet om een ​​onderbroken bewerking te herstellen.</string>
+	<string>Lokale opslag is niet beschikbaar. Ontgrendel dit apparaat en probeer het opnieuw; reset de werkruimte niet om een onderbroken bewerking te herstellen.</string>
 	<key>Local trash is retained for 30 days. Cloud backups are managed separately.</key>
 	<string>Lokaal afval wordt 30 dagen bewaard. Cloudback-ups worden afzonderlijk beheerd.</string>
 	<key>Lock immediately in background</key>
@@ -1299,7 +1311,7 @@
 	<key>Monthly execution limit</key>
 	<string>Maandelijkse uitvoeringslimiet</string>
 	<key>Monthly execution units</key>
-	<string>Maandelijkse bedrijfseenheden</string>
+	<string>Maandelijkse uitvoeringseenheden</string>
 	<key>More types</key>
 	<string>Soorten</string>
 	<key>Move a native address</key>
@@ -1515,7 +1527,7 @@
 	<key>One-time code</key>
 	<string>Eenmalige code</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
-	<string>Doe dit alleen als je klaar bent om het te gebruiken. Kopieën blijven op dit apparaat staan ​​en vervallen na 30 seconden.</string>
+	<string>Doe dit alleen als je klaar bent om het te gebruiken. Kopieën blijven op dit apparaat staan en vervallen na 30 seconden.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Hier wordt alleen gratis contact ondersteund. Met deze actie kan de vergoeding van een ontvanger niet worden betaald of goedgekeurd.</string>
 	<key>Only in cloud</key>
@@ -1525,9 +1537,9 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>Nu gaan alleen outputs van minstens %lld blokken diep; de andere tonen vanaf welk blok dat kan.</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>Alleen geselecteerde, onveranderlijke kopieën verschijnen in de Bestanden-app. Voor toegang is systeemverificatie vereist; vergrendelen dMsg beëindigt de huidige toegangssessie. Bestanden kunnen gedownloade kopieën en bestandsnamen behouden, die dMsg zich niet kan herinneren.</string>
+	<string>Alleen geselecteerde, onveranderlijke kopieën verschijnen in de Bestanden-app. Voor toegang is systeemauthenticatie vereist; het vergrendelen van dMsg beëindigt de huidige sessie. Bestanden kan gedownloade kopieën en bestandsnamen behouden die dMsg niet kan terughalen.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
-	<string>Alleen het geselecteerde gecodeerde bestand kan worden overgedragen terwijl dMsg is vergrendeld. iOS bestuurt de planning; force quit stopt de bezorging totdat je de app opnieuw opent. Open het oorspronkelijke account om te verifiëren en af ​​te ronden.</string>
+	<string>Alleen het geselecteerde gecodeerde bestand kan worden overgedragen terwijl dMsg is vergrendeld. iOS bestuurt de planning; force quit stopt de bezorging totdat je de app opnieuw opent. Open het oorspronkelijke account om te verifiëren en af te ronden.</string>
 	<key>Open</key>
 	<string>Openen</string>
 	<key>Open Settings</key>
@@ -1651,9 +1663,9 @@
 	<key>Pin</key>
 	<string>Vastzetten</string>
 	<key>Plan</key>
-	<string>Plannen</string>
+	<string>Abonnement</string>
 	<key>Plan and usage</key>
-	<string>Plan en gebruik</string>
+	<string>Abonnement en gebruik</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>In deze versie van de app kun je je abonnement niet wijzigen. Je huidige abonnement en gebruik blijven beschikbaar.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -1859,7 +1871,7 @@
 	<key>Reload saved profile</key>
 	<string>Opgeslagen profiel herladen</string>
 	<key>Remaining</key>
-	<string>resterend</string>
+	<string>Resterend</string>
 	<key>Removal date</key>
 	<string>Verwijderdatum</string>
 	<key>Remove</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>Machtigingen controleren</string>
 	<key>Review publication or resume</key>
-	<string>Beoordeel publicatie of CV</string>
+	<string>Beoordeel publicatie of hervat</string>
 	<key>Review rejection</key>
 	<string>Afwijzing beoordelen</string>
 	<key>Review removing this login</key>
@@ -2298,6 +2310,8 @@
 	<string>Afzenderaccount</string>
 	<key>Sending</key>
 	<string>Versturen</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>De verzend- of ontvangstinstellingen zijn gewijzigd. Probeer deze brief opnieuw. Als het blijft mislukken, moeten jij en de ontvanger dMsg ontgrendelen en synchroniseren voordat je het opnieuw probeert.</string>
 	<key>Sent</key>
 	<string>Verzonden</string>
 	<key>Sent letters</key>
@@ -2386,8 +2400,12 @@
 	<string>Meld het nieuwe apparaat aan bij hetzelfde account, scan de QR-code van de computer en controleer en keur goed op de computer.</string>
 	<key>Sign out</key>
 	<string>Meld je af</string>
+	<key>Sign out all devices</key>
+	<string>Alle apparaten afmelden</string>
 	<key>Sign out of this account?</key>
 	<string>Uitloggen bij dit account?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Apparaten van deze passkey afmelden en doorgaan</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Onderteken de verklaring die je hebt beoordeeld</string>
 	<key>Signatures collected</key>
@@ -2437,7 +2455,7 @@
 	<key>Spending approvals %u</key>
 	<string>Goedkeuringen van uitgaven %u</string>
 	<key>Stage selected files, then choose an account and import them in dMsg.</key>
-	<string>Stage geselecteerde bestanden, kies vervolgens een account en importeer ze in dMsg.</string>
+	<string>Bereid geselecteerde bestanden voor, kies vervolgens een account en importeer ze in dMsg.</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>Start een checklist vanaf de referentiepagina van een veld.</string>
 	<key>Start a rotation checklist</key>
@@ -2541,9 +2559,9 @@
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>De gecodeerde versie maakt gebruik van cloudopslag. Je lokale kopie blijft op dit apparaat staan.</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
-	<string>De geëxporteerde inloggegevens zijn niet beschikbaar of verlopen. Open dMsg om een ​​nieuwe momentopname te maken.</string>
+	<string>De geëxporteerde inloggegevens zijn niet beschikbaar of verlopen. Open dMsg om een nieuwe momentopname te maken.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
-	<string>De bestandskopieën zijn niet beschikbaar of verlopen. Open dMsg om een ​​nieuwe momentopname te maken en probeer het opnieuw.</string>
+	<string>De bestandskopieën zijn niet beschikbaar of verlopen. Open dMsg om een nieuwe momentopname te maken en probeer het opnieuw.</string>
 	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
 	<string>Het bestand kon niet worden gecontroleerd. Probeer de download opnieuw; een onvolledige kopie kan niet worden geopend.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
@@ -2600,6 +2618,10 @@
 	<string>Het andere apparaat is niet gevonden op het lokale netwerk. Voer het adres in.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>De uitkomst is onzeker. Controleer de oorspronkelijke taak voordat je opnieuw iets probeert.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>De passkey is opgeslagen. Probeer opnieuw om deze aan dit account te koppelen; er wordt geen nieuwe passkey gemaakt.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>De ontvangstinstellingen van de ontvanger moeten worden bijgewerkt. Vraag de ontvanger om dMsg te ontgrendelen en te synchroniseren en probeer deze brief daarna opnieuw.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>Het record is gewijzigd. Vernieuw en controleer je bewerkingen voordat je ze opnieuw opslaat.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2613,7 +2635,7 @@
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
 	<string>De geselecteerde afbeelding blijft op dit apparaat staan totdat je deze publiceert. Gepubliceerde avatars zijn openbaar en kopieën kunnen buiten dMsg blijven.</string>
 	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
-	<string>De geselecteerde items konden niet worden geënsceneerd. Open dMsg en probeer ze daar te importeren.</string>
+	<string>De geselecteerde items konden niet worden voorbereid. Open dMsg en probeer ze daar te importeren.</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>De bronkopie werd onderbroken. Gooi het weg en selecteer de bron opnieuw.</string>
 	<key>The test deployment is not configured.</key>
@@ -2631,7 +2653,7 @@
 	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
 	<string>Dit zijn momentopnametaken die op dit apparaat zijn gemaakt. Desktop-lokale goedkeuringsverzoeken worden hier niet gesynchroniseerd.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
-	<string>Dit zijn geverifieerde back-ups van de apparaten van je account. Herstel expliciet om een ​​kopie op dit apparaat te bewaren.</string>
+	<string>Dit zijn geverifieerde back-ups van de apparaten van je account. Herstel expliciet om een kopie op dit apparaat te bewaren.</string>
 	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
 	<string>Deze exports bevatten nooit hoofdsleutels van het account of ondertekeningssleutels van het apparaat. Kopieën in de app Bestanden volgen wijzigingen in de bronbestanden niet; daarvoor is een nieuwe momentopname nodig.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
@@ -2720,6 +2742,10 @@
 	<string>Deze bewerking is tijdelijk niet beschikbaar. Je opgeslagen gegevens blijven bewaard.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Dit pakket is al geïmporteerd op dit apparaat. Bestaande kopieën blijven onafhankelijk.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Er zijn te veel apparaten aangemeld met deze passkey. Meld ze af om door te gaan. Andere passkeys en opgeslagen inhoud blijven ongewijzigd.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Deze passkey is niet geregistreerd bij dMsg. Kies een andere. Als het aanmaken eerder is mislukt, verwijder dan die ongebruikte passkey uit je wachtwoordmanager voordat je een nieuwe maakt.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Dit profiel is openbaar. Voeg geen geheimen of privécontactinformatie toe.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Gebruik</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Gebruik een login die al aan het gewenste account is gekoppeld.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>Gebruik een naam van 1–255 tekens zonder schuine strepen of besturingstekens.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Gebruik een wachtwoord uit de momentopname die je expliciet hebt geëxporteerd in dMsg.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Gebruik de opgeslagen passkey als je er al een hebt gemaakt. Maak alleen een nieuwe als je een andere aanmeldidentiteit nodig hebt.</string>
 	<key>Use a secret through a device policy</key>
 	<string>Gebruik een geheim via een apparaatbeleid</string>
 	<key>Use an SSH signing key</key>
 	<string>Gebruik een SSH-ondertekeningssleutel</string>
+	<key>Use an existing passkey</key>
+	<string>Een bestaande passkey gebruiken</string>
 	<key>Use conflicting version</key>
 	<string>Conflicterende versie gebruiken</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -2897,7 +2929,7 @@
 	<key>View approval</key>
 	<string>Goedkeuring bekijken</string>
 	<key>Viewer</key>
-	<string>Kijker</string>
+	<string>Bekijker</string>
 	<key>Wait for the address book cooldown</key>
 	<string>Wachttijd van het adresboek afwachten</string>
 	<key>Wait for the proposal</key>
@@ -2989,7 +3021,7 @@
 	<key>You have read-only access to this conversation.</key>
 	<string>Je hebt alleen leestoegang tot dit gesprek.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
-	<string>Providerwijzigingen voer je zelf door. dMsg registreert je afschriften en controleert lokale revisies; het kan de creatie, het testen of de intrekking upstream niet verifiëren.</string>
+	<string>Wijzigingen bij de provider voer je zelf uit. dMsg legt je verklaringen vast en controleert lokale revisies; het kan aanmaken, testen of intrekken bij de provider niet verifiëren.</string>
 	<key>Your assets. Your approval rules.</key>
 	<string>Jouw activa. Jouw goedkeuringsregels.</string>
 	<key>Your authorized channels appear after synchronization.</key>
@@ -3012,6 +3044,10 @@
 	<string>Je verborgen velden blijven verborgen totdat je ervoor kiest ze te onthullen.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Je lokale inhoud blijft beschikbaar. Log in met Internet Identity wanneer een accountactie dat vereist.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Je wachtwoordmanager heeft de passkey opgeslagen, maar dMsg kon de registratie niet bevestigen. Probeer ermee in te loggen voordat je een andere maakt.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Je vorige brief staat nog open. Vraag de ontvanger om die in de desktop-app te archiveren of op iOS in het briefmenu “Nog een brief toestaan” te kiezen. Probeer deze brief daarna opnieuw.</string>
 	<key>Your private workspace.</key>
 	<string>Jouw privéwerkplek.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>gemaakt</string>
 	<key>not available</key>
 	<string>niet beschikbaar</string>
-	<key>Continue with a passkey</key>
-	<string>Doorgaan met een toegangssleutel</string>
-	<key>Create a passkey</key>
-	<string>Toegangssleutel maken</string>
-	<key>Add a passkey login</key>
-	<string>Aanmelding met toegangssleutel toevoegen</string>
-	<key>Sign out all devices</key>
-	<string>Alle apparaten afmelden</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>Bestaande aanmeldrechten kunnen nog maximaal 12 uur geldig blijven. Apparaten behouden hun toegang tot inhoud.</string>
-	<key>Use an existing passkey</key>
-	<string>Een bestaande passkey gebruiken</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>Gebruik een login die al aan het gewenste account is gekoppeld.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>Elke nieuwe passkey maakt een aparte aanmeldidentiteit. Gebruik Passkey-login toevoegen bij accountbeveiliging om er een aan je huidige account toe te voegen.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>Deze passkey is niet geregistreerd bij dMsg. Kies een andere. Als het aanmaken eerder is mislukt, verwijder dan die ongebruikte passkey uit je wachtwoordmanager voordat je een nieuwe maakt.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>Je wachtwoordmanager heeft de passkey opgeslagen, maar dMsg kon de registratie niet bevestigen. Probeer ermee in te loggen voordat je een andere maakt.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>Je vorige brief staat nog open. Vraag de ontvanger om die in de desktop-app te archiveren of op iOS in het briefmenu “Nog een brief toestaan” te kiezen. Probeer deze brief daarna opnieuw.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>De ontvangstinstellingen van de ontvanger moeten worden bijgewerkt. Vraag de ontvanger om dMsg te ontgrendelen en te synchroniseren en probeer deze brief daarna opnieuw.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>De verzend- of ontvangstinstellingen zijn gewijzigd. Probeer deze brief opnieuw. Als het blijft mislukken, moeten jij en de ontvanger dMsg ontgrendelen en synchroniseren voordat je het opnieuw probeert.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>Gebruik de opgeslagen passkey als je er al een hebt gemaakt. Maak alleen een nieuwe als je een andere aanmeldidentiteit nodig hebt.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>De passkey is opgeslagen. Probeer opnieuw om deze aan dit account te koppelen; er wordt geen nieuwe passkey gemaakt.</string>
-	<key>Continue adding this passkey</key>
-	<string>Doorgaan met deze passkey toevoegen</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>Apparaten van deze passkey afmelden en doorgaan</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>Er zijn te veel apparaten aangemeld met deze passkey. Meld ze af om door te gaan. Andere passkeys en opgeslagen inhoud blijven ongewijzigd.</string>
 </dict>
 </plist>

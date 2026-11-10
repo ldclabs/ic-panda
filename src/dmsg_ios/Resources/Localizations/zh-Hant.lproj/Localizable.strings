@@ -41,7 +41,7 @@
 	<key>About files and backups</key>
 	<string>關於檔案與備份</string>
 	<key>Accept approved binding</key>
-	<string>接受已批准的繫結</string>
+	<string>接受已批准的綁定</string>
 	<key>Accepted by service</key>
 	<string>服務已接受</string>
 	<key>Accepting files</key>
@@ -82,6 +82,8 @@
 	<string>動態</string>
 	<key>Activity on this device</key>
 	<string>本裝置活動</string>
+	<key>Add a passkey login</key>
+	<string>新增通行密鑰登入</string>
 	<key>Add account</key>
 	<string>新增帳號</string>
 	<key>Add device</key>
@@ -117,7 +119,7 @@
 	<key>Administrator</key>
 	<string>管理員</string>
 	<key>Advanced</key>
-	<string>高階</string>
+	<string>進階</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>批准錢包請求後，請在新裝置上重新產生替換請求。</string>
 	<key>Agent ID</key>
@@ -181,7 +183,7 @@
 	<key>Approval key</key>
 	<string>批准鑰匙</string>
 	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
-	<string>批准後會將審閱過的確切欄位和附件釋出為獨立快照。請核對目標位置與限制；接收者可以保留副本。</string>
+	<string>批准後會將審閱過的確切欄位和附件發布為獨立快照。請核對目標位置與限制；接收者可以保留副本。</string>
 	<key>Approval thresholds</key>
 	<string>批准門檻</string>
 	<key>Approvals</key>
@@ -189,7 +191,7 @@
 	<key>Approve</key>
 	<string>批准</string>
 	<key>Approve a binding request</key>
-	<string>批准繫結請求</string>
+	<string>批准綁定請求</string>
 	<key>Approve replacement</key>
 	<string>批准取代</string>
 	<key>Approve the new device</key>
@@ -223,7 +225,7 @@
 	<key>Arrives</key>
 	<string>到帳</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
-	<string>請管理員將這個登入身份繫結到已有帳號。裝置授權需要單獨完成。</string>
+	<string>請管理員將這個登入身份綁定到已有帳號。裝置授權需要單獨完成。</string>
 	<key>Asset</key>
 	<string>資產</string>
 	<key>Asset details are unavailable. Retry before entering an amount.</key>
@@ -309,13 +311,13 @@
 	<key>Balance</key>
 	<string>餘額</string>
 	<key>Bind another Internet Identity</key>
-	<string>繫結另一個 Internet Identity</string>
+	<string>綁定另一個 Internet Identity</string>
 	<key>Bind this workspace to this iPhone?</key>
-	<string>將此工作區繫結到本 iPhone？</string>
+	<string>將此工作區綁定到本 iPhone？</string>
 	<key>Bind workspace</key>
-	<string>繫結工作區</string>
+	<string>綁定工作區</string>
 	<key>Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.</key>
-	<string>即使重新登入，本機繫結仍會保護此本機工作區。變更前，請確保有其他已授權裝置或可用的恢復途徑。</string>
+	<string>即使重新登入，本機綁定仍會保護此本機工作區。變更前，請確保有其他已授權裝置或可用的恢復途徑。</string>
 	<key>Biometrics only</key>
 	<string>僅限當前生物識別</string>
 	<key>Biometrics only for exported copies</key>
@@ -548,6 +550,8 @@
 	<string>聯絡支援</string>
 	<key>Content signing</key>
 	<string>內容簽署</string>
+	<key>Continue adding this passkey</key>
+	<string>繼續新增此通行密鑰</string>
 	<key>Continue import</key>
 	<string>繼續匯入</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>請在最初選擇的帳號中繼續此匯入。</string>
 	<key>Continue with Internet Identity</key>
 	<string>使用 Internet Identity 登入</string>
+	<key>Continue with a passkey</key>
+	<string>使用通行密鑰</string>
 	<key>Controller ID</key>
 	<string>控制器 ID</string>
 	<key>Controller name</key>
@@ -599,7 +605,7 @@
 	<key>Copy all</key>
 	<string>全部複製</string>
 	<key>Copy binding request</key>
-	<string>複製繫結請求</string>
+	<string>複製綁定請求</string>
 	<key>Copy device ID</key>
 	<string>複製裝置 ID</string>
 	<key>Copy enrollment request</key>
@@ -623,9 +629,9 @@
 	<key>Cosignatures</key>
 	<string>聯合簽名</string>
 	<key>Cosigner key</key>
-	<string>協籤鑰匙</string>
+	<string>協簽鑰匙</string>
 	<key>Cosigner keys</key>
-	<string>協籤鑰匙</string>
+	<string>協簽鑰匙</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>擬定地址策略的聯合簽名者</string>
 	<key>Create</key>
@@ -636,6 +642,8 @@
 	<string>在服務提供方建立新憑據，並儲存到保險庫</string>
 	<key>Create a new pairing request</key>
 	<string>生成新的配對請求</string>
+	<key>Create a passkey</key>
+	<string>建立通行密鑰</string>
 	<key>Create a revocation request?</key>
 	<string>建立撤銷請求？</string>
 	<key>Create agent</key>
@@ -645,7 +653,7 @@
 	<key>Create an agent identity</key>
 	<string>建立 Agent 身份</string>
 	<key>Create binding request</key>
-	<string>建立繫結請求</string>
+	<string>建立綁定請求</string>
 	<key>Create conversation</key>
 	<string>建立對話</string>
 	<key>Create hardware cosigner</key>
@@ -785,7 +793,7 @@
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>尚未確認裝置請求已送達。請先檢查網路與桌面端狀態，再決定是否重試。</string>
 	<key>Device-bound workspace</key>
-	<string>工作區本機繫結</string>
+	<string>工作區本機綁定</string>
 	<key>Devices</key>
 	<string>裝置</string>
 	<key>Disabled</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>每個移動端包上限為 8 MiB，含所選附件。最終審批會顯示確切且不可變的內容選擇與目標位置。</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>每次建立都會產生獨立的登入身分。要為目前帳號新增通行密鑰，請前往帳號安全中的「新增通行密鑰登入」。</string>
 	<key>Edit</key>
 	<string>編輯</string>
 	<key>Edit draft</key>
@@ -904,6 +914,8 @@
 	<string>以已收集的簽名執行</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>現有封鎖規則、邀請和收件箱容量會保留。選擇免費或關閉，會替換原有的付費聯絡設定。</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>已簽發的登入授權最長仍可使用 12 小時。內容裝置的授權保持不變。</string>
 	<key>Expired</key>
 	<string>已過期</string>
 	<key>Expires</key>
@@ -997,7 +1009,7 @@
 	<key>Handled on another device</key>
 	<string>已由其他裝置處理</string>
 	<key>Handover complete. Consider registering an approval key and a cosigner key on a second device as well.</key>
-	<string>交接已完成。建議在另一台裝置上也登記批准鑰匙和協籤鑰匙。</string>
+	<string>交接已完成。建議在另一台裝置上也登記批准鑰匙和協簽鑰匙。</string>
 	<key>Harassment</key>
 	<string>騷擾</string>
 	<key>Hardware approval key</key>
@@ -1163,7 +1175,7 @@
 	<key>L1 spends from native Taproot addresses need this device's BIP-340 key. One root on this device holds every wallet's key; using it asks for you.</key>
 	<string>從原生 Taproot 地址經 L1 花費需要本裝置的 BIP-340 鑰匙。本裝置上的一個根保存所有錢包的鑰匙，使用時需要你確認。</string>
 	<key>L1 · old device cosigns</key>
-	<string>L1 · 舊裝置協籤</string>
+	<string>L1 · 舊裝置協簽</string>
 	<key>L2 · after the delay</key>
 	<string>L2 · 延時之後</string>
 	<key>Language</key>
@@ -1301,7 +1313,7 @@
 	<key>Monthly execution units</key>
 	<string>每月執行額度</string>
 	<key>More types</key>
-	<string>型別</string>
+	<string>類型</string>
 	<key>Move a native address</key>
 	<string>遷移原生地址</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1359,7 +1371,7 @@
 	<key>New conversation</key>
 	<string>新建對話</string>
 	<key>New field type</key>
-	<string>新欄位型別</string>
+	<string>新欄位類型</string>
 	<key>New files</key>
 	<string>有新檔案</string>
 	<key>New folder</key>
@@ -1447,7 +1459,7 @@
 	<key>No section</key>
 	<string>未分組</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
-	<string>不選擇聯合簽名者，表示不設定額外協籤策略。批准前請核對完整提案。</string>
+	<string>不選擇聯合簽名者，表示不設定額外協簽策略。批准前請核對完整提案。</string>
 	<key>No share links yet</key>
 	<string>還沒有分享連結</string>
 	<key>No shared items waiting</key>
@@ -1579,7 +1591,7 @@
 	<key>Other logins</key>
 	<string>其他登入項目</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
-	<string>關閉後，離開應用 3 分鐘將鎖定。裝置鎖屏時始終立即鎖定。</string>
+	<string>關閉後，離開 dMsg 3 分鐘將鎖定。裝置鎖屏時始終立即鎖定工作區。</string>
 	<key>Outcome no longer available</key>
 	<string>執行結果已不可用</string>
 	<key>Outputs swept</key>
@@ -1601,7 +1613,7 @@
 	<key>Passwords</key>
 	<string>密碼</string>
 	<key>Paste binding request</key>
-	<string>貼上繫結請求</string>
+	<string>貼上綁定請求</string>
 	<key>Paste enrollment request</key>
 	<string>貼上登記請求</string>
 	<key>Paste image</key>
@@ -1737,19 +1749,19 @@
 	<key>Public profile</key>
 	<string>公開資料</string>
 	<key>Publication pending</key>
-	<string>釋出待確認</string>
+	<string>發布待確認</string>
 	<key>Publish</key>
-	<string>釋出</string>
+	<string>發布</string>
 	<key>Publish a secret snapshot</key>
-	<string>釋出秘密快照</string>
+	<string>發布秘密快照</string>
 	<key>Publish profile</key>
-	<string>釋出資料</string>
+	<string>發布資料</string>
 	<key>Publish these details publicly?</key>
 	<string>公開發布這些資料？</string>
 	<key>Published</key>
-	<string>已釋出</string>
+	<string>已發布</string>
 	<key>Publisher</key>
-	<string>釋出者</string>
+	<string>發布者</string>
 	<key>Publishing is paused while conversation keys are updated.</key>
 	<string>對話金鑰更新期間暫停發布。</string>
 	<key>Purchased</key>
@@ -1769,7 +1781,7 @@
 	<key>Read from a desktop file mapping</key>
 	<string>讀取桌面檔案對映</string>
 	<key>Read the published policy</key>
-	<string>閱讀已釋出的政策</string>
+	<string>閱讀已發布的政策</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>為匯入保留的唯讀副本。刪除副本不會影響舊 iPhone 或帳號。</string>
 	<key>Reading account inventory…</key>
@@ -1819,7 +1831,7 @@
 	<key>Recovery status needs checking</key>
 	<string>需要核查恢復狀態</string>
 	<key>Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.</key>
-	<string>使用已繫結的登入身份發起恢復，並經過等待期。已授權裝置可取消恢復申請。未同步的本機內容無法恢復。</string>
+	<string>使用已綁定的登入身份發起恢復，並經過等待期。已授權裝置可取消恢復申請。未同步的本機內容無法恢復。</string>
 	<key>Recovery waiting period</key>
 	<string>恢復等待期</string>
 	<key>Refresh</key>
@@ -1841,7 +1853,7 @@
 	<key>Register a hardware approval key</key>
 	<string>註冊硬體批准鑰匙</string>
 	<key>Register an SSH binding</key>
-	<string>註冊 SSH 繫結</string>
+	<string>註冊 SSH 綁定</string>
 	<key>Register this device's key</key>
 	<string>登記本裝置的鑰匙</string>
 	<key>Register this public key through a wallet proposal</key>
@@ -1873,9 +1885,9 @@
 	<key>Remove avatar</key>
 	<string>移除頭像</string>
 	<key>Remove device binding</key>
-	<string>移除本機繫結</string>
+	<string>移除本機綁定</string>
 	<key>Remove device binding?</key>
-	<string>移除本機繫結？</string>
+	<string>移除本機綁定？</string>
 	<key>Remove favorite</key>
 	<string>取消星標</string>
 	<key>Remove field</key>
@@ -1913,7 +1925,7 @@
 	<key>Replace a device</key>
 	<string>取代裝置</string>
 	<key>Replace cosignature policy</key>
-	<string>替換協籤策略</string>
+	<string>替換協簽策略</string>
 	<key>Replace key</key>
 	<string>取代鑰匙</string>
 	<key>Replace the old iPhone</key>
@@ -2005,7 +2017,7 @@
 	<key>Retry preview</key>
 	<string>重新預覽</string>
 	<key>Retry publication</key>
-	<string>重試釋出</string>
+	<string>重試發布</string>
 	<key>Retry registration</key>
 	<string>重試註冊</string>
 	<key>Retry this report</key>
@@ -2029,7 +2041,7 @@
 	<key>Review approval</key>
 	<string>審查批准</string>
 	<key>Review binding</key>
-	<string>核對繫結</string>
+	<string>核對綁定</string>
 	<key>Review controller registration</key>
 	<string>審查控制器註冊</string>
 	<key>Review delegation grant</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>審查權限</string>
 	<key>Review publication or resume</key>
-	<string>審閱釋出或繼續任務</string>
+	<string>審閱發布或繼續任務</string>
 	<key>Review rejection</key>
 	<string>審查拒絕</string>
 	<key>Review removing this login</key>
@@ -2083,7 +2095,7 @@
 	<key>Review the complete request</key>
 	<string>核對完整請求</string>
 	<key>Review the current key and renew the SSH binding on its originating device.</key>
-	<string>請在來源裝置上檢查當前鑰匙並更新 SSH 繫結。</string>
+	<string>請在來源裝置上檢查當前鑰匙並更新 SSH 綁定。</string>
 	<key>Review the request and dispute it if it is not yours.</key>
 	<string>請審閱請求；如非本人發起，請提出異議。</string>
 	<key>Review the snapshot's recipients and expiry.</key>
@@ -2151,9 +2163,9 @@
 	<key>SHA-256</key>
 	<string>SHA-256</string>
 	<key>SSH binding</key>
-	<string>SSH 繫結</string>
+	<string>SSH 綁定</string>
 	<key>SSH binding needs review</key>
-	<string>SSH 繫結需要檢查</string>
+	<string>SSH 綁定需要檢查</string>
 	<key>SSH key</key>
 	<string>SSH 金鑰</string>
 	<key>Save</key>
@@ -2298,6 +2310,8 @@
 	<string>傳送者帳號</string>
 	<key>Sending</key>
 	<string>傳送</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>收發設定剛剛發生變化。請重試這封信；如果仍失敗，請你和對方都解鎖 dMsg 並完成同步後再試。</string>
 	<key>Sent</key>
 	<string>已傳送</string>
 	<key>Sent letters</key>
@@ -2325,7 +2339,7 @@
 	<key>Share a copy</key>
 	<string>分享副本</string>
 	<key>Share binding request</key>
-	<string>分享繫結請求</string>
+	<string>分享綁定請求</string>
 	<key>Share by link</key>
 	<string>透過連結分享</string>
 	<key>Share cosign packet</key>
@@ -2386,8 +2400,12 @@
 	<string>新裝置先登入同一帳號，掃描桌面 QR 碼，然後在桌面核對並批准。</string>
 	<key>Sign out</key>
 	<string>退出登入</string>
+	<key>Sign out all devices</key>
+	<string>登出所有裝置</string>
 	<key>Sign out of this account?</key>
 	<string>退出這個帳號？</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>登出此通行密鑰的裝置並繼續</string>
 	<key>Sign the statement you reviewed</key>
 	<string>簽署你已核對的宣告</string>
 	<key>Signatures collected</key>
@@ -2555,7 +2573,7 @@
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>收件匣金鑰尚未同步到此裝置。請先在開啟收信的裝置上同步，再在此重試。</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
-	<string>邀請與這個帳號繫結，分享連結不會向其他帳號授予權限。</string>
+	<string>邀請與這個帳號綁定，分享連結不會向其他帳號授予權限。</string>
 	<key>The invitation is invalid.</key>
 	<string>邀請無效。</string>
 	<key>The invitation is verified when you choose Join conversation.</key>
@@ -2569,7 +2587,7 @@
 	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
 	<string>連結使用一份新的加密副本，在撤銷或過期之前占用你的雲端儲存空間。</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
-	<string>本機繫結鑰匙不可用。請保留此工作區，並在鎖定前檢查恢復方式。</string>
+	<string>本機綁定鑰匙不可用。請保留此工作區，並在鎖定前檢查恢復方式。</string>
 	<key>The maximum fee is below the estimate.</key>
 	<string>手續費上限低於估算值。</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
@@ -2581,9 +2599,9 @@
 	<key>The old address holds nothing.</key>
 	<string>舊地址中沒有餘額。</string>
 	<key>The old device moves its wallet cosigner keys to the new device's key; the new device confirms once that is done.</key>
-	<string>舊裝置把錢包協籤鑰匙輪換為新裝置的鑰匙；完成後由新裝置確認。</string>
+	<string>舊裝置把錢包協簽鑰匙輪換為新裝置的鑰匙；完成後由新裝置確認。</string>
 	<key>The old device must be online to cosign the sweep.</key>
-	<string>舊裝置需要在線，才能為掃幣協籤。</string>
+	<string>舊裝置需要在線，才能為掃幣協簽。</string>
 	<key>The old device stops working for this account, and anything only on it is lost.</key>
 	<string>舊裝置將無法再用於此帳號，只存在於它上面的內容會遺失。</string>
 	<key>The operation could not be completed.</key>
@@ -2600,6 +2618,10 @@
 	<string>在區域網路中找不到另一台裝置。請輸入它的地址。</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>結果尚不確定。再次嘗試前，請先核對此原始任務。</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>通行密鑰已儲存。重試會繼續將它連結至此帳號，不會建立新密鑰。</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>對方的收信設定需要更新。請對方解鎖 dMsg 並完成同步，再重試這封信。</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>記錄已更改，請重新整理並核對修改後再儲存。</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2611,7 +2633,7 @@
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
 	<string>結果尚未確認。請核對原請求，不要重複提交。</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
-	<string>所選圖片在釋出前僅保留在此裝置。釋出的頭像是公開內容，副本可能保留在 dMsg 之外。</string>
+	<string>所選圖片在發布前僅保留在此裝置。發布的頭像是公開內容，副本可能保留在 dMsg 之外。</string>
 	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
 	<string>無法暫存所選內容，請開啟 dMsg 後嘗試匯入。</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
@@ -2625,7 +2647,7 @@
 	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
 	<string>已驗證的雲端備份和檔案記錄會保留。在本機開啟時，需重新下載此版本。</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
-	<string>錢包會檢查當前策略和批准狀態。需要硬體簽名時，會為此具體方案請求籤名。</string>
+	<string>錢包會檢查當前策略和批准狀態。需要硬體簽名時，會為此具體方案請求簽名。</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
 	<string>這些是本機觀察結果，並非洩露掃描，也不能證明服務提供方已撤銷憑據。其他裝置的記錄可能不同。</string>
 	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
@@ -2720,6 +2742,10 @@
 	<string>此操作暫時不可用，已儲存的資料會保留。</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>此包已經在本裝置匯入過。已有副本保持獨立。</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>此通行密鑰的登入裝置已達上限。登出這些裝置後即可繼續；其他通行密鑰和已儲存的內容不受影響。</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>此通行密鑰尚未在 dMsg 註冊，請選擇其他密鑰。如果先前建立失敗，請先從密碼管理器移除那枚未使用的密鑰，再重新建立。</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>這些資料將公開展示，請勿填寫秘密或私密聯絡方式。</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2731,7 +2757,7 @@
 	<key>This request requires a supported desktop client.</key>
 	<string>請使用支援此請求的桌面客戶端處理。</string>
 	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
-	<string>這會請求停止之後的內容取回。已儲存的副本仍可使用；結果不確定的釋出仍需對帳。</string>
+	<string>這會請求停止之後的內容取回。已儲存的副本仍可使用；結果不確定的發布仍需對帳。</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
 	<string>此快照需要處理。繼續前，請先核查其狀態。</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
@@ -2783,7 +2809,7 @@
 	<key>Two versions need your decision</key>
 	<string>兩個版本等待你決定</string>
 	<key>Type</key>
-	<string>型別</string>
+	<string>類型</string>
 	<key>Type this account ID to confirm</key>
 	<string>輸入此帳號 ID 以確認</string>
 	<key>URL</key>
@@ -2842,14 +2868,20 @@
 	<string>網址</string>
 	<key>Usage</key>
 	<string>用量</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>請使用已連結目標帳號的登入方式。</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>名稱須為 1–255 個字元，且不能包含斜線或控制字元。</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>使用你在 dMsg 中明確匯出的快照裡的密碼。</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>如果已經建立過通行密鑰，請使用已儲存的密鑰。只有需要另一個登入身分時才建立新密鑰。</string>
 	<key>Use a secret through a device policy</key>
 	<string>按裝置策略使用秘密</string>
 	<key>Use an SSH signing key</key>
 	<string>使用 SSH 簽名鑰匙</string>
+	<key>Use an existing passkey</key>
+	<string>使用現有通行密鑰</string>
 	<key>Use conflicting version</key>
 	<string>採用衝突版本</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -3012,6 +3044,10 @@
 	<string>隱藏欄位將保持隱藏，直到你主動檢視。</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>本機內容可繼續使用。需要帳戶身分的操作會要求重新登入 Internet Identity。</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>密碼管理器已儲存通行密鑰，但 dMsg 尚未確認註冊。請先嘗試用它登入，再決定是否建立新的密鑰。</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>上一封信還在等待對方處理。請對方在桌面端歸檔舊信，或在 iOS 的來信選單中選擇「允許再次來信」，然後重試這封信。</string>
 	<key>Your private workspace.</key>
 	<string>你的私密工作臺。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>已產生</string>
 	<key>not available</key>
 	<string>無法使用</string>
-	<key>Continue with a passkey</key>
-	<string>使用通行密鑰</string>
-	<key>Create a passkey</key>
-	<string>建立通行密鑰</string>
-	<key>Add a passkey login</key>
-	<string>新增通行密鑰登入</string>
-	<key>Sign out all devices</key>
-	<string>登出所有裝置</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>已簽發的登入授權最長仍可使用 12 小時。內容裝置的授權保持不變。</string>
-	<key>Use an existing passkey</key>
-	<string>使用現有通行密鑰</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>請使用已連結目標帳號的登入方式。</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>每次建立都會產生獨立的登入身分。要為目前帳號新增通行密鑰，請前往帳號安全中的「新增通行密鑰登入」。</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>此通行密鑰尚未在 dMsg 註冊，請選擇其他密鑰。如果先前建立失敗，請先從密碼管理器移除那枚未使用的密鑰，再重新建立。</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>密碼管理器已儲存通行密鑰，但 dMsg 尚未確認註冊。請先嘗試用它登入，再決定是否建立新的密鑰。</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>上一封信還在等待對方處理。請對方在桌面端歸檔舊信，或在 iOS 的來信選單中選擇「允許再次來信」，然後重試這封信。</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>對方的收信設定需要更新。請對方解鎖 dMsg 並完成同步，再重試這封信。</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>收發設定剛剛發生變化。請重試這封信；如果仍失敗，請你和對方都解鎖 dMsg 並完成同步後再試。</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>如果已經建立過通行密鑰，請使用已儲存的密鑰。只有需要另一個登入身分時才建立新密鑰。</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>通行密鑰已儲存。重試會繼續將它連結至此帳號，不會建立新密鑰。</string>
-	<key>Continue adding this passkey</key>
-	<string>繼續新增此通行密鑰</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>登出此通行密鑰的裝置並繼續</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>此通行密鑰的登入裝置已達上限。登出這些裝置後即可繼續；其他通行密鑰和已儲存的內容不受影響。</string>
 </dict>
 </plist>

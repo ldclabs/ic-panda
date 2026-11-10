@@ -2,115 +2,115 @@
 
 Sürüm 1. Son güncelleme: 2026-11-07.
 
-Bu şartlar dMsg kullanımınızı yönetir: dmsg.net web sitesi, eski dMsg web uygulaması, dMsg tarayıcı uzantısı, dMsg bulut hizmeti ve İnternet Bilgisayarındaki dMsg canisters (ICP). "dMsg", "biz" ve "bize", ICPanda DAO yönetimi altında dMsg hizmetini işleten ekip anlamına gelir. "Siz", dMsg kullanan kişi veya kuruluş anlamına gelir.
+Bu şartlar, dmsg.net web sitesi, eski dMsg web uygulaması, dMsg tarayıcı uzantısı, dMsg bulut hizmeti ve Internet Computer (ICP) üzerindeki dMsg canister'ları dahil olmak üzere dMsg kullanımınızı düzenler. "dMsg" ve "biz", ICPanda DAO yönetişimi altında dMsg hizmetini işleten ekibi ifade eder. "Siz", dMsg'yi kullanan gerçek kişiyi veya kuruluşu ifade eder.
 
-## 1. Bu şartları kabul etmek
+## 1. Bu şartların kabulü
 
-Bir dMsg hesabı oluşturarak, uzantıyı yükleyerek veya herhangi bir dMsg hizmetini kullanarak, bu şartları ve https://dmsg.net/_/privacy. adresindeki Gizlilik Politikasını kabul etmiş olursunuz. Kabul etmiyorsanız, dMsg kullanmayın.
+Bir dMsg hesabı oluşturarak, uzantıyı yükleyerek veya herhangi bir dMsg hizmetini kullanarak bu şartları ve https://dmsg.net/_/privacy adresindeki Gizlilik Politikası'nı kabul etmiş olursunuz. Kabul etmiyorsanız lütfen dMsg'yi kullanmayın.
 
-Yaşadığınız yerde ebeveyn izni olmadan çevrimiçi hizmetleri kullanabilecek yaşta olmanız ve her durumda en az 13 yaşında olmanız gerekir. dMsg'yu bir kuruluş için kullanıyorsanız bu şartları o kuruluş adına kabul edebileceğinizi onaylamış olursunuz.
+Yaşadığınız yerde ebeveyn izni olmadan çevrimiçi hizmetleri kullanabilecek yaşta olmanız ve her durumda en az 13 yaşında olmanız gerekir. dMsg'yi bir kuruluş adına kullanıyorsanız, bu şartları söz konusu kuruluş adına kabul etmeye yetkili olduğunuzu onaylarsınız.
 
 ## 2. Hizmet
 
-dMsg özel bir çalışma alanı ve kimlik imzalama hizmetidir. Uzantı, onayladığınız cihazlardaki notlarınızı, mesajlarınızı ve dosyalarınızı şifreler ve şifrelerini çözer. Bulut hizmeti şifreli metni saklar ve iletir ve kanalları, iletişim kurallarını ve gelen kutusunu çalıştırır. ICP üzerindeki Canisters, hesabı, cihazı, kurtarmayı, tanıtıcıyı, makbuzu imzalamayı, ödemeyi ve yetki durumunu muhafaza eder.
+dMsg, özel bir çalışma alanı ve kimlik imzalama hizmetidir. Tarayıcı uzantısı; notlarınızı, mesajlarınızı ve dosyalarınızı onayladığınız cihazlarda şifreler ve şifrelerini çözer. Bulut hizmeti şifreli metinleri (ciphertext) depolar ve iletir; ayrıca kanalları, iletişim kurallarını ve gelen kutusunu çalıştırır. ICP üzerindeki canister'lar; hesap, cihaz, kurtarma, kullanıcı adı (handle), imza makbuzu, ödeme ve kullanım hakkı durumlarını tutar.
 
-dMsg aktif geliştirme aşamasındadır. Özellikleri ekleyebilir, değiştirebilir, sınırlandırabilir veya kaldırabiliriz. Web sitesinde açıklanan özellikler henüz mevcut olmayabilir. Eski web uygulaması salt okunurdur.
+dMsg aktif olarak geliştirilmektedir. Özellikler ekleyebilir, değiştirebilir, sınırlandırabilir veya kaldırabiliriz. Web sitesinde açıklanan bazı özellikler henüz kullanıma sunulmamış olabilir. Eski web uygulaması salt okunurdur.
 
 ## 3. Hesabınız, cihazlarınız ve kurtarma
 
-Hesabınızı giriş kimliğiniz ve onayladığınız cihazlar aracılığıyla kontrol edersiniz. Bunları, yedeklerinizi ve kurtarma malzemelerini güvende tutun. Onları kontrol eden herkes sizin gibi hareket edebilir.
+Hesabınızı, giriş kimliğiniz ve onayladığınız cihazlar aracılığıyla kontrol edersiniz. Bunları, yedeklerinizi ve tüm kurtarma materyallerinizi güvende tutun. Bunların kontrolünü ele geçiren herkes sizin adınıza işlem yapabilir.
 
-İçerik anahtarlarınızı elimizde tutmuyoruz ve bunları sizin için sıfırlayamayız. Kurtarma, uzantıda gösterilen kurallara uyar; bu, onaylı cihazlarınızın işlemi iptal edebileceği bir bekleme süresini de içerebilir. Tüm cihazları, oturum açma kimliğinizi ve kurtarma malzemelerinizi kaybederseniz hesabınızı veya içeriğinizi geri yükleyemeyebiliriz. Bulutla hiçbir zaman senkronize edilmemiş içerik, onu tutan cihazla birlikte kaybolur.
+İçerik anahtarlarınızı biz tutmayız ve sizin için sıfırlayamayız. Hesap kurtarma işlemi, uzantıda gösterilen kurallara göre yürütülür ve onaylı cihazlarınızın işlemi iptal edebileceği bir bekleme süresi içerebilir. Tüm cihazlarınızı, giriş kimliğinizi ve kurtarma materyallerinizi kaybederseniz hesabınızı veya içeriğinizi kurtaramayız. Bulutla hiç senkronize edilmemiş içerikler, bulundukları cihazla birlikte kalıcı olarak kaybolur.
 
-## 4. İçeriğiniz ve davranışlarınız
+## 4. İçeriğiniz ve kullanım kuralları
 
-İçeriğinizin mülkiyeti sizde kalır. Bunu yalnızca dMsg'yu çalıştırmak için gerektiği kadar şifrelenmiş biçimde saklamamıza, kopyalamamıza ve teslim etmemize ve ilgili meta verileri işlememize izin veriyorsunuz. Oluşturduğunuz veya paylaştığınız içerikten ve bunları paylaşma hakkına sahip olmaktan siz sorumlusunuz. İçeriği paylaştığınız kişiler kopyalarını saklayabilir.
+İçeriğinizin mülkiyeti sizde kalır. Yalnızca dMsg'yi çalıştırmak için gerektiği ölçüde, içeriğinizi şifrelenmiş biçimde depolamamıza, kopyalamamıza, iletmemize ve ilgili meta verileri işlememize izin verirsiniz. Oluşturduğunuz veya paylaştığınız içerikten ve bunu paylaşma hakkına sahip olmaktan siz sorumlusunuz. İçerik paylaştığınız kişiler bu içeriklerin kopyalarını saklayabilir.
 
-dMsg'yu aşağıdaki amaçlarla kullanmayın:
+dMsg'yi şu amaçlarla kullanmayın:
 
-- kanunları çiğnemek veya başkalarının kanunları çiğnemesine yardım etmek;
-- spam, toplu istenmeyen istekler veya yanıltıcı içerik göndermek;
-- herhangi birini taciz etmek, tehdit etmek, dolandırmak veya istismar etmek ya da bir kişi veya kuruluşun kimliğine bürünmek;
-- kötü amaçlı yazılım veya kimlik avı dağıtmak;
+- yasaları çiğnemek veya başkalarının yasaları çiğnemesine yardımcı olmak;
+- spam, toplu istenmeyen istekler veya aldatıcı içerik göndermek;
+- birini taciz etmek, tehdit etmek, dolandırmak, istismar etmek veya bir kişi ya da kuruluşun kimliğine bürünmek;
+- kötü amaçlı yazılım (malware) veya kimlik avı (phishing) içeriği yaymak;
 - fikri mülkiyet veya gizlilik haklarını ihlal etmek;
-- hizmete müdahale etmek, aşırı yükleme yapmak veya saldırmak, oran sınırlarını veya kotaları atlamak veya ödeme, geri ödeme veya yetkilendirme akışlarını kötüye kullanmak.
+- hizmeti aksatmak, aşırı yüklemek veya hizmete saldırmak, hız sınırlarını veya kotaları aşmaya çalışmak ya da ödeme, iade veya hak tanımlama süreçlerini kötüye kullanmak.
 
-Bulduğunuz şeyi https://dmsg.net/_/support aracılığıyla özel olarak bildirirseniz ve başkalarının verilerine erişmezseniz güvenlik araştırması memnuniyetle karşılanır.
+Bulgularınızı https://dmsg.net/_/support üzerinden gizlice bildirmeniz ve başkalarının verilerine erişmemeniz koşuluyla güvenlik araştırmalarını memnuniyetle karşılıyoruz.
 
-İçerik şifrelendiğinden genellikle göremiyoruz. Elimizdeki raporlara, meta verilere ve diğer bilgilere göre hareket edebiliriz. Bir hesap için teslimatı reddedebilir, bulut özelliklerini sınırlandırabilir veya askıya alabilir veya bunlara erişimi kapatabiliriz. Başkalarının cihazlarında tutulan kopyaları kaldıramayız ve ICP üzerinde yazılı kayıtları silemeyiz.
+İçerikler şifrelendiği için genellikle tarafımızca görülemez. Bildirimlere, meta verilere ve elimizdeki diğer bilgilere dayanarak işlem yapabiliriz: iletimi reddedebilir, bir hesabın bulut özelliklerini sınırlandırabilir ya da askıya alabilir veya erişimini kapatabiliriz. Başkalarının cihazlarında tutulan kopyaları silemeyiz ve ICP üzerine yazılmış kayıtları kaldıramayız.
 
-## 5. Tanıtıcılar, profiller ve genel kayıtlar
+## 5. Kullanıcı adları (handle), profiller ve herkese açık kayıtlar
 
-Tanıtıcı, ICP'da kayıtlı genel bir addır. Fiyatı uzunluğuna bağlıdır, PANDA cinsinden ödenir ve kaydı onaylamadan önce gösterilir. Bir tanıtıcının yenileme ücreti yoktur. Başka bir hesaba yalnızca her iki hesabın da onayladığı bir aktarımla taşınır. Tamamlanmış bir işlem ödemesi iade edilmez.
+Kullanıcı adı (handle), ICP üzerinde kaydedilen herkese açık bir isimdir. Fiyatı uzunluğuna göre belirlenir, PANDA ile ödenir ve kaydı onaylamanızdan önce gösterilir. Kullanıcı adlarının yenileme ücreti yoktur. Yalnızca her iki hesabın da onayladığı bir devir işlemiyle başka bir hesaba aktarılabilir. Tamamlanmış bir kullanıcı adı ödemesi iade edilmez.
 
-Tanıtıcılar, genel profiller, dizin belgeleri ve zincir içi kayıtlar herkese açıktır. Diğerleri bunları okuyabilir, kopyalayabilir ve önbelleğe alabilir; biz bunları ICP'dan silemeyiz. Birisinin kimliğine bürünen veya haklarını ihlal eden bir kullanıcı adı seçmeyin veya bir profil yayınlamayın.
+Kullanıcı adları, herkese açık profiller, dizin belgeleri ve zincir üstü (on-chain) kayıtlar herkese açıktır. Başkaları bunları okuyabilir, kopyalayabilir ve önbelleğe alabilir; biz de bunları ICP'den silemeyiz. Başka birinin kimliğine bürünen veya haklarını ihlal eden bir kullanıcı adı seçmeyin ya da böyle bir profil yayınlamayın.
 
-## 6. İmzalar ve bağlantılı uygulamalar
+## 6. İmzalar ve bağlı uygulamalar
 
-Uzantıdaki onay, yalnızca incelediğiniz isteğe yetki verir: içeriği, amacı, kimliği ve isteğin kaynağı. Attığınız imza sizin kendi hareketinizdir, başkaları tarafından doğrulanabilir ve atıldıktan sonra geri alınamaz. Bir uygulamanın bağlanması hiçbir zaman uygulamaya kasanıza erişme veya otomatik olarak imzalama izni vermez.
+Uzantıdaki bir onay yalnızca incelediğiniz isteğe (içeriğine, amacına, kimliğine ve isteği yapan kaynağa) yetki verir. Attığınız imza sizin kendi işleminizdir, başkaları tarafından doğrulanabilir ve bir kez atıldıktan sonra geri alınamaz. Bir uygulamayı bağlamak, o uygulamaya hiçbir zaman kasanıza (Vault) erişim veya otomatik imzalama yetkisi vermez.
 
-Bağlantılı uygulamalar kendi operatörleri tarafından çalıştırılır. Hizmetleri, şartları ve kararları onların sorumluluğundadır.
+Bağlı uygulamalar kendi işletmecileri tarafından yürütülür; sundukları hizmetler, şartlar ve kararlar kendi sorumluluklarındadır.
 
 ## 7. Planlar ve ödemeler
 
 ### 7.1 App Store abonelikleri
 
-App Store üzerinden satın alınan Plus, Pro ve Max, yenilemeden önce iptal etmediğiniz sürece her yıl otomatik yenilenen bir yıllık aboneliklerdir. Apple, Apple Hesabınızdan ücret alır. Fiyat, para birimi, süre ve dahil olan haklar satın alma onayından önce gösterilir. Yenilemeler, fiyat ve plan değişiklikleri Apple'ın sunduğu koşullara ve onaylara tabidir. Bu kurallar uygulama içi satın alma sunulduğunda geçerlidir; bölüm 7.2'deki cüzdan ödemesi ve manuel yenileme kuralları bu aboneliklere uygulanmaz.
+App Store üzerinden satın alınan Plus, Pro ve Max planları, yenileme tarihinden önce iptal etmediğiniz sürece her yıl otomatik olarak yenilenen bir yıllık aboneliklerdir. Ücretlendirme Apple tarafından Apple Hesabınız üzerinden yapılır. Satın alma işlemini onaylamadan önce fiyat, para birimi, abonelik süresi ve dahil olan haklar gösterilir. Yenilemeler, fiyat değişiklikleri ve plan değişiklikleri Apple'ın sunduğu koşullara ve onay süreçlerine tabidir. Bu App Store kuralları, uygulama içi satın alımlar sunulduğunda geçerlidir; bölüm 7.2'deki cüzdanla ödeme ve manuel yenileme kuralları bu aboneliklere uygulanmaz.
 
 ### 7.2 App Store dışındaki ödemeler
 
-dMsg Ücretsiz plan ve ücretli planlar sunar. Planlar, kaynak limitleri ve fiyatlar, dMsg ticari canister sertifikalı kataloğunda yayınlanır ve ödeme yapmadan önce size gösterilir. Fiyatlar ABD doları cinsinden belirlenmektedir.
+dMsg, Ücretsiz bir plan ve ücretli planlar sunar. Planlar, kaynak limitleri ve fiyatlar dMsg ticaret canister'ının sertifikalı kataloğunda yayınlanır ve ödeme yapmadan önce size gösterilir. Fiyatlar ABD doları (USD) cinsinden belirlenir.
 
-- Nakit ödemelerde ödeme sırasında listelenen ckUSDC gibi sabit paralar kullanılır. Teklif, ABD doları fiyatını yayınlanmış bir uzlaşma fiyatına dönüştürür ve tutarı, mevduat hesabını ve son teslim tarihlerini sabitler. Belirtilen tutarı son tarihten önce o hesaba tam olarak ödeyin.
-- Her siparişi kendi cüzdanınızdan ödersiniz. dMsg'nun sizden ücret almak için hiçbir zaman daimi izni yoktur ve planlar otomatik olarak yenilenmez.
-- Ücretli planlar bir yıl süreyle geçerlidir. Mevcut sürenizin bitiminden 30 gün önce yenileyebilirsiniz; yenileme, mevcut sürenin bitiminde başlar. Yükseltme, mevcut dönemin geri kalanına ilişkin fiyat farkını tahsil eder. Bir depolama eklentisi ait olduğu planla sona erer.
-- Teklif edildiği takdirde, uygun bir PANDA nöronu bir plan dönemi fiyatından feragat edebilir. Nöronu elinizde tutun; dMsg onun veya tokenlarınızın velayetini almaz. Nöron, principal dMsg kullanımlarını listelemeli ve payı ve dağılma tarihi, tüm dönem için teklifte gösterilen gereksinimleri karşılamalıdır. Nöron hak kazanmayı bırakırsa feragat edilen faydalar duraklatılır ve dönem bitmeden sona erebilir. Feragat edilen bir süre iptal edilemez.
-- Kendi işlemlerinizin ağ ücretlerini ve sizin için geçerli olan vergileri ödersiniz.
-- Yeni kataloğun yürürlüğe girmesinden en az 30 gün önce planlanır. Mevcut bir sipariş, onaylandığı şartları korur.
+- Doğrudan ödemelerde, ödeme adımında listelenen ckUSDC gibi sabit coin'ler (stablecoin) kullanılır. Fiyat teklifi, ABD doları tutarını yayınlanmış mutabakat kurundan dönüştürür ve ödenecek tutarı, yatırılacak hesabı ve son ödeme sürelerini sabitler. Son ödeme süresinden önce belirtilen hesaba tam olarak teklifteki tutarı ödeyin.
+- Her siparişi kendi cüzdanınızdan ödersiniz. dMsg sizden otomatik tahsilat yapmak için hiçbir zaman sürekli yetki tutmaz ve planlar otomatik olarak yenilenmez.
+- Ücretli planlar bir yıl sürer. Mevcut döneminizin bitiminden önceki 30 gün içinde yenileme yapabilirsiniz; yenilenen süre mevcut dönem bittiğinde başlar. Plan yükseltmelerinde, mevcut dönemin kalan süresi için fiyat farkı tahsil edilir. Ek depolama paketleri, bağlı oldukları planla birlikte sona erer.
+- Sunulduğu durumlarda, koşulları sağlayan bir PANDA nöronu bir plan döneminin ücretinden muafiyet sağlayabilir. Nöronun mülkiyeti sizde kalır; dMsg nöronunuzun veya token'larınızın수 saklamasını (velayetini) üstlenmez. Nöronun, dMsg'nin kullandığı principal kimliğini listelemesi ve stake miktarı ile çözülme tarihinin (dissolve date) tüm dönem boyunca teklifte belirtilen gereksinimleri karşılaması gerekir. Nöron gerekli koşulları sağlamayı bırakırsa muafiyet kapsamındaki haklar duraklatılır ve dönem bitmeden sona erebilir. Nöron muafiyetiyle açılan bir dönem iptal edilemez.
+- Kendi işlemlerinizin ağ ücretlerini ve size uygulanabilecek vergileri siz ödersiniz.
+- Yeni bir katalog yürürlüğe girmeden en az 30 gün önce duyurulur. Mevcut siparişler onaylandıkları sıradaki şartları korur.
 
-## 8. İptaller ve para iadeleri
+## 8. İptaller ve iadeler
 
 ### 8.1 App Store abonelikleri
 
-Otomatik yenilemeyi Apple Hesabınızın abonelik ayarlarından veya dMsg'deki abonelik yönetiminden yönetebilir ya da iptal edebilirsiniz. İptal genellikle ödenen dönemin sonuna kadar erişimi korur; iade veya hakların geri alınması erişimi daha erken sonlandırabilir. dMsg'yi ya da dMsg hesabınızı silmek Apple aboneliğini iptal etmez.
+Otomatik yenilemeyi Apple Hesabınızın abonelik ayarlarından veya dMsg içindeki abonelik yönetimi bağlantısından yönetebilir ya da iptal edebilirsiniz. İptal işlemi genellikle ödenmiş dönemin sonuna kadar erişiminizi korur; ancak bir para iadesi veya hak iptali erişimi daha erken sonlandırabilir. dMsg uygulamasını veya dMsg hesabınızı silmek Apple aboneliğinizi iptal etmez.
 
-App Store faturalandırmasını ve iade taleplerini Apple işler. https://reportaproblem.apple.com üzerinden veya Apple Destek ile iletişime geçerek iade isteyin. Uygunluk Apple kurallarına ve geçerli hukuka tabidir; bölüm 8.2'deki cüzdan iadesi kısıtlamaları ve defter ücretleri App Store satın alımlarına uygulanmaz. Bir satın alma dMsg'de görünmüyorsa yeniden ödeme yapmak yerine ilk Apple Hesabı ve aynı dMsg hesabıyla satın alımları geri yükleyin.
+App Store faturalandırma ve iade talepleri Apple tarafından işlenir. İade taleplerinizi https://reportaproblem.apple.com adresinden veya Apple Destek üzerinden iletebilirsiniz. İade uygunluğu Apple kurallarına ve yürürlükteki yasalara tabidir; bölüm 8.2'deki cüzdan iade kısıtlamaları ve defter (ledger) ücretleri App Store satın alımlarına uygulanmaz. Satın aldığınız plan dMsg'de görünmüyorsa tekrar ödeme yapmak yerine orijinal Apple Hesabınız ve aynı dMsg hesabınızla satın alımları geri yükleyin.
 
 ### 8.2 App Store dışındaki ödemeler
 
-- 11. maddede belirtilen durumlar veya kanunların gerektirdiği haller dışında, başlamış olan ücretli sürenin iadesi yapılmaz.
-- Başlamayan bir yenileme iptal edilebilir. Daha sonra bunun için ödenen tutar iade edilir.
-- Siparişin teslim edilmemesi veya ödemenin geç, eksik, aşırı, mükerrer veya iptal sonrası gönderilmesi durumunda iade edilen tutar, ödemenin geldiği hesaba iade edilir.
-- Geri ödemeli bir transferde, o transferin defter ücreti düşülür. Geri ödemeler hiçbir zaman ödeme hesabı dışında bir adrese yapılmaz.
+- Başlamış olan ücretli bir dönem için, bölüm 11'de belirtilen durumlar veya yasaların zorunlu kıldığı haller dışında iade yapılmaz.
+- Henüz başlamamış bir yenileme iptal edilebilir; bu durumda ödenen tutar iade edilir.
+- Bir sipariş teslim edilmezse veya ödeme geç, eksik, fazla, mükerrer ya da iptal sonrasında gönderilmişse, iade edilebilir tutar ödemenin yapıldığı hesaba geri gönderilir.
+- İade transferinde, söz konusu transferin defter (ledger) ücreti düşülür. İadeler hiçbir zaman ödemeyi yapan hesap dışında başka bir adrese gönderilmez.
 
-## 9. Ücretli istekler
+## 9. Ücretli iletişim istekleri
 
-Alıcı, yeni iletişim talepleri için teslimat ücreti talep edebilir. Ücret yalnızca uygun teslimat için ödenir; yanıt, iletişim durumu veya herhangi bir imzalama izni için ödenmez. Ödeme yapmadan önce teklifte tutar, hizmet ücreti ve son tarihler gösterilir. Bulut hizmetinin talebi son tarihten önce kabul etmesi durumunda ödeme alıcıya, hizmet ücreti ise dMsg'ya ödenir. Aksi takdirde ödeme geldiği hesaba iade edilir.
+Bir alıcı, yeni iletişim istekleri için iletim ücreti talep edebilir. Bu ücret yalnızca kurallara uygun iletim içindir; yanıt alma, kişi listesine eklenme veya herhangi bir imzalama izni sağlamaz. Ödeme öncesinde teklifte tutar, hizmet ücreti ve süre sınırları gösterilir. Bulut hizmeti isteği süre dolmadan kabul ederse ödeme alıcıya, hizmet ücreti ise dMsg'ye aktarılır. Aksi halde ödeme gönderildiği hesaba iade edilir.
 
-## 10. Bir plan bittiğinde
+## 10. Bir plan sona erdiğinde
 
-Ücretli bir dönem sona erdiğinde ve yenilenmediğinde hesabınız Ücretsiz limitlere geri döner. Halihazırda sakladığınız içerik, plan sona erdiği için geri çekilmez ve oluşturduğunuz imzalar geçerliliğini korur. Saklanan içeriğiniz Ücretsiz sınırlarını aşarsa bu sınırların ötesindeki yeni yazma işlemleri kısıtlanır; okuma, silme ve dışa aktarma işlemleri ise en az 30 gün boyunca kullanılabilir durumda kalır.
+Ücretli bir dönem sona erip yenilenmediğinde hesabınız Ücretsiz plan limitlerine döner. Zaten depolamış olduğunuz içerikler plan sona erdiği için silinmez ve daha önce attığınız imzalar geçerliliğini korur. Depolanan içeriğiniz Ücretsiz plan limitlerini aşıyorsa bu limitlerin üzerindeki yeni yazma işlemleri kısıtlanır; ancak okuma, silme ve dışa aktarma işlemleri en az 30 gün boyunca açık kalır.
 
 ## 11. Değişiklikler, kesintiler ve hizmetin sonlandırılması
 
-https://dmsg.net/_/terms. adresinde yeni sürüm numarası ve özet içeren yeni bir sürüm yayınlayarak bu şartları değiştirebiliriz. Yeni bir sürüm, yürürlüğe girdikten sonra onaylanan satın alma işlemleri ve biz bunu duyurduktan sonra kullanmaya devam etmeniz için geçerlidir. Halihazırda onaylanan satın alımlar, kaydettikleri sürümü korur. Önceki sürümler kullanılabilir durumda kalır.
+https://dmsg.net/_/terms adresinde yeni bir sürüm numarası ve kriptografik özet (digest) içeren yeni bir sürüm yayınlayarak bu şartları değiştirebiliriz. Yeni sürüm, yürürlüğe girdikten sonra onaylanan satın alımlar ve duyurumuzun ardından hizmeti kullanmaya devam etmeniz için geçerli olur. Daha önce onaylanmış satın alımlar, kaydedildikleri sürümü korur. Önceki sürümler erişilebilir olmaya devam eder.
 
-Hizmet mevcut olduğu şekilde sağlanır ve kesintiye uğrayabilir. Nakit olarak ödenen sürenin bitiminden önce ücretli bir özelliği durdurursak, söz konusu sürenin kullanılmayan kısmını iade edeceğiz ve içeriğinizi dışa aktarmanız için size makul bir süre vereceğiz.
+Hizmet mevcut olduğu şekliyle sunulur ve kesintiye uğrayabilir. Doğrudan ödenmiş bir dönem sona ermeden önce ücretli bir özelliği kalıcı olarak sonlandırırsak, o dönemin kullanılmayan kısmını iade eder ve içeriğinizi dışa aktarmanız için size makul bir süre tanırız.
 
 ## 12. Açık kaynak ve üçüncü taraflar
 
-Genel dMsg kodu, ICPanda deposundaki Apache Lisansı 2.0 kapsamında lisanslanmıştır. Bu şartlar söz konusu lisans kapsamındaki haklarınızı sınırlamaz. dMsg bulut hizmeti açık kaynak değildir.
+Herkese açık dMsg kaynak kodu, ICPanda deposunda Apache License 2.0 kapsamında lisanslanmıştır. Bu şartlar, söz konusu lisans kapsamındaki haklarınızı kısıtlamaz. dMsg bulut hizmeti açık kaynaklı değildir.
 
-dMsg, İnternet Bilgisayarı, Internet Identity, jeton defterleri, cüzdanlar, Cloudflare ve Chrome Web Mağazası dahil olmak üzere üçüncü taraflara güvenir. Bunları kullanımınız için onların kendi koşulları geçerlidir.
+dMsg; Internet Computer, Internet Identity, token defterleri (ledger), cüzdanlar, Cloudflare ve Chrome Web Mağazası dahil olmak üzere üçüncü taraf hizmetlere dayanır. Bu hizmetleri kullanımınız ilgili tarafların kendi şartlarına tabidir.
 
-## 13. Riskler, sorumluluk reddi beyanları ve sorumluluk
+## 13. Riskler, garanti reddi ve sorumluluk sınırlaması
 
-ICP defterlerindeki işlemler geri alınamaz ve token fiyatları değişebilir. Yazılım kusurlar içerebilir ve canisters, ICPanda DAO yönetimi altında denetleyicileri tarafından yükseltilebilir.
+ICP defterlerindeki işlemler geri alınamaz ve token fiyatları değişkenlik gösterebilir. Yazılım hatalar içerebilir ve canister'lar ICPanda DAO yönetişimi altında denetleyicileri (controller) tarafından güncellenebilir.
 
-Yasaların izin verdiği azami ölçüde, dMsg, herhangi bir garanti olmaksızın "olduğu gibi" ve "mevcut olduğu şekilde" sağlanmaktadır. Yasaların izin verdiği azami ölçüde, dolaylı, arızi, özel, sonuç olarak ortaya çıkan veya cezai zararlardan veya veri, anahtar, jeton, kar veya iyi niyet kaybından sorumlu değiliz. Herhangi bir hak talebine ilişkin toplam sorumluluğumuz, hak talebinden önceki 12 ay içinde dMsg'ya ödediğiniz tutarla sınırlıdır.
+Yasaların izin verdiği azami ölçüde dMsg, hiçbir açık veya zımni garanti olmaksızın "olduğu gibi" ve "mevcut olduğu şekliyle" sunulmaktadır. Yasaların izin verdiği azami ölçüde; dolaylı, arızi, özel, sonuç olarak ortaya çıkan veya cezai zararlardan ya da veri, anahtar, token, kâr veya itibar kaybından sorumlu değiliz. Herhangi bir talebe ilişkin toplam sorumluluğumuz, talepten önceki 12 ay içinde dMsg'ye ödediğiniz tutarla sınırlıdır.
 
 ## 14. Dil ve iletişim
 
-Bu terimler İngilizce olarak yazılmıştır. Kolaylık sağlamak için çeviriler sağlanmıştır; Eğer bir çeviri bu İngilizce metinden farklıysa bu metin geçerli olacaktır.
+Bu şartlar İngilizce olarak hazırlanmıştır. Çeviriler kolaylık sağlamak amacıyla sunulmuştur; herhangi bir çeviri ile İngilizce metin arasında farklılık olması halinde İngilizce metin geçerlidir.
 
-Bu terimlerle ilgili sorular için bkz. https://dmsg.net/_/support.
+Bu şartlarla ilgili sorularınız için https://dmsg.net/_/support adresini ziyaret edebilirsiniz.

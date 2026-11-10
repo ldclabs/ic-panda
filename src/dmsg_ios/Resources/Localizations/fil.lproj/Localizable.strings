@@ -82,6 +82,8 @@
 	<string>Aktibidad</string>
 	<key>Activity on this device</key>
 	<string>Aktibidad sa device na ito</string>
+	<key>Add a passkey login</key>
+	<string>Magdagdag ng login gamit ang passkey</string>
 	<key>Add account</key>
 	<string>Magdagdag ng account</string>
 	<key>Add device</key>
@@ -135,7 +137,7 @@
 	<key>Allow another letter</key>
 	<string>Payagan ang isa pang liham</string>
 	<key>Allow key rotation</key>
-	<string>Payagan ang pag-ikot ng key</string>
+	<string>Payagan ang pag-rotate ng key</string>
 	<key>Allow this account to send another letter?</key>
 	<string>Payagan ang account na ito na magpadala ng isa pang liham?</string>
 	<key>Allowed</key>
@@ -147,7 +149,7 @@
 	<key>Already imported</key>
 	<string>Na-import na</string>
 	<key>Already present</key>
-	<string>naroroon na</string>
+	<string>Naroroon na</string>
 	<key>Amount</key>
 	<string>Halaga</string>
 	<key>Amount in base units</key>
@@ -475,7 +477,7 @@
 	<key>Close link</key>
 	<string>Isara ang link</string>
 	<key>Closed</key>
-	<string>sarado</string>
+	<string>Sarado</string>
 	<key>Cloud backup</key>
 	<string>Backup sa cloud</string>
 	<key>Cloud backup file limit</key>
@@ -548,6 +550,8 @@
 	<string>Makipag-ugnayan sa suporta</string>
 	<key>Content signing</key>
 	<string>Paglagda ng nilalaman</string>
+	<key>Continue adding this passkey</key>
+	<string>Ipagpatuloy ang pagdagdag ng passkey</string>
 	<key>Continue import</key>
 	<string>Ipagpatuloy ang pag-import</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>Ipagpatuloy ang pag-import na ito sa account na orihinal mong pinili.</string>
 	<key>Continue with Internet Identity</key>
 	<string>Magpatuloy sa Internet Identity</string>
+	<key>Continue with a passkey</key>
+	<string>Magpatuloy gamit ang passkey</string>
 	<key>Controller ID</key>
 	<string>Controller ID</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>Gumawa ng bagong kredensyal sa provider nito at i-save ito sa vault</string>
 	<key>Create a new pairing request</key>
 	<string>Gumawa ng bagong kahilingan sa pagpapares</string>
+	<key>Create a passkey</key>
+	<string>Gumawa ng passkey</string>
 	<key>Create a revocation request?</key>
 	<string>Gumawa ng kahilingan sa pagbawi?</string>
 	<key>Create agent</key>
@@ -675,7 +683,7 @@
 	<key>Creating %lld of %lld…</key>
 	<string>Ginagawa %lld sa %lld…</string>
 	<key>Credential</key>
-	<string>kredensyal</string>
+	<string>Kredensyal</string>
 	<key>Credential ID</key>
 	<string>ID ng kredensyal</string>
 	<key>Credential expired</key>
@@ -799,7 +807,7 @@
 	<key>Discard this draft?</key>
 	<string>Itapon ang mga pagbabago?</string>
 	<key>Discard this staged copy?</key>
-	<string>Itapon ang nakaplanong kopyang ito?</string>
+	<string>Itapon ang naka-stage na kopyang ito?</string>
 	<key>Discard unsaved changes?</key>
 	<string>Itapon ang mga pagbabago?</string>
 	<key>Dismiss</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Ang bawat mobile package ay limitado sa 8 MiB, kasama ang mga napiling attachment. Ipinapakita ng huling pag-apruba ang eksaktong hindi nababagong pagpili at patutunguhan.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Bawat bagong passkey ay lumilikha ng hiwalay na pagkakakilanlan sa pag-login. Para idagdag ito sa kasalukuyang account, gamitin ang Magdagdag ng passkey login sa seguridad ng account.</string>
 	<key>Edit</key>
 	<string>I-edit</string>
 	<key>Edit draft</key>
@@ -871,7 +881,7 @@
 	<key>Encrypting on this device…</key>
 	<string>Ini-encrypt sa device na ito…</string>
 	<key>Engine</key>
-	<string>makina</string>
+	<string>Makina</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Nagbago ang naka-enroll na biometrics. Magrehistro ng kapalit na key bago umasa sa key na ito.</string>
 	<key>Enter a setup key or otpauth URL.</key>
@@ -904,6 +914,8 @@
 	<string>Isagawa gamit ang mga nakolektang lagda</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Ang mga kasalukuyang panuntunan sa pag-block, mga imbitasyon at kapasidad ng inbox ay pinapanatili. Papalitan ng pagpili ng libre o saradong patakaran ang anumang dating binabayarang setting ng contact.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Maaaring manatiling bisa ang mga kasalukuyang pahintulot sa login nang hanggang 12 oras. Mananatili ang pahintulot ng mga device sa nilalaman.</string>
 	<key>Expired</key>
 	<string>Nag-expire na</string>
 	<key>Expires</key>
@@ -953,7 +965,7 @@
 	<key>Files</key>
 	<string>Mga file</string>
 	<key>Files app copies</key>
-	<string>Nag-file ng mga kopya ng app</string>
+	<string>Mga kopya sa Files app</string>
 	<key>Files app snapshot updated</key>
 	<string>Na-update ang snapshot ng app ng mga file</string>
 	<key>Files are backed up only when you explicitly choose to do so.</key>
@@ -1295,11 +1307,11 @@
 	<key>Modified</key>
 	<string>Petsa ng pagbabago</string>
 	<key>Month</key>
-	<string>buwan</string>
+	<string>Buwan</string>
 	<key>Monthly execution limit</key>
 	<string>Buwanang limitasyon ng pagpapatupad</string>
 	<key>Monthly execution units</key>
-	<string>Buwanang mga yunit ng operasyon</string>
+	<string>Buwanang mga execution unit</string>
 	<key>More types</key>
 	<string>Mga uri</string>
 	<key>Move a native address</key>
@@ -1525,7 +1537,7 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>Ang mga output lang na hindi bababa sa %lld block ang lalim ang maililipat ngayon; ipinapakita ng ibang output ang block kung kailan ito maililipat.</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>Mga pinili at hindi nababagong kopya lang ang lalabas sa Files app. Ang pag-access ay nangangailangan ng pagpapatunay ng system; ang pag-lock ng dMsg ay nagtatapos sa kasalukuyang session ng pag-access. Maaaring panatilihin ng mga file ang mga na-download na kopya at mga filename, na hindi matandaan ng dMsg.</string>
+	<string>Mga napili at hindi nababagong kopya lang ang lalabas sa Files app. Nangangailangan ng system authentication ang access; tinatapos ng pag-lock sa dMsg ang kasalukuyang session. Maaaring mapanatili ng Files ang mga na-download na kopya at filename na hindi na mababawi ng dMsg.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Ang napiling naka-encrypt na file lang ang maaaring ilipat habang naka-lock ang dMsg. Kinokontrol ng iOS ang pag-iiskedyul; pinipigilan ng puwersahang paghinto ang paghahatid hanggang sa muli mong buksan ang app. Buksan ang orihinal na account para i-verify at tapusin.</string>
 	<key>Open</key>
@@ -1589,7 +1601,7 @@
 	<key>Package size</key>
 	<string>Laki ng package</string>
 	<key>Parent folder</key>
-	<string>folder ng magulang</string>
+	<string>Mas mataas na folder</string>
 	<key>Password</key>
 	<string>Password</string>
 	<key>Password AutoFill</key>
@@ -1635,7 +1647,7 @@
 	<key>Pending imports</key>
 	<string>Nakabinbing pag-import</string>
 	<key>Pending letters</key>
-	<string>Nakabinbing mga titik</string>
+	<string>Mga nakabinbing liham</string>
 	<key>Permanently delete the dMsg service account you reviewed</key>
 	<string>Permanenteng tanggalin ang dMsg service account na iyong nasuri</string>
 	<key>Permanently delete this dMsg service account?</key>
@@ -1795,7 +1807,7 @@
 	<key>Recently updated</key>
 	<string>Kamakailang binago</string>
 	<key>Recipient</key>
-	<string>tatanggap</string>
+	<string>Tatanggap</string>
 	<key>Recipient account ID</key>
 	<string>Account ID ng tatanggap</string>
 	<key>Recipient address</key>
@@ -1859,7 +1871,7 @@
 	<key>Reload saved profile</key>
 	<string>I-load muli ang naka-save na profile</string>
 	<key>Remaining</key>
-	<string>natitira</string>
+	<string>Natitira</string>
 	<key>Removal date</key>
 	<string>Petsa ng pag-alis</string>
 	<key>Remove</key>
@@ -1987,7 +1999,7 @@
 	<key>Resume</key>
 	<string>Ituloy</string>
 	<key>Retire a hardware approval key</key>
-	<string>Magretiro ng hardware approval key</string>
+	<string>Alisin sa serbisyo ang hardware approval key</string>
 	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
 	<string>Ang pag-retiro ng isang susi ay nag-aalis ng kakayahang mag-apruba ng mga protektadong aksyon. Tingnan kung nananatiling available ang isa pang awtorisadong daanan ng pag-apruba.</string>
 	<key>Retry</key>
@@ -2001,7 +2013,7 @@
 	<key>Retry original change</key>
 	<string>Subukang muli ang orihinal na pagbabago</string>
 	<key>Retry original letter</key>
-	<string>Subukang muli ang orihinal na titik</string>
+	<string>Subukang muli ang orihinal na liham</string>
 	<key>Retry preview</key>
 	<string>Subukang muli ang preview</string>
 	<key>Retry publication</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>Suriin ang mga pahintulot</string>
 	<key>Review publication or resume</key>
-	<string>Suriin ang publikasyon o resume</string>
+	<string>Suriin ang publikasyon o ipagpatuloy</string>
 	<key>Review rejection</key>
 	<string>Repasuhin ang pagtanggi</string>
 	<key>Review removing this login</key>
@@ -2103,7 +2115,7 @@
 	<key>Revocation pending</key>
 	<string>Nakabinbin ang pagpapawalang bisa</string>
 	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
-	<string>Ihihinto ng pagbawi ang bagong pag-access pagkatapos ma-refresh ang estado ng seguridad at maiikot ang mga susi. Ang dating kinopyang nilalaman ay hindi na maaalala.</string>
+	<string>Ihihinto ng pagbawi ang bagong access pagkatapos ma-refresh ang security state at ma-rotate ang mga key. Hindi na mababawi ang mga naunang nakopyang content.</string>
 	<key>Revoke</key>
 	<string>Bawiin ang pahintulot</string>
 	<key>Revoke a device</key>
@@ -2139,7 +2151,7 @@
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>Kapag binawi ang isang device, mawawala ang anumang nasa device na iyon lang, gaya ng mga file na hindi kailanman na-sync o na-back up.</string>
 	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
-	<string>Ang pagbawi ay humihinto ng mga bagong pag-download sa pamamagitan ng link na ito. Ang mga lokal na file ay manatili; nasimulan na ang mga pag-download at hindi na maaalala ang mga na-download na kopya.</string>
+	<string>Ang pagbawi ay humihinto ng mga bagong pag-download sa pamamagitan ng link na ito. Mananatili ang mga lokal na file; hindi na mababawi ang mga pag-download na nasimulan na at ang mga na-download na kopya.</string>
 	<key>Role</key>
 	<string>Tungkulin</string>
 	<key>Rotate conversation keys</key>
@@ -2298,12 +2310,14 @@
 	<string>Account ng nagpadala</string>
 	<key>Sending</key>
 	<string>Nagpapadala</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Nagbago ang mga setting sa pagpapadala o pagtanggap. Subukang muli ang liham na ito. Kung mabigo pa rin, ikaw at ang tatanggap ay kailangang mag-unlock ng dMsg at mag-sync bago muling subukan.</string>
 	<key>Sent</key>
 	<string>Naipadala</string>
 	<key>Sent letters</key>
 	<string>Nagpadala ng mga liham</string>
 	<key>Server</key>
-	<string>server</string>
+	<string>Server</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
 	<string>Ang pagtanggap ng serbisyo ay hindi nangangahulugang nabasa na ng tatanggap ang iyong liham.</string>
 	<key>Session code</key>
@@ -2351,7 +2365,7 @@
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Ibahagi ang kahilingang ito sa isang awtorisadong administrator. Hindi nito nirerehistro o inaprubahan ang susi nang mag-isa.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
-	<string>Ang mga nakabahaging kopya ay nag-iiwan ng proteksyon ng dMsg at hindi na maaalala.</string>
+	<string>Umaalis sa proteksyon ng dMsg ang mga ibinahaging kopya at hindi na mababawi.</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
 	<string>Hindi available ang mga nakabahaging item. Buksan muli ang app pagkatapos i-unlock ang device na ito.</string>
 	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
@@ -2386,8 +2400,12 @@
 	<string>Mag-sign in sa parehong account sa bagong device, i-scan ang QR ng computer, saka suriin at aprubahan sa computer.</string>
 	<key>Sign out</key>
 	<string>Mag-sign out</string>
+	<key>Sign out all devices</key>
+	<string>Mag-sign out sa lahat ng device</string>
 	<key>Sign out of this account?</key>
 	<string>Mag-sign out sa account na ito?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Mag-sign out sa mga device ng passkey na ito at magpatuloy</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Lagdaan ang pahayag na iyong sinuri</string>
 	<key>Signatures collected</key>
@@ -2600,6 +2618,10 @@
 	<string>Hindi nakita ang kabilang device sa lokal na network. Ilagay ang address nito.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>Ang kalalabasan ay hindi tiyak. Suriin ang orihinal na trabaho bago subukang muli ang anuman.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Na-save na ang passkey. Subukang muli para matapos ang pag-link sa account na ito; walang bagong passkey na gagawin.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Kailangang i-update ang mga setting sa pagtanggap ng tatanggap. Hilingin sa kanilang i-unlock ang dMsg at mag-sync, saka subukang muli ang liham na ito.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>Nagbago ang rekord. I-refresh at suriin ang iyong mga pag-edit bago i-save muli.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2720,6 +2742,10 @@
 	<string>Pansamantalang hindi available ang operasyong ito. Ang iyong na-save na data ay pinapanatili.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Ang package na ito ay na-import na sa device na ito. Ang mga kasalukuyang kopya ay nananatiling independyente.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Masyadong maraming device ang naka-sign in gamit ang passkey na ito. I-sign out ang mga ito para magpatuloy. Hindi maaapektuhan ang ibang passkey at naka-save na nilalaman.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Hindi nakarehistro sa dMsg ang passkey na ito. Pumili ng iba. Kung nabigo ang paggawa nito dati, alisin muna ang hindi nagamit na passkey sa password manager bago gumawa ng bago.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Pampubliko ang profile na ito. Huwag isama ang mga lihim o pribadong impormasyon sa pakikipag-ugnayan.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2842,14 +2868,20 @@
 	<string>Url</string>
 	<key>Usage</key>
 	<string>Paggamit</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Gumamit ng login na naka-link na sa account na gusto mong buksan.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>Gumamit ng pangalang may 1–255 character na walang slash o control character.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Gumamit ng password mula sa snapshot na tahasan mong na-export sa dMsg.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Kung nakagawa ka na ng passkey, gamitin ang na-save. Gumawa lang ng bago kung kailangan mo ng isa pang pagkakakilanlan sa pag-login.</string>
 	<key>Use a secret through a device policy</key>
 	<string>Gumamit ng lihim sa pamamagitan ng patakaran sa device</string>
 	<key>Use an SSH signing key</key>
 	<string>Gumamit ng SSH signing key</string>
+	<key>Use an existing passkey</key>
+	<string>Gumamit ng kasalukuyang passkey</string>
 	<key>Use conflicting version</key>
 	<string>Gumamit ng magkasalungat na bersyon</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -2897,7 +2929,7 @@
 	<key>View approval</key>
 	<string>Tingnan ang pag-apruba</string>
 	<key>Viewer</key>
-	<string>manonood</string>
+	<string>Tagatingin</string>
 	<key>Wait for the address book cooldown</key>
 	<string>Hintayin ang cooldown ng address book</string>
 	<key>Wait for the proposal</key>
@@ -2977,7 +3009,7 @@
 	<key>Workspace copied from another iPhone</key>
 	<string>Workspace na kinopya mula sa ibang iPhone</string>
 	<key>Workspace destination</key>
-	<string>destinasyon ng workspace</string>
+	<string>Destinasyon ng workspace</string>
 	<key>Write a letter</key>
 	<string>Sumulat ng isang liham</string>
 	<key>Write a message</key>
@@ -3012,6 +3044,10 @@
 	<string>Ang iyong mga nakatagong field ay mananatiling nakatago hanggang sa piliin mong ibunyag ang mga ito.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Magagamit pa rin ang iyong lokal na nilalaman. Mag-login gamit ang Internet Identity kapag kailangan ito ng isang aksyon sa account.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Na-save ng password manager ang passkey, pero hindi nakumpirma ng dMsg ang pagpaparehistro. Subukang mag-login gamit ito bago gumawa ng isa pa.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Nakabinbin pa ang nauna mong liham. Hilingin sa tatanggap na i-archive ito sa desktop o piliin ang “Payagan ang isa pang liham” sa menu ng liham sa iOS, saka subukang muli ang liham na ito.</string>
 	<key>Your private workspace.</key>
 	<string>Ang iyong pribadong workspace.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>nagawa na</string>
 	<key>not available</key>
 	<string>hindi available</string>
-	<key>Continue with a passkey</key>
-	<string>Magpatuloy gamit ang passkey</string>
-	<key>Create a passkey</key>
-	<string>Gumawa ng passkey</string>
-	<key>Add a passkey login</key>
-	<string>Magdagdag ng login gamit ang passkey</string>
-	<key>Sign out all devices</key>
-	<string>Mag-sign out sa lahat ng device</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>Maaaring manatiling bisa ang mga kasalukuyang pahintulot sa login nang hanggang 12 oras. Mananatili ang pahintulot ng mga device sa nilalaman.</string>
-	<key>Use an existing passkey</key>
-	<string>Gumamit ng kasalukuyang passkey</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>Gumamit ng login na naka-link na sa account na gusto mong buksan.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>Bawat bagong passkey ay lumilikha ng hiwalay na pagkakakilanlan sa pag-login. Para idagdag ito sa kasalukuyang account, gamitin ang Magdagdag ng passkey login sa seguridad ng account.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>Hindi nakarehistro sa dMsg ang passkey na ito. Pumili ng iba. Kung nabigo ang paggawa nito dati, alisin muna ang hindi nagamit na passkey sa password manager bago gumawa ng bago.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>Na-save ng password manager ang passkey, pero hindi nakumpirma ng dMsg ang pagpaparehistro. Subukang mag-login gamit ito bago gumawa ng isa pa.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>Nakabinbin pa ang nauna mong liham. Hilingin sa tatanggap na i-archive ito sa desktop o piliin ang “Payagan ang isa pang liham” sa menu ng liham sa iOS, saka subukang muli ang liham na ito.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>Kailangang i-update ang mga setting sa pagtanggap ng tatanggap. Hilingin sa kanilang i-unlock ang dMsg at mag-sync, saka subukang muli ang liham na ito.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>Nagbago ang mga setting sa pagpapadala o pagtanggap. Subukang muli ang liham na ito. Kung mabigo pa rin, ikaw at ang tatanggap ay kailangang mag-unlock ng dMsg at mag-sync bago muling subukan.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>Kung nakagawa ka na ng passkey, gamitin ang na-save. Gumawa lang ng bago kung kailangan mo ng isa pang pagkakakilanlan sa pag-login.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>Na-save na ang passkey. Subukang muli para matapos ang pag-link sa account na ito; walang bagong passkey na gagawin.</string>
-	<key>Continue adding this passkey</key>
-	<string>Ipagpatuloy ang pagdagdag ng passkey</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>Mag-sign out sa mga device ng passkey na ito at magpatuloy</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>Masyadong maraming device ang naka-sign in gamit ang passkey na ito. I-sign out ang mga ito para magpatuloy. Hindi maaapektuhan ang ibang passkey at naka-save na nilalaman.</string>
 </dict>
 </plist>

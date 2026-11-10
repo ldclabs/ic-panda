@@ -31,7 +31,7 @@
 			<key>one</key>
 			<string>%lld indirme oturumu</string>
 			<key>other</key>
-			<string>%lld indirme oturumları</string>
+			<string>%lld indirme oturumu</string>
 		</dict>
 	</dict>
 	<key>%llu days</key>

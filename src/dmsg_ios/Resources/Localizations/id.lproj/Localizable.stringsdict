@@ -27,7 +27,7 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>lld</string>
 			<key>other</key>
-			<string>Sesi pengunduhan %lld</string>
+			<string>%lld sesi unduhan</string>
 		</dict>
 	</dict>
 	<key>%llu days</key>

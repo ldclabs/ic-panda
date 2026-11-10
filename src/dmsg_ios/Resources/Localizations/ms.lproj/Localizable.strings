@@ -82,6 +82,8 @@
 	<string>Aktiviti</string>
 	<key>Activity on this device</key>
 	<string>Aktiviti pada peranti ini</string>
+	<key>Add a passkey login</key>
+	<string>Tambah log masuk kunci laluan</string>
 	<key>Add account</key>
 	<string>Tambah akaun</string>
 	<key>Add device</key>
@@ -135,11 +137,11 @@
 	<key>Allow another letter</key>
 	<string>Benarkan surat lain</string>
 	<key>Allow key rotation</key>
-	<string>Benarkan putaran kunci</string>
+	<string>Benarkan penggiliran kunci</string>
 	<key>Allow this account to send another letter?</key>
 	<string>Benarkan akaun ini menghantar surat lain?</string>
 	<key>Allowed</key>
-	<string>dibenarkan</string>
+	<string>Dibenarkan</string>
 	<key>Allowed account IDs, one per line</key>
 	<string>ID akaun yang dibenarkan, satu setiap baris</string>
 	<key>Already here</key>
@@ -269,7 +271,7 @@
 	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
 	<string>Autoisi hanya menerima item log masuk yang anda pilih dan memerlukan pengesahan sistem secara berasingan daripada ruang kerja. Semasa dMsg dibuka dan tidak dikunci, syot kilat mengikut perubahan item tersebut; jika tidak dikemas kini, ia tamat tempoh selepas 24 jam. Nama pengguna dan nama laman web mungkin muncul dalam cadangan sistem.</string>
 	<key>AutoFill snapshot updated</key>
-	<string>petikan AutoIsi dikemas kini</string>
+	<string>Petikan AutoIsi dikemas kini</string>
 	<key>Automatic foreground sync</key>
 	<string>Penyegerakan latar depan automatik</string>
 	<key>Available after</key>
@@ -323,7 +325,7 @@
 	<key>Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.</key>
 	<string>Kunci biometrik sahaja tidak boleh menggunakan kod laluan peranti dan mungkin berhenti berfungsi apabila biometrik yang didaftarkan berubah.</string>
 	<key>Birthday</key>
-	<string>hari jadi</string>
+	<string>Hari jadi</string>
 	<key>Bitcoin</key>
 	<string>Bitcoin</string>
 	<key>Block this account</key>
@@ -371,7 +373,7 @@
 	<key>Cardholder</key>
 	<string>Pemegang kad</string>
 	<key>Chain</key>
-	<string>rantai</string>
+	<string>Rantai</string>
 	<key>Chain tip: block %llu</key>
 	<string>Hujung rantaian: blok %llu</string>
 	<key>Change a device secret policy</key>
@@ -475,7 +477,7 @@
 	<key>Close link</key>
 	<string>Tutup pautan</string>
 	<key>Closed</key>
-	<string>tertutup</string>
+	<string>Tertutup</string>
 	<key>Cloud backup</key>
 	<string>Sandaran awan</string>
 	<key>Cloud backup file limit</key>
@@ -548,6 +550,8 @@
 	<string>Hubungi sokongan</string>
 	<key>Content signing</key>
 	<string>Tandatangan kandungan</string>
+	<key>Continue adding this passkey</key>
+	<string>Teruskan menambah passkey ini</string>
 	<key>Continue import</key>
 	<string>Teruskan import</string>
 	<key>Continue password import</key>
@@ -560,6 +564,8 @@
 	<string>Teruskan import ini dalam akaun yang anda pilih pada asalnya.</string>
 	<key>Continue with Internet Identity</key>
 	<string>Teruskan dengan Internet Identity</string>
+	<key>Continue with a passkey</key>
+	<string>Teruskan dengan kunci laluan</string>
 	<key>Controller ID</key>
 	<string>ID Controller</string>
 	<key>Controller name</key>
@@ -636,6 +642,8 @@
 	<string>Buat bukti kelayakan baharu di pembekalnya dan simpan dalam peti besi</string>
 	<key>Create a new pairing request</key>
 	<string>Buat permintaan gandingan baharu</string>
+	<key>Create a passkey</key>
+	<string>Cipta kunci laluan</string>
 	<key>Create a revocation request?</key>
 	<string>Buat permintaan pembatalan?</string>
 	<key>Create agent</key>
@@ -685,7 +693,7 @@
 	<key>Credential rotation</key>
 	<string>Putaran kelayakan</string>
 	<key>Current</key>
-	<string>semasa</string>
+	<string>Semasa</string>
 	<key>Current account</key>
 	<string>Akaun semasa</string>
 	<key>Current local dependencies</key>
@@ -715,7 +723,7 @@
 	<key>Database</key>
 	<string>Pangkalan data</string>
 	<key>Date</key>
-	<string>tarikh</string>
+	<string>Tarikh</string>
 	<key>Days before removal</key>
 	<string>Tempoh simpanan (hari)</string>
 	<key>Delegations</key>
@@ -795,11 +803,11 @@
 	<key>Discard draft</key>
 	<string>Buang</string>
 	<key>Discard staged copy</key>
-	<string>Buang salinan berperingkat</string>
+	<string>Buang salinan sementara</string>
 	<key>Discard this draft?</key>
 	<string>Buang perubahan?</string>
 	<key>Discard this staged copy?</key>
-	<string>Buang salinan berperingkat ini?</string>
+	<string>Buang salinan sementara ini?</string>
 	<key>Discard unsaved changes?</key>
 	<string>Buang perubahan?</string>
 	<key>Dismiss</key>
@@ -840,6 +848,8 @@
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Setiap pakej mudah alih adalah terhad kepada 8 MiB, termasuk lampiran terpilih. Kelulusan akhir menunjukkan pemilihan dan destinasi tidak berubah yang tepat.</string>
+	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
+	<string>Setiap passkey baharu mencipta identiti log masuk berasingan. Untuk menambahnya kepada akaun semasa, gunakan Tambah log masuk passkey dalam keselamatan akaun.</string>
 	<key>Edit</key>
 	<string>Edit</string>
 	<key>Edit draft</key>
@@ -853,7 +863,7 @@
 	<key>Edit secret</key>
 	<string>Edit rahsia</string>
 	<key>Edited</key>
-	<string>disunting</string>
+	<string>Disunting</string>
 	<key>Email</key>
 	<string>E-mel</string>
 	<key>Enable dMsg in AutoFill settings</key>
@@ -904,14 +914,16 @@
 	<string>Laksanakan dengan tandatangan yang dikumpul</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Peraturan blok sedia ada, jemputan dan kapasiti peti masuk dikekalkan. Memilih dasar percuma atau tertutup menggantikan sebarang tetapan hubungan berbayar sebelumnya.</string>
+	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
+	<string>Kebenaran log masuk sedia ada boleh kekal sah sehingga 12 jam. Kebenaran kandungan peranti dikekalkan.</string>
 	<key>Expired</key>
 	<string>Tamat tempoh</string>
 	<key>Expires</key>
-	<string>tamat tempoh</string>
+	<string>Tamat tempoh</string>
 	<key>Expires after</key>
 	<string>Tamat tempoh selepas</string>
 	<key>Expiry</key>
-	<string>tamat tempoh</string>
+	<string>Tamat tempoh</string>
 	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
 	<string>Sandarkan versi fail yang dipilih secara eksplisit jika anda mahukan salinan awan.</string>
 	<key>Export the selected login items to Password AutoFill</key>
@@ -953,7 +965,7 @@
 	<key>Files</key>
 	<string>Fail</string>
 	<key>Files app copies</key>
-	<string>Failkan salinan apl</string>
+	<string>Salinan apl Fail</string>
 	<key>Files app snapshot updated</key>
 	<string>Gambar apl fail dikemas kini</string>
 	<key>Files are backed up only when you explicitly choose to do so.</key>
@@ -1005,7 +1017,7 @@
 	<key>Hardware cosigners</key>
 	<string>Cosigners perkakasan</string>
 	<key>Hardware keys on this device</key>
-	<string>Kekunci perkakasan pada peranti ini</string>
+	<string>Kunci perkakasan pada peranti ini</string>
 	<key>Hardware security</key>
 	<string>Keselamatan perkakasan</string>
 	<key>Have you reviewed the missing outcome?</key>
@@ -1035,7 +1047,7 @@
 	<key>Id Number</key>
 	<string>Nombor Id</string>
 	<key>Identity</key>
-	<string>identiti</string>
+	<string>Identiti</string>
 	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
 	<string>Jika semua peranti hilang, log masuk terpaut boleh memulihkan kandungan yang dimuat naik selepas tempoh menunggu. Log masuk yang dicuri juga boleh berbuat demikian jika tiada peranti dibenarkan membatalkannya tepat pada masanya.</string>
 	<key>Illegal content</key>
@@ -1109,7 +1121,7 @@
 	<key>Integrity</key>
 	<string>Integriti</string>
 	<key>Interrupted</key>
-	<string>tergendala</string>
+	<string>Tergendala</string>
 	<key>Invalid setup key or otpauth URL.</key>
 	<string>Kunci persediaan atau URL otpauth tidak sah.</string>
 	<key>Inventory fingerprint</key>
@@ -1153,13 +1165,13 @@
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Simpan rahsia, perbualan dan fail anda bersama-sama. Hanya peranti anda yang dibenarkan boleh membukanya.</string>
 	<key>Key</key>
-	<string>kunci</string>
+	<string>Kunci</string>
 	<key>Key fingerprint</key>
 	<string>Cap jari kunci</string>
 	<key>Key label</key>
 	<string>Label kunci</string>
 	<key>Keys</key>
-	<string>kunci</string>
+	<string>Kunci</string>
 	<key>L1 spends from native Taproot addresses need this device's BIP-340 key. One root on this device holds every wallet's key; using it asks for you.</key>
 	<string>Perbelanjaan L1 daripada alamat Taproot native memerlukan kunci BIP-340 peranti ini. Satu akar pada peranti ini menyimpan kunci setiap dompet; menggunakannya meminta pengesahan anda.</string>
 	<key>L1 · old device cosigns</key>
@@ -1197,7 +1209,7 @@
 	<key>Length</key>
 	<string>Panjang</string>
 	<key>Letters</key>
-	<string>surat</string>
+	<string>Surat</string>
 	<key>License Key</key>
 	<string>Kunci Lesen</string>
 	<key>Licensed To</key>
@@ -1281,7 +1293,7 @@
 	<key>Member label</key>
 	<string>Label ahli</string>
 	<key>Members</key>
-	<string>ahli</string>
+	<string>Ahli</string>
 	<key>Merge individual fields</key>
 	<string>Gabungkan medan secara berasingan</string>
 	<key>Message</key>
@@ -1295,11 +1307,11 @@
 	<key>Modified</key>
 	<string>Tarikh diubah</string>
 	<key>Month</key>
-	<string>bulan</string>
+	<string>Bulan</string>
 	<key>Monthly execution limit</key>
 	<string>Had pelaksanaan bulanan</string>
 	<key>Monthly execution units</key>
-	<string>Unit operasi bulanan</string>
+	<string>Unit pelaksanaan bulanan</string>
 	<key>More types</key>
 	<string>Jenis</string>
 	<key>Move a native address</key>
@@ -1339,7 +1351,7 @@
 	<key>Mute notifications</key>
 	<string>Redamkan pemberitahuan</string>
 	<key>My account</key>
-	<string>akaun saya</string>
+	<string>Akaun saya</string>
 	<key>Name</key>
 	<string>Nama</string>
 	<key>Native Taproot key</key>
@@ -1525,7 +1537,7 @@
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
 	<string>Hanya output sekurang-kurangnya %lld blok dalam boleh dipindahkan sekarang; output lain menunjukkan blok mulai bila ia boleh dipindahkan.</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>Hanya salinan yang terpilih dan tidak berubah muncul dalam apl Fail. Akses memerlukan pengesahan sistem; mengunci dMsg menamatkan sesi akses semasa. Fail mungkin menyimpan salinan dan nama fail yang dimuat turun, yang tidak dapat diingati oleh dMsg.</string>
+	<string>Hanya salinan terpilih yang tidak boleh diubah muncul dalam apl Fail. Akses memerlukan pengesahan sistem; mengunci dMsg menamatkan sesi akses semasa. Apl Fail mungkin menyimpan salinan yang dimuat turun dan nama fail yang tidak dapat ditarik balik oleh dMsg.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Hanya fail yang disulitkan yang dipilih boleh dipindahkan semasa dMsg dikunci. iOS mengawal penjadualan; paksa berhenti menghentikan penghantaran sehingga anda membuka apl semula. Buka akaun asal untuk mengesahkan dan menyelesaikannya.</string>
 	<key>Open</key>
@@ -1643,7 +1655,7 @@
 	<key>Permissions</key>
 	<string>Kebenaran</string>
 	<key>Phone</key>
-	<string>telefon</string>
+	<string>Telefon</string>
 	<key>Photos and videos</key>
 	<string>Foto dan video</string>
 	<key>Phrase</key>
@@ -1651,7 +1663,7 @@
 	<key>Pin</key>
 	<string>Pin</string>
 	<key>Plan</key>
-	<string>Rancang</string>
+	<string>Pelan</string>
 	<key>Plan and usage</key>
 	<string>Pelan dan penggunaan</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
@@ -1855,11 +1867,11 @@
 	<key>Reject this request?</key>
 	<string>Tolak permintaan ini?</string>
 	<key>Rejected</key>
-	<string>ditolak</string>
+	<string>Ditolak</string>
 	<key>Reload saved profile</key>
 	<string>Muat semula profil tersimpan</string>
 	<key>Remaining</key>
-	<string>baki</string>
+	<string>Baki</string>
 	<key>Removal date</key>
 	<string>Tarikh pembuangan</string>
 	<key>Remove</key>
@@ -2001,7 +2013,7 @@
 	<key>Retry original change</key>
 	<string>Cuba semula perubahan asal</string>
 	<key>Retry original letter</key>
-	<string>Cuba semula huruf asal</string>
+	<string>Cuba hantar semula surat asal</string>
 	<key>Retry preview</key>
 	<string>Cuba semula pratonton</string>
 	<key>Retry publication</key>
@@ -2057,7 +2069,7 @@
 	<key>Review permissions</key>
 	<string>Semak kebenaran</string>
 	<key>Review publication or resume</key>
-	<string>Semak penerbitan atau resume</string>
+	<string>Semak penerbitan atau sambung semula</string>
 	<key>Review rejection</key>
 	<string>Semakan penolakan</string>
 	<key>Review removing this login</key>
@@ -2103,7 +2115,7 @@
 	<key>Revocation pending</key>
 	<string>Pembatalan belum selesai</string>
 	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
-	<string>Pembatalan menghentikan akses baharu selepas keadaan keselamatan dimuat semula dan kunci diputar. Kandungan yang disalin sebelum ini tidak boleh ditarik balik.</string>
+	<string>Pembatalan menghentikan akses baharu selepas keadaan keselamatan dikemas kini dan kunci digilirkan. Kandungan yang telah disalin sebelum ini tidak boleh ditarik balik.</string>
 	<key>Revoke</key>
 	<string>Tarik balik</string>
 	<key>Revoke a device</key>
@@ -2293,17 +2305,19 @@
 	<key>Send to an administrator</key>
 	<string>Hantar kepada pentadbir</string>
 	<key>Sender</key>
-	<string>penghantar</string>
+	<string>Penghantar</string>
 	<key>Sender account</key>
 	<string>Akaun penghantar</string>
 	<key>Sending</key>
 	<string>Menghantar</string>
+	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
+	<string>Tetapan penghantaran atau penerimaan telah berubah. Cuba hantar surat ini semula. Jika masih gagal, anda dan penerima perlu membuka kunci dMsg dan menyegerakkan sebelum mencuba lagi.</string>
 	<key>Sent</key>
 	<string>Dihantar</string>
 	<key>Sent letters</key>
 	<string>Surat yang dihantar</string>
 	<key>Server</key>
-	<string>pelayan</string>
+	<string>Pelayan</string>
 	<key>Service acceptance does not mean the recipient has read your letter.</key>
 	<string>Penerimaan perkhidmatan tidak bermakna penerima telah membaca surat anda.</string>
 	<key>Session code</key>
@@ -2386,8 +2400,12 @@
 	<string>Log masuk ke akaun yang sama pada peranti baharu, imbas QR komputer, kemudian semak dan luluskan pada komputer.</string>
 	<key>Sign out</key>
 	<string>Log keluar</string>
+	<key>Sign out all devices</key>
+	<string>Log keluar semua peranti</string>
 	<key>Sign out of this account?</key>
 	<string>Log keluar daripada akaun ini?</string>
+	<key>Sign out this passkey’s devices and continue</key>
+	<string>Log keluar peranti kunci laluan ini dan teruskan</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Tandatangani penyata yang anda semak</string>
 	<key>Signatures collected</key>
@@ -2437,7 +2455,7 @@
 	<key>Spending approvals %u</key>
 	<string>Kelulusan perbelanjaan %u</string>
 	<key>Stage selected files, then choose an account and import them in dMsg.</key>
-	<string>Peringkat fail yang dipilih, kemudian pilih akaun dan importnya dalam dMsg.</string>
+	<string>Sediakan fail yang dipilih, kemudian pilih akaun dan importnya dalam dMsg.</string>
 	<key>Start a checklist from a field's reference page.</key>
 	<string>Mulakan senarai semak daripada halaman rujukan medan.</string>
 	<key>Start a rotation checklist</key>
@@ -2507,7 +2525,7 @@
 	<key>Sync this conversation before sending.</key>
 	<string>Segerakkan perbualan ini sebelum menghantar.</string>
 	<key>Synced</key>
-	<string>disegerakkan</string>
+	<string>Disegerakkan</string>
 	<key>Syncing…</key>
 	<string>Menyegerakkan…</string>
 	<key>System authentication</key>
@@ -2600,6 +2618,10 @@
 	<string>Peranti lain tidak ditemui pada rangkaian setempat. Masukkan alamatnya.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>Kesudahannya tidak pasti. Semak kerja asal sebelum mencuba apa-apa lagi.</string>
+	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
+	<string>Passkey telah disimpan. Cuba lagi untuk melengkapkan pautannya kepada akaun ini; tiada passkey baharu akan dicipta.</string>
+	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
+	<string>Tetapan penerimaan penerima perlu dikemas kini. Minta mereka membuka kunci dMsg dan menyegerakkan, kemudian cuba hantar surat ini semula.</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
 	<string>Rekod itu berubah. Muat semula dan semak pengeditan anda sebelum menyimpan semula.</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
@@ -2613,7 +2635,7 @@
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
 	<string>Imej yang dipilih kekal pada peranti ini sehingga anda menerbitkan. Avatar yang diterbitkan adalah awam dan salinan mungkin kekal di luar dMsg.</string>
 	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
-	<string>Item yang dipilih tidak dapat dipentaskan. Buka dMsg dan cuba mengimportnya ke sana.</string>
+	<string>Item yang dipilih tidak dapat disediakan. Buka dMsg dan cuba importnya di sana.</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>Salinan sumber terganggu. Buang dan pilih sumber semula.</string>
 	<key>The test deployment is not configured.</key>
@@ -2691,9 +2713,9 @@
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Sejarah ini kepunyaan peranti ini. Ia tidak mencerminkan CLI setempat desktop, SSH atau kelulusan pemasangan fail daripada peranti lain.</string>
 	<key>This iPhone</key>
-	<string>iPhone ini</string>
+	<string>IPhone ini</string>
 	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
-	<string>iPhone ini menguruskan identiti dan kebenaran ejen. Ia tidak memastikan ejen berjalan semasa iOS menggantung apl.</string>
+	<string>IPhone ini menguruskan identiti dan kebenaran ejen. Ia tidak memastikan ejen berjalan semasa iOS menggantung apl.</string>
 	<key>This iPhone's keys</key>
 	<string>Kunci iPhone ini</string>
 	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
@@ -2720,6 +2742,10 @@
 	<string>Operasi ini tidak tersedia buat sementara waktu. Data anda yang disimpan disimpan.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Pakej ini telah pun diimport pada peranti ini. Salinan sedia ada kekal bebas.</string>
+	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
+	<string>Terlalu banyak peranti dilog masuk dengan kunci laluan ini. Log keluar peranti tersebut untuk meneruskan. Kunci laluan lain dan kandungan tersimpan tidak terjejas.</string>
+	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
+	<string>Passkey ini belum didaftarkan dengan dMsg. Pilih passkey lain. Jika penciptaan terdahulu gagal, alih keluar passkey yang tidak digunakan itu daripada pengurus kata laluan sebelum mencipta yang baharu.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Profil ini adalah umum. Jangan sertakan rahsia atau maklumat hubungan peribadi.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2831,7 +2857,7 @@
 	<key>Update conversation keys</key>
 	<string>Kemas kini kunci perbualan</string>
 	<key>Updated</key>
-	<string>dikemas kini</string>
+	<string>Dikemas kini</string>
 	<key>Uploading</key>
 	<string>Memuat naik</string>
 	<key>Uploading encrypted backup</key>
@@ -2842,14 +2868,20 @@
 	<string>Url</string>
 	<key>Usage</key>
 	<string>Penggunaan</string>
+	<key>Use a login already linked to the account you want to open.</key>
+	<string>Gunakan log masuk yang sudah dipautkan kepada akaun yang ingin dibuka.</string>
 	<key>Use a name of 1–255 characters without slashes or control characters.</key>
 	<string>Gunakan nama sepanjang 1–255 aksara tanpa garis miring atau aksara kawalan.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Gunakan kata laluan daripada syot kilat yang anda eksport secara eksplisit dalam dMsg.</string>
+	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
+	<string>Jika sudah mencipta passkey, gunakan yang disimpan. Cipta yang baharu hanya jika memerlukan identiti log masuk lain.</string>
 	<key>Use a secret through a device policy</key>
 	<string>Gunakan rahsia melalui dasar peranti</string>
 	<key>Use an SSH signing key</key>
 	<string>Gunakan kunci tandatangan SSH</string>
+	<key>Use an existing passkey</key>
+	<string>Gunakan passkey sedia ada</string>
 	<key>Use conflicting version</key>
 	<string>Gunakan versi bercanggah</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
@@ -2897,7 +2929,7 @@
 	<key>View approval</key>
 	<string>Lihat kelulusan</string>
 	<key>Viewer</key>
-	<string>Penonton</string>
+	<string>Pemerhati</string>
 	<key>Wait for the address book cooldown</key>
 	<string>Tunggu tempoh bertenang buku alamat</string>
 	<key>Wait for the proposal</key>
@@ -2965,7 +2997,7 @@
 	<key>Whoever has the link sees these, as plain text.</key>
 	<string>Sesiapa yang ada pautan melihatnya sebagai teks biasa.</string>
 	<key>Withdraw</key>
-	<string>tarik diri</string>
+	<string>Tarik balik</string>
 	<key>Withdraw message</key>
 	<string>Tarik balik mesej</string>
 	<key>Withdraw this message?</key>
@@ -3012,6 +3044,10 @@
 	<string>Medan tersembunyi anda kekal tersembunyi sehingga anda memilih untuk mendedahkannya.</string>
 	<key>Your local content remains available. Sign in with Internet Identity when an account action requires it.</key>
 	<string>Kandungan setempat anda masih tersedia. Log masuk dengan Internet Identity apabila tindakan akaun memerlukannya.</string>
+	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
+	<string>Pengurus kata laluan telah menyimpan passkey, tetapi dMsg tidak dapat mengesahkan pendaftaran. Cuba log masuk dengannya sebelum mencipta passkey lain.</string>
+	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
+	<string>Surat anda yang terdahulu masih menunggu tindakan. Minta penerima mengarkibkannya pada desktop atau memilih “Benarkan surat lain” dalam menu surat pada iOS, kemudian cuba hantar surat ini semula.</string>
 	<key>Your private workspace.</key>
 	<string>Ruang kerja peribadi anda.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3140,41 +3176,5 @@
 	<string>dibuat</string>
 	<key>not available</key>
 	<string>tidak tersedia</string>
-	<key>Continue with a passkey</key>
-	<string>Teruskan dengan kunci laluan</string>
-	<key>Create a passkey</key>
-	<string>Cipta kunci laluan</string>
-	<key>Add a passkey login</key>
-	<string>Tambah log masuk kunci laluan</string>
-	<key>Sign out all devices</key>
-	<string>Log keluar semua peranti</string>
-	<key>Existing login authorizations may remain valid for up to 12 hours. Your content devices stay authorized.</key>
-	<string>Kebenaran log masuk sedia ada boleh kekal sah sehingga 12 jam. Kebenaran kandungan peranti dikekalkan.</string>
-	<key>Use an existing passkey</key>
-	<string>Gunakan passkey sedia ada</string>
-	<key>Use a login already linked to the account you want to open.</key>
-	<string>Gunakan log masuk yang sudah dipautkan kepada akaun yang ingin dibuka.</string>
-	<key>Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.</key>
-	<string>Setiap passkey baharu mencipta identiti log masuk berasingan. Untuk menambahnya kepada akaun semasa, gunakan Tambah log masuk passkey dalam keselamatan akaun.</string>
-	<key>This passkey is not registered with dMsg. Choose another passkey. If an earlier creation failed, remove that unused passkey from your password manager before creating a new one.</key>
-	<string>Passkey ini belum didaftarkan dengan dMsg. Pilih passkey lain. Jika penciptaan terdahulu gagal, alih keluar passkey yang tidak digunakan itu daripada pengurus kata laluan sebelum mencipta yang baharu.</string>
-	<key>Your password manager saved the passkey, but dMsg could not confirm registration. Try signing in with it before creating another passkey.</key>
-	<string>Pengurus kata laluan telah menyimpan passkey, tetapi dMsg tidak dapat mengesahkan pendaftaran. Cuba log masuk dengannya sebelum mencipta passkey lain.</string>
-	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
-	<string>Surat anda yang terdahulu masih menunggu tindakan. Minta penerima mengarkibkannya pada desktop atau memilih “Benarkan surat lain” dalam menu surat pada iOS, kemudian cuba hantar surat ini semula.</string>
-	<key>The recipient’s receiving settings need updating. Ask them to unlock dMsg and sync, then retry this letter.</key>
-	<string>Tetapan penerimaan penerima perlu dikemas kini. Minta mereka membuka kunci dMsg dan menyegerakkan, kemudian cuba hantar surat ini semula.</string>
-	<key>Sending or receiving settings have changed. Retry this letter. If it still fails, both you and the recipient should unlock dMsg and sync before trying again.</key>
-	<string>Tetapan penghantaran atau penerimaan telah berubah. Cuba hantar surat ini semula. Jika masih gagal, anda dan penerima perlu membuka kunci dMsg dan menyegerakkan sebelum mencuba lagi.</string>
-	<key>Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.</key>
-	<string>Jika sudah mencipta passkey, gunakan yang disimpan. Cipta yang baharu hanya jika memerlukan identiti log masuk lain.</string>
-	<key>The passkey is saved. Retry to finish linking it to this account; no new passkey will be created.</key>
-	<string>Passkey telah disimpan. Cuba lagi untuk melengkapkan pautannya kepada akaun ini; tiada passkey baharu akan dicipta.</string>
-	<key>Continue adding this passkey</key>
-	<string>Teruskan menambah passkey ini</string>
-	<key>Sign out this passkey’s devices and continue</key>
-	<string>Log keluar peranti kunci laluan ini dan teruskan</string>
-	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
-	<string>Terlalu banyak peranti dilog masuk dengan kunci laluan ini. Log keluar peranti tersebut untuk meneruskan. Kunci laluan lain dan kandungan tersimpan tidak terjejas.</string>
 </dict>
 </plist>

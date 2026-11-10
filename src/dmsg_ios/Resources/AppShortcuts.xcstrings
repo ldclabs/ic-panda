@@ -91,7 +91,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Çalışma alanımı ${applicationName}'da aç"
+            "value": "${applicationName} içinde çalışma alanımı aç"
           }
         },
         "vi": {
@@ -186,7 +186,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "將文件導入 ${applicationName}"
+            "value": "將檔案匯入 ${applicationName}"
           }
         },
         "hi": {
@@ -216,7 +216,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importieren Sie Dateien in ${applicationName}"
+            "value": "Dateien in ${applicationName} importieren"
           }
         },
         "ko": {
@@ -234,7 +234,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dosyaları ${applicationName}'ya aktarın"
+            "value": "Dosyaları ${applicationName} içine aktar"
           }
         },
         "vi": {
@@ -270,7 +270,7 @@
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "${applicationName} এ ফাইল আমদানি করুন"
+            "value": "${applicationName}-এ ফাইল আমদানি করুন"
           }
         },
         "nl": {
