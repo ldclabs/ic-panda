@@ -76,3 +76,5 @@
 3_040 ghcje-dyaaa-aaaas-qg7va-cai admin_set_pricing
 3_041 ghcje-dyaaa-aaaas-qg7va-cai admin_set_revenue
 3_042 ghcje-dyaaa-aaaas-qg7va-cai admin_set_uploader
+3_043 mpld4-maaaa-aaaas-qhepa-cai admin_set_limits
+3_044 mpld4-maaaa-aaaas-qhepa-cai admin_set_admission_key
