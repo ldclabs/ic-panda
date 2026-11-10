@@ -12,6 +12,23 @@ tracked separately. Build and device-test evidence is recorded in
 Available on the [App Store](https://apps.apple.com/app/id6827050680) for
 iPhone and iPad running iOS 18 or iPadOS 18 or later.
 
+### Build 23 fixes
+
+- Restore saved Passkey authorization before reading membership execution usage
+  after local unlock or account switching. Reuse valid authorization and renew
+  it when needed, while keeping local content access independent of online login.
+- Stop repeated APNs token callbacks from restarting notification registration.
+  Reuse a valid Apple registration when retrying a later notification-settings
+  sync, and show a retryable error when native registration fails.
+- Consolidate notification settings into one current status, place progress
+  inside the relevant action, and reflect remote acknowledgements without
+  replacing unsaved edits.
+- Fetch again when a new-message hint arrives during an existing refresh.
+  Prevent an older response from suppressing the newer read.
+- Show specific message-send failure reasons and add diagnostics without message
+  content or account identifiers. Retrying preserves the original message ID and
+  the next draft; receiving a newer message is not a prerequisite for sending.
+
 ### Login and local unlock
 
 - Add native Passkey registration and login with hardware-backed session renewal

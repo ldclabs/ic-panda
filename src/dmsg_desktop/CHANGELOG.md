@@ -6,6 +6,22 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.3] - 2026-11-10
+
+### Membership
+
+- Restore saved Passkey authorization before loading monthly execution usage
+  after local unlock or account switching. Reuse a valid delegation and renew
+  it when needed, without requiring a visit to another feature first.
+- Show a login action when authorization is actually required, and clear stale
+  usage values after a failed refresh. Keep local content available independently
+  of online login.
+
+### Message synchronization
+
+- Prevent an older message read from suppressing a refresh requested while that
+  read was still running, so newly arrived messages can be fetched promptly.
+
 ## [1.5.2] - 2026-11-10
 
 ### Account reminders
@@ -785,6 +801,8 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.5.3]: https://github.com/ldclabs/ic-panda/compare/1.5.2...1.5.3
+[1.5.2]: https://github.com/ldclabs/ic-panda/compare/1.5.1...1.5.2
 [1.5.1]: https://github.com/ldclabs/ic-panda/compare/1.5.0...1.5.1
 [1.5.0]: https://github.com/ldclabs/ic-panda/compare/1.4.2...1.5.0
 [1.4.2]: https://github.com/ldclabs/ic-panda/compare/1.4.1...1.4.2
