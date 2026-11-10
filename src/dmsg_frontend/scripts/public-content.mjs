@@ -129,6 +129,28 @@ function membershipTable(membership, zh) {
 }
 
 const md = new MarkdownIt({ html: false })
+// Deterministic fragments let people and answer engines cite individual sections.
+md.core.ruler.push('heading_ids', (state) => {
+  const used = new Set()
+  for (let i = 0; i < state.tokens.length; i++) {
+    if (state.tokens[i].type !== 'heading_open') continue
+    const base =
+      state.tokens[i + 1].content
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s-]/gu, '')
+        .trim()
+        .replace(/\s+/g, '-') || 'section'
+    let id = base
+    for (let suffix = 2; used.has(id); suffix++) id = `${base}-${suffix}`
+    used.add(id)
+    state.tokens[i].attrSet('id', id)
+  }
+})
+const plainText = (text) =>
+  md
+    .parseInline(text, {})[0]
+    .children.map((token) => (token.type === 'softbreak' ? ' ' : token.content))
+    .join('')
 md.renderer.rules.link_open = (tokens, index, options, env, renderer) => {
   const token = tokens[index]
   const href = token.attrGet('href')
@@ -210,7 +232,7 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
     `<main class="reading-body">${md.render(guide.text)}<footer><a href="/_/knowledge.json">${guide.lang === 'zh' ? '构建依据与内容哈希' : 'Build provenance and content hashes'}</a> · <a href="/">dMsg</a></footer></main>`
   for (const guide of guides) {
     const title = guide.text.split('\n')[0].slice(2)
-    const description = guide.text.split('\n\n')[1]
+    const description = plainText(guide.text.split('\n\n')[1])
     const page = `/_/about${guide.lang === 'zh' ? '.zh' : ''}.html`
     write(new URL(guide.url).pathname, guide.text)
     write(
@@ -220,8 +242,17 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(title)}</title><meta name="description" content="${escape(description)}">
 <link rel="canonical" href="${origin}${page}">
+<link rel="alternate" hreflang="x-default" href="${origin}/_/about.html">
 <link rel="alternate" hreflang="en" href="${origin}/_/about.html">
 <link rel="alternate" hreflang="zh-Hans" href="${origin}/_/about.zh.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="dMsg">
+<meta property="og:url" content="${origin}${page}">
+<meta property="og:title" content="${escape(title)}">
+<meta property="og:description" content="${escape(description)}">
+<meta property="og:locale" content="${guide.lang === 'zh' ? 'zh_CN' : 'en_US'}">
+<meta property="og:image" content="${origin}/_assets/dmsg/og-image${guide.lang === 'zh' ? '-zh' : ''}.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="alternate" type="text/markdown" href="${guide.url}">
 <link rel="describedby" href="/llms.txt" type="text/plain">
 <link rel="icon" href="/_assets/dmsg/icon.svg"><link rel="stylesheet" href="/_assets/dmsg/reading.css">
@@ -242,7 +273,7 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
     '@type': 'SoftwareApplication',
     name: 'dMsg',
     url: origin + '/',
-    description: guides[0].text.split('\n\n')[1],
+    description: plainText(guides[0].text.split('\n\n')[1]),
     applicationCategory: 'BusinessApplication',
     operatingSystem: ['macOS', 'Windows', 'Linux (CLI)'],
     publisher: {
@@ -281,7 +312,7 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
   )
   write(
     'robots.txt',
-    `User-agent: *\nAllow: /\nDisallow: /legacy\nDisallow: /_/login\nDisallow: /_/connect\nDisallow: /_/channel\nDisallow: /_/setting\nDisallow: /s/\n\nSitemap: ${origin}/sitemap.xml\n`
+    `User-agent: *\nAllow: /\nDisallow: /legacy\nDisallow: /_/login\nDisallow: /_/connect\nDisallow: /_/channel\nDisallow: /_/setting\nDisallow: /s/\nDisallow: /r/\n\nSitemap: ${origin}/sitemap.xml\n`
   )
   // List real HTML documents only. Do not advertise dynamic profiles or
   // login/share URLs whose unauthenticated response is the generic SPA shell.

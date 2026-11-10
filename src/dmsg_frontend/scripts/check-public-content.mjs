@@ -13,6 +13,30 @@ const manifest = JSON.parse(read('_/knowledge.json'))
 for (const path of ['index.html', '_/about.html', '_/about.zh.html']) {
   const dom = new JSDOM(read(path), { url: `https://dmsg.net/${path}` })
   const document = dom.window.document
+  const canonical = `https://dmsg.net/${path === 'index.html' ? '' : path}`
+  assert.equal(document.querySelectorAll('link[rel="canonical"]').length, 1)
+  assert.equal(document.querySelector('link[rel="canonical"]').href, canonical)
+  assert.equal(
+    document.querySelector('meta[property="og:url"]').content,
+    canonical
+  )
+  const headings = [...document.querySelectorAll('main h1, main h2, main h3')]
+  assert.ok(
+    headings.every((heading) => heading.id),
+    `${path}: citable headings`
+  )
+  assert.equal(
+    new Set(headings.map((heading) => heading.id)).size,
+    headings.length
+  )
+  if (path !== 'index.html') {
+    for (const lang of ['en', 'zh-Hans', 'x-default'])
+      assert.ok(document.querySelector(`link[hreflang="${lang}"]`))
+    assert.ok(document.querySelector('meta[property="og:description"]').content)
+    assert.ok(
+      !document.querySelector('meta[name="description"]').content.includes('`')
+    )
+  }
   assert.equal(
     document.querySelectorAll('h1').length,
     1,
@@ -109,6 +133,11 @@ sitemap.window.close()
 assert.match(read('llms.txt'), /https:\/\/dmsg.net\/index.zh.md/)
 assert.ok(read('llms-full.txt').includes(read('_/docs/agents.md')))
 
+assert.equal(
+  read('6eb632e3a1a444e9a68ec57d3d650e21.txt').trim(),
+  '6eb632e3a1a444e9a68ec57d3d650e21'
+)
+
 const rules = JSON.parse(read('.ic-assets.json'))
 for (const match of [
   'index.html',
@@ -118,7 +147,8 @@ for (const match of [
   'llms*.txt',
   'robots.txt',
   'sitemap.xml',
-  '_/knowledge.json'
+  '_/knowledge.json',
+  '6eb632e3a1a444e9a68ec57d3d650e21.txt'
 ]) {
   const rule = rules.find((item) => item.match === match)
   assert.ok(rule, `${match}: asset headers`)

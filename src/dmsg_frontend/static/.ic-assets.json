@@ -120,5 +120,15 @@
             "Cache-Control": "public, max-age=0, must-revalidate",
             "Link": "</llms.txt>; rel=\"describedby\""
         }
+    },
+    {
+        "match": "6eb632e3a1a444e9a68ec57d3d650e21.txt",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate"
+        }
     }
 ]
