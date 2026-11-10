@@ -275,13 +275,16 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
     url: origin + '/',
     description: plainText(guides[0].text.split('\n\n')[1]),
     applicationCategory: 'BusinessApplication',
-    operatingSystem: ['macOS', 'Windows', 'Linux (CLI)'],
+    operatingSystem: ['iOS', 'iPadOS', 'macOS', 'Windows', 'Linux (CLI)'],
     publisher: {
       '@type': 'Organization',
       name: 'ICPanda DAO',
       url: 'https://panda.fans'
     },
-    downloadUrl: `${github}/releases/latest`,
+    downloadUrl: [
+      'https://apps.apple.com/app/id6827050680',
+      `${github}/releases/latest`
+    ],
     featureList: [
       'Encrypted vault and files',
       'Private channels',

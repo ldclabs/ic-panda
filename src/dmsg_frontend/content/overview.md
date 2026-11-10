@@ -16,8 +16,9 @@ dMsg is a private workspace from ICPanda DAO for keeping secrets and files, coll
 
 ## Install and get started
 
-The desktop downloads target macOS Apple Silicon and Windows x64; Windows has less validation coverage. The command line also runs on Linux x86_64 and arm64. Mobile work is separate: iOS is in private beta and Android is in development. Check release artifacts for what is available on your platform.
+dMsg is available on the App Store for iPhone and iPad, requiring iOS 18 or iPadOS 18 or later. The desktop downloads target macOS Apple Silicon and Windows x64; Windows has less validation coverage. The command line also runs on Linux x86_64 and arm64. Android is in development.
 
+- [Download dMsg on the App Store](https://apps.apple.com/app/id6827050680)
 - [Download dMsg for Mac](https://github.com/ldclabs/ic-panda/releases/latest/download/dMsg-mac-arm64.dmg)
 - [Download dMsg for Windows](https://github.com/ldclabs/ic-panda/releases/latest/download/dMsg-win-x64.exe)
 - [All downloads, command-line binaries and checksums](https://github.com/ldclabs/ic-panda/releases/latest)

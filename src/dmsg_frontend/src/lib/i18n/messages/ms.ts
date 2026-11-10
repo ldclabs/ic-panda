@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "Padamkan salinan awan",
   "Deletions that crossed over": "Pemadaman yang merentasi kedua-dua belah",
   "Deploy key": "Kunci deploy",
-  "Desktop app for macOS and Windows · command line on Linux too.": "Apl desktop untuk macOS dan Windows · baris arahan pada Linux juga.",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS dan Windows · baris arahan juga pada Linux.',
   "Documents": "Dokumen",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "Selesai dengan perkara yang dibenarkan untuk saya. Tanpa attest.request saya tidak boleh meminta anda menandatangani.",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "Selesai. Kenyataan keluaran sedang menunggu dalam tetingkap kelulusan anda. Saya tidak boleh meluluskannya sendiri.",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "Jangan sekali-kali mesej atau fail anda",
   "New address-book entries": "Entri buku alamat baharu",
   "Next step": "Langkah seterusnya",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "Aplikasi mudah alih sedang dibangunkan. Versi iOS sudah memasuki ujian beta tertutup, dan pembangunan versi Android dijangka selesai tidak lama lagi.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'Ya. dMsg tersedia di App Store untuk iPhone dan iPad. Versi Android sedang dibangunkan.',
   "Note": "Nota",
   "Nothing recorded yet.": "Tiada apa-apa yang direkodkan lagi.",
   "Nothing to review yet. The request appears here when it reaches this device.": "Tiada apa-apa untuk disemak lagi. Permintaan muncul di sini apabila ia mencapai peranti ini.",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "Bagaimana jika saya kehilangan komputer saya?",
   "Windows installer": "Pemasang Windows",
   "Write into the “release” folder": "Tulis ke dalam folder \"pelepasan\".",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "ya. dMsg berjalan pada macOS dengan Apple Silicon dan pada Windows x64, dan baris arahannya juga berjalan pada Linux. Angka pada halaman ini masih merupakan simulasi dengan data sampel.",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'Ya. dMsg tersedia untuk iPhone, iPad, macOS dengan Apple Silicon dan Windows x64. Baris arahannya juga berjalan pada Linux. Demo pada halaman ini ialah simulasi dengan data contoh.',
   "You": "Anda",
   "You review it and decide": "Anda menyemaknya dan membuat keputusan",
   "Your desktop": "desktop anda",

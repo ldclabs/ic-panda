@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "クラウドコピーを削除する",
   "Deletions that crossed over": "他方へ波及した削除",
   "Deploy key": "デプロイキー",
-  "Desktop app for macOS and Windows · command line on Linux too.": "macOS および Windows 用のデスクトップ アプリ、Linux 上のコマンド ラインも。",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS、macOS、Windows に対応 · コマンドラインは Linux にも対応。',
   "Documents": "書類",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "私に許されたことは終わった。 attest.request がなければ、署名を求めることさえできません。",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "完了しました。リリースステートメントは承認ウィンドウで待機中です。私自身はそれを認めることができません。",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "メッセージやファイルを決して使用しないでください",
   "New address-book entries": "新しいアドレス帳エントリ",
   "Next step": "次のステップ",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "モバイルアプリを開発中です。iOS版はすでにクローズドベータテストに入っており、Android版の開発もまもなく完了する予定です。",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'はい。iPhone・iPad 向けの dMsg を App Store で公開しています。Android 版は開発中です。',
   "Note": "注記",
   "Nothing recorded yet.": "まだ何も記録されていません。",
   "Nothing to review yet. The request appears here when it reaches this device.": "まだレビューするものはありません。リクエストがこのデバイスに到達すると、ここに表示されます。",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "コンピューターを紛失した場合はどうすればよいですか?",
   "Windows installer": "Windows インストーラー",
   "Write into the “release” folder": "「release」フォルダに書き込みます",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "はい。 dMsg は、Apple Silicon を搭載した macOS および Windows x64 上で動作し、そのコマンド ラインは Linux でも動作します。このページの図は、サンプル データを使用したシミュレーションです。",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'はい。dMsg は iPhone、iPad、Apple Silicon 搭載の macOS、Windows x64 に対応しています。コマンドラインは Linux でも動作します。このページのデモはサンプルデータを使ったシミュレーションです。',
   "You": "あなた",
   "You review it and decide": "それを検討して決めるのはあなたです",
   "Your desktop": "あなたのデスクトップ",

@@ -588,8 +588,8 @@ export default {
   'Delete the cloud copy': 'حذف النسخة السحابية',
   'Deletions that crossed over': 'عمليات حذف عبرت إلى الجانب الآخر',
   'Deploy key': 'مفتاح النشر',
-  'Desktop app for macOS and Windows · command line on Linux too.':
-    'تطبيق سطح المكتب لنظامي macOS وWindows · وسطر الأوامر على Linux أيضًا.',
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS وmacOS وWindows · وسطر الأوامر على Linux أيضًا.',
   'Documents': 'المستندات',
   'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
     'أنجزتُ ما يُسمح لي به. من دون attest.request لا أستطيع حتى أن أطلب منك التوقيع.',
@@ -642,8 +642,8 @@ export default {
   'Never your messages or files': 'لا رسائلك ولا ملفاتك أبدًا',
   'New address-book entries': 'إدخالات دفتر العناوين الجديدة',
   'Next step': 'الخطوة التالية',
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "تطبيقات الهاتف قيد التطوير. دخل تطبيق iOS بالفعل مرحلة الاختبار التجريبي الخاص، ومن المتوقع اكتمال تطوير تطبيق Android قريبًا.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'نعم. يتوفر dMsg على App Store لأجهزة iPhone وiPad. إصدار Android قيد التطوير.',
   'Note': 'ملاحظة',
   'Nothing recorded yet.': 'لا شيء مسجّل بعد.',
   'Nothing to review yet. The request appears here when it reaches this device.':
@@ -771,8 +771,8 @@ export default {
   'What if I lose my computer?': 'ماذا لو فقدت حاسوبي؟',
   'Windows installer': 'مثبّت Windows',
   'Write into the “release” folder': 'الكتابة في مجلد «release»',
-  'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
-    'نعم. يعمل dMsg على macOS مع Apple Silicon وعلى Windows x64، ويعمل سطر أوامره على Linux أيضًا. أما الأشكال في هذه الصفحة فما زالت محاكاة ببيانات تجريبية.',
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'نعم. يتوفر dMsg لأجهزة iPhone وiPad وmacOS بمعالجات Apple Silicon وWindows x64. ويعمل سطر الأوامر أيضًا على Linux. العروض في هذه الصفحة محاكاة تستخدم بيانات تجريبية.',
   'You': 'أنت',
   'You review it and decide': 'تراجعه وتقرر',
   'Your desktop': 'حاسوبك',

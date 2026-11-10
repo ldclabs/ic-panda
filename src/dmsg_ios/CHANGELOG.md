@@ -7,6 +7,11 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+## 1.1.1 - 2026-11-10
+
+Available on the [App Store](https://apps.apple.com/app/id6827050680) for
+iPhone and iPad running iOS 18 or iPadOS 18 or later.
+
 ### Login and local unlock
 
 - Add native Passkey registration and login with hardware-backed session renewal
@@ -22,6 +27,36 @@ tracked separately. Build and device-test evidence is recorded in
   login expires, with an optional login action on Account for online access.
 - Accept a pending login result after returning from the background, while
   still discarding results after logout, account switching or locking.
+- Offer explicit choices to use an existing Passkey or create a new one for
+  login and account binding. Check service readiness before creating a system
+  credential and explain when registration has not been confirmed.
+- Resume interrupted account bindings with the original credential and verified
+  login instead of creating another Passkey. Keep retries usable throughout the
+  original challenge window and discard attempts from a superseded session.
+- When a Passkey reaches its session limit, reset sessions for that credential
+  and continue the same login or binding without replacing the local workspace.
+- Prevent automatic local unlock from reopening the previous account while
+  signing into another one.
+
+### Approvals and reminders
+
+- Restore a valid workspace promptly after a system-authentication prompt during
+  device approval. Keep approval progress visible and both decision buttons
+  disabled until the result arrives; background returns still revalidate the
+  session.
+- Keep the approval explanation above the action buttons when text wraps.
+  Use centered confirmation alerts with an explicit Cancel action for approval,
+  rejection and sign-out.
+- Show each local account's unread and actionable reminder count in the account
+  switcher, so reminders in another workspace are visible before switching.
+
+### Inbox
+
+- Refresh existing free-inbox receiving keys after account security or root
+  changes while preserving the signed contact rules.
+- Explain pending letters and outdated receiving settings, including whether
+  the recipient needs to allow another letter or unlock and sync. Retry the
+  original letter instead of creating a duplicate.
 
 ### Transfers and wallet operations
 
@@ -45,6 +80,9 @@ tracked separately. Build and device-test evidence is recorded in
   from Plan and usage; the backup screen still shows the applicable file limit.
 - Avoid a canister update and cloud quota synchronization before opening the
   purchase sheet, and check membership and gateway configuration concurrently.
+- Distinguish the current membership from a plan change scheduled for the next
+  renewal, and refresh the schedule after returning from Apple's subscription
+  management.
 
 ### Vault
 
@@ -56,19 +94,14 @@ tracked separately. Build and device-test evidence is recorded in
 - Compact the detail header and field rows, hide unfilled fields while reading,
   and move timestamps to Item information and favorites to the item menu.
   Keep the editing action visible and show copy feedback beside the field.
-
-## 1.1.1 - 2026-11-07
-
-### Vault
-
 - Fix vault history ordering when several versions are saved within the same
   millisecond, preserving newest-first display and correct parent relationships.
 
 ### Subscriptions
 
-- Prepare TestFlight annual subscription testing on existing production
-  accounts. In-app purchases remain disabled in the release configuration;
-  testing requires the app purchase flag and explicit service opt-ins.
+- Enable App Store in-app purchases in the release configuration. TestFlight
+  annual subscription testing uses existing production accounts and requires
+  explicit service opt-ins for sandbox purchases.
 - Identify test memberships and Apple's test expiry in all 23 supported
   languages. Keep formal memberships ahead of test memberships and isolate
   test upgrades and refunds from formal purchases.
@@ -77,8 +110,20 @@ tracked separately. Build and device-test evidence is recorded in
   a storage product is available.
 - Finish StoreKit transactions only after the service confirms delivery, then
   refresh the displayed plan and usage.
+- Verify the existing subscription's account before purchase. Offer account
+  switching when it belongs to another dMsg account and block a new purchase
+  when ownership cannot be verified. Restoring purchases does not transfer a
+  subscription between accounts and reports whether anything was applied.
+- Keep purchase and restore delivery tied to the originating account and
+  session. Returning from Apple's purchase sheet no longer starts a competing
+  page reload that could discard delivery state; refresh after delivery instead.
 - Clarify annual App Store auto-renewal, cancellation, purchase restoration
   and Apple refund handling in the linked terms of service.
+
+### Localization
+
+- Improve terminology and natural phrasing across all 22 non-English locales,
+  including system integrations and the linked privacy and subscription terms.
 
 ## 1.1.0 - 2026-11-06
 

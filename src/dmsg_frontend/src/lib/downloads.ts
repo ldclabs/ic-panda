@@ -6,27 +6,20 @@ export const REPO = 'https://github.com/ldclabs/ic-panda'
 export const RELEASE = `${REPO}/releases/latest`
 export const MAC_APP = `${REPO}/releases/latest/download/dMsg-mac-arm64.dmg`
 export const WINDOWS_APP = `${REPO}/releases/latest/download/dMsg-win-x64.exe`
-// The iOS app (Apple ID 6827050680) is still in App Store review, and its page
-// answers nothing until release. Set this to the store link then.
-export const APP_STORE: string | null = null
+export const APP_STORE = 'https://apps.apple.com/app/id6827050680'
 /** The landing page's section listing every platform. */
 const ALL_DOWNLOADS = '/#release'
 
 export type Install = { href: string; label: keyof Messages }
 
 /** The install that fits a device, or the list of them when none does yet. */
-export function installFor(
-  userAgent: string,
-  touchPoints: number,
-  appStore: string | null = APP_STORE
-): Install {
+export function installFor(userAgent: string, touchPoints: number): Install {
   // iPadOS asks for desktop sites and reads as a Mac, apart from its touch screen.
   const ios =
     /iPhone|iPad|iPod/.test(userAgent) ||
     (/Macintosh/.test(userAgent) && touchPoints > 1)
-  if (ios && appStore)
-    return { href: appStore, label: 'Download on the App Store' }
-  if (ios || /Android/.test(userAgent))
+  if (ios) return { href: APP_STORE, label: 'Download on the App Store' }
+  if (/Android/.test(userAgent))
     return { href: ALL_DOWNLOADS, label: 'Download dMsg' }
   if (/Macintosh/.test(userAgent))
     return { href: MAC_APP, label: 'Download for Mac' }

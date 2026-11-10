@@ -582,8 +582,8 @@ export default {
   'Delete the cloud copy': '删除云端副本',
   'Deletions that crossed over': '跨到另一边的删除',
   'Deploy key': '部署密钥',
-  'Desktop app for macOS and Windows · command line on Linux too.':
-    '桌面应用支持 macOS 与 Windows · 命令行还支持 Linux。',
+  'iOS, macOS and Windows · command line on Linux too.':
+    '支持 iOS、macOS 和 Windows · 命令行还支持 Linux。',
   'Documents': '文档',
   'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
     '我已完成被允许的部分。没有 attest.request，我连请你签名都做不到。',
@@ -635,8 +635,8 @@ export default {
   'Never your messages or files': '绝不包含你的消息或文件',
   'New address-book entries': '新加入地址簿的地址',
   'Next step': '下一步',
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "手机应用正在开发中。iOS 版已进入内测，Android 版也将很快完成开发。",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    '有。dMsg 已正式上架 App Store，支持 iPhone 和 iPad。Android 版正在开发。',
   'Note': '笔记',
   'Nothing recorded yet.': '尚无记录。',
   'Nothing to review yet. The request appears here when it reaches this device.':
@@ -759,8 +759,8 @@ export default {
   'What if I lose my computer?': '如果电脑丢了怎么办？',
   'Windows installer': 'Windows 安装程序',
   'Write into the “release” folder': '写入“release”文件夹',
-  'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
-    '可以。dMsg 支持 Apple 芯片的 macOS 和 Windows x64，命令行还支持 Linux。本页的演示图仍是使用示例数据的模拟。',
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    '可以。dMsg 支持 iPhone、iPad、Apple Silicon Mac 和 Windows x64，命令行还支持 Linux。本页演示使用样例数据。',
   'You': '你',
   'You review it and decide': '你审阅并做出决定',
   'Your desktop': '你的桌面端',

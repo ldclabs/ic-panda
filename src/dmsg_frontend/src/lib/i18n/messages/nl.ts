@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "Verwijder de cloudkopie",
   "Deletions that crossed over": "Verwijderingen tussen apparaat en cloud",
   "Deploy key": "Deploy-sleutel",
-  "Desktop app for macOS and Windows · command line on Linux too.": "Desktop-app voor macOS en Windows · opdrachtregel ook op Linux.",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS en Windows · opdrachtregel ook op Linux.',
   "Documents": "Documenten",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "Klaar met wat ik mag doen. Zonder attest.request kan ik je niet eens vragen om te tekenen.",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "Klaar. De vrijgaveverklaring wacht in je goedkeuringsvenster. Ik kan het zelf niet goedkeuren.",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "Nooit je berichten of bestanden",
   "New address-book entries": "Nieuwe adresboekvermeldingen",
   "Next step": "Volgende stap",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "De mobiele apps zijn in ontwikkeling. De iOS-app is al in gesloten bèta en de ontwikkeling van de Android-app wordt naar verwachting binnenkort afgerond.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'Ja. dMsg is beschikbaar in de App Store voor iPhone en iPad. De Android-versie is in ontwikkeling.',
   "Note": "Let op",
   "Nothing recorded yet.": "Nog niets opgenomen.",
   "Nothing to review yet. The request appears here when it reaches this device.": "Nog niets te beoordelen. Het verzoek verschijnt hier wanneer het dit apparaat bereikt.",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "Wat moet ik doen als ik mijn computer kwijtraak?",
   "Windows installer": "Windows-installatieprogramma",
   "Write into the “release” folder": "Schrijf in de map \"release\".",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "Ja. dMsg draait op macOS met Apple Silicon en op Windows x64, en de opdrachtregel werkt ook op Linux. De cijfers op deze pagina zijn nog steeds simulaties met voorbeeldgegevens.",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'Ja. dMsg is beschikbaar voor iPhone, iPad, macOS met Apple Silicon en Windows x64. De opdrachtregel werkt ook op Linux. De demonstraties op deze pagina zijn simulaties met voorbeeldgegevens.',
   "You": "Jij",
   "You review it and decide": "Je bekijkt het en beslist",
   "Your desktop": "Je bureaublad",

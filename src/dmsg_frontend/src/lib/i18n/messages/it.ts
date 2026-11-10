@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "Elimina la copia cloud",
   "Deletions that crossed over": "Eliminazioni propagate tra lati",
   "Deploy key": "Chiave di deploy",
-  "Desktop app for macOS and Windows · command line on Linux too.": "App desktop per macOS e Windows · riga di comando anche su Linux.",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS e Windows · riga di comando anche su Linux.',
   "Documents": "Documenti",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "Basta con quello che mi è permesso fare. Senza attest.request non posso nemmeno chiederti di firmare.",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "Fatto. La dichiarazione di rilascio è in attesa nella tua finestra di approvazione. Non posso approvarlo da solo.",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "Mai i tuoi messaggi o file",
   "New address-book entries": "Nuove voci della rubrica",
   "Next step": "Prossimo passo",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "Le app mobili sono in sviluppo. La versione iOS è già in beta privata e lo sviluppo della versione Android dovrebbe concludersi presto.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'Sì. dMsg è disponibile sull’App Store per iPhone e iPad. La versione Android è in sviluppo.',
   "Note": "Nota",
   "Nothing recorded yet.": "Niente ancora registrato.",
   "Nothing to review yet. The request appears here when it reaches this device.": "Niente da recensire ancora. La richiesta viene visualizzata qui quando raggiunge questo dispositivo.",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "Cosa succede se perdo il computer?",
   "Windows installer": "Programma di installazione di Windows",
   "Write into the “release” folder": "Scrivi nella cartella “release”.",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "Sì. dMsg funziona su macOS con Apple Silicon e su Windows x64 e la sua riga di comando funziona anche su Linux. Le figure in questa pagina sono ancora simulazioni con dati campione.",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'Sì. dMsg è disponibile per iPhone, iPad, macOS con Apple Silicon e Windows x64. La riga di comando funziona anche su Linux. Le dimostrazioni in questa pagina sono simulazioni con dati di esempio.',
   "You": "Tu",
   "You review it and decide": "Lo rivedi e decidi",
   "Your desktop": "L'app desktop",

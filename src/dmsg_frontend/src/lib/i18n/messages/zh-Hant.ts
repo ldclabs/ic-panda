@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "刪除雲端副本",
   "Deletions that crossed over": "跨到另一邊的刪除",
   "Deploy key": "部署金鑰",
-  "Desktop app for macOS and Windows · command line on Linux too.": "桌面應用程式支援 macOS 與 Windows · 命令列還支援 Linux。",
+  'iOS, macOS and Windows · command line on Linux too.':
+    '支援 iOS、macOS 與 Windows · 命令列還支援 Linux。',
   "Documents": "文件",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "我已完成被允許的部分。沒有 attest.request，我連請你簽名都做不到。",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "完成了。發布聲明正在你的審批視窗中等待，我無法替你批准。",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "絕不包含你的訊息或檔案",
   "New address-book entries": "新加入通訊錄的地址",
   "Next step": "下一步",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "手機應用程式正在開發中。iOS 版已進入內測，Android 版也將很快完成開發。",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    '有。dMsg 已正式上架 App Store，支援 iPhone 和 iPad。Android 版正在開發。',
   "Note": "筆記",
   "Nothing recorded yet.": "尚無記錄。",
   "Nothing to review yet. The request appears here when it reaches this device.": "暫無待審內容。請求到達這台裝置後會顯示在這裡。",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "如果電腦丟了怎麼辦？",
   "Windows installer": "Windows 安裝程式",
   "Write into the “release” folder": "寫入「release」資料夾",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "可以。dMsg 支援 Apple 晶片的 macOS 和 Windows x64，命令列還支援 Linux。本頁的示範圖仍是使用範例資料的模擬。",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    '可以。dMsg 支援 iPhone、iPad、Apple 晶片 Mac 和 Windows x64，命令列還支援 Linux。本頁示範使用範例資料。',
   "You": "你",
   "You review it and decide": "你審閱並做出決定",
   "Your desktop": "你的桌面端",

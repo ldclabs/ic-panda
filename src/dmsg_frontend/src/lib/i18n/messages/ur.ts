@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "کلاؤڈ کاپی کو حذف کریں",
   "Deletions that crossed over": "ڈیلیٹس جو پار ہو گئے",
   "Deploy key": "کلید تعینات کریں",
-  "Desktop app for macOS and Windows · command line on Linux too.": "میکوس اور ونڈوز کے لیے ڈیسک ٹاپ ایپ · لینکس پر بھی کمانڈ لائن۔",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS، macOS اور Windows · Linux پر بھی کمانڈ لائن۔',
   "Documents": "دستاویزات",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "مجھے جتنی اجازت تھی وہ کام مکمل ہو گیا۔ attest.request کے بغیر میں آپ سے دستخط کی درخواست بھی نہیں کر سکتا۔",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "ہو گیا ریلیز کا بیان آپ کی منظوری کی ونڈو میں منتظر ہے۔ میں خود اسے منظور نہیں کر سکتا۔",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "کبھی بھی آپ کے پیغامات یا فائلیں نہیں",
   "New address-book entries": "ایڈریس بک کے نئے اندراجات",
   "Next step": "اگلا مرحلہ",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "موبائل ایپس تیار کی جا رہی ہیں۔ iOS ایپ پہلے ہی محدود بیٹا ٹیسٹنگ میں ہے، اور Android ایپ کی تیاری بھی جلد مکمل ہونے کی توقع ہے۔",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'جی ہاں۔ dMsg اب iPhone اور iPad کے لیے App Store پر دستیاب ہے۔ Android ورژن تیاری کے مراحل میں ہے۔',
   "Note": "نوٹ",
   "Nothing recorded yet.": "ابھی تک کچھ ریکارڈ نہیں ہوا۔",
   "Nothing to review yet. The request appears here when it reaches this device.": "ابھی تک جائزہ لینے کے لیے کچھ نہیں ہے۔ درخواست اس ڈیوائس تک پہنچنے پر یہاں ظاہر ہوتی ہے۔",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "اگر میں اپنا کمپیوٹر کھوؤں تو کیا ہوگا؟",
   "Windows installer": "ونڈوز انسٹالر",
   "Write into the “release” folder": "\"ریلیز\" فولڈر میں لکھیں",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "جی ہاں dMsg MacOS پر Apple Silicon کے ساتھ اور Windows x64 پر چلتا ہے، اور اس کی کمانڈ لائن لینکس پر بھی چلتی ہے۔ اس صفحہ کے اعداد و شمار اب بھی نمونے کے اعداد و شمار کے ساتھ نقلی ہیں۔",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'جی ہاں۔ dMsg، iPhone، iPad، Apple Silicon والے macOS اور Windows x64 کے لیے دستیاب ہے۔ اس کی کمانڈ لائن Linux پر بھی چلتی ہے۔ اس صفحے کے ڈیمو نمونہ ڈیٹا کے ساتھ بنائے گئے سمیولیشن ہیں۔',
   "You": "آپ",
   "You review it and decide": "آپ اس کا جائزہ لیں اور فیصلہ کریں",
   "Your desktop": "آپ کا ڈیسک ٹاپ",

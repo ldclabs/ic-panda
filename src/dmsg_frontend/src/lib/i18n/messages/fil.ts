@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "Tanggalin ang cloud copy",
   "Deletions that crossed over": "Mga pagbuburang tumawid sa kabilang panig",
   "Deploy key": "Deploy key",
-  "Desktop app for macOS and Windows · command line on Linux too.": "Desktop app para sa macOS at Windows · command line sa Linux din.",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS at Windows · command line sa Linux din.',
   "Documents": "Mga dokumento",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "Tapos na sa pinapahintulutan kong gawin. Kung walang attest.request hindi ko man lang hilingin na pumirma ka.",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "Tapos na. Ang pahayag ng paglabas ay naghihintay sa iyong window ng pag-apruba. Hindi ko ito maaprubahan sa aking sarili.",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "Huwag kailanman ang iyong mga mensahe o file",
   "New address-book entries": "Bagong mga entry sa address-book",
   "Next step": "Susunod na hakbang",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "Ginagawa na ang mga mobile app. Nasa pribadong beta na ang bersyon para sa iOS, at inaasahang malapit nang matapos ang pagbuo ng bersyon para sa Android.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'Oo. Available na ang dMsg sa App Store para sa iPhone at iPad. Ginagawa pa ang bersyon para sa Android.',
   "Note": "Tandaan",
   "Nothing recorded yet.": "Wala pang naitatala.",
   "Nothing to review yet. The request appears here when it reaches this device.": "Wala pang ire-review. Lalabas dito ang kahilingan kapag naabot nito ang device na ito.",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "Paano kung mawala ang aking computer?",
   "Windows installer": "Windows installer",
   "Write into the “release” folder": "Sumulat sa folder na \"release\".",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "Oo. Gumagana ang dMsg sa macOS na may Apple Silicon at sa Windows x64, at tumatakbo din ang command line nito sa Linux. Ang mga numero sa page na ito ay mga simulation pa rin na may sample na data.",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'Oo. Available ang dMsg para sa iPhone, iPad, macOS na may Apple Silicon at Windows x64. Gumagana rin ang command line nito sa Linux. Mga simulation na may halimbawang data ang mga demo sa pahinang ito.',
   "You": "Ikaw",
   "You review it and decide": "Repasuhin mo ito at magpasya",
   "Your desktop": "Ang iyong desktop",

@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "클라우드 사본 삭제",
   "Deletions that crossed over": "반대편으로 넘어간 삭제 작업",
   "Deploy key": "배포 키",
-  "Desktop app for macOS and Windows · command line on Linux too.": "macOS 및 Windows용 데스크탑 앱 · Linux에서도 명령줄.",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS, Windows 지원 · 명령줄은 Linux도 지원합니다.',
   "Documents": "문서",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "나에게 허락된 일을 마쳤습니다. attest.request가 없으면 서명을 요청할 수도 없습니다.",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "완료. 릴리스 명세서가 승인 창에서 기다리고 있습니다. 나 자신은 그것을 승인할 수 없다.",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "절대로 메시지나 파일을 사용하지 마세요.",
   "New address-book entries": "새로운 주소록 항목",
   "Next step": "다음 단계",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "모바일 앱을 개발 중입니다. iOS 버전은 이미 비공개 베타 테스트 중이며, Android 버전 개발도 곧 완료될 예정입니다.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    '네. iPhone 및 iPad용 dMsg를 App Store에서 다운로드할 수 있습니다. Android 버전은 개발 중입니다.',
   "Note": "참고",
   "Nothing recorded yet.": "아직 녹음된 내용이 없습니다.",
   "Nothing to review yet. The request appears here when it reaches this device.": "아직 검토할 내용이 없습니다. 요청이 이 장치에 도달하면 여기에 표시됩니다.",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "컴퓨터를 분실하면 어떻게 되나요?",
   "Windows installer": "Windows 설치 프로그램",
   "Write into the “release” folder": "\"릴리스\" 폴더에 쓰기",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "예. dMsg는 Apple Silicon 기반 macOS와 Windows x64에서 실행되며, 명령줄 도구는 Linux에서도 실행됩니다. 이 페이지의 화면은 샘플 데이터를 사용한 시뮬레이션입니다.",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    '네. dMsg는 iPhone, iPad, Apple Silicon 기반 macOS 및 Windows x64에서 사용할 수 있습니다. 명령줄은 Linux에서도 실행됩니다. 이 페이지의 데모는 예시 데이터를 사용한 시뮬레이션입니다.',
   "You": "당신",
   "You review it and decide": "검토해보고 결정하세요",
   "Your desktop": "데스크탑",

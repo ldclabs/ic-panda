@@ -24,8 +24,10 @@ behavior changes. Membership figures are shared with the landing page in
 review date and verify live terms before changing prices. Backup file limits
 follow the public cloud contract (100 MiB for Free/Plus/Pro, 1000 MiB for Max)
 and appear in both the interactive and generated static comparisons; this policy
-update does not change the recorded pricing review date. Installation links follow
-the latest release without duplicating its version. `scripts/public-content.mjs`
+update does not change the recorded pricing review date. Desktop and CLI links follow
+the latest release without duplicating its version. The iPhone/iPad app links to its
+public App Store listing using a region-neutral URL. Keep the interactive download
+links, bilingual guides and generated structured data in sync. `scripts/public-content.mjs`
 copies only an explicit allowlist of public repository documents into `/_/docs/`;
 links to other snapshotted documents resolve locally and other relative links
 resolve against the public repository. No private repository is a build input.

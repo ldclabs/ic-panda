@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "Bulut kopyasını silin",
   "Deletions that crossed over": "Karşı tarafa geçen silme işlemleri",
   "Deploy key": "Dağıtım anahtarı",
-  "Desktop app for macOS and Windows · command line on Linux too.": "MacOS ve Windows için masaüstü uygulaması · Linux'ta da komut satırı.",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS ve Windows · Linux’ta da komut satırı.',
   "Documents": "Belgeler",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "Yapmama izin verilen şeyle işim bitti. attest.request olmadan senden imzalamanı bile isteyemem.",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "Bitti. Sürüm bildirimi onay pencerenizde bekliyor. Bunu kendim onaylayamıyorum.",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "Hiçbir zaman mesajlarınız veya dosyalarınız",
   "New address-book entries": "Yeni adres defteri girişleri",
   "Next step": "Sonraki adım",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "Mobil uygulamalar geliştiriliyor. iOS uygulaması kapalı beta aşamasına girdi; Android uygulamasının geliştirilmesinin de yakında tamamlanması bekleniyor.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'Evet. dMsg, iPhone ve iPad için App Store’da mevcut. Android sürümü geliştirme aşamasında.',
   "Note": "Not",
   "Nothing recorded yet.": "Henüz kaydedilen bir şey yok.",
   "Nothing to review yet. The request appears here when it reaches this device.": "Henüz incelenecek bir şey yok. İstek bu cihaza ulaştığında burada görünür.",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "Bilgisayarımı kaybedersem ne olur?",
   "Windows installer": "Windows yükleyici",
   "Write into the “release” folder": "“Yayın” klasörüne yazın",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "Evet. dMsg, Apple Silicon ile macOS'ta ve Windows x64'te çalışır ve komut satırı da Linux'ta çalışır. Bu sayfadaki rakamlar hala örnek veriler içeren simülasyonlardır.",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'Evet. dMsg; iPhone, iPad, Apple Silicon işlemcili macOS ve Windows x64 için mevcut. Komut satırı Linux’ta da çalışır. Bu sayfadaki demolar örnek verilerle hazırlanmış simülasyonlardır.',
   "You": "sen",
   "You review it and decide": "İnceleyip karar verirsiniz",
   "Your desktop": "Masaüstünüz",

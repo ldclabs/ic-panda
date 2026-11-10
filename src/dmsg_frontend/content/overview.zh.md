@@ -16,8 +16,9 @@ dMsg 是 ICPanda DAO 的私密工作台，用来保管秘密和文件、与指�
 
 ## 安装与开始使用
 
-桌面安装包面向 macOS Apple Silicon 和 Windows x64，Windows 的验证覆盖较少。命令行还支持 Linux x86_64 与 arm64。移动端独立推进：iOS 处于私测，Android 正在开发；实际可下载内容以发布附件为准。
+dMsg 已正式上架 App Store，支持 iPhone 和 iPad，需要 iOS 18、iPadOS 18 或更新版本。桌面安装包面向 macOS Apple Silicon 和 Windows x64，Windows 的验证覆盖较少。命令行还支持 Linux x86_64 与 arm64。Android 正在开发。
 
+- [在 App Store 下载 dMsg](https://apps.apple.com/app/id6827050680)
 - [下载 Mac 版](https://github.com/ldclabs/ic-panda/releases/latest/download/dMsg-mac-arm64.dmg)
 - [下载 Windows 版](https://github.com/ldclabs/ic-panda/releases/latest/download/dMsg-win-x64.exe)
 - [全部下载、命令行与校验值](https://github.com/ldclabs/ic-panda/releases/latest)

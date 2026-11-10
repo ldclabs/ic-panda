@@ -137,10 +137,39 @@ instead of on a separate line. Checks across all 23 locales at 320, 390, 760,
 absence of overflow, including Arabic and Urdu RTL. The Chinese mobile
 rendering was inspected with all three headings visible together.
 
-The mobile-app FAQ now states that iOS is in private beta and Android development
+At that review, the mobile-app FAQ stated that iOS was in private beta and Android development
 is expected to finish soon, consistently across all 23 locales. Its English,
 Chinese, French and Arabic answers were checked at 390 and 1280px with no text
 or page overflow; the updated Chinese answer was inspected in the preview.
 
 Not run: Firefox, WebKit, physical devices, screen readers, native-speaker
 proofreading, or checkout/payment against production. No site was deployed.
+
+## iOS App Store release (2026-11-10)
+
+The homepage and download section now link to the public iPhone/iPad app at
+`https://apps.apple.com/app/id6827050680`, without a country or region path.
+The three platform/availability messages are updated in all 23 locales; Android
+remains in development. The shared download selector sends iPhones and iPads,
+including iPadOS using a desktop user agent, directly to the App Store. The
+unreleased-app fallback is removed. Bilingual reading guides, generated HTML,
+Markdown/LLM guides and SoftwareApplication metadata also include iOS downloads.
+
+Validation: `npm run check` reported zero errors and warnings; `npm test` passed
+7 Node tests and 144 Vitest tests, with the 2 live share/request tests skipped
+because their environment inputs were absent. `npm run build` passed, including
+the generated public-content checks for the region-neutral download link and
+iOS/iPadOS metadata. The pnpm launcher could not create its temporary package
+manager directory in the restricted environment, so the same package scripts
+were run through npm using the existing dependencies.
+
+The production preview was checked in the Codex in-app browser across all 23
+locales at 320, 390 and 1440 CSS pixels. Both App Store buttons kept the same
+region-neutral destination, fit their viewport and had no text overflow; there
+was no horizontal page overflow. English/Chinese desktop, Chinese mobile and
+Arabic RTL screenshots were inspected. Keyboard navigation reached the App Store
+link with visible focus and opened the phone FAQ; the Chinese and Arabic answers
+showed public availability. No browser console errors were recorded.
+
+Not run: physical iPhone/iPad installation, Firefox, screen readers or
+native-speaker proofreading. No site was deployed.

@@ -46,6 +46,11 @@ for (const path of ['index.html', '_/about.html', '_/about.zh.html']) {
     document.querySelector('main')?.textContent.includes('DMSG_AGENT_TOKEN'),
     `${path}: agent setup without JS`
   )
+  const appStore = 'https://apps.apple.com/app/id6827050680'
+  assert.ok(
+    document.querySelector(`main a[href="${appStore}"]`),
+    `${path}: public iPhone/iPad download without JS`
+  )
   assert.ok(
     document.querySelectorAll('main h2').length >= 7,
     `${path}: complete guide`
@@ -95,6 +100,9 @@ for (const path of ['index.html', '_/about.html', '_/about.zh.html']) {
     )
     assert.equal(data.name, 'dMsg')
     assert.equal(data.url, 'https://dmsg.net/')
+    assert.ok(data.operatingSystem.includes('iOS'))
+    assert.ok(data.operatingSystem.includes('iPadOS'))
+    assert.ok(data.downloadUrl.includes(appStore))
     assert.match(
       read(path),
       /_app\/immutable\/entry\/start\./,

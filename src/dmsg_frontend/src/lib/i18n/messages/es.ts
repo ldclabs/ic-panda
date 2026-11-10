@@ -615,8 +615,8 @@ export default {
   'Delete the cloud copy': 'Eliminar la copia en la nube',
   'Deletions that crossed over': 'Borrados que pasaron al otro lado',
   'Deploy key': 'Clave de despliegue',
-  'Desktop app for macOS and Windows · command line on Linux too.':
-    'App de escritorio para macOS y Windows · línea de comandos también en Linux.',
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS y Windows · línea de comandos también en Linux.',
   'Documents': 'Documentos',
   'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
     'Hice lo que se me permite. Sin attest.request ni siquiera puedo pedirte que firmes.',
@@ -670,8 +670,8 @@ export default {
   'Never your messages or files': 'Nunca tus mensajes ni archivos',
   'New address-book entries': 'Entradas nuevas de la libreta',
   'Next step': 'Siguiente paso',
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "Las aplicaciones móviles están en desarrollo. La versión para iOS ya está en beta privada y se espera que el desarrollo de la versión para Android termine pronto.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'Sí. dMsg está disponible en el App Store para iPhone y iPad. La versión para Android está en desarrollo.',
   'Note': 'Nota',
   'Nothing recorded yet.': 'Aún no hay registros.',
   'Nothing to review yet. The request appears here when it reaches this device.':
@@ -804,8 +804,8 @@ export default {
   'What if I lose my computer?': '¿Y si pierdo mi ordenador?',
   'Windows installer': 'Instalador para Windows',
   'Write into the “release” folder': 'Escribir en la carpeta «release»',
-  'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
-    'Sí. dMsg funciona en macOS con Apple Silicon y en Windows x64, y su línea de comandos también en Linux. Las figuras de esta página siguen siendo simulaciones con datos de ejemplo.',
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'Sí. dMsg está disponible para iPhone, iPad, macOS con Apple Silicon y Windows x64. Su línea de comandos también funciona en Linux. Las demostraciones de esta página son simulaciones con datos de ejemplo.',
   'You': 'Tú',
   'You review it and decide': 'Lo revisas y decides',
   'Your desktop': 'Tu escritorio',

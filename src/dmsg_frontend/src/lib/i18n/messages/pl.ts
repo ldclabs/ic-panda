@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "Usuń kopię w chmurze",
   "Deletions that crossed over": "Usunięcia przeniesione między stronami",
   "Deploy key": "Klucz wdrożeniowy",
-  "Desktop app for macOS and Windows · command line on Linux too.": "Aplikacja komputerowa dla systemów macOS i Windows · Wiersz poleceń także w systemie Linux.",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS i Windows · wiersz poleceń także w systemie Linux.',
   "Documents": "Dokumenty",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "Skończyłem z tym, co mi wolno. Bez attest.request nie mogę nawet poprosić Cię o podpisanie.",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "Gotowe. Oświadczenie o wydaniu czeka w oknie zatwierdzenia. Sam nie mogę tego zatwierdzić.",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "Nigdy wiadomości ani plików",
   "New address-book entries": "Nowe wpisy w książce adresowej",
   "Next step": "Następny krok",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "Aplikacje mobilne są w trakcie tworzenia. Wersja na iOS jest już w zamkniętej becie, a prace nad wersją na Androida powinny wkrótce się zakończyć.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'Tak. dMsg jest dostępny w App Store na iPhone’a i iPada. Wersja na Androida jest w trakcie tworzenia.',
   "Note": "Uwaga",
   "Nothing recorded yet.": "Jeszcze nic nie zostało nagrane.",
   "Nothing to review yet. The request appears here when it reaches this device.": "Jeszcze nie ma nic do sprawdzenia. Żądanie pojawia się tutaj, gdy dotrze do tego urządzenia.",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "Co się stanie, jeśli stracę komputer?",
   "Windows installer": "Instalator Windowsa",
   "Write into the “release” folder": "Zapisz w folderze „release”.",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "Tak. dMsg działa na systemach macOS z Apple Silicon i Windows x64, a jego linia poleceń działa również w systemie Linux. Liczby na tej stronie są nadal symulacjami z przykładowymi danymi.",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'Tak. dMsg jest dostępny na iPhone’a, iPada, macOS z Apple Silicon i Windows x64. Wiersz poleceń działa również w systemie Linux. Prezentacje na tej stronie to symulacje z przykładowymi danymi.',
   "You": "Ty",
   "You review it and decide": "Przeanalizujesz to i podejmiesz decyzję",
   "Your desktop": "Twój pulpit",

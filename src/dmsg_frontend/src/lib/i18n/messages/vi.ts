@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "Xóa bản sao đám mây",
   "Deletions that crossed over": "Các thao tác xóa lan sang bên kia",
   "Deploy key": "Khóa triển khai",
-  "Desktop app for macOS and Windows · command line on Linux too.": "Ứng dụng máy tính để bàn dành cho macOS và Windows · dòng lệnh trên Linux cũng vậy.",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS và Windows · dòng lệnh cũng chạy trên Linux.',
   "Documents": "Tài liệu",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "Đã xong những gì tôi được phép làm. Nếu không có attest.request tôi thậm chí không thể yêu cầu bạn ký.",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "Xong. Tuyên bố phát hành đang chờ trong cửa sổ phê duyệt của bạn. Tôi không thể tự mình phê duyệt nó.",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "Không bao giờ tin nhắn hoặc tập tin của bạn",
   "New address-book entries": "Mục nhập sổ địa chỉ mới",
   "Next step": "Bước tiếp theo",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "Các ứng dụng di động đang được phát triển. Bản iOS đã bước vào giai đoạn thử nghiệm beta kín và quá trình phát triển bản Android dự kiến cũng sớm hoàn tất.",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'Có. dMsg đã có trên App Store dành cho iPhone và iPad. Phiên bản Android đang được phát triển.',
   "Note": "Lưu ý",
   "Nothing recorded yet.": "Chưa có gì được ghi lại.",
   "Nothing to review yet. The request appears here when it reaches this device.": "Chưa có gì để xem xét. Yêu cầu xuất hiện ở đây khi nó đến thiết bị này.",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "Nếu tôi bị mất máy tính thì sao?",
   "Windows installer": "Trình cài đặt Windows",
   "Write into the “release” folder": "Viết vào thư mục “phát hành”",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "Vâng. dMsg chạy trên macOS với Apple Silicon và trên Windows x64, đồng thời dòng lệnh của nó cũng chạy trên Linux. Các số liệu trên trang này vẫn là mô phỏng với dữ liệu mẫu.",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'Có. dMsg có sẵn cho iPhone, iPad, macOS dùng Apple Silicon và Windows x64. Dòng lệnh cũng chạy trên Linux. Các bản demo trên trang này là mô phỏng dùng dữ liệu mẫu.',
   "You": "Bạn",
   "You review it and decide": "Bạn xem lại và quyết định",
   "Your desktop": "Máy tính để bàn của bạn",

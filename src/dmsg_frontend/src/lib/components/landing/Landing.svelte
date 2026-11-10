@@ -1,6 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { MAC_APP, RELEASE, REPO, WINDOWS_APP } from '$lib/downloads'
+  import {
+    APP_STORE,
+    MAC_APP,
+    RELEASE,
+    REPO,
+    WINDOWS_APP
+  } from '$lib/downloads'
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
   import { locale, t } from '$lib/i18n'
   import AgentPlayground from './AgentPlayground.svelte'
@@ -50,6 +56,11 @@
     }
   }
   const PLATFORMS: { glyph: GlyphName; name: string; key: string }[] = [
+    {
+      glyph: 'apple',
+      name: 'iOS · iPadOS',
+      key: 'Download on the App Store'
+    },
     {
       glyph: 'apple',
       name: 'macOS',
@@ -176,13 +187,13 @@
     [
       $t('Can I install dMsg now?'),
       $t(
-        'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.'
+        'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.'
       )
     ],
     [
       $t('Is there a phone app?'),
       $t(
-        'Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.'
+        'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.'
       )
     ]
   ])
@@ -290,6 +301,9 @@
               <a class="button primary" href="#release"
                 >{$t('Download dMsg')}<Glyph name="arrow-right" /></a
               >
+              <a class="button secondary" href={APP_STORE}
+                ><Glyph name="apple" />{$t('Download on the App Store')}</a
+              >
               <a class="text-link" href="#story"
                 >{$t('See collaboration in action')}<Glyph
                   name="arrow-right"
@@ -297,9 +311,7 @@
               >
             </div>
             <p class="hero-note"
-              >{$t(
-                'Desktop app for macOS and Windows · command line on Linux too.'
-              )}</p
+              >{$t('iOS, macOS and Windows · command line on Linux too.')}</p
             >
           </div>
           <HeroArt />
@@ -467,7 +479,8 @@
           <p class="demo-intro"
             >{$t(
               'Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.'
-            )} {$t(
+            )}
+            {$t(
               'Try a proposal from an agent and see which decisions belong to people.'
             )}</p
           >
@@ -592,7 +605,8 @@
         >
         <div class="trust-grid">
           <article use:reveal style:--i={0}
-            ><h3><Glyph name="github" size={22} /><span
+            ><h3
+              ><Glyph name="github" size={22} /><span
                 >{$t('Inspect the public code.')}</span
               ></h3
             ><p
@@ -608,7 +622,8 @@
             ></article
           >
           <article use:reveal style:--i={1}
-            ><h3><Glyph name="refresh" size={22} /><span
+            ><h3
+              ><Glyph name="refresh" size={22} /><span
                 >{$t('Prepare for a lost device.')}</span
               ></h3
             ><p
@@ -620,7 +635,8 @@
             ></article
           >
           <article use:reveal style:--i={2}
-            ><h3><Glyph name="badge" size={22} /><span
+            ><h3
+              ><Glyph name="badge" size={22} /><span
                 >{$t('Check a signature yourself.')}</span
               ></h3
             ><p
@@ -661,7 +677,9 @@
               >{/each}
           </ul>
           <div class="release-actions"
-            ><a class="button primary" href={MAC_APP}
+            ><a class="button primary" href={APP_STORE}
+              ><Glyph name="apple" />{$t('Download on the App Store')}</a
+            ><a class="button secondary" href={MAC_APP}
               ><Glyph name="download" />{$t('Download for Mac')}</a
             ><a class="button secondary" href={WINDOWS_APP}
               ><Glyph name="download" />{$t('Windows installer')}</a

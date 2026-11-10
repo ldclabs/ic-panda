@@ -6,6 +6,16 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.2] - 2026-11-10
+
+### Account reminders
+
+- Show each local account's unread and actionable reminder count in the account
+  switcher, so reminders in another workspace are visible before switching.
+- Keep the main-window bell scoped to the active account and ignore reminder
+  results from a previous account or session. The Dock and tray retain totals
+  across local accounts.
+
 ## [1.5.1] - 2026-11-10
 
 ### Passkey login and account binding

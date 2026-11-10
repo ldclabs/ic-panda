@@ -501,7 +501,8 @@ export default {
   "Delete the cloud copy": "ลบสำเนาบนคลาวด์",
   "Deletions that crossed over": "การลบที่ข้ามไปอีกฝั่ง",
   "Deploy key": "คีย์สำหรับดีพลอย",
-  "Desktop app for macOS and Windows · command line on Linux too.": "แอปเดสก์ท็อปสำหรับ macOS และ Windows · บรรทัดคำสั่งบน Linux เช่นกัน",
+  'iOS, macOS and Windows · command line on Linux too.':
+    'iOS, macOS และ Windows · ใช้บรรทัดคำสั่งบน Linux ได้ด้วย',
   "Documents": "เอกสาร",
   "Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.": "เสร็จสิ้นสิ่งที่ฉันได้รับอนุญาตให้ทำ หากไม่มี attest.request ฉันไม่สามารถขอให้คุณลงนามได้",
   "Done. The release statement is waiting in your approval window. I can’t approve it myself.": "เสร็จแล้ว คำแถลงการเผยแพร่กำลังรออยู่ในหน้าต่างการอนุมัติของคุณ ฉันไม่สามารถอนุมัติได้ด้วยตัวเอง",
@@ -541,8 +542,8 @@ export default {
   "Never your messages or files": "ไม่เคยข้อความหรือไฟล์ของคุณ",
   "New address-book entries": "รายการสมุดที่อยู่ใหม่",
   "Next step": "ขั้นตอนต่อไป",
-  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
-    "แอปมือถืออยู่ระหว่างการพัฒนา เวอร์ชัน iOS เข้าสู่การทดสอบเบต้าแบบปิดแล้ว และคาดว่าการพัฒนาเวอร์ชัน Android จะเสร็จในเร็ว ๆ นี้",
+  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
+    'มีแล้ว dMsg พร้อมให้ดาวน์โหลดบน App Store สำหรับ iPhone และ iPad ส่วนเวอร์ชัน Android อยู่ระหว่างการพัฒนา',
   "Note": "หมายเหตุ",
   "Nothing recorded yet.": "ยังไม่มีการบันทึกอะไรเลย",
   "Nothing to review yet. The request appears here when it reaches this device.": "ไม่มีอะไรจะรีวิวเลย คำขอจะปรากฏที่นี่เมื่อมาถึงอุปกรณ์นี้",
@@ -647,7 +648,8 @@ export default {
   "What if I lose my computer?": "ถ้าคอมพิวเตอร์หายต้องทำอย่างไร",
   "Windows installer": "ตัวติดตั้งวินโดวส์",
   "Write into the “release” folder": "เขียนลงในโฟลเดอร์ \"release\"",
-  "Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.": "ใช่ dMsg ทำงานบน macOS พร้อม Apple Silicon และบน Windows x64 และบรรทัดคำสั่งของมันก็ทำงานบน Linux เช่นกัน ตัวเลขในหน้านี้ยังคงเป็นภาพจำลองพร้อมข้อมูลตัวอย่าง",
+  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
+    'ได้ dMsg พร้อมใช้งานสำหรับ iPhone, iPad, macOS ที่ใช้ Apple Silicon และ Windows x64 บรรทัดคำสั่งยังทำงานบน Linux ได้ด้วย การสาธิตในหน้านี้เป็นการจำลองโดยใช้ข้อมูลตัวอย่าง',
   "You": "คุณ",
   "You review it and decide": "คุณทบทวนและตัดสินใจ",
   "Your desktop": "เดสก์ท็อปของคุณ",
