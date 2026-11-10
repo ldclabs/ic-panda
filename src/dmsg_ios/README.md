@@ -536,6 +536,13 @@ only the active phase uncovers the workspace. A single operation token and kind
 own busy/unlock/setup/sync feedback, so an older completion cannot clear its
 replacement. Existing session and view generations still fence asynchronous work.
 
+After a transient system-authentication interruption, the app synchronously
+validates the existing scoped core handle before uncovering the same workspace.
+It does not enqueue a session read behind an approval’s account update or root
+distribution. Background returns, protected-data loss and identity transitions
+still require full session recovery. While a decision is in flight, its page
+shows Waiting for confirmation and keeps both decision buttons disabled.
+
 Device transfers keep their plan in the phase that owns it: waiting for export
 approval, transferring or suspended. Returning to the foreground can resume the
 same receiving session; sending again requires another reviewed export. System

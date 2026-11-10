@@ -208,6 +208,48 @@ impl Drop for Transition {
 mod tests {
     use super::*;
     #[tokio::test]
+    async fn scoped_validation_does_not_wait_for_a_running_approval() {
+        use tokio::sync::oneshot;
+        use tokio::time::{Duration, timeout};
+
+        let dir = dmsg_client::testing::TempDir::new();
+        let client = dmsg_client::testing::unlocked(&dir.0, false, None);
+        let host = Host::start(client, &tokio::runtime::Handle::current());
+        let owner = ScopedHost::new(host.clone(), host.generation());
+        let stamp = owner.generation();
+        let (started, ready) = oneshot::channel();
+        let (_release, waiting) = oneshot::channel::<()>();
+        let busy = owner.clone();
+        let approval = tokio::spawn(async move {
+            busy.run(move |_| {
+                Box::pin(async move {
+                    let _ = started.send(());
+                    let _ = waiting.await;
+                    Ok(())
+                })
+            })
+            .await
+        });
+        ready.await.unwrap();
+        // A session read queues behind this legacy whole-client operation.
+        assert!(
+            timeout(
+                Duration::from_millis(30),
+                owner.run(|c| Box::pin(async { c.status() }))
+            )
+            .await
+            .is_err()
+        );
+        // The UI's synchronous stamp/gate validation remains available.
+        assert!(owner.scoped(stamp).is_ok());
+        host.lock();
+        assert!(matches!(owner.scoped(stamp), Err(Error::Locked)));
+        assert!(matches!(approval.await.unwrap(), Err(Error::Locked)));
+        host.close();
+        host.closed().await.unwrap();
+    }
+
+    #[tokio::test]
     async fn a_delayed_handle_cannot_start_work_in_a_replacement_generation() {
         let dir = dmsg_client::testing::TempDir::new();
         let client = dmsg_client::testing::unlocked(&dir.0, false, None);

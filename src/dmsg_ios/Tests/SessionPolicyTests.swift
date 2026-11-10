@@ -26,6 +26,30 @@ final class SessionPolicyTests: XCTestCase {
         XCTAssertFalse(model.finishBusyOperation(setup))
     }
 
+    func testForegroundAfterSystemPromptUsesValidatedSessionWithoutARead() {
+        var validations = 0
+        XCTAssertTrue(ForegroundResumePolicy.canReuseSession(from: .inactive, backgrounded: false, protectedDataAvailable: true) {
+            validations += 1; return true
+        })
+        XCTAssertEqual(validations, 1)
+        XCTAssertFalse(ForegroundResumePolicy.canReuseSession(from: .inactive, backgrounded: false, protectedDataAvailable: true) { false },
+            "A locked or transitioning core handle must not reveal cached content")
+    }
+
+    func testBackgroundAndProtectedDataNeverUseTheTransientResumePath() {
+        for phase in [SessionLifecycle.background, .protectedDataUnavailable, .resuming, .active] {
+            XCTAssertFalse(ForegroundResumePolicy.canReuseSession(from: phase, backgrounded: false, protectedDataAvailable: true) {
+                XCTFail("Not a transient interruption"); return true
+            })
+        }
+        XCTAssertFalse(ForegroundResumePolicy.canReuseSession(from: .inactive, backgrounded: true, protectedDataAvailable: true) {
+            XCTFail("Inactive on the way back from background still needs the barrier"); return true
+        })
+        XCTAssertFalse(ForegroundResumePolicy.canReuseSession(from: .inactive, backgrounded: false, protectedDataAvailable: false) {
+            XCTFail("Protected data is unavailable"); return true
+        })
+    }
+
     func testAutomaticUnlockWaitsForALockedReadySession() {
         var policy = AutomaticUnlockPolicy()
         XCTAssertFalse(policy.consume(locked: false, fastUnlock: true, busy: false))

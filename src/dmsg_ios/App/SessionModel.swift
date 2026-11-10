@@ -195,6 +195,7 @@ final class SessionModel {
     var fixtureInboxRefreshes = 0
     var fixtureInboxComplete = false
     var fixtureInitializationAttempts = 0
+    var fixtureApprovalInFlight = false
     #else
     let uiTesting = false
     #endif
@@ -992,10 +993,30 @@ final class SessionModel {
 
     func foreground() async {
         guard UIApplication.shared.applicationState == .active else { return }
+        // System authentication only makes the scene inactive. No core work was
+        // suspended, and a synchronous scoped-handle check must not queue behind
+        // the approval's account update/root distribution network requests.
+        let reuse = ForegroundResumePolicy.canReuseSession(from: lifecycle,
+            backgrounded: backgroundAt != nil, protectedDataAvailable: UIApplication.shared.isProtectedDataAvailable) {
+            guard let session else { return false }
+            if let engine { return (try? engine.scoped(generation: session.generation)) != nil }
+            #if DEBUG
+            return uiTesting
+            #else
+            return false
+            #endif
+        }
         endBackgroundFinish()
         lifecycle = .resuming
         lifecycleGeneration &+= 1
         let activation = lifecycleGeneration
+        if reuse { uncoverIfActive(); return }
+        #if DEBUG
+        // Model the serialized session read waiting behind a long approval.
+        if uiTesting, fixtureApprovalInFlight, backgroundAt == nil {
+            try? await Task.sleep(for: .seconds(12))
+        }
+        #endif
         let away = backgroundAt.map { $0.duration(to: .now) }
         backgroundAt = nil
         if let away, away >= .seconds(immediateBackgroundLock ? 0 : 180) { await lock(clearClipboard: false) }
@@ -1512,10 +1533,20 @@ final class SessionModel {
 }
 
 /// Visibility is independent of login validity and the content lock. Resuming
-/// keeps the privacy cover until the core has adopted the current session.
+/// keeps the privacy cover until the core has adopted or synchronously validated the current session.
 enum SessionLifecycle { case inactive, background, resuming, active, protectedDataUnavailable }
 
 enum SessionOperation { case other, unlocking, initializingAccount, synchronizing }
+
+/// A transient system prompt does not suspend the core. Backgrounding, protected
+/// data loss and an invalidated handle still require the full resume barrier.
+enum ForegroundResumePolicy {
+    static func canReuseSession(from lifecycle: SessionLifecycle, backgrounded: Bool,
+                               protectedDataAvailable: Bool, validate: () -> Bool) -> Bool {
+        guard lifecycle == .inactive, !backgrounded, protectedDataAvailable else { return false }
+        return validate()
+    }
+}
 
 enum AppTab: String, CaseIterable, Identifiable {
     case vault, messages, files, account

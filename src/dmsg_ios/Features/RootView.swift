@@ -88,7 +88,7 @@ private struct WorkspaceOverlays: ViewModifier {
             if model.concealed {
                 Theme.paper.ignoresSafeArea()
                 Image(systemName: "lock.shield").font(.largeTitle).foregroundStyle(Theme.forest)
-                    .accessibilityLabel("Private workspace hidden")
+                    .accessibilityLabel("Private workspace hidden").accessibilityIdentifier("workspace.privacy-shield")
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { rootBottomInset = $0 }

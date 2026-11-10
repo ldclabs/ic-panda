@@ -16,6 +16,9 @@ final class PrivacyShield {
         let symbol = UIImageView(image: UIImage(systemName: "lock.shield"))
         symbol.tintColor = .secondaryLabel
         symbol.contentMode = .scaleAspectFit
+        symbol.isAccessibilityElement = true
+        symbol.accessibilityLabel = String(localized: "Private workspace hidden")
+        symbol.accessibilityIdentifier = "workspace.privacy-shield"
         symbol.translatesAutoresizingMaskIntoConstraints = false
         controller.view.addSubview(symbol)
         NSLayoutConstraint.activate([

@@ -225,6 +225,59 @@ import XCTest
         checkAccountNames(language: "zh-Hans", locale: "zh_CN", tab: "我的", personal: "个人账号", dark: true)
     }
 
+    func testSlowDeviceApprovalReturnsFromPrivacyShieldWhileStillWaiting() {
+        for (language, tab, confirm, waiting) in [
+            ("en", "Account", "Approve this request", "Waiting for confirmation"),
+            ("zh-Hans", "我的", "批准本次请求", "等待确认"),
+            ("ar", "الحساب", "الموافقة على هذا الطلب", "في انتظار التأكيد")
+        ] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-approval", "--ui-slow-approval", "-AppleLanguages", "(\(language))"] + (language == "en" ? [] : ["--ui-dark"])
+            app.launch()
+            XCTAssertTrue(app.buttons[tab].waitForExistence(timeout: 8)); app.buttons[tab].tap()
+            tap("account.approvals", in: app)
+            let request = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Studio iPhone")).firstMatch
+            XCTAssertTrue(request.waitForExistence(timeout: 5)); request.tap()
+            let approve = app.buttons["approval.approve"]
+            XCTAssertTrue(approve.waitForExistence(timeout: 5))
+            let buttonWidth = approve.frame.width
+            approve.tap()
+            app.alerts.buttons[confirm].tap()
+            let hint = app.staticTexts["approval.decision-hint"]
+            let visible = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@ AND hittable == true", waiting), object: hint)
+            XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 3), .completed)
+            XCTAssertFalse(approve.isEnabled)
+            XCTAssertEqual(approve.frame.width, buttonWidth, accuracy: 1)
+            XCTAssertFalse(app.images["workspace.privacy-shield"].exists)
+            capture(app, "Slow device approval remains visible · \(language)")
+            let finished = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: approve)
+            XCTAssertEqual(XCTWaiter.wait(for: [finished], timeout: 12), .completed)
+            let result = app.staticTexts["done"]
+            for _ in 0..<6 where !result.isHittable { app.swipeUp() }
+            XCTAssertTrue(result.isHittable)
+            XCTAssertFalse(app.images["workspace.privacy-shield"].exists)
+            capture(app, "Device approval completed · \(language)")
+            app.terminate()
+        }
+    }
+
+    func testUnconfirmedDeviceApprovalShowsErrorInsteadOfPrivacyShield() {
+        let app = open(["--ui-approval", "--ui-slow-approval", "--ui-approval-failure"])
+        tap("account.approvals", in: app)
+        let request = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Studio iPhone")).firstMatch
+        XCTAssertTrue(request.waitForExistence(timeout: 5)); request.tap()
+        XCTAssertTrue(app.buttons["approval.approve"].waitForExistence(timeout: 5)); app.buttons["approval.approve"].tap()
+        app.alerts.buttons["Approve this request"].tap()
+        let error = app.alerts.staticTexts["The result is not confirmed. Reconcile this request before retrying."]
+        XCTAssertTrue(error.waitForExistence(timeout: 12))
+        XCTAssertFalse(app.images["workspace.privacy-shield"].exists)
+        XCTAssertFalse(app.staticTexts["done"].exists)
+        capture(app, "Unconfirmed device approval stays accessible")
+        app.alerts.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["Refresh"].waitForExistence(timeout: 5))
+        app.terminate()
+    }
+
     func testApprovalLayoutAndConfirmations() {
         for (language, dark) in [("en", false), ("zh-Hans", true), ("de", false), ("ar", true)] {
             let app = XCUIApplication()

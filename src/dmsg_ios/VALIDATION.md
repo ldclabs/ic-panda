@@ -1,5 +1,43 @@
 # iOS implementation validation
 
+## Approval authentication foreground cover (2026-11-10)
+
+A device-pair approval can keep the core's legacy whole-client queue occupied
+while updating the account and distributing the new content root. After the
+system presence prompt made the scene inactive, foreground recovery queued a
+session read behind that operation, leaving the privacy shield on screen.
+
+Transient inactive returns now validate the existing scoped handle synchronously
+before uncovering the same workspace. A background visit, unavailable protected
+data, an identity transition or an invalidated handle still requires the full
+resume barrier. The approval continues independently with Waiting for confirmation
+and disabled, stable-width action buttons. The native privacy cover also has an
+accessible label. No approval authorization or cryptographic checks were removed.
+
+Validation:
+
+- All five `dmsg_mobile` session tests passed, including a new blocked-queue
+  regression proving that a session read waits while scoped validation remains
+  available, and that locking invalidates the handle immediately.
+- `cargo fmt --check -p dmsg_mobile` passed. Release host/device/simulator bridge
+  artifacts and Swift bindings were rebuilt, and source fingerprints verified.
+- All 28 SessionPolicyTests and the CoreBridgeTests test passed on the iOS 18.4
+  iPhone SE-sized simulator. Background, protected-data and invalid-handle paths
+  cannot use the transient resume policy.
+- Slow-approval and unconfirmed-result UI tests passed. The six-second approval
+  fixture requires the waiting view to be accessible within three seconds, keeps
+  decisions disabled, checks that the shield is absent and verifies the final
+  result or error. The final slow-approval rerun also checks stable button width.
+- English/light, Chinese/dark and Arabic/RTL waiting and completion screenshots
+  were inspected, along with the unconfirmed-result alert. The existing approval
+  layout and confirmation test passed earlier in the same change.
+- All 23 localization catalogs and Swift-extracted keys passed validation.
+
+The UI fixture simulates the system interruption and network wait. Actual camera
+scanning, Face ID/passcode, live two-device enrollment/root distribution, iOS 27,
+iPad and the full Rust/Swift suites were not exercised. No TestFlight upload or
+production deployment was performed.
+
 ## App Store subscription account ownership (2026-11-10)
 
 The purchase page now reads verified subscription-group status, original purchase

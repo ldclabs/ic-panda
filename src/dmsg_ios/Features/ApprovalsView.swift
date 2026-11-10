@@ -75,6 +75,9 @@ struct ApprovalDetailView: View {
     @State private var supported = false
     @State private var readyAt = Date.distantFuture
     @State private var decisionTask: Task<Void, Never>?
+    #if DEBUG
+    @State private var fixtureState: String?
+    #endif
 
 
     private var recoveryNotice: String? {
@@ -132,7 +135,7 @@ struct ApprovalDetailView: View {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         let expired = context.date.timeIntervalSince1970 * 1000 >= Double(request.expiresAt)
                         VStack(spacing: 8) {
-                            Text(LocalizedStringKey(expired ? "This request has expired" : "Your decision applies only to this request."))
+                            Text(LocalizedStringKey(working ? "Waiting for confirmation" : expired ? "This request has expired" : "Your decision applies only to this request."))
                                 .font(.caption).foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                                 .accessibilityIdentifier("approval.decision-hint")
@@ -141,7 +144,10 @@ struct ApprovalDetailView: View {
                                     Text("Reject").frame(maxWidth: .infinity)
                                 }.buttonStyle(.bordered).accessibilityIdentifier("approval.reject")
                                 Button { decision = true } label: {
-                                    if working { ProgressView() } else { Text("Approve").frame(maxWidth: .infinity) }
+                                    HStack(spacing: 8) {
+                                        if working { ProgressView().controlSize(.small).accessibilityHidden(true) }
+                                        Text("Approve")
+                                    }.frame(maxWidth: .infinity)
                                 }.buttonStyle(.borderedProminent).frame(maxWidth: .infinity)
                                     .accessibilityIdentifier("approval.approve")
                                     .disabled(expired || context.date < readyAt || !supported)
@@ -175,7 +181,7 @@ struct ApprovalDetailView: View {
         guard !model.concealed else { return }
         #if DEBUG
         if model.uiTesting {
-            state = request.state; supported = true; readyAt = .now
+            state = fixtureState ?? request.state; supported = true; readyAt = .now
             payload = .object(["detail": .object([
                 "capabilities": .array([.string("ContentSign"), .string("VaultUnlock"), .string("RootManage")]),
                 "device_id": .string(String(repeating: "a", count: 64)), "role": .string("member")
@@ -214,17 +220,44 @@ struct ApprovalDetailView: View {
     }
 
     private func decide(_ approve: Bool) async {
-        guard let engine = model.engine, !working, !approve || supported else { return }
+        guard model.engine != nil || model.uiTesting, !working, !approve || supported else { return }
         decision = nil; working = true; model.activity()
         let epoch = model.epoch
         defer { working = false }
         do {
-            let snapshot = try await coreOperation { try await engine.decide(id: request.id, digest: request.digest, approve: approve, operation: $0) }
+            let value = try await decideRequest(approve)
             guard epoch == model.epoch else { return }
-            result = try model.decode(snapshot); Haptics.success(); await model.updateSession(); await model.loadApprovals()
+            result = value; Haptics.success(); await model.updateSession(); await model.loadApprovals()
         } catch { if epoch == model.epoch { supported = false; state = nil; model.report(error) } }
         working = false
         if epoch == model.epoch && !model.concealed { await load() }
+    }
+
+    private func decideRequest(_ approve: Bool) async throws -> DisplayValue {
+        #if DEBUG
+        if model.uiTesting {
+            if ProcessInfo.processInfo.arguments.contains("--ui-slow-approval") {
+                model.fixtureApprovalInFlight = true
+                defer { model.fixtureApprovalInFlight = false }
+                model.inactive()
+                // The OS has dismissed its prompt while the account operation
+                // continues. Reuse the real foreground lifecycle path.
+                let foreground = Task { await model.foreground() }
+                defer { foreground.cancel() }
+                try await Task.sleep(for: .seconds(6))
+                if ProcessInfo.processInfo.arguments.contains("--ui-approval-failure") {
+                    fixtureState = "unknown"
+                    throw MobileError.Failure(code: "EXECUTION_UNKNOWN")
+                }
+            }
+            let outcome = approve ? "done" : "rejected"
+            fixtureState = outcome
+            return .object(["state": .string(outcome)])
+        }
+        #endif
+        guard let engine = model.engine else { throw MobileError.Failure(code: "LOCKED") }
+        let snapshot = try await coreOperation { try await engine.decide(id: request.id, digest: request.digest, approve: approve, operation: $0) }
+        return try model.decode(snapshot)
     }
 
     private func approvalNotice(_ type: String) -> String? {
