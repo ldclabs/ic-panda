@@ -39,7 +39,7 @@ describe('localized archive data', () => {
   it('translates decoder explanations while preserving error details', async () => {
     await setLocale('zh', false)
     expect(get(errorText)('Failed to decrypt message: tag mismatch')).toBe(
-      '消息解密失败：tag mismatch'
+      '解密消息失败：tag mismatch'
     )
     expect(get(errorText)('unrecognized diagnostic')).toBe(
       'unrecognized diagnostic'
