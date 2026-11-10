@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "사용법",
     "usageOverviewHint": "이 계정이 현재 계획에서 사용하는 것입니다.",
     "signaturesThisMonth": "이번달 서명",
+    executionUsageNeedsLogin: "로그인하면 이번 달 서명 사용량을 확인할 수 있습니다.",
     "storagePacks": "스토리지 팩",
     "storagePacksHint": "유료 회원을 위한 추가 저장 공간은 {time}까지 남은 시간 동안 가격이 책정됩니다.",
     "storagePacksPaidOnly": "스토리지 팩은 활성 유료 회원을 위한 것입니다.",

@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Gebruik",
     "usageOverviewHint": "Wat dit account nu van zijn plan gebruikt.",
     "signaturesThisMonth": "Handtekeningen deze maand",
+    executionUsageNeedsLogin: "Log in om je handtekeninggebruik van deze maand te bekijken.",
     "storagePacks": "Opbergpakketten",
     "storagePacksHint": "Extra opslagruimte voor betalende leden, geprijsd voor de resterende tijd tot {time}.",
     "storagePacksPaidOnly": "Opslagpakketten zijn voor actieve betalende leden.",

@@ -1895,6 +1895,7 @@ export default {
     usageOverview: 'Utilisation',
     usageOverviewHint: 'Ce que ce compte utilise actuellement de son forfait.',
     signaturesThisMonth: 'Signatures ce mois-ci',
+    executionUsageNeedsLogin: "Connectez-vous pour consulter votre utilisation des signatures ce mois-ci.",
     storagePacks: 'Packs de stockage',
     storagePacksHint: 'Du stockage en plus pour les membres payants, au prorata du temps restant jusqu’au {time}.',
     storagePacksPaidOnly: 'Les packs de stockage sont réservés aux membres payants actifs.',

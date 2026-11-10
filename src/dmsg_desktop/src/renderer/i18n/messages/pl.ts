@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Użycie",
     "usageOverviewHint": "Z czego to konto korzysta teraz w ramach swojego planu.",
     "signaturesThisMonth": "Podpisy w tym miesiącu",
+    executionUsageNeedsLogin: "Zaloguj się, aby zobaczyć wykorzystanie podpisów w tym miesiącu.",
     "storagePacks": "Pakiety do przechowywania",
     "storagePacksHint": "Dodatkowe miejsce dla płatnych członków, wycenione na czas pozostały do {time}.",
     "storagePacksPaidOnly": "Pakiety przestrzeni dyskowej są przeznaczone dla aktywnych płatnych członków.",

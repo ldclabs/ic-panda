@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "การใช้งาน",
     "usageOverviewHint": "สิ่งที่บัญชีนี้ใช้แผนตอนนี้",
     "signaturesThisMonth": "ลายเซ็นในเดือนนี้",
+    executionUsageNeedsLogin: "เข้าสู่ระบบเพื่อดูการใช้ลายเซ็นของเดือนนี้",
     "storagePacks": "ชุดจัดเก็บข้อมูล",
     "storagePacksHint": "พื้นที่เก็บข้อมูลเพิ่มเติมสำหรับสมาชิกแบบชำระเงิน ราคาสำหรับเวลาที่เหลือจนถึง {time}",
     "storagePacksPaidOnly": "ชุดเก็บข้อมูลมีไว้สำหรับสมาชิกแบบชำระเงินที่ใช้งานอยู่",

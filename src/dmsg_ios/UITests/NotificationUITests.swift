@@ -6,6 +6,42 @@ import XCTest
     func testReminderSettingsArabicRTL() { check(language: "ar", locale: "ar_SA", dark: false) }
     func testReminderSettingsGerman() { check(language: "de", locale: "de_DE", dark: false) }
 
+    func testRegistrationRetryChineseDark() { registrationRetry(language: "zh-Hans", locale: "zh_CN", dark: true) }
+    func testRegistrationRetryArabic() { registrationRetry(language: "ar", locale: "ar_SA", dark: false) }
+    func testRegistrationRetryGerman() { registrationRetry(language: "de", locale: "de_DE", dark: false) }
+
+    private func registrationRetry(language: String, locale: String, dark: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-push-retry", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+        if dark { app.launchArguments.append("--ui-dark") }
+        app.launch()
+        app.openActivity("reminders.open")
+        app.buttons["reminders.menu"].tap(); app.buttons["reminders.settings"].tap()
+        let retry = app.buttons["notifications.registration"]
+        for _ in 0..<8 where !retry.exists || !retry.isHittable { app.swipeUp() }
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.activityIndicators.count, 0, "A completed failure must stop spinning")
+        XCTAssertTrue(app.descendants(matching: .any)["notifications.pending"].exists)
+        capture(app, "Registration failed · \(language)")
+        retry.tap()
+        let busy = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: retry)
+        XCTAssertEqual(XCTWaiter.wait(for: [busy], timeout: 2), .completed)
+        XCTAssertFalse((retry.value as? String ?? "").isEmpty, "The action exposes its progress to accessibility")
+        let indicators = app.activityIndicators.allElementsBoundByIndex
+        XCTAssertFalse(indicators.isEmpty)
+        for indicator in indicators {
+            XCTAssertTrue(retry.frame.insetBy(dx: -1, dy: -1).contains(indicator.frame), "Progress must stay inside the registration action")
+        }
+        capture(app, "Registration in progress · \(language)")
+        let finished = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: retry)
+        XCTAssertEqual(XCTWaiter.wait(for: [finished], timeout: 5), .completed)
+        XCTAssertTrue(app.descendants(matching: .any)["notifications.status"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["notifications.pending"].exists)
+        XCTAssertEqual(app.activityIndicators.count, 0)
+        capture(app, "Registration completed · \(language)")
+        app.terminate()
+    }
+
     func testLeavingSettingsFinishesAnInFlightSave() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-notification-slow-save", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]

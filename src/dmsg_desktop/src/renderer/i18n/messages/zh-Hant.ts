@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "用量",
     "usageOverviewHint": "此帳戶目前用了多少會員額度。",
     "signaturesThisMonth": "本月簽名",
+    executionUsageNeedsLogin: "登入後可查看本月簽名用量。",
     "storagePacks": "儲存包",
     "storagePacksHint": "付費會員的額外儲存空間，按距 {time} 的剩餘時間計價。",
     "storagePacksPaidOnly": "儲存包僅供有效的付費會員購買。",

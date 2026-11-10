@@ -1713,6 +1713,80 @@ smoke: try {
     console.log('Attachment limits passed: recent files, library picker, 100 MiB boundary, cloud-only exclusion, keyboard and locale/theme/width matrix')
     break smoke
   }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'membership-auth') {
+    const usage = methods['attest/usage']
+    let usageFailure = null
+    methods['attest/usage'] = () => {
+      if (noLogin) throw { code: 'AUTH_REQUIRED', message: 'Log in' }
+      if (usageFailure) throw { code: usageFailure, message: 'Usage unavailable' }
+      return usage()
+    }
+    // Hardware unlock can open local content with no online login.
+    noLogin = true
+    fastUnlock = true
+    session = 'locked'
+    emit('session/changed')
+    await main.evaluate(() => location.hash = '/plan')
+    await main.getByTestId('plan-locked').waitFor()
+    await main.getByTestId('plan-locked').getByTestId('locked-step').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('plan-usage-login').waitFor()
+    assert.equal(latest('session/unlock').params.fast, true)
+    assert.equal(calls.filter(c => c.method === 'session/login').length, 0, 'membership never opens login automatically')
+    assert.equal(await main.getByTestId('plan-name').innerText(), 'Free')
+    assert.match(await main.getByTestId('usage-channels').innerText(), /2\s*\/\s*3/)
+    assert.equal(await main.getByTestId('plan-usage-error').count(), 0)
+    assert.equal(await main.getByText('AUTH_REQUIRED', { exact: false }).count(), 0)
+    await formMatrix(app, main, shots, 'membership-login', '[data-testid="plan-usage-login"]')
+
+    // The existing login flow is explicit and keyboard accessible. Its
+    // completion remounts the view and reads the authenticated ledger.
+    await main.getByTestId('plan-usage-login-button').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('login-dialog').waitFor()
+    await waitFor(() => latest('session/login'))
+    noLogin = false
+    loginResult = { pending: false, checking: false, done: true, error: null, approval: null }
+    emit('session/changed')
+    await main.getByTestId('login-dialog').waitFor({ state: 'detached' })
+    await waitFor(async () => /3\s*\/\s*100/.test(await main.getByTestId('usage-signatures').innerText()))
+    assert.equal(await main.getByTestId('plan-usage-login').count(), 0)
+    await main.getByText('Logged in', { exact: true }).waitFor({ state: 'hidden' })
+    await formMatrix(app, main, shots, 'membership-usage', '[data-testid="plan-usage"]')
+
+    // Real failures stay visible and recover on refresh; a failed read
+    // does not leave old usage looking current or hide the rest of the plan.
+    usageFailure = 'INTEGRITY_FAILED'
+    await main.getByTestId('plan-refresh').click()
+    await main.getByTestId('plan-usage-error').waitFor()
+    assert.equal(await main.getByTestId('plan-usage-error').getAttribute('role'), 'alert')
+    assert.match(await main.getByTestId('plan-usage-error').innerText(), /INTEGRITY_FAILED/)
+    assert.match(await main.getByTestId('usage-signatures').innerText(), /—\s*\/\s*—/)
+    assert.equal(await main.getByTestId('plan-name').innerText(), 'Free')
+    usageFailure = null
+    await main.getByTestId('plan-refresh').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('plan-usage-error').waitFor({ state: 'detached' })
+    await waitFor(async () => /3\s*\/\s*100/.test(await main.getByTestId('usage-signatures').innerText()))
+
+    noLogin = true
+    await main.getByTestId('plan-refresh').click()
+    await main.getByTestId('plan-usage-login').waitFor()
+    assert.match(await main.getByTestId('usage-signatures').innerText(), /—\s*\/\s*—/)
+    // A late authenticated read cannot reappear after locking the device.
+    noLogin = false
+    const finishUsage = hold('attest/usage')
+    await main.getByTestId('plan-refresh').click()
+    await waitFor(() => held.get('attest/usage'))
+    session = 'locked'
+    emit('session/changed')
+    await main.getByTestId('plan-locked').waitFor()
+    await finishUsage()
+    assert.equal(await main.getByTestId('usage-signatures').count(), 0)
+    assert.deepEqual(pageErrors, [])
+    console.log('Membership authentication passed: fast unlock, explicit login, usage reload, refresh recovery, late replies, keyboard and locale/theme/window matrix')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'plan-benefits') {
     await main.evaluate(() => location.hash = '/plan')
     await main.getByTestId('plan-cards').waitFor()

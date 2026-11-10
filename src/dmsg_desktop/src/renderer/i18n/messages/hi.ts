@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "उपयोग",
     "usageOverviewHint": "यह खाता अब अपनी योजना का क्या उपयोग करता है.",
     "signaturesThisMonth": "इस महीने हस्ताक्षर",
+    executionUsageNeedsLogin: "इस महीने के हस्ताक्षर उपयोग को देखने के लिए लॉग इन करें।",
     "storagePacks": "भंडारण पैक",
     "storagePacksHint": "भुगतान करने वाले सदस्यों के लिए अतिरिक्त भंडारण, {time} तक बचे समय के लिए कीमत।",
     "storagePacksPaidOnly": "स्टोरेज पैक सक्रिय भुगतान वाले सदस्यों के लिए हैं।",

@@ -6,6 +6,7 @@ import UserNotifications
 
 extension Notification.Name {
     static let dmsgPushToken = Notification.Name("dmsg.push-token")
+    static let dmsgPushRegistrationFailed = Notification.Name("dmsg.push-registration-failed")
     static let dmsgPushOpen = Notification.Name("dmsg.push-open")
     static let dmsgPushReceived = Notification.Name("dmsg.push-received")
 }
@@ -26,8 +27,15 @@ final class DMsgAppDelegate: NSObject, UIApplicationDelegate, UNUserNotification
         return true
     }
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken token: Data) {
-        Self.token = token.map { String(format: "%02x", $0) }.joined()
+        let value = token.map { String(format: "%02x", $0) }.joined()
+        // UIKit also returns the existing token when registration is requested
+        // again. Only a changed token needs another service registration.
+        guard Self.token != value else { return }
+        Self.token = value
         NotificationCenter.default.post(name: .dmsgPushToken, object: nil)
+    }
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .dmsgPushRegistrationFailed, object: nil)
     }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         if let route = NotificationRoute.parse(response.notification.request.content.userInfo["dmsg"]) {
@@ -47,13 +55,38 @@ final class DMsgAppDelegate: NSObject, UIApplicationDelegate, UNUserNotification
 @MainActor @Observable
 final class NativePush {
     /// `enabled` is read once for migration; core preferences are the authority.
-    struct Subscription: Codable { var enabled: Bool?; var route: String?; var token: String?; var expires: UInt64?; var revision: UInt64?; var unified: Bool? }
+    struct Subscription: Codable {
+        var enabled: Bool?; var route: String?; var token: String?; var expires: UInt64?; var revision: UInt64?; var unified: Bool?
+        /// A failed notification-settings sync does not invalidate the APNs lease.
+        func current(token: String, now: UInt64) -> Bool {
+            self.token == token && route != nil && revision != nil && (expires ?? 0) > now + 86_400_000
+        }
+    }
+    enum Registration: Equatable {
+        case idle, waiting, enabled, denied, unsupported, failed(String)
+
+        var message: String? {
+            switch self {
+            case .idle: nil
+            case .waiting: String(localized: "Waiting for notification registration…")
+            case .enabled: String(localized: "Notifications enabled")
+            case .denied: String(localized: "Notifications are disabled in system settings.")
+            case .unsupported: NoticeCopy.text("noticeRemote")
+            case .failed(let message): message
+            }
+        }
+    }
     private var subscriptions: [String: Subscription] = [:]
     private var enabledAccounts: [String: Bool] = [:]
     private var root: URL?
     private(set) var working = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
-    private(set) var status: String?
+    private(set) var registration = Registration.idle
+    private static var retryMessage: String { String(localized: "Notification registration needs retrying. Foreground sync remains available.") }
+    func registrationFailed() {
+        guard DMsgAppDelegate.token == nil else { return }
+        registration = .failed(Self.retryMessage)
+    }
     func forget(_ account: String) throws { subscriptions.removeValue(forKey: account); enabledAccounts.removeValue(forKey: account); try save() }
     func enabled(_ account: String?) -> Bool { account.flatMap { enabledAccounts[$0] } ?? false }
     func account(for route: String) -> String? { subscriptions.first { $0.value.route == route }?.key }
@@ -72,8 +105,8 @@ final class NativePush {
         let allowed: Bool
         if current.authorizationStatus == .notDetermined { allowed = try await center.requestAuthorization(options: [.alert, .sound, .badge]) }
         else { allowed = [.authorized, .provisional, .ephemeral].contains(current.authorizationStatus) }
-        if allowed { UIApplication.shared.registerForRemoteNotifications() }
-        else { status = String(localized: "Notifications are disabled in system settings.") }
+        if allowed, DMsgAppDelegate.token == nil { UIApplication.shared.registerForRemoteNotifications() }
+        if !allowed { registration = .denied }
         return allowed
     }
     private func preferences(_ model: SessionModel, account: String) async throws -> NoticePreferences {
@@ -104,16 +137,20 @@ final class NativePush {
             await refresh(model)
         } catch { model.report(error) }
     }
-    func refresh(_ model: SessionModel) async {
+    func refresh(_ model: SessionModel, retryRegistration: Bool = false) async {
+        #if DEBUG
+        if model.uiTesting { await refreshFixture(model, retryRegistration: retryRegistration); return }
+        #endif
         while working { await withCheckedContinuation { idleWaiters.append($0) } }
-        guard model.unlocked, let engine = model.engine, let files = model.files, let account = model.session?.account else { return }
+        guard !Task.isCancelled, model.unlocked, let engine = model.engine, let files = model.files, let account = model.session?.account else { return }
         let epoch = model.epoch
-        working = true; defer {
+        working = true; registration = .idle; defer {
             working = false; let waiting = idleWaiters; idleWaiters.removeAll(); for waiter in waiting { waiter.resume() }
         }
         do {
             try load(files)
             let preference = try await preferences(model, account: account)
+            guard epoch == model.epoch, !Task.isCancelled else { return }
             var subscription = subscriptions[account] ?? Subscription()
             if preference.account?.enabled != true {
                 if subscription.route != nil {
@@ -122,43 +159,82 @@ final class NativePush {
                     subscription.revision = nil; subscription.unified = nil
                     subscriptions[account] = subscription; try save()
                 }
-                _ = try? await engine.notificationRefresh()
+                await model.notifications.refresh(model, receive: true)
                 return
             }
             let permission = await UNUserNotificationCenter.current().notificationSettings()
+            guard epoch == model.epoch, !Task.isCancelled else { return }
             guard [.authorized, .provisional, .ephemeral].contains(permission.authorizationStatus) else {
-                status = String(localized: "Notifications are disabled in system settings."); return
+                registration = .denied; return
             }
-            UIApplication.shared.registerForRemoteNotifications()
-            guard let token = DMsgAppDelegate.token else { status = String(localized: "Waiting for notification registration…"); return }
-            if subscription.token == token, subscription.unified == true, let expiry = subscription.expires, Double(expiry) > Date.now.timeIntervalSince1970 * 1000 + 86_400_000 {
-                _ = try? await engine.notificationRefresh(); return
+            guard let token = DMsgAppDelegate.token else {
+                registration = .waiting
+                UIApplication.shared.registerForRemoteNotifications()
+                return
             }
-            let environment = Bundle.main.object(forInfoDictionaryKey: "DMsgAPNSEnvironment") as? String == "development" ? "sandbox" : "production"
-            struct Registration: Decodable { let route: String; let expiresAt: UInt64; let revision: UInt64? }
-            let result = try await model.apple.registerPush(engine: engine, files: files, account: account, token: token, environment: environment)
-            guard epoch == model.epoch else { return }
-            let registered: Registration = try model.decode(result)
+            if !subscription.current(token: token, now: NotificationTime.now) {
+                let environment = Bundle.main.object(forInfoDictionaryKey: "DMsgAPNSEnvironment") as? String == "development" ? "sandbox" : "production"
+                struct Registered: Decodable { let route: String; let expiresAt: UInt64; let revision: UInt64? }
+                let result = try await model.apple.registerPush(engine: engine, files: files, account: account, token: token, environment: environment)
+                guard epoch == model.epoch else { return }
+                let registered: Registered = try model.decode(result)
+                subscription.route = registered.route; subscription.token = token; subscription.expires = registered.expiresAt
+                subscription.revision = registered.revision; subscription.unified = false
+                subscriptions[account] = subscription; try save()
+            }
             // A settings change can arrive while App Attest/network work waits.
             // Preserve that newer preference, then unregister before sign-out proceeds.
-            subscription.route = registered.route; subscription.token = token; subscription.expires = registered.expiresAt
-            subscription.revision = registered.revision
-            subscriptions[account] = subscription; try save()
             let current = try await preferences(model, account: account)
+            guard epoch == model.epoch, !Task.isCancelled else { return }
             if current.account?.enabled != true {
                 _ = try await engine.unregisterPush(installation: files.installation)
                 subscription.route = nil; subscription.token = nil; subscription.expires = nil
                 subscription.revision = nil; subscription.unified = nil
                 subscriptions[account] = subscription; try save()
-            } else if let revision = registered.revision {
-                let result = try await engine.notificationRegisterApple(installation: files.installation, revision: revision, language: Bundle.main.preferredLocalizations.first ?? "en")
-                guard epoch == model.epoch else { return }
-                subscription.unified = result.json != "null"
-                subscriptions[account] = subscription; try save()
-                let confirmed = try await preferences(model, account: account)
-                status = subscription.unified == true ? (confirmed.pending || confirmed.conflict ? NoticeCopy.text("noticePending") : String(localized: "Notifications enabled")) : NoticeCopy.text("noticeRemote")
-            } else { status = NoticeCopy.text("noticeRemote") }
+            } else if let revision = subscription.revision {
+                if subscription.unified != true || retryRegistration {
+                    let result = try await engine.notificationRegisterApple(installation: files.installation, revision: revision, language: Bundle.main.preferredLocalizations.first ?? "en")
+                    guard epoch == model.epoch else { return }
+                    subscription.unified = result.json != "null"
+                    subscriptions[account] = subscription; try save()
+                }
+                registration = subscription.unified == true ? .enabled : .unsupported
+            } else { registration = .unsupported }
             await model.notifications.refresh(model, receive: true)
-        } catch { if epoch == model.epoch { status = String(localized: "Notification registration needs retrying. Foreground sync remains available.") } }
+        } catch {
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            if case MobileError.Failure(code: "APP_INTEGRITY_UNAVAILABLE") = error {
+                registration = .failed(String(localized: "App verification is unavailable on this device. Your saved content remains available."))
+            } else { registration = .failed(Self.retryMessage) }
+            model.reportBackground(error)
+        }
     }
+
+    #if DEBUG
+    private func refreshFixture(_ model: SessionModel, retryRegistration: Bool) async {
+        guard ProcessInfo.processInfo.arguments.contains("--ui-push-retry") else { return }
+        guard !working else { return }
+        if !retryRegistration {
+            if registration == .idle {
+                registration = .failed(Self.retryMessage)
+                if var value = model.notifications.preferences {
+                    value.globalPendingSync = true
+                    model.notifications.saveFixture(value)
+                }
+            }
+            return
+        }
+        working = true; registration = .idle
+        defer { working = false }
+        try? await Task.sleep(for: .seconds(4))
+        guard !Task.isCancelled else { return }
+        if var value = model.notifications.preferences {
+            value.globalPendingSync = false
+            let revision = value.account?.revision ?? 0
+            value.account?.remoteRevision = revision
+            model.notifications.saveFixture(value)
+        }
+        registration = .enabled
+    }
+    #endif
 }

@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Uso",
     "usageOverviewHint": "O que esta conta usa do seu plano agora.",
     "signaturesThisMonth": "Assinaturas este mês",
+    executionUsageNeedsLogin: "Entre para ver o uso de assinaturas deste mês.",
     "storagePacks": "Pacotes de armazenamento",
     "storagePacksHint": "Armazenamento extra para membros pagantes, com preço correspondente ao tempo restante até {time}.",
     "storagePacksPaidOnly": "Os pacotes de armazenamento são para membros pagos ativos.",

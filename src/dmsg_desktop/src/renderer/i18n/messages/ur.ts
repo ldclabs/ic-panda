@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "استعمال",
     "usageOverviewHint": "اب یہ اکاؤنٹ اپنے منصوبے کا کیا استعمال کرتا ہے۔",
     "signaturesThisMonth": "اس مہینے کے دستخط",
+    executionUsageNeedsLogin: "اس مہینے دستخطوں کا استعمال دیکھنے کے لیے لاگ ان کریں۔",
     "storagePacks": "اسٹوریج پیک",
     "storagePacksHint": "ادا شدہ اراکین کے لیے اضافی اسٹوریج، {time} تک باقی وقت کے لیے قیمت۔",
     "storagePacksPaidOnly": "سٹوریج پیک فعال ادا شدہ ممبران کے لیے ہیں۔",

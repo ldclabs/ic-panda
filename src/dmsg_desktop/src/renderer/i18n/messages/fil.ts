@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Paggamit",
     "usageOverviewHint": "Ano ang ginagamit ng account na ito sa plano nito ngayon.",
     "signaturesThisMonth": "Mga lagda ngayong buwan",
+    executionUsageNeedsLogin: "Mag-log in para makita ang paggamit ng lagda ngayong buwan.",
     "storagePacks": "Mga pack ng imbakan",
     "storagePacksHint": "Karagdagang storage para sa mga bayad na miyembro, na may presyo para sa natitirang oras hanggang {time}.",
     "storagePacksPaidOnly": "Ang mga storage pack ay para sa mga aktibong binabayarang miyembro.",

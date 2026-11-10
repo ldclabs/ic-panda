@@ -19,6 +19,18 @@ struct NotificationSettingsView: View {
     @State private var saveFailed = false
     private var dirty: Bool { draft?.global != saved?.global || draft?.account != saved?.account }
     private var scope: String { "\(model.epoch):\(model.session?.account ?? "")" }
+    private var statusMessage: String? {
+        if saved?.conflict == true { return String(localized: "The record changed. Refresh and review your edits before saving again.") }
+        if saveFailed || failed { return String(localized: "Connection unavailable. Your saved content stays on this device.") }
+        switch model.push.registration {
+        case .failed, .denied, .waiting, .unsupported: return model.push.registration.message
+        case .idle, .enabled:
+            if saved?.remoteSupported == false { return NoticeCopy.text("noticeRemote") }
+            if saved?.pending == true { return NoticeCopy.text("noticePendingHint") }
+            if saved?.global.enabled != true || saved?.account?.enabled != true { return nil }
+            return model.push.registration.message
+        }
+    }
     var body: some View {
         Form {
             Section {
@@ -79,25 +91,44 @@ struct NotificationSettingsView: View {
                     }
                 }
                 Section {
-                    NoticeBar(text: NoticeCopy.text("noticeScopeHint"))
-                    if saved?.remoteSupported == false { NoticeBar(text: NoticeCopy.text("noticeRemote")) }
-                    if saved?.pending == true {
-                        NoticeBar(text: NoticeCopy.text("noticePending")).accessibilityIdentifier("notifications.pending")
-                        Text(NoticeCopy.text("noticePendingHint")).font(.footnote).foregroundStyle(.secondary)
+                    if working {
+                        ProgressView("Saving…").accessibilityIdentifier("notifications.saving")
+                    } else {
+                        if !model.push.working, let message = statusMessage {
+                            Label(message, systemImage: "info.circle")
+                                .font(.footnote).foregroundStyle(.secondary)
+                                .accessibilityIdentifier(saved?.pending == true ? "notifications.pending" : "notifications.status")
+                        }
+                        if saved?.conflict == true || saveFailed {
+                            SettingsAction("Retry", prominent: true) { Task { await save() } }.accessibilityIdentifier("notifications.save")
+                        } else if saved?.account?.enabled == true && (model.push.working || saved?.pending == true || model.push.registration != .enabled) {
+                            SettingsAction(model.push.working ? "Waiting for notification registration…" : "Retry registration", working: model.push.working) {
+                                Task { await model.push.refresh(model, retryRegistration: true); await load() }
+                            }.accessibilityIdentifier("notifications.registration")
+                        }
                     }
-                    if let registration = model.push.status { NoticeBar(text: registration) }
-                    if saved?.conflict == true || saveFailed {
-                        SettingsAction("Retry", prominent: true) { Task { await save() } }.accessibilityIdentifier("notifications.save")
-                    }
-                    SettingsAction("Retry registration") { Task { await model.push.refresh(model); await load() } }
+                } footer: {
+                    Text(NoticeCopy.text("noticeScopeHint"))
                 }
-            } else if !loading { SettingsAction("Retry") { Task { await load() } } }
-            if loading || working || model.push.working { ProgressView() }
-            if failed { NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device.")) }
+            } else {
+                Section {
+                    if loading { ProgressView("Loading…") }
+                    else {
+                        if failed { NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device.")) }
+                        SettingsAction("Retry") { Task { await load() } }
+                    }
+                }
+            }
         }
         .disabled(working).privateScreen().navigationTitle(NoticeCopy.text("noticeSettings"))
         .onChange(of: draft?.global) { _, _ in scheduleSave() }
         .onChange(of: draft?.account) { _, _ in scheduleSave() }
+        .onChange(of: model.notifications.preferences) { _, value in
+            guard !working, let value, value.accountId == model.session?.account else { return }
+            let keep = dirty
+            saved = value
+            if !keep { draft = value }
+        }
         .confirmationDialog(NoticeCopy.text("noticeLinkTitle"), isPresented: $linking, titleVisibility: .visible) {
             Button(NoticeCopy.text("noticeLinkConfirm")) { Task { await save(linked: true) } }
             Button("Cancel", role: .cancel) { draft?.account?.enabled = false }

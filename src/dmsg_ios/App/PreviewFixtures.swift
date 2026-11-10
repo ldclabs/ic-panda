@@ -179,6 +179,21 @@ extension SessionModel {
 
     func refreshConversationFixture() async throws {
         fixtureChannelRefreshes += 1
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-hint-during-refresh") {
+            let first = fixtureChannelRefreshes == 1
+            fixtureChannelMessages = (5...(first ? 5 : 6)).map { sequence in
+                MessageItem(id: "fixture-\(sequence)", sequence: UInt64(sequence), account: "fixture-peer",
+                    text: "测试消息\(sequence)", createdAtMs: 1_793_513_600_000 + UInt64(sequence),
+                    attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
+                    digest: "fixture-digest-\(sequence)", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false, hidden: false)
+            }
+            if first {
+                try await Task.sleep(for: .milliseconds(300))
+                receiveChannelHintFixture("fixture-channel")
+                try await Task.sleep(for: .milliseconds(700))
+            }
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-history"), fixtureChannelRefreshes > 1 {
             // Scrolling to the beginning must not trigger a network refresh.
             throw MobileError.Failure(code: "UNAVAILABLE")
@@ -227,6 +242,9 @@ extension SessionModel {
         try await Task.sleep(for: .seconds(8))
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-send-failure") {
             throw MobileError.Failure(code: "EXECUTION_UNKNOWN")
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-send-retry"), !item.attempted {
+            throw MobileError.Failure(code: "NETWORK_UNAVAILABLE")
         }
         let sequence = (fixtureChannelMessages.last?.sequence ?? 0) + 1
         let message = MessageItem(id: item.id, sequence: sequence, account: session?.account ?? "fixture-self",

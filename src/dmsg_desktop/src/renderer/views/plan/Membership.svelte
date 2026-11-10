@@ -13,7 +13,8 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { call, errorText, onChange, single, size, units, when } from '../../rpc'
+  import { call, code, errorText, onChange, single, size, units, when } from '../../rpc'
+  import { startLogin } from '../../shell/login.svelte'
   import Checkout from './Checkout.svelte'
   import { daysLeft, eligibilityLabels, methodLabels, offerLabels, refundOutcome, sourceLabels, waitLabels } from './plan'
 
@@ -28,6 +29,7 @@
   let catalog = $state<any>(null)
   let cloud = $state<any>(null)
   let execution = $state<any>(null)
+  let executionNeedsLogin = $state(false)
   let errors = $state<Record<string, string>>({})
   let busy = $state(false)
   /** The offer the checkout dialog pays: a plan card's or a storage pack's. */
@@ -75,11 +77,23 @@
     const next = await display('files/cloud_usage', {}, mode)
     if (alive) cloud = next
   }))
-  const readExecution = single(() => part('execution', async () => {
+  const readExecution = single(async () => {
     if (!alive) return
-    const next = await call('attest/usage')
-    if (alive) execution = next
-  }))
+    try {
+      const next = await call('attest/usage')
+      if (!alive) return
+      execution = next
+      executionNeedsLogin = false
+      errors.execution = ''
+    } catch (e) {
+      if (!alive) return
+      execution = null
+      // Local unlock remains usable after the online login expires.
+      // The private execution ledger still requires that login.
+      executionNeedsLogin = code(e) === 'AUTH_REQUIRED'
+      errors.execution = executionNeedsLogin ? '' : errorText(e)
+    }
+  })
 
   function load(refresh = false) {
     refreshPlan ||= refresh
@@ -240,7 +254,13 @@
       </ul>
     {/if}
     {#if errors.cloud}<Notice failure={errors.cloud} tone="danger" class="mt-3">{errors.cloud}</Notice>{/if}
-    {#if errors.execution}<Notice failure={errors.execution} tone="danger" class="mt-3">{errors.execution}</Notice>{/if}
+    {#if executionNeedsLogin}
+      <Notice tone="info" class="mt-3" testid="plan-usage-login">
+        {t('executionUsageNeedsLogin')}
+        {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={() => startLogin()} data-testid="plan-usage-login-button">{t('login')}</button>{/snippet}
+      </Notice>
+    {/if}
+    {#if errors.execution}<Notice failure={errors.execution} tone="danger" class="mt-3" testid="plan-usage-error">{errors.execution}</Notice>{/if}
   </Section>
 
   {#if errors.catalog}<Notice failure={errors.catalog} tone="danger">{errors.catalog}</Notice>{/if}

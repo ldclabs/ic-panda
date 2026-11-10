@@ -8,6 +8,13 @@ build dependencies).
 
 ## Messaging
 
+A channel hint received during an in-flight refresh schedules another read as
+soon as that refresh finishes. Completed reads only coalesce requests that
+predate their start, so a stale response cannot consume a newer refresh request.
+Failed sends retain their original ID and show specific network, key and
+permission failures; native diagnostics record fixed error codes without message
+text, account IDs or URLs. Receiving the latest message is not a send prerequisite.
+
 Messages groups conversations and letters. Letters have Inbox, Sent, Pending,
 Drafts and Archived folders, local search and bounded list presentation. The iPad
 split view initially shows the messages sidebar and routes selected letters to
@@ -106,6 +113,12 @@ Touch ID or the device passcode opens already cached local passwords. The accoun
 page offers a non-blocking login action when II authorization is absent or expired;
 copying a local secret does not start a login. Device revocation checks, automatic
 locking and clipboard expiry remain independent controls.
+
+Membership execution usage restores the saved Passkey authorization through the
+shared client before reading its private ledger. An account switch clears the
+in-memory identity but preserves its hardware-backed grant; a parent delegation
+with more than ten minutes remaining is reused locally, otherwise renewed on
+demand. Local content unlock remains independent of this online operation.
 
 Account setup shows a spinner and disables competing access actions while it
 runs. After 15 seconds, the screen explains that it is still waiting for network
@@ -266,6 +279,13 @@ views report their visible version; opening the reminder list never marks a
 message read or completes an approval. Channel reads advance only when the
 latest loaded message is actually visible. Network reconciliation runs separately
 from local presentation so a slow source does not delay an existing reminder.
+
+Push registration reacts only to a new APNs token; receiving the same token does
+not enqueue another registration. A valid Apple registration is retained when
+the following notification registration or settings sync fails. Explicit retry
+rechecks that notification registration without repeating App Attest unnecessarily.
+The settings page shows one current status, places progress in the relevant
+action, and follows remote acknowledgements without overwriting unsaved edits.
 
 Clicks resolve an opaque original-account route. Account switching and unlock
 remain explicit; an invalid route shows an unavailable state and network failures

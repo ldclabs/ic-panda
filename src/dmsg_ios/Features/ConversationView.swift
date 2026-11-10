@@ -30,6 +30,7 @@ struct ConversationView: View {
     @State private var loadFailed = false
     @State private var refreshFailed = false
     @State private var refreshing = false
+    @State private var refreshRequested = false
     @State private var query = ""
     @State private var searching = false
     @FocusState private var searchFocused: Bool
@@ -201,6 +202,7 @@ struct ConversationView: View {
                 }
             }
             .onDisappear {
+                refreshRequested = false
                 actionTask?.cancel()
                 if model.activeChannel == channel.id { model.activeChannel = nil }
             }
@@ -327,7 +329,7 @@ struct ConversationView: View {
                     if active { ProgressView().controlSize(.small); Text("Sending") }
                     else if queued { Text("Waiting to submit") }
                     else if unconfirmed { Image(systemName: "clock").accessibilityHidden(true); Text("Waiting for confirmation") }
-                    else if item.error != nil { Image(systemName: "exclamationmark.circle").foregroundStyle(.red).accessibilityHidden(true); Text("The operation could not be completed. Please try again.") }
+                    else if let error = item.error { Image(systemName: "exclamationmark.circle").foregroundStyle(.red).accessibilityHidden(true); Text(MessageFailure.text(error)) }
                     else { Text("Waiting to submit") }
                 }.font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 if !queued {
@@ -353,9 +355,20 @@ struct ConversationView: View {
     }
 
     private func refreshMessages() async {
-        guard !refreshing, !model.concealed, !Task.isCancelled else { return }
+        guard !model.concealed, !Task.isCancelled else { return }
+        refreshRequested = true
+        guard !refreshing else { return }
+        refreshing = true
+        defer { refreshing = false }
+        while refreshRequested, !model.concealed, !Task.isCancelled {
+            refreshRequested = false
+            await refreshMessagePass()
+        }
+    }
+
+    private func refreshMessagePass() async {
         let epoch = model.epoch
-        refreshing = true; refreshFailed = false
+        refreshFailed = false
         // The core commits verified pages as it receives them. Read those
         // pages while the remaining history or attachment metadata is pending.
         // A slow later request must not leave the whole conversation blank.
@@ -365,7 +378,7 @@ struct ConversationView: View {
                 do { try await Task.sleep(for: .seconds(1)) } catch { break }
             }
         }
-        defer { local.cancel(); refreshing = false }
+        defer { local.cancel() }
         do {
             #if DEBUG
             if model.uiTesting { try await model.refreshConversationFixture() }
@@ -376,6 +389,7 @@ struct ConversationView: View {
         } catch {
             if epoch == model.epoch, !Task.isCancelled {
                 refreshFailed = true
+                if case MobileError.Failure(let code) = error { MessageTiming.failure(.refresh, code: code) }
                 model.reportBackground(error)
             }
         }

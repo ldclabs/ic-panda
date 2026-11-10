@@ -149,6 +149,42 @@ async fn concurrent_failure_is_shared_and_retry_keeps_local_content() {
 }
 
 #[tokio::test]
+async fn execution_usage_renews_login_without_locking_local_content() {
+    let dir = TempDir::new();
+    let mut c = client(&dir, Arc::new(MemoryStorage::default()));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    c.config.ic_host = format!("http://{}", listener.local_addr().unwrap());
+    let h = Arc::new(Shared(Mutex::new(c)));
+    let task = {
+        let h = h.clone();
+        tokio::spawn(async move { crate::attest::execution_usage(h.as_ref()).await })
+    };
+    // The expired passkey reaches renewal instead of failing at c.session().
+    let (mut request, _) =
+        tokio::time::timeout(std::time::Duration::from_secs(5), listener.accept())
+            .await
+            .expect("execution usage must attempt login renewal")
+            .unwrap();
+    h.with(|c| {
+        assert!(c.keys.is_some() && c.root.is_some());
+        Ok(())
+    })
+    .await
+    .unwrap();
+    assert!(reject(&mut request).await.contains("/call "));
+    let (mut query, _) = listener.accept().await.unwrap();
+    assert!(reject(&mut query).await.contains("/query "));
+    let error = task.await.unwrap().unwrap_err();
+    assert_ne!(error, Error::AuthRequired, "{error:?}");
+    h.with(|c| {
+        assert!(c.keys.is_some() && c.root.is_some() && c.renewable());
+        Ok(())
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
 async fn a_current_login_does_not_wait_for_a_renewal_in_progress() {
     let dir = TempDir::new();
     let mut c = client(&dir, Arc::new(MemoryStorage::default()));
@@ -407,6 +443,131 @@ fn passkey_login_binds_hardware_again_after_an_explicit_unbind() {
     c.apply_login_keys(prepared, &key, now_ms()).unwrap();
     assert!(c.workspace.bound().unwrap() && !c.workspace.meta.bound_declined);
     assert!(secure.get(&c.passkey_slot().unwrap()).unwrap().is_some());
+}
+
+#[tokio::test]
+async fn saved_passkey_delegation_survives_workspace_switch() {
+    use ic_certification_v3::{Certificate, HashTree, fork, labeled, leaf};
+    use sha2::{Digest, Sha256};
+
+    let dir = TempDir::new();
+    let secure = Arc::new(MemoryStorage::default());
+    let mut c = client(&dir, secure.clone());
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    c.config.ic_host = format!("http://{}", listener.local_addr().unwrap());
+    c.set_presence_key(Arc::new(Person));
+    let prepared = c
+        .prepare_login_keys(Zeroizing::new(testing::SECRET))
+        .unwrap()
+        .unwrap();
+    let key = prepared.open().unwrap();
+    c.apply_login_keys(prepared, &key, now_ms()).unwrap();
+    let now = now_ms();
+    let expires_at = now + 6 * 60 * MINUTE;
+    // Sign a real test delegation: restoration must verify its certificate and
+    // derive the scoped identity without contacting the auth canister.
+    let key = c.passkey.as_mut().unwrap();
+    let parent = key.parent.as_mut().unwrap();
+    parent.expiration = expires_at * NANOS_PER_MILLISECOND;
+    let issued = Delegation {
+        pubkey: key.public.to_vec(),
+        expiration: parent.expiration,
+        targets: None,
+        permissions: None,
+    };
+    let witness = labeled(
+        b"sig",
+        labeled(
+            Sha256::digest([9; 32]).to_vec(),
+            labeled(Sha256::digest(issued.signable()).to_vec(), leaf(b"")),
+        ),
+    );
+    let mut nanos = now * NANOS_PER_MILLISECOND;
+    let mut time = Vec::new();
+    loop {
+        let byte = (nanos & 127) as u8;
+        nanos >>= 7;
+        time.push(byte | if nanos > 0 { 128 } else { 0 });
+        if nanos == 0 {
+            break;
+        }
+    }
+    let tree = fork(
+        labeled(
+            b"canister",
+            labeled(
+                key.auth.as_slice(),
+                labeled(b"certified_data", leaf(witness.digest())),
+            ),
+        ),
+        labeled(b"time", leaf(time)),
+    );
+    let signer = ic_verify_bls_signature::PrivateKey::deserialize(&[1; 32]).unwrap();
+    let signature = signer.sign(&[b"\x0dic-state-root".as_slice(), &tree.digest()].concat());
+    let certificate = Certificate {
+        tree,
+        signature: signature.serialize().to_vec(),
+        delegation: None,
+    };
+    #[derive(Serialize)]
+    struct CanisterSignature {
+        certificate: ByteBuf,
+        tree: HashTree,
+    }
+    parent.signature = [
+        vec![0xd9, 0xd9, 0xf7],
+        canonical(&CanisterSignature {
+            certificate: [vec![0xd9, 0xd9, 0xf7], canonical(&certificate)]
+                .concat()
+                .into(),
+            tree: witness,
+        }),
+    ]
+    .concat()
+    .into();
+    let mut root =
+        hex::decode("308182301d060d2b0601040182dc7c0503010201060c2b0601040182dc7c05030201036100")
+            .unwrap();
+    root.extend(signer.public_key().serialize());
+    c.config.root_key = Some(root);
+    let principal = key.principal().unwrap();
+    c.remember_passkey().unwrap();
+    let expected = canonical(c.passkey.as_ref().unwrap());
+    let slot = c.slot.clone();
+    c.lock();
+    c.select(crate::client::Slot::Idle).unwrap();
+    c.select(slot).unwrap();
+    assert!(c.login.is_none() && c.passkey.is_none());
+    assert!(c.renewable());
+    let restored = c.remembered_passkey().unwrap().unwrap();
+    assert_eq!(canonical(&restored), expected);
+    assert_eq!(
+        restored.parent.unwrap().expiration / NANOS_PER_MILLISECOND,
+        expires_at
+    );
+    let h = Shared(Mutex::new(c));
+    tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        ensure_login(&h, MIN_VALIDITY),
+    )
+    .await
+    .expect("a valid saved delegation must not wait for the network")
+    .unwrap();
+    h.with(|c| {
+        let login = c.session()?;
+        assert_eq!(login.principal, principal);
+        assert_eq!(login.ic.principal()?, principal);
+        assert_eq!(login.expires_at, expires_at);
+        assert_eq!(canonical(c.passkey.as_ref().unwrap()), expected);
+        Ok(())
+    })
+    .await
+    .unwrap();
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(20), listener.accept())
+            .await
+            .is_err()
+    );
 }
 
 #[test]

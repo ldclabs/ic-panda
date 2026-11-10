@@ -1,8 +1,55 @@
 import XCTest
+import UIKit
 @preconcurrency import DMsgCore
 @testable import dMsg
 
 final class NotificationTests: XCTestCase {
+    @MainActor
+    func testRepeatedAPNsTokenDoesNotRestartRegistration() {
+        let previous = DMsgAppDelegate.token
+        defer { DMsgAppDelegate.token = previous }
+        DMsgAppDelegate.token = nil
+        let changed = expectation(description: "Only new tokens wake registration")
+        changed.expectedFulfillmentCount = 2
+        let observer = NotificationCenter.default.addObserver(forName: .dmsgPushToken, object: nil, queue: .main) { _ in changed.fulfill() }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        let delegate = DMsgAppDelegate()
+        delegate.application(.shared, didRegisterForRemoteNotificationsWithDeviceToken: Data([1, 2]))
+        delegate.application(.shared, didRegisterForRemoteNotificationsWithDeviceToken: Data([1, 2]))
+        delegate.application(.shared, didRegisterForRemoteNotificationsWithDeviceToken: Data([3, 4]))
+        XCTAssertEqual(DMsgAppDelegate.token, "0304")
+        wait(for: [changed], timeout: 1)
+    }
+
+    @MainActor
+    func testAPNsFailureReportsAnErrorWithoutRequestingAnotherRegistration() {
+        let failed = expectation(description: "APNs failure reaches the UI")
+        let observer = NotificationCenter.default.addObserver(forName: .dmsgPushRegistrationFailed, object: nil, queue: .main) { _ in failed.fulfill() }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        DMsgAppDelegate().application(.shared, didFailToRegisterForRemoteNotificationsWithError: URLError(.notConnectedToInternet))
+        wait(for: [failed], timeout: 1)
+        let previous = DMsgAppDelegate.token
+        defer { DMsgAppDelegate.token = previous }
+        DMsgAppDelegate.token = nil
+        let push = NativePush()
+        push.registrationFailed()
+        guard case .failed = push.registration else { return XCTFail("A failed APNs request must not remain waiting") }
+        XCTAssertFalse(push.working)
+    }
+
+    @MainActor
+    func testPendingNotificationSyncKeepsTheValidAppleRegistration() {
+        let now: UInt64 = 1000
+        var subscription = NativePush.Subscription(route: "route", token: "token", expires: now + 2 * 86_400_000, revision: 7, unified: false)
+        XCTAssertTrue(subscription.current(token: "token", now: now), "Retry the notification stage without a new App Attest registration")
+        subscription.unified = true
+        XCTAssertTrue(subscription.current(token: "token", now: now))
+        XCTAssertFalse(subscription.current(token: "rotated-token", now: now))
+        XCTAssertFalse(subscription.current(token: "token", now: now + 86_400_000))
+        subscription.revision = nil
+        XCTAssertFalse(subscription.current(token: "token", now: now), "Legacy leases still need a registration revision")
+    }
+
     private func decode<T: Decodable>(_ json: String, as type: T.Type) throws -> T {
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(type, from: Data(json.utf8))

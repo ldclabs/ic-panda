@@ -1767,6 +1767,7 @@ fn prepare_attestation_thumbprint(signing_pub: &Hash) -> Result<Hash> {
 pub async fn execution_usage<H: Hold>(h: &H) -> Result<Json> {
     let bound = Unlocked::new(h).await?;
     let h = &bound;
+    h.ensure_login().await?;
     let (account, ic) = h
         .with(|c| Ok((c.account()?.clone(), c.session()?.ic.clone())))
         .await?;

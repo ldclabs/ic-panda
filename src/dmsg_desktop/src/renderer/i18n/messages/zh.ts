@@ -1896,6 +1896,7 @@ export default {
     usageOverview: '用量',
     usageOverviewHint: '此账户目前用了多少会员额度。',
     signaturesThisMonth: '本月签名',
+    executionUsageNeedsLogin: "登录后可查看本月签名用量。",
     storagePacks: '存储包',
     storagePacksHint: '付费会员的额外存储空间，按距 {time} 的剩余时间计价。',
     storagePacksPaidOnly: '存储包仅供有效的付费会员购买。',

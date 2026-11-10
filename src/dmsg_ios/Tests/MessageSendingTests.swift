@@ -4,6 +4,14 @@ import XCTest
 
 @MainActor
 final class MessageSendingTests: XCTestCase {
+    func testSendFailuresHaveSpecificMessagesAndOnlyFixedDiagnosticCodes() {
+        XCTAssertNotEqual(MessageFailure.text("NETWORK_UNAVAILABLE"), MessageFailure.text("INTEGRITY_FAILED"))
+        XCTAssertNotEqual(MessageFailure.text("REKEY_REQUIRED"), MessageFailure.text("FORBIDDEN"))
+        XCTAssertEqual(MessageFailure.diagnosticCode("NETWORK_UNAVAILABLE"), "NETWORK_UNAVAILABLE")
+        XCTAssertEqual(MessageFailure.diagnosticCode("https://private.example/message?token=secret"), "UNAVAILABLE")
+        XCTAssertEqual(MessageFailure.text("private message"), MessageFailure.text("UNKNOWN"))
+    }
+
     @MainActor private final class Gate {
         var continuation: CheckedContinuation<MessageItem, Error>?
         func wait() async throws -> MessageItem {

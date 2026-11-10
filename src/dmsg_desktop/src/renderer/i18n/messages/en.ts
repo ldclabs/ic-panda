@@ -1899,6 +1899,7 @@ const messages = {
   usageOverview: 'Usage',
   usageOverviewHint: 'What this account uses of its plan now.',
   signaturesThisMonth: 'Signatures this month',
+  executionUsageNeedsLogin: "Log in to view this month’s signature usage.",
   storagePacks: 'Storage packs',
   storagePacksHint: 'Extra storage for paid members, priced for the time left until {time}.',
   storagePacksPaidOnly: 'Storage packs are for active paid members.',

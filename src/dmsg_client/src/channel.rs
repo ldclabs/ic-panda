@@ -2067,6 +2067,7 @@ pub async fn sync<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<Chann
 /// # Errors
 /// As [`sync`]; the last verified page stays readable after a later failure.
 pub async fn sync_messages<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<ChannelSync> {
+    let started = now_ms();
     let mut reading = Reading::new(channel);
     if backfill {
         let through = h.with(|c| Ok(c.local(channel)?.latest())).await?;
@@ -2075,8 +2076,9 @@ pub async fn sync_messages<H: Hold>(h: &H, channel: &str, backfill: bool) -> Res
     }
     read(h, &mut reading).await?;
     h.with(|c| {
+        let observed = started.max(c.channel_observed(channel)?.unwrap_or(0));
         c.workspace
-            .put_private(c.keys()?, &format!("{OBSERVED}{channel}"), &now_ms())?;
+            .put_private(c.keys()?, &format!("{OBSERVED}{channel}"), &observed)?;
         Ok(ChannelSync {
             through: c.local(channel)?.message,
             received: reading.received,
@@ -2112,10 +2114,14 @@ pub async fn sync_tail<H: Hold>(h: &H, channel: &str) -> Result<ChannelSync> {
 
 async fn read_recent<H: Hold>(h: &H, channel: &str, mut reading: Reading) -> Result<ChannelSync> {
     let _timing = MessageTiming::start(MessagePhase::Recent);
+    let started = now_ms();
     read(h, &mut reading).await?;
     h.with(|c| {
+        // Completing an older read cannot cover a refresh requested after
+        // that read began; its response may predate the newly arrived message.
+        let observed = started.max(c.channel_observed(channel)?.unwrap_or(0));
         c.workspace
-            .put_private(c.keys()?, &format!("{OBSERVED}{channel}"), &now_ms())?;
+            .put_private(c.keys()?, &format!("{OBSERVED}{channel}"), &observed)?;
         Ok(ChannelSync {
             through: c.local(channel)?.latest(),
             received: reading.received,
@@ -5097,7 +5103,8 @@ impl Client {
         Ok((reference, message.account))
     }
 
-    /// Last complete message refresh, used to coalesce overlapping readers.
+    /// Start time of the latest successful message refresh. Only requests
+    /// already pending then may be coalesced with that read.
     pub fn channel_observed(&self, channel: &str) -> Result<Option<u64>> {
         base(channel)?;
         self.workspace

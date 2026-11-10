@@ -75,6 +75,7 @@ final class MessageSending {
                 let code: String
                 if let failure = error as? MobileError, case .Failure(let value) = failure { code = value }
                 else { code = "UNAVAILABLE" }
+                MessageTiming.failure(.send, code: code)
                 self.replace(channel: channel, item: item, attempted: true, error: code)
             }
             finished(failure)
@@ -97,5 +98,29 @@ final class MessageSending {
         if let index = rows.firstIndex(where: { $0.id == item.id }) { rows[index] = next }
         else { rows.append(next) }
         pending[channel] = rows
+    }
+}
+
+enum MessageFailure {
+    static let codes: Set<String> = ["AUTH_REQUIRED", "LOCKED", "CANCELLED", "FORBIDDEN", "DEVICE_NOT_APPROVED",
+        "NETWORK_UNAVAILABLE", "UNAVAILABLE", "SYNC_BUSY", "EXECUTION_UNKNOWN", "INTEGRITY_FAILED",
+        "LOCAL_STORAGE_UNAVAILABLE", "REKEY_REQUIRED", "RECOVERY_INCOMPLETE", "POLICY_STALE", "VERSION_CONFLICT",
+        "QUOTA_EXCEEDED", "EXPIRED", "NOT_FOUND", "IDEMPOTENCY_CONFLICT", "INVALID_INPUT"]
+
+    static func diagnosticCode(_ code: String) -> String { codes.contains(code) ? code : "UNAVAILABLE" }
+
+    static func text(_ code: String) -> String {
+        switch code {
+        case "NETWORK_UNAVAILABLE": String(localized: "Connection unavailable. Your saved content stays on this device.")
+        case "UNAVAILABLE": String(localized: "This operation is temporarily unavailable. Your saved data is kept.")
+        case "SYNC_BUSY": String(localized: "Sync is waiting for the server.")
+        case "EXECUTION_UNKNOWN": String(localized: "Waiting for confirmation")
+        case "FORBIDDEN", "CANCELLED": String(localized: "The operation was cancelled or is not permitted.")
+        case "REKEY_REQUIRED": String(localized: "Publishing is paused while conversation keys are updated.")
+        case "POLICY_STALE", "VERSION_CONFLICT", "RECOVERY_INCOMPLETE": String(localized: "Sync this conversation before sending.")
+        case "INTEGRITY_FAILED": String(localized: "A record or device key could not be verified. Your workspace has not been erased.")
+        case "LOCAL_STORAGE_UNAVAILABLE": String(localized: "Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.")
+        default: String(localized: "The operation could not be completed. Please try again.")
+        }
     }
 }

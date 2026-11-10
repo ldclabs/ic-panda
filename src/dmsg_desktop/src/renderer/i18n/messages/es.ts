@@ -1895,6 +1895,7 @@ export default {
     usageOverview: 'Uso',
     usageOverviewHint: 'Lo que esta cuenta usa ahora de su plan.',
     signaturesThisMonth: 'Firmas este mes',
+    executionUsageNeedsLogin: "Inicia sesión para ver el uso de firmas de este mes.",
     storagePacks: 'Paquetes de almacenamiento',
     storagePacksHint: 'Almacenamiento extra para miembros de pago, con precio según el tiempo que queda hasta el {time}.',
     storagePacksPaidOnly: 'Los paquetes de almacenamiento son para miembros de pago activos.',

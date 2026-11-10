@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Kullanım",
     "usageOverviewHint": "Bu hesabın şu anda planında kullandığı şey.",
     "signaturesThisMonth": "Bu ay imzalar",
+    executionUsageNeedsLogin: "Bu ayki imza kullanımını görmek için giriş yapın.",
     "storagePacks": "Depolama paketleri",
     "storagePacksHint": "Ücretli üyeler için ekstra depolama alanı, {time} tarihine kadar kalan süreye göre fiyatlandırılır.",
     "storagePacksPaidOnly": "Depolama paketleri aktif ücretli üyeler içindir.",

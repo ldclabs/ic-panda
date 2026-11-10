@@ -1895,6 +1895,7 @@ export default {
     usageOverview: 'الاستخدام',
     usageOverviewHint: 'ما يستخدمه هذا الحساب من خطته الآن.',
     signaturesThisMonth: 'التوقيعات هذا الشهر',
+    executionUsageNeedsLogin: "سجّل الدخول لعرض استخدام التوقيعات لهذا الشهر.",
     storagePacks: 'حزم التخزين',
     storagePacksHint: 'تخزين إضافي للأعضاء المدفوعين، يُسعَّر حسب الوقت المتبقي حتى {time}.',
     storagePacksPaidOnly: 'حزم التخزين متاحة للأعضاء المدفوعين النشطين فقط.',

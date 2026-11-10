@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Cách sử dụng",
     "usageOverviewHint": "Những gì tài khoản này sử dụng kế hoạch của nó bây giờ.",
     "signaturesThisMonth": "Chữ ký tháng này",
+    executionUsageNeedsLogin: "Đăng nhập để xem mức sử dụng chữ ký trong tháng này.",
     "storagePacks": "Gói lưu trữ",
     "storagePacksHint": "Dung lượng bổ sung dành cho thành viên trả phí, được tính giá cho thời gian còn lại cho đến {time}.",
     "storagePacksPaidOnly": "Gói lưu trữ dành cho các thành viên trả phí đang hoạt động.",

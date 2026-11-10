@@ -208,6 +208,10 @@ final class SessionModel {
     var automaticSyncEnabled: Bool { session?.account.map { !manualSyncAccounts.contains($0) } ?? false }
 
     #if DEBUG
+    func receiveChannelHintFixture(_ channel: String) {
+        receiveHint(kind: "channel", resource: channel, news: false)
+    }
+
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
         contentSync = .fixture(initialized: true)
         session = state; vault = items; fixtureVaultItems = items

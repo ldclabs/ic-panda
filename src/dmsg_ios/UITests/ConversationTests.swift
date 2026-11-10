@@ -30,6 +30,15 @@ final class ConversationTests: XCTestCase {
         shot.name = "Channel retry · dark Chinese"; shot.lifetime = .keepAlways; add(shot)
     }
 
+    func testHintDuringRefreshFetchesTheNewMessageBeforeThePollingInterval() {
+        let app = open(["--ui-channel-hint-during-refresh", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"])
+        XCTAssertTrue(app.staticTexts["测试消息6"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["测试消息5"].exists)
+        XCTAssertFalse(app.buttons["conversation.retry"].exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "New message hinted during an older refresh"; shot.lifetime = .keepAlways; add(shot)
+    }
+
     func testEmptyChannelShowsAnExplicitState() {
         let app = open(["--ui-channel-empty"])
         XCTAssertTrue(app.descendants(matching: .any)["conversation.empty"].waitForExistence(timeout: 5))
@@ -117,5 +126,24 @@ final class ConversationTests: XCTestCase {
         XCTAssertTrue(app.buttons["message.send"].isEnabled)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Unconfirmed message · inline · draft preserved"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    func testFailedSendExplainsTheFailureAndRetriesTheSameMessage() {
+        let app = open(["--ui-channel-send", "--ui-channel-send-retry", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+        let draft = composer(app)
+        draft.tap(); draft.typeText("Retry this message once")
+        app.buttons["message.send"].tap()
+        let retry = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "message.retry.")).firstMatch
+        XCTAssertTrue(retry.waitForExistence(timeout: 20))
+        let id = String(retry.identifier.dropFirst("message.retry.".count))
+        XCTAssertTrue(app.staticTexts["Connection unavailable. Your saved content stays on this device."].exists)
+        let failed = XCTAttachment(screenshot: app.screenshot())
+        failed.name = "Message send failure with an actionable reason"; failed.lifetime = .keepAlways; add(failed)
+        retry.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["message.row.1"].waitForExistence(timeout: 20))
+        XCTAssertFalse(app.descendants(matching: .any)["message.pending.\(id)"].exists)
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Retry this message once")).count, 1)
+        let sent = XCTAttachment(screenshot: app.screenshot())
+        sent.name = "Original message retry confirmed without an incoming message"; sent.lifetime = .keepAlways; add(sent)
     }
 }

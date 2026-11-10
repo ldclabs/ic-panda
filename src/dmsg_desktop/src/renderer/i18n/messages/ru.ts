@@ -1895,6 +1895,7 @@ export default {
     usageOverview: 'Использование',
     usageOverviewHint: 'Сколько из тарифа этот аккаунт использует сейчас.',
     signaturesThisMonth: 'Подписей в этом месяце',
+    executionUsageNeedsLogin: "Войдите, чтобы посмотреть количество подписей за этот месяц.",
     storagePacks: 'Пакеты хранилища',
     storagePacksHint: 'Дополнительное хранилище для платных участников; цена — за время, оставшееся до {time}.',
     storagePacksPaidOnly: 'Пакеты хранилища доступны только при действующем платном тарифе.',

@@ -2752,3 +2752,94 @@ the full `verify.sh` suite were not rerun; this patch changes only Swift and doc
 No production deployment, version change or App Store upload was performed.
 
 Implementation and validation: Codex (OpenAI).
+## Notification registration recovery (2026-11-10)
+
+On local `265e85a4` plus the working-tree fixes, duplicate APNs token callbacks
+no longer restart registration. Native APNs failures end the waiting state.
+Notification registration retries reuse an unexpired Apple lease, and a new
+Apple lease clears the previous notification-registration acknowledgement.
+Settings show one current status with progress inside the relevant action;
+remote preference acknowledgements update the page without replacing dirty edits.
+
+- Rebuilt both ARM64 Rust slices and Swift bindings; native artifact/source
+  fingerprints verified. The simulator build and 9 notification unit tests passed.
+- On iPhone 17e / iOS 27.0, 8 existing settings/setup UI flows passed, covering
+  saving, leaving during a save, second-account consent, and four languages.
+  Three new registration-retry UI flows passed after correcting their fixture
+  and spinner assertions. Chinese dark, Arabic RTL and German screenshots cover
+  failure, progress inside the action and completion; outputs are retained in
+  `.build/notification-registration-20261110/`.
+- The broader class still has 2 failures in unchanged account-navigation tests:
+  `testBrowserRequestDoesNotOfferAccountSwitch` and
+  `testOtherAccountReminderKeepsCurrentWorkspace`, both at the full-account-ID
+  assertion after opening Account. The full class is not reported as passing.
+  An intermediate retry run also reported a Widget process crash; the final
+  focused retry run completed without that failure.
+- All 23 localization resources passed validation. Notification-copy parity
+  still fails because `dmsg.noticeVerifyHint` is absent from the existing native
+  catalogs and fallback; the omission was also confirmed in the original HEAD.
+- 10 Passkey client tests passed, including membership usage renewal and a new
+  check that the stored parent delegation and expiry survive a workspace switch.
+
+These are local/fixture checks. Live App Attest, APNs registration and delivery on
+a physical device, and production account switching were not tested. No archive,
+installation on a user's device, upload or deployment was performed.
+
+## Message refresh races and retry feedback (2026-11-10)
+
+A hint arriving during the visible conversation's refresh was discarded. The
+view now queues one following read. The shared client's successful-read marker
+also used its completion time, allowing an older response to suppress a refresh
+requested while that response was pending. It now records the read's start and
+retains the newest successfully observed start across concurrent completions.
+
+Send failures now distinguish network, server-wait, permission, key-update and
+integrity failures. Native diagnostic records contain fixed operation/error codes
+only. The original message ID and unknown-result reconciliation are unchanged;
+the send path does not wait for unrelated incoming messages.
+
+- The new read-marker regression failed before the fix. All 33 selected channel
+  and hint-channel Rust tests passed afterward, including durable send/ACK checks.
+- Both native slices and Swift bindings rebuilt; source fingerprints verified.
+  Six MessageSendingTests and five selected ConversationTests passed on iPhone
+  17e / iOS 27.0 across the focused runs. They cover a new hint during an older
+  read, failed refresh retry, local content during slow sync, a failed send's
+  specific reason, retry without an incoming message, and preservation of the
+  next draft after an unconfirmed send.
+- Conversation screenshots are retained in `.build/messaging-20261110/`.
+  This was targeted coverage, not the complete iOS suite; the separate
+  notification-validation limitations above still apply.
+
+The user confirmed that their existing physical-device build 1.1.1 (22) received
+the missing message and that its original pending send then succeeded on retry.
+That happened before this patch was installed. App-filtered live diagnostics did
+not capture the original failure code, so its precise initial cause remains
+unconfirmed. No physical-device installation, archive, upload or deployment was
+performed during this change.
+
+## Membership authentication after switching accounts (2026-11-10)
+
+iOS `SubscriptionView.loadUsage` calls `MobileEngine.account_usage`, which invokes
+the same `attest::execution_usage` as desktop. The missing login restoration
+therefore affected both clients. iOS preserved the unavailable lane and showed
+its partial-usage warning rather than displaying the raw `AUTH_REQUIRED` code.
+The shared entry now restores or renews the identity before reading the ledger.
+
+- All 10 Passkey client tests passed. The workspace-switch regression now uses a
+  locally signed, cryptographically verified canister delegation with six hours
+  remaining. After clearing memory and leaving/reopening the workspace, the
+  identity, parent delegation and expiry are restored with no network request.
+- Both native slices and Swift bindings rebuilt, and their source fingerprint
+  passed verification. Rust formatting and diff checks passed.
+- Three membership UI regressions passed on iPhone 17e / iOS 27.0: unlocking
+  back into Account without changing tabs, the Chinese Pro membership page,
+  and the dark Arabic Max membership page. These fixtures verify presentation
+  and lifecycle behavior; the signed-delegation test above verifies restoration.
+- The desktop checks from this change passed: type checking, 192 tests, build and
+  membership-auth Electron smoke coverage. Its eight reviewed screenshots cover
+  Chinese light/dark, narrow French and narrow Arabic RTL. The smoke used cached
+  Electron 45.2.1 because the configured 45.2.3 download did not complete.
+
+These checks do not prove live iOS Secure Enclave/Passkey account switching or
+production membership queries. No physical-device install or deployment was run.
+The earlier notification and message validation limits still apply.

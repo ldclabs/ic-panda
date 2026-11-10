@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "使用法",
     "usageOverviewHint": "このアカウントが現在計画で使用しているもの。",
     "signaturesThisMonth": "今月の署名",
+    executionUsageNeedsLogin: "ログインすると今月の署名使用量を確認できます。",
     "storagePacks": "ストレージパック",
     "storagePacksHint": "有料メンバー向けの追加ストレージ。{time} までの残り期間に対して価格が設定されます。",
     "storagePacksPaidOnly": "ストレージ パックはアクティブな有料メンバー向けです。",

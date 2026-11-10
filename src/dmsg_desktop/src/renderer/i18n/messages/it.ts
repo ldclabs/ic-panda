@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Utilizzo",
     "usageOverviewHint": "Ciò che questo account utilizza adesso del suo piano.",
     "signaturesThisMonth": "Firme questo mese",
+    executionUsageNeedsLogin: "Accedi per vedere l’utilizzo delle firme di questo mese.",
     "storagePacks": "Confezioni di stoccaggio",
     "storagePacksHint": "Spazio di archiviazione extra per i membri paganti, al prezzo del tempo rimasto fino a {time}.",
     "storagePacksPaidOnly": "I pacchetti di archiviazione sono destinati ai membri paganti attivi.",

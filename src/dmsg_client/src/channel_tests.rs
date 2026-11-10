@@ -1588,6 +1588,72 @@ fn message_end_is_terminal_and_an_incomplete_page_must_advance() {
 }
 
 #[tokio::test]
+async fn a_finished_read_does_not_cover_a_refresh_requested_while_it_was_in_flight() {
+    use std::sync::{
+        Mutex,
+        atomic::{AtomicU64, Ordering},
+    };
+
+    struct Relay {
+        client: Mutex<Client>,
+        head: Json,
+        requested: AtomicU64,
+    }
+
+    impl Hold for Relay {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+
+        async fn trust(&self) -> Result<Trust> {
+            Ok(Trust::new(vec![], String::new(), vec![]))
+        }
+
+        async fn send(
+            &self,
+            mut sign: impl FnMut(&mut Client) -> Result<Prepared> + Send,
+        ) -> Result<Json> {
+            self.with(|c| sign(c)).await?;
+            // The returned head is already fixed when another notification
+            // asks to refresh. Completing this older read cannot satisfy it.
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            self.requested.store(now_ms(), Ordering::SeqCst);
+            Ok(self.head.clone())
+        }
+    }
+
+    for tail in [false, true] {
+        let dir = crate::testing::TempDir::new();
+        let mut client = crate::testing::unlocked(&dir.0, false, None);
+        let (channel, ledger) = active_channel(&mut client);
+        let mut head = json(&ledger);
+        head["capacity"] = json!({"messages":{"used":0}});
+        let relay = Relay {
+            client: Mutex::new(client),
+            head,
+            requested: AtomicU64::new(0),
+        };
+        if tail {
+            sync_tail(&relay, &channel).await.unwrap();
+        } else {
+            sync_recent(&relay, &channel).await.unwrap();
+        }
+        let observed = relay
+            .with(|c| c.channel_observed(&channel))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            observed < relay.requested.load(Ordering::SeqCst),
+            "a later refresh must still read the head"
+        );
+    }
+}
+
+#[tokio::test]
 async fn a_large_cold_channel_reads_the_tail_then_one_history_page_without_claiming_delivery() {
     use std::collections::VecDeque;
     use std::sync::Mutex;

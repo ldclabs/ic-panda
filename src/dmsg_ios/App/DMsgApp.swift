@@ -22,6 +22,7 @@ struct DMsgApp: App {
                     if model.unlocked { await model.push.refresh(model) }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .dmsgPushToken)) { _ in Task { await model.push.refresh(model) } }
+                .onReceive(NotificationCenter.default.publisher(for: .dmsgPushRegistrationFailed)) { _ in model.push.registrationFailed() }
                 .onReceive(NotificationCenter.default.publisher(for: .dmsgPushOpen)) { notification in
                     if let route = notification.object as? String { Task { await model.openPushRoute(route) } }
                 }

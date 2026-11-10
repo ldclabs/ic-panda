@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Nutzung",
     "usageOverviewHint": "Was dieses Konto jetzt von seinem Plan nutzt.",
     "signaturesThisMonth": "Unterschriften diesen Monat",
+    executionUsageNeedsLogin: "Melde dich an, um deine Signaturnutzung für diesen Monat zu sehen.",
     "storagePacks": "Aufbewahrungspakete",
     "storagePacksHint": "Zusätzlicher Speicherplatz für zahlende Mitglieder, Preis für die verbleibende Zeit bis {time}.",
     "storagePacksPaidOnly": "Speicherpakete sind für aktive zahlende Mitglieder.",

@@ -1886,6 +1886,7 @@ export default {
     "usageOverview": "Penggunaan",
     "usageOverviewHint": "Apa yang digunakan akun ini dalam rencananya sekarang.",
     "signaturesThisMonth": "Tanda tangan bulan ini",
+    executionUsageNeedsLogin: "Masuk untuk melihat penggunaan tanda tangan bulan ini.",
     "storagePacks": "Paket penyimpanan",
     "storagePacksHint": "Penyimpanan ekstra untuk anggota berbayar, dengan harga untuk sisa waktu hingga {time}.",
     "storagePacksPaidOnly": "Paket penyimpanan ditujukan untuk anggota berbayar aktif.",
