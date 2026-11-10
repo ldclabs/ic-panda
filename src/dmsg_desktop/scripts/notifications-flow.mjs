@@ -1,6 +1,63 @@
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
 
+export async function reminderReadFlow({ app, main, shots, methods, emit, waitFor, calls, model, account }) {
+  const native = await app.browserWindow(main)
+  const route = async path => { await main.evaluate(path => { location.hash = path }, path) }
+  const other = methods['session/accounts']().find(item => item.account !== account).account
+  model.settings.set(other, { ...structuredClone(model.settings.get(account)), enabled: true })
+  model.items.clear()
+  const network = model.row({ kind: 'service', id: 'network:1' }, { actionable: true })
+  const registration = model.row({ kind: 'service', id: 'registration:1' }, { actionable: true })
+  for (let i = 0; i < 120; i++) model.row({ kind: 'channel', id: i.toString(16).padStart(64, '0') })
+  model.row({ kind: 'channel', id: 'f'.repeat(64) }, {}, other)
+  emit('notifications/changed')
+  await route('/reminders')
+  await main.getByTestId('reminder-item').first().waitFor()
+  assert.equal(await main.getByTestId('reminder-item').count(), 2)
+  const actions = calls.filter(call => ['approval/respond', 'inbox/mark', 'channel/seen', 'plan/notice_ack'].includes(call.method)).length
+  const original = methods['notifications/mark_read']
+  methods['notifications/mark_read'] = () => { throw { code: 'UNAVAILABLE', message: 'Temporary reminder save failure' } }
+  await main.getByTestId('reminder-read').first().click()
+  await main.getByText('This service is temporarily unavailable. Please try again later.', { exact: true }).waitFor()
+  assert.equal(network.read_version, '0')
+  methods['notifications/mark_read'] = original
+  await main.getByTestId('reminder-read').first().focus()
+  await main.keyboard.press('Enter')
+  await waitFor(() => network.read_version === '1')
+  await main.getByTestId('reminder-read-state').waitFor()
+  await main.getByTestId('reminder-open').first().click()
+  await main.waitForFunction(() => location.hash.startsWith('#/settings/session'))
+  await route('/reminders')
+  await main.getByTestId('reminder-open').nth(1).click()
+  await main.waitForFunction(() => location.hash.startsWith('#/settings/notifications'))
+  assert.equal(registration.read_version, '1')
+  await route('/reminders')
+  for (const [language, appearance, width] of [['zh', 'light', 1180], ['zh', 'dark', 760], ['de', 'light', 760], ['ar', 'dark', 760]]) {
+    for (const item of model.items.values()) item.read_version = '0'
+    emit('notifications/changed')
+    await native.evaluate((window, width) => window.setContentSize(width, 760), width)
+    await main.evaluate(async ([language, appearance]) => { await window.dmsg.setLocale(language); await window.dmsg.setAppearance(appearance) }, [language, appearance])
+    await main.waitForFunction(([language, appearance]) => document.documentElement.lang === language && matchMedia('(prefers-color-scheme: dark)').matches === (appearance === 'dark'), [language === 'zh' ? 'zh-Hans' : language, appearance])
+    await main.evaluate(() => document.fonts.ready.then(() => undefined))
+    await main.getByTestId('reminder-read').first().waitFor()
+    assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+    await main.screenshot({ path: join(shots, `reminders-read-${language}-${appearance}-${width}.png`), animations: 'disabled' })
+    await main.getByTestId('reminders-open').click()
+    await main.getByTestId('reminder-popover-read').first().click()
+    await waitFor(() => network.read_version === '1')
+    await main.getByTestId('reminders-popover-read-all').focus()
+    await main.keyboard.press('Enter')
+    await waitFor(() => [...model.items.values()].every(item => item.read_version === item.version))
+    await waitFor(() => app.evaluate(({ app }) => process.platform !== 'darwin' || app.dock.getBadge() === ''))
+    await main.keyboard.press('Escape')
+    await waitFor(async () => await main.getByTestId('reminders-read-all').isDisabled())
+    assert.equal(await main.getByTestId('reminder-item').count(), 2)
+    await main.screenshot({ path: join(shots, `reminders-cleared-${language}-${appearance}-${width}.png`), animations: 'disabled' })
+  }
+  assert.equal(calls.filter(call => ['approval/respond', 'inbox/mark', 'channel/seen', 'plan/notice_ack'].includes(call.method)).length, actions)
+}
+
 /** Exercise the real badge APIs with isolated daemon projections, including unknown counts. */
 export async function notificationBadgeFlow({ app, methods, emit, waitFor }) {
   const settings = methods['notifications/settings'], status = methods['notifications/status']

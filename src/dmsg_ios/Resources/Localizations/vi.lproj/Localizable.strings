@@ -3114,6 +3114,10 @@
 	<string>Bật thông báo cho một tài khoản khác?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Do hệ điều hành quản lý</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Đánh dấu tất cả đã đọc</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Đánh dấu lời nhắc của mọi tài khoản trên thiết bị này là đã đọc. Các việc đang chờ và xác nhận đã đọc tin nhắn không thay đổi.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Gộp cảnh báo trùng giữa các thiết bị</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Cài đặt có hiệu lực ngay trên thiết bị này. Cảnh báo từ xa có thể dùng cài đặt cũ cho đến khi cập nhật được xác nhận.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Giờ yên lặng hằng ngày</string>
+	<key>dmsg.noticeRead</key>
+	<string>Đã đọc</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Xem nhắc nhở không hoàn tất thao tác hoặc đánh dấu tin nhắn là đã đọc.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Đến</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Mở dMsg để kiểm tra hoạt động mới nhất.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Trạng thái tin nhắn cần được xác minh.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Múi giờ</string>
 	<key>made</key>

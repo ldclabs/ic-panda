@@ -3114,6 +3114,10 @@
 	<string>অন্য একটি অ্যাকাউন্টের জন্য বিজ্ঞপ্তি চালু করবেন?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>অপারেটিং সিস্টেম পরিচালনা করে</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>সব পঠিত হিসেবে চিহ্নিত করুন</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>এই ডিভাইসের সব অ্যাকাউন্টের রিমাইন্ডার পঠিত হিসেবে চিহ্নিত করে। অপেক্ষমাণ কাজ এবং বার্তা পড়ার রসিদ অপরিবর্তিত থাকে।</string>
 	<key>dmsg.noticeMerge</key>
 	<string>একাধিক ডিভাইসের একই সতর্কতা একত্র করুন</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>আপনার সেটিংস এখানে সঙ্গে সঙ্গে কার্যকর হয়। আপডেট নিশ্চিত না হওয়া পর্যন্ত দূরবর্তী সতর্কতায় পুরোনো সেটিংস ব্যবহার হতে পারে।</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>প্রতিদিনের নীরব সময়</string>
+	<key>dmsg.noticeRead</key>
+	<string>পঠিত</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>রিমাইন্ডার দেখলে কাজ সম্পন্ন হয় না বা বার্তা পঠিত হিসেবে চিহ্নিত হয় না।</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>শেষ</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>সাম্প্রতিক কার্যকলাপ দেখতে dMsg খুলুন।</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>বার্তার অবস্থা যাচাই করা প্রয়োজন।</string>
 	<key>dmsg.noticeZone</key>
 	<string>সময় অঞ্চল</string>
 	<key>made</key>

@@ -192,7 +192,7 @@ final class NativePush {
                 subscription.revision = nil; subscription.unified = nil
                 subscriptions[account] = subscription; try save()
             } else if let revision = subscription.revision {
-                if subscription.unified != true || retryRegistration {
+                if subscription.unified != true || retryRegistration || current.registrationRequired == true {
                     let result = try await engine.notificationRegisterApple(installation: files.installation, revision: revision, language: Bundle.main.preferredLocalizations.first ?? "en")
                     guard epoch == model.epoch else { return }
                     subscription.unified = result.json != "null"
@@ -212,8 +212,10 @@ final class NativePush {
 
     #if DEBUG
     private func refreshFixture(_ model: SessionModel, retryRegistration: Bool) async {
-        guard ProcessInfo.processInfo.arguments.contains("--ui-push-retry") else { return }
+        let service = ProcessInfo.processInfo.arguments.contains("--ui-reminder-services")
+        guard service || ProcessInfo.processInfo.arguments.contains("--ui-push-retry") else { return }
         guard !working else { return }
+        if service && !retryRegistration { registration = .enabled; return }
         if !retryRegistration {
             if registration == .idle {
                 registration = .failed(Self.retryMessage)
@@ -230,6 +232,7 @@ final class NativePush {
         guard !Task.isCancelled else { return }
         if var value = model.notifications.preferences {
             value.globalPendingSync = false
+            value.registrationRequired = false
             let revision = value.account?.revision ?? 0
             value.account?.remoteRevision = revision
             model.notifications.saveFixture(value)

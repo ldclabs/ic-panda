@@ -22,6 +22,7 @@ export interface NoticeItem {
   updated_at: number
   deadline: number | null
   observed: string
+  read_version?: string
   notified: string
   stage: number
   snoozed_until: number | null
@@ -139,7 +140,8 @@ export function noticeRoute(target: NoticeTarget): string {
     case 'agent_mail': return `/agents/mail/${encodeURIComponent(target.id)}`
     case 'wallet': return `/wallet/${target.id.wallet}/${target.id.proposal}`
     case 'plan': return '/plan'
-    case 'task': case 'service': return '/settings/session'
+    case 'task': return '/settings/session'
+    case 'service': return target.id.startsWith('registration:') ? '/settings/notifications' : '/settings/session'
     case 'summary': return `/reminders?scope=${['message', 'service'].includes(target.id) ? 'recent' : 'open'}`
   }
 }

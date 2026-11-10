@@ -4,6 +4,18 @@ import UIKit
 @testable import dMsg
 
 final class NotificationTests: XCTestCase {
+    func testServiceRemindersDescribeTheIssueAndKeepAnIndependentReadState() throws {
+        let network = try decode(#"{"id":"network","account":"a","target":{"kind":"service","id":"network:1"},"version":"9","open":true,"actionable":true,"first_at":1,"updated_at":1,"observed":"9","stage":1}"#, as: ReminderItem.self)
+        XCTAssertTrue(network.isUnread, "Visibility is separate from explicit acknowledgement")
+        var read = network; read.readVersion = "9"
+        XCTAssertFalse(read.isUnread)
+        XCTAssertTrue(read.open && read.actionable)
+        read.readVersion = "8"; XCTAssertTrue(read.isUnread)
+        let registration = try decode(#"{"id":"registration","account":"a","target":{"kind":"service","id":"registration:1"},"version":"1","open":true,"actionable":true,"first_at":1,"updated_at":1,"observed":"0","stage":1}"#, as: ReminderItem.self)
+        XCTAssertNotEqual(network.title, registration.title)
+        XCTAssertNotEqual(network.body, registration.body)
+    }
+
     @MainActor
     func testRepeatedAPNsTokenDoesNotRestartRegistration() {
         let previous = DMsgAppDelegate.token

@@ -397,7 +397,7 @@ async function pickSave(options: Electron.SaveDialogOptions): Promise<string | n
 }
 
 handle('dmsg:call', 'any', (event, method: string, params: unknown) => {
-  if (['notifications/settings_set', 'notifications/snooze', 'notifications/clear_recent'].includes(method)) trust(event, 'main')
+  if (['notifications/settings_set', 'notifications/snooze', 'notifications/clear_recent', 'notifications/mark_read', 'notifications/mark_all_read'].includes(method)) trust(event, 'main')
   if (method === 'notifications/settings_set') {
     const zone = (params as { settings?: { quiet_hours?: { timezone?: unknown } } })?.settings?.quiet_hours?.timezone
     if (zone !== undefined && (typeof zone !== 'string' || !validTimeZone(zone))) throw new DaemonError('INVALID_INPUT', 'Time zone')

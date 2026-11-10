@@ -3114,6 +3114,10 @@
 	<string>Başka bir hesap için bildirimler açılsın mı?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>İşletim sistemi tarafından yönetiliyor</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Tümünü okundu işaretle</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Bu cihazdaki tüm hesapların hatırlatıcılarını okundu olarak işaretler. Bekleyen işlemler ve mesaj okundu bilgileri değişmez.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Cihazlar arasındaki yinelenen uyarıları birleştir</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Ayarlarınız burada hemen uygulanır. Güncelleme doğrulanana kadar uzak uyarılar önceki ayarları kullanabilir.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Günlük sessiz saatler</string>
+	<key>dmsg.noticeRead</key>
+	<string>Okundu</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Hatırlatıcıları görüntülemek işlemleri tamamlamaz veya mesajları okundu olarak işaretlemez.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Bitiş</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Son etkinlikleri kontrol etmek için dMsg’i açın.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Mesaj durumunun doğrulanması gerekiyor.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Saat dilimi</string>
 	<key>made</key>

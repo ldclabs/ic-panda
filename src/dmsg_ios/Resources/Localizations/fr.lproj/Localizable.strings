@@ -3114,6 +3114,10 @@
 	<string>Activer les notifications pour un autre compte ?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Géré par le système d’exploitation</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Tout marquer comme lu</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Marque comme lus les rappels de tous les comptes sur cet appareil. Les actions en attente et les accusés de lecture des messages restent inchangés.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Regrouper les alertes en double entre appareils</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Vos réglages s’appliquent ici immédiatement. Les alertes distantes peuvent utiliser les anciens réglages jusqu’à confirmation.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Plage silencieuse quotidienne</string>
+	<key>dmsg.noticeRead</key>
+	<string>Lu</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Consulter les rappels ne termine aucune action et ne marque aucun message comme lu.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>À</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Ouvrez dMsg pour consulter les dernières activités.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>L’état des messages doit être vérifié.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Fuseau horaire</string>
 	<key>made</key>

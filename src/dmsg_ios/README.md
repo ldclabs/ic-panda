@@ -269,6 +269,13 @@ account switcher shows each local account’s actionable plus unread count, with
 bell and a visual cap of 99+; zero counts stay hidden. Counts follow the shared
 notification status, independently of the system badge preference. The
 old per-account push toggle is imported once; core preferences then own it.
+The reminder list offers an explicit read action per row and one action for all
+local accounts, including unloaded pages. Opening a row also marks that reminder
+version read. These markers persist locally and clear reminder counters and
+local presentations, while unfinished work stays in Needs action and business
+message read receipts remain unchanged. Newer versions become unread again.
+Network service reminders open Account synchronization; receiver-registration
+issues open Notifications with a retry action even if the Apple lease is cached.
 Fixed notification copy and APNs localization keys follow all 23 desktop catalogs;
 `node scripts/ios/sync-notifications.mjs --check` checks their parity.
 

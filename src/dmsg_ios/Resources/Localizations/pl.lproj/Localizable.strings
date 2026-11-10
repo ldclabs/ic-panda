@@ -3114,6 +3114,10 @@
 	<string>Włączyć powiadomienia dla innego konta?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Zarządzane przez system operacyjny</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Oznacz wszystkie jako przeczytane</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Oznacza przypomnienia wszystkich kont na tym urządzeniu jako przeczytane. Oczekujące działania i potwierdzenia odczytu wiadomości pozostają bez zmian.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Łącz powtarzające się alerty na różnych urządzeniach</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Ustawienia działają tutaj od razu. Alerty zdalne mogą korzystać z poprzednich ustawień do czasu potwierdzenia aktualizacji.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Codzienne godziny ciszy</string>
+	<key>dmsg.noticeRead</key>
+	<string>Przeczytane</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Przeglądanie przypomnień nie kończy działań ani nie oznacza wiadomości jako przeczytanych.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Do</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Otwórz dMsg, aby sprawdzić ostatnią aktywność.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Stan wiadomości wymaga weryfikacji.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Strefa czasowa</string>
 	<key>made</key>

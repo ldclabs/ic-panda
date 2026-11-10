@@ -1,6 +1,44 @@
 import XCTest
 
 @MainActor final class NotificationUITests: XCTestCase {
+    func testReadRemindersChineseDark() { readReminders(language: "zh-Hans", locale: "zh_CN", dark: true) }
+    func testReadRemindersArabic() { readReminders(language: "ar", locale: "ar_SA", dark: false) }
+    func testReadRemindersGerman() { readReminders(language: "de", locale: "de_DE", dark: false) }
+
+    private func readReminders(language: String, locale: String, dark: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-reminder-services", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+        if dark { app.launchArguments.append("--ui-dark") }
+        app.launch(); app.openActivity("reminders.open")
+        let all = app.buttons["reminders.read-all"]
+        XCTAssertTrue(all.waitForExistence(timeout: 5))
+        XCTAssertEqual(all.value as? String, "3")
+        XCTAssertEqual(app.buttons.matching(identifier: "reminders.item").count, 2)
+        capture(app, "Service reminders before reading · \(language)")
+        app.buttons["reminders.read.network"].tap()
+        XCTAssertFalse(app.buttons["reminders.read.network"].exists)
+        XCTAssertEqual(all.value as? String, "2")
+        // A read reminder remains actionable; its destination is synchronization.
+        app.buttons.matching(identifier: "reminders.item").element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["account.sync"].waitForExistence(timeout: 5))
+        capture(app, "Network reminder opens synchronization · \(language)")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(all.waitForExistence(timeout: 5))
+        app.buttons.matching(identifier: "reminders.item").element(boundBy: 1).tap()
+        let registration = app.buttons["notifications.registration"]
+        for _ in 0..<8 where !registration.isHittable { app.swipeUp() }
+        XCTAssertTrue(registration.waitForExistence(timeout: 5), "An invalid receiver stays retryable despite a cached successful Apple registration")
+        capture(app, "Registration reminder offers retry · \(language)")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(all.waitForExistence(timeout: 5)); XCTAssertEqual(all.value as? String, "1")
+        all.tap()
+        XCTAssertEqual(all.value as? String, "0", "Clear also includes another local account")
+        XCTAssertFalse(all.isEnabled)
+        XCTAssertEqual(app.buttons.matching(identifier: "reminders.item").count, 2, "Read is not business completion")
+        capture(app, "All reminders marked read · \(language)")
+        app.terminate()
+    }
+
     func testReminderSettingsEnglish() { check(language: "en", locale: "en_US", dark: false) }
     func testReminderSettingsDarkChinese() { check(language: "zh-Hans", locale: "zh_CN", dark: true) }
     func testReminderSettingsArabicRTL() { check(language: "ar", locale: "ar_SA", dark: false) }

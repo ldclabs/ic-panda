@@ -3114,6 +3114,10 @@
 	<string>เปิดการแจ้งเตือนสำหรับบัญชีอื่นหรือไม่</string>
 	<key>dmsg.noticeManaged</key>
 	<string>จัดการโดยระบบปฏิบัติการ</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>ทำเครื่องหมายทั้งหมดว่าอ่านแล้ว</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>ทำเครื่องหมายรายการเตือนของทุกบัญชีในอุปกรณ์นี้ว่าอ่านแล้ว โดยไม่เปลี่ยนงานที่รอดำเนินการหรือใบตอบรับการอ่านข้อความ</string>
 	<key>dmsg.noticeMerge</key>
 	<string>รวมการเตือนซ้ำจากหลายอุปกรณ์</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>การตั้งค่ามีผลบนอุปกรณ์นี้ทันที การเตือนระยะไกลอาจใช้การตั้งค่าเดิมจนกว่าการอัปเดตจะได้รับการยืนยัน</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>ช่วงเวลางดแจ้งเตือนรายวัน</string>
+	<key>dmsg.noticeRead</key>
+	<string>อ่านแล้ว</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>การดูรายการเตือนไม่ได้ดำเนินการให้เสร็จหรือทำเครื่องหมายว่าข้อความอ่านแล้ว</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>จนถึง</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>เปิด dMsg เพื่อตรวจสอบกิจกรรมล่าสุด</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>ต้องตรวจสอบสถานะข้อความ</string>
 	<key>dmsg.noticeZone</key>
 	<string>เขตเวลา</string>
 	<key>made</key>

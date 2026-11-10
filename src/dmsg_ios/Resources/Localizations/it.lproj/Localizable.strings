@@ -3114,6 +3114,10 @@
 	<string>Attivare le notifiche per un altro account?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Gestito dal sistema operativo</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Segna tutto come letto</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Segna come letti i promemoria di tutti gli account su questo dispositivo. Le azioni in sospeso e le conferme di lettura dei messaggi restano invariate.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Raggruppa gli avvisi duplicati tra dispositivi</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Le impostazioni si applicano qui subito. Gli avvisi remoti potrebbero usare le impostazioni precedenti fino alla conferma dell’aggiornamento.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Fascia silenziosa giornaliera</string>
+	<key>dmsg.noticeRead</key>
+	<string>Letto</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Visualizzare i promemoria non completa le azioni e non segna i messaggi come letti.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Alle</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Apri dMsg per controllare le attività recenti.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Lo stato dei messaggi deve essere verificato.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Fuso orario</string>
 	<key>made</key>

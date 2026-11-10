@@ -3186,5 +3186,13 @@
 	<string>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>Your purchase has been applied to this dMsg account.</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Mark all as read</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Marks reminders for all accounts on this device as read. Pending actions and message read receipts stay unchanged.</string>
+	<key>dmsg.noticeRead</key>
+	<string>Read</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Message status needs verification.</string>
 </dict>
 </plist>

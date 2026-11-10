@@ -2843,3 +2843,48 @@ The shared entry now restores or renews the identity before reading the ledger.
 These checks do not prove live iOS Secure Enclave/Passkey account switching or
 production membership queries. No physical-device install or deployment was run.
 The earlier notification and message validation limits still apply.
+
+## Explicit reminder read state and service destinations (2026-11-10)
+
+Both clients previously counted unresolved actions indefinitely and offered only
+snooze/history cleanup. iOS also sent all local service incidents to Notifications,
+including network sync failures. A cached Apple registration could hide a failed
+core receiver's retry action.
+
+The shared core now persists an installation-local `read_version`, independent
+of business completion, message read cursors and actual-view receipts. Explicit
+single-item operations check the expected version. Mark all covers every local
+account and unloaded pages without switching accounts. Same-version refreshes
+preserve the marker; newer versions count again. Unfinished actions remain listed.
+Both clients provide direct read controls and acknowledge a row when opened.
+Network incidents open synchronization; registration incidents open Notifications.
+iOS now exposes the core receiver's registration-required state and retries that
+stage even when its Apple lease was previously acknowledged.
+
+- 46 shared-client notification tests, 8 daemon notification tests and the new
+  mobile bridge acknowledgement test passed. Coverage includes persistence,
+  version conflicts, 120-item pagination, account isolation, unchanged business
+  receipts, preserved registration health and rearming a snoozed reminder.
+- Desktop `pnpm check`, all 192 tests and the production build passed. The
+  isolated Electron reminder-read smoke passed after matching its failure
+  assertion to the product's localized error. It verifies failure/retry,
+  keyboard operation, both service routes, per-row and bulk controls, clearing
+  the real Dock badge API and retaining unfinished items. Eight screenshots
+  cover Chinese light at 1180 px, Chinese dark at 760 px, German light at 760 px
+  and Arabic dark at 760 px. Cached Electron 45.2.1 was used; 45.2.3 was not tested.
+  Outputs: `src/dmsg_desktop/test-results/reminders-{read,cleared}-*.png`.
+- Both iOS native slices and Swift bindings rebuilt and passed fingerprint
+  verification. After fixing the button's localized-key type, 14 simulator tests
+  passed on iPhone 17e / iOS 27.0: 10 NotificationTests, three new read/navigation
+  flows (Chinese dark, Arabic and German), and the existing Chinese registration
+  retry flow. Screenshots were reviewed in `.build/reminders-20261110/`.
+- All 23 language resources and compiler-extracted strings passed. Notification
+  copy parity now passes, including the previously missing verification hint.
+  Rust formatting and diff checks passed.
+
+These are targeted local and fixture checks, not a full iOS suite. The earlier
+two unrelated account-navigation failures were not rerun. Live APNs/App Attest,
+physical-device installation, archiving, uploading and deployment were not run.
+No version numbers were changed; both changelogs record this work as Unreleased.
+
+Implementation and validation: Codex (OpenAI).

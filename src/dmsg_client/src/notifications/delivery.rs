@@ -83,6 +83,7 @@ pub fn next(
                             || (item.category() == Category::Security
                                 && item.version > covered.version))
                         && item.open
+                        && item.read_version < covered.version
                         && !item.is_muted(now)
                         && (!matches!(&item.target, Target::AgentMail(agent)
                             if !settings.agent_mail.get(agent).copied().unwrap_or(false)))

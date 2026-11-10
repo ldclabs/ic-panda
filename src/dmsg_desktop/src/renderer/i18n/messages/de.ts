@@ -649,7 +649,7 @@ export default {
     "pickChannel": "Wählen Sie einen Kanal",
     "inbox": "Posteingang",
     "aborted": "Nicht geliefert",
-    "markRead": "Mark hat gelesen",
+    "markRead": "Als gelesen markieren",
     "archive": "Archiv",
     "noLetters": "Keine Briefe in dieser Ansicht",
     "writeLetter": "Schreibe einen Brief",

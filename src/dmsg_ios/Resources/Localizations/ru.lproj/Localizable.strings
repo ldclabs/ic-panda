@@ -3114,6 +3114,10 @@
 	<string>Включить уведомления для другого аккаунта?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Управляется операционной системой</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Отметить всё как прочитанное</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Отмечает напоминания всех аккаунтов на этом устройстве как прочитанные. Незавершённые действия и уведомления о прочтении сообщений не меняются.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Объединять повторные оповещения на разных устройствах</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Настройки на этом устройстве действуют сразу. До подтверждения обновления удалённые оповещения могут использовать прежние настройки.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Ежедневные тихие часы</string>
+	<key>dmsg.noticeRead</key>
+	<string>Прочитано</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Просмотр напоминаний не завершает действия и не отмечает сообщения прочитанными.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>До</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Откройте dMsg, чтобы проверить последние события.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Статус сообщений требует проверки.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Часовой пояс</string>
 	<key>made</key>

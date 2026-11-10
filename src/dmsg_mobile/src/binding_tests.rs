@@ -143,6 +143,70 @@ async fn capacity_reset_preserves_the_current_account_and_rejects_a_stale_comple
 }
 
 #[tokio::test]
+async fn reminder_acknowledgement_clears_badges_but_preserves_registration_health() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let selected = testing::account().id;
+    let id = engine
+        .host
+        .run(move |c| {
+            Box::pin(async move {
+                c.with_notification_store(&selected, |s| {
+                    s.set_meta("notification:registration_required", &true)?;
+                    let mut item = dmsg_client::notifications::Item::new(
+                        selected.to_string(),
+                        dmsg_client::notifications::Target::Service("registration:1".into()),
+                        1,
+                        dmsg_client::now_ms(),
+                    );
+                    item.actionable = true;
+                    let id = item.id.clone();
+                    dmsg_client::notifications::upsert(s, item)?;
+                    Ok(id)
+                })
+            })
+        })
+        .await
+        .unwrap();
+    let before = engine.session_state().await.unwrap();
+    engine
+        .notification_mark_read(selected.to_string(), id, "1".into())
+        .await
+        .unwrap();
+    let status: serde_json::Value =
+        serde_json::from_str(&engine.notification_status().await.unwrap().json).unwrap();
+    assert_eq!(status["badge"], 0);
+    let preferences: serde_json::Value = serde_json::from_str(
+        &engine
+            .notification_preferences(Some(selected.to_string()))
+            .await
+            .unwrap()
+            .json,
+    )
+    .unwrap();
+    assert_eq!(preferences["registration_required"], true);
+    engine.notification_mark_all_read().await.unwrap();
+    let items: serde_json::Value = serde_json::from_str(
+        &engine
+            .notification_items(
+                selected.to_string(),
+                crate::notifications::ReminderScope::NeedsAction,
+                0,
+            )
+            .await
+            .unwrap()
+            .json,
+    )
+    .unwrap();
+    assert_eq!(items["items"][0]["open"], true);
+    assert_eq!(items["items"][0]["read_version"], "1");
+    assert_eq!(
+        engine.session_state().await.unwrap().account,
+        before.account
+    );
+    engine.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn ordinary_passkey_logout_still_ends_the_current_local_session() {
     let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
     let after = engine.finish_passkey_logout(None).await.unwrap();

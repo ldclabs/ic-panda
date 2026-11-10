@@ -3114,6 +3114,10 @@
 	<string>為另一個帳戶開啟通知？</string>
 	<key>dmsg.noticeManaged</key>
 	<string>由作業系統管理</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>全部標記為已讀</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>將本機所有帳戶的提醒標為已讀，不會完成待辦事項或變更訊息已讀回條。</string>
 	<key>dmsg.noticeMerge</key>
 	<string>合併多裝置重複提醒</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>此裝置設定立即生效。遠端更新確認前，推播可能仍使用先前設定。</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>每日勿擾時段</string>
+	<key>dmsg.noticeRead</key>
+	<string>已讀</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>查看提醒清單不會完成事項，也不會將訊息標為已讀。</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>結束</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>請開啟 dMsg 核對最新動態。</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>訊息狀態待核實。</string>
 	<key>dmsg.noticeZone</key>
 	<string>時區</string>
 	<key>made</key>

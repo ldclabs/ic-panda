@@ -7,7 +7,7 @@
   import { buttonClass, cn, iconButtonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { ago, call, errorText, single } from '../rpc'
-  import { category, icons, noNames, noticeNames, noticeTitle } from '../views/reminders/notice'
+  import { category, icons, noNames, noticeNames, noticeTitle, noticeUnread } from '../views/reminders/notice'
   import type { NoticeItem } from '../../shared/notifications'
 
   /** The bell in the title bar: what wants attention, without leaving the view. The full list stays a page. */
@@ -19,12 +19,14 @@
   let names = $state.raw(noNames())
   let loading = $state(false)
   let error = $state('')
+  let busy = $state(false)
   let run = 0
 
   const account = $derived<string>(status?.account ?? '')
 
   const load = single(async () => {
     const turn = ++run
+    const selected = account, filter = scope
     if (!account) { items = []; return }
     loading = true
     error = ''
@@ -33,7 +35,7 @@
         call<{ items: NoticeItem[] }>('notifications/list', { account, scope, cursor: null, limit: 20 }),
         noticeNames()
       ])
-      if (turn !== run) return
+      if (turn !== run || selected !== account || filter !== scope) return
       items = page.items
       names = known
     } catch (e) {
@@ -45,17 +47,32 @@
 
   $effect(() => {
     void scope
+    void account
     if (open) untrack(() => void load())
   })
 
   async function follow(item: NoticeItem) {
-    open = false
+    const selected = account
+    busy = true
     try {
+      if (noticeUnread(item)) await call('notifications/mark_read', { account: item.account, id: item.id, version: item.version })
+      if (account !== selected) return
+      open = false
       await window.dmsg.notificationOpen(item.account, item.id)
     } catch (e) {
       error = errorText(e)
       open = true
-    }
+    } finally { busy = false }
+  }
+
+  async function markRead(item?: NoticeItem) {
+    busy = true; error = ''
+    try {
+      if (item) await call('notifications/mark_read', { account: item.account, id: item.id, version: item.version })
+      else await call('notifications/mark_all_read')
+      await load()
+    } catch (cause) { error = errorText(cause) }
+    finally { busy = false }
   }
 
   onMount(() => {
@@ -80,14 +97,15 @@
         {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
         <ul data-testid="reminders-popover-list">
           {#each items as item (item.id)}
-            <li>
-              <button class="flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-start outline-none transition-colors duration-100 hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35" onclick={() => follow(item)} data-testid="reminder-row">
+            <li class="flex items-start gap-1">
+              <button class="flex min-w-0 flex-1 items-start gap-2.5 rounded-lg px-2 py-2 text-start outline-none transition-colors duration-100 hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35" disabled={busy} onclick={() => follow(item)} data-testid="reminder-row">
                 <Icon name={icons[category(item)]} class={cn('mt-0.5 shrink-0', item.actionable ? 'text-forest' : 'text-faint')} />
                 <span class="min-w-0 flex-1">
                   <span class="block truncate text-[13px] leading-snug font-medium">{noticeTitle(item, names)}</span>
-                  <span class="block truncate text-[11.5px] leading-snug text-faint">{ago(item.updated_at)}{#if item.unread} · {item.unread.toLocaleString()} {t('noticeMessages')}{/if}</span>
+                  <span class="block truncate text-[11.5px] leading-snug text-faint">{ago(item.updated_at)}{#if !noticeUnread(item)} · {t('noticeRead')}{:else if item.unread} · {item.unread.toLocaleString()} {t('noticeMessages')}{/if}</span>
                 </span>
               </button>
+              {#if noticeUnread(item)}<button class={iconButtonClass('ghost', 'md', 'mt-1 shrink-0')} title={t('markRead')} aria-label={t('markRead')} disabled={busy} onclick={() => markRead(item)} data-testid="reminder-popover-read"><Icon name="check" /></button>{/if}
             </li>
           {:else}
             <li class="px-3 py-6 text-center text-[12.5px] text-muted" role="status">{loading ? t('loading') : t('noticeEmpty')}</li>
@@ -95,6 +113,7 @@
         </ul>
       </div>
       <div class="border-t border-line p-1.5">
+        <button class={buttonClass('secondary', 'sm', 'w-full')} disabled={busy || loading || !(items.some(noticeUnread) || count)} onclick={() => markRead()} data-testid="reminders-popover-read-all">{t('noticeMarkAllRead')}</button>
         <button class={buttonClass('ghost', 'sm', 'w-full')} onclick={() => { open = false; go('/reminders') }} data-testid="reminders-all">{t('noticeAll')}</button>
       </div>
     </Popover.Content>

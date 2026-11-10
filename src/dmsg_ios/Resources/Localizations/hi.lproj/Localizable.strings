@@ -3114,6 +3114,10 @@
 	<string>किसी दूसरे खाते के लिए सूचनाएँ चालू करें?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>ऑपरेटिंग सिस्टम द्वारा प्रबंधित</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>सभी को पढ़ा हुआ चिह्नित करें</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>इस डिवाइस के सभी खातों के रिमाइंडर पढ़े हुए चिह्नित करता है। लंबित काम और संदेश पढ़े जाने की रसीदें नहीं बदलतीं।</string>
 	<key>dmsg.noticeMerge</key>
 	<string>डिवाइसों पर दोहराए गए अलर्ट मिलाएँ</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>आपकी सेटिंग यहाँ तुरंत लागू होती है। अपडेट की पुष्टि होने तक दूरस्थ अलर्ट पुरानी सेटिंग का उपयोग कर सकते हैं।</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>रोज़ के शांत घंटे</string>
+	<key>dmsg.noticeRead</key>
+	<string>पढ़ा गया</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>रिमाइंडर देखने से काम पूरे नहीं होते और संदेश पढ़े हुए चिह्नित नहीं होते।</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>तक</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>हाल की गतिविधियाँ देखने के लिए dMsg खोलें।</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>संदेशों की स्थिति की पुष्टि आवश्यक है।</string>
 	<key>dmsg.noticeZone</key>
 	<string>समय क्षेत्र</string>
 	<key>made</key>

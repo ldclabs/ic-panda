@@ -18,7 +18,7 @@ export function notificationsFixture(account, changed) {
   const row = (target, values = {}, owner = account) => {
     const item = { id: identity(target, owner), account: owner, target, group: identity(target, owner), version: '1', open: true,
       actionable: ['action', 'security'].includes(category(target)), unread: category(target) === 'message' ? 1 : 0,
-      first_at: Date.now(), updated_at: Date.now(), deadline: null, observed: '0', notified: '0', stage: 0,
+      first_at: Date.now(), updated_at: Date.now(), deadline: null, observed: '0', read_version: '0', notified: '0', stage: 0,
       attempted_at: null, pending_since: Date.now(), snoozed_until: null, muted: false, muted_until: null, quiet: false, ...values }
     items.set(item.id, item)
     return item
@@ -55,7 +55,7 @@ export function notificationsFixture(account, changed) {
       return { items: clone(list), next_cursor: null }
     },
     'notifications/status': () => {
-      const values = [...items.values()].filter((item) => item.open)
+      const values = [...items.values()].filter((item) => item.open && BigInt(item.read_version) < BigInt(item.version))
       const count = values => ({ actionable: values.filter((item) => item.actionable).length, unread: values.filter((item) => category(item.target) === 'message' && !item.muted && item.target.kind !== 'agent_mail').reduce((sum, item) => sum + (item.unread ?? 0), 0), unverified: values.some((item) => item.unread === null) })
       const counts = count(values)
       return { counts, accounts: [...settings].map(([account, value]) => ({ account, enabled: value.enabled, counts: count(values.filter(item => item.account === account)), pending_sync: value.revision > value.remote_revision })), badge: global.badge === 'off' ? 0 : counts.actionable + (global.badge === 'actions' ? 0 : counts.unread), enabled: global.enabled }
@@ -79,6 +79,19 @@ export function notificationsFixture(account, changed) {
       const item = items.get(p.id)
       if (!item || !item.open || !item.actionable || item.version !== p.version || (item.deadline && p.until >= item.deadline)) throw { code: 'INVALID_INPUT', message: 'Reminder deadline' }
       item.snoozed_until = p.until
+      item.read_version = '0'
+      changed('notifications/changed')
+      return null
+    },
+    'notifications/mark_read': (p) => {
+      const item = items.get(p.id)
+      if (!item || item.account !== p.account || item.version !== p.version) throw { code: 'VERSION_CONFLICT', message: 'Reminder changed' }
+      item.read_version = item.version
+      changed('notifications/changed')
+      return null
+    },
+    'notifications/mark_all_read': () => {
+      for (const item of items.values()) item.read_version = item.version
       changed('notifications/changed')
       return null
     },

@@ -19,13 +19,15 @@ use std::{
 };
 use tokio::sync::Notify;
 
-pub(crate) const METHODS: [&str; 11] = [
+pub(crate) const METHODS: [&str; 13] = [
     "notifications/migrate",
     "notifications/list",
     "notifications/status",
     "notifications/settings",
     "notifications/settings_set",
     "notifications/observed",
+    "notifications/mark_read",
+    "notifications/mark_all_read",
     "notifications/snooze",
     "notifications/clear_recent",
     "notifications/context",
@@ -385,6 +387,10 @@ impl Daemon {
                     self.notifications.scheduled.notify_one();
                     Ok(serde_json::to_value(all).map_err(|_| Error::IntegrityFailed)?)
                 }
+                "notifications/mark_all_read" => {
+                    c.mark_all_notifications_read()?;
+                    Ok(Value::Null)
+                }
                 _ => {
                     let account = account.ok_or(Error::AuthRequired)?;
                     if method == "notifications/observed" {
@@ -428,6 +434,7 @@ impl Daemon {
                             Ok(json!({"id":id,"version":version.to_string(),"stage":item.stage}))
                         }
                         "notifications/snooze" => { core::snooze(store, &text(params,"id")?, sequence(params,"version")?, number(params,"until")?, now)?; Ok(Value::Null) }
+                        "notifications/mark_read" => { core::mark_read(store, &text(params,"id")?, sequence(params,"version")?)?; Ok(Value::Null) }
                         "notifications/clear_recent" => { store.set_meta("notification:cleared_at", &now)?; Ok(Value::Null) }
                         "notifications/result" => { core::result(store, &text(params,"system_id")?, &text(params,"delivery_id")?, parse(params,"result")?, now)?; Ok(Value::Null) }
                         _ => Err(Error::InvalidInput("notification method or scope".into())),

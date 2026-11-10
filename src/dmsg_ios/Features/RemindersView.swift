@@ -17,6 +17,7 @@ struct RemindersView: View {
     @State private var request: UUID?
     @State private var itemScope = ""
     @State private var settingUp = false
+    @State private var reading: String?
     private var selected: String { model.session?.account ?? "" }
     private var scope: String { "\(model.epoch):\(selected):\(recent):\(started)" }
     private var category: ReminderCategory? {
@@ -35,6 +36,13 @@ struct RemindersView: View {
                 Text(NoticeCopy.text("noticeNeedsAction")).tag(false)
                 Text(NoticeCopy.text("noticeRecent")).tag(true)
             }.pickerStyle(.segmented).accessibilityIdentifier("reminders.scope")
+            Section {
+                SettingsAction(LocalizedStringKey(NoticeCopy.text("noticeMarkAllRead")), working: reading == "all") {
+                    Task { await markRead() }
+                }.disabled(reading != nil || !(items.contains(where: \.isUnread) || (model.notifications.status?.counts.actionable ?? 0) > 0 || (model.notifications.status?.counts.unread ?? 0) > 0))
+                    .accessibilityIdentifier("reminders.read-all")
+                    .accessibilityValue(String(model.notifications.status?.badge ?? 0))
+            } footer: { Text(NoticeCopy.text("noticeMarkReadHint")) }
             if let account = entry.account, account != selected, !entry.ended {
                 NoticeBar(text: NoticeCopy.text("noticeSwitch"))
                 LabeledContent("Account ID", value: account).font(.caption)
@@ -46,13 +54,14 @@ struct RemindersView: View {
             if loading && items.isEmpty { ProgressView() }
             if failed { Button("Retry") { Task { await load() } } }
             ForEach(items.filter { category == nil || $0.target.category == category }) { item in
-                Button { destination = ReminderDestination(account: item.account, target: item.target) } label: {
+                VStack(alignment: .leading, spacing: 8) {
+                Button { Task { await markRead(item, open: true) } } label: {
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: item.target.category == .security ? "shield" : item.actionable ? "checkmark.circle" : "bell").foregroundStyle(Theme.forest)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(item.target.category.title).font(.headline)
-                            Text(NoticeCopy.text(item.target.category.bodyKey)).font(.subheadline).foregroundStyle(.secondary)
+                            Text(item.title).font(.headline)
+                            Text(item.body).font(.subheadline).foregroundStyle(.secondary)
                             HStack(spacing: 8) {
                                 Text(verbatim: listDateText(ConversationTimeline.date(item.updatedAt)))
                                 if let deadline = item.deadline { Text("Due \(listDateText(ConversationTimeline.date(deadline)))") }
@@ -60,11 +69,25 @@ struct RemindersView: View {
                         }.frame(maxWidth: .infinity, alignment: .leading)
                         Image(systemName: "chevron.forward").font(.caption).foregroundStyle(.tertiary).accessibilityHidden(true)
                     }.contentShape(Rectangle())
-                }.buttonStyle(.plain).accessibilityIdentifier("reminders.item")
+                }.buttonStyle(.plain).disabled(reading != nil).accessibilityIdentifier("reminders.item")
+                if item.isUnread {
+                    Button { Task { await markRead(item) } } label: {
+                        HStack {
+                            if reading == item.id { ProgressView() }
+                            Label("Mark as read", systemImage: "checkmark.circle")
+                        }
+                    }.buttonStyle(.borderless).disabled(reading != nil).accessibilityIdentifier("reminders.read.\(item.id)")
+                } else {
+                    Label(NoticeCopy.text("noticeRead"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("reminders.read-state")
+                }
+                }
                     .swipeActions {
+                        if item.isUnread { Button("Mark as read") { Task { await markRead(item) } }.tint(Theme.forest) }
                         if item.open && item.actionable { Button(NoticeCopy.text("noticeLater")) { snoozing = item }.tint(Theme.forest) }
                     }
                     .contextMenu {
+                        if item.isUnread { Button("Mark as read") { Task { await markRead(item) } } }
                         if item.open && item.actionable { Button(NoticeCopy.text("noticeLater")) { snoozing = item } }
                     }
             }
@@ -112,7 +135,7 @@ struct RemindersView: View {
         if itemScope != identity { items = []; next = nil; itemScope = identity }
         loading = true; failed = false
         defer { if scope == current, request == token { loading = false } }
-        if model.uiTesting { items = model.notifications.fixtureItems.filter { $0.account == selected }; next = nil; return }
+        if model.uiTesting { items = model.notifications.fixtureItems.filter { $0.account == selected && (recent || $0.open && $0.actionable) }; next = nil; return }
         do {
             guard let engine = model.engine else { return }
             let page: ReminderPage = try model.decode(try await engine.notificationItems(selected: selected, scope: recent ? .recent : .needsAction, offset: offset))
@@ -123,6 +146,19 @@ struct RemindersView: View {
     private func clearRecent() async {
         do { try await model.engine?.notificationClearRecent(selected: selected); await load() }
         catch { model.report(error) }
+    }
+    private func markRead(_ item: ReminderItem? = nil, open: Bool = false) async {
+        guard reading == nil else { return }
+        let epoch = model.epoch
+        reading = item?.id ?? "all"
+        defer { reading = nil }
+        do {
+            if item?.isUnread != false { try await model.notifications.markRead(model, item: item) }
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            await load()
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            if open, let item { destination = ReminderDestination(account: item.account, target: item.target) }
+        } catch { if epoch == model.epoch { model.report(error) } }
     }
 }
 
@@ -152,8 +188,8 @@ private struct ReminderDestinationView: View {
                 case .recovery: RecoveryView()
                 case .wallet(let wallet, let proposal): if let id = UInt64(proposal) { WalletProposalView(wallet: wallet, proposal: id) }
                 case .plan: SubscriptionView()
-                case .task(let id): if id.hasPrefix("conflicts:") { ConflictsView() } else { AccountView() }
-                case .service: NotificationSettingsView()
+                case .task(let id): if id.hasPrefix("conflicts:") { ConflictsView() } else { SyncSettingsView() }
+                case .service(let id): if id.hasPrefix("network:") { SyncSettingsView() } else { NotificationSettingsView() }
                 case .summary, .agentMail: ContentUnavailableView(NoticeCopy.text("noticeEnded"), systemImage: "clock")
                 }
             }
@@ -161,6 +197,9 @@ private struct ReminderDestinationView: View {
     }
     private func load() async {
         ready = channel != nil || letter != nil; ended = false; failed = false
+        #if DEBUG
+        if model.uiTesting, case .service = destination.target { ready = true; return }
+        #endif
         guard model.session?.account == destination.account, model.unlocked, let engine = model.engine else { ended = model.uiTesting; return }
         let epoch = model.epoch
         do {

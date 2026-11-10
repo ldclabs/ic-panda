@@ -709,6 +709,7 @@ pub async fn refresh(h: &impl Hold, context: &ReceiveContext) -> Result<bool> {
                         &item.observed,
                     )?;
                     item.observed = 0;
+                    item.read_version = 0;
                     item.notified = 0;
                     item.stage = 0;
                     item.attempted_at = None;

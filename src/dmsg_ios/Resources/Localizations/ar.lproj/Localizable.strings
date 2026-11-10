@@ -3186,5 +3186,13 @@
 	<string>تعذّر التحقق من الحساب المرتبط بهذا الاشتراك من Apple. أعد المحاولة قبل الشراء.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>تم تطبيق مشترياتك على حساب dMsg هذا.</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>تحديد الكل كمقروء</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>يحدد تذكيرات جميع الحسابات على هذا الجهاز كمقروءة. لا تتغير المهام المعلقة أو إيصالات قراءة الرسائل.</string>
+	<key>dmsg.noticeRead</key>
+	<string>مقروء</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>حالة الرسائل بحاجة إلى التحقق.</string>
 </dict>
 </plist>

@@ -78,12 +78,23 @@ impl MobileEngine {
                     .map(|a| c.notification_settings_conflict(a))
                     .transpose()?
                     .unwrap_or(false);
+                let registration_required = selected
+                    .as_ref()
+                    .map(|a| {
+                        c.with_notification_store(a, |s| {
+                            Ok(s.meta::<bool>("notification:registration_required")?
+                                .unwrap_or(false))
+                        })
+                    })
+                    .transpose()?
+                    .unwrap_or(false);
                 Ok(json!({
                     "global": runtime.settings, "account": settings,
                     "account_id": selected.map(|a| a.to_string()), "remote_supported": supported,
                     "global_pending_sync": runtime.settings.revision > runtime.remote_revision,
                     "global_conflict": runtime.remote_blocked == Some(runtime.settings.revision),
-                    "account_conflict": conflict
+                    "account_conflict": conflict,
+                    "registration_required": registration_required
                 }))
             })
         })
@@ -237,6 +248,33 @@ impl MobileEngine {
                     })
                 })
             })
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn notification_mark_read(
+        &self,
+        selected: String,
+        id: String,
+        expected_version: String,
+    ) -> Result<()> {
+        let selected = account(&selected)?;
+        let expected_version = version(&expected_version)?;
+        self.host
+            .run(move |c| {
+                Box::pin(async move {
+                    c.with_notification_store(&selected, |s| {
+                        notice::mark_read(s, &id, expected_version)
+                    })
+                })
+            })
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn notification_mark_all_read(&self) -> Result<()> {
+        self.host
+            .run(|c| Box::pin(async { c.mark_all_notifications_read() }))
             .await
             .map_err(Into::into)
     }

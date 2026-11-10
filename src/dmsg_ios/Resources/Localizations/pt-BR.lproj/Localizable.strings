@@ -3114,6 +3114,10 @@
 	<string>Ativar notificações para outra conta?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Gerenciado pelo sistema operacional</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Marcar tudo como lido</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Marca como lidos os lembretes de todas as contas neste dispositivo. As ações pendentes e as confirmações de leitura de mensagens não mudam.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Agrupar alertas duplicados entre dispositivos</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Suas configurações são aplicadas aqui imediatamente. Alertas remotos podem usar as configurações anteriores até a confirmação da atualização.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Horário de silêncio diário</string>
+	<key>dmsg.noticeRead</key>
+	<string>Lido</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Ver os lembretes não conclui ações nem marca mensagens como lidas.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Até</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Abra o dMsg para conferir as atividades recentes.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>O estado das mensagens precisa ser verificado.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Fuso horário</string>
 	<key>made</key>

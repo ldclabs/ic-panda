@@ -151,6 +151,10 @@ pub struct Item {
     /// Last actually visible version; listing reminders does not advance it.
     #[serde(with = "decimal")]
     pub observed: u64,
+    /// Explicitly acknowledged reminder version on this installation only.
+    /// This never changes business read receipts or completes an action.
+    #[serde(default, with = "decimal")]
+    pub read_version: u64,
     /// Last attempted message version.
     #[serde(with = "decimal")]
     pub notified: u64,
@@ -188,6 +192,7 @@ impl Item {
             updated_at: now,
             deadline: None,
             observed: 0,
+            read_version: 0,
             notified: 0,
             stage: 0,
             attempted_at: None,
@@ -270,9 +275,10 @@ impl Default for Settings {
 /// Independent, state-derived badge counts.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Counts {
-    /// Unique unresolved owner-actionable items.
+    /// Unique unresolved owner-actionable items not explicitly marked read here.
     pub actionable: u64,
-    /// Ordinary unread messages, excluding muted channels and Agent Mail.
+    /// Ordinary unread messages whose reminder has not been marked read here,
+    /// excluding muted channels and Agent Mail. Business read cursors are separate.
     pub unread: u64,
     /// A generic hint or stale state needs reconciliation.
     pub unverified: bool,
@@ -356,6 +362,7 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
         }
         item.first_at = old.first_at;
         item.observed = old.observed;
+        item.read_version = old.read_version;
         item.notified = old.notified;
         item.stage = old.stage.max(item.stage);
         item.attempted_at = old.attempted_at;
@@ -421,7 +428,10 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
 /// Compute counts without networking or losing them when the workspace locks.
 pub fn counts(items: &[Item], now: u64) -> Counts {
     let mut result = Counts::default();
-    for item in items.iter().filter(|item| item.open) {
+    for item in items
+        .iter()
+        .filter(|item| item.open && item.read_version < item.version)
+    {
         result.actionable += u64::from(
             item.actionable
                 && !(item.category() == Category::Action
@@ -494,6 +504,27 @@ pub fn observe(store: &Store, id: &str, version: u64) -> Result<()> {
     store.set_notification_item(&item)
 }
 
+/// Acknowledge this exact reminder without claiming business visibility.
+pub fn mark_read(store: &Store, id: &str, version: u64) -> Result<()> {
+    let mut item = store.notification_item(id)?.ok_or(Error::NotFound)?;
+    ensure(version == item.version, Error::VersionConflict)?;
+    item.read_version = version;
+    store.set_notification_item(&item)
+}
+
+/// Acknowledge every locally known reminder, including unloaded history pages.
+pub fn mark_all_read(store: &Store) -> Result<()> {
+    store.atomic(|store| {
+        for mut item in store.notification_items()? {
+            if item.read_version < item.version {
+                item.read_version = item.version;
+                store.set_notification_item(&item)?;
+            }
+        }
+        Ok(())
+    })
+}
+
 /// Snooze a still-actionable item without extending its business deadline.
 pub fn snooze(store: &Store, id: &str, version: u64, until: u64, now: u64) -> Result<()> {
     let mut item = store.notification_item(id)?.ok_or(Error::NotFound)?;
@@ -506,6 +537,7 @@ pub fn snooze(store: &Store, id: &str, version: u64, until: u64, now: u64) -> Re
         Error::InvalidInput("notification snooze".into()),
     )?;
     item.snoozed_until = Some(until);
+    item.read_version = 0;
     store.atomic(|store| {
         store.set_notification_item(&item)?;
         if !item.target.local_only() {
@@ -552,6 +584,16 @@ pub fn configure(store: &Store, expected: u64, mut draft: Settings) -> Result<Se
 }
 
 impl crate::Client {
+    /// Clear this installation's reminder counters across its local accounts.
+    /// No account switch, decryption, business acknowledgement or network call.
+    pub fn mark_all_notifications_read(&self) -> Result<()> {
+        for local in self.accounts()?.into_iter().filter(|a| a.bound) {
+            let account = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
+            self.with_notification_store(&account, mark_all_read)?;
+        }
+        Ok(())
+    }
+
     /// Project the connector host's committed receive watermark. The Mail watch
     /// does not opt the owner into system alerts; that is a separate preference.
     pub fn project_agent_mail_notification(

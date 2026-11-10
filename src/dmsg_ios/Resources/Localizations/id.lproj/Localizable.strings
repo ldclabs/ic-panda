@@ -3114,6 +3114,10 @@
 	<string>Aktifkan notifikasi untuk akun lain?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Dikelola oleh sistem operasi</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Tandai semua sudah dibaca</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Menandai pengingat semua akun di perangkat ini sebagai sudah dibaca. Tindakan tertunda dan tanda baca pesan tidak berubah.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Gabungkan peringatan duplikat antarperangkat</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Pengaturan Anda langsung berlaku di sini. Peringatan jarak jauh mungkin memakai pengaturan lama sampai pembaruan dikonfirmasi.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Jam tenang harian</string>
+	<key>dmsg.noticeRead</key>
+	<string>Dibaca</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Melihat pengingat tidak menyelesaikan tindakan atau menandai pesan sebagai dibaca.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Sampai</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Buka dMsg untuk memeriksa aktivitas terbaru.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Status pesan perlu diverifikasi.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Zona waktu</string>
 	<key>made</key>

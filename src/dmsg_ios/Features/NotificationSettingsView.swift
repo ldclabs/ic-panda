@@ -22,6 +22,7 @@ struct NotificationSettingsView: View {
     private var statusMessage: String? {
         if saved?.conflict == true { return String(localized: "The record changed. Refresh and review your edits before saving again.") }
         if saveFailed || failed { return String(localized: "Connection unavailable. Your saved content stays on this device.") }
+        if saved?.registrationRequired == true { return String(localized: "Notification registration needs retrying. Foreground sync remains available.") }
         switch model.push.registration {
         case .failed, .denied, .waiting, .unsupported: return model.push.registration.message
         case .idle, .enabled:
@@ -101,7 +102,7 @@ struct NotificationSettingsView: View {
                         }
                         if saved?.conflict == true || saveFailed {
                             SettingsAction("Retry", prominent: true) { Task { await save() } }.accessibilityIdentifier("notifications.save")
-                        } else if saved?.account?.enabled == true && (model.push.working || saved?.pending == true || model.push.registration != .enabled) {
+                        } else if saved?.account?.enabled == true && (model.push.working || saved?.pending == true || saved?.registrationRequired == true || model.push.registration != .enabled) {
                             SettingsAction(model.push.working ? "Waiting for notification registration…" : "Retry registration", working: model.push.working) {
                                 Task { await model.push.refresh(model, retryRegistration: true); await load() }
                             }.accessibilityIdentifier("notifications.registration")

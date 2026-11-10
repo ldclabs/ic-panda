@@ -3114,6 +3114,10 @@
 	<string>Hidupkan pemberitahuan untuk akaun lain?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Diurus oleh sistem pengendalian</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Tandakan semua sebagai dibaca</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Menandakan peringatan semua akaun pada peranti ini sebagai dibaca. Tindakan tertunda dan pengesahan bacaan mesej kekal tidak berubah.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Gabungkan amaran pendua antara peranti</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Tetapan anda berkuat kuasa di sini serta-merta. Amaran jauh mungkin menggunakan tetapan lama sehingga kemas kini disahkan.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Waktu senyap harian</string>
+	<key>dmsg.noticeRead</key>
+	<string>Dibaca</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Melihat peringatan tidak menyelesaikan tindakan atau menandakan mesej sebagai dibaca.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Hingga</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Buka dMsg untuk menyemak aktiviti terkini.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Status mesej perlu disahkan.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Zon waktu</string>
 	<key>made</key>

@@ -3114,6 +3114,10 @@
 	<string>I-on ang mga notification para sa isa pang account?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Pinamamahalaan ng operating system</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Markahang nabasa na ang lahat</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Minamarkahang nabasa na ang mga paalala ng lahat ng account sa device na ito. Hindi mababago ang mga nakabinbing gawain at kumpirmasyon ng pagbasa ng mensahe.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Pagsamahin ang mga dobleng alerto sa iba’t ibang device</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Agad na gagana rito ang iyong mga setting. Maaaring gamitin pa ng mga remote alerto ang lumang setting hanggang makumpirma ang update.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Tahimik na oras araw-araw</string>
+	<key>dmsg.noticeRead</key>
+	<string>Nabasa na</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Ang pagtingin sa mga paalala ay hindi nagtatapos ng mga gawain o nagmamarka sa mga mensahe bilang nabasa.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Hanggang</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Buksan ang dMsg para tingnan ang mga bagong aktibidad.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Kailangang beripikahin ang katayuan ng mga mensahe.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Time zone</string>
 	<key>made</key>

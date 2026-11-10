@@ -22,6 +22,7 @@ export interface NoticeNames {
 }
 
 export const noNames = (): NoticeNames => ({ channels: new Map(), letters: new Map(), approvals: new Map() })
+export const noticeUnread = (item: NoticeItem): boolean => BigInt(item.read_version ?? '0') < BigInt(item.version)
 
 const listOf = (method: string, params?: Record<string, unknown>) => call<any[]>(method, params).then((list) => list ?? [], () => [])
 
@@ -48,7 +49,7 @@ export function noticeTitle(item: NoticeItem, names: NoticeNames): string {
     }
     case 'wallet': return `${t('twNav')} · ${t('approvals')}`
     case 'task': return id.startsWith('conflicts:') ? t('conflict') : t('syncFailed')
-    case 'service': return id.startsWith('network:') ? t('networkUnavailable') : t('noticeServiceBody')
+    case 'service': return id.startsWith('network:') ? t('networkUnavailable') : t('noticeSettings')
     case 'plan': return t('membership')
     case 'inbox': {
       const sender = id && names.letters.get(id)

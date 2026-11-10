@@ -7,6 +7,17 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+### Reminders
+
+- Add visible Mark as read and Mark all as read actions. The latter covers all
+  local accounts and unloaded reminders, clearing badge counts without completing
+  pending actions or changing message read receipts.
+- Preserve read markers across restarts and same-version updates; newer activity
+  becomes unread again. Opening a reminder acknowledges its current version.
+- Explain network and notification-registration issues separately and open the
+  relevant settings. Keep receiver registration retryable even when a cached
+  Apple registration was successful.
+
 ## 1.1.1 - 2026-11-10
 
 Available on the [App Store](https://apps.apple.com/app/id6827050680) for

@@ -81,6 +81,23 @@ struct ReminderItem: Decodable, Identifiable {
     let open: Bool; let actionable: Bool; let unread: UInt64?
     let firstAt: UInt64; let updatedAt: UInt64; let deadline: UInt64?
     let observed: String; let stage: UInt8; let snoozedUntil: UInt64?
+    var readVersion: String?
+    var isUnread: Bool { (UInt64(readVersion ?? "0") ?? 0) < (UInt64(version) ?? .max) }
+    var title: String {
+        switch target {
+        case .service(let id): id.hasPrefix("network:") ? String(localized: "Sync paused") : String(localized: "Notifications")
+        case .task(let id): id.hasPrefix("conflicts:") ? String(localized: "Sync conflicts") : String(localized: "Sync paused")
+        case .plan: String(localized: "Plan and usage")
+        default: target.category.title
+        }
+    }
+    var body: String {
+        if case .service(let id) = target {
+            return id.hasPrefix("network:") ? String(localized: "Connection unavailable. Your saved content stays on this device.")
+                : String(localized: "Notification registration needs retrying. Foreground sync remains available.")
+        }
+        return NoticeCopy.text(target.category.bodyKey)
+    }
 }
 struct ReminderPage: Decodable { let items: [ReminderItem]; let next: UInt32? }
 struct ReminderCounts: Decodable { let actionable: UInt64; let unread: UInt64; let unverified: Bool }
@@ -134,6 +151,7 @@ struct NoticeGlobalPreference: Codable, Equatable {
 struct NoticePreferences: Codable, Equatable {
     var global: NoticeGlobalPreference; var account: NoticeAccountPreference?; var accountId: String?
     var remoteSupported: Bool; var globalPendingSync: Bool?; var globalConflict: Bool?; var accountConflict: Bool?
+    var registrationRequired: Bool?
     var pending: Bool { globalPendingSync == true || (account.map { $0.revision > $0.remoteRevision } ?? false) }
     var conflict: Bool { globalConflict == true || accountConflict == true }
     /// Security alerts reach this device only with all three switches on.
@@ -212,6 +230,7 @@ enum NoticeCopy {
         "noticeLater": "Remind me later",
         "noticeLate": "This time is after the deadline",
         "noticeEmpty": "No reminders",
+        "noticeVerifyHint": "Message status needs verification.",
         "noticeSwitch": "Switch to this account to open the item",
         "noticeEnded": "This item has ended or is unavailable",
         "noticeSecurityBody": "An account security change needs your review.",
@@ -219,6 +238,9 @@ enum NoticeCopy {
         "noticeMessageBody": "You have new messages.",
         "noticeServiceBody": "A service needs your attention.",
         "noticeTestSent": "Test notification submitted to the system",
+        "noticeRead": "Read",
+        "noticeMarkAllRead": "Mark all as read",
+        "noticeMarkReadHint": "Marks reminders for all accounts on this device as read. Pending actions and message read receipts stay unchanged.",
         "noticeReadOnlyHint": "Viewing reminders does not complete actions or mark messages as read.",
         "noticePendingHint": "Your settings apply here immediately. Remote alerts may use earlier settings until the update is confirmed.",
         "noticeScopeHint": "Quiet hours and sounds apply to this device. Channel mutes follow your account.",

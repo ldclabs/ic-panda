@@ -3114,6 +3114,10 @@
 	<string>为另一个账户开启通知？</string>
 	<key>dmsg.noticeManaged</key>
 	<string>由操作系统管理</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>全部标记已读</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>将本机所有账户的提醒标为已读，不会完成待办或改变消息已读回执。</string>
 	<key>dmsg.noticeMerge</key>
 	<string>合并多设备重复提醒</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>本机设置立即生效。远程更新确认前，推送可能仍使用先前的设置。</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>每日免打扰</string>
+	<key>dmsg.noticeRead</key>
+	<string>已读</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>查看提醒列表不会完成事项，也不会将消息标为已读。</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>结束</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>请打开 dMsg 核对最新动态。</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>消息状态待核实。</string>
 	<key>dmsg.noticeZone</key>
 	<string>时区</string>
 	<key>made</key>

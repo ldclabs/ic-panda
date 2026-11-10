@@ -24,6 +24,156 @@ fn example() -> (Item, Settings, Runtime, Context) {
 }
 
 #[test]
+fn marking_a_reminder_read_persists_without_completing_its_business_item() {
+    let dir = crate::testing::TempDir::new();
+    let path = dir.0.join("read.sqlite");
+    let (mut item, settings, runtime, context) = example();
+    let store = Store::open(&path).unwrap();
+    item.target = Target::Service("network:1".into());
+    item.id = item_id(&item.account, &item.target);
+    item.actionable = true;
+    upsert(&store, item.clone()).unwrap();
+    assert_eq!(
+        counts(&store.notification_items().unwrap(), context.now).actionable,
+        1
+    );
+    assert_eq!(
+        mark_read(&store, &item.id, item.version + 1),
+        Err(Error::VersionConflict)
+    );
+    mark_read(&store, &item.id, item.version).unwrap();
+    drop(store);
+    let store = Store::open(&path).unwrap();
+    upsert(&store, item.clone()).unwrap();
+    let saved = store.notification_item(&item.id).unwrap().unwrap();
+    assert!(saved.open && saved.actionable);
+    assert_eq!(
+        saved.observed, 0,
+        "Explicit acknowledgement is not a visibility receipt"
+    );
+    assert_eq!(saved.read_version, item.version);
+    assert_eq!(saved.unread, item.unread);
+    assert_eq!(
+        counts(std::slice::from_ref(&saved), context.now).actionable,
+        0
+    );
+    assert_eq!(
+        evaluate(&saved, &settings, &runtime, &context),
+        Decision::Remove
+    );
+    assert_eq!(
+        list(&store, true, 0, 100, context.now).unwrap().items.len(),
+        1
+    );
+    item.version += 1;
+    upsert(&store, item).unwrap();
+    assert_eq!(
+        counts(&store.notification_items().unwrap(), context.now).actionable,
+        1
+    );
+}
+
+#[test]
+fn marking_all_reminders_read_covers_unloaded_pages_and_keeps_message_receipts() {
+    let store = Store::memory().unwrap();
+    for sequence in 1..=120 {
+        let mut item = Item::new(
+            "account-a".into(),
+            Target::Channel(format!("channel-{sequence}")),
+            sequence,
+            1_000,
+        );
+        item.unread = Some(2);
+        upsert(&store, item).unwrap();
+    }
+    assert!(list(&store, false, 0, 100, 4_000).unwrap().next.is_some());
+    mark_all_read(&store).unwrap();
+    let items = store.notification_items().unwrap();
+    assert_eq!(items.len(), 120);
+    assert_eq!(counts(&items, 4_000).unread, 0);
+    assert!(
+        items.iter().all(|i| i.open
+            && i.unread == Some(2)
+            && i.observed == 0
+            && i.read_version == i.version)
+    );
+    mark_all_read(&store).unwrap();
+}
+
+#[test]
+fn marking_all_accounts_read_does_not_switch_workspaces_or_finish_their_actions() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let first = crate::testing::account();
+    let mut second = first.clone();
+    second.id = dmsg_types::AccountId([2; 12]);
+    let mut item = Item::new(
+        first.id.to_string(),
+        Target::Service("network:1".into()),
+        1,
+        1_000,
+    );
+    item.actionable = true;
+    upsert(&client.workspace.store, item).unwrap();
+    client.lock();
+    client
+        .select(crate::client::Slot::Account(second.id))
+        .unwrap();
+    let keys = client.workspace.unlock_provisional().unwrap();
+    client
+        .workspace
+        .bind(&keys, second.clone(), &crate::testing::SECRET)
+        .unwrap();
+    let mut item = Item::new(
+        second.id.to_string(),
+        Target::Service("registration:1".into()),
+        1,
+        1_000,
+    );
+    item.actionable = true;
+    upsert(&client.workspace.store, item).unwrap();
+    client
+        .select(crate::client::Slot::Account(first.id))
+        .unwrap();
+    client.mark_all_notifications_read().unwrap();
+    assert_eq!(client.session_state().account, Some(first.id.to_string()));
+    for account in [first.id, second.id] {
+        client
+            .with_notification_store(&account, |store| {
+                let items = store.notification_items()?;
+                assert_eq!(items.len(), 1);
+                assert!(items[0].open && items[0].actionable);
+                assert_eq!(items[0].read_version, 1);
+                assert_eq!(counts(&items, 2_000).actionable, 0);
+                Ok(())
+            })
+            .unwrap();
+    }
+}
+
+#[test]
+fn older_notification_records_default_to_unread_and_snoozing_rearms_them() {
+    let (mut item, _, _, _) = example();
+    item.actionable = true;
+    let mut old = serde_json::to_value(&item).unwrap();
+    old.as_object_mut().unwrap().remove("read_version");
+    let decoded: Item = serde_json::from_value(old).unwrap();
+    assert_eq!(decoded.read_version, 0);
+    let store = Store::memory().unwrap();
+    upsert(&store, item.clone()).unwrap();
+    mark_read(&store, &item.id, item.version).unwrap();
+    snooze(&store, &item.id, item.version, 10_000, 4_000).unwrap();
+    assert_eq!(
+        store
+            .notification_item(&item.id)
+            .unwrap()
+            .unwrap()
+            .read_version,
+        0
+    );
+}
+
+#[test]
 fn notifications_shared_policy_vectors() {
     let vectors: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../tests/vectors/client/notifications-v1.json"

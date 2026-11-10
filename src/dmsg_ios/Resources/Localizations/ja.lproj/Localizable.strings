@@ -3114,6 +3114,10 @@
 	<string>別のアカウントの通知をオンにしますか？</string>
 	<key>dmsg.noticeManaged</key>
 	<string>OSで管理されています</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>すべて既読にする</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>この端末のすべてのアカウントのリマインダーを既読にします。未処理の操作やメッセージの既読通知は変わりません。</string>
 	<key>dmsg.noticeMerge</key>
 	<string>デバイス間で重複する通知をまとめる</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>設定はこのデバイスですぐに適用されます。更新が確認されるまで、リモート通知には以前の設定が使われる場合があります。</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>毎日の通知停止時間</string>
+	<key>dmsg.noticeRead</key>
+	<string>既読</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>リマインダーを表示しても、操作は完了せず、メッセージは既読になりません。</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>終了</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>dMsgを開いて最新の動きを確認してください。</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>メッセージの状態を確認する必要があります。</string>
 	<key>dmsg.noticeZone</key>
 	<string>タイムゾーン</string>
 	<key>made</key>

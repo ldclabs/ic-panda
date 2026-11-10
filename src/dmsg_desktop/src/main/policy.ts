@@ -39,7 +39,7 @@ import { DaemonError } from './error.ts'
 export const WINDOW_METHODS = new Set([
   'channel/avatar',
   'notifications/list', 'notifications/status', 'notifications/settings',
-  'notifications/settings_set', 'notifications/snooze', 'notifications/clear_recent',
+  'notifications/settings_set', 'notifications/snooze', 'notifications/clear_recent', 'notifications/mark_read', 'notifications/mark_all_read',
   'secrets/ref',
   'secrets/mounts/list',
   'secrets/mounts/start',

@@ -3114,6 +3114,10 @@
 	<string>کسی دوسرے اکاؤنٹ کے لیے اطلاعات آن کریں؟</string>
 	<key>dmsg.noticeManaged</key>
 	<string>آپریٹنگ سسٹم کے زیرِ انتظام</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>سب کو پڑھا ہوا نشان زد کریں</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>اس ڈیوائس کے تمام اکاؤنٹس کی یاد دہانیوں کو پڑھا ہوا نشان زد کرتا ہے۔ زیر التوا کام اور پیغامات پڑھنے کی رسیدیں تبدیل نہیں ہوتیں۔</string>
 	<key>dmsg.noticeMerge</key>
 	<string>مختلف آلات پر دہرائے گئے انتباہات یکجا کریں</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>آپ کی ترتیبات یہاں فوراً لاگو ہوتی ہیں۔ تبدیلی کی تصدیق تک دور سے آنے والے انتباہات پر پرانی ترتیبات لاگو رہ سکتی ہیں۔</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>روزانہ خاموش اوقات</string>
+	<key>dmsg.noticeRead</key>
+	<string>پڑھ لیا گیا</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>یاد دہانیاں دیکھنے سے کام مکمل نہیں ہوتے اور پیغامات پڑھے ہوئے نشان زد نہیں ہوتے۔</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>تک</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>حالیہ سرگرمی دیکھنے کے لیے dMsg کھولیں۔</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>پیغامات کی حالت کی تصدیق درکار ہے۔</string>
 	<key>dmsg.noticeZone</key>
 	<string>ٹائم زون</string>
 	<key>made</key>

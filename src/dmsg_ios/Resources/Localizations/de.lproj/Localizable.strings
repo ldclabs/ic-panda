@@ -3114,6 +3114,10 @@
 	<string>Benachrichtigungen für ein weiteres Konto aktivieren?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Vom Betriebssystem verwaltet</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Alle als gelesen markieren</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Markiert Erinnerungen aller Konten auf diesem Gerät als gelesen. Offene Aufgaben und Lesebestätigungen für Nachrichten bleiben unverändert.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Doppelte Hinweise geräteübergreifend zusammenfassen</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Deine Einstellungen gelten hier sofort. Entfernte Hinweise können bis zur Bestätigung noch frühere Einstellungen verwenden.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Tägliche Ruhezeit</string>
+	<key>dmsg.noticeRead</key>
+	<string>Gelesen</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Das Anzeigen von Erinnerungen erledigt keine Aufgaben und markiert keine Nachrichten als gelesen.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Bis</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Öffne dMsg, um neue Aktivitäten zu prüfen.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Der Nachrichtenstatus muss geprüft werden.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Zeitzone</string>
 	<key>made</key>

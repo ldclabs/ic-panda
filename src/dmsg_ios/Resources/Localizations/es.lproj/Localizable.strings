@@ -3114,6 +3114,10 @@
 	<string>¿Activar las notificaciones para otra cuenta?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Gestionado por el sistema operativo</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Marcar todo como leído</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Marca como leídos los recordatorios de todas las cuentas de este dispositivo. Las acciones pendientes y las confirmaciones de lectura de mensajes no cambian.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Combinar alertas duplicadas entre dispositivos</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Tus ajustes se aplican aquí de inmediato. Las alertas remotas pueden usar los ajustes anteriores hasta que se confirme la actualización.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Horario de silencio diario</string>
+	<key>dmsg.noticeRead</key>
+	<string>Leído</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Ver los recordatorios no completa acciones ni marca los mensajes como leídos.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Hasta</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Abre dMsg para consultar la actividad reciente.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>Es necesario verificar el estado de los mensajes.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Zona horaria</string>
 	<key>made</key>

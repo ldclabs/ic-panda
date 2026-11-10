@@ -14,7 +14,7 @@
   import { nextStep } from '../shell/session'
   import { tomorrowMorning } from '../../shared/notification-time'
   import type { NoticeItem, NoticeStatus } from '../../shared/notifications'
-  import { category, icons, noNames, noticeNames, noticeTitle } from './reminders/notice'
+  import { category, icons, noNames, noticeNames, noticeTitle, noticeUnread } from './reminders/notice'
 
   let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
   const selected = $derived<string>(status?.account ?? '')
@@ -77,8 +77,12 @@
   })
 
   async function open(item: NoticeItem) {
+    const current = context
     busy = true
-    try { await window.dmsg.notificationOpen(item.account, item.id) }
+    try {
+      if (noticeUnread(item)) await call('notifications/mark_read', { account: item.account, id: item.id, version: item.version })
+      if (alive && context === current) await window.dmsg.notificationOpen(item.account, item.id)
+    }
     catch (cause) { if (alive) error = errorText(cause) }
     finally { if (alive) busy = false }
   }
@@ -101,6 +105,16 @@
     finally { if (alive) busy = false }
   }
 
+  async function markRead(item?: NoticeItem) {
+    busy = true; error = ''
+    try {
+      if (item) await call('notifications/mark_read', { account: item.account, id: item.id, version: item.version })
+      else await call('notifications/mark_all_read')
+      if (alive) await reload()
+    } catch (cause) { if (alive) error = errorText(cause) }
+    finally { if (alive) busy = false }
+  }
+
   async function snooze(until: number) {
     if (!laterItem) return
     busy = true
@@ -118,10 +132,11 @@
     <div class="flex flex-wrap items-center gap-2">
       <Segmented bind:value={scope} options={[{value:'open',label:t('noticeNeedsAction')},{value:'recent',label:t('noticeRecent')}]} label={t('noticeTitle')} disabled={busy} testid="reminders-scope" />
       <span class="min-w-0 flex-1"></span>
+      <button class={buttonClass('secondary', 'sm')} disabled={loading || busy || !(items.some(noticeUnread) || summary?.counts.actionable || summary?.counts.unread)} onclick={() => markRead()} data-testid="reminders-read-all">{t('noticeMarkAllRead')}</button>
       <button class={buttonClass('ghost', 'sm')} disabled={loading || busy} onclick={() => reload()}>{t('refresh')}</button>
       <button class={buttonClass('secondary', 'sm')} onclick={() => go('/settings/notifications')}>{t('noticeSettings')}</button>
     </div>
-    <p class="text-[12.5px] text-muted">{t('noticeReadOnlyHint')}</p>
+    <p class="text-[12.5px] text-muted">{t('noticeMarkReadHint')}</p>
     <NoticeSetup {status} {go} />
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     {#if query.has('ended')}<Notice>{t('noticeEnded')}</Notice>{/if}
@@ -146,10 +161,14 @@
               <span class="text-[13.5px] font-medium [overflow-wrap:anywhere]">{noticeTitle(item, names)}</span>
               <span class="text-xs text-muted">{when(item.updated_at)}{#if item.deadline} · {t('validUntil')} {when(item.deadline)}{/if}</span>
               {#if item.snoozed_until}<span class="text-xs text-muted">{t('noticeLater')} · {when(item.snoozed_until)}</span>{/if}
-              {#if item.unread && category(item) === 'message'}<span><Pill>{item.unread.toLocaleString()} · {t('noticeMessages')}</Pill></span>{/if}
+              {#if !noticeUnread(item)}<span class="text-xs text-muted" data-testid="reminder-read-state">{t('noticeRead')}</span>
+              {:else if item.unread && category(item) === 'message'}<span><Pill>{item.unread.toLocaleString()} · {t('noticeMessages')}</Pill></span>{/if}
             </span>
           </button>
-          {#if item.open && item.actionable}<button class={buttonClass('ghost', 'xs', 'mt-3 shrink-0')} disabled={busy} onclick={() => { laterItem = item; laterNow = Date.now(); later = true }}>{t('noticeLater')}</button>{/if}
+          <div class="mt-3 flex max-w-[42%] shrink-0 flex-wrap justify-end gap-1">
+            {#if noticeUnread(item)}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => markRead(item)} data-testid="reminder-read">{t('markRead')}</button>{/if}
+            {#if item.open && item.actionable}<button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => { laterItem = item; laterNow = Date.now(); later = true }}>{t('noticeLater')}</button>{/if}
+          </div>
         </li>
       {:else}
         <li class="px-5 py-10 text-center text-sm text-muted" role="status">{loading ? t('loading') : t('noticeEmpty')}</li>

@@ -3114,6 +3114,10 @@
 	<string>Meldingen inschakelen voor een ander account?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Beheerd door het besturingssysteem</string>
+	<key>dmsg.noticeMarkAllRead</key>
+	<string>Alles als gelezen markeren</string>
+	<key>dmsg.noticeMarkReadHint</key>
+	<string>Markeert herinneringen van alle accounts op dit apparaat als gelezen. Openstaande acties en leesbevestigingen voor berichten blijven ongewijzigd.</string>
 	<key>dmsg.noticeMerge</key>
 	<string>Dubbele meldingen op verschillende apparaten samenvoegen</string>
 	<key>dmsg.noticeMessageBody</key>
@@ -3134,6 +3138,8 @@
 	<string>Je instellingen gelden hier direct. Externe meldingen kunnen eerdere instellingen gebruiken totdat de update is bevestigd.</string>
 	<key>dmsg.noticeQuiet</key>
 	<string>Dagelijkse stille uren</string>
+	<key>dmsg.noticeRead</key>
+	<string>Gelezen</string>
 	<key>dmsg.noticeReadOnlyHint</key>
 	<string>Herinneringen bekijken voltooit geen acties en markeert berichten niet als gelezen.</string>
 	<key>dmsg.noticeRecent</key>
@@ -3180,6 +3186,8 @@
 	<string>Tot</string>
 	<key>dmsg.noticeUpdatesBody</key>
 	<string>Open dMsg om recente activiteit te bekijken.</string>
+	<key>dmsg.noticeVerifyHint</key>
+	<string>De berichtstatus moet worden gecontroleerd.</string>
 	<key>dmsg.noticeZone</key>
 	<string>Tijdzone</string>
 	<key>made</key>

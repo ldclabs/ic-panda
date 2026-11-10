@@ -6,6 +6,18 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## Unreleased
+
+### Reminders
+
+- Mark individual reminders or all reminders across this device's accounts as
+  read, directly from the bell popover or reminder page. Clear their badge counts
+  while keeping unfinished actions available and message read receipts unchanged.
+- Keep read markers across restarts and same-version updates; newer activity
+  becomes unread again. Opening a reminder acknowledges its current version.
+- Route notification registration issues to notification settings and network
+  issues to synchronization settings.
+
 ## [1.5.3] - 2026-11-10
 
 ### Membership

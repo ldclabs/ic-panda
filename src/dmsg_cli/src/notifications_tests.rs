@@ -169,6 +169,36 @@ async fn notifications_headless_queries_do_not_consume_the_native_presentation()
 }
 
 #[tokio::test]
+async fn notifications_explicit_read_clears_badges_without_resolving_actions() {
+    let dir = testing::TempDir::new();
+    let (d, id) = fixture(&dir);
+    assert_eq!(
+        d.call_notifications("notifications/mark_read", &json!({"id":id,"version":"2"}))
+            .await
+            .unwrap_err(),
+        Error::VersionConflict
+    );
+    d.call_notifications("notifications/mark_read", &json!({"id":id,"version":"1"}))
+        .await
+        .unwrap();
+    let status = d
+        .call_notifications("notifications/status", &json!({}))
+        .await
+        .unwrap();
+    assert_eq!(status["badge"], 0);
+    let items = d
+        .call_notifications("notifications/list", &json!({"scope":"open"}))
+        .await
+        .unwrap();
+    assert_eq!(items["items"][0]["read_version"], "1");
+    assert_eq!(items["items"][0]["open"], true);
+    assert_eq!(items["items"][0]["observed"], "0");
+    d.call_notifications("notifications/mark_all_read", &json!({}))
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
 async fn notifications_late_visibility_and_foreign_list_cursors_are_rejected() {
     let dir = testing::TempDir::new();
     let (d, id) = fixture(&dir);
