@@ -74,6 +74,101 @@ fn marking_a_reminder_read_persists_without_completing_its_business_item() {
 }
 
 #[test]
+fn notifications_reading_an_older_version_keeps_newer_activity_unread() {
+    let store = Store::memory().unwrap();
+    let (mut item, settings, runtime, context) = example();
+    let displayed = item.version;
+    upsert(&store, item.clone()).unwrap();
+    item.version += 1;
+    upsert(&store, item.clone()).unwrap();
+
+    // A message can arrive after the reminder list was loaded. Opening that
+    // row acknowledges only what was displayed, without blocking navigation.
+    mark_read(&store, &item.id, displayed).unwrap();
+    let saved = store.notification_item(&item.id).unwrap().unwrap();
+    assert_eq!(saved.read_version, displayed);
+    assert_eq!(saved.observed, 0);
+    assert_eq!(counts(std::slice::from_ref(&saved), context.now).unread, 2);
+    assert!(matches!(
+        evaluate(&saved, &settings, &runtime, &context),
+        Decision::Present { .. }
+    ));
+
+    mark_all_read(&store).unwrap();
+    mark_read(&store, &item.id, displayed).unwrap();
+    let saved = store.notification_item(&item.id).unwrap().unwrap();
+    assert_eq!(
+        saved.read_version, item.version,
+        "Late clicks cannot roll back read state"
+    );
+    assert_eq!(counts(std::slice::from_ref(&saved), context.now).unread, 0);
+    assert_eq!(mark_read(&store, &item.id, 0), Err(Error::VersionConflict));
+    assert_eq!(
+        mark_read(&store, &item.id, item.version + 1),
+        Err(Error::VersionConflict)
+    );
+}
+
+#[test]
+fn notifications_reading_one_letter_keeps_the_other_letters_system_notification() {
+    let store = Store::memory().unwrap();
+    let (_, settings, mut runtime, mut context) = example();
+    configure(&store, 0, settings).unwrap();
+    let mut ids = Vec::new();
+    for letter in ["first", "second"] {
+        let mut item = Item::new(
+            "account-a".into(),
+            Target::Inbox(Some(letter.into())),
+            1,
+            1_000,
+        );
+        item.group = item_id(&item.account, &Target::Inbox(None));
+        item.unread = Some(1);
+        ids.push(item.id.clone());
+        upsert(&store, item).unwrap();
+    }
+    let plan = next(&store, &mut runtime, &context, |_| Ok(()))
+        .unwrap()
+        .plans
+        .remove(0);
+    assert_eq!(plan.covered.len(), 2);
+    result(
+        &store,
+        &plan.system_id,
+        &plan.delivery_id,
+        DeliveryResult::Submitted,
+        context.now,
+    )
+    .unwrap();
+
+    mark_read(&store, &ids[0], 1).unwrap();
+    context.now += 1;
+    let batch = next(&store, &mut runtime, &context, |_| Ok(())).unwrap();
+    assert!(batch.remove.is_empty(), "The other letter is still unread");
+    assert!(
+        batch.plans.is_empty(),
+        "Do not alert again for an existing letter"
+    );
+    assert_eq!(
+        counts(&store.notification_items().unwrap(), context.now).unread,
+        1
+    );
+
+    mark_read(&store, &ids[1], 1).unwrap();
+    let batch = next(&store, &mut runtime, &context, |_| Ok(())).unwrap();
+    assert_eq!(batch.remove, vec![plan.system_id.clone()]);
+    assert!(batch.plans.is_empty());
+    assert_eq!(
+        store
+            .notification_delivery(&plan.system_id)
+            .unwrap()
+            .unwrap()
+            .result,
+        DeliveryResult::Suppressed
+    );
+}
+
+#[test]
 fn marking_all_reminders_read_covers_unloaded_pages_and_keeps_message_receipts() {
     let store = Store::memory().unwrap();
     for sequence in 1..=120 {

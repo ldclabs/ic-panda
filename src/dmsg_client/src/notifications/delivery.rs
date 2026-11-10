@@ -224,11 +224,10 @@ pub fn next(
                 }
                 batch.due(until, now);
             }
-            Decision::Remove => {
-                if prior.iter().any(|p| p.system_id == system_id) {
-                    batch.remove.push(system_id);
-                }
-            }
+            // The delivery pass above removes a group only when none of its
+            // covered items remain eligible. One read item cannot remove a
+            // shared inbox/security notification for another unread item.
+            Decision::Remove => {}
             Decision::Keep {
                 reason: Reason::Disabled | Reason::Permission,
             } => {

@@ -85,8 +85,8 @@ export function notificationsFixture(account, changed) {
     },
     'notifications/mark_read': (p) => {
       const item = items.get(p.id)
-      if (!item || item.account !== p.account || item.version !== p.version) throw { code: 'VERSION_CONFLICT', message: 'Reminder changed' }
-      item.read_version = item.version
+      if (!item || item.account !== p.account || BigInt(p.version) <= 0n || BigInt(p.version) > BigInt(item.version)) throw { code: 'VERSION_CONFLICT', message: 'Reminder changed' }
+      if (BigInt(p.version) > BigInt(item.read_version)) item.read_version = p.version
       changed('notifications/changed')
       return null
     },

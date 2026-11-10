@@ -2888,3 +2888,38 @@ physical-device installation, archiving, uploading and deployment were not run.
 No version numbers were changed; both changelogs record this work as Unreleased.
 
 Implementation and validation: Codex (OpenAI).
+
+## Reminder acknowledgement review (2026-11-10)
+
+Review of the inclusive `0627d831`–`548c7fd1` range found two reminder regressions.
+A newer projection arriving after the list loaded made opening the displayed row
+fail with a version conflict. Acknowledgement now advances only through the
+displayed positive version, preserving newer unread activity and never rolling
+back a later read. Reading one letter also removed the system notification for
+other unread letters sharing its inbox group. Removal now uses the delivery's
+complete coverage instead of one item's policy decision.
+
+- Both new shared-core regressions failed before the fixes. Afterward, 48
+  notification tests, 10 Passkey tests, 33 channel/hint tests, 8 daemon notification
+  tests and the extended mobile acknowledgement test passed. The mobile test
+  verifies a stale row through the exported API and retains the newer badge.
+- Desktop type checking, all 192 tests, production build, reminder-read and
+  membership-auth Electron smoke flows passed. The reminder flow covers a stale
+  row, failure/retry, keyboard operation, both service routes and bulk clearing.
+  Its eight reviewed screenshots cover Chinese light/dark, German and Arabic RTL,
+  including the minimum 760×540 window. Four membership login screenshots were
+  also reviewed. Cached Electron 45.2.1 was used; 45.2.3 was not tested.
+- Both ARM64 native slices and Swift bindings rebuilt; the debug artifact/source
+  fingerprint passed verification. All 23 localization resources and notification
+  copy parity passed. Rust formatting and diff checks passed.
+- All 21 selected simulator tests passed on iPhone 17e / iOS 27.0: 10 notification
+  unit tests, 6 message-sending unit tests, 3 reminder read/navigation UI flows
+  (Chinese dark, Arabic and German), and 2 conversation hint/retry UI flows.
+  Eight selected reminder, registration and message screenshots were reviewed.
+  Result bundle: `.build/Review548c7fd-20261110.xcresult`; exported screenshots:
+  `.build/review-548c7fd-20261110-shots/`.
+
+The full iOS suite and live APNs/App Attest or physical-device acceptance were not
+run. No archive, upload or production deployment was performed.
+
+Review, implementation and validation: Codex (OpenAI).

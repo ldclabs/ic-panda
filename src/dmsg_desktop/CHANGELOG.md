@@ -10,6 +10,9 @@ where the client depends on them.
 
 ### Reminders
 
+- Keep reminders openable when newer activity arrives after the list loads,
+  acknowledging only the displayed version. Reading one letter preserves the
+  system notification for other unread letters in the same inbox.
 - Mark individual reminders or all reminders across this device's accounts as
   read, directly from the bell popover or reminder page. Clear their badge counts
   while keeping unfinished actions available and message read receipts unchanged.

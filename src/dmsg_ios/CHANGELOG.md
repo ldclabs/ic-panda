@@ -9,6 +9,9 @@ tracked separately. Build and device-test evidence is recorded in
 
 ### Reminders
 
+- Keep reminders openable when newer activity arrives after the list loads,
+  acknowledging only the displayed version. Reading one letter preserves the
+  system notification for other unread letters in the same inbox.
 - Add visible Mark as read and Mark all as read actions. The latter covers all
   local accounts and unloaded reminders, clearing badge counts without completing
   pending actions or changing message read receipts.

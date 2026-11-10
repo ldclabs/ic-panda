@@ -504,11 +504,15 @@ pub fn observe(store: &Store, id: &str, version: u64) -> Result<()> {
     store.set_notification_item(&item)
 }
 
-/// Acknowledge this exact reminder without claiming business visibility.
+/// Acknowledge the displayed version without claiming business visibility.
+/// A stale row leaves newer activity unread; delayed clicks never undo a read.
 pub fn mark_read(store: &Store, id: &str, version: u64) -> Result<()> {
     let mut item = store.notification_item(id)?.ok_or(Error::NotFound)?;
-    ensure(version == item.version, Error::VersionConflict)?;
-    item.read_version = version;
+    ensure(
+        version > 0 && version <= item.version,
+        Error::VersionConflict,
+    )?;
+    item.read_version = item.read_version.max(version);
     store.set_notification_item(&item)
 }
 

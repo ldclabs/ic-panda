@@ -29,14 +29,19 @@ export async function reminderReadFlow({ app, main, shots, methods, emit, waitFo
   await main.getByTestId('reminder-open').first().click()
   await main.waitForFunction(() => location.hash.startsWith('#/settings/session'))
   await route('/reminders')
+  await main.getByTestId('reminder-open').nth(1).waitFor()
+  // A newer projection arrives after the list was displayed, before its click.
+  // Opening must succeed without acknowledging that unseen newer version.
+  registration.version = '2'
   await main.getByTestId('reminder-open').nth(1).click()
   await main.waitForFunction(() => location.hash.startsWith('#/settings/notifications'))
   assert.equal(registration.read_version, '1')
+  assert.equal(methods['notifications/status']().counts.actionable, 1)
   await route('/reminders')
   for (const [language, appearance, width] of [['zh', 'light', 1180], ['zh', 'dark', 760], ['de', 'light', 760], ['ar', 'dark', 760]]) {
     for (const item of model.items.values()) item.read_version = '0'
     emit('notifications/changed')
-    await native.evaluate((window, width) => window.setContentSize(width, 760), width)
+    await native.evaluate((window, width) => window.setContentSize(width, width === 760 ? 540 : 760), width)
     await main.evaluate(async ([language, appearance]) => { await window.dmsg.setLocale(language); await window.dmsg.setAppearance(appearance) }, [language, appearance])
     await main.waitForFunction(([language, appearance]) => document.documentElement.lang === language && matchMedia('(prefers-color-scheme: dark)').matches === (appearance === 'dark'), [language === 'zh' ? 'zh-Hans' : language, appearance])
     await main.evaluate(() => document.fonts.ready.then(() => undefined))

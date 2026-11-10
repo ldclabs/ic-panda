@@ -169,7 +169,7 @@ async fn reminder_acknowledgement_clears_badges_but_preserves_registration_healt
         .unwrap();
     let before = engine.session_state().await.unwrap();
     engine
-        .notification_mark_read(selected.to_string(), id, "1".into())
+        .notification_mark_read(selected.to_string(), id.clone(), "1".into())
         .await
         .unwrap();
     let status: serde_json::Value =
@@ -184,6 +184,30 @@ async fn reminder_acknowledgement_clears_badges_but_preserves_registration_healt
     )
     .unwrap();
     assert_eq!(preferences["registration_required"], true);
+    let updated = id.clone();
+    engine
+        .host
+        .run(move |c| {
+            Box::pin(async move {
+                c.with_notification_store(&selected, |s| {
+                    let mut item = s.notification_item(&updated)?.unwrap();
+                    item.version = 2;
+                    dmsg_client::notifications::upsert(s, item)
+                })
+            })
+        })
+        .await
+        .unwrap();
+    engine
+        .notification_mark_read(selected.to_string(), id, "1".into())
+        .await
+        .unwrap();
+    let status: serde_json::Value =
+        serde_json::from_str(&engine.notification_status().await.unwrap().json).unwrap();
+    assert_eq!(
+        status["badge"], 1,
+        "A stale row must not acknowledge the newer version"
+    );
     engine.notification_mark_all_read().await.unwrap();
     let items: serde_json::Value = serde_json::from_str(
         &engine
@@ -198,7 +222,7 @@ async fn reminder_acknowledgement_clears_badges_but_preserves_registration_healt
     )
     .unwrap();
     assert_eq!(items["items"][0]["open"], true);
-    assert_eq!(items["items"][0]["read_version"], "1");
+    assert_eq!(items["items"][0]["read_version"], "2");
     assert_eq!(
         engine.session_state().await.unwrap().account,
         before.account
