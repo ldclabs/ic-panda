@@ -6,7 +6,7 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
-## Unreleased
+## [1.5.4] - 2026-11-10
 
 ### Reminders
 
@@ -17,7 +17,7 @@ where the client depends on them.
   read, directly from the bell popover or reminder page. Clear their badge counts
   while keeping unfinished actions available and message read receipts unchanged.
 - Keep read markers across restarts and same-version updates; newer activity
-  becomes unread again. Opening a reminder acknowledges its current version.
+  becomes unread again. Opening a reminder acknowledges its displayed version.
 - Route notification registration issues to notification settings and network
   issues to synchronization settings.
 
@@ -816,6 +816,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.5.4]: https://github.com/ldclabs/ic-panda/compare/1.5.3...1.5.4
 [1.5.3]: https://github.com/ldclabs/ic-panda/compare/1.5.2...1.5.3
 [1.5.2]: https://github.com/ldclabs/ic-panda/compare/1.5.1...1.5.2
 [1.5.1]: https://github.com/ldclabs/ic-panda/compare/1.5.0...1.5.1

@@ -5,9 +5,12 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
-## Unreleased
+## 1.1.1 - 2026-11-10
 
-### Reminders
+Available on the [App Store](https://apps.apple.com/app/id6827050680) for
+iPhone and iPad running iOS 18 or iPadOS 18 or later.
+
+### Build 24 reminders
 
 - Keep reminders openable when newer activity arrives after the list loads,
   acknowledging only the displayed version. Reading one letter preserves the
@@ -16,15 +19,10 @@ tracked separately. Build and device-test evidence is recorded in
   local accounts and unloaded reminders, clearing badge counts without completing
   pending actions or changing message read receipts.
 - Preserve read markers across restarts and same-version updates; newer activity
-  becomes unread again. Opening a reminder acknowledges its current version.
+  becomes unread again. Opening a reminder acknowledges its displayed version.
 - Explain network and notification-registration issues separately and open the
   relevant settings. Keep receiver registration retryable even when a cached
   Apple registration was successful.
-
-## 1.1.1 - 2026-11-10
-
-Available on the [App Store](https://apps.apple.com/app/id6827050680) for
-iPhone and iPad running iOS 18 or iPadOS 18 or later.
 
 ### Build 23 fixes
 
