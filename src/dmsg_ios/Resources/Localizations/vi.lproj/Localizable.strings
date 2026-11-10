@@ -1448,6 +1448,8 @@
 	<string>Không có tin nhắn</string>
 	<key>No pending backups</key>
 	<string>Không có bản sao lưu đang chờ xử lý</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>Không tìm thấy giao dịch mua cho tài khoản dMsg này.</string>
 	<key>No recent use observed on this device</key>
 	<string>Gần đây không thấy có hoạt động sử dụng nào trên thiết bị này</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>Gói</string>
 	<key>Plan and usage</key>
 	<string>Gói và mức sử dụng</string>
+	<key>Plan at next renewal</key>
+	<string>Gói ở lần gia hạn tiếp theo</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>Không thể thay đổi gói trong phiên bản ứng dụng này. Gói hiện tại và mức sử dụng của bạn vẫn xem được.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>Các bản xuất này không bao giờ chứa khóa gốc của tài khoản hoặc khóa ký của thiết bị. Bản sao trong ứng dụng Tệp không theo các thay đổi của tệp nguồn; cần tạo ảnh chụp mới.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Các địa chỉ native này vẫn cần thiết bị cũ cho L1. Thành viên vẫn có thể quét chúng qua L2 khi mỗi output đủ lâu.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>Gói đăng ký Apple này thuộc tài khoản dMsg khác. Hãy chuyển tài khoản để quản lý. Khôi phục giao dịch mua không chuyển gói đăng ký.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Tài khoản này yêu cầu khóa phê duyệt đã đăng ký. Thiết lập thiết bị này trong Bảo mật phần cứng hoặc yêu cầu một thiết bị được ủy quyền khác.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>Nhập ID tài khoản này để xác nhận</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>Không thể xác minh tài khoản liên kết với gói đăng ký Apple này. Hãy thử lại trước khi mua.</string>
 	<key>Unbind</key>
 	<string>Hủy liên kết</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>Thư trước của bạn vẫn đang chờ xử lý. Hãy nhờ người nhận lưu trữ thư đó trên máy tính hoặc chọn “Cho phép thư tiếp theo” trong menu thư trên iOS, rồi thử gửi lại thư này.</string>
 	<key>Your private workspace.</key>
 	<string>Không gian làm việc riêng tư của bạn.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>Giao dịch mua đã được áp dụng cho tài khoản dMsg này.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Việc mua hàng của bạn đang chờ xác nhận. Khôi phục mua hàng để thử lại mà không phải trả tiền lại.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

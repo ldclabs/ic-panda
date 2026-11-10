@@ -66,7 +66,7 @@ struct AccountView: View {
                 NavigationLink { AboutDMsgView() } label: { Label("About dMsg", systemImage: "info.circle") }.accessibilityIdentifier("account.about")
             }
             Section {
-                SettingsAction("Sign out", role: .destructive) { signingOut = true }.disabled(model.busy)
+                SettingsAction("Sign out", role: .destructive) { signingOut = true }.disabled(model.busy).accessibilityIdentifier("account.sign-out")
             }
         }.privateScreen().navigationTitle("Account").workspaceRootTitle()
             .task(id: model.session?.loginExpiresAtMs) {
@@ -99,8 +99,9 @@ struct AccountView: View {
                 ToolbarItem(placement: .topBarLeading) { ActivityButton() }
                 ToolbarItem(placement: .primaryAction) { Button("Lock workspace", systemImage: "lock") { Task { await model.lock() } }.accessibilityIdentifier("account.lock") }
             }
-            .confirmationDialog("Sign out of this account?", isPresented: $signingOut) {
+            .alert("Sign out of this account?", isPresented: $signingOut) {
                 Button("Sign out", role: .destructive) { Task { await logout() } }
+                Button("Cancel", role: .cancel) { }
             } message: { Text("Your encrypted files remain here. Saved login and quick unlock are removed.") }
     }
 

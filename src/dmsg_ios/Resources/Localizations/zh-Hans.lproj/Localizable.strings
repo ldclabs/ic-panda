@@ -1448,6 +1448,8 @@
 	<string>没有消息</string>
 	<key>No pending backups</key>
 	<string>没有待处理备份</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>未找到此 dMsg 账号的购买记录。</string>
 	<key>No recent use observed on this device</key>
 	<string>此设备近期未观察到使用记录</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>会员</string>
 	<key>Plan and usage</key>
 	<string>套餐与用量</string>
+	<key>Plan at next renewal</key>
+	<string>下次续订套餐</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>此版本的应用无法更改方案。你当前的方案和用量仍可查看。</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>这些导出绝不包含账号根密钥或设备签名密钥。「文件」App 中的副本不会跟随源文件变化，需要重新生成快照。</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>这些原生地址的 L1 仍需要旧设备签名。等每笔输出足够久后，成员仍可经 L2 扫回。</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>此 Apple 订阅属于另一个 dMsg 账号，请切换到该账号管理。恢复购买不会转移订阅。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>此账号要求使用已注册的批准钥匙。请到“硬件安全”中设置本设备，或请其他已授权设备处理。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>输入此账号 ID 以确认</string>
 	<key>URL</key>
 	<string>网址</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>无法验证此 Apple 订阅关联的账号，请重试后再购买。</string>
 	<key>Unbind</key>
 	<string>解绑</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>上一封信还在等待对方处理。请对方在桌面端归档旧信，或在 iOS 的来信菜单中选择“允许再次来信”，然后重试这封信。</string>
 	<key>Your private workspace.</key>
 	<string>你的私密工作台。</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>购买权益已发放到此 dMsg 账号。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>购买正在等待确认。请恢复购买以重试，无须再次付款。</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

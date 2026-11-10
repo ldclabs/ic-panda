@@ -1448,6 +1448,8 @@
 	<string>Tidak ada pesan</string>
 	<key>No pending backups</key>
 	<string>Tidak ada cadangan yang tertunda</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>Tidak ditemukan pembelian untuk akun dMsg ini.</string>
 	<key>No recent use observed on this device</key>
 	<string>Tidak ada penggunaan terbaru yang diamati pada perangkat ini</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>Paket</string>
 	<key>Plan and usage</key>
 	<string>Paket dan penggunaan</string>
+	<key>Plan at next renewal</key>
+	<string>Paket pada perpanjangan berikutnya</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>Paket tidak dapat diubah di versi aplikasi ini. Paket dan penggunaan Anda saat ini tetap tersedia.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>Ekspor ini tidak pernah berisi kunci root akun atau kunci penandatanganan perangkat. Salinan di aplikasi File tidak mengikuti perubahan file sumber; salinan tersebut memerlukan snapshot baru.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Alamat native ini tetap memerlukan perangkat lama untuk L1. Anggota masih dapat menyapunya melalui L2 setelah setiap output cukup lama.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>Langganan Apple ini milik akun dMsg lain. Ganti akun untuk mengelolanya. Memulihkan pembelian tidak memindahkan langganan.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Akun ini memerlukan kunci persetujuan terdaftar. Siapkan perangkat ini di Keamanan perangkat keras, atau tanyakan pada perangkat resmi lainnya.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>Ketik ID akun ini untuk mengonfirmasi</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>Tidak dapat memverifikasi akun yang terhubung ke langganan Apple ini. Coba lagi sebelum membeli.</string>
 	<key>Unbind</key>
 	<string>Lepas ikatan</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>Surat Anda sebelumnya masih tertunda. Minta penerima mengarsipkannya di desktop atau memilih “Izinkan surat lain” dari menu surat di iOS, lalu coba kirim surat ini lagi.</string>
 	<key>Your private workspace.</key>
 	<string>Ruang kerja pribadi Anda.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>Pembelian Anda telah diterapkan ke akun dMsg ini.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Pembelian Anda sedang menunggu konfirmasi. Pulihkan pembelian untuk mencoba lagi tanpa membayar lagi.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

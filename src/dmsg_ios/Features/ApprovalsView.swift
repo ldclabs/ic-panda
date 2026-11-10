@@ -129,16 +129,21 @@ struct ApprovalDetailView: View {
         }.privateScreen().navigationTitle("Review request").navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
                 if result == nil && state == "awaiting_user" {
-                    VStack(spacing: 8) {
-                        TimelineView(.periodic(from: .now, by: 1)) { context in
-                            let expired = context.date.timeIntervalSince1970 * 1000 >= Double(request.expiresAt)
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let expired = context.date.timeIntervalSince1970 * 1000 >= Double(request.expiresAt)
+                        VStack(spacing: 8) {
                             Text(LocalizedStringKey(expired ? "This request has expired" : "Your decision applies only to this request."))
                                 .font(.caption).foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("approval.decision-hint")
                             HStack {
-                                Button("Reject", role: .destructive) { decision = false }.buttonStyle(.bordered).frame(maxWidth: .infinity)
+                                Button(role: .destructive) { decision = false } label: {
+                                    Text("Reject").frame(maxWidth: .infinity)
+                                }.buttonStyle(.bordered).accessibilityIdentifier("approval.reject")
                                 Button { decision = true } label: {
                                     if working { ProgressView() } else { Text("Approve").frame(maxWidth: .infinity) }
                                 }.buttonStyle(.borderedProminent).frame(maxWidth: .infinity)
+                                    .accessibilityIdentifier("approval.approve")
                                     .disabled(expired || context.date < readyAt || !supported)
                             }.controlSize(.large).disabled(payload == nil || working)
                         }
@@ -152,11 +157,14 @@ struct ApprovalDetailView: View {
                 }
             }
             .task(id: request.id + ":\(model.epoch):\(model.concealed)") { await load() }
-            .confirmationDialog(LocalizedStringKey(decision == true ? "Approve the reviewed request?" : "Reject this request?"),
-                isPresented: Binding(get: { decision != nil }, set: { if !$0 { decision = nil } })) {
-                Button(LocalizedStringKey(decision == true ? "Approve this request" : "Reject"), role: decision == true ? nil : .destructive) {
-                    if let approve = decision { decisionTask = Task { await decide(approve) } }
+            .alert(LocalizedStringKey(decision == true ? "Approve the reviewed request?" : "Reject this request?"),
+                isPresented: Binding(get: { decision != nil }, set: { if !$0 { decision = nil } }), presenting: decision) { approve in
+                Button(LocalizedStringKey(approve ? "Approve this request" : "Reject"), role: approve ? nil : .destructive) {
+                    decisionTask = Task { await decide(approve) }
                 }
+                Button("Cancel", role: .cancel) { decision = nil }
+            } message: { _ in
+                Text("Your decision applies only to this request.")
             }
             .onDisappear { decisionTask?.cancel() }
     }
@@ -165,6 +173,16 @@ struct ApprovalDetailView: View {
         guard !working else { return }
         supported = false; state = nil; payload = nil; observedVersion = nil; readyAt = .distantFuture
         guard !model.concealed else { return }
+        #if DEBUG
+        if model.uiTesting {
+            state = request.state; supported = true; readyAt = .now
+            payload = .object(["detail": .object([
+                "capabilities": .array([.string("ContentSign"), .string("VaultUnlock"), .string("RootManage")]),
+                "device_id": .string(String(repeating: "a", count: 64)), "role": .string("member")
+            ])])
+            return
+        }
+        #endif
         let epoch = model.epoch
         do {
             guard let snapshot = try await model.engine?.approval(id: request.id), epoch == model.epoch else { return }

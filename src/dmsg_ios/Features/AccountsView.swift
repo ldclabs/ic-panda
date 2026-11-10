@@ -16,7 +16,7 @@ struct AccountsView: View {
         List {
             SettingsLoadStatus(loading: loading, failed: failed) { Task { await load() } }
             ForEach(accounts) { account in
-                let row = LocalAccountRow(account: account, identity: model.accountIdentities[account.id])
+                let row = LocalAccountRow(account: account, identity: model.accountIdentities[account.id], reminders: model.notifications.status?.reminderCount(for: account.id) ?? 0)
                 if account.current {
                     row.accessibilityElement(children: .combine).accessibilityAddTraits(.isSelected)
                         .accessibilityIdentifier("accounts.\(account.id)")
@@ -31,7 +31,7 @@ struct AccountsView: View {
                 await model.lock(); model.signingIntoAnotherAccount = true
             } }.disabled(working).accessibilityIdentifier("accounts.sign-in")
             if working { ProgressView() }
-        }.privateScreen().navigationTitle("Accounts").task { await load() }.refreshable { await load() }
+        }.privateScreen().navigationTitle("Accounts").task { await load(); await model.notifications.refresh(model) }.refreshable { await load(); await model.notifications.refresh(model) }
     }
 
     private func load() async {
@@ -82,6 +82,7 @@ struct AccountsView: View {
 private struct LocalAccountRow: View {
     let account: AccountsView.LocalAccount
     let identity: LocalAccountIdentity?
+    let reminders: UInt64
 
     var body: some View {
         HStack(spacing: 12) {
@@ -95,10 +96,19 @@ private struct LocalAccountRow: View {
                 }
                 Text(account.account).font(identity?.name == nil ? .body.monospaced() : .caption.monospaced())
                     .foregroundStyle(identity?.name == nil ? .primary : .secondary).environment(\.layoutDirection, .leftToRight)
+                    .lineLimit(1).truncationMode(.middle)
                 if account.moved == true { Text("Workspace copied from another iPhone").font(.caption) }
                 else if !account.current { Text("Unlock workspace").font(.caption).foregroundStyle(.secondary) }
             }
             Spacer()
+            if reminders > 0 {
+                Label(reminders > 99 ? "99+" : reminders.formatted(), systemImage: "bell")
+                    .font(.caption.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(Theme.forest).padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(Theme.forest.opacity(0.1), in: Capsule())
+                    .fixedSize().accessibilityLabel(NoticeCopy.text("noticeTitle"))
+                    .accessibilityValue(reminders.formatted())
+            }
             if account.current { Image(systemName: "checkmark").foregroundStyle(Theme.forest).accessibilityLabel("Current account") }
         }.contentShape(Rectangle())
     }

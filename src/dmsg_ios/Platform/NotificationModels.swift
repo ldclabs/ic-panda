@@ -87,6 +87,13 @@ struct ReminderCounts: Decodable { let actionable: UInt64; let unread: UInt64; l
 struct ReminderStatus: Decodable {
     struct Account: Decodable, Identifiable { let account: String; let enabled: Bool; let counts: ReminderCounts; var id: String { account } }
     let counts: ReminderCounts; let accounts: [Account]; let badge: UInt64; let enabled: Bool
+
+    /// Workspace reminders are independent of the system badge preference.
+    func reminderCount(for account: String) -> UInt64 {
+        guard let counts = accounts.first(where: { $0.account == account })?.counts else { return 0 }
+        let (total, overflow) = counts.actionable.addingReportingOverflow(counts.unread)
+        return overflow ? .max : total
+    }
 }
 struct ReminderPlan: Decodable, Identifiable {
     struct Covered: Decodable { let id: String; let version: String; let stage: UInt8 }

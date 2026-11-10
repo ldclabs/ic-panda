@@ -225,6 +225,63 @@ import XCTest
         checkAccountNames(language: "zh-Hans", locale: "zh_CN", tab: "我的", personal: "个人账号", dark: true)
     }
 
+    func testApprovalLayoutAndConfirmations() {
+        for (language, dark) in [("en", false), ("zh-Hans", true), ("de", false), ("ar", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-approval", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            let tab = app.buttons[["en": "Account", "zh-Hans": "我的", "de": "Konto", "ar": "الحساب"][language]!]
+            XCTAssertTrue(tab.waitForExistence(timeout: 8)); tab.tap()
+            tap("account.approvals", in: app)
+            let request = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Studio iPhone")).firstMatch
+            XCTAssertTrue(request.waitForExistence(timeout: 5)); request.tap()
+            let approve = app.buttons["approval.approve"], reject = app.buttons["approval.reject"]
+            let hint = app.staticTexts["approval.decision-hint"]
+            XCTAssertTrue(approve.waitForExistence(timeout: 5))
+            XCTAssertLessThanOrEqual(hint.frame.maxY, approve.frame.minY)
+            XCTAssertFalse(approve.frame.intersects(reject.frame))
+            capture(app, "Approval actions do not overlap · \(language)")
+            for button in [approve, reject] {
+                button.tap()
+                let alert = app.alerts.firstMatch
+                XCTAssertTrue(alert.waitForExistence(timeout: 3))
+                capture(app, "Centered decision confirmation · \(language)")
+                alert.buttons[["en": "Cancel", "zh-Hans": "取消", "de": "Abbrechen", "ar": "إلغاء"][language]!].tap()
+                XCTAssertTrue(approve.isEnabled)
+            }
+            app.terminate()
+        }
+    }
+
+    func testSignOutUsesCenteredConfirmation() {
+        let app = open()
+        tap("account.sign-out", in: app)
+        XCTAssertTrue(app.alerts["Sign out of this account?"].waitForExistence(timeout: 3))
+        capture(app, "Centered sign-out confirmation")
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["account.sign-out"].exists)
+        app.terminate()
+    }
+
+    func testAccountReminderBadges() {
+        for (language, dark) in [("en", false), ("zh-Hans", true), ("de", false), ("ar", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-account-reminders", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            let accountTab = app.buttons[["en": "Account", "zh-Hans": "我的", "de": "Konto", "ar": "الحساب"][language]!]
+            XCTAssertTrue(accountTab.waitForExistence(timeout: 8)); accountTab.tap()
+            tap("account.switch", in: app)
+            let other = app.buttons["accounts.040g2082040g2082040g"]
+            XCTAssertTrue(other.waitForExistence(timeout: 5))
+            XCTAssertTrue(other.label.contains("122") || (other.value as? String)?.contains("122") == true)
+            XCTAssertTrue(other.isEnabled)
+            let current = app.descendants(matching: .any).matching(identifier: "accounts.040g2081040g2081040g").firstMatch
+            XCTAssertFalse(current.label.contains("122"))
+            capture(app, "Account reminder badges · \(language)")
+            app.terminate()
+        }
+    }
+
     private func checkAccountNames(language: String, locale: String, tab: String, personal: String, dark: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale] + (dark ? ["--ui-dark"] : [])

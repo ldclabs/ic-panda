@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { NoticeStatus } from '../../shared/notifications'
   import Brand from './Brand.svelte'
   import type { Snippet } from 'svelte'
   import Icon from '../components/Icon.svelte'
@@ -23,6 +24,7 @@
     inset,
     mod,
     legacyNotice,
+    reminderAccounts,
     onDismissLegacy,
     go,
     enter,
@@ -33,6 +35,7 @@
     collapsed: boolean
     inset: boolean
     mod: string
+    reminderAccounts: NoticeStatus['accounts']
     legacyNotice: boolean
     onDismissLegacy: () => void
     go: (path: string) => void
@@ -103,7 +106,7 @@
       {@render windowNav()}
     {/if}
   </div>
-  <AccountSwitcher {status} {collapsed} />
+  <AccountSwitcher {status} {collapsed} {reminderAccounts} />
   {#if legacyNotice && !collapsed}
     <div class="mt-2 grid gap-1.5 rounded-xl bg-warn-pale p-2.5 text-[12.5px] text-warn" data-testid="legacy-notice">
       <div class="flex items-start gap-2">

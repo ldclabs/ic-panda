@@ -1448,6 +1448,8 @@
 	<string>کوئی پیغامات نہیں</string>
 	<key>No pending backups</key>
 	<string>کوئی زیر التوا بیک اپ نہیں</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>اس dMsg اکاؤنٹ کے لیے کوئی خریداری نہیں ملی۔</string>
 	<key>No recent use observed on this device</key>
 	<string>اس ڈیوائس پر کوئی حالیہ استعمال نہیں دیکھا گیا</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>منصوبہ</string>
 	<key>Plan and usage</key>
 	<string>منصوبہ اور استعمال</string>
+	<key>Plan at next renewal</key>
+	<string>اگلی تجدید پر پلان</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>ایپ کے اس ورژن میں پلان تبدیل نہیں کیا جا سکتا۔ آپ کا موجودہ پلان اور استعمال دستیاب رہے گا۔</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>ان ایکسپورٹس میں کبھی اکاؤنٹ کی روٹ کلیدیں یا ڈیوائس کی دستخطی کلیدیں شامل نہیں ہوتیں۔ Files ایپ کی کاپیاں ماخذ فائلوں کی تبدیلیوں کی پیروی نہیں کرتیں؛ ان کے لیے نیا اسنیپ شاٹ درکار ہے۔</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>ان مقامی پتوں کے L1 کے لیے پرانا آلہ بدستور درکار رہے گا۔ ہر آؤٹ پٹ کافی پرانا ہو جانے پر ارکان انہیں L2 کے ذریعے منتقل کر سکتے ہیں۔</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>یہ Apple سبسکرپشن کسی دوسرے dMsg اکاؤنٹ کی ہے۔ اس کا انتظام کرنے کے لیے اکاؤنٹ تبدیل کریں۔ خریداری بحال کرنے سے سبسکرپشن منتقل نہیں ہوتی۔</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>اس اکاؤنٹ کو ایک رجسٹرڈ منظوری کلید کی ضرورت ہے۔ اس ڈیوائس کو ہارڈ ویئر سیکیورٹی میں سیٹ اپ کریں، یا کسی اور مجاز ڈیوائس سے پوچھیں۔</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>تصدیق کے لیے یہ اکاؤنٹ ID ٹائپ کریں</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>اس Apple سبسکرپشن سے منسلک اکاؤنٹ کی تصدیق نہیں ہو سکی۔ خریدنے سے پہلے دوبارہ کوشش کریں۔</string>
 	<key>Unbind</key>
 	<string>ربط ختم کریں</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>آپ کا پچھلا خط ابھی زیر التوا ہے۔ وصول کنندہ سے اسے ڈیسک ٹاپ پر آرکائیو کرنے یا iOS میں خط کے مینو سے ”ایک اور خط کی اجازت دیں“ منتخب کرنے کو کہیں، پھر یہ خط دوبارہ بھیجیں۔</string>
 	<key>Your private workspace.</key>
 	<string>آپ کی نجی کام کی جگہ۔</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>آپ کی خریداری اس dMsg اکاؤنٹ پر لاگو کر دی گئی ہے۔</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>آپ کی خریداری تصدیق کے منتظر ہے۔ دوبارہ ادائیگی کیے بغیر دوبارہ کوشش کرنے کے لیے خریداریوں کو بحال کریں۔</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

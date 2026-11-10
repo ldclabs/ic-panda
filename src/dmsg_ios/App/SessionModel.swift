@@ -215,6 +215,11 @@ final class SessionModel {
             recoveryWarning = RecoveryObservation(account: account, pending: false, digest: nil,
                 observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000), stale: false)
         }
+        if ProcessInfo.processInfo.arguments.contains("--ui-approval") {
+            approvals = [ApprovalView(id: String(repeating: "d", count: 64), digest: String(repeating: "e", count: 64),
+                type: "device_pair", state: "awaiting_user", source: "Studio iPhone", risk: "high",
+                expiresAt: NotificationTime.now + 600_000, mobileSupported: true, updatedAt: NotificationTime.now)]
+        }
         channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "Private project conversation")]
         cloudBackups = [CloudBackup(uploadId: "fixture-backup", name: "Project brief.pdf", size: 2048, bytes: 4096, needsRoot: false, local: false,
                                    fileId: "fixture-cloud", versionId: "v1", path: ["Projects"], mime: "application/pdf", createdAt: 1_793_000_000_000,

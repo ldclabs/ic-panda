@@ -56,4 +56,36 @@ final class DeploymentTests: XCTestCase {
         XCTAssertFalse(external.managesSubscription(environment: "Production", at: now))
     }
 
+    func testAppleSubscriptionCannotMoveAccountsByChangingPurchaseToken() {
+        let a = UUID(), b = UUID()
+        for active in [true, false] {
+            XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: a, renewalToken: a, expected: b, active: active), .otherAccount)
+            // Even if Apple accepted B's token during a change, the original belongs to A.
+            XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: b, renewalToken: b, expected: b, active: active), .otherAccount)
+        }
+        XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: a, renewalToken: b, expected: a, active: true), .unverified)
+    }
+
+    func testSubscriptionOwnershipRequiresVerifiedOriginalAndCurrentTokens() {
+        let a = UUID()
+        XCTAssertEqual(PurchaseModel.ownership(originalToken: nil, transactionToken: a, renewalToken: a, expected: a, active: true), .unverified)
+        XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: nil, renewalToken: a, expected: a, active: true), .unverified)
+        XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: a, renewalToken: nil, expected: a, active: true), .current)
+        XCTAssertEqual(PurchaseModel.ownership(originalToken: a, transactionToken: a, renewalToken: a, expected: a, active: false), .available)
+    }
+
+    func testForeignRestoreCannotDeliverOrFinishTheTransaction() {
+        let a = UUID(), b = UUID()
+        XCTAssertEqual(PurchaseModel.deliveryIssue(token: a, expected: b, subscription: .otherAccount), .otherAccount)
+        XCTAssertEqual(PurchaseModel.deliveryIssue(token: b, expected: b, subscription: .otherAccount), .otherAccount)
+        XCTAssertEqual(PurchaseModel.deliveryIssue(token: nil, expected: b, subscription: nil), .unverified)
+        XCTAssertEqual(PurchaseModel.deliveryIssue(token: b, expected: b, subscription: .unverified), .unverified)
+        XCTAssertNil(PurchaseModel.deliveryIssue(token: b, expected: b, subscription: .available))
+    }
+
+    func testPurchaseRequiresACompletedSubscriptionGroupCheck() {
+        let model = PurchaseModel(enabled: false)
+        XCTAssertFalse(model.canPurchase(group: "not-yet-checked"))
+    }
+
 }

@@ -127,6 +127,14 @@ final class NativeNotifications {
         fixtureItems = [ReminderItem(id: String(repeating: "a", count: 64), account: account, target: .recovery(String(repeating: "b", count: 64)), version: "1", open: true, actionable: true, unread: nil, firstAt: now, updatedAt: now, deadline: now + 86_400_000, observed: "0", stage: 1, snoozedUntil: nil),
             ReminderItem(id: String(repeating: "c", count: 64), account: account, target: .task("conflicts:1"), version: "1", open: true, actionable: true, unread: nil, firstAt: now, updatedAt: now, deadline: nil, observed: "0", stage: 1, snoozedUntil: nil)]
         let other: [ReminderStatus.Account] = setup ? [.init(account: "040g2082040g2082040g", enabled: true, counts: .init(actionable: 0, unread: 0, unverified: false))] : []
+        if ProcessInfo.processInfo.arguments.contains("--ui-account-reminders") {
+            fixtureItems = []
+            status = ReminderStatus(counts: .init(actionable: 2, unread: 120, unverified: false), accounts: [
+                .init(account: account, enabled: true, counts: .init(actionable: 0, unread: 0, unverified: false)),
+                .init(account: "040g2082040g2082040g", enabled: true, counts: .init(actionable: 2, unread: 120, unverified: false))
+            ], badge: 122, enabled: true)
+            return
+        }
         status = ReminderStatus(counts: ReminderCounts(actionable: 2, unread: 0, unverified: false), accounts: [.init(account: account, enabled: !setup, counts: .init(actionable: 2, unread: 0, unverified: false))] + other, badge: 2, enabled: true)
     }
     func saveFixture(_ value: NoticePreferences) { preferences = value }

@@ -1448,6 +1448,8 @@
 	<string>Walang mensahe</string>
 	<key>No pending backups</key>
 	<string>Walang nakabinbing backup</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>Walang nahanap na mga pagbili para sa dMsg account na ito.</string>
 	<key>No recent use observed on this device</key>
 	<string>Walang naobserbahang kamakailang paggamit sa device na ito</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>Plano</string>
 	<key>Plan and usage</key>
 	<string>Plano at paggamit</string>
+	<key>Plan at next renewal</key>
+	<string>Plan sa susunod na renewal</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>Hindi mababago ang plano sa bersyong ito ng app. Available pa rin ang kasalukuyan mong plano at paggamit.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>Hindi kailanman naglalaman ang mga export na ito ng mga root key ng account o signing key ng device. Hindi sinusundan ng mga kopya sa Files app ang mga pagbabago sa source file; kailangan ng mga ito ng bagong snapshot.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Patuloy na kakailanganin ng mga native address na ito ang lumang device para sa L1. Maaari pa rin itong i-sweep ng mga miyembro sa L2 kapag sapat na ang tanda ng bawat output.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>Ang Apple subscription na ito ay para sa ibang dMsg account. Lumipat ng account para pamahalaan ito. Hindi inililipat ng pag-restore ng mga pagbili ang subscription.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Nangangailangan ang account na ito ng nakarehistrong key ng pag-apruba. I-set up ang device na ito sa seguridad ng Hardware, o magtanong sa isa pang awtorisadong device.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>I-type ang account ID na ito para kumpirmahin</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>Hindi ma-verify ang account na naka-link sa Apple subscription na ito. Subukang muli bago bumili.</string>
 	<key>Unbind</key>
 	<string>Alisin ang binding</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>Nakabinbin pa ang nauna mong liham. Hilingin sa tatanggap na i-archive ito sa desktop o piliin ang “Payagan ang isa pang liham” sa menu ng liham sa iOS, saka subukang muli ang liham na ito.</string>
 	<key>Your private workspace.</key>
 	<string>Ang iyong pribadong workspace.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>Nailapat na ang iyong binili sa dMsg account na ito.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Ang iyong pagbili ay naghihintay ng kumpirmasyon. Ibalik ang mga binili upang muling subukan nang hindi nagbabayad muli.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

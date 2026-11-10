@@ -4,9 +4,9 @@ import { join } from 'node:path'
 /** The sidebar owns account selection; every page follows the same session. */
 export async function accountsFlow({ app, main, shots, methods, emit, hold, waitFor, calls, model, account, other }) {
   const status = methods['daemon/status']
-  let active = account, state = 'unlocked'
+  let active = account, state = 'unlocked', fastUnlock = false
   methods['daemon/status'] = () => ({ ...status(), account: active, state, fast_unlock: false })
-  methods['session/accounts'] = () => [account, other].map(id => ({ account: id, bound: true, current: id === active, fast_unlock: false }))
+  methods['session/accounts'] = () => [account, other].map(id => ({ account: id, bound: true, current: id === active, fast_unlock: fastUnlock }))
   methods['session/switch'] = ({ account }) => {
     active = account; state = 'locked'
     return methods['daemon/status']()
@@ -26,7 +26,7 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
   }
   model.items.clear()
   model.settings.set(other, structuredClone(model.settings.get(account)))
-  model.row({ kind: 'task', id: 'conflicts:1' })
+  const currentReminder = model.row({ kind: 'task', id: 'conflicts:1' })
   const otherApproval = '77'.repeat(32)
   const original = model.row({ kind: 'approval', id: otherApproval }, {}, other)
   model.row({ kind: 'task', id: 'conflicts:2' }, {}, other)
@@ -43,6 +43,28 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
 
   emit('notifications/changed')
   await waitFor(async () => await main.getByTestId('reminders-count').textContent() === '1')
+  // The tray can be nonzero while the active workspace is empty.
+  currentReminder.open = false
+  emit('notifications/changed')
+  await waitFor(async () => await main.getByTestId('reminders-count').count() === 0)
+  await main.getByTestId('account-switcher').focus()
+  await main.keyboard.press('Enter')
+  const accountBadge = id => main.locator(`[data-testid="account-menu"] [data-value="${id}"] [data-testid="account-reminders"]`)
+  await waitFor(async () => (await accountBadge(other).textContent())?.trim() === '2')
+  assert.equal(await accountBadge(account).count(), 0)
+  const unread = model.row({ kind: 'channel', id: '88'.repeat(32) }, { unread: 120 }, other)
+  emit('notifications/changed')
+  await waitFor(async () => (await accountBadge(other).textContent())?.trim() === '99+')
+  assert.equal(await accountBadge(other).getAttribute('aria-label'), 'Reminders (122)')
+  unread.open = false
+  emit('notifications/changed')
+  await waitFor(async () => (await accountBadge(other).textContent())?.trim() === '2')
+  model.items.delete(unread.id)
+  currentReminder.open = true
+  emit('notifications/changed')
+  await waitFor(async () => (await accountBadge(account).textContent())?.trim() === '1')
+  await main.keyboard.press('Escape')
+  await waitFor(() => main.getByTestId('account-switcher').evaluate(el => el === document.activeElement))
   await main.getByTestId('reminders-open').focus()
   await main.keyboard.press('Enter')
   await waitFor(async () => await main.getByTestId('reminder-row').count() === 1)
@@ -99,6 +121,7 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
   state = 'unlocked'
   emit('session/changed')
   await main.getByTestId('gate-lock').waitFor()
+  fastUnlock = true
   const native = await app.browserWindow(main)
   await native.evaluate(window => window.setContentSize(760, 540))
   for (const [language, appearance] of [['zh', 'light'], ['zh', 'dark'], ['de', 'light'], ['ar', 'dark']]) {
@@ -112,6 +135,15 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
       assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
       assert.equal(await main.getByTestId('account-switcher').count(), 1)
       if (page === 'reminders') {
+        await main.getByTestId('account-switcher').focus()
+        await main.keyboard.press('Enter')
+        await waitFor(async () => (await accountBadge(other).textContent())?.trim() === '2')
+        await main.screenshot({ path: join(shots, `accounts-menu-${language}-${appearance}.png`), animations: 'disabled' })
+        assert.ok(await main.getByTestId('account-menu').evaluate(el => {
+          const rect = el.getBoundingClientRect()
+          return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight && el.scrollWidth <= el.clientWidth
+        }))
+        await main.keyboard.press('Escape')
         await main.getByTestId('reminders-open').focus()
         await main.keyboard.press('Enter')
         await waitFor(async () => await main.getByTestId('reminder-row').count() === 1)

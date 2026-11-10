@@ -1448,6 +1448,8 @@
 	<string>Brak wiadomości</string>
 	<key>No pending backups</key>
 	<string>Brak oczekujących kopii zapasowych</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>Nie znaleziono zakupów dla tego konta dMsg.</string>
 	<key>No recent use observed on this device</key>
 	<string>Nie zaobserwowano niedawnego użycia tego urządzenia</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>Plan</string>
 	<key>Plan and usage</key>
 	<string>Plan i wykorzystanie</string>
+	<key>Plan at next renewal</key>
+	<string>Plan przy następnym odnowieniu</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>W tej wersji aplikacji nie można zmienić planu. Twój obecny plan i użycie pozostają dostępne.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>Te eksporty nigdy nie zawierają kluczy głównych konta ani kluczy podpisywania urządzenia. Kopie w aplikacji Pliki nie śledzą zmian plików źródłowych; wymagają nowej migawki.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Te natywne adresy nadal będą wymagać starego urządzenia dla L1. Członkowie mogą je przenieść przez L2, gdy każde wyjście będzie wystarczająco stare.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>Ta subskrypcja Apple należy do innego konta dMsg. Zmień konto, aby nią zarządzać. Przywrócenie zakupów nie przenosi subskrypcji.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>To konto wymaga zarejestrowanego klucza zatwierdzającego. Skonfiguruj to urządzenie w obszarze Zabezpieczenia sprzętowe lub poproś inne autoryzowane urządzenie.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>Wpisz ten identyfikator konta, aby potwierdzić</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>Nie udało się zweryfikować konta powiązanego z tą subskrypcją Apple. Spróbuj ponownie przed zakupem.</string>
 	<key>Unbind</key>
 	<string>Odłącz</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>Twój poprzedni list nadal oczekuje na obsługę. Poproś odbiorcę, aby zarchiwizował go w aplikacji komputerowej lub wybrał „Zezwól na kolejny list” w menu listu w iOS. Następnie ponów wysłanie tego listu.</string>
 	<key>Your private workspace.</key>
 	<string>Twoja prywatna przestrzeń do pracy.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>Zakup został przypisany do tego konta dMsg.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Twój zakup oczekuje na potwierdzenie. Przywróć zakupy, aby spróbować ponownie bez płacenia ponownie.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

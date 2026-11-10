@@ -76,8 +76,10 @@
   const travelKeys = inset ? { back: '⌘[', forward: '⌘]' } : { back: 'Alt+←', forward: 'Alt+→' }
   const travelCodes: Record<string, -1 | 1> = inset ? { BracketLeft: -1, BracketRight: 1 } : { ArrowLeft: -1, ArrowRight: 1 }
 
-  let reminderCount = $state<{ session: string; account: string; value: number } | null>(null)
-  const reminders = $derived(reminderCount?.session === viewSession && reminderCount?.account === status?.account ? reminderCount?.value ?? 0 : 0)
+  let reminderSnapshot = $state<{ session: string; account: string; accounts: NoticeStatus['accounts'] } | null>(null)
+  const reminderAccounts = $derived(reminderSnapshot?.session === viewSession && reminderSnapshot?.account === status?.account ? reminderSnapshot?.accounts ?? [] : [])
+  const activeCounts = $derived(reminderAccounts.find((entry) => entry.account === status?.account)?.counts)
+  const reminders = $derived(activeCounts ? activeCounts.actionable + activeCounts.unread : 0)
   let deliveries = $state<Delivery[]>([])
   const messageDeliveries = new MessageDeliveries((rows) => { deliveries = rows }, () => verified && status?.state === 'unlocked')
   let palette = $state(false)
@@ -157,8 +159,7 @@
       const next = await call<NoticeStatus>('notifications/status')
       if (session !== viewSession || account !== status?.account) return
       // The bell opens this workspace's list. Installation totals belong to the Dock/tray.
-      const counts = next.accounts.find((entry) => entry.account === account)?.counts
-      reminderCount = { session, account, value: counts ? counts.actionable + counts.unread : 0 }
+      reminderSnapshot = { session, account, accounts: next.accounts }
     } catch { /* Keep the last verified count while disconnected/locked. */ }
   })
 
@@ -308,6 +309,7 @@
       {inset}
       {mod}
       {legacyNotice}
+      {reminderAccounts}
       onDismissLegacy={dismissLegacy}
       {go}
       {enter}

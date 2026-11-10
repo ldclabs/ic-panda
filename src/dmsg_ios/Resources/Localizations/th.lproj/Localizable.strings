@@ -1448,6 +1448,8 @@
 	<string>ไม่มีข้อความ</string>
 	<key>No pending backups</key>
 	<string>ไม่มีการสำรองข้อมูลที่รอดำเนินการ</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>ไม่พบรายการซื้อสำหรับบัญชี dMsg นี้</string>
 	<key>No recent use observed on this device</key>
 	<string>ไม่พบการใช้งานล่าสุดบนอุปกรณ์นี้</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>แผน</string>
 	<key>Plan and usage</key>
 	<string>การวางแผนและการใช้งาน</string>
+	<key>Plan at next renewal</key>
+	<string>แผนในการต่ออายุครั้งถัดไป</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>ไม่สามารถเปลี่ยนแผนในแอปเวอร์ชันนี้ได้ แผนปัจจุบันและการใช้งานของคุณยังคงดูได้</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>การส่งออกเหล่านี้ไม่มีคีย์รูทของบัญชีหรือคีย์ลงนามของอุปกรณ์ สำเนาในแอปไฟล์จะไม่ติดตามการเปลี่ยนแปลงของไฟล์ต้นฉบับ และต้องสร้างสแนปช็อตใหม่</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>ที่อยู่ native เหล่านี้ยังต้องใช้อุปกรณ์เก่าสำหรับ L1 สมาชิกยังคงกวาดผ่าน L2 ได้เมื่อแต่ละเอาต์พุตมีอายุนานพอ</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>การสมัครสมาชิก Apple นี้เป็นของบัญชี dMsg อื่น โปรดสลับบัญชีเพื่อจัดการ การกู้คืนรายการซื้อจะไม่โอนการสมัครสมาชิก</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>บัญชีนี้ต้องมีรหัสอนุมัติที่ลงทะเบียนไว้ ตั้งค่าอุปกรณ์นี้ในความปลอดภัยของฮาร์ดแวร์ หรือสอบถามอุปกรณ์อื่นที่ได้รับอนุญาต</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>พิมพ์รหัสบัญชีนี้เพื่อยืนยัน</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>ไม่สามารถยืนยันบัญชีที่เชื่อมกับการสมัครสมาชิก Apple นี้ได้ โปรดลองอีกครั้งก่อนซื้อ</string>
 	<key>Unbind</key>
 	<string>ยกเลิกการผูก</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>จดหมายก่อนหน้าของคุณยังรอดำเนินการ ขอให้ผู้รับเก็บจดหมายเก่าเข้าคลังบนเดสก์ท็อป หรือเลือก “อนุญาตจดหมายอีกฉบับ” ในเมนูจดหมายบน iOS แล้วลองส่งจดหมายฉบับนี้อีกครั้ง</string>
 	<key>Your private workspace.</key>
 	<string>พื้นที่ทำงานส่วนตัวของคุณ</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>รายการซื้อของคุณมีผลกับบัญชี dMsg นี้แล้ว</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>การซื้อของคุณกำลังรอการยืนยัน คืนค่าการซื้อเพื่อลองอีกครั้งโดยไม่ต้องชำระเงินอีกครั้ง</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

@@ -1,5 +1,66 @@
 # iOS implementation validation
 
+## App Store subscription account ownership (2026-11-10)
+
+The purchase page now reads verified subscription-group status, original purchase
+tokens and renewal information. It checks again immediately before presenting
+Apple’s payment UI. Another account’s existing subscription cannot be purchased
+or restored into the selected account, and unverifiable ownership offers retry.
+A changed renewal token does not override the original subscription binding.
+Restore reports applied, another-account, unavailable or empty results. Purchase
+and restore continuations are fenced by the originating account and session;
+matching transactions finish only after authoritative delivery. The current plan
+and scheduled next-renewal product/date are displayed separately.
+
+Validation used the iPhone SE-sized iOS 18.4 Simulator:
+
+- Final isolated build: all 12 selected tests passed (nine DeploymentTests,
+  foreign-subscription UI, scheduled-downgrade UI and existing Pro-management UI).
+- The new UI tests cover English, Chinese, German and Arabic, light/dark themes,
+  hiding purchase entry points, explicit account-switch navigation and preserving
+  Pro while showing Plus at the next renewal. Screenshots were inspected.
+- Six NotificationTests and the three reminder/approval/sign-out UI regressions
+  passed earlier in this change; the fixes above remain included.
+- All 23 localization catalogs and Swift-extracted keys passed
+  `scripts/ios/localizations.py --derived-data`; release Rust bridge artifacts
+  passed source-fingerprint verification.
+- The eight existing `dmsg_commerce` App Store unit tests passed during the
+  investigation. Its ownership checks and the private gateway were not changed.
+
+UI fixtures do not perform real StoreKit purchases. Actual TestFlight purchase,
+restore, renewal delivery and account switching during Apple’s payment sheet
+still require device verification in a new build. iOS 27, iPad, the full Swift
+and Rust suites, and production deployment were not run. This change does not
+cancel an already scheduled subscription change in Apple’s system.
+
+## Account reminders and decision confirmations (2026-11-10)
+
+Account rows read actionable plus unread counts from the existing per-account
+notification snapshot, hide zero, and display 99+ while exposing the full count
+to accessibility. Account IDs stay on one line with middle truncation on small
+screens. Approval footer copy and buttons now share an explicit VStack inside
+TimelineView. Approve, reject and sign-out confirmations use centered system
+alerts with an explicit Cancel action; the reviewed request and core decision
+path remain unchanged.
+
+Validation on the iPhone SE-sized simulator, iOS 18.4:
+
+- A fresh isolated build passed all 11 selected tests: six NotificationTests and
+  five AccountSettingsUITests covering account names, per-account reminders,
+  approval layout/confirmation cancellation and sign-out cancellation.
+- Account badges and approval actions were captured and inspected in English,
+  Chinese, German and Arabic, across light and dark appearances. Layout tests
+  check that the footer hint and decision buttons do not intersect.
+- All 23 localization catalogs passed `scripts/ios/localizations.py`.
+- Existing release Rust bridge artifacts passed source-fingerprint verification.
+
+The desktop counterpart passed `pnpm check`, all 192 unit tests, build and the
+accounts Electron smoke flow (keyboard switching, changing counts, 99+,
+late responses and 760×540 Chinese/German/Arabic screenshots). The smoke run used
+cached Electron 45.2.1 because the pinned 45.2.3 binary download did not complete.
+No physical-device, iOS 27, iPad, live approval execution, full Rust suite or
+full end-to-end suite was run. No production deployment or store upload occurred.
+
 ## Local unlock after II login expiry (2026-11-08)
 
 Hardware-presence quick unlock now opens cached local content independently of

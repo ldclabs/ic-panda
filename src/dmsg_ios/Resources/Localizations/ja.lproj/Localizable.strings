@@ -1448,6 +1448,8 @@
 	<string>メッセージはありません</string>
 	<key>No pending backups</key>
 	<string>保留中のバックアップはありません</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>この dMsg アカウントの購入履歴が見つかりません。</string>
 	<key>No recent use observed on this device</key>
 	<string>このデバイスでは最近の使用は確認されていません</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>プラン</string>
 	<key>Plan and usage</key>
 	<string>プランと使い方</string>
+	<key>Plan at next renewal</key>
+	<string>次回更新時のプラン</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>このバージョンのアプリではプランを変更できません。現在のプランと使用状況は引き続き確認できます。</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>これらのエクスポートにアカウントのルートキーやデバイスの署名鍵が含まれることはありません。「ファイル」App のコピーは元のファイルの変更に追従しないため、新しいスナップショットが必要です。</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>これらのネイティブアドレスの L1 には引き続き古いデバイスが必要です。各出力が十分に古くなれば、メンバーは L2 経由で移せます。</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>この Apple サブスクリプションは別の dMsg アカウントに属しています。管理するにはアカウントを切り替えてください。購入の復元では移行されません。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>このアカウントには登録済みの承認キーが必要です。このデバイスをハードウェア セキュリティで設定するか、別の承認されたデバイスに問い合わせてください。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>確認のためにこのアカウント ID を入力してください</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>この Apple サブスクリプションに紐づくアカウントを確認できません。購入前にもう一度お試しください。</string>
 	<key>Unbind</key>
 	<string>バインドを解除</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>前の手紙がまだ処理されていません。受信者にデスクトップでその手紙をアーカイブするか、iOS の手紙メニューで「次の手紙を許可」を選んでもらい、この手紙を再試行してください。</string>
 	<key>Your private workspace.</key>
 	<string>あなたのプライベートワークスペース。</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>購入内容がこの dMsg アカウントに適用されました。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>購入は確認を待っています。購入を復元して、再度支払いを行わずに再試行します。</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

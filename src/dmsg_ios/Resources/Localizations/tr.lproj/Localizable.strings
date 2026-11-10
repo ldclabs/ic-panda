@@ -1448,6 +1448,8 @@
 	<string>Mesaj yok</string>
 	<key>No pending backups</key>
 	<string>Bekleyen yedekleme yok</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>Bu dMsg hesabı için satın alım bulunamadı.</string>
 	<key>No recent use observed on this device</key>
 	<string>Bu cihazda yakın zamanda kullanım gözlenmedi</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>Plan</string>
 	<key>Plan and usage</key>
 	<string>Plan ve kullanım</string>
+	<key>Plan at next renewal</key>
+	<string>Sonraki yenilemedeki plan</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>Uygulamanın bu sürümünde plan değiştirilemez. Mevcut planınız ve kullanımınız görüntülenebilir.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>Bu dışa aktarmalar hiçbir zaman hesap kök anahtarlarını veya cihaz imzalama anahtarlarını içermez. Dosyalar uygulamasındaki kopyalar kaynak dosyalardaki değişiklikleri izlemez; yeni bir anlık görüntü gerekir.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Bu yerel adreslerin L1’i için eski cihaz gerekmeye devam eder. Her çıktı yeterince eskiyince üyeler bunları L2 üzerinden yine de aktarabilir.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>Bu Apple aboneliği başka bir dMsg hesabına ait. Yönetmek için hesap değiştirin. Satın alımları geri yüklemek aboneliği aktarmaz.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Bu hesap kayıtlı bir onay anahtarı gerektiriyor. Bu cihazı Donanım güvenliğinde kurun veya başka bir yetkili cihaza sorun.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>Onaylamak için bu hesap kimliğini yazın</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>Bu Apple aboneliğine bağlı hesap doğrulanamadı. Satın almadan önce yeniden deneyin.</string>
 	<key>Unbind</key>
 	<string>Bağı kaldır</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>Önceki mektubunuz hâlâ bekliyor. Alıcıdan masaüstünde arşivlemesini veya iOS mektup menüsünde “Başka bir mektuba izin ver” seçmesini isteyin, ardından bu mektubu yeniden deneyin.</string>
 	<key>Your private workspace.</key>
 	<string>Özel çalışma alanınız.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>Satın alımınız bu dMsg hesabına uygulandı.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Satın alma işleminiz onay bekliyor. Tekrar ödeme yapmadan yeniden denemek için satın alma işlemlerini geri yükleyin.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

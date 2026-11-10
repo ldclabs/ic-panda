@@ -624,7 +624,9 @@ preview.
 
 **Reminders.** The title bar's bell and its count belong to the active account,
 as does the full reminder page. Switching sessions closes the popover and drops
-its old responses. The Dock and tray keep the installation-wide totals. Each
+its old responses. The account menu shows each workspace’s actionable plus unread
+count beside a bell (hidden at zero, capped visually at 99+), independent of the
+system badge preference. The Dock and tray keep the installation-wide totals. Each
 row opens what it is about; the whole list is one step further.
 
 **Locking.** Security holds what closes the account: the idle time, which the

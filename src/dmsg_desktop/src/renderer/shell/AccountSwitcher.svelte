@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { NoticeStatus } from '../../shared/notifications'
   import { daemonBlocked } from '../connection-gate'
   import { onMount } from 'svelte'
   import { DropdownMenu } from 'bits-ui'
@@ -18,7 +19,7 @@
    * name and avatar once unlocked, and a menu of the device's other accounts.
    * Each account keeps its own workspace; another one opens locked.
    */
-  let { status, collapsed = false }: { status: any; collapsed?: boolean } = $props()
+  let { status, collapsed = false, reminderAccounts = [] }: { status: any; collapsed?: boolean; reminderAccounts?: NoticeStatus['accounts'] } = $props()
 
   let open = $state(false)
   let content = $state<HTMLElement | null>(null)
@@ -112,6 +113,8 @@
         <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('localAccounts')}</DropdownMenu.GroupHeading>
         {#each accounts as a (a.account)}
           {@const accountName = (a.account === unlockedAccount && name) || (unlockedAccount ? nameOf(a.account) : null)}
+          {@const counts = reminderAccounts.find((entry) => entry.account === a.account)?.counts}
+          {@const reminders = counts ? counts.actionable + counts.unread : 0}
           <DropdownMenu.Item
             class={cn(menuItemClass, 'data-disabled:cursor-default data-disabled:opacity-100')}
             disabled={a.current}
@@ -123,6 +126,12 @@
               <span class={cn('block truncate font-mono text-xs', accountName && 'text-faint')} title={a.account}><bdi dir="ltr">{shortId(a.account)}</bdi></span>
               {#if !a.bound}<span class="block text-[11.5px] text-faint">{t('waitingDevice')}</span>{/if}
             </span>
+            {#if reminders > 0}
+              <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-gem-pale px-1.5 py-0.5 text-[11px] font-semibold text-gem" role="img" aria-label={`${t('noticeTitle')} (${reminders})`} title={`${t('noticeTitle')} (${reminders})`} data-testid="account-reminders">
+                <Icon name="bell" class="size-3.5" />
+                <bdi dir="ltr">{reminders > 99 ? '99+' : reminders}</bdi>
+              </span>
+            {/if}
             {#if a.current}<Icon name="check" class="size-3.5 shrink-0 text-forest" />{:else if a.fast_unlock}<span class="shrink-0 text-[11.5px] text-faint">{t('fastUnlock')}</span>{/if}
           </DropdownMenu.Item>
         {/each}

@@ -8,6 +8,16 @@ final class NotificationTests: XCTestCase {
         return try decoder.decode(type, from: Data(json.utf8))
     }
 
+    func testAccountRemindersUseIdentityAndIgnoreSystemBadgePreference() {
+        let status = ReminderStatus(counts: .init(actionable: 2, unread: 120, unverified: true), accounts: [
+            .init(account: "other", enabled: false, counts: .init(actionable: 2, unread: 120, unverified: false)),
+            .init(account: "current", enabled: true, counts: .init(actionable: 0, unread: 0, unverified: true))
+        ], badge: 0, enabled: false)
+        XCTAssertEqual(status.reminderCount(for: "current"), 0)
+        XCTAssertEqual(status.reminderCount(for: "other"), 122)
+        XCTAssertEqual(status.reminderCount(for: "missing"), 0)
+    }
+
     func testTargetsKeepExactWalletVersionsAndRejectUnknownNavigation() throws {
         let target = ReminderTarget.wallet("aaaaa-aa", "18446744073709551615")
         XCTAssertEqual(try decode(NoticeEncoding.json(target), as: ReminderTarget.self), target)

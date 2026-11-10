@@ -3176,5 +3176,15 @@
 	<string>تسجيل خروج أجهزة مفتاح المرور هذا والمتابعة</string>
 	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
 	<string>بلغت الأجهزة المسجّلة بهذا المفتاح الحد الأقصى. سجّل خروجها للمتابعة. لن تتأثر مفاتيح المرور الأخرى أو المحتوى المحفوظ.</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>لم يتم العثور على مشتريات لحساب dMsg هذا.</string>
+	<key>Plan at next renewal</key>
+	<string>الخطة عند التجديد التالي</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>هذا الاشتراك من Apple مرتبط بحساب dMsg آخر. بدّل الحساب لإدارته. استعادة المشتريات لا تنقل الاشتراك.</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>تعذّر التحقق من الحساب المرتبط بهذا الاشتراك من Apple. أعد المحاولة قبل الشراء.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>تم تطبيق مشترياتك على حساب dMsg هذا.</string>
 </dict>
 </plist>

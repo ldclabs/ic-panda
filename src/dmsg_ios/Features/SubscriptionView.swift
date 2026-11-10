@@ -3,6 +3,7 @@ import StoreKit
 
 struct SubscriptionView: View {
     @Environment(SessionModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
     struct Plan: Decodable {
         struct Limits: Decodable { let storageBytes: UInt64; let activeChannels: UInt64; let monthlyExecutionUnits: UInt64 }
         struct Term: Decodable { let endsAtMs: UInt64; let method: String; let storeEnvironment: String? }
@@ -18,7 +19,7 @@ struct SubscriptionView: View {
         static var fixture: Self {
             let args = ProcessInfo.processInfo.arguments
             let max = args.contains("--ui-max-subscription")
-            if max || args.contains("--ui-sandbox-subscription") {
+            if max || args.contains("--ui-sandbox-subscription") || args.contains("--ui-scheduled-subscription") {
                 return Plan(plan: max ? "Max" : "Pro", source: "Active",
                     limits: Limits(storageBytes: max ? 107374182400 : 10737418240, activeChannels: max ? 200 : 100, monthlyExecutionUnits: max ? 200 : 100),
                     current: Term(endsAtMs: UInt64(Date().addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
@@ -92,26 +93,49 @@ struct SubscriptionView: View {
                     if model.purchases.storeEnvironment == "Sandbox" {
                         Text("Test purchases do not charge you. An active paid plan takes priority.").font(.footnote).foregroundStyle(.secondary)
                     }
+                    if let message = model.purchases.subscriptionMessage {
+                        NoticeBar(text: message).accessibilityElement(children: .combine).accessibilityIdentifier("plan.subscription-account")
+                        if model.purchases.subscriptions.contains(where: { $0.ownership == .otherAccount }) {
+                            NavigationLink("Switch account") { AccountsView() }.accessibilityIdentifier("plan.switch-account")
+                        }
+                    }
                     if managesSubscription, let plan {
                         LabeledContent("Plan", value: plan.plan).accessibilityIdentifier("plan.current-subscription")
                         Text("Change your plan or cancel renewal in Manage subscriptions.").font(.footnote).foregroundStyle(.secondary)
-                    } else {
-                        productRows(model.purchases.products.filter { $0.type == .autoRenewable })
+                    } else if model.purchases.hasCurrentSubscription {
+                        Text("Change your plan or cancel renewal in Manage subscriptions.").font(.footnote).foregroundStyle(.secondary)
+                    } else if model.purchases.subscriptionMessage == nil {
+                        productRows(model.purchases.products.filter { $0.type == .autoRenewable && model.purchases.canPurchase($0) })
+                    }
+                    ForEach(model.purchases.subscriptions) { subscription in
+                        if let product = subscription.nextProduct, subscription.ownership == .current {
+                            LabeledContent("Plan at next renewal", value: model.purchases.products.first(where: { $0.id == product })?.displayName ?? product)
+                                .accessibilityIdentifier("plan.next-renewal")
+                            if let date = subscription.renewalDate {
+                                Text(date, style: .date).font(.footnote).foregroundStyle(.secondary)
+                            }
+                        }
                     }
                     if let term = plan?.current, term.method != "AppStore", model.purchases.storeEnvironment != "Sandbox" {
                         NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
                     } else if plan?.current == nil, model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
-                    if !managesSubscription && model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
+                    if !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
                     if model.purchases.working { ProgressView("Loading…").accessibilityIdentifier("plan.purchase-progress") }
+                    if let feedback = model.purchases.feedback, feedback != model.purchases.subscriptionMessage {
+                        NoticeBar(text: feedback).accessibilityElement(children: .combine).accessibilityIdentifier("plan.purchase-result")
+                    }
+                    if model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage {
+                        SettingsAction("Retry") { Task { await model.purchases.load(model) } }.disabled(model.purchases.working)
+                    }
                     if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
                     SettingsAction("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
                         .accessibilityIdentifier("plan.restore")
                     Button("Manage subscriptions") { managing = true }.disabled(model.purchases.working).accessibilityIdentifier("plan.manage")
                     Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.").font(.footnote).foregroundStyle(.secondary)
                 }
-                if model.purchases.products.contains(where: { $0.type == .consumable }) {
+                if model.purchases.subscriptionMessage == nil && model.purchases.products.contains(where: { $0.type == .consumable }) {
                     Section("Storage packs") {
                         Text("Storage is a one-time purchase for the current subscription term and does not renew automatically.").font(.footnote).foregroundStyle(.secondary)
                         productRows(model.purchases.products.filter { $0.type == .consumable })
@@ -129,7 +153,7 @@ struct SubscriptionView: View {
                 Link("Terms of service", destination: URL(string: "https://dmsg.net/_/terms")!)
             }
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
-            .task { await load() }.refreshable { await load(force: true) }
+            .task(id: scenePhase) { if scenePhase == .active { await load(force: true) } }.refreshable { await load(force: true) }
             .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true) } }
             .onChange(of: managing) { wasPresented, isPresented in
                 if wasPresented && !isPresented { Task { await load(force: true) } }
@@ -150,7 +174,7 @@ struct SubscriptionView: View {
                 }
     }
     private func canPurchase(_ product: Product) -> Bool {
-        guard let plan, plan.source != "Unverifiable" else { return false }
+        guard let plan, plan.source != "Unverifiable", model.purchases.canPurchase(product) else { return false }
         if product.type == .autoRenewable && managesSubscription { return false }
         if model.purchases.storeEnvironment == "Sandbox" { return product.type == .autoRenewable }
         guard plan.current == nil || plan.current?.method == "AppStore" else { return false }
@@ -173,6 +197,7 @@ struct SubscriptionView: View {
         loading = true; failed = false; defer { loading = false }
         #if DEBUG
         if model.uiTesting {
+            model.purchases.installSubscriptionFixture()
             plan = Plan.fixture
             usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: plan?.limits.storageBytes, activeChannels: 1, channelLimit: plan?.limits.activeChannels), execution: Usage.Execution(month: 202611, allowed: plan?.limits.monthlyExecutionUnits ?? 3, charged: 1, remaining: (plan?.limits.monthlyExecutionUnits ?? 3) - 1), cloudError: nil, executionError: nil)
             return

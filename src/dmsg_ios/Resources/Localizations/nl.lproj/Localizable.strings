@@ -1448,6 +1448,8 @@
 	<string>Geen berichten</string>
 	<key>No pending backups</key>
 	<string>Geen lopende back-ups</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>Er zijn geen aankopen gevonden voor dit dMsg-account.</string>
 	<key>No recent use observed on this device</key>
 	<string>Er is geen recent gebruik waargenomen op dit apparaat</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>Abonnement</string>
 	<key>Plan and usage</key>
 	<string>Abonnement en gebruik</string>
+	<key>Plan at next renewal</key>
+	<string>Abonnement bij de volgende verlenging</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>In deze versie van de app kun je je abonnement niet wijzigen. Je huidige abonnement en gebruik blijven beschikbaar.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>Deze exports bevatten nooit hoofdsleutels van het account of ondertekeningssleutels van het apparaat. Kopieën in de app Bestanden volgen wijzigingen in de bronbestanden niet; daarvoor is een nieuwe momentopname nodig.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Deze native adressen blijven het oude apparaat nodig hebben voor L1. De leden kunnen ze nog via L2 overhevelen zodra elke output oud genoeg is.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>Dit Apple-abonnement hoort bij een ander dMsg-account. Wissel van account om het te beheren. Aankopen herstellen draagt het abonnement niet over.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Voor dit account is een geregistreerde goedkeuringssleutel vereist. Stel dit apparaat in Hardwarebeveiliging in, of vraag een ander geautoriseerd apparaat.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>Typ deze account-ID om te bevestigen</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>Het account dat aan dit Apple-abonnement is gekoppeld kon niet worden geverifieerd. Probeer het opnieuw voordat je koopt.</string>
 	<key>Unbind</key>
 	<string>Ontkoppelen</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>Je vorige brief staat nog open. Vraag de ontvanger om die in de desktop-app te archiveren of op iOS in het briefmenu “Nog een brief toestaan” te kiezen. Probeer deze brief daarna opnieuw.</string>
 	<key>Your private workspace.</key>
 	<string>Jouw privéwerkplek.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>Je aankoop is toegepast op dit dMsg-account.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Je aankoop wacht op bevestiging. Herstel aankopen om het opnieuw te proberen zonder opnieuw te betalen.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

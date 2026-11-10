@@ -106,6 +106,49 @@ final class NavigationTests: NavigationTestCase {
         assertReadOnlyPlan(language: "ar", locale: "ar_SA", accountTitle: "الحساب", dark: true)
     }
 
+    func testForeignAppleSubscriptionOffersAccountSwitchInsteadOfPurchase() {
+        for (language, title, dark) in [("en", "Account", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-foreign-subscription", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            tab(app, symbol: "Glyph-account", title: title).tap()
+            let plan = app.buttons["account.plan"]
+            for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+            XCTAssertTrue(plan.isHittable); plan.tap()
+            let notice = app.descendants(matching: .any).matching(identifier: "plan.subscription-account").firstMatch
+            let switchAccount = app.buttons["plan.switch-account"]
+            for _ in 0..<8 where !switchAccount.isHittable { app.swipeUp() }
+            XCTAssertTrue(notice.exists)
+            XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "plan.purchase.")).count, 0)
+            capture(app, name: "Apple subscription belongs to another account · \(language)")
+            XCTAssertTrue(switchAccount.isHittable); switchAccount.tap()
+            XCTAssertTrue(app.buttons["accounts.040g2082040g2082040g"].waitForExistence(timeout: 5))
+            app.terminate()
+        }
+    }
+
+    func testScheduledAppleDowngradeKeepsCurrentPlan() {
+        for (language, title, dark) in [("en", "Account", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-scheduled-subscription", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            tab(app, symbol: "Glyph-account", title: title).tap()
+            let plan = app.buttons["account.plan"]
+            for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+            XCTAssertTrue(plan.isHittable); plan.tap()
+            let scheduled = app.descendants(matching: .any).matching(identifier: "plan.next-renewal").firstMatch
+            for _ in 0..<8 where !scheduled.isHittable { app.swipeUp() }
+            XCTAssertTrue(scheduled.isHittable)
+            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "plan.next-renewal")
+                .matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", "Plus", "Plus")).firstMatch.exists)
+            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "plan.current-subscription")
+                .matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", "Pro", "Pro")).firstMatch.exists)
+            XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "plan.purchase.")).count, 0)
+            capture(app, name: "Pro now, Plus at next renewal · \(language)")
+            app.terminate()
+        }
+    }
+
     func testSandboxSubscriptionNoticeInChinese() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-sandbox-subscription", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]

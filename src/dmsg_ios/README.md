@@ -231,9 +231,28 @@ Verified pages appear before the remaining history and attachment metadata
 finish downloading. Loading, an empty conversation and a failed refresh have
 distinct states; retry keeps the available messages visible.
 
+App Store purchases first check verified subscription-group status and the
+original transaction’s account token. An existing subscription bound to another
+dMsg account offers account switching instead of a purchase, including when a
+tier change supplied a new token. Missing or inconsistent ownership information
+blocks purchasing until it can be verified. The check runs again immediately
+before Apple’s purchase sheet; late purchase and restore results cannot update a
+replacement session. Restore reports another-account, unavailable, applied or
+empty results and does not transfer a subscription. Only authoritative service
+application permits finishing a matching Apple transaction.
+
+The plan page keeps the current entitlement separate from the product scheduled
+for the next renewal. Returning from Apple subscription management or foregrounding
+the page refreshes that schedule. These local checks do not change the commerce
+service’s original-subscription ownership rule, grant extra entitlements, or
+cancel an already scheduled change in Apple’s system.
+
 The named UniFFI methods in `dmsg_mobile::notifications` share the desktop's
 settings, durable reminder records, version checks, budgets and snooze policy.
 The activity menu in each workspace's toolbar opens pending/recent reminders and notification settings. The
+account switcher shows each local account’s actionable plus unread count, with a
+bell and a visual cap of 99+; zero counts stay hidden. Counts follow the shared
+notification status, independently of the system badge preference. The
 old per-account push toggle is imported once; core preferences then own it.
 Fixed notification copy and APNs localization keys follow all 23 desktop catalogs;
 `node scripts/ios/sync-notifications.mjs --check` checks their parity.
@@ -249,6 +268,9 @@ from local presentation so a slow source does not delay an existing reminder.
 Clicks resolve an opaque original-account route. Account switching and unlock
 remain explicit; an invalid route shows an unavailable state and network failures
 keep a retry action. The core provides only metadata for inactive accounts.
+Approval decisions and signing out use centered system alerts with explicit Cancel
+actions. The approval footer keeps its request-only explanation above the action
+row, including when the text wraps.
 Timed channel mutes retain their expiry when editing the channel name. Quiet
 hours use the saved IANA time zone, including DST transitions.
 

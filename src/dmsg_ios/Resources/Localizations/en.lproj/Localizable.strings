@@ -3176,5 +3176,15 @@
 	<string>Sign out this passkey’s devices and continue</string>
 	<key>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</key>
 	<string>This passkey has too many signed-in devices. Sign out its devices to continue. Other passkeys and saved content are not affected.</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>No purchases were found for this dMsg account.</string>
+	<key>Plan at next renewal</key>
+	<string>Plan at next renewal</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>Your purchase has been applied to this dMsg account.</string>
 </dict>
 </plist>

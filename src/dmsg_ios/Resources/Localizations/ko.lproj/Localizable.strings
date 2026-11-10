@@ -1448,6 +1448,8 @@
 	<string>메시지 없음</string>
 	<key>No pending backups</key>
 	<string>보류 중인 백업이 없습니다.</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>이 dMsg 계정의 구입 내역을 찾을 수 없습니다.</string>
 	<key>No recent use observed on this device</key>
 	<string>이 기기에서는 최근 사용이 관찰되지 않았습니다.</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>플랜</string>
 	<key>Plan and usage</key>
 	<string>플랜 및 사용량</string>
+	<key>Plan at next renewal</key>
+	<string>다음 갱신 시 요금제</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>이 버전의 앱에서는 요금제를 변경할 수 없습니다. 현재 요금제와 사용량은 계속 확인할 수 있습니다.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>이 내보내기에는 계정 루트 키나 기기 서명 키가 절대 포함되지 않습니다. 파일 앱의 사본은 원본 파일의 변경을 따라가지 않으므로 새 스냅샷이 필요합니다.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>이 네이티브 주소들의 L1에는 계속 이전 장치가 필요합니다. 각 출력이 충분히 오래되면 구성원은 L2로 옮길 수 있습니다.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>이 Apple 구독은 다른 dMsg 계정에 속합니다. 관리하려면 계정을 전환하세요. 구입 복원으로 구독이 이전되지는 않습니다.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>이 계정에는 등록된 승인 키가 필요합니다. 하드웨어 보안에서 이 장치를 설정하거나 다른 승인된 장치에 문의하세요.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>확인하려면 이 계정 ID를 입력하세요.</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>이 Apple 구독에 연결된 계정을 확인할 수 없습니다. 구입하기 전에 다시 시도하세요.</string>
 	<key>Unbind</key>
 	<string>연결 해제</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>이전 편지가 아직 처리되지 않았습니다. 받는 사람에게 데스크톱에서 이전 편지를 보관하거나 iOS 편지 메뉴에서 “다음 편지 허용”을(를) 선택해 달라고 요청한 후 이 편지를 다시 보내세요.</string>
 	<key>Your private workspace.</key>
 	<string>귀하의 개인 작업 공간.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>구입한 항목이 이 dMsg 계정에 적용되었습니다.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>구매가 확인 대기 중입니다. 다시 결제하지 않고 다시 시도하려면 구매를 복원하세요.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>

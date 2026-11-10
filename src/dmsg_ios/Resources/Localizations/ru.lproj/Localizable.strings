@@ -1448,6 +1448,8 @@
 	<string>Сообщений нет</string>
 	<key>No pending backups</key>
 	<string>Нет ожидающих резервных копий</string>
+	<key>No purchases were found for this dMsg account.</key>
+	<string>Покупки для этого аккаунта dMsg не найдены.</string>
 	<key>No recent use observed on this device</key>
 	<string>На этом устройстве не замечено недавнего использования</string>
 	<key>No recovery request</key>
@@ -1666,6 +1668,8 @@
 	<string>Тариф</string>
 	<key>Plan and usage</key>
 	<string>Тариф и использование</string>
+	<key>Plan at next renewal</key>
+	<string>Тариф при следующем продлении</string>
 	<key>Plans cannot be changed in this version of the app. Your current plan and usage remain available.</key>
 	<string>В этой версии приложения нельзя изменить тариф. Текущий тариф и использование остаются доступными.</string>
 	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
@@ -2658,6 +2662,8 @@
 	<string>Эти экспорты никогда не содержат корневых ключей учётной записи и ключей подписи устройства. Копии в приложении «Файлы» не следуют за изменениями исходных файлов; для них нужен новый снимок.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Для L1 этих нативных адресов по-прежнему нужно старое устройство. Участники смогут перевести средства через L2, когда каждый выход станет достаточно старым.</string>
+	<key>This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.</key>
+	<string>Эта подписка Apple принадлежит другому аккаунту dMsg. Переключите аккаунт для управления ею. Восстановление покупок не переносит подписку.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Для аккаунта нужен зарегистрированный ключ подтверждения. Настройте устройство в разделе аппаратной безопасности или используйте другое авторизованное устройство.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2814,6 +2820,8 @@
 	<string>Введите ID аккаунта для подтверждения</string>
 	<key>URL</key>
 	<string>URL</string>
+	<key>Unable to verify the account linked to this Apple subscription. Try again before purchasing.</key>
+	<string>Не удалось проверить аккаунт, связанный с этой подпиской Apple. Повторите попытку перед покупкой.</string>
 	<key>Unbind</key>
 	<string>Отвязать</string>
 	<key>Unblock</key>
@@ -3050,6 +3058,8 @@
 	<string>Ваше предыдущее письмо ещё ожидает обработки. Попросите получателя архивировать его в приложении для компьютера или выбрать «Разрешить ещё одно письмо» в меню письма на iOS, затем повторите отправку этого письма.</string>
 	<key>Your private workspace.</key>
 	<string>Ваше частное рабочее пространство.</string>
+	<key>Your purchase has been applied to this dMsg account.</key>
+	<string>Покупка применена к этому аккаунту dMsg.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Покупка ожидает подтверждения. Восстановите покупки для повторной попытки без новой оплаты.</string>
 	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
