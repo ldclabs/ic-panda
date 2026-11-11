@@ -1,6 +1,35 @@
 import XCTest
 
 @MainActor final class NotificationUITests: XCTestCase {
+    func testSystemNotificationTapKeepsAppAlive() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        app.openActivity("reminders.open")
+        app.buttons["reminders.menu"].tap(); app.buttons["reminders.settings"].tap()
+        let test = app.buttons["notifications.test"]
+        XCTAssertTrue(test.waitForExistence(timeout: 5))
+        test.tap()
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = system.alerts.buttons.matching(NSPredicate(format: "label IN %@", ["Allow", "允许"])).firstMatch
+        if allow.waitForExistence(timeout: 2) { allow.tap() }
+        let banner = system.descendants(matching: .any)["NotificationShortLookView"]
+        // Even a notification with no route must finish on main. Repeated
+        // taps exercise the actual Objective-C delegate completion bridge.
+        for _ in 0..<2 {
+            test.tap()
+            XCTAssertTrue(banner.waitForExistence(timeout: 5))
+            capture(system, "Foreground notification")
+            banner.tap()
+            XCTAssertTrue(test.waitForExistence(timeout: 5), "The notification must return to the same screen without restarting dMsg")
+            XCTAssertEqual(app.state, .runningForeground)
+            XCTAssertTrue(test.isHittable)
+        }
+        capture(app, "Notification taps preserve the running workspace")
+        app.terminate()
+    }
+
     func testReadRemindersChineseDark() { readReminders(language: "zh-Hans", locale: "zh_CN", dark: true) }
     func testReadRemindersArabic() { readReminders(language: "ar", locale: "ar_SA", dark: false) }
     func testReadRemindersGerman() { readReminders(language: "de", locale: "de_DE", dark: false) }

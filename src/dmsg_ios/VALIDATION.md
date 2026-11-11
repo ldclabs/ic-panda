@@ -1,5 +1,42 @@
 # iOS implementation validation
 
+## System notification completion crash (2026-11-11)
+
+Three device crash reports from builds 1.1.1 (22), 1.1.1 (25) and 1.1.2 (26)
+showed the same main-app `SIGABRT` on a Swift cooperative worker. Matching archive
+dSYMs symbolicated the application frame to the compiler-generated
+`@objc closure #1 in DMsgAppDelegate.userNotificationCenter(_:didReceive:)`.
+UIKit was updating its background snapshot/state-restoration archive and asserted
+that the call must run on the main thread. The reports were copied locally with
+the originals retained on the phone; raw device reports are not in this repository.
+
+Both notification delegate methods now use explicit completion handlers.
+They dispatch route/presentation handling and completion together to the main
+queue, including invalid or missing routes and the test-notification path.
+Moving only routing inside `MainActor.run` did not constrain the old async
+Objective-C bridge's completion. Apple's explanation of this delegate behavior
+is in [Developer Forums thread 735651](https://developer.apple.com/forums/thread/735651).
+Widget configuration and the user's existing version/build settings are unchanged.
+
+Validation:
+
+- All ten `NotificationTests` passed on the iOS 27 iPhone simulator.
+- The system-notification UI regression sends local test notifications and taps
+  their actual SpringBoard banners twice, checking that the same settings page
+  remains interactive without restarting the app. These notifications have no
+  route, so the completion path is exercised even when navigation is ignored.
+- A separate background smoke test used `simctl push` with a valid opaque route
+  after the app returned to the Home Screen. Tapping the system notification
+  returned to the existing app and settings page. This used a temporary UI harness
+  coordinated with the external push, not a network-dependent test in the suite.
+- The unsigned arm64 iOS device Release build passed. No Rust code or bridge
+  artifacts changed.
+
+The repaired build has not been installed on the physical iPhone or uploaded to
+TestFlight. Real APNs delivery, the full Swift/Rust suites, and long-running device
+background use were not tested. Earlier exploratory widget checks did not
+reproduce the reported main-app crash and did not result in a widget change.
+
 ## Approval authentication foreground cover (2026-11-10)
 
 A device-pair approval can keep the core's legacy whole-client queue occupied

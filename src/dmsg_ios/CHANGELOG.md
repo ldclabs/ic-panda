@@ -7,6 +7,8 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+- Fix crashes after opening a system notification by completing notification
+  delegate callbacks on the main thread, including notifications without a route.
 - Keep App Store products visible when Apple account or subscription checks fail.
   Show the failed step inline and refresh Apple credentials on explicit retry,
   instead of reporting an account-link problem or opening repeated error alerts.

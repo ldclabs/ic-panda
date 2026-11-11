@@ -37,18 +37,24 @@ final class DMsgAppDelegate: NSObject, UIApplicationDelegate, UNUserNotification
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         NotificationCenter.default.post(name: .dmsgPushRegistrationFailed, object: nil)
     }
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        if let route = NotificationRoute.parse(response.notification.request.content.userInfo["dmsg"]) {
-            await MainActor.run {
+    // Keep the completion handlers explicit: the async delegate bridge can
+    // finish on a cooperative worker, where UIKit's snapshot update aborts.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping @Sendable () -> Void) {
+        let route = NotificationRoute.parse(response.notification.request.content.userInfo["dmsg"])
+        DispatchQueue.main.async {
+            if let route {
                 Self.pendingRoute = route
                 NotificationCenter.default.post(name: .dmsgPushOpen, object: route)
             }
+            completionHandler()
         }
     }
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        if notification.request.identifier == "dmsg-test" { return [.banner] }
-        await MainActor.run { NotificationCenter.default.post(name: .dmsgPushReceived, object: nil) }
-        return []
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void) {
+        let test = notification.request.identifier == "dmsg-test"
+        DispatchQueue.main.async {
+            if !test { NotificationCenter.default.post(name: .dmsgPushReceived, object: nil) }
+            completionHandler(test ? [.banner] : [])
+        }
     }
 }
 
