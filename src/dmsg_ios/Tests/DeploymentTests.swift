@@ -163,6 +163,10 @@ final class DeploymentTests: XCTestCase {
         store.sync = { XCTFail("Background reads must not authenticate Apple") }
         store.preflight = { _, _, _ in XCTFail("Unexpected purchase preflight"); throw CancellationError() }
         store.purchase = { _, _ in XCTFail("Unexpected purchase sheet"); return .userCancelled }
+        store.prepare = { _, _ in }
+        store.submit = { _, _, _ in XCTFail("Unexpected receipt delivery") }
+        store.currentEntitlements = { AsyncStream { $0.finish() } }
+        store.unfinished = { AsyncStream { $0.finish() } }
         store.subscriptions = { _, _ in
             [.init(id: product.subscription!.subscriptionGroupID, ownership: .available)]
         }
@@ -282,6 +286,12 @@ final class DeploymentTests: XCTestCase {
         defer { session.resetToDefaultState() }
         let model = SessionModel(); model.loadFixtures()
         var store = initial, purchasesStarted = 0
+        let environment = expectation(description: "Optional Sandbox hint loaded")
+        var readEnvironment = false
+        store.appEnvironment = {
+            if !readEnvironment { readEnvironment = true; environment.fulfill() }
+            return "Sandbox"
+        }
         store.preflight = { _, _, environment in
             XCTAssertEqual(environment, "Sandbox")
             return .init(eligible: true, reason: nil, kind: "subscription")
@@ -289,9 +299,180 @@ final class DeploymentTests: XCTestCase {
         store.purchase = { _, _ in purchasesStarted += 1; return .userCancelled }
         let purchases = PurchaseModel(enabled: true, store: store)
         await purchases.load(model)
+        await fulfillment(of: [environment], timeout: 2)
         await purchases.purchase(product, model: model)
         XCTAssertEqual(purchasesStarted, 1)
         XCTAssertNil(model.error)
+    }
+
+    func testOptionalAppDownloadDoesNotKeepRestoreWorking() async throws {
+        let (session, initial, _) = try await storeFixture()
+        session.clearTransactions()
+        defer { session.clearTransactions(); session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        var suspended: CheckedContinuation<String, Error>?
+        let started = expectation(description: "Optional download lookup started")
+        let restored = expectation(description: "Restore completes independently of the app download")
+        store.sync = {}
+        store.appEnvironment = {
+            try await withCheckedThrowingContinuation { suspended = $0; started.fulfill() }
+        }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        let restore = Task { await purchases.restore(model); restored.fulfill() }
+        await fulfillment(of: [started, restored], timeout: 2)
+        XCTAssertFalse(purchases.working)
+        suspended?.resume(throwing: StoreKitError.notEntitled)
+        await restore.value
+    }
+
+    func testPurchaseStatusFailureInvalidatesPreviousAvailability() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial, reads = 0
+        store.preflight = { _, _, _ in .init(eligible: true, reason: nil, kind: "subscription") }
+        store.subscriptions = { _, _ in
+            reads += 1
+            if reads > 1 { throw URLError(.notConnectedToInternet) }
+            return [.init(id: product.subscription!.subscriptionGroupID, ownership: .available)]
+        }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        await purchases.purchase(product, model: model)
+        XCTAssertEqual(purchases.loadIssue, .subscriptions)
+        XCTAssertFalse(purchases.canPurchase(product))
+        XCTAssertNil(model.error, "A status failure should use the inline retry, not a generic alert")
+    }
+
+    func testAppVerificationFailureStopsBeforePayment() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial, preparations = 0
+        store.preflight = { _, _, _ in .init(eligible: true, reason: nil, kind: "subscription") }
+        store.prepare = { _, _ in preparations += 1; throw URLError(.notConnectedToInternet) }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        await purchases.purchase(product, model: model)
+        XCTAssertEqual(preparations, 1)
+        XCTAssertFalse(purchases.working)
+        XCTAssertFalse(purchases.pending)
+        XCTAssertNotNil(model.error)
+    }
+
+    func testUndeliveredPaymentDisablesRepurchaseOfTheSameProduct() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        let catalogue = try await store.catalogue(model)
+        let token = try XCTUnwrap(UUID(uuidString: catalogue.accountToken))
+        store.submit = { _, _, _ in throw URLError(.notConnectedToInternet) }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        let receipt = PurchaseModel.Receipt(id: 1, product: product.id, token: token, environment: "Sandbox", jws: "paid", finish: { XCTFail("Unapplied purchase must remain unfinished") })
+        do { _ = try await purchases.deliver(receipt, model: model); XCTFail("Delivery should wait for recovery") } catch {}
+        await purchases.load(model)
+        XCTAssertTrue(purchases.pending)
+        XCTAssertFalse(purchases.canPurchase(product))
+        await purchases.purchase(product, model: model)
+        XCTAssertNil(model.error)
+    }
+
+    func testPartialCatalogueOffersRetryWhileKeepingAvailableProductsPurchasable() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        store.catalogue = { _ in
+            .init(configuration: .init(bundleId: "net.dmsg.ios", appAppleId: 6827050680,
+                products: [.init(productId: product.id), .init(productId: "net.dmsg.ios.pro.annual")]), accountToken: UUID().uuidString)
+        }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        XCTAssertTrue(purchases.hasUnavailableProducts)
+        XCTAssertEqual(purchases.products.map(\.id), [product.id])
+        XCTAssertTrue(purchases.canPurchase(product))
+        XCTAssertNil(purchases.loadIssue)
+    }
+
+    func testSignedSubscriptionEnvironmentDoesNotRequireAnAppDownloadLookup() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        store.subscriptions = { _, _ in [.init(id: product.subscription!.subscriptionGroupID, ownership: .current, environment: "Sandbox")] }
+        store.appEnvironment = { XCTFail("Signed subscription already supplies the environment"); return "Production" }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        XCTAssertEqual(purchases.storeEnvironment, "Sandbox")
+        XCTAssertTrue(purchases.hasCurrentSubscription)
+        XCTAssertFalse(purchases.canPurchase(product))
+    }
+
+    func testCancellingAppleAuthenticationDoesNotReportAPurchaseFailure() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        store.preflight = { _, _, _ in .init(eligible: true, reason: nil, kind: "subscription") }
+        store.purchase = { _, _ in throw StoreKitError.userCancelled }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        await purchases.purchase(product, model: model)
+        XCTAssertNil(model.error)
+        XCTAssertNil(purchases.feedback)
+        XCTAssertFalse(purchases.pending)
+        XCTAssertFalse(purchases.working)
+        XCTAssertTrue(purchases.canPurchase(product))
+    }
+
+    func testCancellingSubscriptionRetryKeepsTheInlineFailureWithoutAnAlert() async throws {
+        let (session, initial, _) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        store.subscriptions = { _, _ in throw URLError(.notConnectedToInternet) }
+        store.sync = { throw StoreKitError.userCancelled }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        await purchases.retry(model)
+        XCTAssertEqual(purchases.loadIssue, .subscriptions)
+        XCTAssertFalse(purchases.working)
+        XCTAssertNil(model.error)
+    }
+
+    func testDeferredPurchaseCannotBeRepeatedAndItsApprovalIsDeliveredByTheListener() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial, sheets = 0
+        let catalogue = try await store.catalogue(model)
+        let token = try XCTUnwrap(UUID(uuidString: catalogue.accountToken))
+        let listening = expectation(description: "Updates listener ready")
+        let finished = expectation(description: "Approved transaction finished")
+        var events: AsyncStream<Result<PurchaseModel.Receipt, Error>>.Continuation?
+        store.preflight = { _, _, _ in .init(eligible: true, reason: nil, kind: "subscription") }
+        store.purchase = { _, _ in sheets += 1; return .pending }
+        store.updates = { AsyncStream { events = $0; listening.fulfill() } }
+        store.submit = { _, _, _ in }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        let listener = Task { await purchases.listen(model) }
+        defer { listener.cancel(); events?.finish() }
+        await fulfillment(of: [listening], timeout: 2)
+        await purchases.load(model)
+        await purchases.purchase(product, model: model)
+        XCTAssertTrue(purchases.pending)
+        XCTAssertFalse(purchases.canPurchase(product))
+        await purchases.purchase(product, model: model)
+        XCTAssertEqual(sheets, 1)
+        events?.yield(.success(.init(id: 1, product: product.id, token: token, environment: "Sandbox", jws: "approved", finish: { finished.fulfill() })))
+        await fulfillment(of: [finished], timeout: 2)
+        events?.finish()
+        await listener.value
+        XCTAssertFalse(purchases.pending)
+        XCTAssertEqual(purchases.revision, 1)
     }
 
     func testSlowAppDownloadReadDoesNotDelayFirstPurchaseReadiness() async throws {

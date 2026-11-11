@@ -38,8 +38,9 @@ struct DMsgApp: App {
                 }
                 .onChange(of: model.contentRevision) { _, _ in Task { await model.notifications.refresh(model) } }
                 .onChange(of: model.epoch) { _, _ in model.notifications.clearVisibility() }
-                .task(id: "store:\(model.session?.account ?? ""):\(model.unlocked)") {
-                    if model.unlocked && model.purchases.enabled { await model.purchases.listen(model) }
+                .task { await model.purchases.listen(model) }
+                .task(id: "store:\(model.concealed):\(model.epoch):\(model.unlocked):\(model.purchases.working)") {
+                    if !model.concealed, model.unlocked, !model.purchases.working { await model.purchases.refresh(model) }
                 }
                 .task(id: "\(scenePhase == .active):\(model.session?.account ?? ""):\(model.session?.generation ?? 0)") {
                     guard scenePhase == .active, model.session?.account != nil else { return }

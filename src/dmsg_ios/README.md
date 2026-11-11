@@ -268,9 +268,15 @@ replacement session. Restore checks each transaction's token independently, even
 when product/status lookup is unavailable. It reports another-account,
 unavailable, applied or empty results and does not transfer a subscription.
 Only authoritative service application permits finishing a matching transaction.
-Startup reconciles both current entitlements and unfinished transactions, deduplicated
-by transaction ID. An already-finished StoreKit transaction may still need a fresh
-server verification after a missed renewal or an account-token repair.
+Transaction updates are observed from app launch, independently of login and
+catalogue loading. Unlock, foreground return, page refresh and explicit retry
+reconcile both current entitlements and unfinished transactions. Identical
+observations are deduplicated, including concurrent purchase/restore/update
+delivery; a newer refund observation of the same transaction is still submitted.
+An already-finished StoreKit transaction may need fresh server verification after
+a missed renewal or an account-token repair. A failed receipt does not stop the
+remaining receipts. Pending state is retained per transaction, and the same
+product cannot be bought again while its payment awaits delivery or approval.
 The service keeps each transaction's beneficiary immutable and permits a new
 account on the same original subscription only for a new, non-overlapping term.
 Deploy that commerce policy before distributing the iOS repurchase change;
@@ -279,9 +285,12 @@ older servers reject a new account when Apple reuses the original subscription I
 The product catalogue and verified subscription-group status determine purchase
 readiness. An empty group permits a first purchase; a failed status read remains
 unknown, keeps offers visible and provides Retry. An unavailable or slow
-`AppTransaction.shared` read does not block first purchase or show an account
-verification error: it describes the app download and provides only an optional
-environment hint. Each subscription transaction is verified independently.
+`AppTransaction.shared` read runs separately from loading and recovery: it cannot
+hold a first purchase or Restore open, or show an account verification error.
+It describes the app download and provides only an optional environment hint;
+verified subscription transactions take precedence. Each subscription transaction
+is verified independently. A partially available catalogue retains its available
+products and offers Retry for the missing options.
 Without a hint, preflight applies the stricter Production rules; it never grants
 Sandbox exceptions to an unknown context. The transaction's verified environment
 and the authoritative service still decide delivery. Storage packs remain hidden
@@ -294,9 +303,14 @@ Late reads and synchronization results from a previous dMsg account are discarde
 
 The plan page keeps the current entitlement separate from the product scheduled
 for the next renewal. Returning from Apple subscription management or foregrounding
-the page refreshes that schedule. While a purchase or restore is in progress, the
-inactive return from Apple’s sheet does not start a second reload; the flow reloads
-after delivery. These local checks do not change the commerce
+the page refreshes that schedule after the workspace privacy cover lifts. Explicit
+purchase/restore operations survive the temporary inactive scene; automatic reads
+resume when they finish. New refreshes supersede cancelled or older plan/usage
+reads, and delivery notifications cannot reset another open purchase's product
+checks. Device attestation is prepared before presenting Apple's payment sheet.
+A registered App Attest key that Apple reports as invalid is retired locally so
+recovery can register a replacement; network errors retain the valid key.
+These local checks do not change the commerce
 service's per-transaction ownership rule, grant extra entitlements, or
 cancel an already scheduled change in Apple’s system.
 
@@ -833,8 +847,8 @@ selected folder's grants. OTP selection includes the reusable seed explicitly.
 原生端继续通过 Core 的 `/v1/accounts/:account/mobile/*` 调用登记、配置和购买接口，不需要新增
 Apple 服务地址或凭据。App Store Server Notifications V2 配置到 Core 的 `/storekit/notifications`；
 生产与 Sandbox 地址、请求格式和确认语义见[公开移动合同](../../docs/protocol/mobile_zh.md#31-app-store-服务端通知)，
-发布检查见[审核说明](Review/README_zh.md)。这项服务端入口调整不启用当前关闭的内购，也不改变
-TestFlight 固定连接生产的策略。
+发布检查见[审核说明](Review/README_zh.md)。当前内购已启用；TestFlight 固定连接生产服务，
+Apple 交易环境由签名交易独立核验。
 
 ## Deployment gates
 

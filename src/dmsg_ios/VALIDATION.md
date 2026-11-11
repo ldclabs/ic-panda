@@ -3219,3 +3219,89 @@ not return that phone's app download remains unverified. The full iOS suite,
 physical TestFlight first purchase, real-money purchase and service delivery were
 not run. No backend, canister, build-number, archive, upload or App Review changes
 were made. A new TestFlight binary is required for the device check.
+
+## Subscription purchase and recovery audit (2026-11-11)
+
+Starting public revision: `ead50ae7`. The existing `project.yml` edits were
+preserved and excluded from this patch. The companion design baselines, Apple
+gateway/Core mobile implementation, Rust preflight and commerce application
+rules were reviewed from the local checkouts; no remote-source freshness or
+production-payment acceptance is claimed. No private implementation or
+credentials were copied into this repository.
+
+Two regressions reproduced on the starting implementation: an optional app
+download read kept Restore working indefinitely, and a purchase-time status
+failure retained the old purchasable state while displaying a generic alert.
+Evidence: `.build/SubscriptionAudit-Reproduction-20261111.xcresult` (two tests
+failed before the fix). The fixes also cover these connected paths:
+
+- Optional download metadata no longer delays load completion or recovery.
+  Verified subscription transactions supply the environment when available.
+  Missing catalogue products can be retried without disabling available offers.
+- Transaction updates are observed independently from login and product reads.
+  Unlock, foreground return, page refresh and network recovery replay matching
+  current/unfinished receipts. Explicit retry/restore alone may call AppStore.sync.
+- Restore continues after individual delivery errors. Pending state belongs to
+  each transaction; an applied second receipt cannot hide the first failure.
+  Duplicate observations share delivery, but later refund observations of the
+  same transaction are processed. Only service application permits finish.
+- Deferred approval and undelivered payments block repeat purchase of the same
+  product. Apple cancellation is silent; real subscription-read failures retain
+  the inline retry. Foreign, missing-token and Xcode receipts cannot be delivered.
+- Device attestation is prepared before the payment sheet. Invalid registered
+  keys are retired for a subsequent registration without rotating valid keys
+  after ordinary network failures. Account/epoch changes fence late completion.
+- Page and usage refreshes supersede cancelled/older reads. Refresh resumes when
+  the privacy cover lifts and an explicit Apple operation finishes. A delivery
+  notification cannot reset another in-progress purchase's checked product state.
+
+Validation performed:
+
+- iPhone 17e / iOS 27.0: all **178 unit tests** and three final UI regressions
+  passed, with no compiler warnings reported by the test tool. The unit set
+  includes 43 deployment/purchase-delivery cases and the actual local StoreKit
+  first-purchase API test; Xcode-signed transactions remain rejected for real
+  delivery. Evidence: `.build/SubscriptionAudit-Final-20261111.xcresult`.
+- iPhone SE / iOS 18.4: all **43 deployment/purchase-delivery tests** and the
+  foreground-recovery UI regression passed, including the actual local
+  StoreKit purchase API. Evidence: `.build/SubscriptionAudit-SE-20261111.xcresult`.
+- The earlier eight subscription UI tests also passed. Together these cover nine
+  distinct UI cases: empty and loading catalogues, inline status failure,
+  foreign ownership, managed and Sandbox plans, scheduled downgrade, action
+  alignment and foreground recovery. Chinese light/dark, German and Arabic RTL
+  are covered. The MCP call timed out at 300 seconds for the eight-test run;
+  the underlying run completed successfully and its xcresult summary was read.
+  Evidence: `.build/SubscriptionAudit-UI-20261111.xcresult` and
+  `.build/subscription-audit-final-shots/`. Representative screenshots were
+  inspected; these are UI fixtures, not App Store review/payment evidence.
+- Local companion gateway tests: **105 passed**; Core Apple/mobile tests:
+  **16 passed**. Expected rejection/failure injections log exceptions; both
+  runners finished with zero failed tests. They use local mocked external
+  services and do not establish deployed Apple/App Attest acceptance.
+- Rust: commerce App Store tests **10 passed**, client commerce tests
+  **10 passed**, and mobile purchase-preflight test **1 passed**.
+- An unsigned Release build for `generic/platform=iOS` passed. The resulting
+  app has bundle `net.dmsg.ios`, IAP `YES`, staging `NO`, and production App
+  Attest/APNs. It uses the pre-existing local version/build values, 1.1.2 (27),
+  solely for compilation; it was not archived, signed for distribution or
+  uploaded. Evidence: `.build/subscription-audit-release.log`.
+- All 23 localization checks, release native artifact/source fingerprint and
+  `git diff --check` passed.
+
+App Store Connect was inspected read-only during the audit: version 1.1.2,
+the subscription group and all three products remain Prepare for Submission.
+Plus still has no review screenshot. Its Family Sharing is off, multi-seat
+purchases are disallowed and availability includes all territories. Final review
+submission remains with the release owner; this patch changes no store settings.
+
+The launch-listener and optional-download behavior were checked against Apple's
+[transaction updates](https://developer.apple.com/documentation/storekit/transaction/updates),
+[AppTransaction.shared](https://developer.apple.com/documentation/storekit/apptransaction/shared)
+and [App Attest lifecycle](https://developer.apple.com/documentation/devicecheck/establishing-your-app-s-integrity)
+documentation. Physical-device TestFlight first purchase, real App Attest
+registration/assertions, production payment, real renewal/refund and actual
+service entitlement delivery with this binary were **not run**. The full UI
+suite and full Rust workspace suite were not run. No backend/canister deployment,
+App Store submission, upload, build-number change or private-repository edit was
+performed. A new signed TestFlight build still needs device acceptance before
+release; local tests do not replace that check.

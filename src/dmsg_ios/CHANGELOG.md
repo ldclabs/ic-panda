@@ -7,6 +7,13 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+- Start the Apple transaction listener before catalogue loading and replay
+  unfinished purchases after reconnecting or returning to the app. Restore
+  continues after individual failures, coalesces duplicate delivery and retains
+  newer refund observations. Pending payments cannot be purchased again.
+- Prepare device attestation before payment and recover invalid App Attest keys.
+  Keep optional app-download reads out of restore, make purchase-time status
+  failures retryable inline, and refresh plan/usage after Apple's sheet closes.
 - Fix crashes after opening a system notification by completing notification
   delegate callbacks on the main thread, including notifications without a route.
 - Allow a first subscription without an App download receipt. Check subscription

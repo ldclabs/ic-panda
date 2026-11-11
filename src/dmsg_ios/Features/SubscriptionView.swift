@@ -3,7 +3,6 @@ import StoreKit
 
 struct SubscriptionView: View {
     @Environment(SessionModel.self) private var model
-    @Environment(\.scenePhase) private var scenePhase
     struct Plan: Decodable {
         struct Limits: Decodable { let storageBytes: UInt64; let activeChannels: UInt64; let monthlyExecutionUnits: UInt64 }
         struct Term: Decodable { let endsAtMs: UInt64; let method: String; let storeEnvironment: String? }
@@ -40,12 +39,13 @@ struct SubscriptionView: View {
     @State private var usage: Usage?
     @State private var usageFailed = false
     @State private var usageLoading = false
+    @State private var usageRequest = UUID()
     @State private var display = DisplayLoad()
     @State private var plan: Plan?
     @State private var managing = false
     @State private var loading = false
     @State private var failed = false
-    @State private var queuedRefresh = false
+    @State private var loadRequest = UUID()
     var body: some View {
         List {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
@@ -141,7 +141,7 @@ struct SubscriptionView: View {
                     if let feedback = model.purchases.feedback, feedback != model.purchases.subscriptionMessage {
                         NoticeBar(text: feedback).accessibilityElement(children: .combine).accessibilityIdentifier("plan.purchase-result")
                     }
-                    if !model.purchases.loading && (model.purchases.loadIssue != nil || model.purchases.products.isEmpty || model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage) {
+                    if !model.purchases.loading && (model.purchases.loadIssue != nil || model.purchases.hasUnavailableProducts || model.purchases.products.isEmpty || model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage) {
                         SettingsAction("Retry") { Task { await model.purchases.retry(model) } }.disabled(model.purchases.working)
                             .accessibilityIdentifier("plan.products-retry")
                     }
@@ -169,11 +169,12 @@ struct SubscriptionView: View {
                 Link("Terms of service", destination: URL(string: "https://dmsg.net/_/terms")!)
             }
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
-            // Apple's purchase and restore sheets make the scene inactive. Those
-            // flows reload when they finish. Retrying a failed subscription read
-            // may also authenticate Apple and must survive the inactive scene.
-            .task(id: scenePhase) { if scenePhase == .active, !model.purchases.working { await load(force: true) } }.refreshable { await load(force: true) }
-            .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true) } }
+            // Resume after the privacy cover lifts and Apple's explicit flow
+            // finishes. A cancelled old refresh cannot consume the new request.
+            .task(id: "\(model.epoch):\(model.concealed):\(model.purchases.working)") {
+                if !model.concealed, !model.purchases.working { await load(force: true) }
+            }.refreshable { await load(force: true) }
+            .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true, reconcile: false) } }
             .onChange(of: managing) { wasPresented, isPresented in
                 if wasPresented && !isPresented { Task { await load(force: true) } }
             }
@@ -211,9 +212,10 @@ struct SubscriptionView: View {
         }
         return formatter.string(from: components) ?? ""
     }
-    private func load(force: Bool = false) async {
-        if loading { queuedRefresh = queuedRefresh || force; return }
-        loading = true; failed = false; defer { loading = false }
+    private func load(force: Bool = false, reconcile: Bool = true) async {
+        let request = UUID(); loadRequest = request
+        loading = true; failed = false
+        defer { if loadRequest == request { loading = false } }
         #if DEBUG
         if model.uiTesting {
             model.purchases.installSubscriptionFixture()
@@ -222,27 +224,30 @@ struct SubscriptionView: View {
             return
         }
         #endif
-        var refresh = force
-        repeat {
-            queuedRefresh = false
-            let refreshThisLoad = refresh
-            async let counts: Void = loadUsage()
-            async let saved: Void = display.load(model, kind: "plan", force: refreshThisLoad) { (next: Plan) in plan = next }
-            async let products: Void = model.purchases.load(model)
-            _ = await (saved, products, counts)
-            failed = display.failed
-            refresh = queuedRefresh
-        } while refresh && !Task.isCancelled
+        async let counts: Void = loadUsage()
+        async let saved: Void = display.load(model, kind: "plan", force: force) { (next: Plan) in plan = next }
+        async let products: Void = loadProducts(reconcile: reconcile)
+        _ = await (saved, products, counts)
+        if loadRequest == request, !Task.isCancelled { failed = display.failed }
+    }
+
+    private func loadProducts(reconcile: Bool) async {
+        // A delivery can update the plan while another explicit Apple operation
+        // is still open. Do not reset that operation's checked product state.
+        guard !model.purchases.working else { return }
+        if reconcile { await model.purchases.refresh(model) }
+        else { await model.purchases.load(model) }
     }
 
     private func loadUsage() async {
-        guard let engine = model.engine, !usageLoading else { return }
-        let epoch = model.epoch; usageLoading = true; usageFailed = false
-        defer { usageLoading = false }
+        guard let engine = model.engine, model.unlocked else { return }
+        let epoch = model.epoch, request = UUID(); usageRequest = request
+        usageLoading = true; usageFailed = false
+        defer { if usageRequest == request { usageLoading = false } }
         do {
             let value: Usage = try model.decode(try await engine.accountUsage())
-            guard epoch == model.epoch, !Task.isCancelled else { return }; usage = value
-        } catch { if epoch == model.epoch, !Task.isCancelled { usageFailed = true } }
+            guard usageRequest == request, epoch == model.epoch, !Task.isCancelled else { return }; usage = value
+        } catch { if usageRequest == request, epoch == model.epoch, !Task.isCancelled { usageFailed = true } }
     }
 
 }

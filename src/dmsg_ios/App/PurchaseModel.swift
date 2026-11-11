@@ -58,6 +58,51 @@ final class PurchaseModel {
         var purchase: @MainActor (Product, UUID) async throws -> Product.PurchaseResult = {
             try await $0.purchase(options: [.appAccountToken($1)])
         }
+        var prepare: @MainActor (SessionModel, String) async throws -> Void = { model, account in
+            guard let engine = model.engine, let files = model.files else { throw CancellationError() }
+            try await model.apple.preparePurchase(engine: engine, files: files, account: account)
+        }
+        var submit: @MainActor (SessionModel, String, String) async throws -> Void = { model, account, jws in
+            guard let engine = model.engine, let files = model.files else { throw CancellationError() }
+            try await model.apple.submitPurchase(engine: engine, files: files, account: account, jws: jws)
+        }
+        var currentEntitlements: @MainActor () -> AsyncStream<Result<Receipt, Error>> = { receipts(Transaction.currentEntitlements) }
+        var unfinished: @MainActor () -> AsyncStream<Result<Receipt, Error>> = { receipts(Transaction.unfinished) }
+        var updates: @MainActor () -> AsyncStream<Result<Receipt, Error>> = { receipts(Transaction.updates) }
+    }
+
+    // The production adapter constructs this only from a verified Apple JWS.
+    // Keeping delivery separate lets tests exercise outages and duplicate events
+    // without accepting Xcode-signed purchases in a distribution build.
+    struct Receipt: Sendable {
+        let id: UInt64
+        let product: String
+        let token: UUID?
+        let environment: String
+        let jws: String
+        let finish: @Sendable () async -> Void
+
+        var key: String { "\(environment):\(id)" }
+    }
+
+    private static func receipt(_ value: VerificationResult<Transaction>) throws -> Receipt {
+        guard case .verified(let transaction) = value,
+              let environment = environmentName(transaction.environment) else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+        return Receipt(id: transaction.id, product: transaction.productID, token: transaction.appAccountToken,
+            environment: environment, jws: value.jwsRepresentation, finish: { await transaction.finish() })
+    }
+
+    private static func receipts(_ values: Transaction.Transactions) -> AsyncStream<Result<Receipt, Error>> {
+        AsyncStream { continuation in
+            let task = Task {
+                for await value in values {
+                    if Task.isCancelled { break }
+                    continuation.yield(Result { try receipt(value) })
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
     enum LoadIssue: String {
         case catalogue, products, subscriptions
@@ -70,10 +115,11 @@ final class PurchaseModel {
         }
     }
     private(set) var products: [Product] = []
+    private(set) var hasUnavailableProducts = false
     private(set) var loadIssue: LoadIssue?
     private(set) var loading = false
     private(set) var working = false
-    private(set) var pending = false
+    var pending: Bool { !pendingTransactions.isEmpty || !awaitingApproval.isEmpty }
     private(set) var storeEnvironment: String?
     private(set) var revision = 0
     enum Ownership: Equatable { case available, current, otherAccount, unverified }
@@ -82,12 +128,14 @@ final class PurchaseModel {
         let ownership: Ownership
         var nextProduct: String? = nil
         var renewalDate: Date? = nil
+        var environment: String? = nil
     }
     struct SubscriptionStatus {
         let token: UUID?
         let state: Product.SubscriptionInfo.RenewalState
         var nextProduct: String? = nil
         var renewalDate: Date? = nil
+        var environment: String? = nil
 
         var active: Bool { state != .expired && state != .revoked }
     }
@@ -97,6 +145,14 @@ final class PurchaseModel {
     private var loadRevision = 0
     private var account: String?
     private var token: UUID?
+    private var environmentTask: Task<Void, Never>?
+    private var pendingTransactions: [String: String] = [:]
+    private var awaitingApproval = Set<String>()
+    private struct InFlight {
+        let jws: String
+        let task: Task<Delivery, Error>
+    }
+    private var deliveries: [String: InFlight] = [:]
 
     static var otherAccountMessage: String {
         String(localized: "This Apple subscription belongs to another dMsg account. Switch accounts to manage it. Restoring purchases does not transfer it.")
@@ -112,7 +168,11 @@ final class PurchaseModel {
     var hasCurrentSubscription: Bool { subscriptions.contains { $0.ownership == .current } }
 
     func canPurchase(_ product: Product) -> Bool {
-        canPurchase(group: product.subscription?.subscriptionGroupID)
+        guard !pendingTransactions.values.contains(product.id), !awaitingApproval.contains(product.id),
+              products.contains(where: { $0.id == product.id }) else { return false }
+        if let group = product.subscription?.subscriptionGroupID,
+           products.contains(where: { $0.subscription?.subscriptionGroupID == group && awaitingApproval.contains($0.id) }) { return false }
+        return canPurchase(group: product.subscription?.subscriptionGroupID)
     }
 
     func canPurchase(group: String?) -> Bool {
@@ -126,16 +186,18 @@ final class PurchaseModel {
     // account-token update. Only the service can accept or reject that binding.
     static func subscription(group: String, statuses: [SubscriptionStatus], expected: UUID) -> Subscription {
         let active = statuses.filter(\.active)
+        let environments = Set(statuses.compactMap(\.environment))
+        let environment = environments.count == 1 ? environments.first : nil
         // A fully expired group is a new purchase, with the new account's token.
         // Billing retry/grace and revocation do not count as full expiry here.
-        if statuses.allSatisfy({ $0.state == .expired }) { return Subscription(id: group, ownership: .available) }
+        if statuses.allSatisfy({ $0.state == .expired }) { return Subscription(id: group, ownership: .available, environment: environment) }
         let relevant = active.isEmpty ? statuses : active
         if let owned = relevant.first(where: { $0.token == expected }) {
             return Subscription(id: group, ownership: owned.active ? .current : .available,
-                nextProduct: owned.active ? owned.nextProduct : nil, renewalDate: owned.active ? owned.renewalDate : nil)
+                nextProduct: owned.active ? owned.nextProduct : nil, renewalDate: owned.active ? owned.renewalDate : nil, environment: environment)
         }
-        if relevant.contains(where: { $0.token == nil }) { return Subscription(id: group, ownership: .unverified) }
-        return Subscription(id: group, ownership: relevant.isEmpty ? .available : .otherAccount)
+        if relevant.contains(where: { $0.token == nil }) { return Subscription(id: group, ownership: .unverified, environment: environment) }
+        return Subscription(id: group, ownership: relevant.isEmpty ? .available : .otherAccount, environment: environment)
     }
 
     private func current(_ model: SessionModel, epoch: UInt64, account: String?) -> Bool {
@@ -159,7 +221,7 @@ final class PurchaseModel {
                 let sameRenewalAccount = renewal.appAccountToken == nil || renewal.appAccountToken == transaction.appAccountToken
                 return SubscriptionStatus(token: transaction.appAccountToken, state: value.state,
                     nextProduct: sameRenewalAccount && renewal.willAutoRenew && renewal.autoRenewPreference != transaction.productID ? renewal.autoRenewPreference : nil,
-                    renewalDate: sameRenewalAccount ? renewal.renewalDate : nil)
+                    renewalDate: sameRenewalAccount ? renewal.renewalDate : nil, environment: Self.environmentName(transaction.environment))
             }
             subscriptions.append(Self.subscription(group: group, statuses: statuses, expected: token))
         }
@@ -177,11 +239,14 @@ final class PurchaseModel {
         guard enabled else { return }
         guard model.unlocked else { return }; let epoch = model.epoch
         loadRevision &+= 1; let read = loadRevision
+        environmentTask?.cancel(); environmentTask = nil
         loading = true
         defer { if read == loadRevision { loading = false } }
-        if account != model.session?.account { products = []; token = nil; pending = false; feedback = nil; account = model.session?.account }
+        if account != model.session?.account {
+            products = []; token = nil; pendingTransactions = [:]; awaitingApproval = []; feedback = nil; account = model.session?.account
+        }
         if feedback == Self.otherAccountMessage || feedback == Self.unverifiedMessage { feedback = nil }
-        subscriptions = []; storeEnvironment = nil; loadIssue = nil
+        subscriptions = []; storeEnvironment = nil; loadIssue = nil; hasUnavailableProducts = false
         let expectedAccount = account
         var stage = LoadIssue.catalogue
         do {
@@ -202,6 +267,7 @@ final class PurchaseModel {
             // Keep offers visible even when the subscription status read fails.
             products = found.sorted { $0.price < $1.price }
             let missing = Set(config.products.map(\.productId)).subtracting(found.map(\.id)).sorted()
+            hasUnavailableProducts = !missing.isEmpty
             if !missing.isEmpty {
                 // Product identifiers are public. Never log account tokens or receipts.
                 Self.logger.warning("App Store products unavailable: \(missing.joined(separator: ","), privacy: .public)")
@@ -210,21 +276,24 @@ final class PurchaseModel {
             let checked = try await store.subscriptions(products, token)
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
             subscriptions = checked
-            // A slow or missing app-download receipt must not block the first
-            // purchase. Ownership is already checked above.
-            loading = false
-            let environment: String?
-            do { environment = try await store.appEnvironment() }
-            catch {
-                guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
-                let failure = error as NSError
-                Self.logger.info("App download environment unavailable: \(failure.domain, privacy: .public) (\(failure.code)); checking subscriptions independently")
-                environment = nil
+            let environments = Set(checked.compactMap(\.environment))
+            storeEnvironment = environments.count == 1 ? environments.first : nil
+            // This optional hint must not hold loading, restore, or transaction
+            // replay open. Signed subscription transactions take precedence.
+            if storeEnvironment == nil {
+                let appEnvironment = store.appEnvironment
+                environmentTask = Task { [weak self, weak model] in
+                    do {
+                        let environment = try await appEnvironment()
+                        guard let self, let model, self.current(model, epoch: epoch, account: expectedAccount), read == self.loadRevision else { return }
+                        self.storeEnvironment = environment
+                    } catch {
+                        guard !Task.isCancelled else { return }
+                        let failure = error as NSError
+                        Self.logger.info("App download environment unavailable: \(failure.domain, privacy: .public) (\(failure.code))")
+                    }
+                }
             }
-            guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
-            storeEnvironment = environment
-            // Sandbox admits annual subscriptions only; commerce refuses its storage packs.
-            products = products.filter { environment != "Sandbox" || $0.type == .autoRenewable }
         } catch {
             if current(model, epoch: epoch, account: expectedAccount), read == loadRevision {
                 loadIssue = stage
@@ -244,14 +313,14 @@ final class PurchaseModel {
         do {
             // Only a user-requested retry of a failed subscription read may ask
             // StoreKit to authenticate. Never refresh the app download receipt.
-            if loadIssue == .subscriptions { try await store.sync() }
+            if loadIssue == .subscriptions || subscriptionMessage == Self.unverifiedMessage || feedback == Self.unverifiedMessage { try await store.sync() }
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
-            await load(model)
-        } catch { if current(model, epoch: epoch, account: expectedAccount) { model.report(error) } }
+            await refresh(model)
+        } catch { if current(model, epoch: epoch, account: expectedAccount), !Self.cancelled(error) { model.report(error) } }
     }
 
     func purchase(_ product: Product, model: SessionModel) async {
-        guard enabled, !working, canPurchase(product), let token, account == model.session?.account else { return }
+        guard enabled, !working, model.unlocked, canPurchase(product), let token, let account, account == model.session?.account else { return }
         working = true; feedback = nil; defer { working = false }
         let epoch = model.epoch, expectedAccount = account
         // An unavailable app download must not prevent a free account's first
@@ -272,8 +341,19 @@ final class PurchaseModel {
             guard (check.kind == "subscription" && product.type == .autoRenewable) || (check.kind == "storage" && product.type == .consumable) else {
                 throw MobileError.Failure(code: "UNSUPPORTED_PROTOCOL")
             }
+            // Register the installation before asking Apple to charge. A device
+            // unable to deliver an attested purchase must fail before payment.
+            try await store.prepare(model, account)
+            guard current(model, epoch: epoch, account: expectedAccount) else { return }
             // Recheck immediately before Apple's sheet, not only when the page loaded.
-            let checked = try await store.subscriptions(products, token)
+            let checked: [Subscription]
+            do { checked = try await store.subscriptions(products, token) }
+            catch {
+                if current(model, epoch: epoch, account: expectedAccount) {
+                    subscriptions = []; loadIssue = .subscriptions; model.reportBackground(error)
+                }
+                return
+            }
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             subscriptions = checked
             guard canPurchase(product) else {
@@ -284,13 +364,22 @@ final class PurchaseModel {
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             switch result {
             case .success(let verification):
-                show(try await deliver(verification, model: model), model: model, epoch: epoch, account: expectedAccount)
-            case .pending: pending = true
+                // Even when delivery fails, refresh ownership so a paid customer
+                // sees recovery/management instead of another purchase offer.
+                do { show(try await deliver(Self.receipt(verification), model: model), model: model, epoch: epoch, account: expectedAccount) }
+                catch {
+                    if current(model, epoch: epoch, account: expectedAccount) {
+                        if pending { model.reportBackground(error) } else { model.report(error) }
+                    }
+                }
+            case .pending: awaitingApproval.insert(product.id)
             case .userCancelled: break
             @unknown default: break
             }
             if current(model, epoch: epoch, account: expectedAccount) { await load(model) }
-        } catch { if current(model, epoch: epoch, account: expectedAccount) { model.report(error) } }
+        } catch {
+            if current(model, epoch: epoch, account: expectedAccount), !Self.cancelled(error) { model.report(error) }
+        }
     }
 
     func restore(_ model: SessionModel) async {
@@ -302,26 +391,14 @@ final class PurchaseModel {
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             await load(model)
             guard current(model, epoch: epoch, account: expectedAccount), token != nil else { return }
-            var applied = false, foreign = false, unverified = false
-            var seen = Set<UInt64>()
-            for stream in [Transaction.currentEntitlements, Transaction.unfinished] {
-                for await value in stream {
-                    guard current(model, epoch: epoch, account: expectedAccount) else { return }
-                    if case .verified(let transaction) = value, !seen.insert(transaction.id).inserted { continue }
-                    switch try await deliver(value, model: model) {
-                    case .applied: applied = true
-                    case .otherAccount: foreign = true
-                    case .unverified: unverified = true
-                    case .stale: return
-                    }
-                }
-            }
+            let result = await reconcile(model)
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
-            if applied { feedback = String(localized: "Your purchase has been applied to this dMsg account.") }
-            else if foreign { feedback = Self.otherAccountMessage }
-            else if unverified { feedback = Self.unverifiedMessage }
+            if result.unverified { feedback = Self.unverifiedMessage }
+            else if result.failed { feedback = nil }
+            else if result.applied { feedback = String(localized: "Your purchase has been applied to this dMsg account.") }
+            else if result.foreign { feedback = Self.otherAccountMessage }
             else { feedback = subscriptionMessage ?? (loadIssue == nil ? String(localized: "No purchases were found for this dMsg account.") : nil) }
-        } catch { if current(model, epoch: epoch, account: expectedAccount) { model.report(error) } }
+        } catch { if current(model, epoch: epoch, account: expectedAccount), !Self.cancelled(error) { model.report(error) } }
     }
 
     private func show(_ result: Delivery, model: SessionModel, epoch: UInt64, account: String?) {
@@ -336,23 +413,74 @@ final class PurchaseModel {
 
     func listen(_ model: SessionModel) async {
         guard enabled else { return }
-        await load(model)
-        // A finished purchase can still need server-side reconciliation after a
-        // missed renewal or repaired account token. Finishing is not entitlement.
-        var seen = Set<UInt64>()
-        for stream in [Transaction.currentEntitlements, Transaction.unfinished] {
-            for await value in stream {
-                if Task.isCancelled { return }
-                if case .verified(let transaction) = value, !seen.insert(transaction.id).inserted { continue }
-                let epoch = model.epoch
-                do { _ = try await deliver(value, model: model) } catch { if !Task.isCancelled, epoch == model.epoch { pending = true } }
+        // Subscribe at launch, independently of login, catalogue reads or replay.
+        // Events seen while locked stay unfinished and replay after unlock.
+        for await value in store.updates() {
+            if Task.isCancelled { return }
+            let epoch = model.epoch, account = model.session?.account
+            do { _ = try await deliver(value.get(), model: model) }
+            catch {
+                logDeliveryFailure(error)
+                if current(model, epoch: epoch, account: account) { model.reportBackground(error) }
             }
         }
-        for await value in Transaction.updates {
-            if Task.isCancelled { return }
-            let epoch = model.epoch
-            do { _ = try await deliver(value, model: model) } catch { if !Task.isCancelled, epoch == model.epoch { pending = true } }
+    }
+
+    func refresh(_ model: SessionModel) async {
+        guard enabled, model.unlocked else { return }
+        let epoch = model.epoch, account = model.session?.account
+        await load(model)
+        guard current(model, epoch: epoch, account: account) else { return }
+        _ = await reconcile(model)
+    }
+
+    func networkReturned(_ model: SessionModel) async {
+        guard !working, pending || loadIssue != nil || products.isEmpty else { return }
+        await refresh(model)
+    }
+
+    private struct Reconciliation {
+        var applied = false, foreign = false, unverified = false, failed = false
+    }
+
+    private func reconcile(_ model: SessionModel) async -> Reconciliation {
+        var result = Reconciliation(), seen = Set<String>()
+        let epoch = model.epoch, account = model.session?.account
+        guard enabled, model.unlocked, token != nil, self.account == account else { return result }
+        // Finished current entitlements repair missed renewals; unfinished
+        // transactions retry delivery. One bad receipt must not starve the rest.
+        for stream in [store.currentEntitlements, store.unfinished] {
+            for await value in stream() {
+                guard current(model, epoch: epoch, account: account) else { return result }
+                let receipt: Receipt
+                do { receipt = try value.get() }
+                catch { result.unverified = true; logDeliveryFailure(error); continue }
+                guard seen.insert(receipt.key + ":" + receipt.jws).inserted else { continue }
+                do {
+                    switch try await deliver(receipt, model: model) {
+                    case .applied: result.applied = true
+                    case .otherAccount: result.foreign = true
+                    case .unverified: result.unverified = true
+                    case .stale: return result
+                    }
+                } catch {
+                    result.failed = true; logDeliveryFailure(error)
+                    if current(model, epoch: epoch, account: account) { model.reportBackground(error) }
+                }
+            }
         }
+        return result
+    }
+
+    private func logDeliveryFailure(_ error: Error) {
+        let failure = error as NSError
+        Self.logger.warning("Purchase delivery deferred: \(failure.domain, privacy: .public) (\(failure.code))")
+    }
+
+    private static func cancelled(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        if case StoreKitError.userCancelled = error { return true }
+        return false
     }
 
     static func deliveryIssue(token: UUID?, expected: UUID) -> Delivery? {
@@ -360,21 +488,37 @@ final class PurchaseModel {
         return token == expected ? nil : .otherAccount
     }
 
-    private func deliver(_ value: VerificationResult<Transaction>, model: SessionModel) async throws -> Delivery {
+    func deliver(_ receipt: Receipt, model: SessionModel) async throws -> Delivery {
         guard enabled else { return .stale }
-        guard case .verified(let transaction) = value, Self.environmentName(transaction.environment) != nil else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+        guard receipt.environment == "Production" || receipt.environment == "Sandbox" else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
         guard let token, let account, account == model.session?.account,
-              model.unlocked, !Task.isCancelled, let engine = model.engine, let files = model.files else { return .stale }
-        if let issue = Self.deliveryIssue(token: transaction.appAccountToken, expected: token) { return issue }
+              model.unlocked, !Task.isCancelled else { return .stale }
+        if let issue = Self.deliveryIssue(token: receipt.token, expected: token) { return issue }
         let epoch = model.epoch
-        pending = true
-        try await model.apple.submitPurchase(engine: engine, files: files, account: account, jws: value.jwsRepresentation)
-        guard current(model, epoch: epoch, account: account) else { return .stale }
-        // Apple payment is finished only after the authoritative service applied it.
-        await transaction.finish()
-        guard current(model, epoch: epoch, account: account) else { return .stale }
-        pending = false; revision &+= 1; await model.updateSession()
-        return .applied
+        let key = "\(epoch):\(account):\(receipt.key)"
+        if let delivery = deliveries[key] {
+            if delivery.jws == receipt.jws { return try await delivery.task.value }
+            // A refund or renewal observation of the same transaction must not
+            // disappear behind an older in-flight JWS.
+            _ = await delivery.task.result
+            guard current(model, epoch: epoch, account: account) else { return .stale }
+            return try await deliver(receipt, model: model)
+        }
+        let task = Task { @MainActor in
+            defer { self.deliveries[key] = nil }
+            guard self.current(model, epoch: epoch, account: account) else { return Delivery.stale }
+            self.pendingTransactions[receipt.key] = receipt.product
+            try await self.store.submit(model, account, receipt.jws)
+            guard self.current(model, epoch: epoch, account: account) else { return Delivery.stale }
+            // Only an authoritative applied response permits StoreKit finish.
+            await receipt.finish()
+            guard self.current(model, epoch: epoch, account: account) else { return Delivery.stale }
+            self.pendingTransactions[receipt.key] = nil; self.awaitingApproval.remove(receipt.product)
+            self.revision &+= 1
+            return Delivery.applied
+        }
+        deliveries[key] = InFlight(jws: receipt.jws, task: task)
+        return try await task.value
     }
 
     #if DEBUG

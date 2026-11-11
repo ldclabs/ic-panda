@@ -11,14 +11,18 @@ final class NativeApple {
     private var working = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
 
+    private func keyPath(files: PrivateFiles, account: String) -> URL {
+        let environment = Bundle.main.object(forInfoDictionaryKey: "DMsgAttestEnvironment") as? String ?? "production"
+        return files.root.appending(path: "apple").appending(path: account + "." + environment + ".json")
+    }
+
     private func key(engine: MobileEngine, files: PrivateFiles, account: String) async throws -> String {
         guard DCAppAttestService.shared.isSupported else { throw MobileError.Failure(code: "APP_INTEGRITY_UNAVAILABLE") }
         let session = try await engine.sessionState()
         guard session.account == account, session.state == "unlocked", let device = session.deviceId else { throw MobileError.Failure(code: "LOCKED") }
         let directory = files.root.appending(path: "apple")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.protectionKey: FileProtectionType.complete])
-        let attestEnvironment = Bundle.main.object(forInfoDictionaryKey: "DMsgAttestEnvironment") as? String ?? "production"
-        let path = directory.appending(path: account + "." + attestEnvironment + ".json")
+        let path = keyPath(files: files, account: account)
         var record = (try? Data(contentsOf: path)).flatMap { try? JSONDecoder().decode(KeyRecord.self, from: $0) }
         if record?.device != device { record = nil }
         if let old = record {
@@ -79,29 +83,50 @@ final class NativeApple {
     }
 
     func registerPush(engine: MobileEngine, files: PrivateFiles, account: String, token: String, environment: String) async throws -> ObjectSnapshot {
+        try await withKey(engine: engine, files: files, account: account) { key in
+            let input = PushRegistration(installation: files.installation, token: token, environment: environment)
+            let challenge: Challenge = try decode(try await engine.pushChallenge(registration: input, keyId: key))
+            let proof = try await assert(challenge, key: key)
+            return try await engine.registerPush(registration: input, proof: proof, requestId: Self.requestID())
+        }
+    }
+
+    func preparePurchase(engine: MobileEngine, files: PrivateFiles, account: String) async throws {
+        try await withKey(engine: engine, files: files, account: account) { _ in () }
+    }
+
+    private func withKey<T>(engine: MobileEngine, files: PrivateFiles, account: String,
+                            operation: (String) async throws -> T) async throws -> T {
         while working { await withCheckedContinuation { idleWaiters.append($0) } }
         try Task.checkCancellation()
         working = true; defer {
             working = false; let waiting = idleWaiters; idleWaiters.removeAll(); for waiter in waiting { waiter.resume() }
         }
         let key = try await key(engine: engine, files: files, account: account)
-        let input = PushRegistration(installation: files.installation, token: token, environment: environment)
-        let challenge: Challenge = try decode(try await engine.pushChallenge(registration: input, keyId: key))
-        let proof = try await assert(challenge, key: key)
-        return try await engine.registerPush(registration: input, proof: proof, requestId: Self.requestID())
+        do { return try await operation(key) }
+        catch {
+            // A registered key can disappear after device restore/reinstallation.
+            // Keep payments unfinished; the next retry registers a fresh key.
+            try? Self.discardInvalidKey(error, id: key, path: keyPath(files: files, account: account))
+            throw error
+        }
     }
 
     func submitPurchase(engine: MobileEngine, files: PrivateFiles, account: String, jws: String) async throws {
-        while working { await withCheckedContinuation { idleWaiters.append($0) } }
-        try Task.checkCancellation()
-        working = true; defer {
-            working = false; let waiting = idleWaiters; idleWaiters.removeAll(); for waiter in waiting { waiter.resume() }
+        try await withKey(engine: engine, files: files, account: account) { key in
+            let challenge: Challenge = try decode(try await engine.purchaseChallenge(installation: files.installation, jws: jws, keyId: key))
+            let proof = try await assert(challenge, key: key)
+            let result = try await engine.submitPurchase(installation: files.installation, jws: jws, proof: proof, requestId: Self.requestID())
+            try PurchaseModel.requireApplied(Data(result.json.utf8))
         }
-        let key = try await key(engine: engine, files: files, account: account)
-        let challenge: Challenge = try decode(try await engine.purchaseChallenge(installation: files.installation, jws: jws, keyId: key))
-        let proof = try await assert(challenge, key: key)
-        let result = try await engine.submitPurchase(installation: files.installation, jws: jws, proof: proof, requestId: Self.requestID())
-        try PurchaseModel.requireApplied(Data(result.json.utf8))
+    }
+
+    static func discardInvalidKey(_ error: Error, id: String, path: URL) throws {
+        let failure = error as NSError
+        guard failure.domain == DCErrorDomain, failure.code == DCError.Code.invalidKey.rawValue,
+              let data = try? Data(contentsOf: path),
+              let record = try? JSONDecoder().decode(KeyRecord.self, from: data), record.id == id else { return }
+        try FileManager.default.removeItem(at: path)
     }
 
     nonisolated static func requestID() -> String { (UUID().uuidString + UUID().uuidString).replacingOccurrences(of: "-", with: "").lowercased() }

@@ -168,6 +168,27 @@ final class NavigationTests: NavigationTestCase {
         capture(app, name: "Product loading is not unavailable")
     }
 
+    func testSubscriptionPageRecoversAfterReturningFromBackground() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-subscription-status-unavailable", "-AppleLanguages", "(zh-Hans)"]
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: "我的").tap()
+        let plan = app.buttons["account.plan"]
+        for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+        XCTAssertTrue(plan.isHittable); plan.tap()
+        let retry = app.buttons["plan.products-retry"]
+        for _ in 0..<8 where !retry.isHittable { app.swipeUp() }
+        XCTAssertTrue(retry.isEnabled)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        let visible = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: retry)
+        XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 10), .completed)
+        XCTAssertTrue(retry.isEnabled)
+        XCTAssertTrue(app.buttons["plan.restore"].isEnabled)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        capture(app, name: "Subscription recovery after returning · Chinese")
+    }
+
     func testSubscriptionStatusReadFailureStaysInlineAndOffersRetry() {
         for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("ar", "الحساب", true)] {
             let app = XCUIApplication()

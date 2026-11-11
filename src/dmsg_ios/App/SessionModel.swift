@@ -825,10 +825,12 @@ final class SessionModel {
     /// A waiting retry starts now; the automatic pass picks it up.
     private func networkReturned(redial: Bool = true) async {
         guard let engine, unlocked, !concealed else { return }
+        async let receipts: Void = purchases.networkReturned(self)
         if redial { engine.reconnectHints() }
         _ = try? await engine.retrySyncEarly(network: true)
         engine.requestContentSync()
         await recoverMessages()
+        await receipts
     }
 
     /// Sends an interruption left open leave again, under their own IDs and in
