@@ -6,6 +6,17 @@ The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
 v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
+## First sign-in
+
+An authenticated login without an account opens a focused Get started screen.
+It explains that the action creates the encrypted workspace, keeps Join an
+existing account as a secondary path, and moves other sign-in choices behind
+Switch account. A renewable passkey login does not by itself enable biometric
+unlock: the account must exist and its initial setup must no longer be pending.
+Interrupted creation resumes the saved operation, including when the account
+already exists but its first content root has not been confirmed. Progress and
+slow-network guidance remain visible while the action is running.
+
 ## Messaging
 
 A channel hint received during an in-flight refresh schedules another read as

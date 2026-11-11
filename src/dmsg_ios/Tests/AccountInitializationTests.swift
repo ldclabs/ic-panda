@@ -4,6 +4,33 @@ import XCTest
 
 @MainActor
 final class AccountInitializationTests: XCTestCase {
+    func testUnlockRequiresAnExistingWorkspaceWithNoPendingSetup() {
+        let model = SessionModel()
+        for (state, account, pending, fast, renewable, expected) in [
+            ("no_account", false, false, false, true, false),
+            ("no_account", false, false, true, true, false),
+            ("root_required", true, true, true, true, false),
+            ("pairing_required", false, false, false, true, false),
+            ("locked", true, false, true, false, true),
+            ("locked", true, false, false, true, true),
+            ("locked", true, false, false, false, false),
+            ("root_required", true, false, true, false, true),
+            ("logged_out", false, false, false, false, false),
+            ("unlocked", true, false, true, true, false),
+        ] {
+            model.installFixtures(SessionSnapshot(generation: 0, sequence: 0, state: state,
+                account: account ? "040g2081040g2081040g" : nil, deviceId: "device",
+                pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: fast,
+                loginExpiresAtMs: nil, loginRenewable: renewable, passkeyAvailable: true,
+                setupPending: pending, lastSyncAtMs: nil, syncError: nil), items: [])
+            model.signingIntoAnotherAccount = false
+            XCTAssertEqual(model.needsAccountSetup, state == "no_account" || pending, state)
+            XCTAssertEqual(model.canUnlockWorkspace, expected, state)
+            model.signingIntoAnotherAccount = true
+            XCTAssertFalse(model.canUnlockWorkspace, "Switching accounts must not unlock the previous one")
+        }
+    }
+
     func testFailedInitializationRefreshesTheNativeHandleBeforeAnotherAttempt() async throws {
         let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)

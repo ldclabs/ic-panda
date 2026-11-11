@@ -48,7 +48,7 @@ struct RemindersView: View {
                 LabeledContent("Account ID", value: account).font(.caption)
                     .accessibilityIdentifier("reminders.originalAccount")
             }
-            if !model.unlocked && !selected.isEmpty {
+            if model.canUnlockWorkspace {
                 Button(Biometry.unlockTitle) { Task { await model.fastUnlock() } }.disabled(model.busy)
             }
             if loading && items.isEmpty { ProgressView() }

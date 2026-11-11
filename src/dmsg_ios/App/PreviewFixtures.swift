@@ -103,14 +103,15 @@ extension SessionModel {
     func initializeAccountFixture() async throws -> SessionSnapshot {
         fixtureInitializationAttempts += 1
         let attempt = fixtureInitializationAttempts, current = epoch
+        let renewable = session?.loginRenewable == true, passkey = session?.passkeyAvailable == true
         let slow = ProcessInfo.processInfo.arguments.contains("--ui-setup-slow")
         try await Task.sleep(for: .seconds(slow && attempt == 1 ? 22 : 6))
         guard current == epoch, !Task.isCancelled else { throw CancellationError() }
         let fails = attempt == 1 || (attempt == 2 && ProcessInfo.processInfo.arguments.contains("--ui-setup-failure"))
         let state = SessionSnapshot(generation: UInt64(attempt * 2), sequence: UInt64(attempt),
             state: fails ? "root_required" : "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
-            pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil,
-            loginRenewable: false, passkeyAvailable: false, setupPending: fails, lastSyncAtMs: nil, syncError: nil)
+            pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: true, loginExpiresAtMs: nil,
+            loginRenewable: renewable, passkeyAvailable: passkey, setupPending: fails, lastSyncAtMs: nil, syncError: nil)
         installFixtures(state, items: [])
         if fails { throw MobileError.Failure(code: "EXECUTION_UNKNOWN") }
         return state

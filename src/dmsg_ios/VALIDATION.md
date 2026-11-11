@@ -3011,3 +3011,55 @@ access instructions, and all three subscription review-note drafts were updated.
 Actual product screenshots and the final 1.1.2 build remain pending.
 No archive, upload, App Review submission, release or production deployment was
 performed; the user retains the final submission step.
+
+## First sign-in guides workspace creation (2026-11-11)
+
+The access screen treated a renewable passkey login as sufficient to show
+biometric unlock, even in `no_account`. A regression test using that real status
+combination failed before the fix. Unlock availability now also requires an
+existing account, an appropriate session state and no pending initial setup.
+The access screen, reminder unlock entry and unlock action share this condition.
+
+New sign-ins see Get started as the prominent action, with workspace guidance
+above it and existing-account binding as a secondary action. Other login choices
+are behind Switch account, whose Cancel returns to the saved setup state.
+Progress and slow-network guidance remain visible; failed creation continues
+the existing account/root journal. Pending creation no longer says Welcome back
+or exposes an unlock action. The two obsolete button strings were replaced in
+all 23 languages, and Chinese setup/error copy no longer says initialization.
+Prominent action text follows the theme, including its disabled state.
+
+Validation:
+
+- iPhone SE / iOS 18.4: 30 account-initialization and session-policy unit tests
+  passed, as did the existing multi-language account-switching UI flow.
+- All five initialization UI tests passed on the final SE rerun. They cover
+  renewable passkey sign-in, existing-account binding, switching away and back,
+  unknown outcomes with saved-progress retry, slow-network reconciliation and
+  very large Arabic text. The first binding assertion ran during navigation;
+  it now waits for the previous action to become non-hittable. A single-method
+  filter that selected zero tests was not counted as validation.
+- iPhone 17e / iOS 27.0: nine selected unit/UI tests passed, including existing
+  unlock/authorization layout and large-text access navigation. The final
+  button foreground adjustment was also rebuilt and launched on iOS 27.0;
+  its dark Chinese first-use screenshot was inspected.
+- After the final disabled-foreground adjustment, the two slow-network and
+  failed-creation/retry UI tests passed again on SE; progress screenshots are
+  exported in `.build/first-use-progress-shots/` from
+  `.build/FirstUse-Progress-20261111.xcresult`.
+- Final SE screenshots were inspected for Chinese light/dark, German, Arabic
+  RTL, large text, account binding and setup progress. Result bundles are
+  `.build/FirstUse-SE-20261111.xcresult`,
+  `.build/FirstUse-SE-Final-20261111.xcresult` and
+  `.build/FirstUse-iOS27-20261111.xcresult`; final images are in
+  `.build/first-use-final-shots/`.
+- All 23 localization checks, including compiler-extracted strings, the existing
+  release bridge/source fingerprint and `git diff --check` passed.
+
+These UI cases use presentation fixtures; they do not perform a real passkey or
+Face ID authentication or create an online account. The full iOS suite, iPad,
+physical devices and manual VoiceOver were not tested. Runtime accessibility
+control timed out; screenshot capture and XCTest automation remained available.
+No Rust/account protocol changes, archive, upload or release were performed.
+Local review instructions and the existing App Store Connect 1.1.2 review-note
+draft now use Get started; the draft was saved without submitting it.

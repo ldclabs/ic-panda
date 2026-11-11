@@ -61,7 +61,7 @@
 	<key>Account security</key>
 	<string>账号安全</string>
 	<key>Account setup is not confirmed yet. Check your connection and try again to continue the saved setup.</key>
-	<string>尚未确认账户初始化结果。请检查网络连接后重试，应用会继续已保存的初始化进度。</string>
+	<string>工作空间尚未准备完成。请检查网络连接后重试，我们会继续上次的进度。</string>
 	<key>Account synchronization</key>
 	<string>账号同步</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
@@ -677,7 +677,7 @@
 	<key>Create transfer proposal</key>
 	<string>创建转账提案</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
-	<string>创建你的加密工作区，即可开始保存密码、笔记和文件。</string>
+	<string>创建你的加密工作空间，开始保存密码、笔记和文件。</string>
 	<key>Created</key>
 	<string>创建时间</string>
 	<key>Creating %lld of %lld…</key>
@@ -2328,14 +2328,14 @@
 	<string>会话码</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>为自己的资产配置设备协签，或邀请他人共同管理资金。</string>
-	<key>Set up this account</key>
-	<string>初始化账号</string>
+	<key>Get started</key>
+	<string>开始使用</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>将这台 iPhone 设为新设备</string>
-	<key>Setting up account…</key>
-	<string>正在初始化账户…</string>
+	<key>Preparing your workspace…</key>
+	<string>正在准备工作空间…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
-	<string>正在初始化加密工作区，请保持 dMsg 打开。</string>
+	<string>正在准备加密工作空间，请保持 dMsg 打开。</string>
 	<key>Settings</key>
 	<string>设置</string>
 	<key>Share</key>

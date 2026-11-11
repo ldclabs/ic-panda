@@ -2310,12 +2310,12 @@
 	<string>رمز الجلسة</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>أعدّ التوقيع المشترك للأجهزة لحماية أصولك الشخصية، أو ادعُ آخرين لإدارة الأموال معًا.</string>
-	<key>Set up this account</key>
-	<string>إعداد هذا الحساب</string>
+	<key>Get started</key>
+	<string>ابدأ الآن</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>إعداد جهاز iPhone هذا كجهاز جديد</string>
-	<key>Setting up account…</key>
-	<string>جارٍ إعداد الحساب…</string>
+	<key>Preparing your workspace…</key>
+	<string>جارٍ تجهيز مساحة عملك…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>جارٍ إعداد مساحة عملك المشفرة. يُرجى إبقاء dMsg مفتوحًا.</string>
 	<key>Settings</key>

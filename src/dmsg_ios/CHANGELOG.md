@@ -7,6 +7,9 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+- Guide new sign-ins into their encrypted workspace with Get started. Hide
+  biometric unlock until an account exists and its initial setup is complete;
+  keep existing-account binding and interrupted setup recovery available.
 - Show product-loading progress and offer Retry when App Store returns no
   products. Log missing product IDs for release diagnostics without account
   tokens or receipts.

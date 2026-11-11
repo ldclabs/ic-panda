@@ -2328,12 +2328,12 @@
 	<string>세션 코드</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>개인 자산을 위한 기기 공동 서명을 설정하거나 다른 사람을 초대해 자금을 함께 관리하세요.</string>
-	<key>Set up this account</key>
-	<string>이 계정을 설정하세요</string>
+	<key>Get started</key>
+	<string>시작하기</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>이 iPhone을 새 기기로 설정</string>
-	<key>Setting up account…</key>
-	<string>계정 설정 중…</string>
+	<key>Preparing your workspace…</key>
+	<string>작업 공간 준비 중…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>암호화된 작업 공간을 설정하고 있습니다. dMsg를 열어 두세요.</string>
 	<key>Settings</key>

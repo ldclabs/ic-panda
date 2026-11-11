@@ -2328,12 +2328,12 @@
 	<string>Oturum kodu</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>Kendi varlıklarınız için cihaz ortak imzasını ayarlayın veya fonları birlikte yönetmek üzere başkalarını davet edin.</string>
-	<key>Set up this account</key>
-	<string>Bu hesabı kur</string>
+	<key>Get started</key>
+	<string>Başlayın</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Bu iPhone’u yeni cihaz olarak kur</string>
-	<key>Setting up account…</key>
-	<string>Hesap kuruluyor…</string>
+	<key>Preparing your workspace…</key>
+	<string>Çalışma alanınız hazırlanıyor…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>Şifreli çalışma alanınız kuruluyor. Lütfen dMsg uygulamasını açık tutun.</string>
 	<key>Settings</key>

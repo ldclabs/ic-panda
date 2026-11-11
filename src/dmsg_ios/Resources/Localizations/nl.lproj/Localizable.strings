@@ -2328,12 +2328,12 @@
 	<string>Sessiecode</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>Stel medeondertekening op apparaten in voor je eigen activa of nodig anderen uit om samen middelen te beheren.</string>
-	<key>Set up this account</key>
-	<string>Stel dit account in</string>
+	<key>Get started</key>
+	<string>Aan de slag</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Deze iPhone instellen als nieuw apparaat</string>
-	<key>Setting up account…</key>
-	<string>Account instellen…</string>
+	<key>Preparing your workspace…</key>
+	<string>Je werkruimte voorbereiden…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>Je versleutelde werkruimte wordt ingesteld. Houd dMsg open.</string>
 	<key>Settings</key>

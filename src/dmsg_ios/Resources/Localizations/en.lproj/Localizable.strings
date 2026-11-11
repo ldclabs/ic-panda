@@ -2310,12 +2310,12 @@
 	<string>Session code</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>Set up device co-signing for your own assets, or invite others to manage funds together.</string>
-	<key>Set up this account</key>
-	<string>Set up this account</string>
+	<key>Get started</key>
+	<string>Get started</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Set up this iPhone as a new device</string>
-	<key>Setting up account…</key>
-	<string>Setting up account…</string>
+	<key>Preparing your workspace…</key>
+	<string>Preparing your workspace…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>Setting up your encrypted workspace. Please keep dMsg open.</string>
 	<key>Settings</key>

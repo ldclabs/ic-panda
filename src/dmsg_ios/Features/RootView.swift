@@ -186,8 +186,8 @@ struct AccessView: View {
     @State private var signingIn = false
     @State private var initializationIsSlow = false
     @State private var copies: [MovedCopy] = []
-    private var fastUnlock: Bool { !model.signingIntoAnotherAccount && (model.session?.fastUnlock == true || model.session?.loginRenewable == true) }
-    private var needsSetup: Bool { !model.signingIntoAnotherAccount && (model.session?.state == "no_account" || model.session?.setupPending == true) }
+    private var fastUnlock: Bool { model.canUnlockWorkspace }
+    private var needsSetup: Bool { !model.signingIntoAnotherAccount && model.needsAccountSetup }
     private var needsAuthorization: Bool { !model.signingIntoAnotherAccount && (model.session?.state == "pairing_required" || model.session?.state == "root_required") }
     private var guidance: String {
         if model.signingIntoAnotherAccount {
@@ -205,7 +205,7 @@ struct AccessView: View {
             return String(localized: "To use your existing account on this iPhone, approve this device from one of your authorized devices.")
         }
         if model.session?.account != nil {
-            return fastUnlock || model.session?.loginRenewable == true
+            return fastUnlock
                 ? String(localized: "Use system authentication to unlock the encrypted workspace on this iPhone.")
                 : String(localized: "Sign in again to unlock your encrypted workspace on this iPhone.")
         }
@@ -217,10 +217,15 @@ struct AccessView: View {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 16) {
                     Image("BrandMark").resizable().scaledToFit().frame(width: 64, height: 64).accessibilityHidden(true)
-                    Text(LocalizedStringKey(model.signingIntoAnotherAccount ? "Sign in to another account" : model.session?.account == nil ? "Your private workspace." : "Welcome back."))
+                    Text(LocalizedStringKey(model.signingIntoAnotherAccount ? "Sign in to another account" : needsSetup || model.session?.account == nil ? "Your private workspace." : "Welcome back."))
                         .font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
-                    Text("Keep your secrets, conversations and files together. Only your authorized devices can open them.")
-                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    if needsSetup {
+                        Text(guidance).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("login.setup-guidance")
+                    } else {
+                        Text("Keep your secrets, conversations and files together. Only your authorized devices can open them.")
+                            .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 VStack(spacing: 12) {
                     if fastUnlock {
@@ -232,13 +237,13 @@ struct AccessView: View {
                     }
                     if needsSetup {
                         Button { Task { await model.initializeAccount() } } label: {
-                            AccessActionLabel(model.initializingAccount ? "Setting up account…" : "Set up this account", symbol: "person.crop.circle.badge.plus", working: model.initializingAccount)
-                        }.modifier(AccessActionStyle(prominent: !fastUnlock))
+                            AccessActionLabel(model.initializingAccount ? "Preparing your workspace…" : "Get started", symbol: "arrow.forward", working: model.initializingAccount)
+                        }.modifier(AccessActionStyle(prominent: true))
                             .accessibilityIdentifier("login.initialize")
                         if model.session?.state == "no_account" {
                             NavigationLink { LoginBindingRequestView() } label: {
                                 AccessActionLabel("Join an existing account", symbol: "person.2")
-                            }.modifier(AccessActionStyle(prominent: false)).accessibilityIdentifier("login.join")
+                            }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.join")
                         }
                     } else if needsAuthorization {
                         NavigationLink { PairView() } label: {
@@ -250,25 +255,9 @@ struct AccessView: View {
                             }.modifier(AccessActionStyle(prominent: false)).accessibilityIdentifier("login.succession")
                         }
                     }
-                    if model.session?.passkeyAvailable == true {
-                        NavigationLink { PasskeyAccessView() } label: {
-                            AccessActionLabel("Continue with a passkey", symbol: "key")
-                        }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsSetup && !needsAuthorization, quiet: fastUnlock || needsSetup || needsAuthorization))
-                            .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
-                        Button { Task { await model.login(usingInternetIdentity: true) } } label: {
-                            AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle")
-                        }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.ii")
-                    } else {
-                        Button { Task {
-                            signingIn = true; defer { signingIn = false }
-                            await model.login(usingInternetIdentity: true)
-                        } } label: {
-                            AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle", working: signingIn)
-                        }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsSetup && !needsAuthorization, quiet: fastUnlock || needsSetup || needsAuthorization))
-                            .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
-                    }
+                    if !needsSetup { signInActions }
                 }.disabled(model.busy)
-                NoticeBar(text: guidance)
+                if !needsSetup { NoticeBar(text: guidance) }
                 MovedCopiesSection(copies: copies) { await loadCopies() }
                 AccessFooter()
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
@@ -282,7 +271,10 @@ struct AccessView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    if model.session?.account != nil, (model.notifications.status?.counts.actionable ?? 0) > 0 || model.notifications.status?.counts.unverified == true {
+                    if needsSetup {
+                        Button("Switch account") { model.signingIntoAnotherAccount = true }
+                            .disabled(model.busy).accessibilityIdentifier("login.switch-account")
+                    } else if model.session?.account != nil, (model.notifications.status?.counts.actionable ?? 0) > 0 || model.notifications.status?.counts.unverified == true {
                         ReminderButton()
                     }
                 }
@@ -295,6 +287,26 @@ struct AccessView: View {
                 guard model.initializingAccount, !Task.isCancelled else { return }
                 initializationIsSlow = true
             }
+    }
+
+    @ViewBuilder private var signInActions: some View {
+        if model.session?.passkeyAvailable == true {
+            NavigationLink { PasskeyAccessView() } label: {
+                AccessActionLabel("Continue with a passkey", symbol: "key")
+            }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsAuthorization, quiet: fastUnlock || needsAuthorization))
+                .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
+            Button { Task { await model.login(usingInternetIdentity: true) } } label: {
+                AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle")
+            }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.ii")
+        } else {
+            Button { Task {
+                signingIn = true; defer { signingIn = false }
+                await model.login(usingInternetIdentity: true)
+            } } label: {
+                AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle", working: signingIn)
+            }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsAuthorization, quiet: fastUnlock || needsAuthorization))
+                .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
+        }
     }
 
     private func loadCopies() async {
@@ -477,13 +489,14 @@ private struct AccessActionLabel: View {
 }
 
 private struct AccessActionStyle: ViewModifier {
+    @Environment(\.isEnabled) private var isEnabled
     let prominent: Bool
     var quiet = false
 
     @ViewBuilder
     func body(content: Content) -> some View {
         Group {
-            if prominent { content.buttonStyle(.borderedProminent) }
+            if prominent { content.buttonStyle(.borderedProminent).foregroundStyle(isEnabled ? Theme.paper : Color.primary) }
             else if quiet { content.buttonStyle(.borderless) }
             else { content.buttonStyle(.bordered) }
         }.controlSize(.large).buttonBorderShape(.roundedRectangle(radius: 16))

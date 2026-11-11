@@ -205,6 +205,12 @@ final class SessionModel {
     }
 
     var unlocked: Bool { session?.state == "unlocked" }
+    var needsAccountSetup: Bool { session?.state == "no_account" || session?.setupPending == true }
+    // A renewable passkey login alone does not provide a workspace to unlock.
+    var canUnlockWorkspace: Bool {
+        guard !signingIntoAnotherAccount, let session, session.account != nil, !needsAccountSetup else { return false }
+        return (session.state == "locked" || session.state == "root_required") && (session.fastUnlock || session.loginRenewable)
+    }
     var automaticSyncEnabled: Bool { session?.account.map { !manualSyncAccounts.contains($0) } ?? false }
 
     #if DEBUG
@@ -1210,7 +1216,7 @@ final class SessionModel {
     }
 
     func fastUnlock() async {
-        guard let engine, !busy else { return }
+        guard canUnlockWorkspace, let engine, !busy else { return }
         automaticUnlock.suppress()
         let operation = beginBusyOperation(.unlocking)
         error = nil

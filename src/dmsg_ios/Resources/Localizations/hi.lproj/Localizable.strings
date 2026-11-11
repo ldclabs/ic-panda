@@ -2328,12 +2328,12 @@
 	<string>सत्र कोड</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>अपनी संपत्तियों के लिए डिवाइस सह-हस्ताक्षर सेट करें, या मिलकर धन प्रबंधित करने के लिए दूसरों को आमंत्रित करें।</string>
-	<key>Set up this account</key>
-	<string>यह खाता सेट करें</string>
+	<key>Get started</key>
+	<string>शुरू करें</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>इस iPhone को नए डिवाइस के रूप में सेट अप करें</string>
-	<key>Setting up account…</key>
-	<string>खाता सेट अप हो रहा है…</string>
+	<key>Preparing your workspace…</key>
+	<string>आपका कार्यक्षेत्र तैयार किया जा रहा है…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>आपका एन्क्रिप्ट किया गया कार्यस्थान सेट अप हो रहा है। कृपया dMsg खुला रखें।</string>
 	<key>Settings</key>

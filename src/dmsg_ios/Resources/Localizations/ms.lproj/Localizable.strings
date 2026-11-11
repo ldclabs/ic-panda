@@ -2328,12 +2328,12 @@
 	<string>Kod sesi</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>Sediakan tandatangan bersama peranti untuk aset sendiri, atau jemput orang lain untuk mengurus dana bersama.</string>
-	<key>Set up this account</key>
-	<string>Sediakan akaun ini</string>
+	<key>Get started</key>
+	<string>Mula</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Sediakan iPhone ini sebagai peranti baharu</string>
-	<key>Setting up account…</key>
-	<string>Menyediakan akaun…</string>
+	<key>Preparing your workspace…</key>
+	<string>Menyediakan ruang kerja anda…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>Sedang menyediakan ruang kerja disulitkan anda. Sila biarkan dMsg terbuka.</string>
 	<key>Settings</key>

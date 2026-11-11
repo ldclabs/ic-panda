@@ -2328,12 +2328,12 @@
 	<string>รหัสเซสชัน</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>ตั้งค่าการร่วมลงนามของอุปกรณ์สำหรับสินทรัพย์ส่วนตัว หรือเชิญผู้อื่นมาจัดการเงินร่วมกัน</string>
-	<key>Set up this account</key>
-	<string>ตั้งค่าบัญชีนี้</string>
+	<key>Get started</key>
+	<string>เริ่มต้นใช้งาน</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>ตั้งค่า iPhone เครื่องนี้เป็นอุปกรณ์ใหม่</string>
-	<key>Setting up account…</key>
-	<string>กำลังตั้งค่าบัญชี…</string>
+	<key>Preparing your workspace…</key>
+	<string>กำลังเตรียมพื้นที่ทำงานของคุณ…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>กำลังตั้งค่าพื้นที่ทำงานที่เข้ารหัสของคุณ โปรดเปิด dMsg ค้างไว้</string>
 	<key>Settings</key>

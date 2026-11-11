@@ -2328,12 +2328,12 @@
 	<string>Mã phiên</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>Thiết lập đồng ký trên thiết bị cho tài sản cá nhân, hoặc mời người khác cùng quản lý quỹ.</string>
-	<key>Set up this account</key>
-	<string>Thiết lập tài khoản này</string>
+	<key>Get started</key>
+	<string>Bắt đầu</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Thiết lập iPhone này làm thiết bị mới</string>
-	<key>Setting up account…</key>
-	<string>Đang thiết lập tài khoản…</string>
+	<key>Preparing your workspace…</key>
+	<string>Đang chuẩn bị không gian làm việc…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>Đang thiết lập không gian làm việc được mã hóa của bạn. Vui lòng giữ dMsg mở.</string>
 	<key>Settings</key>

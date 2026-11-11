@@ -2328,12 +2328,12 @@
 	<string>Sitzungscode</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
 	<string>Richten Sie das Mitsignieren auf Geräten für eigene Vermögenswerte ein oder laden Sie andere zur gemeinsamen Verwaltung ein.</string>
-	<key>Set up this account</key>
-	<string>Richten Sie dieses Konto ein</string>
+	<key>Get started</key>
+	<string>Loslegen</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Dieses iPhone als neues Gerät einrichten</string>
-	<key>Setting up account…</key>
-	<string>Konto wird eingerichtet…</string>
+	<key>Preparing your workspace…</key>
+	<string>Ihr Arbeitsbereich wird vorbereitet…</string>
 	<key>Setting up your encrypted workspace. Please keep dMsg open.</key>
 	<string>Dein verschlüsselter Arbeitsbereich wird eingerichtet. Lass dMsg bitte geöffnet.</string>
 	<key>Settings</key>
