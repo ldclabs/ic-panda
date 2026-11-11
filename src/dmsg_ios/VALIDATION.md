@@ -3063,3 +3063,21 @@ control timed out; screenshot capture and XCTest automation remained available.
 No Rust/account protocol changes, archive, upload or release were performed.
 Local review instructions and the existing App Store Connect 1.1.2 review-note
 draft now use Get started; the draft was saved without submitting it.
+
+## StoreKit entitlement replay (2026-11-11)
+
+Startup now submits verified current entitlements as well as unfinished
+transactions, deduplicating their IDs. The account-token and service-application
+checks still guard every delivery; finishing a StoreKit transaction alone never
+grants membership. This complements service-side reconciliation without a new
+public interface or a canister upgrade.
+
+The simulator build and all 13 DeploymentTests passed on iPhone 17e / iOS 27.0
+(`.build/StoreReconciliation-20261111.xcresult`). The account owner confirmed on
+their physical device that a recovered test subscription showed the expected
+membership and the conflicting-account message disappeared. That observation
+does not cover a future automatic renewal or a real-money App Store purchase.
+The full iOS suite, archive and upload were not run for this small startup change.
+No existing workspace or release-version edits were included in this change.
+
+Implementation and validation: Codex (OpenAI).

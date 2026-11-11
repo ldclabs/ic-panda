@@ -259,10 +259,16 @@ final class PurchaseModel {
     func listen(_ model: SessionModel) async {
         guard enabled else { return }
         await load(model, reportErrors: false)
-        for await value in Transaction.unfinished {
-            if Task.isCancelled { return }
-            let epoch = model.epoch
-            do { _ = try await deliver(value, model: model) } catch { if !Task.isCancelled, epoch == model.epoch { pending = true } }
+        // A finished purchase can still need server-side reconciliation after a
+        // missed renewal or repaired account token. Finishing is not entitlement.
+        var seen = Set<UInt64>()
+        for stream in [Transaction.currentEntitlements, Transaction.unfinished] {
+            for await value in stream {
+                if Task.isCancelled { return }
+                if case .verified(let transaction) = value, !seen.insert(transaction.id).inserted { continue }
+                let epoch = model.epoch
+                do { _ = try await deliver(value, model: model) } catch { if !Task.isCancelled, epoch == model.epoch { pending = true } }
+            }
         }
         for await value in Transaction.updates {
             if Task.isCancelled { return }

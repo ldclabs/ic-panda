@@ -7,6 +7,8 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+- Reconcile current App Store entitlements on startup, including already-finished
+  transactions, so missed renewals and account-token repairs can refresh membership.
 - Guide new sign-ins into their encrypted workspace with Get started. Hide
   biometric unlock until an account exists and its initial setup is complete;
   keep existing-account binding and interrupted setup recovery available.

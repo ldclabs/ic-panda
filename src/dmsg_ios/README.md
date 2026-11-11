@@ -268,6 +268,9 @@ replacement session. Restore checks each transaction's token independently, even
 when product/status lookup is unavailable. It reports another-account,
 unavailable, applied or empty results and does not transfer a subscription.
 Only authoritative service application permits finishing a matching transaction.
+Startup reconciles both current entitlements and unfinished transactions, deduplicated
+by transaction ID. An already-finished StoreKit transaction may still need a fresh
+server verification after a missed renewal or an account-token repair.
 The service keeps each transaction's beneficiary immutable and permits a new
 account on the same original subscription only for a new, non-overlapping term.
 Deploy that commerce policy before distributing the iOS repurchase change;
