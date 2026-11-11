@@ -168,10 +168,10 @@ final class NavigationTests: NavigationTestCase {
         capture(app, name: "Product loading is not unavailable")
     }
 
-    func testAppleAccountReadFailureStaysInlineAndOffersRetry() {
+    func testSubscriptionStatusReadFailureStaysInlineAndOffersRetry() {
         for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("ar", "الحساب", true)] {
             let app = XCUIApplication()
-            app.launchArguments = ["--ui-testing", "--ui-store-account-unavailable", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launchArguments = ["--ui-testing", "--ui-subscription-status-unavailable", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
             tab(app, symbol: "Glyph-account", title: title).tap()
             let plan = app.buttons["account.plan"]
@@ -189,7 +189,7 @@ final class NavigationTests: NavigationTestCase {
             for _ in 0..<4 where !restore.isHittable { app.swipeUp() }
             XCTAssertTrue(restore.isEnabled)
             XCTAssertTrue(app.buttons["plan.manage"].exists)
-            capture(app, name: "Apple account verification retry · \(language) · \(dark ? "dark" : "light")")
+            capture(app, name: "Subscription status retry · \(language) · \(dark ? "dark" : "light")")
             app.terminate()
         }
     }

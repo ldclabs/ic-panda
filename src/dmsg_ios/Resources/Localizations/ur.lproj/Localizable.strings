@@ -3194,8 +3194,6 @@
 	<string>بن گئی</string>
 	<key>not available</key>
 	<string>دستیاب نہیں</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>App Store اکاؤنٹ کی تصدیق دستیاب نہیں۔ دوبارہ سائن ان کرنے کے لیے دوبارہ کوشش کریں پر ٹیپ کریں۔</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>آپ کی Apple سبسکرپشن کی حالت معلوم نہیں کی جا سکی۔ خریدنے سے پہلے دوبارہ کوشش کریں۔</string>
 </dict>

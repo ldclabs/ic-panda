@@ -3194,8 +3194,6 @@
 	<string>已產生</string>
 	<key>not available</key>
 	<string>無法使用</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>暫時無法驗證 App Store 帳號。請點「重試」重新登入。</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>暫時無法讀取你的 Apple 訂閱狀態，請重試後再購買。</string>
 </dict>

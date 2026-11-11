@@ -3194,8 +3194,6 @@
 	<string>สร้างแล้ว</string>
 	<key>not available</key>
 	<string>ไม่พร้อมใช้งาน</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>ไม่สามารถตรวจสอบบัญชี App Store ได้ในขณะนี้ แตะลองอีกครั้งเพื่อลงชื่อเข้าใช้อีกครั้ง</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>ไม่สามารถตรวจสอบสถานะการสมัครสมาชิก Apple ของคุณได้ โปรดลองอีกครั้งก่อนซื้อ</string>
 </dict>

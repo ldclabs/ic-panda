@@ -3194,8 +3194,6 @@
 	<string>बनी</string>
 	<key>not available</key>
 	<string>उपलब्ध नहीं</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>App Store खाते का सत्यापन उपलब्ध नहीं है। फिर से साइन इन करने के लिए दोबारा कोशिश करें पर टैप करें।</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>आपकी Apple सदस्यता की स्थिति की जाँच नहीं हो सकी। खरीदने से पहले दोबारा कोशिश करें।</string>
 </dict>

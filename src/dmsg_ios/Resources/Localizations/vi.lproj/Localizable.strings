@@ -3194,8 +3194,6 @@
 	<string>đã tạo</string>
 	<key>not available</key>
 	<string>không khả dụng</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>Hiện không thể xác minh tài khoản App Store. Nhấn Thử lại để đăng nhập lại.</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Không thể kiểm tra trạng thái gói đăng ký Apple của bạn. Hãy thử lại trước khi mua.</string>
 </dict>

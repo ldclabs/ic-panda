@@ -3194,8 +3194,6 @@
 	<string>nagawa na</string>
 	<key>not available</key>
 	<string>hindi available</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>Hindi available ang pag-verify ng App Store account. I-tap ang Subukan muli para mag-sign in ulit.</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Hindi masuri ang status ng iyong Apple subscription. Subukan muli bago bumili.</string>
 </dict>

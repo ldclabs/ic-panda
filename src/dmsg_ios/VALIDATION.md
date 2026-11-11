@@ -3162,3 +3162,60 @@ validation after distributing a build containing this change; simulator
 fixtures do not establish that real-account result.
 
 Implementation and validation: Codex (OpenAI).
+
+## First subscription without an app download transaction (2026-11-11)
+
+Build 27's screenshots showed StoreKit products and prices, disabled purchase
+buttons, and the app-account verification error. That message identifies the
+`AppTransaction.shared` stage, not a failed subscription ownership check. The
+previous change retained the catalogue but still made the app download a purchase
+prerequisite. A new regression failed on that implementation with an unavailable
+app transaction and a successfully checked empty subscription group.
+
+The catalogue and subscription-group check now determine purchase readiness.
+AppTransaction is only an optional environment hint, read after ownership;
+missing or slow download information no longer disables the first purchase or
+creates an error/retry notice. Missing context uses Production preflight rules,
+so it does not inherit Sandbox exceptions for existing external paid plans.
+Subscription transactions are verified independently; unknown or foreign
+ownership and real read failures still block buying. Each purchase rechecks the
+group after service preflight. Transaction signatures, account tokens,
+environment validation, server application and finishing rules are unchanged.
+
+The obsolete app-account error and refresh branch were removed, including its
+23 localized strings. Explicit retry of a failed subscription-state read now
+uses AppStore.sync; normal page entry never requests authentication. Restore
+and Manage subscriptions remain available regardless of purchase history.
+
+Validation:
+
+- iPhone 17e / iOS 27.0: 25 Deployment/Localization tests passed, covering first
+  purchase handoff with the current account token, missing/slow app download,
+  strict Production preflight when context is unknown, known Sandbox context,
+  foreign/unverified ownership, real status failure and late account reads.
+  Evidence: `.build/FirstPurchase-Unit-20261111.xcresult`.
+- A further test used StoreKitTest's actual empty-group and purchase APIs to
+  create a local test transaction without an app download. It passed on both
+  iOS 27.0 and iOS 18.4. Xcode-signed delivery was correctly rejected and no
+  membership was granted. The isolated test emitted StoreKit's transaction-
+  listener warning; it does not exercise the app's background listener lifecycle.
+  Evidence: `.build/FirstPurchase-StoreKit-20261111.xcresult` and
+  `.build/FirstPurchase-SE-20261111.xcresult`.
+- The SE run also passed a purchase-time ownership-change regression: a foreign
+  active subscription appearing after preflight prevents the purchase call.
+- Three UI tests passed on iOS 27.0: status-failure retry, foreign-account
+  protection, and empty-catalogue retry/restore. The three changed error-state
+  screenshots were inspected in Chinese light/dark and Arabic RTL. These are
+  presentation fixtures, not evidence of a successful TestFlight payment.
+  Evidence: `.build/FirstPurchase-UI-20261111.xcresult` and
+  `.build/first-purchase-shots/`.
+- All 23 localization checks, including Swift extraction, the existing release
+  Rust artifact/source fingerprint, and `git diff --check` passed.
+
+Apple's distinction is documented in [AppTransaction](https://developer.apple.com/documentation/storekit/apptransaction)
+and [AppStore.sync](https://developer.apple.com/documentation/storekit/appstore/sync()).
+No physical-device Apple error codes were collected, so the reason Apple could
+not return that phone's app download remains unverified. The full iOS suite,
+physical TestFlight first purchase, real-money purchase and service delivery were
+not run. No backend, canister, build-number, archive, upload or App Review changes
+were made. A new TestFlight binary is required for the device check.

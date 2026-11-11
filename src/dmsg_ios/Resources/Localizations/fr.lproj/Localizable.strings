@@ -3194,8 +3194,6 @@
 	<string>créée</string>
 	<key>not available</key>
 	<string>indisponible</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>La vérification du compte App Store est indisponible. Touchez Réessayer pour vous reconnecter.</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Impossible de vérifier votre abonnement Apple. Réessayez avant d’acheter.</string>
 </dict>

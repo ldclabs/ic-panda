@@ -23,7 +23,7 @@ final class PurchaseModel {
     var showsControls: Bool {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription") || args.contains("--ui-foreign-subscription") || args.contains("--ui-scheduled-subscription") || args.contains("--ui-store-account-unavailable")) { return true }
+        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription") || args.contains("--ui-foreign-subscription") || args.contains("--ui-scheduled-subscription") || args.contains("--ui-subscription-status-unavailable")) { return true }
         #endif
         return enabled
     }
@@ -35,6 +35,9 @@ final class PurchaseModel {
         }
         let configuration: Configuration?; let accountToken: String
     }
+    struct PurchaseCheck: Decodable {
+        let eligible: Bool; let reason: String?; let kind: String
+    }
     // Keep the external reads replaceable so account switches and partial
     // StoreKit failures can be exercised without real payments or credentials.
     struct Store {
@@ -43,17 +46,25 @@ final class PurchaseModel {
             return try model.decode(try await engine.storeProducts())
         }
         var products: @MainActor ([String]) async throws -> [Product] = { try await Product.products(for: $0) }
+        // AppTransaction describes the app download, not an in-app purchase.
+        // Its environment is only a hint; a first-time buyer may not have it.
         var appEnvironment: @MainActor () async throws -> String = { try verifiedEnvironment(try await AppTransaction.shared) }
-        var refreshAppEnvironment: @MainActor () async throws -> String = { try verifiedEnvironment(try await AppTransaction.refresh()) }
-        var subscriptions: @MainActor ([Product], UUID, String) async throws -> [Subscription] = { try await inspect($0, token: $1, environment: $2) }
+        var subscriptions: @MainActor ([Product], UUID) async throws -> [Subscription] = { try await inspect($0, token: $1) }
+        var sync: @MainActor () async throws -> Void = { try await AppStore.sync() }
+        var preflight: @MainActor (SessionModel, String, String) async throws -> PurchaseCheck = { model, product, environment in
+            guard let engine = model.engine else { throw CancellationError() }
+            return try model.decode(try await engine.purchasePreflight(product: product, environment: environment))
+        }
+        var purchase: @MainActor (Product, UUID) async throws -> Product.PurchaseResult = {
+            try await $0.purchase(options: [.appAccountToken($1)])
+        }
     }
     enum LoadIssue: String {
-        case catalogue, products, appStore, subscriptions
+        case catalogue, products, subscriptions
 
         var message: String {
             switch self {
             case .catalogue, .products: String(localized: "Purchases are not currently available.")
-            case .appStore: String(localized: "App Store account verification is unavailable. Tap Retry to sign in again.")
             case .subscriptions: String(localized: "Your Apple subscription status could not be checked. Retry before purchasing.")
             }
         }
@@ -105,7 +116,7 @@ final class PurchaseModel {
     }
 
     func canPurchase(group: String?) -> Bool {
-        guard !loading, loadIssue == nil, token != nil, storeEnvironment != nil else { return false }
+        guard !loading, loadIssue == nil, token != nil else { return false }
         guard let group else { return subscriptionMessage == nil }
         return subscriptions.first(where: { $0.id == group })?.ownership == .available
     }
@@ -133,7 +144,7 @@ final class PurchaseModel {
 
     /// Reads current verified transactions, including billing retry and renewal.
     /// Historical transactions must not veto a matching current transaction.
-    private static func inspect(_ products: [Product], token: UUID, environment: String) async throws -> [Subscription] {
+    private static func inspect(_ products: [Product], token: UUID) async throws -> [Subscription] {
         let groups = Set(products.compactMap { $0.subscription?.subscriptionGroupID })
         var subscriptions: [Subscription] = []
         for group in groups.sorted() {
@@ -142,7 +153,7 @@ final class PurchaseModel {
             let statuses = try values.map { value -> SubscriptionStatus in
                 guard case .verified(let transaction) = value.transaction,
                       case .verified(let renewal) = value.renewalInfo,
-                      Self.environmentName(transaction.environment) == environment else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+                      Self.environmentName(transaction.environment) != nil else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
                 // Renewal metadata describes a future transaction, not ownership
                 // of the current one. Only show its plan for the same account.
                 let sameRenewalAccount = renewal.appAccountToken == nil || renewal.appAccountToken == transaction.appAccountToken
@@ -162,19 +173,7 @@ final class PurchaseModel {
         return environment
     }
 
-    private func readEnvironment(authenticate: Bool, isCurrent: () -> Bool) async throws -> String {
-        do { return try await store.appEnvironment() }
-        catch {
-            try Task.checkCancellation()
-            // refresh() can prompt for the current Media & Purchases account.
-            // Apple requires an explicit action; page entry must never do this.
-            guard authenticate else { throw error }
-            guard isCurrent() else { throw CancellationError() }
-            return try await store.refreshAppEnvironment()
-        }
-    }
-
-    func load(_ model: SessionModel, authenticate: Bool = false) async {
+    func load(_ model: SessionModel) async {
         guard enabled else { return }
         guard model.unlocked else { return }; let epoch = model.epoch
         loadRevision &+= 1; let read = loadRevision
@@ -200,26 +199,32 @@ final class PurchaseModel {
             stage = .products
             let found = try await store.products(config.products.map(\.productId))
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
-            // The catalogue is useful even while Apple's account credentials or
-            // subscription status are unavailable. Only buying needs those checks.
+            // Keep offers visible even when the subscription status read fails.
             products = found.sorted { $0.price < $1.price }
             let missing = Set(config.products.map(\.productId)).subtracting(found.map(\.id)).sorted()
             if !missing.isEmpty {
                 // Product identifiers are public. Never log account tokens or receipts.
                 Self.logger.warning("App Store products unavailable: \(missing.joined(separator: ","), privacy: .public)")
             }
-            stage = .appStore
-            let environment = try await readEnvironment(authenticate: authenticate) {
-                current(model, epoch: epoch, account: expectedAccount) && read == loadRevision
+            stage = .subscriptions
+            let checked = try await store.subscriptions(products, token)
+            guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
+            subscriptions = checked
+            // A slow or missing app-download receipt must not block the first
+            // purchase. Ownership is already checked above.
+            loading = false
+            let environment: String?
+            do { environment = try await store.appEnvironment() }
+            catch {
+                guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
+                let failure = error as NSError
+                Self.logger.info("App download environment unavailable: \(failure.domain, privacy: .public) (\(failure.code)); checking subscriptions independently")
+                environment = nil
             }
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
             storeEnvironment = environment
             // Sandbox admits annual subscriptions only; commerce refuses its storage packs.
             products = products.filter { environment != "Sandbox" || $0.type == .autoRenewable }
-            stage = .subscriptions
-            let checked = try await store.subscriptions(products, token, environment)
-            guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
-            subscriptions = checked
         } catch {
             if current(model, epoch: epoch, account: expectedAccount), read == loadRevision {
                 loadIssue = stage
@@ -235,17 +240,26 @@ final class PurchaseModel {
     func retry(_ model: SessionModel) async {
         guard enabled, !working, model.unlocked else { return }
         working = true; defer { working = false }
-        await load(model, authenticate: true)
+        let epoch = model.epoch, expectedAccount = model.session?.account
+        do {
+            // Only a user-requested retry of a failed subscription read may ask
+            // StoreKit to authenticate. Never refresh the app download receipt.
+            if loadIssue == .subscriptions { try await store.sync() }
+            guard current(model, epoch: epoch, account: expectedAccount) else { return }
+            await load(model)
+        } catch { if current(model, epoch: epoch, account: expectedAccount) { model.report(error) } }
     }
 
     func purchase(_ product: Product, model: SessionModel) async {
-        guard enabled, !working, let token, let storeEnvironment, account == model.session?.account else { return }
+        guard enabled, !working, canPurchase(product), let token, account == model.session?.account else { return }
         working = true; feedback = nil; defer { working = false }
         let epoch = model.epoch, expectedAccount = account
+        // An unavailable app download must not prevent a free account's first
+        // purchase. Use the stricter paid-production rules for unknown context;
+        // the verified transaction determines the environment at delivery.
+        let environment = storeEnvironment
         do {
-            struct Check: Decodable { let eligible: Bool; let reason: String?; let kind: String }
-            guard let engine = model.engine else { return }
-            let check: Check = try model.decode(try await engine.purchasePreflight(product: product.id, environment: storeEnvironment))
+            let check = try await store.preflight(model, product.id, environment ?? "Production")
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             guard check.eligible else {
                 switch check.reason {
@@ -259,14 +273,14 @@ final class PurchaseModel {
                 throw MobileError.Failure(code: "UNSUPPORTED_PROTOCOL")
             }
             // Recheck immediately before Apple's sheet, not only when the page loaded.
-            let checked = try await store.subscriptions(products, token, storeEnvironment)
+            let checked = try await store.subscriptions(products, token)
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             subscriptions = checked
             guard canPurchase(product) else {
                 feedback = subscriptionMessage ?? String(localized: "Change your plan or cancel renewal in Manage subscriptions.")
                 return
             }
-            let result = try await product.purchase(options: [.appAccountToken(token)])
+            let result = try await store.purchase(product, token)
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             switch result {
             case .success(let verification):
@@ -284,9 +298,9 @@ final class PurchaseModel {
         working = true; feedback = nil; defer { working = false }
         let epoch = model.epoch, expectedAccount = model.session?.account
         do {
-            try await AppStore.sync()
+            try await store.sync()
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
-            await load(model, authenticate: true)
+            await load(model)
             guard current(model, epoch: epoch, account: expectedAccount), token != nil else { return }
             var applied = false, foreign = false, unverified = false
             var seen = Set<UInt64>()
@@ -372,8 +386,8 @@ final class PurchaseModel {
             subscriptions = [Subscription(id: "fixture", ownership: .otherAccount)]
         } else if args.contains("--ui-scheduled-subscription") {
             subscriptions = [Subscription(id: "fixture", ownership: .current, nextProduct: "Plus", renewalDate: Date.now.addingTimeInterval(86400))]
-        } else if args.contains("--ui-store-account-unavailable") {
-            loadIssue = .appStore
+        } else if args.contains("--ui-subscription-status-unavailable") {
+            loadIssue = .subscriptions
         }
     }
     #endif

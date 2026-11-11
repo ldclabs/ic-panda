@@ -3194,8 +3194,6 @@
 	<string>Read</string>
 	<key>dmsg.noticeVerifyHint</key>
 	<string>Message status needs verification.</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>App Store account verification is unavailable. Tap Retry to sign in again.</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Your Apple subscription status could not be checked. Retry before purchasing.</string>
 </dict>

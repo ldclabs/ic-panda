@@ -9,9 +9,10 @@ tracked separately. Build and device-test evidence is recorded in
 
 - Fix crashes after opening a system notification by completing notification
   delegate callbacks on the main thread, including notifications without a route.
-- Keep App Store products visible when Apple account or subscription checks fail.
-  Show the failed step inline and refresh Apple credentials on explicit retry,
-  instead of reporting an account-link problem or opening repeated error alerts.
+- Allow a first subscription without an App download receipt. Check subscription
+  ownership independently, keep offers visible on a real status failure and
+  synchronize StoreKit only after explicit retry or restore. Missing download
+  information no longer disables purchase or asks a new user to sign in again.
 - Reconcile current App Store entitlements on startup, including already-finished
   transactions, so missed renewals and account-token repairs can refresh membership.
 - Guide new sign-ins into their encrypted workspace with Get started. Hide

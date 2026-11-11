@@ -3194,8 +3194,6 @@
 	<string>مقروء</string>
 	<key>dmsg.noticeVerifyHint</key>
 	<string>حالة الرسائل بحاجة إلى التحقق.</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>التحقق من حساب App Store غير متاح. اضغط على إعادة المحاولة لتسجيل الدخول مجددًا.</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>تعذر التحقق من حالة اشتراكك لدى Apple. أعد المحاولة قبل الشراء.</string>
 </dict>

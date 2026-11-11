@@ -170,8 +170,8 @@ struct SubscriptionView: View {
             }
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
             // Apple's purchase and restore sheets make the scene inactive. Those
-            // flows reload when they finish. The explicit Retry action may also
-            // authenticate Apple's account and must survive the inactive scene.
+            // flows reload when they finish. Retrying a failed subscription read
+            // may also authenticate Apple and must survive the inactive scene.
             .task(id: scenePhase) { if scenePhase == .active, !model.purchases.working { await load(force: true) } }.refreshable { await load(force: true) }
             .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true) } }
             .onChange(of: managing) { wasPresented, isPresented in

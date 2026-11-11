@@ -276,15 +276,21 @@ account on the same original subscription only for a new, non-overlapping term.
 Deploy that commerce policy before distributing the iOS repurchase change;
 older servers reject a new account when Apple reuses the original subscription ID.
 
-The product catalogue loads before app-account and subscription verification.
-An Apple credential or status failure retains the available products, disables
-purchasing and shows an inline retry message; it is neither an empty purchase
-history nor evidence of another account. Automatic page loads do not show a
-generic error alert or request Apple authentication. After a failed
-`AppTransaction.shared` read, explicit Retry or Restore may use
-[`AppTransaction.refresh()`](https://developer.apple.com/documentation/storekit/apptransaction/refresh())
-to authenticate the current Media & Purchases account. Late results and refresh
-prompts from a previous dMsg account are discarded.
+The product catalogue and verified subscription-group status determine purchase
+readiness. An empty group permits a first purchase; a failed status read remains
+unknown, keeps offers visible and provides Retry. An unavailable or slow
+`AppTransaction.shared` read does not block first purchase or show an account
+verification error: it describes the app download and provides only an optional
+environment hint. Each subscription transaction is verified independently.
+Without a hint, preflight applies the stricter Production rules; it never grants
+Sandbox exceptions to an unknown context. The transaction's verified environment
+and the authoritative service still decide delivery. Storage packs remain hidden
+until the context is known to be Production.
+
+Automatic page loads never request Apple authentication. Explicit Retry of a
+failed subscription-status read, or Restore purchases, uses `AppStore.sync()`;
+the app no longer refreshes app-download credentials as a prerequisite to buying.
+Late reads and synchronization results from a previous dMsg account are discarded.
 
 The plan page keeps the current entitlement separate from the product scheduled
 for the next renewal. Returning from Apple subscription management or foregrounding

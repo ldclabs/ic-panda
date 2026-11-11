@@ -3194,8 +3194,6 @@
 	<string>তৈরি হয়েছে</string>
 	<key>not available</key>
 	<string>উপলব্ধ নয়</string>
-	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
-	<string>App Store অ্যাকাউন্ট যাচাই করা যাচ্ছে না। আবার সাইন ইন করতে আবার চেষ্টা করুন-এ ট্যাপ করুন।</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>আপনার Apple সাবস্ক্রিপশনের অবস্থা যাচাই করা যায়নি। কেনার আগে আবার চেষ্টা করুন।</string>
 </dict>
