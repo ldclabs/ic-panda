@@ -122,8 +122,11 @@ struct SubscriptionView: View {
                     } else if plan?.current == nil, model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
-                    if !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
-                    if model.purchases.working {
+                    if !model.purchases.loading && !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty {
+                        Text("Purchases are not currently available.").foregroundStyle(.secondary)
+                            .accessibilityIdentifier("plan.products-unavailable")
+                    }
+                    if model.purchases.working || model.purchases.loading {
                         HStack(spacing: 8) {
                             ProgressView().accessibilityHidden(true)
                             Text("Loading…")
@@ -134,8 +137,9 @@ struct SubscriptionView: View {
                     if let feedback = model.purchases.feedback, feedback != model.purchases.subscriptionMessage {
                         NoticeBar(text: feedback).accessibilityElement(children: .combine).accessibilityIdentifier("plan.purchase-result")
                     }
-                    if model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage {
+                    if !model.purchases.loading && (model.purchases.products.isEmpty || model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage) {
                         SettingsAction("Retry") { Task { await model.purchases.load(model) } }.disabled(model.purchases.working)
+                            .accessibilityIdentifier("plan.products-retry")
                     }
                     if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
                     SettingsAction("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)

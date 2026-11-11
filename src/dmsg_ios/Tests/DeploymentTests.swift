@@ -25,6 +25,7 @@ final class DeploymentTests: XCTestCase {
         defer { task.cancel() }
         await fulfillment(of: [finished], timeout: 2)
         XCTAssertFalse(purchases.working)
+        XCTAssertFalse(purchases.loading)
         XCTAssertFalse(purchases.pending)
         XCTAssertTrue(purchases.products.isEmpty)
         XCTAssertNil(model.error)

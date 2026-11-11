@@ -1,9 +1,11 @@
 import Observation
+import OSLog
 import StoreKit
 @preconcurrency import DMsgCore
 
 @MainActor @Observable
 final class PurchaseModel {
+    private static let logger = Logger(subsystem: "net.dmsg.ios", category: "StoreKit")
     // Missing configuration fails closed, including transaction replay.
     let enabled: Bool
 
@@ -32,6 +34,7 @@ final class PurchaseModel {
         let configuration: Configuration?; let accountToken: String
     }
     private(set) var products: [Product] = []
+    private(set) var loading = false
     private(set) var working = false
     private(set) var pending = false
     private(set) var storeEnvironment: String?
@@ -129,6 +132,8 @@ final class PurchaseModel {
         guard enabled else { return }
         guard let engine = model.engine, model.unlocked else { return }; let epoch = model.epoch
         loadRevision &+= 1; let read = loadRevision
+        loading = true
+        defer { if read == loadRevision { loading = false } }
         if account != model.session?.account { products = []; pending = false; feedback = nil; subscriptions = []; storeEnvironment = nil; account = model.session?.account }
         token = nil
         let expectedAccount = account
@@ -139,7 +144,10 @@ final class PurchaseModel {
             storeEnvironment = environment
             let catalogue: Catalogue = try model.decode(try await engine.storeProducts())
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
-            guard let config = catalogue.configuration else { products = []; token = nil; subscriptions = []; return }
+            guard let config = catalogue.configuration else {
+                Self.logger.error("Commerce has no App Store product configuration")
+                products = []; token = nil; subscriptions = []; return
+            }
             guard config.bundleId == "net.dmsg.ios", config.appAppleId == 6827050680,
                   let token = UUID(uuidString: catalogue.accountToken) else { throw CocoaError(.coderInvalidValue) }
             // Restore needs the account token, even if Apple's product/status
@@ -147,6 +155,11 @@ final class PurchaseModel {
             self.token = token
             let found = try await Product.products(for: config.products.map(\.productId))
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
+            let missing = Set(config.products.map(\.productId)).subtracting(found.map(\.id)).sorted()
+            if !missing.isEmpty {
+                // Product identifiers are public. Never log account tokens or receipts.
+                Self.logger.warning("App Store products unavailable in \(environment, privacy: .public): \(missing.joined(separator: ","), privacy: .public)")
+            }
             // Sandbox admits annual subscriptions only; commerce refuses its storage packs.
             let offered = found.filter { environment != "Sandbox" || $0.type == .autoRenewable }.sorted { $0.price < $1.price }
             let checked = try await inspect(offered, token: token, environment: environment)
@@ -284,6 +297,7 @@ final class PurchaseModel {
     func installSubscriptionFixture() {
         let args = ProcessInfo.processInfo.arguments
         working = args.contains("--ui-purchase-working")
+        loading = args.contains("--ui-products-loading")
         if args.contains("--ui-foreign-subscription") {
             subscriptions = [Subscription(id: "fixture", ownership: .otherAccount)]
         } else if args.contains("--ui-scheduled-subscription") {

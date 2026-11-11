@@ -127,6 +127,47 @@ final class NavigationTests: NavigationTestCase {
         }
     }
 
+    func testUnavailableProductsOfferRetryWithoutHidingRestore() {
+        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-purchases", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            tab(app, symbol: "Glyph-account", title: title).tap()
+            let plan = app.buttons["account.plan"]
+            for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+            XCTAssertTrue(plan.isHittable); plan.tap()
+            let retry = app.buttons["plan.products-retry"]
+            for _ in 0..<8 where !retry.isHittable { app.swipeUp() }
+            XCTAssertTrue(retry.isHittable); XCTAssertTrue(retry.isEnabled)
+            XCTAssertTrue(app.staticTexts["plan.products-unavailable"].exists)
+            XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.purchase-progress").firstMatch.exists)
+            XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.purchase-result").firstMatch.exists)
+            retry.tap()
+            let restore = app.buttons["plan.restore"]
+            for _ in 0..<4 where !restore.isHittable { app.swipeUp() }
+            XCTAssertTrue(restore.isEnabled)
+            XCTAssertTrue(app.buttons["plan.manage"].exists)
+            capture(app, name: "Unavailable products retry · \(language) · \(dark ? "dark" : "light")")
+            app.terminate()
+        }
+    }
+
+    func testLoadingProductsDoNotReportUnavailable() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-products-loading", "-AppleLanguages", "(en)"]
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: "Account").tap()
+        let plan = app.buttons["account.plan"]
+        for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+        XCTAssertTrue(plan.isHittable); plan.tap()
+        let progress = app.descendants(matching: .any).matching(identifier: "plan.purchase-progress").firstMatch
+        for _ in 0..<8 where !progress.isHittable { app.swipeUp() }
+        XCTAssertTrue(progress.isHittable)
+        XCTAssertFalse(app.staticTexts["plan.products-unavailable"].exists)
+        XCTAssertFalse(app.buttons["plan.products-retry"].exists)
+        capture(app, name: "Product loading is not unavailable")
+    }
+
     func testScheduledAppleDowngradeKeepsCurrentPlan() {
         for (language, title, dark) in [("en", "Account", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             let app = XCUIApplication()

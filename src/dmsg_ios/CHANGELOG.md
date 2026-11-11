@@ -7,6 +7,9 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+- Show product-loading progress and offer Retry when App Store returns no
+  products. Log missing product IDs for release diagnostics without account
+  tokens or receipts.
 - Fix App Store subscription account detection when historical and current
   transaction tokens differ or a subscription group includes multiple histories.
   Restore matching transactions independently while retaining service-side

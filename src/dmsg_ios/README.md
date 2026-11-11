@@ -834,10 +834,14 @@ This tree is development code, not an App Store release assertion. In particular
    Release builds both use the fixed production services; a sandbox receipt never
    changes business endpoints. Testers register with their own Internet Identity
    passkey. No shared review account or StagingDeployment.json is required.
-   This build sets DMSG_IN_APP_PURCHASES_ENABLED=NO: product loading, purchase,
-   restore, transaction listeners and delivery are disabled, while current plan
-   and usage remain readable. Purchases need a separate release decision and
-   verified Apple/service configuration before this build switch is enabled.
+   The current project sets DMSG_IN_APP_PURCHASES_ENABLED=YES. StoreKit product
+   loading, purchase, restore and transaction delivery are enabled. App approval
+   does not approve subscription products: the first subscriptions and their
+   group must be submitted together with a new app version. Check the actual
+   product approval and storefront availability in App Store Connect; successful
+   TestFlight purchases do not establish production availability. See
+   [the release checklist](Review/README_zh.md). Empty product results offer Retry
+   and log missing public product IDs without account tokens or receipts.
    Staging remains an explicit Debug-only option with separate storage, Keychain
    namespaces and a visible banner; it is not selected by TestFlight.
 4. Duo closed, open and partially open presentations have been exercised in

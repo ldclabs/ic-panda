@@ -2969,3 +2969,45 @@ production account reconciliation were not run. No canister deployment, archive,
 upload or App Store release was performed.
 
 Implementation and validation: Codex (OpenAI).
+
+## Production subscription availability and review preparation (2026-11-11)
+
+Starting from public checkout `a0a702cf` with no local changes, the investigation
+matched the unavailable-products screenshot to the empty StoreKit catalogue path.
+An anonymous mainnet `get_app_store_config` query returned the expected bundle
+and app IDs, Production environment with explicit Sandbox admission, and the
+three annual Plus/Pro/Max product IDs. All three IDs matched App Store Connect.
+The live App Store Connect UI showed version 1.1.1 ready for distribution, but
+the subscription group and all three products still prepared for submission.
+Adding Plus or Pro for review was rejected because its review screenshot was
+missing. TestFlight displaying products and completing purchases was reported by
+the user, not independently exercised in this investigation.
+
+Product loading now has visible progress; an empty successful response offers
+Retry while keeping restore and management available. Missing public product IDs
+are logged under the StoreKit category without account tokens or receipts.
+Loading uses the existing request revision so an older request cannot clear a
+newer request's progress. Review documentation now distinguishes app approval,
+subscription approval and storefront availability, and contains the 1.1.2 draft
+submission checklist and English review notes.
+
+- The existing release Rust bridge/source fingerprint passed verification; no
+  Rust code changed or Rust libraries rebuilt in this task.
+- All 15 selected tests passed on iPhone SE / iOS 18.4: 13 DeploymentTests and
+  two new product availability/loading UI tests. The empty response flow covers
+  Chinese light/dark, German light and Arabic dark/RTL, Retry and restore access.
+- All five exported screenshots were visually inspected at 375-point width.
+  Result bundle: `.build/StoreAvailability-20261111.xcresult`; screenshots:
+  `.build/store-availability-shots/`. These are presentation fixtures, not
+  subscription review screenshots or evidence of a real StoreKit payment.
+- All 23 localization resource checks passed, including compiler-extracted
+  strings from the tested build. `git diff --check` passed.
+
+The full iOS suite, iPad/iOS 27 matrix, physical-device purchase/restore, App
+Attest, agreements/tax/banking status and production payment delivery were not
+tested. Version 1.1.2 was created as a Prepare for Submission draft in App Store
+Connect, retaining manual release. Its review notes were merged with existing
+access instructions, and all three subscription review-note drafts were updated.
+Actual product screenshots and the final 1.1.2 build remain pending.
+No archive, upload, App Review submission, release or production deployment was
+performed; the user retains the final submission step.

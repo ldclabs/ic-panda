@@ -1,16 +1,39 @@
 # iOS 审核与服务验收
 
-记录日期：2026-11-03（更新账户与消息设置路径、完整审核访问要求；保留各构建的原验证范围）。这里描述提交审核前实际要执行的步骤，不表示 Apple 已批准该应用或服务已经部署。
+核对日期：2026-11-11。这里区分当前发布配置、App Store Connect 实际状态和仍待执行的验收；历史构建的验证范围见 [VALIDATION](../VALIDATION.md)。应用获批不代表其订阅商品已经获批。
+
+本轮的英文审核说明、截图采集与五项送审清单见 [1.1.2 审核材料草稿](1.1.2_zh.md)。
 
 ## 应用标识
 
 - SKU：`dmsg-ios`。
 - Apple ID：`6827050680`。
 - Bundle ID：`net.dmsg.ios`；开发团队：`S9Z2WAMAV8`。
-- 当前构建为 `0.1.0 (2)`，TestFlight 直接连接固定线上服务。本次构建设置 `DMSG_IN_APP_PURCHASES_ENABLED=NO`，关闭商品查询、购买、恢复、未完成交易和更新监听及交易提交，仍可查看已有套餐和用量。
-- 内购实现使用 StoreKit；Plus、Pro、Max 沿用现有年度套餐；存储包对应商业目录中的存储产品。重新启用前须单独完成商品配置、交易环境隔离和验收。
-- App Store Connect 商品尚未创建。应用 SKU 与 Apple ID **不是**商品 ID。不得用示例 ID 冒充已配置商品。
+- 当前版本与构建号以 `project.yml` 为准，内购开关为 `DMSG_IN_APP_PURCHASES_ENABLED=YES`。TestFlight 和 App Store 直接连接固定线上服务；商品查询、购买、恢复和交易投递已启用。
+- 内购实现使用 StoreKit；当前线上 commerce 商品映射只包含 Plus、Pro、Max 三个年度订阅，不包含存储包。应用 SKU 与 Apple ID **不是**商品 ID。
 - iOS 免费来信可发送；链上付费来信发送保持关闭。多签钱包是独立的资产管理功能，不用于解锁 iOS 数字服务。
+
+## 首次订阅送审与正式可用性
+
+2026-11-11 核对：App Store Connect 显示 iOS `1.1.1` 可分发，但 `dMsg Membership` 群组（`22537118`）和下面三个商品仍为“准备提交”。线上 commerce 的 `get_app_store_config` 与下表一致，配置为 Production，并显式允许 Sandbox。TestFlight 可显示并购买是用户反馈，本次未独立执行真机支付。
+
+| 套餐 | 商品 ID | App Store Connect ID |
+| --- | --- | --- |
+| Plus | `net.dmsg.ios.plus.annual` | `6829725663` |
+| Pro | `net.dmsg.ios.pro.annual` | `6829725216` |
+| Max | `net.dmsg.ios.max.annual` | `6829724021` |
+
+正式商店只返回已批准且在当前 Apple 账号地区可售的商品；TestFlight 沙盒成功不能替代该检查。当前商品尚未送审足以解释正式版空列表，不应通过更换商品 ID、放宽验签或给生产账号授予测试权益来处理。
+
+首次上线必须完成以下步骤：
+
+1. 补齐每个订阅的“审核信息”截图。使用可显示对应商品的实际 App 界面；空商品提示、推广图标和模拟付费成功均不能证明购买入口。2026-11-11 点击 Plus 的“添加以供审核”时，Apple 明确拒绝：必须添加“审核信息”截屏。
+2. 创建并上传一个新的 iOS 版本，保留内购开关。已可分发的 `1.1.1` 不能充当首次订阅送审所需的新版本。
+3. 把**新 App 版本、订阅群组、三个年度订阅**加入同一份送审草稿。检查项目列表后再提交审核；仅提交 App 二进制不会自动提交订阅。
+4. 分别确认群组与三个商品已批准、销售范围覆盖目标地区，并核对付费 App 协议、税务和收款配置有效。批准后仍可能需要商店传播时间，不能只查看 App 的“可分发”状态。
+5. 在 App Store 正式安装版本中验证商品、系统购买确认页、权益交付和恢复购买。未完成前不得记录为正式支付验收通过。
+
+Apple 依据：[正式商店商品不可用排查 TN3188](https://developer.apple.com/documentation/technotes/tn3188-troubleshooting-in-app-purchases-availability-in-the-app-store)、[首次订阅送审要求](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-in-app-purchase)。
 
 ## 审核登录与完整访问
 
@@ -21,20 +44,20 @@
 1. 测试人员在干净设备上选择“使用 Internet Identity 继续”，使用自己的 passkey 注册／登录 Internet Identity，再选择“设置此账号”自助创建线上 dMsg 账号。没有预设或共享测试账号，也不要求 staging。新账号首台设备不依赖人工审批；已有账号的新设备必须按正常流程由授权设备批准。
 2. 保存一项虚构登录记录、导入一个测试文件、创建测试频道，并在第二个测试账号中发送一封免费来信。不要把真实用户数据放入审核资料。
 3. 使用第二台设备完成正常设备授权，验证同步、撤销与原账号恢复。上述操作使用真实线上账号与存储；账号删除会真实关闭该账号，不是模拟操作。不要提交私钥或把审核身份加入代码。
-4. 本次构建不提供内购入口，也不会重放已有 StoreKit 沙盒交易。生产 canister 拒绝沙盒交易的校验保持不变。
+4. 在“我的 → 套餐与用量”验证订阅商品、恢复购买与管理订阅。沙盒购买必须保持 Sandbox 标记，不得变成正式付费权益；生产 App Attest/APNs 与 StoreKit 购买环境独立。
 5. 在审核备注中说明 passkey 自助注册、首台设备初始化及多人功能的复现步骤，并保证线上服务在审核期间可用。如果 Apple 另行要求固定审核访问方式，再按其反馈安排；提交前核对审核人员能实际完成上述功能。
 
 审核备注可使用以下公开说明，并填写实际联系人：
 
-> dMsg connects to its production services, including when installed through TestFlight. Sign-in uses Internet Identity and passkeys. Provide the review team with complete access instructions and any required test resources in App Store Connect. Choose “Continue with Internet Identity”, create or sign in to an Internet Identity with your own passkey, then choose “Set up this account” to create a dMsg account. A new account's first device needs no other device's approval; adding a device to an existing account follows normal device authorization. Use a second self-registered account to test messaging. In-app purchases and StoreKit transaction processing are disabled in this build; existing plan and usage information remain available. Account deletion is under Account → Account security → Delete account and affects the real production account. Letters in the free inbox can be reported and their senders blocked from the letter's menu; blocked accounts and report status are under Messages → Message settings. Group conversations are invitation-only and have no report or block actions. The privacy policy is available before login and offline, with a contact link at the top. Contact details and terms are also under Account → About dMsg. Paid on-chain letter sending is unavailable on iOS.
+> dMsg connects to its production services, including when installed through TestFlight. Sign-in supports passkeys and Internet Identity. Create or sign in to an account and complete setup. A new account's first device needs no other device's approval; adding a device to an existing account follows normal device authorization. Use a second self-registered account to test messaging. Plus, Pro and Max annual auto-renewable subscriptions are under Account → Plan and usage, together with Restore purchases and Manage subscriptions. Purchases belong to one dMsg account; Family Sharing is not supported. Sandbox purchases remain test entitlements. Account deletion is under Account → Account security → Delete account and does not cancel an Apple subscription. Letters in the free inbox can be reported and their senders blocked from the letter's menu; blocked accounts and report status are under Messages → Message settings. Group conversations are invitation-only. The privacy policy is available before login and offline. Contact details and terms are also under Account → About dMsg. Paid on-chain letter sending is unavailable on iOS.
 
 不要把未填写的说明或占位联系方式提交给 Apple。
 
 ## 配置门禁
 
-- [ ] 重新启用内购前，在 App Store Connect 创建三个年度订阅及需要的存储包，填写本地化描述、价格、订阅组、等级和审核截图；存储包使用 consumable，套餐使用年度 auto-renewable subscription，保持 Family Sharing 关闭以匹配单一 dMsg 账号绑定；将**实际** ID 配入验证服务及商业 canister 的产品映射。此项不阻止当前关闭内购的 TestFlight 构建。
+- [ ] 核对三个年度订阅的本地化描述、价格、订阅组、等级、审核截图及实际批准状态；保持 Family Sharing 和多名额购买关闭以匹配单一 dMsg 账号绑定。商品 ID 必须与验证服务及 commerce 一致。新增存储包需单独配置 consumable、映射和验收，不能从客户端支持该类型推断已经可售。
 - [ ] 部署 Apple 验证与投递服务，配置 Apple 根证书、App Attest 环境与允许版本、App Store Server API 凭据、通知 V2 地址及 canister 验证者 principal。凭据只放受保护的部署配置，不进入本仓库。
-- [ ] 将 App Store Server Notifications V2 配置到 Core：Production 为 `https://api.dmsg.net/storekit/notifications`，Sandbox 为 `https://staging-api.dmsg.net/storekit/notifications`。按[公开回调合同](../../../docs/protocol/mobile_zh.md#31-app-store-服务端通知)验收签名拒绝、重复通知及服务不可用重试；这不改变当前 TestFlight 固定生产、内购关闭的决定。
+- [ ] 将 App Store Server Notifications V2 的 Production 和 Sandbox 均配置为 `https://api.dmsg.net/storekit/notifications`，由验证服务验签后按交易环境分流。按[公开回调合同](../../../docs/protocol/mobile_zh.md#31-app-store-服务端通知)验收签名拒绝、重复通知及服务不可用重试。
 - [ ] 配置 APNs topic、环境和密钥；验证撤销设备、关闭通知、无权限和 token 失效行为。通知只能显示通用提醒。
 - [ ] 注册 Share、AutoFill、File Provider、File Provider UI、Widget 标识与各自 entitlement；核对主应用私有 Keychain group 位于首位，扩展不能访问它。
 - [ ] 在 `dmsg.net` 和 `connect.dmsg.net` 部署正确 AASA；登录回调与 connect 导航规则分别验证。不要通过重定向返回 AASA。
@@ -62,19 +85,19 @@
 
 ## TestFlight 与业务环境
 
-TestFlight 和 App Store Release 都连接线上服务，使用相同的生产工作区和 Keychain 命名空间。Apple 的 Sandbox 收据只描述购买环境，不再决定业务端点；本次构建通过独立开关关闭全部内购处理，不需要测试服务或 `Resources/StagingDeployment.json`。
+TestFlight 和 App Store Release 都连接线上服务，使用相同的生产工作区和 Keychain 命名空间。Apple 的 Sandbox 收据只描述购买环境，不决定业务端点；内购已启用，不需要独立测试服务或 `Resources/StagingDeployment.json`。
 
 如开发者以后显式启用 Debug staging，才提供仅含公开端点和 canister ID 的 Resources/StagingDeployment.json，结构见 StagingDeployment.example.json。该本机配置不进入 Git，不含私钥；Release 不读取此 Debug 选项。
 
 | 构建 / 分发 | App 连接 | APNs / App Attest | 内购（本次构建） |
 | --- | --- | --- | --- |
-| 普通 Debug | 默认生产，内购关闭 | development | 不进行购买 |
-| Debug + DMSG_USE_STAGING=YES | 显式配置的 Staging | development / development | 关闭 |
-| TestFlight / 沙盒分发 Release | 固定生产 | production / production | 关闭，不处理 Sandbox 交易 |
-| App Store 正式 Release | 固定生产 | production / production | 关闭 |
+| 普通 Debug | 默认生产 | development | 按签名与 StoreKit 测试环境验收；UI fixtures 不执行真实购买 |
+| Debug + DMSG_USE_STAGING=YES | 显式配置的 Staging | development / development | 需匹配的服务配置，不用于正式验收 |
+| TestFlight / 沙盒分发 Release | 固定生产 | production / production | Sandbox 年度订阅，须服务与 commerce 双方准入 |
+| App Store 正式 Release | 固定生产 | production / production | Production；须商品与群组获批且地区可售 |
 
 Core 的 APPLE_APNS_ENVIRONMENT 和网关的 apns.environment 独立设置；不能从 StoreKit 的交易环境推断它们。为 Debug 与 TestFlight 使用匹配的网关配置。生产服务不会因为连接来自 TestFlight 而授予测试付费权益。
 
-重新开启内购前，仍须完成 Apple JWS 验证、交易环境分流及对应 commerce 权益授权；不能将 Sandbox 交易计为正式付费权益。可选 Debug staging 仍使用独立工作区、Keychain 和偏好设置；切换该 Debug 选项会清除旧系统扩展快照，普通网页链接不能切换环境。
+Apple JWS 验证、交易环境分流及对应 commerce 权益授权始终保留；不能将 Sandbox 交易计为正式付费权益。可选 Debug staging 仍使用独立工作区、Keychain 和偏好设置；切换该 Debug 选项会清除旧系统扩展快照，普通网页链接不能切换环境。
 
 登录 HTTPS 回调仍固定在 dmsg.net，线上 connect 桥接页为 connect.dmsg.net。审核备注说明 passkey 自助注册方法；不使用隐藏审核账号、预置共享 passkey 或授权绕过。
