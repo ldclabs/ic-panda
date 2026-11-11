@@ -3194,5 +3194,9 @@
 	<string>oluşturuldu</string>
 	<key>not available</key>
 	<string>kullanılamıyor</string>
+	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
+	<string>App Store hesabı doğrulanamıyor. Yeniden giriş yapmak için Tekrar dene’ye dokunun.</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>Apple aboneliğinizin durumu kontrol edilemedi. Satın almadan önce tekrar deneyin.</string>
 </dict>
 </plist>

@@ -168,6 +168,32 @@ final class NavigationTests: NavigationTestCase {
         capture(app, name: "Product loading is not unavailable")
     }
 
+    func testAppleAccountReadFailureStaysInlineAndOffersRetry() {
+        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("ar", "الحساب", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-store-account-unavailable", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            tab(app, symbol: "Glyph-account", title: title).tap()
+            let plan = app.buttons["account.plan"]
+            for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+            XCTAssertTrue(plan.isHittable); plan.tap()
+            let retry = app.buttons["plan.products-retry"]
+            for _ in 0..<8 where !retry.isHittable { app.swipeUp() }
+            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "plan.store-error").firstMatch.exists)
+            XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.subscription-account").firstMatch.exists)
+            XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.purchase-result").firstMatch.exists)
+            XCTAssertFalse(app.alerts.firstMatch.exists)
+            XCTAssertTrue(retry.isEnabled); retry.tap()
+            XCTAssertFalse(app.alerts.firstMatch.exists)
+            let restore = app.buttons["plan.restore"]
+            for _ in 0..<4 where !restore.isHittable { app.swipeUp() }
+            XCTAssertTrue(restore.isEnabled)
+            XCTAssertTrue(app.buttons["plan.manage"].exists)
+            capture(app, name: "Apple account verification retry · \(language) · \(dark ? "dark" : "light")")
+            app.terminate()
+        }
+    }
+
     func testScheduledAppleDowngradeKeepsCurrentPlan() {
         for (language, title, dark) in [("en", "Account", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             let app = XCUIApplication()

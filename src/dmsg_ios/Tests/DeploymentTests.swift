@@ -1,5 +1,6 @@
 import XCTest
 import StoreKit
+import StoreKitTest
 @testable import dMsg
 
 @MainActor
@@ -129,6 +130,151 @@ final class DeploymentTests: XCTestCase {
     func testPurchaseRequiresACompletedSubscriptionGroupCheck() {
         let model = PurchaseModel(enabled: false)
         XCTAssertFalse(model.canPurchase(group: "not-yet-checked"))
+    }
+
+    private func storeFixture() async throws -> (SKTestSession, PurchaseModel.Store, Product) {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".storekit")
+        // The local StoreKit catalogue supplies a real Product without contacting
+        // Apple or making a purchase. Account/status reads are controlled below.
+        let configuration = #"""
+        {"identifier":"SubscriptionLoading","version":{"major":3,"minor":0},
+         "settings":{"_locale":"en_US","_storefront":"USA"},"products":[],"nonRenewingSubscriptions":[],
+         "subscriptionGroups":[{"id":"fixture-annual","name":"Annual","localizations":[],"subscriptions":[
+           {"adHocOffers":[],"codeOffers":[],"displayPrice":"9.99","familyShareable":false,"groupNumber":1,
+            "internalID":"fixture-plus","introductoryOffer":null,
+            "localizations":[{"description":"Test annual subscription","displayName":"Plus","locale":"en_US"}],
+            "productID":"net.dmsg.ios.plus.annual","recurringSubscriptionPeriod":"P1Y","referenceName":"Plus Annual",
+            "subscriptionGroupID":"fixture-annual","type":"RecurringSubscription"}]}]}
+        """#
+        try Data(configuration.utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let session = try SKTestSession(contentsOf: url)
+        session.disableDialogs = true
+        let products = try await Product.products(for: ["net.dmsg.ios.plus.annual"])
+        let product = try XCTUnwrap(products.first)
+        XCTAssertEqual(product.type, .autoRenewable)
+        let token = UUID()
+        var store = PurchaseModel.Store()
+        store.catalogue = { _ in
+            .init(configuration: .init(bundleId: "net.dmsg.ios", appAppleId: 6827050680, products: [.init(productId: product.id)]), accountToken: token.uuidString)
+        }
+        store.products = { _ in [product] }
+        store.appEnvironment = { "Sandbox" }
+        store.refreshAppEnvironment = { XCTFail("Background reads must not authenticate Apple"); throw StoreKitError.userCancelled }
+        store.subscriptions = { _, _, _ in
+            [.init(id: product.subscription!.subscriptionGroupID, ownership: .available)]
+        }
+        return (session, store, product)
+    }
+
+    func testAppleAccountReadFailureKeepsProductsAndAuthenticatesOnlyOnRetry() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial, refreshes = 0
+        store.appEnvironment = { throw StoreKitError.notEntitled }
+        store.refreshAppEnvironment = { refreshes += 1; return "Sandbox" }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        for _ in 0..<2 {
+            await purchases.load(model)
+            XCTAssertEqual(purchases.products.map(\.id), [product.id])
+            XCTAssertEqual(purchases.loadIssue, .appStore)
+            XCTAssertNil(purchases.subscriptionMessage)
+            XCTAssertNil(purchases.feedback)
+            XCTAssertNil(model.error)
+            XCTAssertFalse(purchases.canPurchase(product))
+        }
+        XCTAssertEqual(refreshes, 0)
+        await purchases.retry(model)
+        XCTAssertEqual(refreshes, 1)
+        XCTAssertNil(purchases.loadIssue)
+        XCTAssertEqual(purchases.storeEnvironment, "Sandbox")
+        XCTAssertTrue(purchases.canPurchase(product))
+        XCTAssertFalse(purchases.loading)
+        XCTAssertFalse(purchases.working)
+    }
+
+    func testUnavailableSubscriptionStatusIsNotAnEmptyNewAccount() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial, reads = 0
+        store.subscriptions = { _, token, _ in
+            reads += 1
+            if reads == 1 { throw URLError(.notConnectedToInternet) }
+            return [PurchaseModel.subscription(group: product.subscription!.subscriptionGroupID, statuses: [], expected: token)]
+        }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        XCTAssertEqual(purchases.products.map(\.id), [product.id])
+        XCTAssertEqual(purchases.loadIssue, .subscriptions)
+        XCTAssertNil(purchases.subscriptionMessage)
+        XCTAssertNil(model.error)
+        XCTAssertFalse(purchases.canPurchase(product))
+        await purchases.load(model)
+        XCTAssertNil(purchases.loadIssue)
+        XCTAssertTrue(purchases.canPurchase(product))
+    }
+
+    func testCatalogueAndProductErrorsNeverReportAnAccountAssociationProblem() async throws {
+        let (session, initial, _) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        for stage in [PurchaseModel.LoadIssue.catalogue, .products] {
+            let model = SessionModel(); model.loadFixtures()
+            var store = initial
+            if stage == .catalogue { store.catalogue = { _ in throw URLError(.notConnectedToInternet) } }
+            else { store.products = { _ in throw URLError(.notConnectedToInternet) } }
+            store.appEnvironment = { XCTFail("An earlier failure must not request Apple credentials"); return "Sandbox" }
+            let purchases = PurchaseModel(enabled: true, store: store)
+            await purchases.load(model)
+            XCTAssertEqual(purchases.loadIssue, stage)
+            XCTAssertTrue(purchases.products.isEmpty)
+            XCTAssertNil(purchases.subscriptionMessage)
+            XCTAssertNil(purchases.feedback)
+            XCTAssertNil(model.error)
+        }
+    }
+
+    func testAccountSwitchRejectsALateCredentialFailureWithoutPrompting() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        let original = model.session?.account, firstToken = UUID(), nextToken = UUID()
+        var store = initial, reads = 0, checkedTokens: [UUID] = []
+        var suspended: CheckedContinuation<String, Error>?
+        let started = expectation(description: "Old account's App Store read started")
+        store.catalogue = { model in
+            .init(configuration: .init(bundleId: "net.dmsg.ios", appAppleId: 6827050680, products: [.init(productId: product.id)]),
+                accountToken: (model.session?.account == original ? firstToken : nextToken).uuidString)
+        }
+        store.appEnvironment = {
+            reads += 1
+            if reads == 1 {
+                return try await withCheckedThrowingContinuation { suspended = $0; started.fulfill() }
+            }
+            return "Sandbox"
+        }
+        store.subscriptions = { _, token, _ in
+            checkedTokens.append(token)
+            return [PurchaseModel.subscription(group: product.subscription!.subscriptionGroupID, statuses: [], expected: token)]
+        }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        let oldRead = Task { await purchases.retry(model) }
+        await fulfillment(of: [started], timeout: 2)
+        let old = try XCTUnwrap(model.session)
+        model.installFixtures(.init(generation: old.generation + 1, sequence: old.sequence + 1, state: old.state,
+            account: "040g2082040g2082040g", deviceId: old.deviceId, pendingSync: old.pendingSync,
+            conflicts: old.conflicts, approvalsWaiting: old.approvalsWaiting, fastUnlock: old.fastUnlock,
+            loginExpiresAtMs: old.loginExpiresAtMs, loginRenewable: old.loginRenewable, passkeyAvailable: old.passkeyAvailable,
+            setupPending: old.setupPending, lastSyncAtMs: old.lastSyncAtMs, syncError: old.syncError), items: [])
+        await purchases.load(model)
+        suspended?.resume(throwing: StoreKitError.notEntitled)
+        await oldRead.value
+        XCTAssertEqual(checkedTokens, [nextToken])
+        XCTAssertNil(purchases.loadIssue)
+        XCTAssertNil(purchases.subscriptionMessage)
+        XCTAssertNil(model.error)
+        XCTAssertTrue(purchases.canPurchase(product))
     }
 
 }

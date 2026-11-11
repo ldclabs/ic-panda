@@ -8,8 +8,10 @@ final class PurchaseModel {
     private static let logger = Logger(subsystem: "net.dmsg.ios", category: "StoreKit")
     // Missing configuration fails closed, including transaction replay.
     let enabled: Bool
+    @ObservationIgnored private let store: Store
 
-    init(enabled: Bool = (Bundle.main.object(forInfoDictionaryKey: "DMsgInAppPurchasesEnabled") as? String) == "YES") {
+    init(enabled: Bool = (Bundle.main.object(forInfoDictionaryKey: "DMsgInAppPurchasesEnabled") as? String) == "YES", store: Store = Store()) {
+        self.store = store
         #if DEBUG
         // Presentation fixtures must never start real StoreKit operations.
         self.enabled = ProcessInfo.processInfo.arguments.contains("--ui-testing") ? false : enabled
@@ -21,7 +23,7 @@ final class PurchaseModel {
     var showsControls: Bool {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription") || args.contains("--ui-foreign-subscription") || args.contains("--ui-scheduled-subscription")) { return true }
+        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription") || args.contains("--ui-foreign-subscription") || args.contains("--ui-scheduled-subscription") || args.contains("--ui-store-account-unavailable")) { return true }
         #endif
         return enabled
     }
@@ -33,7 +35,31 @@ final class PurchaseModel {
         }
         let configuration: Configuration?; let accountToken: String
     }
+    // Keep the external reads replaceable so account switches and partial
+    // StoreKit failures can be exercised without real payments or credentials.
+    struct Store {
+        var catalogue: @MainActor (SessionModel) async throws -> Catalogue = { model in
+            guard let engine = model.engine else { throw CancellationError() }
+            return try model.decode(try await engine.storeProducts())
+        }
+        var products: @MainActor ([String]) async throws -> [Product] = { try await Product.products(for: $0) }
+        var appEnvironment: @MainActor () async throws -> String = { try verifiedEnvironment(try await AppTransaction.shared) }
+        var refreshAppEnvironment: @MainActor () async throws -> String = { try verifiedEnvironment(try await AppTransaction.refresh()) }
+        var subscriptions: @MainActor ([Product], UUID, String) async throws -> [Subscription] = { try await inspect($0, token: $1, environment: $2) }
+    }
+    enum LoadIssue: String {
+        case catalogue, products, appStore, subscriptions
+
+        var message: String {
+            switch self {
+            case .catalogue, .products: String(localized: "Purchases are not currently available.")
+            case .appStore: String(localized: "App Store account verification is unavailable. Tap Retry to sign in again.")
+            case .subscriptions: String(localized: "Your Apple subscription status could not be checked. Retry before purchasing.")
+            }
+        }
+    }
     private(set) var products: [Product] = []
+    private(set) var loadIssue: LoadIssue?
     private(set) var loading = false
     private(set) var working = false
     private(set) var pending = false
@@ -79,6 +105,7 @@ final class PurchaseModel {
     }
 
     func canPurchase(group: String?) -> Bool {
+        guard !loading, loadIssue == nil, token != nil, storeEnvironment != nil else { return false }
         guard let group else { return subscriptionMessage == nil }
         return subscriptions.first(where: { $0.id == group })?.ownership == .available
     }
@@ -106,7 +133,7 @@ final class PurchaseModel {
 
     /// Reads current verified transactions, including billing retry and renewal.
     /// Historical transactions must not veto a matching current transaction.
-    private func inspect(_ products: [Product], token: UUID, environment: String) async throws -> [Subscription] {
+    private static func inspect(_ products: [Product], token: UUID, environment: String) async throws -> [Subscription] {
         let groups = Set(products.compactMap { $0.subscription?.subscriptionGroupID })
         var subscriptions: [Subscription] = []
         for group in groups.sorted() {
@@ -128,21 +155,38 @@ final class PurchaseModel {
         return subscriptions
     }
 
-    func load(_ model: SessionModel, reportErrors: Bool = true) async {
+    private static func verifiedEnvironment(_ value: VerificationResult<AppTransaction>) throws -> String {
+        guard case .verified(let app) = value, let environment = environmentName(app.environment) else {
+            throw MobileError.Failure(code: "INTEGRITY_FAILED")
+        }
+        return environment
+    }
+
+    private func readEnvironment(authenticate: Bool, isCurrent: () -> Bool) async throws -> String {
+        do { return try await store.appEnvironment() }
+        catch {
+            try Task.checkCancellation()
+            // refresh() can prompt for the current Media & Purchases account.
+            // Apple requires an explicit action; page entry must never do this.
+            guard authenticate else { throw error }
+            guard isCurrent() else { throw CancellationError() }
+            return try await store.refreshAppEnvironment()
+        }
+    }
+
+    func load(_ model: SessionModel, authenticate: Bool = false) async {
         guard enabled else { return }
-        guard let engine = model.engine, model.unlocked else { return }; let epoch = model.epoch
+        guard model.unlocked else { return }; let epoch = model.epoch
         loadRevision &+= 1; let read = loadRevision
         loading = true
         defer { if read == loadRevision { loading = false } }
-        if account != model.session?.account { products = []; pending = false; feedback = nil; subscriptions = []; storeEnvironment = nil; account = model.session?.account }
-        token = nil
+        if account != model.session?.account { products = []; token = nil; pending = false; feedback = nil; account = model.session?.account }
+        if feedback == Self.otherAccountMessage || feedback == Self.unverifiedMessage { feedback = nil }
+        subscriptions = []; storeEnvironment = nil; loadIssue = nil
         let expectedAccount = account
+        var stage = LoadIssue.catalogue
         do {
-            guard case .verified(let app) = try await AppTransaction.shared,
-                  let environment = Self.environmentName(app.environment) else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
-            guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
-            storeEnvironment = environment
-            let catalogue: Catalogue = try model.decode(try await engine.storeProducts())
+            let catalogue = try await store.catalogue(model)
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
             guard let config = catalogue.configuration else {
                 Self.logger.error("Commerce has no App Store product configuration")
@@ -153,25 +197,45 @@ final class PurchaseModel {
             // Restore needs the account token, even if Apple's product/status
             // lookup fails. Each submitted transaction is verified independently.
             self.token = token
-            let found = try await Product.products(for: config.products.map(\.productId))
+            stage = .products
+            let found = try await store.products(config.products.map(\.productId))
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
+            // The catalogue is useful even while Apple's account credentials or
+            // subscription status are unavailable. Only buying needs those checks.
+            products = found.sorted { $0.price < $1.price }
             let missing = Set(config.products.map(\.productId)).subtracting(found.map(\.id)).sorted()
             if !missing.isEmpty {
                 // Product identifiers are public. Never log account tokens or receipts.
-                Self.logger.warning("App Store products unavailable in \(environment, privacy: .public): \(missing.joined(separator: ","), privacy: .public)")
+                Self.logger.warning("App Store products unavailable: \(missing.joined(separator: ","), privacy: .public)")
             }
-            // Sandbox admits annual subscriptions only; commerce refuses its storage packs.
-            let offered = found.filter { environment != "Sandbox" || $0.type == .autoRenewable }.sorted { $0.price < $1.price }
-            let checked = try await inspect(offered, token: token, environment: environment)
+            stage = .appStore
+            let environment = try await readEnvironment(authenticate: authenticate) {
+                current(model, epoch: epoch, account: expectedAccount) && read == loadRevision
+            }
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
-            self.token = token; products = offered; subscriptions = checked
-            if feedback == Self.unverifiedMessage { feedback = nil }
+            storeEnvironment = environment
+            // Sandbox admits annual subscriptions only; commerce refuses its storage packs.
+            products = products.filter { environment != "Sandbox" || $0.type == .autoRenewable }
+            stage = .subscriptions
+            let checked = try await store.subscriptions(products, token, environment)
+            guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
+            subscriptions = checked
         } catch {
             if current(model, epoch: epoch, account: expectedAccount), read == loadRevision {
-                products = []; subscriptions = []; feedback = Self.unverifiedMessage
-                if reportErrors { model.report(error) }
+                loadIssue = stage
+                if stage == .catalogue { token = nil; products = [] }
+                if stage == .products { products = [] }
+                let failure = error as NSError
+                Self.logger.warning("App Store load failed at \(stage.rawValue, privacy: .public): \(failure.domain, privacy: .public) (\(failure.code))")
+                model.reportBackground(error)
             }
         }
+    }
+
+    func retry(_ model: SessionModel) async {
+        guard enabled, !working, model.unlocked else { return }
+        working = true; defer { working = false }
+        await load(model, authenticate: true)
     }
 
     func purchase(_ product: Product, model: SessionModel) async {
@@ -195,7 +259,7 @@ final class PurchaseModel {
                 throw MobileError.Failure(code: "UNSUPPORTED_PROTOCOL")
             }
             // Recheck immediately before Apple's sheet, not only when the page loaded.
-            let checked = try await inspect(products, token: token, environment: storeEnvironment)
+            let checked = try await store.subscriptions(products, token, storeEnvironment)
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             subscriptions = checked
             guard canPurchase(product) else {
@@ -211,7 +275,7 @@ final class PurchaseModel {
             case .userCancelled: break
             @unknown default: break
             }
-            if current(model, epoch: epoch, account: expectedAccount) { await load(model, reportErrors: false) }
+            if current(model, epoch: epoch, account: expectedAccount) { await load(model) }
         } catch { if current(model, epoch: epoch, account: expectedAccount) { model.report(error) } }
     }
 
@@ -222,7 +286,7 @@ final class PurchaseModel {
         do {
             try await AppStore.sync()
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
-            await load(model, reportErrors: false)
+            await load(model, authenticate: true)
             guard current(model, epoch: epoch, account: expectedAccount), token != nil else { return }
             var applied = false, foreign = false, unverified = false
             var seen = Set<UInt64>()
@@ -242,7 +306,7 @@ final class PurchaseModel {
             if applied { feedback = String(localized: "Your purchase has been applied to this dMsg account.") }
             else if foreign { feedback = Self.otherAccountMessage }
             else if unverified { feedback = Self.unverifiedMessage }
-            else { feedback = subscriptionMessage ?? String(localized: "No purchases were found for this dMsg account.") }
+            else { feedback = subscriptionMessage ?? (loadIssue == nil ? String(localized: "No purchases were found for this dMsg account.") : nil) }
         } catch { if current(model, epoch: epoch, account: expectedAccount) { model.report(error) } }
     }
 
@@ -258,7 +322,7 @@ final class PurchaseModel {
 
     func listen(_ model: SessionModel) async {
         guard enabled else { return }
-        await load(model, reportErrors: false)
+        await load(model)
         // A finished purchase can still need server-side reconciliation after a
         // missed renewal or repaired account token. Finishing is not entitlement.
         var seen = Set<UInt64>()
@@ -308,6 +372,8 @@ final class PurchaseModel {
             subscriptions = [Subscription(id: "fixture", ownership: .otherAccount)]
         } else if args.contains("--ui-scheduled-subscription") {
             subscriptions = [Subscription(id: "fixture", ownership: .current, nextProduct: "Plus", renewalDate: Date.now.addingTimeInterval(86400))]
+        } else if args.contains("--ui-store-account-unavailable") {
+            loadIssue = .appStore
         }
     }
     #endif

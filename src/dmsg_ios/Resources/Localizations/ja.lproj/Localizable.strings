@@ -3194,5 +3194,9 @@
 	<string>作成済み</string>
 	<key>not available</key>
 	<string>利用不可</string>
+	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
+	<string>App Storeアカウントを確認できません。「再試行」をタップして再度サインインしてください。</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>Appleのサブスクリプション状況を確認できませんでした。購入前に再試行してください。</string>
 </dict>
 </plist>

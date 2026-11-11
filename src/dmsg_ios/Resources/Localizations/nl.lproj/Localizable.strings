@@ -3194,5 +3194,9 @@
 	<string>gemaakt</string>
 	<key>not available</key>
 	<string>niet beschikbaar</string>
+	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
+	<string>Verificatie van je App Store-account is niet beschikbaar. Tik op Opnieuw proberen om opnieuw in te loggen.</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>De status van je Apple-abonnement kon niet worden gecontroleerd. Probeer het opnieuw voordat je koopt.</string>
 </dict>
 </plist>

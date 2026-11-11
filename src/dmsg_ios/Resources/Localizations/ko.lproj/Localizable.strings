@@ -3194,5 +3194,9 @@
 	<string>생성됨</string>
 	<key>not available</key>
 	<string>사용 불가</string>
+	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
+	<string>App Store 계정을 확인할 수 없습니다. 다시 시도를 눌러 다시 로그인하세요.</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>Apple 구독 상태를 확인하지 못했습니다. 구매하기 전에 다시 시도하세요.</string>
 </dict>
 </plist>

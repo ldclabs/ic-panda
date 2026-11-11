@@ -7,6 +7,9 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## Unreleased
 
+- Keep App Store products visible when Apple account or subscription checks fail.
+  Show the failed step inline and refresh Apple credentials on explicit retry,
+  instead of reporting an account-link problem or opening repeated error alerts.
 - Reconcile current App Store entitlements on startup, including already-finished
   transactions, so missed renewals and account-token repairs can refresh membership.
 - Guide new sign-ins into their encrypted workspace with Get started. Hide

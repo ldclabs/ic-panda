@@ -105,8 +105,8 @@ struct SubscriptionView: View {
                         Text("Change your plan or cancel renewal in Manage subscriptions.").font(.footnote).foregroundStyle(.secondary)
                     } else if model.purchases.hasCurrentSubscription {
                         Text("Change your plan or cancel renewal in Manage subscriptions.").font(.footnote).foregroundStyle(.secondary)
-                    } else if model.purchases.subscriptionMessage == nil {
-                        productRows(model.purchases.products.filter { $0.type == .autoRenewable && model.purchases.canPurchase($0) })
+                    } else if !model.purchases.subscriptions.contains(where: { $0.ownership == .otherAccount }) {
+                        productRows(model.purchases.products.filter { $0.type == .autoRenewable })
                     }
                     ForEach(model.purchases.subscriptions) { subscription in
                         if let product = subscription.nextProduct, subscription.ownership == .current {
@@ -122,7 +122,11 @@ struct SubscriptionView: View {
                     } else if plan?.current == nil, model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
-                    if !model.purchases.loading && !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty {
+                    if !model.purchases.loading, let issue = model.purchases.loadIssue {
+                        NoticeBar(text: issue.message).accessibilityElement(children: .combine).accessibilityIdentifier("plan.store-error")
+                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                    }
+                    if !model.purchases.loading && model.purchases.loadIssue == nil && !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty {
                         Text("Purchases are not currently available.").foregroundStyle(.secondary)
                             .accessibilityIdentifier("plan.products-unavailable")
                     }
@@ -137,8 +141,8 @@ struct SubscriptionView: View {
                     if let feedback = model.purchases.feedback, feedback != model.purchases.subscriptionMessage {
                         NoticeBar(text: feedback).accessibilityElement(children: .combine).accessibilityIdentifier("plan.purchase-result")
                     }
-                    if !model.purchases.loading && (model.purchases.products.isEmpty || model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage) {
-                        SettingsAction("Retry") { Task { await model.purchases.load(model) } }.disabled(model.purchases.working)
+                    if !model.purchases.loading && (model.purchases.loadIssue != nil || model.purchases.products.isEmpty || model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage) {
+                        SettingsAction("Retry") { Task { await model.purchases.retry(model) } }.disabled(model.purchases.working)
                             .accessibilityIdentifier("plan.products-retry")
                     }
                     if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
@@ -147,7 +151,7 @@ struct SubscriptionView: View {
                     SettingsAction("Manage subscriptions") { managing = true }.disabled(model.purchases.working).accessibilityIdentifier("plan.manage")
                     Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.").font(.footnote).foregroundStyle(.secondary)
                 }
-                if model.purchases.subscriptionMessage == nil && model.purchases.products.contains(where: { $0.type == .consumable }) {
+                if model.purchases.storeEnvironment == "Production" && model.purchases.subscriptionMessage == nil && model.purchases.products.contains(where: { $0.type == .consumable }) {
                     Section("Storage packs") {
                         Text("Storage is a one-time purchase for the current subscription term and does not renew automatically.").font(.footnote).foregroundStyle(.secondary)
                         productRows(model.purchases.products.filter { $0.type == .consumable })
@@ -166,8 +170,8 @@ struct SubscriptionView: View {
             }
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
             // Apple's purchase and restore sheets make the scene inactive. Those
-            // flows reload when they finish; a concurrent failed reload would
-            // clear the account token their delivery still needs.
+            // flows reload when they finish. The explicit Retry action may also
+            // authenticate Apple's account and must survive the inactive scene.
             .task(id: scenePhase) { if scenePhase == .active, !model.purchases.working { await load(force: true) } }.refreshable { await load(force: true) }
             .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true) } }
             .onChange(of: managing) { wasPresented, isPresented in

@@ -3194,5 +3194,9 @@
 	<string>erstellt</string>
 	<key>not available</key>
 	<string>nicht verfügbar</string>
+	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
+	<string>Das App Store-Konto kann derzeit nicht überprüft werden. Tippe auf Erneut versuchen, um dich erneut anzumelden.</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>Dein Apple-Abonnementstatus konnte nicht geprüft werden. Versuche es vor dem Kauf erneut.</string>
 </dict>
 </plist>

@@ -3081,3 +3081,47 @@ The full iOS suite, archive and upload were not run for this small startup chang
 No existing workspace or release-version edits were included in this change.
 
 Implementation and validation: Codex (OpenAI).
+
+## App Store account switching and partial reads (2026-11-11)
+
+The previous load required a verified app transaction before fetching products,
+and its shared error handler erased the catalogue, reported an account-link
+failure and opened a generic alert. Switching Media & Purchases can make the
+app transaction temporarily unavailable; Apple documents explicit refresh as
+its recovery path. Product, app-account and subscription-state failures now
+have separate inline outcomes. Available products survive the latter two
+failures, while buying remains disabled until verification succeeds. A failed
+read is not an empty subscription history.
+
+Explicit Retry and Restore may refresh app credentials after a failed silent
+read. Automatic page entry never authenticates Apple. Account and request
+revision guards also run before the authentication prompt, and stale results
+cannot overwrite a replacement dMsg account. Transaction delivery still checks
+its own verified token and requires authoritative service application.
+
+Validation on iPhone 17e / iOS 27.0:
+
+- Simulator build and launch passed.
+- 23 tests passed: 17 DeploymentTests, 3 LocalizationTests and 3 targeted
+  NavigationTests. Evidence: `.build/StoreAccountSwitch-20261111-final.xcresult`.
+- The added regression cases use a real local StoreKit Product with controlled
+  reads to cover credential failure, product retention, explicit refresh,
+  unavailable versus empty subscription status, catalogue/product errors, and
+  a delayed credential failure after switching dMsg accounts. No Apple account
+  credentials or real purchases are used by these tests.
+- UI checks cover the new inline recovery state in Chinese light/dark and
+  Arabic dark, plus existing foreign-account and empty-catalogue flows in
+  Chinese, English, German and Arabic as applicable. The three recovery
+  screenshots were exported from the result bundle and visually checked:
+  text wraps, separators align, and Retry, Restore and Manage remain visible.
+- The localization checker, including Swift extraction from DerivedData,
+  passed for all 23 languages. `git diff --check` passed.
+
+This is a client change using existing commerce interfaces. No backend,
+canister, release-version or existing workspace changes are included. The full
+iOS suite, archive and TestFlight upload were not run. A physical TestFlight
+Media & Purchases account switch and Apple's authentication prompt still need
+validation after distributing a build containing this change; simulator
+fixtures do not establish that real-account result.
+
+Implementation and validation: Codex (OpenAI).

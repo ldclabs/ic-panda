@@ -3194,5 +3194,9 @@
 	<string>dibuat</string>
 	<key>not available</key>
 	<string>tidak tersedia</string>
+	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
+	<string>Pengesahan akaun App Store tidak tersedia. Ketik Cuba lagi untuk log masuk semula.</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>Status langganan Apple anda tidak dapat disemak. Cuba lagi sebelum membeli.</string>
 </dict>
 </plist>

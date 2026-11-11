@@ -3194,5 +3194,9 @@
 	<string>создан</string>
 	<key>not available</key>
 	<string>недоступен</string>
+	<key>App Store account verification is unavailable. Tap Retry to sign in again.</key>
+	<string>Проверка учётной записи App Store недоступна. Нажмите «Повторить», чтобы войти снова.</string>
+	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
+	<string>Не удалось проверить статус подписки Apple. Повторите попытку перед покупкой.</string>
 </dict>
 </plist>
