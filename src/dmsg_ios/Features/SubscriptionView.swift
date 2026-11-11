@@ -119,7 +119,7 @@ struct SubscriptionView: View {
                     }
                     if let term = plan?.current, term.method != "AppStore", model.purchases.storeEnvironment != "Sandbox" {
                         NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
-                    } else if plan?.current == nil, model.purchases.products.contains(where: { $0.type == .consumable }) {
+                    } else if plan?.current == nil, model.purchases.storeEnvironment == "Production", model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
                     if !model.purchases.loading, let issue = model.purchases.loadIssue {
@@ -171,8 +171,9 @@ struct SubscriptionView: View {
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
             // Resume after the privacy cover lifts and Apple's explicit flow
             // finishes. A cancelled old refresh cannot consume the new request.
+            // DMsgApp already replays receipts on these same transitions.
             .task(id: "\(model.epoch):\(model.concealed):\(model.purchases.working)") {
-                if !model.concealed, !model.purchases.working { await load(force: true) }
+                if !model.concealed, !model.purchases.working { await load(force: true, reconcile: false) }
             }.refreshable { await load(force: true) }
             .onChange(of: model.purchases.revision) { _, _ in Task { await load(force: true, reconcile: false) } }
             .onChange(of: managing) { wasPresented, isPresented in

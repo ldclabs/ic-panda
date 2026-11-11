@@ -14,6 +14,10 @@ tracked separately. Build and device-test evidence is recorded in
 - Prepare device attestation before payment and recover invalid App Attest keys.
   Keep optional app-download reads out of restore, make purchase-time status
   failures retryable inline, and refresh plan/usage after Apple's sheet closes.
+- Show the pending-payment notice only after a delivery fails, not while an
+  applied subscription is routinely re-verified. Replay receipts once per
+  lifecycle change on the plan page, and hide the storage-pack hint where
+  storage packs are not offered.
 - Fix crashes after opening a system notification by completing notification
   delegate callbacks on the main thread, including notifications without a route.
 - Allow a first subscription without an App download receipt. Check subscription

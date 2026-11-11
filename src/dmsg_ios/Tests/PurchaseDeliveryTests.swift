@@ -202,6 +202,7 @@ final class PurchaseDeliveryTests: XCTestCase {
         await purchases.load(model)
         let first = Task { try await purchases.deliver(original, model: model) }
         await fulfillment(of: [started], timeout: 2)
+        XCTAssertFalse(purchases.pending, "Replaying an applied entitlement must not show a pending payment")
         let duplicate = Task { duplicateStarted.fulfill(); return try await purchases.deliver(original, model: model) }
         let later = Task { refundStarted.fulfill(); return try await purchases.deliver(refund, model: model) }
         await fulfillment(of: [duplicateStarted, refundStarted], timeout: 2)

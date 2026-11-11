@@ -507,8 +507,13 @@ final class PurchaseModel {
         let task = Task { @MainActor in
             defer { self.deliveries[key] = nil }
             guard self.current(model, epoch: epoch, account: account) else { return Delivery.stale }
-            self.pendingTransactions[receipt.key] = receipt.product
-            try await self.store.submit(model, account, receipt.jws)
+            // Routine replay of an applied entitlement is not a pending payment.
+            // Mark only failed deliveries, which stay unfinished for retry.
+            do { try await self.store.submit(model, account, receipt.jws) }
+            catch {
+                if self.current(model, epoch: epoch, account: account) { self.pendingTransactions[receipt.key] = receipt.product }
+                throw error
+            }
             guard self.current(model, epoch: epoch, account: account) else { return Delivery.stale }
             // Only an authoritative applied response permits StoreKit finish.
             await receipt.finish()
