@@ -3196,5 +3196,49 @@
 	<string>indisponible</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Impossible de vérifier votre abonnement Apple. Réessayez avant d’acheter.</string>
+	<key>Access unavailable</key>
+	<string>Accès indisponible</string>
+	<key>Back to reminders</key>
+	<string>Retour aux rappels</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Choisissez le compte associé pour continuer. Votre compte actuel reste sélectionné tant que vous n’en choisissez pas un autre.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Marquer les rappels de tous les comptes comme lus</string>
+	<key>More</key>
+	<string>Plus</string>
+	<key>No reminders yet</key>
+	<string>Aucun rappel pour le moment</string>
+	<key>Nothing needs your attention</key>
+	<string>Rien ne nécessite votre attention</string>
+	<key>Notification connection needs attention</key>
+	<string>La connexion aux notifications doit être rétablie</string>
+	<key>Notification connection restored</key>
+	<string>Connexion aux notifications rétablie</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Les notifications peuvent être retardées. Ouvrez dMsg pour synchroniser votre contenu.</string>
+	<key>Opening reminder…</key>
+	<string>Ouverture du rappel…</string>
+	<key>Reminder unavailable</key>
+	<string>Rappel indisponible</string>
+	<key>Reminders marked as read</key>
+	<string>Rappels marqués comme lus</string>
+	<key>This account no longer has access to the item.</key>
+	<string>Ce compte n’a plus accès à cet élément.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Ce rappel appartient à un autre compte</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Ce rappel ne peut plus ouvrir l’élément d’origine.</string>
+	<key>This request no longer needs a response.</key>
+	<string>Cette demande ne nécessite plus de réponse.</string>
+	<key>Unable to open reminder</key>
+	<string>Impossible d’ouvrir le rappel</string>
+	<key>Unlock to view reminder</key>
+	<string>Déverrouillez pour consulter le rappel</string>
+	<key>Unread reminder</key>
+	<string>Rappel non lu</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Retrouvez les rappels précédents dans les rappels récents.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Votre rappel est protégé. Déverrouillez pour reprendre là où vous en étiez.</string>
 </dict>
 </plist>

@@ -214,6 +214,25 @@ final class SessionModel {
     var automaticSyncEnabled: Bool { session?.account.map { !manualSyncAccounts.contains($0) } ?? false }
 
     #if DEBUG
+    func selectReminderAccountFixture(_ account: String) {
+        guard uiTesting else { return }
+        clearContent(clearClipboard: true)
+        session = reminderFixtureState(account: account, state: "locked")
+    }
+
+    func unlockReminderFixture() {
+        guard uiTesting, let account = session?.account else { return }
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-cancel-unlock") { return }
+        session = reminderFixtureState(account: account, state: "unlocked"); epoch &+= 1
+    }
+
+    func reminderFixtureState(account: String, state: String) -> SessionSnapshot {
+        SessionSnapshot(generation: 0, sequence: 0, state: state, account: account, deviceId: "fixture-device",
+                        pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: true,
+                        loginExpiresAtMs: NotificationTime.now + 86_400_000, loginRenewable: false,
+                        passkeyAvailable: false, setupPending: false, lastSyncAtMs: nil, syncError: nil)
+    }
+
     func receiveChannelHintFixture(_ channel: String) {
         receiveHint(kind: "channel", resource: channel, news: false)
     }

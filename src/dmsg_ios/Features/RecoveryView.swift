@@ -76,7 +76,7 @@ struct RecoveryView: View {
                 }
                 SettingsLoadStatus(loading: working, failed: failed) { Task { await refresh(force: true) } }
             }.refreshable { await refresh(force: true) }
-        }.privateScreen().navigationTitle("Account recovery")
+        }.reminderReadOnDisplay(ready: recovery != nil && recovery?.pending == nil).privateScreen().navigationTitle("Account recovery")
             .onAppear { visible = true }.onDisappear { visible = false }
             .task(id: model.contentRevision) { await refresh() }
             .approvalDestination($request, receipts: receipts, model: model)

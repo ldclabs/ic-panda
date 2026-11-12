@@ -1,5 +1,46 @@
 # iOS implementation validation
 
+## Reminder navigation and presentation (2026-11-12)
+
+Reminders distinguish a locked workspace from another account, retain the original
+item through explicit account selection and unlock, and provide scoped retry,
+expired and unavailable screens. The list separates unread from pending action,
+keeps bulk acknowledgement in More, and shows local conversation previews only
+inside the matching unlocked account. Business views acknowledge the opened
+reminder version only after content becomes visible; failed acknowledgement does
+not block reading. Registration recovery appears before general settings.
+
+Validation performed locally:
+
+- iPhone 18 Pro, iOS 27.0: 13 notification/localization unit tests and all 24
+  notification UI tests passed (37 total), including system-notification taps.
+- Final visual follow-up on iPhone SE / iOS 18.4: the same 13 unit tests and four
+  targeted UI tests passed (17 total), covering the refined accessibility XXXL
+  list, Chinese dark actions, Arabic dark unlock and explicit account switching.
+- iPhone SE (3rd generation), iOS 18.4: 13 notification/localization unit tests and
+  eight notification UI tests passed (21 total). Covered unlock continuation,
+  cancellation, failed reads, empty states, explicit account switching, Chinese
+  dark mode, Arabic RTL, and German accessibility XXXL text with scrolling.
+- `cargo test --locked -p dmsg_client notifications --lib`: 48 tests passed.
+- iOS Python script tests: 23 passed. All 23 localization tables, compiler-extracted
+  keys, notification-copy parity, icon parity and `git diff --check` passed.
+- Native release-library fingerprints matched the current Rust sources; no Rust
+  bridge regeneration was needed for these Swift changes.
+
+Screenshots were exported from `ReminderUX-Verified.xcresult`,
+`ReminderUX-SE.xcresult` and `ReminderUX-SEFinal.xcresult` and inspected.
+Final screenshots verified dark-green action contrast, compact detail navigation,
+and scrollable accessibility text on the SE. Images and result bundles remain ignored under `.build/ReminderUX*`.
+
+These are in-memory UI fixtures, not evidence of live Face ID/Touch ID, real APNs
+or production multi-account delivery. Physical-device authentication, live cloud
+failure/recovery, VoiceOver gestures/speech, external keyboard, iPad and user
+research were not run. An additional all-unit-test attempt was interrupted while
+`DeploymentTests/testFirstPurchaseReachesLocalStoreKitWithoutAnAppDownload` waited
+with a StoreKit app-download-environment error; the full iOS suite is not claimed
+as passing. No full Rust workspace test/clippy run or release-device archive was
+performed for this UI-only change.
+
 ## System notification completion crash (2026-11-11)
 
 Three device crash reports from builds 1.1.1 (22), 1.1.1 (25) and 1.1.2 (26)

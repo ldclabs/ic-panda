@@ -5,6 +5,7 @@ struct RemindersView: View {
     let entry: ReminderEntry
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var recent = false
     @State private var items: [ReminderItem] = []
     @State private var next: UInt32?
@@ -13,223 +14,202 @@ struct RemindersView: View {
     @State private var destination: ReminderDestination?
     @State private var snoozing: ReminderItem?
     @State private var started = false
-    @State private var openedEntry = false
     @State private var request: UUID?
     @State private var itemScope = ""
     @State private var settingUp = false
     @State private var reading: String?
+    @State private var confirmingRead = false
+    @State private var channelPreviews: [String: ChannelItem] = [:]
     private var selected: String { model.session?.account ?? "" }
-    private var scope: String { "\(model.epoch):\(selected):\(recent):\(started)" }
+    private var scope: String { "\(model.unlocked):\(model.epoch):\(selected):\(recent):\(started):\(destination == nil)" }
     private var category: ReminderCategory? {
         if selected == entry.account, case .summary(let category) = entry.target { return category }
         return nil
     }
+    private var visibleItems: [ReminderItem] { items.filter { category == nil || $0.target.category == category } }
+    private var hasUnread: Bool {
+        items.contains(where: \.isUnread) || (model.notifications.status?.counts.actionable ?? 0) > 0 || (model.notifications.status?.counts.unread ?? 0) > 0
+    }
+
     var body: some View {
         List {
-            NotificationSetupPrompt { settingUp = true }
-            if entry.ended { NoticeBar(text: NoticeCopy.text("noticeEnded")) }
-            if let route = entry.retryRoute {
-                NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device."))
-                Button("Retry") { Task { await model.openPushRoute(route) } }
-            }
-            Picker(NoticeCopy.text("noticeTitle"), selection: $recent) {
-                Text(NoticeCopy.text("noticeNeedsAction")).tag(false)
-                Text(NoticeCopy.text("noticeRecent")).tag(true)
-            }.pickerStyle(.segmented).accessibilityIdentifier("reminders.scope")
             Section {
-                SettingsAction(LocalizedStringKey(NoticeCopy.text("noticeMarkAllRead")), working: reading == "all") {
-                    Task { await markRead() }
-                }.disabled(reading != nil || !(items.contains(where: \.isUnread) || (model.notifications.status?.counts.actionable ?? 0) > 0 || (model.notifications.status?.counts.unread ?? 0) > 0))
-                    .accessibilityIdentifier("reminders.read-all")
-                    .accessibilityValue(String(model.notifications.status?.badge ?? 0))
-            } footer: { Text(NoticeCopy.text("noticeMarkReadHint")) }
-            if let account = entry.account, account != selected, !entry.ended {
-                NoticeBar(text: NoticeCopy.text("noticeSwitch"))
-                LabeledContent("Account ID", value: account).font(.caption)
-                    .accessibilityIdentifier("reminders.originalAccount")
-            }
-            if model.canUnlockWorkspace {
-                Button(Biometry.unlockTitle) { Task { await model.fastUnlock() } }.disabled(model.busy)
-            }
-            if loading && items.isEmpty { ProgressView() }
-            if failed { Button("Retry") { Task { await load() } } }
-            ForEach(items.filter { category == nil || $0.target.category == category }) { item in
-                VStack(alignment: .leading, spacing: 8) {
-                Button { Task { await markRead(item, open: true) } } label: {
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: item.target.category == .security ? "shield" : item.actionable ? "checkmark.circle" : "bell").foregroundStyle(Theme.forest)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(item.title).font(.headline)
-                            Text(item.body).font(.subheadline).foregroundStyle(.secondary)
-                            HStack(spacing: 8) {
-                                Text(verbatim: listDateText(ConversationTimeline.date(item.updatedAt)))
-                                if let deadline = item.deadline { Text("Due \(listDateText(ConversationTimeline.date(deadline)))") }
-                            }.font(.caption).foregroundStyle(.secondary)
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        Image(systemName: "chevron.forward").font(.caption).foregroundStyle(.tertiary).accessibilityHidden(true)
-                    }.contentShape(Rectangle())
-                }.buttonStyle(.plain).disabled(reading != nil).accessibilityIdentifier("reminders.item")
-                if item.isUnread {
-                    Button { Task { await markRead(item) } } label: {
-                        HStack {
-                            if reading == item.id { ProgressView() }
-                            Label("Mark as read", systemImage: "checkmark.circle")
-                        }
-                    }.buttonStyle(.borderless).disabled(reading != nil).accessibilityIdentifier("reminders.read.\(item.id)")
-                } else {
-                    Label(NoticeCopy.text("noticeRead"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.secondary)
-                        .accessibilityIdentifier("reminders.read-state")
+                if (model.notifications.status?.accounts.count ?? 0) > 1 {
+                    Label(model.accountIdentities[selected]?.name ?? selected, systemImage: "person.crop.circle")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("reminders.current-account")
                 }
+                Picker(NoticeCopy.text("noticeTitle"), selection: $recent) {
+                    Text(NoticeCopy.text("noticeNeedsAction")).tag(false)
+                    Text(NoticeCopy.text("noticeRecent")).tag(true)
+                }.pickerStyle(.segmented).accessibilityIdentifier("reminders.scope")
+            }.listRowBackground(Color.clear).listRowSeparator(.hidden)
+            if !model.unlocked, model.canUnlockWorkspace {
+                Section {
+                    Button { Task { await model.fastUnlock() } } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock").accessibilityHidden(true)
+                            Text(Biometry.unlockTitle).frame(maxWidth: .infinity, alignment: .leading)
+                            if model.busy { ProgressView() }
+                        }.frame(minHeight: 44)
+                    }.disabled(model.busy).accessibilityIdentifier("reminders.unlock")
                 }
-                    .swipeActions {
-                        if item.isUnread { Button("Mark as read") { Task { await markRead(item) } }.tint(Theme.forest) }
-                        if item.open && item.actionable { Button(NoticeCopy.text("noticeLater")) { snoozing = item }.tint(Theme.forest) }
-                    }
-                    .contextMenu {
-                        if item.isUnread { Button("Mark as read") { Task { await markRead(item) } } }
-                        if item.open && item.actionable { Button(NoticeCopy.text("noticeLater")) { snoozing = item } }
-                    }
             }
-            if !loading && !failed && items.isEmpty { ContentUnavailableView(NoticeCopy.text("noticeEmpty"), systemImage: "clock") }
-            if next != nil { LoadMoreRow(working: loading, trigger: items.count) { await load(more: true) } }
+            Section {
+                if loading && items.isEmpty { ProgressView("Loading…") }
+                if failed {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Connection unavailable. Your saved content stays on this device.").font(.subheadline)
+                        Button("Retry") { Task { await load() } }.frame(minHeight: 44)
+                    }
+                }
+                ForEach(visibleItems) { item in
+                    Button { destination = ReminderDestination(account: item.account, target: item.target, item: item) } label: {
+                        ReminderRow(item: item, channel: preview(for: item))
+                    }.buttonStyle(.plain).compactObjectRow().accessibilityIdentifier("reminders.item")
+                        .accessibilityValue(item.isUnread ? String(localized: "Unread reminder") : NoticeCopy.text("noticeRead"))
+                        .swipeActions { itemActions(item) }
+                        .contextMenu { itemActions(item) }
+                        .accessibilityActions { itemActions(item) }
+                }
+                if !loading && !failed && visibleItems.isEmpty {
+                    ContentUnavailableView {
+                        Label(recent ? String(localized: "No reminders yet") : String(localized: "Nothing needs your attention"), systemImage: "bell")
+                    } description: {
+                        if !recent { Text("You can find past reminders in Recent.") }
+                    }.listRowBackground(Color.clear)
+                }
+                if next != nil { LoadMoreRow(working: loading, trigger: items.count) { await load(more: true) } }
+            }
+            NotificationSetupPrompt { settingUp = true }
         }
         .privateScreen().navigationTitle(NoticeCopy.text("noticeTitle"))
+        .navigationBarTitleDisplayMode(typeSize.isAccessibilitySize ? .inline : .large)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
+                    Button("Mark reminders for all accounts as read") { confirmingRead = true }
+                        .disabled(reading != nil || !hasUnread).accessibilityIdentifier("reminders.read-all")
+                        .accessibilityValue(String(model.notifications.status?.badge ?? 0))
                     NavigationLink(NoticeCopy.text("noticeSettings")) { NotificationSettingsView() }.accessibilityIdentifier("reminders.settings")
                     Button(NoticeCopy.text("noticeClear")) { Task { await clearRecent() } }.disabled(selected.isEmpty)
-                } label: { Label(NoticeCopy.text("noticeSettings"), systemImage: "ellipsis") }
+                } label: { Label("More", systemImage: "ellipsis") }
                     .accessibilityIdentifier("reminders.menu")
             }
         }
+        .confirmationDialog("Mark reminders for all accounts as read", isPresented: $confirmingRead, titleVisibility: .visible) {
+            Button("Mark as read") { Task { await markRead() } }.accessibilityIdentifier("reminders.confirm-read-all")
+            Button("Cancel", role: .cancel) { }
+        } message: { Text(NoticeCopy.text("noticeMarkReadHint")) }
         .task {
-            await model.notifications.refresh(model)
+            guard !started else { return }
             if case .summary(let category) = entry.target { recent = category == .message || category == .service }
-            started = true
-        }
-        .task(id: scope) {
-            if started {
-                await load()
-                if !openedEntry, !entry.ended, !Task.isCancelled, let target = entry.target, let account = entry.account,
-                   selected == account, account == model.session?.account, model.unlocked {
-                    openedEntry = true
-                    if case .summary = target { return }
-                    destination = ReminderDestination(account: account, target: target)
-                }
+            if entry.ended || entry.retryRoute != nil || (entry.target != nil && (category == nil || entry.account != selected)) {
+                destination = ReminderDestination(account: entry.account ?? selected, target: entry.target, ended: entry.ended, retryRoute: entry.retryRoute)
             }
+            started = true
+            await model.notifications.refresh(model)
         }
+        .task(id: scope) { if started && destination == nil { await load() } }
         .refreshable { await model.notifications.refresh(model, receive: true); await load() }
         .navigationDestination(item: $destination) { destination in ReminderDestinationView(destination: destination) }
         .navigationDestination(isPresented: $settingUp) { NotificationSettingsView() }
         .sheet(item: $snoozing) { item in NavigationStack { SnoozeReminderView(item: item) } }
         .accessibilityIdentifier("reminders.page")
     }
+
+    private func preview(for item: ReminderItem) -> ChannelItem? {
+        guard model.unlocked, selected == item.account, case .channel(let id) = item.target else { return nil }
+        return channelPreviews[id] ?? model.channels.first { $0.id == id }
+    }
+
+    @ViewBuilder private func itemActions(_ item: ReminderItem) -> some View {
+        if item.isUnread {
+            Button("Mark as read") { Task { await markRead(item) } }
+                .tint(Theme.forest).disabled(reading != nil).accessibilityIdentifier("reminders.read.\(item.id)")
+        }
+        if item.open && item.actionable {
+            Button(NoticeCopy.text("noticeLater")) { snoozing = item }.tint(Theme.forest)
+        }
+    }
+
     private func load(more: Bool = false) async {
         guard !selected.isEmpty else { items = []; next = nil; return }
         let current = scope, offset = more ? next ?? 0 : 0
         let token = UUID(); request = token
         let identity = "\(selected):\(recent)"
         if itemScope != identity { items = []; next = nil; itemScope = identity }
-        loading = true; failed = false
-        defer { if scope == current, request == token { loading = false } }
+        loading = true; failed = false; channelPreviews = [:]
+        defer { if request == token { loading = false } }
         if model.uiTesting { items = model.notifications.fixtureItems.filter { $0.account == selected && (recent || $0.open && $0.actionable) }; next = nil; return }
         do {
             guard let engine = model.engine else { return }
             let page: ReminderPage = try model.decode(try await engine.notificationItems(selected: selected, scope: recent ? .recent : .needsAction, offset: offset))
             guard scope == current, request == token, !Task.isCancelled else { return }
             items = more ? items + page.items : page.items; next = page.next
+            if model.unlocked {
+                let channels = try? await engine.channels()
+                guard scope == current, request == token, !Task.isCancelled else { return }
+                channelPreviews = Dictionary((channels?.items ?? []).map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
+            }
         } catch { if scope == current && !Task.isCancelled { failed = true } }
     }
+
     private func clearRecent() async {
         do { try await model.engine?.notificationClearRecent(selected: selected); await load() }
         catch { model.report(error) }
     }
-    private func markRead(_ item: ReminderItem? = nil, open: Bool = false) async {
+
+    private func markRead(_ item: ReminderItem? = nil) async {
         guard reading == nil else { return }
         let epoch = model.epoch
         reading = item?.id ?? "all"
         defer { reading = nil }
         do {
-            if item?.isUnread != false { try await model.notifications.markRead(model, item: item) }
+            try await model.notifications.markRead(model, item: item)
             guard epoch == model.epoch, !Task.isCancelled else { return }
             await load()
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            if open, let item { destination = ReminderDestination(account: item.account, target: item.target) }
+            model.notice = String(localized: "Reminders marked as read")
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 }
 
-struct ReminderDestination: Identifiable, Hashable { let account: String; let target: ReminderTarget; var id: String { account + String(describing: target) } }
+private struct ReminderRow: View {
+    let item: ReminderItem
+    let channel: ChannelItem?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
-private struct ReminderDestinationView: View {
-    let destination: ReminderDestination
-    @Environment(SessionModel.self) private var model
-    @State private var ready = false
-    @State private var ended = false
-    @State private var failed = false
-    @State private var channel: ChannelItem?
-    @State private var letter: InboxLetter?
-    @State private var approval: ApprovalView?
     var body: some View {
-        Group {
-            if destination.account != model.session?.account || !model.unlocked { NoticeBar(text: NoticeCopy.text("noticeSwitch")) }
-            else if ended { ContentUnavailableView(NoticeCopy.text("noticeEnded"), systemImage: "clock") }
-            else if failed && !ready { VStack { NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device.")); Button("Retry") { Task { await load() } } }.padding() }
-            else if !ready { ProgressView() }
-            else {
-                if failed { NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish.")) }
-                switch destination.target {
-                case .channel: if let channel { ConversationView(channel: channel) }
-                case .inbox: if let letter { InboxDetail(letter: letter, changed: {}) }
-                case .approval: if let approval { ApprovalDetailView(request: approval) }
-                case .recovery: RecoveryView()
-                case .wallet(let wallet, let proposal): if let id = UInt64(proposal) { WalletProposalView(wallet: wallet, proposal: id) }
-                case .plan: SubscriptionView()
-                case .task(let id): if id.hasPrefix("conflicts:") { ConflictsView() } else { SyncSettingsView() }
-                case .service(let id): if id.hasPrefix("network:") { SyncSettingsView() } else { NotificationSettingsView() }
-                case .summary, .agentMail: ContentUnavailableView(NoticeCopy.text("noticeEnded"), systemImage: "clock")
+        HStack(alignment: .top, spacing: 12) {
+            if !typeSize.isAccessibilitySize { ObjectIcon(name: item.target.symbol) }
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(channel?.name ?? item.title).font(.headline).foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if item.isUnread { Circle().fill(Theme.forest).frame(width: 7, height: 7).accessibilityHidden(true) }
+                }
+                Text(channel.flatMap { $0.preview.isEmpty ? nil : $0.preview } ?? item.body)
+                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(typeSize.isAccessibilitySize ? nil : 2)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) { metadata }
+                    VStack(alignment: .leading, spacing: 4) { metadata }
+                }.font(.caption).foregroundStyle(.secondary)
+                if let deadline = item.deadline, item.open {
+                    Text("Due \(ConversationTimeline.date(deadline).formatted(date: .abbreviated, time: .shortened))")
+                        .font(.caption).foregroundStyle(.primary)
                 }
             }
-        }.privateScreen().task(id: model.epoch) { await load() }
+            if !typeSize.isAccessibilitySize {
+                Image(systemName: "chevron.forward").font(.caption).foregroundStyle(.tertiary).padding(.top, 12).accessibilityHidden(true)
+            }
+        }.padding(.vertical, 6).contentShape(Rectangle()).accessibilityElement(children: .combine)
     }
-    private func load() async {
-        ready = channel != nil || letter != nil; ended = false; failed = false
-        #if DEBUG
-        if model.uiTesting, case .service = destination.target { ready = true; return }
-        #endif
-        guard model.session?.account == destination.account, model.unlocked, let engine = model.engine else { ended = model.uiTesting; return }
-        let epoch = model.epoch
-        do {
-            // A push can arrive before local catch-up, and a resolved reminder
-            // can still point to readable messages or an approval's result.
-            // The original business read determines availability, not the cache.
-            var nextChannel: ChannelItem?, nextLetter: InboxLetter?, nextApproval: ApprovalView?
-            var nextEnded = false
-            switch destination.target {
-            case .channel(let id):
-                if let cached = try? await engine.channels(), let saved = cached.items.first(where: { $0.id == id }), epoch == model.epoch, !Task.isCancelled { channel = saved; ready = true }
-                _ = try await coreOperation { try await engine.refreshChannel(channel: id, operation: $0) }
-                nextChannel = try await engine.channels().items.first { $0.id == id }; nextEnded = nextChannel == nil
-            case .inbox(let id):
-                if let value = try? await engine.inbox(refresh: false), let cached = try? model.decode(value) as [InboxLetter],
-                   let saved = cached.first(where: { $0.orderId == id }), epoch == model.epoch, !Task.isCancelled { letter = saved; ready = true }
-                let rows: [InboxLetter] = try model.decode(try await engine.inbox(refresh: true)); nextLetter = rows.first { $0.orderId == id }; nextEnded = nextLetter == nil
-            case .approval(let id): nextApproval = try model.decode(try await engine.approval(id: id))
-            case .wallet(let wallet, let proposal): if let id = UInt64(proposal) { _ = try await engine.walletProposal(wallet: wallet, proposal: id) } else { nextEnded = true }
-            case .recovery(let digest): await model.refreshRecoveryWarning(); nextEnded = model.recoveryWarning?.digest != digest
-            default: break
-            }
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            channel = nextChannel; letter = nextLetter; approval = nextApproval; ended = nextEnded; ready = true
-        } catch {
-            if epoch == model.epoch, !Task.isCancelled {
-                if let core = error as? MobileError, case .Failure(let code) = core, ["NOT_FOUND", "FORBIDDEN", "EXPIRED"].contains(code) { ended = true }
-                else { failed = true }
-            }
-        }
+
+    @ViewBuilder private var metadata: some View {
+        Text(verbatim: listDateText(ConversationTimeline.date(item.updatedAt)))
+        if item.open && item.actionable { Text(NoticeCopy.text("noticeNeedsAction")) }
     }
 }
 

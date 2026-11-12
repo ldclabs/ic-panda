@@ -3196,5 +3196,49 @@
 	<string>không khả dụng</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Không thể kiểm tra trạng thái gói đăng ký Apple của bạn. Hãy thử lại trước khi mua.</string>
+	<key>Access unavailable</key>
+	<string>Không thể truy cập</string>
+	<key>Back to reminders</key>
+	<string>Quay lại lời nhắc</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Chọn tài khoản tương ứng để tiếp tục. Tài khoản hiện tại vẫn được chọn cho đến khi bạn chọn tài khoản khác.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Đánh dấu lời nhắc của mọi tài khoản là đã đọc</string>
+	<key>More</key>
+	<string>Thêm</string>
+	<key>No reminders yet</key>
+	<string>Chưa có lời nhắc</string>
+	<key>Nothing needs your attention</key>
+	<string>Không có việc cần xử lý</string>
+	<key>Notification connection needs attention</key>
+	<string>Cần khôi phục kết nối thông báo</string>
+	<key>Notification connection restored</key>
+	<string>Đã khôi phục kết nối thông báo</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Thông báo có thể đến chậm. Mở dMsg để đồng bộ nội dung.</string>
+	<key>Opening reminder…</key>
+	<string>Đang mở lời nhắc…</string>
+	<key>Reminder unavailable</key>
+	<string>Lời nhắc không khả dụng</string>
+	<key>Reminders marked as read</key>
+	<string>Đã đánh dấu lời nhắc là đã đọc</string>
+	<key>This account no longer has access to the item.</key>
+	<string>Tài khoản này không còn quyền truy cập mục này.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Lời nhắc này thuộc tài khoản khác</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Lời nhắc này không còn mở được mục gốc.</string>
+	<key>This request no longer needs a response.</key>
+	<string>Yêu cầu này không còn cần phản hồi.</string>
+	<key>Unable to open reminder</key>
+	<string>Không thể mở lời nhắc</string>
+	<key>Unlock to view reminder</key>
+	<string>Mở khóa để xem lời nhắc</string>
+	<key>Unread reminder</key>
+	<string>Lời nhắc chưa đọc</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Bạn có thể tìm lời nhắc trước đây trong mục Gần đây.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Lời nhắc được bảo vệ. Mở khóa để tiếp tục.</string>
 </dict>
 </plist>

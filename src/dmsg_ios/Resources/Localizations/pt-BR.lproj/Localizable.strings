@@ -3196,5 +3196,49 @@
 	<string>indisponível</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Não foi possível verificar o status da sua assinatura Apple. Tente novamente antes de comprar.</string>
+	<key>Access unavailable</key>
+	<string>Acesso indisponível</string>
+	<key>Back to reminders</key>
+	<string>Voltar aos lembretes</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Escolha a conta correspondente para continuar. Sua conta atual ficará selecionada até você escolher outra.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Marcar lembretes de todas as contas como lidos</string>
+	<key>More</key>
+	<string>Mais</string>
+	<key>No reminders yet</key>
+	<string>Ainda não há lembretes</string>
+	<key>Nothing needs your attention</key>
+	<string>Não há nada pendente</string>
+	<key>Notification connection needs attention</key>
+	<string>A conexão de notificações precisa ser restaurada</string>
+	<key>Notification connection restored</key>
+	<string>Conexão de notificações restaurada</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>As notificações podem atrasar. Abra o dMsg para sincronizar seu conteúdo.</string>
+	<key>Opening reminder…</key>
+	<string>Abrindo lembrete…</string>
+	<key>Reminder unavailable</key>
+	<string>Lembrete indisponível</string>
+	<key>Reminders marked as read</key>
+	<string>Lembretes marcados como lidos</string>
+	<key>This account no longer has access to the item.</key>
+	<string>Esta conta não tem mais acesso ao item.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Este lembrete pertence a outra conta</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Este lembrete não pode mais abrir o item original.</string>
+	<key>This request no longer needs a response.</key>
+	<string>Esta solicitação não precisa mais de resposta.</string>
+	<key>Unable to open reminder</key>
+	<string>Não foi possível abrir o lembrete</string>
+	<key>Unlock to view reminder</key>
+	<string>Desbloqueie para ver o lembrete</string>
+	<key>Unread reminder</key>
+	<string>Lembrete não lido</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Você pode encontrar lembretes anteriores em Recentes.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Seu lembrete está protegido. Desbloqueie para continuar de onde parou.</string>
 </dict>
 </plist>

@@ -168,7 +168,7 @@ struct SubscriptionView: View {
                 NavigationLink("Privacy policy") { PrivacyPolicyView() }
                 Link("Terms of service", destination: URL(string: "https://dmsg.net/_/terms")!)
             }
-        }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
+        }.reminderReadOnDisplay(ready: plan != nil).privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
             // Resume after the privacy cover lifts and Apple's explicit flow
             // finishes. A cancelled old refresh cannot consume the new request.
             // DMsgApp already replays receipts on these same transitions.

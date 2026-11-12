@@ -3196,5 +3196,49 @@
 	<string>حالة الرسائل بحاجة إلى التحقق.</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>تعذر التحقق من حالة اشتراكك لدى Apple. أعد المحاولة قبل الشراء.</string>
+	<key>Access unavailable</key>
+	<string>الوصول غير متاح</string>
+	<key>Back to reminders</key>
+	<string>العودة إلى التذكيرات</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>اختر الحساب المرتبط بالتذكير للمتابعة. سيبقى حسابك الحالي محددًا حتى تختار حسابًا آخر.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>وضع علامة مقروء على تذكيرات جميع الحسابات</string>
+	<key>More</key>
+	<string>المزيد</string>
+	<key>No reminders yet</key>
+	<string>لا توجد تذكيرات بعد</string>
+	<key>Nothing needs your attention</key>
+	<string>لا يوجد ما يحتاج إلى انتباهك</string>
+	<key>Notification connection needs attention</key>
+	<string>اتصال الإشعارات يحتاج إلى إصلاح</string>
+	<key>Notification connection restored</key>
+	<string>تمت استعادة اتصال الإشعارات</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>قد تتأخر الإشعارات. افتح dMsg لمزامنة محتواك.</string>
+	<key>Opening reminder…</key>
+	<string>جارٍ فتح التذكير…</string>
+	<key>Reminder unavailable</key>
+	<string>التذكير غير متاح</string>
+	<key>Reminders marked as read</key>
+	<string>تم وضع علامة مقروء على التذكيرات</string>
+	<key>This account no longer has access to the item.</key>
+	<string>لم يعد بإمكان هذا الحساب الوصول إلى العنصر.</string>
+	<key>This reminder belongs to another account</key>
+	<string>هذا التذكير يخص حسابًا آخر</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>لم يعد بإمكان هذا التذكير فتح العنصر الأصلي.</string>
+	<key>This request no longer needs a response.</key>
+	<string>لم يعد هذا الطلب يحتاج إلى رد.</string>
+	<key>Unable to open reminder</key>
+	<string>تعذر فتح التذكير</string>
+	<key>Unlock to view reminder</key>
+	<string>افتح القفل لعرض التذكير</string>
+	<key>Unread reminder</key>
+	<string>تذكير غير مقروء</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>يمكنك العثور على التذكيرات السابقة في «التذكيرات الأخيرة».</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>تذكيرك محمي. افتح القفل للمتابعة من حيث توقفت.</string>
 </dict>
 </plist>

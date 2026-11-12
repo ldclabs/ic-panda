@@ -3196,5 +3196,49 @@
 	<string>Message status needs verification.</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Your Apple subscription status could not be checked. Retry before purchasing.</string>
+	<key>Access unavailable</key>
+	<string>Access unavailable</string>
+	<key>Back to reminders</key>
+	<string>Back to reminders</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Choose its account to continue. Your current account will stay selected until you choose another.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Mark reminders for all accounts as read</string>
+	<key>More</key>
+	<string>More</string>
+	<key>No reminders yet</key>
+	<string>No reminders yet</string>
+	<key>Nothing needs your attention</key>
+	<string>Nothing needs your attention</string>
+	<key>Notification connection needs attention</key>
+	<string>Notification connection needs attention</string>
+	<key>Notification connection restored</key>
+	<string>Notification connection restored</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Notifications may be delayed. Open dMsg to sync your content.</string>
+	<key>Opening reminder…</key>
+	<string>Opening reminder…</string>
+	<key>Reminder unavailable</key>
+	<string>Reminder unavailable</string>
+	<key>Reminders marked as read</key>
+	<string>Reminders marked as read</string>
+	<key>This account no longer has access to the item.</key>
+	<string>This account no longer has access to the item.</string>
+	<key>This reminder belongs to another account</key>
+	<string>This reminder belongs to another account</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>This reminder can no longer open its original item.</string>
+	<key>This request no longer needs a response.</key>
+	<string>This request no longer needs a response.</string>
+	<key>Unable to open reminder</key>
+	<string>Unable to open reminder</string>
+	<key>Unlock to view reminder</key>
+	<string>Unlock to view reminder</string>
+	<key>Unread reminder</key>
+	<string>Unread reminder</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>You can find past reminders in Recent.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Your reminder is protected. Unlock to continue where you left off.</string>
 </dict>
 </plist>

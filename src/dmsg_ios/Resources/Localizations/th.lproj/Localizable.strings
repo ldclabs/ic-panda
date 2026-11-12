@@ -3196,5 +3196,49 @@
 	<string>ไม่พร้อมใช้งาน</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>ไม่สามารถตรวจสอบสถานะการสมัครสมาชิก Apple ของคุณได้ โปรดลองอีกครั้งก่อนซื้อ</string>
+	<key>Access unavailable</key>
+	<string>ไม่สามารถเข้าถึงได้</string>
+	<key>Back to reminders</key>
+	<string>กลับไปที่การเตือน</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>เลือกบัญชีที่เกี่ยวข้องเพื่อดำเนินการต่อ บัญชีปัจจุบันจะยังถูกเลือกอยู่จนกว่าคุณจะเลือกบัญชีอื่น</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>ทำเครื่องหมายการเตือนของทุกบัญชีว่าอ่านแล้ว</string>
+	<key>More</key>
+	<string>เพิ่มเติม</string>
+	<key>No reminders yet</key>
+	<string>ยังไม่มีการเตือน</string>
+	<key>Nothing needs your attention</key>
+	<string>ไม่มีรายการที่ต้องจัดการ</string>
+	<key>Notification connection needs attention</key>
+	<string>ต้องกู้คืนการเชื่อมต่อการแจ้งเตือน</string>
+	<key>Notification connection restored</key>
+	<string>กู้คืนการเชื่อมต่อการแจ้งเตือนแล้ว</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>การแจ้งเตือนอาจล่าช้า เปิด dMsg เพื่อซิงค์เนื้อหาของคุณ</string>
+	<key>Opening reminder…</key>
+	<string>กำลังเปิดการเตือน…</string>
+	<key>Reminder unavailable</key>
+	<string>การเตือนไม่พร้อมใช้งาน</string>
+	<key>Reminders marked as read</key>
+	<string>ทำเครื่องหมายการเตือนว่าอ่านแล้ว</string>
+	<key>This account no longer has access to the item.</key>
+	<string>บัญชีนี้ไม่สามารถเข้าถึงรายการนี้ได้อีกต่อไป</string>
+	<key>This reminder belongs to another account</key>
+	<string>การเตือนนี้เป็นของบัญชีอื่น</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>การเตือนนี้ไม่สามารถเปิดรายการเดิมได้อีกต่อไป</string>
+	<key>This request no longer needs a response.</key>
+	<string>คำขอนี้ไม่ต้องการการตอบกลับอีกต่อไป</string>
+	<key>Unable to open reminder</key>
+	<string>ไม่สามารถเปิดการเตือนได้</string>
+	<key>Unlock to view reminder</key>
+	<string>ปลดล็อกเพื่อดูการเตือน</string>
+	<key>Unread reminder</key>
+	<string>การเตือนที่ยังไม่ได้อ่าน</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>ดูการเตือนก่อนหน้าได้ในรายการล่าสุด</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>การเตือนของคุณได้รับการปกป้อง ปลดล็อกเพื่อดำเนินการต่อจากจุดเดิม</string>
 </dict>
 </plist>

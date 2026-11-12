@@ -50,9 +50,25 @@ extension SessionModel {
                     current: "1", sha256: "fixture-digest", status: "local", versions: 1),
             ])
         }
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-services") {
+            rememberAccountNames(["040g2081040g2081040g": "Studio", "040g2082040g2082040g": "Personal"], epoch: epoch)
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-list") || ProcessInfo.processInfo.arguments.contains("--ui-reminder-empty") {
+            reminderEntry = ReminderEntry(account: session?.account)
+        }
         if storeScreens { loadStorePresentation() }
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-locked"), let account = session?.account {
+            installFixtures(reminderFixtureState(account: account, state: "locked"), items: [])
+            reminderEntry = ReminderEntry(account: account, target: .service("registration:1"))
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-failed") || ProcessInfo.processInfo.arguments.contains("--ui-reminder-expired") {
+            reminderEntry = ReminderEntry(account: session?.account, target: .service("registration:1"))
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-ended") {
+            reminderEntry = ReminderEntry(account: session?.account, ended: true)
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-reminder-other-account") {
-            reminderEntry = ReminderEntry(account: "040g2082040g2082040g", target: .task("conflicts:2"))
+            reminderEntry = ReminderEntry(account: "040g2082040g2082040g", target: .service("registration:2"))
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-browser-other-account") {
             ConnectNavigation.shared.pending = ConnectLink(URL(string: "dmsg://connect/request?account=040g2082040g2082040g&request=\(String(repeating: "a", count: 64))")!)

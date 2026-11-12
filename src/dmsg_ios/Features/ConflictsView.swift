@@ -14,7 +14,7 @@ struct ConflictsView: View {
             if loading { ProgressView() }
             else if failed { Button("Retry") { Task { await load() } } }
             else if conflicts.isEmpty { ContentUnavailableView("No items", systemImage: "checkmark.circle") }
-        }.privateScreen().navigationTitle("Sync conflicts").task(id: model.contentRevision) { await load() }.refreshable { await load() }
+        }.reminderReadOnDisplay(ready: !loading && !failed).privateScreen().navigationTitle("Sync conflicts").task(id: model.contentRevision) { await load() }.refreshable { await load() }
     }
     private func load() async {
         loading = true; failed = false; defer { loading = false }; let epoch = model.epoch

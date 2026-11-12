@@ -34,19 +34,32 @@ private final class ReminderViewport {
     func updateUIView(_ view: Probe, context: Context) { state.view = view }
 }
 
+private struct OpenedReminderKey: EnvironmentKey {
+    static let defaultValue: ReminderItem? = nil
+}
+
+extension EnvironmentValues {
+    var openedReminder: ReminderItem? {
+        get { self[OpenedReminderKey.self] }
+        set { self[OpenedReminderKey.self] = newValue }
+    }
+}
+
 /// Report only a loaded, on-screen business detail in the active scene. Listing
 /// reminders or receiving a push never invokes this modifier.
 @MainActor private struct ReminderVisibility: ViewModifier {
-    let target: ReminderTarget
+    let target: ReminderTarget?
+    var acknowledgeOnly = false
     let watermark: UInt64?
     let ready: Bool
     let onVisible: @MainActor () async -> Void
     @Environment(SessionModel.self) private var model
+    @Environment(\.openedReminder) private var openedReminder
     @Environment(\.scenePhase) private var scenePhase
     @State private var owner = UUID()
     @State private var onScreen = false
     @State private var viewport = ReminderViewport()
-    private var scope: String { "\(target):\(model.epoch):\(scenePhase == .active):\(onScreen):\(ready):\(watermark ?? 0):\(model.concealed):\(viewport.attached)" }
+    private var scope: String { "\(String(describing: target)):\(openedReminder?.id ?? ""):\(openedReminder?.version ?? ""):\(model.epoch):\(scenePhase == .active):\(onScreen):\(ready):\(watermark ?? 0):\(model.concealed):\(viewport.attached)" }
     func body(content: Content) -> some View {
         content.background(ReminderViewportProbe(state: viewport))
             .onGeometryChange(for: Bool.self) { proxy in
@@ -59,13 +72,26 @@ private final class ReminderViewport {
                 guard currentViewport.visible else { model.notifications.hide(owner); return }
                 let epoch = model.epoch
                 await onVisible()
-                guard epoch == model.epoch, !Task.isCancelled else { return }
+                guard epoch == model.epoch, !Task.isCancelled, model.unlocked, !model.concealed, scenePhase == .active, currentViewport.visible else { return }
+                if let item = openedReminder, item.account == model.session?.account,
+                   (acknowledgeOnly || item.target == target), item.isUnread,
+                   watermark.map({ (UInt64(item.version) ?? .max) <= $0 }) ?? true,
+                   currentViewport.visible {
+                    // A failed acknowledgement never blocks readable content. Preserve
+                    // the version the user opened, even when a newer reminder arrives.
+                    try? await model.notifications.markRead(model, item: item)
+                }
+                guard epoch == model.epoch, !Task.isCancelled, let target, !acknowledgeOnly else { return }
                 await model.notifications.observed(model, owner: owner, target: target, watermark: watermark, active: { currentViewport.visible })
             }
             .onDisappear { model.notifications.hide(owner) }
     }
 }
 extension View {
+    func reminderReadOnDisplay(ready: Bool = true) -> some View {
+        modifier(ReminderVisibility(target: nil, acknowledgeOnly: true, watermark: nil, ready: ready, onVisible: {}))
+    }
+
     func reminderVisible(_ target: ReminderTarget, watermark: UInt64? = nil, ready: Bool = true, onVisible: @escaping @MainActor () async -> Void = {}) -> some View {
         modifier(ReminderVisibility(target: target, watermark: watermark, ready: ready, onVisible: onVisible))
     }

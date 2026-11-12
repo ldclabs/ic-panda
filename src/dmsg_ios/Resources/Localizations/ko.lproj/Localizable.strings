@@ -3196,5 +3196,49 @@
 	<string>사용 불가</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Apple 구독 상태를 확인하지 못했습니다. 구매하기 전에 다시 시도하세요.</string>
+	<key>Access unavailable</key>
+	<string>접근할 수 없음</string>
+	<key>Back to reminders</key>
+	<string>알림으로 돌아가기</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>계속하려면 해당 계정을 선택하세요. 다른 계정을 선택하기 전까지 현재 계정이 유지됩니다.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>모든 계정의 알림을 읽음으로 표시</string>
+	<key>More</key>
+	<string>더 보기</string>
+	<key>No reminders yet</key>
+	<string>아직 알림이 없습니다</string>
+	<key>Nothing needs your attention</key>
+	<string>처리할 사항이 없습니다</string>
+	<key>Notification connection needs attention</key>
+	<string>알림 연결을 복구해야 합니다</string>
+	<key>Notification connection restored</key>
+	<string>알림 연결이 복구되었습니다</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>알림이 지연될 수 있습니다. dMsg를 열어 콘텐츠를 동기화하세요.</string>
+	<key>Opening reminder…</key>
+	<string>알림 여는 중…</string>
+	<key>Reminder unavailable</key>
+	<string>알림을 사용할 수 없음</string>
+	<key>Reminders marked as read</key>
+	<string>알림을 읽음으로 표시했습니다</string>
+	<key>This account no longer has access to the item.</key>
+	<string>이 계정은 더 이상 해당 항목에 접근할 수 없습니다.</string>
+	<key>This reminder belongs to another account</key>
+	<string>이 알림은 다른 계정의 것입니다</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>이 알림으로는 더 이상 원래 항목을 열 수 없습니다.</string>
+	<key>This request no longer needs a response.</key>
+	<string>이 요청에는 더 이상 응답할 필요가 없습니다.</string>
+	<key>Unable to open reminder</key>
+	<string>알림을 열 수 없음</string>
+	<key>Unlock to view reminder</key>
+	<string>잠금을 해제하여 알림 보기</string>
+	<key>Unread reminder</key>
+	<string>읽지 않은 알림</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>이전 알림은 최근 알림에서 확인할 수 있습니다.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>알림이 보호되어 있습니다. 잠금을 해제하면 이어서 열립니다.</string>
 </dict>
 </plist>

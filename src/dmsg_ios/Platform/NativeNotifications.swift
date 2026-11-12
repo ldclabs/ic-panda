@@ -121,8 +121,11 @@ final class NativeNotifications {
     func markRead(_ model: SessionModel, item: ReminderItem? = nil) async throws {
         let epoch = model.epoch
         if model.uiTesting {
-            for index in fixtureItems.indices where item == nil || fixtureItems[index].id == item?.id {
-                fixtureItems[index].readVersion = fixtureItems[index].version
+            for index in fixtureItems.indices where item == nil || (fixtureItems[index].id == item?.id && fixtureItems[index].account == item?.account) {
+                let version = item?.version ?? fixtureItems[index].version
+                if (UInt64(version) ?? 0) > (UInt64(fixtureItems[index].readVersion ?? "0") ?? 0) {
+                    fixtureItems[index].readVersion = version
+                }
             }
             let accounts = (status?.accounts ?? []).map { account in
                 let unread = fixtureItems.filter { $0.account == account.account && $0.open && $0.isUnread }
@@ -150,6 +153,11 @@ final class NativeNotifications {
         let now = NotificationTime.now
         fixtureItems = [ReminderItem(id: String(repeating: "a", count: 64), account: account, target: .recovery(String(repeating: "b", count: 64)), version: "1", open: true, actionable: true, unread: nil, firstAt: now, updatedAt: now, deadline: now + 86_400_000, observed: "0", stage: 1, snoozedUntil: nil),
             ReminderItem(id: String(repeating: "c", count: 64), account: account, target: .task("conflicts:1"), version: "1", open: true, actionable: true, unread: nil, firstAt: now, updatedAt: now, deadline: nil, observed: "0", stage: 1, snoozedUntil: nil)]
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-empty") {
+            fixtureItems = []
+            status = ReminderStatus(counts: .init(actionable: 0, unread: 0, unverified: false), accounts: [], badge: 0, enabled: true)
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-reminder-services") {
             let other = "040g2082040g2082040g"
             fixtureItems = [
@@ -157,6 +165,9 @@ final class NativeNotifications {
                 ReminderItem(id: "registration", account: account, target: .service("registration:1"), version: "1", open: true, actionable: true, unread: nil, firstAt: now, updatedAt: now, deadline: nil, observed: "0", stage: 1, snoozedUntil: nil),
                 ReminderItem(id: "other-message", account: other, target: .channel(String(repeating: "e", count: 64)), version: "1", open: true, actionable: false, unread: 1, firstAt: now, updatedAt: now, deadline: nil, observed: "0", stage: 1, snoozedUntil: nil)
             ]
+            if ProcessInfo.processInfo.arguments.contains("--ui-reminder-other-account") {
+                fixtureItems.append(ReminderItem(id: "other-registration", account: other, target: .service("registration:2"), version: "1", open: true, actionable: true, unread: nil, firstAt: now, updatedAt: now, deadline: nil, observed: "0", stage: 1, snoozedUntil: nil))
+            }
             preferences?.registrationRequired = true
             status = ReminderStatus(counts: .init(actionable: 2, unread: 1, unverified: false), accounts: [
                 .init(account: account, enabled: true, counts: .init(actionable: 2, unread: 0, unverified: false)),

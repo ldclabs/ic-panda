@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AccountsView: View {
+    var onSelected: (() -> Void)? = nil
     @Environment(SessionModel.self) private var model
     @State private var accounts: [LocalAccount] = []
     @State private var loading = false
@@ -17,7 +18,7 @@ struct AccountsView: View {
             SettingsLoadStatus(loading: loading, failed: failed) { Task { await load() } }
             ForEach(accounts) { account in
                 let row = LocalAccountRow(account: account, identity: model.accountIdentities[account.id], reminders: model.notifications.status?.reminderCount(for: account.id) ?? 0)
-                if account.current {
+                if account.current && onSelected == nil {
                     row.accessibilityElement(children: .combine).accessibilityAddTraits(.isSelected)
                         .accessibilityIdentifier("accounts.\(account.id)")
                 } else {
@@ -28,7 +29,7 @@ struct AccountsView: View {
             if !loading && !failed && accounts.isEmpty { ContentUnavailableView("No accounts", systemImage: "person.crop.circle") }
             SettingsAction("Sign in to another account") { Task {
                 guard !working else { return }; working = true; defer { working = false }
-                await model.lock(); model.signingIntoAnotherAccount = true
+                await model.lock(); model.signingIntoAnotherAccount = true; onSelected?()
             } }.disabled(working).accessibilityIdentifier("accounts.sign-in")
             if working { ProgressView() }
         }.privateScreen().navigationTitle("Accounts").task { await load(); await model.notifications.refresh(model) }.refreshable { await load(); await model.notifications.refresh(model) }
@@ -71,10 +72,19 @@ struct AccountsView: View {
     }
 
     private func choose(_ account: LocalAccount) async {
-        guard !working, !account.current else { return }; working = true; defer { working = false }
+        guard !working else { return }
+        if account.current { onSelected?(); return }
+        working = true; defer { working = false }
+        #if DEBUG
+        if model.uiTesting {
+            model.selectReminderAccountFixture(account.account)
+            onSelected?()
+            return
+        }
+        #endif
         model.invalidateSystemExports()
         await model.lock()
-        do { _ = try await model.engine?.switchAccount(account: account.account); await model.updateSession() }
+        do { _ = try await model.engine?.switchAccount(account: account.account); await model.updateSession(); if model.session?.account == account.account { onSelected?() } }
         catch { model.report(error) }
     }
 }

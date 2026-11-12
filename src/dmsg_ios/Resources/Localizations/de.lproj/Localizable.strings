@@ -3196,5 +3196,49 @@
 	<string>nicht verfügbar</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Dein Apple-Abonnementstatus konnte nicht geprüft werden. Versuche es vor dem Kauf erneut.</string>
+	<key>Access unavailable</key>
+	<string>Zugriff nicht verfügbar</string>
+	<key>Back to reminders</key>
+	<string>Zurück zu Erinnerungen</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Wähle das zugehörige Konto, um fortzufahren. Dein aktuelles Konto bleibt ausgewählt, bis du ein anderes auswählst.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Erinnerungen aller Konten als gelesen markieren</string>
+	<key>More</key>
+	<string>Mehr</string>
+	<key>No reminders yet</key>
+	<string>Noch keine Erinnerungen</string>
+	<key>Nothing needs your attention</key>
+	<string>Es gibt nichts zu erledigen</string>
+	<key>Notification connection needs attention</key>
+	<string>Mitteilungsverbindung muss wiederhergestellt werden</string>
+	<key>Notification connection restored</key>
+	<string>Mitteilungsverbindung wiederhergestellt</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Mitteilungen können verspätet eintreffen. Öffne dMsg, um deine Inhalte zu synchronisieren.</string>
+	<key>Opening reminder…</key>
+	<string>Erinnerung wird geöffnet…</string>
+	<key>Reminder unavailable</key>
+	<string>Erinnerung nicht verfügbar</string>
+	<key>Reminders marked as read</key>
+	<string>Erinnerungen als gelesen markiert</string>
+	<key>This account no longer has access to the item.</key>
+	<string>Dieses Konto hat keinen Zugriff mehr auf den Eintrag.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Diese Erinnerung gehört zu einem anderen Konto</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Diese Erinnerung kann den ursprünglichen Eintrag nicht mehr öffnen.</string>
+	<key>This request no longer needs a response.</key>
+	<string>Diese Anfrage erfordert keine Antwort mehr.</string>
+	<key>Unable to open reminder</key>
+	<string>Erinnerung kann nicht geöffnet werden</string>
+	<key>Unlock to view reminder</key>
+	<string>Entsperren, um die Erinnerung anzusehen</string>
+	<key>Unread reminder</key>
+	<string>Ungelesene Erinnerung</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Frühere Erinnerungen findest du unter „Letzte Erinnerungen“.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Deine Erinnerung ist geschützt. Entsperre, um fortzufahren.</string>
 </dict>
 </plist>

@@ -72,11 +72,23 @@ enum ReminderTarget: Hashable, Codable {
         default: .message
         }
     }
+    var symbol: String {
+        switch self {
+        case .recovery: "shield"
+        case .approval, .wallet: "signature"
+        case .channel, .inbox, .agentMail: "bubble.left.and.bubble.right"
+        case .task: "arrow.trianglehead.2.clockwise.rotate.90"
+        case .service(let id): id.hasPrefix("network:") ? "wifi.slash" : "bell.badge"
+        case .plan: "calendar"
+        case .summary: "bell"
+        }
+    }
+
     static func hash(_ value: String) -> Bool { value.utf8.count == 64 && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) } }
     private static func invalid(_ decoder: Decoder) -> DecodingError { .dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Unsupported notification target")) }
 }
 
-struct ReminderItem: Decodable, Identifiable {
+struct ReminderItem: Decodable, Identifiable, Hashable {
     let id: String; let account: String; let target: ReminderTarget; let version: String
     let open: Bool; let actionable: Bool; let unread: UInt64?
     let firstAt: UInt64; let updatedAt: UInt64; let deadline: UInt64?
@@ -85,7 +97,7 @@ struct ReminderItem: Decodable, Identifiable {
     var isUnread: Bool { (UInt64(readVersion ?? "0") ?? 0) < (UInt64(version) ?? .max) }
     var title: String {
         switch target {
-        case .service(let id): id.hasPrefix("network:") ? String(localized: "Sync paused") : String(localized: "Notifications")
+        case .service(let id): id.hasPrefix("network:") ? String(localized: "Sync paused") : String(localized: "Notification connection needs attention")
         case .task(let id): id.hasPrefix("conflicts:") ? String(localized: "Sync conflicts") : String(localized: "Sync paused")
         case .plan: String(localized: "Plan and usage")
         default: target.category.title
@@ -94,7 +106,7 @@ struct ReminderItem: Decodable, Identifiable {
     var body: String {
         if case .service(let id) = target {
             return id.hasPrefix("network:") ? String(localized: "Connection unavailable. Your saved content stays on this device.")
-                : String(localized: "Notification registration needs retrying. Foreground sync remains available.")
+                : String(localized: "Notifications may be delayed. Open dMsg to sync your content.")
         }
         return NoticeCopy.text(target.category.bodyKey)
     }

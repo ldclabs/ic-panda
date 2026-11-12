@@ -3196,5 +3196,49 @@
 	<string>利用不可</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Appleのサブスクリプション状況を確認できませんでした。購入前に再試行してください。</string>
+	<key>Access unavailable</key>
+	<string>アクセスできません</string>
+	<key>Back to reminders</key>
+	<string>リマインダーに戻る</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>続行するには対象のアカウントを選択してください。別のアカウントを選ぶまで、現在のアカウントは変更されません。</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>すべてのアカウントのリマインダーを既読にする</string>
+	<key>More</key>
+	<string>その他</string>
+	<key>No reminders yet</key>
+	<string>リマインダーはまだありません</string>
+	<key>Nothing needs your attention</key>
+	<string>対応が必要な項目はありません</string>
+	<key>Notification connection needs attention</key>
+	<string>通知の接続を復旧する必要があります</string>
+	<key>Notification connection restored</key>
+	<string>通知の接続が復旧しました</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>通知が遅れる場合があります。dMsgを開くと内容を同期できます。</string>
+	<key>Opening reminder…</key>
+	<string>リマインダーを開いています…</string>
+	<key>Reminder unavailable</key>
+	<string>リマインダーを利用できません</string>
+	<key>Reminders marked as read</key>
+	<string>リマインダーを既読にしました</string>
+	<key>This account no longer has access to the item.</key>
+	<string>このアカウントではこの項目にアクセスできなくなりました。</string>
+	<key>This reminder belongs to another account</key>
+	<string>このリマインダーは別のアカウントのものです</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>このリマインダーから元の項目を開くことはできなくなりました。</string>
+	<key>This request no longer needs a response.</key>
+	<string>このリクエストへの応答は不要になりました。</string>
+	<key>Unable to open reminder</key>
+	<string>リマインダーを開けません</string>
+	<key>Unlock to view reminder</key>
+	<string>ロックを解除してリマインダーを表示</string>
+	<key>Unread reminder</key>
+	<string>未読のリマインダー</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>過去のリマインダーは「最近のリマインダー」で確認できます。</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>リマインダーは保護されています。ロックを解除すると続行します。</string>
 </dict>
 </plist>

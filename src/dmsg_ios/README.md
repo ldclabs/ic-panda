@@ -346,9 +346,23 @@ rechecks that notification registration without repeating App Attest unnecessari
 The settings page shows one current status, places progress in the relevant
 action, and follows remote acknowledgements without overwriting unsaved edits.
 
-Clicks resolve an opaque original-account route. Account switching and unlock
-remain explicit; an invalid route shows an unavailable state and network failures
-keep a retry action. The core provides only metadata for inactive accounts.
+Clicks resolve an opaque original-account route. Locked reminders show an explicit
+unlock action, then continue to the original item. Reminders from another account
+open the existing account chooser only on request; choosing an account does not
+unlock it. Authentication cancellation and failed reads preserve the unread state.
+Unavailable, expired and inaccessible items have scoped result screens with a
+return action; their notices do not remain above the reminder list.
+
+The list keeps Pending and Recent ahead of content, with unread dots and separate
+pending-action labels. Bulk acknowledgement is in More and explicitly covers all
+local accounts. Reading a loaded, visible destination acknowledges only the
+reminder version that was opened, without conflating message receipts or business
+completion. A failed acknowledgement does not block reading. Local conversation
+names and previews are shown only in the matching unlocked account; the notification
+projection and push payload remain content-free. Registration reminders place the
+retry action before general settings. Native text styles, wrapping metadata,
+VoiceOver action labels and RTL layout retain the app's existing theme.
+
 Approval decisions and signing out use centered system alerts with explicit Cancel
 actions. The approval footer keeps its request-only explanation above the action
 row, including when the text wraps.

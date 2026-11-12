@@ -3196,5 +3196,49 @@
 	<string>niet beschikbaar</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>De status van je Apple-abonnement kon niet worden gecontroleerd. Probeer het opnieuw voordat je koopt.</string>
+	<key>Access unavailable</key>
+	<string>Geen toegang</string>
+	<key>Back to reminders</key>
+	<string>Terug naar herinneringen</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Kies het bijbehorende account om door te gaan. Je huidige account blijft geselecteerd totdat je een ander kiest.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Herinneringen van alle accounts als gelezen markeren</string>
+	<key>More</key>
+	<string>Meer</string>
+	<key>No reminders yet</key>
+	<string>Nog geen herinneringen</string>
+	<key>Nothing needs your attention</key>
+	<string>Er is niets dat je aandacht nodig heeft</string>
+	<key>Notification connection needs attention</key>
+	<string>De meldingsverbinding moet worden hersteld</string>
+	<key>Notification connection restored</key>
+	<string>Meldingsverbinding hersteld</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Meldingen kunnen vertraagd zijn. Open dMsg om je inhoud te synchroniseren.</string>
+	<key>Opening reminder…</key>
+	<string>Herinnering openen…</string>
+	<key>Reminder unavailable</key>
+	<string>Herinnering niet beschikbaar</string>
+	<key>Reminders marked as read</key>
+	<string>Herinneringen als gelezen gemarkeerd</string>
+	<key>This account no longer has access to the item.</key>
+	<string>Dit account heeft geen toegang meer tot het item.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Deze herinnering hoort bij een ander account</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Deze herinnering kan het oorspronkelijke item niet meer openen.</string>
+	<key>This request no longer needs a response.</key>
+	<string>Dit verzoek heeft geen reactie meer nodig.</string>
+	<key>Unable to open reminder</key>
+	<string>Herinnering kan niet worden geopend</string>
+	<key>Unlock to view reminder</key>
+	<string>Ontgrendel om de herinnering te bekijken</string>
+	<key>Unread reminder</key>
+	<string>Ongelezen herinnering</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Eerdere herinneringen vind je onder Recent.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Je herinnering is beveiligd. Ontgrendel om verder te gaan.</string>
 </dict>
 </plist>

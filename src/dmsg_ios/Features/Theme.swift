@@ -2,6 +2,8 @@ import SwiftUI
 
 enum Theme {
     static let forest = Color(uiColor: NativeTheme.forest)
+    /// Filled actions keep the dark brand green so white labels remain legible in both themes.
+    static let forestFill = Color(uiColor: NativeTheme.forest.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)))
     static let paper = Color(uiColor: NativeTheme.paper)
     static let surface = Color(uiColor: .secondarySystemGroupedBackground)
 }

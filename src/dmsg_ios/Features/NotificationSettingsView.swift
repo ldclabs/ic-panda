@@ -3,6 +3,7 @@ import UserNotifications
 @preconcurrency import DMsgCore
 
 struct NotificationSettingsView: View {
+    var focusRegistration = false
     @Environment(SessionModel.self) private var model
     @State private var status = String(localized: "Checking permission…")
     @State private var saved: NoticePreferences?
@@ -22,7 +23,7 @@ struct NotificationSettingsView: View {
     private var statusMessage: String? {
         if saved?.conflict == true { return String(localized: "The record changed. Refresh and review your edits before saving again.") }
         if saveFailed || failed { return String(localized: "Connection unavailable. Your saved content stays on this device.") }
-        if saved?.registrationRequired == true { return String(localized: "Notification registration needs retrying. Foreground sync remains available.") }
+        if saved?.registrationRequired == true { return String(localized: "Notifications may be delayed. Open dMsg to sync your content.") }
         switch model.push.registration {
         case .failed, .denied, .waiting, .unsupported: return model.push.registration.message
         case .idle, .enabled:
@@ -34,6 +35,7 @@ struct NotificationSettingsView: View {
     }
     var body: some View {
         Form {
+            if focusRegistration, draft != nil { registrationSection }
             Section {
                 LabeledContent("System permission", value: status)
                 Button("Open notification settings") { if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) } }
@@ -91,26 +93,7 @@ struct NotificationSettingsView: View {
                         Toggle(NoticeCopy.text("noticeMerge"), isOn: Binding(get: { draft?.account?.mergeDevices == true }, set: { draft?.account?.mergeDevices = $0 }))
                     }
                 }
-                Section {
-                    if working {
-                        ProgressView("Saving…").accessibilityIdentifier("notifications.saving")
-                    } else {
-                        if !model.push.working, let message = statusMessage {
-                            Label(message, systemImage: "info.circle")
-                                .font(.footnote).foregroundStyle(.secondary)
-                                .accessibilityIdentifier(saved?.pending == true ? "notifications.pending" : "notifications.status")
-                        }
-                        if saved?.conflict == true || saveFailed {
-                            SettingsAction("Retry", prominent: true) { Task { await save() } }.accessibilityIdentifier("notifications.save")
-                        } else if saved?.account?.enabled == true && (model.push.working || saved?.pending == true || saved?.registrationRequired == true || model.push.registration != .enabled) {
-                            SettingsAction(model.push.working ? "Waiting for notification registration…" : "Retry registration", working: model.push.working) {
-                                Task { await model.push.refresh(model, retryRegistration: true); await load() }
-                            }.accessibilityIdentifier("notifications.registration")
-                        }
-                    }
-                } footer: {
-                    Text(NoticeCopy.text("noticeScopeHint"))
-                }
+                if !focusRegistration { registrationSection }
             } else {
                 Section {
                     if loading { ProgressView("Loading…") }
@@ -146,8 +129,39 @@ struct NotificationSettingsView: View {
             }
         }
         .refreshable { await model.notifications.refresh(model, receive: true); await load() }
+        .reminderReadOnDisplay(ready: saved != nil && !loading && !failed)
         .accessibilityIdentifier("notifications.settings")
     }
+
+    private var registrationSection: some View {
+        Section {
+            if working {
+                ProgressView("Saving…").accessibilityIdentifier("notifications.saving")
+            } else {
+                if !model.push.working, let message = statusMessage {
+                    Label(message, systemImage: "info.circle")
+                        .font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier(saved?.pending == true ? "notifications.pending" : "notifications.status")
+                }
+                if saved?.conflict == true || saveFailed {
+                    SettingsAction("Retry", prominent: true) { Task { await save() } }.accessibilityIdentifier("notifications.save")
+                } else if saved?.account?.enabled == true && (model.push.working || saved?.pending == true || saved?.registrationRequired == true || model.push.registration != .enabled) {
+                    SettingsAction(model.push.working ? "Waiting for notification registration…" : "Retry registration", prominent: focusRegistration, working: model.push.working) {
+                        Task {
+                            let epoch = model.epoch
+                            await model.push.refresh(model, retryRegistration: true); await load()
+                            if epoch == model.epoch, model.push.registration == .enabled, saved?.registrationRequired != true, saved?.pending != true {
+                                model.notice = String(localized: "Notification connection restored")
+                            }
+                        }
+                    }.tint(focusRegistration ? Theme.forestFill : Theme.forest).accessibilityIdentifier("notifications.registration")
+                }
+            }
+        } footer: {
+            Text(NoticeCopy.text("noticeScopeHint"))
+        }
+    }
+
     private func categoryValue(_ category: ReminderCategory, sound: Bool) -> Binding<Bool> {
         Binding(get: { sound ? draft?.account?.categories[category.rawValue]?.sound == true : draft?.account?.categories[category.rawValue]?.enabled == true }, set: { value in
             if sound { draft?.account?.categories[category.rawValue]?.sound = value }

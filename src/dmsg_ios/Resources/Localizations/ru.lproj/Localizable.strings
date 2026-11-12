@@ -3196,5 +3196,49 @@
 	<string>недоступен</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Не удалось проверить статус подписки Apple. Повторите попытку перед покупкой.</string>
+	<key>Access unavailable</key>
+	<string>Доступ недоступен</string>
+	<key>Back to reminders</key>
+	<string>К напоминаниям</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Выберите нужный аккаунт, чтобы продолжить. Текущий аккаунт останется выбранным, пока вы не выберете другой.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Отметить напоминания всех аккаунтов как прочитанные</string>
+	<key>More</key>
+	<string>Ещё</string>
+	<key>No reminders yet</key>
+	<string>Напоминаний пока нет</string>
+	<key>Nothing needs your attention</key>
+	<string>Нет дел, требующих внимания</string>
+	<key>Notification connection needs attention</key>
+	<string>Нужно восстановить подключение уведомлений</string>
+	<key>Notification connection restored</key>
+	<string>Подключение уведомлений восстановлено</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Уведомления могут задерживаться. Откройте dMsg для синхронизации содержимого.</string>
+	<key>Opening reminder…</key>
+	<string>Открытие напоминания…</string>
+	<key>Reminder unavailable</key>
+	<string>Напоминание недоступно</string>
+	<key>Reminders marked as read</key>
+	<string>Напоминания отмечены как прочитанные</string>
+	<key>This account no longer has access to the item.</key>
+	<string>У этого аккаунта больше нет доступа к этому объекту.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Это напоминание относится к другому аккаунту</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Это напоминание больше не может открыть исходный объект.</string>
+	<key>This request no longer needs a response.</key>
+	<string>Этот запрос больше не требует ответа.</string>
+	<key>Unable to open reminder</key>
+	<string>Не удалось открыть напоминание</string>
+	<key>Unlock to view reminder</key>
+	<string>Разблокируйте для просмотра напоминания</string>
+	<key>Unread reminder</key>
+	<string>Непрочитанное напоминание</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Предыдущие напоминания доступны в разделе недавних напоминаний.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Напоминание защищено. Разблокируйте, чтобы продолжить.</string>
 </dict>
 </plist>

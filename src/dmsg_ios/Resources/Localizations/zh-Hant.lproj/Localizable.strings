@@ -3196,5 +3196,49 @@
 	<string>無法使用</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>暫時無法讀取你的 Apple 訂閱狀態，請重試後再購買。</string>
+	<key>Access unavailable</key>
+	<string>無法存取</string>
+	<key>Back to reminders</key>
+	<string>返回提醒</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>選擇提醒所屬的帳戶以繼續。在你選擇之前，目前帳戶不會改變。</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>將所有帳戶的提醒標為已讀</string>
+	<key>More</key>
+	<string>更多</string>
+	<key>No reminders yet</key>
+	<string>暫無提醒</string>
+	<key>Nothing needs your attention</key>
+	<string>目前沒有需要處理的事項</string>
+	<key>Notification connection needs attention</key>
+	<string>通知連線需要恢復</string>
+	<key>Notification connection restored</key>
+	<string>通知連線已恢復</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>可能無法及時收到通知，開啟 dMsg 後仍可同步。</string>
+	<key>Opening reminder…</key>
+	<string>正在開啟提醒…</string>
+	<key>Reminder unavailable</key>
+	<string>提醒無法使用</string>
+	<key>Reminders marked as read</key>
+	<string>提醒已標為已讀</string>
+	<key>This account no longer has access to the item.</key>
+	<string>此帳戶已無法存取該事項。</string>
+	<key>This reminder belongs to another account</key>
+	<string>這則提醒屬於另一個帳戶</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>這則提醒已無法開啟原事項。</string>
+	<key>This request no longer needs a response.</key>
+	<string>此請求已不需要回應。</string>
+	<key>Unable to open reminder</key>
+	<string>暫時無法開啟提醒</string>
+	<key>Unlock to view reminder</key>
+	<string>解鎖後查看提醒</string>
+	<key>Unread reminder</key>
+	<string>未讀提醒</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>你仍可在「近期提醒」中查看之前的提醒。</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>提醒內容已受到保護。解鎖後將繼續開啟。</string>
 </dict>
 </plist>

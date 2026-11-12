@@ -3196,5 +3196,49 @@
 	<string>دستیاب نہیں</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>آپ کی Apple سبسکرپشن کی حالت معلوم نہیں کی جا سکی۔ خریدنے سے پہلے دوبارہ کوشش کریں۔</string>
+	<key>Access unavailable</key>
+	<string>رسائی دستیاب نہیں</string>
+	<key>Back to reminders</key>
+	<string>یاد دہانیوں پر واپس جائیں</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>جاری رکھنے کے لیے متعلقہ اکاؤنٹ منتخب کریں۔ دوسرا اکاؤنٹ منتخب کرنے تک موجودہ اکاؤنٹ منتخب رہے گا۔</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>تمام اکاؤنٹس کی یاد دہانیوں کو پڑھا ہوا نشان زد کریں</string>
+	<key>More</key>
+	<string>مزید</string>
+	<key>No reminders yet</key>
+	<string>ابھی کوئی یاد دہانی نہیں</string>
+	<key>Nothing needs your attention</key>
+	<string>فی الحال کسی کارروائی کی ضرورت نہیں</string>
+	<key>Notification connection needs attention</key>
+	<string>اطلاعات کا رابطہ بحال کرنے کی ضرورت ہے</string>
+	<key>Notification connection restored</key>
+	<string>اطلاعات کا رابطہ بحال ہو گیا</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>اطلاعات میں تاخیر ہو سکتی ہے۔ مواد ہم وقت کرنے کے لیے dMsg کھولیں۔</string>
+	<key>Opening reminder…</key>
+	<string>یاد دہانی کھل رہی ہے…</string>
+	<key>Reminder unavailable</key>
+	<string>یاد دہانی دستیاب نہیں</string>
+	<key>Reminders marked as read</key>
+	<string>یاد دہانیاں پڑھی ہوئی نشان زد ہو گئیں</string>
+	<key>This account no longer has access to the item.</key>
+	<string>اس اکاؤنٹ کو اب اس آئٹم تک رسائی نہیں۔</string>
+	<key>This reminder belongs to another account</key>
+	<string>یہ یاد دہانی دوسرے اکاؤنٹ کی ہے</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>یہ یاد دہانی اب اصل آئٹم نہیں کھول سکتی۔</string>
+	<key>This request no longer needs a response.</key>
+	<string>اس درخواست کو اب جواب کی ضرورت نہیں۔</string>
+	<key>Unable to open reminder</key>
+	<string>یاد دہانی نہیں کھل سکی</string>
+	<key>Unlock to view reminder</key>
+	<string>یاد دہانی دیکھنے کے لیے ان لاک کریں</string>
+	<key>Unread reminder</key>
+	<string>ان پڑھی یاد دہانی</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>پچھلی یاد دہانیاں حالیہ یاد دہانیوں میں مل سکتی ہیں۔</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>آپ کی یاد دہانی محفوظ ہے۔ جہاں رکے تھے وہاں سے جاری رکھنے کے لیے ان لاک کریں۔</string>
 </dict>
 </plist>

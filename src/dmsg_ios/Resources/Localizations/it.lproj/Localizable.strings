@@ -3196,5 +3196,49 @@
 	<string>non disponibile</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Non è stato possibile verificare lo stato del tuo abbonamento Apple. Riprova prima di acquistare.</string>
+	<key>Access unavailable</key>
+	<string>Accesso non disponibile</string>
+	<key>Back to reminders</key>
+	<string>Torna ai promemoria</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Scegli l’account associato per continuare. L’account attuale rimane selezionato finché non ne scegli un altro.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Segna i promemoria di tutti gli account come letti</string>
+	<key>More</key>
+	<string>Altro</string>
+	<key>No reminders yet</key>
+	<string>Ancora nessun promemoria</string>
+	<key>Nothing needs your attention</key>
+	<string>Non c’è nulla da gestire</string>
+	<key>Notification connection needs attention</key>
+	<string>La connessione delle notifiche richiede attenzione</string>
+	<key>Notification connection restored</key>
+	<string>Connessione delle notifiche ripristinata</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Le notifiche potrebbero arrivare in ritardo. Apri dMsg per sincronizzare i contenuti.</string>
+	<key>Opening reminder…</key>
+	<string>Apertura del promemoria…</string>
+	<key>Reminder unavailable</key>
+	<string>Promemoria non disponibile</string>
+	<key>Reminders marked as read</key>
+	<string>Promemoria segnati come letti</string>
+	<key>This account no longer has access to the item.</key>
+	<string>Questo account non ha più accesso all’elemento.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Questo promemoria appartiene a un altro account</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Questo promemoria non può più aprire l’elemento originale.</string>
+	<key>This request no longer needs a response.</key>
+	<string>Questa richiesta non necessita più di una risposta.</string>
+	<key>Unable to open reminder</key>
+	<string>Impossibile aprire il promemoria</string>
+	<key>Unlock to view reminder</key>
+	<string>Sblocca per visualizzare il promemoria</string>
+	<key>Unread reminder</key>
+	<string>Promemoria non letto</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Puoi trovare i promemoria precedenti in Recenti.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Il promemoria è protetto. Sblocca per riprendere da dove eri rimasto.</string>
 </dict>
 </plist>

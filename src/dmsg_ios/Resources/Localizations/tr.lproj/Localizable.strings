@@ -3196,5 +3196,49 @@
 	<string>kullanılamıyor</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>Apple aboneliğinizin durumu kontrol edilemedi. Satın almadan önce tekrar deneyin.</string>
+	<key>Access unavailable</key>
+	<string>Erişim kullanılamıyor</string>
+	<key>Back to reminders</key>
+	<string>Hatırlatıcılara dön</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>Devam etmek için ilgili hesabı seçin. Başka bir hesap seçene kadar mevcut hesabınız seçili kalır.</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>Tüm hesapların hatırlatıcılarını okundu olarak işaretle</string>
+	<key>More</key>
+	<string>Diğer</string>
+	<key>No reminders yet</key>
+	<string>Henüz hatırlatıcı yok</string>
+	<key>Nothing needs your attention</key>
+	<string>İlgilenmeniz gereken bir şey yok</string>
+	<key>Notification connection needs attention</key>
+	<string>Bildirim bağlantısının düzeltilmesi gerekiyor</string>
+	<key>Notification connection restored</key>
+	<string>Bildirim bağlantısı yeniden kuruldu</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>Bildirimler gecikebilir. İçeriğinizi eşitlemek için dMsg’i açın.</string>
+	<key>Opening reminder…</key>
+	<string>Hatırlatıcı açılıyor…</string>
+	<key>Reminder unavailable</key>
+	<string>Hatırlatıcı kullanılamıyor</string>
+	<key>Reminders marked as read</key>
+	<string>Hatırlatıcılar okundu olarak işaretlendi</string>
+	<key>This account no longer has access to the item.</key>
+	<string>Bu hesabın artık öğeye erişimi yok.</string>
+	<key>This reminder belongs to another account</key>
+	<string>Bu hatırlatıcı başka bir hesaba ait</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>Bu hatırlatıcı artık asıl öğeyi açamıyor.</string>
+	<key>This request no longer needs a response.</key>
+	<string>Bu istek artık yanıt gerektirmiyor.</string>
+	<key>Unable to open reminder</key>
+	<string>Hatırlatıcı açılamadı</string>
+	<key>Unlock to view reminder</key>
+	<string>Hatırlatıcıyı görmek için kilidi açın</string>
+	<key>Unread reminder</key>
+	<string>Okunmamış hatırlatıcı</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>Önceki hatırlatıcıları Son hatırlatıcılar bölümünde bulabilirsiniz.</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>Hatırlatıcınız korunuyor. Kaldığınız yerden devam etmek için kilidi açın.</string>
 </dict>
 </plist>

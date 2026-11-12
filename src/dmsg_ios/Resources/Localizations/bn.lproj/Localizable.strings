@@ -3196,5 +3196,49 @@
 	<string>উপলব্ধ নয়</string>
 	<key>Your Apple subscription status could not be checked. Retry before purchasing.</key>
 	<string>আপনার Apple সাবস্ক্রিপশনের অবস্থা যাচাই করা যায়নি। কেনার আগে আবার চেষ্টা করুন।</string>
+	<key>Access unavailable</key>
+	<string>অ্যাক্সেস উপলব্ধ নয়</string>
+	<key>Back to reminders</key>
+	<string>রিমাইন্ডারে ফিরুন</string>
+	<key>Choose its account to continue. Your current account will stay selected until you choose another.</key>
+	<string>চালিয়ে যেতে সংশ্লিষ্ট অ্যাকাউন্ট বেছে নিন। অন্য অ্যাকাউন্ট বেছে না নেওয়া পর্যন্ত বর্তমান অ্যাকাউন্ট নির্বাচিত থাকবে।</string>
+	<key>Mark reminders for all accounts as read</key>
+	<string>সব অ্যাকাউন্টের রিমাইন্ডার পঠিত হিসেবে চিহ্নিত করুন</string>
+	<key>More</key>
+	<string>আরও</string>
+	<key>No reminders yet</key>
+	<string>এখনও কোনো রিমাইন্ডার নেই</string>
+	<key>Nothing needs your attention</key>
+	<string>এখন কোনো কাজ বাকি নেই</string>
+	<key>Notification connection needs attention</key>
+	<string>বিজ্ঞপ্তির সংযোগ পুনরুদ্ধার করতে হবে</string>
+	<key>Notification connection restored</key>
+	<string>বিজ্ঞপ্তির সংযোগ পুনরুদ্ধার হয়েছে</string>
+	<key>Notifications may be delayed. Open dMsg to sync your content.</key>
+	<string>বিজ্ঞপ্তি দেরিতে আসতে পারে। বিষয়বস্তু সিঙ্ক করতে dMsg খুলুন।</string>
+	<key>Opening reminder…</key>
+	<string>রিমাইন্ডার খোলা হচ্ছে…</string>
+	<key>Reminder unavailable</key>
+	<string>রিমাইন্ডার উপলব্ধ নয়</string>
+	<key>Reminders marked as read</key>
+	<string>রিমাইন্ডার পঠিত হিসেবে চিহ্নিত হয়েছে</string>
+	<key>This account no longer has access to the item.</key>
+	<string>এই অ্যাকাউন্টের আর আইটেমটিতে অ্যাক্সেস নেই।</string>
+	<key>This reminder belongs to another account</key>
+	<string>এই রিমাইন্ডার অন্য অ্যাকাউন্টের</string>
+	<key>This reminder can no longer open its original item.</key>
+	<string>এই রিমাইন্ডার আর মূল আইটেম খুলতে পারবে না।</string>
+	<key>This request no longer needs a response.</key>
+	<string>এই অনুরোধের আর উত্তর দেওয়ার প্রয়োজন নেই।</string>
+	<key>Unable to open reminder</key>
+	<string>রিমাইন্ডার খোলা যায়নি</string>
+	<key>Unlock to view reminder</key>
+	<string>রিমাইন্ডার দেখতে আনলক করুন</string>
+	<key>Unread reminder</key>
+	<string>অপঠিত রিমাইন্ডার</string>
+	<key>You can find past reminders in Recent.</key>
+	<string>আগের রিমাইন্ডার সাম্প্রতিক রিমাইন্ডারে পাবেন।</string>
+	<key>Your reminder is protected. Unlock to continue where you left off.</key>
+	<string>আপনার রিমাইন্ডার সুরক্ষিত। যেখানে থেমেছিলেন সেখান থেকে চালিয়ে যেতে আনলক করুন।</string>
 </dict>
 </plist>
