@@ -3240,5 +3240,19 @@
 	<string>Retrouvez les rappels précédents dans les rappels récents.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Votre rappel est protégé. Déverrouillez pour reprendre là où vous en étiez.</string>
+	<key>Billing grace period</key>
+	<string>Délai de grâce de facturation</string>
+	<key>Billing retry</key>
+	<string>Nouvelle tentative de paiement</string>
+	<key>Last recorded term</key>
+	<string>Dernière période enregistrée</string>
+	<key>Status needs updating</key>
+	<string>État à actualiser</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Votre statut d’abonnement doit être actualisé. Actualisez la page Abonnement et réessayez.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Votre abonnement payant a pris fin. Vous utilisez maintenant Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Votre achat attend l’approbation d’Apple.</string>
 </dict>
 </plist>

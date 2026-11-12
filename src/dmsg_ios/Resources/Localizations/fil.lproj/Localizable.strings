@@ -3240,5 +3240,19 @@
 	<string>Makikita ang mga nakaraang paalala sa Kamakailan.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Protektado ang iyong paalala. I-unlock para magpatuloy.</string>
+	<key>Billing grace period</key>
+	<string>Palugit sa pagbabayad</string>
+	<key>Billing retry</key>
+	<string>Muling pagsubok sa pagbabayad</string>
+	<key>Last recorded term</key>
+	<string>Huling naitalang panahon</string>
+	<key>Status needs updating</key>
+	<string>Kailangang i-update ang status</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Kailangang i-update ang status ng membership mo. I-refresh ang pahina ng membership at subukang muli.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Natapos na ang bayad mong membership. Nasa Free ka na ngayon.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Naghihintay ng pag-apruba ng Apple ang iyong pagbili.</string>
 </dict>
 </plist>

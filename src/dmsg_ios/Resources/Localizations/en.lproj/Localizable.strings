@@ -3240,5 +3240,19 @@
 	<string>You can find past reminders in Recent.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Your reminder is protected. Unlock to continue where you left off.</string>
+	<key>Billing grace period</key>
+	<string>Billing grace period</string>
+	<key>Billing retry</key>
+	<string>Billing retry</string>
+	<key>Last recorded term</key>
+	<string>Last recorded term</string>
+	<key>Status needs updating</key>
+	<string>Status needs updating</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Your membership status needs updating. Refresh the membership page and try again.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Your paid membership has ended. You are now on Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Your purchase is awaiting Apple approval.</string>
 </dict>
 </plist>

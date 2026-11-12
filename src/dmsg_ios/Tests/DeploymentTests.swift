@@ -58,6 +58,40 @@ final class DeploymentTests: XCTestCase {
         XCTAssertFalse(external.managesSubscription(environment: "Production", at: now))
     }
 
+    func testMembershipConfirmationAndUsageFailureHaveSeparatePresentation() {
+        let now = Date(timeIntervalSince1970: 1000)
+        let limits = SubscriptionView.Plan.Limits(storageBytes: 10, activeChannels: 5, monthlyExecutionUnits: 5)
+        var plan = SubscriptionView.Plan(plan: "Free", source: "Unverifiable", limits: limits,
+            current: .init(endsAtMs: 2000000, method: "AppStore", storeEnvironment: "Sandbox"))
+        XCTAssertTrue(plan.needsRefresh(at: now))
+        XCTAssertFalse(plan.managesSubscription(environment: "Sandbox", at: now))
+        plan = SubscriptionView.Plan(plan: "Plus", source: "Active", limits: limits, current: plan.current, leaseUntilMs: 1000000)
+        XCTAssertTrue(plan.needsRefresh(at: now))
+        XCTAssertFalse(plan.managesSubscription(environment: "Sandbox", at: now))
+        let usage = SubscriptionView.Usage(cloud: nil, execution: nil, cloudError: "MEMBERSHIP_STALE", executionError: "MEMBERSHIP_STALE")
+        XCTAssertTrue(usage.membershipStale)
+        XCTAssertFalse(usage.otherFailure)
+        XCTAssertTrue(SubscriptionView.Usage(cloud: nil, execution: nil, cloudError: "MEMBERSHIP_STALE", executionError: "INTEGRITY_FAILED").otherFailure)
+    }
+
+    func testExpiredAppleSubscriptionRetainsItsStatusWithoutBlockingResubscription() {
+        let token = UUID(), end = Date(timeIntervalSince1970: 1000)
+        let state = PurchaseModel.SubscriptionStatus(token: token, state: .expired, environment: "Sandbox", expiresAt: end)
+        let subscription = PurchaseModel.subscription(group: "annual", statuses: [state], expected: token)
+        XCTAssertEqual(subscription.ownership, .available)
+        XCTAssertEqual(subscription.state, .expired)
+        XCTAssertEqual(subscription.expiresAt, end)
+        let foreign = PurchaseModel.subscription(group: "annual", statuses: [state], expected: UUID())
+        XCTAssertNil(foreign.state)
+        XCTAssertNil(foreign.expiresAt)
+        for state in [Product.SubscriptionInfo.RenewalState.inBillingRetryPeriod, .inGracePeriod] {
+            let subscription = PurchaseModel.subscription(group: "annual", statuses: [.init(token: token, state: state)], expected: token)
+            XCTAssertEqual(subscription.state, state)
+            XCTAssertEqual(subscription.ownership, .current, "A renewal problem must not invite a duplicate purchase")
+            XCTAssertNotEqual(SubscriptionView.subscriptionState(state), "Active")
+        }
+    }
+
     func testLatestAppleTransactionIdentifiesOneAccountWithoutRequiringHistoricalTokens() {
         let a = UUID(), b = UUID()
         // Apple can retain A on the original transaction while the latest uses B.

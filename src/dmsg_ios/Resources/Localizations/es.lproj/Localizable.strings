@@ -3240,5 +3240,19 @@
 	<string>Puedes encontrar los recordatorios anteriores en Recientes.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Tu recordatorio está protegido. Desbloquea para continuar donde lo dejaste.</string>
+	<key>Billing grace period</key>
+	<string>Período de gracia de pago</string>
+	<key>Billing retry</key>
+	<string>Reintento de pago</string>
+	<key>Last recorded term</key>
+	<string>Último período registrado</string>
+	<key>Status needs updating</key>
+	<string>Estado pendiente de actualizar</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>El estado de tu membresía necesita actualizarse. Actualiza la página de membresía e inténtalo de nuevo.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Tu membresía de pago ha terminado. Ahora usas Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Tu compra está pendiente de aprobación por Apple.</string>
 </dict>
 </plist>

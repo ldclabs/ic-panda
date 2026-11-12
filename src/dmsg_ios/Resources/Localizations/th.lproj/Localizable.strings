@@ -3240,5 +3240,19 @@
 	<string>ดูการเตือนก่อนหน้าได้ในรายการล่าสุด</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>การเตือนของคุณได้รับการปกป้อง ปลดล็อกเพื่อดำเนินการต่อจากจุดเดิม</string>
+	<key>Billing grace period</key>
+	<string>ระยะเวลาผ่อนผันการชำระเงิน</string>
+	<key>Billing retry</key>
+	<string>กำลังลองชำระเงินอีกครั้ง</string>
+	<key>Last recorded term</key>
+	<string>ระยะเวลาที่บันทึกไว้ล่าสุด</string>
+	<key>Status needs updating</key>
+	<string>ต้องอัปเดตสถานะ</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>ต้องอัปเดตสถานะสมาชิก โปรดรีเฟรชหน้าสมาชิกแล้วลองอีกครั้ง</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>สมาชิกแบบชำระเงินสิ้นสุดแล้ว ขณะนี้คุณใช้แผน Free</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>การซื้อของคุณกำลังรอการอนุมัติจาก Apple</string>
 </dict>
 </plist>

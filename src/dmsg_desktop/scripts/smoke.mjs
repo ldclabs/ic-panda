@@ -1713,6 +1713,114 @@ smoke: try {
     console.log('Attachment limits passed: recent files, library picker, 100 MiB boundary, cloud-only exclusion, keyboard and locale/theme/width matrix')
     break smoke
   }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'membership-status') {
+    membership = 'appstore'
+    let membershipNotice = null
+    const originalPlan = methods['plan/status']
+    const originalUsage = methods['attest/usage']
+    const originalCloud = methods['files/cloud_usage']
+    const now = Date.now()
+    let state = 'pending'
+    let usageFailure = 'MEMBERSHIP_STALE'
+    let cloudFailure = null
+    methods['plan/status'] = () => {
+      const plan = originalPlan()
+      plan.current.store_environment = 'Sandbox'
+      plan.current.starts_at_ms = plan.current.term_starts_at_ms = now - 60_000
+      plan.current.ends_at_ms = plan.current.expires_at_ms = now + DAY
+      plan.service_terminated_at_ms = now - 60_000
+      plan.storage_available = false
+      plan.offers = ['Plus', 'Pro', 'Max'].map(plan => ({ plan, action: 'subscribe', sku: plan.toLowerCase(), starts_at_ms: now, ends_at_ms: now + 365 * DAY, methods: ['Cash', 'Panda'] }))
+      if (state === 'pending') return { ...plan, plan: 'Free', source: 'Unverifiable', eligibility: 'Unverifiable', limits: LIMITS.Free, lease_until_ms: now }
+      if (state === 'expired') return { ...plan, plan: 'Free', source: 'Expired', current: null, limits: LIMITS.Free, lease_until_ms: now + DAY }
+      return { ...plan, lease_until_ms: now + DAY }
+    }
+    methods['attest/usage'] = () => {
+      if (usageFailure) throw { code: usageFailure, message: 'Usage unavailable' }
+      return originalUsage()
+    }
+    methods['files/cloud_usage'] = () => {
+      if (cloudFailure) throw { code: cloudFailure, message: 'Usage unavailable' }
+      return { ...originalCloud(), notice: membershipNotice }
+    }
+    await main.evaluate(() => location.hash = '/plan')
+    await main.getByTestId('plan-status-pending').waitFor()
+    assert.equal(await main.getByTestId('plan-source').innerText(), 'Status needs updating')
+    assert.equal(await main.getByTestId('plan-name').innerText(), '—')
+    assert.equal(await main.getByTestId('plan-ends').count(), 0)
+    assert.equal(await main.getByTestId('plan-ended').count(), 0)
+    assert.equal(await main.getByTestId('plan-usage-error').count(), 0)
+    assert.equal(await main.getByTestId('plan-benefits').count(), 0)
+    assert.equal(await main.getByTestId('plan-plus').getByText('Current', { exact: true }).count(), 0)
+    assert.match(await main.getByTestId('plan-sandbox').innerText(), /TestFlight/)
+    assert.match(await main.getByTestId('plan-status-pending').innerText(), /restore purchases/)
+    assert.equal(await main.getByTestId('membership').getByRole('alert').count(), 0)
+    await formMatrix(app, main, shots, 'membership-pending', '[data-testid="plan-hero"]')
+
+    // Both usage readers can report the same underlying state; show it once.
+    cloudFailure = 'MEMBERSHIP_STALE'
+    await main.getByTestId('plan-refresh').click()
+    await waitFor(async () => await main.getByTestId('plan-refresh').isEnabled())
+    assert.equal(await main.getByTestId('plan-status-pending').count(), 1)
+    assert.equal(await main.getByTestId('membership').getByText('MEMBERSHIP_STALE', { exact: false }).count(), 0)
+    assert.equal(await main.getByTestId('membership').getByRole('alert').count(), 0)
+
+    // Retry updates the entitlement before its usage. Keyboard activation
+    // retains the pending button until the new usage has settled.
+    state = 'active'
+    usageFailure = cloudFailure = null
+    const finishPlan = hold('plan/status', p => p.refresh === true)
+    const usageReads = calls.filter(c => c.method === 'attest/usage').length
+    await main.getByTestId('plan-refresh').focus()
+    await main.keyboard.press('Enter')
+    await waitFor(() => held.get('plan/status'))
+    assert.equal(await main.getByTestId('plan-refresh').isDisabled(), true)
+    assert.equal(calls.filter(c => c.method === 'attest/usage').length, usageReads)
+    await finishPlan()
+    await main.getByTestId('plan-status-pending').waitFor({ state: 'detached' })
+    assert.equal(await main.getByTestId('plan-name').innerText(), 'Plus')
+    assert.equal(await main.getByTestId('plan-ends').count(), 1)
+    assert.equal(await main.getByTestId('plan-ended').count(), 0, 'a previous term ending does not end the active service')
+    assert.equal(await main.getByTestId('plan-plus').getByText('Current', { exact: true }).count(), 1)
+
+    state = 'expired'
+    await main.getByTestId('plan-refresh').click()
+    await main.getByTestId('plan-ended').waitFor()
+    assert.equal(await main.getByTestId('plan-ended').getAttribute('role'), 'status')
+    assert.equal(await main.getByTestId('plan-name').innerText(), 'Free')
+    assert.equal(await main.getByTestId('plan-plus').getByText('Current', { exact: true }).count(), 0)
+    assert.doesNotMatch(await main.getByTestId('plan-ended').innerText(), /export/i)
+    await formMatrix(app, main, shots, 'membership-expired', '[data-testid="plan-hero"]')
+
+    usageFailure = 'MEMBERSHIP_STALE'
+    await main.getByTestId('plan-refresh').click()
+    await main.getByTestId('plan-status-pending').waitFor()
+    assert.equal(await main.getByTestId('plan-name').innerText(), 'Free', 'a stale usage ledger does not erase a confirmed Free plan')
+    assert.equal(await main.getByTestId('plan-usage-error').count(), 0)
+    assert.equal(await main.getByTestId('membership').getByRole('alert').count(), 0)
+
+    // Real failures and actual over-limit notices retain their own guidance.
+    usageFailure = 'INTEGRITY_FAILED'
+    membershipNotice = { id: 'expired-over-limit', minimum_export_until: now + 30 * DAY, acknowledged_at: null }
+    await main.getByTestId('plan-refresh').click()
+    await main.getByTestId('plan-usage-error').waitFor()
+    assert.equal(await main.getByTestId('plan-usage-error').getAttribute('role'), 'alert')
+    await main.getByTestId('plan-notice').waitFor()
+    assert.match(await main.getByTestId('plan-notice').innerText(), /Export stays available/)
+
+    // Leaving during refresh cannot put its late usage into another view.
+    usageFailure = null
+    const finishUsage = hold('attest/usage')
+    await main.getByTestId('plan-refresh').click()
+    await waitFor(() => held.get('attest/usage'))
+    await main.getByTestId('plan-tab-payments').click()
+    await main.getByTestId('membership').waitFor({ state: 'detached' })
+    await finishUsage()
+    assert.equal(await main.getByTestId('usage-signatures').count(), 0)
+    assert.deepEqual(pageErrors, [])
+    console.log('Membership status passed: stale Apple rights, deduplication, ordered refresh, recovery, expiry, over-limit and integrity failures, late replies, keyboard and locale/theme/window matrix')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'membership-auth') {
     const usage = methods['attest/usage']
     let usageFailure = null

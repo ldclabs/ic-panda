@@ -3240,5 +3240,19 @@
 	<string>이전 알림은 최근 알림에서 확인할 수 있습니다.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>알림이 보호되어 있습니다. 잠금을 해제하면 이어서 열립니다.</string>
+	<key>Billing grace period</key>
+	<string>결제 유예 기간</string>
+	<key>Billing retry</key>
+	<string>결제 재시도 중</string>
+	<key>Last recorded term</key>
+	<string>마지막으로 기록된 기간</string>
+	<key>Status needs updating</key>
+	<string>상태 업데이트 필요</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>멤버십 상태를 업데이트해야 합니다. 멤버십 페이지를 새로 고침한 후 다시 시도하세요.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>유료 멤버십이 종료되었습니다. 현재 Free 요금제입니다.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>구매가 Apple 승인을 기다리고 있습니다.</string>
 </dict>
 </plist>

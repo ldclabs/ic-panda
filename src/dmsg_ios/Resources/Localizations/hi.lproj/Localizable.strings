@@ -3240,5 +3240,19 @@
 	<string>पिछले रिमाइंडर हाल के रिमाइंडर में मिल सकते हैं।</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>आपका रिमाइंडर सुरक्षित है। जहाँ रुके थे वहीं से जारी रखने के लिए अनलॉक करें।</string>
+	<key>Billing grace period</key>
+	<string>भुगतान की मोहलत अवधि</string>
+	<key>Billing retry</key>
+	<string>भुगतान का पुनः प्रयास</string>
+	<key>Last recorded term</key>
+	<string>अंतिम दर्ज अवधि</string>
+	<key>Status needs updating</key>
+	<string>स्थिति अपडेट करना आवश्यक है</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>आपकी सदस्यता की स्थिति अपडेट करना आवश्यक है। सदस्यता पृष्ठ रीफ़्रेश करें और फिर से कोशिश करें।</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>आपकी सशुल्क सदस्यता समाप्त हो गई है। अब आप Free पर हैं।</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>आपकी खरीदारी Apple की स्वीकृति की प्रतीक्षा में है।</string>
 </dict>
 </plist>

@@ -28,7 +28,17 @@ export const sourceLabels: Record<string, Label> = {
 export const eligibilityLabels: Record<string, Label> = {
   Eligible: 'eligible',
   Ineligible: 'ineligible',
-  Unverifiable: 'unverifiable'
+  Unverifiable: 'sourceUnverifiable'
+}
+
+/** A contract term is not proof of current rights; an old term's end is not a service shutdown. */
+export function membershipState(plan: any, now: number) {
+  const pending = !!plan && (plan.source === 'Unverifiable' || plan.eligibility === 'Unverifiable'
+    || (['Active', 'Free', 'Expired'].includes(plan.source) && plan.lease_until_ms != null && plan.lease_until_ms <= now))
+  const active = !pending && plan?.source === 'Active'
+  const endedAt = !pending && plan?.source === 'Expired' && plan.plan === 'Free'
+    && plan.service_terminated_at_ms <= now ? plan.service_terminated_at_ms : null
+  return { pending, active, endedAt }
 }
 
 /** How a term is paid, for people. */

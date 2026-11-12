@@ -17,7 +17,7 @@
   import { call, code, errorText, onChange, single, size, units, when } from '../../rpc'
   import { startLogin } from '../../shell/login.svelte'
   import Checkout from './Checkout.svelte'
-  import { daysLeft, eligibilityLabels, methodLabels, offerLabels, refundOutcome, sourceLabels, waitLabels } from './plan'
+  import { daysLeft, eligibilityLabels, membershipState, methodLabels, offerLabels, refundOutcome, sourceLabels, waitLabels } from './plan'
 
   /**
    * The membership: the plan in force and its term, what it allows and what
@@ -33,6 +33,7 @@
   let execution = $state<any>(null)
   let executionNeedsLogin = $state(false)
   let errors = $state<Record<string, string>>({})
+  let stale = $state<Record<string, boolean>>({})
   const reportReminder = reminderVisibility(() => ({ status, ready: !!plan && !errors.plan }), '[data-testid="membership"]')
   $effect(() => { void status; void plan; void errors.plan; reportReminder() })
   let busy = $state(false)
@@ -46,6 +47,9 @@
   let refreshPlan = false
 
   const current = $derived(plan?.current ?? null)
+  const membership = $derived(membershipState(plan, Date.now()))
+  const pending = $derived(membership.pending || !!stale.plan)
+  const needsRefresh = $derived(pending || Object.values(stale).some(Boolean))
   const offers = $derived(new Map<string, any>((plan?.offers ?? []).map((o: any) => [o.plan, o])))
   const paid = $derived<any[]>((catalog?.plans ?? []).filter((p: any) => p.price_cents > 0))
   const packs = $derived<any[]>(catalog?.storage_products ?? [])
@@ -56,9 +60,12 @@
   async function part(key: string, read: () => Promise<void>) {
     try {
       await read()
-      errors[key] = ''
+      if (alive) { errors[key] = ''; stale[key] = false }
     } catch (e) {
-      if (alive) errors[key] = errorText(e)
+      if (alive) {
+        stale[key] = code(e) === 'MEMBERSHIP_STALE'
+        errors[key] = stale[key] ? '' : errorText(e)
+      }
     }
   }
 
@@ -88,6 +95,7 @@
       if (!alive) return
       execution = next
       executionNeedsLogin = false
+      stale.execution = false
       errors.execution = ''
     } catch (e) {
       if (!alive) return
@@ -95,16 +103,19 @@
       // Local unlock remains usable after the online login expires.
       // The private execution ledger still requires that login.
       executionNeedsLogin = code(e) === 'AUTH_REQUIRED'
-      errors.execution = executionNeedsLogin ? '' : errorText(e)
+      stale.execution = code(e) === 'MEMBERSHIP_STALE'
+      errors.execution = executionNeedsLogin || stale.execution ? '' : errorText(e)
     }
   })
 
-  function load(refresh = false) {
+  async function load(refresh = false) {
     refreshPlan ||= refresh
-    void readCatalog(refresh ? 'fresh' : 'swr')
-    void readCloud()
-    void readExecution()
-    return readPlan()
+    const catalogRead = readCatalog(refresh ? 'fresh' : 'swr')
+    const planRead = readPlan()
+    // A manual refresh updates rights before retrying their dependent usage.
+    // Initial reads remain independent, including when a usage read is slow.
+    if (refresh) await planRead
+    await Promise.all([catalogRead, planRead, readCloud(refresh ? 'fresh' : 'swr'), readExecution()])
   }
 
   async function attempt(work: () => Promise<unknown>) {
@@ -188,14 +199,16 @@
     <div class="flex flex-wrap items-start gap-3">
       <div class="min-w-0 flex-1">
         <p class="text-[12px] font-medium text-faint">{t('plan')}</p>
-        <p class="text-[26px] leading-tight font-semibold" data-testid="plan-name">{plan?.plan ?? '—'}</p>
+        <p class="text-[26px] leading-tight font-semibold" data-testid="plan-name">{pending ? '—' : plan?.plan ?? '—'}</p>
         {#if plan}
           <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12px] text-muted">
-            {#if plan.source}<Pill testid="plan-source">{label(sourceLabels, plan.source)}</Pill>{/if}
-            {#if plan.eligibility}<Pill tone={plan.eligibility === 'Eligible' ? 'forest' : 'warn'}>{label(eligibilityLabels, plan.eligibility)}</Pill>{/if}
+            {#if pending}<Pill tone="warn" testid="plan-source">{t('sourceUnverifiable')}</Pill>
+            {:else if plan.source}<Pill testid="plan-source">{label(sourceLabels, plan.source)}</Pill>{/if}
+            {#if !pending && current?.method === 'Panda' && plan.eligibility}<Pill tone={plan.eligibility === 'Eligible' ? 'forest' : 'warn'}>{label(eligibilityLabels, plan.eligibility)}</Pill>{/if}
             {#if current}
               <Pill>{label(methodLabels, current.method)}</Pill>
-              <span data-testid="plan-ends">{t('termEnds', { time: when(current.ends_at_ms), n: daysLeft(current.ends_at_ms, Date.now()) })}</span>
+              {#if current.store_environment === 'Sandbox'}<Pill testid="plan-sandbox">{t('appStoreSandbox')}</Pill>{/if}
+              {#if membership.active && !pending}<span data-testid="plan-ends">{t('termEnds', { time: when(current.ends_at_ms), n: daysLeft(current.ends_at_ms, Date.now()) })}</span>{/if}
             {/if}
           </div>
         {/if}
@@ -205,7 +218,7 @@
     {#if errors.plan}<div class="px-6 pb-4"><Notice failure={errors.plan} tone="danger" testid="plan-error">{errors.plan}</Notice></div>{/if}
     {#if plan}
       <dl class="mt-3">
-        {#if current}<Fact label={t('term')} testid="plan-term">{when(current.term_starts_at_ms ?? current.starts_at_ms)} – {when(current.ends_at_ms)}</Fact>{/if}
+        {#if current}<Fact label={t(pending ? 'recordedTerm' : 'term')} testid="plan-term">{when(current.term_starts_at_ms ?? current.starts_at_ms)} – {when(current.ends_at_ms)}</Fact>{/if}
         {#each plan.addons ?? [] as addon (addon.order)}
           <Fact label={t('storagePack')}>+{size(addon.storage_bytes)} · {t('until', { time: when(addon.expires_at_ms) })}</Fact>
         {/each}
@@ -224,7 +237,14 @@
       {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={quoteRefund} data-testid="plan-refund-quote">{t('requestRefund')}</button>{/snippet}
     </Notice>
   {/if}
-  {#if plan?.service_terminated_at_ms}<Notice tone="danger" icon="warning">{t('serviceEnded', { time: when(plan.service_terminated_at_ms) })}</Notice>{/if}
+  {#if needsRefresh}
+    <Notice tone="warn" testid="plan-status-pending">
+      <p>{t('membershipRefreshHint')}</p>
+      {#if current?.method === 'AppStore'}<p class="mt-1">{t('appStoreRefreshHint')}</p>{/if}
+    </Notice>
+  {:else if membership.endedAt}
+    <Notice tone="info" testid="plan-ended">{t('serviceEnded', { time: when(membership.endedAt) })}</Notice>
+  {/if}
   {#if notice}
     <Notice tone="warn" icon="warning" testid="plan-notice" action={notice.acknowledged_at ? undefined : ack}>
       <p>{t('overLimitNotice')}</p>
@@ -240,8 +260,8 @@
         {@render meter(t('storage'), size(cloud.reserved + cloud.committed), cloud.storage_limit ? size(cloud.storage_limit) : '-', share(cloud.reserved + cloud.committed, cloud.storage_limit), 'usage-storage')}
         {@render meter(t('activeChannels'), String(cloud.active_channels ?? '-'), String(cloud.channel_limit ?? '-'), share(cloud.active_channels, cloud.channel_limit), 'usage-channels')}
       {:else}
-        {@render meter(t('storage'), '—', plan?.limits ? size(plan.limits.storage_bytes) : '—', 0, 'usage-storage')}
-        {@render meter(t('activeChannels'), '—', String(plan?.limits?.active_channels ?? '—'), 0, 'usage-channels')}
+        {@render meter(t('storage'), '—', !pending && plan?.limits ? size(plan.limits.storage_bytes) : '—', 0, 'usage-storage')}
+        {@render meter(t('activeChannels'), '—', String(!pending ? plan?.limits?.active_channels ?? '—' : '—'), 0, 'usage-channels')}
       {/if}
       {#if execution}
         {@render meter(t('signaturesThisMonth'), String(execution.charged), String(execution.allowed), share(execution.charged, execution.allowed), 'usage-signatures')}
@@ -249,7 +269,7 @@
         {@render meter(t('signaturesThisMonth'), '—', '—', 0, 'usage-signatures')}
       {/if}
     </div>
-    {#if plan?.limits}
+    {#if plan?.limits && !pending}
       <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted" data-testid="plan-benefits">
         <li data-testid="plan-backup-limit">{t('backupFileLimit')}: <bdi class="whitespace-nowrap">{cloud?.backup_max_file_bytes != null ? `${cloud.backup_max_file_bytes / 1048576} MiB` : '—'}</bdi></li>
         <li>{t('signaturesMonthly')}: {plan.limits.monthly_execution_units}</li>
@@ -275,7 +295,7 @@
         {#each paid as p (p.plan_id)}
           {@const offer = offers.get(p.plan_id)}
           {@const value = String(p.plan_id).toLowerCase()}
-          {@const mine = current?.plan === p.plan_id}
+          {@const mine = membership.active && !pending && plan?.plan === p.plan_id}
           <div class={cn('grid content-start gap-2 rounded-xl border p-4', mine ? 'border-forest bg-pale' : 'border-line bg-surface')} data-testid={`plan-${value}`}>
             <div class="flex items-center justify-between gap-2">
               <b class="text-[15px] font-semibold">{p.plan_id}</b>

@@ -3240,5 +3240,19 @@
 	<string>Bạn có thể tìm lời nhắc trước đây trong mục Gần đây.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Lời nhắc được bảo vệ. Mở khóa để tiếp tục.</string>
+	<key>Billing grace period</key>
+	<string>Thời gian gia hạn thanh toán</string>
+	<key>Billing retry</key>
+	<string>Đang thử thanh toán lại</string>
+	<key>Last recorded term</key>
+	<string>Thời hạn được ghi nhận gần nhất</string>
+	<key>Status needs updating</key>
+	<string>Cần cập nhật trạng thái</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Trạng thái thành viên cần được cập nhật. Hãy tải lại trang thành viên và thử lại.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Gói thành viên trả phí đã kết thúc. Hiện bạn đang dùng Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Giao dịch mua đang chờ Apple phê duyệt.</string>
 </dict>
 </plist>

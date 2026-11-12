@@ -3240,5 +3240,19 @@
 	<string>پچھلی یاد دہانیاں حالیہ یاد دہانیوں میں مل سکتی ہیں۔</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>آپ کی یاد دہانی محفوظ ہے۔ جہاں رکے تھے وہاں سے جاری رکھنے کے لیے ان لاک کریں۔</string>
+	<key>Billing grace period</key>
+	<string>ادائیگی کی مہلت</string>
+	<key>Billing retry</key>
+	<string>ادائیگی کی دوبارہ کوشش</string>
+	<key>Last recorded term</key>
+	<string>آخری ریکارڈ شدہ مدت</string>
+	<key>Status needs updating</key>
+	<string>حیثیت اپ ڈیٹ کرنا ضروری ہے</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>آپ کی رکنیت کی حیثیت اپ ڈیٹ کرنا ضروری ہے۔ رکنیت کا صفحہ ریفریش کریں اور دوبارہ کوشش کریں۔</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>آپ کی بامعاوضہ رکنیت ختم ہو گئی ہے۔ اب آپ Free استعمال کر رہے ہیں۔</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>آپ کی خریداری Apple کی منظوری کی منتظر ہے۔</string>
 </dict>
 </plist>

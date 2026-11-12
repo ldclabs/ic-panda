@@ -3240,5 +3240,19 @@
 	<string>Предыдущие напоминания доступны в разделе недавних напоминаний.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Напоминание защищено. Разблокируйте, чтобы продолжить.</string>
+	<key>Billing grace period</key>
+	<string>Льготный период оплаты</string>
+	<key>Billing retry</key>
+	<string>Повторная попытка оплаты</string>
+	<key>Last recorded term</key>
+	<string>Последний известный период</string>
+	<key>Status needs updating</key>
+	<string>Статус требует обновления</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Статус подписки требует обновления. Обновите страницу подписки и повторите попытку.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Платная подписка закончилась. Теперь действует Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Покупка ожидает одобрения Apple.</string>
 </dict>
 </plist>

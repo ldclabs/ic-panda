@@ -314,6 +314,17 @@ These local checks do not change the commerce
 service's per-transaction ownership rule, grant extra entitlements, or
 cancel an already scheduled change in Apple’s system.
 
+Membership confirmation, Apple approval and purchase delivery have distinct
+states. Replaying a finished entitlement can require a status refresh without
+creating a pending purchase; unfinished transactions take precedence when both
+StoreKit sequences contain the same receipt. Completed verified snapshots clear
+obsolete retry notices, while failed verification and undelivered purchases
+remain retryable. Only an applied service response finishes a transaction.
+The plan page consolidates membership-stale usage into one refresh hint, shows
+unknown rights without Free limits, and displays Apple expiry, billing retry and
+grace-period states separately. Confirmed expiry uses an informational Free-plan
+message. Explicit refresh delivers receipts before rereading rights and usage.
+
 The named UniFFI methods in `dmsg_mobile::notifications` share the desktop's
 settings, durable reminder records, version checks, budgets and snooze policy.
 The activity menu in each workspace's toolbar opens pending/recent reminders and notification settings. The

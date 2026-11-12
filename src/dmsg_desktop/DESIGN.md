@@ -463,7 +463,12 @@ inline editors alone handle their own cancel shortcut.
   Discard.
 - **Plan and names** — Membership, Names and Payments tabs; each section
   loads on its own and shows the locked state when it needs the device
-  unlocked. A plan card says what buying it does now (subscribe, renew from
+  unlocked. Unconfirmed membership shows no effective tier, active contract
+  badge or remaining days; related stale-usage failures share its refresh hint.
+  Confirmed expiry is informational; export warnings require an actual
+  over-limit notice. App Store sandbox terms are marked as TestFlight tests.
+  Manual refresh updates membership before retrying usage.
+  A plan card says what buying it does now (subscribe, renew from
   the end date, upgrade for the difference, switch at the end) or why not
   and when. An order is a pill for its state with only the actions that
   state allows. Moving a name is a dialog that gives the token to copy, a

@@ -3240,5 +3240,19 @@
 	<string>Puoi trovare i promemoria precedenti in Recenti.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Il promemoria è protetto. Sblocca per riprendere da dove eri rimasto.</string>
+	<key>Billing grace period</key>
+	<string>Periodo di tolleranza per il pagamento</string>
+	<key>Billing retry</key>
+	<string>Nuovo tentativo di pagamento</string>
+	<key>Last recorded term</key>
+	<string>Ultimo periodo registrato</string>
+	<key>Status needs updating</key>
+	<string>Stato da aggiornare</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Lo stato del tuo abbonamento deve essere aggiornato. Aggiorna la pagina dell’abbonamento e riprova.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Il tuo abbonamento a pagamento è terminato. Ora usi Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Il tuo acquisto è in attesa dell’approvazione di Apple.</string>
 </dict>
 </plist>

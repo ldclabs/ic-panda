@@ -279,6 +279,42 @@ final class NavigationTests: NavigationTestCase {
         capture(app, name: "Sandbox subscription · Chinese")
     }
 
+    func testSubscriptionRefreshAndExpiryAreNotPendingPurchases() {
+        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+            for expired in [false, true] {
+                let app = XCUIApplication()
+                app.launchArguments = ["--ui-testing", expired ? "--ui-expired-subscription" : "--ui-stale-subscription",
+                    "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+                app.launch()
+                tab(app, symbol: "Glyph-account", title: title).tap()
+                let plan = app.buttons["account.plan"]
+                for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+                XCTAssertTrue(plan.isHittable); plan.tap()
+                let noticeID = expired ? "plan.expired" : "plan.status-pending"
+                let notice = app.descendants(matching: .any).matching(identifier: noticeID).firstMatch
+                XCTAssertTrue(notice.waitForExistence(timeout: 5))
+                if !expired {
+                    let retry = app.buttons["plan.status-retry"]
+                    for _ in 0..<3 where !retry.isHittable { app.swipeUp() }
+                    XCTAssertTrue(retry.isEnabled); retry.tap()
+                }
+                capture(app, name: "Membership \(expired ? "expired" : "refresh") · \(language) · \(dark ? "dark" : "light")")
+                let appleStatus = app.descendants(matching: .any).matching(identifier: "plan.apple-status").firstMatch
+                for _ in 0..<7 where !appleStatus.isHittable { app.swipeUp() }
+                XCTAssertTrue(appleStatus.isHittable)
+                XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.purchase-pending").firstMatch.exists)
+                XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.purchase-approval").firstMatch.exists)
+                XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.usage-error").firstMatch.exists)
+                capture(app, name: "Apple status \(expired ? "expired" : "refresh") · \(language) · \(dark ? "dark" : "light")")
+                let restore = app.buttons["plan.restore"]
+                for _ in 0..<5 where !restore.isHittable { app.swipeUp() }
+                XCTAssertTrue(restore.isEnabled)
+                XCTAssertFalse(app.alerts.firstMatch.exists)
+                app.terminate()
+            }
+        }
+    }
+
     func testMembershipEntryAndManagedProSubscriptionInChinese() {
         assertMembershipEntry(language: "zh-Hans", locale: "zh_CN", accountTitle: "我的", tier: "Pro", dark: false)
     }

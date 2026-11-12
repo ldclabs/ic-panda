@@ -3240,5 +3240,19 @@
 	<string>يمكنك العثور على التذكيرات السابقة في «التذكيرات الأخيرة».</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>تذكيرك محمي. افتح القفل للمتابعة من حيث توقفت.</string>
+	<key>Billing grace period</key>
+	<string>فترة سماح للدفع</string>
+	<key>Billing retry</key>
+	<string>إعادة محاولة الدفع</string>
+	<key>Last recorded term</key>
+	<string>آخر فترة مسجلة</string>
+	<key>Status needs updating</key>
+	<string>الحالة بحاجة إلى تحديث</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>حالة عضويتك بحاجة إلى تحديث. حدّث صفحة العضوية وحاول مجددًا.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>انتهت عضويتك المدفوعة. أنت الآن على خطة Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>عملية الشراء بانتظار موافقة Apple.</string>
 </dict>
 </plist>

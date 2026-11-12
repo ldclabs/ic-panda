@@ -7,9 +7,16 @@ struct SubscriptionView: View {
         struct Limits: Decodable { let storageBytes: UInt64; let activeChannels: UInt64; let monthlyExecutionUnits: UInt64 }
         struct Term: Decodable { let endsAtMs: UInt64; let method: String; let storeEnvironment: String? }
         let plan: String; let source: String; let limits: Limits; let current: Term?
+        var eligibility: String? = nil
+        var leaseUntilMs: UInt64? = nil
+
+        func needsRefresh(at: Date = .now) -> Bool {
+            source == "Unverifiable" || eligibility == "Unverifiable"
+                || (["Active", "Free", "Expired"].contains(source) && leaseUntilMs.map { Double($0) <= at.timeIntervalSince1970 * 1000 } == true)
+        }
 
         func managesSubscription(environment: String?, at: Date = .now) -> Bool {
-            guard source == "Active", let current, current.method == "AppStore",
+            guard !needsRefresh(at: at), source == "Active", let current, current.method == "AppStore",
                   Double(current.endsAtMs) > at.timeIntervalSince1970 * 1000 else { return false }
             return environment == nil || environment == (current.storeEnvironment ?? "Production")
         }
@@ -18,6 +25,13 @@ struct SubscriptionView: View {
         static var fixture: Self {
             let args = ProcessInfo.processInfo.arguments
             let max = args.contains("--ui-max-subscription")
+            if args.contains("--ui-stale-subscription") {
+                return Plan(plan: "Free", source: "Unverifiable", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5),
+                    current: Term(endsAtMs: UInt64(Date.now.addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
+            }
+            if args.contains("--ui-expired-subscription") {
+                return Plan(plan: "Free", source: "Expired", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5), current: nil)
+            }
             if max || args.contains("--ui-sandbox-subscription") || args.contains("--ui-scheduled-subscription") {
                 return Plan(plan: max ? "Max" : "Pro", source: "Active",
                     limits: Limits(storageBytes: max ? 107374182400 : 10737418240, activeChannels: max ? 200 : 100, monthlyExecutionUnits: max ? 200 : 100),
@@ -35,6 +49,8 @@ struct SubscriptionView: View {
         }
         struct Execution: Decodable { let month: UInt32; let allowed: UInt64; let charged: UInt64; let remaining: UInt64 }
         let cloud: Cloud?; let execution: Execution?; let cloudError: String?; let executionError: String?
+        var membershipStale: Bool { cloudError == "MEMBERSHIP_STALE" || executionError == "MEMBERSHIP_STALE" }
+        var otherFailure: Bool { [cloudError, executionError].compactMap { $0 }.contains { $0 != "MEMBERSHIP_STALE" } }
     }
     @State private var usage: Usage?
     @State private var usageFailed = false
@@ -51,20 +67,31 @@ struct SubscriptionView: View {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Section("Current plan and limits") {
                 if let plan {
-                    LabeledContent("Plan", value: plan.plan)
-                    LabeledContent("Storage limit", value: fileLimit(plan.limits.storageBytes))
-                    LabeledContent("Conversation limit", value: plan.limits.activeChannels.formatted())
-                    LabeledContent("Monthly execution limit", value: plan.limits.monthlyExecutionUnits.formatted())
-                    if let term = plan.current { LabeledContent("Current term ends") { Text(Date(timeIntervalSince1970: Double(term.endsAtMs) / 1000), style: .date) } }
+                    LabeledContent("Plan", value: plan.needsRefresh() ? String(localized: "Status needs updating") : plan.plan)
+                        .accessibilityIdentifier("plan.effective")
+                    if !plan.needsRefresh() {
+                        LabeledContent("Storage limit", value: fileLimit(plan.limits.storageBytes))
+                        LabeledContent("Conversation limit", value: plan.limits.activeChannels.formatted())
+                        LabeledContent("Monthly execution limit", value: plan.limits.monthlyExecutionUnits.formatted())
+                        if plan.source == "Expired" { Text("Your paid membership has ended. You are now on Free.").foregroundStyle(.secondary).accessibilityIdentifier("plan.expired") }
+                    }
+                    if let term = plan.current {
+                        LabeledContent(plan.needsRefresh() ? "Last recorded term" : "Current term ends") { Text(Date(timeIntervalSince1970: Double(term.endsAtMs) / 1000), style: .date) }
+                    }
                     if plan.current?.storeEnvironment == "Sandbox" {
                         Text("Test subscription. No charge. The expiry follows Apple's test environment.").font(.footnote).foregroundStyle(.secondary)
                             .accessibilityIdentifier("plan.sandbox")
                     }
-                    if plan.source == "Unverifiable" { NoticeBar(text: String(localized: "Your current entitlement could not be refreshed. Retry when the verification service is available.")) }
                 } else if loading { ProgressView() }
                 if failed {
                     Text("Your current entitlement could not be refreshed. Retry when the verification service is available.").foregroundStyle(.secondary)
                     SettingsAction("Retry") { Task { await load() } }
+                }
+                if membershipNeedsRefresh {
+                    NoticeBar(text: String(localized: "Your membership status needs updating. Refresh the membership page and try again."))
+                        .accessibilityIdentifier("plan.status-pending")
+                    SettingsAction("Retry") { Task { await load(force: true) } }.disabled(loading || model.purchases.working)
+                        .accessibilityIdentifier("plan.status-retry")
                 }
             }
             Section("Usage") {
@@ -83,8 +110,9 @@ struct SubscriptionView: View {
                     LabeledContent("Remaining", value: execution.remaining.formatted())
                     Text(verbatim: "UTC · \(execution.month / 100)-\(String(format: "%02d", execution.month % 100))").font(.caption).foregroundStyle(.secondary)
                 }
-                if usageFailed || usage?.cloudError != nil || usage?.executionError != nil {
+                if usageFailed || usage?.otherFailure == true {
                     NoticeBar(text: String(localized: "Some usage could not be refreshed. Unavailable values are not zero."))
+                        .accessibilityIdentifier("plan.usage-error")
                     SettingsAction("Retry") { Task { await loadUsage() } }.disabled(usageLoading)
                 }
             }.accessibilityIdentifier("plan.usage")
@@ -92,6 +120,14 @@ struct SubscriptionView: View {
                 Section("App Store subscriptions") {
                     if model.purchases.storeEnvironment == "Sandbox" {
                         Text("Test purchases do not charge you. An active paid plan takes priority.").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    ForEach(model.purchases.subscriptions) { subscription in
+                        if let state = subscription.state {
+                            LabeledContent("Status", value: Self.subscriptionState(state)).accessibilityIdentifier("plan.apple-status")
+                            if let end = subscription.expiresAt {
+                                LabeledContent("Last recorded term") { Text(end, style: .date) }
+                            }
+                        }
                     }
                     if let message = model.purchases.subscriptionMessage {
                         NoticeBar(text: message).accessibilityElement(children: .combine).accessibilityIdentifier("plan.subscription-account")
@@ -145,7 +181,11 @@ struct SubscriptionView: View {
                         SettingsAction("Retry") { Task { await model.purchases.retry(model) } }.disabled(model.purchases.working)
                             .accessibilityIdentifier("plan.products-retry")
                     }
-                    if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
+                    if model.purchases.approvalPending {
+                        NoticeBar(text: String(localized: "Your purchase is awaiting Apple approval.")).accessibilityIdentifier("plan.purchase-approval")
+                    } else if model.purchases.deliveryPending {
+                        NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")).accessibilityIdentifier("plan.purchase-pending")
+                    }
                     SettingsAction("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
                         .accessibilityIdentifier("plan.restore")
                     SettingsAction("Manage subscriptions") { managing = true }.disabled(model.purchases.working).accessibilityIdentifier("plan.manage")
@@ -179,9 +219,25 @@ struct SubscriptionView: View {
             .onChange(of: managing) { wasPresented, isPresented in
                 if wasPresented && !isPresented { Task { await load(force: true) } }
             }
+            .onDisappear { loadRequest = UUID(); usageRequest = UUID() }
     }
     private var managesSubscription: Bool {
         plan?.managesSubscription(environment: model.purchases.storeEnvironment) == true
+    }
+
+    private var membershipNeedsRefresh: Bool {
+        plan?.needsRefresh() == true || usage?.membershipStale == true || model.purchases.refreshPending
+    }
+
+    static func subscriptionState(_ state: Product.SubscriptionInfo.RenewalState) -> String {
+        switch state {
+        case .subscribed: String(localized: "Active")
+        case .expired: String(localized: "Expired")
+        case .revoked: String(localized: "Revoked")
+        case .inBillingRetryPeriod: String(localized: "Billing retry")
+        case .inGracePeriod: String(localized: "Billing grace period")
+        default: String(localized: "Status needs updating")
+        }
     }
 
     private func productRows(_ products: [Product]) -> some View {
@@ -195,7 +251,7 @@ struct SubscriptionView: View {
                 }
     }
     private func canPurchase(_ product: Product) -> Bool {
-        guard let plan, plan.source != "Unverifiable", model.purchases.canPurchase(product) else { return false }
+        guard let plan, !plan.needsRefresh(), model.purchases.canPurchase(product) else { return false }
         if product.type == .autoRenewable && managesSubscription { return false }
         if model.purchases.storeEnvironment == "Sandbox" { return product.type == .autoRenewable }
         guard plan.current == nil || plan.current?.method == "AppStore" else { return false }
@@ -222,13 +278,26 @@ struct SubscriptionView: View {
             model.purchases.installSubscriptionFixture()
             plan = Plan.fixture
             usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: plan?.limits.storageBytes, activeChannels: 1, channelLimit: plan?.limits.activeChannels), execution: Usage.Execution(month: 202611, allowed: plan?.limits.monthlyExecutionUnits ?? 3, charged: 1, remaining: (plan?.limits.monthlyExecutionUnits ?? 3) - 1), cloudError: nil, executionError: nil)
+            if ProcessInfo.processInfo.arguments.contains("--ui-stale-subscription") {
+                usage = Usage(cloud: usage?.cloud, execution: nil, cloudError: nil, executionError: "MEMBERSHIP_STALE")
+            }
             return
         }
         #endif
-        async let counts: Void = loadUsage()
-        async let saved: Void = display.load(model, kind: "plan", force: force) { (next: Plan) in plan = next }
-        async let products: Void = loadProducts(reconcile: reconcile)
-        _ = await (saved, products, counts)
+        if reconcile {
+            // Explicit retries deliver receipts before rereading their rights and usage.
+            await loadProducts(reconcile: true)
+            guard loadRequest == request, !Task.isCancelled else { return }
+            await display.load(model, kind: "plan", force: force) { (next: Plan) in if loadRequest == request { plan = next } }
+            guard loadRequest == request, !Task.isCancelled else { return }
+            await loadUsage()
+        } else {
+            // Opening the page keeps independent reads independent.
+            async let counts: Void = loadUsage()
+            async let saved: Void = display.load(model, kind: "plan", force: force) { (next: Plan) in if loadRequest == request { plan = next } }
+            async let products: Void = loadProducts(reconcile: false)
+            _ = await (saved, products, counts)
+        }
         if loadRequest == request, !Task.isCancelled { failed = display.failed }
     }
 
@@ -248,7 +317,7 @@ struct SubscriptionView: View {
         do {
             let value: Usage = try model.decode(try await engine.accountUsage())
             guard usageRequest == request, epoch == model.epoch, !Task.isCancelled else { return }; usage = value
-        } catch { if usageRequest == request, epoch == model.epoch, !Task.isCancelled { usageFailed = true } }
+        } catch { if usageRequest == request, epoch == model.epoch, !Task.isCancelled { usage = nil; usageFailed = true } }
     }
 
 }

@@ -3240,5 +3240,19 @@
 	<string>Eerdere herinneringen vind je onder Recent.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Je herinnering is beveiligd. Ontgrendel om verder te gaan.</string>
+	<key>Billing grace period</key>
+	<string>Respijtperiode voor betaling</string>
+	<key>Billing retry</key>
+	<string>Nieuwe betaalpoging</string>
+	<key>Last recorded term</key>
+	<string>Laatst vastgelegde periode</string>
+	<key>Status needs updating</key>
+	<string>Status moet worden bijgewerkt</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Je lidmaatschapsstatus moet worden bijgewerkt. Vernieuw de lidmaatschapspagina en probeer het opnieuw.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Je betaalde lidmaatschap is beëindigd. Je gebruikt nu Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Je aankoop wacht op goedkeuring van Apple.</string>
 </dict>
 </plist>

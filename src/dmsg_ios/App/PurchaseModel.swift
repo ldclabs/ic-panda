@@ -23,7 +23,7 @@ final class PurchaseModel {
     var showsControls: Bool {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription") || args.contains("--ui-foreign-subscription") || args.contains("--ui-scheduled-subscription") || args.contains("--ui-subscription-status-unavailable")) { return true }
+        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription") || args.contains("--ui-foreign-subscription") || args.contains("--ui-scheduled-subscription") || args.contains("--ui-subscription-status-unavailable") || args.contains("--ui-stale-subscription") || args.contains("--ui-expired-subscription")) { return true }
         #endif
         return enabled
     }
@@ -119,7 +119,10 @@ final class PurchaseModel {
     private(set) var loadIssue: LoadIssue?
     private(set) var loading = false
     private(set) var working = false
-    var pending: Bool { !pendingTransactions.isEmpty || !awaitingApproval.isEmpty }
+    var pending: Bool { deliveryPending || approvalPending || refreshPending }
+    var deliveryPending: Bool { !pendingTransactions.isEmpty }
+    var approvalPending: Bool { !awaitingApproval.isEmpty }
+    var refreshPending: Bool { !pendingRefreshes.isEmpty }
     private(set) var storeEnvironment: String?
     private(set) var revision = 0
     enum Ownership: Equatable { case available, current, otherAccount, unverified }
@@ -129,6 +132,8 @@ final class PurchaseModel {
         var nextProduct: String? = nil
         var renewalDate: Date? = nil
         var environment: String? = nil
+        var state: Product.SubscriptionInfo.RenewalState? = nil
+        var expiresAt: Date? = nil
     }
     struct SubscriptionStatus {
         let token: UUID?
@@ -136,6 +141,7 @@ final class PurchaseModel {
         var nextProduct: String? = nil
         var renewalDate: Date? = nil
         var environment: String? = nil
+        var expiresAt: Date? = nil
 
         var active: Bool { state != .expired && state != .revoked }
     }
@@ -147,6 +153,7 @@ final class PurchaseModel {
     private var token: UUID?
     private var environmentTask: Task<Void, Never>?
     private var pendingTransactions: [String: String] = [:]
+    private var pendingRefreshes = Set<String>()
     private var awaitingApproval = Set<String>()
     private struct InFlight {
         let jws: String
@@ -190,11 +197,15 @@ final class PurchaseModel {
         let environment = environments.count == 1 ? environments.first : nil
         // A fully expired group is a new purchase, with the new account's token.
         // Billing retry/grace and revocation do not count as full expiry here.
-        if statuses.allSatisfy({ $0.state == .expired }) { return Subscription(id: group, ownership: .available, environment: environment) }
+        if statuses.allSatisfy({ $0.state == .expired }) {
+            let ended = statuses.filter { $0.token == expected }.max { ($0.expiresAt ?? .distantPast) < ($1.expiresAt ?? .distantPast) }
+            return Subscription(id: group, ownership: .available, environment: environment, state: ended?.state, expiresAt: ended?.expiresAt)
+        }
         let relevant = active.isEmpty ? statuses : active
         if let owned = relevant.first(where: { $0.token == expected }) {
             return Subscription(id: group, ownership: owned.active ? .current : .available,
-                nextProduct: owned.active ? owned.nextProduct : nil, renewalDate: owned.active ? owned.renewalDate : nil, environment: environment)
+                nextProduct: owned.active ? owned.nextProduct : nil, renewalDate: owned.active ? owned.renewalDate : nil,
+                environment: environment, state: owned.state, expiresAt: owned.expiresAt)
         }
         if relevant.contains(where: { $0.token == nil }) { return Subscription(id: group, ownership: .unverified, environment: environment) }
         return Subscription(id: group, ownership: relevant.isEmpty ? .available : .otherAccount, environment: environment)
@@ -221,7 +232,7 @@ final class PurchaseModel {
                 let sameRenewalAccount = renewal.appAccountToken == nil || renewal.appAccountToken == transaction.appAccountToken
                 return SubscriptionStatus(token: transaction.appAccountToken, state: value.state,
                     nextProduct: sameRenewalAccount && renewal.willAutoRenew && renewal.autoRenewPreference != transaction.productID ? renewal.autoRenewPreference : nil,
-                    renewalDate: sameRenewalAccount ? renewal.renewalDate : nil, environment: Self.environmentName(transaction.environment))
+                    renewalDate: sameRenewalAccount ? renewal.renewalDate : nil, environment: Self.environmentName(transaction.environment), expiresAt: transaction.expirationDate)
             }
             subscriptions.append(Self.subscription(group: group, statuses: statuses, expected: token))
         }
@@ -243,7 +254,7 @@ final class PurchaseModel {
         loading = true
         defer { if read == loadRevision { loading = false } }
         if account != model.session?.account {
-            products = []; token = nil; pendingTransactions = [:]; awaitingApproval = []; feedback = nil; account = model.session?.account
+            products = []; token = nil; pendingTransactions = [:]; pendingRefreshes = []; awaitingApproval = []; feedback = nil; account = model.session?.account
         }
         if feedback == Self.otherAccountMessage || feedback == Self.unverifiedMessage { feedback = nil }
         subscriptions = []; storeEnvironment = nil; loadIssue = nil; hasUnavailableProducts = false
@@ -447,17 +458,20 @@ final class PurchaseModel {
         var result = Reconciliation(), seen = Set<String>()
         let epoch = model.epoch, account = model.session?.account
         guard enabled, model.unlocked, token != nil, self.account == account else { return result }
-        // Finished current entitlements repair missed renewals; unfinished
-        // transactions retry delivery. One bad receipt must not starve the rest.
-        for stream in [store.currentEntitlements, store.unfinished] {
+        // Unfinished purchases take precedence over routine entitlement replay.
+        // Failure to refresh an already delivered subscription is not a new payment.
+        for (stream, refreshing) in [(store.unfinished, false), (store.currentEntitlements, true)] {
+            let previous = refreshing ? pendingRefreshes : Set(pendingTransactions.keys)
+            var present = Set<String>(), verified = true
             for await value in stream() {
                 guard current(model, epoch: epoch, account: account) else { return result }
                 let receipt: Receipt
                 do { receipt = try value.get() }
-                catch { result.unverified = true; logDeliveryFailure(error); continue }
+                catch { verified = false; result.unverified = true; logDeliveryFailure(error); continue }
+                present.insert(receipt.key)
                 guard seen.insert(receipt.key + ":" + receipt.jws).inserted else { continue }
                 do {
-                    switch try await deliver(receipt, model: model) {
+                    switch try await deliver(receipt, model: model, refreshing: refreshing) {
                     case .applied: result.applied = true
                     case .otherAccount: result.foreign = true
                     case .unverified: result.unverified = true
@@ -466,6 +480,15 @@ final class PurchaseModel {
                 } catch {
                     result.failed = true; logDeliveryFailure(error)
                     if current(model, epoch: epoch, account: account) { model.reportBackground(error) }
+                }
+            }
+            guard current(model, epoch: epoch, account: account) else { return result }
+            // Clear only old failures absent from a complete verified snapshot.
+            // Expired finished entitlements must not leave a permanent retry banner.
+            if verified {
+                for key in previous.subtracting(present) {
+                    if refreshing { pendingRefreshes.remove(key) }
+                    else { pendingTransactions[key] = nil }
                 }
             }
         }
@@ -488,7 +511,7 @@ final class PurchaseModel {
         return token == expected ? nil : .otherAccount
     }
 
-    func deliver(_ receipt: Receipt, model: SessionModel) async throws -> Delivery {
+    func deliver(_ receipt: Receipt, model: SessionModel, refreshing: Bool = false) async throws -> Delivery {
         guard enabled else { return .stale }
         guard receipt.environment == "Production" || receipt.environment == "Sandbox" else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
         guard let token, let account, account == model.session?.account,
@@ -496,34 +519,39 @@ final class PurchaseModel {
         if let issue = Self.deliveryIssue(token: receipt.token, expected: token) { return issue }
         let epoch = model.epoch
         let key = "\(epoch):\(account):\(receipt.key)"
+        func result(_ task: Task<Delivery, Error>) async throws -> Delivery {
+            do { return try await task.value }
+            catch {
+                if current(model, epoch: epoch, account: account) {
+                    if refreshing { pendingRefreshes.insert(receipt.key) }
+                    else { pendingTransactions[receipt.key] = receipt.product }
+                }
+                throw error
+            }
+        }
         if let delivery = deliveries[key] {
-            if delivery.jws == receipt.jws { return try await delivery.task.value }
+            if delivery.jws == receipt.jws { return try await result(delivery.task) }
             // A refund or renewal observation of the same transaction must not
             // disappear behind an older in-flight JWS.
             _ = await delivery.task.result
             guard current(model, epoch: epoch, account: account) else { return .stale }
-            return try await deliver(receipt, model: model)
+            return try await deliver(receipt, model: model, refreshing: refreshing)
         }
         let task = Task { @MainActor in
             defer { self.deliveries[key] = nil }
             guard self.current(model, epoch: epoch, account: account) else { return Delivery.stale }
-            // Routine replay of an applied entitlement is not a pending payment.
-            // Mark only failed deliveries, which stay unfinished for retry.
-            do { try await self.store.submit(model, account, receipt.jws) }
-            catch {
-                if self.current(model, epoch: epoch, account: account) { self.pendingTransactions[receipt.key] = receipt.product }
-                throw error
-            }
+            try await self.store.submit(model, account, receipt.jws)
             guard self.current(model, epoch: epoch, account: account) else { return Delivery.stale }
             // Only an authoritative applied response permits StoreKit finish.
             await receipt.finish()
             guard self.current(model, epoch: epoch, account: account) else { return Delivery.stale }
             self.pendingTransactions[receipt.key] = nil; self.awaitingApproval.remove(receipt.product)
+            self.pendingRefreshes.remove(receipt.key)
             self.revision &+= 1
             return Delivery.applied
         }
         deliveries[key] = InFlight(jws: receipt.jws, task: task)
-        return try await task.value
+        return try await result(task)
     }
 
     #if DEBUG
@@ -537,6 +565,12 @@ final class PurchaseModel {
             subscriptions = [Subscription(id: "fixture", ownership: .current, nextProduct: "Plus", renewalDate: Date.now.addingTimeInterval(86400))]
         } else if args.contains("--ui-subscription-status-unavailable") {
             loadIssue = .subscriptions
+        } else if args.contains("--ui-stale-subscription") || args.contains("--ui-expired-subscription") {
+            storeEnvironment = "Sandbox"
+            let expired = args.contains("--ui-expired-subscription")
+            subscriptions = [Subscription(id: "fixture", ownership: expired ? .available : .current, environment: "Sandbox",
+                state: expired ? .expired : .subscribed, expiresAt: Date.now.addingTimeInterval(expired ? -86400 : 86400))]
+            pendingRefreshes = expired ? [] : ["Sandbox:fixture"]
         }
     }
     #endif

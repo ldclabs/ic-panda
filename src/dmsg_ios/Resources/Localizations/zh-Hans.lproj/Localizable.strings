@@ -3240,5 +3240,19 @@
 	<string>你仍可在「近期提醒」中查看之前的提醒。</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>提醒内容已受到保护。解锁后将继续打开。</string>
+	<key>Billing grace period</key>
+	<string>续订宽限期</string>
+	<key>Billing retry</key>
+	<string>续订付款待处理</string>
+	<key>Last recorded term</key>
+	<string>最近记录的会员期</string>
+	<key>Status needs updating</key>
+	<string>状态待更新</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>会员状态尚未更新，请刷新会员页面后重试。</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>付费会员已结束，当前为 Free 方案。</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>购买正在等待 Apple 批准。</string>
 </dict>
 </plist>

@@ -63,6 +63,58 @@ final class PurchaseDeliveryTests: XCTestCase {
         XCTAssertEqual(purchases.revision, 1)
     }
 
+    func testFinishedEntitlementRefreshFailureIsNotAPendingPurchaseAndClearsAfterExpiry() async {
+        let model = SessionModel(); model.loadFixtures()
+        let token = UUID(), finishes = Finishes(), failure = FailureControl()
+        let receipt = receipt(token, finishes: finishes)
+        var store = store(token)
+        store.currentEntitlements = { self.stream(failure.enabled ? [receipt] : []) }
+        store.submit = { _, _, _ in throw URLError(.notConnectedToInternet) }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.refresh(model)
+        XCTAssertTrue(purchases.refreshPending)
+        XCTAssertFalse(purchases.deliveryPending)
+        XCTAssertFalse(purchases.approvalPending)
+        XCTAssertTrue(finishes.ids.isEmpty)
+        failure.enabled = false
+        await purchases.refresh(model)
+        XCTAssertFalse(purchases.pending, "An expired finished entitlement is no longer an outstanding purchase")
+    }
+
+    func testRoutineRefreshRecoversWithoutClaimingANewPurchase() async {
+        let model = SessionModel(); model.loadFixtures()
+        let token = UUID(), finishes = Finishes(), failure = FailureControl()
+        let receipt = receipt(token, finishes: finishes)
+        var store = store(token)
+        store.currentEntitlements = { self.stream([receipt]) }
+        store.submit = { _, _, _ in if failure.enabled { throw URLError(.notConnectedToInternet) } }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.refresh(model)
+        XCTAssertTrue(purchases.refreshPending)
+        XCTAssertFalse(purchases.deliveryPending)
+        failure.enabled = false
+        await purchases.networkReturned(model)
+        XCTAssertFalse(purchases.pending)
+        XCTAssertEqual(finishes.ids, [1])
+        XCTAssertNil(purchases.feedback)
+    }
+
+    func testUnfinishedPurchaseTakesPrecedenceOverCurrentEntitlementReplay() async {
+        let model = SessionModel(); model.loadFixtures()
+        let token = UUID(), finishes = Finishes()
+        let receipt = receipt(token, finishes: finishes)
+        var store = store(token), submissions = 0
+        store.currentEntitlements = { self.stream([receipt]) }
+        store.unfinished = { self.stream([receipt]) }
+        store.submit = { _, _, _ in submissions += 1; throw URLError(.notConnectedToInternet) }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.refresh(model)
+        XCTAssertEqual(submissions, 1)
+        XCTAssertTrue(purchases.deliveryPending)
+        XCTAssertFalse(purchases.refreshPending)
+        XCTAssertTrue(finishes.ids.isEmpty)
+    }
+
     func testRestoreContinuesAfterOneFailureAndPreservesOtherPendingTransactions() async {
         let model = SessionModel(); model.loadFixtures()
         let token = UUID(), finishes = Finishes()

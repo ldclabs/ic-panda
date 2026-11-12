@@ -3240,5 +3240,19 @@
 	<string>過去のリマインダーは「最近のリマインダー」で確認できます。</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>リマインダーは保護されています。ロックを解除すると続行します。</string>
+	<key>Billing grace period</key>
+	<string>支払い猶予期間</string>
+	<key>Billing retry</key>
+	<string>支払い再試行中</string>
+	<key>Last recorded term</key>
+	<string>最後に記録された期間</string>
+	<key>Status needs updating</key>
+	<string>状態の更新が必要</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>メンバーシップの状態を更新する必要があります。メンバーシップページを更新して再試行してください。</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>有料メンバーシップは終了しました。現在は Free プランです。</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>購入は Apple の承認待ちです。</string>
 </dict>
 </plist>

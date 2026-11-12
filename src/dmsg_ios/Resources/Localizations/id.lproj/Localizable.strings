@@ -3240,5 +3240,19 @@
 	<string>Pengingat sebelumnya dapat ditemukan di Terbaru.</string>
 	<key>Your reminder is protected. Unlock to continue where you left off.</key>
 	<string>Pengingat Anda dilindungi. Buka kunci untuk melanjutkan.</string>
+	<key>Billing grace period</key>
+	<string>Masa tenggang pembayaran</string>
+	<key>Billing retry</key>
+	<string>Pembayaran dicoba lagi</string>
+	<key>Last recorded term</key>
+	<string>Periode terakhir yang tercatat</string>
+	<key>Status needs updating</key>
+	<string>Status perlu diperbarui</string>
+	<key>Your membership status needs updating. Refresh the membership page and try again.</key>
+	<string>Status keanggotaan Anda perlu diperbarui. Segarkan halaman keanggotaan dan coba lagi.</string>
+	<key>Your paid membership has ended. You are now on Free.</key>
+	<string>Keanggotaan berbayar Anda telah berakhir. Kini Anda menggunakan Free.</string>
+	<key>Your purchase is awaiting Apple approval.</key>
+	<string>Pembelian Anda menunggu persetujuan Apple.</string>
 </dict>
 </plist>

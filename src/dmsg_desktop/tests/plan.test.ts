@@ -9,6 +9,7 @@ import {
   daysLeft,
   isTab,
   methodLabels,
+  membershipState,
   moving,
   namePrice,
   nameProblem,
@@ -27,6 +28,34 @@ import en from '../src/renderer/i18n/messages/en.ts'
 const now = 1_800_000_000_000
 const cash = (stage: string, extra: Record<string, unknown> = {}) => ({ id: 'a1', stage, starts_at_ms: now - DAY, terms: { method: 'Cash', funding_deadline_ms: now + 60_000 }, ...extra })
 const panda = (stage: string) => ({ id: 'b2', stage, starts_at_ms: now, terms: { method: 'Panda', application_deadline_ms: now + 60_000 } })
+
+test('unconfirmed Apple rights are neither Free nor an expired service, even with a previous term end', () => {
+  const plan = {
+    source: 'Unverifiable', eligibility: 'Unverifiable', plan: 'Free', lease_until_ms: now,
+    service_terminated_at_ms: now - 60_000,
+    current: { plan: 'Plus', method: 'AppStore', store_environment: 'Sandbox', ends_at_ms: now + DAY }
+  }
+  assert.deepEqual(membershipState(plan, now), { pending: true, active: false, endedAt: null })
+  assert.deepEqual(membershipState({ ...plan, source: 'Active', eligibility: 'Eligible', lease_until_ms: now + 1 }, now), {
+    pending: false, active: true, endedAt: null
+  })
+})
+
+test('only a confirmed expired Free plan displays the end notice', () => {
+  const plan = { source: 'Expired', plan: 'Free', service_terminated_at_ms: now - DAY, lease_until_ms: now + DAY }
+  assert.deepEqual(membershipState(plan, now), { pending: false, active: false, endedAt: now - DAY })
+  assert.equal(membershipState({ ...plan, source: 'Active' }, now).endedAt, null)
+  assert.equal(membershipState({ ...plan, service_terminated_at_ms: now + DAY }, now).endedAt, null)
+  assert.equal(membershipState({ ...plan, source: 'Free' }, now).endedAt, null)
+  assert.deepEqual(membershipState(null, now), { pending: false, active: false, endedAt: null })
+})
+
+test('cached rights stop looking current at their lease deadline without reclassifying a suspension', () => {
+  const plan = { source: 'Active', eligibility: 'Eligible', lease_until_ms: now }
+  assert.equal(membershipState(plan, now - 1).active, true)
+  assert.equal(membershipState(plan, now).pending, true)
+  assert.equal(membershipState({ ...plan, source: 'Suspended', eligibility: 'Ineligible' }, now).pending, false)
+})
 
 test('an order reads as the service reports it, or as its journal stands before that', () => {
   assert.deepEqual(orderState(cash('review')), { label: 'orderReview', tone: 'neutral' })
