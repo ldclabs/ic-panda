@@ -5,7 +5,26 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
-## Unreleased
+## 1.1.2 — App Review candidate
+
+### Build 29 — 2026-11-12
+
+- Make explicit notification-registration retries renew the Apple registration
+  even when a cached lease has not expired. Preserve the retry across the system
+  token callback, keep failed renewals retryable, and log only fixed phases and
+  allowlisted error codes.
+- Keep reminder destinations through unlock and account selection. Acknowledge
+  the displayed reminder only after its destination loads; preserve unread state
+  when authentication is cancelled or loading fails. Clarify pending actions,
+  unavailable destinations and notification-registration recovery.
+- Distinguish expired Apple subscriptions from membership information that needs
+  refreshing. Show purchase delivery, pending approval and refresh recovery
+  separately, and retain the last known plan when a refresh fails.
+- Add the Apple standard Terms of Use (EULA) link to every configured App Store
+  description (English and Simplified Chinese) and the release checklist after
+  the 3.1.2 metadata rejection. This is an App Store metadata correction.
+
+### Earlier 1.1.2 builds
 
 - Start the Apple transaction listener before catalogue loading and replay
   unfinished purchases after reconnecting or returning to the app. Restore

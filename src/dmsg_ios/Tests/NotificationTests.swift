@@ -62,6 +62,64 @@ final class NotificationTests: XCTestCase {
         XCTAssertFalse(subscription.current(token: "token", now: now), "Legacy leases still need a registration revision")
     }
 
+    @MainActor
+    func testExplicitRetryReplacesACachedAppleLeaseBeforeNotificationRegistration() async throws {
+        let now: UInt64 = 1000
+        var subscription = NativePush.Subscription(route: "old-route", token: "token", expires: now + 2 * 86_400_000, revision: 7, unified: true)
+        var requests = 0
+        let register: () async throws -> NativePush.Registered = {
+            requests += 1
+            return try self.decode(#"{"route":"new-route","expires_at":604801000,"revision":9}"#, as: NativePush.Registered.self)
+        }
+        let automatic = try await subscription.renew(token: "token", now: now, retry: false, register: register)
+        XCTAssertFalse(automatic)
+        XCTAssertEqual(requests, 0, "Foreground refresh must reuse the current lease")
+
+        // The server may already have removed or superseded revision 7 even
+        // though this device still considers its cached lease current.
+        let retried = try await subscription.renew(token: "token", now: now, retry: true, register: register)
+        XCTAssertTrue(retried)
+        XCTAssertEqual(requests, 1, "Retry must reach push-register, not only notificationRegisterApple")
+        let persisted = try JSONDecoder().decode(NativePush.Subscription.self, from: JSONEncoder().encode(subscription))
+        XCTAssertEqual(persisted.route, "new-route")
+        XCTAssertEqual(persisted.revision, 9, "The notification service must receive the new Apple revision")
+        XCTAssertEqual(persisted.expires, 604801000)
+        XCTAssertEqual(persisted.unified, false, "The old notification acknowledgement cannot confirm the new lease")
+    }
+
+    @MainActor
+    func testFailedExplicitRetryKeepsTheLeaseAndCanRetryAgain() async throws {
+        let now: UInt64 = 1000
+        var subscription = NativePush.Subscription(route: "route", token: "token", expires: now + 2 * 86_400_000, revision: 7, unified: false)
+        let saved = try JSONEncoder().encode(subscription)
+        do {
+            _ = try await subscription.renew(token: "token", now: now, retry: true) {
+                throw MobileError.Failure(code: "NETWORK_UNAVAILABLE")
+            }
+            XCTFail("A failed request must not report a renewed lease")
+        } catch MobileError.Failure(let code) { XCTAssertEqual(code, "NETWORK_UNAVAILABLE") }
+        let original = try JSONSerialization.jsonObject(with: saved) as? NSDictionary
+        XCTAssertEqual(try JSONSerialization.jsonObject(with: JSONEncoder().encode(subscription)) as? NSDictionary, original)
+        let retried = try await subscription.renew(token: "token", now: now, retry: true) {
+            NativePush.Registered(route: "route", expiresAt: now + 7 * 86_400_000, revision: 8)
+        }
+        XCTAssertTrue(retried)
+        XCTAssertEqual(subscription.revision, 8)
+    }
+
+    @MainActor
+    func testTokenRotationAutomaticallyRenewsAppleLease() async throws {
+        let now: UInt64 = 1000
+        var subscription = NativePush.Subscription(route: "route", token: "old-token", expires: now + 2 * 86_400_000, revision: 7, unified: true)
+        let renewed = try await subscription.renew(token: "new-token", now: now, retry: false) {
+            NativePush.Registered(route: "route", expiresAt: now + 7 * 86_400_000, revision: 8)
+        }
+        XCTAssertTrue(renewed)
+        XCTAssertEqual(subscription.token, "new-token")
+        XCTAssertEqual(subscription.revision, 8)
+        XCTAssertEqual(subscription.unified, false)
+    }
+
     private func decode<T: Decodable>(_ json: String, as type: T.Type) throws -> T {
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(type, from: Data(json.utf8))

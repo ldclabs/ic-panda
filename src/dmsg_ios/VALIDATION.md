@@ -2832,6 +2832,9 @@ No production deployment, version change or App Store upload was performed.
 Implementation and validation: Codex (OpenAI).
 ## Notification registration recovery (2026-11-10)
 
+The explicit-retry cache behavior below is superseded by the 2026-11-12
+validation note at the end of this file; automatic refresh still reuses a lease.
+
 On local `265e85a4` plus the working-tree fixes, duplicate APNs token callbacks
 no longer restart registration. Native APNs failures end the waiting state.
 Notification registration retries reuse an unexpired Apple lease, and a new
@@ -3346,3 +3349,42 @@ suite and full Rust workspace suite were not run. No backend/canister deployment
 App Store submission, upload, build-number change or private-repository edit was
 performed. A new signed TestFlight build still needs device acceptance before
 release; local tests do not replace that check.
+
+## Explicit notification registration retry (2026-11-12)
+
+On public `ec93e3c7` plus this working-tree change, an explicit **Retry
+registration** no longer trusts the cached Apple lease solely because its local
+expiry is still in the future. It renews the Apple registration, persists the
+returned revision and clears the old notification acknowledgement before
+registering that revision with the notification service. This repairs the path
+where a removed or superseded remote lease otherwise kept being reused by every
+manual retry. Automatic refresh still reuses a current lease. A requested retry
+survives the asynchronous UIKit token callback; disabling or forgetting its
+account clears that request. Failed renewal leaves the saved lease intact.
+
+Registration failures now log a fixed phase and an allowlisted error code in the
+`net.dmsg.ios` / `notifications` category. Logs contain no account identity,
+push token, assertion, URL or raw error text.
+
+Validation:
+
+- The existing release Rust bridge and source fingerprint matched; no Rust or
+  generated binding changes were needed.
+- The simulator build and all 13 `NotificationTests` passed on the booted
+  iPhone SE fixture / iOS 18.4. Three new tests cover explicit replacement of a
+  locally current lease, failure followed by another retry, and automatic token
+  rotation. They exercise the renewal path with a substitute registration
+  response, not Apple hardware or production services.
+- All three registration-retry UI tests passed: Chinese dark, Arabic RTL and
+  German. Exported screenshots were checked for the completed Chinese/German
+  state and Arabic progress. The existing UI fixtures simulate registration.
+  Result: `.build/PushRetry-20261112.xcresult`; screenshots:
+  `.build/PushRetry-20261112-shots/`.
+- `git diff --check` passed.
+
+The reported TestFlight failure's exact production error could not be read:
+Cloudflare authentication was unavailable for live logs. Real App Attest/APNs
+registration and delivery on the affected device remain unverified, so this
+record does not claim the cache defect was the device's only failure. No full
+Rust/UI suite, production deployment, build-number change or TestFlight upload
+was performed. A new signed TestFlight build is required for device acceptance.

@@ -1,6 +1,6 @@
 # iOS 审核与服务验收
 
-核对日期：2026-11-11。这里区分当前发布配置、App Store Connect 实际状态和仍待执行的验收；历史构建的验证范围见 [VALIDATION](../VALIDATION.md)。应用获批不代表其订阅商品已经获批。
+核对日期：2026-11-12。这里区分当前发布配置、App Store Connect 实际状态和仍待执行的验收；历史构建的验证范围见 [VALIDATION](../VALIDATION.md)。应用获批不代表其订阅商品已经获批。
 
 本轮的英文审核说明、截图采集与五项送审清单见 [1.1.2 审核材料草稿](1.1.2_zh.md)。
 
@@ -23,7 +23,9 @@
 | Pro | `net.dmsg.ios.pro.annual` | `6829725216` |
 | Max | `net.dmsg.ios.max.annual` | `6829724021` |
 
-正式商店只返回已批准且在当前 Apple 账号地区可售的商品；TestFlight 沙盒成功不能替代该检查。当前商品尚未送审足以解释正式版空列表，不应通过更换商品 ID、放宽验签或给生产账号授予测试权益来处理。
+2026-11-12 更新：`1.1.2 (28)`、群组与三个商品已于 11 月 11 日一起提交。Apple 按 3.1.2 拒绝 App 版本，自动消息指出每种语言的产品描述缺少 EULA 链接；群组及三个商品显示“可供审核”，尚未批准。英文和简体中文描述已补齐 Apple 标准 EULA 链接并保存，等待发布负责人上传新构建后替换、重新提交。
+
+正式商店只返回已批准且在当前 Apple 账号地区可售的商品；TestFlight 沙盒成功不能替代该检查。商品尚未获批时，不应通过更换商品 ID、放宽验签或给生产账号授予测试权益来处理。
 
 首次上线必须完成以下步骤：
 
@@ -32,6 +34,8 @@
 3. 把**新 App 版本、订阅群组、三个年度订阅**加入同一份送审草稿。检查项目列表后再提交审核；仅提交 App 二进制不会自动提交订阅。
 4. 分别确认群组与三个商品已批准、销售范围覆盖目标地区，并核对付费 App 协议、税务和收款配置有效。批准后仍可能需要商店传播时间，不能只查看 App 的“可分发”状态。
 5. 在 App Store 正式安装版本中验证商品、系统购买确认页、权益交付和恢复购买。未完成前不得记录为正式支付验收通过。
+
+每次提交前还需逐一检查**所有已本地化的 App 产品描述**。当前使用 Apple 标准许可协议，英文和简体中文描述末尾分别保留 `Terms of Use (EULA):` / `使用条款（EULA）：`，后接 `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`。新增商店语言也必须包含链接；只在 App 内或审核备注中提供服务条款不满足此次元数据要求。核对链接可访问及描述保存成功，不更改现有许可协议配置。
 
 Apple 依据：[正式商店商品不可用排查 TN3188](https://developer.apple.com/documentation/technotes/tn3188-troubleshooting-in-app-purchases-availability-in-the-app-store)、[首次订阅送审要求](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-in-app-purchase)。
 

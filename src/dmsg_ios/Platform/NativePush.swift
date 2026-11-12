@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OSLog
 import UIKit
 import UserNotifications
 @preconcurrency import DMsgCore
@@ -60,12 +61,27 @@ final class DMsgAppDelegate: NSObject, UIApplicationDelegate, UNUserNotification
 
 @MainActor @Observable
 final class NativePush {
+    struct Registered: Decodable { let route: String; let expiresAt: UInt64; let revision: UInt64? }
+
     /// `enabled` is read once for migration; core preferences are the authority.
     struct Subscription: Codable {
         var enabled: Bool?; var route: String?; var token: String?; var expires: UInt64?; var revision: UInt64?; var unified: Bool?
         /// A failed notification-settings sync does not invalidate the APNs lease.
         func current(token: String, now: UInt64) -> Bool {
             self.token == token && route != nil && revision != nil && (expires ?? 0) > now + 86_400_000
+        }
+
+        /// Automatic refresh reuses the lease. An explicit retry also repairs a
+        /// lease removed or superseded remotely before its local expiry.
+        @MainActor
+        mutating func renew(token: String, now: UInt64, retry: Bool,
+                            register: () async throws -> Registered) async throws -> Bool {
+            guard retry || !current(token: token, now: now) else { return false }
+            let registered = try await register()
+            try Task.checkCancellation()
+            route = registered.route; self.token = token; expires = registered.expiresAt
+            revision = registered.revision; unified = false
+            return true
         }
     }
     enum Registration: Equatable {
@@ -83,21 +99,24 @@ final class NativePush {
         }
     }
     private var subscriptions: [String: Subscription] = [:]
+    /// Keep an explicit retry across the asynchronous UIKit token callback.
+    private var pendingRetries: Set<String> = []
     private var enabledAccounts: [String: Bool] = [:]
     private var root: URL?
     private(set) var working = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
     private(set) var registration = Registration.idle
+    private static let logger = Logger(subsystem: "net.dmsg.ios", category: "notifications")
     private static var retryMessage: String { String(localized: "Notification registration needs retrying. Foreground sync remains available.") }
     func registrationFailed() {
         guard DMsgAppDelegate.token == nil else { return }
         registration = .failed(Self.retryMessage)
     }
-    func forget(_ account: String) throws { subscriptions.removeValue(forKey: account); enabledAccounts.removeValue(forKey: account); try save() }
+    func forget(_ account: String) throws { subscriptions.removeValue(forKey: account); enabledAccounts.removeValue(forKey: account); pendingRetries.remove(account); try save() }
     func enabled(_ account: String?) -> Bool { account.flatMap { enabledAccounts[$0] } ?? false }
     func account(for route: String) -> String? { subscriptions.first { $0.value.route == route }?.key }
     func load(_ files: PrivateFiles) throws {
-        guard root != files.root else { return }; root = files.root; subscriptions = [:]; enabledAccounts = [:]
+        guard root != files.root else { return }; root = files.root; subscriptions = [:]; enabledAccounts = [:]; pendingRetries = []
         let path = files.root.appending(path: "push-subscriptions.json")
         if FileManager.default.fileExists(atPath: path.path) { subscriptions = try JSONDecoder().decode([String: Subscription].self, from: Data(contentsOf: path)) }
     }
@@ -153,12 +172,15 @@ final class NativePush {
         working = true; registration = .idle; defer {
             working = false; let waiting = idleWaiters; idleWaiters.removeAll(); for waiter in waiting { waiter.resume() }
         }
+        var stage = "preferences"
         do {
             try load(files)
+            if retryRegistration { pendingRetries.insert(account) }
             let preference = try await preferences(model, account: account)
             guard epoch == model.epoch, !Task.isCancelled else { return }
             var subscription = subscriptions[account] ?? Subscription()
             if preference.account?.enabled != true {
+                pendingRetries.remove(account)
                 if subscription.route != nil {
                     _ = try await engine.unregisterPush(installation: files.installation)
                     subscription.route = nil; subscription.token = nil; subscription.expires = nil
@@ -178,18 +200,20 @@ final class NativePush {
                 UIApplication.shared.registerForRemoteNotifications()
                 return
             }
-            if !subscription.current(token: token, now: NotificationTime.now) {
+            stage = "apple_registration"
+            let retryApple = pendingRetries.remove(account) != nil
+            let renewed = try await subscription.renew(token: token, now: NotificationTime.now, retry: retryApple) {
                 let environment = Bundle.main.object(forInfoDictionaryKey: "DMsgAPNSEnvironment") as? String == "development" ? "sandbox" : "production"
-                struct Registered: Decodable { let route: String; let expiresAt: UInt64; let revision: UInt64? }
                 let result = try await model.apple.registerPush(engine: engine, files: files, account: account, token: token, environment: environment)
-                guard epoch == model.epoch else { return }
-                let registered: Registered = try model.decode(result)
-                subscription.route = registered.route; subscription.token = token; subscription.expires = registered.expiresAt
-                subscription.revision = registered.revision; subscription.unified = false
+                guard epoch == model.epoch else { throw CancellationError() }
+                return try model.decode(result)
+            }
+            if renewed {
                 subscriptions[account] = subscription; try save()
             }
             // A settings change can arrive while App Attest/network work waits.
             // Preserve that newer preference, then unregister before sign-out proceeds.
+            stage = "preferences"
             let current = try await preferences(model, account: account)
             guard epoch == model.epoch, !Task.isCancelled else { return }
             if current.account?.enabled != true {
@@ -199,6 +223,7 @@ final class NativePush {
                 subscriptions[account] = subscription; try save()
             } else if let revision = subscription.revision {
                 if subscription.unified != true || retryRegistration || current.registrationRequired == true {
+                    stage = "notification_registration"
                     let result = try await engine.notificationRegisterApple(installation: files.installation, revision: revision, language: Bundle.main.preferredLocalizations.first ?? "en")
                     guard epoch == model.epoch else { return }
                     subscription.unified = result.json != "null"
@@ -209,6 +234,13 @@ final class NativePush {
             await model.notifications.refresh(model, receive: true)
         } catch {
             guard epoch == model.epoch, !Task.isCancelled else { return }
+            // Fixed stage names and allowlisted codes only; never log tokens,
+            // account IDs, assertions or the error's potentially private text.
+            let codes: Set<String> = ["APP_INTEGRITY_UNAVAILABLE", "AUTH_REQUIRED", "DEVICE_NOT_APPROVED", "FORBIDDEN", "VERSION_CONFLICT", "POLICY_STALE", "NETWORK_UNAVAILABLE", "UNAVAILABLE", "INTEGRITY_FAILED", "INVALID_INPUT", "QUOTA_EXCEEDED", "UNSUPPORTED_PROTOCOL", "LOCAL_STORAGE_UNAVAILABLE"]
+            let code: String
+            if case MobileError.Failure(let value) = error { code = codes.contains(value) ? value : "CORE_ERROR" }
+            else { code = error is DecodingError ? "INVALID_RESPONSE" : "PLATFORM_ERROR" }
+            Self.logger.error("registration_failed stage=\(stage, privacy: .public) code=\(code, privacy: .public)")
             if case MobileError.Failure(code: "APP_INTEGRITY_UNAVAILABLE") = error {
                 registration = .failed(String(localized: "App verification is unavailable on this device. Your saved content remains available."))
             } else { registration = .failed(Self.retryMessage) }
