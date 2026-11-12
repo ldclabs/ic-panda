@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "reminderSyncTitle": "المزامنة متوقفة مؤقتًا",
+    "reminderUnread": "تذكير غير مقروء",
+    "reminderBack": "العودة إلى التذكيرات",
+    "reminderAccountHint": "اختر الحساب المرتبط بالتذكير للمتابعة. سيبقى حسابك الحالي محددًا حتى تختار حسابًا آخر.",
+    "reminderReadAll": "وضع علامة مقروء على تذكيرات جميع الحسابات",
+    "reminderEmpty": "لا توجد تذكيرات بعد",
+    "reminderEmptyActions": "لا يوجد ما يحتاج إلى انتباهك",
+    "reminderEmptyHint": "يمكنك العثور على التذكيرات السابقة في «التذكيرات الأخيرة».",
+    "reminderConnectionTitle": "اتصال الإشعارات يحتاج إلى إصلاح",
+    "reminderConnectionHint": "قد تتأخر إشعارات النظام. تحقق من إعدادات الإشعارات.",
+    "reminderOpening": "جارٍ فتح التذكير…",
+    "reminderUnavailable": "التذكير غير متاح",
+    "reminderUnavailableHint": "لم يعد بإمكان هذا التذكير فتح العنصر الأصلي.",
+    "reminderOtherAccount": "هذا التذكير يخص حسابًا آخر",
+    "reminderOpenFailed": "تعذر فتح التذكير",
+    "reminderUnlockTitle": "افتح القفل لعرض التذكير",
+    "reminderUnlockHint": "تذكيرك محمي. افتح القفل للمتابعة من حيث توقفت.",
+    "reminderExpired": "انتهت صلاحية هذا الطلب",
+    "reminderForbidden": "الوصول غير متاح",
+
     "letterHandleNotFound": "لم يُعثر على اسم المستخدم. تحقق من تهجئته أو اطلب من المستلم معرّف حسابه.",
     "letterRecipientInvalid": "أدخل معرّف حساب أو اسم مستخدم، مثل panda أو @panda.",
     "letterReceivingNotFound": "لم يُعثر على إعدادات الاستلام لهذا الحساب. تحقق من المستلم أو اطلب منه تفعيل الاستلام في إعدادات صندوق الوارد في dMsg، ثم أعد المحاولة.",

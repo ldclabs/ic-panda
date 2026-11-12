@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "หยุดซิงค์ชั่วคราว",
+    "reminderUnread": "การเตือนที่ยังไม่ได้อ่าน",
+    "reminderBack": "กลับไปที่การเตือน",
+    "reminderAccountHint": "เลือกบัญชีที่เกี่ยวข้องเพื่อดำเนินการต่อ บัญชีปัจจุบันจะยังถูกเลือกอยู่จนกว่าคุณจะเลือกบัญชีอื่น",
+    "reminderReadAll": "ทำเครื่องหมายการเตือนของทุกบัญชีว่าอ่านแล้ว",
+    "reminderEmpty": "ยังไม่มีการเตือน",
+    "reminderEmptyActions": "ไม่มีรายการที่ต้องจัดการ",
+    "reminderEmptyHint": "ดูการเตือนก่อนหน้าได้ในรายการล่าสุด",
+    "reminderConnectionTitle": "ต้องกู้คืนการเชื่อมต่อการแจ้งเตือน",
+    "reminderConnectionHint": "การแจ้งเตือนของระบบอาจล่าช้า โปรดตรวจสอบการตั้งค่าการแจ้งเตือน",
+    "reminderOpening": "กำลังเปิดการเตือน…",
+    "reminderUnavailable": "การเตือนไม่พร้อมใช้งาน",
+    "reminderUnavailableHint": "การเตือนนี้ไม่สามารถเปิดรายการเดิมได้อีกต่อไป",
+    "reminderOtherAccount": "การเตือนนี้เป็นของบัญชีอื่น",
+    "reminderOpenFailed": "ไม่สามารถเปิดการเตือนได้",
+    "reminderUnlockTitle": "ปลดล็อกเพื่อดูการเตือน",
+    "reminderUnlockHint": "การเตือนของคุณได้รับการปกป้อง ปลดล็อกเพื่อดำเนินการต่อจากจุดเดิม",
+    "reminderExpired": "คำขอนี้หมดอายุแล้ว",
+    "reminderForbidden": "ไม่สามารถเข้าถึงได้",
+
     "letterHandleNotFound": "ไม่พบชื่อ โปรดตรวจสอบการสะกดหรือขอ ID บัญชีจากผู้รับ",
     "letterRecipientInvalid": "ป้อน ID บัญชีหรือชื่อ เช่น panda หรือ @panda",
     "letterReceivingNotFound": "ไม่พบการตั้งค่ารับจดหมายของบัญชีนี้ โปรดตรวจสอบผู้รับ หรือขอให้ผู้รับเปิดรับจดหมายในการตั้งค่ากล่องจดหมายของ dMsg แล้วลองอีกครั้ง",

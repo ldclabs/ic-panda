@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Synchronizacja wstrzymana",
+    "reminderUnread": "Nieprzeczytane przypomnienie",
+    "reminderBack": "Wróć do przypomnień",
+    "reminderAccountHint": "Wybierz właściwe konto, aby kontynuować. Obecne konto pozostanie wybrane, dopóki nie wybierzesz innego.",
+    "reminderReadAll": "Oznacz przypomnienia ze wszystkich kont jako przeczytane",
+    "reminderEmpty": "Nie ma jeszcze przypomnień",
+    "reminderEmptyActions": "Nie ma spraw wymagających uwagi",
+    "reminderEmptyHint": "Poprzednie przypomnienia znajdziesz w sekcji Ostatnie.",
+    "reminderConnectionTitle": "Połączenie powiadomień wymaga przywrócenia",
+    "reminderConnectionHint": "Powiadomienia systemowe mogą się opóźniać. Sprawdź ustawienia powiadomień.",
+    "reminderOpening": "Otwieranie przypomnienia…",
+    "reminderUnavailable": "Przypomnienie niedostępne",
+    "reminderUnavailableHint": "To przypomnienie nie może już otworzyć pierwotnego elementu.",
+    "reminderOtherAccount": "To przypomnienie należy do innego konta",
+    "reminderOpenFailed": "Nie można otworzyć przypomnienia",
+    "reminderUnlockTitle": "Odblokuj, aby zobaczyć przypomnienie",
+    "reminderUnlockHint": "Przypomnienie jest chronione. Odblokuj, aby kontynuować.",
+    "reminderExpired": "To żądanie wygasło",
+    "reminderForbidden": "Brak dostępu",
+
     "letterHandleNotFound": "Nie znaleziono nazwy. Sprawdź pisownię lub poproś odbiorcę o identyfikator konta.",
     "letterRecipientInvalid": "Wpisz identyfikator konta lub nazwę, na przykład panda albo @panda.",
     "letterReceivingNotFound": "Nie znaleziono ustawień odbierania dla tego konta. Sprawdź odbiorcę lub poproś go o włączenie odbierania w ustawieniach skrzynki odbiorczej dMsg, a następnie spróbuj ponownie.",

@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Naka-pause ang pag-sync",
+    "reminderUnread": "Hindi pa nababasang paalala",
+    "reminderBack": "Bumalik sa mga paalala",
+    "reminderAccountHint": "Piliin ang kaugnay na account para magpatuloy. Mananatiling napili ang kasalukuyang account hanggang pumili ka ng iba.",
+    "reminderReadAll": "Markahan bilang nabasa ang mga paalala ng lahat ng account",
+    "reminderEmpty": "Wala pang mga paalala",
+    "reminderEmptyActions": "Walang kailangang asikasuhin",
+    "reminderEmptyHint": "Makikita ang mga nakaraang paalala sa Kamakailan.",
+    "reminderConnectionTitle": "Kailangang ibalik ang koneksyon ng mga notification",
+    "reminderConnectionHint": "Maaaring maantala ang mga notification ng system. Tingnan ang mga setting ng notification.",
+    "reminderOpening": "Binubuksan ang paalala…",
+    "reminderUnavailable": "Hindi available ang paalala",
+    "reminderUnavailableHint": "Hindi na mabuksan ng paalalang ito ang orihinal na item.",
+    "reminderOtherAccount": "Ang paalalang ito ay para sa ibang account",
+    "reminderOpenFailed": "Hindi mabuksan ang paalala",
+    "reminderUnlockTitle": "I-unlock para makita ang paalala",
+    "reminderUnlockHint": "Protektado ang iyong paalala. I-unlock para magpatuloy.",
+    "reminderExpired": "Nag-expire na ang kahilingang ito",
+    "reminderForbidden": "Hindi ma-access",
+
     "letterHandleNotFound": "Hindi nakita ang pangalan. Suriin ang baybay o hingin ang account ID ng tatanggap.",
     "letterRecipientInvalid": "Maglagay ng account ID o pangalan, gaya ng panda o @panda.",
     "letterReceivingNotFound": "Hindi nakita ang mga setting sa pagtanggap para sa account na ito. Suriin ang tatanggap o hilingin sa kanilang paganahin ang pagtanggap sa mga setting ng inbox ng dMsg, saka subukang muli.",

@@ -357,7 +357,14 @@ Rules (`src/main/policy.ts`):
   and installation budgets; ordinary sounds default off. Agent Mail alerts are
   opt-in per Agent after verified local receipt. MCP events and relay hints only
   wake synchronization. The global Reminders view keeps unresolved work and
-  recent history separate from business unread state.
+  recent history separate from business unread state. The list and bell popover
+  share compact event rows, unread dots and separate action state. Row menus hold
+  read/snooze actions; global acknowledgement stays in the full page's More menu.
+  Locked and foreign-account destinations retain their original item and version
+  through explicit unlock or the existing sidebar account menu. Viewing loaded
+  content acknowledges that version locally, without completing the business
+  action or acknowledging a newer reminder. A failed local save does not block
+  access to readable content.
 - A new installation starts with system notifications off. An installation
   upgraded from a version without these settings keeps alerting its selected
   account, as before. The app badge, tray and Reminders count include the

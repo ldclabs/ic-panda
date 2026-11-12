@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { reminderVisibility } from '../../notification-visibility'
   import { daemonBlocked } from '../../connection-gate'
   import { onMount } from 'svelte'
   import { display, watchDisplays, type Mode } from '../../display.svelte'
@@ -25,12 +26,15 @@
    * is read on its own, so one that fails leaves the others. Buying opens
    * the checkout dialog; paying is the approval window's.
    */
+  let { status }: { status: any } = $props()
   let plan = $state<any>(null)
   let catalog = $state<any>(null)
   let cloud = $state<any>(null)
   let execution = $state<any>(null)
   let executionNeedsLogin = $state(false)
   let errors = $state<Record<string, string>>({})
+  const reportReminder = reminderVisibility(() => ({ status, ready: !!plan && !errors.plan }), '[data-testid="membership"]')
+  $effect(() => { void status; void plan; void errors.plan; reportReminder() })
   let busy = $state(false)
   /** The offer the checkout dialog pays: a plan card's or a storage pack's. */
   let buying = $state<any>(null)
@@ -178,7 +182,7 @@
   </div>
 {/snippet}
 
-<Page>
+<Page testid="membership">
   <DisplayNotice methods={['plan/status', 'plan/catalog', 'files/cloud_usage']} />
   <section class="px-5" data-testid="plan-hero">
     <div class="flex flex-wrap items-start gap-3">

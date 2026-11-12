@@ -1,13 +1,15 @@
 <script lang="ts">
-  import { Popover } from 'bits-ui'
+  import { DropdownMenu, Popover } from 'bits-ui'
   import { onMount, untrack } from 'svelte'
   import Icon from '../components/Icon.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Segmented from '../components/Segmented.svelte'
-  import { buttonClass, cn, iconButtonClass } from '../components/ui'
-  import { t } from '../i18n/index.svelte'
-  import { ago, call, errorText, single } from '../rpc'
-  import { category, icons, noNames, noticeNames, noticeTitle, noticeUnread } from '../views/reminders/notice'
+  import ReminderRow from '../views/reminders/ReminderRow.svelte'
+  import { localeDir } from '../../shared/locales'
+  import { buttonClass, iconButtonClass, menuContentClass, menuItemClass } from '../components/ui'
+  import { locale, t } from '../i18n/index.svelte'
+  import { call, errorText, single } from '../rpc'
+  import { noNames, noticeNames, noticeUnread } from '../views/reminders/notice'
   import type { NoticeItem } from '../../shared/notifications'
 
   /** The bell in the title bar: what wants attention, without leaving the view. The full list stays a page. */
@@ -20,7 +22,9 @@
   let loading = $state(false)
   let error = $state('')
   let busy = $state(false)
-  let run = 0
+  let run = 0, alive = true
+  const context = $derived(`${status?.session}:${status?.account}:${status?.state}`)
+  $effect(() => { void context; untrack(() => { run++; open = false; items = []; names = noNames(); error = ''; busy = false }) })
 
   const account = $derived<string>(status?.account ?? '')
 
@@ -33,7 +37,7 @@
     try {
       const [page, known] = await Promise.all([
         call<{ items: NoticeItem[] }>('notifications/list', { account, scope, cursor: null, limit: 20 }),
-        noticeNames()
+        status?.state === 'unlocked' ? noticeNames() : Promise.resolve(noNames())
       ])
       if (turn !== run || selected !== account || filter !== scope) return
       items = page.items
@@ -52,34 +56,31 @@
   })
 
   async function follow(item: NoticeItem) {
-    const selected = account
+    const selected = context
     busy = true
     try {
-      if (noticeUnread(item)) await call('notifications/mark_read', { account: item.account, id: item.id, version: item.version })
-      if (account !== selected) return
-      open = false
-      await window.dmsg.notificationOpen(item.account, item.id)
+      await window.dmsg.notificationOpen(item.account, item.id, item.version)
+      if (alive && context === selected) open = false
     } catch (e) {
-      error = errorText(e)
-      open = true
-    } finally { busy = false }
+      if (alive && context === selected) { error = errorText(e); open = true }
+    } finally { if (alive && context === selected) busy = false }
   }
 
-  async function markRead(item?: NoticeItem) {
+  async function markRead(item: NoticeItem) {
+    const selected = context
     busy = true; error = ''
     try {
-      if (item) await call('notifications/mark_read', { account: item.account, id: item.id, version: item.version })
-      else await call('notifications/mark_all_read')
-      await load()
-    } catch (cause) { error = errorText(cause) }
-    finally { busy = false }
+      await call('notifications/mark_read', { account: item.account, id: item.id, version: item.version })
+      if (alive && selected === context) await load()
+    } catch (cause) { if (alive && selected === context) error = errorText(cause) }
+    finally { if (alive && selected === context) busy = false }
   }
 
   onMount(() => {
     const off = window.dmsg.onEvent((event) => {
       if (open && event.type === 'notifications/changed') void load()
     })
-    return () => { run++; off() }
+    return () => { alive = false; run++; off() }
   })
 </script>
 
@@ -99,21 +100,22 @@
           {#each items as item (item.id)}
             <li class="flex items-start gap-1">
               <button class="flex min-w-0 flex-1 items-start gap-2.5 rounded-lg px-2 py-2 text-start outline-none transition-colors duration-100 hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35" disabled={busy} onclick={() => follow(item)} data-testid="reminder-row">
-                <Icon name={icons[category(item)]} class={cn('mt-0.5 shrink-0', item.actionable ? 'text-forest' : 'text-faint')} />
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-[13px] leading-snug font-medium">{noticeTitle(item, names)}</span>
-                  <span class="block truncate text-[11.5px] leading-snug text-faint">{ago(item.updated_at)}{#if !noticeUnread(item)} · {t('noticeRead')}{:else if item.unread} · {item.unread.toLocaleString()} {t('noticeMessages')}{/if}</span>
-                </span>
+                <ReminderRow {item} {names} compact />
               </button>
-              {#if noticeUnread(item)}<button class={iconButtonClass('ghost', 'md', 'mt-1 shrink-0')} title={t('markRead')} aria-label={t('markRead')} disabled={busy} onclick={() => markRead(item)} data-testid="reminder-popover-read"><Icon name="check" /></button>{/if}
+              <DropdownMenu.Root dir={localeDir(locale())}>
+                <DropdownMenu.Trigger class={iconButtonClass('ghost','md','mt-1 shrink-0')} aria-label={t('moreActions')} title={t('moreActions')} data-testid="reminder-popover-menu"><Icon name="more" /></DropdownMenu.Trigger>
+                <DropdownMenu.Portal><DropdownMenu.Content class={menuContentClass}>
+                  <DropdownMenu.Item class={menuItemClass} onSelect={() => follow(item)}>{t('open')}</DropdownMenu.Item>
+                  {#if noticeUnread(item)}<DropdownMenu.Item class={menuItemClass} disabled={busy} onSelect={() => markRead(item)} data-testid="reminder-popover-read">{t('markRead')}</DropdownMenu.Item>{/if}
+                </DropdownMenu.Content></DropdownMenu.Portal>
+              </DropdownMenu.Root>
             </li>
           {:else}
-            <li class="px-3 py-6 text-center text-[12.5px] text-muted" role="status">{loading ? t('loading') : t('noticeEmpty')}</li>
+            <li class="px-3 py-6 text-center text-[12.5px] text-muted" role="status">{loading ? t('loading') : scope === 'open' ? t('reminderEmptyActions') : t('reminderEmpty')}</li>
           {/each}
         </ul>
       </div>
       <div class="border-t border-line p-1.5">
-        <button class={buttonClass('secondary', 'sm', 'w-full')} disabled={busy || loading || !(items.some(noticeUnread) || count)} onclick={() => markRead()} data-testid="reminders-popover-read-all">{t('noticeMarkAllRead')}</button>
         <button class={buttonClass('ghost', 'sm', 'w-full')} onclick={() => { open = false; go('/reminders') }} data-testid="reminders-all">{t('noticeAll')}</button>
       </div>
     </Popover.Content>

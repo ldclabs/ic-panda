@@ -12,7 +12,7 @@
   import { call, onChange } from '../rpc'
   import { nameOf, refreshNames } from '../views/channels/names.svelte'
   import { startLogin } from './login.svelte'
-  import { logout, shortId, switchAccount, unlocking } from './session'
+  import { accountMenuRequested, logout, shortId, switchAccount, unlocking } from './session'
 
   /**
    * The account this device works in, at the top of the sidebar: its public
@@ -61,6 +61,10 @@
     name = published.name ?? ''
     avatar = published.avatar?.url ?? null
   }
+
+  $effect(() => {
+    if ($accountMenuRequested) { openedAt = Date.now(); open = true; accountMenuRequested.set(false) }
+  })
 
   // Arrow keys move through the menu once its content has focus.
   $effect(() => {

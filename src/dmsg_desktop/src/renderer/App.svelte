@@ -141,7 +141,7 @@
       // cannot yet establish an incoming message worth interrupting the user.
       if (plan.category === 'message' && plan.count === null) return
       toast(() => notificationBody(locale(), plan.category, plan.count), { testid: 'notification-toast', ms: 6000,
-        action: { label: t('open'), run: () => window.dmsg.notificationOpen(plan.account, plan.covered.length === 1 ? plan.covered[0].id : plan.category) } })
+        action: { label: t('open'), run: () => window.dmsg.notificationOpen(plan.account, plan.covered.length === 1 ? plan.covered[0].id : plan.category, plan.covered.length === 1 ? plan.covered[0].version : undefined) } })
     }))
     return () => offs.forEach((off) => off())
   })

@@ -49,7 +49,7 @@ export function noticeTitle(item: NoticeItem, names: NoticeNames): string {
     }
     case 'wallet': return `${t('twNav')} · ${t('approvals')}`
     case 'task': return id.startsWith('conflicts:') ? t('conflict') : t('syncFailed')
-    case 'service': return id.startsWith('network:') ? t('networkUnavailable') : t('noticeSettings')
+    case 'service': return id.startsWith('network:') ? t('reminderSyncTitle') : t('reminderConnectionTitle')
     case 'plan': return t('membership')
     case 'inbox': {
       const sender = id && names.letters.get(id)
@@ -59,4 +59,9 @@ export function noticeTitle(item: NoticeItem, names: NoticeNames): string {
     case 'agent_mail': return t('noticeAgent')
     default: return notificationBody(locale(), category(item), item.unread)
   }
+}
+
+export function noticeBody(item: NoticeItem): string {
+  if (item.target.kind === 'service') return item.target.id.startsWith('network:') ? t('networkUnavailable') : t('reminderConnectionHint')
+  return notificationBody(locale(), category(item), item.unread)
 }

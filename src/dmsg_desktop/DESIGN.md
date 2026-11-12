@@ -627,7 +627,18 @@ as does the full reminder page. Switching sessions closes the popover and drops
 its old responses. The account menu shows each workspace’s actionable plus unread
 count beside a bell (hidden at zero, capped visually at 99+), independent of the
 system badge preference. The Dock and tray keep the installation-wide totals. Each
-row opens what it is about; the whole list is one step further.
+row opens what it is about; the whole list is one step further. Rows share an
+unread dot, a concise event title, an explanation and a separate pending-action
+label. Row housekeeping lives in its More menu; installation-wide acknowledgement
+lives in the full page's More menu, where its cross-account scope is explicit.
+
+Opening a reminder acknowledges its displayed version only after its original
+content is visibly loaded in the focused window. A failed acknowledgement cannot
+block reading. A locked destination offers unlock and continues the same item;
+another-account destination opens the existing sidebar account menu on request.
+It never chooses an account itself. Expired, inaccessible and unavailable results
+are scoped to that destination and have a return action, not a persistent banner
+above unrelated reminders.
 
 **Locking.** Security holds what closes the account: the idle time, which the
 daemon applies from `preferences.json`, and the screen lock or sleep, on by

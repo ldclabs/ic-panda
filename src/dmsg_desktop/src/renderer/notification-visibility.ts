@@ -65,3 +65,13 @@ export function noticeVisibility(read: () => NoticeVisibility | null, selector: 
   })
   return refresh
 }
+
+/** Settings and plan pages expose a loaded destination, without inventing a business receipt. */
+export function reminderVisibility(read: () => { status: any; ready: boolean }, selector: string): () => void {
+  return noticeVisibility(() => {
+    const { status, ready } = read()
+    const id = new URLSearchParams(location.hash.split('?')[1] ?? '').get('reminder')
+    return ready && status?.state === 'unlocked' && id && /^[a-f0-9]{64}$/.test(id)
+      ? { account: status.account, session: status.session, id, acknowledgeOnly: true } : null
+  }, selector)
+}

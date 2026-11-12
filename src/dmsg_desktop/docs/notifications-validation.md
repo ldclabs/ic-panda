@@ -1,6 +1,24 @@
 # 系统通知实现与验证记录
 
-核对日期：2026-10-29。本页记录公开客户端的本地实现与检查边界，不代表生产推送或全部平台已验收。终态设计和批次方案在本地 `misc/`，公开合同见 [dmsg-notifications/1](../../../docs/protocol/notifications_zh.md)。
+核对日期：2026-11-12。本页记录公开客户端的本地实现与检查边界，不代表生产推送或全部平台已验收。终态设计和批次方案在本地 `misc/`，公开合同见 [dmsg-notifications/1](../../../docs/protocol/notifications_zh.md)。
+
+## 提醒操作路径与列表优化（2026-11-12）
+
+锁定、账户不一致与事项不可用分别显示明确的原因和下一步。跨账户按钮只打开原有侧栏账户菜单，保留单一账户入口；选择、解锁后继续原事项。过期和无权限保留具体原因，返回列表后不留下全局错误横条。
+
+提醒页与铃铛浮层共用事项行：标题、影响说明、时间、待处理状态与未读圆点分开。整理操作放入行菜单，全账户标记已读放入完整提醒页的更多菜单并说明范围。锁定时不读取私密名称；待核验计数不被表达为“没有待办”。沿用现有颜色、字体、密度、共享控件与 RTL 语义。
+
+主进程保留用户打开的原账户、会话、事项与版本。业务详情实际可见且原生窗口获得焦点后才确认该版本；设置／会员页只确认本机提醒，不制造业务观察回执。取消、打开失败及未显示的较新版本保留未读；确认写入失败不阻塞内容阅读。切换会话清除旧待确认项，窗口关闭释放记录。
+
+本地验证：
+
+- `pnpm check`：0 错误、0 警告；`pnpm test`：192 项通过；`pnpm build` 通过。
+- `pnpm audit:controls`：0 个未批准用法；未新增原生控件豁免。
+- Electron 45.2.3 的 `accounts`、`reminder-read`、`reminder-journey` 与完整 `notifications` 流程通过；验证较新版本保持未读、全账户批量已读、确认失败可继续阅读、取消解锁、原账户菜单续接、过期结果、设置迟到响应和业务回执边界。完整通知流程采用真实窗口焦点判断，没有开启 `DMSG_DESKTOP_NOTIFICATION_FOCUS=mock`。
+- 检查 1180×760 与最窄 760×540 的中文明暗主题、德语长翻译、阿拉伯语 RTL 截图；检查键盘 Enter 打开、菜单操作、Escape 关闭和焦点返回。截图保存在忽略目录 `test-results/reminders-read-*.png`、`reminder-account-*.png`、`reminder-locked-cancelled.png`、`reminder-expired-rtl.png`。
+- 新增测试入口：`DMSG_DESKTOP_SMOKE=reminder-journey node scripts/smoke.mjs`；运行前先执行 `pnpm build`。Electron 下载使用与项目一致的 45.2.3，并核验官方 SHA-256。
+
+边界：测试使用隔离用户目录、模拟 daemon 和模拟系统通知，不证明真实 Touch ID、生产推送、签名安装包或云端异常恢复；未执行 Windows、Linux、完整读屏或完整桌面端全功能 smoke。未修改 Rust，本轮没有重复运行 Rust 全量测试。没有替换已安装应用。
 
 ## 顶部铃铛账号范围修正（2026-11-09）
 

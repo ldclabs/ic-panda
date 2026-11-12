@@ -3,6 +3,9 @@ import { join } from 'node:path'
 
 export async function reminderReadFlow({ app, main, shots, methods, emit, waitFor, calls, model, account }) {
   const native = await app.browserWindow(main)
+  await app.evaluate(({ app }) => app.focus({ steal: true }))
+  await native.evaluate(window => { window.show(); window.focus(); window.webContents.focus() })
+  await waitFor(() => main.evaluate(() => document.hasFocus()))
   const route = async path => { await main.evaluate(path => { location.hash = path }, path) }
   const other = methods['session/accounts']().find(item => item.account !== account).account
   model.settings.set(other, { ...structuredClone(model.settings.get(account)), enabled: true })
@@ -18,11 +21,13 @@ export async function reminderReadFlow({ app, main, shots, methods, emit, waitFo
   const actions = calls.filter(call => ['approval/respond', 'inbox/mark', 'channel/seen', 'plan/notice_ack'].includes(call.method)).length
   const original = methods['notifications/mark_read']
   methods['notifications/mark_read'] = () => { throw { code: 'UNAVAILABLE', message: 'Temporary reminder save failure' } }
-  await main.getByTestId('reminder-read').first().click()
+  await main.getByTestId('reminder-menu').first().click()
+  await main.getByTestId('reminder-read').click()
   await main.getByText('This service is temporarily unavailable. Please try again later.', { exact: true }).waitFor()
   assert.equal(network.read_version, '0')
   methods['notifications/mark_read'] = original
-  await main.getByTestId('reminder-read').first().focus()
+  await main.getByTestId('reminder-menu').first().click()
+  await main.getByTestId('reminder-read').focus()
   await main.keyboard.press('Enter')
   await waitFor(() => network.read_version === '1')
   await main.getByTestId('reminder-read-state').waitFor()
@@ -35,7 +40,10 @@ export async function reminderReadFlow({ app, main, shots, methods, emit, waitFo
   registration.version = '2'
   await main.getByTestId('reminder-open').nth(1).click()
   await main.waitForFunction(() => location.hash.startsWith('#/settings/notifications'))
-  assert.equal(registration.read_version, '1')
+  await waitFor(() => registration.read_version === '1').catch(async error => {
+    console.log('reminder acknowledgement diagnostics', await main.evaluate(() => ({ route: location.hash, focus: document.hasFocus(), modal: !!document.querySelector('[aria-modal="true"]') })), await native.evaluate(w => ({ focused: w.isFocused(), visible: w.isVisible() })), calls.filter(c => c.method.startsWith('notifications/') || c.method === 'daemon/status').slice(-12))
+    throw error
+  })
   assert.equal(methods['notifications/status']().counts.actionable, 1)
   await route('/reminders')
   for (const [language, appearance, width] of [['zh', 'light', 1180], ['zh', 'dark', 760], ['de', 'light', 760], ['ar', 'dark', 760]]) {
@@ -45,18 +53,23 @@ export async function reminderReadFlow({ app, main, shots, methods, emit, waitFo
     await main.evaluate(async ([language, appearance]) => { await window.dmsg.setLocale(language); await window.dmsg.setAppearance(appearance) }, [language, appearance])
     await main.waitForFunction(([language, appearance]) => document.documentElement.lang === language && matchMedia('(prefers-color-scheme: dark)').matches === (appearance === 'dark'), [language === 'zh' ? 'zh-Hans' : language, appearance])
     await main.evaluate(() => document.fonts.ready.then(() => undefined))
-    await main.getByTestId('reminder-read').first().waitFor()
+    await main.getByTestId('reminder-unread').first().waitFor()
     assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
     await main.screenshot({ path: join(shots, `reminders-read-${language}-${appearance}-${width}.png`), animations: 'disabled' })
     await main.getByTestId('reminders-open').click()
-    await main.getByTestId('reminder-popover-read').first().click()
+    await main.getByTestId('reminder-popover-menu').first().click()
+    await main.getByTestId('reminder-popover-read').click()
     await waitFor(() => network.read_version === '1')
-    await main.getByTestId('reminders-popover-read-all').focus()
+    await main.keyboard.press('Escape')
+    await main.getByTestId('reminders-menu').click()
+    await main.getByTestId('reminders-read-all').focus()
     await main.keyboard.press('Enter')
     await waitFor(() => [...model.items.values()].every(item => item.read_version === item.version))
     await waitFor(() => app.evaluate(({ app }) => process.platform !== 'darwin' || app.dock.getBadge() === ''))
     await main.keyboard.press('Escape')
-    await waitFor(async () => await main.getByTestId('reminders-read-all').isDisabled())
+    await main.getByTestId('reminders-menu').click()
+    assert.equal(await main.getByTestId('reminders-read-all').getAttribute('aria-disabled'), 'true')
+    await main.keyboard.press('Escape')
     assert.equal(await main.getByTestId('reminder-item').count(), 2)
     await main.screenshot({ path: join(shots, `reminders-cleared-${language}-${appearance}-${width}.png`), animations: 'disabled' })
   }
@@ -397,7 +410,8 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   await main.getByTestId('reminders-page').waitFor()
   await waitFor(async () => await main.getByTestId('reminder-item').count() === 2)
   const actions = calls.filter((call) => ['approval/respond', 'inbox/mark', 'plan/notice_ack'].includes(call.method)).length
-  await main.getByTestId('reminder-item').first().getByRole('button', { name: 'Remind me later', exact: true }).click()
+  await main.getByTestId('reminder-menu').first().click()
+  await main.getByRole('menuitem', { name: 'Remind me later', exact: true }).click()
   await main.getByTestId('reminder-snooze').waitFor()
   assert.equal(await main.getByTestId('reminder-snooze').getByRole('button', { name: 'Pause for 15 minutes' }).isDisabled(), true)
   await main.keyboard.press('Escape')
@@ -462,7 +476,7 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   }
   await main.evaluate(async () => {await window.dmsg.setLocale('en');await window.dmsg.setAppearance('light')})
   await route('/vault')
-  await main.getByTestId('vault-item-title').filter({ hasText: 'Smoke note' }).waitFor()
+  await main.getByTestId('vault-list').getByText('Smoke note', { exact: true }).waitFor()
   const foreground = model.row({ kind: 'summary', id: 'message' }, { version: '2', unread: 2 })
   const beforeForeground = await notes()
   model.enqueue(foreground)
@@ -496,7 +510,7 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   const switches = calls.filter((call) => call.method === 'session/switch').length
   await app.evaluate(() => globalThis.__lastNotification.emit('click'))
   await main.getByTestId('reminders-page').waitFor()
-  await main.getByText('Switch to this account to open the item', { exact: false }).first().waitFor()
+  await main.getByTestId('reminders-choose-account').waitFor()
   assert.equal(calls.filter((call) => call.method === 'session/switch').length, switches)
   assert.ok((await main.evaluate(() => location.hash)).includes(account))
   await main.screenshot({ path: join(shots, 'notifications-original-account.png') })
@@ -594,4 +608,96 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   model.settings.delete(second)
   emit('notifications/changed')
   await main.getByTestId('notice-setup').waitFor({ state: 'detached' })
+}
+
+/** Original-account gates, failure recovery, versioned acknowledgement and keyboard navigation. */
+export async function reminderJourneyFlow({ app, main, shots, methods, emit, waitFor, calls, model, account, other }) {
+  const native = await app.browserWindow(main)
+  await app.evaluate(({ app }) => app.focus({ steal: true }))
+  await native.evaluate(window => { window.show(); window.focus(); window.webContents.focus() })
+  await waitFor(() => main.evaluate(() => document.hasFocus()))
+  const originalStatus = methods['daemon/status'], originalUnlock = methods['session/unlock'], originalSwitch = methods['session/switch']
+  let active = account, state = 'locked', revision = 1, decline = true
+  methods['daemon/status'] = () => ({ ...originalStatus(), account: active, state, session: `reminder-journey-${revision}`, fast_unlock: true, fast_presence: 'biometrics' })
+  methods['session/unlock'] = () => {
+    if (decline) throw { code: 'FORBIDDEN', message: 'Cancelled authentication' }
+    state = 'unlocked'; revision++
+    return methods['daemon/status']()
+  }
+  methods['session/switch'] = params => {
+    active = params.account; state = 'locked'; revision++
+    return methods['daemon/status']()
+  }
+  model.items.clear()
+  const registration = model.row({ kind: 'service', id: 'registration:1' }, { actionable: true })
+  emit('session/changed', { state })
+  await main.evaluate(async ({ account, id }) => window.dmsg.notificationOpen(account, id, '1'), { account, id: registration.id })
+  await main.getByTestId('reminders-unlock').waitFor()
+  assert.equal(registration.read_version, '0')
+  await main.getByTestId('reminders-unlock').focus()
+  await main.keyboard.press('Enter')
+  await waitFor(() => calls.some(call => call.method === 'session/unlock'))
+  assert.equal(registration.read_version, '0', 'cancelled authentication is not reading')
+  assert.equal(await main.getByTestId('reminders-choose-account').count(), 0, 'the right locked account never asks for a switch')
+  await main.screenshot({ path: join(shots, 'reminder-locked-cancelled.png'), animations: 'disabled' })
+  decline = false
+  await main.getByTestId('reminders-unlock').click()
+  await main.getByTestId('notification-settings').waitFor()
+  await waitFor(() => registration.read_version === '1')
+
+  // Opening readable content is independent of a failed local acknowledgement.
+  registration.version = '2'
+  const read = methods['notifications/mark_read']
+  methods['notifications/mark_read'] = () => { throw { code: 'UNAVAILABLE', message: 'Acknowledgement unavailable' } }
+  await main.evaluate(() => { location.hash = '/reminders' })
+  await main.getByTestId('reminder-open').waitFor()
+  await main.getByTestId('reminder-open').click()
+  await main.getByTestId('notification-settings').waitFor()
+  assert.equal(registration.read_version, '1')
+  methods['notifications/mark_read'] = read
+
+  model.settings.set(other, { ...structuredClone(model.settings.get(account)), enabled: true })
+  const foreign = model.row({ kind: 'service', id: 'network:2' }, { actionable: true }, other)
+  await main.evaluate(async ({ account, id }) => window.dmsg.notificationOpen(account, id, '1'), { account: other, id: foreign.id })
+  await main.getByTestId('reminders-choose-account').waitFor()
+  assert.equal(active, account, 'notification click never selects an account')
+  assert.equal(foreign.read_version, '0')
+  for (const [language, appearance, width] of [['zh', 'light', 1180], ['zh', 'dark', 760], ['de', 'light', 760], ['ar', 'dark', 760]]) {
+    await native.evaluate((window, width) => window.setContentSize(width, width === 760 ? 540 : 760), width)
+    await main.evaluate(async ([language, appearance]) => { await window.dmsg.setLocale(language); await window.dmsg.setAppearance(appearance) }, [language, appearance])
+    await main.waitForFunction(([language, appearance]) => document.documentElement.lang === language && matchMedia('(prefers-color-scheme: dark)').matches === (appearance === 'dark'), [language === 'zh' ? 'zh-Hans' : language, appearance])
+    await main.evaluate(() => document.fonts.ready.then(() => undefined))
+    await main.getByTestId('reminders-choose-account').waitFor()
+    assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+    await main.screenshot({ path: join(shots, `reminder-account-${language}-${appearance}-${width}.png`), animations: 'disabled' })
+    await main.getByTestId('reminders-choose-account').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('account-menu').waitFor()
+    await main.keyboard.press('Escape')
+    assert.equal(active, account)
+  }
+  await main.getByTestId('reminders-choose-account').click()
+  await main.locator(`[data-testid="account-menu"] [data-value="${other}"]`).click()
+  await main.getByTestId('reminders-unlock').waitFor()
+  assert.equal(active, other)
+  assert.equal(foreign.read_version, '0')
+  await main.getByTestId('reminders-unlock').click()
+  await main.getByTestId('settings-sync').waitFor()
+  await waitFor(() => foreign.read_version === '1')
+
+  // Known terminal errors remain local to the original item, with a clear return.
+  const gone = model.row({ kind: 'channel', id: 'e'.repeat(64) }, {}, other)
+  const show = methods['channel/show']
+  methods['channel/show'] = () => { throw { code: 'EXPIRED', message: 'Request expired' } }
+  await main.evaluate(async ({ account, id }) => window.dmsg.notificationOpen(account, id, '1'), { account: other, id: gone.id })
+  await main.getByTestId('reminders-back').waitFor()
+  await main.screenshot({ path: join(shots, 'reminder-expired-rtl.png'), animations: 'disabled' })
+  assert.equal(gone.read_version, '0')
+  await main.getByTestId('reminders-back').click()
+  await main.getByTestId('reminders-list').waitFor()
+  assert.equal(await main.getByTestId('reminder-state').count(), 0)
+  methods['channel/show'] = show
+  methods['daemon/status'] = originalStatus
+  methods['session/unlock'] = originalUnlock
+  methods['session/switch'] = originalSwitch
 }

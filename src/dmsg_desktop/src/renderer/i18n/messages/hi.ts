@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "सिंक रुका हुआ है",
+    "reminderUnread": "अपठित रिमाइंडर",
+    "reminderBack": "रिमाइंडर पर वापस जाएँ",
+    "reminderAccountHint": "जारी रखने के लिए संबंधित खाता चुनें। दूसरा खाता चुनने तक आपका वर्तमान खाता चुना रहेगा।",
+    "reminderReadAll": "सभी खातों के रिमाइंडर पढ़े हुए चिह्नित करें",
+    "reminderEmpty": "अभी कोई रिमाइंडर नहीं है",
+    "reminderEmptyActions": "अभी कुछ करने की आवश्यकता नहीं है",
+    "reminderEmptyHint": "पिछले रिमाइंडर हाल के रिमाइंडर में मिल सकते हैं।",
+    "reminderConnectionTitle": "सूचना कनेक्शन बहाल करना आवश्यक है",
+    "reminderConnectionHint": "सिस्टम सूचनाएँ देर से आ सकती हैं। सूचना सेटिंग जाँचें।",
+    "reminderOpening": "रिमाइंडर खुल रहा है…",
+    "reminderUnavailable": "रिमाइंडर उपलब्ध नहीं है",
+    "reminderUnavailableHint": "यह रिमाइंडर अब मूल आइटम नहीं खोल सकता।",
+    "reminderOtherAccount": "यह रिमाइंडर दूसरे खाते का है",
+    "reminderOpenFailed": "रिमाइंडर नहीं खुल सका",
+    "reminderUnlockTitle": "रिमाइंडर देखने के लिए अनलॉक करें",
+    "reminderUnlockHint": "आपका रिमाइंडर सुरक्षित है। जहाँ रुके थे वहीं से जारी रखने के लिए अनलॉक करें।",
+    "reminderExpired": "यह अनुरोध समाप्त हो गया है",
+    "reminderForbidden": "पहुँच उपलब्ध नहीं है",
+
     "letterHandleNotFound": "नाम नहीं मिला। वर्तनी जाँचें या प्राप्तकर्ता से उनका खाता ID माँगें।",
     "letterRecipientInvalid": "खाता ID या नाम डालें, जैसे panda या @panda।",
     "letterReceivingNotFound": "इस खाते की पत्र प्राप्त करने की सेटिंग नहीं मिली। प्राप्तकर्ता जाँचें या उनसे dMsg की इनबॉक्स सेटिंग में पत्र प्राप्त करना चालू करने को कहें, फिर दोबारा कोशिश करें।",

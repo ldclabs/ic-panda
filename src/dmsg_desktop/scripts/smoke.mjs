@@ -38,7 +38,7 @@ import { languagesFlow } from './languages-flow.mjs'
 import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
 import { notificationsFixture } from './notifications-fixture.mjs'
-import { notificationBadgeFlow, notificationsFlow, remindersFlow, reminderReadFlow } from './notifications-flow.mjs'
+import { notificationBadgeFlow, notificationsFlow, remindersFlow, reminderReadFlow, reminderJourneyFlow } from './notifications-flow.mjs'
 import { accountsFlow } from './accounts-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { pairingFlow } from './pairing-flow.mjs'
@@ -2016,6 +2016,12 @@ smoke: try {
     await notificationBadgeFlow({ app, methods, emit, waitFor })
     assert.deepEqual(pageErrors, [])
     console.log('desktop notification badge smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'reminder-journey') {
+    await reminderJourneyFlow({ app, main, shots, methods, emit, waitFor, calls, model: notificationModel, account, other })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop reminder journey smoke test passed')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'reminder-read') {

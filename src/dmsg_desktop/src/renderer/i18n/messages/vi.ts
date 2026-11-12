@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Đồng bộ tạm dừng",
+    "reminderUnread": "Lời nhắc chưa đọc",
+    "reminderBack": "Quay lại lời nhắc",
+    "reminderAccountHint": "Chọn tài khoản tương ứng để tiếp tục. Tài khoản hiện tại vẫn được chọn cho đến khi bạn chọn tài khoản khác.",
+    "reminderReadAll": "Đánh dấu lời nhắc của mọi tài khoản là đã đọc",
+    "reminderEmpty": "Chưa có lời nhắc",
+    "reminderEmptyActions": "Không có việc cần xử lý",
+    "reminderEmptyHint": "Bạn có thể tìm lời nhắc trước đây trong mục Gần đây.",
+    "reminderConnectionTitle": "Cần khôi phục kết nối thông báo",
+    "reminderConnectionHint": "Thông báo hệ thống có thể đến chậm. Hãy kiểm tra cài đặt thông báo.",
+    "reminderOpening": "Đang mở lời nhắc…",
+    "reminderUnavailable": "Lời nhắc không khả dụng",
+    "reminderUnavailableHint": "Lời nhắc này không còn mở được mục gốc.",
+    "reminderOtherAccount": "Lời nhắc này thuộc tài khoản khác",
+    "reminderOpenFailed": "Không thể mở lời nhắc",
+    "reminderUnlockTitle": "Mở khóa để xem lời nhắc",
+    "reminderUnlockHint": "Lời nhắc được bảo vệ. Mở khóa để tiếp tục.",
+    "reminderExpired": "Yêu cầu này đã hết hạn",
+    "reminderForbidden": "Không thể truy cập",
+
     "letterHandleNotFound": "Không tìm thấy tên. Kiểm tra cách viết hoặc xin ID tài khoản của người nhận.",
     "letterRecipientInvalid": "Nhập ID tài khoản hoặc tên, ví dụ panda hoặc @panda.",
     "letterReceivingNotFound": "Không tìm thấy cài đặt nhận thư của tài khoản này. Kiểm tra người nhận hoặc nhờ họ bật nhận thư trong cài đặt hộp thư đến của dMsg, rồi thử lại.",

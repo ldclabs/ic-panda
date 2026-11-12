@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { reminderVisibility } from '../notification-visibility'
   import { onMount, untrack } from 'svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Confirm from '../components/Confirm.svelte'
@@ -36,6 +37,8 @@
   const dirty = $derived(!!preferences && (JSON.stringify(global) !== JSON.stringify(preferences.global) || JSON.stringify(account) !== JSON.stringify(preferences.account)))
   const pending = $derived(!!preferences?.global_pending_sync || (!!account && account.revision > account.remote_revision))
   const conflict = $derived(!!preferences?.global_conflict || !!preferences?.account_conflict)
+  const reportReminder = reminderVisibility(() => ({ status, ready: !!preferences && !loading && !error }), '[data-testid="notification-settings"]')
+  $effect(() => { void status; void preferences; void loading; void error; reportReminder() })
   const valid = (turn: number) => alive && generation === turn
   function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T }
 

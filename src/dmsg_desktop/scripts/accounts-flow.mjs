@@ -92,11 +92,13 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
   const switches = calls.filter(call => call.method === 'session/switch').length
   await go(`/reminders?account=${other}&item=${original.id}`)
   await main.getByTestId('reminders-original-account').waitFor()
-  await waitFor(async () => await main.getByTestId('reminder-item').count() === 1)
-  assert.equal(latest('notifications/list').params.account, account)
+  assert.equal(await main.getByTestId('reminder-item').count(), 0, 'a foreign reminder does not mix its gate with another account’s list')
   assert.equal(await main.getByTestId('reminders-account').count(), 0)
   assert.equal(calls.filter(call => call.method === 'session/switch').length, switches)
   assert.equal(calls.filter(call => call.method === 'approval/show' && call.params.id === otherApproval).length, 0)
+
+  await main.getByTestId('reminders-back').click()
+  await waitFor(async () => await main.getByTestId('reminder-item').count() === 1)
 
   // A response from the old workspace must not repaint the new account's list.
   const release = hold('notifications/list', params => params?.account === account)
@@ -113,7 +115,8 @@ export async function accountsFlow({ app, main, shots, methods, emit, hold, wait
   assert.equal(calls.filter(call => call.method === 'approval/show' && call.params.id === otherApproval).length, 0, 'switching accounts leaves the workspace locked')
   await main.getByTestId('reminders-scope').locator('[data-value="recent"]').focus()
   await main.keyboard.press('Space')
-  await main.getByRole('button', { name: 'Clear finished reminders', exact: true }).click()
+  await main.getByTestId('reminders-menu').click()
+  await main.getByRole('menuitem', { name: 'Clear finished reminders', exact: true }).click()
   await waitFor(() => latest('notifications/clear_recent')?.params.account === other)
 
   await switchTo(account)

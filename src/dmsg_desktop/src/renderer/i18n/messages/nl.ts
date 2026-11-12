@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Synchronisatie gepauzeerd",
+    "reminderUnread": "Ongelezen herinnering",
+    "reminderBack": "Terug naar herinneringen",
+    "reminderAccountHint": "Kies het bijbehorende account om door te gaan. Je huidige account blijft geselecteerd totdat je een ander kiest.",
+    "reminderReadAll": "Herinneringen van alle accounts als gelezen markeren",
+    "reminderEmpty": "Nog geen herinneringen",
+    "reminderEmptyActions": "Er is niets dat je aandacht nodig heeft",
+    "reminderEmptyHint": "Eerdere herinneringen vind je onder Recent.",
+    "reminderConnectionTitle": "De meldingsverbinding moet worden hersteld",
+    "reminderConnectionHint": "Systeemmeldingen kunnen vertraagd zijn. Controleer de meldingsinstellingen.",
+    "reminderOpening": "Herinnering openen…",
+    "reminderUnavailable": "Herinnering niet beschikbaar",
+    "reminderUnavailableHint": "Deze herinnering kan het oorspronkelijke item niet meer openen.",
+    "reminderOtherAccount": "Deze herinnering hoort bij een ander account",
+    "reminderOpenFailed": "Herinnering kan niet worden geopend",
+    "reminderUnlockTitle": "Ontgrendel om de herinnering te bekijken",
+    "reminderUnlockHint": "Je herinnering is beveiligd. Ontgrendel om verder te gaan.",
+    "reminderExpired": "Dit verzoek is verlopen",
+    "reminderForbidden": "Geen toegang",
+
     "letterHandleNotFound": "Naam niet gevonden. Controleer de spelling of vraag de ontvanger om de account-ID.",
     "letterRecipientInvalid": "Voer een account-ID of naam in, zoals panda of @panda.",
     "letterReceivingNotFound": "Geen ontvangstinstellingen gevonden voor dit account. Controleer de ontvanger of vraag deze om ontvangst in te schakelen in de inboxinstellingen van dMsg en probeer het opnieuw.",

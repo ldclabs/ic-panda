@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Sincronização pausada",
+    "reminderUnread": "Lembrete não lido",
+    "reminderBack": "Voltar aos lembretes",
+    "reminderAccountHint": "Escolha a conta correspondente para continuar. Sua conta atual ficará selecionada até você escolher outra.",
+    "reminderReadAll": "Marcar lembretes de todas as contas como lidos",
+    "reminderEmpty": "Ainda não há lembretes",
+    "reminderEmptyActions": "Não há nada pendente",
+    "reminderEmptyHint": "Você pode encontrar lembretes anteriores em Recentes.",
+    "reminderConnectionTitle": "A conexão de notificações precisa ser restaurada",
+    "reminderConnectionHint": "As notificações do sistema podem atrasar. Verifique as configurações de notificações.",
+    "reminderOpening": "Abrindo lembrete…",
+    "reminderUnavailable": "Lembrete indisponível",
+    "reminderUnavailableHint": "Este lembrete não pode mais abrir o item original.",
+    "reminderOtherAccount": "Este lembrete pertence a outra conta",
+    "reminderOpenFailed": "Não foi possível abrir o lembrete",
+    "reminderUnlockTitle": "Desbloqueie para ver o lembrete",
+    "reminderUnlockHint": "Seu lembrete está protegido. Desbloqueie para continuar de onde parou.",
+    "reminderExpired": "Esta solicitação expirou",
+    "reminderForbidden": "Acesso indisponível",
+
     "letterHandleNotFound": "Nome não encontrado. Confira a grafia ou peça ao destinatário o ID da conta.",
     "letterRecipientInvalid": "Digite um ID de conta ou nome, como panda ou @panda.",
     "letterReceivingNotFound": "Não foram encontradas configurações de recebimento para esta conta. Confira o destinatário ou peça que ative o recebimento nas configurações da caixa de entrada do dMsg e tente novamente.",

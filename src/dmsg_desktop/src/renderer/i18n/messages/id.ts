@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Sinkronisasi dijeda",
+    "reminderUnread": "Pengingat belum dibaca",
+    "reminderBack": "Kembali ke pengingat",
+    "reminderAccountHint": "Pilih akun terkait untuk melanjutkan. Akun saat ini tetap dipilih sampai Anda memilih akun lain.",
+    "reminderReadAll": "Tandai pengingat semua akun sebagai dibaca",
+    "reminderEmpty": "Belum ada pengingat",
+    "reminderEmptyActions": "Tidak ada yang perlu ditangani",
+    "reminderEmptyHint": "Pengingat sebelumnya dapat ditemukan di Terbaru.",
+    "reminderConnectionTitle": "Koneksi notifikasi perlu dipulihkan",
+    "reminderConnectionHint": "Notifikasi sistem mungkin terlambat. Periksa pengaturan notifikasi.",
+    "reminderOpening": "Membuka pengingat…",
+    "reminderUnavailable": "Pengingat tidak tersedia",
+    "reminderUnavailableHint": "Pengingat ini tidak lagi dapat membuka item aslinya.",
+    "reminderOtherAccount": "Pengingat ini milik akun lain",
+    "reminderOpenFailed": "Tidak dapat membuka pengingat",
+    "reminderUnlockTitle": "Buka kunci untuk melihat pengingat",
+    "reminderUnlockHint": "Pengingat Anda dilindungi. Buka kunci untuk melanjutkan.",
+    "reminderExpired": "Permintaan ini telah kedaluwarsa",
+    "reminderForbidden": "Akses tidak tersedia",
+
     "letterHandleNotFound": "Nama tidak ditemukan. Periksa ejaan atau minta ID akun penerima.",
     "letterRecipientInvalid": "Masukkan ID akun atau nama, seperti panda atau @panda.",
     "letterReceivingNotFound": "Pengaturan penerimaan akun ini tidak ditemukan. Periksa penerima atau minta mereka mengaktifkan penerimaan di pengaturan kotak masuk dMsg, lalu coba lagi.",

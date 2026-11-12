@@ -35,7 +35,7 @@
       tab = 'names'
       ask = { accept, name }
     } else if (isTab(part)) tab = part
-    go('/plan')
+    if (!params.has('reminder')) go('/plan')
   })
 
   const tabs = $derived([
@@ -53,7 +53,7 @@
     {:else}
       {#key status?.account}
         {#if tab === 'membership'}
-          <Membership />
+          <Membership {status} />
         {:else if tab === 'names'}
           <Names {status} {go} bind:ask />
         {:else}

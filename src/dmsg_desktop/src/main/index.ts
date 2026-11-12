@@ -88,6 +88,8 @@ let noticeLegacyAttempted = false
 let noticeActivation: string | null = null
 let noticeLastResult: 'submitted' | 'shown' | 'failed' | undefined
 let screenLocked = false
+// Only the version explicitly opened may be acknowledged by its visible destination.
+const noticeReads = new Map<number, { account: string; session: string; id: string; version: string }>()
 const noticeViewports = new Map<number, { id: string; version: string; stage: number }>()
 const noticeViewEpoch = new Map<number, number>()
 let pendingLink: string | null = null
@@ -177,6 +179,7 @@ function harden(window: BrowserWindow) {
     void refreshNotices()
   }
   const windowId = window.webContents.id
+  window.on('closed', () => { noticeReads.delete(windowId); noticeViewports.delete(windowId); noticeViewEpoch.delete(windowId) })
   window.on('blur', clearViewport)
   window.on('hide', clearViewport)
   window.on('minimize', clearViewport)
@@ -970,7 +973,7 @@ const nativeNotices = new Notifications({
     const window = [main, approval].find((window) => window && !window.isDestroyed() && window.isFocused() && window.isVisible())
     window?.webContents.send('dmsg:event', { type: 'notifications/present', data: plan })
   },
-  open: (plan) => openNotice(plan.account, plan.target, plan.covered.length === 1 ? plan.covered[0].id : undefined, true),
+  open: (plan) => openNotice(plan.account, plan.target, plan.covered.length === 1 ? plan.covered[0].id : undefined, true, plan.covered.length === 1 ? plan.covered[0].version : undefined),
   result: (plan, result) => {
     if (!plan.in_app && result !== 'suppressed') noticePlatformResult(result)
     return daemon.call('notifications/result', { account: plan.account, system_id: plan.system_id, delivery_id: plan.delivery_id, result })
@@ -984,9 +987,9 @@ function noticePlatformResult(result: 'submitted' | 'shown' | 'failed') {
   broadcast('dmsg:event', { type: 'notifications/platform' })
 }
 
-async function openNotice(account: string, target: NoticeTarget, id?: string, native = false) {
+async function openNotice(account: string, target: NoticeTarget, id?: string, native = false, version?: string) {
   if (!isNoticeAccount(account) || !isNoticeTarget(target)) throw new DaemonError('INVALID_INPUT', 'Notification target')
-  const entry = `/reminders?account=${account}${id ? `&item=${id}` : ''}`
+  const entry = `/reminders?account=${account}${id ? `&item=${id}` : ''}${version ? `&version=${version}` : ''}${target.kind === 'summary' && ['message', 'service'].includes(target.id) ? '&scope=recent' : ''}`
   const status = await daemon.call('daemon/status').catch(() => null) as { account?: string; state?: string; session?: string } | null
   if (!status) return showMain(entry)
   if (native) {
@@ -1011,13 +1014,22 @@ async function openNotice(account: string, target: NoticeTarget, id?: string, na
       case 'plan': await daemon.call('plan/status', { mode: 'fresh' }); break
     }
   } catch (error) {
-    if (error instanceof DaemonError && ['NOT_FOUND', 'FORBIDDEN', 'EXPIRED'].includes(error.code)) return showMain(`${entry}&ended=1`)
+    if (error instanceof DaemonError && ['NOT_FOUND', 'FORBIDDEN', 'EXPIRED'].includes(error.code)) return showMain(`${entry}&ended=1&reason=${error.code}`)
     // The original view can show its last trusted state and offer a retry offline.
   }
   const current = await daemon.call('daemon/status').catch(() => null) as { account?: string; state?: string; session?: string } | null
   if (!current || current.account !== account || current.state !== 'unlocked' || current.session !== status.session) return showMain(entry)
-  if (target.kind === 'approval') return showApproval(target.id)
-  showMain(target.kind === 'summary' ? `${noticeRoute(target)}&account=${account}` : noticeRoute(target))
+  if (target.kind === 'approval') showApproval(target.id)
+  else {
+    let route = noticeRoute(target)
+    if (target.kind === 'summary') route += `&account=${account}`
+    else if (id) route += `${route.includes('?') ? '&' : '?'}reminder=${id}`
+    showMain(route)
+  }
+  const window = target.kind === 'approval' ? approval : main
+  if (window && id && version && current.session) {
+    noticeReads.set(window.webContents.id, { account, session: current.session, id, version })
+  }
 }
 
 /** How often the main process looks for a returning connection; Electron has no event for it. */
@@ -1093,7 +1105,8 @@ handle('dmsg:notification-test', 'main', () => {
   if (!Notification.isSupported()) throw new DaemonError('UNSUPPORTED_PROTOCOL', 'System notifications')
   nativeNotices.test(notificationText(locale).noticeTest, noticePlatformResult)
 })
-handle('dmsg:notification-open', 'any', async (_event, account: string, id: string) => {
+handle('dmsg:notification-open', 'any', async (_event, account: string, id: string, version?: string) => {
+  if (version !== undefined && (!isNoticeSequence(version) || version === '0')) throw new DaemonError('INVALID_INPUT', 'Notification version')
   if (!isNoticeAccount(account)) throw new DaemonError('INVALID_INPUT', 'Notification identity')
   if (noticeCategories.includes(id as NoticeCategory)) {
     // Validate the original local account before opening its summary. This IPC
@@ -1105,7 +1118,8 @@ handle('dmsg:notification-open', 'any', async (_event, account: string, id: stri
   const list = await daemon.call('notifications/list', { account, id }) as { items: NoticeItem[] }
   const item = list.items.find((item) => item.id === id && item.account === account)
   if (!item) return showMain(`/reminders?account=${account}&ended=1`)
-  await openNotice(account, item.target, id)
+  if (version && BigInt(version) > BigInt(item.version)) throw new DaemonError('VERSION_CONFLICT', 'Notification version')
+  await openNotice(account, item.target, id, false, version ?? item.version)
 })
 handle('dmsg:notification-visible', 'any', async (event, value: NoticeVisibility | null) => {
   const sender = event.sender.id
@@ -1118,10 +1132,33 @@ handle('dmsg:notification-visible', 'any', async (event, value: NoticeVisibility
     || (value.id !== undefined && !isNoticeHash(value.id))
     || (value.target !== undefined && !isNoticeTarget(value.target))
     || (value.version !== undefined && !isNoticeSequence(value.version))
-    || (value.watermark !== undefined && !isNoticeSequence(value.watermark))) throw new DaemonError('INVALID_INPUT', 'Notification visibility')
+    || (value.watermark !== undefined && !isNoticeSequence(value.watermark))
+    || (value.acknowledgeOnly !== undefined && typeof value.acknowledgeOnly !== 'boolean')) throw new DaemonError('INVALID_INPUT', 'Notification visibility')
+  if (value.acknowledgeOnly) {
+    const opened = noticeReads.get(sender)
+    if (!opened || opened.id !== value.id || opened.account !== value.account || opened.session !== value.session) return false
+    const current = await daemon.call('daemon/status') as { account?: string; session?: string; state?: string }
+    if (noticeReads.get(sender) !== opened || current.account !== opened.account || current.session !== opened.session || current.state !== 'unlocked'
+      || noticeViewEpoch.get(sender) !== revision || window.isDestroyed() || !window.isFocused() || !window.isVisible() || screenLocked) return false
+    try {
+      await daemon.call('notifications/mark_read', { account: opened.account, id: opened.id, version: opened.version })
+      if (noticeReads.get(sender) === opened) noticeReads.delete(sender)
+      void refreshNotices()
+      return true
+    } catch { return false }
+  }
   const seen = await daemon.call('notifications/observed', value) as { id: string; version: string; stage: number }
-  if (noticeViewEpoch.get(sender) !== revision || window.isDestroyed() || !window.isFocused() || !window.isVisible()) return false
+  if (noticeViewEpoch.get(sender) !== revision || window.isDestroyed() || !window.isFocused() || !window.isVisible() || screenLocked) return false
   noticeViewports.set(sender, seen)
+  const opened = noticeReads.get(sender)
+  if (opened && opened.account === value.account && opened.session === value.session && opened.id === seen.id && BigInt(opened.version) <= BigInt(seen.version)) {
+    // Local acknowledgement is independent of business receipts and never blocks
+    // the loaded view. A newer reminder stays unread; a failed save can retry on focus.
+    try {
+      await daemon.call('notifications/mark_read', { account: opened.account, id: opened.id, version: opened.version })
+      if (noticeReads.get(sender) === opened) noticeReads.delete(sender)
+    } catch { /* Keep the original acknowledgement pending. */ }
+  }
   void refreshNotices()
   return true
 })
@@ -1320,6 +1357,7 @@ daemon.on('event', (event: DaemonEvent) => {
   if (['notifications/changed', 'session/changed', 'resync', 'sync/changed', 'sync/finished'].includes(event.type)) {
     noticeEpoch++
     if (event.type === 'session/changed' || event.type === 'resync') noticeViewports.clear()
+    if (event.type === 'session/changed') noticeReads.clear()
     void refreshNotices()
   }
 })

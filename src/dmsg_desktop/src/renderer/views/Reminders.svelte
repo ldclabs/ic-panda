@@ -1,20 +1,23 @@
 <script lang="ts">
+  import { DropdownMenu } from 'bits-ui'
   import { onMount, untrack } from 'svelte'
+  import { nameOf } from './channels/names.svelte'
   import Page from '../components/page/Page.svelte'
   import Notice from '../components/page/Notice.svelte'
-  import Pill from '../components/page/Pill.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
   import Segmented from '../components/Segmented.svelte'
   import Dialog from '../components/Dialog.svelte'
   import NoticeSetup from './NoticeSetup.svelte'
-  import { buttonClass } from '../components/ui'
-  import { call, errorText, single, when } from '../rpc'
-  import { t } from '../i18n/index.svelte'
-  import { nextStep } from '../shell/session'
+  import ReminderRow from './reminders/ReminderRow.svelte'
+  import { localeDir } from '../../shared/locales'
+  import { buttonClass, iconButtonClass, menuContentClass, menuItemClass } from '../components/ui'
+  import { call, errorText, single } from '../rpc'
+  import { locale, t } from '../i18n/index.svelte'
+  import { nextStep, openAccounts, unlocking } from '../shell/session'
   import { tomorrowMorning } from '../../shared/notification-time'
   import type { NoticeItem, NoticeStatus } from '../../shared/notifications'
-  import { category, icons, noNames, noticeNames, noticeTitle, noticeUnread } from './reminders/notice'
+  import { noNames, noticeNames, noticeUnread } from './reminders/notice'
 
   let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
   const selected = $derived<string>(status?.account ?? '')
@@ -27,11 +30,14 @@
   let loading = $state(true), busy = $state(false), error = $state('')
   let later = $state(false), laterItem = $state<NoticeItem | null>(null), laterNow = $state(0)
   let alive = true, generation = 0, opened = ''
+  let opening = $state(false), openingError = $state('')
   const context = $derived(`${status?.session ?? ''}:${selected}:${status?.state ?? ''}:${route}`)
   const query = $derived(new URLSearchParams(route.split('?')[1] ?? ''))
   const requestedAccount = $derived(query.get('account'))
   const wrongAccount = $derived(!!requestedAccount && requestedAccount !== selected)
   const step = $derived(nextStep(status))
+  const incoming = $derived(query.has('item') || query.has('ended') || wrongAccount)
+  const endedTitle = $derived(query.get('reason') === 'EXPIRED' ? t('reminderExpired') : query.get('reason') === 'FORBIDDEN' ? t('reminderForbidden') : t('reminderUnavailable'))
   const valid = (turn: number) => alive && generation === turn
 
   async function load(append = false) {
@@ -39,11 +45,11 @@
     loading = true
     error = ''
     try {
-      if (!account) { items = []; cursor = null; return }
+      if (!account || incoming) { items = []; cursor = null; return }
       const [page, counts, known] = await Promise.all([
         call<{ items: NoticeItem[]; next_cursor: string | null }>('notifications/list', { account, scope: filter, cursor: append ? cursor : null, limit: 50 }),
         call<NoticeStatus>('notifications/status'),
-        noticeNames()
+        status?.state === 'unlocked' ? noticeNames() : Promise.resolve(noNames())
       ])
       if (!valid(turn) || selected !== account || scope !== filter) return
       const previous = append ? items : []
@@ -64,6 +70,10 @@
       items = []
       cursor = null
       summary = null
+      names = noNames()
+      openingError = ''
+      opening = false
+      busy = false
       later = false
       laterItem = null
       void reload()
@@ -78,24 +88,25 @@
 
   async function open(item: NoticeItem) {
     const current = context
-    busy = true
-    try {
-      if (noticeUnread(item)) await call('notifications/mark_read', { account: item.account, id: item.id, version: item.version })
-      if (alive && context === current) await window.dmsg.notificationOpen(item.account, item.id)
-    }
-    catch (cause) { if (alive) error = errorText(cause) }
-    finally { if (alive) busy = false }
+    busy = true; error = ''
+    try { await window.dmsg.notificationOpen(item.account, item.id, item.version) }
+    catch (cause) { if (alive && context === current) error = errorText(cause) }
+    finally { if (alive && context === current) busy = false }
   }
 
-  // A notification that needed an account switch/unlock keeps its original ID.
-  // Reading this list itself never submits an observed/read receipt.
+  async function continueOpening() {
+    const id = query.get('item'), current = context
+    if (!id || wrongAccount || status?.state !== 'unlocked') return
+    opened = current; opening = true; openingError = ''
+    try { await window.dmsg.notificationOpen(selected, id, query.get('version') ?? undefined) }
+    catch (cause) { if (alive && context === current) openingError = errorText(cause) }
+    finally { if (alive && context === current) opening = false }
+  }
+
+  // Keep the original identity and displayed version across explicit account/unlock actions.
   $effect(() => {
-    const id = query.get('item')
-    if (!id || opened === id || query.has('ended') || requestedAccount !== selected || status?.state !== 'unlocked') return
-    untrack(() => {
-      opened = id
-      void window.dmsg.notificationOpen(selected, id).catch((cause) => { if (alive) error = errorText(cause) })
-    })
+    if (!query.has('item') || opened === context || query.has('ended') || wrongAccount || status?.state !== 'unlocked') return
+    untrack(() => void continueOpening())
   })
 
   async function clear() {
@@ -128,57 +139,64 @@
 </script>
 
 <Page testid="reminders-page">
-  <div class="grid gap-4">
-    <div class="flex flex-wrap items-center gap-2">
-      <Segmented bind:value={scope} options={[{value:'open',label:t('noticeNeedsAction')},{value:'recent',label:t('noticeRecent')}]} label={t('noticeTitle')} disabled={busy} testid="reminders-scope" />
-      <span class="min-w-0 flex-1"></span>
-      <button class={buttonClass('secondary', 'sm')} disabled={loading || busy || !(items.some(noticeUnread) || summary?.counts.actionable || summary?.counts.unread)} onclick={() => markRead()} data-testid="reminders-read-all">{t('noticeMarkAllRead')}</button>
-      <button class={buttonClass('ghost', 'sm')} disabled={loading || busy} onclick={() => reload()}>{t('refresh')}</button>
-      <button class={buttonClass('secondary', 'sm')} onclick={() => go('/settings/notifications')}>{t('noticeSettings')}</button>
-    </div>
-    <p class="text-[12.5px] text-muted">{t('noticeMarkReadHint')}</p>
-    <NoticeSetup {status} {go} />
-    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
-    {#if query.has('ended')}<Notice>{t('noticeEnded')}</Notice>{/if}
-    {#if wrongAccount && !query.has('ended')}
-      <div data-testid="reminders-original-account"><Notice icon="account">{t('noticeSwitch')} <Id id={requestedAccount!} /></Notice></div>
-    {/if}
-    {#if step}
-      <div><button class={buttonClass('secondary', 'sm')} onclick={step.run}><Icon name={step.icon} />{t(step.label)}</button></div>
-    {/if}
-    {#if counts?.unverified}
-      <div class="flex flex-wrap items-center gap-2 text-xs text-muted" role="status" data-testid="reminders-unverified">
-        <span>{t('noticeVerifyHint')}</span>
-        {#if scope === 'open'}<button class={buttonClass('ghost', 'xs')} onclick={() => { scope = 'recent' }}>{t('noticeRecent')}</button>{/if}
+  {#if incoming}
+    <section class="grid max-w-xl gap-5 py-4" aria-labelledby="reminder-state-title" data-testid="reminder-state">
+      <Icon name={query.has('ended') ? 'info' : wrongAccount ? 'account' : step ? 'lock' : 'bell'} class="size-6 text-muted" />
+      <h2 id="reminder-state-title" class="text-[17px] font-semibold text-ink [overflow-wrap:anywhere]">{query.has('ended') ? endedTitle : wrongAccount ? t('reminderOtherAccount') : step ? t('reminderUnlockTitle') : openingError ? t('reminderOpenFailed') : t('reminderOpening')}</h2>
+      <p class="text-[13.5px] leading-relaxed text-muted">{query.has('ended') ? t('reminderUnavailableHint') : wrongAccount ? t('reminderAccountHint') : step ? t('reminderUnlockHint') : ''}</p>
+      {#if wrongAccount && !query.has('ended')}
+        <div class="flex flex-wrap items-center gap-2" data-testid="reminders-original-account">{#if nameOf(requestedAccount!, false)}<span class="font-medium">{nameOf(requestedAccount!, false)}</span>{/if}<Id id={requestedAccount!} /></div>
+        <div><button class={buttonClass('primary')} disabled={$unlocking} onclick={openAccounts} data-testid="reminders-choose-account"><Icon name="account" />{t('localAccounts')}</button></div>
+      {:else if step && !query.has('ended')}
+        <div><button class={buttonClass('primary')} disabled={$unlocking} onclick={step.run} data-testid="reminders-unlock"><Icon name={step.icon} />{t(step.label)}</button></div>
+      {:else if !query.has('ended')}
+        {#if openingError}<Notice tone="danger">{openingError}</Notice>{/if}
+        {#if opening}<p role="status" class="text-muted">{t('loading')}</p>
+        {:else}<div><button class={buttonClass('primary')} onclick={continueOpening} data-testid="reminders-retry">{t('retry')}</button></div>{/if}
+      {/if}
+      <div><button class={buttonClass('ghost')} onclick={() => go('/reminders')} data-testid="reminders-back">{t('reminderBack')}</button></div>
+    </section>
+  {:else}
+    <div class="grid gap-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <Segmented bind:value={scope} options={[{value:'open',label:t('noticeNeedsAction')},{value:'recent',label:t('noticeRecent')}]} label={t('noticeTitle')} disabled={busy} testid="reminders-scope" />
+        <span class="min-w-0 flex-1"></span>
+        <button class={iconButtonClass()} title={t('refresh')} aria-label={t('refresh')} disabled={loading || busy} onclick={() => reload()}><Icon name="sync-now" /></button>
+        <DropdownMenu.Root dir={localeDir(locale())}>
+          <DropdownMenu.Trigger class={iconButtonClass()} aria-label={t('moreActions')} title={t('moreActions')} data-testid="reminders-menu"><Icon name="more" /></DropdownMenu.Trigger>
+          <DropdownMenu.Portal><DropdownMenu.Content class={`${menuContentClass} max-w-80`}>
+            <DropdownMenu.Item class={`${menuItemClass} whitespace-normal`} disabled={loading || busy || !(items.some(noticeUnread) || summary?.counts.actionable || summary?.counts.unread)} onSelect={() => markRead()} data-testid="reminders-read-all">{t('reminderReadAll')}</DropdownMenu.Item>
+            <p class="px-3 py-2 text-xs text-muted">{t('noticeMarkReadHint')}</p>
+            <DropdownMenu.Separator class="my-1 h-px bg-line" />
+            <DropdownMenu.Item class={menuItemClass} onSelect={() => go('/settings/notifications')}>{t('noticeSettings')}</DropdownMenu.Item>
+            {#if scope === 'recent'}<DropdownMenu.Item class={menuItemClass} disabled={busy || !selected} onSelect={clear}>{t('noticeClear')}</DropdownMenu.Item>{/if}
+          </DropdownMenu.Content></DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
-    {/if}
-    <ul class="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface" data-testid="reminders-list">
-      {#each items as item (item.id)}
-        <li class="flex items-start gap-2 pe-3 transition-colors duration-100 hover:bg-wash" data-testid="reminder-item">
-          <button class="flex min-w-0 flex-1 items-start gap-3 p-3 text-start outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-focus/35" disabled={busy} onclick={() => open(item)} data-testid="reminder-open">
-            <Icon name={icons[category(item)]} class="mt-0.5 size-5 shrink-0 text-forest" />
-            <span class="grid min-w-0 flex-1 gap-1">
-              <span class="text-[13.5px] font-medium [overflow-wrap:anywhere]">{noticeTitle(item, names)}</span>
-              <span class="text-xs text-muted">{when(item.updated_at)}{#if item.deadline} · {t('validUntil')} {when(item.deadline)}{/if}</span>
-              {#if item.snoozed_until}<span class="text-xs text-muted">{t('noticeLater')} · {when(item.snoozed_until)}</span>{/if}
-              {#if !noticeUnread(item)}<span class="text-xs text-muted" data-testid="reminder-read-state">{t('noticeRead')}</span>
-              {:else if item.unread && category(item) === 'message'}<span><Pill>{item.unread.toLocaleString()} · {t('noticeMessages')}</Pill></span>{/if}
-            </span>
-          </button>
-          <div class="mt-3 flex max-w-[42%] shrink-0 flex-wrap justify-end gap-1">
-            {#if noticeUnread(item)}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => markRead(item)} data-testid="reminder-read">{t('markRead')}</button>{/if}
-            {#if item.open && item.actionable}<button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => { laterItem = item; laterNow = Date.now(); later = true }}>{t('noticeLater')}</button>{/if}
-          </div>
-        </li>
-      {:else}
-        <li class="px-5 py-10 text-center text-sm text-muted" role="status">{loading ? t('loading') : t('noticeEmpty')}</li>
-      {/each}
-    </ul>
-    <div class="flex flex-wrap gap-2 empty:hidden">
-      {#if cursor}<button class={buttonClass('secondary', 'sm')} disabled={loading || busy} onclick={() => load(true)}>{t('more')}</button>{/if}
-      {#if scope === 'recent'}<button class={buttonClass('ghost', 'sm')} disabled={busy || !selected} onclick={clear}>{t('noticeClear')}</button>{/if}
+      {#if error}<Notice failure={error} tone="danger">{error}</Notice><div><button class={buttonClass('secondary','sm')} disabled={loading || busy} onclick={() => reload()}>{t('retry')}</button></div>{/if}
+      {#if step}<Notice icon="lock">{t('reminderUnlockHint')}{#snippet action()}<button class={buttonClass('secondary','sm')} disabled={$unlocking} onclick={step.run}>{t(step.label)}</button>{/snippet}</Notice>{/if}
+      {#if counts?.unverified}<div class="flex flex-wrap items-center gap-2 text-xs text-muted" role="status" data-testid="reminders-unverified"><span>{t('noticeVerifyHint')}</span>{#if scope === 'open'}<button class={buttonClass('ghost','xs')} onclick={() => scope = 'recent'}>{t('noticeRecent')}</button>{/if}</div>{/if}
+      <ul class="divide-y divide-line" data-testid="reminders-list">
+        {#each items as item (item.id)}
+          <li class="flex items-start gap-1 rounded-lg pe-1 transition-colors duration-100 hover:bg-wash" data-testid="reminder-item">
+            <button class="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-3 text-start outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-focus/35" disabled={busy} onclick={() => open(item)} data-testid="reminder-open"><ReminderRow {item} {names} /></button>
+            <DropdownMenu.Root dir={localeDir(locale())}>
+              <DropdownMenu.Trigger class={iconButtonClass('ghost','md','mt-2 shrink-0')} aria-label={t('moreActions')} title={t('moreActions')} data-testid="reminder-menu"><Icon name="more" /></DropdownMenu.Trigger>
+              <DropdownMenu.Portal><DropdownMenu.Content class={menuContentClass}>
+                {#if noticeUnread(item)}<DropdownMenu.Item class={menuItemClass} disabled={busy} onSelect={() => markRead(item)} data-testid="reminder-read">{t('markRead')}</DropdownMenu.Item>{/if}
+                <DropdownMenu.Item class={menuItemClass} disabled={busy} onSelect={() => open(item)}>{t('open')}</DropdownMenu.Item>
+                {#if item.open && item.actionable}<DropdownMenu.Item class={menuItemClass} disabled={busy} onSelect={() => { laterItem = item; laterNow = Date.now(); later = true }}>{t('noticeLater')}</DropdownMenu.Item>{/if}
+              </DropdownMenu.Content></DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </li>
+        {:else}
+          {#if !error}<li class="grid justify-items-center gap-2 px-5 py-12 text-center" role="status"><Icon name="bell" class="size-6 text-faint" /><span class="text-[14px] font-medium">{loading ? t('loading') : counts?.unverified ? t('noticeVerifyHint') : scope === 'open' ? t('reminderEmptyActions') : t('reminderEmpty')}</span>{#if !loading && !counts?.unverified && scope === 'open'}<span class="text-[12.5px] text-muted">{t('reminderEmptyHint')}</span>{/if}</li>{/if}
+        {/each}
+      </ul>
+      {#if cursor}<div><button class={buttonClass('secondary','sm')} disabled={loading || busy} onclick={() => load(true)}>{t('more')}</button></div>{/if}
+      <NoticeSetup {status} {go} />
     </div>
-  </div>
+  {/if}
 </Page>
 
 <Dialog bind:open={later} title={t('noticeLater')} icon="bell" dismissible={!busy} testid="reminder-snooze">

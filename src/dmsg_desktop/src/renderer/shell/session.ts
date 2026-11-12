@@ -33,6 +33,9 @@ let offered = false
 
 /** Shared by automatic unlock, the locked view and the account menu. */
 export const unlocking = writable(false)
+/** Route a request to the one account menu, including when the rail is collapsed. */
+export const accountMenuRequested = writable(false)
+export const openAccounts = () => accountMenuRequested.set(true)
 let opening: Promise<void> | null = null
 
 function openOnce(work: () => Promise<unknown>): Promise<void> {

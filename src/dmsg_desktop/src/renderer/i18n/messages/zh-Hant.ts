@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "同步已暫停",
+    "reminderUnread": "未讀提醒",
+    "reminderBack": "返回提醒",
+    "reminderAccountHint": "選擇提醒所屬的帳戶以繼續。在你選擇之前，目前帳戶不會改變。",
+    "reminderReadAll": "將所有帳戶的提醒標為已讀",
+    "reminderEmpty": "暫無提醒",
+    "reminderEmptyActions": "目前沒有需要處理的事項",
+    "reminderEmptyHint": "你仍可在「近期提醒」中查看之前的提醒。",
+    "reminderConnectionTitle": "通知連線需要恢復",
+    "reminderConnectionHint": "系統通知可能延遲，請檢查通知設定。",
+    "reminderOpening": "正在開啟提醒…",
+    "reminderUnavailable": "提醒無法使用",
+    "reminderUnavailableHint": "這則提醒已無法開啟原事項。",
+    "reminderOtherAccount": "這則提醒屬於另一個帳戶",
+    "reminderOpenFailed": "暫時無法開啟提醒",
+    "reminderUnlockTitle": "解鎖後查看提醒",
+    "reminderUnlockHint": "提醒內容已受到保護。解鎖後將繼續開啟。",
+    "reminderExpired": "請求已過期",
+    "reminderForbidden": "無法存取",
+
     "letterHandleNotFound": "未找到這個 handle。請檢查拼寫，或向對方索取帳戶 ID。",
     "letterRecipientInvalid": "請輸入帳戶 ID 或 handle，例如 panda 或 @panda。",
     "letterReceivingNotFound": "未找到此帳戶的收信設定。請核對收件人；若帳戶正確，請對方在 dMsg 的收件匣設定中開啟收信，再重試。",

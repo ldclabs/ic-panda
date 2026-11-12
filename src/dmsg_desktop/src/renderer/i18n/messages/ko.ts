@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "동기화 일시 중지됨",
+    "reminderUnread": "읽지 않은 알림",
+    "reminderBack": "알림으로 돌아가기",
+    "reminderAccountHint": "계속하려면 해당 계정을 선택하세요. 다른 계정을 선택하기 전까지 현재 계정이 유지됩니다.",
+    "reminderReadAll": "모든 계정의 알림을 읽음으로 표시",
+    "reminderEmpty": "아직 알림이 없습니다",
+    "reminderEmptyActions": "처리할 사항이 없습니다",
+    "reminderEmptyHint": "이전 알림은 최근 알림에서 확인할 수 있습니다.",
+    "reminderConnectionTitle": "알림 연결을 복구해야 합니다",
+    "reminderConnectionHint": "시스템 알림이 지연될 수 있습니다. 알림 설정을 확인하세요.",
+    "reminderOpening": "알림 여는 중…",
+    "reminderUnavailable": "알림을 사용할 수 없음",
+    "reminderUnavailableHint": "이 알림으로는 더 이상 원래 항목을 열 수 없습니다.",
+    "reminderOtherAccount": "이 알림은 다른 계정의 것입니다",
+    "reminderOpenFailed": "알림을 열 수 없음",
+    "reminderUnlockTitle": "잠금을 해제하여 알림 보기",
+    "reminderUnlockHint": "알림이 보호되어 있습니다. 잠금을 해제하면 이어서 열립니다.",
+    "reminderExpired": "이 요청은 만료되었습니다.",
+    "reminderForbidden": "접근할 수 없음",
+
     "letterHandleNotFound": "이름을 찾을 수 없습니다. 철자를 확인하거나 상대방에게 계정 ID를 요청하세요.",
     "letterRecipientInvalid": "계정 ID나 이름을 입력하세요. 예: panda 또는 @panda.",
     "letterReceivingNotFound": "이 계정의 수신 설정을 찾을 수 없습니다. 받는 사람을 확인하거나 상대방에게 dMsg 수신함 설정에서 수신을 켜 달라고 요청한 후 다시 시도하세요.",

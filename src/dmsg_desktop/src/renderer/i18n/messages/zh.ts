@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "reminderSyncTitle": "同步已暂停",
+    "reminderUnread": "未读提醒",
+    "reminderBack": "返回提醒",
+    "reminderAccountHint": "选择提醒所属的账户以继续。在你选择之前，当前账户不会改变。",
+    "reminderReadAll": "将所有账户的提醒标为已读",
+    "reminderEmpty": "暂无提醒",
+    "reminderEmptyActions": "暂时没有需要处理的事项",
+    "reminderEmptyHint": "你仍可在「近期提醒」中查看之前的提醒。",
+    "reminderConnectionTitle": "通知连接需要恢复",
+    "reminderConnectionHint": "系统通知可能延迟，请检查通知设置。",
+    "reminderOpening": "正在打开提醒…",
+    "reminderUnavailable": "提醒不可用",
+    "reminderUnavailableHint": "这条提醒已无法打开原事项。",
+    "reminderOtherAccount": "这条提醒属于另一个账户",
+    "reminderOpenFailed": "暂时无法打开提醒",
+    "reminderUnlockTitle": "解锁后查看提醒",
+    "reminderUnlockHint": "提醒内容已受到保护。解锁后将继续打开。",
+    "reminderExpired": "请求已过期",
+    "reminderForbidden": "无法访问",
+
     "letterHandleNotFound": "未找到这个 handle。请检查拼写，或向对方索取账户 ID。",
     "letterRecipientInvalid": "请输入账户 ID 或 handle，例如 panda 或 @panda。",
     "letterReceivingNotFound": "未找到该账户的收信设置。请核对收件人；若账户正确，请对方在 dMsg 的收件箱设置中开启收信，再重试。",

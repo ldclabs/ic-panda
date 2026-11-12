@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Eşitleme duraklatıldı",
+    "reminderUnread": "Okunmamış hatırlatıcı",
+    "reminderBack": "Hatırlatıcılara dön",
+    "reminderAccountHint": "Devam etmek için ilgili hesabı seçin. Başka bir hesap seçene kadar mevcut hesabınız seçili kalır.",
+    "reminderReadAll": "Tüm hesapların hatırlatıcılarını okundu olarak işaretle",
+    "reminderEmpty": "Henüz hatırlatıcı yok",
+    "reminderEmptyActions": "İlgilenmeniz gereken bir şey yok",
+    "reminderEmptyHint": "Önceki hatırlatıcıları Son hatırlatıcılar bölümünde bulabilirsiniz.",
+    "reminderConnectionTitle": "Bildirim bağlantısının düzeltilmesi gerekiyor",
+    "reminderConnectionHint": "Sistem bildirimleri gecikebilir. Bildirim ayarlarını kontrol edin.",
+    "reminderOpening": "Hatırlatıcı açılıyor…",
+    "reminderUnavailable": "Hatırlatıcı kullanılamıyor",
+    "reminderUnavailableHint": "Bu hatırlatıcı artık asıl öğeyi açamıyor.",
+    "reminderOtherAccount": "Bu hatırlatıcı başka bir hesaba ait",
+    "reminderOpenFailed": "Hatırlatıcı açılamadı",
+    "reminderUnlockTitle": "Hatırlatıcıyı görmek için kilidi açın",
+    "reminderUnlockHint": "Hatırlatıcınız korunuyor. Kaldığınız yerden devam etmek için kilidi açın.",
+    "reminderExpired": "Bu isteğin süresi doldu",
+    "reminderForbidden": "Erişim kullanılamıyor",
+
     "letterHandleNotFound": "Kullanıcı adı bulunamadı. Yazımı kontrol edin veya alıcıdan hesap kimliğini isteyin.",
     "letterRecipientInvalid": "Panda veya @panda gibi bir kullanıcı adı ya da hesap kimliği girin.",
     "letterReceivingNotFound": "Bu hesabın alım ayarları bulunamadı. Alıcıyı kontrol edin veya dMsg gelen kutusu ayarlarından alımı etkinleştirmesini isteyin, ardından yeniden deneyin.",

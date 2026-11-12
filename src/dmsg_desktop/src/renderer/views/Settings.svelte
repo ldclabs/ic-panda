@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { reminderVisibility } from '../notification-visibility'
   import { syncState } from '../sync-state'
   import { onMount, untrack } from 'svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
@@ -43,7 +44,7 @@
    */
   let { status, refresh, route, go }: { status: any; refresh: () => Promise<void>; route: string; go: (path: string) => void } = $props()
 
-  const part = $derived<SettingsPage>(settingsPages.find((p) => route === `/settings/${p.value}`)?.value ?? 'session')
+  const part = $derived<SettingsPage>(settingsPages.find((p) => route.split('?')[0] === `/settings/${p.value}`)?.value ?? 'session')
 
   let account = $state<any>(null)
   /** Null while the device cannot sign for them: locked without a resident key. */
@@ -66,6 +67,8 @@
   let lastPart: SettingsPage | undefined
   let errors = $state<Record<string, string>>({})
   let loaded = $state<Record<string, boolean>>({})
+  const reportReminder = reminderVisibility(() => ({ status, ready: part === 'session' && !!loaded.account && !errors.account }), '[data-testid="settings-sync"]')
+  $effect(() => { void status; void route; void loaded.account; void errors.account; reportReminder() })
   const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
   const current = (turn: number) => alive && generation === turn
 

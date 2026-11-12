@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "সিঙ্ক বিরতিতে আছে",
+    "reminderUnread": "অপঠিত রিমাইন্ডার",
+    "reminderBack": "রিমাইন্ডারে ফিরুন",
+    "reminderAccountHint": "চালিয়ে যেতে সংশ্লিষ্ট অ্যাকাউন্ট বেছে নিন। অন্য অ্যাকাউন্ট বেছে না নেওয়া পর্যন্ত বর্তমান অ্যাকাউন্ট নির্বাচিত থাকবে।",
+    "reminderReadAll": "সব অ্যাকাউন্টের রিমাইন্ডার পঠিত হিসেবে চিহ্নিত করুন",
+    "reminderEmpty": "এখনও কোনো রিমাইন্ডার নেই",
+    "reminderEmptyActions": "এখন কোনো কাজ বাকি নেই",
+    "reminderEmptyHint": "আগের রিমাইন্ডার সাম্প্রতিক রিমাইন্ডারে পাবেন।",
+    "reminderConnectionTitle": "বিজ্ঞপ্তির সংযোগ পুনরুদ্ধার করতে হবে",
+    "reminderConnectionHint": "সিস্টেমের বিজ্ঞপ্তি দেরিতে আসতে পারে। বিজ্ঞপ্তির সেটিংস পরীক্ষা করুন।",
+    "reminderOpening": "রিমাইন্ডার খোলা হচ্ছে…",
+    "reminderUnavailable": "রিমাইন্ডার উপলব্ধ নয়",
+    "reminderUnavailableHint": "এই রিমাইন্ডার আর মূল আইটেম খুলতে পারবে না।",
+    "reminderOtherAccount": "এই রিমাইন্ডার অন্য অ্যাকাউন্টের",
+    "reminderOpenFailed": "রিমাইন্ডার খোলা যায়নি",
+    "reminderUnlockTitle": "রিমাইন্ডার দেখতে আনলক করুন",
+    "reminderUnlockHint": "আপনার রিমাইন্ডার সুরক্ষিত। যেখানে থেমেছিলেন সেখান থেকে চালিয়ে যেতে আনলক করুন।",
+    "reminderExpired": "এই অনুরোধ মেয়াদ শেষ হয়েছে",
+    "reminderForbidden": "অ্যাক্সেস উপলব্ধ নয়",
+
     "letterHandleNotFound": "নামটি পাওয়া যায়নি। বানান যাচাই করুন বা প্রাপকের কাছে অ্যাকাউন্ট ID চান।",
     "letterRecipientInvalid": "অ্যাকাউন্ট ID বা নাম লিখুন, যেমন panda বা @panda।",
     "letterReceivingNotFound": "এই অ্যাকাউন্টের চিঠি গ্রহণের সেটিংস পাওয়া যায়নি। প্রাপক যাচাই করুন অথবা তাঁকে dMsg-এর ইনবক্স সেটিংসে চিঠি গ্রহণ চালু করতে বলুন, তারপর আবার চেষ্টা করুন।",

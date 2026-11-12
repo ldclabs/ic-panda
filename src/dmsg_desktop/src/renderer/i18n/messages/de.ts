@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Synchronisierung pausiert",
+    "reminderUnread": "Ungelesene Erinnerung",
+    "reminderBack": "Zurück zu Erinnerungen",
+    "reminderAccountHint": "Wähle das zugehörige Konto, um fortzufahren. Dein aktuelles Konto bleibt ausgewählt, bis du ein anderes auswählst.",
+    "reminderReadAll": "Erinnerungen aller Konten als gelesen markieren",
+    "reminderEmpty": "Noch keine Erinnerungen",
+    "reminderEmptyActions": "Es gibt nichts zu erledigen",
+    "reminderEmptyHint": "Frühere Erinnerungen findest du unter „Letzte Erinnerungen“.",
+    "reminderConnectionTitle": "Mitteilungsverbindung muss wiederhergestellt werden",
+    "reminderConnectionHint": "Systemmitteilungen können verspätet eintreffen. Prüfe die Mitteilungseinstellungen.",
+    "reminderOpening": "Erinnerung wird geöffnet…",
+    "reminderUnavailable": "Erinnerung nicht verfügbar",
+    "reminderUnavailableHint": "Diese Erinnerung kann den ursprünglichen Eintrag nicht mehr öffnen.",
+    "reminderOtherAccount": "Diese Erinnerung gehört zu einem anderen Konto",
+    "reminderOpenFailed": "Erinnerung kann nicht geöffnet werden",
+    "reminderUnlockTitle": "Entsperren, um die Erinnerung anzusehen",
+    "reminderUnlockHint": "Deine Erinnerung ist geschützt. Entsperre, um fortzufahren.",
+    "reminderExpired": "Diese Anfrage ist abgelaufen",
+    "reminderForbidden": "Zugriff nicht verfügbar",
+
     "letterHandleNotFound": "Name nicht gefunden. Prüfe die Schreibweise oder bitte den Empfänger um seine Konto-ID.",
     "letterRecipientInvalid": "Gib eine Konto-ID oder einen Namen ein, zum Beispiel panda oder @panda.",
     "letterReceivingNotFound": "Für dieses Konto wurden keine Empfangseinstellungen gefunden. Prüfe den Empfänger oder bitte ihn, den Empfang in den Posteingangseinstellungen von dMsg zu aktivieren. Versuche es danach erneut.",

@@ -41,6 +41,8 @@ export interface AppUpdates {
 }
 
 export interface NoticeVisibility {
+  /** Loaded settings/plan destination: local acknowledgement only, never a business observation. */
+  acknowledgeOnly?: boolean
   account: string
   session: string
   target?: NoticeTarget
@@ -67,7 +69,7 @@ export interface DesktopBridge {
   /** A generic, silent local test; no business counters or watermarks change. */
   notificationTest(): Promise<void>
   /** Open an item or category summary under its original local account. */
-  notificationOpen(account: string, id: string): Promise<void>
+  notificationOpen(account: string, id: string, version?: string): Promise<void>
   /** Report only loaded, actually visible business data; null clears this window's context. */
   notificationVisible(value: NoticeVisibility | null): Promise<boolean>
   /** Which window this is: the main window or the approval window. */

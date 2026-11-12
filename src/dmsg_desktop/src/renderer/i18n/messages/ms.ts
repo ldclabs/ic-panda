@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Penyegerakan dijeda",
+    "reminderUnread": "Peringatan belum dibaca",
+    "reminderBack": "Kembali ke peringatan",
+    "reminderAccountHint": "Pilih akaun yang berkaitan untuk meneruskan. Akaun semasa kekal dipilih sehingga anda memilih akaun lain.",
+    "reminderReadAll": "Tandakan peringatan semua akaun sebagai dibaca",
+    "reminderEmpty": "Belum ada peringatan",
+    "reminderEmptyActions": "Tiada perkara yang perlu diuruskan",
+    "reminderEmptyHint": "Anda boleh mencari peringatan terdahulu dalam Terkini.",
+    "reminderConnectionTitle": "Sambungan pemberitahuan perlu dipulihkan",
+    "reminderConnectionHint": "Pemberitahuan sistem mungkin lewat. Semak tetapan pemberitahuan.",
+    "reminderOpening": "Membuka peringatan…",
+    "reminderUnavailable": "Peringatan tidak tersedia",
+    "reminderUnavailableHint": "Peringatan ini tidak lagi boleh membuka item asal.",
+    "reminderOtherAccount": "Peringatan ini milik akaun lain",
+    "reminderOpenFailed": "Tidak dapat membuka peringatan",
+    "reminderUnlockTitle": "Buka kunci untuk melihat peringatan",
+    "reminderUnlockHint": "Peringatan anda dilindungi. Buka kunci untuk meneruskan.",
+    "reminderExpired": "Permintaan ini telah tamat tempoh",
+    "reminderForbidden": "Akses tidak tersedia",
+
     "letterHandleNotFound": "Nama tidak ditemui. Semak ejaan atau minta ID akaun penerima.",
     "letterRecipientInvalid": "Masukkan ID akaun atau nama, seperti panda atau @panda.",
     "letterReceivingNotFound": "Tetapan penerimaan akaun ini tidak ditemui. Semak penerima atau minta mereka mengaktifkan penerimaan dalam tetapan peti masuk dMsg, kemudian cuba lagi.",

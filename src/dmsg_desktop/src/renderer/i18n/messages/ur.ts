@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "ہم وقت سازی موقوف ہے",
+    "reminderUnread": "ان پڑھی یاد دہانی",
+    "reminderBack": "یاد دہانیوں پر واپس جائیں",
+    "reminderAccountHint": "جاری رکھنے کے لیے متعلقہ اکاؤنٹ منتخب کریں۔ دوسرا اکاؤنٹ منتخب کرنے تک موجودہ اکاؤنٹ منتخب رہے گا۔",
+    "reminderReadAll": "تمام اکاؤنٹس کی یاد دہانیوں کو پڑھا ہوا نشان زد کریں",
+    "reminderEmpty": "ابھی کوئی یاد دہانی نہیں",
+    "reminderEmptyActions": "فی الحال کسی کارروائی کی ضرورت نہیں",
+    "reminderEmptyHint": "پچھلی یاد دہانیاں حالیہ یاد دہانیوں میں مل سکتی ہیں۔",
+    "reminderConnectionTitle": "اطلاعات کا رابطہ بحال کرنے کی ضرورت ہے",
+    "reminderConnectionHint": "سسٹم کی اطلاعات میں تاخیر ہو سکتی ہے۔ اطلاعات کی ترتیبات دیکھیں۔",
+    "reminderOpening": "یاد دہانی کھل رہی ہے…",
+    "reminderUnavailable": "یاد دہانی دستیاب نہیں",
+    "reminderUnavailableHint": "یہ یاد دہانی اب اصل آئٹم نہیں کھول سکتی۔",
+    "reminderOtherAccount": "یہ یاد دہانی دوسرے اکاؤنٹ کی ہے",
+    "reminderOpenFailed": "یاد دہانی نہیں کھل سکی",
+    "reminderUnlockTitle": "یاد دہانی دیکھنے کے لیے ان لاک کریں",
+    "reminderUnlockHint": "آپ کی یاد دہانی محفوظ ہے۔ جہاں رکے تھے وہاں سے جاری رکھنے کے لیے ان لاک کریں۔",
+    "reminderExpired": "اس درخواست کی میعاد ختم ہو چکی ہے",
+    "reminderForbidden": "رسائی دستیاب نہیں",
+
     "letterHandleNotFound": "نام نہیں ملا۔ ہجے چیک کریں یا وصول کنندہ سے اکاؤنٹ ID مانگیں۔",
     "letterRecipientInvalid": "اکاؤنٹ ID یا نام درج کریں، جیسے panda یا @panda۔",
     "letterReceivingNotFound": "اس اکاؤنٹ کی وصولی کی ترتیبات نہیں ملیں۔ وصول کنندہ چیک کریں یا ان سے dMsg کی ان باکس ترتیبات میں وصولی فعال کرنے کو کہیں، پھر دوبارہ کوشش کریں۔",

@@ -19,7 +19,7 @@ const api: DesktopBridge = {
   notificationPermission: () => unwrap(ipcRenderer.invoke('dmsg:notification-permission')),
   notificationSettings: () => unwrap(ipcRenderer.invoke('dmsg:notification-settings')),
   notificationTest: () => unwrap(ipcRenderer.invoke('dmsg:notification-test')),
-  notificationOpen: (account, id) => unwrap(ipcRenderer.invoke('dmsg:notification-open', account, id)),
+  notificationOpen: (account, id, version) => unwrap(ipcRenderer.invoke('dmsg:notification-open', account, id, version)),
   notificationVisible: (value) => unwrap(ipcRenderer.invoke('dmsg:notification-visible', value)),
   role,
   platform: process.platform,

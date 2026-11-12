@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "同期を一時停止中",
+    "reminderUnread": "未読のリマインダー",
+    "reminderBack": "リマインダーに戻る",
+    "reminderAccountHint": "続行するには対象のアカウントを選択してください。別のアカウントを選ぶまで、現在のアカウントは変更されません。",
+    "reminderReadAll": "すべてのアカウントのリマインダーを既読にする",
+    "reminderEmpty": "リマインダーはまだありません",
+    "reminderEmptyActions": "対応が必要な項目はありません",
+    "reminderEmptyHint": "過去のリマインダーは「最近のリマインダー」で確認できます。",
+    "reminderConnectionTitle": "通知の接続を復旧する必要があります",
+    "reminderConnectionHint": "システム通知が遅れる場合があります。通知設定を確認してください。",
+    "reminderOpening": "リマインダーを開いています…",
+    "reminderUnavailable": "リマインダーを利用できません",
+    "reminderUnavailableHint": "このリマインダーから元の項目を開くことはできなくなりました。",
+    "reminderOtherAccount": "このリマインダーは別のアカウントのものです",
+    "reminderOpenFailed": "リマインダーを開けません",
+    "reminderUnlockTitle": "ロックを解除してリマインダーを表示",
+    "reminderUnlockHint": "リマインダーは保護されています。ロックを解除すると続行します。",
+    "reminderExpired": "このリクエストは期限切れです",
+    "reminderForbidden": "アクセスできません",
+
     "letterHandleNotFound": "名前が見つかりません。つづりを確認するか、相手にアカウント ID を尋ねてください。",
     "letterRecipientInvalid": "アカウント ID または名前を入力してください（例：panda、@panda）。",
     "letterReceivingNotFound": "このアカウントの受信設定が見つかりません。宛先を確認するか、相手に dMsg の受信箱設定で受信を有効にしてもらい、再試行してください。",

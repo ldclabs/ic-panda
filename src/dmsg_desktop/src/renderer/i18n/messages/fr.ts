@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "reminderSyncTitle": "Synchronisation en pause",
+    "reminderUnread": "Rappel non lu",
+    "reminderBack": "Retour aux rappels",
+    "reminderAccountHint": "Choisissez le compte associé pour continuer. Votre compte actuel reste sélectionné tant que vous n’en choisissez pas un autre.",
+    "reminderReadAll": "Marquer les rappels de tous les comptes comme lus",
+    "reminderEmpty": "Aucun rappel pour le moment",
+    "reminderEmptyActions": "Rien ne nécessite votre attention",
+    "reminderEmptyHint": "Retrouvez les rappels précédents dans les rappels récents.",
+    "reminderConnectionTitle": "La connexion aux notifications doit être rétablie",
+    "reminderConnectionHint": "Les notifications système peuvent être retardées. Vérifiez les réglages des notifications.",
+    "reminderOpening": "Ouverture du rappel…",
+    "reminderUnavailable": "Rappel indisponible",
+    "reminderUnavailableHint": "Ce rappel ne peut plus ouvrir l’élément d’origine.",
+    "reminderOtherAccount": "Ce rappel appartient à un autre compte",
+    "reminderOpenFailed": "Impossible d’ouvrir le rappel",
+    "reminderUnlockTitle": "Déverrouillez pour consulter le rappel",
+    "reminderUnlockHint": "Votre rappel est protégé. Déverrouillez pour reprendre là où vous en étiez.",
+    "reminderExpired": "Cette demande a expiré",
+    "reminderForbidden": "Accès indisponible",
+
     "letterHandleNotFound": "Nom introuvable. Vérifiez l’orthographe ou demandez au destinataire son identifiant de compte.",
     "letterRecipientInvalid": "Saisissez un identifiant de compte ou un nom, par exemple panda ou @panda.",
     "letterReceivingNotFound": "Aucun paramètre de réception trouvé pour ce compte. Vérifiez le destinataire ou demandez-lui d’activer la réception dans les paramètres de boîte de réception de dMsg, puis réessayez.",

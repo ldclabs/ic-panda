@@ -5,6 +5,26 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+    "reminderSyncTitle": "Sync paused",
+    "reminderUnread": "Unread reminder",
+    "reminderBack": "Back to reminders",
+    "reminderAccountHint": "Choose its account to continue. Your current account will stay selected until you choose another.",
+    "reminderReadAll": "Mark reminders for all accounts as read",
+    "reminderEmpty": "No reminders yet",
+    "reminderEmptyActions": "Nothing needs your attention",
+    "reminderEmptyHint": "You can find past reminders in Recent.",
+    "reminderConnectionTitle": "Notification connection needs attention",
+    "reminderConnectionHint": "System notifications may be delayed. Check notification settings.",
+    "reminderOpening": "Opening reminder…",
+    "reminderUnavailable": "Reminder unavailable",
+    "reminderUnavailableHint": "This reminder can no longer open its original item.",
+    "reminderOtherAccount": "This reminder belongs to another account",
+    "reminderOpenFailed": "Unable to open reminder",
+    "reminderUnlockTitle": "Unlock to view reminder",
+    "reminderUnlockHint": "Your reminder is protected. Unlock to continue where you left off.",
+    "reminderExpired": "This request has expired",
+    "reminderForbidden": "Access unavailable",
+
     "letterHandleNotFound": "Handle not found. Check the spelling or ask the recipient for their account ID.",
     "letterRecipientInvalid": "Enter an account ID or handle, such as panda or @panda.",
     "letterReceivingNotFound": "Receiving settings were not found for this account. Check the recipient, or ask them to enable receiving in dMsg’s Inbox settings, then retry.",

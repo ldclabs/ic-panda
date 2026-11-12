@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "reminderSyncTitle": "Sincronización en pausa",
+    "reminderUnread": "Recordatorio sin leer",
+    "reminderBack": "Volver a los recordatorios",
+    "reminderAccountHint": "Elige la cuenta correspondiente para continuar. Tu cuenta actual seguirá seleccionada hasta que elijas otra.",
+    "reminderReadAll": "Marcar los recordatorios de todas las cuentas como leídos",
+    "reminderEmpty": "Aún no hay recordatorios",
+    "reminderEmptyActions": "No hay nada pendiente",
+    "reminderEmptyHint": "Puedes encontrar los recordatorios anteriores en Recientes.",
+    "reminderConnectionTitle": "Es necesario restablecer la conexión de notificaciones",
+    "reminderConnectionHint": "Las notificaciones del sistema pueden retrasarse. Revisa los ajustes de notificaciones.",
+    "reminderOpening": "Abriendo recordatorio…",
+    "reminderUnavailable": "Recordatorio no disponible",
+    "reminderUnavailableHint": "Este recordatorio ya no puede abrir el elemento original.",
+    "reminderOtherAccount": "Este recordatorio pertenece a otra cuenta",
+    "reminderOpenFailed": "No se puede abrir el recordatorio",
+    "reminderUnlockTitle": "Desbloquea para ver el recordatorio",
+    "reminderUnlockHint": "Tu recordatorio está protegido. Desbloquea para continuar donde lo dejaste.",
+    "reminderExpired": "Esta solicitud ha caducado",
+    "reminderForbidden": "Acceso no disponible",
+
     "letterHandleNotFound": "No se encontró el nombre. Revisa la escritura o pide al destinatario su ID de cuenta.",
     "letterRecipientInvalid": "Introduce un ID de cuenta o un nombre, como panda o @panda.",
     "letterReceivingNotFound": "No se encontró la configuración de recepción de esta cuenta. Comprueba el destinatario o pídele que active la recepción en los ajustes de la bandeja de entrada de dMsg y vuelve a intentarlo.",

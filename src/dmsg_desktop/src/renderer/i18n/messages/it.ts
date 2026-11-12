@@ -3,6 +3,26 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "reminderSyncTitle": "Sincronizzazione in pausa",
+    "reminderUnread": "Promemoria non letto",
+    "reminderBack": "Torna ai promemoria",
+    "reminderAccountHint": "Scegli l’account associato per continuare. L’account attuale rimane selezionato finché non ne scegli un altro.",
+    "reminderReadAll": "Segna i promemoria di tutti gli account come letti",
+    "reminderEmpty": "Ancora nessun promemoria",
+    "reminderEmptyActions": "Non c’è nulla da gestire",
+    "reminderEmptyHint": "Puoi trovare i promemoria precedenti in Recenti.",
+    "reminderConnectionTitle": "La connessione delle notifiche richiede attenzione",
+    "reminderConnectionHint": "Le notifiche di sistema potrebbero arrivare in ritardo. Controlla le impostazioni delle notifiche.",
+    "reminderOpening": "Apertura del promemoria…",
+    "reminderUnavailable": "Promemoria non disponibile",
+    "reminderUnavailableHint": "Questo promemoria non può più aprire l’elemento originale.",
+    "reminderOtherAccount": "Questo promemoria appartiene a un altro account",
+    "reminderOpenFailed": "Impossibile aprire il promemoria",
+    "reminderUnlockTitle": "Sblocca per visualizzare il promemoria",
+    "reminderUnlockHint": "Il promemoria è protetto. Sblocca per riprendere da dove eri rimasto.",
+    "reminderExpired": "Questa richiesta è scaduta",
+    "reminderForbidden": "Accesso non disponibile",
+
     "letterHandleNotFound": "Nome non trovato. Controlla l’ortografia o chiedi al destinatario il suo ID account.",
     "letterRecipientInvalid": "Inserisci un ID account o un nome, come panda o @panda.",
     "letterReceivingNotFound": "Impostazioni di ricezione non trovate per questo account. Controlla il destinatario o chiedigli di attivare la ricezione nelle impostazioni della posta in arrivo di dMsg, poi riprova.",
