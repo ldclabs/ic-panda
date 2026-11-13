@@ -230,6 +230,28 @@ impl LinkRecord {
         command
     }
 
+    /// The sealed management intent that other devices restore and recover
+    /// the link from. Released clients parse its record strictly, so the
+    /// record keeps its anonymous shape and the profile choice travels beside it.
+    pub(super) fn intent(&self, key_wrap: Option<&str>) -> Value {
+        let record = LinkRecord {
+            show_profile: false,
+            ..self.clone()
+        };
+        let mut intent = json!({"kind": "link", "record": record, "key_wrap": key_wrap});
+        if self.show_profile {
+            intent["show_profile"] = true.into();
+        }
+        intent
+    }
+
+    /// The record of a sealed `link` or `secret_link` intent.
+    pub(super) fn from_intent(intent: &Value) -> Result<Self> {
+        let mut record = Self::from_value(intent["record"].clone())?;
+        record.show_profile = intent["show_profile"] == true;
+        Ok(record)
+    }
+
     /// Read local records and decrypted cloud management with the same source
     /// rules. File links written before snapshots stored `file`/`version` at
     /// the top level; their keys, limits and observation history stay intact.
@@ -607,7 +629,7 @@ async fn publish_link<H: Hold>(
     };
     plan.management = Some(h.with(|c| c.seal_management(&plan, &json!({
         "name":manifest.name,"source_file":manifest.id,"source_version":manifest.version,"plain_bytes":manifest.size,
-        "intent":{"kind":"link","record":link,"key_wrap":key_wrap}
+        "intent":link.intent(key_wrap.as_deref())
     }))).await?);
     h.with(|c| {
         c.workspace.put_private(

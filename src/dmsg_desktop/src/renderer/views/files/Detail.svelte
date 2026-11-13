@@ -383,7 +383,7 @@
           <li class="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12px]">
             <Icon name="link" class="shrink-0 text-faint" />
             <span class="min-w-0 flex-1">
-              <span class="block truncate">{link.state === 'active' ? t('linkStateActive') : link.state === 'revoked' ? t('linkStateRevoked') : t('linkStateExpired')} · {t('linkDownloads', { n: link.downloads })}{link.max_downloads ? ` / ${link.max_downloads}` : ''}{link.password ? ` · ${t('linkPassword')}` : ''}</span>
+              <span class="block truncate">{link.state === 'active' ? t('linkStateActive') : link.state === 'revoked' ? t('linkStateRevoked') : t('linkStateExpired')} · {t('linkDownloads', { n: link.downloads })}{link.max_downloads ? ` / ${link.max_downloads}` : ''}{link.password ? ` · ${t('linkPassword')}` : ''}{link.show_profile ? ` · ${t('publicProfile')}` : ''}</span>
               <span class="block truncate text-[11px] text-faint">{t('linkExpires', { time: when(link.expires_at) })}</span>
             </span>
             {#if link.url && link.state === 'active'}

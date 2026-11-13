@@ -4,7 +4,7 @@ import type { Catalog } from './en'
 export default {
   messages: {
   "linkShowProfile": "显示我的公开资料",
-  "linkShowProfileHint": "持有此链接的人可以查看你的公开资料，无需先输入密码。",
+  "linkShowProfileHint": "持有此链接的人可以查看你的公开资料，无需先输入口令。",
   "globalShortcuts": "全局快捷键",
   "globalShortcutsHint": "dMsg 运行时，可在其他应用中使用这些快捷键。",
   "shortcutOpen": "打开 dMsg",

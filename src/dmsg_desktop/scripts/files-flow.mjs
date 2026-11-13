@@ -7,7 +7,7 @@ export async function filesFlow({ app, main, shots, methods, hold, waitFor, call
   const original = methods['files/share_links']
   const originalRevoke = methods['files/share_revoke']
   let failRead = false, failRevoke = false
-  let entries = [{ share_id: '73'.repeat(32), file: '99'.repeat(32), name: 'Shared report from a deleted source.pdf', size: 2048, url: 'https://dmsg.test/s/example#test-key', state: 'active', downloads: 2, expires_at: Date.now() + 86400000 }]
+  let entries = [{ share_id: '73'.repeat(32), file: '99'.repeat(32), name: 'Shared report from a deleted source.pdf', size: 2048, url: 'https://dmsg.test/s/example#test-key', state: 'active', downloads: 2, expires_at: Date.now() + 86400000, show_profile: true }]
   methods['files/share_links'] = p => {
     if (p.refresh && failRead) throw { code: 'INVALID_INPUT', message: 'Fixture link refresh failure' }
     return structuredClone(entries)
@@ -28,6 +28,8 @@ export async function filesFlow({ app, main, shots, methods, hold, waitFor, call
   await main.getByTestId('links-copy').waitFor()
   await waitFor(() => main.getByTestId('links-refresh').isEnabled())
   assert.ok(calls.some(call => call.method === 'files/share_links' && call.params.refresh))
+  // The irreversible profile choice stays visible to the owner.
+  assert.match(await main.getByTestId('link-state').innerText(), /Public profile/)
   // Library changes, such as a background backup slice, re-read saved links without reaching the relay.
   const linkReads = refresh => calls.filter(call => call.method === 'files/share_links' && !!call.params?.refresh === refresh).length
   const [savedReads, relayReads] = [linkReads(false), linkReads(true)]

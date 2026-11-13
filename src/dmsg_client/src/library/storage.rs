@@ -161,8 +161,7 @@ fn decorate(c: &mut Client, item: &mut Value, kind: &str, resource: &str) -> Res
                 metadata["intent"]["kind"].as_str(),
                 Some("link" | "secret_link")
             ) {
-                let mut record =
-                    super::link::LinkRecord::from_value(metadata["intent"]["record"].clone())?;
+                let mut record = super::link::LinkRecord::from_intent(&metadata["intent"])?;
                 if !item["share"].is_null() {
                     record.revoked_at = item["share"]["revoked_at"].as_u64();
                     c.save_link(&record)?;
@@ -600,7 +599,7 @@ async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
             target.owner_kind == "account",
             Error::InvalidInput("link target must be an account".into()),
         )?;
-        let record = super::link::LinkRecord::from_value(metadata["intent"]["record"].clone())?;
+        let record = super::link::LinkRecord::from_intent(&metadata["intent"])?;
         ensure(record.upload_id == target.upload_id, Error::IntegrityFailed)?;
         let existing = super::link::share_links_remote(h).await?;
         if existing.iter().any(|link| link.share_id == record.share_id) {
@@ -768,12 +767,15 @@ mod tests {
             item_revision: "09".repeat(32),
             snapshot_id: "0a".repeat(32),
         };
-        for (record, expected, kind) in [
-            (old, &file, "link"),
-            (json!(file), &file, "link"),
-            (json!(snapshot), &snapshot, "secret_link"),
+        let mut shown = file.clone();
+        shown.show_profile = true;
+        for (intent, expected) in [
+            (json!({"kind":"link","record":old}), &file),
+            (file.intent(None), &file),
+            (shown.intent(None), &shown),
+            (json!({"kind":"secret_link","record":snapshot}), &snapshot),
         ] {
-            let metadata = json!({"intent":{"kind":kind,"record":record}});
+            let metadata = json!({ "intent": intent });
             let sealed = client.seal_management(&plan, &metadata).unwrap();
             let mut item = json!({
                 "upload_id":plan.upload_id, "object_id":plan.object_id,
@@ -791,6 +793,7 @@ mod tests {
             assert_eq!(json!(records[0]), json!(expected));
             let links = client.files_share_links().unwrap();
             assert_eq!(links[0].source.as_ref(), Some(&expected.source));
+            assert_eq!(links[0].show_profile, expected.show_profile);
             assert_eq!(links[0].state, "revoked");
         }
     }

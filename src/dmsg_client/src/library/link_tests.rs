@@ -454,16 +454,18 @@ fn sharing_a_profile_is_explicit_and_survives_recovery() {
     assert!(!record.show_profile);
     assert!(!LinkTerms::default().show_profile);
     assert!(record.create_command(None).get("show_profile").is_none());
-    assert!(
-        serde_json::to_value(&record)
-            .unwrap()
-            .get("show_profile")
-            .is_none()
-    );
+    let anonymous = serde_json::to_value(&record).unwrap();
+    assert!(anonymous.get("show_profile").is_none());
+    assert!(record.intent(None).get("show_profile").is_none());
 
     record.show_profile = true;
-    let restored = LinkRecord::from_value(serde_json::to_value(&record).unwrap()).unwrap();
-    let command = restored.create_command(Some("wrapped-key"));
+    // Released clients read the sealed record strictly: its shape stays anonymous.
+    let intent = record.intent(Some("wrapped-key"));
+    assert_eq!(intent["record"], anonymous);
+    assert_eq!(intent["show_profile"], true);
+    let restored = LinkRecord::from_intent(&intent).unwrap();
+    assert!(restored.show_profile);
+    let command = restored.create_command(intent["key_wrap"].as_str());
     assert_eq!(command["show_profile"], true);
     assert_eq!(command["share_id"], record.share_id);
     assert_eq!(command["key_wrap"], "wrapped-key");

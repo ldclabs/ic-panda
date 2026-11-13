@@ -88,7 +88,7 @@
             <Icon name="link" class="shrink-0 text-faint" />
             <div class="min-w-0 basis-48 flex-1">
               {#if link.name}<p class="break-words text-[13px] font-medium"><bdi dir="auto">{link.name}</bdi></p>{:else}<Id id={link.share_id} />{/if}
-              <p class="mt-0.5 text-[11.5px] text-faint" data-testid="link-state">{t(states[link.state] ?? 'linkStateActive')} · {t('linkDownloads', { n: link.downloads ?? 0 })}{#if link.size != null} · {size(link.size)}{/if}</p>
+              <p class="mt-0.5 text-[11.5px] text-faint" data-testid="link-state">{t(states[link.state] ?? 'linkStateActive')} · {t('linkDownloads', { n: link.downloads ?? 0 })}{link.size != null ? ` · ${size(link.size)}` : ''}{link.show_profile ? ` · ${t('publicProfile')}` : ''}</p>
               <p class="mt-0.5 text-[11.5px] text-faint">{t('linkExpires', { time: when(link.expires_at) })}</p>
             </div>
             <div class="flex flex-wrap gap-1">

@@ -156,6 +156,7 @@ struct FileLinkDetailView: View {
                 LabeledContent("Downloads", value: shown.downloadsText)
                 LabeledContent("Expires") { Text(fileDate(shown.expiresAt), format: .dateTime) }
                 if shown.password { Label("Password protected", systemImage: "lock") }
+                if shown.showProfile == true { Label("Public profile", systemImage: "person.crop.circle") }
             }
             Section {
                 if shown.active {

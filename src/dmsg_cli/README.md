@@ -345,7 +345,7 @@ dmsg files verify <id> | verify --all | versions <id> | version-use <id> <versio
 dmsg files rm <id>... | restore <id>... | purge [<id>...] | usage | local-only
 dmsg files share <channel> <id> [--version V] [text] | save <channel> <seq> [--to <folder>]
 dmsg files backup <id|folder>... [--all-versions] | backup-status | backup-cancel <id> <version>
-dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | link <upload> [--days 7] [--max-downloads N] [--password] | rm <upload>... | verify <upload> | usage
+dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | link <upload> [--days 7] [--max-downloads N] [--password] [--show-profile] | rm <upload>... | verify <upload> | usage
 dmsg files evict <id> [--version V]
 dmsg files link <id> [--version V] [--days 7] [--max-downloads N] [--password] [--show-profile] | links [--refresh] | link-revoke <share_id>
 dmsg files request create --title T [--instructions I] [--label L] [--days 14] [--max-total-mib N] | ls [--refresh] | revoke <request>

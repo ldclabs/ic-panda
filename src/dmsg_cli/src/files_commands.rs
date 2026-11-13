@@ -1215,6 +1215,12 @@ fn link_line(l: &Value) -> String {
             ));
         }
     }
+    if l["show_profile"] == true {
+        line.push_str(&tr!(
+            "\n(the link page shows your public profile, even before a password)",
+            "\n（链接页面会显示你的公开资料，输入口令前也可见）"
+        ));
+    }
     line
 }
 
