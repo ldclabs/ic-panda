@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Pintasan global",
+  "globalShortcutsHint": "Gunakan daripada aplikasi lain semasa dMsg berjalan.",
+  "shortcutOpen": "Buka dMsg",
+  "shortcutLock": "Kunci dMsg",
+  "shortcutRecordHint": "Klik kemudian tekan pintasan. Esc membatalkan; Backspace menyahaktifkan.",
+  "shortcutRecording": "Tekan pintasan…",
+  "shortcutInvalid": "Gunakan ⌘/Ctrl atau Alt bersama kekunci lain.",
+  "shortcutDuplicate": "Pilih pintasan berbeza untuk setiap tindakan.",
+  "shortcutUnavailable": "Pintasan ini tidak dapat didaftarkan. Mungkin sedang digunakan; pilih gabungan lain.",
+  "shortcutDefaults": "Pulihkan lalai",
+  "shortcutLockFailed": "dMsg tidak dapat dikunci. Semak perkhidmatan latar belakang dan cuba lagi.",
     "recoveryLimitsHint": "Pemulihan menggunakan log masuk terikat anda dan tempoh menunggu. Peranti yang dibenarkan boleh membatalkan permintaan pemulihan. Kandungan tempatan yang tidak disegerakkan tidak boleh dipulihkan.",
     "productCategory": "Ruang kerja peribadi untuk era AI.",
     "productSummary": "Lindungi kata laluan, nota dan fail dengan penyulitan hujung ke hujung. Segerakkan peti besi anda merentasi peranti, kongsi fail dengan selamat dan kawal akses ejen AI.",

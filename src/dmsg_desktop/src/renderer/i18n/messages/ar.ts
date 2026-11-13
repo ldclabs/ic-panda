@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "globalShortcuts": "اختصارات عامة",
+  "globalShortcutsHint": "استخدمها من تطبيقات أخرى ما دام dMsg قيد التشغيل.",
+  "shortcutOpen": "فتح dMsg",
+  "shortcutLock": "قفل dMsg",
+  "shortcutRecordHint": "انقر ثم اضغط الاختصار. Esc للإلغاء وBackspace للتعطيل.",
+  "shortcutRecording": "اضغط الاختصار…",
+  "shortcutInvalid": "استخدم ⌘/Ctrl أو Alt مع مفتاح آخر.",
+  "shortcutDuplicate": "اختر اختصارًا مختلفًا لكل إجراء.",
+  "shortcutUnavailable": "تعذر تسجيل هذا الاختصار. قد يكون مستخدمًا؛ اختر مجموعة أخرى.",
+  "shortcutDefaults": "استعادة الإعدادات الافتراضية",
+  "shortcutLockFailed": "تعذر قفل dMsg. تحقق من الخدمة في الخلفية وحاول مجددًا.",
     "recoveryLimitsHint": "يعتمد الاسترداد على هوية الدخول المرتبطة وفترة انتظار. يمكن لجهاز مفوّض إلغاء طلب الاسترداد. لا يمكن استرداد المحتوى المحلي غير المتزامن.",
     "productCategory": "مساحة عمل خاصة لعصر الذكاء الاصطناعي.",
     "productSummary": "احمِ كلمات المرور والملاحظات والملفات بالتشفير من طرف إلى طرف. زامن خزنتك عبر الأجهزة، وشارك الملفات بأمان، وتحكّم في وصول وكلاء الذكاء الاصطناعي.",

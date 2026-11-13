@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Skróty globalne",
+  "globalShortcutsHint": "Korzystaj z nich w innych aplikacjach, gdy dMsg jest uruchomiony.",
+  "shortcutOpen": "Otwórz dMsg",
+  "shortcutLock": "Zablokuj dMsg",
+  "shortcutRecordHint": "Kliknij i naciśnij skrót. Esc anuluje, a Backspace wyłącza.",
+  "shortcutRecording": "Naciśnij skrót…",
+  "shortcutInvalid": "Użyj ⌘/Ctrl lub Alt z innym klawiszem.",
+  "shortcutDuplicate": "Wybierz inny skrót dla każdej czynności.",
+  "shortcutUnavailable": "Nie udało się zarejestrować skrótu. Może być zajęty; wybierz inną kombinację.",
+  "shortcutDefaults": "Przywróć domyślne",
+  "shortcutLockFailed": "Nie udało się zablokować dMsg. Sprawdź usługę w tle i spróbuj ponownie.",
     "recoveryLimitsHint": "Odzyskiwanie korzysta z powiązanego loginu i okresu oczekiwania. Autoryzowane urządzenie może anulować wniosek o odzyskanie. Nie można odzyskać niezsynchronizowanej zawartości lokalnej.",
     "productCategory": "Prywatna przestrzeń robocza na erę AI.",
     "productSummary": "Chroń hasła, notatki i pliki dzięki szyfrowaniu end-to-end. Synchronizuj sejf między urządzeniami, bezpiecznie udostępniaj pliki i kontroluj dostęp agentów AI.",

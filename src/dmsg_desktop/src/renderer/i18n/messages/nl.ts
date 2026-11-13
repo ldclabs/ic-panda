@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Globale sneltoetsen",
+  "globalShortcutsHint": "Gebruik deze vanuit andere apps terwijl dMsg actief is.",
+  "shortcutOpen": "dMsg openen",
+  "shortcutLock": "dMsg vergrendelen",
+  "shortcutRecordHint": "Klik en druk op de sneltoets. Esc annuleert; Backspace schakelt deze uit.",
+  "shortcutRecording": "Druk op een sneltoets…",
+  "shortcutInvalid": "Gebruik ⌘/Ctrl of Alt met een andere toets.",
+  "shortcutDuplicate": "Kies voor elke actie een andere sneltoets.",
+  "shortcutUnavailable": "Deze sneltoets kon niet worden geregistreerd. Hij is mogelijk in gebruik; kies een andere combinatie.",
+  "shortcutDefaults": "Standaardwaarden herstellen",
+  "shortcutLockFailed": "dMsg kon niet worden vergrendeld. Controleer de achtergrondservice en probeer opnieuw.",
     "recoveryLimitsHint": "Recovery maakt gebruik van je gebonden login en een wachtperiode. Een geautoriseerd apparaat kan het herstelverzoek annuleren. Niet-gesynchroniseerde lokale inhoud kan niet worden hersteld.",
     "productCategory": "Een privéwerkruimte voor het AI-tijdperk.",
     "productSummary": "Bescherm wachtwoorden, notities en bestanden met end-to-endversleuteling. Synchroniseer je kluis tussen apparaten, deel bestanden veilig en bepaal welke toegang AI-agents krijgen.",

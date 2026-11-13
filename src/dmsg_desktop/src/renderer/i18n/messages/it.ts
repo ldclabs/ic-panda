@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Scorciatoie globali",
+  "globalShortcutsHint": "Usale da altre app mentre dMsg è in esecuzione.",
+  "shortcutOpen": "Apri dMsg",
+  "shortcutLock": "Blocca dMsg",
+  "shortcutRecordHint": "Fai clic e premi la scorciatoia. Esc annulla; Backspace la disattiva.",
+  "shortcutRecording": "Premi una scorciatoia…",
+  "shortcutInvalid": "Usa ⌘/Ctrl o Alt insieme a un altro tasto.",
+  "shortcutDuplicate": "Scegli una scorciatoia diversa per ogni azione.",
+  "shortcutUnavailable": "Impossibile registrare questa scorciatoia. Potrebbe essere in uso; scegli un’altra combinazione.",
+  "shortcutDefaults": "Ripristina predefiniti",
+  "shortcutLockFailed": "Impossibile bloccare dMsg. Controlla il servizio in background e riprova.",
     "recoveryLimitsHint": "Il ripristino utilizza l'accesso associato e un periodo di attesa. Un dispositivo autorizzato può annullare la richiesta di recupero. Il contenuto locale non sincronizzato non può essere recuperato.",
     "productCategory": "Uno spazio di lavoro privato per l’era dell’AI.",
     "productSummary": "Proteggi password, note e file con la crittografia end-to-end. Sincronizza il caveau tra i dispositivi, condividi file in modo sicuro e controlla l’accesso degli agenti AI.",

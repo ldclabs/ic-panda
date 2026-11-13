@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "전역 단축키",
+  "globalShortcutsHint": "dMsg가 실행 중이면 다른 앱에서도 사용할 수 있습니다.",
+  "shortcutOpen": "dMsg 열기",
+  "shortcutLock": "dMsg 잠금",
+  "shortcutRecordHint": "클릭한 뒤 단축키를 누르세요. Esc는 취소, Backspace는 사용 안 함입니다.",
+  "shortcutRecording": "단축키를 누르세요…",
+  "shortcutInvalid": "⌘/Ctrl 또는 Alt와 다른 키를 함께 누르세요.",
+  "shortcutDuplicate": "각 동작에 다른 단축키를 지정하세요.",
+  "shortcutUnavailable": "이 단축키를 등록할 수 없습니다. 사용 중일 수 있으니 다른 조합을 선택하세요.",
+  "shortcutDefaults": "기본값 복원",
+  "shortcutLockFailed": "dMsg를 잠글 수 없습니다. 백그라운드 서비스를 확인하고 다시 시도하세요.",
     "recoveryLimitsHint": "복구에는 바인딩된 로그인과 대기 기간이 사용됩니다. 승인된 장치는 복구 요청을 취소할 수 있습니다. 동기화되지 않은 로컬 콘텐츠는 복구할 수 없습니다.",
     "productCategory": "AI 시대의 프라이빗 워크스페이스.",
     "productSummary": "비밀번호, 메모, 파일을 종단 간 암호화로 보호하세요. 금고를 기기 간에 동기화하고, 파일을 안전하게 공유하고, AI 에이전트의 접근을 제어할 수 있습니다.",

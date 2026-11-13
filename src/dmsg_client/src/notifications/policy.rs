@@ -164,7 +164,7 @@ pub fn evaluate(item: &Item, settings: &Settings, runtime: &Runtime, ctx: &Conte
     if !item.open
         || item.read_version >= item.version
         || (category == Category::Message && item.unread == Some(0) && !item.unverified)
-        || (category == Category::Action && item.deadline.is_some_and(|at| at <= now))
+        || item.expired(now)
     {
         return Decision::Remove;
     }

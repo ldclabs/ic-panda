@@ -650,5 +650,16 @@ daemon applies from `preferences.json`, and the screen lock or sleep, on by
 default, which only the main process can hear. The approval window closes by
 itself two seconds after its last request is decided.
 
+**Global shortcuts.** Settings → Keyboard shortcuts records the keys that open
+or lock dMsg while it is running, including from another app. Defaults are
+Command/Ctrl + Shift + Space to open and Command/Ctrl + Shift + L to lock.
+Opening restores the current view; locking uses the daemon without opening a
+hidden window. `ShortcutInput` uses `TextField` with a persistent label and
+instructions: Escape cancels, Tab leaves the field, Backspace disables the
+binding. Recording suspends this app’s global shortcuts; losing focus, leaving
+the page or closing the window resumes them. Conflicts and failed local saves
+retain the working bindings and the editable draft. Settings and the shortcut
+help display the actual saved bindings; app-local Command/Ctrl + L still locks.
+
 **Secrets.** Credential use, sharing and maintenance are workflows of the vault
 (`/vault/<workflow>`), and Approvals decides requests only.

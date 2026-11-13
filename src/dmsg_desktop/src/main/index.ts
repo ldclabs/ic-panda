@@ -13,6 +13,7 @@ import {
   clipboard,
   ClipboardItem,
   dialog,
+  globalShortcut,
   ipcMain,
   Menu,
   nativeImage,
@@ -28,7 +29,7 @@ import {
   type IpcMainInvokeEvent
 } from 'electron'
 import { readFileSync, rmSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { isAppearance, type Appearance } from '../shared/appearance'
@@ -51,6 +52,8 @@ import { boundsOnScreen, isViewRoute, readDesktopState, type DesktopState } from
 import { trayVariant } from './tray-state'
 import { Updates } from './updater'
 import { handleBrokenOutput } from './stdio'
+import { Shortcuts } from './shortcuts'
+import { defaultShortcuts, validBindings } from '../shared/shortcuts'
 
 handleBrokenOutput(process.stdout)
 handleBrokenOutput(process.stderr)
@@ -171,6 +174,13 @@ function harden(window: BrowserWindow) {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
   window.webContents.on('context-menu', (_event, params) => textMenu(window, params))
+  // A recorder cannot leave global keys suspended after losing its window.
+  const resumeShortcuts = () => { if (window === main) globalShortcut.setSuspended(false) }
+  window.on('blur', resumeShortcuts)
+  window.on('hide', resumeShortcuts)
+  window.on('closed', resumeShortcuts)
+  window.webContents.on('did-start-navigation', resumeShortcuts)
+  window.webContents.on('render-process-gone', resumeShortcuts)
   const clearViewport = () => {
     const id = windowId
     noticeViewports.delete(id)
@@ -922,6 +932,45 @@ handle('dmsg:quit', 'any', () => {
 /** What only this app's windows and system integration know. */
 const desktopSettings = () => ({ lock_on_screen_lock: desktop.lockOnScreenLock, open_at_login: app.getLoginItemSettings().openAtLogin })
 handle('dmsg:desktop-settings', 'main', () => desktopSettings())
+const shortcutFile = () => join(app.getPath('userData'), 'shortcuts.json')
+let shortcutBindings = defaultShortcuts(process.platform)
+try {
+  const saved = JSON.parse(readFileSync(shortcutFile(), 'utf8'))
+  if (validBindings(saved, process.platform) && (!saved.open || saved.open !== saved.lock)) shortcutBindings = saved
+} catch { /* First run or invalid local preferences use the defaults. */ }
+let shortcutLocking = false
+const globalKeys = new Shortcuts(globalShortcut, process.platform, shortcutBindings, {
+  open: () => showMain(),
+  lock: () => {
+    if (shortcutLocking) return
+    shortcutLocking = true
+    void daemon.call('session/lock').catch(() => {
+      showMain()
+      broadcast('dmsg:event', { type: 'shortcuts/lock-failed' })
+    }).finally(() => { shortcutLocking = false })
+  }
+}, async bindings => {
+  const file = shortcutFile()
+  try {
+    await writeFile(`${file}.tmp`, JSON.stringify(bindings))
+    await rename(`${file}.tmp`, file)
+  } catch {
+    throw new DaemonError('LOCAL_STORAGE_UNAVAILABLE', 'Could not save shortcut settings')
+  }
+})
+handle('dmsg:shortcuts', 'main', () => globalKeys.status())
+handle('dmsg:shortcuts-capture', 'main', (_event, active: unknown) => {
+  if (typeof active !== 'boolean') throw new DaemonError('INVALID_INPUT', 'Shortcut recording')
+  if (active && (!main?.isFocused() || !main.isVisible())) throw new DaemonError('FORBIDDEN', 'Shortcut recorder is not focused')
+  globalShortcut.setSuspended(active)
+})
+handle('dmsg:set-shortcuts', 'main', async (_event, bindings: unknown) => {
+  globalShortcut.setSuspended(false)
+  const result = await globalKeys.configure(bindings)
+  broadcast('dmsg:event', { type: 'shortcuts/changed' })
+  return result
+})
+app.on('will-quit', () => globalKeys.dispose())
 /** The approval window closes itself once decided. The flows keep it open to look at it, unless they test this. */
 handle('dmsg:close-approval', 'approval', () => {
   if (!testMode || process.env.DMSG_DESKTOP_TEST_APPROVAL_CLOSE === '1') approval?.close()
@@ -1458,6 +1507,7 @@ app.whenReady().then(async () => {
     /* no choice yet */
   }
   applyLocale(resolveLocale(stored, [...app.getPreferredSystemLanguages(), app.getLocale()]))
+  if (!testMode || process.env.DMSG_DESKTOP_TEST_SHORTCUTS === '1') globalKeys.start()
   try {
     const kept = readFileSync(appearanceFile(), 'utf8').trim()
     if (isAppearance(kept)) applyAppearance(kept)

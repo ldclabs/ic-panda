@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "全域快捷鍵",
+  "globalShortcutsHint": "dMsg 執行時，可在其他應用程式中使用這些快捷鍵。",
+  "shortcutOpen": "開啟 dMsg",
+  "shortcutLock": "鎖定 dMsg",
+  "shortcutRecordHint": "點擊後按下組合鍵。Esc 取消，Backspace 停用。",
+  "shortcutRecording": "請按下快捷鍵…",
+  "shortcutInvalid": "請使用 ⌘/Ctrl 或 Alt 加另一個鍵。",
+  "shortcutDuplicate": "兩個操作需要使用不同的快捷鍵。",
+  "shortcutUnavailable": "無法註冊此快捷鍵，可能已被佔用。請選擇其他組合。",
+  "shortcutDefaults": "還原預設值",
+  "shortcutLockFailed": "未能鎖定 dMsg。請檢查背景服務後重試。",
     "recoveryLimitsHint": "使用已綁定的登入身份發起恢復，並經過等待期。已授權裝置可取消恢復申請。未同步的本機內容無法恢復。",
     "productCategory": "AI 時代的私密工作台。",
     "productSummary": "用端對端加密保護密碼、筆記與檔案。在已授權裝置間同步保險庫，安全分享檔案，並為 AI 助手設定明確的存取權限。",

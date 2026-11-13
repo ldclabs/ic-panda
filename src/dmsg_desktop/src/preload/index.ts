@@ -14,6 +14,9 @@ const locale = process.argv.find((a) => a.startsWith('--dmsg-locale='))?.slice('
 const appearance = process.argv.find((a) => a.startsWith('--dmsg-appearance='))?.slice('--dmsg-appearance='.length)
 
 const api: DesktopBridge = {
+  shortcuts: () => unwrap(ipcRenderer.invoke('dmsg:shortcuts')),
+  setShortcuts: (bindings) => unwrap(ipcRenderer.invoke('dmsg:set-shortcuts', bindings)),
+  captureShortcut: (active) => unwrap(ipcRenderer.invoke('dmsg:shortcuts-capture', active)),
   cameraAccess: () => unwrap(ipcRenderer.invoke('dmsg:camera-access')),
   deviceQrImage: (source) => unwrap(ipcRenderer.invoke('dmsg:device-qr-image', source)),
   notificationPermission: () => unwrap(ipcRenderer.invoke('dmsg:notification-permission')),

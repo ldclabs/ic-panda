@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Mga pandaigdigang shortcut",
+  "globalShortcutsHint": "Gamitin mula sa ibang app habang tumatakbo ang dMsg.",
+  "shortcutOpen": "Buksan ang dMsg",
+  "shortcutLock": "I-lock ang dMsg",
+  "shortcutRecordHint": "I-click at pindutin ang shortcut. Esc para kanselahin; Backspace para i-off.",
+  "shortcutRecording": "Pindutin ang shortcut…",
+  "shortcutInvalid": "Gamitin ang ⌘/Ctrl o Alt kasama ng ibang key.",
+  "shortcutDuplicate": "Pumili ng magkaibang shortcut para sa bawat aksyon.",
+  "shortcutUnavailable": "Hindi mairehistro ang shortcut na ito. Maaaring ginagamit na; pumili ng ibang kombinasyon.",
+  "shortcutDefaults": "Ibalik ang mga default",
+  "shortcutLockFailed": "Hindi ma-lock ang dMsg. Tingnan ang serbisyo sa background at subukang muli.",
     "recoveryLimitsHint": "Ginagamit ng pagbawi ang iyong nakatali na pag-log in at isang panahon ng paghihintay. Maaaring kanselahin ng isang awtorisadong device ang kahilingan sa pagbawi. Hindi na mababawi ang hindi naka-sync na lokal na nilalaman.",
     "productCategory": "Isang pribadong workspace para sa panahon ng AI.",
     "productSummary": "Protektahan ang mga password, tala at file gamit ang end-to-end encryption. I-sync ang iyong vault sa iba't ibang device, magbahagi ng mga file nang ligtas at kontrolin ang access ng mga AI agent.",

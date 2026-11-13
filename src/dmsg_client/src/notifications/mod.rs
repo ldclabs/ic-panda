@@ -213,6 +213,12 @@ impl Item {
     pub fn is_muted(&self, now: u64) -> bool {
         self.muted && self.muted_until.is_none_or(|until| until > now)
     }
+
+    // A recovery deadline starts an action; it does not expire the incident.
+    fn expired(&self, now: u64) -> bool {
+        (self.category() == Category::Action || matches!(self.target, Target::Plan(_)))
+            && self.deadline.is_some_and(|at| at <= now)
+    }
 }
 
 /// Per-category device preferences.
@@ -432,11 +438,7 @@ pub fn counts(items: &[Item], now: u64) -> Counts {
         .iter()
         .filter(|item| item.open && item.read_version < item.version)
     {
-        result.actionable += u64::from(
-            item.actionable
-                && !(item.category() == Category::Action
-                    && item.deadline.is_some_and(|at| at <= now)),
-        );
+        result.actionable += u64::from(item.actionable && !item.expired(now));
         if item.category() == Category::Message
             && !item.is_muted(now)
             && !matches!(item.target, Target::AgentMail(_))
@@ -463,14 +465,24 @@ pub fn list(store: &Store, open_only: bool, offset: usize, limit: usize, now: u6
     let mut items = store.notification_items()?;
     let mut recent = 0;
     items.retain(|item| {
-        let actionable = item.open
-            && item.actionable
-            && !(item.category() == Category::Action && item.deadline.is_some_and(|at| at <= now));
+        let plan = matches!(item.target, Target::Plan(_));
+        // Contracts are scheduled well before they need attention. Superseded
+        // and expired terms are not useful reminder history (especially after
+        // short test subscriptions); keep their tombstones for replay safety.
+        if plan
+            && (!item.open
+                || item
+                    .deadline
+                    .is_none_or(|at| at <= now || now < at.saturating_sub(30 * 86_400_000)))
+        {
+            return false;
+        }
+        let actionable = item.open && item.actionable && !item.expired(now);
         if actionable {
             return true;
         }
         if open_only
-            || item.updated_at < now.saturating_sub(RETENTION_MS)
+            || (!plan && item.updated_at < now.saturating_sub(RETENTION_MS))
             || (!item.open && item.updated_at <= cleared)
         {
             return false;
@@ -792,9 +804,10 @@ impl crate::Client {
         let revision = status["notification_revision"].as_u64().unwrap_or(1).max(1);
         // Sandbox terms last hours and renew as new contracts, so each would alert at once.
         let active = current["contract"].as_str().filter(|_| {
-            status["next"].is_null()
+            (status["next"].is_null() || status["next"]["store_environment"] == "Sandbox")
                 && current["terminated_at_ms"].is_null()
                 && current["store_environment"] != "Sandbox"
+                && current["ends_at_ms"].as_u64().is_some_and(|at| at > now)
         });
         for mut item in self.workspace.store.notification_items()? {
             if let Target::Plan(id) = &item.target

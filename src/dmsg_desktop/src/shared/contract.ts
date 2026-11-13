@@ -2,6 +2,7 @@
 import type { Appearance } from './appearance'
 import type { Locale } from './locales'
 import type { NoticePermission, NoticeTarget } from './notifications'
+import type { ShortcutBindings, ShortcutStatus } from './shortcuts'
 
 /** A daemon event, as `/ws/app/v1` sends it. */
 export interface DaemonEvent {
@@ -207,6 +208,9 @@ export interface DesktopBridge {
   /** This app's own choices; `desktop/changed` events follow a change from the tray. */
   desktopSettings(): Promise<DesktopSettings>
   setDesktopSettings(change: Partial<DesktopSettings>): Promise<DesktopSettings>
+  shortcuts(): Promise<ShortcutStatus>
+  setShortcuts(bindings: ShortcutBindings): Promise<ShortcutStatus>
+  captureShortcut(active: boolean): Promise<void>
   /** Follow a `dmsg://` link found in a message or letter; it moves the view and executes nothing. */
   openLink(url: string): Promise<void>
   /** Copy an image a window shows, by its data address. */

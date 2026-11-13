@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "グローバルショートカット",
+  "globalShortcutsHint": "dMsg の実行中は、他のアプリからも使用できます。",
+  "shortcutOpen": "dMsg を開く",
+  "shortcutLock": "dMsg をロック",
+  "shortcutRecordHint": "クリックしてキーの組み合わせを押します。Esc でキャンセル、Backspace で無効化します。",
+  "shortcutRecording": "ショートカットを押してください…",
+  "shortcutInvalid": "⌘/Ctrl または Alt と別のキーを組み合わせてください。",
+  "shortcutDuplicate": "操作ごとに異なるショートカットを選んでください。",
+  "shortcutUnavailable": "このショートカットを登録できません。使用中の可能性があります。別の組み合わせを選んでください。",
+  "shortcutDefaults": "既定値に戻す",
+  "shortcutLockFailed": "dMsg をロックできませんでした。バックグラウンドサービスを確認して再試行してください。",
     "recoveryLimitsHint": "回復には、バインドされたログインと待機期間が使用されます。認可されたデバイスは復旧リクエストをキャンセルできます。同期されていないローカル コンテンツは復元できません。",
     "productCategory": "AI 時代のプライベートワークスペース。",
     "productSummary": "パスワード、メモ、ファイルをエンドツーエンド暗号化で保護。保管庫をデバイス間で同期し、ファイルを安全に共有し、AI エージェントのアクセスを管理できます。",

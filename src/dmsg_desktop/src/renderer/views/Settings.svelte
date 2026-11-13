@@ -30,6 +30,7 @@
   import FilesSettings from './files/FilesSettings.svelte'
   import Legacy from './Legacy.svelte'
   import LockSettings from './LockSettings.svelte'
+  import ShortcutSettings from './ShortcutSettings.svelte'
   import Moved from './Moved.svelte'
   import Profile from './Profile.svelte'
   import Security from './Security.svelte'
@@ -253,6 +254,8 @@
           {#if unlocked}<CacheSettings />{/if}
         {:else if part === 'notifications'}
           <NotificationSettings {status} />
+        {:else if part === 'shortcuts'}
+          <ShortcutSettings />
         {:else if part === 'appearance'}
           <Section title={t('languageAppearance')} description={t('languageAppearanceHint')} icon="system" testid="language-appearance">
             <dl>

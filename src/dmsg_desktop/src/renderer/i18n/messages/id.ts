@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Pintasan global",
+  "globalShortcutsHint": "Gunakan dari aplikasi lain selama dMsg berjalan.",
+  "shortcutOpen": "Buka dMsg",
+  "shortcutLock": "Kunci dMsg",
+  "shortcutRecordHint": "Klik lalu tekan pintasan. Esc membatalkan; Backspace menonaktifkan.",
+  "shortcutRecording": "Tekan pintasan…",
+  "shortcutInvalid": "Gunakan ⌘/Ctrl atau Alt dengan tombol lain.",
+  "shortcutDuplicate": "Pilih pintasan berbeda untuk setiap tindakan.",
+  "shortcutUnavailable": "Pintasan ini tidak dapat didaftarkan. Mungkin sedang digunakan; pilih kombinasi lain.",
+  "shortcutDefaults": "Pulihkan bawaan",
+  "shortcutLockFailed": "dMsg tidak dapat dikunci. Periksa layanan latar belakang lalu coba lagi.",
     "recoveryLimitsHint": "Pemulihan menggunakan login terikat Anda dan masa tunggu. Perangkat resmi dapat membatalkan permintaan pemulihan. Konten lokal yang tidak disinkronkan tidak dapat dipulihkan.",
     "productCategory": "Ruang kerja pribadi untuk era AI.",
     "productSummary": "Lindungi kata sandi, catatan, dan file dengan enkripsi end-to-end. Sinkronkan brankas Anda di semua perangkat, bagikan file dengan aman, dan kendalikan akses agen AI.",

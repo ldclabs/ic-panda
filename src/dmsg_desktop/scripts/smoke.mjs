@@ -38,11 +38,12 @@ import { languagesFlow } from './languages-flow.mjs'
 import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
 import { notificationsFixture } from './notifications-fixture.mjs'
-import { notificationBadgeFlow, notificationsFlow, remindersFlow, reminderReadFlow, reminderJourneyFlow } from './notifications-flow.mjs'
+import { notificationBadgeFlow, notificationsFlow, remindersFlow, reminderReadFlow, reminderJourneyFlow, membershipRemindersFlow } from './notifications-flow.mjs'
 import { accountsFlow } from './accounts-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { pairingFlow } from './pairing-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
+import { shortcutsFlow } from './shortcuts-flow.mjs'
 import { uxFlow } from './ux-flow.mjs'
 import { uxRegressionsFlow } from './ux-regressions-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
@@ -1571,6 +1572,7 @@ const app = await electron.launch({
     DMSG_DESKTOP_DAEMON: `http://127.0.0.1:${port}`,
     DMSG_DESKTOP_TOKEN: token,
     DMSG_HOME: join(profile, 'home'),
+    ...(process.env.DMSG_DESKTOP_SMOKE === 'shortcuts' ? { DMSG_DESKTOP_TEST_SHORTCUTS: '1' } : {}),
     ...(process.env.DMSG_DESKTOP_SMOKE === 'ux' ? { DMSG_DESKTOP_TEST_APPROVAL_CLOSE: '1' } : {})
   }
 })
@@ -2124,6 +2126,20 @@ smoke: try {
     await notificationBadgeFlow({ app, methods, emit, waitFor })
     assert.deepEqual(pageErrors, [])
     console.log('desktop notification badge smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'shortcuts') {
+    await shortcutsFlow({ app, main, methods, calls, emit, waitFor, formMatrix, shots, profile, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop global shortcuts smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'membership-reminders') {
+    membership = 'plus'
+    termEnds = Date.now() + 7 * DAY
+    await membershipRemindersFlow({ app, main, shots, methods, emit, waitFor, calls, model: notificationModel })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop membership reminders smoke test passed')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'reminder-journey') {

@@ -1,6 +1,53 @@
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
 
+/** Presentation only: Rust tests cover filtering, deadline phases and replay. */
+export async function membershipRemindersFlow({ app, main, shots, methods, emit, waitFor, calls, model }) {
+  const native = await app.browserWindow(main)
+  await app.evaluate(({ app }) => app.focus({ steal: true }))
+  await native.evaluate(window => { window.show(); window.focus(); window.webContents.focus() })
+  await waitFor(() => main.evaluate(() => document.hasFocus()))
+  model.items.clear()
+  emit('notifications/changed')
+  await main.evaluate(() => location.hash = '/reminders?scope=recent')
+  await main.getByTestId('reminders-list').waitFor()
+  assert.equal(await main.getByTestId('reminder-item').count(), 0)
+  const status = methods['plan/status']()
+  const plan = model.row({ kind: 'plan', id: status.current.contract }, {
+    deadline: status.current.ends_at_ms, stage: 2, notified: '1'
+  })
+  emit('notifications/changed')
+  await main.getByTestId('reminder-item').waitFor()
+  const businessActions = () => calls.filter(call => ['plan/notice_ack', 'plan/advance', 'notifications/observed'].includes(call.method)).length
+  const before = businessActions()
+  for (const [language, appearance, width] of [['zh', 'light', 1180], ['zh', 'dark', 760], ['de', 'light', 760], ['ar', 'dark', 760]]) {
+    await native.evaluate((window, width) => window.setContentSize(width, width === 760 ? 540 : 760), width)
+    await main.evaluate(async ([language, appearance]) => { await window.dmsg.setLocale(language); await window.dmsg.setAppearance(appearance) }, [language, appearance])
+    await main.waitForFunction(([language, appearance]) => document.documentElement.lang === language && matchMedia('(prefers-color-scheme: dark)').matches === (appearance === 'dark'), [language === 'zh' ? 'zh-Hans' : language, appearance])
+    await main.evaluate(() => document.fonts.ready.then(() => undefined))
+    assert.equal(await main.getByTestId('reminder-item').count(), 1)
+    assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+    await main.screenshot({ path: join(shots, `membership-reminder-${language}-${appearance}-${width}.png`), animations: 'disabled' })
+    await main.getByTestId('reminders-open').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('reminders-popover-scope').locator('[data-value="recent"]').click()
+    await main.getByTestId('reminder-row').waitFor()
+    assert.equal(await main.getByTestId('reminder-row').count(), 1)
+    assert.equal(await main.getByTestId('reminder-row').evaluate(el => getComputedStyle(el).direction), language === 'ar' ? 'rtl' : 'ltr')
+    assert.equal(plan.read_version, '0', 'Listing does not acknowledge the reminder')
+    await main.screenshot({ path: join(shots, `membership-reminder-popover-${language}-${appearance}-${width}.png`), animations: 'disabled' })
+    await main.keyboard.press('Escape')
+    await waitFor(() => main.getByTestId('reminders-open').evaluate(el => el === document.activeElement))
+  }
+  await main.getByTestId('reminder-open').focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('membership').waitFor()
+  await waitFor(() => plan.read_version === plan.version)
+  assert.equal(businessActions(), before, 'Reading membership only acknowledges the local reminder')
+  await main.evaluate(() => location.hash = '/reminders?scope=recent')
+  await main.getByTestId('reminder-read-state').waitFor()
+}
+
 export async function reminderReadFlow({ app, main, shots, methods, emit, waitFor, calls, model, account }) {
   const native = await app.browserWindow(main)
   await app.evaluate(({ app }) => app.focus({ steal: true }))

@@ -34,7 +34,7 @@ export const groups: { label: Label; views: View[] }[] = [
 export const shortcuts: View[] = [...groups.flatMap((g) => g.views), views.settings]
 
 /** Settings' own pages, each with its route under /settings. */
-export type SettingsPage = 'session' | 'security' | 'recovery' | 'devices' | 'profile' | 'browsers' | 'files' | 'notifications' | 'appearance' | 'legacy' | 'about'
+export type SettingsPage = 'session' | 'security' | 'recovery' | 'devices' | 'profile' | 'browsers' | 'files' | 'notifications' | 'shortcuts' | 'appearance' | 'legacy' | 'about'
 
 export const settingsPages: { value: SettingsPage; label: Label; icon: Glyph }[] = [
   { value: 'session', label: 'sessionAccounts', icon: 'account' },
@@ -45,6 +45,7 @@ export const settingsPages: { value: SettingsPage; label: Label; icon: Glyph }[]
   { value: 'browsers', label: 'browsers', icon: 'browser' },
   { value: 'files', label: 'files', icon: 'folder' },
   { value: 'notifications', label: 'noticeSettings', icon: 'bell' },
+  { value: 'shortcuts', label: 'shortcutsTitle', icon: 'system' },
   { value: 'appearance', label: 'languageAppearance', icon: 'system' },
   { value: 'legacy', label: 'legacy', icon: 'legacy' },
   { value: 'about', label: 'aboutApp', icon: 'info' }

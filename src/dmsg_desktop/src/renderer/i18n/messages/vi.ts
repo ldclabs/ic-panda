@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Phím tắt toàn cục",
+  "globalShortcutsHint": "Dùng từ ứng dụng khác khi dMsg đang chạy.",
+  "shortcutOpen": "Mở dMsg",
+  "shortcutLock": "Khóa dMsg",
+  "shortcutRecordHint": "Nhấp rồi nhấn phím tắt. Esc hủy; Backspace tắt.",
+  "shortcutRecording": "Nhấn phím tắt…",
+  "shortcutInvalid": "Dùng ⌘/Ctrl hoặc Alt cùng một phím khác.",
+  "shortcutDuplicate": "Chọn phím tắt khác nhau cho từng thao tác.",
+  "shortcutUnavailable": "Không thể đăng ký phím tắt này. Có thể nó đang được dùng; hãy chọn tổ hợp khác.",
+  "shortcutDefaults": "Khôi phục mặc định",
+  "shortcutLockFailed": "Không thể khóa dMsg. Kiểm tra dịch vụ nền rồi thử lại.",
     "recoveryLimitsHint": "Recovery sử dụng thông tin đăng nhập bị ràng buộc của bạn và thời gian chờ đợi. Một thiết bị được ủy quyền có thể hủy yêu cầu khôi phục. Không thể khôi phục nội dung cục bộ chưa được đồng bộ hóa.",
     "productCategory": "Không gian làm việc riêng tư cho kỷ nguyên AI.",
     "productSummary": "Bảo vệ mật khẩu, ghi chú và tệp bằng mã hóa đầu cuối. Đồng bộ kho bảo mật giữa các thiết bị, chia sẻ tệp an toàn và kiểm soát quyền truy cập của tác tử AI.",

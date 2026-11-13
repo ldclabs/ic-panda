@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "globalShortcuts": "Atajos globales",
+  "globalShortcutsHint": "Úsalos desde otras aplicaciones mientras dMsg esté en ejecución.",
+  "shortcutOpen": "Abrir dMsg",
+  "shortcutLock": "Bloquear dMsg",
+  "shortcutRecordHint": "Haz clic y pulsa el atajo. Esc cancela; Retroceso lo desactiva.",
+  "shortcutRecording": "Pulsa un atajo…",
+  "shortcutInvalid": "Usa ⌘/Ctrl o Alt junto con otra tecla.",
+  "shortcutDuplicate": "Elige un atajo diferente para cada acción.",
+  "shortcutUnavailable": "No se pudo registrar este atajo. Puede estar en uso; elige otra combinación.",
+  "shortcutDefaults": "Restaurar valores predeterminados",
+  "shortcutLockFailed": "No se pudo bloquear dMsg. Comprueba el servicio en segundo plano e inténtalo de nuevo.",
     "recoveryLimitsHint": "La recuperación utiliza tu identidad vinculada y un período de espera. Un dispositivo autorizado puede cancelar la solicitud de recuperación. El contenido local no sincronizado no se puede recuperar.",
     "productCategory": "Un espacio de trabajo privado para la era de la IA.",
     "productSummary": "Protege contraseñas, notas y archivos con cifrado de extremo a extremo. Sincroniza tu bóveda entre dispositivos, comparte archivos de forma segura y controla el acceso de los agentes de IA.",

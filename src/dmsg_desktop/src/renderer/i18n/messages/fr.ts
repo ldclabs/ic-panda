@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "globalShortcuts": "Raccourcis globaux",
+  "globalShortcutsHint": "Utilisez-les depuis une autre application tant que dMsg fonctionne.",
+  "shortcutOpen": "Ouvrir dMsg",
+  "shortcutLock": "Verrouiller dMsg",
+  "shortcutRecordHint": "Cliquez puis appuyez sur le raccourci. Échap annule ; Retour arrière le désactive.",
+  "shortcutRecording": "Appuyez sur le raccourci…",
+  "shortcutInvalid": "Utilisez ⌘/Ctrl ou Alt avec une autre touche.",
+  "shortcutDuplicate": "Choisissez un raccourci différent pour chaque action.",
+  "shortcutUnavailable": "Impossible d’enregistrer ce raccourci. Il est peut-être utilisé ; choisissez une autre combinaison.",
+  "shortcutDefaults": "Rétablir les valeurs par défaut",
+  "shortcutLockFailed": "Impossible de verrouiller dMsg. Vérifiez le service en arrière-plan et réessayez.",
     "recoveryLimitsHint": "La récupération utilise votre identité liée et un délai d’attente. Un appareil autorisé peut annuler la demande de récupération. Le contenu local non synchronisé ne peut pas être récupéré.",
     "productCategory": "Un espace de travail privé pour l’ère de l’IA.",
     "productSummary": "Protégez mots de passe, notes et fichiers par un chiffrement de bout en bout. Synchronisez votre coffre entre vos appareils, partagez des fichiers en toute sécurité et contrôlez l’accès des agents IA.",

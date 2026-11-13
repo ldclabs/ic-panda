@@ -100,8 +100,7 @@ pub fn next(
                                     || remote_observed
                                         .get(&item.id)
                                         .is_none_or(|v| *v < covered.version))))
-                        && !(item.category() == Category::Action
-                            && item.deadline.is_some_and(|at| at <= now))
+                        && !item.expired(now)
                 })
             });
         if !valid {

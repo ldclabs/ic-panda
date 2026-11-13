@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Atalhos globais",
+  "globalShortcutsHint": "Use em outros aplicativos enquanto o dMsg estiver em execução.",
+  "shortcutOpen": "Abrir dMsg",
+  "shortcutLock": "Bloquear dMsg",
+  "shortcutRecordHint": "Clique e pressione o atalho. Esc cancela; Backspace desativa.",
+  "shortcutRecording": "Pressione um atalho…",
+  "shortcutInvalid": "Use ⌘/Ctrl ou Alt com outra tecla.",
+  "shortcutDuplicate": "Escolha um atalho diferente para cada ação.",
+  "shortcutUnavailable": "Não foi possível registrar este atalho. Ele pode estar em uso; escolha outra combinação.",
+  "shortcutDefaults": "Restaurar padrões",
+  "shortcutLockFailed": "Não foi possível bloquear o dMsg. Verifique o serviço em segundo plano e tente novamente.",
     "recoveryLimitsHint": "A recuperação usa seu login vinculado e um período de espera. Um dispositivo autorizado pode cancelar a solicitação de recuperação. O conteúdo local não sincronizado não pode ser recuperado.",
     "productCategory": "Um espaço de trabalho privado para a era da IA.",
     "productSummary": "Proteja senhas, notas e arquivos com criptografia de ponta a ponta. Sincronize seu cofre entre dispositivos, compartilhe arquivos com segurança e controle o acesso de agentes de IA.",

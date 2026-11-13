@@ -135,6 +135,7 @@
       }
     }))
     offs.push(window.dmsg.onEvent((event) => {
+      if (event.type === 'shortcuts/lock-failed') toast(() => t('shortcutLockFailed'))
       if (event.type !== 'notifications/present' || !isNoticePlan(event.data) || !document.hasFocus()) return
       const plan = event.data
       // A relay hint also echoes our own sends. It wakes reconciliation, but

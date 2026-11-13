@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Globale Tastenkürzel",
+  "globalShortcutsHint": "Auch in anderen Apps verfügbar, solange dMsg läuft.",
+  "shortcutOpen": "dMsg öffnen",
+  "shortcutLock": "dMsg sperren",
+  "shortcutRecordHint": "Klicken und Tastenkürzel drücken. Esc bricht ab; Rücktaste deaktiviert es.",
+  "shortcutRecording": "Tastenkürzel drücken…",
+  "shortcutInvalid": "⌘/Strg oder Alt mit einer weiteren Taste verwenden.",
+  "shortcutDuplicate": "Für jede Aktion ein anderes Tastenkürzel wählen.",
+  "shortcutUnavailable": "Dieses Tastenkürzel konnte nicht registriert werden. Es ist möglicherweise belegt; wähle eine andere Kombination.",
+  "shortcutDefaults": "Standard wiederherstellen",
+  "shortcutLockFailed": "dMsg konnte nicht gesperrt werden. Prüfe den Hintergrunddienst und versuche es erneut.",
     "recoveryLimitsHint": "Die Wiederherstellung erfolgt über Ihr gebundenes Login und eine Wartezeit. Ein autorisiertes Gerät kann die Wiederherstellungsanfrage abbrechen. Nicht synchronisierte lokale Inhalte können nicht wiederhergestellt werden.",
     "productCategory": "Ein privater Arbeitsbereich für das KI-Zeitalter.",
     "productSummary": "Schützen Sie Passwörter, Notizen und Dateien mit Ende-zu-Ende-Verschlüsselung. Synchronisieren Sie Ihren Tresor zwischen Geräten, teilen Sie Dateien sicher und steuern Sie den Zugriff von KI-Agenten.",

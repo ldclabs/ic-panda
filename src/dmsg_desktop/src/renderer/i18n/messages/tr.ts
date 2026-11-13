@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "globalShortcuts": "Genel klavye kısayolları",
+  "globalShortcutsHint": "dMsg çalışırken diğer uygulamalardan kullanın.",
+  "shortcutOpen": "dMsg aç",
+  "shortcutLock": "dMsg kilitle",
+  "shortcutRecordHint": "Tıklayıp kısayola basın. Esc iptal eder; Backspace devre dışı bırakır.",
+  "shortcutRecording": "Kısayola basın…",
+  "shortcutInvalid": "⌘/Ctrl veya Alt ile başka bir tuş kullanın.",
+  "shortcutDuplicate": "Her işlem için farklı bir kısayol seçin.",
+  "shortcutUnavailable": "Bu kısayol kaydedilemedi. Kullanımda olabilir; başka bir birleşim seçin.",
+  "shortcutDefaults": "Varsayılanları geri yükle",
+  "shortcutLockFailed": "dMsg kilitlenemedi. Arka plan hizmetini kontrol edip tekrar deneyin.",
     "recoveryLimitsHint": "Kurtarma, bağlı oturum açma bilgilerinizi ve bir bekleme süresini kullanır. Yetkili bir cihaz kurtarma isteğini iptal edebilir. Senkronize edilmemiş yerel içerik kurtarılamaz.",
     "productCategory": "AI çağı için özel bir çalışma alanı.",
     "productSummary": "Parolaları, notları ve dosyaları uçtan uca şifrelemeyle koruyun. Kasanızı cihazlar arasında senkronize edin, dosyaları güvenle paylaşın ve AI ajanlarının erişimini denetleyin.",

@@ -90,7 +90,7 @@
     {#if count > 0}<span class="absolute -end-1 -top-1 rounded-full bg-gem-pale px-1 text-[9px] leading-4 font-semibold text-gem" data-testid="reminders-count">{count > 99 ? '99+' : count}</span>{/if}
   </Popover.Trigger>
   <Popover.Portal>
-    <Popover.Content align="end" sideOffset={6} class="z-50 grid max-h-[min(460px,80vh)] w-[min(360px,calc(100vw-24px))] grid-rows-[auto_1fr_auto] rounded-xl border border-line bg-surface shadow-pop outline-none" data-testid="reminders-popover">
+    <Popover.Content dir={localeDir(locale())} align="end" sideOffset={6} class="z-50 grid max-h-[min(460px,80vh)] w-[min(360px,calc(100vw-24px))] grid-rows-[auto_1fr_auto] rounded-xl border border-line bg-surface shadow-pop outline-none" data-testid="reminders-popover">
       <div class="border-b border-line p-2.5">
         <Segmented bind:value={scope} options={[{ value: 'open', label: t('noticeNeedsAction') }, { value: 'recent', label: t('noticeRecent') }]} label={t('noticeTitle')} testid="reminders-popover-scope" />
       </div>

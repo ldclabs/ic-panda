@@ -993,6 +993,148 @@ fn notifications_verified_contract_claims_only_its_legacy_phase() {
 }
 
 #[test]
+fn notifications_plan_history_only_shows_current_renewal_windows() {
+    let store = Store::memory().unwrap();
+    let day = 86_400_000;
+    let now = 365 * day;
+    let mut current = Item::new("a".into(), Target::Plan("current".into()), 1, day);
+    current.deadline = Some(now + 30 * day);
+    upsert(&store, current.clone()).unwrap();
+    assert!(
+        list(&store, false, 0, 100, now - 1)
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    for (id, deadline, open) in [
+        ("future", Some(now + 30 * day + 1), true),
+        ("expired", Some(now), true),
+        ("renewed", Some(now + day), false),
+        ("unknown", None, true),
+    ] {
+        let mut item = Item::new("a".into(), Target::Plan(id.into()), 1, now);
+        item.deadline = deadline;
+        item.open = open;
+        // Old remote projections can still carry this flag after expiration.
+        item.actionable = true;
+        upsert(&store, item).unwrap();
+    }
+    let page = list(&store, false, 0, 100, now).unwrap();
+    assert_eq!(page.items, vec![current.clone()]);
+    assert!(list(&store, true, 0, 100, now).unwrap().items.is_empty());
+    mark_read(&store, &current.id, current.version).unwrap();
+    assert_eq!(list(&store, false, 0, 100, now).unwrap().items.len(), 1);
+    assert!(
+        list(&store, false, 0, 100, now + 31 * day)
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    assert_eq!(store.notification_items().unwrap().len(), 5);
+}
+
+#[test]
+fn notifications_plan_phases_survive_refresh_and_restart_without_repeating() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (_, settings, mut runtime, mut context) = example();
+    configure(&client.workspace.store, 0, settings).unwrap();
+    let day = 86_400_000;
+    let deadline = 400 * day;
+    let contract = "a2".repeat(32);
+    let mut status = serde_json::json!({
+        "current": {"contract": contract, "ends_at_ms": deadline}, "next": null,
+        "notification_revision": 1
+    });
+    let path = client.notification_runtime_path();
+    for (days, expected) in [
+        (31, None),
+        (30, Some((1, true))),
+        (29, None),
+        (8, None),
+        (7, Some((2, true))),
+        (6, None),
+        (2, None),
+        (1, Some((3, false))),
+    ] {
+        context.now = deadline - days * day;
+        client
+            .project_plan_notification(&status, context.now)
+            .unwrap();
+        let batch = next(&client.workspace.store, &mut runtime, &context, |_| Ok(())).unwrap();
+        assert_eq!(
+            batch.plans.len(),
+            usize::from(expected.is_some()),
+            "{days} days left"
+        );
+        if let Some((stage, in_app)) = expected {
+            let plan = &batch.plans[0];
+            assert_eq!(plan.covered[0].stage, stage);
+            assert_eq!(plan.in_app, in_app);
+            result(
+                &client.workspace.store,
+                &plan.system_id,
+                &plan.delivery_id,
+                DeliveryResult::Shown,
+                context.now,
+            )
+            .unwrap();
+        }
+        // A newer account business revision is not another expiration event.
+        context.now += 3_600_000;
+        status["notification_revision"] =
+            (status["notification_revision"].as_u64().unwrap() + 1).into();
+        client
+            .project_plan_notification(&status, context.now)
+            .unwrap();
+        runtime.save(&path).unwrap();
+        runtime = Runtime::load(&path, context.now).unwrap();
+        drop(client);
+        client = crate::Client::open(crate::testing::config(false), &dir.0, None).unwrap();
+        client
+            .select(crate::client::Slot::Account(crate::testing::account().id))
+            .unwrap();
+        assert!(
+            next(&client.workspace.store, &mut runtime, &context, |_| Ok(()))
+                .unwrap()
+                .plans
+                .is_empty()
+        );
+        assert_eq!(
+            client.workspace.store.notification_items().unwrap().len(),
+            1
+        );
+    }
+}
+
+#[test]
+fn notifications_expired_plan_cancels_pending_delivery_without_replaying() {
+    let store = Store::memory().unwrap();
+    let (_, settings, mut runtime, mut context) = example();
+    configure(&store, 0, settings.clone()).unwrap();
+    let mut item = Item::new("a".into(), Target::Plan("contract".into()), 1, context.now);
+    item.actionable = true;
+    item.deadline = Some(context.now + 10_000);
+    upsert(&store, item.clone()).unwrap();
+    let plan = next(&store, &mut runtime, &context, |_| Ok(()))
+        .unwrap()
+        .plans
+        .remove(0);
+    context.now = item.deadline.unwrap();
+    assert_eq!(
+        counts(std::slice::from_ref(&item), context.now).actionable,
+        0
+    );
+    assert_eq!(
+        evaluate(&item, &settings, &runtime, &context),
+        Decision::Remove
+    );
+    let batch = next(&store, &mut runtime, &context, |_| Ok(())).unwrap();
+    assert!(batch.plans.is_empty());
+    assert_eq!(batch.remove, vec![plan.system_id]);
+}
+
+#[test]
 fn notifications_sandbox_term_never_raises_a_plan_expiry() {
     let dir = crate::testing::TempDir::new();
     let client = crate::testing::unlocked(&dir.0, false, None);
@@ -1020,6 +1162,20 @@ fn notifications_sandbox_term_never_raises_a_plan_expiry() {
         .project_plan_notification(&status("Production"), 1_000)
         .unwrap();
     assert_eq!(plans(), 1);
+    let mut formal = status("Production");
+    formal["next"] = serde_json::json!({"store_environment":"Sandbox"});
+    client.project_plan_notification(&formal, 2_000).unwrap();
+    assert_eq!(plans(), 1, "A test renewal does not renew a formal term");
+    client
+        .project_plan_notification(&status("Sandbox"), 3_000)
+        .unwrap();
+    assert_eq!(plans(), 0, "Close an earlier remote test-term projection");
+    assert!(
+        list(&client.workspace.store, false, 0, 100, 3_000)
+            .unwrap()
+            .items
+            .is_empty()
+    );
 }
 
 #[test]

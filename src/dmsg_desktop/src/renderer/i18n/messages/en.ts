@@ -5,6 +5,17 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  "globalShortcuts": "Global shortcuts",
+  "globalShortcutsHint": "Use these from other apps while dMsg is running.",
+  "shortcutOpen": "Open dMsg",
+  "shortcutLock": "Lock dMsg",
+  "shortcutRecordHint": "Click, then press a shortcut. Esc cancels; Backspace turns it off.",
+  "shortcutRecording": "Press a shortcut…",
+  "shortcutInvalid": "Include ⌘/Ctrl or Alt and another key.",
+  "shortcutDuplicate": "Choose a different shortcut for each action.",
+  "shortcutUnavailable": "This shortcut could not be registered. It may be in use; choose another combination.",
+  "shortcutDefaults": "Restore defaults",
+  "shortcutLockFailed": "Could not lock dMsg. Check the background service and try again.",
     "recoveryLimitsHint": "Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.",
     "productCategory": "A private workspace for the AI era.",
     "productSummary": "Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.",
