@@ -41,7 +41,7 @@ flowchart LR
 ### 权威与信任边界
 
 - **授权**：directory 只检查调用者是账户所属的 home、版本单调、状态自身合法（`validate_principal_state`）以及渲染结果通过 SDK 校验。相邻版本之间的约束（key、`valid_from` 和权限上限不变，退役记录不删除）由 home 保证，directory 不与旧状态比对。
-- **治理**：controller 和 governance 只能追加 home、替换自定义域。它们不能修改或删除已发布的文档，也不能把已发布的账户交给另一个 home：记录中的 `home_user` 固定，新 home 的分配器指纹不能与已有 home 相同。能升级代码的 controller（交给 SNS 后是 SNS root）则掌握全部文档的发布权，应与其他 dMsg canister 同级管控。
+- **治理**：controller 和 governance 只能追加 home、替换自定义域。它们不能修改或删除已发布的文档，也不能把已发布的账户交给另一个 home：记录中的 `home_user` 固定，新 home 的分配器指纹不能与已有 home 相同。能升级代码的 controller（主网为 SNS root）则掌握全部文档的发布权，应与其他 dMsg canister 同级管控。
 - **HTTP 认证**：每个响应都带 v2 证书，网关验证失败就不返回内容，所以单个副本或节点无法伪造文档。验证在网关完成，最终客户端信任网关的结果。`<canister>.raw.icp0.io` 不做验证，不能用于解析 principal；经 `<canister>.icp0.io` 取到的文档，其 URL 不等于文档 `id`，依赖方应按协议拒绝。
 - **发布滞后**：发布晚于 home 提交。新 controller 在发布前不被 delegation 服务接受；退役在 home 提交后即生效；服务发现认证快照的 `principal_updated_at` 大于文档的 `updated_at` 时视为滞后，不按旧文档接收事件，见 [agent_zh.md](../../docs/protocol/agent_zh.md#安全快照)。文档响应允许缓存 30 秒。
 

@@ -13,9 +13,10 @@
 
   // Localize the SPA fallback metadata in place, without duplicate tags.
   $: if (browser) {
-    const title = $t('dMsg — Private collaboration for people and agents')
+    // Shared links show the page's promise; the tab title names the product.
+    const title = `${$t('Keep what matters private.')} ${$t('Choose who gets access.')}`
     const description = $t(
-      'Keep secrets and files private. Collaborate with your team. Give your agents their own identities and permissions to work across an open network.'
+      'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.'
     )
     const image = `https://dmsg.net/_assets/dmsg/og-image${$locale === 'en' ? '' : `-${$locale}`}.png`
     const metadata = {
@@ -36,7 +37,7 @@
 </script>
 
 <svelte:head>
-  <title>{$t('dMsg — Private collaboration for people and agents')}</title>
+  <title>{$t('dMsg — Encrypted Vault, File Sharing & AI Permissions')}</title>
 </svelte:head>
 
 <slot />

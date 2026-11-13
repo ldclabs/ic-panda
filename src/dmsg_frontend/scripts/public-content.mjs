@@ -128,6 +128,38 @@ function membershipTable(membership, zh) {
   )
 }
 
+// The dated price line of the key facts, from the same figures as the table.
+function priceFact(membership, zh) {
+  const paid = membership.plans.filter((plan) => plan.usd > 0)
+  const list = paid.map((plan) =>
+    zh ? `${plan.name} 每年 US$${plan.usd}` : `${plan.name} at US$${plan.usd}`
+  )
+  return zh
+    ? `可免费使用；${list.join('、')}。价格核对日期 ${membership.checkedAt}，以应用内显示为准。`
+    : `Free to start, or ${list.slice(0, -1).join(', ')} and ${list.at(-1)} a year. Figures checked ${membership.checkedAt}; the app shows current terms.`
+}
+
+// Questions and answers from the guide's FAQ section, for answer engines.
+// The same text stays visible in the page; this only labels it.
+function faqEntries(markdown, heading) {
+  const section = markdown.split(`\n## ${heading}\n`)[1]?.split('\n## ')[0]
+  if (!section) throw new Error(`Missing FAQ section: ${heading}`)
+  return section
+    .split('\n### ')
+    .slice(1)
+    .map((block) => {
+      const [question, ...answer] = block.split('\n')
+      return {
+        '@type': 'Question',
+        name: plainText(question.trim()),
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: plainText(answer.join(' ').replace(/\s+/g, ' ').trim())
+        }
+      }
+    })
+}
+
 const md = new MarkdownIt({ html: false })
 // Deterministic fragments let people and answer engines cite individual sections.
 md.core.ruler.push('heading_ids', (state) => {
@@ -184,17 +216,20 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
   const guides = ['en', 'zh'].map((lang) => {
     const path = `src/dmsg_frontend/content/overview${lang === 'zh' ? '.zh' : ''}.md`
     const original = read(path)
-    if (original.split('<!-- membership -->').length !== 2)
-      throw new Error(`Missing membership table in ${path}`)
+    for (const slot of ['<!-- membership -->', '<!-- prices -->'])
+      if (original.split(slot).length !== 2)
+        throw new Error(`Expected one ${slot} in ${path}`)
     return {
       lang,
       path,
       sourceSha256: sha256(original),
       url: `${origin}/index${lang === 'zh' ? '.zh' : ''}.md`,
-      text: original.replace(
-        '<!-- membership -->',
-        membershipTable(membership, lang === 'zh')
-      )
+      text: original
+        .replace(
+          '<!-- membership -->',
+          membershipTable(membership, lang === 'zh')
+        )
+        .replace('<!-- prices -->', priceFact(membership, lang === 'zh'))
     }
   })
   const git = (...args) =>
@@ -268,31 +303,74 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
       read('src/dmsg_frontend/content/reading.css')
   )
   const overview = `<section id="dmsg-public-content" class="dmsg-site dmsg-reading" lang="en" dir="ltr">${body(guides[0])}</section>`
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'dMsg',
-    url: origin + '/',
-    description: plainText(guides[0].text.split('\n\n')[1]),
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: ['iOS', 'iPadOS', 'macOS', 'Windows', 'Linux (CLI)'],
-    publisher: {
-      '@type': 'Organization',
-      name: 'ICPanda DAO',
-      url: 'https://panda.fans'
-    },
-    downloadUrl: [
-      'https://apps.apple.com/app/id6827050680',
-      `${github}/releases/latest`
-    ],
-    featureList: [
-      'Encrypted vault and files',
-      'Private channels',
-      'Agent Protocols and MCP',
-      'Explicit signature approvals',
-      'Multisig wallets'
-    ]
+  const description = plainText(guides[0].text.split('\n\n')[1])
+  const publisher = {
+    '@type': 'Organization',
+    '@id': 'https://panda.fans/#organization',
+    name: 'ICPanda DAO',
+    url: 'https://panda.fans',
+    sameAs: ['https://github.com/ldclabs', 'https://x.com/ICPandaDAO']
   }
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      '@id': `${origin}/#app`,
+      name: 'dMsg',
+      url: origin + '/',
+      description,
+      applicationCategory: 'SecurityApplication',
+      applicationSubCategory:
+        'Encrypted vault, file sharing and AI agent permissions',
+      operatingSystem: ['iOS', 'iPadOS', 'macOS', 'Windows', 'Linux (CLI)'],
+      image: `${origin}/_assets/dmsg/og-image.png`,
+      isAccessibleForFree: true,
+      publisher,
+      downloadUrl: [
+        'https://apps.apple.com/app/id6827050680',
+        `${github}/releases/latest`
+      ],
+      softwareHelp: `${origin}/_/about.html`,
+      sameAs: [github],
+      offers: membership.plans.map((plan) => ({
+        '@type': 'Offer',
+        name: `dMsg ${plan.name}`,
+        category: plan.usd ? 'Annual membership' : 'Free plan',
+        price: String(plan.usd),
+        priceCurrency: 'USD',
+        description: `${plan.storage} ${plan.unit} encrypted cloud storage, ${plan.devices} active devices${plan.fileRequests ? ', file requests' : ''}`
+      })),
+      featureList: [
+        'End-to-end encrypted vault for passwords, notes and keys',
+        'Vault sync across authorized devices',
+        'Encrypted local file library with explicit cloud backups',
+        'File sharing by link without a recipient account',
+        'File request links for collecting files from clients',
+        'End-to-end encrypted channels',
+        'AI agent access through MCP with granted permissions',
+        'Explicit approval of formal signatures',
+        'Account and device authorization on the Internet Computer, upgraded only by ICPanda DAO proposal',
+        'Multisig wallets'
+      ]
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      '@id': `${origin}/#website`,
+      name: 'dMsg',
+      url: origin + '/',
+      description,
+      inLanguage: ['en', 'zh-Hans'],
+      publisher
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      '@id': `${origin}/#faq`,
+      mainEntity: faqEntries(guides[0].text, 'Frequently asked questions')
+    }
+  ]
+  const lastModified = git('log', '-1', '--format=%cs', '--', ...inputs)
   // Visible HTML, not noscript or a bot-specific response. The SPA removes it
   // only after mounting successfully; it remains readable if JS cannot run.
   write(
@@ -301,13 +379,13 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
       .replace(marker, overview)
       .replace(
         '</head>',
-        `<link id="dmsg-reading-style" rel="stylesheet" href="/_assets/dmsg/reading.css">\n<script type="application/ld+json">${JSON.stringify(structuredData).replaceAll('<', '\\u003c')}</script>\n</head>`
+        `<link id="dmsg-reading-style" rel="stylesheet" href="/_assets/dmsg/reading.css">\n${structuredData.map((data) => `<script type="application/ld+json">${JSON.stringify(data).replaceAll('<', '\\u003c')}</script>`).join('\n')}\n</head>`
       )
   )
   write('_/knowledge.json', JSON.stringify(manifest, null, 2) + '\n')
   write(
     'llms.txt',
-    `# dMsg\n\n> Private collaboration for people and agents, by ICPanda DAO. Encrypted personal workspace, channels, multisig wallets, public identity, explicit approvals and Agent Protocols over MCP.\n\nPublic information requires no login or JavaScript. Workspace access requires the owner's explicit capabilities. These documents are generated with the website from public source; source implementation, released binaries and deployed services can differ. Keep each document's review dates and limitations. Use tools/list for the installed MCP catalog.\n\n## Start here\n\n- [Product, installation, agent setup, pricing and trust boundaries](${origin}/index.md)\n- [简体中文产品与接入指南](${origin}/index.zh.md)\n- [Build revision, generation time and content hashes](${origin}/_/knowledge.json)\n- [Latest releases and checksums](${github}/releases/latest)\n\n## Public implementation and contracts\n\n${sources.map((source) => `- [${source.title}](${source.url})`).join('\n')}\n\n## Optional\n\n- [Complete English guide and public reference bundle](${origin}/llms-full.txt): Large file; prefer individual references for a focused question.\n- [Privacy policy](${origin}/_/privacy)\n- [Terms of service](${origin}/_/terms/v1.txt)\n- [Source repository](${github})\n`
+    `# dMsg\n\n> dMsg is a private workspace for passwords, notes and files, with an encrypted vault across authorized devices, explicit file backups, secure file exchange and permissioned AI agent access. It uses the Internet Computer for verifiable account and device authorization and supports open Agent Protocols. dMsg is a product of ICPanda DAO, which governs upgrades to its on-chain rules through public proposals.\n\n## Key facts\n\n- Category: end-to-end encrypted vault, file library, file sharing and AI agent permissions.\n- Platforms: iPhone and iPad (App Store), Mac with Apple Silicon, Windows x64; command line also on Linux. Android is in development.\n- Price: ${priceFact(membership, false)}\n- Recipients need no account to open a shared file link or to upload through a file request link. File requests require Plus or above.\n- Vault records sync across authorized devices. Local library files upload only when the owner backs up or shares a copy.\n- AI agents connect through MCP with their own Agent ID and granted capabilities. They can request a formal signature; only the owner approves it.\n- Governance: each dMsg control canister lists the ICPanda SNS root as its only controller (checked 2026-11-12); see https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai. Apps and the cloud service are released and operated outside that vote.\n- On-chain recovery is off by default for new accounts and must be enabled in advance.\n\nPublic information requires no login or JavaScript. Workspace access requires the owner's explicit capabilities. These documents are generated with the website from public source; source implementation, released binaries and deployed services can differ. Keep each document's review dates and limitations. Use tools/list for the installed MCP catalog.\n\n## Start here\n\n- [Product, installation, agent setup, pricing and trust boundaries](${origin}/index.md)\n- [简体中文产品与接入指南](${origin}/index.zh.md)\n- [Build revision, generation time and content hashes](${origin}/_/knowledge.json)\n- [Latest releases and checksums](${github}/releases/latest)\n\n## Public implementation and contracts\n\n${sources.map((source) => `- [${source.title}](${source.url})`).join('\n')}\n\n## Optional\n\n- [Complete English guide and public reference bundle](${origin}/llms-full.txt): Large file; prefer individual references for a focused question.\n- [Privacy policy](${origin}/_/privacy)\n- [Terms of service](${origin}/_/terms/v1.txt)\n- [Source repository](${github})\n`
   )
   write(
     'llms-full.txt',
@@ -321,7 +399,7 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
   // login/share URLs whose unauthenticated response is the generic SPA shell.
   write(
     'sitemap.xml',
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['/', '/_/about.html', '/_/about.zh.html'].map((path) => `  <url><loc>${origin}${path}</loc></url>`).join('\n')}\n</urlset>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['/', '/_/about.html', '/_/about.zh.html'].map((path) => `  <url><loc>${origin}${path}</loc><lastmod>${lastModified}</lastmod></url>`).join('\n')}\n</urlset>\n`
   )
   return manifest
 }

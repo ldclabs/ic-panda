@@ -12,7 +12,7 @@
   // visitor decides in the approval window. Nothing here approves on its own.
   type Asker = (typeof ASKERS)[number]
   type Room = (typeof ROOMS)[number]
-  type Kind = 'signature' | 'signin' | 'payment'
+  type Kind = 'signature' | 'signin'
   type Decision = 'approve' | 'reject' | 'expire'
   type Request = {
     kind: Kind
@@ -34,10 +34,7 @@
     tone?: 'ok' | 'no'
   }
 
-  const AGENT = 'release-assistant'
-  // Amounts keep their order inside right-to-left sentences.
-  const ltr = (text: string) =>
-    String.fromCharCode(0x2066) + text + String.fromCharCode(0x2069)
+  const AGENT = 'project-assistant'
   // A sample origin; example.com is reserved for examples.
   const SITE = 'example.com'
   const NAMES: Record<Asker, string> = {
@@ -51,17 +48,16 @@
   const HOST_GLYPHS: GlyphName[] = ['mail', 'discuss', 'book']
   const KIND_LABEL: Record<Kind, string> = {
     signature: 'Signature',
-    signin: 'Sign-in',
-    payment: 'Payment'
+    signin: 'Sign-in'
   }
   const REQUESTS: Request[] = [
     {
       kind: 'signature',
       from: 'agent',
       via: `agent:${AGENT}`,
-      title: 'Sign the release statement',
-      effect: 'Approving signs this statement with your account key.',
-      approved: 'Signature generated',
+      title: 'Sign the project statement',
+      effect: 'Approving signs the statement shown.',
+      approved: 'Signature generated in this example',
       rejected: 'Rejected. Nothing was signed.'
     },
     {
@@ -70,24 +66,13 @@
       via: `connect:${SITE}`,
       title: 'Sign in to {site}',
       params: { site: SITE },
-      effect: 'Approving proves to the site that it is you.',
-      approved: 'The site received the result',
+      effect: 'Approving identifies your dMsg account to this site.',
+      approved: 'The website received the example result',
       rejected: 'The site is told no; nothing is signed'
-    },
-    {
-      kind: 'payment',
-      from: 'agent',
-      via: `agent:${AGENT}`,
-      title: 'Pay {amount} from the multisig wallet',
-      params: { amount: ltr('0.4 BTC') },
-      effect: 'Approving adds your vote. The wallet’s policy decides the rest.',
-      approved: 'Your vote is recorded.',
-      rejected: 'Rejected. Nothing was paid.'
     }
   ]
   const EXPIRY = 15000
   const APPROVE_DELAY = 1200
-  const HOLD = 1000
 
   const id = $props.id()
   const prefix = `hero-${id}`.replace(/[^a-zA-Z0-9-]/g, '')
@@ -105,7 +90,6 @@
   let outcome = $state<{ text: string; tone: 'ok' | 'no' } | null>(null)
   let left = $state(1)
   let ready = $state(false)
-  let holding = $state(false)
   let waiting = $state(false)
 
   const artwork = $derived(
@@ -116,7 +100,7 @@
         space: $t('Private space'),
         network: $t('Agent network'),
         you: $t('You'),
-        desktop: $t('Desktop and terminal'),
+        desktop: $t('Your device'),
         teammate: $t('Teammate'),
         agent: $t('Your agent'),
         website: $t('Website')
@@ -314,7 +298,7 @@
       glyph: 'time',
       from: next.from,
       to: KIND_LABEL[next.kind],
-      note: 'Waiting for your approval'
+      note: 'Waiting for your decision'
     })
     open(next)
     let decided: Decision | null = null
@@ -347,21 +331,16 @@
         ? next.approved
         : decision === 'reject'
           ? next.rejected
-          : 'Expired. Nothing was approved.'
+          : 'Request expired. Nothing was approved.'
     const tone = decision === 'approve' ? 'ok' : 'no'
     outcome = { text, tone }
     record({ glyph: tone === 'ok' ? 'check' : 'close', note: text, tone })
     if (reduced) return
     mark('asker', '')
     if (decision === 'approve') {
-      if (next.kind === 'payment') {
-        await travel('room-3', 'over', 700)
-        mark('room', 'wallets')
-      } else {
-        const index = ASKERS.indexOf(next.from)
-        await travel(`ask-${index}`, 'under', 1300, true)
-        mark('asker', next.from, 'done')
-      }
+      const index = ASKERS.indexOf(next.from)
+      await travel(`ask-${index}`, 'under', 1300, true)
+      mark('asker', next.from, 'done')
     }
     await wait(2400)
     clear()
@@ -370,16 +349,23 @@
   }
 
   async function story() {
+    // Private keeping first, then chosen access, then a decision; the
+    // agent network follows as the wider picture.
     for (let round = 0; ; round++) {
-      await enter('teammate', 'channels', 'Encrypted end to end', 'chat')
+      await enter('you', 'vault', 'Encrypted before sync', 'vault')
       await wait(500)
-      await enter('you', 'vault', 'Sealed before it syncs', 'vault')
+      await enter(
+        'teammate',
+        'channels',
+        'End-to-end encrypted channel',
+        'chat'
+      )
       await wait(500)
-      await enter('agent', 'files', 'Only the folder it was granted', 'folder')
-      await wait(500)
-      await post(round % 3)
+      await enter('agent', 'files', 'Access to the selected folder', 'folder')
       await wait(700)
-      await ask(REQUESTS[round % 3]!)
+      await ask(REQUESTS[round % REQUESTS.length]!)
+      await wait(900)
+      await post(round % 3)
       await wait(1200)
     }
   }
@@ -401,21 +387,6 @@
     }
   }
 
-  // ——— Hold to approve, for payments ———
-  let holdTimer: ReturnType<typeof setTimeout> | undefined
-  function holdStart() {
-    if (!ready || holding) return
-    holding = true
-    holdTimer = setTimeout(() => {
-      holding = false
-      decide('approve')
-    }, HOLD)
-  }
-  function holdEnd() {
-    clearTimeout(holdTimer)
-    holding = false
-  }
-
   onMount(() => {
     const motion = matchMedia('(prefers-reduced-motion: reduce)')
     const phone = matchMedia('(max-width: 560px)')
@@ -431,16 +402,16 @@
     )
     observer.observe(root)
     record({
-      glyph: 'discuss',
-      from: 'agent',
-      to: 'Agent Discourse',
-      note: 'Signed with its own Agent ID'
+      glyph: 'vault',
+      from: 'you',
+      to: 'Vault',
+      note: 'Encrypted before sync'
     })
     record({
       glyph: 'folder',
       from: 'agent',
       to: 'Files',
-      note: 'Only the folder it was granted'
+      note: 'Access to the selected folder'
     })
     if (reduced) stillRequest()
     else void story()
@@ -449,7 +420,6 @@
       document.removeEventListener('visibilitychange', updateVisibility)
       phone.removeEventListener('change', updateWidth)
       clearTimeout(readyTimer)
-      clearTimeout(holdTimer)
       timers = []
       tweens = []
     }
@@ -500,9 +470,7 @@
             ><path d="M10 3 17 10 10 17 3 10Z" /></svg
           >
           <p
-            ><strong>{$t('Nothing is waiting for you.')}</strong><span
-              >{$t('Approved without you: {count}', { count: 0 })}</span
-            ><small
+            ><strong>{$t('No pending approval requests')}</strong><small
               >{$t(
                 'Requests from agents, websites and the terminal open here.'
               )}</small
@@ -526,41 +494,17 @@
               >{/if}
             <div class="ticket-actions">
               <button class="ticket-reject" onclick={() => decide('reject')}
-                >{$t('Reject')}</button
+                >{$t('Reject this example')}</button
               >
-              {#if item.kind === 'payment'}
-                <button
-                  class="ticket-approve"
-                  class:ready
-                  class:holding
-                  aria-disabled={!ready}
-                  onpointerdown={holdStart}
-                  onpointerup={holdEnd}
-                  onpointerleave={holdEnd}
-                  onpointercancel={holdEnd}
-                  onkeydown={(event) => {
-                    if (
-                      (event.key === 'Enter' || event.key === ' ') &&
-                      !event.repeat
-                    ) {
-                      event.preventDefault()
-                      holdStart()
-                    }
-                  }}
-                  onkeyup={holdEnd}
-                  ><i aria-hidden="true"></i><span>{$t('Hold to approve')}</span
-                  ></button
-                >
-              {:else}
-                <button
-                  class="ticket-approve"
-                  class:ready
-                  aria-disabled={!ready}
-                  onclick={() => ready && decide('approve')}
-                  ><i aria-hidden="true"></i><span>{$t('Approve')}</span
-                  ></button
-                >
-              {/if}
+              <button
+                class="ticket-approve"
+                class:ready
+                aria-disabled={!ready}
+                onclick={() => ready && decide('approve')}
+                ><i aria-hidden="true"></i><span
+                  >{$t('Approve this example')}</span
+                ></button
+              >
             </div>
           </div>
         {/each}

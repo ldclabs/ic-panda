@@ -24,10 +24,18 @@
   const DECISION = 3
 
   const lanes = $derived<{ glyph: GlyphName; name: string; host: string }[]>([
-    { glyph: 'globe', name: $t('Website'), host: 'tokenlist.ing' },
-    { glyph: 'link', name: $t('Bridge page'), host: 'connect.dmsg.net' },
-    { glyph: 'cloud', name: $t('dMsg relay'), host: $t('sealed mailbox') },
-    { glyph: 'laptop', name: $t('Your desktop'), host: $t('approval window') }
+    { glyph: 'globe', name: $t('Connected website'), host: 'tokenlist.ing' },
+    {
+      glyph: 'link',
+      name: $t('dMsg connection page'),
+      host: 'connect.dmsg.net'
+    },
+    { glyph: 'cloud', name: $t('dMsg relay'), host: $t('encrypted delivery') },
+    {
+      glyph: 'laptop',
+      name: $t('Your desktop'),
+      host: $t('review and approval')
+    }
   ])
 
   let shown = $state(0)
@@ -37,15 +45,17 @@
   let timer: ReturnType<typeof setTimeout> | undefined
 
   const labels = $derived([
-    $t('Asks you to sign a file'),
-    $t('Sealed so only your devices can open it'),
-    $t('A hint wakes your desktop, no content'),
-    $t('You review it and decide'),
-    decision === 'rejected' ? $t('Sealed refusal') : $t('Sealed result'),
-    $t('Opened only by the page that asked'),
+    $t('The website requests a signature.'),
+    $t('The request is encrypted for your device.'),
+    $t('Your device receives a request notification.'),
+    $t('You review the request and decide.'),
     decision === 'rejected'
-      ? $t('The site is told no; nothing is signed')
-      : $t('The site verifies the signature')
+      ? $t('The rejection is encrypted for return.')
+      : $t('The signed result is encrypted for return.'),
+    $t('The requesting page receives the result.'),
+    decision === 'rejected'
+      ? $t('The website is notified. Nothing is signed.')
+      : $t('The website checks the signature.')
   ])
   const waiting = $derived(shown === DECISION + 1 && !decision)
   const done = $derived(shown === MOVES.length)
@@ -213,25 +223,27 @@
               >{$t('Reject')}</button
             >
             <button class="button primary" onclick={() => decide(true)}
-              >{$t('Approve')}</button
+              >{$t('Approve signature')}</button
             >
           </div>
         {:else if decision === 'approved'}
           <ol class="aw-progress" role="status">
             <li class="on"><Glyph name="check" size={14} />{$t('Approved')}</li>
             <li class:on={shown > DECISION + 1}>
-              <Glyph name="check" size={14} />{$t('Signature generated')}
+              <Glyph name="check" size={14} />{$t(
+                'Signature generated in this example'
+              )}
             </li>
             <li class:on={done}>
               <Glyph name="check" size={14} />{$t(
-                'The site received the result'
+                'The website received the example result'
               )}
             </li>
           </ol>
         {:else}
           <p class="aw-refused" role="status">
             <Glyph name="close" size={14} />{$t(
-              'Rejected. The site is told no, and nothing is signed.'
+              'Rejected. The website is notified, and nothing is signed.'
             )}
           </p>
         {/if}
@@ -243,11 +255,13 @@
 <div class="connect-controls">
   {#if playing}
     <button class="chip-btn" onclick={pause}
-      ><Glyph name="pause" size={14} />{$t('Pause')}</button
+      ><Glyph name="pause" size={14} />{$t('Pause demo')}</button
     >
   {:else}
     <button class="chip-btn" onclick={play} disabled={waiting}
-      ><Glyph name="play" size={14} />{done ? $t('Replay') : $t('Play')}</button
+      ><Glyph name="play" size={14} />{done
+        ? $t('Replay demo')
+        : $t('Start demo')}</button
     >
   {/if}
   <button class="chip-btn" onclick={next} disabled={waiting || done}
@@ -257,6 +271,8 @@
     ><Glyph name="refresh" size={14} />{$t('Start over')}</button
   >
   <span class="cc-status" aria-live="polite">
-    {waiting ? $t('Your turn: approve or reject in the approval window.') : ''}
+    {waiting
+      ? $t('Your turn: review the request, then approve or reject.')
+      : ''}
   </span>
 </div>

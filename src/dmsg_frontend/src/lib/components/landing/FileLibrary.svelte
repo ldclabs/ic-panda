@@ -142,7 +142,7 @@
     local: $t('Only on this device'),
     up: $t('Backing up…'),
     backed: $t('Backed up'),
-    large: $t('Over the cloud’s 100 MiB limit')
+    large: $t('Over this plan’s backup file limit')
   })
 
   const status = (file: File) =>
@@ -189,10 +189,7 @@
       file.backup = id
       file.progress = undefined
       started++
-      say(
-        tr('Backed up. The relay got ciphertext under a random ID, no name.'),
-        id
-      )
+      say(tr('Backup created. The service received an encrypted copy.'), id)
     }, 220)
     timers.push(timer)
   }
@@ -202,8 +199,10 @@
     asking = ''
     say(
       file.backup
-        ? tr('In the trash here. Its cloud copy stays as it was.')
-        : tr('In the trash here, kept {days} days.', { days: DAYS }),
+        ? tr('Moved to trash on this device. The cloud backup is unchanged.')
+        : tr('Moved to trash on this device. Kept for {days} days.', {
+            days: DAYS
+          }),
       file.backup
     )
   }
@@ -227,19 +226,14 @@
     if (file) file.backup = undefined
     say(
       file
-        ? tr('Cloud copy deleted. The file on this device is unchanged.')
-        : tr('Cloud copy deleted, and its room is freed.')
+        ? tr('Cloud backup deleted. The local file is unchanged.')
+        : tr('Cloud backup deleted in this example.')
     )
   }
 
   function fetchCopy(copy: Copy) {
     files.push({ ...copy.file, backup: copy.id })
-    say(
-      tr(
-        'Fetched and checked. Only on your devices does it have a name: {name}.',
-        { name: copy.file.name }
-      )
-    )
+    say(tr('Downloaded and checked: {name}.', { name: copy.file.name }))
   }
 
   onMount(() => () => {
@@ -255,7 +249,7 @@
       <header class="fl-head">
         <span class="fl-title"
           ><Glyph name="laptop" size={16} /><strong id="fl-device"
-            >{$t('On your device')}</strong
+            >{$t('On this device')}</strong
           ><code>{HERE}</code></span
         >
         <small
@@ -306,10 +300,9 @@
             {#if asking === file.id}
               <div class="fl-ask" role="group" aria-label={$t('Back up')}>
                 <p>
-                  <strong>{$t('Back up to the cloud?')}</strong>
+                  <strong>{$t('Create an encrypted backup?')}</strong>
                   {$t(
-                    '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.',
-                    { size: size(sealed(file.bytes)) }
+                    'Upload an encrypted copy of this file. Your local file stays on this device.'
                   )}
                 </p>
                 <p class="fl-room">
@@ -323,7 +316,7 @@
                     >{$t('Cancel')}</button
                   >
                   <button class="button primary" onclick={() => backUp(file)}
-                    >{$t('Back up')}</button
+                    >{$t('Create backup')}</button
                   >
                 </div>
               </div>
@@ -334,7 +327,7 @@
       {#if trash.length}
         <p class="fl-sub">
           <Glyph name="trash" size={14} />{$t(
-            'Trash · kept {days} days. Cloud copies are not affected.',
+            'Trash · kept {days} days. Cloud backups are not affected.',
             { days: DAYS }
           )}
         </p>
@@ -357,7 +350,7 @@
       {/if}
       <p class="fl-foot">
         {$t(
-          'Up to 4 GiB a file. Names, folders, tags, notes and every version are encrypted here.'
+          'Local files and cloud backups are managed separately. Deleting one does not delete the other.'
         )}
       </p>
     </section>
@@ -366,8 +359,8 @@
       <header class="fl-head">
         <span class="fl-title"
           ><Glyph name="cloud" size={16} /><strong id="fl-cloud"
-            >{$t('In the dMsg cloud')}</strong
-          ></span
+            >{$t('Encrypted cloud backups')}</strong
+          ><span class="fl-tag">{$t('Free plan example')}</span></span
         >
         <small
           >{$t('{used} of {limit}', {
@@ -394,7 +387,7 @@
               {#if !file}
                 <button class="chip-btn" onclick={() => fetchCopy(copy)}
                   ><Glyph name="cloud-down" size={14} />{$t(
-                    'Fetch into the library'
+                    'Download to this device'
                   )}</button
                 >
               {/if}
@@ -403,8 +396,8 @@
                 class:armed={armed === copy.id}
                 onclick={() => remove(copy)}
                 ><Glyph name="trash" size={14} />{armed === copy.id
-                  ? $t('Click again to delete for good')
-                  : $t('Delete the cloud copy')}</button
+                  ? $t('Permanently delete backup')
+                  : $t('Delete cloud backup')}</button
               >
             </span>
           </li>
@@ -416,7 +409,7 @@
       </ul>
       <p class="fl-foot">
         {$t(
-          'The relay sees sizes, times and devices. Names, folders and types stay sealed.'
+          'File names and contents stay encrypted. The service can see backup sizes, times and devices.'
         )}
       </p>
     </section>
@@ -424,19 +417,22 @@
 
   <div class="fl-dock">
     <p class="fl-notice" aria-live="polite">
-      {notice || $t('Back up a file, delete one side, then look at the other.')}
+      {notice ||
+        $t(
+          'Try backing up a file, then downloading a cloud copy created on your other device.'
+        )}
     </p>
     <dl class="gate-stats">
       <div>
-        <dt>{$t('Backups you started')}</dt>
+        <dt>{$t('Backups created')}</dt>
         <dd>{started}</dd>
       </div>
       <div class="zero">
-        <dt>{$t('Uploaded without you')}</dt>
+        <dt>{$t('Automatic uploads in this example')}</dt>
         <dd>0</dd>
       </div>
       <div class="zero">
-        <dt>{$t('Deletions that crossed over')}</dt>
+        <dt>{$t('Deletions propagated between copies')}</dt>
         <dd>0</dd>
       </div>
     </dl>

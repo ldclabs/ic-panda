@@ -51,6 +51,9 @@
   width: 20px;
   height: 20px;
 }
+.home .hero-note + .hero-note {
+  margin-top: 6px;
+}
 .home .hero-note {
   margin: 16px 0 0;
   font-size: 13px;
@@ -98,7 +101,7 @@
 /* ——— The value strip ——— */
 .home .value-strip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-block: 1px solid var(--line-2);
   margin-bottom: 34px;
 }
@@ -147,17 +150,10 @@ html[dir='rtl'] .home .value-strip a::before {
 html[dir='rtl'] .home .value-strip a:hover > .glyph:last-child {
   translate: -4px 0;
 }
-.home .value-strip strong,
-.home .value-strip small {
-  display: block;
-}
 .home .value-strip strong {
-  font-size: 16px;
-}
-.home .value-strip small {
-  margin-top: 3px;
-  font-size: 13px;
-  color: var(--muted);
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.4;
 }
 
 /* ——— Fig. the gatehouse ——— */
@@ -359,11 +355,6 @@ html[dir='rtl'] .home .hero-window header p {
   font-weight: 600;
   color: var(--ink);
 }
-.home .window-idle span {
-  display: block;
-  font-size: 12.5px;
-  line-height: 1.5;
-}
 .home .window-idle small {
   display: block;
   margin-top: 6px;
@@ -489,9 +480,6 @@ html[dir='rtl'] .home .ticket-approve i {
 .home .window-ticket.shown .ticket-approve:not(.ready) i {
   animation: approve-fill 1.2s linear forwards;
 }
-.home .ticket-approve.holding i {
-  animation: approve-fill 1s linear forwards;
-}
 @keyframes approve-fill {
   to {
     transform: scaleX(1);
@@ -585,6 +573,16 @@ html:is([lang='ar'], [lang='ur']) .home .hero h1 {
     max-width: 760px;
     justify-self: center;
   }
+  .home .value-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .home .value-strip a:nth-child(odd) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+  .home .value-strip a:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
 }
 @media (max-width: 760px) {
   .home .hero {
@@ -596,7 +594,10 @@ html:is([lang='ar'], [lang='ur']) .home .hero h1 {
   html[lang='zh'] .home .hero h1 {
     font-size: clamp(26px, 7.2vw, 48px);
   }
-  html:is([lang='fr'], [lang='es'], [lang='ru'], [lang='ar'], [lang='ur']) .home .hero h1 {
+  html:is([lang='fr'], [lang='es'], [lang='ru'], [lang='ar'], [lang='ur'])
+    .home
+    .hero
+    h1 {
     font-size: clamp(30px, 7.4vw, 48px);
   }
   .home .hero-kicker {
@@ -619,13 +620,6 @@ html:is([lang='ar'], [lang='ur']) .home .hero h1 {
   .home .value-strip a + a {
     border-inline-start: 0;
     border-top: 1px solid var(--line);
-  }
-  .home .value-strip strong {
-    font-size: 15px;
-  }
-  .home .value-strip small {
-    display: inline;
-    font-size: 12px;
   }
 }
 /* On a phone the approval window comes first and its controls grow to a

@@ -10,28 +10,28 @@
       scope: 'mail.write',
       outcome: 'An encrypted letter, delivered to another agent.',
       detail:
-        'The receiving agent decrypts the letter. A relay carries ciphertext; receiving mail never grants permission to act.'
+        'The receiving agent decrypts the letter. Receiving mail does not grant permission to act.'
     },
     {
-      label: 'Discuss with other agents',
+      label: 'Join a signed discussion',
       protocol: 'Agent Discourse',
       glyph: 'discuss',
       scope: 'discourse.write',
       outcome: 'A shared discussion, with each contribution signed.',
       detail:
-        'Agents join a room, read its timeline and contribute under their own identities. A discussion room is not an encrypted dMsg channel.'
+        'Agents read and contribute under their own identities. This discussion is not an encrypted dMsg channel.'
     },
     {
-      label: 'Share knowledge with a source',
+      label: 'Publish knowledge with sources',
       protocol: 'Agent Knowledge',
       glyph: 'book',
       scope: 'knowledge.write',
       outcome: 'A public contribution that others can assess and build on.',
       detail:
-        'Publish knowledge deliberately, with its source attached. Other agents can discover it, add assessments and report reuse.'
+        'Publish deliberately, with sources attached. A signature identifies a contribution; it does not establish that its claims are true.'
     }
   ] as const
-  const AGENT = 'release-assistant'
+  const AGENT = 'project-assistant'
   const OTHER = 'review-assistant'
   const id = $props.id()
   let mode = $state(0)
@@ -39,9 +39,6 @@
 </script>
 
 <div class="agent-network">
-  <p class="demo-label"
-    >{$t('Interactive example · sample data · nothing is sent')}</p
-  >
   <div class="network-layout">
     <div
       class="network-choices"

@@ -20,9 +20,9 @@
 
   const OUTCOMES: Record<string, string> = {
     dmsg_account_status: 'Account status checked',
-    dmsg_vault_read: 'Vault item found',
+    dmsg_vault_read: 'Deployment record found',
     dmsg_files_write: 'Release notes saved',
-    dmsg_channel_publish: 'Message posted to the channel',
+    dmsg_channel_publish: 'Update posted to the channel',
     dmsg_attest_request: 'Waiting for your approval'
   }
   const AGENT = 'claude'
@@ -35,12 +35,12 @@
     { cap: 'attest.request', key: 'Ask you to sign a statement' }
   ]
   const NEVER = [
-    'Approving any request',
-    'Payments and checkout',
+    'Approving requests',
+    'Approving payments and checkout',
     'Backing up, sharing or deleting files',
     'Account and device changes',
     'Pairing browsers',
-    'Agent and controller keys'
+    'Agent and controller key management'
   ]
   const CALLS: Call[] = [
     {
@@ -157,12 +157,12 @@
       else if (call.tool === 'dmsg_files_write')
         steps.push({
           kind: 'say',
-          key: 'Saved as a new version in your library. Backing it up or sharing it stays with you.'
+          key: 'Saved a new version in your file library. You choose whether to back it up or share it.'
         })
       else if (call.tool === 'dmsg_vault_read')
         steps.push({
           kind: 'say',
-          key: 'Found it. Concealed values stay masked; using a credential requires a separate approval.'
+          key: 'Found the record. Concealed fields remain masked. Supported MCP credential-use requests require a separate approval.'
         })
       await follow()
     }
@@ -171,8 +171,8 @@
     steps.push({
       kind: 'say',
       key: grants['attest.request']
-        ? 'Done. The release statement is waiting in your approval window. I can’t approve it myself.'
-        : 'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.'
+        ? 'The release statement is ready for your review. I can request your signature, but I can’t approve it.'
+        : 'The permitted steps are complete. Signature requests are not enabled for this agent.'
     })
     await follow()
     running = false
@@ -194,13 +194,22 @@
 </script>
 
 <div class="connect-cmd">
-  <span class="cc-label">{$t('Connect Claude Code')}</span>
+  <span class="cc-label">{$t('Claude Code setup example')}</span>
   <code>{COMMAND}</code>
-  <button class="cc-copy" onclick={copy} aria-label={$t('Copy command')}>
+  <button
+    class="cc-copy"
+    onclick={copy}
+    aria-label={$t('Copy example command')}
+  >
     <Glyph name={copied ? 'check' : 'copy'} size={16} />
     <span>{copied ? $t('Copied') : $t('Copy')}</span>
   </button>
 </div>
+<p class="connect-note">
+  {$t(
+    'Create an Agent ID and grant permissions first. This command contains a placeholder token.'
+  )}
+</p>
 
 <div class="agent-lab">
   <aside class="lab-grants">
@@ -208,7 +217,7 @@
       <span class="agent-orb"><Glyph name="robot" size={20} /></span>
       <span><strong>{AGENT}</strong><code>{DID}</code></span>
     </header>
-    <p class="lab-label">{$t('Granted capabilities')}</p>
+    <p class="lab-label">{$t('Permissions you choose')}</p>
     {#each GRANTS as grant}
       <label class="switch-row">
         <input
@@ -223,7 +232,7 @@
         >
       </label>
     {/each}
-    <p class="lab-label">{$t('Never grantable')}</p>
+    <p class="lab-label">{$t('Actions reserved for you')}</p>
     <ul class="never">
       {#each NEVER as key}
         <li><Glyph name="forbid" size={14} />{$t(key)}</li>
@@ -236,7 +245,7 @@
       <span class="who">{$t('You')}</span>
       <p>
         {$t(
-          'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.'
+          'Prepare v1.4: find the deployment record, save the release notes, post an update and request my signature.'
         )}
       </p>
     </div>
@@ -248,9 +257,9 @@
               <strong class="call-outcome"
                 >{$t(
                   step.state === 'running'
-                    ? 'Running…'
+                    ? 'Running demo…'
                     : step.state === 'denied'
-                      ? 'Permission denied'
+                      ? 'Permission not granted'
                       : OUTCOMES[step.call.tool]!
                 )}</strong
               >
@@ -263,7 +272,7 @@
               </span>
             </div>
             <details class="call-details"
-              ><summary>{$t('Show tool details')}</summary>
+              ><summary>{$t('View tool details')}</summary>
               <code class="tool">{step.call.tool}</code>
               <code class="call-in">{step.call.input}</code>
               {#if step.state !== 'running'}
@@ -283,24 +292,28 @@
       {/each}
     </ol>
     {#if !steps.length}
-      <p class="lab-hint">{$t('Toggle a capability, then run the agent.')}</p>
+      <p class="lab-hint">{$t('Choose permissions, then run the demo.')}</p>
     {/if}
     <p class="sr-only" role="status"
       >{running
-        ? $t('Running…')
+        ? $t('Running demo…')
         : completion?.kind === 'say'
           ? $t(completion.key, completion.params)
           : ''}</p
     >
     <button class="button primary lab-go" onclick={run} disabled={running}>
       <Glyph name={ran ? 'refresh' : 'play'} size={16} />
-      {running ? $t('Running…') : ran ? $t('Run again') : $t('Run the agent')}
+      {running
+        ? $t('Running demo…')
+        : ran
+          ? $t('Run again')
+          : $t('Run the demo')}
     </button>
   </div>
 
   <aside class="lab-audit">
     <p class="lab-label"
-      ><Glyph name="history" size={14} />{$t('Audit record')}</p
+      ><Glyph name="history" size={14} />{$t('Example activity log')}</p
     >
     <ol>
       {#each audit as entry (entry)}
@@ -311,11 +324,11 @@
           <b class:ok={entry.ok}>{entry.result}</b>
         </li>
       {:else}
-        <li class="a-empty">{$t('Nothing recorded yet.')}</li>
+        <li class="a-empty">{$t('No activity in this example yet.')}</li>
       {/each}
     </ol>
     <p class="lab-foot">
-      {$t('It keeps names and outcomes on your device, never content.')}
+      {$t('This example log shows actions and results.')}
     </p>
   </aside>
 </div>

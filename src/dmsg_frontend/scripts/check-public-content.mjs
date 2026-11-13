@@ -95,10 +95,23 @@ for (const path of ['index.html', '_/about.html', '_/about.zh.html']) {
     assert.ok(
       !document.getElementById('dmsg-public-content').closest('noscript')
     )
-    const data = JSON.parse(
-      document.querySelector('script[type="application/ld+json"]').textContent
-    )
+    const linked = [
+      ...document.querySelectorAll('script[type="application/ld+json"]')
+    ].map((script) => JSON.parse(script.textContent))
+    const data = linked.find((item) => item['@type'] === 'SoftwareApplication')
     assert.equal(data.name, 'dMsg')
+    assert.equal(data.offers.length, 4, 'one offer per plan')
+    assert.ok(data.offers.every((offer) => offer.priceCurrency === 'USD'))
+    // Each labelled question is a visible heading of the static guide.
+    const faq = linked.find((item) => item['@type'] === 'FAQPage')
+    const visible = [...document.querySelectorAll('main h3')].map((heading) =>
+      heading.textContent.trim()
+    )
+    assert.ok(faq.mainEntity.length >= 8, 'labelled questions')
+    for (const entry of faq.mainEntity) {
+      assert.ok(visible.includes(entry.name), `FAQ heading: ${entry.name}`)
+      assert.ok(entry.acceptedAnswer.text.length > 40, entry.name)
+    }
     assert.equal(data.url, 'https://dmsg.net/')
     assert.ok(data.operatingSystem.includes('iOS'))
     assert.ok(data.operatingSystem.includes('iPadOS'))
@@ -139,6 +152,8 @@ for (const location of sitemap.window.document.querySelectorAll('loc')) {
 }
 sitemap.window.close()
 assert.match(read('llms.txt'), /https:\/\/dmsg.net\/index.zh.md/)
+assert.match(read('llms.txt'), /## Key facts/)
+assert.match(read('sitemap.xml'), /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/)
 assert.ok(read('llms-full.txt').includes(read('_/docs/agents.md')))
 
 assert.equal(

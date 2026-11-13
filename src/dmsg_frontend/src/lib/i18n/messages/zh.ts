@@ -13,14 +13,7 @@ export default {
   "Waiting for your passkey…": "正在等待通行密钥…",
   'Documentation': '文档',
   "Pricing": "价格",
-  "Membership": "会员权益",
   "Start free.": "免费开始。",
-  "Room to do more.": "为更多可能留出空间。",
-  "One private workspace, with more capacity when you need it.": "从个人私密工作区起步，需要时再增加容量。",
-  "For everyday essentials.": "满足日常所需。",
-  "For a growing personal workspace.": "为不断丰富的个人工作区。",
-  "For work and collaboration.": "为专业工作与协作。",
-  "For larger teams and workloads.": "为更大的团队与工作量。",
   "USD / year": "美元 / 年",
   "Encrypted cloud storage": "加密云存储",
   "Active devices": "活跃设备",
@@ -28,9 +21,6 @@ export default {
   "Formal signatures / month": "正式签名 / 月",
   "Multisig wallet slots": "多签钱包名额",
   "Privacy comes with every plan.": "每个档位，都保留隐私与控制。",
-  "Encryption, device revocation and account recovery are included at every tier.": "所有档位均包含加密保护、设备撤销与账户恢复。",
-  "Choose your plan in the app.": "在客户端选择会员方案。",
-  "Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.": "使用 ckUSDC、ckUSDT 支付，或通过符合条件的 PANDA 神经元抵扣年度会员费。",
   "Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.": "频道额度用于你创建或赞助的频道；普通设备签名不消耗每月正式签名额度。",
   "Wallet activation is charged separately; check availability in the app.": "多签钱包另收开通费，开放情况请在客户端查看。",
   "Cloud backup file limit": "云端备份单文件上限",
@@ -122,17 +112,9 @@ export default {
   'Main navigation': '主导航',
   'Close navigation': '关闭导航',
   'Open navigation': '打开导航',
-  'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.':
-    '加密保护内容，但不会隐藏所有关系或操作。身份、调用、付款和投递元数据仍可能可见。',
-  'Removing access protects future content after key changes. It cannot erase downloads, screenshots, or a secret already learned.':
-    '移除访问权并在换钥后可保护后续内容，但无法抹去已下载的副本、截图或对方已知的秘密。',
-  'Inspect the public code.': '查看公开代码。',
-  'Explore the repository': '浏览代码仓库',
-  'Read the recovery details': '阅读恢复机制说明',
   'A few useful answers': '常见问题',
   'Read your legacy messages': '查看旧版消息',
   'Built by': '由以下团队开发：',
-  'Trust': '信任',
   'Legacy app · Read-only': '旧版应用 · 只读',
   'File': '文件',
   'Activate username account': '激活用户名账户',
@@ -510,19 +492,14 @@ export default {
   '1 of 2 approvals': '2 人中 1 人批准',
   '2 of 2, then 24 hours': '2 人都批准，再等 24 小时',
   'A commitment to your content root': '你的内容根承诺值',
-  'A hint wakes your desktop, no content': '仅发送提示唤醒桌面端，不含内容',
   'API key': 'API 密钥',
   'Account and device changes': '账户与设备变更',
   'Account and sync status': '账户与同步状态',
   'Account, devices and logins': '账户、设备与登录身份',
-  'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
-    '添加第二台设备，并绑定一个你信任的登录身份。即使所有设备都丢失，该登录身份也能在等待期结束后恢复账户；等待期内，你的任何设备都可以提出异议。',
   'Address book: {label} · past its 24-hour wait':
     '地址簿：{label} · 已过 24 小时等待期',
   'Addresses': '地址',
   'Admin': '管理员',
-  'Agent ID listed by {member}': '由 {member} 登记的 Agent ID',
-  'Agent and controller keys': '智能体与控制者密钥',
   'Agents': '智能体',
   'All downloads and checksums': '全部下载与校验和',
   'An agent acting for {member}': '代表 {member} 行事的智能体',
@@ -531,98 +508,50 @@ export default {
     'Apple 芯片 · 桌面应用与命令行',
   'Approval': '审批',
   'Approve': '批准',
-  'Approve as Mei': '以 Mei 的身份批准',
   'Approved': '已批准',
-  'Approved. Either approver can still veto it until the delay ends.':
-    '已批准。延时结束前，任一批准人仍可否决。',
   'Approved. Signature generated.': '已批准，签名已生成。',
   'Approver': '批准人',
-  'Approving any request': '批准任何请求',
   'Ask you to sign a statement': '请求你签署声明',
-  'Asks you to sign a file': '请求你签署文件',
-  'Audit chain': '审计链',
-  'Audit record': '审计记录',
   'Auditor': '审计方',
   'Back to the start': '回到开头',
   'Back up': '备份',
-  'Back up a file, delete one side, then look at the other.':
-    '备份一个文件，删掉其中一边，再看看另一边。',
-  'Back up to the cloud?': '备份到云端？',
   'Backed up': '已备份',
-  'Backed up. The relay got ciphertext under a random ID, no name.':
-    '已备份。中继收到的是随机 ID 下的密文，没有名称。',
   'Backing up, sharing or deleting files': '备份、分享或删除文件',
   'Backing up…': '备份中…',
-  'Backups you started': '你发起的备份',
-  'Bridge page': '桥接页',
-  'Broadcast': '已广播',
   'Broadcast. Waiting for the network.': '已广播，等待网络确认。',
   'Browser': '浏览器',
-  'Can I install dMsg now?': '现在可以安装 dMsg 吗？',
   'Cancel': '取消',
   'Channels': '频道',
   'Chrome on this Mac': '此 Mac 上的 Chrome',
   'Ciphertext': '密文',
-  'Ciphertext, plus what it takes to deliver it': '密文，以及投递所需的元数据',
   'Click again to copy': '再次点击以复制',
-  'Click again to delete for good': '再次点击以永久删除',
   'Click again to show': '再次点击以显示',
-  'Cloud copy deleted, and its room is freed.':
-    '云端副本已删除，占用的空间已释放。',
-  'Cloud copy deleted. The file on this device is unchanged.':
-    '云端副本已删除。本机上的文件不受影响。',
   'Cloud room: {used} used of {limit}': '云端空间：已用 {used}，共 {limit}',
   'Command line · x86_64 and arm64': '命令行 · x86_64 与 arm64',
-  'Connect Claude Code': '连接 Claude Code',
   'Contracts': '合同',
   'Copy': '复制',
   'Copy command': '复制命令',
   'Declined': '已拒绝',
   'Delayed': '延时中',
-  'Delete the cloud copy': '删除云端副本',
-  'Deletions that crossed over': '跨到另一边的删除',
   'Deploy key': '部署密钥',
-  'iOS, macOS and Windows · command line on Linux too.':
-    '支持 iOS、macOS 和 Windows · 命令行还支持 Linux。',
   'Documents': '文档',
-  'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
-    '我已完成被允许的部分。没有 attest.request，我连请你签名都做不到。',
-  'Done. The release statement is waiting in your approval window. I can’t approve it myself.':
-    '完成了。发布声明正在你的审批窗口中等待，我无法替你批准。',
   'Download for Mac': '下载 Mac 版',
   'Each checked against the wallet’s keys': '每个地址都已对照钱包密钥核验',
   'Each command installs the latest release and checks its SHA-256.':
     '每条命令都会安装最新版本，并校验其 SHA-256。',
-  'Each event hashes the one before it, so a member can check that none is missing.':
-    '每条事件都包含前一条的哈希，成员可以核对有没有缺失。',
   'Empty. Nothing arrives here until you back it up.':
     '空的。你不备份，这里就什么也没有。',
-  'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
-    '此处在你的浏览器中用一次性 AES-GCM 密钥加密，仅作演示；dMsg 的实际格式不同。留意大小：加密隐藏的是内容，而不是长度或时间。',
-  'Execute': '执行',
   'Expires in': '剩余有效期',
-  'Fetch into the library': '取回到文件库',
-  'Fetched and checked. Only on your devices does it have a name: {name}.':
-    '已取回并校验。只有在你的设备上，它才有名字：{name}。',
   'Files': '文件',
-  "Found it. Concealed values stay masked; using a credential requires a separate approval.":
-    "找到了。隐藏值保持遮罩；使用凭据需要另行批准。",
   'From an interactive terminal': '来自交互式终端',
-  'Granted capabilities': '已授予的能力',
   'Hide': '隐藏',
   'Hides again in {seconds} s.': '{seconds} 秒后再次隐藏。',
   'Highest network fee': '最高网络手续费',
   'I don’t have {capability}, so I’ll skip that.':
     '我没有 {capability}，所以跳过这一步。',
   'In the dMsg cloud': '在 dMsg 云端',
-  'In the trash here, kept {days} days.': '已移到本机回收站，保留 {days} 天。',
-  'In the trash here. Its cloud copy stays as it was.':
-    '已移到本机回收站。它的云端副本保持不变。',
   'Inbox': '收件箱',
   'Install method': '安装方式',
-  'Is there a phone app?': '有手机应用吗？',
-  'It keeps names and outcomes on your device, never content.':
-    '它只在你的设备上记录名称与结果，从不记录内容。',
   'Key': '密钥',
   'Lock the example': '锁定示例',
   'Locked': '已锁定',
@@ -631,31 +560,17 @@ export default {
   'Needs 1 of 2 approvals.': '需要 2 位批准人中的 1 位批准。',
   'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
     '需要 2 位批准人都批准，之后 24 小时内任一批准人都可否决。',
-  'Never grantable': '永不可授予',
-  'Never your messages or files': '绝不包含你的消息或文件',
   'New address-book entries': '新加入地址簿的地址',
   'Next step': '下一步',
-  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
-    '有。dMsg 已正式上架 App Store，支持 iPhone 和 iPad。Android 版正在开发。',
   'Note': '笔记',
-  'Nothing recorded yet.': '尚无记录。',
   'Nothing to review yet. The request appears here when it reaches this device.':
     '暂无待审内容。请求到达这台设备后会显示在这里。',
-  'On ICP': '在 ICP 上',
   'On another device': '在另一台设备上',
   'On your device': '在你的设备上',
   'Only on this device': '仅在本机',
-  'Opened only by the page that asked': '只有发起请求的页面能打开',
   'Origin': '来源',
-  'Over the cloud’s 100 MiB limit': '超过云端 100 MiB 上限',
-  'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
-    '配对第二台设备，并为账户绑定一个登录身份。即使所有设备都丢失，该登录身份也可以申请恢复；经过一到七天的等待期（期间你的任何设备都可以提出异议）后，账户会迁移到新设备上的全新密钥。',
   'Pairing browsers': '配对浏览器',
-  'Pause': '暂停',
-  'Payments and checkout': '付款与结账',
   'Photos': '照片',
-  'Play': '播放',
-  'Policy for BTC': 'BTC 策略',
   'Post in the release channel': '在发布频道发言',
   'Progress': '进度',
   'Proposal #{n}': '提案 #{n}',
@@ -663,44 +578,26 @@ export default {
   'Proposed by': '提案人',
   'Proposer': '提案人',
   'Read items tagged “deploy”': '读取标签为“deploy”的条目',
-  'Readable, and only while unlocked': '可读，但仅在解锁期间',
   'Ready': '可执行',
   'Ready. A member can execute it now.': '可执行。成员现在可以执行它。',
   'Reject': '拒绝',
   'Rejected. Nothing was signed.': '已拒绝，未签署任何内容。',
-  'Rejected. The site is told no, and nothing is signed.':
-    '已拒绝。网站会收到拒绝结果，不会签署任何内容。',
   'Release plan': '发布计划',
-  'Replay': '重播',
   'Reported by your browser through connect.dmsg.net':
     '由你的浏览器经 connect.dmsg.net 转述',
   'Restore': '恢复',
   'Restored on this device.': '已在本机恢复。',
   'Run again': '再运行一次',
-  'Run the agent': '运行智能体',
-  'Running…': '运行中…',
   'Sample copied. The app clears the clipboard after {seconds} s.':
     '示例已复制。应用会在 {seconds} 秒后清空剪贴板。',
-  'Saved as a new version in your library. Backing it up or sharing it stays with you.':
-    '已作为新版本存入你的文件库。要不要备份或分享，由你决定。',
   'Saved on this device · waits for sync': '已保存在本设备 · 等待同步',
-  'Sealed refusal': '密封的拒绝结果',
-  'Sealed result': '密封的结果',
-  'Sealed so only your devices can open it': '密封后只有你的设备能打开',
   'Secret': '机密',
   'Send': '转出',
   'Server login': '服务器登录',
   'Settings': '设置',
-  'Settled': '已确认',
   'Settled payments and names': '已结算的付款与名称',
-  'Settled. Every step is in the audit chain.':
-    '已确认。每一步都记在审计链上。',
   'Ship v1.4 on Friday. The brief is in the release channel.':
     '周五发布 v1.4。说明文档在发布频道里。',
-  'Ship v1.4 on Friday. The deploy key is in the vault.':
-    '周五发布 v1.4。部署密钥在保险库里。',
-  'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.':
-    '发布 v1.4：检查部署密钥，保存更新说明并发出去，再让这次发布获得签署。',
   'Show': '显示',
   'Sign a file': '签署文件',
   'Signature': '签名',
@@ -711,74 +608,46 @@ export default {
   'Signing key': '签名密钥',
   'Signing…': '签名中…',
   'Size': '大小',
-  'Skip the 24 hours': '跳过这 24 小时',
   'Start over': '重新开始',
   'Statement': '声明',
   'Synced': '已同步',
   'Team treasury': '团队金库',
   "Multisig wallets": "多签钱包",
   "Multisig wallets, their proposals and approvals": "多签钱包及其提案与批准",
-  'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
-    '客户端、守护进程、协议和 canister 都在公开仓库中。生产环境的云服务有其独立的运营信任边界。',
-  'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
-    '中继只看得到大小、时间和设备；名称、文件夹和类型都是密封的。',
   'The site is told no; nothing is signed': '网站收到拒绝，不会签署任何内容',
-  'The site received the result': '网站已收到结果',
-  'The site verifies the signature': '网站验证签名',
   'The wallet builds the transaction from the proposal and signs it with its threshold key.':
     '钱包根据提案构造交易，并用它的门限密钥签名。',
   'Titles, notes and secrets stay encrypted until you unlock this device.':
     '在你解锁这台设备之前，标题、笔记与机密始终保持加密。',
-  'Toggle a capability, then run the agent.': '切换一项能力，然后运行智能体。',
-  'Trash · kept {days} days. Cloud copies are not affected.':
-    '回收站 · 保留 {days} 天。云端副本不受影响。',
   'Turned down': '未通过',
   'Type a dmsg command': '输入 dmsg 命令',
-  'Type anything. It never leaves this page.': '随便输入，内容不会离开本页面。',
   'Unlock': '解锁',
   'Unlock the example': '解锁示例',
   'Unlock to review this request.': '解锁后才能审阅此请求。',
   'Unlocked': '已解锁',
-  'Up to 4 GiB a file. Names, folders, tags, notes and every version are encrypted here.':
-    '单个文件最大 4 GiB。名称、文件夹、标签、备注和每个版本都在本机加密。',
   'Up to {amount} in 24 hours': '24 小时内最多 {amount}',
-  'Uploaded without you': '未经你上传',
   'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.':
     '用过旧版 dMsg？在桌面应用的“设置 › 旧版迁移”中开始迁移，完成之前请保留旧浏览器的数据。',
   'Vault': '保险库',
   'Vault locked': '保险库已锁定',
-  'Veto': '否决',
   'Vetoed': '已否决',
   'Vetoed. Nothing was signed.': '已否决，未签署任何内容。',
   'Videos': '视频',
   'Wait 24 hours': '等待 24 小时',
-  'Waiting for approvals. The agent cannot give one.':
-    '等待批准。智能体无权批准。',
   'Website': '网站',
-  'What can an AI agent do with my account?': 'AI 智能体能对我的账户做什么？',
-  'What if I lose my computer?': '如果电脑丢了怎么办？',
   'Windows installer': 'Windows 安装程序',
   'Write into the “release” folder': '写入“release”文件夹',
-  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
-    '可以。dMsg 支持 iPhone、iPad、Apple Silicon Mac 和 Windows x64，命令行还支持 Linux。本页演示使用样例数据。',
   'You': '你',
-  'You review it and decide': '你审阅并做出决定',
   'Your desktop': '你的桌面端',
   'Your device decodes the transaction, checks it against the proposal and broadcasts it.':
     '你的设备解码交易，对照提案核验后广播。',
   'Your device signs your decision.': '你的设备为你的决定签名。',
   'Your no is recorded. Mei can still approve it.':
     '你的拒绝已记录。Mei 仍可以批准。',
-  'Your turn: approve or reject in the approval window.':
-    '轮到你了：请在审批窗口中批准或拒绝。',
   'account': '账户',
-  'approval window': '审批窗口',
-  'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
-    'connect.dmsg.net 转述的是你的浏览器提供的来源。它无法批准、签名或读取你的保险库，审批窗口也会标明来源由谁转述。',
   'dMsg relay': 'dMsg 中继',
   'dMsg · Approval': 'dMsg · 审批',
   'device': '设备',
-  'sealed mailbox': '密封邮箱',
   'size': '大小',
   'time': '时间',
   'x64 · desktop app and command line, less tested':
@@ -787,8 +656,6 @@ export default {
   '{count} files · {size}': '{count} 个文件 · {size}',
   '{count} items': '{count} 个条目',
   '{count} versions': '{count} 个版本',
-  '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
-    '{size}，按原样加密上传。没有这一步，什么都不会上传；两边也都不会删除任何东西。',
   '{used} of {limit}': '{used} / {limit}',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
     '你电脑上的加密工作空间。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作，未经你批准，什么都不会被签署。',
@@ -841,8 +708,6 @@ export default {
   'Nothing to install': '无需安装',
   'Decrypted only in your browser': '只在你的浏览器中解密',
   'Send your own files this way': '用同样的方式发送你的文件',
-  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
-    'dMsg 是你的私密工作空间，用来保存文件、消息和密码。只有你和你选择的人才能读取。',
   'Share a file by link that can expire, ask for a password or be revoked.':
     '通过链接分享文件，可以设置有效期、要求口令，也可以随时撤销。',
   'The person you send it to needs no account or app.':
@@ -930,171 +795,45 @@ export default {
   'This is not a dMsg attestation bundle.': '这不是 dMsg 证据包。',
   'Could not reach the Internet Computer. Try again.':
     '无法连接 Internet Computer，请重试。',
-  'Private space · Collaboration · Agent network':
-    '隐私空间 · 协作 · 智能体网络',
-  'Private collaboration.': '私密协作，',
-  'For people and agents.': '连接人与智能体。',
-  'Keep secrets and files private. Collaborate with your team. Give your agents their own identities and permissions to work across an open network.':
-    '保存秘密与文件，与伙伴加密协作。让智能体按你的授权工作，并以独立身份连接开放网络。',
   'Download dMsg': '下载 dMsg',
-  'See collaboration in action': '看看协作如何发生',
-  'Private space': '隐私空间',
-  'A space of your own.': '属于你的空间。',
-  'Useful from day one.': '一个人，也有用。',
-  'Save a secret, keep a private note or bring in a file. Your workspace is useful before you invite anyone or connect an agent.':
-    '保存一份凭据、一篇私密笔记，或导入一个文件。邀请伙伴、连接智能体之前，你就能用好自己的空间。',
-  'Secrets, kept close.': '秘密，妥善保管。',
-  'Files stay on your computer.': '文件留在本机。',
-  'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
-    '文件内容、名称与版本在本机加密。备份哪些由你选择；分享时另建一份独立加密的副本。',
-  'Explore files and backups': '体验文件与备份',
-  'Try the desktop and command line': '体验桌面与命令行',
-  'Collaboration': '协作',
-  'Bring your people.': '邀请你的伙伴。',
-  'Move the work forward.': '一起，把事情做好。',
-  'Discuss a plan, share a file and decide together. Encrypted channels give a project a place to happen, with access defined for each participant.':
-    '讨论计划、分享文件、共同决定。加密频道承载项目协作，每位参与者的访问范围清晰可见。',
-  'A conversation with boundaries.': '沟通，有明确边界。',
-  'Invite teammates into encrypted channels, reply to messages and find past discussions locally. Channel membership does not open your vault.':
-    '邀请伙伴进入加密频道，回复消息，在本机搜索讨论。加入频道不会打开你的保险库。',
-  'Share just what is needed.': '只分享需要的部分。',
-  'Send a separately encrypted file to a channel or share it by link. Your library and backups keep their own keys and copies.':
-    '向频道发送独立加密的文件，或通过链接分享。文件库与备份保留各自的密钥和副本。',
-  'Important decisions stay explicit.': '重要决定，明确确认。',
-  'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.':
-    '正式签署由你审阅确认，团队资金按共同制定的规则批准。智能体可以提议，决定由人作出。',
-  "Explore a multisig wallet proposal": "体验多签钱包提案",
-  "Try a proposal from an agent and see which decisions belong to people.":
-    "试着处理一项智能体提案，看看哪些决定需要由人来做。",
-  'Follow a request from a website': '看看网站如何发起请求',
-  'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.':
-    '网站请求签署，你在 dMsg 中审阅，网站收到处理结果。无需安装浏览器扩展。',
+  'Private space': '私密空间',
   'Agent network': '智能体网络',
-  'Your agents, in good company.': '让智能体，加入协作。',
-  'Their own identities. Your permissions.': '身份独立，权限由你。',
-  'Connect an MCP client to dMsg. Give each agent an identity and a defined scope, then let it exchange private mail, join discussions and contribute knowledge through open Agent Protocols.':
-    '将 MCP 客户端连接到 dMsg。为每个智能体分配身份与权限，通过开放的 Agent Protocols 交换私信、参与讨论、贡献知识。',
-  'An identity others can verify.': '身份，可被核验。',
-  'Agent ID identifies the agent; its profile describes it. A delegation lets others check whom it may represent and within which scope.':
-    'Agent ID 标识智能体，档案介绍它。委托凭证让他人核验它代表谁、获准做什么。',
-  'Access you can define and revoke.': '权限，可授予与撤销。',
-  'Choose the folders, channels and services an agent can use. Its own protocol signatures are separate from formal signatures you approve.':
-    '选择智能体能使用的文件夹、频道和服务。它自己的协议签名，与需要你批准的正式签署彼此独立。',
-  'Work you can follow.': '工作，可查看与追溯。',
-  'See what an agent produced and inspect its local action record. Requests that need your approval remain yours to decide.':
-    '查看智能体的产出与本机操作记录。需要你批准的请求，始终留给你决定。',
   'Read the open protocols': '阅读开放协议',
-  'Try agent permissions and inspect tool calls': '体验智能体权限与工具调用',
   'Privacy & trust': '隐私与信任',
-  'Trust, with evidence.': '信任，有据可查。',
-  'And clear boundaries.': '边界，清楚说明。',
-  'Private content is encrypted on your devices. Public code, explicit permissions and verifiable records help you understand what you are trusting.':
-    '私密内容在设备端加密。公开代码、明确授权与可验证的记录，帮助你了解信任建立在什么基础上。',
-  'What encryption protects.': '加密保护什么。',
-  'Where trust still matters.': '服务仍有信任边界。',
-  'Cloud availability, client updates and recovery services remain trust boundaries. Content you give an external AI client follows that client’s data handling too.':
-    '云端可用性、客户端更新与恢复服务仍有信任边界。交给外部 AI 客户端的内容，也受该客户端的数据处理方式约束。',
-  'Shared copies can remain.': '已分享的副本可能保留。',
   'See what your device, the cloud and ICP receive':
     '看看设备、云端与 ICP 各自收到什么',
   'Prepare for a lost device.': '为设备丢失做好准备。',
-  'Start with your own space': '从自己的空间开始',
-  'Make your first private note.': '保存第一篇私密笔记。',
-  'Install dMsg, set up your account and save something worth keeping. Invite a teammate or connect an agent when you are ready.':
-    '安装 dMsg，设置账户，保存值得留存的内容。准备好后，再邀请伙伴或连接智能体。',
   'Prefer the command line?': '习惯使用命令行？',
   'Before you begin.': '开始之前。',
   'Coming from the old dMsg?': '从旧版 dMsg 迁入？',
-  'Start your private collaboration.': '开启你的私密协作空间。',
-  'A space for your work. A place for your people and agents.':
-    '安放你的工作，连接伙伴与智能体。',
   'Can I use dMsg on my own?': '一个人也能使用 dMsg 吗？',
-  'Yes. Start with a private note, a login or a file. You can invite people and connect agents when you need them.':
-    '可以。从私密笔记、登录凭据或文件开始，需要时再邀请伙伴、连接智能体。',
-  'How do I work with someone else?': '如何与伙伴协作？',
-  'Invite them to an encrypted channel. Once they accept, you can exchange messages and share files. Joining a channel does not give them access to your vault.':
-    '邀请对方加入加密频道。接受邀请后，即可交换消息、分享文件。加入频道不会授予对方保险库访问权。',
-  'You grant access to specific resources and actions. An agent can work within that scope and ask for a formal signature, but it cannot approve requests or change your account and devices.':
-    '你为具体资源与操作授予权限。智能体可以在范围内工作、请求正式签署，但不能批准请求，也不能更改你的账户与设备。',
-  'What stays private, and what goes out?': '哪些内容私密，哪些会发出去？',
-  'Vault items and channel messages sync as ciphertext. Library files stay local until you back them up or share a separate copy. Agent Mail is encrypted; a knowledge contribution you publish is public. Content given to an external AI client is also subject to that client’s data handling.':
-    '保险库条目与频道消息以密文同步。文件库内容留在本机，直到你备份或分享独立副本。Agent Mail 为加密私信，主动发布的知识贡献属于公开内容。交给外部 AI 客户端的内容，也受它的数据处理方式约束。',
   'Interactive example · sample data · nothing is sent':
     '交互示例 · 示例数据 · 不会发送任何内容',
-  'One project. People and agents, together.': '一个项目，人与智能体一起完成。',
-  'Play the story': '播放协作过程',
   'Project steps': '项目步骤',
   'Private project': '私密项目',
-  'Release workspace': '发布工作区',
-  'A release worth sharing.': '为一次好发布做准备。',
-  'Finish the review. Prepare the notes. Agree on the release.':
-    '完成审阅，整理说明，共同确认发布。',
-  'Plan saved privately': '计划已私密保存',
-  'No teammates or agents have access yet': '尚未授权伙伴或智能体访问',
   'Encrypted channel': '加密频道',
-  'Here is the plan. Can you review it before Friday?':
-    '计划在这里，周五之前帮忙看看？',
   'Invitation accepted': '已接受邀请',
-  'I’m in. Let’s prepare the release notes together.':
-    '我加入了，一起准备发布说明吧。',
   'Own Agent ID': '独立 Agent ID',
-  'Release folder': '发布文件夹',
-  'Release channel': '发布频道',
   'I prepared a draft from the project files. Your other folders and vault are outside my access.':
     '我已根据项目文件整理好草稿。其他文件夹和保险库不在我的访问范围内。',
   'Draft ready': '草稿已就绪',
-  'The release notes are ready for review. Anything to add?':
-    '发布说明已就绪，请帮忙审阅，有什么要补充的？',
-  'Review complete. The release notes match the plan.':
-    '审阅完成，发布说明与计划一致。',
   'Agent Mail · encrypted for the receiving agent':
     'Agent Mail · 仅接收智能体可解密',
-  'Release statement': '发布声明',
-  'Ready for Friday’s release.': '准备好在周五发布。',
-  'Requested by your release agent. Only you can approve this formal signature.':
-    '由你的发布智能体请求。这次正式签署，只有你能批准。',
   'Approve this example': '批准此示例',
   'Step {current} of {total}': '第 {current} 步，共 {total} 步',
   'Previous step': '上一步',
-  'Keep a plan private': '私密保存计划',
-  'Bring in a teammate': '邀请伙伴加入',
-  'Give an agent a role': '分配智能体任务',
-  'Connect with another agent': '连接其他智能体',
-  'Make the final call': '由你最终确认',
-  'Invite a teammate': '邀请一位伙伴',
-  'Grant folder access': '授予文件夹访问权',
-  'Send an encrypted letter': '发送一封加密私信',
-  'Request a signature': '请求正式签署',
-  'Start with a release plan only you can read. Your vault and file library are private before anyone else joins.':
-    '先保存只有你能读的发布计划。伙伴加入前，保险库与文件库都保持私密。',
-  'Mei accepts your invitation. Discuss the plan in an encrypted channel and share the file the team needs.':
-    'Mei 接受了邀请。在加密频道讨论计划，分享团队需要的文件。',
-  'Your release agent can work in one folder and post in one channel. It prepares the release notes without access to the rest of your space.':
-    '发布智能体获准使用一个文件夹、在一个频道发言。它能整理发布说明，无法访问空间里的其他内容。',
-  'Your agent sends an encrypted letter to Mei’s agent using its own Agent ID. The reply brings the review back into the project.':
-    '你的智能体用自己的 Agent ID 向 Mei 的智能体发送加密私信，审阅结果随回复回到项目中。',
-  'The agent asks you to sign the release statement. Review the exact statement and decide. Its permission to work never becomes permission to approve.':
-    '智能体请求你签署发布声明。审阅具体内容，再作决定。工作权限不会变成审批权限。',
   'Explore the agent network': '探索智能体网络',
   'Granted scope': '已授权范围',
   'Exchange private mail': '交换加密私信',
   'Agent Mail': 'Agent Mail',
   'An encrypted letter, delivered to another agent.':
     '一封加密私信，交给另一个智能体。',
-  'The receiving agent decrypts the letter. A relay carries ciphertext; receiving mail never grants permission to act.':
-    '接收智能体解密私信，中继只投递密文。收到来信不会自动获得行动权限。',
-  'Discuss with other agents': '与其他智能体讨论',
   'Agent Discourse': 'Agent Discourse',
   'A shared discussion, with each contribution signed.':
     '共同参与讨论，每次贡献都有签名。',
-  'Agents join a room, read its timeline and contribute under their own identities. A discussion room is not an encrypted dMsg channel.':
-    '智能体加入房间、阅读时间线，以自己的身份参与讨论。讨论房间与 dMsg 加密频道是不同的机制。',
-  'Share knowledge with a source': '分享有来源的知识',
   'Agent Knowledge': 'Agent Knowledge',
   'A public contribution that others can assess and build on.':
     '公开一份成果，让他人评价与延续。',
-  'Publish knowledge deliberately, with its source attached. Other agents can discover it, add assessments and report reuse.':
-    '主动发布知识，并附上来源。其他智能体可以发现它、给出评价，记录后续使用的结果。',
   'Only you': '仅你可见',
   'Scoped access': '限定访问范围',
   'Encrypted agent mail': '智能体加密私信',
@@ -1105,73 +844,28 @@ export default {
     '示例已拒绝。未进行签署，草稿仍然保留。',
   'Shared discussion': '共同讨论',
   'Open knowledge': '开放知识',
-  'Keep what is yours private.': '私密内容，妥善保管。',
-  'Share the work, on your terms.': '与伙伴协作，访问由你授权。',
-  'Independent identities. Open connections.': '独立身份，开放连接。',
-  'dMsg — Private collaboration for people and agents':
-    'dMsg — 私密协作，连接人与智能体',
-  'Show tool details': '查看工具详情',
   'Waiting for your approval': '等待你批准',
-  'Permission denied': '权限不足',
   'Account status checked': '已检查账户状态',
-  'Vault item found': '已找到保险库条目',
   'Release notes saved': '发布说明已保存',
-  'Message posted to the channel': '已在频道发布消息',
   'Pause animation': '暂停动效',
   'Play animation': '播放动效',
   'Teammate': '伙伴',
   'Your agent': '你的智能体',
-  'Desktop app': '桌面应用',
   'People and agents': '人与智能体',
-  'Desktop and terminal': '桌面应用与终端',
   'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.':
     '你、伙伴、你的智能体和网站都经由 dMsg 之门进入你的私密空间。你的智能体还会向智能体网络发布内容。需要决定的请求会在审批窗口里等你。',
   'Encrypted end to end': '端到端加密',
-  'Sealed before it syncs': '同步前即已加密',
-  'Only the folder it was granted': '只限授予它的文件夹',
   'Signed with its own Agent ID': '用它自己的 Agent ID 签名',
   'Sign-in': '登录',
-  'Payment': '付款',
-  'Sign the release statement': '签署发布声明',
   'Sign in to {site}': '登录 {site}',
   "Pay {amount} from the multisig wallet": "从多签钱包支付 {amount}",
-  'Approving signs this statement with your account key.':
-    '批准后，将用你的账户密钥签署这份声明。',
-  'Approving proves to the site that it is you.':
-    '批准后，网站即可确认是你本人。',
-  'Approving adds your vote. The wallet’s policy decides the rest.':
-    '批准只算你的一票，其余由钱包策略决定。',
-  'Your vote is recorded.': '你的这一票已记录。',
-  'Rejected. Nothing was paid.': '已拒绝，没有付款。',
-  'Expired. Nothing was approved.': '已过期，没有批准任何事。',
-  'Nothing is waiting for you.': '没有等你决定的请求。',
-  'Approved without you: {count}': '未经你批准而通过：{count}',
   'Requests from agents, websites and the terminal open here.':
     '来自智能体、网站和终端的请求会在这里打开。',
-  'Hold to approve': '按住批准',
-  'The desktop app': '桌面应用',
-  'Everything in one window.': '所有工作，一个窗口。',
-  'Every decision in its own.': '每项决定，另开一窗。',
-  "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.":
-    "频道、文件、保险库、来信、智能体和多签钱包并排在一起。来自网站、智能体和终端的请求会在单独的审批窗口中打开，只有你能在那里做决定。",
   'The dMsg desktop app': 'dMsg 桌面应用',
   'Views': '视图',
   'Work': '工作',
   'Authorization': '授权',
   'Signatures & approvals': '签名与授权',
-  'End-to-end encrypted conversations and files with people you choose':
-    '与选定的人端到端加密交流和共享文件',
-  'Encrypted files on this device; nothing leaves unless you back it up or share it':
-    '加密保存在本机的文件；不备份、不分享就不会离开这台设备',
-  'Notes, logins and keys, encrypted on this device':
-    '备注、登录凭据与密钥，在本机加密',
-  'Letters, and who may write to you': '来信，以及谁可以给你写信',
-  'Requests waiting for you, signatures and their records':
-    '等你决定的请求、签名及其记录',
-  'Agent IDs, what they may do and what they did':
-    '智能体 ID、它们能做什么、做过什么',
-  "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.":
-    "管理个人或共同持有的多链资产，自主设置批准人数与设备协签规则。",
   'Account synced': '账户已同步',
   'Unlock with Touch ID': '用 Touch ID 解锁',
   'Lock': '锁定',
@@ -1182,8 +876,6 @@ export default {
     '空闲 15 分钟后自动锁定，也可随时手动锁定。',
   'The notes read well. One fix in section 2.':
     '说明写得不错，第 2 节还有一处要改。',
-  'Fixed. The release notes are ready.': '已修改，发布说明准备好了。',
-  'Thanks. We ship on Friday.': '谢谢，我们周五发布。',
   'Password': '密码',
   'One-time password': '一次性验证码',
   'Who may write to me': '谁可以给我写信',
@@ -1195,39 +887,6 @@ export default {
   'Draft for the community post': '社区公告的草稿',
   'Statement for {file}': '{file} 的声明',
   'Paused': '已暂停',
-  'Command palette': '命令面板',
-  'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.':
-    '按 ⌘K（Windows 上为 Ctrl+K），即可直达任意视图、条目或命令。',
-  'Fast unlock': '快速解锁',
-  'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.':
-    '在 Mac 上，密钥保存在安全隔区中，用 Touch ID 打开。',
-  'Locks on its own': '自动锁定',
-  'After 15 idle minutes by default, for the app and the command line alike.':
-    '默认空闲 15 分钟后锁定，桌面应用和命令行一并锁上。',
-  'Light or dark': '浅色或深色',
-  'Follows your system, or keeps the look you pick.':
-    '跟随系统，或保持你选定的外观。',
-  'Your language': '你的语言',
-  'Arabic lays the windows out right to left; IDs and code keep their order.':
-    '阿拉伯语界面从右向左排布，ID 和代码保持原有顺序。',
-  'Stays in the tray': '常驻托盘',
-  'Close the window and dMsg keeps running; new requests still reach you.':
-    '关掉窗口，dMsg 仍在运行，新的请求照样能找到你。',
-  'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.':
-    '带一次性验证码的登录凭据、API 密钥、签名密钥和备注，同步前就在你的设备上加密。',
-  'Locked when you step away.': '你一离开，它就锁上。',
-  'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.':
-    '秘密要点第二下才会显示或复制，复制后不久剪贴板会被清空。工作区空闲时会自动锁定。',
-  'Letters, on your rules.': '来信，按你的规则。',
-  'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.':
-    '公开资料让别人找到你。你来决定谁可以写信：不接收、仅联系人、所有人，或按封付费的发信人。付费只买到送达，不保证回复。',
-  'Check a signature yourself.': '亲自核验签名。',
-  'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.':
-    'dMsg 会把签名连同证据一起导出。在浏览器中验证证据包，原文件不会离开你的电脑。',
-  'Open the verifier': '打开验证页',
-  'Can strangers write to me?': '陌生人能给我写信吗？',
-  'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
-    '只有你的规则允许时才行：不接收、仅联系人、所有人，或支付你所设价格的发信人。付费只买到送达，不保证回复。',
   'Send files through dMsg': '通过 dMsg 发送文件',
   '{name} is asking you for files': '{name} 正在向你收取文件',
   'Someone is asking you for files': '有人正在向你收取文件',
@@ -1290,7 +949,462 @@ export default {
   'Keep this page open until your files are sent.':
     '文件发送完成前请不要关闭这个页面。',
   'Collect files this way too': '你也可以这样收取文件',
-  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
-    'dMsg 是存放文件、消息和密码的私密工作区。发一条链接就能向任何人收取文件，而且只有你能打开。',
   'Each person sees only what they sent.': '每个人只能看到自己发送的内容。',
+  'Choose who gets access.': '谁能访问，由你决定。',
+  'Keep what matters private.': '重要的资料，私密保管。',
+  'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
+    '用端到端加密保护密码、笔记与文件。在已授权设备间同步保险库，安全分享文件，并为 AI 助手设置明确的访问权限。',
+  'dMsg — Encrypted Vault, File Sharing & AI Permissions':
+    'dMsg｜加密保险库、安全文件分享与 AI 权限',
+  'A client can upload through a file request link or open a file download link in their browser without a dMsg account. Creating file request links requires Plus or above. Joining a dMsg channel is a separate, account-based collaboration flow.':
+    '客户通过文件收集链接上传，或通过文件下载链接接收文件时，可以直接使用浏览器，无需注册 dMsg。创建文件收集链接需要 Plus 或以上套餐。加入 dMsg 频道属于另一种需要账户的协作方式。',
+  'A connected website can request a signature. Review the application, file and request in dMsg, then approve or reject it. No browser extension is needed.':
+    '已接入的网站可以请求签名。你在 dMsg 中查看应用、文件和请求内容，再决定批准或拒绝。无需安装浏览器扩展。',
+  'A home for the things': '给重要资料，',
+  'A link for the file, not your whole workspace':
+    '分享一个文件，保留其余私密空间',
+  'A private workspace for the AI era.': 'AI 时代的私密工作台。',
+  'A product of ICPanda DAO.': 'ICPanda DAO 旗下产品。',
+  'A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.':
+    'DAO 通过的提案可以升级链上代码，治理因此也是你所信任的一部分。应用程序和云服务的发布与运营不在这项投票之内。',
+  'A shared copy can remain.': '已分享的副本可能继续存在。',
+  'A vault that stays in sync': '保险库保持同步',
+  'A vote can change the rules.': '投票可以修改规则。',
+  'AI access you control': 'AI 访问权限由你控制',
+  'AI permissions': 'AI 权限',
+  'AI, with clear permissions': 'AI 可以协助，权限清楚可控',
+  'Access synced notes, logins and other vault records from devices authorized to access your vault.':
+    '在获准访问保险库的设备上使用同步后的笔记、登录信息和其他记录。',
+  'Access with a defined scope': '访问范围明确可调',
+  'Account and device records on ICP help clients verify who is allowed to access an account and authorize actions.':
+    'ICP 上的账户与设备记录，帮助客户端核验哪些设备有权访问账户及批准操作。',
+  'Across your devices': '多端使用',
+  'Add another authorized device, and review your recovery settings while you still have access. Read the recovery conditions before relying on them.':
+    '添加另一台已授权设备，并在仍可访问账户时检查恢复设置。依赖恢复功能前，先了解它的适用条件。',
+  'An Agent ID identifies the agent. Signed delegations let others check whom it may represent and within which scope.':
+    'Agent ID 用于标识 Agent。签名委托让其他参与者可以核验：它代表谁，以及获准执行什么范围内的操作。',
+  'An agent can prepare work and ask for a formal signature. You review the request and decide whether to approve it.':
+    'Agent 可以准备资料、请求正式签名。你审阅具体请求，再决定是否批准。',
+  'An identity of its own': '每个 Agent 都有自己的身份',
+  'An upload-only link. Senders cannot use it to open files you have received.':
+    '链接仅用于上传。发送方不能通过该链接打开你已收到的文件。',
+  'Approval stays with you': '审批仍由你决定',
+  'Available on Plus and above': 'Plus 及以上套餐可用',
+  'Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.':
+    '主动备份文件后，可以在另一台已授权设备上下载。整个本地文件库不会自动上传。',
+  'Bring client documents into your private workspace, keep the files you need, and send selected copies back. Use encrypted channels when the work needs an ongoing conversation.':
+    '把客户资料收进私密工作台，保存需要的文件，再把选定副本安全交付出去。需要持续沟通时，可以使用加密频道。',
+  'Bring others in on your terms.': '再决定与谁一起使用。',
+  'Bring others in when you’re ready.': '准备好后再邀请他人。',
+  'Can I take back a file or revoke an agent’s access?':
+    '可以收回文件或撤销 Agent 权限吗？',
+  'Check which devices are authorized': '核验设备是否获准访问',
+  'Choose a light or dark appearance and your preferred language.':
+    '选择浅色、深色外观和常用语言。',
+  'Choose a plan in dMsg and review the current price, available payment methods and renewal terms before confirming. The current desktop membership flow supports ckUSDC or ckUSDT, with annual membership also available through an eligible PANDA neuron. Available purchase paths can differ by platform and release.':
+    '在 dMsg 中选择套餐，确认前查看当前价格、可用支付方式与续期条款。当前桌面会员流程支持 ckUSDC 或 ckUSDT，也可以通过符合条件的 PANDA 神经元取得年度会员。不同平台和版本的购买路径可能不同。',
+  'Choose the records, folders and channels an agent can use. Change or revoke its permissions as your needs change.':
+    '选择 Agent 可以使用的记录、文件夹和频道。需求变化时，可以修改或撤销权限。',
+  'Choose who can reach you': '谁能联系你，由你设置',
+  'Client files for a new project': '收集新项目所需的客户资料',
+  'Collect': '收集',
+  'Collect & share': '收集与分享',
+  'Collect the files you need.': '收齐需要的资料，',
+  'Connect a compatible AI client through MCP. Give each agent its own identity and defined access to selected records, folders and channels. It can work within those permissions and request a signature for you to review.':
+    '通过 MCP 接入兼容的 AI 客户端。为每个 Agent 配置独立身份，并授权它使用指定记录、文件夹和频道。它可以在权限范围内工作，也可以提交签名请求，交由你审阅。',
+  'Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.':
+    '你授权外部 AI 客户端读取的内容，也会受到该客户端数据处理政策的影响。按任务需要授予访问权限。',
+  'Create an upload link for a client or collaborator. They can send files from their browser without creating a dMsg account.':
+    '为客户或协作者创建上传链接。对方在浏览器中就能提交文件，无需注册 dMsg 账户。',
+  'Create an upload link with a title and instructions.':
+    '创建上传链接，写明标题与提交说明。',
+  'Deliver': '交付',
+  'Do clients need a dMsg account to send or receive a file?':
+    '客户收发文件也需要注册 dMsg 吗？',
+  'Download for Windows': '下载 Windows 版',
+  'Encrypted before it leaves your device': '离开设备前，已经加密',
+  'Encryption protects content.': '加密保护内容。',
+  'End-to-end encryption': '端到端加密',
+  'End-to-end encryption keeps your content private. The rules that decide which devices can access your account run on the Internet Computer (ICP) blockchain, where your apps can verify them and any change requires a public vote.':
+    '端到端加密让内容保持私密。决定哪些设备可以访问你账户的规则，运行在 Internet Computer（ICP）区块链上：你的应用可以核验它们，任何修改都需要经过公开投票。',
+  'Explore the app and CLI example': '体验 App 与 CLI 示例',
+  'Explore the source code': '查看源代码',
+  'Explore your vault, files and encrypted conversations. Open the approvals and agent views when you need more control.':
+    '浏览保险库、文件与加密会话。需要进一步控制时，再查看审批与 AI 助手。',
+  'Export a signature with its evidence and check it in the browser. The original file stays on your computer during verification.':
+    '导出签名及其证据，在浏览器中验证。验证过程中，原始文件留在你的电脑上。',
+  'External AI has its own data policies.': '外部 AI 有自己的数据处理政策。',
+  'File backups you can take with you': '备份文件，换台设备也能取用',
+  'File requests · Plus and above': '文件收集 · Plus 及以上套餐',
+  'Files stay in your hands': '文件由你掌握',
+  'Find it quickly.': '快速找到功能。',
+  'Follow one project from a private brief to a shared review. People and agents join with different roles, while the final signature stays yours to approve.':
+    '从一份私密项目说明，走到共同审阅。人和 Agent 按各自角色参与，最终签名仍由你决定。',
+  'For protected data and operations accessed through dMsg, the permissions you grant define the agent’s scope. Authorized reads and writes can run within that scope; requests for your formal signature still need your approval. Concealed credential values have separate controls. Content passed to an external AI client also follows that client’s data handling.':
+    '通过 dMsg 访问受保护资料与操作时，你授予的权限决定 Agent 的使用范围。已授权的读取、写入可以在该范围内执行；需要你正式签名的请求仍须由你批准。隐藏的凭据值有单独的控制机制。传给外部 AI 客户端的内容，也会受到该客户端数据处理方式的影响。',
+  'Get started': '开始使用',
+  'Give your agents a way to work with others.':
+    '让 Agent 能与其他 Agent 协作。',
+  'Governance': '治理',
+  'How do I choose and pay for a plan?': '如何选择和支付套餐？',
+  'If you enabled recovery in advance and can still sign in with a linked Internet Identity, you can start recovery, subject to the configured waiting period. Any device that is still authorized can dispute the request during that period. If every authorized device is lost and recovery was not enabled, the login alone cannot recover encrypted content. Recovery also cannot bring back local files that were never uploaded or backed up.':
+    '若已提前启用恢复，且仍可使用已绑定的 Internet Identity 登录，就可以发起恢复，并须经过所设的等待期。等待期内，任何仍获授权的设备都可以对该请求提出争议。若所有授权设备都丢失、又未预先启用恢复，仅凭登录身份无法恢复加密内容。恢复也不能找回从未上传或备份的本机文件。',
+  'If you let an external AI client read content, its handling of that content matters too.':
+    '当你允许外部 AI 客户端读取内容时，它如何处理这些内容同样重要。',
+  'In development': '开发中',
+  'Inspect how dMsg works.': '了解 dMsg 如何工作。',
+  'Install dMsg, set up your account and save your first private note or file. Add another device and review your recovery settings as you make it part of your day.':
+    '安装 dMsg，设置账户，保存第一条私人笔记或第一份文件。开始日常使用时，再添加另一台设备并检查恢复设置。',
+  'Interactive example · no real file is signed': '交互示例 · 不会签署真实文件',
+  'Interactive example · sample files · no files are uploaded':
+    '交互示例 · 使用示例文件 · 不会上传文件',
+  'Invite people into an end-to-end encrypted channel to exchange messages and files. Joining a channel does not give them access to your vault.':
+    '邀请对方加入端到端加密频道，交流消息和文件。加入频道不会获得你的保险库访问权。',
+  'It protects private content such as vault records, private channel messages and encrypted file copies between the authorized endpoints. It does not hide every service detail. Sizes, timing, device information and some public identity or authorization records can remain visible.':
+    '它保护授权端点之间的私密内容，例如保险库记录、私密频道消息和加密文件副本。它不会隐藏全部服务信息；大小、时间、设备信息，以及部分公开身份或授权记录仍可能可见。',
+  'Keep': '保管',
+  'Keep it private.': '先保管好自己的资料，',
+  'Keep passwords, one-time codes, private notes and keys in your encrypted vault. Reveal or copy a sensitive value when you need it.':
+    '在加密保险库中保存密码、一次性验证码、私人笔记和密钥。需要使用敏感内容时，再主动查看或复制。',
+  'Keep personal records and work essentials together: a private note, a login, a contract or a copy of your passport. Start on your own, with no team or agent to set up.':
+    '私人笔记、登录信息、合同、证件副本，都可以从这里开始整理。一个人就能使用，无需先组建团队或配置 AI 助手。',
+  'Keep the discussion private': '讨论也保持私密',
+  'Keep your files private. Back up what matters.':
+    '文件私密保管，重要的再备份。',
+  'Let your agents help.': '让 AI 帮你做事，',
+  'Let your client send them.': '客户直接提交。',
+  'Make a little space': '给重要资料，',
+  'Make it comfortable.': '按自己的习惯使用。',
+  'Manage shared funds with clear approval rules.':
+    '按明确的审批规则，管理共同资金。',
+  'On-chain rules governed in public.': '链上规则由 DAO 公开治理。',
+  'One vault for your essentials': '重要信息，集中保管',
+  'Open the command palette with ⌘K or Ctrl+K.':
+    '用 ⌘K 或 Ctrl+K 打开命令面板。',
+  'Open the signature verifier': '打开签名验证器',
+  'Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.':
+    '请在仍可访问账户时提前准备：添加另一台已授权设备，并检查可选的链上恢复设置。新账户默认关闭链上恢复，必须事先在仍可解锁的已授权管理员设备上启用。',
+  'Privacy & Web3': '隐私与 Web3',
+  'Private content.': '内容保持私密，',
+  'Protect passwords, notes and files with end-to-end encryption. Sync your vault across your devices, share selected files, and give connected AI agents clearly defined access.':
+    '用端到端加密保护密码、笔记与文件。在多台设备间同步保险库，安全分享选定文件，并为接入的 AI 助手设置明确的访问权限。',
+  'Protection when you step away': '离开设备，自动锁定',
+  'Public rules.': '规则公开可查。',
+  'Read how file sharing works': '了解文件分享方式',
+  'Read the agent setup guide': '阅读 Agent 接入指南',
+  'Request the files.': '发起收集。',
+  'Review a device before it joins your account. Remove its access when you no longer use it.':
+    '新设备加入账户前，由你审阅。设备不再使用时，可以撤销其访问权限。',
+  'Review before you sign.': '签名前，亲自审阅。',
+  'Review incoming files and choose which ones to save to your encrypted library.':
+    '查看收到的文件，选择需要保存的内容，存入自己的加密文件库。',
+  'Review received files and save selected items to your encrypted library.':
+    '查看收到的文件，将选定内容存入加密文件库。',
+  'Revoking a share link or agent permission stops new authorizations under the relevant rules. Downloads or actions already authorized may still complete. Revocation cannot erase a file someone has downloaded, a screenshot they took or content an external agent has already received.':
+    '撤销分享链接或 Agent 权限，会按对应规则停止新的访问或操作授权。已经获得授权的下载或操作仍可能完成。撤销无法删除对方已经下载的文件、保存的截图，或外部 Agent 已经收到的内容。',
+  'Revoking access cannot erase a download, screenshot or secret that someone has already received.':
+    '撤销访问无法删除对方已经取得的下载文件、截图或秘密信息。',
+  'Rule changes go through a public vote': '修改规则，需要公开投票',
+  'Save what you need.': '保存需要的资料。',
+  'Secure file sharing': '安全文件分享',
+  'See a full project example': '查看完整项目示例',
+  'See how it works': '看看如何使用',
+  'See plans for file collection': '查看文件收集套餐',
+  'See the client upload flow': '查看客户上传流程',
+  'See who controls the rules': '查看规则由谁控制',
+  'Send the selected file with a download link. Recipients can open it in their browser without creating a dMsg account.':
+    '用下载链接发送选定文件。接收者在浏览器中即可打开，无需注册 dMsg 账户。',
+  'Service metadata such as sizes, timing and device information can remain visible. Public identity and authorization records are also visible where the protocol requires them.':
+    '大小、时间、设备等服务元数据仍可能可见。协议要求公开的身份与授权记录也会保持可见。',
+  'Set the limits yourself.': '由你划定访问范围。',
+  'Set who can propose, who can approve and when a proposal can proceed. An agent can prepare a proposal; authorized members make the approval decisions.':
+    '设置谁能提案、谁能批准，以及提案何时可以执行。Agent 可以准备提案，审批决定由获授权的成员作出。',
+  'Share a separately encrypted copy by link or in a channel. Your other files and vault records remain private.':
+    '通过链接或频道分享单独加密的文件副本。其他文件和保险库记录继续保持私密。',
+  'Share the files you choose.': '交付选定的文件。',
+  'Start private.': '先私下整理，',
+  'Start with one note or file. Add people and agents when you’re ready.':
+    '从一条笔记或一份文件开始。需要时，再邀请他人或接入 AI 助手。',
+  'Start with your own space. Invite people or connect an agent when you’re ready.':
+    '先从自己的私密空间开始。需要时，再邀请他人或接入 AI 助手。',
+  'The app and CLI, working together.': 'App 与命令行，协同使用。',
+  'The client, local daemon, protocols and canisters are published in the source repository. The production cloud service has a separate operational trust boundary.':
+    '客户端、本地 daemon、协议和 canister 代码已在源码仓库公开。生产云服务仍有独立的运营信任边界。',
+  'The connection page reports the website origin supplied by your browser. The approval window shows this source; it is not an independent proof of the website’s identity.':
+    '连接页面会报告浏览器提供的网站来源，审批窗口也会标明该来源的获取方式；这并不是对网站身份的独立证明。',
+  'They upload in the browser without creating an account.':
+    '对方在浏览器上传，无需注册账户。',
+  'Try creating an encrypted cloud backup, then download a backup created on another authorized device. Local files and cloud backups are managed separately.':
+    '试着创建一份加密云备份，再下载由另一台已授权设备创建的备份。本地文件与云备份分别管理。',
+  'Try the permissions. See what changes.': '切换权限，看看哪些操作会改变。',
+  'Turn a permission on or off, then run the example. See which steps can proceed and which requests wait for your decision.':
+    '打开或关闭一项权限，再运行示例。观察哪些步骤可以执行，哪些请求需要等待你的决定。',
+  'Understand recovery': '了解恢复条件',
+  'Unlock on your Mac.': '在 Mac 上快速解锁。',
+  'Upgrading dMsg’s on-chain account and device rules requires an ICPanda DAO proposal. Our cloud administrators cannot change those rules on their own, and anyone can inspect who controls them.':
+    '升级 dMsg 在链上的账户与设备规则，需要 ICPanda DAO 通过提案。我们的云端管理员无法单独修改这些规则，任何人都可以查看它们由谁控制。',
+  'Use Touch ID for supported fast unlock.': '在支持的配置中使用 Touch ID。',
+  'Use it across your devices': '看看如何多端使用',
+  'Use the desktop app or the command line to work with the same vault on this device. Review signing requests before they run.':
+    '桌面 App 和命令行可以使用同一台设备上的保险库。执行签名请求前，由你审阅。',
+  'Use the same encrypted vault on devices you authorize to access it. Keep file backups available to download when you need them elsewhere, while your local file library stays under your control.':
+    '在获准访问保险库的设备上使用同一个加密保险库。需要换设备取用文件时，可以下载已创建的加密备份；本地文件库仍由你管理。',
+  'Use your public profile to be discoverable, and set who may send you private letters.':
+    '通过公开资料让别人找到你，并设置谁可以发送私密来信。',
+  'Vault content and file copies are encrypted on your device before they are sent to the cloud. Private channel messages are encrypted for their participants.':
+    '保险库内容和文件副本在设备上完成加密，再发送到云端。私密频道中的消息面向频道参与者加密。',
+  'Vault sync across devices': '保险库多端同步',
+  'Verify a signature yourself': '签名可以自己验证',
+  'View plans': '查看套餐',
+  'Wallet simulation · no funds move · no transaction is sent to a blockchain':
+    '钱包模拟 · 不会移动资金 · 不会向区块链发送交易',
+  'What can a connected AI agent access?': '接入的 AI Agent 可以访问什么？',
+  'What does dMsg use the blockchain for?': 'dMsg 使用区块链做什么？',
+  'What does end-to-end encryption protect?': '端到端加密保护哪些内容？',
+  'What happens if I lose every device?': '如果所有设备都丢失了怎么办？',
+  'What syncs across my devices?': '哪些内容会在多台设备间同步？',
+  'Which devices can I use?': '支持哪些设备？',
+  'Who makes dMsg, and who can change its rules?':
+    'dMsg 由谁开发？谁能修改它的规则？',
+  'With open Agent Protocols, agents can exchange encrypted mail, join signed discussions and publish knowledge with sources attached. Each mode makes its visibility and purpose explicit.':
+    '通过开放的 Agent Protocols，Agent 可以交换加密来信、参与带签名的讨论，并发布附有来源的知识。每种模式都有明确的可见范围与用途。',
+  'Yes. Start with private notes, logins and files. You can use your own workspace before inviting anyone or connecting an AI agent.':
+    '可以。先保存私人笔记、登录信息和文件，再按需要邀请他人或接入 AI 助手。',
+  'You approve new devices': '新设备由你批准',
+  'Your encrypted vault records sync across devices authorized to access your vault. A new device needs approval; signing in alone does not grant decryption access. Files in the local library stay on that device unless you explicitly back them up or share a copy. You can download a cloud backup on another device authorized to access your content. dMsg does not automatically mirror your entire local file library.':
+    '加密保险库记录会在获准访问该保险库的设备间同步。新设备需要经过批准，仅登录并不会获得解密权限。本地文件库中的文件保留在当前设备，只有主动备份或分享副本时才会上传。你可以在另一台获准访问这些内容的设备上下载云备份。dMsg 不会自动镜像整个本地文件库。',
+  'Your file library stays encrypted on your device. Choose which files to back up and which copies to share.':
+    '文件库加密保存在当前设备上。哪些文件需要备份、哪些副本需要分享，由你选择。',
+  'Your private space': '自己的私密空间',
+  'Your private workspace, at a glance.': '看看你的私密工作台。',
+  'Your space. Your permissions.': '自己的空间，自己的权限。',
+  'Your vault,': '同一个保险库，',
+  'dMsg has an iPhone and iPad app, a Mac app for Apple Silicon, a Windows x64 app and CLI releases including Linux. Android is in development. See the download section for current packages and platform notes.':
+    'dMsg 提供 iPhone 与 iPad App、Apple Silicon Mac App、Windows x64 App，以及包括 Linux 在内的 CLI 版本。Android 仍在开发中。当前安装包与平台说明见下载区。',
+  'dMsg is a product of ICPanda DAO. The DAO also governs dMsg’s on-chain rules: upgrading them requires a public proposal and vote, which anyone can follow on the ICP dashboard. The apps and the cloud service are released and operated separately. You can find the public source code, documentation, support information and service terms through the links below.':
+    'dMsg 是 ICPanda DAO 的产品。DAO 同时治理 dMsg 的链上规则：升级这些规则需要公开提案和投票，任何人都可以在 ICP 仪表板上查看。应用程序和云服务的发布与运营另行负责。你可以通过下方链接查看公开源代码、文档、支持信息与服务条款。',
+  'dMsg locks after inactivity. Sensitive values need a deliberate click to reveal or copy, and copied secrets are cleared from the clipboard after a short time.':
+    '一段时间未操作后，dMsg 会自动锁定。查看或复制敏感内容需要主动点击，复制的秘密信息也会在短时间后从剪贴板清除。',
+  'dMsg uses the Internet Computer (ICP) for account and device authorization records and other verifiable protocol functions. Changes to that on-chain code require a public ICPanda DAO proposal, so they cannot be made from our cloud service alone. Private file contents and private message bodies are not published as public blockchain content. The documentation explains which records are public and which parts still depend on cloud and recovery services.':
+    'dMsg 使用 Internet Computer（ICP）记录账户与设备授权，并提供其他可验证的协议能力。修改这些链上代码需要 ICPanda DAO 通过公开提案，仅凭我们的云服务无法做到。私密文件内容和私密消息正文不会作为公开区块链内容发布。文档会说明哪些记录公开，以及哪些部分仍依赖云服务与恢复服务。',
+  'for what matters.': '留一处私密空间。',
+  'iPhone & iPad · Mac · Windows · CLI for Linux':
+    'iPhone 与 iPad · Mac · Windows · Linux 命令行',
+  'where you need it.': '在需要的设备上使用。',
+  'you need to keep private.': '一个私密的存放处。',
+  'Add room when you need it.': '按需增加容量。',
+  'Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.':
+    '根据日常需要选择存储容量和设备数量。升级后可通过上传链接收集文件，也能获得更多使用空间。',
+  'Choose your plan in dMsg.': '在 dMsg 中选择套餐。',
+  'Compare plan limits': '比较套餐限额',
+  'Every plan includes encryption and device revocation. Recovery settings are available across plans; review the setup requirements before relying on recovery.':
+    '各档套餐都包含加密和设备撤销功能，也都可以配置恢复设置。依赖恢复功能前，请先了解启用条件。',
+  'File requests included': '包含文件收集',
+  'Plans': '套餐',
+  'Review the current price, payment options and renewal terms in the app before you confirm.':
+    '确认前，可在应用内查看当前价格、支付方式和续期条款。',
+  'The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.':
+    '单文件备份上限适用于云备份；文件分享和频道附件有各自的限制。',
+  'For everyday file exchange.': '日常收集与交付文件。',
+  'For more files and devices.': '管理更多文件与设备。',
+  'For more storage and heavier use.': '更大容量，更高使用量。',
+  'For your everyday essentials.': '保存日常重要资料。',
+  'Access to the selected folder': '访问指定文件夹',
+  'Approving identifies your dMsg account to this site.':
+    '批准后，向该网站表明你的 dMsg 账户身份。',
+  'Approving signs the statement shown.': '批准后，将对所显示的声明签名。',
+  'Encrypted before sync': '同步前已加密',
+  'End-to-end encrypted channel': '端到端加密频道',
+  'No pending approval requests': '暂无待审批请求',
+  'Reject this example': '拒绝此示例',
+  'Request expired. Nothing was approved.': '请求已过期，未批准任何操作。',
+  'Sign the project statement': '签署项目声明',
+  'Signature generated in this example': '示例签名已生成',
+  'The website received the example result': '网站已收到示例结果',
+  'Waiting for your decision': '等待你的决定',
+  'Your device': '你的设备',
+  'A project ready for review.': '准备好一起审阅的项目。',
+  'Brief saved privately': '项目说明已私密保存',
+  'Give an agent a defined role.': '给 Agent 明确的角色。',
+  'Here is the brief. Can you review it before Friday?':
+    '这是项目说明，你能在周五前审阅吗？',
+  'Invite Mei to an end-to-end encrypted channel. Share the brief and discuss the next steps together.':
+    '邀请 Mei 加入端到端加密频道，一起查看项目说明并讨论后续工作。',
+  'Invite a collaborator': '邀请协作者',
+  'Invite a collaborator.': '邀请协作者。',
+  'I’m in. Let’s prepare the review notes together.':
+    '我加入了，一起整理审阅意见吧。',
+  'Keep the brief private.': '私密保存项目说明。',
+  'Let agents coordinate.': '让 Agent 之间协作。',
+  'Let your agent prepare a draft using one folder and one channel. Your other folders and vault stay outside its access.':
+    '允许 Agent 使用指定文件夹和频道准备草稿，其他文件夹与保险库不在它的访问范围内。',
+  'No collaborators or agents have access yet': '尚未授权协作者或 Agent 访问',
+  'Pause demo': '暂停演示',
+  'Project channel': '项目频道',
+  'Project folder': '项目文件夹',
+  'Project statement': '项目声明',
+  'Project workspace': '项目工作区',
+  'Requested by your project agent. Only you can approve this formal signature.':
+    '由你的项目 Agent 发起，此项正式签名须由你批准。',
+  'Review complete. The notes reflect the project brief.':
+    '审阅完成，意见与项目说明相符。',
+  'Review the brief. Prepare feedback. Agree on the next steps.':
+    '审阅项目说明，整理反馈，确定后续工作。',
+  'Review the signature request': '审阅签名请求',
+  'Save your project brief in your private workspace. Choose when to share it and who can take part.':
+    '先将项目资料保存到自己的私密空间，再决定分享时机和参与者。',
+  'Send an encrypted message': '发送加密消息',
+  'Set the agent’s access': '设置 Agent 权限',
+  'Start demo': '开始演示',
+  'The project brief and review notes have been reviewed.':
+    '项目说明与审阅意见已完成审阅。',
+  'The review notes are ready. Anything to add?':
+    '审阅意见已整理好，还有需要补充的吗？',
+  'Your agent requests a signature on the project statement. Review the exact statement, then approve or reject it.':
+    'Agent 请求你签署项目声明。查看具体声明，再决定批准或拒绝。',
+  'Your agent sends an encrypted message to Mei’s agent, then brings its review back to the project.':
+    '你的 Agent 向 Mei 的 Agent 发送加密消息，再将审阅意见带回项目。',
+  'Choose what each agent can access and review its activity.':
+    '选择每个 Agent 的访问范围，并查看相关活动。',
+  'Fixed. The review notes are ready.': '已修改，审阅意见整理好了。',
+  'Keep files encrypted on this device. Choose which ones to back up or share.':
+    '文件加密保存在当前设备，备份与分享由你选择。',
+  'Keep private notes, logins and keys together in your encrypted vault.':
+    '将私人笔记、登录信息与密钥集中保存在加密保险库。',
+  'Manage shared assets with approval rules you choose.':
+    '按你设置的审批规则管理共同资产。',
+  'Project brief': '项目说明',
+  'Receive private letters and choose who can contact you.':
+    '接收私密来信，并设置谁能联系你。',
+  'Review requests, approve signatures and keep a record of your decisions.':
+    '审阅请求、批准签名，并保留决定记录。',
+  'Share messages and files in end-to-end encrypted channels with people you invite.':
+    '与受邀的人在端到端加密频道中分享消息和文件。',
+  'Thanks. Let’s go over it on Friday.': '谢谢，周五我们一起过一遍。',
+  'Automatic uploads in this example': '此示例中的自动上传',
+  'Backup created. The service received an encrypted copy.':
+    '备份已创建，服务端收到的是加密副本。',
+  'Backups created': '已创建备份',
+  'Cloud backup deleted in this example.': '已在此示例中删除云备份。',
+  'Cloud backup deleted. The local file is unchanged.':
+    '云备份已删除，本地文件保持不变。',
+  'Create an encrypted backup?': '创建加密备份？',
+  'Create backup': '创建备份',
+  'Delete cloud backup': '删除云备份',
+  'Deletions propagated between copies': '在两侧副本间传播的删除操作',
+  'Download to this device': '下载到当前设备',
+  'Downloaded and checked: {name}.': '已下载并完成校验：{name}。',
+  'Encrypted cloud backups': '加密云备份',
+  'File names and contents stay encrypted. The service can see backup sizes, times and devices.':
+    '文件名与内容保持加密；服务仍能看到备份大小、时间和设备信息。',
+  'Free plan example': 'Free 套餐示例',
+  'Local files and cloud backups are managed separately. Deleting one does not delete the other.':
+    '本地文件与云备份分别管理，删除一侧不会删除另一侧。',
+  'Moved to trash on this device. Kept for {days} days.':
+    '已移入本机回收站，将保留 {days} 天。',
+  'Moved to trash on this device. The cloud backup is unchanged.':
+    '已移入本机回收站，云备份保持不变。',
+  'On this device': '在当前设备',
+  'Over this plan’s backup file limit': '超过当前套餐的单文件备份上限',
+  'Permanently delete backup': '永久删除备份',
+  'Trash · kept {days} days. Cloud backups are not affected.':
+    '回收站 · 保留 {days} 天。云备份不受影响。',
+  'Try backing up a file, then downloading a cloud copy created on your other device.':
+    '试着备份一个文件，再下载由另一台设备创建的云备份。',
+  'Upload an encrypted copy of this file. Your local file stays on this device.':
+    '上传此文件的加密副本，本地文件继续保留在当前设备。',
+  'Actions reserved for you': '保留给你的操作',
+  'Agent and controller key management': '管理 Agent 与控制器密钥',
+  'Approving payments and checkout': '批准付款与结账',
+  'Approving requests': '批准请求',
+  'Choose permissions, then run the demo.': '选择权限，再运行演示。',
+  'Claude Code setup example': 'Claude Code 接入示例',
+  'Copy example command': '复制示例命令',
+  'Create an Agent ID and grant permissions first. This command contains a placeholder token.':
+    '请先创建 Agent ID 并授予权限；此命令中的令牌为占位内容。',
+  'Deployment record found': '已找到部署记录',
+  'Example activity log': '示例活动记录',
+  'Found the record. Concealed fields remain masked. Supported MCP credential-use requests require a separate approval.':
+    '已找到记录，隐藏字段仍保持遮蔽。MCP 中受支持的凭据使用请求需要单独批准。',
+  'No activity in this example yet.': '此示例暂时没有活动记录。',
+  'Permission not granted': '尚未授予权限',
+  'Permissions you choose': '由你选择的权限',
+  'Prepare v1.4: find the deployment record, save the release notes, post an update and request my signature.':
+    '准备 v1.4：找到部署记录，保存发布说明，发送更新，并向我请求签名。',
+  'Run the demo': '运行演示',
+  'Running demo…': '演示运行中…',
+  'Saved a new version in your file library. You choose whether to back it up or share it.':
+    '已在文件库中保存新版本。是否备份或分享，由你决定。',
+  'The permitted steps are complete. Signature requests are not enabled for this agent.':
+    '已完成获准执行的步骤。此 Agent 尚未获准发起签名请求。',
+  'The release statement is ready for your review. I can request your signature, but I can’t approve it.':
+    '发布声明已准备好，等待你审阅。我可以请求签名，但不能替你批准。',
+  'This example log shows actions and results.': '此示例记录展示操作与结果。',
+  'Update posted to the channel': '更新已发送到频道',
+  'View tool details': '查看工具详情',
+  'Agents read and contribute under their own identities. This discussion is not an encrypted dMsg channel.':
+    'Agent 使用自己的身份阅读和参与讨论；此类讨论不是 dMsg 加密频道。',
+  'Join a signed discussion': '参与带签名的讨论',
+  'Publish deliberately, with sources attached. A signature identifies a contribution; it does not establish that its claims are true.':
+    '主动公开内容并附上来源。签名用于识别贡献，不代表其中的说法已经被证明为真。',
+  'Publish knowledge with sources': '发布附有来源的知识',
+  'The receiving agent decrypts the letter. Receiving mail does not grant permission to act.':
+    '接收方 Agent 解密来信；收到来信不会自动获得执行操作的权限。',
+  'Approve signature': '批准签名',
+  'Connected website': '已接入的网站',
+  'Rejected. The website is notified, and nothing is signed.':
+    '已拒绝并通知网站，未生成签名。',
+  'Replay demo': '重播演示',
+  'The rejection is encrypted for return.': '拒绝结果经加密后返回。',
+  'The request is encrypted for your device.': '请求面向你的设备加密。',
+  'The requesting page receives the result.': '发起请求的页面收到结果。',
+  'The signed result is encrypted for return.': '签名结果经加密后返回。',
+  'The website checks the signature.': '网站检查签名。',
+  'The website is notified. Nothing is signed.':
+    '网站收到拒绝通知，未生成签名。',
+  'The website requests a signature.': '网站发起签名请求。',
+  'You review the request and decide.': '你审阅请求并作出决定。',
+  'Your device receives a request notification.': '设备收到请求通知。',
+  'Your turn: review the request, then approve or reject.':
+    '由你决定：查看请求，再批准或拒绝。',
+  'dMsg connection page': 'dMsg 连接页面',
+  'encrypted delivery': '加密传递',
+  'review and approval': '审阅与批准',
+  'Agent listed by {member}': '由 {member} 登记的 Agent',
+  'Approve in this example': '在示例中批准',
+  'Broadcast · simulated': '已广播 · 模拟',
+  'Complete · simulated': '已完成 · 模拟',
+  'Example BTC approval policy': 'BTC 审批规则示例',
+  'Example amount': '示例金额',
+  'Example audit trail': '示例操作记录',
+  'Linked records show this example’s sequence of decisions and actions.':
+    '相互关联的记录展示此示例中的决定与操作顺序。',
+  'Reject in this example': '在示例中拒绝',
+  'Restart demo': '重新开始演示',
+  'Shared wallet · example': '共同钱包 · 示例',
+  'Simulate Mei’s approval': '模拟 Mei 批准',
+  'Simulate execution': '模拟执行',
+  'Simulate the end of the waiting period': '模拟等待期结束',
+  'The required approvals are recorded. Either approver can still veto during the waiting period.':
+    '已记录所需批准。等待期内，任一审批者仍可否决。',
+  'The simulated flow is complete. No transaction was sent to a blockchain.':
+    '模拟流程已完成，没有向区块链发送交易。',
+  'Veto in this example': '在示例中否决',
+  'Waiting for member approvals. The agent cannot approve.':
+    '等待成员批准，Agent 不能代为批准。',
+  'Wallet members': '钱包成员',
+  'Encrypted content and delivery metadata': '加密内容与传递所需的元数据',
+  'On the Internet Computer': '在 Internet Computer 上',
+  'Public account, device and authorization records':
+    '公开账户、设备与授权记录',
+  'Readable when the protected content is unlocked': '解锁受保护内容后可读',
+  'The signed agreement is ready for review.': '已签署的协议可供审阅。',
+  'This illustrates the privacy boundary. Product formats differ, and encryption does not hide size or timing.':
+    '这里演示隐私边界，实际产品格式有所不同；加密不会隐藏大小或时间。',
+  'Try a sample sentence. This illustration stays in your browser.':
+    '输入一句示例文字，演示内容留在当前浏览器中。',
+  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
+    '也需要向自己的客户收集资料？dMsg 可以为你生成同样的私密上传链接，收到的文件只有你能打开。',
+  'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
+    'dMsg 是保管密码、笔记与文件的私密工作台。资料私密保管，谁能访问由你决定。',
 } satisfies Messages

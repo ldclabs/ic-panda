@@ -1003,7 +1003,7 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   font-size: 14px;
   color: var(--ink);
 }
-.home .fl-title code {
+.home .fl-title :is(code, .fl-tag) {
   padding: 1px 7px;
   border-radius: 4px;
   background: var(--paper-2);
@@ -1111,6 +1111,8 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   background: linear-gradient(90deg, currentColor 50%, transparent 0);
 }
 .home .fl-state.large {
+  min-width: 0;
+  white-space: normal;
   color: var(--amber);
 }
 .home .fl-actions {
@@ -1544,6 +1546,8 @@ html[dir='rtl'] .home .fl-bar {
 }
 .home .cc-label {
   flex-shrink: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font: 600 11px var(--mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2840,7 +2844,9 @@ html[dir='rtl'] .home .up {
 }
 
 /* ——— Languages ——— */
-html:is([lang='zh'], [lang='ar'], [lang='ur'], [lang='bn'], [lang='th']) .home :is(h1, .sec-head h2, .closing h2) {
+html:is([lang='zh'], [lang='ar'], [lang='ur'], [lang='bn'], [lang='th'])
+  .home
+  :is(h1, .sec-head h2, .closing h2) {
   letter-spacing: 0;
 }
 

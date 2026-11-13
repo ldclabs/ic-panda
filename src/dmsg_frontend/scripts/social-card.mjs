@@ -62,16 +62,16 @@ for (const locale of requested.length ? requested : locales) {
   const direction = rtl ? 'rtl' : 'ltr'
   const x = rtl ? 1136 : 64
   let titleSize = locale.startsWith('zh') ? 82 : locale === 'ru' ? 54 : locale === 'ar' ? 72 : 78
-  let first = await wrap(copy['Private collaboration.'], titleSize, 510, locale)
+  let first = await wrap(copy['Keep what matters private.'], titleSize, 510, locale)
   while (titleSize > 32 && !(await fits(first, titleSize, 510))) {
     titleSize -= 2
-    first = await wrap(copy['Private collaboration.'], titleSize, 510, locale)
+    first = await wrap(copy['Keep what matters private.'], titleSize, 510, locale)
   }
   let secondSize = locale.startsWith('zh') ? 54 : locale === 'ar' ? 49 : 42
-  let second = await wrap(copy['For people and agents.'], secondSize, 540, locale)
+  let second = await wrap(copy['Choose who gets access.'], secondSize, 540, locale)
   while (secondSize > 24 && !(await fits(second, secondSize, 540))) {
     secondSize -= 2
-    second = await wrap(copy['For people and agents.'], secondSize, 540, locale)
+    second = await wrap(copy['Choose who gets access.'], secondSize, 540, locale)
   }
   const firstY = first.length === 1 ? 238 : 206
   const secondY = firstY + (first.length - 1) * (titleSize + 7) + 77
@@ -84,7 +84,7 @@ for (const locale of requested.length ? requested : locales) {
       space: copy['Private space'],
       network: copy['Agent network'],
       you: copy.You,
-      desktop: copy['Desktop and terminal'],
+      desktop: copy['Your device'],
       teammate: copy.Teammate,
       agent: copy['Your agent'],
       website: copy.Website
@@ -105,7 +105,7 @@ for (const locale of requested.length ? requested : locales) {
   <text x="${ticketX + 190}" y="457" text-anchor="middle" font-size="12" font-weight="600" fill="#4e6257">${escape(copy['dMsg · Approval'])}</text>
   <path d="M${ticketX + (rtl ? 362 : 18)} 485l4.5 4.5-4.5 4.5-4.5-4.5Z" fill="#b45309"/>
   ${ticketText(copy.Signature, 30, 494, 13, '#92400e', 600)}
-  ${ticketText(copy['Sign the release statement'], 16, 519, 17, '#10251f', 650)}
+  ${ticketText(copy['Sign the project statement'], 16, 519, 17, '#10251f', 650)}
   <rect x="${rtl ? ticketX + 16 : ticketX + 176}" y="530" width="88" height="26" rx="7" fill="#fff" stroke="#c8d5ca"/>
   <rect x="${rtl ? ticketX + 112 : ticketX + 272}" y="530" width="92" height="26" rx="7" fill="#145c45"/>
   <text x="${rtl ? ticketX + 60 : ticketX + 220}" y="547" text-anchor="middle" font-size="12" font-weight="550" fill="#10251f">${escape(copy.Reject)}</text>
@@ -119,7 +119,11 @@ for (const locale of requested.length ? requested : locales) {
       text(line, secondY + i * (secondSize + 8), secondSize, '#28654a', 650)
     )
   ].join('')
-  const labels = ['Private space', 'Collaboration', 'Agent network'].map(
+  const labels = [
+    'End-to-end encryption',
+    'Secure file sharing',
+    'AI access you control'
+  ].map(
     (k) => copy[k]
   )
   const bottomY = Math.max(
@@ -139,7 +143,7 @@ for (const locale of requested.length ? requested : locales) {
   ${title}
   <g fill="#55715a">${labels.map((label, i) => text(label, bottomY + i * 28, 18, '#55715a', 450)).join('')}</g>
   <text x="${x}" y="581" text-anchor="${rtl ? 'end' : 'start'}" font-size="19" fill="#345940">dmsg.net</text>
-  <text x="${rtl ? 64 : 1136}" y="584" text-anchor="end" direction="${direction}" font-size="13" fill="#62816b">${escape(copy['For people and agents.'])}</text>
+  <text x="${rtl ? 64 : 1136}" y="584" text-anchor="end" direction="${direction}" font-size="13" fill="#62816b">${escape(copy['A private workspace for the AI era.'])}</text>
   </g></svg>`
   const stem = locale === 'en' ? 'og-image' : `og-image-${locale}`
   await writeFile(new URL(`${stem}.svg`, directory), svg)

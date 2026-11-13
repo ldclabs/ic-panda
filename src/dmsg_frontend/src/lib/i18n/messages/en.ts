@@ -11,14 +11,7 @@ const en = {
   "Waiting for your passkey…": "Waiting for your passkey…",
   'Documentation': 'Documentation',
   "Pricing": "Pricing",
-  "Membership": "Membership",
   "Start free.": "Start free.",
-  "Room to do more.": "Room to do more.",
-  "One private workspace, with more capacity when you need it.": "One private workspace, with more capacity when you need it.",
-  "For everyday essentials.": "For everyday essentials.",
-  "For a growing personal workspace.": "For a growing personal workspace.",
-  "For work and collaboration.": "For work and collaboration.",
-  "For larger teams and workloads.": "For larger teams and workloads.",
   "USD / year": "USD / year",
   "Encrypted cloud storage": "Encrypted cloud storage",
   "Active devices": "Active devices",
@@ -26,9 +19,6 @@ const en = {
   "Formal signatures / month": "Formal signatures / month",
   "Multisig wallet slots": "Multisig wallet slots",
   "Privacy comes with every plan.": "Privacy comes with every plan.",
-  "Encryption, device revocation and account recovery are included at every tier.": "Encryption, device revocation and account recovery are included at every tier.",
-  "Choose your plan in the app.": "Choose your plan in the app.",
-  "Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.": "Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.",
   "Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.": "Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.",
   "Wallet activation is charged separately; check availability in the app.": "Wallet activation is charged separately; check availability in the app.",
   "Cloud backup file limit": "Cloud backup file limit",
@@ -126,17 +116,9 @@ const en = {
   'Main navigation': 'Main navigation',
   'Close navigation': 'Close navigation',
   'Open navigation': 'Open navigation',
-  'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.':
-    'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.',
-  'Removing access protects future content after key changes. It cannot erase downloads, screenshots, or a secret already learned.':
-    'Removing access protects future content after key changes. It cannot erase downloads, screenshots, or a secret already learned.',
-  'Inspect the public code.': 'Inspect the public code.',
-  'Explore the repository': 'Explore the repository',
-  'Read the recovery details': 'Read the recovery details',
   'A few useful answers': 'A few useful answers',
   'Read your legacy messages': 'Read your legacy messages',
   'Built by': 'Built by',
-  'Trust': 'Trust',
   'Legacy app · Read-only': 'Legacy app · Read-only',
   'File': 'File',
   'Activate username account': 'Activate username account',
@@ -522,20 +504,14 @@ const en = {
   '1 of 2 approvals': '1 of 2 approvals',
   '2 of 2, then 24 hours': '2 of 2, then 24 hours',
   'A commitment to your content root': 'A commitment to your content root',
-  'A hint wakes your desktop, no content':
-    'A hint wakes your desktop, no content',
   'API key': 'API key',
   'Account and device changes': 'Account and device changes',
   'Account and sync status': 'Account and sync status',
   'Account, devices and logins': 'Account, devices and logins',
-  'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
-    'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.',
   'Address book: {label} · past its 24-hour wait':
     'Address book: {label} · past its 24-hour wait',
   'Addresses': 'Addresses',
   'Admin': 'Admin',
-  'Agent ID listed by {member}': 'Agent ID listed by {member}',
-  'Agent and controller keys': 'Agent and controller keys',
   'Agents': 'Agents',
   'All downloads and checksums': 'All downloads and checksums',
   'An agent acting for {member}': 'An agent acting for {member}',
@@ -544,102 +520,52 @@ const en = {
     'Apple Silicon · desktop app and command line',
   'Approval': 'Approval',
   'Approve': 'Approve',
-  'Approve as Mei': 'Approve as Mei',
   'Approved': 'Approved',
-  'Approved. Either approver can still veto it until the delay ends.':
-    'Approved. Either approver can still veto it until the delay ends.',
   'Approved. Signature generated.': 'Approved. Signature generated.',
   'Approver': 'Approver',
-  'Approving any request': 'Approving any request',
   'Ask you to sign a statement': 'Ask you to sign a statement',
-  'Asks you to sign a file': 'Asks you to sign a file',
-  'Audit chain': 'Audit chain',
-  'Audit record': 'Audit record',
   'Auditor': 'Auditor',
   'Back to the start': 'Back to the start',
   'Back up': 'Back up',
-  'Back up a file, delete one side, then look at the other.':
-    'Back up a file, delete one side, then look at the other.',
-  'Back up to the cloud?': 'Back up to the cloud?',
   'Backed up': 'Backed up',
-  'Backed up. The relay got ciphertext under a random ID, no name.':
-    'Backed up. The relay got ciphertext under a random ID, no name.',
   'Backing up, sharing or deleting files':
     'Backing up, sharing or deleting files',
   'Backing up…': 'Backing up…',
-  'Backups you started': 'Backups you started',
-  'Bridge page': 'Bridge page',
-  'Broadcast': 'Broadcast',
   'Broadcast. Waiting for the network.': 'Broadcast. Waiting for the network.',
   'Browser': 'Browser',
-  'Can I install dMsg now?': 'Can I install dMsg now?',
   'Cancel': 'Cancel',
   'Channels': 'Channels',
   'Chrome on this Mac': 'Chrome on this Mac',
   'Ciphertext': 'Ciphertext',
-  'Ciphertext, plus what it takes to deliver it':
-    'Ciphertext, plus what it takes to deliver it',
   'Click again to copy': 'Click again to copy',
-  'Click again to delete for good': 'Click again to delete for good',
   'Click again to show': 'Click again to show',
-  'Cloud copy deleted, and its room is freed.':
-    'Cloud copy deleted, and its room is freed.',
-  'Cloud copy deleted. The file on this device is unchanged.':
-    'Cloud copy deleted. The file on this device is unchanged.',
   'Cloud room: {used} used of {limit}': 'Cloud room: {used} used of {limit}',
   'Command line · x86_64 and arm64': 'Command line · x86_64 and arm64',
-  'Connect Claude Code': 'Connect Claude Code',
   'Contracts': 'Contracts',
   'Copy': 'Copy',
   'Copy command': 'Copy command',
   'Declined': 'Declined',
   'Delayed': 'Delayed',
-  'Delete the cloud copy': 'Delete the cloud copy',
-  'Deletions that crossed over': 'Deletions that crossed over',
   'Deploy key': 'Deploy key',
-  'iOS, macOS and Windows · command line on Linux too.':
-    'iOS, macOS and Windows · command line on Linux too.',
   'Documents': 'Documents',
-  'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
-    'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.',
-  'Done. The release statement is waiting in your approval window. I can’t approve it myself.':
-    'Done. The release statement is waiting in your approval window. I can’t approve it myself.',
   'Download for Mac': 'Download for Mac',
   'Each checked against the wallet’s keys':
     'Each checked against the wallet’s keys',
   'Each command installs the latest release and checks its SHA-256.':
     'Each command installs the latest release and checks its SHA-256.',
-  'Each event hashes the one before it, so a member can check that none is missing.':
-    'Each event hashes the one before it, so a member can check that none is missing.',
   'Empty. Nothing arrives here until you back it up.':
     'Empty. Nothing arrives here until you back it up.',
-  'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
-    'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.',
-  'Execute': 'Execute',
   'Expires in': 'Expires in',
-  'Fetch into the library': 'Fetch into the library',
-  'Fetched and checked. Only on your devices does it have a name: {name}.':
-    'Fetched and checked. Only on your devices does it have a name: {name}.',
   'Files': 'Files',
-  "Found it. Concealed values stay masked; using a credential requires a separate approval.":
-    "Found it. Concealed values stay masked; using a credential requires a separate approval.",
   'From an interactive terminal': 'From an interactive terminal',
-  'Granted capabilities': 'Granted capabilities',
   'Hide': 'Hide',
   'Hides again in {seconds} s.': 'Hides again in {seconds} s.',
   'Highest network fee': 'Highest network fee',
   'I don’t have {capability}, so I’ll skip that.':
     'I don’t have {capability}, so I’ll skip that.',
   'In the dMsg cloud': 'In the dMsg cloud',
-  'In the trash here, kept {days} days.':
-    'In the trash here, kept {days} days.',
-  'In the trash here. Its cloud copy stays as it was.':
-    'In the trash here. Its cloud copy stays as it was.',
   'Inbox': 'Inbox',
   'Install method': 'Install method',
-  'Is there a phone app?': 'Is there a phone app?',
-  'It keeps names and outcomes on your device, never content.':
-    'It keeps names and outcomes on your device, never content.',
   'Key': 'Key',
   'Lock the example': 'Lock the example',
   'Locked': 'Locked',
@@ -648,31 +574,17 @@ const en = {
   'Needs 1 of 2 approvals.': 'Needs 1 of 2 approvals.',
   'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
     'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.',
-  'Never grantable': 'Never grantable',
-  'Never your messages or files': 'Never your messages or files',
   'New address-book entries': 'New address-book entries',
   'Next step': 'Next step',
-  'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.':
-    'Yes. dMsg is available on the App Store for iPhone and iPad. Android is in development.',
   'Note': 'Note',
-  'Nothing recorded yet.': 'Nothing recorded yet.',
   'Nothing to review yet. The request appears here when it reaches this device.':
     'Nothing to review yet. The request appears here when it reaches this device.',
-  'On ICP': 'On ICP',
   'On another device': 'On another device',
   'On your device': 'On your device',
   'Only on this device': 'Only on this device',
-  'Opened only by the page that asked': 'Opened only by the page that asked',
   'Origin': 'Origin',
-  'Over the cloud’s 100 MiB limit': 'Over the cloud’s 100 MiB limit',
-  'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
-    'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.',
   'Pairing browsers': 'Pairing browsers',
-  'Pause': 'Pause',
-  'Payments and checkout': 'Payments and checkout',
   'Photos': 'Photos',
-  'Play': 'Play',
-  'Policy for BTC': 'Policy for BTC',
   'Post in the release channel': 'Post in the release channel',
   'Progress': 'Progress',
   'Proposal #{n}': 'Proposal #{n}',
@@ -680,46 +592,27 @@ const en = {
   'Proposed by': 'Proposed by',
   'Proposer': 'Proposer',
   'Read items tagged “deploy”': 'Read items tagged “deploy”',
-  'Readable, and only while unlocked': 'Readable, and only while unlocked',
   'Ready': 'Ready',
   'Ready. A member can execute it now.': 'Ready. A member can execute it now.',
   'Reject': 'Reject',
   'Rejected. Nothing was signed.': 'Rejected. Nothing was signed.',
-  'Rejected. The site is told no, and nothing is signed.':
-    'Rejected. The site is told no, and nothing is signed.',
   'Release plan': 'Release plan',
-  'Replay': 'Replay',
   'Reported by your browser through connect.dmsg.net':
     'Reported by your browser through connect.dmsg.net',
   'Restore': 'Restore',
   'Restored on this device.': 'Restored on this device.',
   'Run again': 'Run again',
-  'Run the agent': 'Run the agent',
-  'Running…': 'Running…',
   'Sample copied. The app clears the clipboard after {seconds} s.':
     'Sample copied. The app clears the clipboard after {seconds} s.',
-  'Saved as a new version in your library. Backing it up or sharing it stays with you.':
-    'Saved as a new version in your library. Backing it up or sharing it stays with you.',
   'Saved on this device · waits for sync':
     'Saved on this device · waits for sync',
-  'Sealed refusal': 'Sealed refusal',
-  'Sealed result': 'Sealed result',
-  'Sealed so only your devices can open it':
-    'Sealed so only your devices can open it',
   'Secret': 'Secret',
   'Send': 'Send',
   'Server login': 'Server login',
   'Settings': 'Settings',
-  'Settled': 'Settled',
   'Settled payments and names': 'Settled payments and names',
-  'Settled. Every step is in the audit chain.':
-    'Settled. Every step is in the audit chain.',
   'Ship v1.4 on Friday. The brief is in the release channel.':
     'Ship v1.4 on Friday. The brief is in the release channel.',
-  'Ship v1.4 on Friday. The deploy key is in the vault.':
-    'Ship v1.4 on Friday. The deploy key is in the vault.',
-  'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.':
-    'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.',
   'Show': 'Show',
   'Sign a file': 'Sign a file',
   'Signature': 'Signature',
@@ -731,7 +624,6 @@ const en = {
   'Signing key': 'Signing key',
   'Signing…': 'Signing…',
   'Size': 'Size',
-  'Skip the 24 hours': 'Skip the 24 hours',
   'Start over': 'Start over',
   'Statement': 'Statement',
   'Synced': 'Synced',
@@ -739,71 +631,41 @@ const en = {
   "Multisig wallets": "Multisig wallets",
   "Multisig wallets, their proposals and approvals":
     "Multisig wallets, their proposals and approvals",
-  'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
-    'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.',
-  'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
-    'The relay sees sizes, times and devices. Names, folders and types stay sealed.',
   'The site is told no; nothing is signed':
     'The site is told no; nothing is signed',
-  'The site received the result': 'The site received the result',
-  'The site verifies the signature': 'The site verifies the signature',
   'The wallet builds the transaction from the proposal and signs it with its threshold key.':
     'The wallet builds the transaction from the proposal and signs it with its threshold key.',
   'Titles, notes and secrets stay encrypted until you unlock this device.':
     'Titles, notes and secrets stay encrypted until you unlock this device.',
-  'Toggle a capability, then run the agent.':
-    'Toggle a capability, then run the agent.',
-  'Trash · kept {days} days. Cloud copies are not affected.':
-    'Trash · kept {days} days. Cloud copies are not affected.',
   'Turned down': 'Turned down',
   'Type a dmsg command': 'Type a dmsg command',
-  'Type anything. It never leaves this page.':
-    'Type anything. It never leaves this page.',
   'Unlock': 'Unlock',
   'Unlock the example': 'Unlock the example',
   'Unlock to review this request.': 'Unlock to review this request.',
   'Unlocked': 'Unlocked',
-  'Up to 4 GiB a file. Names, folders, tags, notes and every version are encrypted here.':
-    'Up to 4 GiB a file. Names, folders, tags, notes and every version are encrypted here.',
   'Up to {amount} in 24 hours': 'Up to {amount} in 24 hours',
-  'Uploaded without you': 'Uploaded without you',
   'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.':
     'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.',
   'Vault': 'Vault',
   'Vault locked': 'Vault locked',
-  'Veto': 'Veto',
   'Vetoed': 'Vetoed',
   'Vetoed. Nothing was signed.': 'Vetoed. Nothing was signed.',
   'Videos': 'Videos',
   'Wait 24 hours': 'Wait 24 hours',
-  'Waiting for approvals. The agent cannot give one.':
-    'Waiting for approvals. The agent cannot give one.',
   'Website': 'Website',
-  'What can an AI agent do with my account?':
-    'What can an AI agent do with my account?',
-  'What if I lose my computer?': 'What if I lose my computer?',
   'Windows installer': 'Windows installer',
   'Write into the “release” folder': 'Write into the “release” folder',
-  'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.':
-    'Yes. dMsg is available for iPhone, iPad, macOS with Apple Silicon and Windows x64. Its command line also runs on Linux. The figures on this page are simulations with sample data.',
   'You': 'You',
-  'You review it and decide': 'You review it and decide',
   'Your desktop': 'Your desktop',
   'Your device decodes the transaction, checks it against the proposal and broadcasts it.':
     'Your device decodes the transaction, checks it against the proposal and broadcasts it.',
   'Your device signs your decision.': 'Your device signs your decision.',
   'Your no is recorded. Mei can still approve it.':
     'Your no is recorded. Mei can still approve it.',
-  'Your turn: approve or reject in the approval window.':
-    'Your turn: approve or reject in the approval window.',
   'account': 'account',
-  'approval window': 'approval window',
-  'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
-    'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.',
   'dMsg relay': 'dMsg relay',
   'dMsg · Approval': 'dMsg · Approval',
   'device': 'device',
-  'sealed mailbox': 'sealed mailbox',
   'size': 'size',
   'time': 'time',
   'x64 · desktop app and command line, less tested':
@@ -812,8 +674,6 @@ const en = {
   '{count} files · {size}': '{count} files · {size}',
   '{count} items': '{count} items',
   '{count} versions': '{count} versions',
-  '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
-    '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.',
   '{used} of {limit}': '{used} of {limit}',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
     'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.',
@@ -871,8 +731,6 @@ const en = {
   'Nothing to install': 'Nothing to install',
   'Decrypted only in your browser': 'Decrypted only in your browser',
   'Send your own files this way': 'Send your own files this way',
-  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
-    'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Share a file by link that can expire, ask for a password or be revoked.',
   'The person you send it to needs no account or app.':
@@ -964,176 +822,45 @@ const en = {
     'This is not a dMsg attestation bundle.',
   'Could not reach the Internet Computer. Try again.':
     'Could not reach the Internet Computer. Try again.',
-  'Private space · Collaboration · Agent network':
-    'Private space · Collaboration · Agent network',
-  'Private collaboration.': 'Private collaboration.',
-  'For people and agents.': 'For people and agents.',
-  'Keep secrets and files private. Collaborate with your team. Give your agents their own identities and permissions to work across an open network.':
-    'Keep secrets and files private. Collaborate with your team. Give your agents their own identities and permissions to work across an open network.',
   'Download dMsg': 'Download dMsg',
-  'See collaboration in action': 'See collaboration in action',
   'Private space': 'Private space',
-  'A space of your own.': 'A space of your own.',
-  'Useful from day one.': 'Useful from day one.',
-  'Save a secret, keep a private note or bring in a file. Your workspace is useful before you invite anyone or connect an agent.':
-    'Save a secret, keep a private note or bring in a file. Your workspace is useful before you invite anyone or connect an agent.',
-  'Secrets, kept close.': 'Secrets, kept close.',
-  'Files stay on your computer.': 'Files stay on your computer.',
-  'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
-    'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.',
-  'Explore files and backups': 'Explore files and backups',
-  'Try the desktop and command line': 'Try the desktop and command line',
-  'Collaboration': 'Collaboration',
-  'Bring your people.': 'Bring your people.',
-  'Move the work forward.': 'Move the work forward.',
-  'Discuss a plan, share a file and decide together. Encrypted channels give a project a place to happen, with access defined for each participant.':
-    'Discuss a plan, share a file and decide together. Encrypted channels give a project a place to happen, with access defined for each participant.',
-  'A conversation with boundaries.': 'A conversation with boundaries.',
-  'Invite teammates into encrypted channels, reply to messages and find past discussions locally. Channel membership does not open your vault.':
-    'Invite teammates into encrypted channels, reply to messages and find past discussions locally. Channel membership does not open your vault.',
-  'Share just what is needed.': 'Share just what is needed.',
-  'Send a separately encrypted file to a channel or share it by link. Your library and backups keep their own keys and copies.':
-    'Send a separately encrypted file to a channel or share it by link. Your library and backups keep their own keys and copies.',
-  'Important decisions stay explicit.': 'Important decisions stay explicit.',
-  'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.':
-    'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.',
-  "Explore a multisig wallet proposal": "Explore a multisig wallet proposal",
-  "Try a proposal from an agent and see which decisions belong to people.":
-    "Try a proposal from an agent and see which decisions belong to people.",
-  'Follow a request from a website': 'Follow a request from a website',
-  'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.':
-    'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.',
   'Agent network': 'Agent network',
-  'Your agents, in good company.': 'Your agents, in good company.',
-  'Their own identities. Your permissions.':
-    'Their own identities. Your permissions.',
-  'Connect an MCP client to dMsg. Give each agent an identity and a defined scope, then let it exchange private mail, join discussions and contribute knowledge through open Agent Protocols.':
-    'Connect an MCP client to dMsg. Give each agent an identity and a defined scope, then let it exchange private mail, join discussions and contribute knowledge through open Agent Protocols.',
-  'An identity others can verify.': 'An identity others can verify.',
-  'Agent ID identifies the agent; its profile describes it. A delegation lets others check whom it may represent and within which scope.':
-    'Agent ID identifies the agent; its profile describes it. A delegation lets others check whom it may represent and within which scope.',
-  'Access you can define and revoke.': 'Access you can define and revoke.',
-  'Choose the folders, channels and services an agent can use. Its own protocol signatures are separate from formal signatures you approve.':
-    'Choose the folders, channels and services an agent can use. Its own protocol signatures are separate from formal signatures you approve.',
-  'Work you can follow.': 'Work you can follow.',
-  'See what an agent produced and inspect its local action record. Requests that need your approval remain yours to decide.':
-    'See what an agent produced and inspect its local action record. Requests that need your approval remain yours to decide.',
   'Read the open protocols': 'Read the open protocols',
-  'Try agent permissions and inspect tool calls':
-    'Try agent permissions and inspect tool calls',
   'Privacy & trust': 'Privacy & trust',
-  'Trust, with evidence.': 'Trust, with evidence.',
-  'And clear boundaries.': 'And clear boundaries.',
-  'Private content is encrypted on your devices. Public code, explicit permissions and verifiable records help you understand what you are trusting.':
-    'Private content is encrypted on your devices. Public code, explicit permissions and verifiable records help you understand what you are trusting.',
-  'What encryption protects.': 'What encryption protects.',
-  'Where trust still matters.': 'Where trust still matters.',
-  'Cloud availability, client updates and recovery services remain trust boundaries. Content you give an external AI client follows that client’s data handling too.':
-    'Cloud availability, client updates and recovery services remain trust boundaries. Content you give an external AI client follows that client’s data handling too.',
-  'Shared copies can remain.': 'Shared copies can remain.',
   'See what your device, the cloud and ICP receive':
     'See what your device, the cloud and ICP receive',
   'Prepare for a lost device.': 'Prepare for a lost device.',
-  'Start with your own space': 'Start with your own space',
-  'Make your first private note.': 'Make your first private note.',
-  'Install dMsg, set up your account and save something worth keeping. Invite a teammate or connect an agent when you are ready.':
-    'Install dMsg, set up your account and save something worth keeping. Invite a teammate or connect an agent when you are ready.',
   'Prefer the command line?': 'Prefer the command line?',
   'Before you begin.': 'Before you begin.',
   'Coming from the old dMsg?': 'Coming from the old dMsg?',
-  'Start your private collaboration.': 'Start your private collaboration.',
-  'A space for your work. A place for your people and agents.':
-    'A space for your work. A place for your people and agents.',
   'Can I use dMsg on my own?': 'Can I use dMsg on my own?',
-  'Yes. Start with a private note, a login or a file. You can invite people and connect agents when you need them.':
-    'Yes. Start with a private note, a login or a file. You can invite people and connect agents when you need them.',
-  'How do I work with someone else?': 'How do I work with someone else?',
-  'Invite them to an encrypted channel. Once they accept, you can exchange messages and share files. Joining a channel does not give them access to your vault.':
-    'Invite them to an encrypted channel. Once they accept, you can exchange messages and share files. Joining a channel does not give them access to your vault.',
-  'You grant access to specific resources and actions. An agent can work within that scope and ask for a formal signature, but it cannot approve requests or change your account and devices.':
-    'You grant access to specific resources and actions. An agent can work within that scope and ask for a formal signature, but it cannot approve requests or change your account and devices.',
-  'What stays private, and what goes out?':
-    'What stays private, and what goes out?',
-  'Vault items and channel messages sync as ciphertext. Library files stay local until you back them up or share a separate copy. Agent Mail is encrypted; a knowledge contribution you publish is public. Content given to an external AI client is also subject to that client’s data handling.':
-    'Vault items and channel messages sync as ciphertext. Library files stay local until you back them up or share a separate copy. Agent Mail is encrypted; a knowledge contribution you publish is public. Content given to an external AI client is also subject to that client’s data handling.',
   'Interactive example · sample data · nothing is sent':
     'Interactive example · sample data · nothing is sent',
-  'One project. People and agents, together.':
-    'One project. People and agents, together.',
-  'Play the story': 'Play the story',
   'Project steps': 'Project steps',
   'Private project': 'Private project',
-  'Release workspace': 'Release workspace',
-  'A release worth sharing.': 'A release worth sharing.',
-  'Finish the review. Prepare the notes. Agree on the release.':
-    'Finish the review. Prepare the notes. Agree on the release.',
-  'Plan saved privately': 'Plan saved privately',
-  'No teammates or agents have access yet':
-    'No teammates or agents have access yet',
   'Encrypted channel': 'Encrypted channel',
-  'Here is the plan. Can you review it before Friday?':
-    'Here is the plan. Can you review it before Friday?',
   'Invitation accepted': 'Invitation accepted',
-  'I’m in. Let’s prepare the release notes together.':
-    'I’m in. Let’s prepare the release notes together.',
   'Own Agent ID': 'Own Agent ID',
-  'Release folder': 'Release folder',
-  'Release channel': 'Release channel',
   'I prepared a draft from the project files. Your other folders and vault are outside my access.':
     'I prepared a draft from the project files. Your other folders and vault are outside my access.',
   'Draft ready': 'Draft ready',
-  'The release notes are ready for review. Anything to add?':
-    'The release notes are ready for review. Anything to add?',
-  'Review complete. The release notes match the plan.':
-    'Review complete. The release notes match the plan.',
   'Agent Mail · encrypted for the receiving agent':
     'Agent Mail · encrypted for the receiving agent',
-  'Release statement': 'Release statement',
-  'Ready for Friday’s release.': 'Ready for Friday’s release.',
-  'Requested by your release agent. Only you can approve this formal signature.':
-    'Requested by your release agent. Only you can approve this formal signature.',
   'Approve this example': 'Approve this example',
   'Step {current} of {total}': 'Step {current} of {total}',
   'Previous step': 'Previous step',
-  'Keep a plan private': 'Keep a plan private',
-  'Bring in a teammate': 'Bring in a teammate',
-  'Give an agent a role': 'Give an agent a role',
-  'Connect with another agent': 'Connect with another agent',
-  'Make the final call': 'Make the final call',
-  'Invite a teammate': 'Invite a teammate',
-  'Grant folder access': 'Grant folder access',
-  'Send an encrypted letter': 'Send an encrypted letter',
-  'Request a signature': 'Request a signature',
-  'Start with a release plan only you can read. Your vault and file library are private before anyone else joins.':
-    'Start with a release plan only you can read. Your vault and file library are private before anyone else joins.',
-  'Mei accepts your invitation. Discuss the plan in an encrypted channel and share the file the team needs.':
-    'Mei accepts your invitation. Discuss the plan in an encrypted channel and share the file the team needs.',
-  'Your release agent can work in one folder and post in one channel. It prepares the release notes without access to the rest of your space.':
-    'Your release agent can work in one folder and post in one channel. It prepares the release notes without access to the rest of your space.',
-  'Your agent sends an encrypted letter to Mei’s agent using its own Agent ID. The reply brings the review back into the project.':
-    'Your agent sends an encrypted letter to Mei’s agent using its own Agent ID. The reply brings the review back into the project.',
-  'The agent asks you to sign the release statement. Review the exact statement and decide. Its permission to work never becomes permission to approve.':
-    'The agent asks you to sign the release statement. Review the exact statement and decide. Its permission to work never becomes permission to approve.',
   'Explore the agent network': 'Explore the agent network',
   'Granted scope': 'Granted scope',
   'Exchange private mail': 'Exchange private mail',
   'Agent Mail': 'Agent Mail',
   'An encrypted letter, delivered to another agent.':
     'An encrypted letter, delivered to another agent.',
-  'The receiving agent decrypts the letter. A relay carries ciphertext; receiving mail never grants permission to act.':
-    'The receiving agent decrypts the letter. A relay carries ciphertext; receiving mail never grants permission to act.',
-  'Discuss with other agents': 'Discuss with other agents',
   'Agent Discourse': 'Agent Discourse',
   'A shared discussion, with each contribution signed.':
     'A shared discussion, with each contribution signed.',
-  'Agents join a room, read its timeline and contribute under their own identities. A discussion room is not an encrypted dMsg channel.':
-    'Agents join a room, read its timeline and contribute under their own identities. A discussion room is not an encrypted dMsg channel.',
-  'Share knowledge with a source': 'Share knowledge with a source',
   'Agent Knowledge': 'Agent Knowledge',
   'A public contribution that others can assess and build on.':
     'A public contribution that others can assess and build on.',
-  'Publish knowledge deliberately, with its source attached. Other agents can discover it, add assessments and report reuse.':
-    'Publish knowledge deliberately, with its source attached. Other agents can discover it, add assessments and report reuse.',
   'Only you': 'Only you',
   'Scoped access': 'Scoped access',
   'Encrypted agent mail': 'Encrypted agent mail',
@@ -1144,74 +871,28 @@ const en = {
     'Rejected in this example. Nothing is signed; the draft stays available.',
   'Shared discussion': 'Shared discussion',
   'Open knowledge': 'Open knowledge',
-  'Keep what is yours private.': 'Keep what is yours private.',
-  'Share the work, on your terms.': 'Share the work, on your terms.',
-  'Independent identities. Open connections.':
-    'Independent identities. Open connections.',
-  'dMsg — Private collaboration for people and agents':
-    'dMsg — Private collaboration for people and agents',
-  'Show tool details': 'Show tool details',
   'Waiting for your approval': 'Waiting for your approval',
-  'Permission denied': 'Permission denied',
   'Account status checked': 'Account status checked',
-  'Vault item found': 'Vault item found',
   'Release notes saved': 'Release notes saved',
-  'Message posted to the channel': 'Message posted to the channel',
   'Pause animation': 'Pause animation',
   'Play animation': 'Play animation',
   'Teammate': 'Teammate',
   'Your agent': 'Your agent',
-  'Desktop app': 'Desktop app',
   'People and agents': 'People and agents',
-  'Desktop and terminal': 'Desktop and terminal',
   'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.':
     'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.',
   'Encrypted end to end': 'Encrypted end to end',
-  'Sealed before it syncs': 'Sealed before it syncs',
-  'Only the folder it was granted': 'Only the folder it was granted',
   'Signed with its own Agent ID': 'Signed with its own Agent ID',
   'Sign-in': 'Sign-in',
-  'Payment': 'Payment',
-  'Sign the release statement': 'Sign the release statement',
   'Sign in to {site}': 'Sign in to {site}',
   "Pay {amount} from the multisig wallet": "Pay {amount} from the multisig wallet",
-  'Approving signs this statement with your account key.':
-    'Approving signs this statement with your account key.',
-  'Approving proves to the site that it is you.':
-    'Approving proves to the site that it is you.',
-  'Approving adds your vote. The wallet’s policy decides the rest.':
-    'Approving adds your vote. The wallet’s policy decides the rest.',
-  'Your vote is recorded.': 'Your vote is recorded.',
-  'Rejected. Nothing was paid.': 'Rejected. Nothing was paid.',
-  'Expired. Nothing was approved.': 'Expired. Nothing was approved.',
-  'Nothing is waiting for you.': 'Nothing is waiting for you.',
-  'Approved without you: {count}': 'Approved without you: {count}',
   'Requests from agents, websites and the terminal open here.':
     'Requests from agents, websites and the terminal open here.',
-  'Hold to approve': 'Hold to approve',
-  'The desktop app': 'The desktop app',
-  'Everything in one window.': 'Everything in one window.',
-  'Every decision in its own.': 'Every decision in its own.',
-  "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.":
-    "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.",
   'The dMsg desktop app': 'The dMsg desktop app',
   'Views': 'Views',
   'Work': 'Work',
   'Authorization': 'Authorization',
   'Signatures & approvals': 'Signatures & approvals',
-  'End-to-end encrypted conversations and files with people you choose':
-    'End-to-end encrypted conversations and files with people you choose',
-  'Encrypted files on this device; nothing leaves unless you back it up or share it':
-    'Encrypted files on this device; nothing leaves unless you back it up or share it',
-  'Notes, logins and keys, encrypted on this device':
-    'Notes, logins and keys, encrypted on this device',
-  'Letters, and who may write to you': 'Letters, and who may write to you',
-  'Requests waiting for you, signatures and their records':
-    'Requests waiting for you, signatures and their records',
-  'Agent IDs, what they may do and what they did':
-    'Agent IDs, what they may do and what they did',
-  "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.":
-    "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.",
   'Account synced': 'Account synced',
   'Unlock with Touch ID': 'Unlock with Touch ID',
   'Lock': 'Lock',
@@ -1222,8 +903,6 @@ const en = {
     'Locks after 15 idle minutes, or whenever you choose.',
   'The notes read well. One fix in section 2.':
     'The notes read well. One fix in section 2.',
-  'Fixed. The release notes are ready.': 'Fixed. The release notes are ready.',
-  'Thanks. We ship on Friday.': 'Thanks. We ship on Friday.',
   'Password': 'Password',
   'One-time password': 'One-time password',
   'Who may write to me': 'Who may write to me',
@@ -1235,39 +914,6 @@ const en = {
   'Draft for the community post': 'Draft for the community post',
   'Statement for {file}': 'Statement for {file}',
   'Paused': 'Paused',
-  'Command palette': 'Command palette',
-  'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.':
-    'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.',
-  'Fast unlock': 'Fast unlock',
-  'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.':
-    'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.',
-  'Locks on its own': 'Locks on its own',
-  'After 15 idle minutes by default, for the app and the command line alike.':
-    'After 15 idle minutes by default, for the app and the command line alike.',
-  'Light or dark': 'Light or dark',
-  'Follows your system, or keeps the look you pick.':
-    'Follows your system, or keeps the look you pick.',
-  'Your language': 'Your language',
-  'Arabic lays the windows out right to left; IDs and code keep their order.':
-    'Arabic lays the windows out right to left; IDs and code keep their order.',
-  'Stays in the tray': 'Stays in the tray',
-  'Close the window and dMsg keeps running; new requests still reach you.':
-    'Close the window and dMsg keeps running; new requests still reach you.',
-  'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.':
-    'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.',
-  'Locked when you step away.': 'Locked when you step away.',
-  'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.':
-    'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.',
-  'Letters, on your rules.': 'Letters, on your rules.',
-  'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.':
-    'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.',
-  'Check a signature yourself.': 'Check a signature yourself.',
-  'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.':
-    'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.',
-  'Open the verifier': 'Open the verifier',
-  'Can strangers write to me?': 'Can strangers write to me?',
-  'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
-    'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.',
   'Send files through dMsg': 'Send files through dMsg',
   '{name} is asking you for files': '{name} is asking you for files',
   'Someone is asking you for files': 'Someone is asking you for files',
@@ -1330,10 +976,492 @@ const en = {
   'Keep this page open until your files are sent.':
     'Keep this page open until your files are sent.',
   'Collect files this way too': 'Collect files this way too',
-  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
-    'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.',
   'Each person sees only what they sent.':
     'Each person sees only what they sent.',
+  'Choose who gets access.': 'Choose who gets access.',
+  'Keep what matters private.': 'Keep what matters private.',
+  'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
+    'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.',
+  'dMsg — Encrypted Vault, File Sharing & AI Permissions':
+    'dMsg — Encrypted Vault, File Sharing & AI Permissions',
+  'A client can upload through a file request link or open a file download link in their browser without a dMsg account. Creating file request links requires Plus or above. Joining a dMsg channel is a separate, account-based collaboration flow.':
+    'A client can upload through a file request link or open a file download link in their browser without a dMsg account. Creating file request links requires Plus or above. Joining a dMsg channel is a separate, account-based collaboration flow.',
+  'A connected website can request a signature. Review the application, file and request in dMsg, then approve or reject it. No browser extension is needed.':
+    'A connected website can request a signature. Review the application, file and request in dMsg, then approve or reject it. No browser extension is needed.',
+  'A home for the things': 'A home for the things',
+  'A link for the file, not your whole workspace':
+    'A link for the file, not your whole workspace',
+  'A private workspace for the AI era.': 'A private workspace for the AI era.',
+  'A product of ICPanda DAO.': 'A product of ICPanda DAO.',
+  'A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.':
+    'A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.',
+  'A shared copy can remain.': 'A shared copy can remain.',
+  'A vault that stays in sync': 'A vault that stays in sync',
+  'A vote can change the rules.': 'A vote can change the rules.',
+  'AI access you control': 'AI access you control',
+  'AI permissions': 'AI permissions',
+  'AI, with clear permissions': 'AI, with clear permissions',
+  'Access synced notes, logins and other vault records from devices authorized to access your vault.':
+    'Access synced notes, logins and other vault records from devices authorized to access your vault.',
+  'Access with a defined scope': 'Access with a defined scope',
+  'Account and device records on ICP help clients verify who is allowed to access an account and authorize actions.':
+    'Account and device records on ICP help clients verify who is allowed to access an account and authorize actions.',
+  'Across your devices': 'Across your devices',
+  'Add another authorized device, and review your recovery settings while you still have access. Read the recovery conditions before relying on them.':
+    'Add another authorized device, and review your recovery settings while you still have access. Read the recovery conditions before relying on them.',
+  'An Agent ID identifies the agent. Signed delegations let others check whom it may represent and within which scope.':
+    'An Agent ID identifies the agent. Signed delegations let others check whom it may represent and within which scope.',
+  'An agent can prepare work and ask for a formal signature. You review the request and decide whether to approve it.':
+    'An agent can prepare work and ask for a formal signature. You review the request and decide whether to approve it.',
+  'An identity of its own': 'An identity of its own',
+  'An upload-only link. Senders cannot use it to open files you have received.':
+    'An upload-only link. Senders cannot use it to open files you have received.',
+  'Approval stays with you': 'Approval stays with you',
+  'Available on Plus and above': 'Available on Plus and above',
+  'Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.':
+    'Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.',
+  'Bring client documents into your private workspace, keep the files you need, and send selected copies back. Use encrypted channels when the work needs an ongoing conversation.':
+    'Bring client documents into your private workspace, keep the files you need, and send selected copies back. Use encrypted channels when the work needs an ongoing conversation.',
+  'Bring others in on your terms.': 'Bring others in on your terms.',
+  'Bring others in when you’re ready.': 'Bring others in when you’re ready.',
+  'Can I take back a file or revoke an agent’s access?':
+    'Can I take back a file or revoke an agent’s access?',
+  'Check which devices are authorized': 'Check which devices are authorized',
+  'Choose a light or dark appearance and your preferred language.':
+    'Choose a light or dark appearance and your preferred language.',
+  'Choose a plan in dMsg and review the current price, available payment methods and renewal terms before confirming. The current desktop membership flow supports ckUSDC or ckUSDT, with annual membership also available through an eligible PANDA neuron. Available purchase paths can differ by platform and release.':
+    'Choose a plan in dMsg and review the current price, available payment methods and renewal terms before confirming. The current desktop membership flow supports ckUSDC or ckUSDT, with annual membership also available through an eligible PANDA neuron. Available purchase paths can differ by platform and release.',
+  'Choose the records, folders and channels an agent can use. Change or revoke its permissions as your needs change.':
+    'Choose the records, folders and channels an agent can use. Change or revoke its permissions as your needs change.',
+  'Choose who can reach you': 'Choose who can reach you',
+  'Client files for a new project': 'Client files for a new project',
+  'Collect': 'Collect',
+  'Collect & share': 'Collect & share',
+  'Collect the files you need.': 'Collect the files you need.',
+  'Connect a compatible AI client through MCP. Give each agent its own identity and defined access to selected records, folders and channels. It can work within those permissions and request a signature for you to review.':
+    'Connect a compatible AI client through MCP. Give each agent its own identity and defined access to selected records, folders and channels. It can work within those permissions and request a signature for you to review.',
+  'Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.':
+    'Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.',
+  'Create an upload link for a client or collaborator. They can send files from their browser without creating a dMsg account.':
+    'Create an upload link for a client or collaborator. They can send files from their browser without creating a dMsg account.',
+  'Create an upload link with a title and instructions.':
+    'Create an upload link with a title and instructions.',
+  'Deliver': 'Deliver',
+  'Do clients need a dMsg account to send or receive a file?':
+    'Do clients need a dMsg account to send or receive a file?',
+  'Download for Windows': 'Download for Windows',
+  'Encrypted before it leaves your device':
+    'Encrypted before it leaves your device',
+  'Encryption protects content.': 'Encryption protects content.',
+  'End-to-end encryption': 'End-to-end encryption',
+  'End-to-end encryption keeps your content private. The rules that decide which devices can access your account run on the Internet Computer (ICP) blockchain, where your apps can verify them and any change requires a public vote.':
+    'End-to-end encryption keeps your content private. The rules that decide which devices can access your account run on the Internet Computer (ICP) blockchain, where your apps can verify them and any change requires a public vote.',
+  'Explore the app and CLI example': 'Explore the app and CLI example',
+  'Explore the source code': 'Explore the source code',
+  'Explore your vault, files and encrypted conversations. Open the approvals and agent views when you need more control.':
+    'Explore your vault, files and encrypted conversations. Open the approvals and agent views when you need more control.',
+  'Export a signature with its evidence and check it in the browser. The original file stays on your computer during verification.':
+    'Export a signature with its evidence and check it in the browser. The original file stays on your computer during verification.',
+  'External AI has its own data policies.':
+    'External AI has its own data policies.',
+  'File backups you can take with you': 'File backups you can take with you',
+  'File requests · Plus and above': 'File requests · Plus and above',
+  'Files stay in your hands': 'Files stay in your hands',
+  'Find it quickly.': 'Find it quickly.',
+  'Follow one project from a private brief to a shared review. People and agents join with different roles, while the final signature stays yours to approve.':
+    'Follow one project from a private brief to a shared review. People and agents join with different roles, while the final signature stays yours to approve.',
+  'For protected data and operations accessed through dMsg, the permissions you grant define the agent’s scope. Authorized reads and writes can run within that scope; requests for your formal signature still need your approval. Concealed credential values have separate controls. Content passed to an external AI client also follows that client’s data handling.':
+    'For protected data and operations accessed through dMsg, the permissions you grant define the agent’s scope. Authorized reads and writes can run within that scope; requests for your formal signature still need your approval. Concealed credential values have separate controls. Content passed to an external AI client also follows that client’s data handling.',
+  'Get started': 'Get started',
+  'Give your agents a way to work with others.':
+    'Give your agents a way to work with others.',
+  'Governance': 'Governance',
+  'How do I choose and pay for a plan?': 'How do I choose and pay for a plan?',
+  'If you enabled recovery in advance and can still sign in with a linked Internet Identity, you can start recovery, subject to the configured waiting period. Any device that is still authorized can dispute the request during that period. If every authorized device is lost and recovery was not enabled, the login alone cannot recover encrypted content. Recovery also cannot bring back local files that were never uploaded or backed up.':
+    'If you enabled recovery in advance and can still sign in with a linked Internet Identity, you can start recovery, subject to the configured waiting period. Any device that is still authorized can dispute the request during that period. If every authorized device is lost and recovery was not enabled, the login alone cannot recover encrypted content. Recovery also cannot bring back local files that were never uploaded or backed up.',
+  'If you let an external AI client read content, its handling of that content matters too.':
+    'If you let an external AI client read content, its handling of that content matters too.',
+  'In development': 'In development',
+  'Inspect how dMsg works.': 'Inspect how dMsg works.',
+  'Install dMsg, set up your account and save your first private note or file. Add another device and review your recovery settings as you make it part of your day.':
+    'Install dMsg, set up your account and save your first private note or file. Add another device and review your recovery settings as you make it part of your day.',
+  'Interactive example · no real file is signed':
+    'Interactive example · no real file is signed',
+  'Interactive example · sample files · no files are uploaded':
+    'Interactive example · sample files · no files are uploaded',
+  'Invite people into an end-to-end encrypted channel to exchange messages and files. Joining a channel does not give them access to your vault.':
+    'Invite people into an end-to-end encrypted channel to exchange messages and files. Joining a channel does not give them access to your vault.',
+  'It protects private content such as vault records, private channel messages and encrypted file copies between the authorized endpoints. It does not hide every service detail. Sizes, timing, device information and some public identity or authorization records can remain visible.':
+    'It protects private content such as vault records, private channel messages and encrypted file copies between the authorized endpoints. It does not hide every service detail. Sizes, timing, device information and some public identity or authorization records can remain visible.',
+  'Keep': 'Keep',
+  'Keep it private.': 'Keep it private.',
+  'Keep passwords, one-time codes, private notes and keys in your encrypted vault. Reveal or copy a sensitive value when you need it.':
+    'Keep passwords, one-time codes, private notes and keys in your encrypted vault. Reveal or copy a sensitive value when you need it.',
+  'Keep personal records and work essentials together: a private note, a login, a contract or a copy of your passport. Start on your own, with no team or agent to set up.':
+    'Keep personal records and work essentials together: a private note, a login, a contract or a copy of your passport. Start on your own, with no team or agent to set up.',
+  'Keep the discussion private': 'Keep the discussion private',
+  'Keep your files private. Back up what matters.':
+    'Keep your files private. Back up what matters.',
+  'Let your agents help.': 'Let your agents help.',
+  'Let your client send them.': 'Let your client send them.',
+  'Make a little space': 'Make a little space',
+  'Make it comfortable.': 'Make it comfortable.',
+  'Manage shared funds with clear approval rules.':
+    'Manage shared funds with clear approval rules.',
+  'On-chain rules governed in public.': 'On-chain rules governed in public.',
+  'One vault for your essentials': 'One vault for your essentials',
+  'Open the command palette with ⌘K or Ctrl+K.':
+    'Open the command palette with ⌘K or Ctrl+K.',
+  'Open the signature verifier': 'Open the signature verifier',
+  'Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.':
+    'Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.',
+  'Privacy & Web3': 'Privacy & Web3',
+  'Private content.': 'Private content.',
+  'Protect passwords, notes and files with end-to-end encryption. Sync your vault across your devices, share selected files, and give connected AI agents clearly defined access.':
+    'Protect passwords, notes and files with end-to-end encryption. Sync your vault across your devices, share selected files, and give connected AI agents clearly defined access.',
+  'Protection when you step away': 'Protection when you step away',
+  'Public rules.': 'Public rules.',
+  'Read how file sharing works': 'Read how file sharing works',
+  'Read the agent setup guide': 'Read the agent setup guide',
+  'Request the files.': 'Request the files.',
+  'Review a device before it joins your account. Remove its access when you no longer use it.':
+    'Review a device before it joins your account. Remove its access when you no longer use it.',
+  'Review before you sign.': 'Review before you sign.',
+  'Review incoming files and choose which ones to save to your encrypted library.':
+    'Review incoming files and choose which ones to save to your encrypted library.',
+  'Review received files and save selected items to your encrypted library.':
+    'Review received files and save selected items to your encrypted library.',
+  'Revoking a share link or agent permission stops new authorizations under the relevant rules. Downloads or actions already authorized may still complete. Revocation cannot erase a file someone has downloaded, a screenshot they took or content an external agent has already received.':
+    'Revoking a share link or agent permission stops new authorizations under the relevant rules. Downloads or actions already authorized may still complete. Revocation cannot erase a file someone has downloaded, a screenshot they took or content an external agent has already received.',
+  'Revoking access cannot erase a download, screenshot or secret that someone has already received.':
+    'Revoking access cannot erase a download, screenshot or secret that someone has already received.',
+  'Rule changes go through a public vote':
+    'Rule changes go through a public vote',
+  'Save what you need.': 'Save what you need.',
+  'Secure file sharing': 'Secure file sharing',
+  'See a full project example': 'See a full project example',
+  'See how it works': 'See how it works',
+  'See plans for file collection': 'See plans for file collection',
+  'See the client upload flow': 'See the client upload flow',
+  'See who controls the rules': 'See who controls the rules',
+  'Send the selected file with a download link. Recipients can open it in their browser without creating a dMsg account.':
+    'Send the selected file with a download link. Recipients can open it in their browser without creating a dMsg account.',
+  'Service metadata such as sizes, timing and device information can remain visible. Public identity and authorization records are also visible where the protocol requires them.':
+    'Service metadata such as sizes, timing and device information can remain visible. Public identity and authorization records are also visible where the protocol requires them.',
+  'Set the limits yourself.': 'Set the limits yourself.',
+  'Set who can propose, who can approve and when a proposal can proceed. An agent can prepare a proposal; authorized members make the approval decisions.':
+    'Set who can propose, who can approve and when a proposal can proceed. An agent can prepare a proposal; authorized members make the approval decisions.',
+  'Share a separately encrypted copy by link or in a channel. Your other files and vault records remain private.':
+    'Share a separately encrypted copy by link or in a channel. Your other files and vault records remain private.',
+  'Share the files you choose.': 'Share the files you choose.',
+  'Start private.': 'Start private.',
+  'Start with one note or file. Add people and agents when you’re ready.':
+    'Start with one note or file. Add people and agents when you’re ready.',
+  'Start with your own space. Invite people or connect an agent when you’re ready.':
+    'Start with your own space. Invite people or connect an agent when you’re ready.',
+  'The app and CLI, working together.': 'The app and CLI, working together.',
+  'The client, local daemon, protocols and canisters are published in the source repository. The production cloud service has a separate operational trust boundary.':
+    'The client, local daemon, protocols and canisters are published in the source repository. The production cloud service has a separate operational trust boundary.',
+  'The connection page reports the website origin supplied by your browser. The approval window shows this source; it is not an independent proof of the website’s identity.':
+    'The connection page reports the website origin supplied by your browser. The approval window shows this source; it is not an independent proof of the website’s identity.',
+  'They upload in the browser without creating an account.':
+    'They upload in the browser without creating an account.',
+  'Try creating an encrypted cloud backup, then download a backup created on another authorized device. Local files and cloud backups are managed separately.':
+    'Try creating an encrypted cloud backup, then download a backup created on another authorized device. Local files and cloud backups are managed separately.',
+  'Try the permissions. See what changes.':
+    'Try the permissions. See what changes.',
+  'Turn a permission on or off, then run the example. See which steps can proceed and which requests wait for your decision.':
+    'Turn a permission on or off, then run the example. See which steps can proceed and which requests wait for your decision.',
+  'Understand recovery': 'Understand recovery',
+  'Unlock on your Mac.': 'Unlock on your Mac.',
+  'Upgrading dMsg’s on-chain account and device rules requires an ICPanda DAO proposal. Our cloud administrators cannot change those rules on their own, and anyone can inspect who controls them.':
+    'Upgrading dMsg’s on-chain account and device rules requires an ICPanda DAO proposal. Our cloud administrators cannot change those rules on their own, and anyone can inspect who controls them.',
+  'Use Touch ID for supported fast unlock.':
+    'Use Touch ID for supported fast unlock.',
+  'Use it across your devices': 'Use it across your devices',
+  'Use the desktop app or the command line to work with the same vault on this device. Review signing requests before they run.':
+    'Use the desktop app or the command line to work with the same vault on this device. Review signing requests before they run.',
+  'Use the same encrypted vault on devices you authorize to access it. Keep file backups available to download when you need them elsewhere, while your local file library stays under your control.':
+    'Use the same encrypted vault on devices you authorize to access it. Keep file backups available to download when you need them elsewhere, while your local file library stays under your control.',
+  'Use your public profile to be discoverable, and set who may send you private letters.':
+    'Use your public profile to be discoverable, and set who may send you private letters.',
+  'Vault content and file copies are encrypted on your device before they are sent to the cloud. Private channel messages are encrypted for their participants.':
+    'Vault content and file copies are encrypted on your device before they are sent to the cloud. Private channel messages are encrypted for their participants.',
+  'Vault sync across devices': 'Vault sync across devices',
+  'Verify a signature yourself': 'Verify a signature yourself',
+  'View plans': 'View plans',
+  'Wallet simulation · no funds move · no transaction is sent to a blockchain':
+    'Wallet simulation · no funds move · no transaction is sent to a blockchain',
+  'What can a connected AI agent access?':
+    'What can a connected AI agent access?',
+  'What does dMsg use the blockchain for?':
+    'What does dMsg use the blockchain for?',
+  'What does end-to-end encryption protect?':
+    'What does end-to-end encryption protect?',
+  'What happens if I lose every device?':
+    'What happens if I lose every device?',
+  'What syncs across my devices?': 'What syncs across my devices?',
+  'Which devices can I use?': 'Which devices can I use?',
+  'Who makes dMsg, and who can change its rules?':
+    'Who makes dMsg, and who can change its rules?',
+  'With open Agent Protocols, agents can exchange encrypted mail, join signed discussions and publish knowledge with sources attached. Each mode makes its visibility and purpose explicit.':
+    'With open Agent Protocols, agents can exchange encrypted mail, join signed discussions and publish knowledge with sources attached. Each mode makes its visibility and purpose explicit.',
+  'Yes. Start with private notes, logins and files. You can use your own workspace before inviting anyone or connecting an AI agent.':
+    'Yes. Start with private notes, logins and files. You can use your own workspace before inviting anyone or connecting an AI agent.',
+  'You approve new devices': 'You approve new devices',
+  'Your encrypted vault records sync across devices authorized to access your vault. A new device needs approval; signing in alone does not grant decryption access. Files in the local library stay on that device unless you explicitly back them up or share a copy. You can download a cloud backup on another device authorized to access your content. dMsg does not automatically mirror your entire local file library.':
+    'Your encrypted vault records sync across devices authorized to access your vault. A new device needs approval; signing in alone does not grant decryption access. Files in the local library stay on that device unless you explicitly back them up or share a copy. You can download a cloud backup on another device authorized to access your content. dMsg does not automatically mirror your entire local file library.',
+  'Your file library stays encrypted on your device. Choose which files to back up and which copies to share.':
+    'Your file library stays encrypted on your device. Choose which files to back up and which copies to share.',
+  'Your private space': 'Your private space',
+  'Your private workspace, at a glance.':
+    'Your private workspace, at a glance.',
+  'Your space. Your permissions.': 'Your space. Your permissions.',
+  'Your vault,': 'Your vault,',
+  'dMsg has an iPhone and iPad app, a Mac app for Apple Silicon, a Windows x64 app and CLI releases including Linux. Android is in development. See the download section for current packages and platform notes.':
+    'dMsg has an iPhone and iPad app, a Mac app for Apple Silicon, a Windows x64 app and CLI releases including Linux. Android is in development. See the download section for current packages and platform notes.',
+  'dMsg is a product of ICPanda DAO. The DAO also governs dMsg’s on-chain rules: upgrading them requires a public proposal and vote, which anyone can follow on the ICP dashboard. The apps and the cloud service are released and operated separately. You can find the public source code, documentation, support information and service terms through the links below.':
+    'dMsg is a product of ICPanda DAO. The DAO also governs dMsg’s on-chain rules: upgrading them requires a public proposal and vote, which anyone can follow on the ICP dashboard. The apps and the cloud service are released and operated separately. You can find the public source code, documentation, support information and service terms through the links below.',
+  'dMsg locks after inactivity. Sensitive values need a deliberate click to reveal or copy, and copied secrets are cleared from the clipboard after a short time.':
+    'dMsg locks after inactivity. Sensitive values need a deliberate click to reveal or copy, and copied secrets are cleared from the clipboard after a short time.',
+  'dMsg uses the Internet Computer (ICP) for account and device authorization records and other verifiable protocol functions. Changes to that on-chain code require a public ICPanda DAO proposal, so they cannot be made from our cloud service alone. Private file contents and private message bodies are not published as public blockchain content. The documentation explains which records are public and which parts still depend on cloud and recovery services.':
+    'dMsg uses the Internet Computer (ICP) for account and device authorization records and other verifiable protocol functions. Changes to that on-chain code require a public ICPanda DAO proposal, so they cannot be made from our cloud service alone. Private file contents and private message bodies are not published as public blockchain content. The documentation explains which records are public and which parts still depend on cloud and recovery services.',
+  'for what matters.': 'for what matters.',
+  'iPhone & iPad · Mac · Windows · CLI for Linux':
+    'iPhone & iPad · Mac · Windows · CLI for Linux',
+  'where you need it.': 'where you need it.',
+  'you need to keep private.': 'you need to keep private.',
+  'Add room when you need it.': 'Add room when you need it.',
+  'Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.':
+    'Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.',
+  'Choose your plan in dMsg.': 'Choose your plan in dMsg.',
+  'Compare plan limits': 'Compare plan limits',
+  'Every plan includes encryption and device revocation. Recovery settings are available across plans; review the setup requirements before relying on recovery.':
+    'Every plan includes encryption and device revocation. Recovery settings are available across plans; review the setup requirements before relying on recovery.',
+  'File requests included': 'File requests included',
+  'Plans': 'Plans',
+  'Review the current price, payment options and renewal terms in the app before you confirm.':
+    'Review the current price, payment options and renewal terms in the app before you confirm.',
+  'The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.':
+    'The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.',
+  'For everyday file exchange.': 'For everyday file exchange.',
+  'For more files and devices.': 'For more files and devices.',
+  'For more storage and heavier use.': 'For more storage and heavier use.',
+  'For your everyday essentials.': 'For your everyday essentials.',
+  'Access to the selected folder': 'Access to the selected folder',
+  'Approving identifies your dMsg account to this site.':
+    'Approving identifies your dMsg account to this site.',
+  'Approving signs the statement shown.':
+    'Approving signs the statement shown.',
+  'Encrypted before sync': 'Encrypted before sync',
+  'End-to-end encrypted channel': 'End-to-end encrypted channel',
+  'No pending approval requests': 'No pending approval requests',
+  'Reject this example': 'Reject this example',
+  'Request expired. Nothing was approved.':
+    'Request expired. Nothing was approved.',
+  'Sign the project statement': 'Sign the project statement',
+  'Signature generated in this example': 'Signature generated in this example',
+  'The website received the example result':
+    'The website received the example result',
+  'Waiting for your decision': 'Waiting for your decision',
+  'Your device': 'Your device',
+  'A project ready for review.': 'A project ready for review.',
+  'Brief saved privately': 'Brief saved privately',
+  'Give an agent a defined role.': 'Give an agent a defined role.',
+  'Here is the brief. Can you review it before Friday?':
+    'Here is the brief. Can you review it before Friday?',
+  'Invite Mei to an end-to-end encrypted channel. Share the brief and discuss the next steps together.':
+    'Invite Mei to an end-to-end encrypted channel. Share the brief and discuss the next steps together.',
+  'Invite a collaborator': 'Invite a collaborator',
+  'Invite a collaborator.': 'Invite a collaborator.',
+  'I’m in. Let’s prepare the review notes together.':
+    'I’m in. Let’s prepare the review notes together.',
+  'Keep the brief private.': 'Keep the brief private.',
+  'Let agents coordinate.': 'Let agents coordinate.',
+  'Let your agent prepare a draft using one folder and one channel. Your other folders and vault stay outside its access.':
+    'Let your agent prepare a draft using one folder and one channel. Your other folders and vault stay outside its access.',
+  'No collaborators or agents have access yet':
+    'No collaborators or agents have access yet',
+  'Pause demo': 'Pause demo',
+  'Project channel': 'Project channel',
+  'Project folder': 'Project folder',
+  'Project statement': 'Project statement',
+  'Project workspace': 'Project workspace',
+  'Requested by your project agent. Only you can approve this formal signature.':
+    'Requested by your project agent. Only you can approve this formal signature.',
+  'Review complete. The notes reflect the project brief.':
+    'Review complete. The notes reflect the project brief.',
+  'Review the brief. Prepare feedback. Agree on the next steps.':
+    'Review the brief. Prepare feedback. Agree on the next steps.',
+  'Review the signature request': 'Review the signature request',
+  'Save your project brief in your private workspace. Choose when to share it and who can take part.':
+    'Save your project brief in your private workspace. Choose when to share it and who can take part.',
+  'Send an encrypted message': 'Send an encrypted message',
+  'Set the agent’s access': 'Set the agent’s access',
+  'Start demo': 'Start demo',
+  'The project brief and review notes have been reviewed.':
+    'The project brief and review notes have been reviewed.',
+  'The review notes are ready. Anything to add?':
+    'The review notes are ready. Anything to add?',
+  'Your agent requests a signature on the project statement. Review the exact statement, then approve or reject it.':
+    'Your agent requests a signature on the project statement. Review the exact statement, then approve or reject it.',
+  'Your agent sends an encrypted message to Mei’s agent, then brings its review back to the project.':
+    'Your agent sends an encrypted message to Mei’s agent, then brings its review back to the project.',
+  'Choose what each agent can access and review its activity.':
+    'Choose what each agent can access and review its activity.',
+  'Fixed. The review notes are ready.': 'Fixed. The review notes are ready.',
+  'Keep files encrypted on this device. Choose which ones to back up or share.':
+    'Keep files encrypted on this device. Choose which ones to back up or share.',
+  'Keep private notes, logins and keys together in your encrypted vault.':
+    'Keep private notes, logins and keys together in your encrypted vault.',
+  'Manage shared assets with approval rules you choose.':
+    'Manage shared assets with approval rules you choose.',
+  'Project brief': 'Project brief',
+  'Receive private letters and choose who can contact you.':
+    'Receive private letters and choose who can contact you.',
+  'Review requests, approve signatures and keep a record of your decisions.':
+    'Review requests, approve signatures and keep a record of your decisions.',
+  'Share messages and files in end-to-end encrypted channels with people you invite.':
+    'Share messages and files in end-to-end encrypted channels with people you invite.',
+  'Thanks. Let’s go over it on Friday.': 'Thanks. Let’s go over it on Friday.',
+  'Automatic uploads in this example': 'Automatic uploads in this example',
+  'Backup created. The service received an encrypted copy.':
+    'Backup created. The service received an encrypted copy.',
+  'Backups created': 'Backups created',
+  'Cloud backup deleted in this example.':
+    'Cloud backup deleted in this example.',
+  'Cloud backup deleted. The local file is unchanged.':
+    'Cloud backup deleted. The local file is unchanged.',
+  'Create an encrypted backup?': 'Create an encrypted backup?',
+  'Create backup': 'Create backup',
+  'Delete cloud backup': 'Delete cloud backup',
+  'Deletions propagated between copies': 'Deletions propagated between copies',
+  'Download to this device': 'Download to this device',
+  'Downloaded and checked: {name}.': 'Downloaded and checked: {name}.',
+  'Encrypted cloud backups': 'Encrypted cloud backups',
+  'File names and contents stay encrypted. The service can see backup sizes, times and devices.':
+    'File names and contents stay encrypted. The service can see backup sizes, times and devices.',
+  'Free plan example': 'Free plan example',
+  'Local files and cloud backups are managed separately. Deleting one does not delete the other.':
+    'Local files and cloud backups are managed separately. Deleting one does not delete the other.',
+  'Moved to trash on this device. Kept for {days} days.':
+    'Moved to trash on this device. Kept for {days} days.',
+  'Moved to trash on this device. The cloud backup is unchanged.':
+    'Moved to trash on this device. The cloud backup is unchanged.',
+  'On this device': 'On this device',
+  'Over this plan’s backup file limit': 'Over this plan’s backup file limit',
+  'Permanently delete backup': 'Permanently delete backup',
+  'Trash · kept {days} days. Cloud backups are not affected.':
+    'Trash · kept {days} days. Cloud backups are not affected.',
+  'Try backing up a file, then downloading a cloud copy created on your other device.':
+    'Try backing up a file, then downloading a cloud copy created on your other device.',
+  'Upload an encrypted copy of this file. Your local file stays on this device.':
+    'Upload an encrypted copy of this file. Your local file stays on this device.',
+  'Actions reserved for you': 'Actions reserved for you',
+  'Agent and controller key management': 'Agent and controller key management',
+  'Approving payments and checkout': 'Approving payments and checkout',
+  'Approving requests': 'Approving requests',
+  'Choose permissions, then run the demo.':
+    'Choose permissions, then run the demo.',
+  'Claude Code setup example': 'Claude Code setup example',
+  'Copy example command': 'Copy example command',
+  'Create an Agent ID and grant permissions first. This command contains a placeholder token.':
+    'Create an Agent ID and grant permissions first. This command contains a placeholder token.',
+  'Deployment record found': 'Deployment record found',
+  'Example activity log': 'Example activity log',
+  'Found the record. Concealed fields remain masked. Supported MCP credential-use requests require a separate approval.':
+    'Found the record. Concealed fields remain masked. Supported MCP credential-use requests require a separate approval.',
+  'No activity in this example yet.': 'No activity in this example yet.',
+  'Permission not granted': 'Permission not granted',
+  'Permissions you choose': 'Permissions you choose',
+  'Prepare v1.4: find the deployment record, save the release notes, post an update and request my signature.':
+    'Prepare v1.4: find the deployment record, save the release notes, post an update and request my signature.',
+  'Run the demo': 'Run the demo',
+  'Running demo…': 'Running demo…',
+  'Saved a new version in your file library. You choose whether to back it up or share it.':
+    'Saved a new version in your file library. You choose whether to back it up or share it.',
+  'The permitted steps are complete. Signature requests are not enabled for this agent.':
+    'The permitted steps are complete. Signature requests are not enabled for this agent.',
+  'The release statement is ready for your review. I can request your signature, but I can’t approve it.':
+    'The release statement is ready for your review. I can request your signature, but I can’t approve it.',
+  'This example log shows actions and results.':
+    'This example log shows actions and results.',
+  'Update posted to the channel': 'Update posted to the channel',
+  'View tool details': 'View tool details',
+  'Agents read and contribute under their own identities. This discussion is not an encrypted dMsg channel.':
+    'Agents read and contribute under their own identities. This discussion is not an encrypted dMsg channel.',
+  'Join a signed discussion': 'Join a signed discussion',
+  'Publish deliberately, with sources attached. A signature identifies a contribution; it does not establish that its claims are true.':
+    'Publish deliberately, with sources attached. A signature identifies a contribution; it does not establish that its claims are true.',
+  'Publish knowledge with sources': 'Publish knowledge with sources',
+  'The receiving agent decrypts the letter. Receiving mail does not grant permission to act.':
+    'The receiving agent decrypts the letter. Receiving mail does not grant permission to act.',
+  'Approve signature': 'Approve signature',
+  'Connected website': 'Connected website',
+  'Rejected. The website is notified, and nothing is signed.':
+    'Rejected. The website is notified, and nothing is signed.',
+  'Replay demo': 'Replay demo',
+  'The rejection is encrypted for return.':
+    'The rejection is encrypted for return.',
+  'The request is encrypted for your device.':
+    'The request is encrypted for your device.',
+  'The requesting page receives the result.':
+    'The requesting page receives the result.',
+  'The signed result is encrypted for return.':
+    'The signed result is encrypted for return.',
+  'The website checks the signature.': 'The website checks the signature.',
+  'The website is notified. Nothing is signed.':
+    'The website is notified. Nothing is signed.',
+  'The website requests a signature.': 'The website requests a signature.',
+  'You review the request and decide.': 'You review the request and decide.',
+  'Your device receives a request notification.':
+    'Your device receives a request notification.',
+  'Your turn: review the request, then approve or reject.':
+    'Your turn: review the request, then approve or reject.',
+  'dMsg connection page': 'dMsg connection page',
+  'encrypted delivery': 'encrypted delivery',
+  'review and approval': 'review and approval',
+  'Agent listed by {member}': 'Agent listed by {member}',
+  'Approve in this example': 'Approve in this example',
+  'Broadcast · simulated': 'Broadcast · simulated',
+  'Complete · simulated': 'Complete · simulated',
+  'Example BTC approval policy': 'Example BTC approval policy',
+  'Example amount': 'Example amount',
+  'Example audit trail': 'Example audit trail',
+  'Linked records show this example’s sequence of decisions and actions.':
+    'Linked records show this example’s sequence of decisions and actions.',
+  'Reject in this example': 'Reject in this example',
+  'Restart demo': 'Restart demo',
+  'Shared wallet · example': 'Shared wallet · example',
+  'Simulate Mei’s approval': 'Simulate Mei’s approval',
+  'Simulate execution': 'Simulate execution',
+  'Simulate the end of the waiting period':
+    'Simulate the end of the waiting period',
+  'The required approvals are recorded. Either approver can still veto during the waiting period.':
+    'The required approvals are recorded. Either approver can still veto during the waiting period.',
+  'The simulated flow is complete. No transaction was sent to a blockchain.':
+    'The simulated flow is complete. No transaction was sent to a blockchain.',
+  'Veto in this example': 'Veto in this example',
+  'Waiting for member approvals. The agent cannot approve.':
+    'Waiting for member approvals. The agent cannot approve.',
+  'Wallet members': 'Wallet members',
+  'Encrypted content and delivery metadata':
+    'Encrypted content and delivery metadata',
+  'On the Internet Computer': 'On the Internet Computer',
+  'Public account, device and authorization records':
+    'Public account, device and authorization records',
+  'Readable when the protected content is unlocked':
+    'Readable when the protected content is unlocked',
+  'The signed agreement is ready for review.':
+    'The signed agreement is ready for review.',
+  'This illustrates the privacy boundary. Product formats differ, and encryption does not hide size or timing.':
+    'This illustrates the privacy boundary. Product formats differ, and encryption does not hide size or timing.',
+  'Try a sample sentence. This illustration stays in your browser.':
+    'Try a sample sentence. This illustration stays in your browser.',
+  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
+    'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.',
+  'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
+    'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.',
 }
 
 export type MessageKey = keyof typeof en

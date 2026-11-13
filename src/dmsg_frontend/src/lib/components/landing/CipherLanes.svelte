@@ -12,7 +12,7 @@
   const id = $props.id()
   let edited = $state<string | null>(null)
   const text = $derived(
-    edited ?? $t('Ship v1.4 on Friday. The deploy key is in the vault.')
+    edited ?? $t('The signed agreement is ready for review.')
   )
   let shown = $state('')
   let bytes = $state(0)
@@ -93,7 +93,7 @@
       ><Glyph name="laptop" size={18} /><strong>{$t('On your device')}</strong
       ></label
     >
-    <small>{$t('Readable, and only while unlocked')}</small>
+    <small>{$t('Readable when the protected content is unlocked')}</small>
     <textarea
       {id}
       value={text}
@@ -102,7 +102,9 @@
       rows="4"
       spellcheck="false"></textarea>
     <span class="lane-hint"
-      >{$t('Type anything. It never leaves this page.')}</span
+      >{$t(
+        'Try a sample sentence. This illustration stays in your browser.'
+      )}</span
     >
   </div>
 
@@ -111,7 +113,7 @@
       ><Glyph name="cloud" size={18} /><strong>{$t('In the dMsg cloud')}</strong
       ></span
     >
-    <small>{$t('Ciphertext, plus what it takes to deliver it')}</small>
+    <small>{$t('Encrypted content and delivery metadata')}</small>
     <code class="cipher" aria-label={$t('Ciphertext')}>{shown}</code>
     <ul class="meta">
       <li><span>{$t('account')}</span><code>{ACCOUNT}</code></li>
@@ -125,9 +127,11 @@
 
   <div class="lane lane-icp">
     <span class="lane-head"
-      ><Glyph name="badge" size={18} /><strong>{$t('On ICP')}</strong></span
+      ><Glyph name="badge" size={18} /><strong
+        >{$t('On the Internet Computer')}</strong
+      ></span
     >
-    <small>{$t('Never your messages or files')}</small>
+    <small>{$t('Public account, device and authorization records')}</small>
     <ul class="ledger">
       <li><Glyph name="key" size={14} />{$t('Account, devices and logins')}</li>
       <li
@@ -152,6 +156,6 @@
 </div>
 <p class="lanes-note">
   {$t(
-    'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.'
+    'This illustrates the privacy boundary. Product formats differ, and encryption does not hide size or timing.'
   )}
 </p>

@@ -69,7 +69,7 @@
     { name: OMAR, role: $t('Proposer'), mark: OMAR.at(0) },
     {
       name: 'bookkeeper',
-      role: $t('Agent ID listed by {member}', { member: OMAR }),
+      role: $t('Agent listed by {member}', { member: OMAR }),
       mark: ''
     }
   ])
@@ -79,8 +79,8 @@
     ready: $t('Ready'),
     signing: $t('Signing…'),
     signed: $t('Signed'),
-    broadcast: $t('Broadcast'),
-    settled: $t('Settled'),
+    broadcast: $t('Broadcast · simulated'),
+    settled: $t('Complete · simulated'),
     rejected: $t('Turned down'),
     vetoed: $t('Vetoed')
   })
@@ -89,9 +89,9 @@
       open:
         mine === 'rejected' && need.approvals === 1
           ? $t('Your no is recorded. Mei can still approve it.')
-          : $t('Waiting for approvals. The agent cannot give one.'),
+          : $t('Waiting for member approvals. The agent cannot approve.'),
       delayed: $t(
-        'Approved. Either approver can still veto it until the delay ends.'
+        'The required approvals are recorded. Either approver can still veto during the waiting period.'
       ),
       ready: $t('Ready. A member can execute it now.'),
       signing: $t(
@@ -101,7 +101,9 @@
         'Your device decodes the transaction, checks it against the proposal and broadcasts it.'
       ),
       broadcast: $t('Broadcast. Waiting for the network.'),
-      settled: $t('Settled. Every step is in the audit chain.'),
+      settled: $t(
+        'The simulated flow is complete. No transaction was sent to a blockchain.'
+      ),
       rejected: $t('Rejected. Nothing was signed.'),
       vetoed: $t('Vetoed. Nothing was signed.')
     }[stage]
@@ -219,7 +221,10 @@
   <aside class="lab-side">
     <header class="lab-agent">
       <span class="agent-orb"><Glyph name="coins" size={20} /></span>
-      <span><strong>{$t('Team treasury')}</strong><code>{WALLET}</code></span>
+      <span
+        ><strong>{$t('Shared wallet · example')}</strong><code>{WALLET}</code
+        ></span
+      >
     </header>
     <p class="lab-label">{$t('Addresses')}</p>
     <ul class="wl-addresses">
@@ -233,7 +238,7 @@
       {/each}
     </ul>
     <p class="wl-small">{$t('Each checked against the wallet’s keys')}</p>
-    <p class="lab-label">{$t('Policy for BTC')}</p>
+    <p class="lab-label">{$t('Example BTC approval policy')}</p>
     <ul class="wl-policy">
       <li class:hit={tier === 0}>
         <span
@@ -249,7 +254,7 @@
         >
       </li>
     </ul>
-    <p class="lab-label">{$t('Members')}</p>
+    <p class="lab-label">{$t('Wallet members')}</p>
     <ul class="wl-members">
       {#each roles as member}
         <li>
@@ -267,8 +272,8 @@
   </aside>
 
   <div class="lab-run wl-run">
-    <div class="wl-amount" role="radiogroup" aria-label={$t('Amount')}>
-      <span>{$t('Amount')}</span>
+    <div class="wl-amount" role="radiogroup" aria-label={$t('Example amount')}>
+      <span>{$t('Example amount')}</span>
       {#each TIERS as option, i}
         <button
           dir="ltr"
@@ -335,10 +340,11 @@
             <span class="wl-buttons">
               <button
                 class="button secondary"
-                onclick={() => decide('you', false)}>{$t('Reject')}</button
+                onclick={() => decide('you', false)}
+                >{$t('Reject in this example')}</button
               >
               <button class="button primary" onclick={() => decide('you', true)}
-                >{$t('Approve')}</button
+                >{$t('Approve in this example')}</button
               >
             </span>
           {/if}
@@ -355,7 +361,7 @@
             >
           {:else if stage === 'open'}
             <button class="chip-btn" onclick={() => decide('mei', true)}
-              >{$t('Approve as Mei')}</button
+              >{$t('Simulate Mei’s approval')}</button
             >
           {/if}
         </li>
@@ -379,17 +385,21 @@
       {/if}
       <div class="wl-actions">
         {#if stage === 'delayed'}
-          <button class="button secondary" onclick={veto}>{$t('Veto')}</button>
+          <button class="button secondary" onclick={veto}
+            >{$t('Veto in this example')}</button
+          >
           <button class="button primary" onclick={skip}
-            ><Glyph name="skip" size={16} />{$t('Skip the 24 hours')}</button
+            ><Glyph name="skip" size={16} />{$t(
+              'Simulate the end of the waiting period'
+            )}</button
           >
         {:else if stage === 'ready'}
           <button class="button primary" onclick={execute}
-            >{$t('Execute')}</button
+            >{$t('Simulate execution')}</button
           >
         {:else if ['settled', 'rejected', 'vetoed'].includes(stage)}
           <button class="button secondary" onclick={() => reset()}
-            ><Glyph name="refresh" size={16} />{$t('Start over')}</button
+            ><Glyph name="refresh" size={16} />{$t('Restart demo')}</button
           >
         {/if}
       </div>
@@ -398,7 +408,7 @@
 
   <aside class="lab-audit">
     <p class="lab-label"
-      ><Glyph name="history" size={14} />{$t('Audit chain')}</p
+      ><Glyph name="history" size={14} />{$t('Example audit trail')}</p
     >
     <ol>
       {#each audit as entry (entry.seq)}
@@ -412,7 +422,7 @@
     </ol>
     <p class="lab-foot">
       {$t(
-        'Each event hashes the one before it, so a member can check that none is missing.'
+        'Linked records show this example’s sequence of decisions and actions.'
       )}
     </p>
   </aside>

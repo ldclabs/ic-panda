@@ -217,7 +217,7 @@ export function renderHeroArt({
     { title: labels.you, sub: labels.desktop, glyph: 'laptop' },
     { title: 'Mei', latin: true, sub: labels.teammate, avatar: 'M' },
     {
-      title: 'release-assistant',
+      title: 'project-assistant',
       latin: true,
       sub: labels.agent,
       glyph: 'robot'

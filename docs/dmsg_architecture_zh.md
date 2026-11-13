@@ -25,7 +25,7 @@
 | 私有云端 | 保存与投递密文；频道控制、联系规则、收件箱和资源配额；验证 ICP 认证证据；签发付费来信的报价与受理收据；网页请求的连接邮箱（只见密文）、给锁定设备的提示通道、MCP Events 中继 | 账户根授权、名称权属、正式认证和资金终态 |
 | ICP canisters（本仓库） | 第 3 节的控制服务与多签钱包服务 | 不保存频道成员、消息和文件正文；用户 PrincipalDocument 展示字段随账户状态上链 |
 
-内容加密不隐藏运行元数据：云端和 canister 能看到路由、账户与设备标识、尺寸、时序，以及执行规则所需的成员和联系关系。云端可以拒绝服务、延迟或向不同设备呈现不同视图；客户端用签名、IC 证书和本地已知版本检测可检测的篡改与回滚。controller（交给 SNS 后为 SNS）可以升级 canister、改变规则，并能读出 user home 的 `master_secret`。加密设计见 [dmsg_encryption_zh.md](dmsg_encryption_zh.md)，云端 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。
+内容加密不隐藏运行元数据：云端和 canister 能看到路由、账户与设备标识、尺寸、时序，以及执行规则所需的成员和联系关系。云端可以拒绝服务、延迟或向不同设备呈现不同视图；客户端用签名、IC 证书和本地已知版本检测可检测的篡改与回滚。controller 可以升级 canister、改变规则，并能读出 user home 的 `master_secret`；主网上各控制服务的唯一 controller 是 ICPanda SNS root（2026-11-12 核对），这些改动须经 SNS 提案。加密设计见 [dmsg_encryption_zh.md](dmsg_encryption_zh.md)，云端 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。
 
 ## 3. 组件
 

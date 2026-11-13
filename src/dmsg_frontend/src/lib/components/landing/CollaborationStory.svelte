@@ -4,31 +4,31 @@
   import Glyph from './Glyph.svelte'
 
   const STEPS = [
-    { title: 'Keep a plan private', icon: 'lock' },
-    { title: 'Bring in a teammate', icon: 'members' },
-    { title: 'Give an agent a role', icon: 'robot' },
-    { title: 'Connect with another agent', icon: 'mail' },
-    { title: 'Make the final call', icon: 'pen' }
+    { title: 'Keep the brief private.', icon: 'lock' },
+    { title: 'Invite a collaborator.', icon: 'members' },
+    { title: 'Give an agent a defined role.', icon: 'robot' },
+    { title: 'Let agents coordinate.', icon: 'mail' },
+    { title: 'Review before you sign.', icon: 'pen' }
   ] as const
   const ACTIONS = [
-    'Invite a teammate',
-    'Grant folder access',
-    'Send an encrypted letter',
-    'Request a signature'
+    'Invite a collaborator',
+    'Set the agent’s access',
+    'Send an encrypted message',
+    'Review the signature request'
   ]
   const DESCRIPTIONS = [
-    'Start with a release plan only you can read. Your vault and file library are private before anyone else joins.',
-    'Mei accepts your invitation. Discuss the plan in an encrypted channel and share the file the team needs.',
-    'Your release agent can work in one folder and post in one channel. It prepares the release notes without access to the rest of your space.',
-    'Your agent sends an encrypted letter to Mei’s agent using its own Agent ID. The reply brings the review back into the project.',
-    'The agent asks you to sign the release statement. Review the exact statement and decide. Its permission to work never becomes permission to approve.'
+    'Save your project brief in your private workspace. Choose when to share it and who can take part.',
+    'Invite Mei to an end-to-end encrypted channel. Share the brief and discuss the next steps together.',
+    'Let your agent prepare a draft using one folder and one channel. Your other folders and vault stay outside its access.',
+    'Your agent sends an encrypted message to Mei’s agent, then brings its review back to the project.',
+    'Your agent requests a signature on the project statement. Review the exact statement, then approve or reject it.'
   ]
   const id = $props.id()
-  const AGENT = 'release-assistant'
+  const AGENT = 'project-assistant'
   const TEAMMATE = 'Mei'
   const OTHER = 'review-assistant'
-  const FILE = 'release-plan.md'
-  const NOTES = 'release-notes.md'
+  const FILE = 'project-brief.md'
+  const NOTES = 'review-notes.md'
   let step = $state(0)
   let playing = $state(false)
   let decision = $state<'' | 'approved' | 'rejected'>('')
@@ -65,21 +65,19 @@
   })
 </script>
 
-<div class="collab-story" aria-labelledby="{id}-title">
+<div
+  class="collab-story"
+  role="group"
+  aria-label={$t('See a full project example')}
+>
   <header class="story-header">
-    <div
-      ><span class="demo-label"
-        >{$t('Interactive example · sample data · nothing is sent')}</span
-      ><h2 id="{id}-title">{$t('One project. People and agents, together.')}</h2
-      ></div
-    >
     <button
       class="chip-btn"
       onclick={() => (playing ? (playing = false) : play())}
       aria-pressed={playing}
       ><Glyph name={playing ? 'pause' : 'play'} size={16} />{playing
-        ? $t('Pause')
-        : $t('Play the story')}</button
+        ? $t('Pause demo')
+        : $t('Start demo')}</button
     >
   </header>
   <ol class="story-steps" aria-label={$t('Project steps')}>
@@ -125,7 +123,7 @@
         ><span
           ><Glyph name={step < 2 ? 'lock' : 'robot'} size={16} />{step < 2
             ? $t('Private project')
-            : $t('Release workspace')}</span
+            : $t('Project workspace')}</span
         ><span class="work-badge"
           >{$t(
             step === 0
@@ -146,18 +144,18 @@
             <div class="story-document"
               ><span class="document-name"
                 ><Glyph name="file" size={18} />{FILE}</span
-              ><h4>{$t('A release worth sharing.')}</h4><p
+              ><h4>{$t('A project ready for review.')}</h4><p
                 >{$t(
-                  'Finish the review. Prepare the notes. Agree on the release.'
+                  'Review the brief. Prepare feedback. Agree on the next steps.'
                 )}</p
               ><ul class="document-checks"
                 ><li
                   ><Glyph name="check" size={16} />{$t(
-                    'Plan saved privately'
+                    'Brief saved privately'
                   )}</li
                 ><li
                   ><Glyph name="lock" size={16} />{$t(
-                    'No teammates or agents have access yet'
+                    'No collaborators or agents have access yet'
                   )}</li
                 ></ul
               ></div
@@ -167,13 +165,13 @@
               ><p class="message-from"
                 >{$t('You')}<small>{$t('Encrypted channel')}</small></p
               ><p class="message-text"
-                >{$t('Here is the plan. Can you review it before Friday?')}</p
+                >{$t('Here is the brief. Can you review it before Friday?')}</p
               ><span class="file-pill"
                 ><Glyph name="file" size={16} />{FILE}</span
               ><p class="message-from"
                 >{TEAMMATE}<small>{$t('Invitation accepted')}</small></p
               ><p class="message-text"
-                >{$t('I’m in. Let’s prepare the release notes together.')}</p
+                >{$t('I’m in. Let’s prepare the review notes together.')}</p
               ></div
             >
           {:else if step === 2}
@@ -184,9 +182,9 @@
                 ></p
               ><div class="grant-chips"
                 ><span
-                  ><Glyph name="folder" size={14} />{$t('Release folder')}</span
+                  ><Glyph name="folder" size={14} />{$t('Project folder')}</span
                 ><span
-                  ><Glyph name="chat" size={14} />{$t('Release channel')}</span
+                  ><Glyph name="chat" size={14} />{$t('Project channel')}</span
                 ></div
               ><p class="message-text"
                 >{$t(
@@ -205,14 +203,14 @@
                   size={16}
                 />{OTHER}</p
               ><p class="message-text"
-                >{$t(
-                  'The release notes are ready for review. Anything to add?'
-                )}</p
+                >{$t('The review notes are ready. Anything to add?')}</p
               ><p class="message-from"
                 ><Glyph name="robot" size={17} />{OTHER}<small>{TEAMMATE}</small
                 ></p
               ><p class="message-text"
-                >{$t('Review complete. The release notes match the plan.')}</p
+                >{$t(
+                  'Review complete. The notes reflect the project brief.'
+                )}</p
               ><p class="work-foot"
                 ><Glyph name="lock" size={16} />{$t(
                   'Agent Mail · encrypted for the receiving agent'
@@ -222,10 +220,14 @@
           {:else}
             <div class="story-document"
               ><span class="document-name"
-                ><Glyph name="pen" size={18} />{$t('Release statement')}</span
-              ><h4>{$t('Ready for Friday’s release.')}</h4><p
+                ><Glyph name="pen" size={18} />{$t('Project statement')}</span
+              ><h4
                 >{$t(
-                  'Requested by your release agent. Only you can approve this formal signature.'
+                  'The project brief and review notes have been reviewed.'
+                )}</h4
+              ><p
+                >{$t(
+                  'Requested by your project agent. Only you can approve this formal signature.'
                 )}</p
               ><div class="story-decision" role="status">
                 {#if decision}<p class:refused={decision === 'rejected'}
@@ -240,7 +242,7 @@
                   >{:else}<button
                     class="button secondary"
                     onclick={() => (decision = 'rejected')}
-                    >{$t('Reject')}</button
+                    >{$t('Reject this example')}</button
                   ><button
                     class="button primary"
                     onclick={() => (decision = 'approved')}

@@ -242,7 +242,7 @@
         <h2 id="invite-title">{$t('Send your own files this way')}</h2>
         <p
           >{$t(
-            'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.'
+            'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.'
           )}</p
         >
         <ul>
@@ -258,7 +258,7 @@
             data-sveltekit-reload
             ><Glyph name="download" size={18} />{$t(install.label)}</a
           >
-          <a class="button secondary" href="/" data-sveltekit-reload
+          <a class="button secondary" href="/#space" data-sveltekit-reload
             >{$t('See how dMsg works')}</a
           >
         </div>

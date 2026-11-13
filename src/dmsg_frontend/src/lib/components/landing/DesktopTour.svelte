@@ -28,77 +28,82 @@
       glyph: 'chat',
       label: 'Channels',
       detail:
-        'End-to-end encrypted conversations and files with people you choose',
+        'Share messages and files in end-to-end encrypted channels with people you invite.',
       key: '1'
     },
     files: {
       glyph: 'folder',
       label: 'Files',
       detail:
-        'Encrypted files on this device; nothing leaves unless you back it up or share it',
+        'Keep files encrypted on this device. Choose which ones to back up or share.',
       key: '2'
     },
     vault: {
       glyph: 'vault',
       label: 'Vault',
-      detail: 'Notes, logins and keys, encrypted on this device',
+      detail:
+        'Keep private notes, logins and keys together in your encrypted vault.',
       key: '3'
     },
     inbox: {
       glyph: 'inbox',
       label: 'Inbox',
-      detail: 'Letters, and who may write to you',
+      detail: 'Receive private letters and choose who can contact you.',
       key: '4'
     },
     approvals: {
       glyph: 'pen',
       label: 'Signatures & approvals',
-      detail: 'Requests waiting for you, signatures and their records',
+      detail:
+        'Review requests, approve signatures and keep a record of your decisions.',
       key: '5'
     },
     agents: {
       glyph: 'robot',
       label: 'Agents',
-      detail: 'Agent IDs, what they may do and what they did',
+      detail: 'Choose what each agent can access and review its activity.',
       key: '6'
     },
     wallets: {
       glyph: 'coins',
       label: 'Multisig wallets',
-      detail:
-        'Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.',
+      detail: 'Manage shared assets with approval rules you choose.',
       key: '8'
     }
   }
-  const ORDER = GROUPS.flatMap((group) => group.views)
+  // The tour opens on the vault and cycles through everyday views; the
+  // wallet shows only when someone selects it.
+  const ORDER: View[] = GROUPS.flatMap((group) => group.views).filter(
+    (view) => view !== 'wallets'
+  )
   const CYCLE = 5600
   const MOD = '⌘'
-  const AGENT = 'release-assistant'
+  const AGENT = 'project-assistant'
   // Amounts keep their order inside right-to-left sentences.
   const ltr = (text: string) =>
     String.fromCharCode(0x2066) + text + String.fromCharCode(0x2069)
   const REVIEWER = 'review-assistant'
   const AGENT_ID = 'Agent ID'
-  const CHANNELS = ['# release', '# design', 'Mei']
+  const CHANNELS = ['# project', '# design', 'Mei']
   const FILES: {
     name: string
     size: string
     state: 'cloud' | 'local' | 'up'
   }[] = [
-    { name: 'release-plan.md', size: '12 KB', state: 'cloud' },
-    { name: 'build-1.4.tar.gz', size: '48 MB', state: 'local' },
-    { name: 'release-notes.md', size: '6 KB', state: 'up' }
+    { name: 'project-brief.md', size: '12 KB', state: 'cloud' },
+    { name: 'site-photos.zip', size: '48 MB', state: 'local' },
+    { name: 'review-notes.md', size: '6 KB', state: 'up' }
   ]
   const ITEMS: { key: string; kind: string; glyph: GlyphName }[] = [
     { key: 'Deploy key', kind: 'API key', glyph: 'key' },
     { key: 'GitHub', kind: 'Login', glyph: 'shield' },
-    { key: 'Release plan', kind: 'Note', glyph: 'file' },
+    { key: 'Project brief', kind: 'Note', glyph: 'file' },
     { key: 'Signing key', kind: 'Key', glyph: 'key' }
   ]
   const RULES = ['Nobody', 'Contacts only', 'Everyone', 'Paid letters']
   const TEAMMATE = 'Mei'
-  const NOTES = 'release-notes.md'
-  const FOLDER = 'release'
+  const NOTES = 'review-notes.md'
+  const FOLDER = 'project'
   const USER = 'alex'
   const PALETTE = `${MOD}K`
   const LETTERS = [
@@ -129,7 +134,7 @@
     },
     {
       title: 'Statement for {file}',
-      params: { file: 'build-1.4.tar.gz' },
+      params: { file: 'project-brief.md' },
       via: 'cli',
       state: 'Signature generated'
     }
@@ -139,7 +144,7 @@
       name: AGENT,
       caps: [
         'files.write:fld_r3l',
-        'channel.publish:release',
+        'channel.publish:project',
         'mail.write:https://mail.dmsg.net'
       ],
       active: true
@@ -168,7 +173,7 @@
 
   const id = $props.id()
   let root: HTMLElement
-  let view = $state<View>('channels')
+  let view = $state<View>('vault')
   let manual = $state(false)
   let locked = $state(false)
   let visible = $state(false)
@@ -324,7 +329,7 @@
                       ><p class="tp-who"
                         ><b>{AGENT}</b><span class="tp-tag">{AGENT_ID}</span
                         ><time>09:43</time></p
-                      ><p>{$t('Fixed. The release notes are ready.')}</p><span
+                      ><p>{$t('Fixed. The review notes are ready.')}</p><span
                         class="tp-file"
                         ><Glyph name="file" size={14} /><bdi>{NOTES}</bdi></span
                       ></div
@@ -336,7 +341,7 @@
                     >
                     <div
                       ><p class="tp-who"><b>{$t('You')}</b><time>09:46</time></p
-                      ><p>{$t('Thanks. We ship on Friday.')}</p></div
+                      ><p>{$t('Thanks. Let’s go over it on Friday.')}</p></div
                     >
                   </div>
                 </div>
@@ -443,7 +448,7 @@
               <ul class="tp-requests">
                 <li class="waiting"
                   ><span class="tp-gem" aria-hidden="true"></span><span
-                    ><b>{$t('Sign the release statement')}</b><code dir="ltr"
+                    ><b>{$t('Sign the project statement')}</b><code dir="ltr"
                       >{`agent:${AGENT}`}</code
                     ></span
                   ><span class="tp-state wait"

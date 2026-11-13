@@ -417,7 +417,7 @@
         <h2 id="invite-title">{$t('Collect files this way too')}</h2>
         <p
           >{$t(
-            'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.'
+            'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.'
           )}</p
         >
         <ul>
@@ -433,8 +433,10 @@
             data-sveltekit-reload
             ><Glyph name="download" size={18} />{$t(install.label)}</a
           >
-          <a class="button secondary" href="/" data-sveltekit-reload
-            >{$t('See how dMsg works')}</a
+          <a
+            class="button secondary"
+            href="/#collaboration"
+            data-sveltekit-reload>{$t('See how dMsg works')}</a
           >
         </div>
       </aside>

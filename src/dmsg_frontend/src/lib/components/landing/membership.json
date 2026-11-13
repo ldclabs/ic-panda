@@ -10,8 +10,9 @@
       "channels": 5,
       "signatures": 5,
       "wallets": 0,
-      "audience": "For everyday essentials.",
-      "backupFileMiB": 100
+      "audience": "For your everyday essentials.",
+      "backupFileMiB": 100,
+      "fileRequests": false
     },
     {
       "name": "Plus",
@@ -22,8 +23,9 @@
       "channels": 20,
       "signatures": 20,
       "wallets": 1,
-      "audience": "For a growing personal workspace.",
-      "backupFileMiB": 100
+      "audience": "For everyday file exchange.",
+      "backupFileMiB": 100,
+      "fileRequests": true
     },
     {
       "name": "Pro",
@@ -34,8 +36,9 @@
       "channels": 100,
       "signatures": 100,
       "wallets": 3,
-      "audience": "For work and collaboration.",
-      "backupFileMiB": 100
+      "audience": "For more files and devices.",
+      "backupFileMiB": 100,
+      "fileRequests": true
     },
     {
       "name": "Max",
@@ -46,8 +49,9 @@
       "channels": 10000,
       "signatures": 10000,
       "wallets": 10,
-      "audience": "For larger teams and workloads.",
-      "backupFileMiB": 1000
+      "audience": "For more storage and heavier use.",
+      "backupFileMiB": 1000,
+      "fileRequests": true
     }
   ]
 }

@@ -21,6 +21,27 @@
       maximumFractionDigits: 0
     })
   )
+  type Plan = (typeof plans)[number]
+  const rows = $derived<{ label: string; value: (plan: Plan) => string }[]>([
+    {
+      label: 'Encrypted cloud storage',
+      value: (plan) => `${number.format(plan.storage)} ${plan.unit}`
+    },
+    {
+      label: 'Cloud backup file limit',
+      value: (plan) => `${number.format(plan.backupFileMiB)} MiB`
+    },
+    { label: 'Active devices', value: (plan) => number.format(plan.devices) },
+    { label: 'Active channels', value: (plan) => number.format(plan.channels) },
+    {
+      label: 'Formal signatures / month',
+      value: (plan) => number.format(plan.signatures)
+    },
+    {
+      label: 'Multisig wallet slots',
+      value: (plan) => number.format(plan.wallets)
+    }
+  ])
   const checkedAt = $derived(
     new Intl.DateTimeFormat($locale, {
       year: 'numeric',
@@ -38,14 +59,16 @@
 >
   <div class="wrap">
     <header class="sec-head" use:reveal>
-      <p class="kicker"><b>06</b>{$t('Membership')}</p>
+      <p class="kicker"><b>06</b>{$t('Plans')}</p>
       <h2 id="membership-title"
         >{$t('Start free.')}<br /><span class="soft"
-          >{$t('Room to do more.')}</span
+          >{$t('Add room when you need it.')}</span
         ></h2
       >
       <p class="sec-lead"
-        >{$t('One private workspace, with more capacity when you need it.')}</p
+        >{$t(
+          'Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.'
+        )}</p
       >
     </header>
 
@@ -66,35 +89,78 @@
                 ><bdi>{number.format(plan.storage)} {plan.unit}</bdi></dd
               ></div
             >
-            <div class="backup-limit"
-              ><dt>{$t('Cloud backup file limit')}</dt><dd
-                ><bdi>{number.format(plan.backupFileMiB)} MiB</bdi></dd
-              ></div
-            >
             <div
               ><dt>{$t('Active devices')}</dt><dd
                 >{number.format(plan.devices)}</dd
               ></div
             >
-            <div
-              ><dt>{$t('Active channels')}</dt><dd
-                >{number.format(plan.channels)}</dd
-              ></div
-            >
-            <div
-              ><dt>{$t('Formal signatures / month')}</dt><dd
-                >{number.format(plan.signatures)}</dd
-              ></div
-            >
-            <div
-              ><dt>{$t('Multisig wallet slots')}</dt><dd
-                >{number.format(plan.wallets)}</dd
+            <div class="backup-limit"
+              ><dt>{$t('Cloud backup file limit')}</dt><dd
+                ><bdi>{number.format(plan.backupFileMiB)} MiB</bdi></dd
               ></div
             >
           </dl>
+          <p class="plan-feature"
+            >{#if plan.fileRequests}<Glyph name="check" size={16} />{$t(
+                'File requests included'
+              )}{/if}</p
+          >
         </article>
       {/each}
     </div>
+
+    <details class="compare">
+      <summary
+        >{$t('Compare plan limits')}<Glyph
+          name="arrow-right"
+          size={18}
+        /></summary
+      >
+      <!-- Focusable so the keyboard can scroll the table where it is wider than the screen. -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div
+        class="compare-table"
+        tabindex="0"
+        role="region"
+        aria-label={$t('Compare plan limits')}
+      >
+        <table>
+          <thead>
+            <tr
+              ><td></td>{#each plans as plan}<th scope="col"
+                  ><bdi>{plan.name}</bdi></th
+                >{/each}</tr
+            >
+          </thead>
+          <tbody>
+            {#each rows as row}
+              <tr
+                ><th scope="row">{$t(row.label)}</th>{#each plans as plan}<td
+                    ><bdi>{row.value(plan)}</bdi></td
+                  >{/each}</tr
+              >
+            {/each}
+          </tbody>
+        </table>
+      </div>
+      <div class="plan-notes">
+        <p
+          >{$t(
+            'Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.'
+          )}</p
+        >
+        <p
+          >{$t(
+            'Wallet activation is charged separately; check availability in the app.'
+          )}</p
+        >
+        <p
+          >{$t(
+            'The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.'
+          )}</p
+        >
+      </div>
+    </details>
 
     <div class="membership-details" use:reveal>
       <div class="included">
@@ -102,16 +168,16 @@
         <div
           ><h3>{$t('Privacy comes with every plan.')}</h3><p
             >{$t(
-              'Encryption, device revocation and account recovery are included at every tier.'
+              'Every plan includes encryption and device revocation. Recovery settings are available across plans; review the setup requirements before relying on recovery.'
             )}</p
           ></div
         >
       </div>
       <div class="subscribe">
-        <h3>{$t('Choose your plan in the app.')}</h3>
+        <h3>{$t('Choose your plan in dMsg.')}</h3>
         <p
           >{$t(
-            'Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.'
+            'Review the current price, payment options and renewal terms in the app before you confirm.'
           )}</p
         >
         <a class="button primary" href="#release"
@@ -120,16 +186,6 @@
       </div>
     </div>
     <div class="plan-notes">
-      <p
-        >{$t(
-          'Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.'
-        )}</p
-      >
-      <p
-        >{$t(
-          'Wallet activation is charged separately; check availability in the app.'
-        )}</p
-      >
       <p
         >{$t('Prices checked on {date}. Confirm current terms in the app.', {
           date: checkedAt
@@ -147,7 +203,7 @@
   }
   .plan {
     display: grid;
-    grid-row: span 7;
+    grid-row: span 5;
     grid-template-rows: subgrid;
     min-width: 0;
     padding: 32px 24px;
@@ -198,9 +254,82 @@
   }
   dl {
     display: grid;
-    grid-row: span 6;
+    grid-row: span 3;
     grid-template-rows: subgrid;
     margin: 0;
+  }
+  .plan-feature {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    margin: 16px 0 0;
+    color: var(--forest);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .compare {
+    border-bottom: 1px solid var(--line-2);
+  }
+  .compare > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 64px;
+    padding: 16px 2px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 550;
+    list-style: none;
+  }
+  .compare > summary::-webkit-details-marker {
+    display: none;
+  }
+  .compare > summary :global(.glyph) {
+    transition: transform 0.3s var(--ease);
+  }
+  .compare[open] > summary :global(.glyph) {
+    transform: rotate(90deg);
+  }
+  .compare-table {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  thead th {
+    padding: 10px 12px;
+    font-size: 15px;
+    font-weight: 650;
+    text-align: end;
+  }
+  tbody th {
+    padding: 12px 12px 12px 0;
+    color: var(--muted);
+    font-weight: 400;
+    text-align: start;
+  }
+  :global(html[dir='rtl']) tbody th {
+    padding: 12px 0 12px 12px;
+  }
+  tbody td {
+    padding: 12px;
+    font-weight: 600;
+    text-align: end;
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-top: 1px solid var(--line);
+  }
+  .compare .plan-notes {
+    margin: 12px 0 24px;
+    border-top: 0;
+    padding-top: 0;
   }
   dl > div {
     display: flex;
@@ -306,6 +435,9 @@
     }
     .plan-heading {
       grid-template-rows: auto;
+    }
+    .plan-feature:empty {
+      display: none;
     }
     .price {
       margin: 20px 0 24px;
