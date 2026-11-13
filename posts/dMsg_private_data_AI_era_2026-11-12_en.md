@@ -1,8 +1,10 @@
-# Who Can Change the Rules?
+# Private Data in the AI Era
 
-**Private data in the AI era**
+**Who gets access, and who can change the rules?**
 
 *By ICPanda DAO · November 2026*
+
+[中文版](dMsg_private_data_AI_era_2026-11-12_zh.md)
 
 A contract needs to reach a client. A password needs to be available on your next device. An AI assistant could help with a project, provided it can work with the right material.
 
@@ -110,7 +112,7 @@ We want the product's explanations to be as precise as its permission controls.
 
 If you opened this article through a dMsg link, you have used its recipient experience: access to a shared file through your browser, without a dMsg account or app installation.
 
-The file is encrypted before upload. The recipient's browser obtains the encrypted content and decrypts it using the sharing credentials. For a password-free link, the decryption key is carried in the complete link, after the #. [2]
+The file is encrypted before upload. The recipient's browser obtains the encrypted content and decrypts it using the sharing credentials. For a password-free link, the decryption key is carried in the complete link, after the `#`. [2]
 
 This article is public. Anyone with its complete share link can access it while the link remains available. Publishing the link is our choice to make this edition available to that audience.
 
