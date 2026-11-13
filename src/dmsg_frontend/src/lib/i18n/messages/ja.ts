@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "全画面表示",
+  "Exit full screen": "全画面表示を終了",
+  "File type": "ファイル形式",
+  "Markdown document": "Markdown 文書",
+  "Text document": "テキスト文書",
+  "Image": "画像",
+  "Preview": "プレビュー",
+  "Read online": "オンラインで読む",
+  "Show formatted text": "整形したテキストを表示",
+  "Show source": "ソースを表示",
+  "This file cannot be previewed here. You can still download it.": "このファイルはここではプレビューできません。ダウンロードは可能です。",
+  "This file is too large to preview here. You can download it instead.": "ファイルが大きすぎるためプレビューできません。ダウンロードして確認できます。",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "閲覧またはダウンロードで1回のダウンロードセッションを使用します。閲覧後の保存は追加でカウントされません。",
+  "Share files privately. Collect them too.": "ファイルを安全に共有し、受け取る。",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "専用のアップロードリンクでファイルを受け取れます。届いたファイルを開けるのはあなただけです。Plus 以上で利用できます。",
+  "Recipients and uploaders need no account or app.": "受信者もアップロードする人も、アカウントやアプリは不要です。",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "このブラウザーではパスキーを利用できません。最新のブラウザーを使用するか、dMsg で Internet Identity を選択してください。",
   "Return to the dMsg app": "dMsg アプリに戻る",
   "Continue with a passkey": "パスキーで続ける",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity を使用すると、dMsg アプリが機能します。このページはセッションを保持しません。",
   "Return to the dMsg iOS app": "dMsg iOS アプリに戻る",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "このサインインは、それを開始したアプリで終了する必要があります。 dMsg に戻ってやり直してください。",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "ここでの受信にはダウンロードセッションを使用します。 dMsg でのインポートには別のセッションが使用されます。",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "リンクを dMsg に貼り付けて、独立したコピーをインポートします。取り消しでは、保存されたコピーを削除することはできません。",
   "Save attachment": "添付ファイルを保存する",
   "Notes": "メモ",
@@ -606,13 +621,8 @@ export default {
   'No account needed': 'アカウント不要',
   'Nothing to install': 'インストール不要',
   'Decrypted only in your browser': 'ブラウザの中でのみ復号',
-  'Send your own files this way': 'あなたのファイルも同じように送れます',
   'Share a file by link that can expire, ask for a password or be revoked.':
     '期限やパスワードを設定でき、取り消しもできるリンクでファイルを共有できます。',
-  'The person you send it to needs no account or app.':
-    '受け取る人にアカウントやアプリは必要ありません。',
-  'Free to start, with encryption included in every plan.':
-    '無料で始められ、暗号化はすべてのプランに含まれます。',
   'See how dMsg works': 'dMsg の仕組みを見る',
   'Download on the App Store': 'App Store でダウンロード',
   "A file shared with you": "あなたと共有されたファイル",
@@ -817,9 +827,6 @@ export default {
   'Clear this list': 'この一覧を消去',
   'Keep this page open until your files are sent.':
     'ファイルの送信が終わるまでこのページを開いたままにしてください。',
-  'Collect files this way too': 'あなたもこの方法でファイルを集めましょう',
-  'Each person sees only what they sent.':
-    '各自に見えるのは自分が送ったものだけです。',
   'Choose who gets access.': '誰がアクセスできるかは、あなたが決める。',
   'Keep what matters private.': '大切なものは、プライベートに。',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1304,8 +1311,6 @@ export default {
     'これはプライバシーの境界を示す図です。製品の形式は異なり、暗号化はサイズやタイミングを隠しません。',
   'Try a sample sentence. This illustration stays in your browser.':
     'サンプルの文を入力してみてください。この図の内容はブラウザの中に留まります。',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'ご自身のクライアントからファイルを集めたいですか？dMsg なら、このようなプライベートなアップロードリンクを作成でき、届いたファイルを開けるのはあなただけです。',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg は、パスワード、メモ、ファイルのためのプライベートワークスペースです。プライベートに保管し、誰がアクセスできるかを選べます。',
 } satisfies Messages

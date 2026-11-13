@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "Tam ekran",
+  "Exit full screen": "Tam ekrandan çık",
+  "File type": "Dosya türü",
+  "Markdown document": "Markdown belgesi",
+  "Text document": "Metin belgesi",
+  "Image": "Görsel",
+  "Preview": "Önizleme",
+  "Read online": "Çevrimiçi oku",
+  "Show formatted text": "Biçimlendirilmiş metni göster",
+  "Show source": "Kaynağı göster",
+  "This file cannot be previewed here. You can still download it.": "Bu dosya burada önizlenemiyor. Yine de indirebilirsiniz.",
+  "This file is too large to preview here. You can download it instead.": "Bu dosya önizleme için çok büyük. Dosyayı indirebilirsiniz.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "Okumak veya indirmek bir indirme oturumu kullanır. Okuduktan sonra kaydetmek ek oturum kullanmaz.",
+  "Share files privately. Collect them too.": "Dosyaları gizli paylaşın ve toplayın.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "Özel bir yükleme bağlantısıyla dosya toplayın. Gelen dosyaları yalnızca siz açabilirsiniz. Plus ve üzeri planlarda kullanılabilir.",
+  "Recipients and uploaders need no account or app.": "Dosyaları alan veya yükleyen kişilerin hesaba ya da uygulamaya ihtiyacı yoktur.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Bu tarayıcıda geçiş anahtarları kullanılamıyor. Güncel bir tarayıcı kullanın veya dMsg içinde Internet Identity seçin.",
   "Return to the dMsg app": "dMsg uygulamasına dön",
   "Continue with a passkey": "Geçiş anahtarıyla devam et",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity, dMsg uygulamasının sizin için hareket etmesini sağlar. Bu sayfada oturum bulunmamaktadır.",
   "Return to the dMsg iOS app": "dMsg iOS uygulamasına dönün",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "Bu oturum açma işlemi, onu başlatan uygulamada tamamlanmalıdır. dMsg'ya dönün ve yeniden başlayın.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Burada alım bir indirme oturumu kullanır. dMsg'ya içe aktarma işlemi ayrı bir oturum kullanır.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Bağımsız bir kopyayı içe aktarmak için bağlantıyı dMsg'ya yapıştırın. İptal, kayıtlı kopyaları silemez.",
   "Save attachment": "Eki kaydet",
   "Notes": "Notlar",
@@ -606,13 +621,8 @@ export default {
   'No account needed': 'Hesap gerekmez',
   'Nothing to install': 'Kurulum gerekmez',
   'Decrypted only in your browser': 'Yalnızca tarayıcınızda çözülür',
-  'Send your own files this way': 'Kendi dosyalarınızı da böyle gönderin',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Bir dosyayı süresi dolabilen, parola isteyebilen veya iptal edilebilen bir bağlantıyla paylaşın.',
-  'The person you send it to needs no account or app.':
-    'Alıcının hesaba veya uygulamaya ihtiyacı yoktur.',
-  'Free to start, with encryption included in every plan.':
-    'Ücretsiz başlayın; şifreleme her plana dahildir.',
   'See how dMsg works': 'dMsg nasıl çalışır',
   'Download on the App Store': 'App Store’dan indirin',
   "A file shared with you": "Sizinle paylaşılan bir dosya",
@@ -816,9 +826,6 @@ export default {
   'Clear this list': 'Bu listeyi temizle',
   'Keep this page open until your files are sent.':
     'Dosyalarınız gönderilene kadar bu sayfayı açık tutun.',
-  'Collect files this way too': 'Siz de dosyaları böyle toplayın',
-  'Each person sees only what they sent.':
-    'Herkes yalnızca kendi gönderdiğini görür.',
   'Choose who gets access.': 'Kimin erişeceğini siz seçin.',
   'Keep what matters private.': 'Önemli olanı gizli tutun.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1304,8 +1311,6 @@ export default {
     'Bu, gizlilik sınırını gösterir. Ürün biçimleri farklıdır ve şifreleme boyutu veya zamanlamayı gizlemez.',
   'Try a sample sentence. This illustration stays in your browser.':
     'Örnek bir cümle deneyin. Bu gösterim tarayıcınızda kalır.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'Kendi müşterilerinizden dosya toplamanız mı gerekiyor? dMsg size bunun gibi özel bir yükleme bağlantısı verir ve gelenleri yalnızca siz açabilirsiniz.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg; parolalar, notlar ve dosyalar için özel bir çalışma alanıdır. Onları gizli tutun ve kimin erişeceğini siz seçin.',
 } satisfies Messages

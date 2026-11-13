@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "ملء الشاشة",
+  "Exit full screen": "الخروج من ملء الشاشة",
+  "File type": "نوع الملف",
+  "Markdown document": "مستند Markdown",
+  "Text document": "مستند نصي",
+  "Image": "صورة",
+  "Preview": "معاينة",
+  "Read online": "قراءة عبر الإنترنت",
+  "Show formatted text": "عرض النص المنسق",
+  "Show source": "عرض المصدر",
+  "This file cannot be previewed here. You can still download it.": "لا يمكن معاينة هذا الملف هنا. لا يزال بإمكانك تنزيله.",
+  "This file is too large to preview here. You can download it instead.": "هذا الملف كبير جدًا للمعاينة هنا. يمكنك تنزيله بدلًا من ذلك.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "تستخدم القراءة أو التنزيل جلسة تنزيل واحدة. لا يُحتسب الحفظ بعد القراءة جلسة إضافية.",
+  "Share files privately. Collect them too.": "شارك الملفات بخصوصية واجمعها أيضًا.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "اجمع الملفات عبر رابط رفع خاص. أنت وحدك تستطيع فتح ما يصلك. متاح مع Plus وما فوق.",
+  "Recipients and uploaders need no account or app.": "لا يحتاج المستلمون أو رافعو الملفات إلى حساب أو تطبيق.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "مفاتيح المرور غير متاحة في هذا المتصفح. استخدم متصفحًا محدّثًا أو اختر Internet Identity في dMsg.",
   "Return to the dMsg app": "العودة إلى تطبيق dMsg",
   "Continue with a passkey": "المتابعة بمفتاح مرور",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "تسمح Internet Identity لتطبيق dMsg بالعمل نيابةً عنك. لا تحتفظ هذه الصفحة بأي جلسة.",
   "Return to the dMsg iOS app": "العودة إلى تطبيق dMsg على iOS",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "يجب إكمال تسجيل الدخول في التطبيق الذي بدأه. عُد إلى dMsg وابدأ مجددًا.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "الاستلام هنا والاستيراد في dMsg يستخدمان جلستين منفصلتين.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "الصق الرابط في dMsg لاستيراد نسخة مستقلة. الإلغاء لا يحذف النسخ المحفوظة.",
   "Save attachment": "حفظ المرفق",
   "Notes": "ملاحظات",
@@ -719,13 +734,8 @@ export default {
   'No account needed': 'لا حاجة إلى حساب',
   'Nothing to install': 'لا حاجة إلى تثبيت',
   'Decrypted only in your browser': 'فك التشفير في متصفحك فقط',
-  'Send your own files this way': 'أرسل ملفاتك بالطريقة نفسها',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'شارك ملفًا عبر رابط يمكن أن تنتهي صلاحيته أو يتطلب كلمة مرور أو يُلغى.',
-  'The person you send it to needs no account or app.':
-    'لا يحتاج المستلم إلى حساب أو تطبيق.',
-  'Free to start, with encryption included in every plan.':
-    'ابدأ مجانًا، والتشفير مشمول في كل خطة.',
   'See how dMsg works': 'تعرّف على dMsg',
   'Download on the App Store': 'التنزيل من App Store',
   'A file shared with you': 'ملف تمت مشاركته معك',
@@ -959,8 +969,6 @@ export default {
   'Clear this list': 'مسح هذه القائمة',
   'Keep this page open until your files are sent.':
     'أبقِ هذه الصفحة مفتوحة حتى تُرسل ملفاتك.',
-  'Collect files this way too': 'اجمع الملفات بهذه الطريقة أيضًا',
-  'Each person sees only what they sent.': 'لا يرى كل شخص إلا ما أرسله.',
   'Choose who gets access.': 'واختر من يحصل على الوصول.',
   'Keep what matters private.': 'حافظ على خصوصية ما يهمك.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1429,8 +1437,6 @@ export default {
     'هذا توضيح لحدود الخصوصية. تختلف صيغ المنتج، ولا يخفي التشفير الحجم أو التوقيت.',
   'Try a sample sentence. This illustration stays in your browser.':
     'جرّب جملة نموذجية. يبقى هذا التوضيح في متصفحك.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'هل تحتاج إلى جمع ملفات من عملائك؟ يمنحك dMsg رابط رفع خاصًا مثل هذا، ولا يستطيع أحد سواك فتح ما يصل إليه.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg مساحة عمل خاصة لكلمات المرور والملاحظات والملفات. حافظ على خصوصيتها، واختر من يحصل على الوصول.',
 } satisfies Messages

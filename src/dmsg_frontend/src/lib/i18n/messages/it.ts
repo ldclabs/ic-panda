@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "Schermo intero",
+  "Exit full screen": "Esci da schermo intero",
+  "File type": "Tipo di file",
+  "Markdown document": "Documento Markdown",
+  "Text document": "Documento di testo",
+  "Image": "Immagine",
+  "Preview": "Anteprima",
+  "Read online": "Leggi online",
+  "Show formatted text": "Mostra testo formattato",
+  "Show source": "Mostra sorgente",
+  "This file cannot be previewed here. You can still download it.": "Non è possibile visualizzare questo file qui. Puoi comunque scaricarlo.",
+  "This file is too large to preview here. You can download it instead.": "Questo file è troppo grande per l’anteprima. Puoi scaricarlo.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "Leggere o scaricare usa una sessione di download. Salvare dopo la lettura non ne consuma un’altra.",
+  "Share files privately. Collect them too.": "Condividi e raccogli file in privato.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "Raccogli file con un link di caricamento privato. Solo tu puoi aprirli. Disponibile con Plus e piani superiori.",
+  "Recipients and uploaders need no account or app.": "Chi riceve o carica file non ha bisogno di un account o di un’app.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Le passkey non sono disponibili in questo browser. Usa un browser aggiornato o scegli Internet Identity in dMsg.",
   "Return to the dMsg app": "Torna all’app dMsg",
   "Continue with a passkey": "Continua con una passkey",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity consente all'app dMsg di agire per te. Questa pagina non mantiene alcuna sessione.",
   "Return to the dMsg iOS app": "Torna all'app iOS dMsg",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "Questo accesso deve terminare nell'app che lo ha avviato. Ritorna a dMsg e ricomincia.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "La ricezione qui utilizza una sessione di download. L'importazione in dMsg utilizza una sessione separata.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Incolla il collegamento in dMsg per importare una copia indipendente. La revoca non può eliminare le copie salvate.",
   "Save attachment": "Salva allegato",
   "Notes": "Note",
@@ -606,13 +621,8 @@ export default {
   'No account needed': 'Nessun account',
   'Nothing to install': 'Niente da installare',
   'Decrypted only in your browser': 'Decifrato solo nel tuo browser',
-  'Send your own files this way': 'Invia i tuoi file allo stesso modo',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Condividi un file con un link che può scadere, chiedere una password o essere revocato.',
-  'The person you send it to needs no account or app.':
-    'Chi lo riceve non ha bisogno di account né di app.',
-  'Free to start, with encryption included in every plan.':
-    'Inizia gratis, con la cifratura inclusa in ogni piano.',
   'See how dMsg works': 'Scopri come funziona dMsg',
   'Download on the App Store': 'Scarica su App Store',
   "A file shared with you": "Un file condiviso con te",
@@ -816,9 +826,6 @@ export default {
   'Clear this list': 'Cancella questo elenco',
   'Keep this page open until your files are sent.':
     'Tieni aperta questa pagina finché i file non sono inviati.',
-  'Collect files this way too': 'Raccogli file anche tu così',
-  'Each person sees only what they sent.':
-    'Ognuno vede solo ciò che ha inviato.',
   'Choose who gets access.': 'Scegli chi può accedervi.',
   'Keep what matters private.': 'Mantieni privato ciò che conta.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1311,8 +1318,6 @@ export default {
     'Questa è un’illustrazione del confine della privacy. I formati del prodotto sono diversi e la crittografia non nasconde dimensioni o tempi.',
   'Try a sample sentence. This illustration stays in your browser.':
     'Prova una frase di esempio. Questa illustrazione resta nel tuo browser.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'Devi raccogliere file dai tuoi clienti? dMsg ti offre un link di caricamento privato come questo, e solo tu puoi aprire ciò che arriva.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg è uno spazio di lavoro privato per password, note e file. Mantienili privati e scegli chi può accedervi.',
 } satisfies Messages

@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "На весь экран",
+  "Exit full screen": "Выйти из полноэкранного режима",
+  "File type": "Тип файла",
+  "Markdown document": "Документ Markdown",
+  "Text document": "Текстовый документ",
+  "Image": "Изображение",
+  "Preview": "Предпросмотр",
+  "Read online": "Читать онлайн",
+  "Show formatted text": "Показать оформление",
+  "Show source": "Показать исходный текст",
+  "This file cannot be previewed here. You can still download it.": "Этот файл нельзя просмотреть здесь. Вы можете его скачать.",
+  "This file is too large to preview here. You can download it instead.": "Файл слишком большой для просмотра здесь. Вы можете его скачать.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "Чтение или скачивание использует один сеанс загрузки. Сохранение после чтения не расходует ещё один.",
+  "Share files privately. Collect them too.": "Делитесь файлами приватно и собирайте их.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "Собирайте файлы по приватной ссылке для загрузки. Открыть полученное можете только вы. Доступно в Plus и выше.",
+  "Recipients and uploaders need no account or app.": "Получателям и отправителям файлов не нужны аккаунт или приложение.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Ключи доступа недоступны в этом браузере. Используйте обновлённый браузер или выберите Internet Identity в dMsg.",
   "Return to the dMsg app": "Вернуться в приложение dMsg",
   "Continue with a passkey": "Продолжить с ключом доступа",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity разрешает dMsg действовать от вашего имени. Эта страница не сохраняет сеанс.",
   "Return to the dMsg iOS app": "Вернуться в dMsg для iOS",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "Вход должен завершиться в приложении, которое его начало. Вернитесь в dMsg и повторите попытку.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Получение здесь и импорт в dMsg используют отдельные сеансы.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Вставьте ссылку в dMsg для импорта отдельной копии. Отзыв не удаляет сохранённые копии.",
   "Save attachment": "Сохранить вложение",
   "Notes": "Заметки",
@@ -739,13 +754,8 @@ export default {
   'No account needed': 'Аккаунт не нужен',
   'Nothing to install': 'Ничего устанавливать не нужно',
   'Decrypted only in your browser': 'Расшифровка только в вашем браузере',
-  'Send your own files this way': 'Отправляйте свои файлы так же',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Делитесь файлом по ссылке со сроком действия и паролем, которую можно отозвать.',
-  'The person you send it to needs no account or app.':
-    'Получателю не нужны ни аккаунт, ни приложение.',
-  'Free to start, with encryption included in every plan.':
-    'Начать можно бесплатно, шифрование входит в каждый тариф.',
   'See how dMsg works': 'Узнать о dMsg',
   'Download on the App Store': 'Загрузить в App Store',
   'A file shared with you': 'Файл, которым с вами поделились',
@@ -985,9 +995,6 @@ export default {
   'Clear this list': 'Очистить этот список',
   'Keep this page open until your files are sent.':
     'Не закрывайте страницу, пока файлы не будут отправлены.',
-  'Collect files this way too': 'Собирайте файлы так же',
-  'Each person sees only what they sent.':
-    'Каждый видит только то, что отправил сам.',
   'Choose who gets access.': 'Вы решаете, у кого есть доступ.',
   'Keep what matters private.': 'Важное — в приватности.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1475,8 +1482,6 @@ export default {
     'Это иллюстрация границы приватности. Форматы в продукте отличаются, а шифрование не скрывает размер и время.',
   'Try a sample sentence. This illustration stays in your browser.':
     'Введите пример фразы. Эта иллюстрация остаётся в вашем браузере.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'Нужно собирать файлы у собственных клиентов? dMsg даёт вам такую же приватную ссылку для загрузки, и открыть полученное можете только вы.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg — приватное рабочее пространство для паролей, заметок и файлов. Храните их приватно и выбирайте, у кого есть доступ.',
 } satisfies Messages

@@ -1,14 +1,22 @@
 <script lang="ts">
-  import { PACKAGE_MIME, isSecretPackage, parseSecretPackage, attachmentName, type SecretPackage } from '$lib/share/package'
+  import {
+    PACKAGE_MIME,
+    isSecretPackage,
+    parseSecretPackage,
+    attachmentName,
+    type SecretPackage
+  } from '$lib/share/package'
   import { ShareDownload } from '$lib/share/download'
   let downloader: ShareDownload | undefined
+  let counted = false
   let alive = true
   import { page } from '$app/state'
+  import FileInvite from '$lib/components/site/FileInvite.svelte'
+  import { fileType, readText, renderMarkdown } from '$lib/share/preview'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import Glyph from '$lib/components/landing/Glyph.svelte'
   import IconFile from '$lib/components/icons/IconArticleLine.svelte'
   import { API_ORIGIN } from '$lib/constants'
-  import { installFor } from '$lib/downloads'
   import { locale, t } from '$lib/i18n'
   import {
     assemble,
@@ -21,7 +29,7 @@
     type Descriptor,
     type ShareFile
   } from '$lib/share/decrypt'
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount, onDestroy, tick } from 'svelte'
 
   // The share page: the link's fragment (or the password) holds the key,
   // the relay holds ciphertext, and the browser does the opening. The
@@ -35,8 +43,6 @@
   let key = $state<Uint8Array | null>(null)
   let password = $state('')
   let file = $state<ShareFile | null>(null)
-  /** The verified manifest reused when a download resumes. */
-  let opened: ShareFile | null = null
   let blob = $state<Blob | null>(null)
   let secretPackage = $state<SecretPackage | null>(null)
   let visible = $state<Set<string>>(new Set())
@@ -44,9 +50,33 @@
   let progress = $state({ done: 0, total: 0 })
   let reason = $state('')
   let error = $state('')
-  // A link is often someone's first sight of dMsg, so the page says what made
-  // it and offers the install that fits this device.
-  const install = installFor(navigator.userAgent, navigator.maxTouchPoints)
+  let canRetryMetadata = $state(false)
+  let previewText = $state<string | null>(null)
+  let previewUrl = $state('')
+  let previewError = $state('')
+  let source = $state(false)
+  let reader = $state<HTMLElement>()
+  let fullScreen = $state(false)
+  let previewDialog = $state<HTMLDialogElement>()
+  let fullscreenButton = $state<HTMLButtonElement>()
+
+  async function expandPreview() {
+    fullScreen = true
+    await tick()
+    if (alive) previewDialog?.showModal()
+  }
+
+  async function closePreview() {
+    fullScreen = false
+    await tick()
+    if (alive) fullscreenButton?.focus()
+  }
+  const type = $derived(file ? fileType(file) : null)
+  const formatted = $derived(
+    type?.kind === 'markdown' && previewText !== null
+      ? renderMarkdown(previewText)
+      : ''
+  )
 
   const ciphertextSize = $derived(
     descriptor ? descriptor.chunks.reduce((n, c) => n + c.size, 0) : 0
@@ -81,6 +111,7 @@
 
   function fail(e: unknown) {
     if (!alive) return
+    if (e && typeof e === 'object' && 'gone' in e) return gone(String(e.gone))
     if (e instanceof ShareError && e.code === 'WRONG_PASSWORD') {
       phase = 'password'
       error = $t('Wrong password')
@@ -96,7 +127,8 @@
           : $t('Something went wrong: {error}', { error: String(e) })
     // A download that broke off may start again; a file that did not check
     // out may not.
-    phase = key && !(e instanceof ShareError) ? 'ready' : 'error'
+    canRetryMetadata = !(e instanceof ShareError)
+    phase = file && key && canRetryMetadata ? 'ready' : 'error'
   }
 
   async function fetchDescriptor(): Promise<Descriptor | null> {
@@ -107,12 +139,22 @@
   }
 
   async function fetchBytes(path: string): Promise<Uint8Array> {
-    if (!alive || !descriptor) throw new ShareError('INTEGRITY_FAILED','page closed')
+    if (!alive || !descriptor)
+      throw new ShareError('INTEGRITY_FAILED', 'page closed')
     downloader ??= new ShareDownload(API_ORIGIN, descriptor)
-    return downloader.bytes(path)
+    try {
+      return await downloader.bytes(path)
+    } finally {
+      if (alive && descriptor && downloader.hasSession && !counted) {
+        counted = true
+        descriptor = { ...descriptor, downloads: descriptor.downloads + 1 }
+      }
+    }
   }
 
-  onMount(async () => {
+  async function load() {
+    phase = 'loading'
+    error = ''
     try {
       if (!/^[0-9a-f]{64}$/.test(shareId)) return gone('missing')
       const found = await fetchDescriptor()
@@ -120,12 +162,12 @@
       if (!found) return gone('missing')
       descriptor = found
       if (found.status !== 'available') return gone(found.status)
-      if (found.password) {
+      if (found.password && !key) {
         phase = 'password'
         return
       }
       try {
-        key = keyFromFragment(location.hash)
+        key ??= keyFromFragment(location.hash)
       } catch {
         phase = 'error'
         error = $t(
@@ -133,11 +175,28 @@
         )
         return
       }
-      phase = 'ready'
+      await metadata()
     } catch (e) {
       fail(e)
     }
+  }
+  onMount(() => {
+    void load()
   })
+
+  async function metadata() {
+    if (!key || !descriptor) return
+    downloader ??= new ShareDownload(API_ORIGIN, descriptor)
+    const opened = await openManifest(
+      key,
+      descriptor,
+      descriptor.upload_id,
+      await downloader.metadata()
+    )
+    if (!alive) return
+    file = opened
+    phase = 'ready'
+  }
 
   async function unlock() {
     if (!descriptor?.key_wrap || !password) return
@@ -145,10 +204,13 @@
     error = ''
     try {
       const unlocked = await unwrapKey(descriptor.key_wrap, password, shareId)
-      if(!alive){unlocked.fill(0);return}
+      if (!alive) {
+        unlocked.fill(0)
+        return
+      }
       key = unlocked
       password = ''
-      phase = 'ready'
+      await metadata()
     } catch (e) {
       fail(e)
     }
@@ -167,30 +229,33 @@
   function saveAttachment(index: number) {
     const attachment = secretPackage?.attachments[index]
     if (!alive || !attachment) return
-    const url = URL.createObjectURL(new Blob([attachment.bytes as BlobPart], { type: 'application/octet-stream' }))
-    const anchor = document.createElement('a'); anchor.href = url; anchor.download = attachmentName(attachment.name); anchor.click()
+    const url = URL.createObjectURL(
+      new Blob([attachment.bytes as BlobPart], {
+        type: 'application/octet-stream'
+      })
+    )
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = attachmentName(attachment.name)
+    anchor.click()
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
-  async function download() {
-    if (!alive || !descriptor || !key || phase==='working') return
+  async function download(preview = false) {
+    if (!alive || !descriptor || !key || !file || phase === 'working') return
     phase = 'working'
     error = ''
+    previewError = ''
     progress = { done: 0, total: descriptor.chunks.length }
     const chunks: Uint8Array[] = []
     let whole: Uint8Array | undefined
     try {
-      // A retry reuses the verified manifest and the same counted download session.
-      const manifest = (opened ??= await openManifest(
-        key,
-        descriptor,
-        descriptor.upload_id,
-        await fetchBytes('manifest')
-      ))
+      // Metadata was verified without a counted session. Only content starts one.
+      const manifest = file
       if (!alive) return
       for (let i = 0; i < manifest.chunks.length; i++) {
         const bytes = await fetchBytes(`chunks/${i}`)
-        if(!alive || !key)return
+        if (!alive || !key) return
         chunks.push(await openChunk(key, manifest, i, bytes))
         progress = { done: i + 1, total: manifest.chunks.length }
       }
@@ -204,25 +269,57 @@
       file = manifest
       if (manifest.mime === PACKAGE_MIME || isSecretPackage(whole)) {
         const parsed = await parseSecretPackage(whole)
-        if(!alive){for(const a of parsed.attachments)a.bytes.fill(0);return}
+        if (!alive) {
+          for (const a of parsed.attachments) a.bytes.fill(0)
+          return
+        }
         secretPackage = parsed
-        whole.fill(0); for (const chunk of chunks) chunk.fill(0)
-        blob = null; phase = 'done'; return
+        whole.fill(0)
+        for (const chunk of chunks) chunk.fill(0)
+        blob = null
+        phase = 'done'
+        return
       }
       blob = new Blob([whole as BlobPart], {
         type: manifest.mime || 'application/octet-stream'
       })
       phase = 'done'
-      save()
+      if (preview && type?.previewable) {
+        if (type.kind === 'image') previewUrl = URL.createObjectURL(blob)
+        else {
+          try {
+            previewText = readText(whole)
+            await tick()
+            if (alive) reader?.focus()
+          } catch {
+            previewError = $t(
+              'This file cannot be previewed here. You can still download it.'
+            )
+          }
+        }
+      } else save()
     } catch (e) {
-      if(!alive)return
-      if (e && typeof e === 'object' && 'gone' in e) return gone(String(e.gone))
+      if (!alive) return
       fail(e)
     } finally {
-      whole?.fill(0);for(const chunk of chunks)chunk.fill(0)
+      whole?.fill(0)
+      for (const chunk of chunks) chunk.fill(0)
     }
   }
-  onDestroy(()=>{alive=false;key?.fill(0);key=null;password='';blob=null;opened=null;file=null;visible=new Set();for(const a of secretPackage?.attachments??[])a.bytes.fill(0);secretPackage=null})
+  onDestroy(() => {
+    alive = false
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    previewUrl = ''
+    previewText = null
+    key?.fill(0)
+    key = null
+    password = ''
+    blob = null
+    file = null
+    visible = new Set()
+    for (const a of secretPackage?.attachments ?? []) a.bytes.fill(0)
+    secretPackage = null
+  })
 </script>
 
 <svelte:head>
@@ -230,39 +327,74 @@
   <meta name="robots" content="noindex" />
 </svelte:head>
 
+{#snippet previewContent(expanded: boolean)}
+  <div class="file-actions">
+    {#if previewText !== null && type?.kind === 'markdown'}
+      <button
+        class="button secondary"
+        aria-pressed={source}
+        onclick={() => (source = !source)}
+        >{$t(source ? 'Show formatted text' : 'Show source')}</button
+      >
+    {/if}
+    <button class="button secondary" onclick={save} data-testid="share-save"
+      ><Glyph name="download" size={18} />{$t('Download')}</button
+    >
+    {#if expanded}
+      <button
+        class="button secondary"
+        onclick={() => previewDialog?.close()}
+        data-testid="share-exit-fullscreen">{$t('Exit full screen')}</button
+      >
+    {:else if previewText !== null || previewUrl}
+      <button
+        class="button secondary"
+        bind:this={fullscreenButton}
+        onclick={expandPreview}
+        data-testid="share-fullscreen">{$t('Full screen')}</button
+      >
+    {/if}
+  </div>
+  {#if previewError}<p class="utility-status" role="status">{previewError}</p
+    >{/if}
+  {#if previewText !== null}
+    <section
+      class="reader"
+      aria-label={$t('Read online')}
+      tabindex="-1"
+      bind:this={reader}
+      data-testid="share-reader"
+      dir="auto"
+    >
+      {#if type?.kind === 'markdown' && !source}<div class="markdown"
+          >{@html formatted}</div
+        >{:else}<pre>{previewText}</pre>{/if}
+    </section>
+  {:else if previewUrl}
+    <div class="image-preview" data-testid="share-image"
+      ><img
+        src={previewUrl}
+        alt={file?.name ?? ''}
+        onerror={() => {
+          URL.revokeObjectURL(previewUrl)
+          previewUrl = ''
+          previewError = $t(
+            'This file cannot be previewed here. You can still download it.'
+          )
+        }}
+      /></div
+    >
+  {:else if !previewError}
+    <p class="utility-status"
+      >{$t('The file checked out and was handed to your browser.')}</p
+    >
+  {/if}
+{/snippet}
+
 <UtilityPage>
   {#snippet aside()}
     {#if phase !== 'loading'}
-      <aside
-        class="invite"
-        class:ready={phase === 'done'}
-        aria-labelledby="invite-title"
-        data-testid="share-invite"
-      >
-        <h2 id="invite-title">{$t('Send your own files this way')}</h2>
-        <p
-          >{$t(
-            'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.'
-          )}</p
-        >
-        <ul>
-          {#each ['Share a file by link that can expire, ask for a password or be revoked.', 'The person you send it to needs no account or app.', 'Free to start, with encryption included in every plan.'] as const as point}
-            <li><Glyph name="check" size={16} /><span>{$t(point)}</span></li>
-          {/each}
-        </ul>
-        <div class="invite-actions">
-          <a
-            class="button primary"
-            href={install.href}
-            data-testid="share-install"
-            data-sveltekit-reload
-            ><Glyph name="download" size={18} />{$t(install.label)}</a
-          >
-          <a class="button secondary" href="/#space" data-sveltekit-reload
-            >{$t('See how dMsg works')}</a
-          >
-        </div>
-      </aside>
+      <FileInvite kind="share" ready={phase === 'done'} />
     {/if}
   {/snippet}
 
@@ -293,11 +425,28 @@
       <p class="utility-status error" role="alert">{reason}</p>
     {:else if phase === 'error'}
       <p class="utility-status error" role="alert">{error}</p>
+      {#if canRetryMetadata}<button
+          class="button secondary utility-action"
+          onclick={load}>{$t('Try again')}</button
+        >{/if}
     {:else}
       {#if descriptor}
         <dl class="facts">
           {#if file}
-            <div><dt>{$t('File')}</dt><dd>{file.name}</dd></div>
+            <div><dt>{$t('File')}</dt><dd><bdi>{file.name}</bdi></dd></div>
+            <div
+              ><dt>{$t('File type')}</dt><dd
+                >{type?.kind === 'markdown'
+                  ? $t('Markdown document')
+                  : type?.kind === 'text'
+                    ? $t('Text document')
+                    : type?.kind === 'image'
+                      ? $t('Image')
+                      : type?.mime}<span class="mime" dir="ltr"
+                  >{type?.kind ? type.mime : ''}</span
+                ></dd
+              ></div
+            >
             <div><dt>{$t('Size')}</dt><dd>{size(file.size)}</dd></div>
           {:else}
             <div><dt>{$t('Size')}</dt><dd>{size(ciphertextSize)}</dd></div>
@@ -338,13 +487,31 @@
       {:else if phase === 'ready'}
         {#if descriptor?.max_downloads}<p class="utility-status"
             >{$t(
-              'Receiving here uses a download session. Importing in dMsg uses a separate session.'
+              'Reading or downloading uses one download session. Saving after reading does not use another.'
             )}</p
           >{/if}
         {#if error}<p class="utility-status error" role="alert">{error}</p>{/if}
-        <button class="button primary utility-action" onclick={download}
-          ><Glyph name="download" size={18} />{$t('Download')}</button
-        >
+        {#if type?.kind && !type.previewable}<p class="utility-status"
+            >{$t(
+              'This file is too large to preview here. You can download it instead.'
+            )}</p
+          >{/if}
+        <div class="file-actions">
+          {#if type?.previewable}<button
+              class="button primary"
+              onclick={() => download(true)}
+              data-testid="share-preview"
+              >{$t(type.kind === 'image' ? 'Preview' : 'Read online')}</button
+            >{/if}
+          <button
+            class:primary={!type?.previewable}
+            class:secondary={type?.previewable}
+            class="button"
+            onclick={() => download()}
+            data-testid="share-download"
+            ><Glyph name="download" size={18} />{$t('Download')}</button
+          >
+        </div>
       {:else if phase === 'working'}
         <p class="utility-status">
           {progress.total
@@ -360,28 +527,106 @@
         {#each secretPackage.item.fields as field (field.id)}
           <div class="facts">
             <strong>{field.section} · {field.label || field.id}</strong>
-            <button class="button secondary" onclick={() => { const next = new Set(visible); next.has(field.id) ? next.delete(field.id) : next.add(field.id); visible = next }}>{visible.has(field.id) ? $t('Hide') : $t('Reveal')}</button>
-            {#if visible.has(field.id)}<pre style="white-space: pre-wrap; overflow-wrap: anywhere">{field.value}</pre><button class="button secondary" onclick={() => navigator.clipboard.writeText(field.value)}>{$t('Copy')}</button>{/if}
+            <button
+              class="button secondary"
+              onclick={() => {
+                const next = new Set(visible)
+                next.has(field.id) ? next.delete(field.id) : next.add(field.id)
+                visible = next
+              }}>{visible.has(field.id) ? $t('Hide') : $t('Reveal')}</button
+            >
+            {#if visible.has(field.id)}<pre
+                style="white-space: pre-wrap; overflow-wrap: anywhere"
+                >{field.value}</pre
+              ><button
+                class="button secondary"
+                onclick={() => navigator.clipboard.writeText(field.value)}
+                >{$t('Copy')}</button
+              >{/if}
           </div>
         {/each}
-        {#if secretPackage.item.notes !== undefined}<button class="button secondary" onclick={() => showNotes = !showNotes}>{$t('Notes')}</button>{#if showNotes}<pre style="white-space: pre-wrap; overflow-wrap: anywhere">{secretPackage.item.notes}</pre>{/if}{/if}
+        {#if secretPackage.item.notes !== undefined}<button
+            class="button secondary"
+            onclick={() => (showNotes = !showNotes)}>{$t('Notes')}</button
+          >{#if showNotes}<pre
+              style="white-space: pre-wrap; overflow-wrap: anywhere"
+              >{secretPackage.item.notes}</pre
+            >{/if}{/if}
         {#each secretPackage.attachments as attachment, index}
-          <p>{attachment.name} · {size(attachment.size)} <button class="button secondary" onclick={() => saveAttachment(index)}>{$t('Save attachment')}</button></p>
+          <p
+            >{attachment.name} · {size(attachment.size)}
+            <button
+              class="button secondary"
+              onclick={() => saveAttachment(index)}
+              >{$t('Save attachment')}</button
+            ></p
+          >
         {/each}
-        <p>{$t('Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.')}</p>
+        <p
+          >{$t(
+            'Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.'
+          )}</p
+        >
       {:else if phase === 'done'}
-        <p class="utility-status"
-          >{$t('The file checked out and was handed to your browser.')}</p
+        {#if !fullScreen}{@render previewContent(false)}{/if}
+        <dialog
+          class="preview-dialog"
+          bind:this={previewDialog}
+          onclose={closePreview}
+          aria-label={$t('Preview')}
         >
-        <button class="button secondary utility-action" onclick={save}
-          >{$t('Save again')}</button
-        >
+          {#if fullScreen}<div class="fullscreen-content">
+              <strong class="preview-name"><bdi>{file?.name}</bdi></strong>
+              {@render previewContent(true)}
+            </div>{/if}
+        </dialog>
       {/if}
     {/if}
   </div>
 </UtilityPage>
 
 <style>
+  .preview-dialog {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 24px;
+    border: 0;
+    background: #fff;
+    color: var(--ink);
+    overflow: auto;
+  }
+  .preview-dialog::backdrop {
+    background: #fff;
+  }
+  .fullscreen-content {
+    max-width: 1000px;
+    margin-inline: auto;
+  }
+  .preview-name {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+  .preview-dialog .file-actions {
+    position: sticky;
+    top: -24px;
+    z-index: 1;
+    margin-top: 12px;
+    padding-block: 12px;
+    background: #fff;
+  }
+  .preview-dialog .reader {
+    border: 0;
+    padding-inline: 0;
+  }
+  .preview-dialog .image-preview img {
+    max-height: calc(100dvh - 180px);
+    margin-inline: auto;
+  }
   .assurances {
     display: flex;
     flex-wrap: wrap;
@@ -402,56 +647,116 @@
     flex: none;
     color: var(--action);
   }
-  .invite {
-    margin-top: 16px;
-    padding: 24px 32px 28px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--pale);
-    font-size: 14px;
-  }
-  .invite.ready {
-    border-color: var(--action);
-  }
-  .invite h2 {
-    margin: 0 0 8px;
-    font-size: 20px;
-    font-weight: 650;
-    line-height: 1.35;
-    overflow-wrap: anywhere;
-  }
-  .invite p {
-    margin: 0;
-    color: var(--ink);
-  }
-  .invite ul {
-    display: grid;
-    gap: 8px;
-    margin: 16px 0 20px;
-    padding: 0;
-    list-style: none;
-  }
-  .invite li {
-    display: grid;
-    grid-template-columns: 16px minmax(0, 1fr);
-    gap: 8px;
-    align-items: start;
-    color: var(--ink);
-  }
-  .invite li :global(svg) {
-    margin-top: 3px;
-    color: var(--action);
-  }
-  .invite-actions {
+  .file-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
+    margin-top: 24px;
   }
-  .invite-actions .button {
-    flex: 1 1 200px;
+  .file-actions .button {
+    flex: 1 1 160px;
     min-width: 0;
     white-space: normal;
     text-align: center;
+  }
+  .mime {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .reader {
+    margin-top: 24px;
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    overflow-wrap: anywhere;
+    line-height: 1.8;
+  }
+  .reader pre {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font:
+      14px/1.8 ui-monospace,
+      monospace;
+  }
+  .reader:focus-visible {
+    outline: 3px solid var(--action);
+    outline-offset: 3px;
+  }
+  .markdown :global(> :first-child) {
+    margin-top: 0;
+  }
+  .markdown :global(> :last-child) {
+    margin-bottom: 0;
+  }
+  .markdown :global(p),
+  .markdown :global(ul),
+  .markdown :global(ol),
+  .markdown :global(blockquote) {
+    margin-block: 1em;
+  }
+  .markdown :global(h1),
+  .markdown :global(h2),
+  .markdown :global(h3) {
+    margin-block: 1.2em 0.5em;
+    line-height: 1.4;
+  }
+  .markdown :global(h1) {
+    font-size: 26px;
+  }
+  .markdown :global(h2) {
+    font-size: 22px;
+  }
+  .markdown :global(h3) {
+    font-size: 18px;
+  }
+  .markdown :global(ul),
+  .markdown :global(ol) {
+    padding-inline-start: 24px;
+  }
+  .markdown :global(pre) {
+    white-space: pre-wrap;
+    padding: 16px;
+    background: #f5f5f5;
+    border-radius: 8px;
+  }
+  .markdown :global(code) {
+    font-family: ui-monospace, monospace;
+    font-size: 0.9em;
+  }
+  .markdown :global(blockquote) {
+    padding-inline-start: 16px;
+    margin-inline: 0;
+    border-inline-start: 3px solid var(--line);
+  }
+  .markdown :global(a) {
+    color: var(--action);
+    text-decoration: underline;
+  }
+  .markdown :global(table) {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+  }
+  .markdown :global(th),
+  .markdown :global(td) {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+  }
+  .image-preview {
+    margin-top: 24px;
+    text-align: center;
+  }
+  .image-preview img {
+    display: block;
+    max-width: 100%;
+    max-height: 75vh;
+    height: auto;
+    margin-inline: auto;
+    object-fit: contain;
   }
   .facts {
     display: grid;
@@ -498,8 +803,8 @@
     font: inherit;
   }
   @media (max-width: 540px) {
-    .invite {
-      padding: 20px;
+    .reader {
+      padding: 16px;
     }
   }
   @media (max-width: 400px) {

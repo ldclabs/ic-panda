@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "전체 화면",
+  "Exit full screen": "전체 화면 종료",
+  "File type": "파일 형식",
+  "Markdown document": "Markdown 문서",
+  "Text document": "텍스트 문서",
+  "Image": "이미지",
+  "Preview": "미리 보기",
+  "Read online": "온라인으로 읽기",
+  "Show formatted text": "서식 있는 텍스트 보기",
+  "Show source": "원문 보기",
+  "This file cannot be previewed here. You can still download it.": "이 파일은 여기서 미리 볼 수 없습니다. 다운로드는 가능합니다.",
+  "This file is too large to preview here. You can download it instead.": "이 파일은 너무 커서 미리 볼 수 없습니다. 다운로드해서 확인하세요.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "읽기 또는 다운로드는 다운로드 세션 한 번을 사용합니다. 읽은 후 저장해도 추가로 차감되지 않습니다.",
+  "Share files privately. Collect them too.": "파일을 비공개로 공유하고 받아보세요.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "비공개 업로드 링크로 파일을 받으세요. 받은 파일은 나만 열 수 있습니다. Plus 이상에서 이용할 수 있습니다.",
+  "Recipients and uploaders need no account or app.": "파일을 받거나 올리는 사람 모두 계정이나 앱이 필요 없습니다.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "이 브라우저에서는 패스키를 사용할 수 없습니다. 최신 브라우저를 사용하거나 dMsg에서 Internet Identity를 선택하세요.",
   "Return to the dMsg app": "dMsg 앱으로 돌아가기",
   "Continue with a passkey": "패스키로 계속",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity를 사용하면 dMsg 앱이 대신 작동합니다. 이 페이지에는 세션이 없습니다.",
   "Return to the dMsg iOS app": "dMsg iOS 앱으로 돌아가기",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "이 로그인은 시작한 앱에서 완료되어야 합니다. dMsg로 돌아가서 다시 시작하세요.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "여기에서 수신하면 다운로드 세션이 사용됩니다. dMsg에서 가져오기에는 별도의 세션이 사용됩니다.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "독립 복사본을 가져오려면 dMsg에 링크를 붙여넣으세요. 취소하면 저장된 사본을 삭제할 수 없습니다.",
   "Save attachment": "첨부파일 저장",
   "Notes": "메모",
@@ -606,13 +621,8 @@ export default {
   'No account needed': '계정 불필요',
   'Nothing to install': '설치 불필요',
   'Decrypted only in your browser': '브라우저에서만 복호화',
-  'Send your own files this way': '내 파일도 같은 방법으로 보내세요',
   'Share a file by link that can expire, ask for a password or be revoked.':
     '만료, 비밀번호 요구, 취소가 가능한 링크로 파일을 공유하세요.',
-  'The person you send it to needs no account or app.':
-    '받는 사람에게 계정이나 앱은 필요 없습니다.',
-  'Free to start, with encryption included in every plan.':
-    '무료로 시작할 수 있으며 모든 요금제에 암호화가 포함됩니다.',
   'See how dMsg works': 'dMsg 알아보기',
   'Download on the App Store': 'App Store에서 다운로드',
   "A file shared with you": "나와 공유된 파일",
@@ -816,9 +826,6 @@ export default {
   'Clear this list': '이 목록 지우기',
   'Keep this page open until your files are sent.':
     '파일을 다 보낼 때까지 이 페이지를 열어 두세요.',
-  'Collect files this way too': '당신도 이렇게 파일을 받아 보세요',
-  'Each person sees only what they sent.':
-    '각자 자신이 보낸 것만 볼 수 있습니다.',
   'Choose who gets access.': '누가 접근할지는 내가 정합니다.',
   'Keep what matters private.': '소중한 것은 비공개로.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1295,8 +1302,6 @@ export default {
     '개인정보 보호의 경계를 보여 주는 예시입니다. 실제 제품의 형식은 다르며, 암호화는 크기나 시간을 숨기지 않습니다.',
   'Try a sample sentence. This illustration stays in your browser.':
     '샘플 문장을 입력해 보세요. 이 예시는 브라우저 안에 머뭅니다.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    '내 고객에게서 파일을 받아야 하나요? dMsg로 이런 비공개 업로드 링크를 만들 수 있으며, 도착한 파일은 나만 열 수 있습니다.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg는 비밀번호, 메모, 파일을 위한 프라이빗 워크스페이스입니다. 비공개로 보관하고 누가 접근할지 선택하세요.',
 } satisfies Messages

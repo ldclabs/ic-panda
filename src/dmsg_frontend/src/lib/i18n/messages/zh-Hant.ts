@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "全螢幕預覽",
+  "Exit full screen": "退出全螢幕",
+  "File type": "檔案類型",
+  "Markdown document": "Markdown 文件",
+  "Text document": "文字文件",
+  "Image": "圖片",
+  "Preview": "預覽",
+  "Read online": "線上閱讀",
+  "Show formatted text": "顯示排版",
+  "Show source": "檢視原始碼",
+  "This file cannot be previewed here. You can still download it.": "此檔案無法在這裡預覽，你仍可下載。",
+  "This file is too large to preview here. You can download it instead.": "此檔案較大，無法在這裡預覽，你可以下載查看。",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "閱讀或下載會使用一次下載工作階段，閱讀後儲存不會額外計次。",
+  "Share files privately. Collect them too.": "私密分享檔案，也能向他人收取檔案",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "透過私密上傳連結收取檔案，收到的內容只有你能解密。Plus 及以上可用。",
+  "Recipients and uploaders need no account or app.": "接收與上傳檔案都無需帳號或安裝應用程式。",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "此瀏覽器無法使用通行密鑰。請使用最新版瀏覽器，或在 dMsg 中選擇 Internet Identity 登入。",
   "Return to the dMsg app": "返回 dMsg 應用程式",
   "Continue with a passkey": "使用通行密鑰登入",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity 授權 dMsg 應用程式代你操作，本頁不保留登入工作階段。",
   "Return to the dMsg iOS app": "返回 dMsg iOS 應用程式",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "本次登入必須在發起它的應用程式中完成，請返回 dMsg 重新登入。",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "在此領取會使用下載工作階段；匯入 dMsg 則使用獨立工作階段。",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "在 dMsg 貼上連結以匯入獨立副本；撤銷無法刪除已儲存的副本。",
   "Save attachment": "儲存附件",
   "Notes": "備註",
@@ -606,13 +621,8 @@ export default {
   'No account needed': '無需帳戶',
   'Nothing to install': '無需安裝',
   'Decrypted only in your browser': '只在你的瀏覽器中解密',
-  'Send your own files this way': '用同樣的方式傳送你的檔案',
   'Share a file by link that can expire, ask for a password or be revoked.':
     '透過連結分享檔案，可以設定有效期限、要求密碼，也可以隨時撤銷。',
-  'The person you send it to needs no account or app.':
-    '對方不需要帳戶，也不需要安裝應用程式。',
-  'Free to start, with encryption included in every plan.':
-    '免費開始，所有方案都包含加密。',
   'See how dMsg works': '了解 dMsg',
   'Download on the App Store': '在 App Store 下載',
   "A file shared with you": "有人分享給你一個檔案",
@@ -816,8 +826,6 @@ export default {
   'Clear this list': '清除這份清單',
   'Keep this page open until your files are sent.':
     '檔案傳送完成前請不要關閉這個頁面。',
-  'Collect files this way too': '你也可以這樣收取檔案',
-  'Each person sees only what they sent.': '每個人只能看到自己傳送的內容。',
   'Choose who gets access.': '誰能存取，由你決定。',
   'Keep what matters private.': '重要的資料，私密保管。',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1271,8 +1279,6 @@ export default {
     '這裡示範隱私邊界，實際產品格式有所不同；加密不會隱藏大小或時間。',
   'Try a sample sentence. This illustration stays in your browser.':
     '輸入一句範例文字，示範內容留在目前瀏覽器中。',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    '也需要向自己的客戶收集資料？dMsg 可以為你生成同樣的私密上傳連結，收到的檔案只有你能開啟。',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg 是保管密碼、筆記與檔案的私密工作台。資料私密保管，誰能存取由你決定。',
 } satisfies Messages

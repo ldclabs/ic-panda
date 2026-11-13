@@ -208,6 +208,10 @@ Share descriptors remain `GET /public/shares/:share`; public /manifest and /chun
 
 Count limits count new download sessions; started sessions can finish after the quota is exhausted. Revocation/deletion stops issuance, but old URLs may repeatedly read ciphertext until expiry/physical deletion. URLs contain no decryption key; in-progress transfers/saved copies cannot be recalled. Client completion follows whole-file verification. `downloads::tests::print_download_vector` emits cross-language fixtures whose fixed keys prove no real deployment.
 
+Since 2026-11-13, `GET /public/shares/:share/metadata` returns `{upload_id,expires_at,manifest:{url,size,digest}}` without starting a session or consuming a download. It authorizes only the encrypted manifest, never content chunks; the current owner and share state gate issuance, rejecting revoked, expired or exhausted links. URLs retain the same 60-second/share-expiry bound, CORS and no-store policy. The browser verifies and decrypts this metadata to display the full filename and type, after password unlock when required. Neither becomes plaintext server metadata. Existing encrypted shares use the same format.
+
+Online reading and image preview start the existing counted content session on explicit action. Only fully verified content is displayed; saving it afterward reuses the same page-local Blob, without another transfer or session. The public metadata endpoint must be deployed before the updated website; metadata failures never fall back to a counted download.
+
 ## File requests (2026-11-06)
 
 Plus and above can make upload-only links, `<site>/r/<account>/<request_id>#<page_key>`. The sender needs no account; `request_id` is 32 bytes of hex and `page_key` 32 bytes of base64url in the fragment, sent to no server. Formats and cross-language vectors are in `tests/vectors/client/request-v1.json`:

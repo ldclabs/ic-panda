@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "Toàn màn hình",
+  "Exit full screen": "Thoát toàn màn hình",
+  "File type": "Loại tệp",
+  "Markdown document": "Tài liệu Markdown",
+  "Text document": "Tài liệu văn bản",
+  "Image": "Hình ảnh",
+  "Preview": "Xem trước",
+  "Read online": "Đọc trực tuyến",
+  "Show formatted text": "Hiển thị văn bản đã định dạng",
+  "Show source": "Xem mã nguồn",
+  "This file cannot be previewed here. You can still download it.": "Không thể xem trước tệp này tại đây. Bạn vẫn có thể tải xuống.",
+  "This file is too large to preview here. You can download it instead.": "Tệp này quá lớn để xem trước. Bạn có thể tải xuống.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "Đọc hoặc tải xuống sử dụng một phiên tải xuống. Lưu sau khi đọc không tính thêm phiên.",
+  "Share files privately. Collect them too.": "Chia sẻ và thu nhận tệp riêng tư.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "Thu nhận tệp qua liên kết tải lên riêng tư. Chỉ bạn có thể mở tệp nhận được. Có trên gói Plus trở lên.",
+  "Recipients and uploaders need no account or app.": "Người nhận và người tải lên không cần tài khoản hay ứng dụng.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Không thể dùng khóa truy cập trong trình duyệt này. Hãy dùng trình duyệt mới nhất hoặc chọn Internet Identity trong dMsg.",
   "Return to the dMsg app": "Quay lại ứng dụng dMsg",
   "Continue with a passkey": "Tiếp tục bằng khóa truy cập",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity cho phép ứng dụng dMsg hoạt động thay bạn. Trang này không giữ phiên nào.",
   "Return to the dMsg iOS app": "Quay lại ứng dụng dMsg iOS",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "Quá trình đăng nhập này phải hoàn tất trong ứng dụng đã khởi động nó. Quay lại dMsg và bắt đầu lại.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Việc nhận ở đây sử dụng phiên tải xuống. Nhập vào dMsg sử dụng một phiên riêng biệt.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Dán liên kết vào dMsg để nhập một bản sao độc lập. Việc thu hồi không thể xóa các bản sao đã lưu.",
   "Save attachment": "Lưu tệp đính kèm",
   "Notes": "Ghi chú",
@@ -606,13 +621,8 @@ export default {
   'No account needed': 'Không cần tài khoản',
   'Nothing to install': 'Không cần cài đặt',
   'Decrypted only in your browser': 'Chỉ giải mã trong trình duyệt của bạn',
-  'Send your own files this way': 'Gửi tệp của bạn theo cách tương tự',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Chia sẻ tệp qua liên kết có thể hết hạn, yêu cầu mật khẩu hoặc bị thu hồi.',
-  'The person you send it to needs no account or app.':
-    'Người nhận không cần tài khoản hay ứng dụng.',
-  'Free to start, with encryption included in every plan.':
-    'Bắt đầu miễn phí, mọi gói đều có mã hóa.',
   'See how dMsg works': 'Xem cách dMsg hoạt động',
   'Download on the App Store': 'Tải xuống trên App Store',
   "A file shared with you": "Một tệp được chia sẻ với bạn",
@@ -816,9 +826,6 @@ export default {
   'Clear this list': 'Xóa danh sách này',
   'Keep this page open until your files are sent.':
     'Hãy giữ trang này mở cho đến khi tệp được gửi xong.',
-  'Collect files this way too': 'Bạn cũng có thể thu tệp như vậy',
-  'Each person sees only what they sent.':
-    'Mỗi người chỉ thấy những gì mình đã gửi.',
   'Choose who gets access.': 'Bạn chọn ai được truy cập.',
   'Keep what matters private.': 'Giữ riêng tư những gì quan trọng.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1305,8 +1312,6 @@ export default {
     'Đây là minh họa ranh giới quyền riêng tư. Định dạng sản phẩm khác nhau, và mã hóa không che giấu kích thước hay thời gian.',
   'Try a sample sentence. This illustration stays in your browser.':
     'Thử một câu mẫu. Minh họa này chỉ diễn ra trong trình duyệt của bạn.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'Bạn cần thu thập tệp từ khách hàng của mình? dMsg cung cấp cho bạn một liên kết tải lên riêng tư như thế này, và chỉ bạn mới có thể mở những gì được gửi đến.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg là không gian làm việc riêng tư cho mật khẩu, ghi chú và tệp. Giữ chúng riêng tư và chọn ai được truy cập.',
 } satisfies Messages

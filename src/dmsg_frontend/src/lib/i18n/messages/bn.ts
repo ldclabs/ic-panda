@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "পূর্ণ স্ক্রিন",
+  "Exit full screen": "পূর্ণ স্ক্রিন থেকে বের হন",
+  "File type": "ফাইলের ধরন",
+  "Markdown document": "Markdown নথি",
+  "Text document": "টেক্সট নথি",
+  "Image": "ছবি",
+  "Preview": "প্রিভিউ",
+  "Read online": "অনলাইনে পড়ুন",
+  "Show formatted text": "ফরম্যাট করা লেখা দেখান",
+  "Show source": "সোর্স দেখান",
+  "This file cannot be previewed here. You can still download it.": "এই ফাইলের প্রিভিউ এখানে দেখা যাবে না। আপনি এটি ডাউনলোড করতে পারেন।",
+  "This file is too large to preview here. You can download it instead.": "প্রিভিউয়ের জন্য ফাইলটি খুব বড়। আপনি এটি ডাউনলোড করতে পারেন।",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "পড়া বা ডাউনলোডে একটি ডাউনলোড সেশন লাগে। পড়ার পরে সংরক্ষণ করলে বাড়তি সেশন লাগে না।",
+  "Share files privately. Collect them too.": "গোপনে ফাইল শেয়ার করুন ও সংগ্রহ করুন।",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "ব্যক্তিগত আপলোড লিংকে ফাইল সংগ্রহ করুন। প্রাপ্ত ফাইল শুধু আপনিই খুলতে পারবেন। Plus ও তার উপরের প্ল্যানে উপলব্ধ।",
+  "Recipients and uploaders need no account or app.": "প্রাপক ও আপলোডকারীর অ্যাকাউন্ট বা অ্যাপ লাগে না।",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "এই ব্রাউজারে পাসকি ব্যবহার করা যাচ্ছে না। হালনাগাদ ব্রাউজার ব্যবহার করুন অথবা dMsg-এ Internet Identity বেছে নিন।",
   "Return to the dMsg app": "dMsg অ্যাপে ফিরে যান",
   "Continue with a passkey": "পাসকি দিয়ে চালিয়ে যান",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity dMsg অ্যাপটিকে আপনার জন্য কাজ করতে দেয়। এই পৃষ্ঠাটি কোন সেশন রাখে না।",
   "Return to the dMsg iOS app": "dMsg iOS অ্যাপে ফিরে যান",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "এই সাইন-ইনটি যে অ্যাপটি শুরু করেছে তাতে অবশ্যই শেষ করতে হবে। dMsg এ ফিরে যান এবং আবার শুরু করুন।",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "এখানে প্রাপ্তি একটি ডাউনলোড সেশন ব্যবহার করে। dMsg-এ আমদানি একটি পৃথক সেশন ব্যবহার করে।",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "একটি স্বাধীন অনুলিপি আমদানি করতে dMsg এ লিঙ্কটি আটকান৷ প্রত্যাহার সংরক্ষিত কপি মুছে ফেলতে পারে না।",
   "Save attachment": "সংযুক্তি সংরক্ষণ করুন",
   "Notes": "নোট",
@@ -606,13 +621,8 @@ export default {
   'No account needed': 'অ্যাকাউন্ট লাগবে না',
   'Nothing to install': 'কিছু ইনস্টল করতে হবে না',
   'Decrypted only in your browser': 'শুধু আপনার ব্রাউজারে ডিক্রিপ্ট হয়',
-  'Send your own files this way': 'আপনার নিজের ফাইলও এভাবে পাঠান',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'এমন লিঙ্কে ফাইল শেয়ার করুন যার মেয়াদ শেষ হতে পারে, যা পাসওয়ার্ড চাইতে পারে বা বাতিল করা যায়।',
-  'The person you send it to needs no account or app.':
-    'প্রাপকের অ্যাকাউন্ট বা অ্যাপ লাগে না।',
-  'Free to start, with encryption included in every plan.':
-    'বিনামূল্যে শুরু করুন, প্রতিটি প্ল্যানে এনক্রিপশন আছে।',
   'See how dMsg works': 'dMsg কীভাবে কাজ করে দেখুন',
   'Download on the App Store': 'App Store থেকে ডাউনলোড করুন',
   "A file shared with you": "আপনার সাথে শেয়ার করা একটি ফাইল",
@@ -817,9 +827,6 @@ export default {
   'Clear this list': 'এই তালিকা মুছুন',
   'Keep this page open until your files are sent.':
     'ফাইল পাঠানো শেষ না হওয়া পর্যন্ত এই পাতাটি খোলা রাখুন।',
-  'Collect files this way too': 'আপনিও এভাবে ফাইল সংগ্রহ করুন',
-  'Each person sees only what they sent.':
-    'প্রত্যেকে শুধু নিজের পাঠানো জিনিস দেখেন।',
   'Choose who gets access.': 'কে অ্যাক্সেস পাবে, তা আপনিই ঠিক করুন।',
   'Keep what matters private.': 'যা গুরুত্বপূর্ণ, তা ব্যক্তিগত রাখুন।',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1303,8 +1310,6 @@ export default {
     'এটি গোপনীয়তার সীমানা দেখায়। পণ্যের ফরম্যাট আলাদা, এবং এনক্রিপশন আকার বা সময় লুকায় না।',
   'Try a sample sentence. This illustration stays in your browser.':
     'একটি নমুনা বাক্য দিয়ে দেখুন। এই উদাহরণ আপনার ব্রাউজারেই থাকে।',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'নিজের ক্লায়েন্টদের কাছ থেকে ফাইল সংগ্রহ করতে চান? dMsg আপনাকে এরকম একটি ব্যক্তিগত আপলোড লিঙ্ক দেয়, আর যা আসে তা শুধু আপনিই খুলতে পারেন।',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg পাসওয়ার্ড, নোট ও ফাইলের জন্য একটি ব্যক্তিগত ওয়ার্কস্পেস। এগুলো ব্যক্তিগত রাখুন, এবং কে অ্যাক্সেস পাবে তা বেছে নিন।',
 } satisfies Messages

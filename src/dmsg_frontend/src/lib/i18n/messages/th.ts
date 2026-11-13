@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "เต็มหน้าจอ",
+  "Exit full screen": "ออกจากเต็มหน้าจอ",
+  "File type": "ประเภทไฟล์",
+  "Markdown document": "เอกสาร Markdown",
+  "Text document": "เอกสารข้อความ",
+  "Image": "รูปภาพ",
+  "Preview": "ดูตัวอย่าง",
+  "Read online": "อ่านออนไลน์",
+  "Show formatted text": "แสดงข้อความที่จัดรูปแบบ",
+  "Show source": "ดูต้นฉบับ",
+  "This file cannot be previewed here. You can still download it.": "ไม่สามารถดูตัวอย่างไฟล์นี้ได้ที่นี่ คุณยังดาวน์โหลดได้",
+  "This file is too large to preview here. You can download it instead.": "ไฟล์นี้ใหญ่เกินกว่าจะดูตัวอย่างได้ คุณสามารถดาวน์โหลดแทนได้",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "การอ่านหรือดาวน์โหลดใช้หนึ่งเซสชันดาวน์โหลด การบันทึกหลังอ่านไม่ใช้เซสชันเพิ่ม",
+  "Share files privately. Collect them too.": "แชร์และรับไฟล์อย่างเป็นส่วนตัว",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "รับไฟล์ผ่านลิงก์อัปโหลดส่วนตัว มีเพียงคุณที่เปิดไฟล์ที่ได้รับได้ ใช้งานได้ใน Plus ขึ้นไป",
+  "Recipients and uploaders need no account or app.": "ผู้รับและผู้อัปโหลดไม่ต้องมีบัญชีหรือติดตั้งแอป",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "เบราว์เซอร์นี้ไม่สามารถใช้พาสคีย์ได้ โปรดใช้เบราว์เซอร์เวอร์ชันล่าสุดหรือเลือก Internet Identity ใน dMsg",
   "Return to the dMsg app": "กลับไปที่แอป dMsg",
   "Continue with a passkey": "ดำเนินการต่อด้วยพาสคีย์",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity ช่วยให้แอป dMsg ดำเนินการเพื่อคุณ หน้านี้ไม่มีเซสชัน",
   "Return to the dMsg iOS app": "กลับไปที่แอป dMsg iOS",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "การลงชื่อเข้าใช้นี้จะต้องเสร็จสิ้นในแอปที่เริ่มต้น กลับไปที่ dMsg และเริ่มต้นใหม่อีกครั้ง",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "การรับที่นี่ใช้เซสชันการดาวน์โหลด การนำเข้าใน dMsg จะใช้เซสชันแยกต่างหาก",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "วางลิงก์ใน dMsg เพื่อนำเข้าสำเนาอิสระ การเพิกถอนไม่สามารถลบสำเนาที่บันทึกไว้ได้",
   "Save attachment": "บันทึกไฟล์แนบ",
   "Notes": "บันทึกย่อ",
@@ -606,13 +621,8 @@ export default {
   'No account needed': 'ไม่ต้องมีบัญชี',
   'Nothing to install': 'ไม่ต้องติดตั้ง',
   'Decrypted only in your browser': 'ถอดรหัสในเบราว์เซอร์ของคุณเท่านั้น',
-  'Send your own files this way': 'ส่งไฟล์ของคุณเองด้วยวิธีเดียวกัน',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'แชร์ไฟล์ด้วยลิงก์ที่กำหนดวันหมดอายุ ขอรหัสผ่าน หรือเพิกถอนได้',
-  'The person you send it to needs no account or app.':
-    'ผู้รับไม่ต้องมีบัญชีหรือแอป',
-  'Free to start, with encryption included in every plan.':
-    'เริ่มต้นได้ฟรี และทุกแพ็กเกจมีการเข้ารหัส',
   'See how dMsg works': 'ดูว่า dMsg ทำงานอย่างไร',
   'Download on the App Store': 'ดาวน์โหลดจาก App Store',
   "A file shared with you": "ไฟล์ที่แชร์กับคุณ",
@@ -815,8 +825,6 @@ export default {
   'Clear this list': 'ล้างรายการนี้',
   'Keep this page open until your files are sent.':
     'โปรดเปิดหน้านี้ไว้จนกว่าจะส่งไฟล์เสร็จ',
-  'Collect files this way too': 'รวบรวมไฟล์ด้วยวิธีนี้ได้เช่นกัน',
-  'Each person sees only what they sent.': 'แต่ละคนเห็นเฉพาะสิ่งที่ตนส่ง',
   'Choose who gets access.': 'เลือกได้ว่าใครเข้าถึงได้',
   'Keep what matters private.': 'เก็บสิ่งสำคัญไว้เป็นส่วนตัว',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1292,8 +1300,6 @@ export default {
     'นี่คือภาพประกอบขอบเขตความเป็นส่วนตัว รูปแบบในผลิตภัณฑ์จริงแตกต่างออกไป และการเข้ารหัสไม่ได้ซ่อนขนาดหรือเวลา',
   'Try a sample sentence. This illustration stays in your browser.':
     'ลองพิมพ์ประโยคตัวอย่าง ภาพประกอบนี้ทำงานอยู่ในเบราว์เซอร์ของคุณเท่านั้น',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'ต้องการรวบรวมไฟล์จากลูกค้าของคุณเองหรือไม่? dMsg ให้ลิงก์อัปโหลดส่วนตัวแบบนี้แก่คุณ และมีเพียงคุณเท่านั้นที่เปิดสิ่งที่ส่งเข้ามาได้',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg คือพื้นที่ทำงานส่วนตัวสำหรับรหัสผ่าน บันทึกย่อ และไฟล์ เก็บไว้เป็นส่วนตัว และเลือกได้ว่าใครเข้าถึงได้',
 } satisfies Messages

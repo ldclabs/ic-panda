@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "Skrin penuh",
+  "Exit full screen": "Keluar skrin penuh",
+  "File type": "Jenis fail",
+  "Markdown document": "Dokumen Markdown",
+  "Text document": "Dokumen teks",
+  "Image": "Imej",
+  "Preview": "Pratonton",
+  "Read online": "Baca dalam talian",
+  "Show formatted text": "Tunjukkan teks berformat",
+  "Show source": "Tunjukkan sumber",
+  "This file cannot be previewed here. You can still download it.": "Fail ini tidak boleh dipratonton di sini. Anda masih boleh memuat turunnya.",
+  "This file is too large to preview here. You can download it instead.": "Fail ini terlalu besar untuk pratonton. Anda boleh memuat turunnya.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "Membaca atau memuat turun menggunakan satu sesi muat turun. Menyimpan selepas membaca tidak menggunakan sesi tambahan.",
+  "Share files privately. Collect them too.": "Kongsi dan kumpulkan fail secara peribadi.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "Kumpulkan fail melalui pautan muat naik peribadi. Hanya anda boleh membukanya. Tersedia pada Plus dan ke atas.",
+  "Recipients and uploaders need no account or app.": "Penerima dan pemuat naik tidak memerlukan akaun atau aplikasi.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Kunci laluan tidak tersedia dalam pelayar ini. Gunakan pelayar terkini atau pilih Internet Identity dalam dMsg.",
   "Return to the dMsg app": "Kembali ke aplikasi dMsg",
   "Continue with a passkey": "Teruskan dengan kunci laluan",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity membolehkan apl dMsg bertindak untuk anda. Halaman ini tidak menyimpan sesi.",
   "Return to the dMsg iOS app": "Kembali ke apl iOS dMsg",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "Log masuk ini mesti selesai dalam apl yang memulakannya. Kembali ke dMsg dan mulakan semula.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Menerima di sini menggunakan sesi muat turun. Mengimport dalam dMsg menggunakan sesi berasingan.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Tampalkan pautan dalam dMsg untuk mengimport salinan bebas. Pembatalan tidak boleh memadam salinan yang disimpan.",
   "Save attachment": "Simpan lampiran",
   "Notes": "Nota",
@@ -606,13 +621,8 @@ export default {
   'No account needed': 'Tiada akaun diperlukan',
   'Nothing to install': 'Tiada apa untuk dipasang',
   'Decrypted only in your browser': 'Dinyahsulit hanya dalam pelayar anda',
-  'Send your own files this way': 'Hantar fail anda sendiri dengan cara ini',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Kongsi fail melalui pautan yang boleh tamat tempoh, meminta kata laluan atau dibatalkan.',
-  'The person you send it to needs no account or app.':
-    'Penerima tidak memerlukan akaun atau apl.',
-  'Free to start, with encryption included in every plan.':
-    'Percuma untuk bermula, dengan penyulitan disertakan dalam setiap pelan.',
   'See how dMsg works': 'Lihat cara dMsg berfungsi',
   'Download on the App Store': 'Muat turun di App Store',
   "A file shared with you": "Fail yang dikongsi dengan anda",
@@ -816,9 +826,6 @@ export default {
   'Clear this list': 'Kosongkan senarai ini',
   'Keep this page open until your files are sent.':
     'Biarkan halaman ini terbuka sehingga fail anda dihantar.',
-  'Collect files this way too': 'Kumpul fail dengan cara ini juga',
-  'Each person sees only what they sent.':
-    'Setiap orang hanya melihat apa yang dihantarnya.',
   'Choose who gets access.': 'Pilih siapa yang mendapat akses.',
   'Keep what matters private.': 'Kekalkan perkara penting secara peribadi.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1310,8 +1317,6 @@ export default {
     'Ini menggambarkan sempadan privasi. Format produk berbeza, dan penyulitan tidak menyembunyikan saiz atau masa.',
   'Try a sample sentence. This illustration stays in your browser.':
     'Cuba ayat sampel. Ilustrasi ini kekal dalam pelayar anda.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'Perlu mengumpul fail daripada klien anda sendiri? dMsg memberi anda pautan muat naik peribadi seperti ini, dan hanya anda boleh membuka apa yang tiba.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg ialah ruang kerja peribadi untuk kata laluan, nota dan fail. Kekalkannya peribadi, dan pilih siapa yang mendapat akses.',
 } satisfies Messages

@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "Buong screen",
+  "Exit full screen": "Lumabas sa buong screen",
+  "File type": "Uri ng file",
+  "Markdown document": "Dokumentong Markdown",
+  "Text document": "Dokumentong teksto",
+  "Image": "Larawan",
+  "Preview": "I-preview",
+  "Read online": "Basahin online",
+  "Show formatted text": "Ipakita ang naka-format na teksto",
+  "Show source": "Ipakita ang source",
+  "This file cannot be previewed here. You can still download it.": "Hindi ma-preview ang file na ito rito. Maaari mo pa rin itong i-download.",
+  "This file is too large to preview here. You can download it instead.": "Masyadong malaki ang file para i-preview rito. Maaari mo itong i-download.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "Gumagamit ng isang download session ang pagbabasa o pag-download. Walang dagdag na session kapag nag-save pagkatapos magbasa.",
+  "Share files privately. Collect them too.": "Magbahagi at mangolekta ng mga file nang pribado.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "Mangolekta ng mga file gamit ang pribadong upload link. Ikaw lang ang makakabukas ng matatanggap. Available sa Plus at mas mataas.",
+  "Recipients and uploaders need no account or app.": "Hindi kailangan ng account o app ang tatanggap at mag-a-upload.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Hindi magagamit ang mga passkey sa browser na ito. Gumamit ng na-update na browser o piliin ang Internet Identity sa dMsg.",
   "Return to the dMsg app": "Bumalik sa dMsg app",
   "Continue with a passkey": "Magpatuloy gamit ang passkey",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Hinahayaan ka ng Internet Identity na kumilos ang dMsg app para sa iyo. Walang session ang page na ito.",
   "Return to the dMsg iOS app": "Bumalik sa dMsg iOS app",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "Dapat matapos ang pag-sign-in na ito sa app na nagsimula nito. Bumalik sa dMsg at magsimulang muli.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Ang pagtanggap dito ay gumagamit ng session ng pag-download. Gumagamit ng hiwalay na session ang pag-import sa dMsg.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "I-paste ang link sa dMsg para mag-import ng independiyenteng kopya. Ang pagbawi ay hindi makakapagtanggal ng mga naka-save na kopya.",
   "Save attachment": "I-save ang attachment",
   "Notes": "Mga tala",
@@ -606,14 +621,8 @@ export default {
   'No account needed': 'Walang kailangang account',
   'Nothing to install': 'Walang kailangang i-install',
   'Decrypted only in your browser': 'Nade-decrypt lang sa browser mo',
-  'Send your own files this way':
-    'Ipadala rin ang sarili mong mga file sa ganitong paraan',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Magbahagi ng file gamit ang link na puwedeng mag-expire, humingi ng password, o bawiin.',
-  'The person you send it to needs no account or app.':
-    'Hindi kailangan ng tatanggap ng account o app.',
-  'Free to start, with encryption included in every plan.':
-    'Libreng simulan, at kasama ang encryption sa bawat plan.',
   'See how dMsg works': 'Tingnan kung paano gumagana ang dMsg',
   'Download on the App Store': 'I-download sa App Store',
   "A file shared with you": "Isang file na ibinahagi sa iyo",
@@ -817,9 +826,6 @@ export default {
   'Clear this list': 'I-clear ang listahang ito',
   'Keep this page open until your files are sent.':
     'Panatilihing bukas ang page na ito hanggang maipadala ang files mo.',
-  'Collect files this way too': 'Mangolekta rin ng files sa ganitong paraan',
-  'Each person sees only what they sent.':
-    'Ang ipinadala lang niya ang makikita ng bawat tao.',
   'Choose who gets access.': 'Ikaw ang pipili kung sino ang may access.',
   'Keep what matters private.': 'Panatilihing pribado ang mahalaga.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1322,8 +1328,6 @@ export default {
     'Inilalarawan nito ang hangganan ng privacy. Magkakaiba ang mga format ng produkto, at hindi itinatago ng encryption ang laki o oras.',
   'Try a sample sentence. This illustration stays in your browser.':
     'Subukan ang isang sample na pangungusap. Nananatili sa iyong browser ang ilustrasyong ito.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'Kailangan mo bang mangolekta ng mga file mula sa sarili mong mga kliyente? Binibigyan ka ng dMsg ng pribadong upload link na tulad nito, at ikaw lamang ang makakapagbukas ng dumarating.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'Ang dMsg ay pribadong workspace para sa mga password, tala at file. Panatilihing pribado ang mga ito, at piliin kung sino ang may access.',
 } satisfies Messages

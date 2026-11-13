@@ -1,4 +1,20 @@
 const en = {
+  "Full screen": "Full screen",
+  "Exit full screen": "Exit full screen",
+  "File type": "File type",
+  "Markdown document": "Markdown document",
+  "Text document": "Text document",
+  "Image": "Image",
+  "Preview": "Preview",
+  "Read online": "Read online",
+  "Show formatted text": "Show formatted text",
+  "Show source": "Show source",
+  "This file cannot be previewed here. You can still download it.": "This file cannot be previewed here. You can still download it.",
+  "This file is too large to preview here. You can download it instead.": "This file is too large to preview here. You can download it instead.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "Reading or downloading uses one download session. Saving after reading does not use another.",
+  "Share files privately. Collect them too.": "Share files privately. Collect them too.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.",
+  "Recipients and uploaders need no account or app.": "Recipients and uploaders need no account or app.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.",
   "Return to the dMsg app": "Return to the dMsg app",
   "Continue with a passkey": "Continue with a passkey",
@@ -28,7 +44,6 @@ const en = {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity lets the dMsg app act for you. This page keeps no session.",
   "Return to the dMsg iOS app": "Return to the dMsg iOS app",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "This sign-in must finish in the app that started it. Return to dMsg and start again.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Receiving here uses a download session. Importing in dMsg uses a separate session.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.",
   "Save attachment": "Save attachment",
   "Notes": "Notes",
@@ -730,13 +745,8 @@ const en = {
   'No account needed': 'No account needed',
   'Nothing to install': 'Nothing to install',
   'Decrypted only in your browser': 'Decrypted only in your browser',
-  'Send your own files this way': 'Send your own files this way',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Share a file by link that can expire, ask for a password or be revoked.',
-  'The person you send it to needs no account or app.':
-    'The person you send it to needs no account or app.',
-  'Free to start, with encryption included in every plan.':
-    'Free to start, with encryption included in every plan.',
   'See how dMsg works': 'See how dMsg works',
   'Download on the App Store': 'Download on the App Store',
   'A file shared with you': 'A file shared with you',
@@ -975,9 +985,6 @@ const en = {
   'Clear this list': 'Clear this list',
   'Keep this page open until your files are sent.':
     'Keep this page open until your files are sent.',
-  'Collect files this way too': 'Collect files this way too',
-  'Each person sees only what they sent.':
-    'Each person sees only what they sent.',
   'Choose who gets access.': 'Choose who gets access.',
   'Keep what matters private.': 'Keep what matters private.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1458,8 +1465,6 @@ const en = {
     'This illustrates the privacy boundary. Product formats differ, and encryption does not hide size or timing.',
   'Try a sample sentence. This illustration stays in your browser.':
     'Try a sample sentence. This illustration stays in your browser.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.',
 }

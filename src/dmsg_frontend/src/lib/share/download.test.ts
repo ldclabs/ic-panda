@@ -38,6 +38,52 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+it('reads metadata without a session, then starts one only for file content', async () => {
+  const { descriptor, grant } = await sample()
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/metadata')) {
+      const { chunks, session_expires_at, ...metadata } = grant
+      return json(metadata)
+    }
+    return url.startsWith(api) ? json(grant) : new Response(data)
+  })
+  vi.stubGlobal('fetch', fetcher)
+  const download = new ShareDownload(api, descriptor)
+  expect(await download.metadata()).toEqual(data)
+  expect(download.hasSession).toBe(false)
+  expect(fetcher.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(
+    false
+  )
+  expect(await download.bytes('chunks/0')).toEqual(data)
+  expect(download.hasSession).toBe(true)
+  expect(await download.bytes('chunks/0')).toEqual(data)
+  expect(
+    fetcher.mock.calls.filter(([, init]) => init?.method === 'POST')
+  ).toHaveLength(1)
+  expect(
+    fetcher.mock.calls.filter(([url]) => url === grant.manifest.url)
+  ).toHaveLength(1)
+})
+
+it('retries metadata URLs without opening a session and checks their digest', async () => {
+  const { descriptor, grant } = await sample()
+  let reads = 0
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.startsWith(api)) return json(grant)
+    if (reads++ === 0) return new Response(null, { status: 403 })
+    return new Response(new Uint8Array([9, 2, 3]))
+  })
+  vi.stubGlobal('fetch', fetcher)
+  await expect(
+    new ShareDownload(api, descriptor).metadata()
+  ).rejects.toMatchObject({ code: 'INTEGRITY_FAILED' })
+  const controls = fetcher.mock.calls.filter(([url]) => url.startsWith(api))
+  expect(controls.map(([url, init]) => [url, init?.method])).toEqual([
+    [`${api}/public/shares/${descriptor.share_id}/metadata`, 'GET'],
+    [`${api}/public/shares/${descriptor.share_id}/metadata`, 'GET']
+  ])
+})
+
 it('uses one session for multiple slots and renews it without another start', async () => {
   vi.useFakeTimers({ toFake: ['Date'] })
   const { descriptor, grant } = await sample()

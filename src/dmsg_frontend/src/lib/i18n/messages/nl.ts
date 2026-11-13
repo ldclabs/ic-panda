@@ -1,6 +1,22 @@
 import type { Messages } from './en'
 
 export default {
+  "Full screen": "Volledig scherm",
+  "Exit full screen": "Volledig scherm sluiten",
+  "File type": "Bestandstype",
+  "Markdown document": "Markdown-document",
+  "Text document": "Tekstdocument",
+  "Image": "Afbeelding",
+  "Preview": "Voorbeeld",
+  "Read online": "Online lezen",
+  "Show formatted text": "Opgemaakte tekst tonen",
+  "Show source": "Brontekst tonen",
+  "This file cannot be previewed here. You can still download it.": "Dit bestand kan hier niet worden bekeken. Je kunt het nog steeds downloaden.",
+  "This file is too large to preview here. You can download it instead.": "Dit bestand is te groot voor een voorbeeld. Je kunt het downloaden.",
+  "Reading or downloading uses one download session. Saving after reading does not use another.": "Lezen of downloaden gebruikt één downloadsessie. Opslaan na het lezen verbruikt geen extra sessie.",
+  "Share files privately. Collect them too.": "Deel en verzamel bestanden privé.",
+  "Collect files with a private upload link. Only you can open what arrives. Available on Plus and above.": "Verzamel bestanden via een privé-uploadlink. Alleen jij kunt ze openen. Beschikbaar vanaf Plus.",
+  "Recipients and uploaders need no account or app.": "Ontvangers en uploaders hebben geen account of app nodig.",
   "Passkeys are unavailable in this browser. Use an up-to-date browser or choose Internet Identity in dMsg.": "Passkeys zijn niet beschikbaar in deze browser. Gebruik een bijgewerkte browser of kies Internet Identity in dMsg.",
   "Return to the dMsg app": "Terug naar de dMsg-app",
   "Continue with a passkey": "Doorgaan met een toegangssleutel",
@@ -30,7 +46,6 @@ export default {
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity laat de app dMsg voor je werken. Deze pagina houdt geen sessie bij.",
   "Return to the dMsg iOS app": "Keer terug naar de dMsg iOS-app",
   "This sign-in must finish in the app that started it. Return to dMsg and start again.": "Deze aanmelding moet eindigen in de app waarmee deze is gestart. Keer terug naar dMsg en begin opnieuw.",
-  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Hier ontvangen maakt gebruik van een downloadsessie. Voor het importeren in dMsg wordt een aparte sessie gebruikt.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Plak de link in dMsg om een onafhankelijke kopie te importeren. Bij intrekking kunnen opgeslagen kopieën niet worden verwijderd.",
   "Save attachment": "Bijlage opslaan",
   "Notes": "Notities",
@@ -606,14 +621,8 @@ export default {
   'No account needed': 'Geen account nodig',
   'Nothing to install': 'Niets te installeren',
   'Decrypted only in your browser': 'Alleen in je browser ontsleuteld',
-  'Send your own files this way':
-    'Verstuur je eigen bestanden op dezelfde manier',
   'Share a file by link that can expire, ask for a password or be revoked.':
     'Deel een bestand via een link die kan verlopen, om een wachtwoord kan vragen of kan worden ingetrokken.',
-  'The person you send it to needs no account or app.':
-    'De ontvanger heeft geen account of app nodig.',
-  'Free to start, with encryption included in every plan.':
-    'Gratis beginnen, met versleuteling in elk abonnement.',
   'See how dMsg works': 'Zo werkt dMsg',
   'Download on the App Store': 'Downloaden in de App Store',
   "A file shared with you": "Een bestand dat met je is gedeeld",
@@ -818,9 +827,6 @@ export default {
   'Clear this list': 'Deze lijst wissen',
   'Keep this page open until your files are sent.':
     'Houd deze pagina open tot je bestanden zijn verstuurd.',
-  'Collect files this way too': 'Verzamel ook zo bestanden',
-  'Each person sees only what they sent.':
-    'Iedereen ziet alleen wat diegene zelf heeft verstuurd.',
   'Choose who gets access.': 'Jij bepaalt wie toegang krijgt.',
   'Keep what matters private.': 'Houd wat belangrijk is privé.',
   'Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.':
@@ -1319,8 +1325,6 @@ export default {
     'Dit illustreert de privacygrens. Productformaten verschillen, en versleuteling verbergt geen grootte of tijdstip.',
   'Try a sample sentence. This illustration stays in your browser.':
     'Probeer een voorbeeldzin. Deze illustratie blijft in je browser.',
-  'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.':
-    'Moet je bestanden van je eigen klanten verzamelen? dMsg geeft je een privé-uploadlink zoals deze, en alleen jij kunt openen wat er binnenkomt.',
   'dMsg is a private workspace for passwords, notes and files. Keep them private, and choose who gets access.':
     'dMsg is een privéwerkruimte voor wachtwoorden, notities en bestanden. Houd ze privé en kies wie toegang krijgt.',
 } satisfies Messages

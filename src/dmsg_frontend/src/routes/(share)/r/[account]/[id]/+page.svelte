@@ -3,7 +3,7 @@
   import Glyph from '$lib/components/landing/Glyph.svelte'
   import IconFile from '$lib/components/icons/IconArticleLine.svelte'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
-  import { installFor } from '$lib/downloads'
+  import FileInvite from '$lib/components/site/FileInvite.svelte'
   import { locale, t } from '$lib/i18n'
   import { readProfile, type ProfilePage } from '$lib/public-profile'
   import {
@@ -47,7 +47,6 @@
   const PHONE_HINT = 100 * 1024 * 1024
   const account = $derived(page.params['account'] ?? '')
   const requestId = $derived(page.params['id'] ?? '')
-  const install = installFor(navigator.userAgent, navigator.maxTouchPoints)
   const phone =
     /iPhone|iPad|iPod|Android/.test(navigator.userAgent) ||
     navigator.maxTouchPoints > 1
@@ -408,38 +407,7 @@
 <UtilityPage>
   {#snippet aside()}
     {#if phase !== 'loading'}
-      <aside
-        class="invite"
-        class:ready={everSent}
-        aria-labelledby="invite-title"
-        data-testid="request-invite"
-      >
-        <h2 id="invite-title">{$t('Collect files this way too')}</h2>
-        <p
-          >{$t(
-            'Need to collect files from your own clients? dMsg gives you a private upload link like this one, and only you can open what arrives.'
-          )}</p
-        >
-        <ul>
-          {#each ['The person you send it to needs no account or app.', 'Each person sees only what they sent.', 'Free to start, with encryption included in every plan.'] as const as point}
-            <li><Glyph name="check" size={16} /><span>{$t(point)}</span></li>
-          {/each}
-        </ul>
-        <div class="invite-actions">
-          <a
-            class="button primary"
-            href={install.href}
-            data-testid="request-install"
-            data-sveltekit-reload
-            ><Glyph name="download" size={18} />{$t(install.label)}</a
-          >
-          <a
-            class="button secondary"
-            href="/#collaboration"
-            data-sveltekit-reload>{$t('See how dMsg works')}</a
-          >
-        </div>
-      </aside>
+      <FileInvite kind="request" ready={everSent} />
     {/if}
   {/snippet}
 
@@ -1025,62 +993,6 @@
   .records > .link {
     justify-self: start;
     margin-top: 8px;
-  }
-  .invite {
-    margin-top: 16px;
-    padding: 24px 32px 28px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--pale);
-    font-size: 14px;
-  }
-  .invite.ready {
-    border-color: var(--action);
-  }
-  .invite h2 {
-    margin: 0 0 8px;
-    font-size: 20px;
-    font-weight: 650;
-    line-height: 1.35;
-    overflow-wrap: anywhere;
-  }
-  .invite p {
-    margin: 0;
-    color: var(--ink);
-  }
-  .invite ul {
-    display: grid;
-    gap: 8px;
-    margin: 16px 0 20px;
-    padding: 0;
-    list-style: none;
-  }
-  .invite li {
-    display: grid;
-    grid-template-columns: 16px minmax(0, 1fr);
-    gap: 8px;
-    align-items: start;
-    color: var(--ink);
-  }
-  .invite li :global(svg) {
-    margin-top: 3px;
-    color: var(--action);
-  }
-  .invite-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .invite-actions .button {
-    flex: 1 1 200px;
-    min-width: 0;
-    white-space: normal;
-    text-align: center;
-  }
-  @media (max-width: 540px) {
-    .invite {
-      padding: 20px;
-    }
   }
   @media (max-width: 400px) {
     .facts div {

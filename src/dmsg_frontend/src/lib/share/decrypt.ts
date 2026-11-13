@@ -254,6 +254,19 @@ export async function openManifest(
     throw new ShareError('INTEGRITY_FAILED', 'manifest')
   }
   const file = manifest.file
+  if (
+    !file ||
+    typeof file.name !== 'string' ||
+    typeof file.mime !== 'string' ||
+    !Number.isSafeInteger(file.size) ||
+    file.size < 0 ||
+    file.size > 100 * CHUNK ||
+    !Array.isArray(file.chunks) ||
+    file.chunks.length > 100 ||
+    typeof file.sha256 !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(file.sha256)
+  )
+    throw new ShareError('INTEGRITY_FAILED', 'file metadata')
   const expectedChunks = file.size === 0 ? 0 : Math.ceil(file.size / CHUNK)
   if (
     manifest.format !== SHARE_FORMAT ||

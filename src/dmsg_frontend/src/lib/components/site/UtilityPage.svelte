@@ -12,7 +12,15 @@
 </script>
 
 <div class="dmsg-site utility-site">
-  <a class="skip" href="#main">{$t('Skip to content')}</a>
+  <a
+    class="skip"
+    href="#main"
+    onclick={(event) => {
+      // Share and request links keep their decryption key in the fragment.
+      event.preventDefault()
+      document.getElementById('main')?.focus()
+    }}>{$t('Skip to content')}</a
+  >
   <header class="site-header">
     <div class="wrap nav-wrap"><Brand /><LocaleSwitcher /></div>
   </header>
