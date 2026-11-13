@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "linkShowProfile": "내 공개 프로필 표시",
+  "linkShowProfileHint": "이 링크가 있는 사람은 비밀번호를 입력하기 전에도 내 공개 프로필을 볼 수 있습니다.",
   "globalShortcuts": "전역 단축키",
   "globalShortcutsHint": "dMsg가 실행 중이면 다른 앱에서도 사용할 수 있습니다.",
   "shortcutOpen": "dMsg 열기",

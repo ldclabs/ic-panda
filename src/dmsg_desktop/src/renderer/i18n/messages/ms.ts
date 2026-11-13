@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "linkShowProfile": "Paparkan profil awam saya",
+  "linkShowProfileHint": "Sesiapa yang mempunyai pautan ini boleh melihat profil awam anda, walaupun sebelum memasukkan kata laluan.",
   "globalShortcuts": "Pintasan global",
   "globalShortcutsHint": "Gunakan daripada aplikasi lain semasa dMsg berjalan.",
   "shortcutOpen": "Buka dMsg",

@@ -3272,5 +3272,9 @@
 	<string>ดูว่าใครควบคุมกฎ</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>ปกป้องรหัสผ่าน บันทึกย่อ และไฟล์ด้วยการเข้ารหัสตั้งแต่ต้นทางถึงปลายทาง ซิงค์คลังนิรภัยข้ามอุปกรณ์ แชร์ไฟล์อย่างปลอดภัย และควบคุมสิทธิ์เข้าถึงของเอเจนต์ AI</string>
+	<key>Show my public profile</key>
+	<string>แสดงโปรไฟล์สาธารณะของฉัน</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>ทุกคนที่มีลิงก์นี้สามารถดูโปรไฟล์สาธารณะของคุณได้ แม้ยังไม่ได้ใส่รหัสผ่าน</string>
 </dict>
 </plist>

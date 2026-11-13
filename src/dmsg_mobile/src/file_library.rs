@@ -44,6 +44,7 @@ impl MobileEngine {
         expires_in_ms: u64,
         max_downloads: u64,
         password: Option<String>,
+        show_profile: bool,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
@@ -53,6 +54,7 @@ impl MobileEngine {
                         expires_in_ms: Some(expires_in_ms),
                         max_downloads,
                         password: password.as_deref(),
+                        show_profile,
                     };
                     link::share_link(h, &id, Some(&version), terms, &mut |_, _, _| {}).await
                 })
@@ -67,6 +69,7 @@ impl MobileEngine {
         expires_in_ms: u64,
         max_downloads: u64,
         password: Option<String>,
+        show_profile: bool,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
@@ -76,6 +79,7 @@ impl MobileEngine {
                         expires_in_ms: Some(expires_in_ms),
                         max_downloads,
                         password: password.as_deref(),
+                        show_profile,
                     };
                     link::share_backup_link(h, &upload, terms, &mut |_, _, _| {}).await
                 })

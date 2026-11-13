@@ -10,6 +10,22 @@ import {
   type ShareFile
 } from '$lib/share/decrypt'
 import SharePage from './+page.svelte'
+import { readProfile, type ProfilePage } from '$lib/public-profile'
+
+vi.mock('$lib/public-profile', () => ({ readProfile: vi.fn() }))
+const sharer = '040g2081040g2081040g'
+const sharerProfile: ProfilePage = {
+  account: sharer,
+  handle: 'alice',
+  document: {
+    id: `https://id.dmsg.net/${sharer}`,
+    protocol: 'agent-delegation/1.0',
+    controllers: [],
+    updated_at: 1,
+    name: 'Alice',
+    avatar_url: 'https://assets.example.test/avatar.png'
+  }
+}
 
 const network = vi.hoisted(() => ({
   authorize: vi.fn(),
@@ -42,6 +58,7 @@ const body =
 
 beforeEach(async () => {
   vi.clearAllMocks()
+  vi.mocked(readProfile).mockResolvedValue(sharerProfile)
   Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
     configurable: true,
     value: function (this: HTMLDialogElement) {
@@ -208,6 +225,8 @@ it('shows the full name and type before content, reads inline, and saves without
   expect(target.querySelector('.facts')).not.toHaveTextContent('Extension')
   expect(network.metadata).toHaveBeenCalledTimes(1)
   expect(network.bytes).not.toHaveBeenCalled()
+  expect(readProfile).not.toHaveBeenCalled()
+  expect(target.querySelector('[data-testid="share-author"]')).toBeNull()
   click('[data-testid="share-preview"]')
   await shown('[data-testid="share-reader"]')
   expect(target.querySelector('.reader h1')).toHaveTextContent('Project brief')
@@ -343,4 +362,88 @@ it('expands verified reading in a dialog, keeps its source view, and restores ke
     '# Project brief'
   )
   expect(network.bytes).toHaveBeenCalledTimes(1)
+})
+
+it('loads an opted-in profile independently while reading and saving remain usable', async () => {
+  descriptor.sharer_account = sharer
+  let complete!: (profile: ProfilePage) => void
+  vi.mocked(readProfile).mockReturnValue(
+    new Promise((resolve) => {
+      complete = resolve
+    })
+  )
+  start()
+  await shown('[data-testid="share-preview"]')
+  expect(readProfile).toHaveBeenCalledTimes(1)
+  expect(target.querySelector('[data-testid="share-profile"]')).toHaveAttribute(
+    'href',
+    `/${sharer}`
+  )
+  expect(
+    target.querySelector('[data-testid="share-profile"]')
+  ).toHaveTextContent('Check their public profile')
+  click('[data-testid="share-preview"]')
+  await shown('[data-testid="share-reader"]')
+  click('[data-testid="share-save"]')
+  expect(save).toHaveBeenCalledTimes(1)
+  complete(sharerProfile)
+  await vi.waitFor(() => {
+    flushSync()
+    expect(
+      target.querySelector('[data-testid="share-profile"]')
+    ).toHaveTextContent('Alice')
+  })
+  expect(
+    target.querySelector('[data-testid="share-author"] img')
+  ).toHaveAttribute('referrerpolicy', 'no-referrer')
+  expect(
+    target.querySelector('[data-testid="share-profile"]')
+  ).toHaveTextContent('@alice')
+  expect(network.bytes).toHaveBeenCalledTimes(1)
+})
+
+it('keeps the profile link and file actions when profile verification fails', async () => {
+  descriptor.sharer_account = sharer
+  vi.mocked(readProfile).mockRejectedValue(new Error('verification failed'))
+  start()
+  await shown('[data-testid="share-preview"]')
+  expect(target.querySelector('[data-testid="share-profile"]')).toHaveAttribute(
+    'href',
+    `/${sharer}`
+  )
+  expect(
+    target.querySelector('[data-testid="share-author"]')
+  ).not.toHaveTextContent('Alice')
+  expect(target.querySelector('[role="alert"]')).toBeNull()
+  click('[data-testid="share-download"]')
+  await shown('[data-testid="share-save"]')
+  expect(save).toHaveBeenCalledTimes(1)
+})
+
+it('aborts profile work when leaving and ignores a late result', async () => {
+  descriptor.sharer_account = sharer
+  let complete!: (profile: ProfilePage) => void
+  vi.mocked(readProfile).mockReturnValue(
+    new Promise((resolve) => {
+      complete = resolve
+    })
+  )
+  start()
+  await shown('[data-testid="share-preview"]')
+  const signal = vi.mocked(readProfile).mock.calls[0]![1]
+  await unmount(component!)
+  component = undefined
+  expect(signal.aborted).toBe(true)
+  complete(sharerProfile)
+  await Promise.resolve()
+  flushSync()
+  expect(target).toBeEmptyDOMElement()
+})
+
+it('ignores arbitrary profile targets and never resolves anonymous links', async () => {
+  descriptor.sharer_account = 'https://example.test/fake'
+  start()
+  await shown('[data-testid="share-preview"]')
+  expect(readProfile).not.toHaveBeenCalled()
+  expect(target.querySelector('[data-testid="share-author"]')).toBeNull()
 })

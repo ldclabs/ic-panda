@@ -212,6 +212,8 @@ export async function unwrapKey(
 export type Descriptor = {
   status: 'available' | 'expired' | 'revoked' | 'exhausted'
   share_id: string
+  /** Present only when the creator explicitly opted into a public profile link. */
+  sharer_account?: string
   upload_id: string
   object_id: string
   version_id: string

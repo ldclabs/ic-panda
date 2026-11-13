@@ -1,4 +1,5 @@
 const en = {
+  "Shared by": "Shared by",
   "Full screen": "Full screen",
   "Exit full screen": "Exit full screen",
   "File type": "File type",

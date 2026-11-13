@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "linkShowProfile": "إظهار ملفي العام",
+  "linkShowProfileHint": "يمكن لأي شخص لديه هذا الرابط رؤية ملفك العام، حتى قبل إدخال كلمة المرور.",
   "globalShortcuts": "اختصارات عامة",
   "globalShortcutsHint": "استخدمها من تطبيقات أخرى ما دام dMsg قيد التشغيل.",
   "shortcutOpen": "فتح dMsg",

@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Shared by": "Ibinahagi ni",
   "Full screen": "Buong screen",
   "Exit full screen": "Lumabas sa buong screen",
   "File type": "Uri ng file",

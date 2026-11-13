@@ -3272,5 +3272,9 @@
 	<string>See who controls the rules</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</string>
+	<key>Show my public profile</key>
+	<string>Show my public profile</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Anyone with this link can see your public profile, even before entering a password.</string>
 </dict>
 </plist>

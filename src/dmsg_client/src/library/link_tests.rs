@@ -447,3 +447,25 @@ fn print_share_vector() {
     );
     let _ = b64;
 }
+
+#[test]
+fn sharing_a_profile_is_explicit_and_survives_recovery() {
+    let mut record = LinkRecord::from_value(file_link_record()).unwrap();
+    assert!(!record.show_profile);
+    assert!(!LinkTerms::default().show_profile);
+    assert!(record.create_command(None).get("show_profile").is_none());
+    assert!(
+        serde_json::to_value(&record)
+            .unwrap()
+            .get("show_profile")
+            .is_none()
+    );
+
+    record.show_profile = true;
+    let restored = LinkRecord::from_value(serde_json::to_value(&record).unwrap()).unwrap();
+    let command = restored.create_command(Some("wrapped-key"));
+    assert_eq!(command["show_profile"], true);
+    assert_eq!(command["share_id"], record.share_id);
+    assert_eq!(command["key_wrap"], "wrapped-key");
+    assert!(command.get("sharer_account").is_none());
+}

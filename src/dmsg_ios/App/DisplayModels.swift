@@ -57,6 +57,7 @@ struct FileLink: Decodable, Identifiable {
     let password: Bool
     var state: String
     var downloads: UInt64
+    var showProfile: Bool? = nil
     var id: String { shareId }
     /// Secret snapshots are managed, and revealed, under Shared snapshots.
     var isSecretSnapshot: Bool { source?.type == "vault_snapshot" }

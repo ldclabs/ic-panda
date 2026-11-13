@@ -3272,5 +3272,9 @@
 	<string>دیکھیں قواعد پر کس کا اختیار ہے</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>پاس ورڈز، نوٹس اور فائلوں کو اینڈ ٹو اینڈ خفیہ کاری سے محفوظ کریں۔ اپنی والٹ کو آلات کے درمیان ہم آہنگ رکھیں، فائلیں محفوظ طریقے سے شیئر کریں اور AI ایجنٹس کی رسائی پر قابو رکھیں۔</string>
+	<key>Show my public profile</key>
+	<string>میرا عوامی پروفائل دکھائیں</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>جس کے پاس یہ لنک ہے وہ پاس ورڈ درج کرنے سے پہلے بھی آپ کا عوامی پروفائل دیکھ سکتا ہے۔</string>
 </dict>
 </plist>

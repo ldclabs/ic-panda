@@ -1,6 +1,7 @@
 <script lang="ts">
   import { daemonBlocked } from '../connection-gate'
   import SecretInput from '../components/SecretInput.svelte'
+  import Checkbox from '../components/Checkbox.svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { onMount, tick, untrack } from 'svelte'
@@ -103,7 +104,7 @@
     | { kind: 'editing'; error: string }
     | { kind: 'creating'; progress: { stage: string; done: number; total: number } | null }
     | { kind: 'created'; result: any }
-  let linking = $state<{ id: string; version: string | null; name: string; upload: string | null; remote: boolean; days: number; maxDownloads: number; password: string; submission: LinkSubmission } | null>(null)
+  let linking = $state<{ id: string; version: string | null; name: string; upload: string | null; remote: boolean; days: number; maxDownloads: number; password: string; showProfile: boolean; submission: LinkSubmission } | null>(null)
   const linkResult = $derived(linking?.submission.kind === 'created' ? linking.submission.result : null)
   const linkError = $derived(linking?.submission.kind === 'editing' ? linking.submission.error : '')
   type Quote = { kind: 'idle' | 'loading' } | { kind: 'ready'; value: any } | { kind: 'failed'; error: string }
@@ -640,7 +641,7 @@
 
   /** `remote` says the chunks must come down from a backup first; `upload` shares that backup instead of a library version. */
   const askLink = (id: string, version: string | null, name: string, remote: boolean, upload: string | null = null) =>
-    (linking = { id, version, name, upload, remote, days: 7, maxDownloads: 0, password: '', submission: { kind: 'editing', error: '' } })
+    (linking = { id, version, name, upload, remote, days: 7, maxDownloads: 0, password: '', showProfile: false, submission: { kind: 'editing', error: '' } })
   async function createLink() {
     if (!linking || busy || linking.submission.kind !== 'editing') return
     const draft = linking
@@ -650,7 +651,7 @@
     try {
       const result = await call('files/share_link', {
         ...(draft.upload ? { upload_id: draft.upload } : { id: draft.id, version: draft.version }),
-        expires_in_ms: draft.days * 86_400_000, max_downloads: draft.maxDownloads, password: draft.password || null
+        expires_in_ms: draft.days * 86_400_000, max_downloads: draft.maxDownloads, password: draft.password || null, show_profile: draft.showProfile
       })
       if (alive && linking === draft && draft.submission === creating) { draft.submission = { kind: 'created', result }; draft.password = '' }
     } catch (e) {
@@ -1202,6 +1203,10 @@
         <input type="number" min="0" max="1000000" bind:value={linking.maxDownloads} class="text-[13.5px] text-ink" data-testid="files-link-max" />
       </label>
       <SecretInput disabled={busy} label={t('linkPassword')} hint={t('linkPasswordHint')} bind:value={linking.password} testid="files-link-password" />
+      <div class="grid gap-1.5">
+        <Checkbox bind:checked={linking.showProfile} disabled={busy} descriptionId="files-link-profile-hint" testid="files-link-profile">{t('linkShowProfile')}</Checkbox>
+        <p id="files-link-profile-hint" class="text-[12px] text-muted">{t('linkShowProfileHint')}</p>
+      </div>
       </fieldset>
       {#if linkError}<Notice tone="danger">{linkError}</Notice>{/if}
     </div>

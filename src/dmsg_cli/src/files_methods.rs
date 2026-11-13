@@ -443,6 +443,7 @@ impl Daemon {
                         expires_in_ms: params["expires_in_ms"].as_u64(),
                         max_downloads: params["max_downloads"].as_u64().unwrap_or(0),
                         password: params["password"].as_str().filter(|p| !p.is_empty()),
+                        show_profile: params["show_profile"] == true,
                     };
                     let report = |path: Value| {
                         move |stage: &'static str, done: u64, total: u64| {

@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Shared by": "শেয়ার করেছেন",
   "Full screen": "পূর্ণ স্ক্রিন",
   "Exit full screen": "পূর্ণ স্ক্রিন থেকে বের হন",
   "File type": "ফাইলের ধরন",

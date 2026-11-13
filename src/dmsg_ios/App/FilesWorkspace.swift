@@ -133,20 +133,20 @@ extension SessionModel {
         notice = String(localized: "Transfer queued. Follow its progress in Files.")
     }
 
-    func createFileLink(_ target: FileLinkTarget, expiresInMs: UInt64, maxDownloads: UInt64, password: String?) async throws -> FileLink {
+    func createFileLink(_ target: FileLinkTarget, expiresInMs: UInt64, maxDownloads: UInt64, password: String?, showProfile: Bool) async throws -> FileLink {
         #if DEBUG
-        if uiTesting { return try await createFileLinkFixture(target, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password != nil) }
+        if uiTesting { return try await createFileLinkFixture(target, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password != nil, showProfile: showProfile) }
         #endif
         guard let engine else { throw CancellationError() }
         let result: ObjectSnapshot
         switch target.source {
         case .version(let file, let version):
             result = try await coreOperation {
-                try await engine.createFileLink(id: file, version: version, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password, operation: $0)
+                try await engine.createFileLink(id: file, version: version, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password, showProfile: showProfile, operation: $0)
             }
         case .backup(let upload):
             result = try await coreOperation {
-                try await engine.createBackupLink(upload: upload, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password, operation: $0)
+                try await engine.createBackupLink(upload: upload, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password, showProfile: showProfile, operation: $0)
             }
         }
         return try decode(result)

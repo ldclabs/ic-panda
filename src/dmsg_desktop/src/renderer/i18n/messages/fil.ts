@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "linkShowProfile": "Ipakita ang pampublikong profile ko",
+  "linkShowProfileHint": "Sinumang may link na ito ay makakakita sa pampublikong profile mo, kahit bago maglagay ng password.",
   "globalShortcuts": "Mga pandaigdigang shortcut",
   "globalShortcutsHint": "Gamitin mula sa ibang app habang tumatakbo ang dMsg.",
   "shortcutOpen": "Buksan ang dMsg",

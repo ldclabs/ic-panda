@@ -3272,5 +3272,9 @@
 	<string>Lihat siapa yang mengendalikan aturan</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>Lindungi kata sandi, catatan, dan file dengan enkripsi end-to-end. Sinkronkan brankas Anda di semua perangkat, bagikan file dengan aman, dan kendalikan akses agen AI.</string>
+	<key>Show my public profile</key>
+	<string>Tampilkan profil publik saya</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Siapa pun yang memiliki tautan ini dapat melihat profil publik Anda, bahkan sebelum memasukkan kata sandi.</string>
 </dict>
 </plist>

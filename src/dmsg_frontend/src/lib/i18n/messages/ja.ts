@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Shared by": "共有者",
   "Full screen": "全画面表示",
   "Exit full screen": "全画面表示を終了",
   "File type": "ファイル形式",

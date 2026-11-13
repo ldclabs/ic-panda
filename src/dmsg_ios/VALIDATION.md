@@ -1,5 +1,21 @@
 # iOS implementation validation
 
+## Optional profile on file links (2026-11-13)
+
+The link composer now has a default-off public-profile switch, including the
+explanation that the profile is visible before password entry. Local and cloud
+link creation pass the choice through the regenerated Rust bridge; older link
+JSON still decodes without the field. The switch is disabled during creation
+and its value survives a failed attempt.
+
+Release Rust bridge/xcframework generation and the simulator app build passed.
+On the SE-sized iOS 18.4 simulator, all 12 `FileLibraryTests` and the two existing
+local/cloud link creation UI tests passed. The test driver was corrected to tap
+the actual trailing switch instead of SwiftUI's whole-row accessibility center.
+Final terms and failure/retry screenshots were inspected. All 23 localization
+catalogs passed `scripts/ios/localizations.py`. No physical device, iPad, other
+iOS version, full iOS suite, live relay, archive or TestFlight run was performed.
+
 ## Client product copy (2026-11-13)
 
 The iOS and desktop introductions now follow the public website copy at

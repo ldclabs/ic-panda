@@ -3272,5 +3272,9 @@
 	<string>Xem ai kiểm soát các quy tắc</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>Bảo vệ mật khẩu, ghi chú và tệp bằng mã hóa đầu cuối. Đồng bộ kho bảo mật giữa các thiết bị, chia sẻ tệp an toàn và kiểm soát quyền truy cập của tác tử AI.</string>
+	<key>Show my public profile</key>
+	<string>Hiển thị hồ sơ công khai của tôi</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Bất kỳ ai có liên kết này đều có thể xem hồ sơ công khai của bạn, ngay cả trước khi nhập mật khẩu.</string>
 </dict>
 </plist>

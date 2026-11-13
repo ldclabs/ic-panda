@@ -607,7 +607,14 @@ async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
             return Ok(json!({"published":true}));
         }
         ensure(record.expires_at > crate::now_ms(), Error::ResultExpired)?;
-        return h.post(&format!("{path}/shares"),"dmsg/share/create/v1",&json!({"share_id":record.share_id,"upload_id":record.upload_id,"expires_at":record.expires_at,"max_downloads":record.max_downloads,"key_wrap":metadata["intent"]["key_wrap"]}),&Hash::new(crate::crypto::random_id())).await;
+        return h
+            .post(
+                &format!("{path}/shares"),
+                "dmsg/share/create/v1",
+                &record.create_command(metadata["intent"]["key_wrap"].as_str()),
+                &Hash::new(crate::crypto::random_id()),
+            )
+            .await;
     }
     if metadata["intent"]["kind"] == "channel" {
         ensure(

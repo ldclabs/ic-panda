@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Shared by": "공유한 사람",
   "Full screen": "전체 화면",
   "Exit full screen": "전체 화면 종료",
   "File type": "파일 형식",

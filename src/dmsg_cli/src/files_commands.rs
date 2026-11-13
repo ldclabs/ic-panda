@@ -245,6 +245,9 @@ pub enum FilesCommand {
         /// Ask for a password the link needs; the key then travels wrapped under it.
         #[arg(long)]
         password: bool,
+        /// Show your public profile to anyone who has the link.
+        #[arg(long)]
+        show_profile: bool,
     },
     /// The links this device made; --refresh reads the relay's counts and
     /// lists links other devices made.
@@ -359,6 +362,9 @@ pub enum CloudCommand {
         /// Ask for a password the link needs; the key then travels wrapped under it.
         #[arg(long)]
         password: bool,
+        /// Show your public profile to anyone who has the link.
+        #[arg(long)]
+        show_profile: bool,
     },
     /// Delete cloud copies for good; files on this device stay.
     Rm {
@@ -958,6 +964,7 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
             days,
             max_downloads,
             password,
+            show_profile,
         } => {
             if !(1..=30).contains(&days) {
                 return Err(Failure::new("INVALID_INPUT", "days must be 1 to 30"));
@@ -971,6 +978,7 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
                         "expires_in_ms": days * 86_400_000,
                         "max_downloads": max_downloads,
                         "password": link_password(password)?,
+                        "show_profile": show_profile,
                     }),
                 )
                 .await?;
@@ -981,6 +989,7 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
             days,
             max_downloads,
             password,
+            show_profile,
         }) => {
             let link = remote
                 .call(
@@ -990,6 +999,7 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
                         "expires_in_ms": days * 86_400_000,
                         "max_downloads": max_downloads,
                         "password": link_password(password)?,
+                        "show_profile": show_profile,
                     }),
                 )
                 .await?;

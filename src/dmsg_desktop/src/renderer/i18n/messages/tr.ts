@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "linkShowProfile": "Herkese açık profilimi göster",
+  "linkShowProfileHint": "Bu bağlantıya sahip herkes, parola girmeden önce bile herkese açık profilinizi görebilir.",
   "globalShortcuts": "Genel klavye kısayolları",
   "globalShortcutsHint": "dMsg çalışırken diğer uygulamalardan kullanın.",
   "shortcutOpen": "dMsg aç",

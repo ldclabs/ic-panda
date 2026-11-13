@@ -3272,5 +3272,9 @@
 	<string>誰がルールを管理しているかを見る</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>パスワード、メモ、ファイルをエンドツーエンド暗号化で保護。保管庫をデバイス間で同期し、ファイルを安全に共有し、AI エージェントのアクセスを管理できます。</string>
+	<key>Show my public profile</key>
+	<string>公開プロフィールを表示</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>このリンクを持つ人は、パスワードを入力する前でもあなたの公開プロフィールを閲覧できます。</string>
 </dict>
 </plist>

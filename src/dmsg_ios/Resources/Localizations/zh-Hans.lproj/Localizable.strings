@@ -3272,5 +3272,9 @@
 	<string>查看规则由谁控制</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>用端到端加密保护密码、笔记与文件。在已授权设备间同步保险库，安全分享文件，并为 AI 助手设置明确的访问权限。</string>
+	<key>Show my public profile</key>
+	<string>显示我的公开资料</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>持有此链接的人可以查看你的公开资料，无需先输入密码。</string>
 </dict>
 </plist>

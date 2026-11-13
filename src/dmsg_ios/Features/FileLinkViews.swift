@@ -8,6 +8,7 @@ struct FileLinkComposer: View {
     @State private var duration: UInt64 = 604_800_000
     @State private var maxDownloads: UInt64 = 0
     @State private var password = ""
+    @State private var showProfile = false
     @State private var working = false
     @State private var failure: String?
     @State private var link: FileLink?
@@ -51,6 +52,8 @@ struct FileLinkComposer: View {
             }
             SecureField("Optional password", text: $password).textInputAutocapitalization(.never).autocorrectionDisabled()
                 .accessibilityIdentifier("file.link.password")
+            Toggle("Show my public profile", isOn: $showProfile).accessibilityIdentifier("file.link.profile")
+            Text("Anyone with this link can see your public profile, even before entering a password.").font(.footnote).foregroundStyle(.secondary)
         }.disabled(working)
         if working { ProgressView("Encrypting and uploading a new copy…").accessibilityIdentifier("file.link.working") }
         if let failure { FileInlineFailure(message: failure, working: working) { submit() } }
@@ -75,7 +78,7 @@ struct FileLinkComposer: View {
         work = Task {
             defer { working = false }
             do {
-                let made = try await model.createFileLink(target, expiresInMs: duration, maxDownloads: maxDownloads, password: secret)
+                let made = try await model.createFileLink(target, expiresInMs: duration, maxDownloads: maxDownloads, password: secret, showProfile: showProfile)
                 guard stamp == model.epoch, !Task.isCancelled else { return }
                 link = made; password = ""
             } catch {

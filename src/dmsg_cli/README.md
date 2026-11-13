@@ -347,7 +347,7 @@ dmsg files share <channel> <id> [--version V] [text] | save <channel> <seq> [--t
 dmsg files backup <id|folder>... [--all-versions] | backup-status | backup-cancel <id> <version>
 dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | link <upload> [--days 7] [--max-downloads N] [--password] | rm <upload>... | verify <upload> | usage
 dmsg files evict <id> [--version V]
-dmsg files link <id> [--version V] [--days 7] [--max-downloads N] [--password] | links [--refresh] | link-revoke <share_id>
+dmsg files link <id> [--version V] [--days 7] [--max-downloads N] [--password] [--show-profile] | links [--refresh] | link-revoke <share_id>
 dmsg files request create --title T [--instructions I] [--label L] [--days 14] [--max-total-mib N] | ls [--refresh] | revoke <request>
 dmsg files request files <request> | save <upload> [--to <folder>] | rm <upload>
 dmsg files mount [--status] | unmount
@@ -672,6 +672,8 @@ lists this device's links with the counts the relay last reported, and
 with names and URLs when this device holds the account root for their encrypted management record, and otherwise by ID. `files link-revoke` accepts asynchronous cleanup;
 an expired link's copy is queued for cleanup automatically. Space returns only after physical cleanup and quota settlement. The browser page at `/s/` decrypts
 by the chunk rules of `content-v1.json`.
+
+`--show-profile` explicitly shows the creating account’s public profile on the link page, including before password entry. It is off by default; existing anonymous links stay anonymous. The choice is signed and retained when a pending share is recovered. It cannot be changed on an existing link. The website resolves the profile independently of reading or downloading the file.
 
 `files cloud link <upload>` takes the same terms and shares a backup that may
 not be on this device. The link never exposes the backup's key or ciphertext:

@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Shared by": "Compartido por",
   "Full screen": "Pantalla completa",
   "Exit full screen": "Salir de pantalla completa",
   "File type": "Tipo de archivo",

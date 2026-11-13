@@ -53,6 +53,8 @@ pub struct LinkTerms<'a> {
     /// With a password the link carries no key; the key travels wrapped
     /// under the password, and the person needs both.
     pub password: Option<&'a str>,
+    /// Explicitly disclose the creating account through its public profile.
+    pub show_profile: bool,
 }
 
 impl LinkTerms<'_> {
@@ -203,6 +205,8 @@ pub(crate) struct LinkRecord {
     pub(crate) expires_at: u64,
     pub(crate) max_downloads: u64,
     pub(crate) password: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) show_profile: bool,
     pub(crate) created_at: u64,
     pub(crate) last_checked_at: Option<u64>,
     pub(crate) revoked_at: Option<u64>,
@@ -211,6 +215,21 @@ pub(crate) struct LinkRecord {
 }
 
 impl LinkRecord {
+    /// Anonymous commands retain their original shape; opt-in is signed explicitly.
+    pub(super) fn create_command(&self, key_wrap: Option<&str>) -> Value {
+        let mut command = json!({
+            "share_id": self.share_id,
+            "upload_id": self.upload_id,
+            "expires_at": self.expires_at,
+            "max_downloads": self.max_downloads,
+            "key_wrap": key_wrap,
+        });
+        if self.show_profile {
+            command["show_profile"] = true.into();
+        }
+        command
+    }
+
     /// Read local records and decrypted cloud management with the same source
     /// rules. File links written before snapshots stored `file`/`version` at
     /// the top level; their keys, limits and observation history stay intact.
@@ -252,6 +271,8 @@ pub struct LinkView {
     pub max_downloads: u64,
     /// Opens only with its password.
     pub password: bool,
+    /// The creator explicitly chose to show their public profile.
+    pub show_profile: bool,
     /// Unix milliseconds.
     pub created_at: u64,
     /// Time this device last received cloud state; absent means never observed.
@@ -279,6 +300,8 @@ struct RemoteLink {
     expires_at: u64,
     max_downloads: u64,
     password: bool,
+    #[serde(default)]
+    show_profile: bool,
     created_at: u64,
     revoked_at: Option<u64>,
     #[serde(default)]
@@ -330,6 +353,7 @@ impl Client {
             expires_at: record.expires_at,
             max_downloads: record.max_downloads,
             password: record.password,
+            show_profile: record.show_profile,
             created_at: record.created_at,
             last_checked_at: record.last_checked_at,
             revoked_at: record.revoked_at,
@@ -575,6 +599,7 @@ async fn publish_link<H: Hold>(
         expires_at,
         max_downloads,
         password: password.is_some(),
+        show_profile: terms.show_profile,
         created_at: now,
         last_checked_at: None,
         revoked_at: None,
@@ -612,13 +637,7 @@ async fn publish_link<H: Hold>(
         .post(
             &format!("{base}/shares"),
             "dmsg/share/create/v1",
-            &json!({
-                "share_id": share_id,
-                "upload_id": upload_id,
-                "expires_at": expires_at,
-                "max_downloads": max_downloads,
-                "key_wrap": key_wrap,
-            }),
+            &link.create_command(key_wrap.as_deref()),
             &Hash::new(crate::crypto::random_id()),
         )
         .await
@@ -627,7 +646,8 @@ async fn publish_link<H: Hold>(
         Err(error) => return Err(error),
     };
     ensure(
-        published["share_id"] == share_id.as_str(),
+        published["share_id"] == share_id.as_str()
+            && published["show_profile"].as_bool().unwrap_or(false) == terms.show_profile,
         Error::IntegrityFailed,
     )?;
     let mut link = link;
@@ -678,6 +698,7 @@ pub(crate) async fn share_links_remote<H: Hold>(h: &H) -> Result<Vec<LinkView>> 
             match records.iter_mut().find(|r| r.share_id == entry.share_id) {
                 Some(record) => {
                     record.downloads = entry.downloads;
+                    record.show_profile = entry.show_profile;
                     record.last_checked_at = Some(now);
                     record.revoked_at = entry.revoked_at;
                     c.save_link(record)?;
@@ -694,6 +715,7 @@ pub(crate) async fn share_links_remote<H: Hold>(h: &H) -> Result<Vec<LinkView>> 
                     expires_at: entry.expires_at,
                     max_downloads: entry.max_downloads,
                     password: entry.password,
+                    show_profile: entry.show_profile,
                     created_at: entry.created_at,
                     last_checked_at: Some(now),
                     revoked_at: entry.revoked_at,
@@ -758,6 +780,7 @@ pub async fn share_revoke<H: Hold>(h: &H, share_id: &str) -> Result<LinkView> {
             expires_at: revoked["expires_at"].as_u64().unwrap_or(0),
             max_downloads: revoked["max_downloads"].as_u64().unwrap_or(0),
             password: revoked["password"].as_bool().unwrap_or(false),
+            show_profile: revoked["show_profile"].as_bool().unwrap_or(false),
             created_at: revoked["created_at"].as_u64().unwrap_or(0),
             last_checked_at: Some(now),
             revoked_at,

@@ -120,10 +120,11 @@ final class FileLibraryTests: XCTestCase {
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
         let made = try decoder.decode(FileLink.self, from: Data(#"""
         {"source":{"type":"file_version"},"share_id":"share","file":"file","version":"version","name":"a.png","size":2048,
-         "url":"https://dmsg.net/s/share#key","expires_at":1794000000000,"max_downloads":5,"password":false,
+         "url":"https://dmsg.net/s/share#key","expires_at":1794000000000,"max_downloads":5,"password":false,"show_profile":true,
          "created_at":1,"last_checked_at":null,"revoked_at":null,"state":"active","downloads":2}
         """#.utf8))
         XCTAssertEqual(made.id, "share")
+        XCTAssertEqual(made.showProfile, true)
         XCTAssertTrue(made.active)
         XCTAssertFalse(made.isSecretSnapshot)
         XCTAssertEqual(made.url, "https://dmsg.net/s/share#key")
@@ -134,6 +135,7 @@ final class FileLibraryTests: XCTestCase {
          "expires_at":1,"max_downloads":0,"password":true,"created_at":1,"state":"expired","downloads":9}
         """#.utf8))
         XCTAssertNil(elsewhere.url)
+        XCTAssertNil(elsewhere.showProfile)
         XCTAssertFalse(elsewhere.active)
         XCTAssertEqual(elsewhere.downloadsText, 9.formatted())
         let snapshot = try decoder.decode(FileLink.self, from: Data(#"""

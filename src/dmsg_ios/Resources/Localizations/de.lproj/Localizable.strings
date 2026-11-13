@@ -3272,5 +3272,9 @@
 	<string>Sehen, wer die Regeln kontrolliert</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>Schützen Sie Passwörter, Notizen und Dateien mit Ende-zu-Ende-Verschlüsselung. Synchronisieren Sie Ihren Tresor zwischen Geräten, teilen Sie Dateien sicher und steuern Sie den Zugriff von KI-Agenten.</string>
+	<key>Show my public profile</key>
+	<string>Mein öffentliches Profil anzeigen</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Jeder mit diesem Link kann Ihr öffentliches Profil sehen, auch vor der Eingabe eines Passworts.</string>
 </dict>
 </plist>

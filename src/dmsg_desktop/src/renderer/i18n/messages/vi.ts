@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "linkShowProfile": "Hiển thị hồ sơ công khai của tôi",
+  "linkShowProfileHint": "Bất kỳ ai có liên kết này đều có thể xem hồ sơ công khai của bạn, ngay cả trước khi nhập mật khẩu.",
   "globalShortcuts": "Phím tắt toàn cục",
   "globalShortcutsHint": "Dùng từ ứng dụng khác khi dMsg đang chạy.",
   "shortcutOpen": "Mở dMsg",

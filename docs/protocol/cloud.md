@@ -212,6 +212,10 @@ Since 2026-11-13, `GET /public/shares/:share/metadata` returns `{upload_id,expir
 
 Online reading and image preview start the existing counted content session on explicit action. Only fully verified content is displayed; saving it afterward reuses the same page-local Blob, without another transfer or session. The public metadata endpoint must be deployed before the updated website; metadata failures never fall back to a counted download.
 
+Share creation (`dmsg/share/create/v1`) optionally accepts `show_profile: true`. Anonymous creation omits it; missing/false values in existing records and projections remain anonymous, without backfilling old links. The option is part of the signed command and encrypted owner recovery record. For an available opted-in link, the public descriptor adds `sharer_account`, derived from its actual creating account. Callers cannot supply an alternate account or profile URL. Owner views expose `show_profile`; changing the choice requires a new link. This public association is visible before password entry when the creator opts in.
+
+The page links to `/<sharer_account>` and independently reads the certified public profile. Delayed, unpublished or failed profile reads do not block metadata, reading or downloading; anonymous links make no profile lookup. Profile certification verifies the account's document, while the share-to-account association comes from the service's authenticated creation record; neither labels the file as safe or proves its authorship. Deploy the service's optional-field support before updated creation clients. Existing content/crypto vectors retain their original bytes and provenance.
+
 ## File requests (2026-11-06)
 
 Plus and above can make upload-only links, `<site>/r/<account>/<request_id>#<page_key>`. The sender needs no account; `request_id` is 32 bytes of hex and `page_key` 32 bytes of base64url in the fragment, sent to no server. Formats and cross-language vectors are in `tests/vectors/client/request-v1.json`:

@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "linkShowProfile": "میرا عوامی پروفائل دکھائیں",
+  "linkShowProfileHint": "جس کے پاس یہ لنک ہے وہ پاس ورڈ درج کرنے سے پہلے بھی آپ کا عوامی پروفائل دیکھ سکتا ہے۔",
   "globalShortcuts": "عالمگیر شارٹ کٹس",
   "globalShortcutsHint": "dMsg چلنے کے دوران انہیں دوسری ایپس سے بھی استعمال کریں۔",
   "shortcutOpen": "dMsg کھولیں",

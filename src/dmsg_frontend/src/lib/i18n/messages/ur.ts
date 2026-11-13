@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Shared by": "شیئر کرنے والا",
   "Full screen": "پوری اسکرین",
   "Exit full screen": "پوری اسکرین سے نکلیں",
   "File type": "فائل کی قسم",

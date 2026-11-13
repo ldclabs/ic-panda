@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "linkShowProfile": "Mein öffentliches Profil anzeigen",
+  "linkShowProfileHint": "Jeder mit diesem Link kann Ihr öffentliches Profil sehen, auch vor der Eingabe eines Passworts.",
   "globalShortcuts": "Globale Tastenkürzel",
   "globalShortcutsHint": "Auch in anderen Apps verfügbar, solange dMsg läuft.",
   "shortcutOpen": "dMsg öffnen",

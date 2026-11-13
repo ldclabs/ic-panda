@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Shared by": "Dikongsi oleh",
   "Full screen": "Skrin penuh",
   "Exit full screen": "Keluar skrin penuh",
   "File type": "Jenis fail",

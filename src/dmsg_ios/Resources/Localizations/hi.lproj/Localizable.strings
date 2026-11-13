@@ -3272,5 +3272,9 @@
 	<string>देखें कि नियमों पर किसका नियंत्रण है</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>पासवर्ड, नोट और फ़ाइलों को एंड-टू-एंड एन्क्रिप्शन से सुरक्षित रखें। अपनी तिजोरी को सभी डिवाइस पर सिंक करें, फ़ाइलें सुरक्षित रूप से साझा करें और AI एजेंटों की पहुँच पर नियंत्रण रखें।</string>
+	<key>Show my public profile</key>
+	<string>मेरी सार्वजनिक प्रोफ़ाइल दिखाएँ</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>इस लिंक वाला कोई भी व्यक्ति पासवर्ड डालने से पहले भी आपकी सार्वजनिक प्रोफ़ाइल देख सकता है।</string>
 </dict>
 </plist>

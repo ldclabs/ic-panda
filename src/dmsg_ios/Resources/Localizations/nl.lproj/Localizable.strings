@@ -3272,5 +3272,9 @@
 	<string>Bekijk wie de regels beheert</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>Bescherm wachtwoorden, notities en bestanden met end-to-endversleuteling. Synchroniseer je kluis tussen apparaten, deel bestanden veilig en bepaal welke toegang AI-agents krijgen.</string>
+	<key>Show my public profile</key>
+	<string>Mijn openbare profiel tonen</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Iedereen met deze link kan je openbare profiel zien, zelfs voordat een wachtwoord is ingevoerd.</string>
 </dict>
 </plist>

@@ -154,7 +154,7 @@ extension SessionModel {
         setFileCloudFixture(backups)
     }
 
-    func createFileLinkFixture(_ target: FileLinkTarget, expiresInMs: UInt64, maxDownloads: UInt64, password: Bool) async throws -> FileLink {
+    func createFileLinkFixture(_ target: FileLinkTarget, expiresInMs: UInt64, maxDownloads: UInt64, password: Bool, showProfile: Bool) async throws -> FileLink {
         fixtureFileLinkAttempts += 1
         if ProcessInfo.processInfo.arguments.contains("--ui-files-link-slow") { try await Task.sleep(for: .seconds(2)) }
         if ProcessInfo.processInfo.arguments.contains("--ui-files-link-failure"), fixtureFileLinkAttempts == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
@@ -163,7 +163,7 @@ extension SessionModel {
         if case .version(let id, _) = target.source { file = id }
         let link = FileLink(shareId: share, source: .init(type: "file_version"), file: file, name: target.name, size: target.size,
             url: "https://dmsg.net/s/\(share)" + (password ? "" : "#fixture-key"), expiresAt: 1_794_000_000_000 + expiresInMs,
-            maxDownloads: maxDownloads, password: password, state: "active", downloads: 0)
+            maxDownloads: maxDownloads, password: password, state: "active", downloads: 0, showProfile: showProfile)
         fixtureFileLinks.insert(link, at: 0)
         return link
     }

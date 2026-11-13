@@ -3272,5 +3272,9 @@
 	<string>Tingnan kung sino ang kumokontrol sa mga patakaran</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>Protektahan ang mga password, tala at file gamit ang end-to-end encryption. I-sync ang iyong vault sa iba't ibang device, magbahagi ng mga file nang ligtas at kontrolin ang access ng mga AI agent.</string>
+	<key>Show my public profile</key>
+	<string>Ipakita ang pampublikong profile ko</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Sinumang may link na ito ay makakakita sa pampublikong profile mo, kahit bago maglagay ng password.</string>
 </dict>
 </plist>

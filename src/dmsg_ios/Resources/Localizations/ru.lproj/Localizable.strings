@@ -3272,5 +3272,9 @@
 	<string>Кто управляет правилами</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>Защитите пароли, заметки и файлы сквозным шифрованием. Синхронизируйте хранилище между устройствами, безопасно делитесь файлами и управляйте доступом ИИ-агентов.</string>
+	<key>Show my public profile</key>
+	<string>Показывать мой публичный профиль</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Любой, у кого есть эта ссылка, может увидеть ваш публичный профиль ещё до ввода пароля.</string>
 </dict>
 </plist>

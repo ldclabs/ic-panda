@@ -748,6 +748,7 @@ fn share_record(job: &Job) -> LinkRecord {
         expires_at: job.plan.expires_at,
         max_downloads: job.plan.max_download_sessions,
         password: job.plan.password,
+        show_profile: false,
         created_at: job.plan.created_at,
         last_checked_at: None,
         revoked_at: None,

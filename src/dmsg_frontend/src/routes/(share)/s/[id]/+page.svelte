@@ -17,6 +17,7 @@
   let alive = true
   import { page } from '$app/state'
   import FileInvite from '$lib/components/site/FileInvite.svelte'
+  import ShareAuthor from '$lib/components/site/ShareAuthor.svelte'
   import { fileType, readText, renderMarkdown } from '$lib/share/preview'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import Glyph from '$lib/components/landing/Glyph.svelte'
@@ -45,6 +46,12 @@
   const shareId = $derived(page.params['id'] ?? '')
   let phase = $state<Phase>('loading')
   let descriptor = $state<Descriptor | null>(null)
+  const sharerAccount = $derived(
+    typeof descriptor?.sharer_account === 'string' &&
+      /^[0-9a-v]{20}$/.test(descriptor.sharer_account)
+      ? descriptor.sharer_account
+      : null
+  )
   let key = $state<Uint8Array | null>(null)
   let password = $state('')
   let file = $state<ShareFile | null>(null)
@@ -431,6 +438,10 @@
         )}</li
       >
     </ul>
+
+    {#if sharerAccount && phase !== 'gone'}
+      <ShareAuthor account={sharerAccount} />
+    {/if}
 
     {#if descriptor && phase !== 'gone'}
       <dl class="facts">

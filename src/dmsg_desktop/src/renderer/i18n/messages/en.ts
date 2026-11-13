@@ -5,6 +5,8 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  "linkShowProfile": "Show my public profile",
+  "linkShowProfileHint": "Anyone with this link can see your public profile, even before entering a password.",
   "globalShortcuts": "Global shortcuts",
   "globalShortcutsHint": "Use these from other apps while dMsg is running.",
   "shortcutOpen": "Open dMsg",

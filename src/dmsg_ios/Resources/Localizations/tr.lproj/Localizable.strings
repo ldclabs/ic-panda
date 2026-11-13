@@ -3272,5 +3272,9 @@
 	<string>Kuralları kimin denetlediğine bakın</string>
 	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
 	<string>Parolaları, notları ve dosyaları uçtan uca şifrelemeyle koruyun. Kasanızı cihazlar arasında senkronize edin, dosyaları güvenle paylaşın ve AI ajanlarının erişimini denetleyin.</string>
+	<key>Show my public profile</key>
+	<string>Herkese açık profilimi göster</string>
+	<key>Anyone with this link can see your public profile, even before entering a password.</key>
+	<string>Bu bağlantıya sahip herkes, parola girmeden önce bile herkese açık profilinizi görebilir.</string>
 </dict>
 </plist>

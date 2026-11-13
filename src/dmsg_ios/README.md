@@ -1060,7 +1060,7 @@ verifying stages, and supplies task-specific retries and cancellation.
 
 **Share by link** creates a link that anyone can open in a browser, with no account
 or app. It is offered on a file row, in file details and on a cloud backup, with the
-same terms as the desktop: expiry, download limit and an optional password. A backup
+same terms as the desktop: expiry, download limit, an optional password, and an off-by-default choice to show the creating account’s public profile. The choice explains that profile visibility precedes password entry; existing anonymous links remain anonymous. A backup
 that is not on this device is fetched only to encrypt the new copy, which the sheet
 explains; the library does not change. Files over 100 MiB explain why they cannot be
 shared. **Share links** in the tools menu and in file details list links with their

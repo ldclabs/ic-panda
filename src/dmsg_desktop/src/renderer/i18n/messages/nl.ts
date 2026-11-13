@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "linkShowProfile": "Mijn openbare profiel tonen",
+  "linkShowProfileHint": "Iedereen met deze link kan je openbare profiel zien, zelfs voordat een wachtwoord is ingevoerd.",
   "globalShortcuts": "Globale sneltoetsen",
   "globalShortcutsHint": "Gebruik deze vanuit andere apps terwijl dMsg actief is.",
   "shortcutOpen": "dMsg openen",

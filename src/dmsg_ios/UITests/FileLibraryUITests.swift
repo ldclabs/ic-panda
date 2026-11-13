@@ -381,8 +381,15 @@ final class FileRequestUITests: FileLibraryTestCase {
         let create = app.buttons["file.link.create"]
         XCTAssertTrue(create.waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["file.link.remote"].exists)
+        let profile = app.switches["file.link.profile"]
+        XCTAssertEqual(profile.value as? String, "0")
+        for _ in 0..<6 where !profile.isHittable { app.swipeUp() }
+        XCTAssertTrue(profile.isHittable)
+        // SwiftUI exposes the whole row as a switch; tap its trailing control.
+        profile.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertEqual(profile.value as? String, "1")
         capture(app, "Link terms for a local file")
-        create.tap()
+        tap(create, in: app)
         XCTAssertTrue(app.descendants(matching: .any)["file.link.working"].waitForExistence(timeout: 2))
         capture(app, "Link waits for its new encrypted copy")
         XCTAssertTrue(app.staticTexts["file.link.ready"].waitForExistence(timeout: 6))
@@ -399,9 +406,16 @@ final class FileRequestUITests: FileLibraryTestCase {
         tap(app.buttons["backup.item.fixture-old-backup"], in: app)
         tap(app.buttons["backup.link.fixture-old-backup"], in: app)
         XCTAssertTrue(app.staticTexts["file.link.remote"].waitForExistence(timeout: 5))
+        let profile = app.switches["file.link.profile"]
+        XCTAssertEqual(profile.value as? String, "0")
+        for _ in 0..<6 where !profile.isHittable { app.swipeUp() }
+        XCTAssertTrue(profile.isHittable)
+        profile.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertEqual(profile.value as? String, "1")
         capture(app, "Link terms for a backup that is not on this device")
         tap(app.buttons["file.link.create"], in: app)
         XCTAssertTrue(app.staticTexts["Connection unavailable. Your saved content stays on this device."].waitForExistence(timeout: 5))
+        XCTAssertEqual(profile.value as? String, "1")
         capture(app, "Link failure keeps its terms")
         tap(app.buttons["file.link.create"], in: app)
         XCTAssertTrue(app.staticTexts["file.link.ready"].waitForExistence(timeout: 5))
