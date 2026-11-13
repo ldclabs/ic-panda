@@ -1,7 +1,7 @@
 import { ShareError, sha256Hex, type Descriptor } from './decrypt'
 
 type Slot = { url: string; size: number; digest: string }
-type MetadataGrant = {
+export type MetadataGrant = {
   upload_id: string
   expires_at: number
   manifest: Slot
@@ -32,6 +32,17 @@ async function authorize<T>(url: string, method: 'GET' | 'POST'): Promise<T> {
   if (!response.ok)
     throw new Error(`Download authorization: ${response.status}`)
   return (await response.json()).data
+}
+
+/** Can run alongside the descriptor request; it grants no content or session. */
+export function authorizeMetadata(
+  api: string,
+  shareId: string
+): Promise<MetadataGrant> {
+  return authorize<MetadataGrant>(
+    `${api}/public/shares/${shareId}/metadata`,
+    'GET'
+  )
 }
 
 function checkSlot(
@@ -140,12 +151,13 @@ export class ShareDownload {
   }
 
   /** Read only the encrypted manifest. This never creates a counted session. */
-  async metadata(): Promise<Uint8Array> {
+  async metadata(initial?: MetadataGrant): Promise<Uint8Array> {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const grant = await authorize<MetadataGrant>(
-        `${this.api}/public/shares/${this.descriptor.share_id}/metadata`,
-        'GET'
-      )
+      // A password prompt may outlive the prefetched URL. Refresh it normally.
+      const grant =
+        attempt === 0 && initial && initial.expires_at > Date.now() + 1000
+          ? initial
+          : await authorizeMetadata(this.api, this.descriptor.share_id)
       if (
         !grant ||
         grant.upload_id !== this.descriptor.upload_id ||

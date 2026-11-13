@@ -6,8 +6,13 @@
     attachmentName,
     type SecretPackage
   } from '$lib/share/package'
-  import { ShareDownload } from '$lib/share/download'
+  import {
+    ShareDownload,
+    authorizeMetadata,
+    type MetadataGrant
+  } from '$lib/share/download'
   let downloader: ShareDownload | undefined
+  let pendingMetadata: Promise<PromiseSettledResult<MetadataGrant>> | undefined
   let counted = false
   let alive = true
   import { page } from '$app/state'
@@ -157,6 +162,11 @@
     error = ''
     try {
       if (!/^[0-9a-f]{64}$/.test(shareId)) return gone('missing')
+      // Settle both outcomes even if a password prompt or invalid link returns early.
+      pendingMetadata = authorizeMetadata(API_ORIGIN, shareId).then(
+        (value) => ({ status: 'fulfilled', value }),
+        (reason: unknown) => ({ status: 'rejected', reason })
+      )
       const found = await fetchDescriptor()
       if (!alive) return
       if (!found) return gone('missing')
@@ -186,12 +196,16 @@
 
   async function metadata() {
     if (!key || !descriptor) return
+    const prefetched = await pendingMetadata
+    pendingMetadata = undefined
+    if (!alive || !key || !descriptor) return
+    if (prefetched?.status === 'rejected') throw prefetched.reason
     downloader ??= new ShareDownload(API_ORIGIN, descriptor)
     const opened = await openManifest(
       key,
       descriptor,
       descriptor.upload_id,
-      await downloader.metadata()
+      await downloader.metadata(prefetched?.value)
     )
     if (!alive) return
     file = opened
@@ -316,6 +330,7 @@
     password = ''
     blob = null
     file = null
+    pendingMetadata = undefined
     visible = new Set()
     for (const a of secretPackage?.attachments ?? []) a.bytes.fill(0)
     secretPackage = null
@@ -393,9 +408,7 @@
 
 <UtilityPage>
   {#snippet aside()}
-    {#if phase !== 'loading'}
-      <FileInvite kind="share" ready={phase === 'done'} />
-    {/if}
+    <FileInvite kind="share" ready={phase === 'done'} />
   {/snippet}
 
   <div
@@ -419,8 +432,42 @@
       >
     </ul>
 
+    {#if descriptor && phase !== 'gone'}
+      <dl class="facts">
+        {#if file}
+          <div><dt>{$t('File')}</dt><dd><bdi>{file.name}</bdi></dd></div>
+          <div
+            ><dt>{$t('File type')}</dt><dd
+              >{type?.kind === 'markdown'
+                ? $t('Markdown document')
+                : type?.kind === 'text'
+                  ? $t('Text document')
+                  : type?.kind === 'image'
+                    ? $t('Image')
+                    : type?.mime}<span class="mime" dir="ltr"
+                >{type?.kind ? type.mime : ''}</span
+              ></dd
+            ></div
+          >
+          <div><dt>{$t('Size')}</dt><dd>{size(file.size)}</dd></div>
+        {:else}
+          <div><dt>{$t('Size')}</dt><dd>{size(ciphertextSize)}</dd></div>
+        {/if}
+        <div>
+          <dt>{$t('Expires')}</dt>
+          <dd>{new Date(descriptor.expires_at).toLocaleString($locale)}</dd>
+        </div>
+        {#if descriptor.max_downloads}
+          <div>
+            <dt>{$t('Downloads')}</dt>
+            <dd>{descriptor.downloads} / {descriptor.max_downloads}</dd>
+          </div>
+        {/if}
+      </dl>
+    {/if}
+
     {#if phase === 'loading'}
-      <p class="utility-status">{$t('Loading…')}</p>
+      <p class="utility-status" role="status">{$t('Loading…')}</p>
     {:else if phase === 'gone'}
       <p class="utility-status error" role="alert">{reason}</p>
     {:else if phase === 'error'}
@@ -430,40 +477,6 @@
           onclick={load}>{$t('Try again')}</button
         >{/if}
     {:else}
-      {#if descriptor}
-        <dl class="facts">
-          {#if file}
-            <div><dt>{$t('File')}</dt><dd><bdi>{file.name}</bdi></dd></div>
-            <div
-              ><dt>{$t('File type')}</dt><dd
-                >{type?.kind === 'markdown'
-                  ? $t('Markdown document')
-                  : type?.kind === 'text'
-                    ? $t('Text document')
-                    : type?.kind === 'image'
-                      ? $t('Image')
-                      : type?.mime}<span class="mime" dir="ltr"
-                  >{type?.kind ? type.mime : ''}</span
-                ></dd
-              ></div
-            >
-            <div><dt>{$t('Size')}</dt><dd>{size(file.size)}</dd></div>
-          {:else}
-            <div><dt>{$t('Size')}</dt><dd>{size(ciphertextSize)}</dd></div>
-          {/if}
-          <div>
-            <dt>{$t('Expires')}</dt>
-            <dd>{new Date(descriptor.expires_at).toLocaleString($locale)}</dd>
-          </div>
-          {#if descriptor.max_downloads}
-            <div>
-              <dt>{$t('Downloads')}</dt>
-              <dd>{descriptor.downloads} / {descriptor.max_downloads}</dd>
-            </div>
-          {/if}
-        </dl>
-      {/if}
-
       {#if phase === 'password'}
         <form
           class="password"

@@ -406,9 +406,7 @@
 
 <UtilityPage>
   {#snippet aside()}
-    {#if phase !== 'loading'}
-      <FileInvite kind="request" ready={everSent} />
-    {/if}
+    <FileInvite kind="request" ready={everSent} />
   {/snippet}
 
   <div aria-busy={phase === 'loading' || sending}>

@@ -11,9 +11,14 @@ import {
 } from '$lib/share/decrypt'
 import SharePage from './+page.svelte'
 
-const network = vi.hoisted(() => ({ metadata: vi.fn(), bytes: vi.fn() }))
+const network = vi.hoisted(() => ({
+  authorize: vi.fn(),
+  metadata: vi.fn(),
+  bytes: vi.fn()
+}))
 vi.mock('$app/state', () => ({ page: { params: { id: 'a'.repeat(64) } } }))
 vi.mock('$lib/share/download', () => ({
+  authorizeMetadata: network.authorize,
   ShareDownload: class {
     metadata = network.metadata
     bytes = network.bytes
@@ -78,6 +83,11 @@ beforeEach(async () => {
     key: ''
   }
   network.metadata.mockResolvedValue(new Uint8Array([1]))
+  network.authorize.mockResolvedValue({
+    upload_id: descriptor.upload_id,
+    expires_at: Date.now() + 50_000,
+    manifest: { ...descriptor.manifest, url: 'https://example.test/manifest' }
+  })
   network.bytes.mockResolvedValue(new Uint8Array([1]))
   vi.mocked(openManifest).mockImplementation(async () => file)
   vi.mocked(assemble).mockImplementation(async () =>
@@ -129,6 +139,66 @@ function click(selector: string) {
   target.querySelector<HTMLButtonElement>(selector)!.click()
   flushSync()
 }
+
+it('shows the invitation immediately and public facts while parallel metadata authorization is pending', async () => {
+  let describe!: (response: unknown) => void
+  let authorize!: (grant: unknown) => void
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      () =>
+        new Promise((resolve) => {
+          describe = resolve
+        })
+    )
+  )
+  network.authorize.mockReturnValue(
+    new Promise((resolve) => {
+      authorize = resolve
+    })
+  )
+  start()
+  expect(
+    target.querySelector('[data-testid="share-invite"]')
+  ).toHaveTextContent('Collect')
+  expect(target.querySelector('[role="status"]')).toHaveTextContent('Loading')
+  expect(target.querySelector('.facts')).toBeNull()
+  expect(fetch).toHaveBeenCalledTimes(1)
+  expect(network.authorize).toHaveBeenCalledTimes(1)
+
+  describe({ ok: true, status: 200, json: async () => ({ data: descriptor }) })
+  await shown('.facts')
+  expect(target.querySelector('.facts')).toHaveTextContent('Expires')
+  expect(target.querySelector('.facts')).toHaveTextContent('0 / 1')
+  expect(target.querySelector('.facts')).not.toHaveTextContent(file.name)
+  expect(target.querySelector('[role="status"]')).toHaveTextContent('Loading')
+  expect(network.metadata).not.toHaveBeenCalled()
+  expect(network.bytes).not.toHaveBeenCalled()
+
+  const grant = {
+    upload_id: descriptor.upload_id,
+    expires_at: Date.now() + 50_000,
+    manifest: descriptor.manifest
+  }
+  authorize(grant)
+  await shown('[data-testid="share-preview"]')
+  expect(network.metadata).toHaveBeenCalledExactlyOnceWith(grant)
+  expect(target.querySelector('.facts')).toHaveTextContent(file.name)
+  expect(network.bytes).not.toHaveBeenCalled()
+})
+
+it('settles an early authorization failure without replacing the link status or hiding the invitation', async () => {
+  descriptor.status = 'revoked'
+  network.authorize.mockRejectedValue(
+    Object.assign(new Error('revoked'), { gone: 'revoked' })
+  )
+  start()
+  await shown('[role="alert"]')
+  expect(target.querySelector('[role="alert"]')).toHaveTextContent('revoked')
+  expect(target.querySelector('[data-testid="share-invite"]')).not.toBeNull()
+  expect(target.querySelector('.facts')).toBeNull()
+  expect(network.metadata).not.toHaveBeenCalled()
+})
 
 it('shows the full name and type before content, reads inline, and saves without another fetch', async () => {
   start()

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, expect, it, vi } from 'vitest'
-import { ShareDownload } from './download'
+import { ShareDownload, authorizeMetadata } from './download'
 import { sha256Hex, type Descriptor } from './decrypt'
 
 const origin = `https://${'1'.repeat(32)}.r2.cloudflarestorage.com`
@@ -36,6 +36,41 @@ const json = (data: unknown) => Response.json({ ok: true, data })
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.useRealTimers()
+})
+
+it('uses a prefetched metadata authorization without a second grant request or a session', async () => {
+  const { descriptor, grant } = await sample()
+  const fetcher = vi.fn(async (url: string) =>
+    url.startsWith(api) ? json(grant) : new Response(data)
+  )
+  vi.stubGlobal('fetch', fetcher)
+  const initial = await authorizeMetadata(api, descriptor.share_id)
+  const download = new ShareDownload(api, descriptor)
+  expect(await download.metadata(initial)).toEqual(data)
+  expect(
+    fetcher.mock.calls.filter(([url]) => url.startsWith(api))
+  ).toHaveLength(1)
+  expect(download.hasSession).toBe(false)
+})
+
+it('refreshes a prefetched metadata URL that expired while entering a password', async () => {
+  const { descriptor, grant } = await sample()
+  const fetcher = vi.fn(async (url: string) =>
+    url.startsWith(api) ? json(grant) : new Response(data)
+  )
+  vi.stubGlobal('fetch', fetcher)
+  const initial = {
+    ...grant,
+    expires_at: Date.now() - 1000,
+    manifest: { ...grant.manifest, url: origin + '/expired' }
+  }
+  const download = new ShareDownload(api, descriptor)
+  expect(await download.metadata(initial)).toEqual(data)
+  expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+    `${api}/public/shares/${descriptor.share_id}/metadata`,
+    grant.manifest.url
+  ])
+  expect(download.hasSession).toBe(false)
 })
 
 it('reads metadata without a session, then starts one only for file content', async () => {
