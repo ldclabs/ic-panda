@@ -117,6 +117,13 @@ struct FileRequestComposer: View {
         }.privateScreen().navigationTitle("New link").navigationBarTitleDisplayMode(.inline)
             // Return adds a line in these fields, so scrolling is what puts the keyboard away.
             .scrollDismissesKeyboard(.immediately)
+            #if DEBUG
+            .onAppear {
+                guard model.storePreview, title.isEmpty else { return }
+                let draft = model.storePreviewRequestDraft()
+                title = draft.title; instructions = draft.instructions; names = draft.names
+            }
+            #endif
             .toolbar {
                 if finished {
                     ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.accessibilityIdentifier("file.request.done") }

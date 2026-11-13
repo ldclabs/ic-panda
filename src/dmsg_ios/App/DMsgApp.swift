@@ -11,6 +11,7 @@ struct DMsgApp: App {
             RootView().environment(model).tint(Theme.forest)
                 #if DEBUG
                 .preferredColorScheme(model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-dark") ? .dark : nil)
+                .background { if model.storePreview { PreviewTouchInstaller() } }
                 #endif
                 .task { await model.start() }
                 .onOpenURL { url in

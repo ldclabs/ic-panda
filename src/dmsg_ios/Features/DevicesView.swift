@@ -39,6 +39,9 @@ struct DevicesView: View {
     }
 
     private func load(force: Bool = false) async {
+        #if DEBUG
+        if let fixture = model.storePreviewDevices() { devices = fixture; return }
+        #endif
         guard let engine = model.engine else { return }
         await display.load(model, kind: "account-summary", force: force) { (account: AccountDevices) in devices = account.devices }
         let account = model.session?.account, epoch = model.epoch

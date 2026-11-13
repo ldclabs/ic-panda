@@ -157,6 +157,8 @@ extension SessionModel {
     func createFileLinkFixture(_ target: FileLinkTarget, expiresInMs: UInt64, maxDownloads: UInt64, password: Bool, showProfile: Bool) async throws -> FileLink {
         fixtureFileLinkAttempts += 1
         if ProcessInfo.processInfo.arguments.contains("--ui-files-link-slow") { try await Task.sleep(for: .seconds(2)) }
+        // The preview take shows the encryption progress briefly, as a real upload would.
+        if storePreview { try await Task.sleep(for: .milliseconds(700)) }
         if ProcessInfo.processInfo.arguments.contains("--ui-files-link-failure"), fixtureFileLinkAttempts == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
         let share = "fixture-link-\(fixtureFileLinkAttempts)"
         var file: String?

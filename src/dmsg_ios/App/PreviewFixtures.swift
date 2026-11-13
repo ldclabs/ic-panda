@@ -12,11 +12,12 @@ extension SessionModel {
         let setup = ProcessInfo.processInfo.arguments.contains("--ui-setup")
         let pairing = ProcessInfo.processInfo.arguments.contains("--ui-pairing")
         let storeScreens = ProcessInfo.processInfo.arguments.contains("--ui-store-screenshots")
+        let storePreview = ProcessInfo.processInfo.arguments.contains("--ui-store-preview")
         let chinese = storeScreens && Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
         let loginExpiry: UInt64? = ProcessInfo.processInfo.arguments.contains("--ui-login-expired") ? nil : UInt64(Date.now.timeIntervalSince1970 * 1000) + (ProcessInfo.processInfo.arguments.contains("--ui-login-expiring") ? 30_000 : 86_400_000)
         installFixtures(
             SessionSnapshot(generation: 0, sequence: 0, state: welcome ? "logged_out" : setup ? "no_account" : (access ? (pairing ? "pairing_required" : "root_required") : "unlocked"), account: (setup || welcome) ? nil : "040g2081040g2081040g", deviceId: "fixture-device",
-                            pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, loginExpiresAtMs: loginExpiry, loginRenewable: passkey && !welcome && !ProcessInfo.processInfo.arguments.contains("--ui-passkey-capacity"), passkeyAvailable: passkey, setupPending: false, lastSyncAtMs: nil, syncError: nil),
+                            pendingSync: storeScreens || storePreview ? 0 : 2, conflicts: 0, approvalsWaiting: storePreview ? 0 : 1, fastUnlock: access, loginExpiresAtMs: loginExpiry, loginRenewable: passkey && !welcome && !ProcessInfo.processInfo.arguments.contains("--ui-passkey-capacity"), passkeyAvailable: passkey, setupPending: false, lastSyncAtMs: nil, syncError: nil),
             items: [
                 vaultFixtureItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: chinese ? "个人开发账号" : "Personal development account", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [],
                           fields: [VaultField(id: "username", kind: "text", label: "", section: "", value: "lin@studio.example", concealed: false),
@@ -57,6 +58,7 @@ extension SessionModel {
             reminderEntry = ReminderEntry(account: session?.account)
         }
         if storeScreens { loadStorePresentation() }
+        if storePreview { loadStorePreview() }
         if ProcessInfo.processInfo.arguments.contains("--ui-reminder-locked"), let account = session?.account {
             installFixtures(reminderFixtureState(account: account, state: "locked"), items: [])
             reminderEntry = ReminderEntry(account: account, target: .service("registration:1"))

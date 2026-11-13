@@ -1237,6 +1237,9 @@ final class SessionModel {
     }
 
     func fastUnlock() async {
+        #if DEBUG
+        if storePreview { await unlockStorePreview(); return }
+        #endif
         guard canUnlockWorkspace, let engine, !busy else { return }
         automaticUnlock.suppress()
         let operation = beginBusyOperation(.unlocking)

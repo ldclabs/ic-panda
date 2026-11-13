@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>dMsg preview plate</title>
+<style>
+/* Plate for the App Store preview: everything except the recorded screen.
+   render.mjs calls renderAt(t, lang) per frame; edit.py lays the screen over the frame box. */
+:root { --paper: #F7F8F4; --forest: #145C45; --ink: #17201C; --orange: #F2A65A; --cream: #F5F7F2; }
+html, body { margin: 0; width: 886px; height: 1920px; overflow: hidden; background: var(--paper); }
+.stage { position: absolute; inset: 0; overflow: hidden; color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  background-color: var(--paper);
+  background-image: radial-gradient(circle at 1.5px 1.5px, rgba(20, 92, 69, .09) 1.5px, transparent 1.7px);
+  background-size: 22px 22px; -webkit-font-smoothing: antialiased; }
+.cap { position: absolute; left: 56px; right: 56px; top: 104px; display: grid; gap: 16px; }
+.en .cap { text-wrap: balance; }
+body:not(.en) .stage { font-family: "PingFang SC", -apple-system, sans-serif; }
+.cap .a { white-space: pre-line; }
+.cap .q { font-size: 40px; font-weight: 500; color: var(--forest); line-height: 1.3; }
+.cap .a { font-size: 66px; font-weight: 650; line-height: 1.18; letter-spacing: -.005em; }
+.cap .s { font-size: 30px; line-height: 1.4; color: rgba(23, 32, 28, .64); }
+.en .cap .q { font-size: 38px; } .en .cap .a { font-size: 60px; letter-spacing: -.01em; } .en .cap .s { font-size: 29px; }
+.frame { position: absolute; left: 123px; top: 430px; width: 640px; height: 1391px; border-radius: 56px; background: var(--paper);
+  box-shadow: 0 0 0 1.5px rgba(20, 92, 69, .12), 0 30px 70px rgba(16, 50, 38, .16), 0 6px 18px rgba(16, 50, 38, .08); }
+.disc { position: absolute; left: 56px; right: 56px; top: 1846px; text-align: center; font-size: 24px; color: rgba(23, 32, 28, .56); }
+.endc { position: absolute; inset: 0; background: linear-gradient(#1B6B53, #104D3D); color: var(--cream); }
+.endc svg { position: absolute; left: 323px; top: 520px; width: 240px; height: 274px; overflow: visible; }
+.endc .l1 { position: absolute; left: 40px; right: 40px; top: 930px; text-align: center; font-size: 66px; font-weight: 650; }
+.en .endc .l1 { font-size: 60px; }
+.endc .brand { position: absolute; left: 0; right: 0; top: 1088px; text-align: center; font-size: 54px; font-weight: 700; letter-spacing: -.01em; }
+.endc .tag { position: absolute; left: 40px; right: 40px; top: 1168px; text-align: center; font-size: 32px; color: rgba(245, 247, 242, .82); }
+.endc .foot { position: absolute; left: 40px; right: 40px; top: 1846px; text-align: center; font-size: 24px; color: rgba(245, 247, 242, .62); }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="cap" id="cap"><div class="q" id="cq"></div><div class="a" id="ca"></div><div class="s" id="cs"></div></div>
+  <div class="frame" id="frame"></div>
+  <div class="disc" id="disc"></div>
+  <div class="endc" id="endc">
+    <svg viewBox="0 0 42 48" aria-hidden="true">
+      <defs><mask id="cut" maskUnits="userSpaceOnUse" x="-40" y="-10" width="122" height="68"><rect x="-40" y="-10" width="122" height="68" fill="#fff"/><path d="M12 17.5 18.5 24 12 30.5 5.5 24Z" stroke="#000" stroke-width="5" stroke-linejoin="round"/></mask></defs>
+      <g mask="url(#cut)" fill="#F5F7F2">
+        <path id="post" d="M4 0h4.5A1.5 1.5 0 0 1 10 1.5v45A1.5 1.5 0 0 1 8.5 48H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4Z"/>
+        <path id="dome" d="M15.5 0H18a24 24 0 0 1 0 48h-2.5a1.5 1.5 0 0 1-1.5-1.5v-45A1.5 1.5 0 0 1 15.5 0Z"/>
+      </g>
+      <circle id="pulse" cx="12" cy="24" r="6" fill="none" stroke="#F2A65A" stroke-width=".8"/>
+      <path id="dia" d="M12 17.5 18.5 24 12 30.5 5.5 24Z" fill="#F2A65A"/>
+    </svg>
+    <div class="l1" id="e1"></div><div class="brand" id="e2">dMsg</div><div class="tag" id="e3"></div><div class="foot" id="e4"></div>
+  </div>
+</div>
+<script>
+const DUR = 29.5;
+const TEXT = {
+  zh: { disc: '收取文件需要 Plus 及以上方案。', end1: '谁能访问，由你决定。', tag: 'AI 时代的私密工作台', foot: '需登录使用；部分功能需订阅。' },
+  en: { disc: 'Collecting files requires Plus or above.', end1: 'You decide who gets access.', tag: 'A private workspace for the AI era', foot: 'Sign-in required. Some features need a subscription.' }
+};
+const SCENES = [
+  { a: 0, b: 6, at: 2.25, sub: 3.0,
+    q: { zh: '密码、证件、重要文件——谁能打开？', en: 'Passwords, IDs, important files — who can open them?' },
+    ans: { zh: '只有你。', en: 'Only you.' }, s: { zh: '离开你的设备前，就已加密。', en: 'Encrypted before they leave your device.' } },
+  { a: 6, b: 12, at: 7.5, sub: 9.0,
+    q: { zh: '换台设备也能用？', en: 'Need them on another device?' },
+    ans: { zh: '密码和笔记，\n在你的设备间同步。', en: 'Your vault syncs across your devices.' },
+    s: { zh: '只有你授权的设备才能加入，随时可以移除。', en: 'Only devices you authorize can join. Remove one anytime.' } },
+  { a: 12, b: 18, at: 13.5, sub: 15.0,
+    q: { zh: '要把文件发给别人？', en: 'Sending a file to someone?' },
+    ans: { zh: '发个链接，\n到期自动失效。', en: 'Share a link that expires.' },
+    s: { zh: '对方不用注册；可限下载次数，随时撤销。', en: 'No sign-up for them. Limit downloads or revoke anytime.' } },
+  { a: 18, b: 24, at: 19.5, sub: 21.0,
+    q: { zh: '要别人把文件传给你？', en: 'Need files from someone?' },
+    ans: { zh: '发个收件链接就行。', en: 'Send them an upload link.' },
+    s: { zh: '对方不用注册，传来的文件只有你能打开。', en: 'No sign-up for them. Only you can open what arrives.' } }
+];
+const $ = (s) => document.querySelector(s);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const ease = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const out = (x) => 1 - Math.pow(1 - x, 3);
+
+window.renderAt = (T, lang) => {
+  document.body.classList.toggle('en', lang === 'en');
+  const sc = SCENES.find(s => T >= s.a && T < s.b) || SCENES[3];
+  const inA = sc.a === 0 ? 1 : seg(T, sc.a - 0.17, sc.a + 0.17);
+  const fadeOut = 1 - seg(T, sc.b - 0.17, sc.b + 0.17);
+  $('#cq').textContent = sc.q[lang]; $('#ca').textContent = sc.ans[lang]; $('#cs').textContent = sc.s[lang];
+  const qIn = sc.a === 0 ? 1 : out(seg(T, sc.a - 0.1, sc.a + 0.17));
+  $('#cq').style.opacity = inA * fadeOut;
+  $('#cq').style.transform = `translateY(${(1 - qIn) * 12}px)`;
+  $('#ca').style.opacity = seg(T, sc.at, sc.at + 0.33) * fadeOut;
+  $('#cs').style.opacity = seg(T, sc.sub, sc.sub + 0.27) * fadeOut;
+  $('#disc').textContent = TEXT[lang].disc;
+  $('#disc').style.opacity = seg(T, 17.83, 18.17) * (1 - seg(T, 23.83, 24.17));
+  const endO = seg(T, 24.0, 24.5);
+  $('#endc').style.display = endO > 0 ? 'block' : 'none';
+  $('#endc').style.opacity = endO;
+  const close = ease(seg(T, 24.75, 25.5));
+  $('#post').setAttribute('transform', `translate(${-16 * (1 - close)} 0)`);
+  $('#dome').setAttribute('transform', `translate(${16 * (1 - close)} 0)`);
+  $('#post').style.opacity = $('#dome').style.opacity = seg(T, 24.6, 25.0);
+  $('#dia').setAttribute('transform', `translate(12 24) scale(${out(seg(T, 24.75, 25.2))}) translate(-12 -24)`);
+  const pp = seg(T, 25.5, 26.2);
+  $('#pulse').setAttribute('r', String(6 + 10 * out(pp)));
+  $('#pulse').style.opacity = T >= 25.5 ? 0.9 * (1 - pp) : 0;
+  $('#e1').textContent = TEXT[lang].end1; $('#e3').textContent = TEXT[lang].tag; $('#e4').textContent = TEXT[lang].foot;
+  $('#e1').style.opacity = seg(T, 25.5, 25.85);
+  $('#e2').style.opacity = $('#e3').style.opacity = seg(T, 26.25, 26.6);
+  $('#e4').style.opacity = seg(T, 27.0, 27.3);
+  return true;
+};
+
+// ---- temp score, 80 BPM, D major; rendered offline to 48 kHz stereo ----
+window.renderScore = async (taps) => {
+  const SR = 48000, ac = new OfflineAudioContext(2, Math.ceil(SR * DUR), SR);
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3;
+  const master = ac.createGain(); master.connect(comp).connect(ac.destination);
+  master.gain.setValueAtTime(0.9, 0); master.gain.setValueAtTime(0.9, 28.5); master.gain.linearRampToValueAtTime(0, 29.45);
+  const hz = (n) => 440 * Math.pow(2, (n - 69) / 12);
+  const N = { D2: 38, A2: 45, B2: 47, G2: 43, D3: 50, E3: 52, Fs3: 54, A3: 57, B3: 59, Cs3: 49, Cs4: 61, E4: 64, Fs4: 66, A4: 69, B4: 71, Cs5: 73, D5: 74, E5: 76, Fs5: 78, G5: 79, A5: 81 };
+  const chords = [
+    { a: 0, b: 6, bass: N.D2, notes: [N.D3, N.Fs3, N.A3, N.Cs4, N.E4], q: [N.A4, N.Cs5, N.E5], ans: [N.E5, N.D5], at: 2.25 },
+    { a: 6, b: 12, bass: N.B2 - 12, notes: [N.B2, N.D3, N.Fs3, N.A3, N.Cs4], q: [N.Fs4, N.A4, N.Cs5], ans: [N.Cs5, N.B4], at: 7.5 },
+    { a: 12, b: 18, bass: N.G2, notes: [N.G2, N.B2, N.D3, N.Fs3, N.A3], q: [N.D5, N.Fs5, N.A5], ans: [N.A5, N.G5], at: 13.5 },
+    { a: 18, b: 24, bass: N.A2 - 12, notes: [N.A2, N.D3, N.E3, N.A3], notes2: [N.A2, N.Cs3, N.E3, N.A3], q: [N.E4, N.A4, N.B4], ans: [N.B4, N.A4], at: 19.5 },
+    { a: 24, b: 29.5, bass: N.D2, notes: [N.D3, N.Fs3, N.A3, N.B3, N.E4], q: [], ans: [N.A4, N.D5], at: 25.5 }
+  ];
+  const pad = (notes, t, d) => notes.forEach(n => [-6, 6].forEach(c => {
+    const o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = hz(n); o.detune.value = c; lp.type = 'lowpass'; lp.frequency.value = 760; lp.Q.value = 0.3;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.018, t + Math.min(0.7, d / 3));
+    g.gain.setValueAtTime(0.018, t + d - 0.6); g.gain.linearRampToValueAtTime(0, t + d + 0.4);
+    o.connect(lp).connect(g).connect(master); o.start(t); o.stop(t + d + 0.5);
+  }));
+  const bass = (n, t, d) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = hz(n);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.connect(g).connect(master); o.start(t); o.stop(t + d + 0.05); };
+  const tone = (n, t, d, v, cutoff) => { const f = hz(n), g = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0008, t + d);
+    [[1, 'triangle', 1], [2, 'sine', 0.35], [3, 'sine', 0.08]].forEach(([m, type, amp]) => { const o = ac.createOscillator(), og = ac.createGain();
+      o.type = type; o.frequency.value = f * m; og.gain.value = amp; o.connect(og).connect(g); o.start(t); o.stop(t + d + 0.05); });
+    g.connect(lp).connect(master); };
+  const seal = (t, v) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine';
+    o.frequency.setValueAtTime(96, t); o.frequency.exponentialRampToValueAtTime(58, t + 0.28);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.42 * v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+    o.connect(g).connect(master); o.start(t); o.stop(t + 0.75);
+    const len = Math.floor(SR * 0.04), buf = ac.createBuffer(1, len, SR), d = buf.getChannelData(0);
+    let x = 12345; for (let i = 0; i < len; i++) { x = (x * 1103515245 + 12345) % 2147483648; d[i] = (x / 1073741824 - 1) * Math.pow(1 - i / len, 3); }
+    const s = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
+    s.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 3; ng.gain.value = 0.22 * v;
+    s.connect(bp).connect(ng).connect(master); s.start(t); };
+  const tick = (t) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = 2300;
+    g.gain.setValueAtTime(0.035, t); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.04); o.connect(g).connect(master); o.start(t); o.stop(t + 0.05); };
+  chords.forEach((c, i) => {
+    if (c.notes2) { pad(c.notes, c.a, 3); pad(c.notes2, c.a + 3, 3); } else pad(c.notes, c.a, c.b - c.a + (i === 4 ? 0 : 0.2));
+    for (let x = c.a; x < c.b - 0.01; x += 3) bass(c.bass, x, 2.8);
+    c.q.forEach((n, j) => tone(n, c.a + j * 0.375, 2.2, 0.16, 2600));
+    c.ans.forEach((n, j) => tone(n, c.at + j * 0.375, i === 4 ? 4 : 2.4, 0.2, 2600));
+    seal(c.at, i === 4 ? 1 : 0.6);
+    if (i < 4) { const tones = (c.notes2 || c.notes).map(n => n + 12); let j = 0;
+      for (let x = c.a + 3.0; x < c.b - 0.2; x += 0.375, j++) tone(tones[j % tones.length], x, 0.5, 0.045, 1800); }
+  });
+  taps.forEach(tick);
+  const buf = await ac.startRendering();
+  const L = buf.getChannelData(0), R = buf.getChannelData(1), n = buf.length, view = new DataView(new ArrayBuffer(44 + n * 4));
+  const w = (o, s) => [...s].forEach((c, i) => view.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); view.setUint32(4, 36 + n * 4, true); w(8, 'WAVEfmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, 2, true); view.setUint32(24, SR, true); view.setUint32(28, SR * 4, true); view.setUint16(32, 4, true); view.setUint16(34, 16, true);
+  w(36, 'data'); view.setUint32(40, n * 4, true);
+  for (let i = 0; i < n; i++) { view.setInt16(44 + i * 4, clamp(L[i], -1, 1) * 32767, true); view.setInt16(46 + i * 4, clamp(R[i], -1, 1) * 32767, true); }
+  let bin = ''; const bytes = new Uint8Array(view.buffer);
+  for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768));
+  return btoa(bin);
+};
+renderAt(4.5, 'zh');
+</script>
+</body>
+</html>
