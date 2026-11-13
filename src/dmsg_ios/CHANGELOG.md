@@ -5,6 +5,27 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
+## 1.2.0
+
+### Build 30 — 2026-11-13
+
+- Add an optional public profile to newly created file-sharing links, with the
+  choice shown in link details. It is off by default and existing links stay
+  anonymous. When enabled, anyone with the link can see the profile before
+  entering its password.
+- Preserve the profile choice through link restoration and recovery without
+  breaking encrypted management-record reads on previously released clients.
+  Service support must be deployed before updated clients; the public sharing
+  page is released separately.
+- Refresh workspace, backup, plan and AI-access guidance across all 23 languages.
+  Clarify that file backups are explicit and on-chain recovery must be enabled
+  in advance, uses a bound login and waiting period, and cannot recover unsynced
+  local content.
+- Limit membership reminders to the current contract's final 30 days and remove
+  replaced, ended and expired terms from reminders and pending delivery. Preserve
+  30/7/1-day reminders across refreshes and restarts without letting sandbox
+  renewals suppress formal membership reminders.
+
 ## 1.1.2 — App Review candidate
 
 ### Build 29 — 2026-11-12

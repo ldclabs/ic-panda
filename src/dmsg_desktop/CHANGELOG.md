@@ -6,6 +6,21 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.6] - 2026-11-13
+
+### File sharing
+
+- Choose whether to show your public profile when creating a file-sharing link.
+  The option is off by default and existing links stay anonymous. When enabled,
+  anyone with the link can see your profile, even before entering its password.
+- Show the saved choice in the links list and file details. The CLI supports
+  `--show-profile` for both `files link` and `files cloud link` and reports the
+  choice in link output.
+- Preserve the choice when restoring or recovering links while keeping their
+  encrypted management records readable by previously released clients.
+- Requires service support for the optional profile choice before client rollout;
+  the public sharing page is released separately.
+
 ## [1.5.5] - 2026-11-13
 
 ### Global shortcuts
@@ -852,6 +867,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.5.6]: https://github.com/ldclabs/ic-panda/compare/1.5.5...1.5.6
 [1.5.5]: https://github.com/ldclabs/ic-panda/compare/1.5.4...1.5.5
 [1.5.4]: https://github.com/ldclabs/ic-panda/compare/1.5.3...1.5.4
 [1.5.3]: https://github.com/ldclabs/ic-panda/compare/1.5.2...1.5.3
