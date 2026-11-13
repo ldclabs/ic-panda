@@ -89,5 +89,5 @@
     "indexnow": "node scripts/indexnow.mjs"
   },
   "type": "module",
-  "version": "3.4.15"
+  "version": "3.4.16"
 }

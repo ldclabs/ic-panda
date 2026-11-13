@@ -6,6 +6,42 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.5] - 2026-11-13
+
+### Global shortcuts
+
+- Configure shortcuts in Settings to open or lock dMsg from another app while
+  it is running. Defaults are Command/Ctrl + Shift + Space to open and
+  Command/Ctrl + Shift + L to lock. Opening restores the current view; locking
+  also works while the window is hidden.
+- Record, disable or restore bindings with keyboard controls. Keep working
+  shortcuts and the editable draft when a combination is unavailable or saving
+  fails, and show the saved bindings in shortcut help.
+
+### Reminders and membership
+
+- Share clearer reminder rows between the bell popover and full page, with
+  separate unread and pending-action states and housekeeping in menus. Keep
+  unavailable destinations scoped to the reminder being opened.
+- Acknowledge the displayed reminder version only after its original content
+  is visible in the focused window. Continue the same destination after unlock
+  or an explicit account switch; a failed acknowledgement does not block reading.
+- Show membership reminders only within the current contract's final 30 days.
+  Remove replaced, ended and expired terms from the list, badges and pending
+  delivery. Keep 30/7/1-day phase coverage across refreshes and restarts, and
+  prevent sandbox renewals from suppressing formal membership reminders.
+- Distinguish confirmed subscription expiry from a failed or stale membership
+  lookup. Keep unconfirmed benefits and usage from appearing current, label
+  TestFlight terms, and refresh membership before retrying usage.
+
+### Workspace guidance
+
+- Update introductions, About and plan guidance across all 23 languages around
+  the encrypted private workspace, device sync and scoped AI access. Clarify
+  explicit file backups and ICPanda DAO's governance role.
+- Explain that on-chain recovery must be enabled in advance, uses a bound login
+  and waiting period, and cannot recover unsynced local content.
+
 ## [1.5.4] - 2026-11-10
 
 ### Reminders
@@ -816,6 +852,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.5.5]: https://github.com/ldclabs/ic-panda/compare/1.5.4...1.5.5
 [1.5.4]: https://github.com/ldclabs/ic-panda/compare/1.5.3...1.5.4
 [1.5.3]: https://github.com/ldclabs/ic-panda/compare/1.5.2...1.5.3
 [1.5.2]: https://github.com/ldclabs/ic-panda/compare/1.5.1...1.5.2
