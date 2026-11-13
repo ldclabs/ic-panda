@@ -434,8 +434,6 @@
 	<string>Kontrol listesi tamamlandı</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>İfadelerinizden tamamlanan kontrol listesi. Yukarı akış durumu yalnızca sağlayıcı tarafından bağımsız olarak doğrulanabilir durumda kalır.</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>İlk yedeğinizi oluşturmak için yerel bir dosyada Buluta yedekle seçeneğini kullanın.</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>Bir dosyada Bağlantıyla paylaş seçeneğini kullanarak onu herkese gönderin. dMsg hesabı veya uygulaması gerekmez.</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>Taslağı tut ve çık</string>
 	<key>Keep existing value</key>
 	<string>Mevcut değeri koru</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>Sırlarınızı, konuşmalarınızı ve dosyalarınızı bir arada tutun. Bunları yalnızca yetkili cihazlarınız açabilir.</string>
 	<key>Key</key>
 	<string>Anahtar</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>Parola yöneticiniz geçiş anahtarını kaydetti, ancak dMsg kaydı doğrulayamadı. Başka bir anahtar oluşturmadan önce bununla giriş yapmayı deneyin.</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>Önceki mektubunuz hâlâ bekliyor. Alıcıdan masaüstünde arşivlemesini veya iOS mektup menüsünde “Başka bir mektuba izin ver” seçmesini isteyin, ardından bu mektubu yeniden deneyin.</string>
-	<key>Your private workspace.</key>
-	<string>Özel çalışma alanınız.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>Satın alımınız bu dMsg hesabına uygulandı.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>Ücretli üyeliğiniz sona erdi. Artık Free kullanıyorsunuz.</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>Satın alımınız Apple onayını bekliyor.</string>
+	<key>A private workspace for the AI era.</key>
+	<string>AI çağı için özel bir çalışma alanı.</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>Bir ICPanda DAO ürünü.</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>DAO'nun kabul ettiği bir teklif zincir üstü kodu yükseltebilir; bu yüzden yönetişim de güvendiğiniz şeyin bir parçasıdır. Uygulamalar ve bulut hizmeti bu oylamanın dışında yayınlanır ve işletilir.</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>Bir dosyayı açıkça yedekleyin, ardından bu şifreli yedeği yetkili başka bir cihaza indirin. Yerel dosya kitaplığınızın tamamı otomatik olarak yüklenmez.</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>Günlük işinize uyan depolama ve cihaz kapasitesini seçin. Yükleme bağlantısıyla dosya toplamak ve daha fazlasına yer açmak için yükseltin.</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>Harici bir AI istemcisinin okumasına izin verdiğiniz içerik, o istemcinin veri politikalarına göre de işlenir. Yalnızca görevin gerektirdiği şeylere erişim verin.</string>
+	<key>Keep what matters private.</key>
+	<string>Önemli olanı gizli tutun.</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>Bağlı giriş, bekleme süresi sonunda hesabı yalnızca zincir üzerinden kurtarma açıksa devralabilir.</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>Erişiminiz hâlâ varken hazırlanın: yetkili bir cihaz daha ekleyin ve isteğe bağlı zincir üstü kurtarma ayarlarını gözden geçirin. Zincir üstü kurtarma yeni hesaplarda varsayılan olarak kapalıdır ve kilidi hâlâ açabilen yetkili bir yönetici cihazından önceden etkinleştirilmelidir.</string>
+	<key>See how dMsg works</key>
+	<string>dMsg nasıl çalışır</string>
+	<key>See who controls the rules</key>
+	<string>Kuralları kimin denetlediğine bakın</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>Parolaları, notları ve dosyaları uçtan uca şifrelemeyle koruyun. Kasanızı cihazlar arasında senkronize edin, dosyaları güvenle paylaşın ve AI ajanlarının erişimini denetleyin.</string>
 </dict>
 </plist>

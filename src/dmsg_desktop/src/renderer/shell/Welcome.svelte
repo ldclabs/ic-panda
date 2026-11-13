@@ -93,9 +93,9 @@
         <h1 class="text-[22px] leading-tight font-semibold">{t('welcomeTitle')}</h1>
         <p class="text-[14px] leading-relaxed text-muted">{t('welcomeBody')}</p>
         <ul class="grid gap-2 text-[13.5px] text-ink-2">
-          <li class="flex items-start gap-2.5"><Icon name="channels" class="mt-0.5 shrink-0 text-forest" />{t('welcomeChannels')}</li>
           <li class="flex items-start gap-2.5"><Icon name="vault" class="mt-0.5 shrink-0 text-forest" />{t('welcomeVault')}</li>
-          <li class="flex items-start gap-2.5"><Icon name="approvals" class="mt-0.5 shrink-0 text-forest" />{t('welcomeApprovals')}</li>
+          <li class="flex items-start gap-2.5"><Icon name="file" class="mt-0.5 shrink-0 text-forest" />{t('welcomeFiles')}</li>
+          <li class="flex items-start gap-2.5"><Icon name="agents" class="mt-0.5 shrink-0 text-forest" />{t('welcomeApprovals')}</li>
         </ul>
         <div class="grid justify-items-start gap-2 pt-2">
           <button class={buttonClass('primary', 'lg')} disabled={login.phase === 'starting'} aria-busy={login.phase === 'starting'} onclick={() => startLogin()} data-testid="welcome-login">
@@ -140,6 +140,7 @@
             {/if}
           </li>
         </ul>
+        <p class="text-[12.5px] leading-relaxed text-muted" data-testid="welcome-recovery">{t('recoveryPreparation')}</p>
         <button class={buttonClass('primary', 'lg', 'justify-self-start')} onclick={onDone} data-testid="welcome-done">{t('welcomeStart')}<Icon name="chevron-end" /></button>
       </div>
     {/if}

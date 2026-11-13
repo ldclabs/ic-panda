@@ -151,6 +151,8 @@ struct AccountSecurityView: View {
     @ViewBuilder private var recoveryPolicy: some View {
         let submitted = receipts["recovery.policy"] != nil
         Section {
+            Text("Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.")
+                .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("recovery.preparation")
             Toggle("On-chain recovery", isOn: $recoveryEnabled).disabled(busy || security == nil || submitted)
             NoticeBar(text: String(localized: recoveryEnabled ? "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time." : "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content."))
             if recoveryEnabled { Stepper("\(delay) days", value: $delay, in: 1...7).disabled(busy || submitted) }

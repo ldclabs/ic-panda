@@ -45,10 +45,25 @@ struct AdvancedAccountView: View {
 struct AboutDMsgView: View {
     var body: some View {
         List {
-            LabeledContent("Version", value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))")
-            NavigationLink("Privacy policy") { PrivacyPolicyView() }
-            Link("Terms of service", destination: URL(string: "https://dmsg.net/_/terms")!)
-            Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
+            Section {
+                Text("A private workspace for the AI era.").font(.headline)
+                    .accessibilityIdentifier("about.positioning")
+                Text("Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.")
+                    .foregroundStyle(.secondary)
+                Text("A product of ICPanda DAO.").font(.footnote).foregroundStyle(.secondary)
+                Link("See how dMsg works", destination: URL(string: "https://dmsg.net/")!)
+                    .accessibilityIdentifier("about.website")
+                Link("See who controls the rules", destination: URL(string: "https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai")!)
+                    .accessibilityIdentifier("about.governance")
+                Text("A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Section {
+                LabeledContent("Version", value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))")
+                NavigationLink("Privacy policy") { PrivacyPolicyView() }
+                Link("Terms of service", destination: URL(string: "https://dmsg.net/_/terms")!)
+                Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
+            }
         }.privateScreen().navigationTitle("About dMsg")
     }
 }

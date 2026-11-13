@@ -434,8 +434,6 @@
 	<string>Danh sách kiểm tra đã hoàn thành</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Danh sách kiểm tra được hoàn thành từ báo cáo của bạn. Trạng thái ngược dòng vẫn có thể được xác minh độc lập chỉ với nhà cung cấp.</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>Chọn Sao lưu lên đám mây trên một tệp cục bộ để tạo bản sao lưu đầu tiên.</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>Chọn Chia sẻ qua liên kết trên một tệp để gửi cho bất kỳ ai. Họ không cần tài khoản hay ứng dụng dMsg.</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>Giữ bản nháp và rời đi</string>
 	<key>Keep existing value</key>
 	<string>Giữ giá trị hiện có</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>Giữ bí mật, cuộc trò chuyện và tập tin của bạn cùng nhau. Chỉ những thiết bị được ủy quyền của bạn mới có thể mở chúng.</string>
 	<key>Key</key>
 	<string>Chìa khóa</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>Trình quản lý mật khẩu đã lưu khóa truy cập nhưng dMsg chưa xác nhận được đăng ký. Hãy thử đăng nhập bằng khóa đó trước khi tạo khóa khác.</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>Thư trước của bạn vẫn đang chờ xử lý. Hãy nhờ người nhận lưu trữ thư đó trên máy tính hoặc chọn “Cho phép thư tiếp theo” trong menu thư trên iOS, rồi thử gửi lại thư này.</string>
-	<key>Your private workspace.</key>
-	<string>Không gian làm việc riêng tư của bạn.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>Giao dịch mua đã được áp dụng cho tài khoản dMsg này.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>Gói thành viên trả phí đã kết thúc. Hiện bạn đang dùng Free.</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>Giao dịch mua đang chờ Apple phê duyệt.</string>
+	<key>A private workspace for the AI era.</key>
+	<string>Không gian làm việc riêng tư cho kỷ nguyên AI.</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>Một sản phẩm của ICPanda DAO.</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>Một đề xuất được DAO thông qua có thể nâng cấp mã trên chuỗi, vì vậy quản trị cũng là một phần của những gì bạn tin tưởng. Các ứng dụng và dịch vụ đám mây được phát hành và vận hành bên ngoài cuộc bỏ phiếu đó.</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>Chủ động sao lưu một tệp, rồi tải bản sao lưu đã mã hóa đó xuống trên một thiết bị được ủy quyền khác. Toàn bộ thư viện tệp cục bộ của bạn không tự động được tải lên.</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>Chọn dung lượng lưu trữ và số thiết bị phù hợp với công việc hằng ngày. Nâng cấp để thu thập tệp bằng liên kết tải lên và có thêm dung lượng.</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>Nội dung bạn cho phép ứng dụng khách AI bên ngoài đọc cũng được xử lý theo chính sách dữ liệu của ứng dụng khách đó. Chỉ cấp quyền truy cập vào những gì nhiệm vụ cần.</string>
+	<key>Keep what matters private.</key>
+	<string>Giữ riêng tư những gì quan trọng.</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>Đăng nhập đã liên kết chỉ có thể tiếp quản sau thời gian chờ nếu đã bật khôi phục trên chuỗi.</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>Chuẩn bị khi bạn vẫn còn quyền truy cập: thêm một thiết bị được ủy quyền khác và xem lại cài đặt khôi phục trên chuỗi (tùy chọn). Khôi phục trên chuỗi mặc định tắt với tài khoản mới và phải được bật từ trước trên một thiết bị quản trị được ủy quyền vẫn có thể mở khóa.</string>
+	<key>See how dMsg works</key>
+	<string>Xem cách dMsg hoạt động</string>
+	<key>See who controls the rules</key>
+	<string>Xem ai kiểm soát các quy tắc</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>Bảo vệ mật khẩu, ghi chú và tệp bằng mã hóa đầu cuối. Đồng bộ kho bảo mật giữa các thiết bị, chia sẻ tệp an toàn và kiểm soát quyền truy cập của tác tử AI.</string>
 </dict>
 </plist>

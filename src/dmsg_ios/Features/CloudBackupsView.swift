@@ -30,7 +30,7 @@ struct CloudBackupSection: View {
                     Button("Clear search") { model.filesSearch = "" }
                 } else if model.cloudBackupsComplete {
                     ContentUnavailableView("No cloud backups", image: AppGlyph.sync.assetName,
-                        description: Text("Choose Back up to cloud from a local file to create your first backup."))
+                        description: Text("Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically."))
                 }
             }
         }

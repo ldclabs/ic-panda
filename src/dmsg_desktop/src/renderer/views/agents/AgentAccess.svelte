@@ -80,6 +80,7 @@
 
 <Dialog bind:open {title} {description} icon="agents" wide {testid}>
   <div class="grid gap-3">
+    <p class="text-[12.5px] text-muted">{t('agentContentBoundary')}</p>
     <ul class="divide-y divide-line rounded-xl border border-line">
       {#each reaching as g (g.id)}
         <li class="flex items-start gap-3 px-3 py-2">

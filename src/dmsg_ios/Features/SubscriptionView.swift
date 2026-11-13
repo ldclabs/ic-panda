@@ -118,6 +118,8 @@ struct SubscriptionView: View {
             }.accessibilityIdentifier("plan.usage")
             if model.purchases.showsControls {
                 Section("App Store subscriptions") {
+                    Text("Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.")
+                        .font(.footnote).foregroundStyle(.secondary)
                     if model.purchases.storeEnvironment == "Sandbox" {
                         Text("Test purchases do not charge you. An active paid plan takes priority.").font(.footnote).foregroundStyle(.secondary)
                     }

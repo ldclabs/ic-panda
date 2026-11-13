@@ -116,6 +116,7 @@
 {/if}
 {#if loading && !security}<p role="status" class="text-[13px] text-muted">{t('loading')}</p>{/if}
 {#if security}
+  <p class="px-5 text-[12.5px] leading-relaxed text-muted" data-testid="recovery-preparation">{t('recoveryPreparation')}</p>
   <Section title={t('onChainRecovery')} description={t(security.recovery_enabled ? 'recoveryOnHint' : 'recoveryOffHint')} icon="recovery" testid="security-recovery">
     <Pill tone={security.recovery_enabled ? 'forest' : 'neutral'}>{t(security.recovery_enabled ? 'on' : 'off')}</Pill>
     {#if security.recovery_updating}<Notice tone="warn">{t('recoveryUpdating')}</Notice>{/if}

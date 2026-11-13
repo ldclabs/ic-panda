@@ -434,8 +434,6 @@
 	<string>Controlelijst voltooid</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Checklist voltooid op basis van je verklaringen. De status bij de provider blijft alleen rechtstreeks bij de provider verifieerbaar.</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>Kies Back-up in de cloud bij een lokaal bestand om je eerste back-up te maken.</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>Kies Delen via link bij een bestand om het naar iedereen te sturen. Een dMsg-account of -app is niet nodig.</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>Concept bewaren en verlaten</string>
 	<key>Keep existing value</key>
 	<string>Bestaande waarde behouden</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>Houd je geheimen, gesprekken en bestanden bij elkaar. Alleen je geautoriseerde apparaten kunnen ze openen.</string>
 	<key>Key</key>
 	<string>Sleutel</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>Je wachtwoordmanager heeft de passkey opgeslagen, maar dMsg kon de registratie niet bevestigen. Probeer ermee in te loggen voordat je een andere maakt.</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>Je vorige brief staat nog open. Vraag de ontvanger om die in de desktop-app te archiveren of op iOS in het briefmenu “Nog een brief toestaan” te kiezen. Probeer deze brief daarna opnieuw.</string>
-	<key>Your private workspace.</key>
-	<string>Jouw privéwerkplek.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>Je aankoop is toegepast op dit dMsg-account.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>Je betaalde lidmaatschap is beëindigd. Je gebruikt nu Free.</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>Je aankoop wacht op goedkeuring van Apple.</string>
+	<key>A private workspace for the AI era.</key>
+	<string>Een privéwerkruimte voor het AI-tijdperk.</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>Een product van ICPanda DAO.</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>Een voorstel dat de DAO aanneemt, kan de on-chain code upgraden, dus governance hoort bij wat je vertrouwt. De apps en de clouddienst worden buiten die stemming uitgebracht en beheerd.</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>Maak expliciet een back-up van een bestand en download die versleutelde back-up daarna op een ander geautoriseerd apparaat. Je volledige lokale bestandsbibliotheek wordt niet automatisch geüpload.</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>Kies de opslag- en apparaatcapaciteit die bij je dagelijkse werk past. Upgrade om bestanden via een uploadlink te verzamelen en meer ruimte te krijgen.</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>Inhoud die je een externe AI-client laat lezen, valt ook onder het gegevensbeleid van die client. Geef alleen toegang tot wat de taak nodig heeft.</string>
+	<key>Keep what matters private.</key>
+	<string>Houd wat belangrijk is privé.</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>Een gekoppelde aanmelding kan het account na de wachttijd alleen overnemen als herstel via de blockchain is ingeschakeld.</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>Bereid je voor terwijl je nog toegang hebt: voeg nog een geautoriseerd apparaat toe en controleer de optionele on-chain herstelinstellingen. On-chain herstel staat voor nieuwe accounts standaard uit en moet vooraf worden ingeschakeld vanaf een geautoriseerd beheerdersapparaat dat nog kan ontgrendelen.</string>
+	<key>See how dMsg works</key>
+	<string>Zo werkt dMsg</string>
+	<key>See who controls the rules</key>
+	<string>Bekijk wie de regels beheert</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>Bescherm wachtwoorden, notities en bestanden met end-to-endversleuteling. Synchroniseer je kluis tussen apparaten, deel bestanden veilig en bepaal welke toegang AI-agents krijgen.</string>
 </dict>
 </plist>

@@ -434,8 +434,6 @@
 	<string>Список выполнен</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Список выполнен согласно вашим подтверждениям. Состояние у поставщика по-прежнему нужно проверять отдельно у него.</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>Выберите «Сохранить в облако» у локального файла, чтобы создать первую резервную копию.</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>Выберите «Поделиться ссылкой» у файла, чтобы отправить его кому угодно. Аккаунт и приложение dMsg не нужны.</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>Сохранить черновик и выйти</string>
 	<key>Keep existing value</key>
 	<string>Сохранить прежнее значение</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>Храните секреты, разговоры и файлы вместе. Открыть их могут только ваши авторизованные устройства.</string>
 	<key>Key</key>
 	<string>Ключ</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>Менеджер паролей сохранил ключ доступа, но dMsg не смог подтвердить регистрацию. Попробуйте войти с этим ключом, прежде чем создавать другой.</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>Ваше предыдущее письмо ещё ожидает обработки. Попросите получателя архивировать его в приложении для компьютера или выбрать «Разрешить ещё одно письмо» в меню письма на iOS, затем повторите отправку этого письма.</string>
-	<key>Your private workspace.</key>
-	<string>Ваше частное рабочее пространство.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>Покупка применена к этому аккаунту dMsg.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>Платная подписка закончилась. Теперь действует Free.</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>Покупка ожидает одобрения Apple.</string>
+	<key>A private workspace for the AI era.</key>
+	<string>Приватное рабочее пространство для эпохи ИИ.</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>Продукт ICPanda DAO.</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>Принятое DAO предложение может обновить ончейн-код, поэтому управление — часть того, чему вы доверяете. Приложения и облачный сервис выпускаются и работают вне этого голосования.</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>Создайте резервную копию файла явно, затем скачайте эту зашифрованную копию на другом авторизованном устройстве. Вся локальная библиотека файлов не загружается автоматически.</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>Выберите объём хранилища и число устройств под вашу повседневную работу. Перейдите на платный план, чтобы собирать файлы по ссылке для загрузки и получить больше места.</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>Содержимое, которое вы разрешили читать внешнему ИИ-клиенту, обрабатывается также по правилам этого клиента. Давайте доступ только к тому, что нужно для задачи.</string>
+	<key>Keep what matters private.</key>
+	<string>Важное — в приватности.</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>Привязанный вход может получить контроль после ожидания только при включённом восстановлении через блокчейн.</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>Подготовьтесь, пока у вас есть доступ: добавьте ещё одно авторизованное устройство и проверьте необязательные настройки ончейн-восстановления. Для новых аккаунтов ончейн-восстановление по умолчанию выключено, и его нужно включить заранее с авторизованного устройства администратора, которое ещё можно разблокировать.</string>
+	<key>See how dMsg works</key>
+	<string>Узнать о dMsg</string>
+	<key>See who controls the rules</key>
+	<string>Кто управляет правилами</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>Защитите пароли, заметки и файлы сквозным шифрованием. Синхронизируйте хранилище между устройствами, безопасно делитесь файлами и управляйте доступом ИИ-агентов.</string>
 </dict>
 </plist>

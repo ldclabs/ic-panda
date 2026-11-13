@@ -434,8 +434,6 @@
 	<string>Daftar periksa selesai</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Daftar periksa selesai dari pernyataan Anda. Status upstream tetap dapat diverifikasi secara independen hanya dengan penyedia.</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>Pilih Cadangkan ke cloud pada file lokal untuk membuat cadangan pertama.</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>Pilih Bagikan lewat tautan pada file untuk mengirimkannya kepada siapa saja. Mereka tidak memerlukan akun atau aplikasi dMsg.</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>Simpan draf dan keluar</string>
 	<key>Keep existing value</key>
 	<string>Pertahankan nilai yang ada</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>Simpan rahasia, percakapan, dan file Anda bersama-sama. Hanya perangkat resmi Anda yang dapat membukanya.</string>
 	<key>Key</key>
 	<string>Kunci</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>Pengelola kata sandi menyimpan passkey, tetapi dMsg belum dapat mengonfirmasi pendaftaran. Coba masuk dengan passkey itu sebelum membuat yang lain.</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>Surat Anda sebelumnya masih tertunda. Minta penerima mengarsipkannya di desktop atau memilih “Izinkan surat lain” dari menu surat di iOS, lalu coba kirim surat ini lagi.</string>
-	<key>Your private workspace.</key>
-	<string>Ruang kerja pribadi Anda.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>Pembelian Anda telah diterapkan ke akun dMsg ini.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>Keanggotaan berbayar Anda telah berakhir. Kini Anda menggunakan Free.</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>Pembelian Anda menunggu persetujuan Apple.</string>
+	<key>A private workspace for the AI era.</key>
+	<string>Ruang kerja pribadi untuk era AI.</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>Produk dari ICPanda DAO.</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>Proposal yang diadopsi DAO dapat meningkatkan kode on-chain, jadi tata kelola termasuk hal yang Anda percayai. Aplikasi dan layanan cloud dirilis dan dioperasikan di luar pemungutan suara tersebut.</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>Cadangkan file secara eksplisit, lalu unduh cadangan terenkripsi itu di perangkat resmi lain. Seluruh pustaka file lokal Anda tidak diunggah secara otomatis.</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>Pilih kapasitas penyimpanan dan perangkat yang sesuai dengan pekerjaan sehari-hari Anda. Tingkatkan paket untuk mengumpulkan file melalui tautan unggah dan dapatkan ruang lebih banyak.</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>Konten yang Anda izinkan dibaca oleh klien AI eksternal juga ditangani menurut kebijakan data klien tersebut. Berikan akses hanya untuk apa yang dibutuhkan tugas.</string>
+	<key>Keep what matters private.</key>
+	<string>Jaga hal penting tetap pribadi.</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>Login tertaut hanya dapat mengambil alih setelah masa tunggu jika pemulihan on-chain aktif.</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>Bersiaplah selagi Anda masih memiliki akses: tambahkan perangkat resmi lain dan tinjau pengaturan pemulihan on-chain opsional. Pemulihan on-chain nonaktif secara default untuk akun baru dan harus diaktifkan sebelumnya dari perangkat administrator resmi yang masih dapat membuka kunci.</string>
+	<key>See how dMsg works</key>
+	<string>Lihat cara kerja dMsg</string>
+	<key>See who controls the rules</key>
+	<string>Lihat siapa yang mengendalikan aturan</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>Lindungi kata sandi, catatan, dan file dengan enkripsi end-to-end. Sinkronkan brankas Anda di semua perangkat, bagikan file dengan aman, dan kendalikan akses agen AI.</string>
 </dict>
 </plist>

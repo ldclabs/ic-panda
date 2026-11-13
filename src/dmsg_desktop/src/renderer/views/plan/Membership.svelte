@@ -291,6 +291,7 @@
   {#if catalog?.wallet_quotas_error}<Notice tone="warn" failure={catalog.wallet_quotas_error} testid="wallet-quotas-error">{t('walletQuotasUnavailable')}</Notice>{/if}
   {#if paid.length}
     <Section title={t('plans')} description={t('plansHint')} icon="coins" testid="plan-cards">
+      <p class="mb-3 text-[12.5px] leading-relaxed text-muted">{t('plansValue')}</p>
       <div class="grid gap-2 lg:grid-cols-3">
         {#each paid as p (p.plan_id)}
           {@const offer = offers.get(p.plan_id)}

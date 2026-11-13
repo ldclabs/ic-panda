@@ -176,6 +176,7 @@
 {#if status?.state === 'pairing_required' || (status?.state === 'root_required' && !status.setup_pending)}
   <Section title={t('recovery')} description={t('recoveryHint')} icon="recovery">
     <div class="grid gap-3">
+      <p class="text-[12.5px] text-muted">{t('recoveryLimitsHint')}</p>
       <div class="flex flex-wrap gap-2">
         {#if status?.state === 'pairing_required'}
           <button class={buttonClass('secondary')} disabled={busy || !recovery || recovery.enabled === false || !!recovery.pending} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>

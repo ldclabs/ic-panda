@@ -38,7 +38,9 @@ struct RecoveryView: View {
             List {
                 if model.unlocked { DisplayLoadStatus(state: display) { Task { await refresh(force: true) } } }
                 if recovery?.enabled == false { NoticeBar(text: String(localized: "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.")) }
-                NoticeBar(text: String(localized: "Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered."))
+                NoticeBar(text: String(localized: "Only when on-chain recovery is enabled can a bound login take over after the waiting period."))
+                Text("Recovery uses your bound login and a waiting period. An authorized device can cancel the recovery request. Unsynced local content cannot be recovered.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 if let recovery {
                     Section {
                         LabeledContent("On-chain recovery", value: String(localized: recovery.enabled ? "Enabled" : "Disabled"))

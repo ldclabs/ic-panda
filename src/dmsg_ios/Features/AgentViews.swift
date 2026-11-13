@@ -62,6 +62,8 @@ struct AgentDetailView: View {
                 if await perform({ try await $0.pauseAgent(label: agent.label, paused: value) }) != nil { paused = value }
             } })).disabled(working)
             Section("Device permissions") {
+                Text("Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 ForEach(grants.filter { $0.grantee == agent.agentId && $0.revokedAt == nil }) { grant in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(grant.capabilities.joined(separator: "\n")).font(.caption.monospaced())

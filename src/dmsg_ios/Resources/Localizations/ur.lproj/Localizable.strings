@@ -434,8 +434,6 @@
 	<string>چیک لسٹ مکمل ہو گئی</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>آپ کے بیانات سے مکمل چیک لسٹ۔ اپ اسٹریم کی حیثیت صرف فراہم کنندہ کے ساتھ آزادانہ طور پر قابل تصدیق رہتی ہے۔</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>پہلا بیک اپ بنانے کے لیے مقامی فائل پر کلاؤڈ میں بیک اپ منتخب کریں۔</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>کسی فائل پر لنک کے ذریعے شیئر کریں منتخب کر کے اسے کسی کو بھی بھیجیں۔ اسے dMsg اکاؤنٹ یا ایپ کی ضرورت نہیں۔</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>مسودہ رکھ کر نکلیں</string>
 	<key>Keep existing value</key>
 	<string>موجودہ قدر برقرار رکھیں</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>اپنے راز، گفتگو اور فائلیں ساتھ رکھیں۔ صرف آپ کے مجاز آلات ہی انہیں کھول سکتے ہیں۔</string>
 	<key>Key</key>
 	<string>کلید</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>پاس ورڈ مینیجر نے پاس کی محفوظ کر لی، لیکن dMsg رجسٹریشن کی تصدیق نہیں کر سکا۔ دوسری بنانے سے پہلے اس سے لاگ ان کرنے کی کوشش کریں۔</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>آپ کا پچھلا خط ابھی زیر التوا ہے۔ وصول کنندہ سے اسے ڈیسک ٹاپ پر آرکائیو کرنے یا iOS میں خط کے مینو سے ”ایک اور خط کی اجازت دیں“ منتخب کرنے کو کہیں، پھر یہ خط دوبارہ بھیجیں۔</string>
-	<key>Your private workspace.</key>
-	<string>آپ کی نجی کام کی جگہ۔</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>آپ کی خریداری اس dMsg اکاؤنٹ پر لاگو کر دی گئی ہے۔</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>آپ کی بامعاوضہ رکنیت ختم ہو گئی ہے۔ اب آپ Free استعمال کر رہے ہیں۔</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>آپ کی خریداری Apple کی منظوری کی منتظر ہے۔</string>
+	<key>A private workspace for the AI era.</key>
+	<string>AI کے دور کے لیے ایک نجی ورک اسپیس۔</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>ICPanda DAO کی ایک پروڈکٹ۔</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>DAO کی منظور کردہ تجویز آن چین کوڈ کو اپ گریڈ کر سکتی ہے، اس لیے گورننس بھی اُس چیز کا حصہ ہے جس پر آپ بھروسہ کرتے ہیں۔ ایپس اور کلاؤڈ سروس اس ووٹ سے باہر جاری اور چلائی جاتی ہیں۔</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>کسی فائل کا واضح طور پر بیک اپ لیں، پھر وہ خفیہ بیک اپ کسی دوسرے مجاز آلے پر ڈاؤن لوڈ کریں۔ آپ کی پوری مقامی فائل لائبریری خود بخود اپ لوڈ نہیں ہوتی۔</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>وہ اسٹوریج اور آلات کی گنجائش منتخب کریں جو آپ کے روزمرہ کام کے مطابق ہو۔ اپ لوڈ لنک کے ذریعے فائلیں جمع کرنے اور مزید گنجائش کے لیے اپ گریڈ کریں۔</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>جس مواد کو آپ کسی بیرونی AI کلائنٹ کو پڑھنے دیتے ہیں، وہ اس کلائنٹ کی ڈیٹا پالیسیوں کے تحت بھی آتا ہے۔ صرف اتنی رسائی دیں جتنی کام کے لیے ضروری ہو۔</string>
+	<key>Keep what matters private.</key>
+	<string>جو اہم ہے اسے نجی رکھیں،</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>منسلک لاگ ان انتظار کے بعد اکاؤنٹ کا کنٹرول صرف تب لے سکتا ہے جب آن چین بازیابی فعال ہو۔</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>جب تک رسائی ہے تیاری کر لیں: ایک اور مجاز آلہ شامل کریں اور اختیاری آن چین بازیابی کی ترتیبات کا جائزہ لیں۔ نئے اکاؤنٹس کے لیے آن چین بازیابی بطور ڈیفالٹ بند ہوتی ہے اور اسے پہلے سے کسی ایسے مجاز ایڈمنسٹریٹر آلے سے فعال کرنا ضروری ہے جو اب بھی ان لاک کر سکتا ہو۔</string>
+	<key>See how dMsg works</key>
+	<string>دیکھیں dMsg کیسے کام کرتا ہے</string>
+	<key>See who controls the rules</key>
+	<string>دیکھیں قواعد پر کس کا اختیار ہے</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>پاس ورڈز، نوٹس اور فائلوں کو اینڈ ٹو اینڈ خفیہ کاری سے محفوظ کریں۔ اپنی والٹ کو آلات کے درمیان ہم آہنگ رکھیں، فائلیں محفوظ طریقے سے شیئر کریں اور AI ایجنٹس کی رسائی پر قابو رکھیں۔</string>
 </dict>
 </plist>

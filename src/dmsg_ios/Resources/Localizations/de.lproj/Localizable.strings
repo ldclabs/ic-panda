@@ -434,8 +434,6 @@
 	<string>Checkliste abgeschlossen</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Die Checkliste wurde anhand Ihrer Angaben abgeschlossen. Der Status beim Anbieter lässt sich weiterhin nur dort unabhängig überprüfen.</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>Wähle bei einer lokalen Datei In der Cloud sichern, um deine erste Sicherung zu erstellen.</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>Wählen Sie bei einer Datei „Per Link teilen“, um sie an beliebige Personen zu senden. Die Empfänger brauchen weder ein dMsg-Konto noch die App.</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>Entwurf behalten und verlassen</string>
 	<key>Keep existing value</key>
 	<string>Vorhandenen Wert behalten</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>Halten Sie Ihre Geheimnisse, Gespräche und Dateien zusammen. Nur Ihre autorisierten Geräte können sie öffnen.</string>
 	<key>Key</key>
 	<string>Schlüssel</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>Der Passwortmanager hat den Passkey gespeichert, aber dMsg konnte die Registrierung nicht bestätigen. Versuche, dich damit anzumelden, bevor du einen weiteren erstellst.</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>Dein vorheriger Brief ist noch offen. Bitte den Empfänger, ihn in der Desktop-App zu archivieren oder im Briefmenü unter iOS „Weiteren Brief erlauben“ zu wählen. Sende diesen Brief danach erneut.</string>
-	<key>Your private workspace.</key>
-	<string>Ihr privater Arbeitsbereich.</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>Ihr Kauf wurde diesem dMsg-Konto gutgeschrieben.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>Deine kostenpflichtige Mitgliedschaft ist abgelaufen. Du nutzt jetzt Free.</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>Dein Kauf wartet auf die Genehmigung von Apple.</string>
+	<key>A private workspace for the AI era.</key>
+	<string>Ein privater Arbeitsbereich für das KI-Zeitalter.</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>Ein Produkt der ICPanda DAO.</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>Ein von der DAO angenommener Vorschlag kann den On-Chain-Code aktualisieren; die Governance gehört daher zu dem, dem Sie vertrauen. Die Apps und der Cloud-Dienst werden außerhalb dieser Abstimmung veröffentlicht und betrieben.</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>Sichern Sie eine Datei ausdrücklich und laden Sie diese verschlüsselte Sicherung dann auf einem anderen autorisierten Gerät herunter. Ihre gesamte lokale Dateibibliothek wird nicht automatisch hochgeladen.</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>Wählen Sie den Speicherplatz und die Geräteanzahl, die zu Ihrer täglichen Arbeit passen. Mit einem Upgrade sammeln Sie Dateien per Upload-Link ein und erhalten mehr Platz.</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>Inhalte, die Sie einem externen KI-Client zum Lesen freigeben, werden auch nach den Datenrichtlinien dieses Clients behandelt. Gewähren Sie nur Zugriff auf das, was die Aufgabe braucht.</string>
+	<key>Keep what matters private.</key>
+	<string>Wichtiges bleibt privat.</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>Eine verknüpfte Anmeldung kann das Konto nach der Wartezeit nur bei aktivierter On-Chain-Wiederherstellung übernehmen.</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>Sorgen Sie vor, solange Sie noch Zugriff haben: Fügen Sie ein weiteres autorisiertes Gerät hinzu und prüfen Sie die optionalen Einstellungen für die On-Chain-Wiederherstellung. Die On-Chain-Wiederherstellung ist bei neuen Konten standardmäßig aus und muss vorab von einem autorisierten Administratorgerät aktiviert werden, das sich noch entsperren lässt.</string>
+	<key>See how dMsg works</key>
+	<string>So funktioniert dMsg</string>
+	<key>See who controls the rules</key>
+	<string>Sehen, wer die Regeln kontrolliert</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>Schützen Sie Passwörter, Notizen und Dateien mit Ende-zu-Ende-Verschlüsselung. Synchronisieren Sie Ihren Tresor zwischen Geräten, teilen Sie Dateien sicher und steuern Sie den Zugriff von KI-Agenten.</string>
 </dict>
 </plist>

@@ -156,6 +156,7 @@
 {#if unlocked}
   <Section title={t('serviceGrants')} description={t('serviceGrantsHint')} icon="add" testid="grants-card">
     <div class="grid gap-4">
+      <p class="text-[12.5px] text-muted">{t('agentContentBoundary')}</p>
       <div class="grid gap-3 sm:grid-cols-2">
         <Field label={t('grantee')}>
           <Select bind:value={grantee} placeholder={t('grantee')} testid="grant-agent" class="w-full" options={hosted.agents.map((a: any) => ({ value: a.agent_id, label: a.label }))} />

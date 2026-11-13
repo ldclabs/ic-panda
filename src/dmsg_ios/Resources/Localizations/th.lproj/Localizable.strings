@@ -434,8 +434,6 @@
 	<string>รายการตรวจสอบเสร็จสมบูรณ์</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>รายการตรวจสอบเสร็จสมบูรณ์ตามคำชี้แจงของคุณ สถานะฝั่งผู้ให้บริการยังต้องตรวจสอบกับผู้ให้บริการโดยตรงเท่านั้น</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>เลือกสำรองข้อมูลไปยังคลาวด์จากไฟล์ในเครื่องเพื่อสร้างข้อมูลสำรองครั้งแรก</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>เลือกแชร์ผ่านลิงก์ที่ไฟล์เพื่อส่งให้ใครก็ได้ โดยไม่ต้องมีบัญชีหรือแอป dMsg</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>เก็บฉบับร่างแล้วออก</string>
 	<key>Keep existing value</key>
 	<string>เก็บค่าเดิม</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>เก็บความลับ การสนทนา และไฟล์ของคุณไว้ด้วยกัน เฉพาะอุปกรณ์ที่ได้รับอนุญาตของคุณเท่านั้นที่สามารถเปิดได้</string>
 	<key>Key</key>
 	<string>คีย์</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>ตัวจัดการรหัสผ่านบันทึกพาสคีย์แล้ว แต่ dMsg ยังยืนยันการลงทะเบียนไม่ได้ ลองเข้าสู่ระบบด้วยพาสคีย์นั้นก่อนสร้างรายการใหม่</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>จดหมายก่อนหน้าของคุณยังรอดำเนินการ ขอให้ผู้รับเก็บจดหมายเก่าเข้าคลังบนเดสก์ท็อป หรือเลือก “อนุญาตจดหมายอีกฉบับ” ในเมนูจดหมายบน iOS แล้วลองส่งจดหมายฉบับนี้อีกครั้ง</string>
-	<key>Your private workspace.</key>
-	<string>พื้นที่ทำงานส่วนตัวของคุณ</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>รายการซื้อของคุณมีผลกับบัญชี dMsg นี้แล้ว</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>สมาชิกแบบชำระเงินสิ้นสุดแล้ว ขณะนี้คุณใช้แผน Free</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>การซื้อของคุณกำลังรอการอนุมัติจาก Apple</string>
+	<key>A private workspace for the AI era.</key>
+	<string>พื้นที่ทำงานส่วนตัวสำหรับยุค AI</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>ผลิตภัณฑ์ของ ICPanda DAO</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>ข้อเสนอที่ DAO รับรองสามารถอัปเกรดโค้ดบนเชนได้ ธรรมาภิบาลจึงเป็นส่วนหนึ่งของสิ่งที่คุณไว้วางใจ ส่วนแอปและบริการคลาวด์เผยแพร่และดำเนินการนอกเหนือการลงคะแนนนั้น</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>สำรองไฟล์อย่างชัดเจนทีละไฟล์ แล้วดาวน์โหลดไฟล์สำรองที่เข้ารหัสนั้นบนอุปกรณ์อื่นที่ได้รับสิทธิ์ คลังไฟล์ในเครื่องทั้งหมดจะไม่ถูกอัปโหลดโดยอัตโนมัติ</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>เลือกพื้นที่จัดเก็บและจำนวนอุปกรณ์ที่เหมาะกับงานประจำวันของคุณ อัปเกรดเพื่อรวบรวมไฟล์ผ่านลิงก์อัปโหลดและเพิ่มพื้นที่ได้มากขึ้น</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>เนื้อหาที่คุณอนุญาตให้ไคลเอนต์ AI ภายนอกอ่าน จะได้รับการจัดการตามนโยบายข้อมูลของไคลเอนต์นั้นด้วย ให้สิทธิ์เข้าถึงเฉพาะสิ่งที่งานนั้นต้องใช้</string>
+	<key>Keep what matters private.</key>
+	<string>เก็บสิ่งสำคัญไว้เป็นส่วนตัว</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>การเข้าสู่ระบบที่ผูกไว้จะรับช่วงบัญชีหลังระยะรอได้ต่อเมื่อเปิดการกู้คืนบนเชนแล้วเท่านั้น</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>เตรียมตัวขณะที่คุณยังเข้าถึงได้ เพิ่มอุปกรณ์ที่ได้รับสิทธิ์อีกเครื่องและตรวจสอบการตั้งค่าการกู้คืนบนเชนซึ่งเป็นตัวเลือกเสริม การกู้คืนบนเชนปิดไว้โดยค่าเริ่มต้นสำหรับบัญชีใหม่ และต้องเปิดใช้ล่วงหน้าจากอุปกรณ์ผู้ดูแลระบบที่ได้รับสิทธิ์และยังปลดล็อกได้</string>
+	<key>See how dMsg works</key>
+	<string>ดูว่า dMsg ทำงานอย่างไร</string>
+	<key>See who controls the rules</key>
+	<string>ดูว่าใครควบคุมกฎ</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>ปกป้องรหัสผ่าน บันทึกย่อ และไฟล์ด้วยการเข้ารหัสตั้งแต่ต้นทางถึงปลายทาง ซิงค์คลังนิรภัยข้ามอุปกรณ์ แชร์ไฟล์อย่างปลอดภัย และควบคุมสิทธิ์เข้าถึงของเอเจนต์ AI</string>
 </dict>
 </plist>

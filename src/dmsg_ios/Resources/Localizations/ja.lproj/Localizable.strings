@@ -434,8 +434,6 @@
 	<string>チェックリストが完了しました</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>あなたの発言からチェックリストが完成しました。アップストリームのステータスは、プロバイダーのみが独立して検証できます。</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>本機のファイルで「クラウドにバックアップ」を選び、最初のバックアップを作成してください。</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>ファイルで「リンクで共有」を選ぶと、誰にでも送れます。dMsg のアカウントやアプリは不要です。</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>下書きを保持して戻る</string>
 	<key>Keep existing value</key>
 	<string>既存の値を保持</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>秘密、会話、ファイルをまとめて保管します。許可されたデバイスのみがそれらを開くことができます。</string>
 	<key>Key</key>
 	<string>キー</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>パスワードマネージャーにパスキーは保存されましたが、dMsgで登録を確認できませんでした。別のパスキーを作る前に、このパスキーでログインを試してください。</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>前の手紙がまだ処理されていません。受信者にデスクトップでその手紙をアーカイブするか、iOS の手紙メニューで「次の手紙を許可」を選んでもらい、この手紙を再試行してください。</string>
-	<key>Your private workspace.</key>
-	<string>あなたのプライベートワークスペース。</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>購入内容がこの dMsg アカウントに適用されました。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>有料メンバーシップは終了しました。現在は Free プランです。</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>購入は Apple の承認待ちです。</string>
+	<key>A private workspace for the AI era.</key>
+	<string>AI 時代のプライベートワークスペース。</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>ICPanda DAO のプロダクト。</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>DAO が採択した提案はオンチェーンのコードをアップグレードできるため、ガバナンスも信頼の対象に含まれます。アプリとクラウドサービスは、その投票の外でリリース・運用されています。</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>ファイルを明示的にバックアップすると、その暗号化バックアップを別の承認済みデバイスでダウンロードできます。ローカルのファイルライブラリ全体が自動でアップロードされることはありません。</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>日々の作業に合ったストレージ容量とデバイス数を選べます。アップグレードすると、アップロードリンクでファイルを受け取れるようになり、容量も増えます。</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>外部の AI クライアントに読み取りを許可した内容は、そのクライアントのデータポリシーにも従って扱われます。タスクに必要なものだけにアクセスを許可してください。</string>
+	<key>Keep what matters private.</key>
+	<string>大切なものは、プライベートに。</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>オンチェーン復元が有効な場合のみ、紐付けたログインで待機期間後にアカウントを引き継げます。</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>アクセスできるうちに準備してください。承認済みデバイスをもう 1 台追加し、任意のオンチェーン復旧設定を確認します。オンチェーン復旧は新しいアカウントでは既定でオフになっており、ロックを解除できる承認済みの管理者デバイスから事前に有効にする必要があります。</string>
+	<key>See how dMsg works</key>
+	<string>dMsg の仕組みを見る</string>
+	<key>See who controls the rules</key>
+	<string>誰がルールを管理しているかを見る</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>パスワード、メモ、ファイルをエンドツーエンド暗号化で保護。保管庫をデバイス間で同期し、ファイルを安全に共有し、AI エージェントのアクセスを管理できます。</string>
 </dict>
 </plist>

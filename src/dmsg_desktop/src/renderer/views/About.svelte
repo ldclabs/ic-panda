@@ -68,6 +68,11 @@
     } finally { if (alive) changing = false }
   }
 
+  async function openWebsite(url: string) {
+    try { await bridge(() => window.dmsg.openUrl(url)) }
+    catch (e) { if (alive) error = errorText(e) }
+  }
+
   onMount(() => {
     void reload()
     return onChange(['updates/changed'], reload)
@@ -75,7 +80,16 @@
 </script>
 
 {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
-<Section title={t('aboutApp')} description={t('aboutHint')} icon="info" testid="about">
+<Section title={t('aboutApp')} description={t('productCategory')} icon="info" testid="about-product">
+  <p class="text-[13px] leading-relaxed text-muted">{t('productSummary')}</p>
+  <p class="mt-2 text-[12.5px] text-muted">{t('productMaker')}</p>
+  <div class="mt-3 flex flex-wrap gap-2">
+    <button class={buttonClass('secondary', 'sm')} onclick={() => openWebsite('https://dmsg.net/')} data-testid="about-website"><Icon name="external" />{t('productWebsite')}</button>
+    <button class={buttonClass('secondary', 'sm')} onclick={() => openWebsite('https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai')} data-testid="about-governance"><Icon name="external" />{t('productGovernanceLink')}</button>
+  </div>
+  <p class="mt-3 text-[12.5px] leading-relaxed text-muted">{t('productGovernance')}</p>
+</Section>
+<Section title={t('updates')} description={t('aboutHint')} icon="info" testid="about">
   <div class="mb-3 flex flex-wrap gap-2">
     {#if update?.kind === 'ready'}
       <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => act(() => window.dmsg.applyUpdate())} data-testid="apply-update">

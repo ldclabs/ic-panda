@@ -434,8 +434,6 @@
 	<string>清单已完成</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>清单已根据你的声明完成。上游状态仍须独立向服务提供方核实。</string>
-	<key>Choose Back up to cloud from a local file to create your first backup.</key>
-	<string>在本机文件中选择“备份到云端”，创建第一份备份。</string>
 	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
 	<string>在文件上选择“通过链接分享”，就能发给任何人。对方不需要 dMsg 账号或应用。</string>
 	<key>Choose a credential for:</key>
@@ -1162,8 +1160,6 @@
 	<string>保留草稿并离开</string>
 	<key>Keep existing value</key>
 	<string>保留现有内容</string>
-	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>把秘密、对话与文件放在一起，只有你授权的设备才能打开。</string>
 	<key>Key</key>
 	<string>密钥</string>
 	<key>Key fingerprint</key>
@@ -3056,8 +3052,6 @@
 	<string>密码管理器已保存通行密钥，但 dMsg 尚未确认注册。请先尝试用它登录，再决定是否创建新的密钥。</string>
 	<key>Your previous letter is still pending. Ask the recipient to archive it on desktop or choose “Allow another letter” in the letter menu on iOS, then retry this letter.</key>
 	<string>上一封信还在等待对方处理。请对方在桌面端归档旧信，或在 iOS 的来信菜单中选择“允许再次来信”，然后重试这封信。</string>
-	<key>Your private workspace.</key>
-	<string>你的私密工作台。</string>
 	<key>Your purchase has been applied to this dMsg account.</key>
 	<string>购买权益已发放到此 dMsg 账号。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
@@ -3254,5 +3248,29 @@
 	<string>付费会员已结束，当前为 Free 方案。</string>
 	<key>Your purchase is awaiting Apple approval.</key>
 	<string>购买正在等待 Apple 批准。</string>
+	<key>A private workspace for the AI era.</key>
+	<string>AI 时代的私密工作台。</string>
+	<key>A product of ICPanda DAO.</key>
+	<string>ICPanda DAO 旗下产品。</string>
+	<key>A proposal the DAO adopts can upgrade the on-chain code, so governance is part of what you trust. The apps and the cloud service are released and operated outside that vote.</key>
+	<string>DAO 通过的提案可以升级链上代码，治理因此也是你所信任的一部分。应用程序和云服务的发布与运营不在这项投票之内。</string>
+	<key>Back up a file explicitly, then download that encrypted backup on another authorized device. Your entire local file library does not upload automatically.</key>
+	<string>主动备份文件后，可以在另一台已授权设备上下载。整个本地文件库不会自动上传。</string>
+	<key>Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.</key>
+	<string>根据日常需要选择存储容量和设备数量。升级后可通过上传链接收集文件，也能获得更多使用空间。</string>
+	<key>Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.</key>
+	<string>你授权外部 AI 客户端读取的内容，也会受到该客户端数据处理政策的影响。按任务需要授予访问权限。</string>
+	<key>Keep what matters private.</key>
+	<string>重要的资料，私密保管。</string>
+	<key>Only when on-chain recovery is enabled can a bound login take over after the waiting period.</key>
+	<string>只有已开启链上恢复时，绑定登录才能在等待期后接管账户。</string>
+	<key>Prepare while you still have access: add another authorized device and review the optional on-chain recovery settings. On-chain recovery is off by default for new accounts and must be enabled in advance from an authorized administrator device that can still unlock.</key>
+	<string>请在仍可访问账户时提前准备：添加另一台已授权设备，并检查可选的链上恢复设置。新账户默认关闭链上恢复，必须事先在仍可解锁的已授权管理员设备上启用。</string>
+	<key>See how dMsg works</key>
+	<string>了解 dMsg</string>
+	<key>See who controls the rules</key>
+	<string>查看规则由谁控制</string>
+	<key>Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.</key>
+	<string>用端到端加密保护密码、笔记与文件。在已授权设备间同步保险库，安全分享文件，并为 AI 助手设置明确的访问权限。</string>
 </dict>
 </plist>

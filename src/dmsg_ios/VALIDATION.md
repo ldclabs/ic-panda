@@ -1,5 +1,39 @@
 # iOS implementation validation
 
+## Client product copy (2026-11-13)
+
+The iOS and desktop introductions now follow the public website copy at
+`15977b4`: an encrypted private workspace, vault sync, selected file sharing
+and defined AI permissions. About includes the product's DAO attribution,
+website and public governance record, with the separate app/cloud trust
+boundary. Recovery explains advance preparation and the default-off policy;
+local files without a backup are not promised recoverable. File backups,
+agent content access and subscription explanations retain their platform
+conditions. All 23 client catalogs reuse the corresponding public website
+translations or existing client translations; obsolete welcome strings were
+removed. No authentication, approval, purchase or data-transfer policy changed.
+
+Validation used the iPhone SE-sized iOS 18.4 simulator:
+
+- The app built successfully against the existing, source-fingerprint-verified
+  release Rust bridge artifacts.
+- The three localization unit tests and three selected existing account
+  access/setup UI tests passed, including Arabic accessibility XXXL.
+- A temporary XCTest visual driver exercised About and recovery in English,
+  Chinese, German and Arabic, including light/dark and RTL presentation. The
+  driver was removed after inspection; it does not change the permanent suite.
+- All 23 localization catalogs passed format/plural checks and validation
+  against the build's Swift-extracted strings.
+- The desktop counterpart passed `pnpm check`, all 195 tests and its build.
+  An isolated mock-daemon Electron run captured 48 screenshots at 760×540
+  across the same four languages and both themes, checked keyboard navigation
+  and the main-process website/governance links. The existing files smoke
+  flow also passed.
+
+Not exercised: physical devices, iPad, iOS 27, the full Swift/Rust suites,
+live recovery, file collection or StoreKit purchases. No archive, App Store
+metadata update, TestFlight upload or production deployment was performed.
+
 ## Reminder navigation and presentation (2026-11-12)
 
 Reminders distinguish a locked workspace from another account, retain the original

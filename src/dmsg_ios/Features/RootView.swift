@@ -217,13 +217,13 @@ struct AccessView: View {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 16) {
                     Image("BrandMark").resizable().scaledToFit().frame(width: 64, height: 64).accessibilityHidden(true)
-                    Text(LocalizedStringKey(model.signingIntoAnotherAccount ? "Sign in to another account" : needsSetup || model.session?.account == nil ? "Your private workspace." : "Welcome back."))
+                    Text(LocalizedStringKey(model.signingIntoAnotherAccount ? "Sign in to another account" : needsSetup || model.session?.account == nil ? "Keep what matters private." : "Welcome back."))
                         .font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
                     if needsSetup {
                         Text(guidance).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("login.setup-guidance")
                     } else {
-                        Text("Keep your secrets, conversations and files together. Only your authorized devices can open them.")
+                        Text("Protect passwords, notes and files with end-to-end encryption. Sync your vault across devices, share files securely and control AI agent access.")
                             .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                 }
