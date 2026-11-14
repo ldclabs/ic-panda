@@ -3276,5 +3276,9 @@
 	<string>แสดงโปรไฟล์สาธารณะของฉัน</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>ทุกคนที่มีลิงก์นี้สามารถดูโปรไฟล์สาธารณะของคุณได้ แม้ยังไม่ได้ใส่รหัสผ่าน</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>เปิดเวิร์กสเปซ dMsg → บัญชี → บูรณาการระบบ → ป้อนรหัสผ่านอัตโนมัติ → เลือกรายการเข้าสู่ระบบ</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>เปิดและปลดล็อก dMsg เพื่ออัปเดตการป้อนอัตโนมัติ แล้วลองอีกครั้ง</string>
 </dict>
 </plist>

@@ -3276,5 +3276,9 @@
 	<string>公開プロフィールを表示</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>このリンクを持つ人は、パスワードを入力する前でもあなたの公開プロフィールを閲覧できます。</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>dMsg ワークスペースを開く → アカウント → システム統合 → パスワードの自動入力 → ログイン項目を選択する</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>dMsg を開いてロックを解除し、自動入力を更新してから、もう一度お試しください。</string>
 </dict>
 </plist>

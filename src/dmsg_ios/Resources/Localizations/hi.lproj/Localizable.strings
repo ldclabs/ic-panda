@@ -3276,5 +3276,9 @@
 	<string>मेरी सार्वजनिक प्रोफ़ाइल दिखाएँ</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>इस लिंक वाला कोई भी व्यक्ति पासवर्ड डालने से पहले भी आपकी सार्वजनिक प्रोफ़ाइल देख सकता है।</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>dMsg कार्यक्षेत्र खोलें → खाता → सिस्टम एकीकरण → पासवर्ड स्वतः भरण → लॉगिन आइटम चुनें</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>ऑटोफ़िल अपडेट करने के लिए dMsg खोलें और अनलॉक करें, फिर दोबारा कोशिश करें।</string>
 </dict>
 </plist>

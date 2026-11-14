@@ -3276,5 +3276,9 @@
 	<string>Mijn openbare profiel tonen</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>Iedereen met deze link kan je openbare profiel zien, zelfs voordat een wachtwoord is ingevoerd.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>Open de dMsg-werkruimte → Account → Systeemintegraties → Wachtwoord automatisch aanvullen → Selecteer inlogitems</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>Open en ontgrendel dMsg om automatisch invullen bij te werken en probeer het opnieuw.</string>
 </dict>
 </plist>

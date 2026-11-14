@@ -3276,5 +3276,9 @@
 	<string>Paparkan profil awam saya</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>Sesiapa yang mempunyai pautan ini boleh melihat profil awam anda, walaupun sebelum memasukkan kata laluan.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>Buka ruang kerja dMsg → Akaun → Penyepaduan sistem → AutoIsi Kata Laluan → Pilih item log masuk</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>Buka dan nyahkunci dMsg untuk mengemas kini Isi Auto, kemudian cuba lagi.</string>
 </dict>
 </plist>

@@ -3276,5 +3276,9 @@
 	<string>Ipakita ang pampublikong profile ko</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>Sinumang may link na ito ay makakakita sa pampublikong profile mo, kahit bago maglagay ng password.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>Buksan ang dMsg workspace → Account → Mga pagsasama ng system → AutoFill ng Password → Pumili ng mga item sa pag-log in</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>Buksan at i-unlock ang dMsg upang i-update ang AutoFill, at subukan muli.</string>
 </dict>
 </plist>

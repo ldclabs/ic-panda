@@ -3276,5 +3276,9 @@
 	<string>顯示我的公開資料</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>持有此連結的人可以查看你的公開資料，無需先輸入密碼。</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>開啟 dMsg 工作區 → 我的 → 系統整合 → 密碼自動填充 → 選擇登入項</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>請開啟並解鎖 dMsg，更新自動填寫後再試。</string>
 </dict>
 </plist>

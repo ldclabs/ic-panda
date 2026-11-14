@@ -3438,3 +3438,121 @@ registration and delivery on the affected device remain unverified, so this
 record does not claim the cache defect was the device's only failure. No full
 Rust/UI suite, production deployment, build-number change or TestFlight upload
 was performed. A new signed TestFlight build is required for device acceptance.
+
+## Notification identity after an iOS update (2026-11-14)
+
+Baseline: public `6bd88b3b` plus this change; the reported version is TestFlight
+1.2.0 (30). The initial public working tree was clean. This is local validation,
+not a production log capture or a TestFlight release.
+
+The shared core names notification Keychain entries with a digest of the absolute
+workspace path. iOS updates can change that path while preserving the data and
+Keychain ([Apple TN2285](https://developer.apple.com/library/archive/technotes/tn2285/)).
+That made existing receivers appear absent and caused retries to generate a
+different installation signing key. Renewing an APNs lease alone cannot recover
+the original notification identity. The earlier retry tests did not move the
+container or read the actual Keychain.
+
+The iOS adapter now pins the notification namespace inside its existing
+installation UUID/deployment Keychain service. For an upgraded installation it
+matches the persisted notification installation digest against stored Ed25519
+public keys and recovers the original namespace, even if earlier retries stored
+newer, unregistered keys. Account receivers and pending revocations use the same
+namespace. Only notification accesses perform this recovery; unrelated secrets,
+workspace opening and App Attest keys keep their existing behavior. The settings
+page also shows the current registration failure ahead of a stale receiver warning.
+
+Validation performed:
+
+- With the original path-based lookup behavior restored temporarily, both new
+  path-change/recovery tests failed in the actual simulator Keychain. Restoring
+  the fix passed all three Keychain tests and all 13 existing notification unit
+  tests on iOS 27.0. These tests require simulator ad-hoc signing; the initial
+  unsigned Keychain run returned `UNAVAILABLE` and is not a passing result.
+- Recovery tests physically move the saved files twice, preserve the installation
+  UUID, seed an extra key from a failed retry, and verify credential updates,
+  deletion, separate accounts, revocations, deployments and installations. The
+  final recovery fixture uses the public Rust `primitives-v1.json` Ed25519 vector's
+  installation digest instead of deriving the expected identity with the code
+  under test.
+- The full Swift unit target plus four selected notification UI tests completed:
+  **192 passed, one failed** (188/189 unit tests and 4/4 UI tests).
+  `DeploymentTests.testFirstPurchaseReachesLocalStoreKitWithoutAnAppDownload`
+  opened an Apple-account sign-in dialog; cancelling it left no local StoreKit
+  purchase and failed its three assertions. The payment implementation/test was
+  not changed, and the full suite is not reported as passing.
+- UI tests cover successful retries in Chinese dark appearance, Arabic RTL and
+  German, plus a retry that fails again while the old registration-required flag
+  remains set. Screenshots of Chinese success, Arabic progress and the visible
+  current failure were inspected.
+- On the booted iOS 18.4 SE simulator, the final three Keychain tests and the
+  failure/retry UI test all passed (4/4). The UI test also passed after adding
+  a small-screen check that the longer error leaves the retry button reachable.
+- The unsigned Release build for `generic/platform=iOS` passed. Existing Rust
+  release artifacts and their source fingerprint verified; Rust sources did not
+  change. All 23 localization resources and notification-copy parity passed.
+  `git diff --check` passed.
+
+Local screenshots are under `.build/notification-keychain-20261114/`. Real-device
+App Attest/APNs registration and background delivery after upgrading the affected
+TestFlight installation remain to be verified. No build-number change, signing
+archive, TestFlight upload or production deployment was performed. No account
+reset, reinstall or removal of saved notification credentials is required by the
+migration.
+
+## Password AutoFill setup and recovery (2026-11-14)
+
+Baseline: public `6bd88b3b` plus the notification fix above and this change. The
+pre-existing working-tree changes were retained. The reported extension screen
+used one message for missing exports, expired copies, cancelled authentication,
+failed Keychain access and stale system suggestions; the screenshot alone does
+not identify which of those occurred on the physical device.
+
+Changes:
+
+- Missing published copies now request the approved encrypted core selection
+  again, even if its previous digest was acknowledged. Account mismatch still
+  prevents publication. The foreground task checks renewal every five minutes
+  and after unlock, account/session changes and content changes. Explicit edits
+  and removal fence older refreshes, and removal still forgets the selection.
+- The extension distinguishes first-time setup, expiry and authentication
+  failures. An absent copy shows the path to select logins; it no longer shows
+  an authentication action that cannot succeed. Cancellation keeps a retryable
+  authentication action. Empty lists do not leave the large blank table visible.
+- A suggestion naming an older snapshot opens the current authenticated list
+  for a new explicit selection. If a snapshot changes while the picker is open,
+  it reloads with fresh authentication instead of treating the selection as
+  expired. Cached credential rows are cleared when authenticating or leaving.
+- `ShowsConfigurationUI` and the system configuration callback provide the same
+  setup guidance when enabling dMsg in iOS Settings. This uses Apple's supported
+  [credential-provider configuration API](https://developer.apple.com/documentation/authenticationservices/ascredentialproviderviewcontroller/prepareinterfaceforextensionconfiguration()).
+  Both new messages are present in all 23 languages. The existing 24-hour limit,
+  explicit item selection, account boundary and independent system authentication
+  remain in force; extensions still hold no workspace root or signing keys.
+
+Validation performed:
+
+- On the booted SE / iOS 18.4 simulator, **28/28** selected tests passed: ten
+  `SystemExportsTests`, the 16 notification tests from the preceding fix, and
+  two AutoFill settings UI tests (selection across search/reopening and the
+  biometrics-only setting across a foreground transition).
+- New tests cover distinct missing/expired errors, rebuilding an acknowledged
+  missing copy, renewal thresholds, rejecting another account, and an old
+  system suggestion while the current encrypted credential remains readable.
+  These tests exercise storage and policy; they do not simulate a successful
+  physical-device biometric exchange.
+- On iOS 27.0, enabled dMsg through Settings → General → AutoFill & Passwords.
+  The real extension showed Chinese setup guidance and Done. Also opened a
+  local Safari login form, selected Passwords → dMsg, and inspected the actual
+  credential extension: it showed the setup path and Cancel, with no incorrect
+  expiry claim, unusable authentication button or blank table. This was the
+  unconfigured case, not a successful password-return test.
+- Final simulator build and unsigned Release build for `generic/platform=iOS`
+  passed, including the credential and file extensions. All 23 localization
+  resources and extracted strings passed validation. Rust artifacts matched
+  their source fingerprint; no Rust source changed. `git diff --check` passed.
+
+Screenshots are under `.build/autofill-recovery-20261114/`. Full Rust and full UI
+suites were not rerun for this change. Real-device Face ID/passcode authentication,
+credential return into another app, and TestFlight upgrade acceptance remain
+unverified. No build-number change, archive or TestFlight upload was performed.

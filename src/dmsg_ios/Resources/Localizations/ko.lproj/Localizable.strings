@@ -3276,5 +3276,9 @@
 	<string>내 공개 프로필 표시</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>이 링크가 있는 사람은 비밀번호를 입력하기 전에도 내 공개 프로필을 볼 수 있습니다.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>dMsg 작업공간 열기 → 계정 → 시스템 통합 → 비밀번호 자동완성 → 로그인 항목 선택</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>dMsg를 열고 잠금을 해제하여 자동 완성을 업데이트한 다음 다시 시도하세요.</string>
 </dict>
 </plist>

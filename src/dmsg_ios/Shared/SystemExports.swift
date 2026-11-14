@@ -18,6 +18,15 @@ struct ExportHeader: Codable, Sendable {
 }
 struct CredentialExport: Codable, Identifiable, Sendable { let id: String; let title: String; let username: String; let origin: String }
 extension CredentialExport {
+    /// System suggestions can outlive a snapshot refresh. Only an exact current
+    /// reference may fill immediately; otherwise the person chooses from the list.
+    static func requested(_ identifier: String?, in header: ExportHeader, entries: [CredentialExport]) -> CredentialExport? {
+        guard let identifier else { return nil }
+        let parts = identifier.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count == 2, parts[0] == header.id else { return nil }
+        return entries.first { $0.id == parts[1] }
+    }
+
     /// Whether this login belongs to the site that is asking, ignoring `www.` and subdomains.
     func matches(service identifier: String) -> Bool {
         guard let requested = Self.host(identifier), let own = Self.host(origin) else { return false }
@@ -40,6 +49,10 @@ struct CredentialInput: Sendable { let title: String; let username: String; let 
 struct FileExportInput: Sendable { let url: URL; let name: String; let sha256: String; let size: UInt64 }
 struct PreparedExport: Sendable { let header: ExportHeader; let key: SymmetricKey; let directory: URL }
 struct OpenExport: Sendable { let header: ExportHeader; let key: SymmetricKey }
+
+enum ExportAccessError: Error, Equatable {
+    case notConfigured, expired, authenticationCancelled, authenticationFailed
+}
 
 /// Only explicitly exported copies live in these groups. This store never knows
 /// a Client workspace, device signing key or content root.
@@ -76,12 +89,32 @@ struct SystemExports: Sendable {
     }
     func header(checkExpiry: Bool = true) throws -> ExportHeader {
         let file = root.appending(path: "current.json")
+        guard FileManager.default.fileExists(atPath: file.path) else { throw ExportAccessError.notConfigured }
         guard (try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 4096 else { throw CocoaError(.fileReadTooLarge) }
         let header = try JSONDecoder().decode(ExportHeader.self, from: Data(contentsOf: file))
         _ = try directory(header)
-        guard !checkExpiry || Double(header.expires) > Date.now.timeIntervalSince1970 * 1000 else { throw CocoaError(.userCancelled) }
+        guard !checkExpiry || Double(header.expires) > Date.now.timeIntervalSince1970 * 1000 else { throw ExportAccessError.expired }
         return header
     }
+
+    struct CredentialRefresh: Equatable {
+        let snapshot: String?
+        let force: Bool
+    }
+
+    /// The encrypted core selection is the authority for recovery. A missing
+    /// published copy must request it again even when its digest was acknowledged.
+    func credentialRefresh(account: String, now: UInt64) throws -> CredentialRefresh? {
+        guard purpose == .credentials else { throw CocoaError(.coderInvalidValue) }
+        do {
+            let header = try header(checkExpiry: false)
+            guard header.accountHash == IncomingShares.accountHash(account) else { return nil }
+            return CredentialRefresh(snapshot: header.id, force: header.expires <= now + 12 * 3_600_000)
+        } catch ExportAccessError.notConfigured {
+            return CredentialRefresh(snapshot: nil, force: true)
+        }
+    }
+
     func prepareCredentials(_ entries: [CredentialInput], account: String, expires: UInt64) throws -> PreparedExport {
         guard purpose == .credentials, !entries.isEmpty, entries.count <= 50 else { throw CocoaError(.coderInvalidValue) }
         let prepared = try prepare(account: account, expires: expires, count: entries.count)
@@ -152,7 +185,10 @@ struct SystemExports: Sendable {
         defer { context.invalidate() }
         var query = query(header.id); query[kSecReturnData as String] = true; query[kSecMatchLimit as String] = kSecMatchLimitOne; query[kSecUseAuthenticationContext as String] = context
         var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data, data.count == 32 else { throw CocoaError(.userCancelled) }
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecUserCanceled { throw ExportAccessError.authenticationCancelled }
+        guard status == errSecSuccess else { throw ExportAccessError.authenticationFailed }
+        guard let data = result as? Data, data.count == 32 else { throw CocoaError(.fileReadCorruptFile) }
         let opened = OpenExport(header: header, key: SymmetricKey(data: data))
         _ = try plain("manifest", opened: opened)
         return opened

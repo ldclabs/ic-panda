@@ -3276,5 +3276,9 @@
 	<string>Hiển thị hồ sơ công khai của tôi</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>Bất kỳ ai có liên kết này đều có thể xem hồ sơ công khai của bạn, ngay cả trước khi nhập mật khẩu.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>Mở không gian làm việc dMsg → Tài khoản → Tích hợp hệ thống → Tự động điền mật khẩu → Chọn mục đăng nhập</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>Mở và mở khóa dMsg để cập nhật Tự động điền, rồi thử lại.</string>
 </dict>
 </plist>

@@ -98,7 +98,7 @@ struct SystemExportsView: View {
             ForEach(credentials, id: \.id) { item in HStack { Text(item.title); Spacer(); Button("Remove", role: .destructive) { credentials.removeAll { $0.id == item.id } }.buttonStyle(.borderless) } }
             SettingsAction("Select login items", prominent: autoFillEnabled && credentials.isEmpty) { selectingCredentials = true }
         } footer: {
-            Text("AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.")
+            Text("AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.")
         }
         Section {
             ExportSnapshotStatus(header: credentialSnapshot)
@@ -137,7 +137,8 @@ struct SystemExportsView: View {
             do {
                 let header = try SystemExports(purpose).header(checkExpiry: false)
                 return header.accountHash == model.session?.account.map(IncomingShares.accountHash) ? header : nil
-            } catch let error as CocoaError where error.code == .fileReadNoSuchFile { return nil }
+            } catch ExportAccessError.notConfigured { return nil }
+            catch let error as CocoaError where error.code == .fileReadNoSuchFile { return nil }
             catch { snapshotFailed = true; model.report(error); return nil }
         }
         credentialSnapshot = read(.credentials); fileSnapshot = read(.files)
@@ -146,6 +147,8 @@ struct SystemExportsView: View {
     private func removeSnapshot(_ purpose: ExportPurpose) async {
         guard !working else { return }; let epoch = model.epoch
         working = true; defer { working = false }
+        if purpose == .credentials { model.autoFillGeneration &+= 1; model.autoFillChanging = true }
+        defer { if purpose == .credentials { model.autoFillChanging = false } }
         do {
             try SystemExports(purpose).invalidate()
             if purpose == .credentials {
@@ -162,12 +165,14 @@ struct SystemExportsView: View {
     private func exportCredentials() async {
         guard let engine = model.engine, let account = model.session?.account, !working else { return }
         let epoch = model.epoch; working = true; model.activity(); defer { working = false }
+        model.autoFillGeneration &+= 1; let generation = model.autoFillGeneration
+        model.autoFillChanging = true; defer { model.autoFillChanging = false }
         do {
             await model.integrationReset?.value
             guard epoch == model.epoch, !Task.isCancelled else { return }
             let snapshot = try await engine.exportAutofill(items: credentials.map { CredentialSelection(id: $0.id, revision: $0.revision) }, biometryOnly: biometryOnly)
             let refresh: AutoFillRefresh = try model.decode(snapshot)
-            guard try await model.publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly, account: account, epoch: epoch), !Task.isCancelled else { return }
+            guard try await model.publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly, account: account, epoch: epoch, generation: generation), !Task.isCancelled else { return }
             try await engine.autofillPublished(digest: refresh.digest)
             guard epoch == model.epoch, !Task.isCancelled else { return }
             refreshSnapshots(); model.notice = String(localized: "AutoFill snapshot updated")

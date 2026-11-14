@@ -3276,5 +3276,9 @@
 	<string>Показывать мой публичный профиль</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>Любой, у кого есть эта ссылка, может увидеть ваш публичный профиль ещё до ввода пароля.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>Открыть рабочее пространство dMsg → Аккаунт → Системные интеграции → Автозаполнение паролей → Выбрать учётные записи</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>Откройте и разблокируйте dMsg, чтобы обновить автозаполнение, затем повторите попытку.</string>
 </dict>
 </plist>

@@ -83,6 +83,28 @@ import XCTest
     func testRegistrationRetryArabic() { registrationRetry(language: "ar", locale: "ar_SA", dark: false) }
     func testRegistrationRetryGerman() { registrationRetry(language: "de", locale: "de_DE", dark: false) }
 
+    func testRegistrationFailureRemainsVisibleAfterRetry() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-push-retry", "--ui-push-retry-fails", "--ui-reminder-list", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(app.segmentedControls["reminders.scope"].waitForExistence(timeout: 10))
+        app.buttons["reminders.menu"].tap(); app.buttons["reminders.settings"].tap()
+        let retry = app.buttons["notifications.registration"]
+        for _ in 0..<8 where !retry.exists || !retry.isHittable { app.swipeUp() }
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Notification registration needs retrying. Foreground sync remains available."].exists,
+                      "A stale receiver warning must not hide the current registration failure")
+        retry.tap()
+        XCTAssertTrue(app.staticTexts["App verification is unavailable on this device. Your saved content remains available."].waitForExistence(timeout: 8))
+        XCTAssertTrue(retry.isEnabled)
+        XCTAssertEqual(app.activityIndicators.count, 0)
+        XCTAssertFalse(app.staticTexts["Notifications may be delayed. Open dMsg to sync your content."].exists)
+        app.swipeUp()
+        XCTAssertTrue(retry.isHittable, "The longer failure must leave retry reachable on a small screen")
+        capture(app, "Registration retry shows its current failure")
+        app.terminate()
+    }
+
     private func registrationRetry(language: String, locale: String, dark: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-push-retry", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]

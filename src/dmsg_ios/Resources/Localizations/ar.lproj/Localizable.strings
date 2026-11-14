@@ -3276,5 +3276,9 @@
 	<string>إظهار ملفي العام</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>يمكن لأي شخص لديه هذا الرابط رؤية ملفك العام، حتى قبل إدخال كلمة المرور.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>فتح مساحة عمل dMsg ← الحساب ← تكامل النظام ← الملء التلقائي لكلمات المرور ← اختيار بيانات الدخول</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>افتح dMsg وألغِ قفله لتحديث التعبئة التلقائية، ثم حاول مرة أخرى.</string>
 </dict>
 </plist>

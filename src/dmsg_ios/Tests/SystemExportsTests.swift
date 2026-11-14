@@ -83,6 +83,52 @@ final class SystemExportsTests: XCTestCase {
         XCTAssertThrowsError(try shares.file(escaped))
         XCTAssertThrowsError(try store.prepareFiles([FileExportInput(url: outside, name: "large", sha256: "", size: UInt64.max)], account: "one", expires: 1))
     }
+
+    func testMissingAndExpiredCredentialsHaveDifferentRecoveryStates() throws {
+        let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
+        XCTAssertThrowsError(try store.header()) { XCTAssertEqual($0 as? ExportAccessError, .notConfigured) }
+        let expired = ExportHeader(id: UUID().uuidString, purpose: .credentials, accountHash: IncomingShares.accountHash("one"), expires: 1)
+        try JSONEncoder().encode(expired).write(to: store.root.appending(path: "current.json"))
+        XCTAssertThrowsError(try store.header()) { XCTAssertEqual($0 as? ExportAccessError, .expired) }
+        XCTAssertEqual(try store.header(checkExpiry: false).id, expired.id)
+    }
+
+    func testAutoFillRebuildsMissingCopiesAndRenewsWithoutChangingAccounts() throws {
+        let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
+        let now = UInt64(Date.now.timeIntervalSince1970 * 1000)
+        let missing = try XCTUnwrap(store.credentialRefresh(account: "one", now: now))
+        XCTAssertNil(missing.snapshot)
+        XCTAssertTrue(missing.force, "A previously acknowledged core selection must be requested again")
+        let prepared = try store.prepareCredentials([
+            CredentialInput(title: "Example", username: "alice", password: "secret", origin: "https://example.com")
+        ], account: "one", expires: now + 86_400_000)
+        _ = try activate(prepared, in: store)
+        XCTAssertEqual(try store.credentialRefresh(account: "one", now: now), .init(snapshot: prepared.header.id, force: false))
+        XCTAssertTrue(try XCTUnwrap(store.credentialRefresh(account: "one", now: now + 12 * 3_600_000)).force)
+        XCTAssertTrue(try XCTUnwrap(store.credentialRefresh(account: "one", now: now + 86_400_001)).force)
+        XCTAssertNil(try store.credentialRefresh(account: "another", now: now), "Never republish another account's copy")
+        try store.invalidate()
+        XCTAssertTrue(try XCTUnwrap(store.credentialRefresh(account: "one", now: now)).force)
+    }
+
+    func testAnOldSystemSuggestionFallsBackToCurrentCredentialsAfterRenewal() throws {
+        let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
+        let expires = UInt64(Date.now.timeIntervalSince1970 * 1000) + 60_000
+        let original = try store.prepareCredentials([
+            CredentialInput(title: "Example", username: "alice", password: "old-secret", origin: "https://example.com")
+        ], account: "one", expires: expires)
+        let old = try activate(original, in: store), oldEntries = try store.credentialMetadata(old)
+        let suggestion = old.header.id + ":" + oldEntries[0].id
+        XCTAssertEqual(CredentialExport.requested(suggestion, in: old.header, entries: oldEntries)?.id, oldEntries[0].id)
+        let replacement = try store.prepareCredentials([
+            CredentialInput(title: "Example", username: "alice", password: "current-secret", origin: "https://example.com")
+        ], account: "one", expires: expires)
+        let current = try activate(replacement, in: store), entries = try store.credentialMetadata(current)
+        XCTAssertNil(CredentialExport.requested(suggestion, in: current.header, entries: entries))
+        XCTAssertEqual(entries.count, 1, "The current picker remains available instead of reporting expiry")
+        XCTAssertEqual(try store.credential(entries[0].id, opened: current), "current-secret")
+        XCTAssertThrowsError(try store.credential(oldEntries[0].id, opened: old))
+    }
 }
 
 extension SystemExportsTests {

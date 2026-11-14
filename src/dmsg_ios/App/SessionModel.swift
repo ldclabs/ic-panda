@@ -306,7 +306,7 @@ final class SessionModel {
             immediateBackgroundLock = preferences.immediateBackgroundLock
             backupHintDismissed = preferences.backupHintDismissed ?? []
             selectedTab = preferences.lastTab.flatMap(AppTab.init(rawValue:)) ?? .vault
-            let security = AppleSecurity(installation: files.installation, environment: deployment.name)
+            let security = AppleSecurity(installation: files.installation, environment: deployment.name, notificationWorkspace: files.workspace)
             let engine: MobileEngine
             switch deployment {
             case .production: engine = try await MobileEngine.open(directory: files.workspace.path, staging: files.staging.path, platform: security)
@@ -399,8 +399,12 @@ final class SessionModel {
     }
 
     var integrationReset: Task<Void, Never>?
+    var autoFillGeneration: UInt64 = 0
+    var autoFillChanging = false
+    private var autoFillRefreshing = false
 
     func invalidateSystemExports() {
+        autoFillGeneration &+= 1
         for purpose in [ExportPurpose.credentials, .files] {
             do { try SystemExports(purpose).invalidate() } catch { report(error) }
         }
@@ -415,40 +419,45 @@ final class SessionModel {
 
     /// Replace the AutoFill snapshot and the identities the system suggests;
     /// false when the session moved on meanwhile.
-    func publishCredentials(_ entries: [AutoFillEntry], biometryOnly: Bool, account: String, epoch current: UInt64, replacing snapshot: String? = nil) async throws -> Bool {
+    func publishCredentials(_ entries: [AutoFillEntry], biometryOnly: Bool, account: String, epoch current: UInt64, generation: UInt64) async throws -> Bool {
         let selected = entries.map { CredentialInput(title: $0.title, username: $0.username, password: $0.password, origin: AutoFillEntry.origin($0.url)) }
         let store = try SystemExports(.credentials)
+        let snapshot = try? store.header(checkExpiry: false).id
         let prepared = try await Task.detached { try store.prepareCredentials(selected, account: account, expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 86_400_000) }.value
-        guard current == epoch, !Task.isCancelled,
-              snapshot == nil || (try? store.header(checkExpiry: false).id) == snapshot else { store.discard(prepared); return false }
+        guard current == epoch, generation == autoFillGeneration, !Task.isCancelled,
+              (try? store.header(checkExpiry: false).id) == snapshot else { store.discard(prepared); return false }
         do { try store.publish(prepared, biometryOnly: biometryOnly) } catch { store.discard(prepared); throw error }
         let metadata = try store.credentialMetadata(OpenExport(header: prepared.header, key: prepared.key))
         let identities = metadata.filter { !$0.origin.isEmpty }.map { ASPasswordCredentialIdentity(serviceIdentifier: ASCredentialServiceIdentifier(identifier: $0.origin, type: .URL), user: $0.username, recordIdentifier: prepared.header.id + ":" + $0.id) }
         try await ASCredentialIdentityStore.shared.replaceCredentialIdentities(identities)
-        return current == epoch
+        return current == epoch && generation == autoFillGeneration && !Task.isCancelled
     }
 
-    /// An existing AutoFill snapshot follows the items the person chose,
-    /// without asking again, and renews before it expires. A failure leaves
-    /// the snapshot as it is until the next try.
+    /// The approved selection follows its current items, rebuilding a missing
+    /// copy and renewing before expiry. No selection means nothing is exported.
     func refreshAutoFill() async {
         struct Security: Decodable { let boundBiometryOnly: Bool? }
         guard let engine, let account = session?.account, unlocked, !concealed,
-              let store = try? SystemExports(.credentials), let header = try? store.header(checkExpiry: false),
-              header.accountHash == IncomingShares.accountHash(account) else { return }
-        let current = epoch, renewing = UInt64(Date.now.timeIntervalSince1970 * 1000) + 12 * 3_600_000
+              !autoFillChanging, !autoFillRefreshing else { return }
+        autoFillRefreshing = true; defer { autoFillRefreshing = false }
+        let current = epoch, generation = autoFillGeneration
         do {
-            let refresh: AutoFillRefresh? = try decode(try await engine.refreshAutofill(force: header.expires < renewing))
-            guard current == epoch, !Task.isCancelled, let refresh, refresh.changed,
-                  (try? store.header(checkExpiry: false).id) == header.id else { return }
+            await integrationReset?.value
+            guard current == epoch, generation == autoFillGeneration, !Task.isCancelled else { return }
+            let store = try SystemExports(.credentials)
+            guard let plan = try store.credentialRefresh(account: account, now: NotificationTime.now) else { return }
+            let refresh: AutoFillRefresh? = try decode(try await engine.refreshAutofill(force: plan.force))
+            guard current == epoch, generation == autoFillGeneration, !Task.isCancelled, let refresh, refresh.changed,
+                  (try? store.header(checkExpiry: false).id) == plan.snapshot else { return }
             if refresh.entries.isEmpty {
                 try store.invalidate()
                 try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities()
             } else {
                 let security: Security = try decode(try await engine.hardwareSecurity())
-                guard try await publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly || security.boundBiometryOnly == true, account: account, epoch: current, replacing: header.id) else { return }
+                guard current == epoch, generation == autoFillGeneration, !Task.isCancelled else { return }
+                guard try await publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly || security.boundBiometryOnly == true, account: account, epoch: current, generation: generation) else { return }
             }
-            guard current == epoch else { return }
+            guard current == epoch, generation == autoFillGeneration, !Task.isCancelled else { return }
             try await engine.autofillPublished(digest: refresh.digest)
         } catch { }
     }

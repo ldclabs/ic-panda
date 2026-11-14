@@ -55,11 +55,14 @@ struct DMsgApp: App {
                     guard scenePhase != .background, model.unlocked else { return }
                     await model.watchContentSync()
                 }
-                .task(id: "autofill:\(scenePhase == .active):\(model.unlocked):\(model.contentRevision)") {
+                .task(id: "autofill:\(scenePhase == .active):\(model.epoch):\(model.unlocked):\(model.contentRevision)") {
                     guard scenePhase == .active, model.unlocked else { return }
                     // Changes come in bursts: the next revision restarts this wait.
                     do { try await Task.sleep(for: .seconds(2)) } catch { return }
-                    await model.refreshAutoFill()
+                    while !Task.isCancelled {
+                        await model.refreshAutoFill()
+                        do { try await Task.sleep(for: .seconds(300)) } catch { return }
+                    }
                 }
                 .task(id: "hints:\(scenePhase == .active):\(model.session?.generation ?? 0):\(model.unlocked)") {
                     guard scenePhase == .active, model.unlocked else { return }

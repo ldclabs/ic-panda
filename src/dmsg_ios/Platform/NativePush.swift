@@ -259,6 +259,7 @@ final class NativePush {
                 registration = .failed(Self.retryMessage)
                 if var value = model.notifications.preferences {
                     value.globalPendingSync = true
+                    value.registrationRequired = true
                     model.notifications.saveFixture(value)
                 }
             }
@@ -268,6 +269,10 @@ final class NativePush {
         defer { working = false }
         try? await Task.sleep(for: .seconds(4))
         guard !Task.isCancelled else { return }
+        if ProcessInfo.processInfo.arguments.contains("--ui-push-retry-fails") {
+            registration = .failed(String(localized: "App verification is unavailable on this device. Your saved content remains available."))
+            return
+        }
         if var value = model.notifications.preferences {
             value.globalPendingSync = false
             value.registrationRequired = false

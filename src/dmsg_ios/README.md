@@ -113,7 +113,10 @@ Password generation is local, and QR scanning only fills an OTP draft
 for review. AutoFill exports only an explicit selection: choosing it asks for
 system authentication, and while dMsg is open and unlocked the snapshot then
 follows those items without asking again. System authentication opens it, and
-left alone it expires after 24 hours. Import summaries expose selection,
+left alone it expires after 24 hours. Missing copies are rebuilt from that saved
+selection after unlocking, and foreground refresh checks renewal every five
+minutes as well as after content changes. Removing AutoFill clears the selection
+and fences an older refresh from publishing it again. Import summaries expose selection,
 duplicates and incomplete records, then link to the imported items; trash and
 history lists distinguish an unavailable read from an empty result.
 
@@ -185,6 +188,13 @@ counts independently; unavailable values are never displayed as zero.
 
 AutoFill selection survives searches and reopening its picker. Export status shows
 counts and expiry without opening secrets or bypassing system authentication.
+Enabling dMsg in the system AutoFill settings also shows the setup path when no
+logins have been selected. The credential extension distinguishes missing copies,
+expiry and authentication failure; cancelling authentication offers another try.
+A system suggestion from an older snapshot opens the current authenticated list
+instead of failing, and refreshing while that list is open requires a new
+authentication and selection. Expired copies still require opening and unlocking
+the main app to refresh; the extension never renews its own access.
 Wallet transfer forms use existing asset metadata and fee preview, exact decimal
 conversion and the original proposal journal for uncertain outcomes. A preview
 creates no approval, transaction or automatic execution.
@@ -352,10 +362,20 @@ from local presentation so a slow source does not delay an existing reminder.
 
 Push registration reacts only to a new APNs token; receiving the same token does
 not enqueue another registration. A valid Apple registration is retained when
-the following notification registration or settings sync fails. Explicit retry
-rechecks that notification registration without repeating App Attest unnecessarily.
+the following notification registration or settings sync fails. Automatic refresh
+reuses that lease; explicit retry renews it before registering its returned revision.
 The settings page shows one current status, places progress in the relevant
 action, and follows remote acknowledgements without overwriting unsaved edits.
+The current registration failure takes precedence over a saved receiver warning.
+
+Notification keys and receiver credentials use a Keychain namespace pinned within
+the installation UUID and deployment service. They do not follow the absolute
+sandbox path, which changes during iOS updates. Existing installations recover the
+original namespace by matching the saved notification installation digest to a
+stored Ed25519 public key, including when earlier retries generated other keys.
+This preserves the registered identity, per-account credentials and pending
+revocations through later updates. The recovery reads no other Keychain service
+and does not affect workspace unlock or App Attest keys.
 
 Clicks resolve an opaque original-account route. Locked reminders show an explicit
 unlock action, then continue to the original item. Reminders from another account

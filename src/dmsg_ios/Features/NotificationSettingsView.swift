@@ -23,10 +23,10 @@ struct NotificationSettingsView: View {
     private var statusMessage: String? {
         if saved?.conflict == true { return String(localized: "The record changed. Refresh and review your edits before saving again.") }
         if saveFailed || failed { return String(localized: "Connection unavailable. Your saved content stays on this device.") }
-        if saved?.registrationRequired == true { return String(localized: "Notifications may be delayed. Open dMsg to sync your content.") }
         switch model.push.registration {
         case .failed, .denied, .waiting, .unsupported: return model.push.registration.message
         case .idle, .enabled:
+            if saved?.registrationRequired == true { return String(localized: "Notifications may be delayed. Open dMsg to sync your content.") }
             if saved?.remoteSupported == false { return NoticeCopy.text("noticeRemote") }
             if saved?.pending == true { return NoticeCopy.text("noticePendingHint") }
             if saved?.global.enabled != true || saved?.account?.enabled != true { return nil }

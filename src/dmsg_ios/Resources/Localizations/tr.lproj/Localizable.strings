@@ -3276,5 +3276,9 @@
 	<string>Herkese açık profilimi göster</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>Bu bağlantıya sahip herkes, parola girmeden önce bile herkese açık profilinizi görebilir.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>dMsg çalışma alanını açın → Hesap → Sistem entegrasyonları → Şifre Otomatik Doldurma → Oturum açma öğelerini seçin</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>Otomatik Doldurmayı güncellemek için dMsg uygulamasını açıp kilidini kaldırın, ardından yeniden deneyin.</string>
 </dict>
 </plist>

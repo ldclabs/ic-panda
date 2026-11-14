@@ -3276,5 +3276,9 @@
 	<string>Mostrar mi perfil público</string>
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>Cualquier persona con este enlace puede ver tu perfil público, incluso antes de introducir la contraseña.</string>
+	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
+	<string>Abrir espacio de dMsg → Cuenta → Integraciones del sistema → Autorrelleno de contraseñas → Seleccionar accesos</string>
+	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
+	<string>Abre y desbloquea dMsg para actualizar el autorrelleno y vuelve a intentarlo.</string>
 </dict>
 </plist>

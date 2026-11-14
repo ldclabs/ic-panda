@@ -8,13 +8,15 @@ import Security
 /// prompt reference; it is never held while waiting for user interaction.
 final class AppleSecurity: Platform, @unchecked Sendable {
     private let service: String
+    private let notificationWorkspace: URL?
     private let mutex = NSLock()
     private var active: LAContext?
     private var authorization: UInt64?
     private var nextAuthorization: UInt64 = 0
 
-    init(installation: String, environment: String = "production") {
+    init(installation: String, environment: String = "production", notificationWorkspace: URL? = nil) {
         service = "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").\(environment).\(installation)"
+        self.notificationWorkspace = notificationWorkspace
     }
 
     private func query(_ name: String) -> [String: Any] {
@@ -24,6 +26,10 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     }
 
     func get(name: String) throws -> Data? {
+        try read(notificationName(name))
+    }
+
+    private func read(_ name: String) throws -> Data? {
         var query = query(name)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -35,6 +41,10 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     }
 
     func set(name: String, secret: Data) throws {
+        try write(notificationName(name), secret: secret)
+    }
+
+    private func write(_ name: String, secret: Data) throws {
         let attributes: [String: Any] = [kSecValueData as String: secret,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly]
         let status = SecItemUpdate(query(name) as CFDictionary, attributes as CFDictionary)
@@ -45,8 +55,62 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     }
 
     func delete(name: String) throws {
-        let status = SecItemDelete(query(name) as CFDictionary)
+        let status = SecItemDelete(query(try notificationName(name)) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw failure(status) }
+    }
+
+    // The shared core separates desktop workspaces by hashing their absolute
+    // paths. iOS moves its container during updates. This Keychain service is
+    // already scoped to a persisted installation UUID and deployment, so pin
+    // one notification namespace here, including receivers and pending revokes.
+    private static let notificationNamespace = "dmsg:notifications:namespace"
+
+    private static func notificationParts(_ name: String) -> (namespace: String, suffix: String)? {
+        let parts = name.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false)
+        guard parts.count == 4, parts[0] == "dmsg", parts[1] == "notifications",
+              parts[2].count == 64, parts[2].utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
+              !parts[3].isEmpty else { return nil }
+        return (String(parts[2]), String(parts[3]))
+    }
+
+    private func notificationName(_ name: String) throws -> String {
+        guard let parts = Self.notificationParts(name) else { return name }
+        if let notificationWorkspace { try prepareNotificationStorage(workspace: notificationWorkspace) }
+        let namespace = try read(Self.notificationNamespace).flatMap { String(data: $0, encoding: .utf8) } ?? "ios"
+        return "dmsg:notifications:\(namespace):\(parts.suffix)"
+    }
+
+    /// Recover the original key on notification access, even if previous
+    /// retries created newer keys in other container namespaces. The saved
+    /// installation digest identifies the key the remote APNs owner accepted.
+    /// Failure affects notifications only, never opening the local workspace.
+    private func prepareNotificationStorage(workspace: URL) throws {
+        guard try read(Self.notificationNamespace) == nil else { return }
+        struct Runtime: Decodable { let installation: String }
+        let path = workspace.appending(path: "notification-runtime.json")
+        var namespace = "ios"
+        if FileManager.default.fileExists(atPath: path.path) {
+            let runtime = try JSONDecoder().decode(Runtime.self, from: Data(contentsOf: path))
+            if !runtime.installation.isEmpty {
+                var lookup = query("")
+                lookup.removeValue(forKey: kSecAttrAccount as String)
+                lookup[kSecReturnAttributes as String] = true
+                lookup[kSecMatchLimit as String] = kSecMatchLimitAll
+                var result: CFTypeRef?
+                let status = SecItemCopyMatching(lookup as CFDictionary, &result)
+                guard status == errSecSuccess || status == errSecItemNotFound else { throw failure(status) }
+                for item in result as? [[String: Any]] ?? [] {
+                    guard let name = item[kSecAttrAccount as String] as? String,
+                          let parts = Self.notificationParts(name), parts.suffix == "installation",
+                          let seed = try read(name),
+                          let key = try? Curve25519.Signing.PrivateKey(rawRepresentation: seed) else { continue }
+                    let digest = SHA256.hash(data: key.publicKey.rawRepresentation).map { String(format: "%02x", $0) }.joined()
+                    if digest == runtime.installation { namespace = parts.namespace; break }
+                }
+            }
+        }
+        // Pin the namespace without copying keys or exposing them to the UI.
+        try write(Self.notificationNamespace, secret: Data(namespace.utf8))
     }
 
     func presence() -> UInt8 {
