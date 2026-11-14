@@ -2549,6 +2549,10 @@ mod tests {
         let dir = dmsg_client::testing::TempDir::new();
         let default_panic = std::panic::take_hook();
         crate::logs::open(&dir.0).unwrap();
+        assert!(std::panic::catch_unwind(|| panic!("{PRIVATE}")).is_err());
+        // Only the synthetic panic uses the redacting hook. Keep failures in
+        // the remaining assertions visible to the test runner.
+        std::panic::set_hook(default_panic);
         let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
             .await
             .unwrap();
@@ -2558,24 +2562,47 @@ mod tests {
         )
         .unwrap();
         let server = tokio::spawn(async move {
-            for _ in 0..3 {
+            for attempt in 0..7 {
                 let (mut socket, _) = listener.accept().await.unwrap();
-                let mut request = [0; 8192];
-                assert!(socket.read(&mut request).await.unwrap() > 0);
+                let mut request = Vec::new();
+                let mut buffer = [0; 8192];
+                loop {
+                    let count = socket.read(&mut buffer).await.unwrap();
+                    assert!(count > 0, "request ended before its body");
+                    request.extend_from_slice(&buffer[..count]);
+                    let Some(end) = request.windows(4).position(|v| v == b"\r\n\r\n") else {
+                        continue;
+                    };
+                    let headers = String::from_utf8_lossy(&request[..end]).to_ascii_lowercase();
+                    let length = headers
+                        .lines()
+                        .find_map(|line| line.strip_prefix("content-length:"))
+                        .map(|value| value.trim().parse::<usize>().unwrap())
+                        .unwrap_or(0);
+                    if request.len() >= end + 4 + length {
+                        break;
+                    }
+                }
+                if attempt >= 3 {
+                    // Evidence publication retries the same safe operation;
+                    // a business mutation is sent only once. Lose each reply.
+                    let path = if attempt < 6 {
+                        "POST /v1/security/evidence "
+                    } else {
+                        "POST /v1/accounts/test/mobile/purchase "
+                    };
+                    assert!(request.starts_with(path.as_bytes()));
+                    continue;
+                }
                 let body = json!({"ok": false, "error": {"code": PRIVATE, "message": format!("Bearer {PRIVATE} /Users/{PRIVATE} {PRIVATE}@example.com")}}).to_string();
                 socket.write_all(format!("HTTP/1.1 503 Unavailable\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
             }
-            // Read a mutation and drop its reply: diagnostic logging must
-            // not turn an uncertain submission into a definite rejection.
-            let (mut socket, _) = listener.accept().await.unwrap();
-            let mut request = [0; 8192];
-            assert!(socket.read(&mut request).await.unwrap() > 0);
         });
         let error = cloud
             .public(&format!("/public/{PRIVATE}?token={PRIVATE}"))
             .await
             .unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             cloud
                 .publish_security(&dmsg_client::cloud::Evidence {
                     schema: 1,
@@ -2583,6 +2610,27 @@ mod tests {
                     certificate: PRIVATE.into(),
                     entries: vec![],
                 })
+                .await,
+            Err(Error::Unavailable(_))
+        ));
+        let seed = [7; 32];
+        let signer = dmsg_client::cloud::Signer {
+            issuer: "https://dmsg.test/u/040g2081040g2081040g",
+            device_id: dmsg_types::Hash::new([7; 32]),
+            security_epoch: 1,
+            seed: &seed,
+            expires_at: u64::MAX,
+        };
+        assert_eq!(
+            cloud
+                .post(
+                    &signer,
+                    "/v1/accounts/test/mobile/purchase",
+                    "dmsg/mobile/purchase/v1",
+                    &json!({"receipt": PRIVATE}),
+                    &dmsg_types::Hash::new([3; 32]),
+                    dmsg_client::now_ms(),
+                )
                 .await,
             Err(Error::ExecutionUnknown)
         );
@@ -2616,8 +2664,6 @@ mod tests {
         // target may reach the run log.
         log::error!(target: "reqwest", "Authorization: Bearer {PRIVATE}");
         log::warn!(target: TARGET, "relay http 503 {PRIVATE}");
-        assert!(std::panic::catch_unwind(|| panic!("{PRIVATE}")).is_err());
-        std::panic::set_hook(default_panic);
         let logged = crate::logs::tail(&dir.0, 10_000).unwrap().join("\n");
         assert!(
             !logged.contains(PRIVATE),
