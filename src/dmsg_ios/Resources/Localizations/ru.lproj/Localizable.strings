@@ -3308,7 +3308,7 @@
 	<string>До 3 изображений PNG, JPEG, WebP или GIF по 10 MiB. Удалите секретные данные. Копии останутся в Файлах; отправка создаст зашифрованные ссылки на 30 дней и использует квоту хранилища. Любой обладатель полной ссылки может открыть её.</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>Описание — не более 4500 байт UTF-8.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
-	<string>Не удалось начать покупку. Запрос на оплату не был отправлен в Apple. Проверьте подключение и повторите попытку.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>Не удалось начать покупку. Запрос на оплату не был отправлен в Apple.</string>
 </dict>
 </plist>

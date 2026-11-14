@@ -393,8 +393,8 @@ final class DeploymentTests: XCTestCase {
         XCTAssertEqual(preparations, 1)
         XCTAssertFalse(purchases.working)
         XCTAssertFalse(purchases.pending)
-        XCTAssertEqual(model.error, PurchaseModel.purchaseNotStartedMessage)
-        XCTAssertEqual(purchases.feedback, PurchaseModel.purchaseNotStartedMessage)
+        XCTAssertTrue(model.error?.contains(PurchaseModel.purchaseNotStartedMessage) == true)
+        XCTAssertEqual(purchases.feedback, model.error)
         XCTAssertTrue(purchases.canPurchase(product))
     }
 
@@ -425,6 +425,31 @@ final class DeploymentTests: XCTestCase {
             XCTAssertEqual(sheets, 1)
             XCTAssertNil(purchases.feedback)
             XCTAssertNil(model.error)
+        }
+    }
+
+    func testPrepaymentFailurePreservesActionableDeviceErrors() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let failures: [(Error, String)] = [
+            (MobileError.Failure(code: "APP_INTEGRITY_UNAVAILABLE"), String(localized: "App verification is unavailable on this device. Your saved content remains available.")),
+            (CocoaError(.fileWriteOutOfSpace), String(localized: "Not enough storage on this device."))
+        ]
+        for (failure, explanation) in failures {
+            let model = SessionModel(); model.loadFixtures()
+            var store = initial, sheets = 0
+            store.preflight = { _, _, _ in .init(eligible: true, reason: nil, kind: "subscription") }
+            store.prepare = { _, _ in throw failure }
+            store.purchase = { _, _ in sheets += 1; return .userCancelled }
+            let purchases = PurchaseModel(enabled: true, store: store)
+            await purchases.load(model)
+            await purchases.purchase(product, model: model)
+            XCTAssertEqual(sheets, 0)
+            XCTAssertTrue(model.error?.contains(explanation) == true, "Keep the remedy for \(failure)")
+            XCTAssertTrue(model.error?.contains(PurchaseModel.purchaseNotStartedMessage) == true)
+            XCTAssertEqual(purchases.feedback, model.error)
+            XCTAssertFalse(purchases.pending)
+            XCTAssertTrue(purchases.canPurchase(product))
         }
     }
 

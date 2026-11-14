@@ -1,5 +1,31 @@
 # iOS implementation validation
 
+## Review of subscription preparation errors (2026-11-14)
+
+Review of `3aef8de` found that the new prepayment notice replaced actionable
+App Attest support and local-storage errors with connection advice. Alerts and
+persistent notices now retain the specific error alongside the explanation that
+no Apple payment was started. An uncertain preparation result still avoids the
+post-payment reconciliation warning. The shared explanation was updated in all
+23 languages.
+
+- The new regression test failed on the reviewed implementation for both
+  `APP_INTEGRITY_UNAVAILABLE` and `CocoaError.fileWriteOutOfSpace`, then passed
+  after the fix.
+- On the SE-sized iOS 18.4 simulator, 62 selected unit tests and one UI test
+  passed (63 total). The UI test covered Chinese light/dark, German and Arabic
+  RTL with the specific failure detail. All eight alert/notice screenshots were
+  inspected; the text and dismissal controls remained visible.
+- Full `dmsg_client` tests: 632 passed, 5 ignored; `dmsg_mobile`: 36 passed.
+  Both crates passed `cargo fmt --check` and Clippy with `-D warnings`.
+- All 23 localization catalogs passed validation against the compiled Swift
+  strings. Release Rust bridge fingerprint verification and `git diff --check`
+  passed.
+
+This review did not run physical-device App Attest, real Apple payments, private
+service tests or production deployment checks. The UI test uses presentation
+fixtures.
+
 ## Subscription preparation and recovery (2026-11-14)
 
 Reviewed the path from certified account evidence and purchase eligibility through

@@ -3308,7 +3308,7 @@
 	<string>Do 3 obrazów PNG, JPEG, WebP lub GIF, po 10 MiB. Najpierw usuń tajne dane. Kopie pozostają w Plikach; wysłanie tworzy szyfrowane linki ważne 30 dni i zużywa limit miejsca. Każdy, kto ma pełny link, może go otworzyć.</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>Opis może mieć najwyżej 4500 bajtów UTF-8.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
-	<string>Nie udało się rozpocząć zakupu. Nie wysłano żądania płatności do Apple. Sprawdź połączenie i spróbuj ponownie.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>Nie udało się rozpocząć zakupu. Nie wysłano żądania płatności do Apple.</string>
 </dict>
 </plist>

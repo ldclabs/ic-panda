@@ -3308,7 +3308,7 @@
 	<string>最多 3 张 PNG、JPEG、WebP 或 GIF 图片，每张 10 MiB。请先移除秘密内容。副本保存在文件库；发送会创建有效期 30 天的加密链接，并占用存储配额。持有完整链接的人可以查看。</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>描述最多 4500 个 UTF-8 字节。</string>
-	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
-	<string>订阅尚未发起，未向 Apple 提交付款请求。请检查网络连接后重试。</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>购买尚未发起，未向 Apple 提交付款请求。</string>
 </dict>
 </plist>

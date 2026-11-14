@@ -3308,7 +3308,7 @@
 	<string>Her biri 10 MiB olan en fazla 3 PNG, JPEG, WebP veya GIF. Önce gizli bilgileri kaldırın. Kopyalar Dosyalar’da kalır; gönderim 30 gün geçerli şifreli bağlantılar oluşturur ve depolama kotasını kullanır. Tam bağlantıya sahip herkes açabilir.</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>Açıklama için en fazla 4500 UTF-8 baytı kullanın.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
-	<string>Satın alma başlatılamadı. Apple’a ödeme isteği gönderilmedi. Bağlantınızı kontrol edip tekrar deneyin.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>Satın alma başlatılamadı. Apple’a ödeme isteği gönderilmedi.</string>
 </dict>
 </plist>

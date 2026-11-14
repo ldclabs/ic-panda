@@ -3308,7 +3308,7 @@
 	<string>Tối đa 3 ảnh PNG, JPEG, WebP hoặc GIF, mỗi ảnh 10 MiB. Xóa thông tin bí mật trước. Bản sao ở lại Tệp; gửi sẽ tạo liên kết mã hóa có hiệu lực 30 ngày và dùng hạn mức lưu trữ. Ai có liên kết đầy đủ đều có thể mở.</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>Mô tả tối đa 4500 byte UTF-8.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
-	<string>Không thể bắt đầu mua hàng. Chưa gửi yêu cầu thanh toán nào tới Apple. Hãy kiểm tra kết nối và thử lại.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>Không thể bắt đầu mua hàng. Chưa gửi yêu cầu thanh toán nào tới Apple.</string>
 </dict>
 </plist>

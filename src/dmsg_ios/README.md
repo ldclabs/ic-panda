@@ -328,8 +328,9 @@ The Apple outage behavior follows its [attestKey retry guidance](https://develop
 Lost mobile command replies receive one bounded replay with the original request
 ID and proof, while authorization and verification rejections are not retried.
 Failures before the purchase sheet explain that no payment request was sent to
-Apple and allow retry. Diagnostics identify preflight, attestation or payment
-without logging receipts, account tokens or key IDs.
+Apple and retain actionable device-verification or storage failure details.
+Diagnostics identify preflight, attestation or payment without logging receipts,
+account tokens or key IDs.
 These local checks do not change the commerce
 service's per-transaction ownership rule, grant extra entitlements, or
 cancel an already scheduled change in Apple’s system.

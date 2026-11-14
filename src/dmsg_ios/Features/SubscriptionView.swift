@@ -279,7 +279,7 @@ struct SubscriptionView: View {
         if model.uiTesting {
             model.purchases.installSubscriptionFixture()
             if ProcessInfo.processInfo.arguments.contains("--ui-purchase-not-started") {
-                model.error = PurchaseModel.purchaseNotStartedMessage
+                model.error = model.purchases.feedback
             }
             plan = Plan.fixture
             usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: plan?.limits.storageBytes, activeChannels: 1, channelLimit: plan?.limits.activeChannels), execution: Usage.Execution(month: 202611, allowed: plan?.limits.monthlyExecutionUnits ?? 3, charged: 1, remaining: (plan?.limits.monthlyExecutionUnits ?? 3) - 1), cloudError: nil, executionError: nil)

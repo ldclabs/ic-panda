@@ -3308,7 +3308,7 @@
 	<string>حتى 3 صور PNG أو JPEG أو WebP أو GIF، بحجم 10 MiB لكل صورة. أزل الأسرار أولاً. تبقى النسخ في الملفات؛ ينشئ الإرسال روابط مشفرة صالحة لمدة 30 يوماً ويستهلك حصة التخزين. يمكن لأي شخص يملك الرابط الكامل فتحه.</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>استخدم 4500 بايت UTF-8 كحد أقصى للوصف.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
-	<string>تعذر بدء الشراء. لم يُرسل أي طلب دفع إلى Apple. تحقق من اتصالك وحاول مرة أخرى.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>تعذر بدء الشراء. لم يُرسل أي طلب دفع إلى Apple.</string>
 </dict>
 </plist>

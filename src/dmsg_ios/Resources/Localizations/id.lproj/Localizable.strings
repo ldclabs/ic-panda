@@ -3308,7 +3308,7 @@
 	<string>Maksimal 3 gambar PNG, JPEG, WebP atau GIF, masing-masing 10 MiB. Hapus rahasia terlebih dahulu. Salinan tetap di File; pengiriman membuat tautan terenkripsi berlaku 30 hari dan memakai kuota penyimpanan. Siapa pun dengan tautan lengkap dapat membukanya.</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>Gunakan maksimal 4500 byte UTF-8 untuk deskripsi.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
-	<string>Pembelian tidak dapat dimulai. Tidak ada permintaan pembayaran yang dikirim ke Apple. Periksa koneksi Anda dan coba lagi.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>Pembelian tidak dapat dimulai. Tidak ada permintaan pembayaran yang dikirim ke Apple.</string>
 </dict>
 </plist>

@@ -3308,7 +3308,7 @@
 	<string>Sehingga 3 imej PNG, JPEG, WebP atau GIF, 10 MiB setiap satu. Padam rahsia dahulu. Salinan kekal dalam Fail; penghantaran mencipta pautan disulitkan sah 30 hari dan menggunakan kuota storan. Sesiapa yang mempunyai pautan lengkap boleh membukanya.</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>Gunakan maksimum 4500 bait UTF-8 untuk huraian.</string>
-	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
-	<string>Pembelian tidak dapat dimulakan. Tiada permintaan pembayaran dihantar kepada Apple. Semak sambungan anda dan cuba lagi.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple.</key>
+	<string>Pembelian tidak dapat dimulakan. Tiada permintaan pembayaran dihantar kepada Apple.</string>
 </dict>
 </plist>

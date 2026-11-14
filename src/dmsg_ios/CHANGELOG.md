@@ -13,8 +13,9 @@ tracked separately. Build and device-test evidence is recorded in
   device-verification challenge. Confirm an uncertain registration before
   reporting failure, and recover invalid App Attest keys within the same action.
 - Explain when a purchase has not reached Apple payment, with an immediate alert
-  and a persistent page notice. Block buying another plan while an earlier
-  payment still awaits delivery; recovery continues to use the original receipt.
+  and a persistent page notice that retains the specific failure reason. Block
+  buying another plan while an earlier payment still awaits delivery; recovery
+  continues to use the original receipt.
 
 ### Build 30 — 2026-11-13
 

@@ -155,7 +155,7 @@ final class NavigationTests: NavigationTestCase {
     func testPrepaymentFailureExplainsThatNoPaymentStarted() {
         for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             let app = XCUIApplication()
-            app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-purchase-not-started", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-purchase-not-started", "--ui-purchase-attestation-unavailable", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
             tab(app, symbol: "Glyph-account", title: title).tap()
             let plan = app.buttons["account.plan"]

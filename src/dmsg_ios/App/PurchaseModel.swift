@@ -168,7 +168,7 @@ final class PurchaseModel {
         String(localized: "Unable to verify the account linked to this Apple subscription. Try again before purchasing.")
     }
     static var purchaseNotStartedMessage: String {
-        String(localized: "The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.")
+        String(localized: "The purchase could not be started. No payment request was sent to Apple.")
     }
     var subscriptionMessage: String? {
         if subscriptions.contains(where: { $0.ownership == .otherAccount }) { return Self.otherAccountMessage }
@@ -402,12 +402,17 @@ final class PurchaseModel {
                 Self.logger.warning("Purchase failed at \(stage, privacy: .public): \(failure.domain, privacy: .public) (\(code, privacy: .public))")
                 if stage == "payment" { model.report(error) }
                 else {
-                    model.reportBackground(error)
-                    guard current(model, epoch: epoch, account: expectedAccount) else { return }
-                    feedback = Self.purchaseNotStartedMessage
+                    if code == "EXECUTION_UNKNOWN" {
+                        // An uncertain preparation result cannot mean a charge.
+                        feedback = Self.purchaseNotStartedMessage
+                    } else {
+                        model.report(error)
+                        guard current(model, epoch: epoch, account: expectedAccount), let reason = model.error else { return }
+                        feedback = reason + "\n\n" + Self.purchaseNotStartedMessage
+                    }
                     // The selected price can be above the inline status. Keep
                     // explicit purchase failures visible without requiring a scroll.
-                    model.error = Self.purchaseNotStartedMessage
+                    model.error = feedback
                 }
             }
         }
@@ -592,7 +597,12 @@ final class PurchaseModel {
                 state: expired ? .expired : .subscribed, expiresAt: Date.now.addingTimeInterval(expired ? -86400 : 86400))]
             pendingRefreshes = expired ? [] : ["Sandbox:fixture"]
         }
-        if args.contains("--ui-purchase-not-started") { feedback = Self.purchaseNotStartedMessage }
+        if args.contains("--ui-purchase-not-started") {
+            feedback = Self.purchaseNotStartedMessage
+            if args.contains("--ui-purchase-attestation-unavailable") {
+                feedback = String(localized: "App verification is unavailable on this device. Your saved content remains available.") + "\n\n" + Self.purchaseNotStartedMessage
+            }
+        }
     }
     #endif
 
