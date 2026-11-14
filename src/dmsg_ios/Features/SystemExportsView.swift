@@ -150,11 +150,10 @@ struct SystemExportsView: View {
         if purpose == .credentials { model.autoFillGeneration &+= 1; model.autoFillChanging = true }
         defer { if purpose == .credentials { model.autoFillChanging = false } }
         do {
+            // The saved selection rebuilds missing copies, so it goes first.
+            if purpose == .credentials { try await model.engine?.forgetAutofill() }
             try SystemExports(purpose).invalidate()
-            if purpose == .credentials {
-                try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities()
-                try await model.engine?.forgetAutofill()
-            }
+            if purpose == .credentials { try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities() }
             else { try await NSFileProviderManager.remove(domain) }
             guard epoch == model.epoch, !Task.isCancelled else { return }
             if purpose == .credentials { credentials = [] }

@@ -50,11 +50,14 @@
     const files = [...(event.clipboardData?.files ?? [])]
     if (files.length && !frozen) { event.preventDefault(); void add(files) }
   }
+  /** Each screenshot's preview is read once; one that fails keeps the file icon. */
+  const previewed = new Set<string>()
   $effect(() => {
     for (const screenshot of form.screenshots) {
-      if (images[screenshot.file]) continue
+      if (previewed.has(screenshot.file)) continue
+      previewed.add(screenshot.file)
       void call('files/preview', { id: screenshot.file, version: screenshot.version }).then((p: any) => {
-        if (valid() && form.screenshots.some(s => s.file === screenshot.file) && p.kind === 'image' && p.content_base64url) {
+        if (valid() && p.kind === 'image' && p.content_base64url) {
           images[screenshot.file] = `data:${p.mime};base64,${p.content_base64url.replace(/-/g, '+').replace(/_/g, '/')}`
         }
       }).catch(() => {})

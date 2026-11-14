@@ -88,7 +88,7 @@ struct FeedbackView: View {
             .onDisappear { active = false }
             .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { writing = false }.accessibilityIdentifier("feedback.keyboard-done") } }
             .task(id: model.epoch) { await form.load(model) }
-            .photosPicker(isPresented: $choosingPhotos, selection: $photos, maxSelectionCount: max(1, 3 - form.screenshots.count), matching: .images, preferredItemEncoding: .current)
+            .photosPicker(isPresented: $choosingPhotos, selection: $photos, maxSelectionCount: max(1, 3 - form.screenshots.count), matching: .images, preferredItemEncoding: .compatible)
             .onChange(of: photos) { _, values in if !values.isEmpty { Task { await importPhotos(values) } } }
             .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.png, .jpeg, .webP, .gif]) { result in
                 if case .success(let url) = result { Task { await importFiles([url]) } }

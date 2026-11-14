@@ -2,6 +2,7 @@
 use crate::{
     Client,
     hold::{Hold, Unlocked},
+    library::link::FEEDBACK_SHARE,
     upload::{hex_id, random_hex},
 };
 use dmsg_types::{Error, Result, ensure, ensure_valid};
@@ -160,11 +161,14 @@ impl Client {
         if value.state == "draft" {
             return Ok(value);
         }
-        if self.letter_history()?.iter().any(|r| r["id"] == id) {
-            self.edit_unsent_letter(id)?;
-            self.discard_letter_draft(id)?;
+        // A queued letter whose contact was never prepared returns to the report.
+        match self.edit_unsent_letter(id) {
+            Ok(()) => self.discard_letter_draft(id)?,
+            Err(Error::NotFound) => {}
+            Err(error) => return Err(error),
         }
-        if value.error.as_deref() == Some("RESULT_EXPIRED") {
+        let replan = value.error.as_deref() == Some("RESULT_EXPIRED");
+        if replan {
             for screenshot in &mut value.screenshots {
                 screenshot.operation = random_hex();
                 screenshot.url = None;
@@ -174,7 +178,12 @@ impl Client {
         value.state = "draft".into();
         value.error = None;
         value.revision += 1;
-        self.workspace.put_private(self.keys()?, DRAFT, &value)?;
+        self.workspace.store.atomic(|_| {
+            if replan {
+                self.forget_feedback_shares()?;
+            }
+            self.workspace.put_private(self.keys()?, DRAFT, &value)
+        })?;
         Ok(value)
     }
 
@@ -187,7 +196,18 @@ impl Client {
             value.id == id && value.revision == revision && value.state != "pending",
             Error::VersionConflict,
         )?;
-        self.workspace.delete_private(DRAFT)
+        self.workspace.store.atomic(|_| {
+            self.forget_feedback_shares()?;
+            self.workspace.delete_private(DRAFT)
+        })
+    }
+
+    /// Screenshot share journals only serve retries of the current operations.
+    fn forget_feedback_shares(&self) -> Result<()> {
+        for key in self.workspace.store.sealed_keys(FEEDBACK_SHARE)? {
+            self.workspace.delete_private(&key)?;
+        }
+        Ok(())
     }
 }
 
@@ -399,6 +419,43 @@ mod tests {
         assert!(
             c.letter_history().unwrap().is_empty(),
             "never send before screenshots are published"
+        );
+        // Replanning an expired upload forgets the journal of the old operation.
+        let mut pending = c.feedback().unwrap().unwrap();
+        pending.error = Some("RESULT_EXPIRED".into());
+        c.workspace
+            .put_private(c.keys().unwrap(), DRAFT, &pending)
+            .unwrap();
+        let replanned = c.edit_feedback(&id).unwrap();
+        assert_ne!(
+            replanned.screenshots[0].operation,
+            pending.screenshots[0].operation
+        );
+        assert!(
+            c.workspace
+                .store
+                .sealed_keys(FEEDBACK_SHARE)
+                .unwrap()
+                .is_empty()
+        );
+        // An ordinary failure keeps its journal; clearing the report forgets it.
+        assert!(send(&c.hold(), &id, replanned.revision).await.is_err());
+        let edited = c.edit_feedback(&id).unwrap();
+        assert_eq!(
+            edited.screenshots[0].operation,
+            replanned.screenshots[0].operation
+        );
+        assert_eq!(
+            c.workspace.store.sealed_keys(FEEDBACK_SHARE).unwrap().len(),
+            1
+        );
+        c.clear_feedback(&id, edited.revision).unwrap();
+        assert!(
+            c.workspace
+                .store
+                .sealed_keys(FEEDBACK_SHARE)
+                .unwrap()
+                .is_empty()
         );
     }
 

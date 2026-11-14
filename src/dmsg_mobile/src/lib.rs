@@ -383,6 +383,16 @@ impl MobileEngine {
                             c.channel_draft(&draft.channel, &draft.text)?;
                         }
                         let now = dmsg_client::now_ms();
+                        for draft in letters {
+                            c.save_letter_draft_at(
+                                &draft.id,
+                                &draft.recipient,
+                                &draft.text,
+                                draft.invitation,
+                                now,
+                            )?;
+                        }
+                        // Last, so a report the core refuses keeps no letter from saving.
                         if let Some(mut draft) = feedback {
                             if let Some(current) = c.feedback()? {
                                 ensure(
@@ -392,15 +402,6 @@ impl MobileEngine {
                                 draft.revision = current.revision;
                             }
                             draft.save(c)?;
-                        }
-                        for draft in letters {
-                            c.save_letter_draft_at(
-                                &draft.id,
-                                &draft.recipient,
-                                &draft.text,
-                                draft.invitation,
-                                now,
-                            )?;
                         }
                         Ok(())
                     })();

@@ -115,6 +115,7 @@ pub const PREFIXES: &[(&str, Class)] = &[
     ("lib-cloud:", Class::Stays),
     ("lib-fetch:", Class::Stays),
     ("lib-link:", Class::Stays),
+    ("feedback-share:", Class::Stays),
     // Request links and received-file metadata are read again from the relay;
     // an explicitly saved copy is already covered by the library records.
     ("lib-request:", Class::Stays),

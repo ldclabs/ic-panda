@@ -27,6 +27,8 @@ use zeroize::Zeroizing;
 
 /// The sealed records of the links this device made.
 pub(crate) const LINK: &str = "lib-link:";
+/// Sealed publication journals of feedback screenshots, by operation.
+pub(crate) const FEEDBACK_SHARE: &str = "feedback-share:";
 /// A link lasts this long unless told otherwise.
 pub const LINK_DEFAULT_MS: u64 = 7 * DAY;
 /// A link lasts at most this long; the relay enforces the same.
@@ -553,7 +555,7 @@ pub(crate) async fn feedback_link<H: Hold>(
     operation: &str,
 ) -> Result<LinkView> {
     hex_id(operation)?;
-    let key = format!("feedback-share:{operation}");
+    let key = format!("{FEEDBACK_SHARE}{operation}");
     if let Some(attempt) = h
         .with(|c| c.workspace.private::<LinkAttempt>(c.keys()?, &key))
         .await?

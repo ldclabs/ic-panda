@@ -491,11 +491,13 @@ async fn feedback_recovers_lost_share_ack_without_another_upload_or_publication(
         ) -> Result<T> {
             step(&mut self.client.lock().unwrap())
         }
+
         async fn find(&self, _: &str) -> Result<Option<Value>> {
             Ok(Some(
                 json!({"status":"committed", "plan":self.attempt.plan}),
             ))
         }
+
         async fn get(&self, path: &str) -> Result<Value> {
             assert!(path.contains("/shares"));
             let link = &self.attempt.link;
@@ -503,6 +505,7 @@ async fn feedback_recovers_lost_share_ack_without_another_upload_or_publication(
                 json!({"entries":[{"share_id":link.share_id,"expires_at":link.expires_at,"max_downloads":0,"password":false,"created_at":link.created_at,"revoked_at":null,"downloads":0}],"end":true,"next_cursor":1}),
             )
         }
+
         async fn post<P: Serialize + Sync>(
             &self,
             path: &str,
