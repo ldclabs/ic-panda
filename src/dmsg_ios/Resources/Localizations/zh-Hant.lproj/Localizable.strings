@@ -3308,5 +3308,7 @@
 	<string>最多 3 張 PNG、JPEG、WebP 或 GIF 圖片，每張 10 MiB。請先移除機密內容。副本保存在檔案庫；傳送會建立有效期 30 天的加密連結，並占用儲存配額。持有完整連結的人可以查看。</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>描述最多 4500 個 UTF-8 位元組。</string>
+	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
+	<string>訂閱尚未開始，未向 Apple 提交付款要求。請檢查網路連線後再試。</string>
 </dict>
 </plist>

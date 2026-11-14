@@ -137,7 +137,10 @@ transport interruptions and HTTP 408/500/502/503/504 retry within a request; HTT
 failures, authority refusals and integrity failures do not. IC queries have a
 fifteen-second overall budget; update submission and status waiting have a
 ninety-second overall budget. Individual mutation HTTP requests have a
-thirty-second budget and are sent once. The custom IC transport replaces SDK
+thirty-second budget and are sent once. Certified security-evidence publication
+uses the read policy: replaying the same certificate cannot create an account or
+perform a business action, and exhausted retries report connection unavailability
+instead of an uncertain purchase or registration. The custom IC transport replaces SDK
 retry middleware, and reqwest protocol retries are disabled.
 Active HTTP/2 connections send a liveness ping after five seconds without
 incoming traffic and close if it is not acknowledged within three seconds.

@@ -152,6 +152,31 @@ final class NavigationTests: NavigationTestCase {
         }
     }
 
+    func testPrepaymentFailureExplainsThatNoPaymentStarted() {
+        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-purchase-not-started", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            tab(app, symbol: "Glyph-account", title: title).tap()
+            let plan = app.buttons["account.plan"]
+            for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+            XCTAssertTrue(plan.isHittable); plan.tap()
+            let alert = app.alerts.firstMatch
+            XCTAssertTrue(alert.waitForExistence(timeout: 5))
+            XCTAssertTrue(alert.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Apple")).firstMatch.exists)
+            capture(app, name: "Purchase not started alert · \(language) · \(dark ? "dark" : "light")")
+            alert.buttons.firstMatch.tap()
+            let notice = app.descendants(matching: .any).matching(identifier: "plan.purchase-result").firstMatch
+            for _ in 0..<8 where !notice.isHittable { app.swipeUp() }
+            XCTAssertTrue(notice.isHittable)
+            XCTAssertTrue(notice.label.contains("Apple"))
+            XCTAssertFalse(app.alerts.firstMatch.exists)
+            XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.purchase-pending").firstMatch.exists)
+            capture(app, name: "Purchase not started · \(language) · \(dark ? "dark" : "light")")
+            app.terminate()
+        }
+    }
+
     func testLoadingProductsDoNotReportUnavailable() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-products-loading", "-AppleLanguages", "(en)"]

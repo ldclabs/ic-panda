@@ -3308,5 +3308,7 @@
 	<string>সর্বোচ্চ 3টি PNG, JPEG, WebP বা GIF ছবি, প্রতিটি 10 MiB। আগে গোপন তথ্য সরান। কপি ফাইলে থাকে; পাঠালে 30 দিন মেয়াদি এনক্রিপ্ট করা লিংক তৈরি হয় এবং স্টোরেজ কোটা ব্যবহার হয়। সম্পূর্ণ লিংক থাকা যে কেউ খুলতে পারে।</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>বিবরণের জন্য সর্বোচ্চ 4500 UTF-8 বাইট ব্যবহার করুন।</string>
+	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
+	<string>কেনাকাটা শুরু করা যায়নি। Apple-এ কোনো অর্থপ্রদানের অনুরোধ পাঠানো হয়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।</string>
 </dict>
 </plist>

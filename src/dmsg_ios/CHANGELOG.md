@@ -7,6 +7,15 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## 1.2.0
 
+### Unreleased — 2026-11-14
+
+- Recover interrupted subscription setup using the original request and saved
+  device-verification challenge. Confirm an uncertain registration before
+  reporting failure, and recover invalid App Attest keys within the same action.
+- Explain when a purchase has not reached Apple payment, with an immediate alert
+  and a persistent page notice. Block buying another plan while an earlier
+  payment still awaits delivery; recovery continues to use the original receipt.
+
 ### Build 30 — 2026-11-13
 
 - Add an optional public profile to newly created file-sharing links, with the

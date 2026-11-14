@@ -285,8 +285,9 @@ observations are deduplicated, including concurrent purchase/restore/update
 delivery; a newer refund observation of the same transaction is still submitted.
 An already-finished StoreKit transaction may need fresh server verification after
 a missed renewal or an account-token repair. A failed receipt does not stop the
-remaining receipts. Pending state is retained per transaction, and the same
-product cannot be bought again while its payment awaits delivery or approval.
+remaining receipts. Pending state is retained per transaction. An undelivered
+payment blocks another purchase, including a different plan; an Apple approval
+wait blocks another purchase within its subscription group.
 The service keeps each transaction's beneficiary immutable and permits a new
 account on the same original subscription only for a new, non-overlapping term.
 Deploy that commerce policy before distributing the iOS repurchase change;
@@ -318,8 +319,17 @@ purchase/restore operations survive the temporary inactive scene; automatic read
 resume when they finish. New refreshes supersede cancelled or older plan/usage
 reads, and delivery notifications cannot reset another open purchase's product
 checks. Device attestation is prepared before presenting Apple's payment sheet.
-A registered App Attest key that Apple reports as invalid is retired locally so
-recovery can register a replacement; network errors retain the valid key.
+Enrollment saves the original challenge before calling Apple and keeps the same
+key and nonce through a transient Apple failure or restart. A lost registration
+reply is reconciled with the device's registered-key status before reporting
+failure. A registered App Attest key that Apple reports as invalid is retired
+locally and replaced once within the same action; network errors retain the key.
+The Apple outage behavior follows its [attestKey retry guidance](https://developer.apple.com/documentation/devicecheck/dcappattestservice/attestkey(_:clientdatahash:completionhandler:)).
+Lost mobile command replies receive one bounded replay with the original request
+ID and proof, while authorization and verification rejections are not retried.
+Failures before the purchase sheet explain that no payment request was sent to
+Apple and allow retry. Diagnostics identify preflight, attestation or payment
+without logging receipts, account tokens or key IDs.
 These local checks do not change the commerce
 service's per-transaction ownership rule, grant extra entitlements, or
 cancel an already scheduled change in Apple’s system.

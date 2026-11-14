@@ -3308,5 +3308,7 @@
 	<string>สูงสุด 3 ภาพในรูปแบบ PNG, JPEG, WebP หรือ GIF ภาพละ 10 MiB ลบข้อมูลลับก่อน สำเนายังคงอยู่ในไฟล์ การส่งจะสร้างลิงก์เข้ารหัสที่ใช้ได้ 30 วันและใช้โควตาพื้นที่จัดเก็บ ผู้ที่มีลิงก์ครบถ้วนสามารถเปิดได้</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>คำอธิบายมีขนาดได้สูงสุด 4500 ไบต์ UTF-8</string>
+	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
+	<string>ไม่สามารถเริ่มการซื้อได้ ยังไม่ได้ส่งคำขอชำระเงินไปยัง Apple โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง</string>
 </dict>
 </plist>

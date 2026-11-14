@@ -51,13 +51,7 @@ impl MobileEngine {
                 let account = h
                     .with(|c| c.session_state().account.ok_or(Error::AuthRequired))
                     .await?;
-                h.post(
-                    &format!("/v1/accounts/{account}/mobile/{action}"),
-                    &format!("dmsg/mobile/{action}/v1"),
-                    &payload,
-                    &id,
-                )
-                .await
+                post_mobile(h, &account.to_string(), action, &payload, &id).await
             })
         })
         .await
@@ -78,6 +72,32 @@ impl MobileEngine {
         )
         .await
     }
+}
+
+/// MobileDO journals these operations by request ID and payload. A lost reply
+/// must replay that same operation, including its one-time App Attest proof.
+/// Other mobile mutations retain their own reconciliation policy.
+async fn post_mobile<H: dmsg_client::hold::Hold>(
+    h: &H,
+    account: &str,
+    action: &str,
+    payload: &Value,
+    id: &dmsg_types::Hash,
+) -> dmsg_types::Result<Value> {
+    let path = format!("/v1/accounts/{account}/mobile/{action}");
+    let domain = format!("dmsg/mobile/{action}/v1");
+    let result = h.post(&path, &domain, payload, id).await;
+    if matches!(result, Err(Error::ExecutionUnknown))
+        && matches!(
+            action,
+            "challenge" | "attest" | "push-register" | "purchase"
+        )
+    {
+        // Hold signs again against the current session and device authority;
+        // it never holds the Client while waiting for the network.
+        return h.post(&path, &domain, payload, id).await;
+    }
+    result
 }
 
 #[uniffi::export]
@@ -248,6 +268,97 @@ fn purchase_gateway_matches(
 #[cfg(test)]
 mod purchase_tests {
     use super::*;
+    use dmsg_client::{Client, hold::Hold};
+    use dmsg_types::Hash;
+    use std::{collections::VecDeque, sync::Mutex};
+
+    #[derive(Debug, PartialEq)]
+    struct Request {
+        path: String,
+        domain: String,
+        payload: Value,
+        id: Hash,
+    }
+
+    struct Relay {
+        requests: Mutex<Vec<Request>>,
+        replies: Mutex<VecDeque<dmsg_types::Result<Value>>>,
+    }
+
+    impl Hold for Relay {
+        async fn with<T: Send>(
+            &self,
+            _: impl FnOnce(&mut Client) -> dmsg_types::Result<T> + Send,
+        ) -> dmsg_types::Result<T> {
+            panic!("the transport test must not open a real workspace")
+        }
+
+        async fn post<P: Serialize + Sync>(
+            &self,
+            path: &str,
+            domain: &str,
+            payload: &P,
+            id: &Hash,
+        ) -> dmsg_types::Result<Value> {
+            self.requests.lock().unwrap().push(Request {
+                path: path.into(),
+                domain: domain.into(),
+                payload: serde_json::to_value(payload).unwrap(),
+                id: *id,
+            });
+            self.replies
+                .lock()
+                .unwrap()
+                .pop_front()
+                .expect("bounded replay")
+        }
+    }
+
+    #[tokio::test]
+    async fn lost_mobile_replies_replay_the_original_request_and_one_time_proof_once() {
+        for action in ["challenge", "attest", "push-register", "purchase"] {
+            let expected = json!({"registered":true,"state":"applied"});
+            let relay = Relay {
+                requests: Mutex::default(),
+                replies: Mutex::new(VecDeque::from([
+                    Err(Error::ExecutionUnknown),
+                    Ok(expected.clone()),
+                ])),
+            };
+            let payload = json!({"proof":{"challenge_id":"original","object":"one-time-assertion"},"details":{"jws":"original-receipt"}});
+            let id = Hash::new([7; 32]);
+            assert_eq!(
+                post_mobile(&relay, "account", action, &payload, &id).await,
+                Ok(expected)
+            );
+            let requests = relay.requests.lock().unwrap();
+            assert_eq!(requests.len(), 2);
+            assert_eq!(requests[0], requests[1]);
+            assert_eq!(requests[0].id, id);
+            assert_eq!(requests[0].payload, payload);
+        }
+    }
+
+    #[tokio::test]
+    async fn mobile_replay_is_bounded_and_does_not_retry_rejections_or_unrelated_mutations() {
+        for (action, error, count) in [
+            ("challenge", Error::ExecutionUnknown, 2),
+            ("purchase", Error::Forbidden, 1),
+            ("attest", Error::AuthRequired, 1),
+            ("challenge", Error::Unavailable("busy: 60000".into()), 1),
+            ("delete", Error::ExecutionUnknown, 1),
+        ] {
+            let relay = Relay {
+                requests: Mutex::default(),
+                replies: Mutex::new(VecDeque::from(vec![Err(error.clone()); count])),
+            };
+            assert_eq!(
+                post_mobile(&relay, "account", action, &json!({}), &Hash::new([8; 32])).await,
+                Err(error)
+            );
+            assert_eq!(relay.requests.lock().unwrap().len(), count);
+        }
+    }
 
     #[test]
     fn production_business_can_preflight_sandbox_only_when_both_services_allow_it() {

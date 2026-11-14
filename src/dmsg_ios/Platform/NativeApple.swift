@@ -7,7 +7,6 @@ import Foundation
 @MainActor
 final class NativeApple {
     struct Challenge: Decodable { let challengeId: String; let challenge: String; let clientData: String; let expiresAt: UInt64 }
-    private struct KeyRecord: Codable { let id: String; let device: String; var challenge: String?; var object: String?; var expires: UInt64? }
     private var working = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
 
@@ -22,53 +21,18 @@ final class NativeApple {
         guard session.account == account, session.state == "unlocked", let device = session.deviceId else { throw MobileError.Failure(code: "LOCKED") }
         let directory = files.root.appending(path: "apple")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.protectionKey: FileProtectionType.complete])
-        let path = keyPath(files: files, account: account)
-        var record = (try? Data(contentsOf: path)).flatMap { try? JSONDecoder().decode(KeyRecord.self, from: $0) }
-        if record?.device != device { record = nil }
-        if let old = record {
-            struct Status: Decodable { let registered: Bool }
-            let snapshot = try await engine.attestationStatus(keyId: old.id)
-            let status: Status = try decode(snapshot)
-            if status.registered { return old.id }
-            if let expires = old.expires, Double(expires) <= Date.now.timeIntervalSince1970 * 1000 { record = nil }
-        }
-        if record == nil {
-            let id: String = try await withCheckedThrowingContinuation { continuation in
-                DCAppAttestService.shared.generateKey { id, error in
-                    if let id { continuation.resume(returning: id) }
-                    else { continuation.resume(throwing: error ?? CocoaError(.coderInvalidValue)) }
-                }
+        struct Status: Decodable { let registered: Bool }
+        return try await AppAttestation.key(device: device, path: keyPath(files: files, account: account), service: .init(
+            status: { key in
+                let status: Status = try self.decode(try await engine.attestationStatus(keyId: key))
+                return status.registered
+            },
+            challenge: { key in try self.decode(try await engine.attestationChallenge(installation: files.installation, keyId: key)) },
+            register: { key, challenge, object in
+                let status: Status = try self.decode(try await engine.registerAttestation(installation: files.installation, keyId: key, challengeId: challenge, object: object))
+                guard status.registered else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
             }
-            record = KeyRecord(id: id, device: device)
-            try JSONEncoder().encode(record).write(to: path, options: [.atomic, .completeFileProtection])
-        }
-        guard var prepared = record else { throw CocoaError(.coderInvalidValue) }
-        if prepared.object == nil {
-            let challenge: Challenge = try decode(try await engine.attestationChallenge(installation: files.installation, keyId: prepared.id))
-            guard let nonce = Data(base64Encoded: challenge.challenge) else { throw CocoaError(.coderInvalidValue) }
-            let object: Data
-            do {
-                object = try await withCheckedThrowingContinuation { continuation in
-                    DCAppAttestService.shared.attestKey(prepared.id, clientDataHash: Data(SHA256.hash(data: nonce))) { data, error in
-                        if let data { continuation.resume(returning: data) }
-                        else { continuation.resume(throwing: error ?? CocoaError(.coderInvalidValue)) }
-                    }
-                }
-            } catch {
-                // A one-time attestation can succeed at Apple before its local
-                // result reaches disk. A retired key must not strand retries.
-                let failure = error as NSError
-                if failure.domain == DCErrorDomain && failure.code == DCError.Code.invalidKey.rawValue { try? FileManager.default.removeItem(at: path) }
-                throw error
-            }
-            prepared.challenge = challenge.challengeId; prepared.object = object.base64EncodedString(); prepared.expires = challenge.expiresAt
-            try JSONEncoder().encode(prepared).write(to: path, options: [.atomic, .completeFileProtection])
-        }
-        guard let challenge = prepared.challenge, let object = prepared.object else { throw CocoaError(.coderInvalidValue) }
-        _ = try await engine.registerAttestation(installation: files.installation, keyId: prepared.id, challengeId: challenge, object: object)
-        prepared.challenge = nil; prepared.object = nil; prepared.expires = nil
-        try JSONEncoder().encode(prepared).write(to: path, options: [.atomic, .completeFileProtection])
-        return prepared.id
+        ))
     }
 
     private func assert(_ challenge: Challenge, key: String) async throws -> AppAssertion {
@@ -102,14 +66,23 @@ final class NativeApple {
         working = true; defer {
             working = false; let waiting = idleWaiters; idleWaiters.removeAll(); for waiter in waiting { waiter.resume() }
         }
-        let key = try await key(engine: engine, files: files, account: account)
-        do { return try await operation(key) }
-        catch {
-            // A registered key can disappear after device restore/reinstallation.
-            // Keep payments unfinished; the next retry registers a fresh key.
-            try? Self.discardInvalidKey(error, id: key, path: keyPath(files: files, account: account))
-            throw error
+        for attempt in 0..<2 {
+            var selected: String?
+            do {
+                let key = try await key(engine: engine, files: files, account: account)
+                selected = key
+                try Task.checkCancellation()
+                return try await operation(key)
+            } catch {
+                if let selected {
+                    try AppAttestation.discardInvalidKey(error, id: selected, path: keyPath(files: files, account: account))
+                }
+                // A restored installation can retain a registered key ID whose
+                // private key no longer exists. Recover once within this action.
+                guard attempt == 0, AppAttestation.invalidKey(error) else { throw error }
+            }
         }
+        throw MobileError.Failure(code: "APP_INTEGRITY_UNAVAILABLE")
     }
 
     func submitPurchase(engine: MobileEngine, files: PrivateFiles, account: String, jws: String) async throws {
@@ -119,14 +92,6 @@ final class NativeApple {
             let result = try await engine.submitPurchase(installation: files.installation, jws: jws, proof: proof, requestId: Self.requestID())
             try PurchaseModel.requireApplied(Data(result.json.utf8))
         }
-    }
-
-    static func discardInvalidKey(_ error: Error, id: String, path: URL) throws {
-        let failure = error as NSError
-        guard failure.domain == DCErrorDomain, failure.code == DCError.Code.invalidKey.rawValue,
-              let data = try? Data(contentsOf: path),
-              let record = try? JSONDecoder().decode(KeyRecord.self, from: data), record.id == id else { return }
-        try FileManager.default.removeItem(at: path)
     }
 
     nonisolated static func requestID() -> String { (UUID().uuidString + UUID().uuidString).replacingOccurrences(of: "-", with: "").lowercased() }

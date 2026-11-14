@@ -255,6 +255,72 @@ async fn admission_retries_without_reporting_an_unknown_registration() {
 }
 
 #[tokio::test]
+async fn security_evidence_recovers_lost_replies_without_changing_the_certificate() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!("http://{}", listener.local_addr().unwrap());
+    let evidence = Evidence {
+        schema: 1,
+        canister: "test-canister".into(),
+        certificate: "original-certificate".into(),
+        entries: vec![],
+    };
+    let expected = canonical(&evidence);
+    let server = tokio::spawn(async move {
+        for attempt in 0..4 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            loop {
+                let mut buffer = [0; 4096];
+                let n = socket.read(&mut buffer).await.unwrap();
+                assert!(n > 0);
+                request.extend_from_slice(&buffer[..n]);
+                if let Some(end) = request.windows(4).position(|p| p == b"\r\n\r\n") {
+                    let headers = String::from_utf8_lossy(&request[..end]).to_ascii_lowercase();
+                    let length: usize = headers
+                        .lines()
+                        .find_map(|l| l.strip_prefix("content-length:"))
+                        .unwrap()
+                        .trim()
+                        .parse()
+                        .unwrap();
+                    if request.len() >= end + 4 + length {
+                        assert!(headers.starts_with("post /v1/security/evidence "));
+                        assert_eq!(&request[end + 4..], expected);
+                        break;
+                    }
+                }
+            }
+            // The first publication may already have been accepted. Drop its
+            // response, then simulate a transient edge error before recovery.
+            let (status, body) = match attempt {
+                0 => continue,
+                1 => ("503 Service Unavailable", "unavailable"),
+                2 => ("200 OK", r#"{"ok":true,"data":{"accepted":1}}"#),
+                _ => (
+                    "422 Unprocessable Entity",
+                    r#"{"ok":false,"error":{"code":"INTEGRITY_FAILED"}}"#,
+                ),
+            };
+            socket.write_all(format!("HTTP/1.1 {status}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        }
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(200), listener.accept())
+                .await
+                .is_err(),
+            "Verification rejection must not be retried"
+        );
+    });
+    let cloud = Cloud::new(&origin, true).unwrap();
+    cloud.publish_security(&evidence).await.unwrap();
+    assert_eq!(
+        cloud.publish_security(&evidence).await,
+        Err(Error::IntegrityFailed)
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn an_edge_error_page_is_a_lost_reply() {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -311,10 +377,22 @@ async fn an_edge_error_page_is_a_lost_reply() {
         certificate: String::new(),
         entries: vec![],
     };
-    assert_eq!(
+    assert!(matches!(
         cloud.publish_security(&evidence).await,
+        Err(Error::Unavailable(_))
+    ));
+    assert!(matches!(
+        cloud
+            .exchange(
+                reqwest::Method::POST,
+                cloud.url("/v1/accounts/test/mobile/purchase").unwrap(),
+                Some((b"original-command".to_vec(), "application/cbor")),
+                None,
+                false
+            )
+            .await,
         Err(Error::ExecutionUnknown)
-    );
+    ));
 }
 
 #[tokio::test]

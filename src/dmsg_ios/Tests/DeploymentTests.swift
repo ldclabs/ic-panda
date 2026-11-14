@@ -1,6 +1,7 @@
 import XCTest
 import StoreKit
 import StoreKitTest
+@preconcurrency import DMsgCore
 @testable import dMsg
 
 @MainActor
@@ -392,7 +393,55 @@ final class DeploymentTests: XCTestCase {
         XCTAssertEqual(preparations, 1)
         XCTAssertFalse(purchases.working)
         XCTAssertFalse(purchases.pending)
-        XCTAssertNotNil(model.error)
+        XCTAssertEqual(model.error, PurchaseModel.purchaseNotStartedMessage)
+        XCTAssertEqual(purchases.feedback, PurchaseModel.purchaseNotStartedMessage)
+        XCTAssertTrue(purchases.canPurchase(product))
+    }
+
+    func testUnknownPrepaymentResultNeverClaimsAnUnconfirmedChargeAndAllowsRetry() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        for failsAtPreflight in [true, false] {
+            let model = SessionModel(); model.loadFixtures()
+            var store = initial, fail = true, sheets = 0
+            store.preflight = { _, _, _ in
+                if failsAtPreflight && fail { throw MobileError.Failure(code: "EXECUTION_UNKNOWN") }
+                return .init(eligible: true, reason: nil, kind: "subscription")
+            }
+            store.prepare = { _, _ in
+                if !failsAtPreflight && fail { throw MobileError.Failure(code: "EXECUTION_UNKNOWN") }
+            }
+            store.purchase = { _, _ in sheets += 1; return .userCancelled }
+            let purchases = PurchaseModel(enabled: true, store: store)
+            await purchases.load(model)
+            await purchases.purchase(product, model: model)
+            XCTAssertEqual(sheets, 0)
+            XCTAssertFalse(purchases.pending)
+            XCTAssertEqual(model.error, PurchaseModel.purchaseNotStartedMessage)
+            XCTAssertEqual(purchases.feedback, PurchaseModel.purchaseNotStartedMessage)
+            model.error = nil // Dismiss the failed attempt before retrying.
+            fail = false
+            await purchases.purchase(product, model: model)
+            XCTAssertEqual(sheets, 1)
+            XCTAssertNil(purchases.feedback)
+            XCTAssertNil(model.error)
+        }
+    }
+
+    func testPendingDeliveryAlsoBlocksBuyingADifferentPlan() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        let catalogue = try await store.catalogue(model)
+        let token = try XCTUnwrap(UUID(uuidString: catalogue.accountToken))
+        store.submit = { _, _, _ in throw MobileError.Failure(code: "EXECUTION_UNKNOWN") }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        let receipt = PurchaseModel.Receipt(id: 2, product: "net.dmsg.ios.pro.annual", token: token, environment: "Production", jws: "paid-pro", finish: { XCTFail("Unapplied purchase") })
+        do { _ = try await purchases.deliver(receipt, model: model); XCTFail("Pending") } catch {}
+        XCTAssertTrue(purchases.deliveryPending)
+        XCTAssertFalse(purchases.canPurchase(product), "A pending Pro purchase must also block a new Plus payment")
     }
 
     func testUndeliveredPaymentDisablesRepurchaseOfTheSameProduct() async throws {

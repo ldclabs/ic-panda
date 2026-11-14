@@ -1,5 +1,55 @@
 # iOS implementation validation
 
+## Subscription preparation and recovery (2026-11-14)
+
+Reviewed the path from certified account evidence and purchase eligibility through
+App Attest enrollment, StoreKit delivery, commerce application and receipt replay.
+The affected preparation code was unchanged between the build-29 source commit
+`314a9731` and the starting worktree `9be50848`.
+
+Certified evidence publication now retries identical certificates within the
+existing read budget. Interrupted mobile commands replay their original request
+ID and proof once. Enrollment persists Apple's challenge before requesting its
+one-time attestation, reconciles an uncertain registration by querying key status,
+and retains recovery state across restarts. Invalid keys are replaced once within
+the same action. A failure before StoreKit shows a payment sheet explains that no
+payment request was sent; the message remains available after the alert closes.
+An undelivered transaction also blocks buying another plan.
+
+Validation performed locally:
+
+- Full `dmsg_client` tests: 632 passed, 5 intentionally ignored; `dmsg_mobile`:
+  36 passed; `dmsg_commerce`: 50 passed, 2 intentionally ignored. Coverage includes
+  real HTTP disconnect/retry behavior, exact mobile request replay, ownership,
+  duplicate delivery, renewal, upgrade, refund and expiry.
+- `cargo fmt --check` and Clippy with `-D warnings` passed for the changed client
+  and mobile crates.
+- The Release Rust bridge was regenerated for both device and simulator, and
+  `scripts/ios/artifacts.py verify --profile release` confirmed its source and
+  binary fingerprints against the final worktree.
+- On the SE-sized iOS 18.4 simulator, 61 selected unit tests passed across
+  App Attest enrollment, subscription preparation/delivery and localization.
+  The two affected purchase-error tests were rerun after the final alert change.
+- Three subscription UI tests passed, including foreground recovery and the
+  distinction between stale membership, expiry and pending purchase. The final
+  prepayment alert and persistent notice passed in Chinese light/dark, German
+  and Arabic RTL; their screenshots were inspected. All 23 localization catalogs
+  passed validation against Swift's extracted strings.
+- On the iPhone 18 Pro Max iOS 27.0 simulator, the final fingerprint-verified
+  bridge and app passed the same 61 unit tests and the multilingual prepayment
+  UI test (62 tests total). Alert and post-dismissal screenshots were inspected.
+- Local service tests passed: 105 Apple gateway tests and 22 Core tests covering
+  mobile commands, notifications and account evidence. Three new Core recovery
+  cases verify replay after a consumed challenge/assertion and reject replacement
+  request IDs or changed payloads. Core type checking, test formatting and the
+  checked-in protocol vectors also passed. No server runtime code was changed.
+
+These tests use controlled network failures, local StoreKit and local service
+fixtures. They do not verify physical-device App Attest, a real Apple payment or
+production deployment. Production Worker history was not available and the local
+Cloudflare login had expired, so the exact production request that lost its reply
+could not be identified. No archive, App Store upload or production write was made.
+
 ## Optional profile on file links (2026-11-13)
 
 The link composer now has a default-off public-profile switch, including the

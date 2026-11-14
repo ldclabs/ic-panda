@@ -3308,5 +3308,7 @@
 	<string>Hanggang 3 PNG, JPEG, WebP o GIF na larawan, tig-10 MiB. Alisin muna ang mga lihim. Mananatili ang mga kopya sa Files; gagawa ang pagpapadala ng mga naka-encrypt na link na may bisa nang 30 araw at gagamit ng storage quota. Mabubuksan ito ng sinumang may kumpletong link.</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>Gumamit ng hanggang 4500 UTF-8 byte sa paglalarawan.</string>
+	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
+	<string>Hindi masimulan ang pagbili. Walang kahilingan sa pagbabayad na ipinadala sa Apple. Suriin ang iyong koneksyon at subukan muli.</string>
 </dict>
 </plist>

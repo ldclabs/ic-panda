@@ -167,6 +167,9 @@ final class PurchaseModel {
     static var unverifiedMessage: String {
         String(localized: "Unable to verify the account linked to this Apple subscription. Try again before purchasing.")
     }
+    static var purchaseNotStartedMessage: String {
+        String(localized: "The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.")
+    }
     var subscriptionMessage: String? {
         if subscriptions.contains(where: { $0.ownership == .otherAccount }) { return Self.otherAccountMessage }
         if subscriptions.contains(where: { $0.ownership == .unverified }) { return Self.unverifiedMessage }
@@ -183,7 +186,7 @@ final class PurchaseModel {
     }
 
     func canPurchase(group: String?) -> Bool {
-        guard !loading, loadIssue == nil, token != nil else { return false }
+        guard !loading, loadIssue == nil, token != nil, !deliveryPending else { return false }
         guard let group else { return subscriptionMessage == nil }
         return subscriptions.first(where: { $0.id == group })?.ownership == .available
     }
@@ -338,6 +341,7 @@ final class PurchaseModel {
         // purchase. Use the stricter paid-production rules for unknown context;
         // the verified transaction determines the environment at delivery.
         let environment = storeEnvironment
+        var stage = "preflight"
         do {
             let check = try await store.preflight(model, product.id, environment ?? "Production")
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
@@ -354,9 +358,11 @@ final class PurchaseModel {
             }
             // Register the installation before asking Apple to charge. A device
             // unable to deliver an attested purchase must fail before payment.
+            stage = "attestation"
             try await store.prepare(model, account)
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             // Recheck immediately before Apple's sheet, not only when the page loaded.
+            stage = "subscription_status"
             let checked: [Subscription]
             do { checked = try await store.subscriptions(products, token) }
             catch {
@@ -371,6 +377,7 @@ final class PurchaseModel {
                 feedback = subscriptionMessage ?? String(localized: "Change your plan or cancel renewal in Manage subscriptions.")
                 return
             }
+            stage = "payment"
             let result = try await store.purchase(product, token)
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             switch result {
@@ -389,7 +396,20 @@ final class PurchaseModel {
             }
             if current(model, epoch: epoch, account: expectedAccount) { await load(model) }
         } catch {
-            if current(model, epoch: epoch, account: expectedAccount), !Self.cancelled(error) { model.report(error) }
+            if current(model, epoch: epoch, account: expectedAccount), !Self.cancelled(error) {
+                let failure = error as NSError
+                let code = (error as? MobileError).map { if case .Failure(let code) = $0 { return code }; return "unknown" } ?? String(failure.code)
+                Self.logger.warning("Purchase failed at \(stage, privacy: .public): \(failure.domain, privacy: .public) (\(code, privacy: .public))")
+                if stage == "payment" { model.report(error) }
+                else {
+                    model.reportBackground(error)
+                    guard current(model, epoch: epoch, account: expectedAccount) else { return }
+                    feedback = Self.purchaseNotStartedMessage
+                    // The selected price can be above the inline status. Keep
+                    // explicit purchase failures visible without requiring a scroll.
+                    model.error = Self.purchaseNotStartedMessage
+                }
+            }
         }
     }
 
@@ -572,6 +592,7 @@ final class PurchaseModel {
                 state: expired ? .expired : .subscribed, expiresAt: Date.now.addingTimeInterval(expired ? -86400 : 86400))]
             pendingRefreshes = expired ? [] : ["Sandbox:fixture"]
         }
+        if args.contains("--ui-purchase-not-started") { feedback = Self.purchaseNotStartedMessage }
     }
     #endif
 

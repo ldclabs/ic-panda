@@ -614,7 +614,12 @@ impl Cloud {
         // Issuing a short-lived admission signature does not create an account
         // or consume the ticket. It is safe to retry despite using POST.
         let admission = method == reqwest::Method::POST && url.path() == "/v1/account-admission";
-        let mutation = method != reqwest::Method::GET && !admission;
+        // Publishing an identical certified snapshot only refreshes the relay's
+        // verified evidence. It changes no account authority or business state.
+        // A lost reply must not turn the following read/preflight into an
+        // uncertain mutation. The relay still rejects stale/conflicting proofs.
+        let evidence = method == reqwest::Method::POST && url.path() == "/v1/security/evidence";
+        let mutation = method != reqwest::Method::GET && !admission && !evidence;
         let inventory = !mutation && url.path().contains("/exports/");
         let mut request = self.http.request(method, url);
         if let Some((bytes, content_type)) = body {
@@ -862,7 +867,8 @@ impl Cloud {
     /// Hand the relay certified account evidence.
     ///
     /// # Errors
-    /// Relay errors as returned.
+    /// Relay errors as returned. Transient transport failures use the bounded
+    /// read retry policy with the same certificate and return `Unavailable`.
     pub async fn publish_security(&self, evidence: &Evidence) -> Result<()> {
         let body = canonical(evidence);
         ensure(body.len() <= MAX_EVIDENCE, Error::QuotaExceeded)?;

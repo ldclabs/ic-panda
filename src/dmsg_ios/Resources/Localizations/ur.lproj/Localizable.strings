@@ -3308,5 +3308,7 @@
 	<string>زیادہ سے زیادہ 3 PNG، JPEG، WebP یا GIF تصاویر، ہر ایک 10 MiB۔ پہلے راز ہٹائیں۔ نقول فائلوں میں رہتی ہیں؛ بھیجنے سے 30 دن کے لیے خفیہ کردہ روابط بنتے ہیں اور ذخیرے کا کوٹہ استعمال ہوتا ہے۔ مکمل رابطہ رکھنے والا کوئی بھی اسے کھول سکتا ہے۔</string>
 	<key>Use at most 4500 UTF-8 bytes for the description.</key>
 	<string>تفصیل کے لیے زیادہ سے زیادہ 4500 UTF-8 بائٹس استعمال کریں۔</string>
+	<key>The purchase could not be started. No payment request was sent to Apple. Check your connection and try again.</key>
+	<string>خریداری شروع نہیں ہو سکی۔ Apple کو ادائیگی کی کوئی درخواست نہیں بھیجی گئی۔ اپنا کنکشن چیک کریں اور دوبارہ کوشش کریں۔</string>
 </dict>
 </plist>

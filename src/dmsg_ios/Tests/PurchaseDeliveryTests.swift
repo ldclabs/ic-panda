@@ -318,11 +318,11 @@ final class PurchaseDeliveryTests: XCTestCase {
         let saved = Data(#"{"id":"registered-key","device":"device"}"#.utf8)
         try saved.write(to: key)
         let invalid = NSError(domain: DCErrorDomain, code: DCError.Code.invalidKey.rawValue)
-        try NativeApple.discardInvalidKey(URLError(.notConnectedToInternet), id: "registered-key", path: key)
+        try AppAttestation.discardInvalidKey(URLError(.notConnectedToInternet), id: "registered-key", path: key)
         XCTAssertEqual(try Data(contentsOf: key), saved, "A network failure must not rotate a valid key")
-        try NativeApple.discardInvalidKey(invalid, id: "older-key", path: key)
+        try AppAttestation.discardInvalidKey(invalid, id: "older-key", path: key)
         XCTAssertEqual(try Data(contentsOf: key), saved, "A late failure must not delete a replacement key")
-        try NativeApple.discardInvalidKey(invalid, id: "registered-key", path: key)
+        try AppAttestation.discardInvalidKey(invalid, id: "registered-key", path: key)
         XCTAssertFalse(FileManager.default.fileExists(atPath: key.path), "The next attempt must register a new usable key")
     }
 }
