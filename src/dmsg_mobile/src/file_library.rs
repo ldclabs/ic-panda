@@ -37,6 +37,7 @@ impl MobileEngine {
 
     /// Share a library version by link; one freed from this device comes down
     /// from its backup only long enough to be re-encrypted.
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_file_link(
         &self,
         id: String,
