@@ -944,7 +944,10 @@ const globalKeys = new Shortcuts(globalShortcut, process.platform, shortcutBindi
   lock: () => {
     if (shortcutLocking) return
     shortcutLocking = true
-    void daemon.call('session/lock').catch(() => {
+    void daemon.call('session/lock').then(() => {
+      main?.close()
+      approval?.close()
+    }).catch(() => {
       showMain()
       broadcast('dmsg:event', { type: 'shortcuts/lock-failed' })
     }).finally(() => { shortcutLocking = false })

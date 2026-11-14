@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 /** Real Electron registrations, isolated profile; invoke captured native callbacks. */
-export async function shortcutsFlow({ app, main, methods, calls, emit, waitFor, formMatrix, shots, profile, setSession }) {
+export async function shortcutsFlow({ app, main, methods, calls, request, emit, hold, waitFor, formMatrix, shots, profile, setSession }) {
   const native = await app.browserWindow(main)
   await app.evaluate(({ app, globalShortcut }) => {
     app.focus({ steal: true })
@@ -104,19 +104,54 @@ export async function shortcutsFlow({ app, main, methods, calls, emit, waitFor, 
 
   const locks = calls.filter(call => call.method === 'session/lock').length
   methods['session/lock'] = () => { setSession('locked'); emit('session/changed'); return null }
-  await native.evaluate(window => window.hide())
+  // A successful global lock closes both visible windows, keeping the app available.
+  const opened = app.waitForEvent('window')
+  await main.evaluate(id => window.dmsg.openApproval(id), request.id)
+  const approval = await opened
+  const approvalNative = await app.browserWindow(approval)
+  await approvalNative.evaluate(window => window.show())
+  const finishLock = hold('session/lock')
   await app.evaluate((_electron, key) => globalThis.__shortcutCallbacks.get(key)(), defaults.lock)
   await waitFor(() => calls.filter(call => call.method === 'session/lock').length === locks + 1)
+  assert.equal(await native.evaluate(window => window.isVisible()), true)
+  assert.equal(await approvalNative.evaluate(window => window.isVisible()), true)
+  await finishLock()
+  await waitFor(() => approval.isClosed())
+  await waitFor(async () => !await native.evaluate(window => window.isVisible()))
+
+  // Locking again while hidden never raises a window.
+  await app.evaluate((_electron, key) => globalThis.__shortcutCallbacks.get(key)(), defaults.lock)
+  await waitFor(() => calls.filter(call => call.method === 'session/lock').length === locks + 2)
+  await main.evaluate(() => window.dmsg.call('daemon/status'))
   assert.equal(await native.evaluate(window => window.isVisible()), false)
   await app.evaluate((_electron, key) => globalThis.__shortcutCallbacks.get(key)(), defaults.open)
   await waitFor(() => main.evaluate(() => document.hasFocus()))
+  assert.equal((await main.evaluate(() => window.dmsg.call('daemon/status'))).state, 'locked')
+  assert.equal(calls.filter(call => call.method === 'session/unlock').length, unlocks)
+
+  // macOS must leave its full-screen Space before hiding the main window.
+  if (process.platform === 'darwin') {
+    await native.evaluate(window => new Promise(resolve => {
+      window.once('enter-full-screen', resolve)
+      window.setFullScreen(true)
+    }))
+    await app.evaluate((_electron, key) => globalThis.__shortcutCallbacks.get(key)(), defaults.lock)
+    await waitFor(async () => !await native.evaluate(window => window.isVisible() || window.isFullScreen()))
+    await app.evaluate((_electron, key) => globalThis.__shortcutCallbacks.get(key)(), defaults.open)
+    await waitFor(() => main.evaluate(() => document.hasFocus()))
+  }
   await formMatrix(app, main, shots, 'shortcuts', '[data-testid="shortcut-settings"]', [
     ['zh', 'light', 1180, 760], ['zh', 'dark', 760, 540], ['de', 'light', 760, 540], ['ar', 'dark', 760, 540]
   ])
   // A rejected lock is visible and never reported as success.
+  setSession('unlocked')
+  emit('session/changed')
   methods['session/lock'] = () => { throw { code: 'UNAVAILABLE', message: 'Temporary lock failure' } }
+  await native.evaluate(window => window.hide())
   await app.evaluate((_electron, key) => globalThis.__shortcutCallbacks.get(key)(), defaults.lock)
   await main.getByText('Could not lock dMsg. Check the background service and try again.', { exact: true }).waitFor()
+  assert.equal(await native.evaluate(window => window.isVisible()), true)
+  assert.equal((await main.evaluate(() => window.dmsg.call('daemon/status'))).state, 'unlocked')
   await main.keyboard.press(process.platform === 'darwin' ? 'Meta+/' : 'Control+/')
   await main.getByTestId('shortcuts').getByText('Global shortcuts', { exact: true }).waitFor()
   await main.keyboard.press('Escape')

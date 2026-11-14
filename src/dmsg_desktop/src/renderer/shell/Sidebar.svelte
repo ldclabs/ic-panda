@@ -131,7 +131,7 @@
     <div class="h-3"></div>
     {@render item(views.settings)}
   </nav>
-  <div class={cn('mt-auto pt-3', collapsed ? 'w-full' : '')}>
+  <div class={cn('mt-auto shrink-0 pt-3', collapsed ? 'w-full' : '')}>
     <GateRail {status} {collapsed} {mod} />
   </div>
 </aside>

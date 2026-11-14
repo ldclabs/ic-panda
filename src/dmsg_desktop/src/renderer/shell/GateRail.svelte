@@ -102,15 +102,15 @@
     {/if}
   </div>
 {:else}
-  <div class="grid grid-cols-1 gap-2 border-t border-line py-2.5 ps-3 pe-2 text-[12.5px]" data-testid="gate-rail">
+  <div class="grid min-w-0 grid-cols-1 gap-2 border-t border-line py-2.5 ps-3 pe-2 text-[12.5px]" data-testid="gate-rail">
     {#if step}
-      <!-- A long state moves the step to its own line instead of squeezing both. -->
-      <div class="flex min-h-6 flex-wrap items-center gap-2">
+      <!-- Keep the state and action on separate rows in every language. -->
+      <div class="grid min-w-0 gap-2">
         <span class="flex min-w-0 items-center gap-2">
           <Icon name="lock" class="shrink-0 text-faint" />
           <b class="font-semibold" data-testid="gate-state">{session ? sessionLabel(session) : '-'}</b>
         </span>
-        <button class={buttonClass(session === 'logged_out' ? 'primary' : 'secondary', 'xs', 'ms-auto')} disabled={$unlocking} aria-busy={$unlocking} onclick={step.run} data-testid="gate-unlock">
+        <button class={buttonClass(session === 'logged_out' ? 'primary' : 'secondary', 'xs', 'h-auto min-h-7 w-full min-w-0 whitespace-normal py-1')} disabled={$unlocking} aria-busy={$unlocking} onclick={step.run} data-testid="gate-unlock">
           {$unlocking ? t('unlocking') : t(step.label)}
         </button>
       </div>

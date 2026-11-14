@@ -44,6 +44,7 @@ import { securityFlow } from './security-flow.mjs'
 import { pairingFlow } from './pairing-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
 import { shortcutsFlow } from './shortcuts-flow.mjs'
+import { gateRailFlow } from './gate-rail-flow.mjs'
 import { uxFlow } from './ux-flow.mjs'
 import { uxRegressionsFlow } from './ux-regressions-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
@@ -2129,9 +2130,14 @@ smoke: try {
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'shortcuts') {
-    await shortcutsFlow({ app, main, methods, calls, emit, waitFor, formMatrix, shots, profile, setSession: value => { session = value } })
+    await shortcutsFlow({ app, main, methods, calls, request, emit, hold, waitFor, formMatrix, shots, profile, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])
     console.log('desktop global shortcuts smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'gate-rail') {
+    await gateRailFlow({ app, main, methods, emit, hold, waitFor, shots })
+    assert.deepEqual(pageErrors, [])
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'membership-reminders') {

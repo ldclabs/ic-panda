@@ -65,6 +65,10 @@ desktop is one of its clients, like the CLI.
   changes, plaintext and drafts until it locks. The title bar's bell lists the
   latest reminders. A device with no account opens on a first-run page:
   language, login, fast unlock, alerts.
+  The global lock shortcut (⌘⇧L, or Ctrl+Shift+L elsewhere, configurable in
+  Settings) also closes the main and approval windows once locking succeeds,
+  keeping the tray and daemon running. If locking fails, the main window opens
+  with an error so the person can retry.
   Beside the sidebar toggle, back and forward (⌘[ and ⌘], or Alt+← and
   Alt+→) walk the views the window showed. The sidebar collapses to icons,
   and the title bar then takes the toggle and the arrows. On macOS the
@@ -683,6 +687,12 @@ page, and the approval window closing itself after its last decision.
 `DMSG_DESKTOP_SMOKE=ux-regressions node scripts/smoke.mjs` checks session cleanup,
 vault filters and deletion targets, message edits, sent-letter status updates and
 uncertain letter retries with isolated fixtures.
+
+`DMSG_DESKTOP_SMOKE=gate-rail pnpm test:e2e` checks the sidebar's session
+controls in all 23 languages, with light/dark screenshots at 1180×760 and
+760×540. It covers expanded/collapsed layouts, long action labels, login,
+fast unlock, Touch ID, copied workspaces, waiting, cancellation, failure and
+keyboard retry against an isolated mock daemon.
 
 `DMSG_DESKTOP_SMOKE=settings pnpm test:e2e` checks all nine Settings routes,
 profile publication and lookup drafts, device capability edits, file

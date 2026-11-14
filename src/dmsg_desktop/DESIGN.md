@@ -142,7 +142,9 @@ Three ideas decide the layout:
    waiting to sync, background online and the daemon connection sit at the
    foot of the sidebar, always in the same place. The lock has one control:
    its state and the step that opens the device while locked, a Lock button
-   once unlocked.
+   once unlocked. In the expanded sidebar, the state has its own row and the
+   opening action fills the row below it; translated button text wraps and
+   the rail keeps its height while navigation scrolls in short windows.
 2. **Objects first.** A view is a list beside the object it opens; new
    items, imports and transfers open in dialogs instead of sharing the page
    with the list.
