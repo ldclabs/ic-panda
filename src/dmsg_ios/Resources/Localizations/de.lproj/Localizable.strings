@@ -3280,5 +3280,33 @@
 	<string>Öffnen Sie den Arbeitsbereich dMsg → Konto → Systemintegrationen → Passwort automatisch ausfüllen → Wählen Sie Anmeldeelemente aus</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Öffne und entsperre dMsg, um das automatische Ausfüllen zu aktualisieren, und versuche es erneut.</string>
+	<key>Choose screenshots</key>
+	<string>Screenshots auswählen</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Zustellung unbestätigt. Erneutes Senden verwendet dieselbe Meldung.</string>
+	<key>Discard feedback draft?</key>
+	<string>Meldungsentwurf verwerfen?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Entwurf auf diesem Gerät verschlüsselt gespeichert.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Meldung zugestellt. Das bedeutet nicht, dass sie gelesen wurde.</string>
+	<key>New feedback</key>
+	<string>Neue Meldung</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Nur der Entwurf wird entfernt. Screenshot-Kopien und vorhandene Freigabelinks bleiben in Dateien.</string>
+	<key>Report a problem</key>
+	<string>Problem melden</string>
+	<key>Saving encrypted draft…</key>
+	<string>Verschlüsselter Entwurf wird gespeichert…</string>
+	<key>Screenshots</key>
+	<string>Screenshots</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Senden Sie dem dMsg-Support einen kostenlosen, privaten Brief. Prüfen Sie Beschreibung, Screenshots und App-Informationen vor dem Senden.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Entsperren Sie dMsg, um eine Meldung zu senden.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Bis zu 3 Bilder als PNG, JPEG, WebP oder GIF, jeweils 10 MiB. Entfernen Sie vertrauliche Inhalte. Kopien bleiben in Dateien. Beim Senden entstehen verschlüsselte Links für 30 Tage, die Ihr Speicherkontingent nutzen. Jeder mit dem vollständigen Link kann sie öffnen.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Die Beschreibung darf höchstens 4500 UTF-8-Bytes umfassen.</string>
 </dict>
 </plist>

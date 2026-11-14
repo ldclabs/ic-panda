@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Zgłoś problem",
+  "feedbackHint": "Wyślij bezpłatny prywatny list do pomocy dMsg. Przed wysłaniem sprawdź opis, zrzuty ekranu i informacje o aplikacji.",
+  "feedbackScreenshots": "Zrzuty ekranu",
+  "feedbackImageHint": "Do 3 obrazów PNG, JPEG, WebP lub GIF, po 10 MiB. Najpierw usuń tajne dane. Kopie pozostają w Plikach; wysłanie tworzy szyfrowane linki ważne 30 dni i zużywa limit miejsca. Każdy, kto ma pełny link, może go otworzyć.",
+  "feedbackAttach": "Wybierz zrzuty",
+  "feedbackSaving": "Zapisywanie zaszyfrowanego szkicu…",
+  "feedbackSaved": "Szkic zapisano w postaci zaszyfrowanej na tym urządzeniu.",
+  "feedbackPending": "Dostarczenie niepotwierdzone. Ponowienie zachowuje pierwotne zgłoszenie.",
+  "feedbackSent": "Zgłoszenie dostarczone. Nie oznacza to odczytania.",
+  "feedbackNew": "Nowe zgłoszenie",
+  "feedbackLimit": "Opis może mieć najwyżej 4500 bajtów UTF-8.",
+  "feedbackDiscardHint": "Usuwany jest tylko szkic. Kopie i istniejące linki pozostają w Plikach.",
+  "feedbackDiscardTitle": "Odrzucić szkic zgłoszenia?",
+  "feedbackLocked": "Odblokuj dMsg, aby wysłać zgłoszenie.",
+
   "linkShowProfile": "Pokaż mój profil publiczny",
   "linkShowProfileHint": "Każdy, kto ma ten link, może zobaczyć Twój profil publiczny, nawet przed wpisaniem hasła.",
   "globalShortcuts": "Skróty globalne",

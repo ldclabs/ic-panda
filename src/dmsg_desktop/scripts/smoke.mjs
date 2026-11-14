@@ -48,6 +48,7 @@ import { gateRailFlow } from './gate-rail-flow.mjs'
 import { uxFlow } from './ux-flow.mjs'
 import { uxRegressionsFlow } from './ux-regressions-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
+import { feedbackFlow } from './feedback-flow.mjs'
 import { lettersFlow } from './letters-flow.mjs'
 import { fileRequestsFlow } from './file-requests-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
@@ -1635,6 +1636,11 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'feedback') {
+    await feedbackFlow({ app, main, shots, methods, calls, account, hold, waitFor })
+    assert.deepEqual(pageErrors, [])
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'letters') {
     await lettersFlow({ app, main, shots, methods, calls, peer })
     assert.deepEqual(pageErrors, [])

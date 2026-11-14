@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Segnala un problema",
+  "feedbackHint": "Invia una lettera privata gratuita al supporto dMsg. Controlla descrizione, schermate e informazioni sull’app prima dell’invio.",
+  "feedbackScreenshots": "Schermate",
+  "feedbackImageHint": "Fino a 3 immagini PNG, JPEG, WebP o GIF da 10 MiB ciascuna. Rimuovi prima i segreti. Le copie restano in File; l’invio crea link cifrati validi per 30 giorni e usa la tua quota. Chiunque abbia il link completo può aprirlo.",
+  "feedbackAttach": "Scegli schermate",
+  "feedbackSaving": "Salvataggio della bozza cifrata…",
+  "feedbackSaved": "Bozza salvata cifrata su questo dispositivo.",
+  "feedbackPending": "Consegna non confermata. Il nuovo tentativo usa la segnalazione originale.",
+  "feedbackSent": "Segnalazione consegnata. Non significa che sia stata letta.",
+  "feedbackNew": "Nuova segnalazione",
+  "feedbackLimit": "Usa al massimo 4500 byte UTF-8 per la descrizione.",
+  "feedbackDiscardHint": "Viene eliminata solo la bozza. Copie e link esistenti restano in File.",
+  "feedbackDiscardTitle": "Eliminare la bozza della segnalazione?",
+  "feedbackLocked": "Sblocca dMsg per inviare una segnalazione.",
+
   "linkShowProfile": "Mostra il mio profilo pubblico",
   "linkShowProfileHint": "Chiunque abbia questo link può vedere il tuo profilo pubblico, anche prima di inserire la password.",
   "globalShortcuts": "Scorciatoie globali",

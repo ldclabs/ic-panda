@@ -3280,5 +3280,33 @@
 	<string>Aprire l'area di lavoro dMsg → Account → Integrazioni di sistema → Compilazione automatica della password → Seleziona gli elementi di accesso</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Apri e sblocca dMsg per aggiornare la compilazione automatica, poi riprova.</string>
+	<key>Choose screenshots</key>
+	<string>Scegli schermate</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Consegna non confermata. Il nuovo tentativo usa la segnalazione originale.</string>
+	<key>Discard feedback draft?</key>
+	<string>Eliminare la bozza della segnalazione?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Bozza salvata cifrata su questo dispositivo.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Segnalazione consegnata. Non significa che sia stata letta.</string>
+	<key>New feedback</key>
+	<string>Nuova segnalazione</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Viene eliminata solo la bozza. Copie e link esistenti restano in File.</string>
+	<key>Report a problem</key>
+	<string>Segnala un problema</string>
+	<key>Saving encrypted draft…</key>
+	<string>Salvataggio della bozza cifrata…</string>
+	<key>Screenshots</key>
+	<string>Schermate</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Invia una lettera privata gratuita al supporto dMsg. Controlla descrizione, schermate e informazioni sull’app prima dell’invio.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Sblocca dMsg per inviare una segnalazione.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Fino a 3 immagini PNG, JPEG, WebP o GIF da 10 MiB ciascuna. Rimuovi prima i segreti. Le copie restano in File; l’invio crea link cifrati validi per 30 giorni e usa la tua quota. Chiunque abbia il link completo può aprirlo.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Usa al massimo 4500 byte UTF-8 per la descrizione.</string>
 </dict>
 </plist>

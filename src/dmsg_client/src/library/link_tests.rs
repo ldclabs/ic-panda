@@ -471,3 +471,103 @@ fn sharing_a_profile_is_explicit_and_survives_recovery() {
     assert_eq!(command["key_wrap"], "wrapped-key");
     assert!(command.get("sharer_account").is_none());
 }
+
+#[tokio::test]
+async fn feedback_recovers_lost_share_ack_without_another_upload_or_publication() {
+    use crate::testing::{TempDir, unlocked, warm};
+    use std::sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering},
+    };
+    struct Relay {
+        client: Mutex<Client>,
+        attempt: LinkAttempt,
+        creates: AtomicUsize,
+    }
+    impl Hold for Relay {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+        async fn find(&self, _: &str) -> Result<Option<Value>> {
+            Ok(Some(
+                json!({"status":"committed", "plan":self.attempt.plan}),
+            ))
+        }
+        async fn get(&self, path: &str) -> Result<Value> {
+            assert!(path.contains("/shares"));
+            let link = &self.attempt.link;
+            Ok(
+                json!({"entries":[{"share_id":link.share_id,"expires_at":link.expires_at,"max_downloads":0,"password":false,"created_at":link.created_at,"revoked_at":null,"downloads":0}],"end":true,"next_cursor":1}),
+            )
+        }
+        async fn post<P: Serialize + Sync>(
+            &self,
+            path: &str,
+            _: &str,
+            payload: &P,
+            _: &Hash,
+        ) -> Result<Value> {
+            let plan = &self.attempt.plan;
+            if path.ends_with("/uploads/finalize") {
+                return Ok(
+                    json!({"upload_id":plan.upload_id,"object_id":plan.object_id,"version_id":plan.version_id,"digest":plan.manifest_digest}),
+                );
+            }
+            assert!(path.ends_with("/shares"));
+            assert_eq!(
+                serde_json::to_value(payload).unwrap(),
+                self.attempt.link.create_command(None)
+            );
+            self.creates.fetch_add(1, Ordering::SeqCst);
+            Err(Error::ExecutionUnknown)
+        }
+    }
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    warm(&mut client);
+    let path = dir.path("screen.png");
+    image::RgbImage::new(2, 2).save(&path).unwrap();
+    let imported = client
+        .files_import(&path, "root", true, &mut |_, _| {})
+        .unwrap();
+    let operation = random_hex();
+    let key = format!("feedback-share:{operation}");
+    assert!(
+        feedback_link(
+            &client.hold(),
+            &imported.file.id,
+            &imported.version,
+            &operation
+        )
+        .await
+        .is_err()
+    );
+    let attempt: LinkAttempt = client
+        .workspace
+        .private(client.keys().unwrap(), &key)
+        .unwrap()
+        .unwrap();
+    let relay = Relay {
+        client: Mutex::new(client),
+        attempt,
+        creates: AtomicUsize::new(0),
+    };
+    assert!(matches!(
+        feedback_link(&relay, &imported.file.id, &imported.version, &operation).await,
+        Err(Error::ExecutionUnknown)
+    ));
+    let recovered = feedback_link(&relay, &imported.file.id, &imported.version, &operation)
+        .await
+        .unwrap();
+    assert_eq!(recovered.share_id, relay.attempt.link.share_id);
+    assert!(recovered.url.unwrap().contains('#'));
+    assert_eq!(relay.creates.load(Ordering::SeqCst), 1);
+    let again = feedback_link(&relay, &imported.file.id, &imported.version, &operation)
+        .await
+        .unwrap();
+    assert_eq!(again.share_id, recovered.share_id);
+    assert_eq!(relay.creates.load(Ordering::SeqCst), 1);
+}

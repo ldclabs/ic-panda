@@ -3280,5 +3280,33 @@
 	<string>Buka ruang kerja dMsg → Akun → Integrasi sistem → IsiOtomatis Kata Sandi → Pilih item masuk</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Buka dan buka kunci dMsg untuk memperbarui Isi Otomatis, lalu coba lagi.</string>
+	<key>Choose screenshots</key>
+	<string>Pilih tangkapan layar</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Pengiriman belum dikonfirmasi. Coba lagi memakai laporan asli.</string>
+	<key>Discard feedback draft?</key>
+	<string>Buang draf laporan?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Draf disimpan terenkripsi di perangkat ini.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Laporan terkirim. Ini tidak berarti sudah dibaca.</string>
+	<key>New feedback</key>
+	<string>Laporan baru</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Hanya draf yang dihapus. Salinan gambar dan tautan berbagi tetap di File.</string>
+	<key>Report a problem</key>
+	<string>Laporkan masalah</string>
+	<key>Saving encrypted draft…</key>
+	<string>Menyimpan draf terenkripsi…</string>
+	<key>Screenshots</key>
+	<string>Tangkapan layar</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Kirim surat pribadi gratis ke dukungan dMsg. Periksa deskripsi, tangkapan layar dan informasi aplikasi sebelum mengirim.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Buka kunci dMsg untuk mengirim laporan.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Maksimal 3 gambar PNG, JPEG, WebP atau GIF, masing-masing 10 MiB. Hapus rahasia terlebih dahulu. Salinan tetap di File; pengiriman membuat tautan terenkripsi berlaku 30 hari dan memakai kuota penyimpanan. Siapa pun dengan tautan lengkap dapat membukanya.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Gunakan maksimal 4500 byte UTF-8 untuk deskripsi.</string>
 </dict>
 </plist>

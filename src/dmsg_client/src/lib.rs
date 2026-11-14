@@ -28,6 +28,7 @@ pub mod display;
 mod display_tests;
 mod downloads;
 pub mod evidence;
+pub mod feedback;
 pub mod files;
 pub mod handle;
 pub mod hardware;

@@ -3280,5 +3280,33 @@
 	<string>Mở không gian làm việc dMsg → Tài khoản → Tích hợp hệ thống → Tự động điền mật khẩu → Chọn mục đăng nhập</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Mở và mở khóa dMsg để cập nhật Tự động điền, rồi thử lại.</string>
+	<key>Choose screenshots</key>
+	<string>Chọn ảnh chụp</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Chưa xác nhận việc giao thư. Thử lại giữ nguyên báo cáo.</string>
+	<key>Discard feedback draft?</key>
+	<string>Bỏ bản nháp báo cáo?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Bản nháp đã được lưu mã hóa trên thiết bị này.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Báo cáo đã được giao. Điều này không có nghĩa là đã được đọc.</string>
+	<key>New feedback</key>
+	<string>Báo cáo mới</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Chỉ xóa bản nháp. Bản sao ảnh và liên kết chia sẻ hiện có vẫn ở trong Tệp.</string>
+	<key>Report a problem</key>
+	<string>Báo cáo sự cố</string>
+	<key>Saving encrypted draft…</key>
+	<string>Đang lưu bản nháp mã hóa…</string>
+	<key>Screenshots</key>
+	<string>Ảnh chụp màn hình</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Gửi thư riêng miễn phí đến hỗ trợ dMsg. Kiểm tra mô tả, ảnh chụp và thông tin ứng dụng trước khi gửi.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Mở khóa dMsg để gửi báo cáo.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Tối đa 3 ảnh PNG, JPEG, WebP hoặc GIF, mỗi ảnh 10 MiB. Xóa thông tin bí mật trước. Bản sao ở lại Tệp; gửi sẽ tạo liên kết mã hóa có hiệu lực 30 ngày và dùng hạn mức lưu trữ. Ai có liên kết đầy đủ đều có thể mở.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Mô tả tối đa 4500 byte UTF-8.</string>
 </dict>
 </plist>

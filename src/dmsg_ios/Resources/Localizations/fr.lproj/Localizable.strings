@@ -3280,5 +3280,33 @@
 	<string>Ouvrir l’espace dMsg → Compte → Intégrations système → Remplissage automatique des mots de passe → Choisir les identifiants</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Ouvrez et déverrouillez dMsg pour mettre à jour le remplissage automatique, puis réessayez.</string>
+	<key>Choose screenshots</key>
+	<string>Choisir des captures</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Livraison non confirmée. Réessayer conserve le signalement original.</string>
+	<key>Discard feedback draft?</key>
+	<string>Supprimer le brouillon du signalement ?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Brouillon enregistré chiffré sur cet appareil.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Signalement livré. Cela ne signifie pas qu’il a été lu.</string>
+	<key>New feedback</key>
+	<string>Nouveau signalement</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Seul le brouillon est supprimé. Les copies et les liens existants restent dans Fichiers.</string>
+	<key>Report a problem</key>
+	<string>Signaler un problème</string>
+	<key>Saving encrypted draft…</key>
+	<string>Enregistrement du brouillon chiffré…</string>
+	<key>Screenshots</key>
+	<string>Captures d’écran</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Envoyez gratuitement un courrier privé au support dMsg. Vérifiez la description, les captures et les informations de l’application avant l’envoi.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Déverrouillez dMsg pour envoyer un signalement.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Jusqu’à 3 images PNG, JPEG, WebP ou GIF de 10 MiB chacune. Retirez les secrets. Les copies restent dans Fichiers. L’envoi crée des liens chiffrés valables 30 jours et utilise votre quota. Toute personne ayant le lien complet peut l’ouvrir.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>La description est limitée à 4500 octets UTF-8.</string>
 </dict>
 </plist>

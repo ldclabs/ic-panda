@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Mag-ulat ng problema",
+  "feedbackHint": "Magpadala ng libreng pribadong liham sa suporta ng dMsg. Suriin ang paglalarawan, mga screenshot at impormasyon ng app bago ipadala.",
+  "feedbackScreenshots": "Mga screenshot",
+  "feedbackImageHint": "Hanggang 3 PNG, JPEG, WebP o GIF na larawan, tig-10 MiB. Alisin muna ang mga lihim. Mananatili ang mga kopya sa Files; gagawa ang pagpapadala ng mga naka-encrypt na link na may bisa nang 30 araw at gagamit ng storage quota. Mabubuksan ito ng sinumang may kumpletong link.",
+  "feedbackAttach": "Pumili ng mga screenshot",
+  "feedbackSaving": "Sine-save ang naka-encrypt na draft…",
+  "feedbackSaved": "Naka-encrypt na na-save ang draft sa device na ito.",
+  "feedbackPending": "Hindi pa kumpirmado ang paghahatid. Ang muling pagsubok ay gumagamit ng orihinal na ulat.",
+  "feedbackSent": "Naihatid ang ulat. Hindi ibig sabihin na nabasa na ito.",
+  "feedbackNew": "Bagong ulat",
+  "feedbackLimit": "Gumamit ng hanggang 4500 UTF-8 byte sa paglalarawan.",
+  "feedbackDiscardHint": "Draft lang ang aalisin. Mananatili sa Files ang mga kopya at umiiral na share link.",
+  "feedbackDiscardTitle": "Itapon ang draft ng ulat?",
+  "feedbackLocked": "I-unlock ang dMsg upang magpadala ng ulat.",
+
   "linkShowProfile": "Ipakita ang pampublikong profile ko",
   "linkShowProfileHint": "Sinumang may link na ito ay makakakita sa pampublikong profile mo, kahit bago maglagay ng password.",
   "globalShortcuts": "Mga pandaigdigang shortcut",

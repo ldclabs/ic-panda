@@ -3280,5 +3280,33 @@
 	<string>打开 dMsg 工作区 → 我的 → 系统集成 → 密码自动填充 → 选择登录项</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>请打开并解锁 dMsg，更新自动填充后重试。</string>
+	<key>Choose screenshots</key>
+	<string>选择截图</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>投递尚未确认。重试会继续发送原反馈。</string>
+	<key>Discard feedback draft?</key>
+	<string>丢弃反馈草稿？</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>草稿已加密保存在此设备。</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>反馈已送达，不代表已经阅读。</string>
+	<key>New feedback</key>
+	<string>新的反馈</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>仅删除草稿。截图副本和已有分享链接仍保留在文件库。</string>
+	<key>Report a problem</key>
+	<string>反馈问题</string>
+	<key>Saving encrypted draft…</key>
+	<string>正在保存加密草稿…</string>
+	<key>Screenshots</key>
+	<string>截图</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>免费发送私密来信给 dMsg 支持。发送前请核对描述、截图和应用信息。</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>解锁 dMsg 后可发送反馈。</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>最多 3 张 PNG、JPEG、WebP 或 GIF 图片，每张 10 MiB。请先移除秘密内容。副本保存在文件库；发送会创建有效期 30 天的加密链接，并占用存储配额。持有完整链接的人可以查看。</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>描述最多 4500 个 UTF-8 字节。</string>
 </dict>
 </plist>

@@ -945,3 +945,25 @@ isolated mock daemon. `cargo test --locked -p dmsg_cli sync` exercises the real
 daemon's sync serialization, progress, receive-only recovery and independent
 content scheduler against local relay fixtures. These checks do not contact
 production accounts or exercise a real cross-device pairing session.
+
+## Problem feedback
+
+Settings → Report a problem sends a free private letter to
+`dbrt466u97gecq800000`. Enter a description, paste or choose up to three
+screenshots, and review the app version/platform before Send. Screenshots are
+imported through the main process into the encrypted local file library; nothing
+is uploaded while editing. Sending shares them with 30-day encrypted links using
+ordinary storage quota. Complete links grant access to their holders.
+
+Drafts persist encrypted across navigation and app restarts. Failed saves and
+sends can be retried; uploads and letters keep their original identities.
+Unconfirmed delivery is distinct from success. Lock/account changes clear the
+renderer, and a late response cannot populate another session. The sender's
+inbox policy and contact permissions are unchanged. Existing inbox rules still
+apply: support must allow free letters and reopen a pending contact before the
+same person can send another. Received links use the existing explicit link
+confirmation flow, without automatic previews.
+
+The focused Electron check is `DMSG_DESKTOP_SMOKE=feedback node scripts/smoke.mjs`
+after `pnpm build`; it uses an isolated mock daemon and screenshot clipboard.
+It is not a live support-account delivery check.

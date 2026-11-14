@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Laporkan masalah",
+  "feedbackHint": "Kirim surat pribadi gratis ke dukungan dMsg. Periksa deskripsi, tangkapan layar dan informasi aplikasi sebelum mengirim.",
+  "feedbackScreenshots": "Tangkapan layar",
+  "feedbackImageHint": "Maksimal 3 gambar PNG, JPEG, WebP atau GIF, masing-masing 10 MiB. Hapus rahasia terlebih dahulu. Salinan tetap di File; pengiriman membuat tautan terenkripsi berlaku 30 hari dan memakai kuota penyimpanan. Siapa pun dengan tautan lengkap dapat membukanya.",
+  "feedbackAttach": "Pilih tangkapan layar",
+  "feedbackSaving": "Menyimpan draf terenkripsi…",
+  "feedbackSaved": "Draf disimpan terenkripsi di perangkat ini.",
+  "feedbackPending": "Pengiriman belum dikonfirmasi. Coba lagi memakai laporan asli.",
+  "feedbackSent": "Laporan terkirim. Ini tidak berarti sudah dibaca.",
+  "feedbackNew": "Laporan baru",
+  "feedbackLimit": "Gunakan maksimal 4500 byte UTF-8 untuk deskripsi.",
+  "feedbackDiscardHint": "Hanya draf yang dihapus. Salinan gambar dan tautan berbagi tetap di File.",
+  "feedbackDiscardTitle": "Buang draf laporan?",
+  "feedbackLocked": "Buka kunci dMsg untuk mengirim laporan.",
+
   "linkShowProfile": "Tampilkan profil publik saya",
   "linkShowProfileHint": "Siapa pun yang memiliki tautan ini dapat melihat profil publik Anda, bahkan sebelum memasukkan kata sandi.",
   "globalShortcuts": "Pintasan global",

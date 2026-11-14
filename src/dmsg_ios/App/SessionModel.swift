@@ -10,9 +10,9 @@ final class SessionModel {
     private(set) var engine: MobileEngine?
     private(set) var files: PrivateFiles?
     private(set) var session: SessionSnapshot?
-    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); resetFilePresentation() } }
+    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); feedback.suspend(); resetFilePresentation() } }
     // Background invalidates reads through epoch while retaining this workspace's forms.
-    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset(); people.reset(); thumbnails.reset() } }
+    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset(); feedback.reset(); people.reset(); thumbnails.reset() } }
     var lifecycle = SessionLifecycle.inactive
     var concealed: Bool { lifecycle != .active }
     var busy: Bool { busyOperation != nil }
@@ -60,6 +60,7 @@ final class SessionModel {
     private(set) var deviceLabels: [String: String] = [:]
     let messageSending = MessageSending()
     let letters = LetterWorkspace()
+    let feedback = FeedbackWorkspace()
     let people = PeopleDirectory()
     let thumbnails = ThumbnailStore()
     private var dirtyDrafts: Set<String> = []
@@ -967,6 +968,7 @@ final class SessionModel {
 
     func background() {
         let letterDrafts = letters.pendingInputs
+        let feedbackDraft = feedback.pendingInput
         let messageDrafts = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
         let account = session?.account
         let finishing = unlocked && !immediateBackgroundLock
@@ -988,9 +990,9 @@ final class SessionModel {
         if immediateBackgroundLock {
             let engine = engine
             clearContent(clearClipboard: false)
-            if let account, !letterDrafts.isEmpty || !messageDrafts.isEmpty {
+            if let account, !letterDrafts.isEmpty || !messageDrafts.isEmpty || feedbackDraft != nil {
                 closing = Task {
-                    do { _ = try await engine?.lockWithDrafts(account: account, drafts: messageDrafts, letters: letterDrafts) }
+                    do { _ = try await engine?.lockWithDrafts(account: account, drafts: messageDrafts, letters: letterDrafts, feedback: feedbackDraft) }
                     catch { engine?.lockNow() }
                 }
             } else { engine?.lockNow() }
@@ -1088,6 +1090,7 @@ final class SessionModel {
             await updateSyncStatus()
             await networkReturned()
             await letters.flush(self)
+            await feedback.flush(self)
             let pending = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
             let current = epoch
             do {
@@ -1130,12 +1133,13 @@ final class SessionModel {
         let account = session?.account, engine = engine
         let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
         let letterDrafts = letters.pendingInputs
-        let flush = unlocked && account != nil && (!drafts.isEmpty || !letterDrafts.isEmpty)
+        let feedbackDraft = feedback.pendingInput
+        let flush = unlocked && account != nil && (!drafts.isEmpty || !letterDrafts.isEmpty || feedbackDraft != nil)
         clearContent(clearClipboard: clearClipboard)
         deviceTransfer.reset()
         let work = beginBusyOperation(); defer { finishBusyOperation(work) }
         do {
-            if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts, letters: letterDrafts)) }
+            if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts, letters: letterDrafts, feedback: feedbackDraft)) }
             else { try adopt(try await engine?.lock()) }
         } catch {
             _ = try? await engine?.lock()

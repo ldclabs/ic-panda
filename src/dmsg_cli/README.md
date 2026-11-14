@@ -1323,6 +1323,7 @@ The daemon listens on `127.0.0.1` only.
   `channel/outbox|discard|mark|draft|settings|search|hide|preview|names|receipts`,
   `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit|sponsor_cancel`,
   `inbox/policy|configure|send|order|outgoing|pay|escrow|refund|list|mark`,
+  `feedback/get|save|send|edit|clear` (account-bound, free support letters and durable screenshot shares),
   `payment/transfers|revise`, `payer/use|balance`,
   `wallet/list|show|principal|quote|quote_preview|create|join|proposals|proposal|propose|member_agents|send|approve|reject|veto|cancel|freeze`,
   `wallet/execute|broadcast|settle|report|reconcile|balances|audit|refuel|cosigners|cosigner_new|policy_default|intent`,

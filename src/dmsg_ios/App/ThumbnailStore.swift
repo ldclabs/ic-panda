@@ -70,12 +70,13 @@ final class ThumbnailStore {
 /// The image's preview, or nothing while there is none to show.
 struct LibraryThumbnail: View {
     let file: LibraryFile
+    var contentMode: ContentMode = .fill
     @Environment(SessionModel.self) private var model
     @State private var image: UIImage?
 
     var body: some View {
         Group {
-            if let image { Image(uiImage: image).resizable().scaledToFill().accessibilityHidden(true) }
+            if let image { Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode).accessibilityHidden(true) }
             else { Color.clear }
         }.task(id: "\(file.id):\(file.current):\(model.viewGeneration)") {
             image = model.thumbnails.cached(file)

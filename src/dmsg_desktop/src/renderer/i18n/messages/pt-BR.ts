@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Relatar um problema",
+  "feedbackHint": "Envie uma carta privada gratuita ao suporte do dMsg. Revise a descrição, capturas e informações do aplicativo antes de enviar.",
+  "feedbackScreenshots": "Capturas de tela",
+  "feedbackImageHint": "Até 3 imagens PNG, JPEG, WebP ou GIF de 10 MiB cada. Remova segredos antes. As cópias ficam em Arquivos; o envio cria links criptografados válidos por 30 dias e usa sua cota. Quem tiver o link completo poderá abri-lo.",
+  "feedbackAttach": "Escolher capturas",
+  "feedbackSaving": "Salvando rascunho criptografado…",
+  "feedbackSaved": "Rascunho salvo criptografado neste dispositivo.",
+  "feedbackPending": "Entrega não confirmada. Tentar novamente mantém o relato original.",
+  "feedbackSent": "Relato entregue. Isso não significa que foi lido.",
+  "feedbackNew": "Novo relato",
+  "feedbackLimit": "Use até 4500 bytes UTF-8 na descrição.",
+  "feedbackDiscardHint": "Apenas o rascunho é removido. Cópias e links existentes ficam em Arquivos.",
+  "feedbackDiscardTitle": "Descartar o rascunho do relato?",
+  "feedbackLocked": "Desbloqueie o dMsg para enviar o relato.",
+
   "linkShowProfile": "Mostrar meu perfil público",
   "linkShowProfileHint": "Qualquer pessoa com este link pode ver seu perfil público, mesmo antes de inserir a senha.",
   "globalShortcuts": "Atalhos globais",

@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "feedbackTitle": "الإبلاغ عن مشكلة",
+  "feedbackHint": "أرسل رسالة خاصة مجانية إلى دعم dMsg. راجع الوصف ولقطات الشاشة ومعلومات التطبيق قبل الإرسال.",
+  "feedbackScreenshots": "لقطات الشاشة",
+  "feedbackImageHint": "حتى 3 صور PNG أو JPEG أو WebP أو GIF، بحجم 10 MiB لكل صورة. أزل الأسرار أولاً. تبقى النسخ في الملفات؛ ينشئ الإرسال روابط مشفرة صالحة لمدة 30 يوماً ويستهلك حصة التخزين. يمكن لأي شخص يملك الرابط الكامل فتحه.",
+  "feedbackAttach": "اختيار لقطات الشاشة",
+  "feedbackSaving": "جارٍ حفظ المسودة المشفرة…",
+  "feedbackSaved": "حُفظت المسودة مشفرة على هذا الجهاز.",
+  "feedbackPending": "لم يتأكد التسليم. إعادة المحاولة تستخدم البلاغ الأصلي.",
+  "feedbackSent": "تم تسليم البلاغ. هذا لا يعني أنه قُرئ.",
+  "feedbackNew": "بلاغ جديد",
+  "feedbackLimit": "استخدم 4500 بايت UTF-8 كحد أقصى للوصف.",
+  "feedbackDiscardHint": "تُحذف المسودة فقط. تبقى نسخ الصور وروابط المشاركة الموجودة في الملفات.",
+  "feedbackDiscardTitle": "تجاهل مسودة البلاغ؟",
+  "feedbackLocked": "افتح قفل dMsg لإرسال البلاغ.",
+
   "linkShowProfile": "إظهار ملفي العام",
   "linkShowProfileHint": "يمكن لأي شخص لديه هذا الرابط رؤية ملفك العام، حتى قبل إدخال كلمة المرور.",
   "globalShortcuts": "اختصارات عامة",

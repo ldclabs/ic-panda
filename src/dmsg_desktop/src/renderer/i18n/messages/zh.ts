@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "feedbackTitle": "反馈问题",
+  "feedbackHint": "免费发送私密来信给 dMsg 支持。发送前请核对描述、截图和应用信息。",
+  "feedbackScreenshots": "截图",
+  "feedbackImageHint": "最多 3 张 PNG、JPEG、WebP 或 GIF 图片，每张 10 MiB。请先移除秘密内容。副本保存在文件库；发送会创建有效期 30 天的加密链接，并占用存储配额。持有完整链接的人可以查看。",
+  "feedbackAttach": "选择截图",
+  "feedbackSaving": "正在保存加密草稿…",
+  "feedbackSaved": "草稿已加密保存在此设备。",
+  "feedbackPending": "投递尚未确认。重试会继续发送原反馈。",
+  "feedbackSent": "反馈已送达，不代表已经阅读。",
+  "feedbackNew": "新的反馈",
+  "feedbackLimit": "描述最多 4500 个 UTF-8 字节。",
+  "feedbackDiscardHint": "仅删除草稿。截图副本和已有分享链接仍保留在文件库。",
+  "feedbackDiscardTitle": "丢弃反馈草稿？",
+  "feedbackLocked": "解锁 dMsg 后可发送反馈。",
+
   "linkShowProfile": "显示我的公开资料",
   "linkShowProfileHint": "持有此链接的人可以查看你的公开资料，无需先输入口令。",
   "globalShortcuts": "全局快捷键",

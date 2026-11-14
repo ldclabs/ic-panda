@@ -3280,5 +3280,33 @@
 	<string>dMsg ワークスペースを開く → アカウント → システム統合 → パスワードの自動入力 → ログイン項目を選択する</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>dMsg を開いてロックを解除し、自動入力を更新してから、もう一度お試しください。</string>
+	<key>Choose screenshots</key>
+	<string>スクリーンショットを選択</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>配信は未確認です。再試行は元の報告を使用します。</string>
+	<key>Discard feedback draft?</key>
+	<string>報告の下書きを破棄しますか？</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>下書きをこの端末に暗号化して保存しました。</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>報告を配信しました。既読を意味するものではありません。</string>
+	<key>New feedback</key>
+	<string>新しい報告</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>下書きのみ削除します。画像のコピーと既存の共有リンクはファイルに残ります。</string>
+	<key>Report a problem</key>
+	<string>問題を報告</string>
+	<key>Saving encrypted draft…</key>
+	<string>暗号化した下書きを保存中…</string>
+	<key>Screenshots</key>
+	<string>スクリーンショット</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>dMsg サポートへ無料のプライベートな手紙を送ります。送信前に説明、スクリーンショット、アプリ情報を確認してください。</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>dMsg のロックを解除して報告を送信してください。</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>PNG、JPEG、WebP、GIF を最大 3 枚、各 10 MiB まで。秘密情報は先に削除してください。コピーはファイルに残ります。送信時に 30 日間有効な暗号化リンクを作成し、保存容量を使用します。完全なリンクを持つ人は閲覧できます。</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>説明は UTF-8 で 4500 バイト以内にしてください。</string>
 </dict>
 </plist>

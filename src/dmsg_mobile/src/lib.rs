@@ -10,7 +10,9 @@ pub use content::{ChannelMemberChange, CredentialSelection};
 mod diagnostics;
 mod display;
 mod error;
+mod feedback;
 mod file_library;
+pub use feedback::FeedbackDraftInput;
 mod hints;
 mod messaging;
 mod models;
@@ -349,6 +351,7 @@ impl MobileEngine {
         account: String,
         drafts: Vec<MessageDraft>,
         letters: Vec<LetterDraftInput>,
+        feedback: Option<FeedbackDraftInput>,
     ) -> Result<SessionSnapshot> {
         ensure_valid(drafts.len() <= 100, "drafts")?;
         let transition = self.host.begin_transition()?;
@@ -380,6 +383,16 @@ impl MobileEngine {
                             c.channel_draft(&draft.channel, &draft.text)?;
                         }
                         let now = dmsg_client::now_ms();
+                        if let Some(mut draft) = feedback {
+                            if let Some(current) = c.feedback()? {
+                                ensure(
+                                    current.id == draft.id && current.state == "draft",
+                                    Error::VersionConflict,
+                                )?;
+                                draft.revision = current.revision;
+                            }
+                            draft.save(c)?;
+                        }
                         for draft in letters {
                             c.save_letter_draft_at(
                                 &draft.id,

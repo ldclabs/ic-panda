@@ -66,7 +66,12 @@ struct InboxDetail: View {
                 if letter.state == "aborted" {
                     NoticeBar(text: String(localized: "Not delivered"))
                     if let reason = letter.abortReason { DisclosureGroup("Details") { Text(reason).font(.caption).foregroundStyle(.secondary) } }
-                } else { Text(letter.text).textSelection(.enabled).reminderVisible(.inbox(letter.id), watermark: 1) }
+                } else {
+                    Text(letter.text).textSelection(.enabled).reminderVisible(.inbox(letter.id), watermark: 1)
+                    ForEach(feedbackScreenshotURLs(letter.text), id: \.absoluteString) { url in
+                        Link(destination: url) { Label("Screenshots", systemImage: "photo") }
+                    }
+                }
             }
             Section {
                 SettingsAction("Reply", systemImage: "arrowshape.turn.up.left", prominent: true) { composing = true }.accessibilityIdentifier("inbox.reply")

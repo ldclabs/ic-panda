@@ -3280,5 +3280,33 @@
 	<string>Открыть рабочее пространство dMsg → Аккаунт → Системные интеграции → Автозаполнение паролей → Выбрать учётные записи</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Откройте и разблокируйте dMsg, чтобы обновить автозаполнение, затем повторите попытку.</string>
+	<key>Choose screenshots</key>
+	<string>Выбрать снимки</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Доставка не подтверждена. Повтор использует исходный отчёт.</string>
+	<key>Discard feedback draft?</key>
+	<string>Удалить черновик отчёта?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Черновик сохранён на устройстве в зашифрованном виде.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Отчёт доставлен. Это не означает, что он прочитан.</string>
+	<key>New feedback</key>
+	<string>Новый отчёт</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Удаляется только черновик. Копии снимков и ссылки остаются в Файлах.</string>
+	<key>Report a problem</key>
+	<string>Сообщить о проблеме</string>
+	<key>Saving encrypted draft…</key>
+	<string>Сохранение зашифрованного черновика…</string>
+	<key>Screenshots</key>
+	<string>Снимки экрана</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Отправьте бесплатное личное письмо в поддержку dMsg. Перед отправкой проверьте описание, снимки экрана и сведения о приложении.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Разблокируйте dMsg для отправки отчёта.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>До 3 изображений PNG, JPEG, WebP или GIF по 10 MiB. Удалите секретные данные. Копии останутся в Файлах; отправка создаст зашифрованные ссылки на 30 дней и использует квоту хранилища. Любой обладатель полной ссылки может открыть её.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Описание — не более 4500 байт UTF-8.</string>
 </dict>
 </plist>

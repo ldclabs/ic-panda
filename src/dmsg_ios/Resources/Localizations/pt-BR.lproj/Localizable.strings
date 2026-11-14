@@ -3280,5 +3280,33 @@
 	<string>Abra o espaço de trabalho dMsg → Conta → Integrações de sistema → Preenchimento automático de senha → Selecione itens de login</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Abra e desbloqueie o dMsg para atualizar o preenchimento automático e tente novamente.</string>
+	<key>Choose screenshots</key>
+	<string>Escolher capturas</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Entrega não confirmada. Tentar novamente mantém o relato original.</string>
+	<key>Discard feedback draft?</key>
+	<string>Descartar o rascunho do relato?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Rascunho salvo criptografado neste dispositivo.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Relato entregue. Isso não significa que foi lido.</string>
+	<key>New feedback</key>
+	<string>Novo relato</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Apenas o rascunho é removido. Cópias e links existentes ficam em Arquivos.</string>
+	<key>Report a problem</key>
+	<string>Relatar um problema</string>
+	<key>Saving encrypted draft…</key>
+	<string>Salvando rascunho criptografado…</string>
+	<key>Screenshots</key>
+	<string>Capturas de tela</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Envie uma carta privada gratuita ao suporte do dMsg. Revise a descrição, capturas e informações do aplicativo antes de enviar.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Desbloqueie o dMsg para enviar o relato.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Até 3 imagens PNG, JPEG, WebP ou GIF de 10 MiB cada. Remova segredos antes. As cópias ficam em Arquivos; o envio cria links criptografados válidos por 30 dias e usa sua cota. Quem tiver o link completo poderá abri-lo.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Use até 4500 bytes UTF-8 na descrição.</string>
 </dict>
 </plist>

@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Een probleem melden",
+  "feedbackHint": "Stuur een gratis privébrief naar dMsg-ondersteuning. Controleer de beschrijving, schermafbeeldingen en appgegevens vóór het verzenden.",
+  "feedbackScreenshots": "Schermafbeeldingen",
+  "feedbackImageHint": "Maximaal 3 PNG-, JPEG-, WebP- of GIF-afbeeldingen van elk 10 MiB. Verwijder eerst geheimen. Kopieën blijven in Bestanden. Verzenden maakt versleutelde links voor 30 dagen en gebruikt uw opslagruimte. Iedereen met de volledige link kan deze openen.",
+  "feedbackAttach": "Schermafbeeldingen kiezen",
+  "feedbackSaving": "Versleuteld concept opslaan…",
+  "feedbackSaved": "Concept versleuteld op dit apparaat opgeslagen.",
+  "feedbackPending": "Bezorging niet bevestigd. Opnieuw proberen gebruikt dezelfde melding.",
+  "feedbackSent": "Melding bezorgd. Dit betekent niet dat deze is gelezen.",
+  "feedbackNew": "Nieuwe melding",
+  "feedbackLimit": "Gebruik maximaal 4500 UTF-8-bytes voor de beschrijving.",
+  "feedbackDiscardHint": "Alleen het concept wordt verwijderd. Kopieën en bestaande links blijven in Bestanden.",
+  "feedbackDiscardTitle": "Conceptmelding verwijderen?",
+  "feedbackLocked": "Ontgrendel dMsg om een melding te versturen.",
+
   "linkShowProfile": "Mijn openbare profiel tonen",
   "linkShowProfileHint": "Iedereen met deze link kan je openbare profiel zien, zelfs voordat een wachtwoord is ingevoerd.",
   "globalShortcuts": "Globale sneltoetsen",

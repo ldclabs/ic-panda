@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Laporkan masalah",
+  "feedbackHint": "Hantar surat peribadi percuma kepada sokongan dMsg. Semak huraian, tangkapan skrin dan maklumat aplikasi sebelum menghantar.",
+  "feedbackScreenshots": "Tangkapan skrin",
+  "feedbackImageHint": "Sehingga 3 imej PNG, JPEG, WebP atau GIF, 10 MiB setiap satu. Padam rahsia dahulu. Salinan kekal dalam Fail; penghantaran mencipta pautan disulitkan sah 30 hari dan menggunakan kuota storan. Sesiapa yang mempunyai pautan lengkap boleh membukanya.",
+  "feedbackAttach": "Pilih tangkapan skrin",
+  "feedbackSaving": "Menyimpan draf disulitkan…",
+  "feedbackSaved": "Draf disimpan secara disulitkan pada peranti ini.",
+  "feedbackPending": "Penghantaran belum disahkan. Cuba semula menggunakan laporan asal.",
+  "feedbackSent": "Laporan dihantar. Ini tidak bermakna ia telah dibaca.",
+  "feedbackNew": "Laporan baharu",
+  "feedbackLimit": "Gunakan maksimum 4500 bait UTF-8 untuk huraian.",
+  "feedbackDiscardHint": "Hanya draf dipadam. Salinan imej dan pautan perkongsian sedia ada kekal dalam Fail.",
+  "feedbackDiscardTitle": "Buang draf laporan?",
+  "feedbackLocked": "Buka kunci dMsg untuk menghantar laporan.",
+
   "linkShowProfile": "Paparkan profil awam saya",
   "linkShowProfileHint": "Sesiapa yang mempunyai pautan ini boleh melihat profil awam anda, walaupun sebelum memasukkan kata laluan.",
   "globalShortcuts": "Pintasan global",

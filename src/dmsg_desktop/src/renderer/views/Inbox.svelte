@@ -21,6 +21,7 @@
   import { label } from './channels/names.svelte'
   import Compose from './inbox/Compose.svelte'
   import Rules from './inbox/Rules.svelte'
+  import LinkedText from '../components/LinkedText.svelte'
 
   /**
    * Letters in two columns: the inbox, sent letters and the archive beside
@@ -373,7 +374,7 @@
           </header>
           <div class="mt-5 py-4">
             {#if letter.state === 'visible'}
-              <p class="text-[14px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{letter.text}</p>
+              <p class="text-[14px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]"><LinkedText text={letter.text} /></p>
             {:else}
               <p class="flex items-center gap-2 text-[13px] text-muted"><Icon name="warning" class="text-warn" />{t('aborted')}{letter.abort_reason ? ` · ${letter.abort_reason}` : ''}</p>
             {/if}

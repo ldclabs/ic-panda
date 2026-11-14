@@ -517,7 +517,7 @@ pub async fn share_link<H: Hold>(
             Ok((manifest, backup))
         })
         .await?;
-    publish_link(h, manifest, backup.as_deref(), terms, progress).await
+    publish_link(h, manifest, backup.as_deref(), terms, progress, None).await
 }
 
 /// Share a backup by link, whether or not this device's library has it. The
@@ -542,7 +542,58 @@ pub async fn share_backup_link<H: Hold>(
             Ok(manifest.file)
         })
         .await?;
-    publish_link(h, manifest, Some(upload_id), terms, progress).await
+    publish_link(h, manifest, Some(upload_id), terms, progress, None).await
+}
+
+/// A feedback screenshot keeps its original upload and link across retries.
+pub(crate) async fn feedback_link<H: Hold>(
+    h: &H,
+    file: &str,
+    version: &str,
+    operation: &str,
+) -> Result<LinkView> {
+    hex_id(operation)?;
+    let key = format!("feedback-share:{operation}");
+    if let Some(attempt) = h
+        .with(|c| c.workspace.private::<LinkAttempt>(c.keys()?, &key))
+        .await?
+    {
+        ensure(
+            attempt.link.source
+                == LinkSource::FileVersion {
+                    file: file.into(),
+                    version: version.into(),
+                },
+            Error::IdempotencyConflict,
+        )?;
+        return submit_link(h, attempt, Some(&key), &mut |_, _, _| {}).await;
+    }
+    let manifest = h
+        .with(|c| Ok(c.library_manifest(file, Some(version))?.2))
+        .await?;
+    publish_link(
+        h,
+        manifest,
+        None,
+        LinkTerms {
+            expires_in_ms: Some(LINK_MAX_MS),
+            ..Default::default()
+        },
+        &mut |_, _, _| {},
+        Some(&key),
+    )
+    .await
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct LinkAttempt {
+    base: String,
+    link: LinkRecord,
+    key_wrap: Option<String>,
+    plan: UploadPlan,
+    manifest: Vec<u8>,
+    publishing: bool,
+    published: bool,
 }
 
 /// A fresh edition of `source`, read from its backup when this device does
@@ -580,6 +631,7 @@ async fn publish_link<H: Hold>(
     backup: Option<&str>,
     terms: LinkTerms<'_>,
     progress: &mut (dyn FnMut(&'static str, u64, u64) + Send),
+    operation: Option<&str>,
 ) -> Result<LinkView> {
     let expires_in = terms.lifetime()?;
     let (max_downloads, password) = (terms.max_downloads, terms.password);
@@ -631,21 +683,78 @@ async fn publish_link<H: Hold>(
         "name":manifest.name,"source_file":manifest.id,"source_version":manifest.version,"plain_bytes":manifest.size,
         "intent":link.intent(key_wrap.as_deref())
     }))).await?);
+    let attempt = LinkAttempt {
+        base,
+        link,
+        key_wrap,
+        plan,
+        manifest: manifest_bytes,
+        publishing: false,
+        published: false,
+    };
     h.with(|c| {
-        c.workspace.put_private(
-            c.keys()?,
-            &format!("lib-share-job:{upload_id}"),
-            &json!({"plan":plan,"manifest":crate::codec::b64(&manifest_bytes)}),
-        )?;
-        c.release_chunks(&share_id)
+        c.workspace.store.atomic(|_| {
+            c.workspace.put_private(
+                c.keys()?,
+                &format!("lib-share-job:{upload_id}"),
+                &json!({"plan":attempt.plan,"manifest":crate::codec::b64(&attempt.manifest)}),
+            )?;
+            if let Some(key) = operation {
+                c.workspace.put_private(c.keys()?, key, &attempt)?;
+            }
+            c.release_chunks(&share_id)
+        })
     })
     .await?;
-    let total = plan.chunks.len() as u64;
+    submit_link(h, attempt, operation, progress).await
+}
+
+async fn submit_link<H: Hold>(
+    h: &H,
+    mut attempt: LinkAttempt,
+    operation: Option<&str>,
+    progress: &mut (dyn FnMut(&'static str, u64, u64) + Send),
+) -> Result<LinkView> {
+    if attempt.publishing
+        && !attempt.published
+        && let Some(remote) = share_links_remote(h)
+            .await?
+            .into_iter()
+            .find(|l| l.share_id == attempt.link.share_id)
+    {
+        ensure(
+            remote.expires_at == attempt.link.expires_at
+                && remote.password == attempt.link.password
+                && remote.max_downloads == attempt.link.max_downloads
+                && remote.show_profile == attempt.link.show_profile,
+            Error::IntegrityFailed,
+        )?;
+        attempt.link.created_at = remote.created_at;
+        attempt.link.revoked_at = remote.revoked_at;
+        attempt.link.downloads = remote.downloads;
+        attempt.published = true;
+        return finish_link(h, &attempt, operation).await;
+    }
+    if attempt.published {
+        return h
+            .with(|c| {
+                let now = crate::now_ms();
+                ensure(attempt.link.expires_at > now, Error::ResultExpired)?;
+                let record = c
+                    .link_records()?
+                    .into_iter()
+                    .find(|l| l.share_id == attempt.link.share_id)
+                    .unwrap_or(attempt.link.clone());
+                Ok(c.link_view(&record, now))
+            })
+            .await;
+    }
+    let total = attempt.plan.chunks.len() as u64;
     let uploaded = crate::upload::upload(
         h,
-        &base,
-        &plan,
-        &manifest_bytes,
+        &attempt.base,
+        &attempt.plan,
+        &attempt.manifest,
         0,
         Source::Library,
         |_, sent| {
@@ -655,11 +764,20 @@ async fn publish_link<H: Hold>(
     )
     .await;
     uploaded?;
+    ensure(
+        attempt.link.expires_at > crate::now_ms(),
+        Error::ResultExpired,
+    )?;
+    if let Some(key) = operation {
+        attempt.publishing = true;
+        h.with(|c| c.workspace.put_private(c.keys()?, key, &attempt))
+            .await?;
+    }
     let published = match h
         .post(
-            &format!("{base}/shares"),
+            &format!("{}/shares", attempt.base),
             "dmsg/share/create/v1",
-            &link.create_command(key_wrap.as_deref()),
+            &attempt.link.create_command(attempt.key_wrap.as_deref()),
             &Hash::new(crate::crypto::random_id()),
         )
         .await
@@ -668,17 +786,32 @@ async fn publish_link<H: Hold>(
         Err(error) => return Err(error),
     };
     ensure(
-        published["share_id"] == share_id.as_str()
-            && published["show_profile"].as_bool().unwrap_or(false) == terms.show_profile,
+        published["share_id"] == attempt.link.share_id.as_str()
+            && published["show_profile"].as_bool().unwrap_or(false) == attempt.link.show_profile,
         Error::IntegrityFailed,
     )?;
-    let mut link = link;
-    link.created_at = published["created_at"].as_u64().unwrap_or(now);
+    attempt.link.created_at = published["created_at"]
+        .as_u64()
+        .unwrap_or(attempt.link.created_at);
+    attempt.published = true;
+    finish_link(h, &attempt, operation).await
+}
+
+async fn finish_link<H: Hold>(
+    h: &H,
+    attempt: &LinkAttempt,
+    operation: Option<&str>,
+) -> Result<LinkView> {
     h.with(|c| {
-        c.save_link(&link)?;
-        c.workspace
-            .delete_private(&format!("lib-share-job:{upload_id}"))?;
-        Ok(c.link_view(&link, crate::now_ms()))
+        c.workspace.store.atomic(|_| {
+            c.save_link(&attempt.link)?;
+            if let Some(key) = operation {
+                c.workspace.put_private(c.keys()?, key, &attempt)?;
+            }
+            c.workspace
+                .delete_private(&format!("lib-share-job:{}", attempt.plan.upload_id))
+        })?;
+        Ok(c.link_view(&attempt.link, crate::now_ms()))
     })
     .await
 }

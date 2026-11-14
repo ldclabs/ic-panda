@@ -3280,5 +3280,33 @@
 	<string>Buksan ang dMsg workspace → Account → Mga pagsasama ng system → AutoFill ng Password → Pumili ng mga item sa pag-log in</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Buksan at i-unlock ang dMsg upang i-update ang AutoFill, at subukan muli.</string>
+	<key>Choose screenshots</key>
+	<string>Pumili ng mga screenshot</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Hindi pa kumpirmado ang paghahatid. Ang muling pagsubok ay gumagamit ng orihinal na ulat.</string>
+	<key>Discard feedback draft?</key>
+	<string>Itapon ang draft ng ulat?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Naka-encrypt na na-save ang draft sa device na ito.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Naihatid ang ulat. Hindi ibig sabihin na nabasa na ito.</string>
+	<key>New feedback</key>
+	<string>Bagong ulat</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Draft lang ang aalisin. Mananatili sa Files ang mga kopya at umiiral na share link.</string>
+	<key>Report a problem</key>
+	<string>Mag-ulat ng problema</string>
+	<key>Saving encrypted draft…</key>
+	<string>Sine-save ang naka-encrypt na draft…</string>
+	<key>Screenshots</key>
+	<string>Mga screenshot</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Magpadala ng libreng pribadong liham sa suporta ng dMsg. Suriin ang paglalarawan, mga screenshot at impormasyon ng app bago ipadala.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>I-unlock ang dMsg upang magpadala ng ulat.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Hanggang 3 PNG, JPEG, WebP o GIF na larawan, tig-10 MiB. Alisin muna ang mga lihim. Mananatili ang mga kopya sa Files; gagawa ang pagpapadala ng mga naka-encrypt na link na may bisa nang 30 araw at gagamit ng storage quota. Mabubuksan ito ng sinumang may kumpletong link.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Gumamit ng hanggang 4500 UTF-8 byte sa paglalarawan.</string>
 </dict>
 </plist>

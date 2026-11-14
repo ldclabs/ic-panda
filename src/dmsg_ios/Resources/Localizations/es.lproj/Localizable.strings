@@ -3280,5 +3280,33 @@
 	<string>Abrir espacio de dMsg → Cuenta → Integraciones del sistema → Autorrelleno de contraseñas → Seleccionar accesos</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Abre y desbloquea dMsg para actualizar el autorrelleno y vuelve a intentarlo.</string>
+	<key>Choose screenshots</key>
+	<string>Elegir capturas</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Entrega sin confirmar. El reintento conserva el informe original.</string>
+	<key>Discard feedback draft?</key>
+	<string>¿Descartar el borrador del informe?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Borrador guardado cifrado en este dispositivo.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Informe entregado. Esto no significa que se haya leído.</string>
+	<key>New feedback</key>
+	<string>Nuevo informe</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Solo se elimina el borrador. Las copias y los enlaces existentes quedan en Archivos.</string>
+	<key>Report a problem</key>
+	<string>Informar de un problema</string>
+	<key>Saving encrypted draft…</key>
+	<string>Guardando borrador cifrado…</string>
+	<key>Screenshots</key>
+	<string>Capturas de pantalla</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Envía una carta privada gratuita al soporte de dMsg. Revisa la descripción, las capturas y la información de la aplicación antes de enviarla.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Desbloquea dMsg para enviar el informe.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Hasta 3 imágenes PNG, JPEG, WebP o GIF de 10 MiB cada una. Elimina los secretos primero. Las copias quedan en Archivos; el envío crea enlaces cifrados válidos durante 30 días y usa tu cuota. Cualquiera con el enlace completo puede abrirlo.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Usa como máximo 4500 bytes UTF-8 para la descripción.</string>
 </dict>
 </plist>

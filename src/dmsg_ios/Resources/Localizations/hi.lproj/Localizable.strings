@@ -3280,5 +3280,33 @@
 	<string>dMsg कार्यक्षेत्र खोलें → खाता → सिस्टम एकीकरण → पासवर्ड स्वतः भरण → लॉगिन आइटम चुनें</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>ऑटोफ़िल अपडेट करने के लिए dMsg खोलें और अनलॉक करें, फिर दोबारा कोशिश करें।</string>
+	<key>Choose screenshots</key>
+	<string>स्क्रीनशॉट चुनें</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>डिलीवरी की पुष्टि नहीं हुई। दोबारा कोशिश मूल रिपोर्ट का उपयोग करती है।</string>
+	<key>Discard feedback draft?</key>
+	<string>रिपोर्ट का ड्राफ़्ट हटाएँ?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>ड्राफ़्ट इस डिवाइस पर एन्क्रिप्ट करके सहेजा गया।</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>रिपोर्ट पहुँच गई। इसका अर्थ यह नहीं कि उसे पढ़ा गया है।</string>
+	<key>New feedback</key>
+	<string>नई रिपोर्ट</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>केवल ड्राफ़्ट हटता है। स्क्रीनशॉट की प्रतियाँ और मौजूदा शेयर लिंक फ़ाइलों में रहते हैं।</string>
+	<key>Report a problem</key>
+	<string>समस्या की रिपोर्ट करें</string>
+	<key>Saving encrypted draft…</key>
+	<string>एन्क्रिप्टेड ड्राफ़्ट सहेजा जा रहा है…</string>
+	<key>Screenshots</key>
+	<string>स्क्रीनशॉट</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>dMsg सहायता को मुफ़्त निजी पत्र भेजें। भेजने से पहले विवरण, स्क्रीनशॉट और ऐप की जानकारी जाँचें।</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>रिपोर्ट भेजने के लिए dMsg अनलॉक करें।</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>अधिकतम 3 PNG, JPEG, WebP या GIF चित्र, प्रत्येक 10 MiB। पहले गोपनीय जानकारी हटाएँ। प्रतियाँ फ़ाइलों में रहती हैं; भेजने पर 30 दिन के एन्क्रिप्टेड लिंक बनते हैं और स्टोरेज कोटा उपयोग होता है। पूरा लिंक रखने वाला कोई भी व्यक्ति इसे खोल सकता है।</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>विवरण के लिए अधिकतम 4500 UTF-8 बाइट उपयोग करें।</string>
 </dict>
 </plist>

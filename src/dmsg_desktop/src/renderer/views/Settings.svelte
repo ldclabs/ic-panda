@@ -35,6 +35,7 @@
   import Profile from './Profile.svelte'
   import Security from './Security.svelte'
   import Recovery from './Recovery.svelte'
+  import Feedback from './Feedback.svelte'
 
   /**
    * Settings in sections beside their list: this session, account security,
@@ -247,7 +248,9 @@
         {#key sessionKey}
         {#each (part === 'session' ? [errors.account] : part === 'browsers' ? [errors.pairings] : []).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
         {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
-        {#if part === 'legacy'}
+        {#if part === 'feedback'}
+          <Feedback {status} />
+        {:else if part === 'legacy'}
           <Legacy {status} {go} />
         {:else if part === 'files'}
           <FilesSettings />

@@ -3280,5 +3280,33 @@
 	<string>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Open and unlock dMsg to update AutoFill, then try again.</string>
+	<key>Choose screenshots</key>
+	<string>Choose screenshots</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Delivery is unconfirmed. Retry keeps the original report.</string>
+	<key>Discard feedback draft?</key>
+	<string>Discard feedback draft?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Draft saved encrypted on this device.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Feedback delivered. This does not mean it has been read.</string>
+	<key>New feedback</key>
+	<string>New feedback</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Only the draft is removed. Screenshot copies and existing share links remain in Files.</string>
+	<key>Report a problem</key>
+	<string>Report a problem</string>
+	<key>Saving encrypted draft…</key>
+	<string>Saving encrypted draft…</string>
+	<key>Screenshots</key>
+	<string>Screenshots</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Unlock dMsg to send feedback.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Use at most 4500 UTF-8 bytes for the description.</string>
 </dict>
 </plist>

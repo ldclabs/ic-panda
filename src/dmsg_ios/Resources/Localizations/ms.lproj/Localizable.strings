@@ -3280,5 +3280,33 @@
 	<string>Buka ruang kerja dMsg → Akaun → Penyepaduan sistem → AutoIsi Kata Laluan → Pilih item log masuk</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Buka dan nyahkunci dMsg untuk mengemas kini Isi Auto, kemudian cuba lagi.</string>
+	<key>Choose screenshots</key>
+	<string>Pilih tangkapan skrin</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Penghantaran belum disahkan. Cuba semula menggunakan laporan asal.</string>
+	<key>Discard feedback draft?</key>
+	<string>Buang draf laporan?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Draf disimpan secara disulitkan pada peranti ini.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Laporan dihantar. Ini tidak bermakna ia telah dibaca.</string>
+	<key>New feedback</key>
+	<string>Laporan baharu</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Hanya draf dipadam. Salinan imej dan pautan perkongsian sedia ada kekal dalam Fail.</string>
+	<key>Report a problem</key>
+	<string>Laporkan masalah</string>
+	<key>Saving encrypted draft…</key>
+	<string>Menyimpan draf disulitkan…</string>
+	<key>Screenshots</key>
+	<string>Tangkapan skrin</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Hantar surat peribadi percuma kepada sokongan dMsg. Semak huraian, tangkapan skrin dan maklumat aplikasi sebelum menghantar.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Buka kunci dMsg untuk menghantar laporan.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Sehingga 3 imej PNG, JPEG, WebP atau GIF, 10 MiB setiap satu. Padam rahsia dahulu. Salinan kekal dalam Fail; penghantaran mencipta pautan disulitkan sah 30 hari dan menggunakan kuota storan. Sesiapa yang mempunyai pautan lengkap boleh membukanya.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Gunakan maksimum 4500 bait UTF-8 untuk huraian.</string>
 </dict>
 </plist>

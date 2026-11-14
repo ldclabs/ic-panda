@@ -4,6 +4,7 @@ import { writable } from 'svelte/store'
 import { t, type Label } from '../i18n/index.svelte'
 import { call, code, errorText } from '../rpc'
 import { closeLogin, login, startLogin } from './login.svelte'
+import { feedback } from '../feedback.svelte'
 
 /**
  * The session actions the sidebar, the locked pages and the command palette
@@ -19,11 +20,12 @@ async function attempt(work: () => Promise<unknown>) {
 }
 
 /** Drop the login and every key now, as the idle lock would. */
-export const lock = () => attempt(() => call('session/lock'))
+export const lock = () => attempt(async () => { await feedback.flush(); await call('session/lock') })
 
 /** Forget the saved login too; opening this account again takes a browser login. */
 export const logout = () =>
   attempt(async () => {
+    await feedback.flush()
     await call('session/logout')
     closeLogin()
   })

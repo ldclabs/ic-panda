@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Báo cáo sự cố",
+  "feedbackHint": "Gửi thư riêng miễn phí đến hỗ trợ dMsg. Kiểm tra mô tả, ảnh chụp và thông tin ứng dụng trước khi gửi.",
+  "feedbackScreenshots": "Ảnh chụp màn hình",
+  "feedbackImageHint": "Tối đa 3 ảnh PNG, JPEG, WebP hoặc GIF, mỗi ảnh 10 MiB. Xóa thông tin bí mật trước. Bản sao ở lại Tệp; gửi sẽ tạo liên kết mã hóa có hiệu lực 30 ngày và dùng hạn mức lưu trữ. Ai có liên kết đầy đủ đều có thể mở.",
+  "feedbackAttach": "Chọn ảnh chụp",
+  "feedbackSaving": "Đang lưu bản nháp mã hóa…",
+  "feedbackSaved": "Bản nháp đã được lưu mã hóa trên thiết bị này.",
+  "feedbackPending": "Chưa xác nhận việc giao thư. Thử lại giữ nguyên báo cáo.",
+  "feedbackSent": "Báo cáo đã được giao. Điều này không có nghĩa là đã được đọc.",
+  "feedbackNew": "Báo cáo mới",
+  "feedbackLimit": "Mô tả tối đa 4500 byte UTF-8.",
+  "feedbackDiscardHint": "Chỉ xóa bản nháp. Bản sao ảnh và liên kết chia sẻ hiện có vẫn ở trong Tệp.",
+  "feedbackDiscardTitle": "Bỏ bản nháp báo cáo?",
+  "feedbackLocked": "Mở khóa dMsg để gửi báo cáo.",
+
   "linkShowProfile": "Hiển thị hồ sơ công khai của tôi",
   "linkShowProfileHint": "Bất kỳ ai có liên kết này đều có thể xem hồ sơ công khai của bạn, ngay cả trước khi nhập mật khẩu.",
   "globalShortcuts": "Phím tắt toàn cục",

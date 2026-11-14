@@ -1138,3 +1138,28 @@ The security binding flow offers an existing Passkey before creating another ide
 Simulator UI fixtures cannot validate a real Passkey origin or Secure Enclave persistence. Build, protocol, simulator and outstanding real-device checks are recorded in [Passkey validation](../../docs/passkey-validation_zh.md).
 
 If a selected Passkey has reached its session limit, recovery pins both sign-out and the following login to that credential. It preserves the current workspace and the original binding intent, including when the current account uses Internet Identity. Ordinary sign-out-all remains a separate operation for the current login. The native `beginPasskey` bridge now carries an optional credential restriction and a `ResetSessions` operation; regenerate the Swift bindings and both Rust slices together before building the app.
+
+## Problem feedback
+
+Account → Report a problem shares the Rust core's free support-letter flow to
+`dbrt466u97gecq800000`. Descriptions and up to three selected screenshots are
+saved encrypted on this device. Photos and Files imports stay local until Send;
+then independent encrypted share links last 30 days and consume ordinary cloud
+storage quota. The form previews the selected images and app/platform information.
+No logs or images are collected automatically. Links may be opened by anyone
+holding the complete URL.
+
+Draft writes belong to the account workspace and survive navigation and restart.
+Explicit lock flushes the latest authored draft behind the session transition
+fence. Interrupted uploads and sends retry their original identities; success
+requires confirmed visible delivery, not merely a queued operation. A report
+with an already prepared contact request stays immutable while it is reconciled.
+Discarding a draft leaves its imported files and existing share links in Files.
+Received screenshot links open only on a tap. Ordinary contact limits remain:
+support needs a free inbox, and must explicitly reopen pending contacts on iOS.
+Sending feedback does not automatically enable replies to the sender.
+
+`FeedbackTests` validates native snapshot/link handling; `FeedbackUITests` covers
+navigation, screenshot presentation, failure/retry and the Chinese, German and
+Arabic theme matrix. UI tests use presentation fixtures, while shared-core tests
+cover encrypted persistence and interrupted upload/publication recovery.

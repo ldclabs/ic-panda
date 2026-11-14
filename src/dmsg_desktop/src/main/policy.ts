@@ -264,6 +264,7 @@ export const WINDOW_METHODS = new Set([
   'inbox/policy',
   'inbox/configure',
   'inbox/send',
+  'feedback/get', 'feedback/save', 'feedback/send', 'feedback/edit', 'feedback/clear',
   'inbox/order',
   'inbox/outgoing',
   'inbox/pay',

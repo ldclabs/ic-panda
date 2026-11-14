@@ -433,6 +433,23 @@ change the wire contract nor relax security-evidence freshness.
 
 ## Letters
 
+`feedback` composes a free letter to support account `dbrt466u97gecq800000`.
+One device-local draft is sealed in each account workspace, with revision checks
+and idempotent saves. Up to three screenshots (PNG/JPEG/WebP/GIF, 10 MiB each)
+are pinned to library versions. Send creates independent encrypted share links
+lasting 30 days, then queues the exact letter under its original ID. Both share
+publication and letter submission recover unknown outcomes before reporting
+success. Failed attempts retain the draft, upload plans and ciphertext; editing
+is allowed only before a contact request was prepared. Drafts may exceed the
+4,500-byte description limit while editing, but cannot be sent until shortened.
+Discarding a draft keeps imported files and existing links in Files.
+
+Feedback uses ordinary contact policy, pending-pair and storage limits. It does
+not enable paid delivery, bypass blocks or automatically open the sender's inbox
+for replies. The support account must publish a free inbox and handle/reopen
+pending contacts. Acceptance is not a read receipt. No log, secret or screenshot
+is collected automatically.
+
 An inbox key is bound to the recipient's account security epoch and content
 root generation. After either changes, ordinary unlocked content sync renews
 an existing free/contacts/closed policy: it verifies the original signed

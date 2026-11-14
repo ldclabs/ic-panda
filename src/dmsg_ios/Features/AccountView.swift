@@ -60,6 +60,7 @@ struct AccountView: View {
                 NavigationLink { SystemIntegrationsView() } label: { Label("System integrations", systemImage: "square.stack.3d.up") }
             }
             Section("Settings") {
+                NavigationLink { FeedbackView() } label: { Label("Report a problem", systemImage: "envelope") }.accessibilityIdentifier("account.feedback")
                 NavigationLink { NotificationSettingsView() } label: { Label("Notifications", systemImage: "bell") }
                 LanguageSettingsLink()
                 NavigationLink { AdvancedAccountView() } label: { Label("Advanced", systemImage: "slider.horizontal.3") }.accessibilityIdentifier("account.advanced")

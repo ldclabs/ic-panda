@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Problem melden",
+  "feedbackHint": "Senden Sie dem dMsg-Support einen kostenlosen, privaten Brief. Prüfen Sie Beschreibung, Screenshots und App-Informationen vor dem Senden.",
+  "feedbackScreenshots": "Screenshots",
+  "feedbackImageHint": "Bis zu 3 Bilder als PNG, JPEG, WebP oder GIF, jeweils 10 MiB. Entfernen Sie vertrauliche Inhalte. Kopien bleiben in Dateien. Beim Senden entstehen verschlüsselte Links für 30 Tage, die Ihr Speicherkontingent nutzen. Jeder mit dem vollständigen Link kann sie öffnen.",
+  "feedbackAttach": "Screenshots auswählen",
+  "feedbackSaving": "Verschlüsselter Entwurf wird gespeichert…",
+  "feedbackSaved": "Entwurf auf diesem Gerät verschlüsselt gespeichert.",
+  "feedbackPending": "Zustellung unbestätigt. Erneutes Senden verwendet dieselbe Meldung.",
+  "feedbackSent": "Meldung zugestellt. Das bedeutet nicht, dass sie gelesen wurde.",
+  "feedbackNew": "Neue Meldung",
+  "feedbackLimit": "Die Beschreibung darf höchstens 4500 UTF-8-Bytes umfassen.",
+  "feedbackDiscardHint": "Nur der Entwurf wird entfernt. Screenshot-Kopien und vorhandene Freigabelinks bleiben in Dateien.",
+  "feedbackDiscardTitle": "Meldungsentwurf verwerfen?",
+  "feedbackLocked": "Entsperren Sie dMsg, um eine Meldung zu senden.",
+
   "linkShowProfile": "Mein öffentliches Profil anzeigen",
   "linkShowProfileHint": "Jeder mit diesem Link kann Ihr öffentliches Profil sehen, auch vor der Eingabe eines Passworts.",
   "globalShortcuts": "Globale Tastenkürzel",

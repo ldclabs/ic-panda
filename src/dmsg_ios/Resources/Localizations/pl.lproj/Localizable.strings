@@ -3280,5 +3280,33 @@
 	<string>Otwórz obszar roboczy dMsg → Konto → Integracje systemowe → Automatyczne uzupełnianie hasła → Wybierz elementy logowania</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Otwórz i odblokuj dMsg, aby zaktualizować autouzupełnianie, a następnie spróbuj ponownie.</string>
+	<key>Choose screenshots</key>
+	<string>Wybierz zrzuty</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Dostarczenie niepotwierdzone. Ponowienie zachowuje pierwotne zgłoszenie.</string>
+	<key>Discard feedback draft?</key>
+	<string>Odrzucić szkic zgłoszenia?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Szkic zapisano w postaci zaszyfrowanej na tym urządzeniu.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Zgłoszenie dostarczone. Nie oznacza to odczytania.</string>
+	<key>New feedback</key>
+	<string>Nowe zgłoszenie</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Usuwany jest tylko szkic. Kopie i istniejące linki pozostają w Plikach.</string>
+	<key>Report a problem</key>
+	<string>Zgłoś problem</string>
+	<key>Saving encrypted draft…</key>
+	<string>Zapisywanie zaszyfrowanego szkicu…</string>
+	<key>Screenshots</key>
+	<string>Zrzuty ekranu</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Wyślij bezpłatny prywatny list do pomocy dMsg. Przed wysłaniem sprawdź opis, zrzuty ekranu i informacje o aplikacji.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Odblokuj dMsg, aby wysłać zgłoszenie.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Do 3 obrazów PNG, JPEG, WebP lub GIF, po 10 MiB. Najpierw usuń tajne dane. Kopie pozostają w Plikach; wysłanie tworzy szyfrowane linki ważne 30 dni i zużywa limit miejsca. Każdy, kto ma pełny link, może go otworzyć.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Opis może mieć najwyżej 4500 bajtów UTF-8.</string>
 </dict>
 </plist>

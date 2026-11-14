@@ -18,7 +18,12 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 75] = [
+pub(crate) const METHODS: [&str; 80] = [
+    "feedback/get",
+    "feedback/save",
+    "feedback/send",
+    "feedback/edit",
+    "feedback/clear",
     "channel/avatar",
     "channel/list",
     "channel/show",
@@ -129,6 +134,47 @@ impl Daemon {
         let id = || text(params, "id");
         // These wait on the relay and the IC without the client.
         let h = self.hold();
+        if method.starts_with("feedback/") {
+            let h = Unlocked::new(&h).await?;
+            let owner = account(params, "account")?;
+            let _turn = self.turn("feedback").await;
+            h.with(|c| {
+                dmsg_types::ensure(
+                    c.session_state().account.as_deref() == Some(owner.to_string().as_str()),
+                    Error::Locked,
+                )
+            })
+            .await?;
+            return match method {
+                "feedback/get" => h.with(|c| Ok(to_json(&c.feedback()?))).await,
+                "feedback/save" => {
+                    let files: Vec<String> = serde_json::from_value(params["files"].clone())
+                        .map_err(|_| dmsg_types::invalid("files"))?;
+                    h.with(|c| {
+                        Ok(to_json(&c.save_feedback(
+                            &id()?,
+                            number(params, "revision")?,
+                            &text(params, "text")?,
+                            &text(params, "context")?,
+                            &files,
+                        )?))
+                    })
+                    .await
+                }
+                "feedback/send" => Ok(to_json(
+                    &dmsg_client::feedback::send(&h, &id()?, number(params, "revision")?).await?,
+                )),
+                "feedback/edit" => h.with(|c| Ok(to_json(&c.edit_feedback(&id()?)?))).await,
+                "feedback/clear" => {
+                    h.with(|c| {
+                        c.clear_feedback(&id()?, number(params, "revision")?)?;
+                        Ok(Value::Null)
+                    })
+                    .await
+                }
+                _ => Err(Error::NotFound),
+            };
+        }
         match method {
             "channel/avatar" => {
                 let url = text(params, "avatar_url")?;

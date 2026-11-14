@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "Sorun bildir",
+  "feedbackHint": "dMsg desteğine ücretsiz özel bir mektup gönderin. Göndermeden önce açıklamayı, ekran görüntülerini ve uygulama bilgilerini inceleyin.",
+  "feedbackScreenshots": "Ekran görüntüleri",
+  "feedbackImageHint": "Her biri 10 MiB olan en fazla 3 PNG, JPEG, WebP veya GIF. Önce gizli bilgileri kaldırın. Kopyalar Dosyalar’da kalır; gönderim 30 gün geçerli şifreli bağlantılar oluşturur ve depolama kotasını kullanır. Tam bağlantıya sahip herkes açabilir.",
+  "feedbackAttach": "Ekran görüntüsü seç",
+  "feedbackSaving": "Şifreli taslak kaydediliyor…",
+  "feedbackSaved": "Taslak bu cihaza şifreli olarak kaydedildi.",
+  "feedbackPending": "Teslimat doğrulanmadı. Yeniden deneme özgün bildirimi kullanır.",
+  "feedbackSent": "Bildirim teslim edildi. Bu, okunduğu anlamına gelmez.",
+  "feedbackNew": "Yeni bildirim",
+  "feedbackLimit": "Açıklama için en fazla 4500 UTF-8 baytı kullanın.",
+  "feedbackDiscardHint": "Yalnızca taslak kaldırılır. Görüntü kopyaları ve mevcut paylaşım bağlantıları Dosyalar’da kalır.",
+  "feedbackDiscardTitle": "Bildirim taslağı silinsin mi?",
+  "feedbackLocked": "Bildirim göndermek için dMsg kilidini açın.",
+
   "linkShowProfile": "Herkese açık profilimi göster",
   "linkShowProfileHint": "Bu bağlantıya sahip herkes, parola girmeden önce bile herkese açık profilinizi görebilir.",
   "globalShortcuts": "Genel klavye kısayolları",

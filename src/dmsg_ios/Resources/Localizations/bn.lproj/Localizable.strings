@@ -3280,5 +3280,33 @@
 	<string>dMsg ওয়ার্কস্পেস খুলুন → অ্যাকাউন্ট → সিস্টেম ইন্টিগ্রেশন → পাসওয়ার্ড অটোফিল → লগইন আইটেম নির্বাচন করুন</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>অটোফিল আপডেট করতে dMsg খুলুন ও আনলক করুন, তারপর আবার চেষ্টা করুন।</string>
+	<key>Choose screenshots</key>
+	<string>স্ক্রিনশট বাছুন</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>পৌঁছানো নিশ্চিত নয়। আবার চেষ্টা করলে মূল রিপোর্টই ব্যবহার হবে।</string>
+	<key>Discard feedback draft?</key>
+	<string>রিপোর্টের খসড়া বাতিল করবেন?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>খসড়া এই ডিভাইসে এনক্রিপ্ট করে সংরক্ষিত হয়েছে।</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>রিপোর্ট পৌঁছেছে। এর অর্থ এটি পড়া হয়েছে এমন নয়।</string>
+	<key>New feedback</key>
+	<string>নতুন রিপোর্ট</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>শুধু খসড়া মুছে যাবে। ছবির কপি ও বিদ্যমান শেয়ার লিংক ফাইলে থাকবে।</string>
+	<key>Report a problem</key>
+	<string>সমস্যা জানান</string>
+	<key>Saving encrypted draft…</key>
+	<string>এনক্রিপ্ট করা খসড়া সংরক্ষণ হচ্ছে…</string>
+	<key>Screenshots</key>
+	<string>স্ক্রিনশট</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>dMsg সহায়তায় বিনামূল্যে ব্যক্তিগত চিঠি পাঠান। পাঠানোর আগে বিবরণ, স্ক্রিনশট ও অ্যাপের তথ্য যাচাই করুন।</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>রিপোর্ট পাঠাতে dMsg আনলক করুন।</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>সর্বোচ্চ 3টি PNG, JPEG, WebP বা GIF ছবি, প্রতিটি 10 MiB। আগে গোপন তথ্য সরান। কপি ফাইলে থাকে; পাঠালে 30 দিন মেয়াদি এনক্রিপ্ট করা লিংক তৈরি হয় এবং স্টোরেজ কোটা ব্যবহার হয়। সম্পূর্ণ লিংক থাকা যে কেউ খুলতে পারে।</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>বিবরণের জন্য সর্বোচ্চ 4500 UTF-8 বাইট ব্যবহার করুন।</string>
 </dict>
 </plist>

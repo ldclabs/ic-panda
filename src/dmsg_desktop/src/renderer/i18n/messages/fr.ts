@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "feedbackTitle": "Signaler un problème",
+  "feedbackHint": "Envoyez gratuitement un courrier privé au support dMsg. Vérifiez la description, les captures et les informations de l’application avant l’envoi.",
+  "feedbackScreenshots": "Captures d’écran",
+  "feedbackImageHint": "Jusqu’à 3 images PNG, JPEG, WebP ou GIF de 10 MiB chacune. Retirez les secrets. Les copies restent dans Fichiers. L’envoi crée des liens chiffrés valables 30 jours et utilise votre quota. Toute personne ayant le lien complet peut l’ouvrir.",
+  "feedbackAttach": "Choisir des captures",
+  "feedbackSaving": "Enregistrement du brouillon chiffré…",
+  "feedbackSaved": "Brouillon enregistré chiffré sur cet appareil.",
+  "feedbackPending": "Livraison non confirmée. Réessayer conserve le signalement original.",
+  "feedbackSent": "Signalement livré. Cela ne signifie pas qu’il a été lu.",
+  "feedbackNew": "Nouveau signalement",
+  "feedbackLimit": "La description est limitée à 4500 octets UTF-8.",
+  "feedbackDiscardHint": "Seul le brouillon est supprimé. Les copies et les liens existants restent dans Fichiers.",
+  "feedbackDiscardTitle": "Supprimer le brouillon du signalement ?",
+  "feedbackLocked": "Déverrouillez dMsg pour envoyer un signalement.",
+
   "linkShowProfile": "Afficher mon profil public",
   "linkShowProfileHint": "Toute personne disposant du lien peut consulter votre profil public, même avant de saisir un mot de passe.",
   "globalShortcuts": "Raccourcis globaux",

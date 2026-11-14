@@ -3280,5 +3280,33 @@
 	<string>Open de dMsg-werkruimte → Account → Systeemintegraties → Wachtwoord automatisch aanvullen → Selecteer inlogitems</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>Open en ontgrendel dMsg om automatisch invullen bij te werken en probeer het opnieuw.</string>
+	<key>Choose screenshots</key>
+	<string>Schermafbeeldingen kiezen</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>Bezorging niet bevestigd. Opnieuw proberen gebruikt dezelfde melding.</string>
+	<key>Discard feedback draft?</key>
+	<string>Conceptmelding verwijderen?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>Concept versleuteld op dit apparaat opgeslagen.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>Melding bezorgd. Dit betekent niet dat deze is gelezen.</string>
+	<key>New feedback</key>
+	<string>Nieuwe melding</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>Alleen het concept wordt verwijderd. Kopieën en bestaande links blijven in Bestanden.</string>
+	<key>Report a problem</key>
+	<string>Een probleem melden</string>
+	<key>Saving encrypted draft…</key>
+	<string>Versleuteld concept opslaan…</string>
+	<key>Screenshots</key>
+	<string>Schermafbeeldingen</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>Stuur een gratis privébrief naar dMsg-ondersteuning. Controleer de beschrijving, schermafbeeldingen en appgegevens vóór het verzenden.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>Ontgrendel dMsg om een melding te versturen.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>Maximaal 3 PNG-, JPEG-, WebP- of GIF-afbeeldingen van elk 10 MiB. Verwijder eerst geheimen. Kopieën blijven in Bestanden. Verzenden maakt versleutelde links voor 30 dagen en gebruikt uw opslagruimte. Iedereen met de volledige link kan deze openen.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>Gebruik maximaal 4500 UTF-8-bytes voor de beschrijving.</string>
 </dict>
 </plist>

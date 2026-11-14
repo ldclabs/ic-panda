@@ -3280,5 +3280,33 @@
 	<string>dMsg ورک اسپیس کھولیں ← اکاؤنٹ ← سسٹم انضمام ← پاس ورڈ آٹو فل ← لاگ ان آئٹمز کو منتخب کریں</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>آٹو فل اپ ڈیٹ کرنے کے لیے dMsg کھولیں اور اَن لاک کریں، پھر دوبارہ کوشش کریں۔</string>
+	<key>Choose screenshots</key>
+	<string>اسکرین شاٹس منتخب کریں</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>ترسیل کی تصدیق نہیں ہوئی۔ دوبارہ کوشش اصل رپورٹ استعمال کرتی ہے۔</string>
+	<key>Discard feedback draft?</key>
+	<string>رپورٹ کا مسودہ حذف کریں؟</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>مسودہ اس آلے پر خفیہ کرکے محفوظ کر دیا گیا۔</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>رپورٹ پہنچ گئی۔ اس کا مطلب یہ نہیں کہ اسے پڑھ لیا گیا ہے۔</string>
+	<key>New feedback</key>
+	<string>نئی رپورٹ</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>صرف مسودہ ہٹایا جاتا ہے۔ تصاویر کی نقول اور موجودہ اشتراکی روابط فائلوں میں رہتے ہیں۔</string>
+	<key>Report a problem</key>
+	<string>مسئلے کی اطلاع دیں</string>
+	<key>Saving encrypted draft…</key>
+	<string>خفیہ کردہ مسودہ محفوظ ہو رہا ہے…</string>
+	<key>Screenshots</key>
+	<string>اسکرین شاٹس</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>dMsg معاونت کو مفت نجی خط بھیجیں۔ بھیجنے سے پہلے تفصیل، اسکرین شاٹس اور ایپ کی معلومات دیکھ لیں۔</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>رپورٹ بھیجنے کے لیے dMsg کو غیر مقفل کریں۔</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>زیادہ سے زیادہ 3 PNG، JPEG، WebP یا GIF تصاویر، ہر ایک 10 MiB۔ پہلے راز ہٹائیں۔ نقول فائلوں میں رہتی ہیں؛ بھیجنے سے 30 دن کے لیے خفیہ کردہ روابط بنتے ہیں اور ذخیرے کا کوٹہ استعمال ہوتا ہے۔ مکمل رابطہ رکھنے والا کوئی بھی اسے کھول سکتا ہے۔</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>تفصیل کے لیے زیادہ سے زیادہ 4500 UTF-8 بائٹس استعمال کریں۔</string>
 </dict>
 </plist>

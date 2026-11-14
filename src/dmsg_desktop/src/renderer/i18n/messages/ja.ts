@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "問題を報告",
+  "feedbackHint": "dMsg サポートへ無料のプライベートな手紙を送ります。送信前に説明、スクリーンショット、アプリ情報を確認してください。",
+  "feedbackScreenshots": "スクリーンショット",
+  "feedbackImageHint": "PNG、JPEG、WebP、GIF を最大 3 枚、各 10 MiB まで。秘密情報は先に削除してください。コピーはファイルに残ります。送信時に 30 日間有効な暗号化リンクを作成し、保存容量を使用します。完全なリンクを持つ人は閲覧できます。",
+  "feedbackAttach": "スクリーンショットを選択",
+  "feedbackSaving": "暗号化した下書きを保存中…",
+  "feedbackSaved": "下書きをこの端末に暗号化して保存しました。",
+  "feedbackPending": "配信は未確認です。再試行は元の報告を使用します。",
+  "feedbackSent": "報告を配信しました。既読を意味するものではありません。",
+  "feedbackNew": "新しい報告",
+  "feedbackLimit": "説明は UTF-8 で 4500 バイト以内にしてください。",
+  "feedbackDiscardHint": "下書きのみ削除します。画像のコピーと既存の共有リンクはファイルに残ります。",
+  "feedbackDiscardTitle": "報告の下書きを破棄しますか？",
+  "feedbackLocked": "dMsg のロックを解除して報告を送信してください。",
+
   "linkShowProfile": "公開プロフィールを表示",
   "linkShowProfileHint": "このリンクを持つ人は、パスワードを入力する前でもあなたの公開プロフィールを閲覧できます。",
   "globalShortcuts": "グローバルショートカット",

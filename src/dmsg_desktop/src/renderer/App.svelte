@@ -15,6 +15,7 @@
   import { locale, t } from './i18n/index.svelte'
   import { namesSession } from './views/channels/names.svelte'
   import { forgetPlain, settleMemory } from './view-memory'
+  import { feedback } from './feedback.svelte'
 
   /**
    * What both windows share: the route, the daemon's status and the page that
@@ -71,6 +72,7 @@
       if (viewSession !== key) clearDisplays()
       namesSession(next)
       settleMemory(next)
+      feedback.scope(next?.state === 'unlocked' ? next.account : null, key)
       lastStatus = next
       connection = { kind: 'verified', view: { key, status: next } }
     } catch {
@@ -125,6 +127,7 @@
           // query is blocked or the daemon disconnects before it can answer.
           namesSession(null)
           forgetPlain()
+          feedback.scope(null)
           clearDisplays()
         }
         void refresh()

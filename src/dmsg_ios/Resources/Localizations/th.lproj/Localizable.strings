@@ -3280,5 +3280,33 @@
 	<string>เปิดเวิร์กสเปซ dMsg → บัญชี → บูรณาการระบบ → ป้อนรหัสผ่านอัตโนมัติ → เลือกรายการเข้าสู่ระบบ</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>เปิดและปลดล็อก dMsg เพื่ออัปเดตการป้อนอัตโนมัติ แล้วลองอีกครั้ง</string>
+	<key>Choose screenshots</key>
+	<string>เลือกภาพหน้าจอ</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>ยังไม่ยืนยันการส่งถึง การลองอีกครั้งจะใช้รายงานเดิม</string>
+	<key>Discard feedback draft?</key>
+	<string>ทิ้งฉบับร่างรายงานหรือไม่</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>บันทึกฉบับร่างแบบเข้ารหัสในอุปกรณ์นี้แล้ว</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>ส่งรายงานถึงแล้ว แต่ไม่ได้หมายความว่าอ่านแล้ว</string>
+	<key>New feedback</key>
+	<string>รายงานใหม่</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>ลบเฉพาะฉบับร่าง สำเนาภาพและลิงก์แชร์เดิมยังอยู่ในไฟล์</string>
+	<key>Report a problem</key>
+	<string>รายงานปัญหา</string>
+	<key>Saving encrypted draft…</key>
+	<string>กำลังบันทึกฉบับร่างแบบเข้ารหัส…</string>
+	<key>Screenshots</key>
+	<string>ภาพหน้าจอ</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>ส่งจดหมายส่วนตัวฟรีถึงฝ่ายสนับสนุน dMsg ตรวจสอบคำอธิบาย ภาพหน้าจอ และข้อมูลแอปก่อนส่ง</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>ปลดล็อก dMsg เพื่อส่งรายงาน</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>สูงสุด 3 ภาพในรูปแบบ PNG, JPEG, WebP หรือ GIF ภาพละ 10 MiB ลบข้อมูลลับก่อน สำเนายังคงอยู่ในไฟล์ การส่งจะสร้างลิงก์เข้ารหัสที่ใช้ได้ 30 วันและใช้โควตาพื้นที่จัดเก็บ ผู้ที่มีลิงก์ครบถ้วนสามารถเปิดได้</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>คำอธิบายมีขนาดได้สูงสุด 4500 ไบต์ UTF-8</string>
 </dict>
 </plist>

@@ -3280,5 +3280,33 @@
 	<string>فتح مساحة عمل dMsg ← الحساب ← تكامل النظام ← الملء التلقائي لكلمات المرور ← اختيار بيانات الدخول</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>افتح dMsg وألغِ قفله لتحديث التعبئة التلقائية، ثم حاول مرة أخرى.</string>
+	<key>Choose screenshots</key>
+	<string>اختيار لقطات الشاشة</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>لم يتأكد التسليم. إعادة المحاولة تستخدم البلاغ الأصلي.</string>
+	<key>Discard feedback draft?</key>
+	<string>تجاهل مسودة البلاغ؟</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>حُفظت المسودة مشفرة على هذا الجهاز.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>تم تسليم البلاغ. هذا لا يعني أنه قُرئ.</string>
+	<key>New feedback</key>
+	<string>بلاغ جديد</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>تُحذف المسودة فقط. تبقى نسخ الصور وروابط المشاركة الموجودة في الملفات.</string>
+	<key>Report a problem</key>
+	<string>الإبلاغ عن مشكلة</string>
+	<key>Saving encrypted draft…</key>
+	<string>جارٍ حفظ المسودة المشفرة…</string>
+	<key>Screenshots</key>
+	<string>لقطات الشاشة</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>أرسل رسالة خاصة مجانية إلى دعم dMsg. راجع الوصف ولقطات الشاشة ومعلومات التطبيق قبل الإرسال.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>افتح قفل dMsg لإرسال البلاغ.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>حتى 3 صور PNG أو JPEG أو WebP أو GIF، بحجم 10 MiB لكل صورة. أزل الأسرار أولاً. تبقى النسخ في الملفات؛ ينشئ الإرسال روابط مشفرة صالحة لمدة 30 يوماً ويستهلك حصة التخزين. يمكن لأي شخص يملك الرابط الكامل فتحه.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>استخدم 4500 بايت UTF-8 كحد أقصى للوصف.</string>
 </dict>
 </plist>

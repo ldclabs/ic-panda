@@ -3280,5 +3280,33 @@
 	<string>dMsg 작업공간 열기 → 계정 → 시스템 통합 → 비밀번호 자동완성 → 로그인 항목 선택</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>dMsg를 열고 잠금을 해제하여 자동 완성을 업데이트한 다음 다시 시도하세요.</string>
+	<key>Choose screenshots</key>
+	<string>스크린샷 선택</string>
+	<key>Delivery is unconfirmed. Retry keeps the original report.</key>
+	<string>전달이 확인되지 않았습니다. 다시 시도하면 원래 신고를 사용합니다.</string>
+	<key>Discard feedback draft?</key>
+	<string>신고 초안을 삭제할까요?</string>
+	<key>Draft saved encrypted on this device.</key>
+	<string>이 기기에 초안을 암호화하여 저장했습니다.</string>
+	<key>Feedback delivered. This does not mean it has been read.</key>
+	<string>신고가 전달되었습니다. 읽었다는 뜻은 아닙니다.</string>
+	<key>New feedback</key>
+	<string>새 신고</string>
+	<key>Only the draft is removed. Screenshot copies and existing share links remain in Files.</key>
+	<string>초안만 삭제됩니다. 스크린샷 사본과 기존 공유 링크는 파일에 남습니다.</string>
+	<key>Report a problem</key>
+	<string>문제 신고</string>
+	<key>Saving encrypted draft…</key>
+	<string>암호화된 초안 저장 중…</string>
+	<key>Screenshots</key>
+	<string>스크린샷</string>
+	<key>Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.</key>
+	<string>dMsg 지원팀에 무료 비공개 편지를 보냅니다. 보내기 전에 설명, 스크린샷과 앱 정보를 확인하세요.</string>
+	<key>Unlock dMsg to send feedback.</key>
+	<string>dMsg 잠금을 해제하여 신고를 보내세요.</string>
+	<key>Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.</key>
+	<string>PNG, JPEG, WebP 또는 GIF 최대 3장, 각 10 MiB. 먼저 비밀 정보를 제거하세요. 사본은 파일에 남으며, 보내면 30일간 유효한 암호화 링크가 생성되고 저장 용량을 사용합니다. 전체 링크를 가진 사람은 열 수 있습니다.</string>
+	<key>Use at most 4500 UTF-8 bytes for the description.</key>
+	<string>설명은 UTF-8 기준 4500바이트 이내로 작성하세요.</string>
 </dict>
 </plist>

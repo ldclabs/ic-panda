@@ -5,6 +5,21 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  "feedbackTitle": "Report a problem",
+  "feedbackHint": "Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.",
+  "feedbackScreenshots": "Screenshots",
+  "feedbackImageHint": "Up to 3 PNG, JPEG, WebP or GIF images, 10 MiB each. Remove secrets first. Copies stay in Files; sending creates encrypted links valid for 30 days and uses your storage quota. Anyone with a complete link can open it.",
+  "feedbackAttach": "Choose screenshots",
+  "feedbackSaving": "Saving encrypted draft…",
+  "feedbackSaved": "Draft saved encrypted on this device.",
+  "feedbackPending": "Delivery is unconfirmed. Retry keeps the original report.",
+  "feedbackSent": "Feedback delivered. This does not mean it has been read.",
+  "feedbackNew": "New feedback",
+  "feedbackLimit": "Use at most 4500 UTF-8 bytes for the description.",
+  "feedbackDiscardHint": "Only the draft is removed. Screenshot copies and existing share links remain in Files.",
+  "feedbackDiscardTitle": "Discard feedback draft?",
+  "feedbackLocked": "Unlock dMsg to send feedback.",
+
   "linkShowProfile": "Show my public profile",
   "linkShowProfileHint": "Anyone with this link can see your public profile, even before entering a password.",
   "globalShortcuts": "Global shortcuts",

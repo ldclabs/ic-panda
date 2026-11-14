@@ -3,6 +3,21 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "feedbackTitle": "문제 신고",
+  "feedbackHint": "dMsg 지원팀에 무료 비공개 편지를 보냅니다. 보내기 전에 설명, 스크린샷과 앱 정보를 확인하세요.",
+  "feedbackScreenshots": "스크린샷",
+  "feedbackImageHint": "PNG, JPEG, WebP 또는 GIF 최대 3장, 각 10 MiB. 먼저 비밀 정보를 제거하세요. 사본은 파일에 남으며, 보내면 30일간 유효한 암호화 링크가 생성되고 저장 용량을 사용합니다. 전체 링크를 가진 사람은 열 수 있습니다.",
+  "feedbackAttach": "스크린샷 선택",
+  "feedbackSaving": "암호화된 초안 저장 중…",
+  "feedbackSaved": "이 기기에 초안을 암호화하여 저장했습니다.",
+  "feedbackPending": "전달이 확인되지 않았습니다. 다시 시도하면 원래 신고를 사용합니다.",
+  "feedbackSent": "신고가 전달되었습니다. 읽었다는 뜻은 아닙니다.",
+  "feedbackNew": "새 신고",
+  "feedbackLimit": "설명은 UTF-8 기준 4500바이트 이내로 작성하세요.",
+  "feedbackDiscardHint": "초안만 삭제됩니다. 스크린샷 사본과 기존 공유 링크는 파일에 남습니다.",
+  "feedbackDiscardTitle": "신고 초안을 삭제할까요?",
+  "feedbackLocked": "dMsg 잠금을 해제하여 신고를 보내세요.",
+
   "linkShowProfile": "내 공개 프로필 표시",
   "linkShowProfileHint": "이 링크가 있는 사람은 비밀번호를 입력하기 전에도 내 공개 프로필을 볼 수 있습니다.",
   "globalShortcuts": "전역 단축키",
