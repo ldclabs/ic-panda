@@ -7,8 +7,23 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## 1.2.0
 
-### Unreleased — 2026-11-14
+### Build 31 — 2026-11-14
 
+- Report a problem from Account with a private support letter and up to three
+  optional screenshots. Preview images and app information before sending;
+  screenshots stay local until Send and use 30-day encrypted sharing links.
+  Sending remains subject to the support account's free-inbox policy and contact
+  limits.
+- Keep feedback drafts encrypted across navigation and restarts, and retry
+  interrupted uploads and sends with their original requests. Preserve letter
+  drafts when locking even if the feedback draft cannot be saved, and request
+  compatible photo encoding so HEIC screenshots can be imported as JPEG.
+- Preserve notification credentials when iOS moves the app container, recovering
+  the original Keychain identity during upgrades.
+- Rebuild missing AutoFill copies from approved selections and renew them while
+  unlocked. Open the current authenticated list for stale system suggestions,
+  distinguish setup, expiry and authentication failures, and prevent interrupted
+  snapshot removal from restoring deleted copies.
 - Recover interrupted subscription setup using the original request and saved
   device-verification challenge. Confirm an uncertain registration before
   reporting failure, and recover invalid App Attest keys within the same action.

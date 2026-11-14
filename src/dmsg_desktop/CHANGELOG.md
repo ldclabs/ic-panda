@@ -6,6 +6,28 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.7] - 2026-11-14
+
+### Problem feedback
+
+- Report a problem from Settings with a private support letter and up to three
+  optional screenshots. Preview images and app information before sending;
+  screenshots stay local until Send and use 30-day encrypted sharing links.
+- Keep account-local drafts encrypted across navigation and restarts. Retry
+  interrupted uploads and sends with their original requests, preserve edits
+  after failed saves, and distinguish unconfirmed delivery from success.
+- Keep screenshot previews stable while editing and allow unsent reports to
+  return to editing without reading unrelated letter history. Sending remains
+  subject to the support account's free-inbox policy and contact limits.
+
+### Locking and session controls
+
+- Close the main and approval windows after the global lock shortcut succeeds,
+  keeping the tray and daemon running. Open the main window with a retryable
+  error if locking fails.
+- Keep sidebar login and unlock actions on their own row, with wrapping labels
+  and space for session controls in narrow windows and long translations.
+
 ## [1.5.6] - 2026-11-13
 
 ### File sharing
@@ -867,6 +889,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.5.7]: https://github.com/ldclabs/ic-panda/compare/1.5.6...1.5.7
 [1.5.6]: https://github.com/ldclabs/ic-panda/compare/1.5.5...1.5.6
 [1.5.5]: https://github.com/ldclabs/ic-panda/compare/1.5.4...1.5.5
 [1.5.4]: https://github.com/ldclabs/ic-panda/compare/1.5.3...1.5.4
