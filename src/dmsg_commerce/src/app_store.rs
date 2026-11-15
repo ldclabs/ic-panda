@@ -353,15 +353,31 @@ fn restore_refund(
     s: &mut model::Subject,
     old: &StoreTransaction,
     t: &StoreTransaction,
+    kind: &StoreProductKind,
+    catalog: &Catalog,
+    at: u64,
 ) -> Result<()> {
     if old.revoked_at_ms.is_none() || t.revoked_at_ms.is_some() || t.is_upgraded == Some(true) {
         return Ok(());
     }
     ensure(t.signed_at_ms > old.signed_at_ms, Error::VersionConflict)?;
+    // A refund may be recorded even when its original purchase was ineligible.
+    // Reversing it must satisfy the same admission rule as a new subscription.
+    ensure(
+        t.environment == StoreEnvironment::Sandbox
+            || s.active(t.purchased_at_ms)
+                .is_none_or(|c| matches!(c.source, ContractSource::AppStore { .. })),
+        Error::Forbidden,
+    )?;
     let id = digest(
         "dmsg/app-store/transaction/v1",
         &(&t.environment, &t.transaction_id),
     );
+    if !s.contracts.iter().any(|c| c.contract_id == id) {
+        // Older versions omitted undelivered refunds and pruned ended terms.
+        // Rebuild their zero-service boundary before restoring the paid term.
+        apply(s, old, kind, catalog, at)?;
+    }
     if let Some(c) = s.contracts.iter_mut().find(|c| c.contract_id == id) {
         let refund_stop = c
             .resource_pauses
@@ -509,7 +525,14 @@ fn apply_app_store_transaction(transaction: StoreTransaction) -> Result<Entitlem
                 || old.revoked_at_ms == transaction.revoked_at_ms,
             Error::VersionConflict,
         )?;
-        restore_refund(&mut subject, &old, &transaction)?;
+        restore_refund(
+            &mut subject,
+            &old,
+            &transaction,
+            &kind,
+            &store::catalog(at),
+            at,
+        )?;
     } else if let Some(owner) = &owner
         && owner != &transaction.beneficiary
     {
@@ -1061,7 +1084,15 @@ mod tests {
                 checked_at_ms: NOW + 2 * MINUTE,
                 ..original.clone()
             };
-            restore_refund(&mut subject, &original, &restored).unwrap();
+            restore_refund(
+                &mut subject,
+                &original,
+                &restored,
+                &plus,
+                &catalog(),
+                restored.checked_at_ms,
+            )
+            .unwrap();
             apply(
                 &mut subject,
                 &restored,
@@ -1096,12 +1127,101 @@ mod tests {
             signed_at_ms: NOW + 1,
             ..original.clone()
         };
-        restore_refund(&mut subject, &original, &restored).unwrap();
+        restore_refund(&mut subject, &original, &restored, &plus, &catalog(), NOW).unwrap();
         apply(&mut subject, &restored, &plus, &catalog(), NOW).unwrap();
         assert_eq!(subject.active(NOW).unwrap().plan.plan_id, PlanId::Plus);
         assert_eq!(
             subject.contracts[0].resource_pauses,
             vec![(original.purchased_at_ms, Some(NOW))]
         );
+    }
+
+    #[test]
+    fn reversal_after_legacy_pruning_does_not_restore_refunded_monthly_credit() {
+        let month = dmsg_protocol::billing::month_utc(NOW).unwrap();
+        let month_start = dmsg_protocol::billing::month_bounds(month).unwrap().0;
+        let mut original = transaction("101", month_start - 2 * DAY);
+        original.revoked_at_ms = Some(month_start - DAY);
+        // Before refund tombstones were retained, a month rollover removed the
+        // contract while its verified refunded observation stayed in storage.
+        let mut subject = model::Subject::new(original.beneficiary.clone());
+        subject.created_at_ms = Some(original.purchased_at_ms);
+        subject.last_sandbox_service_end_ms = original.revoked_at_ms;
+        let restored = StoreTransaction {
+            revoked_at_ms: None,
+            signed_at_ms: NOW + 1,
+            checked_at_ms: NOW + 1,
+            ..original.clone()
+        };
+        restore_refund(
+            &mut subject,
+            &original,
+            &restored,
+            &StoreProductKind::Plan(PlanId::Plus),
+            &catalog(),
+            restored.checked_at_ms,
+        )
+        .unwrap();
+        apply(
+            &mut subject,
+            &restored,
+            &StoreProductKind::Plan(PlanId::Plus),
+            &catalog(),
+            restored.checked_at_ms,
+        )
+        .unwrap();
+        assert_eq!(subject.active(NOW + 1).unwrap().plan.plan_id, PlanId::Plus);
+        let allowance = model::month(&subject, &[catalog()], month).unwrap();
+        assert!(
+            allowance
+                .segments
+                .iter()
+                .filter(|segment| segment.start_ms < restored.checked_at_ms)
+                .all(|segment| segment.source_contract_id.is_none()),
+            "a refund reversal must not grant paid execution credit for the refunded interval"
+        );
+    }
+
+    #[test]
+    fn refund_reversal_cannot_bypass_an_existing_non_apple_subscription() {
+        let mut cash = transaction("201", NOW - DAY);
+        cash.environment = StoreEnvironment::Production;
+        let mut subject = model::Subject::new(cash.beneficiary.clone());
+        apply(
+            &mut subject,
+            &cash,
+            &StoreProductKind::Plan(PlanId::Pro),
+            &catalog(),
+            NOW,
+        )
+        .unwrap();
+        subject.contracts[0].source = ContractSource::Cash {
+            order_id: Hash::new([9; 32]),
+        };
+        let mut refunded = transaction("202", NOW);
+        refunded.environment = StoreEnvironment::Production;
+        refunded.revoked_at_ms = Some(NOW);
+        let kind = StoreProductKind::Plan(PlanId::Max);
+        apply(&mut subject, &refunded, &kind, &catalog(), NOW).unwrap();
+        let restored = StoreTransaction {
+            revoked_at_ms: None,
+            signed_at_ms: NOW + 1,
+            checked_at_ms: NOW + 1,
+            ..refunded.clone()
+        };
+        let before = subject.clone();
+        assert_eq!(
+            restore_refund(
+                &mut subject,
+                &refunded,
+                &restored,
+                &kind,
+                &catalog(),
+                restored.checked_at_ms,
+            ),
+            Err(Error::Forbidden),
+            "recording a refund must not let its reversal bypass plan admission"
+        );
+        assert_eq!(subject, before);
     }
 }

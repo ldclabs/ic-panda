@@ -2,6 +2,224 @@ use super::*;
 use dmsg_types::app_store::*;
 
 #[test]
+fn apple_refund_reversal_preserves_non_apple_plan_admission() {
+    for environment in [StoreEnvironment::Production, StoreEnvironment::Sandbox] {
+        let f = Fixture::commercial();
+        let account = f.create(1);
+        pay(&f, &account, "pro", 150);
+        f.ic.advance_time(Duration::from_secs(60));
+        let verifier = person(90);
+        let configured: Result<()> = update(
+            &f.ic,
+            f.commerce,
+            f.sns,
+            "set_app_store_config",
+            (AppStoreConfig {
+                verifiers: vec![verifier],
+                bundle_id: "net.dmsg.ios".into(),
+                app_apple_id: 6827050680,
+                environment: StoreEnvironment::Production,
+                accept_sandbox: Some(true),
+                products: vec![StoreProduct {
+                    product_id: "test.max".into(),
+                    kind: StoreProductKind::Plan(PlanId::Max),
+                }],
+            },),
+        );
+        configured.unwrap();
+        let deliver = |t: &StoreTransaction| -> Result<EntitlementView> {
+            update(
+                &f.ic,
+                f.commerce,
+                verifier,
+                "apply_app_store_transaction",
+                (t,),
+            )
+        };
+        let now = time(&f.ic);
+        let mut transaction = StoreTransaction {
+            beneficiary: beneficiary(f.user, &account),
+            transaction_id: "9101".into(),
+            original_transaction_id: "9101".into(),
+            product_id: "test.max".into(),
+            app_account_token: dmsg_protocol::app_store::account_token(f.user, &account),
+            bundle_id: "net.dmsg.ios".into(),
+            environment: environment.clone(),
+            purchased_at_ms: now,
+            expires_at_ms: Some(now + 365 * DAY),
+            revoked_at_ms: Some(now),
+            is_upgraded: None,
+            signed_at_ms: now,
+            checked_at_ms: now,
+        };
+        let refunded = deliver(&transaction).unwrap();
+        assert_eq!(refunded.plan_snapshot.plan_id, PlanId::Pro);
+        f.ic.advance_time(Duration::from_secs(60));
+        transaction.revoked_at_ms = None;
+        transaction.signed_at_ms = time(&f.ic);
+        transaction.checked_at_ms = transaction.signed_at_ms;
+        if environment == StoreEnvironment::Production {
+            assert_eq!(deliver(&transaction), Err(Error::Forbidden));
+            let current: Result<EntitlementView> = update(
+                &f.ic,
+                f.commerce,
+                person(1),
+                "refresh_entitlement",
+                (&transaction.beneficiary,),
+            );
+            let current = current.unwrap();
+            assert_eq!(current.plan_snapshot.plan_id, PlanId::Pro);
+            assert_eq!(current.business_revision, refunded.business_revision);
+        } else {
+            // Test subscriptions may coexist, but never replace the paid plan.
+            assert_eq!(
+                deliver(&transaction).unwrap().plan_snapshot.plan_id,
+                PlanId::Pro
+            );
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires DMSG_PRE_REFUND_COMMERCE_WASM built from 00d99bf8"]
+fn apple_refund_reversal_after_legacy_upgrade_excludes_refunded_time() {
+    let legacy = std::fs::read(
+        std::env::var("DMSG_PRE_REFUND_COMMERCE_WASM").expect("pre-refund-fix Wasm path"),
+    )
+    .unwrap();
+    for granted in [false, true] {
+        let f = Fixture::with_modules(
+            false,
+            100,
+            MAX_PAYMENT_ESCROWS,
+            |_| {},
+            [
+                wasm("dmsg_user"),
+                wasm("dmsg_directory"),
+                wasm("dmsg_handle"),
+                legacy.clone(),
+            ],
+        );
+        let account = f.create(1);
+        let created = f.account_id(1, &account).created_at_ms;
+        let verifier = person(90);
+        let configured: Result<()> = update(
+            &f.ic,
+            f.commerce,
+            f.sns,
+            "set_app_store_config",
+            (AppStoreConfig {
+                verifiers: vec![verifier],
+                bundle_id: "net.dmsg.ios".into(),
+                app_apple_id: 6827050680,
+                environment: StoreEnvironment::Production,
+                accept_sandbox: Some(true),
+                products: vec![StoreProduct {
+                    product_id: "test.plus".into(),
+                    kind: StoreProductKind::Plan(PlanId::Plus),
+                }],
+            },),
+        );
+        configured.unwrap();
+        let deliver = |t: &StoreTransaction| -> Result<EntitlementView> {
+            update(
+                &f.ic,
+                f.commerce,
+                verifier,
+                "apply_app_store_transaction",
+                (t,),
+            )
+        };
+        let now = time(&f.ic);
+        let mut transaction = StoreTransaction {
+            beneficiary: beneficiary(f.user, &account),
+            transaction_id: "9201".into(),
+            original_transaction_id: "9201".into(),
+            product_id: "test.plus".into(),
+            app_account_token: dmsg_protocol::app_store::account_token(f.user, &account),
+            bundle_id: "net.dmsg.ios".into(),
+            environment: StoreEnvironment::Production,
+            purchased_at_ms: now,
+            expires_at_ms: Some(now + 365 * DAY),
+            revoked_at_ms: None,
+            is_upgraded: None,
+            signed_at_ms: now,
+            checked_at_ms: now,
+        };
+        if granted {
+            assert_eq!(
+                deliver(&transaction).unwrap().plan_snapshot.plan_id,
+                PlanId::Plus
+            );
+        }
+        f.ic.advance_time(Duration::from_secs(60));
+        transaction.revoked_at_ms = Some(time(&f.ic));
+        transaction.signed_at_ms = time(&f.ic);
+        transaction.checked_at_ms = transaction.signed_at_ms;
+        assert_eq!(
+            deliver(&transaction).unwrap().plan_snapshot.plan_id,
+            PlanId::Free
+        );
+        f.ic.advance_time(Duration::from_secs(40 * 86400));
+        let refreshed: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (&transaction.beneficiary,),
+        );
+        refreshed.unwrap();
+        let terms: Result<MembershipTerms> = query(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "get_membership_terms",
+            (&transaction.beneficiary,),
+        );
+        assert!(terms.unwrap().contracts.is_empty());
+        f.ic.upgrade_canister(
+            f.commerce,
+            wasm("dmsg_commerce"),
+            candid::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
+        transaction.revoked_at_ms = None;
+        transaction.signed_at_ms = time(&f.ic);
+        transaction.checked_at_ms = transaction.signed_at_ms;
+        assert_eq!(
+            deliver(&transaction).unwrap().plan_snapshot.plan_id,
+            PlanId::Plus
+        );
+        let entitlement: Result<ExecutionEntitlement> = update(
+            &f.ic,
+            f.commerce,
+            f.user,
+            "get_execution_entitlement",
+            (
+                &transaction.beneficiary,
+                month_utc(time(&f.ic)).unwrap(),
+                created,
+            ),
+        );
+        let month = entitlement.unwrap().month;
+        assert!(
+            month
+                .segments
+                .iter()
+                .filter(|s| s.start_ms < transaction.checked_at_ms)
+                .all(|s| s.source_contract_id.is_none())
+        );
+        assert!(
+            month
+                .segments
+                .iter()
+                .any(|s| s.start_ms == transaction.checked_at_ms && s.source_contract_id.is_some())
+        );
+    }
+}
+
+#[test]
 fn apple_refund_before_delivery_replay_after_pruning_and_refund_reversal() {
     for environment in [StoreEnvironment::Production, StoreEnvironment::Sandbox] {
         let f = Fixture::commercial();

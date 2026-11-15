@@ -42,6 +42,18 @@ flowchart LR
 
 ### App Store 适配
 
+2026-11-15 退款撤回复核（基于 `4c76616b`，未部署）：旧版本未保存或已跨月裁剪的退款合同，先根据已存交易观察重建零服务终止记录，再恢复剩余权益，避免补发退款期间的月度执行额度。退款撤回重新检查正式 Apple 套餐与既有非 Apple 套餐的互斥；Sandbox 仍可共存且不覆盖正式套餐。
+
+复核验证：两项新增回归测试先复现失败，修复后 commerce 单元测试 57 项通过、2 项容量测试忽略；5 项常规 App Store PocketIC 测试通过。另用 `00d99bf8` 独立构建的真实旧 Wasm 显式运行历史退款升级测试，通过未交付退款和跨月裁剪两条路径。原 pre-IAP 迁移测试未运行。commerce、types、client/mobile 和集成测试的严格 Clippy、格式与生成 Candid 核对通过；没有改变稳定存储或公开接口。未执行真实 Apple 交易、生产配置核验或部署。
+
+历史退款升级回归需要 `DMSG_PRE_REFUND_COMMERCE_WASM` 指向 `00d99bf8` 的 commerce Wasm；旧版本应使用独立 target 目录构建，当前 `DMSG_WASM_DIR` 仍须指向修复后的 Wasm：
+
+```sh
+DMSG_PRE_REFUND_COMMERCE_WASM=/path/to/00d99bf8/dmsg_commerce.wasm \
+  cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane \
+  apple_refund_reversal_after_legacy_upgrade_excludes_refunded_time -- --ignored --test-threads=1
+```
+
 2026-11-15 退款审查（`00d99bf8` 加本次工作树，未部署）：退款早于升级交付时也保存零服务终止记录；原 Apple 有效期内保留替代/退款边界。新增兼容的 `StoreTransaction.is_upgraded: opt bool`，已升级交易不再重新开通会员；只有更晚的可信当前状态可撤回订阅退款，退款期间的执行额度不补发，旧交易不能覆盖新状态。必须先升级 commerce，再发布传递该标记的验证方。已签资源租约最长一小时；已有数据按既有退出策略处理。
 
 本次验证：55 项 commerce 单元测试通过、2 项容量测试忽略；4 项真实 Wasm App Store PocketIC 测试通过，覆盖正式/沙盒退款乱序、旧交易重放、跨月、原地升级、用量不清零及退款撤回；1 项需要 pre-IAP 旧 Wasm 的历史迁移测试未运行。类型与 commerce Clippy、Candid 向后兼容检查通过。未执行真实 Apple 退款、线上通知配置核验或生产部署。
