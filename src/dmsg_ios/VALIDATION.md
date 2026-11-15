@@ -1,5 +1,36 @@
 # iOS implementation validation
 
+## Visible purchase preparation (2026-11-15)
+
+The selected price now keeps an activity indicator and distinct preparation,
+App Store confirmation and entitlement-delivery messages in view. The indicator
+remains legible when the price button is disabled; custom transitions respect
+Reduce Motion. Eligibility and device preparation run concurrently after an
+explicit purchase action. Both outcomes complete before a fresh ownership check
+and the payment sheet, including when one check rejects the purchase, so an
+in-flight one-time attestation can finish saving its proof.
+
+Validation on the `d30bcbdb` worktree:
+
+- SE-sized iOS 18.4: 65 selected subscription, App Attest and localization unit
+  tests passed, plus three UI tests covering catalogue loading and purchase phases.
+  New suspended-operation tests prove the two checks overlap, payment waits for
+  both, duplicate taps do not restart work, and account changes hide old progress
+  and prevent a late payment sheet.
+- iPhone 18 Pro Max, iOS 27.0: the three new unit tests and two purchase-progress
+  UI tests passed. The selected-price UI test was rerun after the final indicator
+  contrast adjustment. Chinese light/dark, German and Arabic RTL screenshots were
+  inspected, including confirmation and delivery states.
+- Debug and Release simulator app builds passed. All 23 localization catalogs
+  passed checks against Swift's extracted strings.
+  The app uses the existing source-fingerprint-verified Release Rust bridge;
+  no Rust or cloud runtime changes were needed.
+
+The concurrency checks use suspended test services, and UI tests use explicit
+offline fixtures. No physical-device latency comparison or real Apple payment
+was performed for this change; there is no measured production speedup claim.
+No archive, upload or deployment was performed.
+
 ## Review of subscription preparation errors (2026-11-14)
 
 Review of `3aef8de` found that the new prepayment notice replaced actionable

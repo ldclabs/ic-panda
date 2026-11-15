@@ -3310,5 +3310,13 @@
 	<string>Gebruik maximaal 4500 UTF-8-bytes voor de beschrijving.</string>
 	<key>The purchase could not be started. No payment request was sent to Apple.</key>
 	<string>De aankoop kon niet worden gestart. Er is geen betalingsverzoek naar Apple gestuurd.</string>
+	<key>Preparing purchase…</key>
+	<string>Aankoop voorbereiden…</string>
+	<key>Waiting for App Store confirmation…</key>
+	<string>Wachten op bevestiging van de App Store…</string>
+	<key>Applying your purchase…</key>
+	<string>Je aankoop activeren…</string>
+	<key>You'll confirm with Apple before paying.</key>
+	<string>Je bevestigt de aankoop bij Apple voordat je betaalt.</string>
 </dict>
 </plist>

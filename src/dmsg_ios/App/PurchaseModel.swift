@@ -35,7 +35,7 @@ final class PurchaseModel {
         }
         let configuration: Configuration?; let accountToken: String
     }
-    struct PurchaseCheck: Decodable {
+    struct PurchaseCheck: Decodable, Sendable {
         let eligible: Bool; let reason: String?; let kind: String
     }
     // Keep the external reads replaceable so account switches and partial
@@ -119,6 +119,24 @@ final class PurchaseModel {
     private(set) var loadIssue: LoadIssue?
     private(set) var loading = false
     private(set) var working = false
+    enum PurchasePhase: Equatable {
+        case preparing, confirming, applying
+
+        var message: String {
+            switch self {
+            case .preparing: String(localized: "Preparing purchase…")
+            case .confirming: String(localized: "Waiting for App Store confirmation…")
+            case .applying: String(localized: "Applying your purchase…")
+            }
+        }
+    }
+    struct PurchaseActivity {
+        let product: String
+        let account: String
+        let epoch: UInt64
+        var phase: PurchasePhase
+    }
+    private(set) var purchaseActivity: PurchaseActivity?
     var pending: Bool { deliveryPending || approvalPending || refreshPending }
     var deliveryPending: Bool { !pendingTransactions.isEmpty }
     var approvalPending: Bool { !awaitingApproval.isEmpty }
@@ -176,6 +194,12 @@ final class PurchaseModel {
         return nil
     }
     var hasCurrentSubscription: Bool { subscriptions.contains { $0.ownership == .current } }
+
+    func purchasePhase(for product: String, model: SessionModel) -> PurchasePhase? {
+        guard let activity = purchaseActivity, activity.product == product,
+              current(model, epoch: activity.epoch, account: activity.account) else { return nil }
+        return activity.phase
+    }
 
     func canPurchase(_ product: Product) -> Bool {
         guard !pendingTransactions.values.contains(product.id), !awaitingApproval.contains(product.id),
@@ -335,16 +359,24 @@ final class PurchaseModel {
 
     func purchase(_ product: Product, model: SessionModel) async {
         guard enabled, !working, model.unlocked, canPurchase(product), let token, let account, account == model.session?.account else { return }
-        working = true; feedback = nil; defer { working = false }
+        working = true; feedback = nil
         let epoch = model.epoch, expectedAccount = account
+        purchaseActivity = PurchaseActivity(product: product.id, account: account, epoch: epoch, phase: .preparing)
+        defer { purchaseActivity = nil; working = false }
         // An unavailable app download must not prevent a free account's first
         // purchase. Use the stricter paid-production rules for unknown context;
         // the verified transaction determines the environment at delivery.
         let environment = storeEnvironment
         var stage = "preflight"
         do {
-            let check = try await store.preflight(model, product.id, environment ?? "Production")
+            // Both checks concern this same account and are independent. Wait
+            // for both outcomes, even if eligibility fails, so Apple's one-time
+            // enrollment can finish saving its proof instead of being cancelled.
+            async let eligibility = capture { try await self.store.preflight(model, product.id, environment ?? "Production") }
+            async let registration = capture { try await self.store.prepare(model, account) }
+            let (checkedEligibility, checkedRegistration) = await (eligibility, registration)
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
+            let check = try checkedEligibility.get()
             guard check.eligible else {
                 switch check.reason {
                 case "external_plan": model.notice = String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription.")
@@ -359,7 +391,7 @@ final class PurchaseModel {
             // Register the installation before asking Apple to charge. A device
             // unable to deliver an attested purchase must fail before payment.
             stage = "attestation"
-            try await store.prepare(model, account)
+            try checkedRegistration.get()
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             // Recheck immediately before Apple's sheet, not only when the page loaded.
             stage = "subscription_status"
@@ -378,10 +410,12 @@ final class PurchaseModel {
                 return
             }
             stage = "payment"
+            purchaseActivity?.phase = .confirming
             let result = try await store.purchase(product, token)
             guard current(model, epoch: epoch, account: expectedAccount) else { return }
             switch result {
             case .success(let verification):
+                purchaseActivity?.phase = .applying
                 // Even when delivery fails, refresh ownership so a paid customer
                 // sees recovery/management instead of another purchase offer.
                 do { show(try await deliver(Self.receipt(verification), model: model), model: model, epoch: epoch, account: expectedAccount) }
@@ -416,6 +450,11 @@ final class PurchaseModel {
                 }
             }
         }
+    }
+
+    private func capture<T: Sendable>(_ operation: @MainActor () async throws -> T) async -> Result<T, Error> {
+        do { return .success(try await operation()) }
+        catch { return .failure(error) }
     }
 
     func restore(_ model: SessionModel) async {
@@ -580,6 +619,20 @@ final class PurchaseModel {
     }
 
     #if DEBUG
+    var showsProgressFixture: Bool {
+        let args = ProcessInfo.processInfo.arguments
+        return args.contains("--ui-testing") && args.contains("--ui-purchase-progress")
+    }
+
+    func startProgressFixture(_ model: SessionModel) {
+        guard showsProgressFixture, !working, let account = model.session?.account else { return }
+        let args = ProcessInfo.processInfo.arguments
+        let phase: PurchasePhase = args.contains("--ui-purchase-applying") ? .applying
+            : args.contains("--ui-purchase-confirming") ? .confirming : .preparing
+        purchaseActivity = PurchaseActivity(product: "fixture-plus", account: account, epoch: model.epoch, phase: phase)
+        working = true
+    }
+
     func installSubscriptionFixture() {
         let args = ProcessInfo.processInfo.arguments
         working = args.contains("--ui-purchase-working")

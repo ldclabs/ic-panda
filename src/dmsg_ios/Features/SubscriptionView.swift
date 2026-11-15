@@ -164,11 +164,11 @@ struct SubscriptionView: View {
                         NoticeBar(text: issue.message).accessibilityElement(children: .combine).accessibilityIdentifier("plan.store-error")
                             .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                     }
-                    if !model.purchases.loading && model.purchases.loadIssue == nil && !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty {
+                    if !model.purchases.loading && model.purchases.loadIssue == nil && !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty && !showsProgressFixture {
                         Text("Purchases are not currently available.").foregroundStyle(.secondary)
                             .accessibilityIdentifier("plan.products-unavailable")
                     }
-                    if model.purchases.working || model.purchases.loading {
+                    if model.purchases.purchaseActivity == nil && (model.purchases.working || model.purchases.loading) {
                         HStack(spacing: 8) {
                             ProgressView().accessibilityHidden(true)
                             Text("Loading…")
@@ -242,15 +242,38 @@ struct SubscriptionView: View {
         }
     }
 
-    private func productRows(_ products: [Product]) -> some View {
-                ForEach(products) { product in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(product.displayName).font(.headline)
-                        Text(product.description).font(.footnote).foregroundStyle(.secondary)
-                        if let subscription = product.subscription { Text(Self.period(subscription.subscriptionPeriod)).font(.subheadline) }
-                        Button(product.displayPrice) { Task { await model.purchases.purchase(product, model: model) } }.disabled(model.purchases.working || !canPurchase(product)).accessibilityIdentifier("plan.purchase.\(product.id)")
+    private var showsProgressFixture: Bool {
+        #if DEBUG
+        return model.purchases.showsProgressFixture
+        #else
+        return false
+        #endif
+    }
+
+    @ViewBuilder private func productRows(_ products: [Product]) -> some View {
+        #if DEBUG
+        if showsProgressFixture {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(verbatim: "dMsg Plus").font(.headline)
+                Text(DateComponentsFormatter.localizedString(from: DateComponents(year: 1), unitsStyle: .full) ?? "").font(.subheadline)
+                PurchaseButton(price: "$9.99", phase: model.purchases.purchasePhase(for: "fixture-plus", model: model),
+                    disabled: model.purchases.working, identifier: "plan.purchase.fixture-plus") {
+                        model.purchases.startProgressFixture(model)
                     }
-                }
+            }
+        }
+        #endif
+        ForEach(products) { product in
+            VStack(alignment: .leading, spacing: 8) {
+                Text(product.displayName).font(.headline)
+                Text(product.description).font(.footnote).foregroundStyle(.secondary)
+                if let subscription = product.subscription { Text(Self.period(subscription.subscriptionPeriod)).font(.subheadline) }
+                PurchaseButton(price: product.displayPrice, phase: model.purchases.purchasePhase(for: product.id, model: model),
+                    disabled: model.purchases.working || !canPurchase(product), identifier: "plan.purchase.\(product.id)") {
+                        Task { await model.purchases.purchase(product, model: model) }
+                    }
+            }
+        }
     }
     private func canPurchase(_ product: Product) -> Bool {
         guard let plan, !plan.needsRefresh(), model.purchases.canPurchase(product) else { return false }

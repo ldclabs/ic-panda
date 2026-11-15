@@ -398,6 +398,112 @@ final class DeploymentTests: XCTestCase {
         XCTAssertTrue(purchases.canPurchase(product))
     }
 
+    func testPurchaseShowsProgressWhileIndependentChecksOverlapAndWaitsForBoth() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial, preparations = 0, checks = 0, statusReads = 0
+        let preflightStarted = expectation(description: "Eligibility started")
+        let registrationStarted = expectation(description: "Registration started concurrently")
+        let sheetStarted = expectation(description: "Apple sheet starts after both checks")
+        var eligibility: CheckedContinuation<PurchaseModel.PurchaseCheck, Never>?
+        var registration: CheckedContinuation<Void, Never>?
+        var payment: CheckedContinuation<Product.PurchaseResult, Never>?
+        store.preflight = { _, _, _ in
+            checks += 1
+            return await withCheckedContinuation { eligibility = $0; preflightStarted.fulfill() }
+        }
+        store.prepare = { _, _ in
+            preparations += 1
+            await withCheckedContinuation { registration = $0; registrationStarted.fulfill() }
+        }
+        let readStatus = store.subscriptions
+        store.subscriptions = { products, token in
+            statusReads += 1
+            if statusReads > 1 { XCTAssertEqual(checks, 1); XCTAssertEqual(preparations, 1) }
+            return try await readStatus(products, token)
+        }
+        store.purchase = { _, _ in
+            XCTAssertEqual(statusReads, 2, "Ownership is read again after preparation")
+            return await withCheckedContinuation { payment = $0; sheetStarted.fulfill() }
+        }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        let purchase = Task { await purchases.purchase(product, model: model) }
+        await fulfillment(of: [preflightStarted, registrationStarted], timeout: 2)
+        XCTAssertTrue(purchases.working)
+        XCTAssertEqual(purchases.purchasePhase(for: product.id, model: model), .preparing)
+        XCTAssertNil(purchases.purchasePhase(for: "another-product", model: model))
+        await purchases.purchase(product, model: model)
+        XCTAssertEqual(preparations, 1, "A repeated tap must not create another attempt")
+        XCTAssertEqual(checks, 1)
+        eligibility?.resume(returning: .init(eligible: true, reason: nil, kind: "subscription"))
+        await Task.yield()
+        XCTAssertNil(payment, "Eligibility alone must never open payment")
+        registration?.resume()
+        await fulfillment(of: [sheetStarted], timeout: 2)
+        XCTAssertEqual(purchases.purchasePhase(for: product.id, model: model), .confirming)
+        payment?.resume(returning: .userCancelled)
+        await purchase.value
+        XCTAssertNil(purchases.purchaseActivity)
+        XCTAssertFalse(purchases.working)
+        XCTAssertFalse(purchases.pending)
+        XCTAssertNil(model.error)
+    }
+
+    func testIneligiblePurchaseLetsConcurrentAttestationSaveItsProofBeforeReturning() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial, saved = false
+        let started = expectation(description: "Enrollment started")
+        var registration: CheckedContinuation<Void, Never>?
+        store.preflight = { _, _, _ in .init(eligible: false, reason: "external_plan", kind: "subscription") }
+        store.prepare = { _, _ in
+            await withCheckedContinuation { registration = $0; started.fulfill() }
+            try Task.checkCancellation()
+            saved = true
+        }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        let purchase = Task { await purchases.purchase(product, model: model) }
+        await fulfillment(of: [started], timeout: 2)
+        registration?.resume()
+        await purchase.value
+        XCTAssertTrue(saved, "Eligibility rejection must not discard a one-time Apple proof")
+        XCTAssertNotNil(model.notice)
+        XCTAssertFalse(purchases.pending)
+        XCTAssertNil(purchases.purchaseActivity)
+        XCTAssertFalse(purchases.working)
+    }
+
+    func testPurchaseProgressAndPaymentStopWhenAccountChangesDuringPreparation() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        let started = expectation(description: "Enrollment pending")
+        var registration: CheckedContinuation<Void, Never>?
+        store.preflight = { _, _, _ in .init(eligible: true, reason: nil, kind: "subscription") }
+        store.prepare = { _, _ in await withCheckedContinuation { registration = $0; started.fulfill() } }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        let purchase = Task { await purchases.purchase(product, model: model) }
+        await fulfillment(of: [started], timeout: 2)
+        let old = try XCTUnwrap(model.session)
+        model.installFixtures(.init(generation: old.generation + 1, sequence: old.sequence + 1, state: old.state,
+            account: "040g2082040g2082040g", deviceId: old.deviceId, pendingSync: old.pendingSync,
+            conflicts: old.conflicts, approvalsWaiting: old.approvalsWaiting, fastUnlock: old.fastUnlock,
+            loginExpiresAtMs: old.loginExpiresAtMs, loginRenewable: old.loginRenewable, passkeyAvailable: old.passkeyAvailable,
+            setupPending: old.setupPending, lastSyncAtMs: old.lastSyncAtMs, syncError: old.syncError), items: [])
+        XCTAssertNil(purchases.purchasePhase(for: product.id, model: model))
+        registration?.resume()
+        await purchase.value
+        XCTAssertNil(purchases.purchaseActivity)
+        XCTAssertFalse(purchases.working)
+        XCTAssertNil(model.error)
+    }
+
     func testUnknownPrepaymentResultNeverClaimsAnUnconfirmedChargeAndAllowsRetry() async throws {
         let (session, initial, product) = try await storeFixture()
         defer { session.resetToDefaultState() }

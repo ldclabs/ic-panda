@@ -193,6 +193,66 @@ final class NavigationTests: NavigationTestCase {
         capture(app, name: "Product loading is not unavailable")
     }
 
+    func testPurchasePreparationStartsAtTheSelectedPriceAndDisablesAnotherAttempt() {
+        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-purchase-progress", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            tab(app, symbol: "Glyph-account", title: title).tap()
+            let plan = app.buttons["account.plan"]
+            for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+            XCTAssertTrue(plan.isHittable); plan.tap()
+            let price = app.buttons["plan.purchase.fixture-plus"]
+            for _ in 0..<8 where !price.isHittable { app.swipeUp() }
+            XCTAssertTrue(price.isHittable)
+            XCTAssertTrue(price.isEnabled)
+            price.tap()
+            let phase = app.staticTexts["plan.purchase-phase"]
+            XCTAssertTrue(phase.waitForExistence(timeout: 2), "The selected offer must immediately explain the wait")
+            // Disabled buttons are intentionally not hittable. Verify actual
+            // visibility and proximity to the status instead of asking to tap it.
+            XCTAssertTrue(app.frame.contains(price.frame))
+            XCTAssertGreaterThanOrEqual(price.frame.minY, app.navigationBars.firstMatch.frame.maxY)
+            XCTAssertTrue(phase.isHittable)
+            XCTAssertLessThan(phase.frame.minY - price.frame.maxY, 20)
+            XCTAssertFalse(price.isEnabled)
+            XCTAssertEqual(price.value as? String, phase.label)
+            XCTAssertTrue(app.staticTexts["plan.purchase-preparing-hint"].exists)
+            XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.purchase-progress").firstMatch.exists,
+                "A purchase uses its own visible indicator, not another spinner below the catalogue")
+            capture(app, name: "Purchase preparation at selected price · \(language) · \(dark ? "dark" : "light")")
+            let restore = app.buttons["plan.restore"]
+            for _ in 0..<5 where !restore.isHittable { app.swipeUp() }
+            XCTAssertFalse(restore.isEnabled)
+            XCTAssertFalse(app.buttons["plan.manage"].isEnabled)
+            app.terminate()
+        }
+    }
+
+    func testPurchaseConfirmationAndDeliveryUseDistinctProgressLabels() {
+        var labels = Set<String>()
+        for stage in ["confirming", "applying"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-purchase-progress", "--ui-purchase-\(stage)", "-AppleLanguages", "(zh-Hans)"]
+            app.launch()
+            tab(app, symbol: "Glyph-account", title: "我的").tap()
+            let plan = app.buttons["account.plan"]
+            for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+            XCTAssertTrue(plan.isHittable); plan.tap()
+            let price = app.buttons["plan.purchase.fixture-plus"]
+            for _ in 0..<8 where !price.isHittable { app.swipeUp() }
+            XCTAssertTrue(price.isHittable); price.tap()
+            let phase = app.staticTexts["plan.purchase-phase"]
+            XCTAssertTrue(phase.waitForExistence(timeout: 2))
+            labels.insert(phase.label)
+            XCTAssertFalse(price.isEnabled)
+            XCTAssertFalse(app.staticTexts["plan.purchase-preparing-hint"].exists)
+            capture(app, name: "Purchase \(stage) · Chinese")
+            app.terminate()
+        }
+        XCTAssertEqual(labels.count, 2)
+    }
+
     func testSubscriptionPageRecoversAfterReturningFromBackground() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-subscription-status-unavailable", "-AppleLanguages", "(zh-Hans)"]

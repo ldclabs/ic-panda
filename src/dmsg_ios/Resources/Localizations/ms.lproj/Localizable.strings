@@ -3310,5 +3310,13 @@
 	<string>Gunakan maksimum 4500 bait UTF-8 untuk huraian.</string>
 	<key>The purchase could not be started. No payment request was sent to Apple.</key>
 	<string>Pembelian tidak dapat dimulakan. Tiada permintaan pembayaran dihantar kepada Apple.</string>
+	<key>Preparing purchase…</key>
+	<string>Menyediakan pembelian…</string>
+	<key>Waiting for App Store confirmation…</key>
+	<string>Menunggu pengesahan App Store…</string>
+	<key>Applying your purchase…</key>
+	<string>Mengaktifkan pembelian anda…</string>
+	<key>You'll confirm with Apple before paying.</key>
+	<string>Anda akan mengesahkan pembelian melalui Apple sebelum membayar.</string>
 </dict>
 </plist>

@@ -3310,5 +3310,13 @@
 	<string>Usa como máximo 4500 bytes UTF-8 para la descripción.</string>
 	<key>The purchase could not be started. No payment request was sent to Apple.</key>
 	<string>No se pudo iniciar la compra. No se envió ninguna solicitud de pago a Apple.</string>
+	<key>Preparing purchase…</key>
+	<string>Preparando la compra…</string>
+	<key>Waiting for App Store confirmation…</key>
+	<string>Esperando la confirmación de App Store…</string>
+	<key>Applying your purchase…</key>
+	<string>Activando tu compra…</string>
+	<key>You'll confirm with Apple before paying.</key>
+	<string>Confirmarás la compra con Apple antes de pagar.</string>
 </dict>
 </plist>

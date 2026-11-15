@@ -7,6 +7,13 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## 1.2.0
 
+### Unreleased — 2026-11-15
+
+- Show purchase activity beside the selected price immediately, with separate
+  preparation, App Store confirmation and activation messages in all 23 languages.
+- Run purchase eligibility and device preparation concurrently, then recheck
+  subscription ownership before opening Apple's confirmation sheet.
+
 ### Build 31 — 2026-11-14
 
 - Report a problem from Account with a private support letter and up to three

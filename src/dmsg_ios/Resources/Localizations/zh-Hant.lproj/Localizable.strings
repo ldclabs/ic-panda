@@ -3310,5 +3310,13 @@
 	<string>描述最多 4500 個 UTF-8 位元組。</string>
 	<key>The purchase could not be started. No payment request was sent to Apple.</key>
 	<string>購買尚未開始，未向 Apple 提交付款要求。</string>
+	<key>Preparing purchase…</key>
+	<string>正在準備購買…</string>
+	<key>Waiting for App Store confirmation…</key>
+	<string>正在等待 App Store 確認…</string>
+	<key>Applying your purchase…</key>
+	<string>正在開通權益…</string>
+	<key>You'll confirm with Apple before paying.</key>
+	<string>付款前需在 Apple 確認頁確認購買。</string>
 </dict>
 </plist>

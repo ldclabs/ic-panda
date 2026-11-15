@@ -3310,5 +3310,13 @@
 	<string>Mô tả tối đa 4500 byte UTF-8.</string>
 	<key>The purchase could not be started. No payment request was sent to Apple.</key>
 	<string>Không thể bắt đầu mua hàng. Chưa gửi yêu cầu thanh toán nào tới Apple.</string>
+	<key>Preparing purchase…</key>
+	<string>Đang chuẩn bị mua hàng…</string>
+	<key>Waiting for App Store confirmation…</key>
+	<string>Đang chờ App Store xác nhận…</string>
+	<key>Applying your purchase…</key>
+	<string>Đang kích hoạt giao dịch mua…</string>
+	<key>You'll confirm with Apple before paying.</key>
+	<string>Bạn sẽ xác nhận giao dịch mua với Apple trước khi thanh toán.</string>
 </dict>
 </plist>

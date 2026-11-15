@@ -318,7 +318,13 @@ the page refreshes that schedule after the workspace privacy cover lifts. Explic
 purchase/restore operations survive the temporary inactive scene; automatic reads
 resume when they finish. New refreshes supersede cancelled or older plan/usage
 reads, and delivery notifications cannot reset another open purchase's product
-checks. Device attestation is prepared before presenting Apple's payment sheet.
+checks. Purchase eligibility and device attestation are prepared concurrently
+after the price is selected. Both outcomes complete before the final subscription
+ownership check and Apple's payment sheet. The selected price stays visible with
+an activity indicator and preparation, App Store confirmation or delivery status.
+Preparation explains that payment still needs confirmation with Apple. Status
+transitions respect Reduce Motion, and cancelling, failing or changing accounts
+clears the old purchase activity.
 Enrollment saves the original challenge before calling Apple and keeps the same
 key and nonce through a transient Apple failure or restart. A lost registration
 reply is reconciled with the device's registered-key status before reporting
