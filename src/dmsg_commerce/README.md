@@ -42,11 +42,15 @@ flowchart LR
 
 ### App Store 适配
 
+2026-11-15 退款审查（`00d99bf8` 加本次工作树，未部署）：退款早于升级交付时也保存零服务终止记录；原 Apple 有效期内保留替代/退款边界。新增兼容的 `StoreTransaction.is_upgraded: opt bool`，已升级交易不再重新开通会员；只有更晚的可信当前状态可撤回订阅退款，退款期间的执行额度不补发，旧交易不能覆盖新状态。必须先升级 commerce，再发布传递该标记的验证方。已签资源租约最长一小时；已有数据按既有退出策略处理。
+
+本次验证：55 项 commerce 单元测试通过、2 项容量测试忽略；4 项真实 Wasm App Store PocketIC 测试通过，覆盖正式/沙盒退款乱序、旧交易重放、跨月、原地升级、用量不清零及退款撤回；1 项需要 pre-IAP 旧 Wasm 的历史迁移测试未运行。类型与 commerce Clippy、Candid 向后兼容检查通过。未执行真实 Apple 退款、线上通知配置核验或生产部署。
+
 2026-11-11 账号接续修复：50 项 commerce 单元测试通过（2 项容量测试忽略），3 项 App Store PocketIC 测试通过，覆盖正式/沙盒环境下到期换账号重购、旧收据不可迁移、退款、关闭沙盒准入、月度裁剪与升级；旧版 pre-IAP Wasm 迁移测试本次未运行。Clippy 和生成 Candid 核对通过。应先升级 commerce，再发布允许到期换账号购买的 iOS 版本；未部署、未执行真实 Apple 交易验证。客户端与截图记录见 [iOS 验证](../dmsg_ios/VALIDATION.md#app-store-account-detection-and-expired-repurchase-2026-11-11)。
 
 `set_app_store_config` 由 controller/governance 配置验证方、bundle ID、Apple ID、环境和真实商品映射，提案前可用同参数的 `validate_set_app_store_config` 预检；`get_app_store_config` 读取当前配置。只有登记验证方可调用 `apply_app_store_transaction`，客户端不能自行提交付款成功状态。公开数据与设备合同见 [mobile](../../docs/protocol/mobile_zh.md)。
 
-交易绑定 user home、账号和确定性的 `appAccountToken`，同一笔付费交易不能迁移到另一账号。原账号的订阅期结束后，另一账号可以用自己的 token 发起新购买；即使 Apple 沿用原始订阅 ID，也允许新的有效交易接续。服务端核对原账号已记录的到期边界，拒绝重叠的新交易；旧交易的恢复、退款和重试仍归原账号，不能改写当前订阅归属或延长到新账号的期限。月度裁剪保留的历史结束时间继续作为下界，稳定记录布局不变。交易观察按签名时间和验证时间单调推进，重复交付不叠加权益，退款不能被旧观察复活。验证方每次必须先向 Apple 查询当前状态；认证权益最长信任一小时的新鲜观察。已有有效非 Apple 基础合同与正式 Apple 基础套餐互斥；反过来，正式 Apple 基础合同结束前 `prepare_account_subscription` 也拒绝现金或 PANDA 基础套餐报价，续订由 Apple 完成。Apple 存储包要求有效的 Apple 基础套餐。
+交易绑定 user home、账号和确定性的 `appAccountToken`，同一笔付费交易不能迁移到另一账号。原账号的订阅期结束后，另一账号可以用自己的 token 发起新购买；即使 Apple 沿用原始订阅 ID，也允许新的有效交易接续。服务端核对原账号已记录的到期边界，拒绝重叠的新交易；旧交易的恢复、退款和重试仍归原账号，不能改写当前订阅归属或延长到新账号的期限。月度裁剪保留的历史结束时间继续作为下界，稳定记录布局不变。交易观察按签名时间和验证时间单调推进，重复交付不叠加权益，退款不能被旧观察复活。授予或恢复权益前验证方必须先向 Apple 查询当前状态；已验证撤销可直接提交，不等待额外查询。认证权益最长信任一小时的新鲜观察。已有有效非 Apple 基础合同与正式 Apple 基础套餐互斥；反过来，正式 Apple 基础合同结束前 `prepare_account_subscription` 也拒绝现金或 PANDA 基础套餐报价，续订由 Apple 完成。Apple 存储包要求有效的 Apple 基础套餐。
 
 Production 配置可通过 `accept_sandbox = opt true` 接受 Sandbox 年度套餐；缺失/false 默认不接收新的沙盒原始订阅。已登记原始订阅继续恢复、续订、撤销与对账。Sandbox 不发放存储包，不要求测试账号白名单。TestFlight 继续使用线上账户和业务服务，生产认证信任根不因交易环境改变。
 

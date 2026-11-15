@@ -2,6 +2,142 @@ use super::*;
 use dmsg_types::app_store::*;
 
 #[test]
+fn apple_refund_before_delivery_replay_after_pruning_and_refund_reversal() {
+    for environment in [StoreEnvironment::Production, StoreEnvironment::Sandbox] {
+        let f = Fixture::commercial();
+        let account = f.create(1);
+        let verifier = person(90);
+        let configured: Result<()> = update(
+            &f.ic,
+            f.commerce,
+            f.sns,
+            "set_app_store_config",
+            (AppStoreConfig {
+                verifiers: vec![verifier],
+                bundle_id: "net.dmsg.ios".into(),
+                app_apple_id: 6827050680,
+                environment: StoreEnvironment::Production,
+                accept_sandbox: Some(true),
+                products: vec![
+                    StoreProduct {
+                        product_id: "test.plus".into(),
+                        kind: StoreProductKind::Plan(PlanId::Plus),
+                    },
+                    StoreProduct {
+                        product_id: "test.max".into(),
+                        kind: StoreProductKind::Plan(PlanId::Max),
+                    },
+                ],
+            },),
+        );
+        configured.unwrap();
+        let deliver = |t: &StoreTransaction| -> Result<EntitlementView> {
+            update(
+                &f.ic,
+                f.commerce,
+                verifier,
+                "apply_app_store_transaction",
+                (t,),
+            )
+        };
+        let now = time(&f.ic);
+        let mut old = StoreTransaction {
+            beneficiary: beneficiary(f.user, &account),
+            transaction_id: "9001".into(),
+            original_transaction_id: "9001".into(),
+            product_id: "test.plus".into(),
+            app_account_token: dmsg_protocol::app_store::account_token(f.user, &account),
+            bundle_id: "net.dmsg.ios".into(),
+            environment,
+            purchased_at_ms: now,
+            expires_at_ms: Some(now + 365 * DAY),
+            revoked_at_ms: None,
+            is_upgraded: None,
+            signed_at_ms: now,
+            checked_at_ms: now,
+        };
+        let granted = deliver(&old).unwrap();
+        assert_eq!(granted.plan_snapshot.plan_id, PlanId::Plus);
+        old.is_upgraded = Some(false);
+        assert_eq!(deliver(&old).unwrap(), granted); // Legacy absence equals false.
+        f.attest(
+            1,
+            &account,
+            Statement {
+                issuer: f.account_id(1, &account).issuer,
+                subject: None,
+                issued_at: None,
+                content: StatementContent::Text("paid before refund".into()),
+            },
+        )
+        .unwrap();
+        f.ic.advance_time(Duration::from_secs(60));
+        let upgraded_at = time(&f.ic);
+        let mut refund = StoreTransaction {
+            transaction_id: "9002".into(),
+            product_id: "test.max".into(),
+            purchased_at_ms: upgraded_at,
+            expires_at_ms: Some(upgraded_at + 365 * DAY),
+            revoked_at_ms: Some(upgraded_at),
+            signed_at_ms: upgraded_at,
+            checked_at_ms: upgraded_at,
+            ..old.clone()
+        };
+        assert_eq!(
+            deliver(&refund).unwrap().plan_snapshot.plan_id,
+            PlanId::Free
+        );
+        let usage: Result<ExecutionUsage> = update(
+            &f.ic,
+            f.user,
+            person(1),
+            "refresh_execution_entitlement",
+            (&account,),
+        );
+        assert_eq!(usage.unwrap().charged_units, 1);
+        old.signed_at_ms = time(&f.ic);
+        old.checked_at_ms = old.signed_at_ms;
+        assert_eq!(deliver(&old).unwrap().plan_snapshot.plan_id, PlanId::Free);
+
+        f.ic.advance_time(Duration::from_secs(40 * 86400));
+        let _: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (&old.beneficiary,),
+        );
+        f.ic.upgrade_canister(
+            f.commerce,
+            wasm("dmsg_commerce"),
+            candid::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
+        old.signed_at_ms = time(&f.ic);
+        old.checked_at_ms = old.signed_at_ms;
+        old.is_upgraded = Some(true);
+        assert_eq!(deliver(&old).unwrap().plan_snapshot.plan_id, PlanId::Free);
+        let mut rollback = old.clone();
+        rollback.signed_at_ms += 1;
+        rollback.is_upgraded = None;
+        assert_eq!(deliver(&rollback), Err(Error::VersionConflict));
+
+        let earlier_refund = refund.clone();
+        refund.signed_at_ms = time(&f.ic);
+        refund.checked_at_ms = refund.signed_at_ms;
+        refund.revoked_at_ms = None;
+        assert_eq!(deliver(&refund).unwrap().plan_snapshot.plan_id, PlanId::Max);
+        let mut late = earlier_refund;
+        late.checked_at_ms = time(&f.ic);
+        assert_eq!(deliver(&late), Err(Error::VersionConflict));
+        let mut same_date = refund.clone();
+        same_date.revoked_at_ms = Some(same_date.signed_at_ms);
+        assert_eq!(deliver(&same_date), Err(Error::IdempotencyConflict));
+    }
+}
+
+#[test]
 fn expired_apple_subscription_can_be_purchased_by_another_account_without_moving_receipts() {
     for environment in [StoreEnvironment::Production, StoreEnvironment::Sandbox] {
         assert_expired_subscription_repurchase(environment);
@@ -53,6 +189,7 @@ fn assert_expired_subscription_repurchase(environment: StoreEnvironment) {
         purchased_at_ms: now,
         expires_at_ms: Some(now + DAY),
         revoked_at_ms: None,
+        is_upgraded: None,
         signed_at_ms: now,
         checked_at_ms: now,
     };
@@ -215,6 +352,7 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
         purchased_at_ms: now,
         expires_at_ms: Some(now + 365 * DAY),
         revoked_at_ms: None,
+        is_upgraded: None,
         signed_at_ms: now,
         checked_at_ms: now,
     };
@@ -429,6 +567,7 @@ fn production_and_sandbox_subscriptions_are_isolated_and_survive_upgrade() {
         purchased_at_ms: now,
         expires_at_ms: Some(now + 3 * MINUTE),
         revoked_at_ms: None,
+        is_upgraded: None,
         signed_at_ms: now,
         checked_at_ms: now,
     };
@@ -568,6 +707,7 @@ fn legacy_production_subscription_survives_dual_environment_upgrade() {
         purchased_at_ms: now,
         expires_at_ms: Some(now + 365 * DAY),
         revoked_at_ms: None,
+        is_upgraded: None,
         signed_at_ms: now,
         checked_at_ms: now,
     };

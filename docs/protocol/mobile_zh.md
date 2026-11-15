@@ -50,9 +50,13 @@ dmsg/apple/account/1、换行、user home Principal 文本、换行、AccountId 
 
 客户端在付款前检查经认证的套餐和商品，以及验证服务的环境与配置。正式购买中，外部渠道有效套餐、缺少同环境基础订阅的存储购买或不可验证状态不会进入付款。反过来，正式 Apple 基础合同结束前，commerce 不为该账号报价现金或 PANDA 基础套餐，桌面套餐页只说明由 App Store 续订。年度套餐使用 auto-renewable subscription，当前周期存储使用 consumable。Sandbox 首发仅开放年度套餐，不开放存储包。
 
-POST purchase 提交安装标识、Apple 交易 JWS 和对应断言。服务验证 Apple 签名、证书、应用、环境、商品、购买所有权及账号 token，并查询当前 Apple 状态。治理配置的验证者才可调用 commerce 的 apply_app_store_transaction。事实包含交易及原始交易 ID、受益主体、商品、购买／到期／撤销时间、Apple signedDate 和状态复核时间 checked_at_ms。
+POST purchase 提交安装标识、Apple 交易 JWS 和对应断言。服务验证 Apple 签名、证书、应用、环境、商品、购买所有权及账号 token，并查询当前 Apple 状态。治理配置的验证者才可调用 commerce 的 apply_app_store_transaction。事实包含交易及原始交易 ID、受益主体、商品、购买／到期／撤销时间、Apple signedDate、可选的 `is_upgraded` 标记和状态复核时间 checked_at_ms。
 
 同一笔交易永久绑定同一受益主体。原订阅期结束后，允许另一账号以自己的 `appAccountToken` 发起新购买；即使 Apple 沿用原始订阅 ID，也必须是新交易，且不能与原账号已记录的订阅期重叠。恢复旧交易不换绑，旧账号的退款或重试不改写接续账号。旧观察不能覆盖新观察，重复交易不重复授予权益。权益由 commerce 的认证结果提供，客户端没有本地 isPro 开关。可撤销的 Apple 权益使用短期资格租约，验证服务失联不能无限延长。退款更新原合同；旧订阅晚到不能在替代订阅退款后重新生效。
+
+退款申请和取消自动续订不直接撤销当前付费期；已验证的 Apple 退款/撤销事实才终止对应权益。撤销事实可直接提交，不依赖再次查询 Apple；此时 `checked_at_ms` 表示验证方提交已验证撤销事实的时间。授予、延长或恢复权益仍须核对 Apple Server API 当前状态。已签发租约按原截止失效，Apple 资格与资源租约最长一小时，不能把链上撤销描述成全链路即时失效。
+
+`is_upgraded = opt true` 表示交易已被升级替代，不能重新授予权益，后续观察也不能清除该标记。退款早于首次权益交付时，仍保留不授予服务的终止记录并截断旧套餐；已终止但原始有效期尚未结束的 Apple 合同跨月保留，防止旧交易重新生成权益。只有更晚且经当前 Apple 状态确认的订阅退款撤回，才能恢复尚未被其他合同替代的服务；退款期间不补发执行额度，已消费的月用量不重置。读取和导出保留遵守既有数据退出政策，不等同于继续获得付费写入额度。
 
 原生端只在权威服务应用成功后 finish StoreKit 交易，未完成交易留待恢复购买和更新监听重试。删除 dMsg 账号不会取消 Apple 自动续订。生产 commerce 默认拒绝新的 Sandbox 购买，仅在显式准入后接受沙盒年度套餐。
 

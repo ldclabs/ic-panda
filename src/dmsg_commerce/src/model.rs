@@ -126,7 +126,11 @@ pub fn prune(s: &mut Subject, at: u64) -> Result<()> {
     let month_start = month_bounds(month_utc(at)?)?.0;
     s.contracts.retain(|c| {
         let end = end(c);
-        if end <= month_start {
+        // Keep Apple replacement/refund boundaries while the original receipt
+        // could still be replayed or legitimately restored after a refund reversal.
+        let retain_apple =
+            matches!(c.source, ContractSource::AppStore { .. }) && c.expires_at_ms > month_start;
+        if end <= month_start && !retain_apple {
             let last = if c.source.is_sandbox() {
                 &mut s.last_sandbox_service_end_ms
             } else {

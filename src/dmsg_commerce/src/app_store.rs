@@ -202,6 +202,15 @@ fn apply(
         "dmsg/app-store/transaction/v1",
         &(&t.environment, &t.transaction_id),
     );
+    let replaced_at = s
+        .contracts
+        .iter()
+        .filter(|c| {
+            c.starts_at_ms > t.purchased_at_ms
+                && c.source.is_sandbox() == (t.environment == StoreEnvironment::Sandbox)
+        })
+        .map(|c| c.starts_at_ms)
+        .min();
     if let Some(existing) = s.contracts.iter_mut().find(|c| c.contract_id == id) {
         ensure(
             existing.starts_at_ms == t.purchased_at_ms,
@@ -214,6 +223,20 @@ fn apply(
                     .terminated_at_ms
                     .map_or(revoked, |end| end.min(revoked)),
             );
+            model::set_eligibility(existing, Eligibility::Ineligible, revoked)?;
+        }
+        if t.is_upgraded == Some(true) {
+            existing.terminated_at_ms = Some(
+                existing
+                    .terminated_at_ms
+                    .unwrap_or(u64::MAX)
+                    .min(t.signed_at_ms)
+                    .min(at),
+            );
+        }
+        if let Some(replaced) = replaced_at {
+            existing.terminated_at_ms =
+                Some(existing.terminated_at_ms.unwrap_or(replaced).min(replaced));
         }
         existing.expires_at_ms = t
             .expires_at_ms
@@ -230,7 +253,10 @@ fn apply(
         }
         return Ok(());
     }
-    if t.revoked_at_ms.is_some() || t.expires_at_ms.is_some_and(|e| e <= at) {
+    if t.revoked_at_ms.is_none()
+        && t.is_upgraded != Some(true)
+        && t.expires_at_ms.is_some_and(|e| e <= at)
+    {
         return Ok(());
     }
     match kind {
@@ -243,7 +269,9 @@ fn apply(
                 "subscription interval",
             )?;
             ensure(
-                t.environment == StoreEnvironment::Sandbox
+                t.revoked_at_ms.is_some()
+                    || t.is_upgraded == Some(true)
+                    || t.environment == StoreEnvironment::Sandbox
                     || s.active(t.purchased_at_ms)
                         .is_none_or(|c| matches!(c.source, ContractSource::AppStore { .. })),
                 Error::Forbidden,
@@ -257,18 +285,16 @@ fn apply(
                     old.terminated_at_ms = Some(t.purchased_at_ms);
                 }
             }
-            let replaced_at = s
-                .contracts
-                .iter()
-                .filter(|c| {
-                    matches!(c.source, ContractSource::AppStore { ref environment, .. } if environment.as_ref() == Some(&t.environment))
-                        && c.starts_at_ms > t.purchased_at_ms
-                })
-                .map(|c| c.starts_at_ms)
-                .min();
+            // Even a refunded upgrade that was never granted must end its
+            // predecessor. Keep a zero-service tombstone, not retroactive credit.
+            let stopped = t.revoked_at_ms.is_some() || t.is_upgraded == Some(true);
             s.contracts.push(MembershipContract {
                 term_starts_at_ms: t.purchased_at_ms,
-                resource_pauses: vec![],
+                resource_pauses: if stopped {
+                    vec![(t.purchased_at_ms, None)]
+                } else {
+                    vec![]
+                },
                 contract_id: id,
                 plan: model::plan(catalog, plan)?,
                 source: ContractSource::AppStore {
@@ -277,7 +303,11 @@ fn apply(
                 },
                 starts_at_ms: t.purchased_at_ms,
                 expires_at_ms: expiry,
-                terminated_at_ms: replaced_at,
+                terminated_at_ms: if stopped {
+                    Some(t.purchased_at_ms)
+                } else {
+                    replaced_at
+                },
                 eligibility: Eligibility::Eligible,
                 observed_at_ms: t.checked_at_ms,
                 qualified_until_ms: expiry.min(t.checked_at_ms.saturating_add(60 * MINUTE)),
@@ -285,6 +315,9 @@ fn apply(
             s.contracts.sort_by_key(|c| c.starts_at_ms);
         }
         StoreProductKind::Storage(product) => {
+            if t.revoked_at_ms.is_some() || t.expires_at_ms.is_some_and(|e| e <= at) {
+                return Ok(());
+            }
             let current = s.active(at).ok_or(Error::Forbidden)?;
             ensure(
                 matches!(current.source, ContractSource::AppStore { ref environment, .. } if environment.as_ref() == Some(&t.environment)),
@@ -313,6 +346,39 @@ fn apply(
     Ok(())
 }
 
+/// Only a newer, currently verified Apple observation can reverse a refund.
+/// Preserve upgrade/successor boundaries and exclude the refunded interval from
+/// monthly execution credit. Consumed units remain in the user's monthly ledger.
+fn restore_refund(
+    s: &mut model::Subject,
+    old: &StoreTransaction,
+    t: &StoreTransaction,
+) -> Result<()> {
+    if old.revoked_at_ms.is_none() || t.revoked_at_ms.is_some() || t.is_upgraded == Some(true) {
+        return Ok(());
+    }
+    ensure(t.signed_at_ms > old.signed_at_ms, Error::VersionConflict)?;
+    let id = digest(
+        "dmsg/app-store/transaction/v1",
+        &(&t.environment, &t.transaction_id),
+    );
+    if let Some(c) = s.contracts.iter_mut().find(|c| c.contract_id == id) {
+        let refund_stop = c
+            .resource_pauses
+            .last()
+            .filter(|(_, end)| end.is_none())
+            .map(|(start, _)| *start)
+            .or(old.revoked_at_ms);
+        if c.terminated_at_ms == refund_stop {
+            c.terminated_at_ms = None;
+        }
+        // Legacy refunded contracts may not yet have a pause recorded.
+        model::set_eligibility(c, Eligibility::Ineligible, old.revoked_at_ms.unwrap())?;
+        model::set_eligibility(c, Eligibility::Eligible, t.checked_at_ms)?;
+    }
+    Ok(())
+}
+
 /// A new paid term may belong to another account only after the old term's
 /// full expiry. Cancelling renewal, refunding or losing a resource lease does
 /// not transfer the remaining paid interval.
@@ -325,6 +391,7 @@ fn check_reassignment(
     ensure(
         matches!(kind, StoreProductKind::Plan(_))
             && t.revoked_at_ms.is_none()
+            && t.is_upgraded != Some(true)
             && t.expires_at_ms.is_some_and(|end| end > at)
             && t.purchased_at_ms <= at
             && t.purchased_at_ms >= previous_expiry,
@@ -365,6 +432,11 @@ fn apply_app_store_transaction(transaction: StoreTransaction) -> Result<Entitlem
         .with_borrow(|c| c.get().0.clone())
         .ok_or(Error::Forbidden)?;
     ensure(config.verifiers.contains(&caller), Error::Forbidden)?;
+    let mut transaction = transaction;
+    // Absence and false have the same meaning; preserve legacy fingerprints.
+    if transaction.is_upgraded == Some(false) {
+        transaction.is_upgraded = None;
+    }
     ensure(
         !store::config(|c| c.paused) || transaction.revoked_at_ms.is_some(),
         Error::Forbidden,
@@ -428,9 +500,16 @@ fn apply_app_store_transaction(transaction: StoreTransaction) -> Result<Entitlem
             business_changed = false;
         }
         ensure(
-            old.revoked_at_ms.is_none() || old.revoked_at_ms == transaction.revoked_at_ms,
+            old.is_upgraded != Some(true) || transaction.is_upgraded == Some(true),
             Error::VersionConflict,
         )?;
+        ensure(
+            matches!(kind, StoreProductKind::Plan(_))
+                || old.revoked_at_ms.is_none()
+                || old.revoked_at_ms == transaction.revoked_at_ms,
+            Error::VersionConflict,
+        )?;
+        restore_refund(&mut subject, &old, &transaction)?;
     } else if let Some(owner) = &owner
         && owner != &transaction.beneficiary
     {
@@ -593,6 +672,7 @@ mod tests {
             purchased_at_ms: start,
             expires_at_ms: Some(start + 365 * DAY),
             revoked_at_ms: None,
+            is_upgraded: None,
             signed_at_ms: NOW,
             checked_at_ms: NOW,
         }
@@ -879,5 +959,149 @@ mod tests {
         )
         .unwrap();
         assert_eq!(view.source_status, SourceStatus::Unverifiable);
+    }
+
+    #[test]
+    fn refund_before_upgrade_delivery_ends_predecessor_in_either_order() {
+        for refund_first in [false, true] {
+            let old = transaction("101", NOW - DAY);
+            let mut refunded = transaction("102", NOW - MINUTE);
+            refunded.revoked_at_ms = Some(NOW);
+            let mut subject = model::Subject::new(old.beneficiary.clone());
+            let plus = StoreProductKind::Plan(PlanId::Plus);
+            let pro = StoreProductKind::Plan(PlanId::Pro);
+            if !refund_first {
+                apply(&mut subject, &old, &plus, &catalog(), NOW).unwrap();
+            }
+            apply(&mut subject, &refunded, &pro, &catalog(), NOW).unwrap();
+            apply(&mut subject, &old, &plus, &catalog(), NOW).unwrap();
+            assert!(subject.active(NOW).is_none());
+            assert_eq!(model::end(&subject.contracts[0]), refunded.purchased_at_ms);
+            assert_eq!(model::end(&subject.contracts[1]), refunded.purchased_at_ms);
+            assert_eq!(
+                subject.contracts[1].resource_pauses,
+                vec![(refunded.purchased_at_ms, None)]
+            );
+        }
+    }
+
+    #[test]
+    fn month_rollover_retains_apple_replacement_and_refund_boundaries() {
+        let old = transaction("101", NOW - DAY);
+        let mut new = transaction("102", NOW - MINUTE);
+        let mut subject = model::Subject::new(old.beneficiary.clone());
+        let plus = StoreProductKind::Plan(PlanId::Plus);
+        let pro = StoreProductKind::Plan(PlanId::Pro);
+        apply(&mut subject, &old, &plus, &catalog(), NOW).unwrap();
+        apply(&mut subject, &new, &pro, &catalog(), NOW).unwrap();
+        new.revoked_at_ms = Some(NOW);
+        apply(&mut subject, &new, &pro, &catalog(), NOW).unwrap();
+        let later = NOW + 40 * DAY;
+        model::prune(&mut subject, later).unwrap();
+        assert_eq!(subject.contracts.len(), 2);
+        let mut replay = old;
+        replay.signed_at_ms = later;
+        replay.checked_at_ms = later;
+        apply(&mut subject, &replay, &plus, &catalog(), later).unwrap();
+        assert!(subject.active(later).is_none());
+        model::prune(&mut subject, NOW + 400 * DAY).unwrap();
+        assert!(subject.contracts.is_empty());
+    }
+
+    #[test]
+    fn upgraded_receipt_cannot_grant_rights_even_without_local_history() {
+        let mut receipt = transaction("101", NOW - 40 * DAY);
+        receipt.is_upgraded = Some(true);
+        let mut subject = model::Subject::new(receipt.beneficiary.clone());
+        apply(
+            &mut subject,
+            &receipt,
+            &StoreProductKind::Plan(PlanId::Plus),
+            &catalog(),
+            NOW,
+        )
+        .unwrap();
+        assert!(subject.active(NOW).is_none());
+        assert_eq!(model::end(&subject.contracts[0]), receipt.purchased_at_ms);
+        let view = model::project(
+            Principal::from_slice(&[6]),
+            &mut subject,
+            &catalog(),
+            NOW,
+            None,
+        )
+        .unwrap();
+        assert_eq!(view.plan_snapshot.plan_id, PlanId::Free);
+        assert_eq!(view.source_status, SourceStatus::Expired);
+    }
+
+    #[test]
+    fn refund_reversal_restores_only_unreplaced_service_and_excludes_refunded_time() {
+        for upgraded in [false, true] {
+            let mut original = transaction("101", NOW - DAY);
+            let mut subject = model::Subject::new(original.beneficiary.clone());
+            let plus = StoreProductKind::Plan(PlanId::Plus);
+            apply(&mut subject, &original, &plus, &catalog(), NOW).unwrap();
+            original.revoked_at_ms = Some(NOW);
+            apply(&mut subject, &original, &plus, &catalog(), NOW).unwrap();
+            if upgraded {
+                let new = transaction("102", NOW + MINUTE);
+                apply(
+                    &mut subject,
+                    &new,
+                    &StoreProductKind::Plan(PlanId::Pro),
+                    &catalog(),
+                    NOW + MINUTE,
+                )
+                .unwrap();
+            }
+            let restored = StoreTransaction {
+                revoked_at_ms: None,
+                signed_at_ms: NOW + 2 * MINUTE,
+                checked_at_ms: NOW + 2 * MINUTE,
+                ..original.clone()
+            };
+            restore_refund(&mut subject, &original, &restored).unwrap();
+            apply(
+                &mut subject,
+                &restored,
+                &plus,
+                &catalog(),
+                restored.checked_at_ms,
+            )
+            .unwrap();
+            assert_eq!(
+                subject.active(restored.checked_at_ms).unwrap().plan.plan_id,
+                if upgraded { PlanId::Pro } else { PlanId::Plus }
+            );
+            assert_eq!(
+                subject.contracts[0].resource_pauses,
+                vec![(NOW, Some(restored.checked_at_ms))]
+            );
+            if upgraded {
+                assert_eq!(model::end(&subject.contracts[0]), NOW + MINUTE);
+            }
+        }
+    }
+
+    #[test]
+    fn reversal_of_never_granted_refund_does_not_invent_past_execution_credit() {
+        let mut original = transaction("101", NOW - DAY);
+        original.revoked_at_ms = Some(NOW - MINUTE);
+        let mut subject = model::Subject::new(original.beneficiary.clone());
+        let plus = StoreProductKind::Plan(PlanId::Plus);
+        apply(&mut subject, &original, &plus, &catalog(), NOW).unwrap();
+        let restored = StoreTransaction {
+            revoked_at_ms: None,
+            signed_at_ms: NOW + 1,
+            ..original.clone()
+        };
+        restore_refund(&mut subject, &original, &restored).unwrap();
+        apply(&mut subject, &restored, &plus, &catalog(), NOW).unwrap();
+        assert_eq!(subject.active(NOW).unwrap().plan.plan_id, PlanId::Plus);
+        assert_eq!(
+            subject.contracts[0].resource_pauses,
+            vec![(original.purchased_at_ms, Some(NOW))]
+        );
     }
 }

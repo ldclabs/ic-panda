@@ -83,8 +83,11 @@ pub struct StoreTransaction {
     pub expires_at_ms: Option<u64>,
     /// Verified refund or revocation time.
     pub revoked_at_ms: Option<u64>,
+    /// Apple has replaced this transaction with an upgrade; it cannot grant new rights.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_upgraded: Option<bool>,
     /// Apple's signedDate, used to reject older observations.
     pub signed_at_ms: u64,
-    /// Time the trusted verifier refreshed current status through Apple's server API.
+    /// Time the verifier checked current Apple status, or submitted a verified revocation.
     pub checked_at_ms: u64,
 }

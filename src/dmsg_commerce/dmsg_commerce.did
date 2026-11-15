@@ -1160,7 +1160,7 @@ type StoreProductKind = variant {
 };
 // Facts extracted from a cryptographically verified Apple transaction.
 type StoreTransaction = record {
-  // Time the trusted verifier refreshed current status through Apple's server API.
+  // Time the verifier checked current Apple status, or submitted a verified revocation.
   checked_at_ms : nat64;
   // Immutable Apple transaction ID, retained across retries.
   transaction_id : text;
@@ -1185,6 +1185,8 @@ type StoreTransaction = record {
   revoked_at_ms : opt nat64;
   // Apple subscription expiry; absent only for a configured storage product.
   expires_at_ms : opt nat64;
+  // Apple has replaced this transaction with an upgrade; it cannot grant new rights.
+  is_upgraded : opt bool;
 };
 service : (CommerceInit) -> {
   // Append a user home. Its `dmsg_user` must name this canister as
