@@ -5,9 +5,9 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
-## 1.2.0
+## 1.2.1
 
-### Unreleased — 2026-11-15
+### Build 32 — 2026-11-15
 
 - Explain Plus, Pro and Max with native benefit cards, StoreKit prices and clear
   subscription buttons. Compare all four plans without leaving the app.
@@ -15,11 +15,21 @@ tracked separately. Build and device-test evidence is recorded in
   membership badge through Plan and usage before Apple's management sheet.
 - Localize plan benefits and actions in all 23 languages, including layouts for
   right-to-left languages and accessibility text sizes.
-
 - Show purchase activity beside the selected price immediately, with separate
   preparation, App Store confirmation and activation messages in all 23 languages.
 - Run purchase eligibility and device preparation concurrently, then recheck
   subscription ownership before opening Apple's confirmation sheet.
+- With the matching commerce and Apple verification service updates, prevent
+  refunded or superseded subscriptions from regaining benefits during restore.
+  Refund reversals preserve existing plan restrictions and do not backfill
+  execution allowance for the refunded period, including after legacy upgrades.
+  These fixes require service deployment; installing this iOS build alone does
+  not apply them.
+- Show Passkey sign-in by default in welcome-screen previews, with an explicit
+  Internet Identity-only fallback for testing. This changes Debug UI fixtures
+  only, not production sign-in capability checks.
+
+## 1.2.0
 
 ### Build 31 — 2026-11-14
 
