@@ -483,6 +483,13 @@ impl MobileEngine {
             .await
     }
 
+    /// Certified plan benefits and the wallet hub's current creation limits.
+    /// StoreKit remains the source of native subscription prices.
+    pub async fn plan_catalog(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| Box::pin(async { dmsg_client::commerce::catalog_display(h).await }))
+            .await
+    }
+
     /// Independent usage reads: a failed lane remains unknown, never zero.
     pub async fn account_usage(&self) -> Result<ObjectSnapshot> {
         self.held_object(|h| {

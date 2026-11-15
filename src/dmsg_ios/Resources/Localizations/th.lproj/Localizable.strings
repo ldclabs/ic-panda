@@ -3318,5 +3318,53 @@
 	<string>กำลังเปิดใช้รายการที่ซื้อ…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>คุณจะยืนยันการซื้อกับ Apple ก่อนชำระเงิน</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>เกี่ยวกับสิทธิประโยชน์เหล่านี้</string>
+	<key>Active devices</key>
+	<string>อุปกรณ์ที่ใช้งาน</string>
+	<key>Active file request links</key>
+	<string>ลิงก์ขอรับไฟล์ที่ใช้งานอยู่</string>
+	<key>Change plan</key>
+	<string>เปลี่ยนแพ็กเกจ</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>ขีดจำกัดใช้กับช่องที่คุณสร้างหรือสนับสนุน ลายเซ็นอุปกรณ์ทั่วไปไม่ใช้โควตารายเดือน</string>
+	<key>Compare all plans</key>
+	<string>เปรียบเทียบทุกแพ็กเกจ</string>
+	<key>Current plan</key>
+	<string>แพ็กเกจปัจจุบัน</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>ทุกแพ็กเกจมีการเข้ารหัสแบบต้นทางถึงปลายทางและการเพิกถอนสิทธิ์อุปกรณ์</string>
+	<key>For everyday file exchange.</key>
+	<string>สำหรับการแลกเปลี่ยนไฟล์ในชีวิตประจำวัน</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>สำหรับการสำรองข้อมูลขนาดใหญ่และการทำงานร่วมกันบ่อยครั้ง</string>
+	<key>For more files and devices.</key>
+	<string>สำหรับไฟล์และอุปกรณ์ที่มากขึ้น</string>
+	<key>For your everyday essentials.</key>
+	<string>สำหรับสิ่งจำเป็นในชีวิตประจำวันของคุณ</string>
+	<key>No charge</key>
+	<string>ฟรี</string>
+	<key>Not included</key>
+	<string>ไม่รวม</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>ไม่สามารถโหลดสิทธิประโยชน์ของแพ็กเกจได้ โปรดลองอีกครั้ง</string>
+	<key>Price unavailable</key>
+	<string>ไม่สามารถแสดงราคาได้</string>
+	<key>Subscribe to %@</key>
+	<string>สมัครสมาชิก %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>ขีดจำกัดขนาดไฟล์สำรองใช้กับการสำรองบนคลาวด์ การแชร์ไฟล์และไฟล์แนบในช่องมีขีดจำกัดของตัวเอง</string>
+	<key>Unavailable</key>
+	<string>ไม่พร้อมใช้งาน</string>
+	<key>Upgrade to %@</key>
+	<string>อัปเกรดเป็น %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>มีค่าธรรมเนียมเปิดใช้งานกระเป๋าเงินแยกต่างหาก ตรวจสอบความพร้อมในแอป</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>ขีดจำกัดนี้เป็นของแพ็กเกจพื้นฐาน แพ็กเกจพื้นที่จัดเก็บจะเพิ่มความจุ หน่วยการดำเนินการรายเดือนคำนวณตามสัดส่วนระยะเวลาใช้งานและไม่รีเซ็ตเมื่อเปลี่ยนแพ็กเกจ</string>
+	<key>Multisig wallet slots</key>
+	<string>โควตากระเป๋าเงินหลายลายเซ็น</string>
 </dict>
 </plist>

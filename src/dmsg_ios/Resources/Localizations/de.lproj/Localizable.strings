@@ -3318,5 +3318,53 @@
 	<string>Ihr Kauf wird aktiviert…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Sie bestätigen den Kauf bei Apple, bevor Sie bezahlen.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Zu diesen Leistungen</string>
+	<key>Active devices</key>
+	<string>Aktive Geräte</string>
+	<key>Active file request links</key>
+	<string>Aktive Links für Dateianfragen</string>
+	<key>Change plan</key>
+	<string>Tarif ändern</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Die Limits gelten für Kanäle, die du erstellst oder finanzierst. Gewöhnliche Gerätesignaturen verbrauchen kein Monatskontingent.</string>
+	<key>Compare all plans</key>
+	<string>Alle Tarife vergleichen</string>
+	<key>Current plan</key>
+	<string>Aktueller Tarif</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Alle Tarife enthalten Ende-zu-Ende-Verschlüsselung und den Widerruf von Gerätezugriffen.</string>
+	<key>For everyday file exchange.</key>
+	<string>Für den täglichen Dateiaustausch.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Für große Backups und regelmäßige Zusammenarbeit.</string>
+	<key>For more files and devices.</key>
+	<string>Für mehr Dateien und Geräte.</string>
+	<key>For your everyday essentials.</key>
+	<string>Für das Wesentliche im Alltag.</string>
+	<key>No charge</key>
+	<string>Kostenlos</string>
+	<key>Not included</key>
+	<string>Nicht enthalten</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Tarifleistungen konnten nicht geladen werden. Erneut versuchen.</string>
+	<key>Price unavailable</key>
+	<string>Preis nicht verfügbar</string>
+	<key>Subscribe to %@</key>
+	<string>%@ abonnieren</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>Das Dateilimit für Sicherungen gilt für Cloud-Sicherungen. Für Dateifreigaben und Kanalanhänge gelten eigene Limits.</string>
+	<key>Unavailable</key>
+	<string>Nicht verfügbar</string>
+	<key>Upgrade to %@</key>
+	<string>Auf %@ upgraden</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Die Wallet-Aktivierung wird separat berechnet; prüfe die Verfügbarkeit in der App.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Die Limits gelten für den Basistarif. Speicherpakete kommen hinzu. Monatliche Ausführungseinheiten werden anteilig berechnet und beim Tarifwechsel nicht zurückgesetzt.</string>
+	<key>Multisig wallet slots</key>
+	<string>Multisig-Wallet-Kontingent</string>
 </dict>
 </plist>

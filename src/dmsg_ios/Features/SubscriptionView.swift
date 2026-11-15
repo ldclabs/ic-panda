@@ -24,7 +24,7 @@ struct SubscriptionView: View {
         #if DEBUG
         static var fixture: Self {
             let args = ProcessInfo.processInfo.arguments
-            let max = args.contains("--ui-max-subscription")
+            let max = args.contains("--ui-max-subscription"), plus = args.contains("--ui-plus-subscription")
             if args.contains("--ui-stale-subscription") {
                 return Plan(plan: "Free", source: "Unverifiable", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5),
                     current: Term(endsAtMs: UInt64(Date.now.addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
@@ -32,9 +32,9 @@ struct SubscriptionView: View {
             if args.contains("--ui-expired-subscription") {
                 return Plan(plan: "Free", source: "Expired", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5), current: nil)
             }
-            if max || args.contains("--ui-sandbox-subscription") || args.contains("--ui-scheduled-subscription") {
-                return Plan(plan: max ? "Max" : "Pro", source: "Active",
-                    limits: Limits(storageBytes: max ? 107374182400 : 10737418240, activeChannels: max ? 200 : 100, monthlyExecutionUnits: max ? 200 : 100),
+            if max || plus || args.contains("--ui-sandbox-subscription") || args.contains("--ui-scheduled-subscription") {
+                return Plan(plan: max ? "Max" : plus ? "Plus" : "Pro", source: "Active",
+                    limits: Limits(storageBytes: max ? 107374182400 : plus ? 1073741824 : 10737418240, activeChannels: max ? 10000 : plus ? 20 : 100, monthlyExecutionUnits: max ? 10000 : plus ? 20 : 100),
                     current: Term(endsAtMs: UInt64(Date().addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
             }
             return Plan(plan: "Free", source: "Free", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5), current: nil)
@@ -62,6 +62,10 @@ struct SubscriptionView: View {
     @State private var loading = false
     @State private var failed = false
     @State private var loadRequest = UUID()
+    @State private var catalogue: MembershipCatalogue?
+    @State private var catalogueFailed = false
+    @State private var catalogueLoading = false
+    @State private var catalogueRequest = UUID()
     var body: some View {
         List {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
@@ -93,6 +97,7 @@ struct SubscriptionView: View {
                     SettingsAction("Retry") { Task { await load(force: true) } }.disabled(loading || model.purchases.working)
                         .accessibilityIdentifier("plan.status-retry")
                 }
+                if changesInApple { managementAction }
             }
             Section("Usage") {
                 if usageLoading { ProgressView() }
@@ -116,6 +121,21 @@ struct SubscriptionView: View {
                     SettingsAction("Retry") { Task { await loadUsage() } }.disabled(usageLoading)
                 }
             }.accessibilityIdentifier("plan.usage")
+            Section {
+                if let catalogue {
+                    NavigationLink {
+                        MembershipComparisonView(catalogue: catalogue, currentPlan: currentTier, prices: planPrices)
+                    } label: { Label("Compare all plans", systemImage: "list.bullet.rectangle") }
+                    .accessibilityIdentifier("plan.compare")
+                    Text("Every plan includes end-to-end encryption and device revocation.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else if catalogueFailed {
+                    Text("Plan benefits could not be loaded. Try again.").font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("plan.catalogue-error")
+                    SettingsAction("Retry") { Task { await loadCatalogue() } }.disabled(catalogueLoading)
+                        .accessibilityIdentifier("plan.catalogue-retry")
+                } else { ProgressView().accessibilityLabel("Loading…") }
+            }
             if model.purchases.showsControls {
                 Section("App Store subscriptions") {
                     Text("Choose the storage and device capacity that fits your everyday work. Upgrade to collect files by upload link and make room for more.")
@@ -143,8 +163,6 @@ struct SubscriptionView: View {
                         Text("Change your plan or cancel renewal in Manage subscriptions.").font(.footnote).foregroundStyle(.secondary)
                     } else if model.purchases.hasCurrentSubscription {
                         Text("Change your plan or cancel renewal in Manage subscriptions.").font(.footnote).foregroundStyle(.secondary)
-                    } else if !model.purchases.subscriptions.contains(where: { $0.ownership == .otherAccount }) {
-                        productRows(model.purchases.products.filter { $0.type == .autoRenewable })
                     }
                     ForEach(model.purchases.subscriptions) { subscription in
                         if let product = subscription.nextProduct, subscription.ownership == .current {
@@ -160,11 +178,12 @@ struct SubscriptionView: View {
                     } else if plan?.current == nil, model.purchases.storeEnvironment == "Production", model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
+                    subscriptionCards
                     if !model.purchases.loading, let issue = model.purchases.loadIssue {
                         NoticeBar(text: issue.message).accessibilityElement(children: .combine).accessibilityIdentifier("plan.store-error")
                             .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                     }
-                    if !model.purchases.loading && model.purchases.loadIssue == nil && !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty && !showsProgressFixture {
+                    if !model.purchases.loading && model.purchases.loadIssue == nil && !managesSubscription && !model.purchases.hasCurrentSubscription && model.purchases.subscriptionMessage == nil && model.purchases.products.isEmpty && !showsProductFixtures {
                         Text("Purchases are not currently available.").foregroundStyle(.secondary)
                             .accessibilityIdentifier("plan.products-unavailable")
                     }
@@ -179,7 +198,7 @@ struct SubscriptionView: View {
                     if let feedback = model.purchases.feedback, feedback != model.purchases.subscriptionMessage {
                         NoticeBar(text: feedback).accessibilityElement(children: .combine).accessibilityIdentifier("plan.purchase-result")
                     }
-                    if !model.purchases.loading && (model.purchases.loadIssue != nil || model.purchases.hasUnavailableProducts || model.purchases.products.isEmpty || model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage) {
+                    if !model.purchases.loading && (model.purchases.loadIssue != nil || model.purchases.hasUnavailableProducts || (model.purchases.products.isEmpty && !showsProductFixtures) || model.purchases.subscriptionMessage == PurchaseModel.unverifiedMessage || model.purchases.feedback == PurchaseModel.unverifiedMessage) {
                         SettingsAction("Retry") { Task { await model.purchases.retry(model) } }.disabled(model.purchases.working)
                             .accessibilityIdentifier("plan.products-retry")
                     }
@@ -190,7 +209,7 @@ struct SubscriptionView: View {
                     }
                     SettingsAction("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
                         .accessibilityIdentifier("plan.restore")
-                    SettingsAction("Manage subscriptions") { managing = true }.disabled(model.purchases.working).accessibilityIdentifier("plan.manage")
+                    if !changesInApple { managementAction }
                     Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.").font(.footnote).foregroundStyle(.secondary)
                 }
                 if model.purchases.storeEnvironment == "Production" && model.purchases.subscriptionMessage == nil && model.purchases.products.contains(where: { $0.type == .consumable }) {
@@ -221,7 +240,7 @@ struct SubscriptionView: View {
             .onChange(of: managing) { wasPresented, isPresented in
                 if wasPresented && !isPresented { Task { await load(force: true) } }
             }
-            .onDisappear { loadRequest = UUID(); usageRequest = UUID() }
+            .onDisappear { loadRequest = UUID(); usageRequest = UUID(); catalogueRequest = UUID() }
     }
     private var managesSubscription: Bool {
         plan?.managesSubscription(environment: model.purchases.storeEnvironment) == true
@@ -242,27 +261,101 @@ struct SubscriptionView: View {
         }
     }
 
-    private var showsProgressFixture: Bool {
+    private var showsProductFixtures: Bool {
         #if DEBUG
-        return model.purchases.showsProgressFixture
+        return model.uiTesting && catalogue != nil && (ProcessInfo.processInfo.arguments.contains("--ui-plan-products") || model.purchases.showsProgressFixture || changesInApple)
         #else
         return false
         #endif
     }
 
-    @ViewBuilder private func productRows(_ products: [Product]) -> some View {
+    private var currentTier: String? { plan.flatMap { $0.needsRefresh() ? nil : $0.plan } }
+    private var changesInApple: Bool { model.purchases.showsControls && (managesSubscription || model.purchases.hasCurrentSubscription) }
+
+    private var managementAction: some View {
+        SettingsAction("Manage subscriptions") { managing = true }
+            .disabled(model.purchases.working).accessibilityIdentifier("plan.manage")
+    }
+
+    private func product(for plan: MembershipCatalogue.Plan) -> Product? {
+        model.purchases.products.first { $0.type == .autoRenewable && model.purchases.productPlans[$0.id] == plan.id }
+    }
+
+    private func price(for plan: MembershipCatalogue.Plan) -> String? {
+        if let product = product(for: plan) {
+            return Self.price(product.displayPrice, period: product.subscription.map { Self.period($0.subscriptionPeriod) })
+        }
         #if DEBUG
-        if showsProgressFixture {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(verbatim: "dMsg Plus").font(.headline)
-                Text(DateComponentsFormatter.localizedString(from: DateComponents(year: 1), unitsStyle: .full) ?? "").font(.subheadline)
-                PurchaseButton(price: "$9.99", phase: model.purchases.purchasePhase(for: "fixture-plus", model: model),
-                    disabled: model.purchases.working, identifier: "plan.purchase.fixture-plus") {
-                        model.purchases.startProgressFixture(model)
-                    }
+        if showsProductFixtures {
+            let prices = ["Plus": "HK$88.00", "Pro": "HK$388.00", "Max": "HK$1,488.00"]
+            if let amount = prices[plan.id] {
+                return Self.price(amount, period: DateComponentsFormatter.localizedString(from: DateComponents(year: 1), unitsStyle: .full))
             }
         }
         #endif
+        return nil
+    }
+
+    static func price(_ amount: String, period: String?) -> String {
+        guard let period, !period.isEmpty else { return amount }
+        return String.localizedStringWithFormat(String(localized: "%@ / %@"), amount, period)
+    }
+
+    private var planPrices: [String: String] {
+        Dictionary((catalogue?.ordered ?? []).compactMap { plan in price(for: plan).map { (plan.id, $0) } }, uniquingKeysWith: { first, _ in first })
+    }
+
+    @ViewBuilder private var subscriptionCards: some View {
+        if let catalogue {
+            ForEach(catalogue.ordered.filter { $0.tier != .free }) { offer in
+                MembershipPlanCard(plan: offer, current: offer.id == currentTier, price: price(for: offer)) {
+                    planAction(offer)
+                }.listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+            }
+            // An unmapped product never borrows another tier's benefits.
+            productRows(model.purchases.products.filter { $0.type == .autoRenewable && model.purchases.productPlans[$0.id] == nil })
+        } else {
+            productRows(model.purchases.products.filter { $0.type == .autoRenewable })
+        }
+    }
+
+    @ViewBuilder private func planAction(_ offer: MembershipCatalogue.Plan) -> some View {
+        if let tier = offer.tier {
+            let title = offer.id == currentTier && changesInApple ? String(localized: "Manage subscriptions")
+                : tier.actionTitle(current: currentTier, managed: changesInApple)
+            if model.purchases.subscriptionMessage != nil {
+                EmptyView()
+            } else if changesInApple {
+                Button(title) { managing = true }
+                    .font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                    .buttonStyle(.bordered).tint(Theme.forest).controlSize(.large)
+                    .disabled(model.purchases.working)
+                    .accessibilityIdentifier("plan.change.\(offer.id)")
+            } else if let product = product(for: offer) {
+                PurchaseButton(price: price(for: offer) ?? product.displayPrice, title: title,
+                    phase: model.purchases.purchasePhase(for: product.id, model: model),
+                    disabled: model.purchases.working || !canPurchase(product), identifier: "plan.purchase.\(product.id)") {
+                        Task { await model.purchases.purchase(product, model: model) }
+                    }
+            } else {
+                #if DEBUG
+                if showsProductFixtures {
+                    PurchaseButton(price: price(for: offer) ?? "", title: title,
+                        phase: model.purchases.purchasePhase(for: "fixture-\(offer.id.lowercased())", model: model),
+                        disabled: model.purchases.working || currentTier == nil || model.purchases.loadIssue != nil || model.purchases.subscriptionMessage != nil,
+                        identifier: "plan.purchase.fixture-\(offer.id.lowercased())") {
+                            model.purchases.startProgressFixture(model, product: "fixture-\(offer.id.lowercased())")
+                        }
+                } else { Text("Price unavailable").font(.footnote).foregroundStyle(.secondary) }
+                #else
+                Text(model.purchases.loading ? String(localized: "Loading…") : String(localized: "Price unavailable")).font(.footnote).foregroundStyle(.secondary)
+                #endif
+            }
+        }
+    }
+
+    @ViewBuilder private func productRows(_ products: [Product]) -> some View {
         ForEach(products) { product in
             VStack(alignment: .leading, spacing: 8) {
                 Text(product.displayName).font(.headline)
@@ -305,6 +398,8 @@ struct SubscriptionView: View {
                 model.error = model.purchases.feedback
             }
             plan = Plan.fixture
+            catalogueFailed = ProcessInfo.processInfo.arguments.contains("--ui-catalogue-unavailable")
+            catalogue = catalogueFailed ? nil : .fixture
             usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: plan?.limits.storageBytes, activeChannels: 1, channelLimit: plan?.limits.activeChannels), execution: Usage.Execution(month: 202611, allowed: plan?.limits.monthlyExecutionUnits ?? 3, charged: 1, remaining: (plan?.limits.monthlyExecutionUnits ?? 3) - 1), cloudError: nil, executionError: nil)
             if ProcessInfo.processInfo.arguments.contains("--ui-stale-subscription") {
                 usage = Usage(cloud: usage?.cloud, execution: nil, cloudError: nil, executionError: "MEMBERSHIP_STALE")
@@ -312,6 +407,7 @@ struct SubscriptionView: View {
             return
         }
         #endif
+        async let benefits: Void = loadCatalogue()
         if reconcile {
             // Explicit retries deliver receipts before rereading their rights and usage.
             await loadProducts(reconcile: true)
@@ -327,6 +423,25 @@ struct SubscriptionView: View {
             _ = await (saved, products, counts)
         }
         if loadRequest == request, !Task.isCancelled { failed = display.failed }
+        await benefits
+    }
+
+    private func loadCatalogue() async {
+        #if DEBUG
+        if model.uiTesting { catalogue = .fixture; catalogueFailed = false; return }
+        #endif
+        guard let engine = model.engine, model.unlocked else { return }
+        let epoch = model.epoch, request = UUID(); catalogueRequest = request
+        catalogueLoading = true; catalogueFailed = false
+        defer { if catalogueRequest == request { catalogueLoading = false } }
+        do {
+            let next: MembershipCatalogue = try model.decode(try await engine.planCatalog())
+            guard request == catalogueRequest, epoch == model.epoch, !Task.isCancelled else { return }
+            catalogue = next
+        } catch {
+            guard request == catalogueRequest, epoch == model.epoch, !Task.isCancelled else { return }
+            catalogue = nil; catalogueFailed = true
+        }
     }
 
     private func loadProducts(reconcile: Bool) async {

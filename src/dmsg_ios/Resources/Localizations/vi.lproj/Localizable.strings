@@ -3318,5 +3318,53 @@
 	<string>Đang kích hoạt giao dịch mua…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Bạn sẽ xác nhận giao dịch mua với Apple trước khi thanh toán.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Về các quyền lợi này</string>
+	<key>Active devices</key>
+	<string>Thiết bị hoạt động</string>
+	<key>Active file request links</key>
+	<string>Liên kết yêu cầu tệp đang hoạt động</string>
+	<key>Change plan</key>
+	<string>Đổi gói</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Giới hạn áp dụng cho các kênh bạn tạo hoặc tài trợ. Chữ ký thiết bị thông thường không dùng hạn mức hằng tháng.</string>
+	<key>Compare all plans</key>
+	<string>So sánh tất cả các gói</string>
+	<key>Current plan</key>
+	<string>Gói hiện tại</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Mọi gói đều có mã hóa đầu cuối và khả năng thu hồi quyền truy cập thiết bị.</string>
+	<key>For everyday file exchange.</key>
+	<string>Cho việc trao đổi tệp hằng ngày.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Dành cho bản sao lưu lớn và cộng tác thường xuyên.</string>
+	<key>For more files and devices.</key>
+	<string>Cho nhiều tệp và thiết bị hơn.</string>
+	<key>For your everyday essentials.</key>
+	<string>Cho những thứ thiết yếu hằng ngày.</string>
+	<key>No charge</key>
+	<string>Miễn phí</string>
+	<key>Not included</key>
+	<string>Không bao gồm</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Không thể tải quyền lợi của các gói. Hãy thử lại.</string>
+	<key>Price unavailable</key>
+	<string>Không có thông tin giá</string>
+	<key>Subscribe to %@</key>
+	<string>Đăng ký %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>Giới hạn tệp sao lưu áp dụng cho bản sao lưu đám mây. Chia sẻ tệp và tệp đính kèm trong kênh có giới hạn riêng.</string>
+	<key>Unavailable</key>
+	<string>Không khả dụng</string>
+	<key>Upgrade to %@</key>
+	<string>Nâng cấp lên %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Phí kích hoạt ví được tính riêng; kiểm tra khả năng sử dụng trong ứng dụng.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Hạn mức áp dụng cho gói cơ bản. Gói dung lượng bổ sung thêm sức chứa. Đơn vị thực thi hằng tháng được tính theo thời gian sử dụng và không đặt lại khi đổi gói.</string>
+	<key>Multisig wallet slots</key>
+	<string>Số ví đa chữ ký cho phép</string>
 </dict>
 </plist>

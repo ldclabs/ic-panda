@@ -3318,5 +3318,53 @@
 	<string>Ina-activate ang iyong binili…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Kukumpirmahin mo ang pagbili sa Apple bago magbayad.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Tungkol sa mga benepisyong ito</string>
+	<key>Active devices</key>
+	<string>Aktibong device</string>
+	<key>Active file request links</key>
+	<string>Mga aktibong link para humingi ng file</string>
+	<key>Change plan</key>
+	<string>Palitan ang plano</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Ang limitasyon ay para sa mga channel na ginawa o sinuportahan mo. Hindi gumagamit ng buwanang quota ang karaniwang lagda ng device.</string>
+	<key>Compare all plans</key>
+	<string>Ihambing ang lahat ng plano</string>
+	<key>Current plan</key>
+	<string>Kasalukuyang plano</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Kasama sa lahat ng plano ang end-to-end encryption at pagbawi ng access ng device.</string>
+	<key>For everyday file exchange.</key>
+	<string>Para sa pang-araw-araw na palitan ng file.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Para sa malalaking backup at madalas na pagtutulungan.</string>
+	<key>For more files and devices.</key>
+	<string>Para sa mas maraming file at device.</string>
+	<key>For your everyday essentials.</key>
+	<string>Para sa iyong mga pang-araw-araw na mahalaga.</string>
+	<key>No charge</key>
+	<string>Libre</string>
+	<key>Not included</key>
+	<string>Hindi kasama</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Hindi ma-load ang mga benepisyo ng plano. Subukan muli.</string>
+	<key>Price unavailable</key>
+	<string>Hindi available ang presyo</string>
+	<key>Subscribe to %@</key>
+	<string>Mag-subscribe sa %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>Nalalapat ang limitasyon sa backup na file sa mga cloud backup. May sariling mga limitasyon ang pagbabahagi ng file at mga attachment sa channel.</string>
+	<key>Unavailable</key>
+	<string>Hindi available</string>
+	<key>Upgrade to %@</key>
+	<string>Mag-upgrade sa %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>May hiwalay na bayad sa pag-activate ng wallet; tingnan sa app kung available ito.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Para sa pangunahing plano ang mga limitasyon. Dagdag ang mga storage pack. Proporsyonal sa aktibong panahon ang buwanang execution units at hindi ito nire-reset kapag nagpalit ng plano.</string>
+	<key>Multisig wallet slots</key>
+	<string>Quota ng multisig wallet</string>
 </dict>
 </plist>

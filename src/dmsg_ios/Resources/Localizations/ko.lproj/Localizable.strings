@@ -3318,5 +3318,53 @@
 	<string>구매 내역 적용 중…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>결제 전에 Apple에서 구매를 확인하게 됩니다.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>혜택 안내</string>
+	<key>Active devices</key>
+	<string>활성 기기</string>
+	<key>Active file request links</key>
+	<string>활성 파일 요청 링크</string>
+	<key>Change plan</key>
+	<string>요금제 변경</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>채널 한도는 직접 만들거나 비용을 부담하는 채널에 적용됩니다. 일반 기기 서명은 월간 한도를 사용하지 않습니다.</string>
+	<key>Compare all plans</key>
+	<string>모든 요금제 비교</string>
+	<key>Current plan</key>
+	<string>현재 요금제</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>모든 요금제에 종단 간 암호화와 기기 접근 권한 철회가 포함됩니다.</string>
+	<key>For everyday file exchange.</key>
+	<string>일상적인 파일 교환을 위해.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>대용량 백업과 잦은 협업에 적합합니다.</string>
+	<key>For more files and devices.</key>
+	<string>더 많은 파일과 기기를 위해.</string>
+	<key>For your everyday essentials.</key>
+	<string>매일 쓰는 필수 자료를 위해.</string>
+	<key>No charge</key>
+	<string>무료</string>
+	<key>Not included</key>
+	<string>포함되지 않음</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>요금제 혜택을 불러오지 못했습니다. 다시 시도하세요.</string>
+	<key>Price unavailable</key>
+	<string>가격을 불러올 수 없음</string>
+	<key>Subscribe to %@</key>
+	<string>%@ 구독</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>백업 파일 한도는 클라우드 백업에 적용됩니다. 파일 공유와 채널 첨부 파일에는 별도의 한도가 있습니다.</string>
+	<key>Unavailable</key>
+	<string>사용 불가</string>
+	<key>Upgrade to %@</key>
+	<string>%@로 업그레이드</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>지갑 개설 비용은 별도입니다. 앱에서 이용 가능 여부를 확인하세요.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>한도는 기본 요금제 기준입니다. 저장 공간 팩은 용량을 추가합니다. 월간 실행 할당량은 이용 기간에 비례하여 계산되며 요금제를 변경해도 초기화되지 않습니다.</string>
+	<key>Multisig wallet slots</key>
+	<string>멀티시그 지갑 한도</string>
 </dict>
 </plist>

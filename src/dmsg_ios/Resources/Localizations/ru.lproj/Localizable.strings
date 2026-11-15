@@ -3318,5 +3318,53 @@
 	<string>Активация покупки…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Перед оплатой вы подтвердите покупку через Apple.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Об этих возможностях</string>
+	<key>Active devices</key>
+	<string>Активные устройства</string>
+	<key>Active file request links</key>
+	<string>Активные ссылки для сбора файлов</string>
+	<key>Change plan</key>
+	<string>Изменить план</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Лимиты относятся к каналам, которые вы создаёте или финансируете. Обычные подписи устройств не расходуют месячный лимит.</string>
+	<key>Compare all plans</key>
+	<string>Сравнить все планы</string>
+	<key>Current plan</key>
+	<string>Текущий план</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Все планы включают сквозное шифрование и отзыв доступа устройств.</string>
+	<key>For everyday file exchange.</key>
+	<string>Для повседневного обмена файлами.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Для больших резервных копий и частой совместной работы.</string>
+	<key>For more files and devices.</key>
+	<string>Для большего числа файлов и устройств.</string>
+	<key>For your everyday essentials.</key>
+	<string>Для самого необходимого каждый день.</string>
+	<key>No charge</key>
+	<string>Бесплатно</string>
+	<key>Not included</key>
+	<string>Не включено</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Не удалось загрузить возможности планов. Повторите попытку.</string>
+	<key>Price unavailable</key>
+	<string>Цена недоступна</string>
+	<key>Subscribe to %@</key>
+	<string>Подписаться на %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>Лимит размера файла резервной копии относится к облачным копиям. У обмена файлами и вложений в каналах свои лимиты.</string>
+	<key>Unavailable</key>
+	<string>Недоступно</string>
+	<key>Upgrade to %@</key>
+	<string>Перейти на %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Активация кошельков оплачивается отдельно; доступность проверяйте в приложении.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Лимиты относятся к базовому плану. Пакеты хранилища добавляются отдельно. Месячная квота выполнения рассчитывается пропорционально сроку и не сбрасывается при смене плана.</string>
+	<key>Multisig wallet slots</key>
+	<string>Лимит мультиподписных кошельков</string>
 </dict>
 </plist>

@@ -3318,5 +3318,53 @@
 	<string>Applying your purchase…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>You'll confirm with Apple before paying.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>About these benefits</string>
+	<key>Active devices</key>
+	<string>Active devices</string>
+	<key>Active file request links</key>
+	<string>Active file request links</string>
+	<key>Change plan</key>
+	<string>Change plan</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</string>
+	<key>Compare all plans</key>
+	<string>Compare all plans</string>
+	<key>Current plan</key>
+	<string>Current plan</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Every plan includes end-to-end encryption and device revocation.</string>
+	<key>For everyday file exchange.</key>
+	<string>For everyday file exchange.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>For large backups and frequent collaboration.</string>
+	<key>For more files and devices.</key>
+	<string>For more files and devices.</string>
+	<key>For your everyday essentials.</key>
+	<string>For your everyday essentials.</string>
+	<key>No charge</key>
+	<string>No charge</string>
+	<key>Not included</key>
+	<string>Not included</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Plan benefits could not be loaded. Try again.</string>
+	<key>Price unavailable</key>
+	<string>Price unavailable</string>
+	<key>Subscribe to %@</key>
+	<string>Subscribe to %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</string>
+	<key>Unavailable</key>
+	<string>Unavailable</string>
+	<key>Upgrade to %@</key>
+	<string>Upgrade to %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Wallet activation is charged separately; check availability in the app.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</string>
+	<key>Multisig wallet slots</key>
+	<string>Multisig wallet slots</string>
 </dict>
 </plist>

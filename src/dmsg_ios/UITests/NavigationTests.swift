@@ -222,7 +222,7 @@ final class NavigationTests: NavigationTestCase {
                 "A purchase uses its own visible indicator, not another spinner below the catalogue")
             capture(app, name: "Purchase preparation at selected price · \(language) · \(dark ? "dark" : "light")")
             let restore = app.buttons["plan.restore"]
-            for _ in 0..<5 where !restore.isHittable { app.swipeUp() }
+            for _ in 0..<12 where !restore.isHittable { app.swipeUp() }
             XCTAssertFalse(restore.isEnabled)
             XCTAssertFalse(app.buttons["plan.manage"].isEnabled)
             app.terminate()
@@ -392,7 +392,7 @@ final class NavigationTests: NavigationTestCase {
                 XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.usage-error").firstMatch.exists)
                 capture(app, name: "Apple status \(expired ? "expired" : "refresh") · \(language) · \(dark ? "dark" : "light")")
                 let restore = app.buttons["plan.restore"]
-                for _ in 0..<5 where !restore.isHittable { app.swipeUp() }
+                for _ in 0..<12 where !restore.isHittable { app.swipeUp() }
                 XCTAssertTrue(restore.isEnabled)
                 XCTAssertFalse(app.alerts.firstMatch.exists)
                 app.terminate()
@@ -469,18 +469,12 @@ final class NavigationTests: NavigationTestCase {
             back(app)
             XCTAssertTrue(badge.waitForExistence(timeout: 10))
         }
-        // The Free badge opens plan selection. Paid membership uses Apple's
-        // sheet; inspect the dMsg plan screen through its remaining list row.
-        if tier == "Free" { badge.tap() }
-        else {
-            let plan = app.buttons["account.plan"]
-            for _ in 0..<4 where !plan.isHittable { app.swipeUp() }
-            XCTAssertTrue(plan.isHittable); plan.tap()
-        }
+        // All tiers enter the same comparison and management screen.
+        badge.tap()
         let usage = app.descendants(matching: .any).matching(identifier: "plan.usage").firstMatch
         XCTAssertTrue(usage.waitForExistence(timeout: 10))
         let manage = app.buttons["plan.manage"]
-        for _ in 0..<5 where !manage.isHittable { app.swipeUp() }
+        for _ in 0..<12 where !manage.isHittable { app.swipeUp() }
         XCTAssertTrue(manage.isHittable)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.backup-limit.Free").firstMatch.exists)
         if tier != "Free" {
@@ -981,5 +975,96 @@ final class DeviceNavigationTests: NavigationTestCase {
             XCTAssertFalse(app.staticTexts["pair.desktop.device"].exists, "Typing an invitation does not authorize a device")
             app.terminate()
         }
+    }
+}
+
+final class SubscriptionPresentationTests: NavigationTestCase {
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication, up: Bool = true) {
+        for _ in 0..<26 where !element.isHittable {
+            if up { app.swipeUp(velocity: .slow) } else { app.swipeDown(velocity: .slow) }
+        }
+        if !element.isHittable { capture(app, name: "Unable to reveal \(element.identifier)") }
+        XCTAssertTrue(element.isHittable)
+    }
+
+    private func openPlans(_ app: XCUIApplication, language: String, locale: String, account: String, flags: [String] = []) {
+        app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-plan-products", "-AppleLanguages", "(\(language))", "-AppleLocale", locale] + flags
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: account).tap()
+        let plan = app.buttons["account.membership-badge"]
+        reveal(plan, in: app); plan.tap()
+    }
+
+    func testLocalizedCardsAndFullComparison() {
+        for (language, locale, account, subscribe, dark) in [
+            ("zh-Hans", "zh_CN", "我的", "订阅 Plus", false),
+            ("zh-Hant", "zh_TW", "我的", "訂閱 Plus", true),
+            ("de", "de_DE", "Konto", "Plus abonnieren", false),
+            ("ar", "ar_SA", "الحساب", "الاشتراك في Plus", true)
+        ] {
+            let app = XCUIApplication()
+            openPlans(app, language: language, locale: locale, account: account, flags: dark ? ["--ui-dark"] : [])
+            let subscribeButton = app.buttons["plan.purchase.fixture-plus"]
+            reveal(subscribeButton, in: app)
+            // Foundation isolates the Latin plan name inside RTL text.
+            let label = subscribeButton.label.replacingOccurrences(of: "\u{2068}", with: "").replacingOccurrences(of: "\u{2069}", with: "")
+            XCTAssertEqual(label, subscribe)
+            XCTAssertTrue(subscribeButton.isEnabled)
+            XCTAssertTrue((subscribeButton.value as? String)?.contains("HK$88.00") == true)
+            XCTAssertGreaterThanOrEqual(subscribeButton.frame.height, 44)
+            XCTAssertFalse(app.staticTexts["1 GiB encrypted storage for your private workspace."].exists)
+            capture(app, name: "Plan card · \(language) · \(dark ? "dark" : "light")")
+            let compare = app.buttons["plan.compare"]
+            reveal(compare, in: app, up: false); compare.tap()
+            let view = app.descendants(matching: .any).matching(identifier: "plan.comparison").firstMatch
+            XCTAssertTrue(view.waitForExistence(timeout: 5))
+            for tier in ["Free", "Plus", "Pro", "Max"] { XCTAssertTrue(app.staticTexts[tier].firstMatch.exists, tier) }
+            capture(app, name: "Full comparison · \(language) · \(dark ? "dark" : "light")")
+            app.terminate()
+        }
+    }
+
+    func testPlusSubscriberCanCompareAndFindMaxUpgradeWithoutStartingAnotherPurchase() {
+        let app = XCUIApplication()
+        openPlans(app, language: "zh-Hans", locale: "zh_CN", account: "我的", flags: ["--ui-plus-subscription"])
+        let manage = app.buttons["plan.manage"]
+        XCTAssertTrue(manage.waitForExistence(timeout: 5))
+        XCTAssertTrue(manage.isHittable, "Existing subscribers can manage billing before browsing upgrade cards")
+        let pro = app.buttons["plan.change.Pro"]
+        reveal(pro, in: app)
+        XCTAssertEqual(pro.label, "升级至 Pro")
+        let max = app.buttons["plan.change.Max"]
+        reveal(max, in: app)
+        XCTAssertEqual(max.label, "升级至 Max")
+        XCTAssertTrue(max.isEnabled)
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "plan.purchase.")).count, 0)
+        capture(app, name: "Subscribed Plus · Max upgrade differences")
+        let compare = app.buttons["plan.compare"]
+        reveal(compare, in: app, up: false); compare.tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "plan.comparison").firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["100 GiB"].firstMatch.exists)
+        capture(app, name: "Subscribed Plus · Full comparison")
+    }
+
+    func testBenefitsRetryAndComparisonAtAccessibilityTextSize() {
+        let app = XCUIApplication()
+        openPlans(app, language: "en", locale: "en_US", account: "Account", flags: ["--ui-catalogue-unavailable", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        let retry = app.buttons["plan.catalogue-retry"]
+        reveal(retry, in: app)
+        XCTAssertTrue(app.staticTexts["plan.catalogue-error"].exists)
+        retry.tap()
+        let compare = app.buttons["plan.compare"]
+        XCTAssertTrue(compare.waitForExistence(timeout: 5))
+        reveal(compare, in: app, up: false); compare.tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "plan.comparison").firstMatch.waitForExistence(timeout: 5))
+        capture(app, name: "Full comparison · Accessibility text")
+        let plus = app.descendants(matching: .any).matching(identifier: "plan.compare.storage.Plus").firstMatch
+        reveal(plus, in: app)
+        let free = app.descendants(matching: .any).matching(identifier: "plan.compare.storage.Free").firstMatch
+        XCTAssertTrue(free.exists)
+        XCTAssertGreaterThan(plus.frame.minY, free.frame.minY)
+        XCTAssertLessThanOrEqual(plus.frame.maxX, app.frame.maxX)
+        capture(app, name: "Full comparison · Stacked storage at accessibility size")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
     }
 }

@@ -849,6 +849,18 @@ fn catalog_benefits(c: &Catalog, wallet_quotas: Option<&[dmsg_types::wallet::Pla
         "effective_at_ms": c.effective_at_ms,
         "plans": c.plans.iter().map(|p| {
             let mut limits = limits_view(&p.limits, &p.plan_id);
+            // Display the published file-service policy, not a storage-pack
+            // allowance. Actual upload/link admission stays with the service.
+            limits["backup_max_file_bytes"] = match p.plan_id {
+                PlanId::Max => crate::files::MAX_BACKUP,
+                _ => crate::files::MAX_FILE,
+            }.into();
+            limits["file_request_links"] = match p.plan_id {
+                PlanId::Free => 0u64,
+                PlanId::Plus => 10,
+                PlanId::Pro => 50,
+                PlanId::Max => 200,
+            }.into();
             // The hub treats a missing tier as zero; a failed read stays
             // unknown instead of inventing a quota or hiding other benefits.
             limits["team_wallets"] = wallet_quotas.map(|quotas| {

@@ -9,6 +9,13 @@ tracked separately. Build and device-test evidence is recorded in
 
 ### Unreleased — 2026-11-15
 
+- Explain Plus, Pro and Max with native benefit cards, StoreKit prices and clear
+  subscription buttons. Compare all four plans without leaving the app.
+- Keep upgrade differences visible to existing subscribers and route every
+  membership badge through Plan and usage before Apple's management sheet.
+- Localize plan benefits and actions in all 23 languages, including layouts for
+  right-to-left languages and accessibility text sizes.
+
 - Show purchase activity beside the selected price immediately, with separate
   preparation, App Store confirmation and activation messages in all 23 languages.
 - Run purchase eligibility and device preparation concurrently, then recheck

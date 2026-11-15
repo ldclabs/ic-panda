@@ -3318,5 +3318,53 @@
 	<string>Satın almanız etkinleştiriliyor…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Ödeme yapmadan önce satın almayı Apple üzerinden onaylayacaksınız.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Bu avantajlar hakkında</string>
+	<key>Active devices</key>
+	<string>Etkin cihazlar</string>
+	<key>Active file request links</key>
+	<string>Etkin dosya isteme bağlantıları</string>
+	<key>Change plan</key>
+	<string>Planı değiştir</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Sınırlar, oluşturduğunuz veya finanse ettiğiniz kanallar için geçerlidir. Normal cihaz imzaları aylık kotayı tüketmez.</string>
+	<key>Compare all plans</key>
+	<string>Tüm planları karşılaştır</string>
+	<key>Current plan</key>
+	<string>Mevcut plan</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Tüm planlarda uçtan uca şifreleme ve cihaz erişimini iptal etme dahildir.</string>
+	<key>For everyday file exchange.</key>
+	<string>Günlük dosya alışverişi için.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Büyük yedekler ve sık iş birliği için.</string>
+	<key>For more files and devices.</key>
+	<string>Daha fazla dosya ve cihaz için.</string>
+	<key>For your everyday essentials.</key>
+	<string>Günlük temel ihtiyaçlarınız için.</string>
+	<key>No charge</key>
+	<string>Ücretsiz</string>
+	<key>Not included</key>
+	<string>Dahil değil</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Plan avantajları yüklenemedi. Tekrar deneyin.</string>
+	<key>Price unavailable</key>
+	<string>Fiyat alınamıyor</string>
+	<key>Subscribe to %@</key>
+	<string>%@ aboneliği al</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>Yedekleme dosya sınırı bulut yedekleri için geçerlidir. Dosya paylaşımı ve kanal eklerinin kendi sınırları vardır.</string>
+	<key>Unavailable</key>
+	<string>Kullanılamıyor</string>
+	<key>Upgrade to %@</key>
+	<string>%@ planına yükselt</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Cüzdan etkinleştirme ayrıca ücretlendirilir; kullanılabilirliği uygulamadan kontrol edin.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Sınırlar temel plan içindir. Depolama paketleri ek kapasite sağlar. Aylık yürütme birimleri etkin süreye göre hesaplanır ve plan değiştirildiğinde sıfırlanmaz.</string>
+	<key>Multisig wallet slots</key>
+	<string>Çok imzalı cüzdanı kotası</string>
 </dict>
 </plist>

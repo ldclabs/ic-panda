@@ -3318,5 +3318,53 @@
 	<string>आपकी खरीद सक्रिय की जा रही है…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>भुगतान से पहले आप Apple के माध्यम से खरीद की पुष्टि करेंगे।</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>इन सुविधाओं के बारे में</string>
+	<key>Active devices</key>
+	<string>सक्रिय डिवाइस</string>
+	<key>Active file request links</key>
+	<string>सक्रिय फ़ाइल अनुरोध लिंक</string>
+	<key>Change plan</key>
+	<string>प्लान बदलें</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>चैनल की सीमा आपके बनाए या प्रायोजित चैनलों पर लागू होती है। सामान्य डिवाइस हस्ताक्षर मासिक कोटे का उपयोग नहीं करते।</string>
+	<key>Compare all plans</key>
+	<string>सभी प्लान की तुलना करें</string>
+	<key>Current plan</key>
+	<string>मौजूदा प्लान</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>हर प्लान में एंड-टू-एंड एन्क्रिप्शन और डिवाइस का ऐक्सेस रद्द करने की सुविधा शामिल है।</string>
+	<key>For everyday file exchange.</key>
+	<string>रोज़ाना फ़ाइलों के आदान-प्रदान के लिए।</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>बड़े बैकअप और नियमित सहयोग के लिए।</string>
+	<key>For more files and devices.</key>
+	<string>ज़्यादा फ़ाइलों और डिवाइस के लिए।</string>
+	<key>For your everyday essentials.</key>
+	<string>आपकी रोज़मर्रा की ज़रूरी चीज़ों के लिए।</string>
+	<key>No charge</key>
+	<string>मुफ़्त</string>
+	<key>Not included</key>
+	<string>शामिल नहीं</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>प्लान की सुविधाएँ लोड नहीं हो सकीं। फिर से कोशिश करें।</string>
+	<key>Price unavailable</key>
+	<string>कीमत उपलब्ध नहीं</string>
+	<key>Subscribe to %@</key>
+	<string>%@ की सदस्यता लें</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>बैकअप फ़ाइल की सीमा क्लाउड बैकअप पर लागू होती है। फ़ाइल साझा करने और चैनल अटैचमेंट की अपनी सीमाएँ हैं।</string>
+	<key>Unavailable</key>
+	<string>उपलब्ध नहीं</string>
+	<key>Upgrade to %@</key>
+	<string>%@ में अपग्रेड करें</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>वॉलेट चालू करने का शुल्क अलग है; उपलब्धता ऐप में देखें।</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>सीमाएँ बेस प्लान के लिए हैं। स्टोरेज पैक से अतिरिक्त क्षमता मिलती है। मासिक निष्पादन इकाइयाँ सक्रिय अवधि के अनुपात में मिलती हैं और प्लान बदलने पर रीसेट नहीं होतीं।</string>
+	<key>Multisig wallet slots</key>
+	<string>मल्टीसिग वॉलेट की सीमा</string>
 </dict>
 </plist>

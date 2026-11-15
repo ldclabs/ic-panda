@@ -3318,5 +3318,53 @@
 	<string>購入内容を適用中…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>お支払い前にAppleの画面で購入を確認します。</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>特典について</string>
+	<key>Active devices</key>
+	<string>有効なデバイス</string>
+	<key>Active file request links</key>
+	<string>有効なファイル収集リンク</string>
+	<key>Change plan</key>
+	<string>プランを変更</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>チャンネルの上限は、自分が作成または費用を負担するものが対象です。通常のデバイス署名は月間枠を消費しません。</string>
+	<key>Compare all plans</key>
+	<string>すべてのプランを比較</string>
+	<key>Current plan</key>
+	<string>現在のプラン</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>すべてのプランにエンドツーエンド暗号化とデバイスのアクセス取り消しが含まれます。</string>
+	<key>For everyday file exchange.</key>
+	<string>日常的なファイルのやり取りに。</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>大容量のバックアップと頻繁な共同作業に。</string>
+	<key>For more files and devices.</key>
+	<string>より多くのファイルとデバイスに。</string>
+	<key>For your everyday essentials.</key>
+	<string>毎日の大切なものに。</string>
+	<key>No charge</key>
+	<string>無料</string>
+	<key>Not included</key>
+	<string>含まれません</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>プランの特典を読み込めませんでした。もう一度お試しください。</string>
+	<key>Price unavailable</key>
+	<string>価格を取得できません</string>
+	<key>Subscribe to %@</key>
+	<string>%@ を契約</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>バックアップファイルの上限は、クラウドバックアップに適用されます。ファイル共有とチャンネルの添付ファイルには、それぞれ別の上限があります。</string>
+	<key>Unavailable</key>
+	<string>利用できません</string>
+	<key>Upgrade to %@</key>
+	<string>%@ にアップグレード</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>ウォレットの開設には別途料金がかかります。利用可否はアプリでご確認ください。</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>上限は基本プランのものです。ストレージパックは容量を追加します。月間実行枠は有効期間に応じて按分され、プランを変更しても使用済み枠はリセットされません。</string>
+	<key>Multisig wallet slots</key>
+	<string>マルチシグウォレット枠</string>
 </dict>
 </plist>

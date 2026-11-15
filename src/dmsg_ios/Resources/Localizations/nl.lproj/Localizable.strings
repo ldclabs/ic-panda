@@ -3318,5 +3318,53 @@
 	<string>Je aankoop activeren…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Je bevestigt de aankoop bij Apple voordat je betaalt.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Over deze voordelen</string>
+	<key>Active devices</key>
+	<string>Actieve apparaten</string>
+	<key>Active file request links</key>
+	<string>Actieve links voor bestandsverzoeken</string>
+	<key>Change plan</key>
+	<string>Abonnement wijzigen</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>De limieten gelden voor kanalen die je maakt of financiert. Gewone apparaathandtekeningen gebruiken de maandlimiet niet.</string>
+	<key>Compare all plans</key>
+	<string>Alle abonnementen vergelijken</string>
+	<key>Current plan</key>
+	<string>Huidig abonnement</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Elk abonnement bevat end-to-end-versleuteling en het intrekken van apparaattoegang.</string>
+	<key>For everyday file exchange.</key>
+	<string>Voor het dagelijks uitwisselen van bestanden.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Voor grote back-ups en regelmatige samenwerking.</string>
+	<key>For more files and devices.</key>
+	<string>Voor meer bestanden en apparaten.</string>
+	<key>For your everyday essentials.</key>
+	<string>Voor je dagelijkse basiszaken.</string>
+	<key>No charge</key>
+	<string>Gratis</string>
+	<key>Not included</key>
+	<string>Niet inbegrepen</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>De abonnementsvoordelen konden niet worden geladen. Probeer het opnieuw.</string>
+	<key>Price unavailable</key>
+	<string>Prijs niet beschikbaar</string>
+	<key>Subscribe to %@</key>
+	<string>Abonneren op %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>De bestandslimiet voor back-ups geldt voor cloudback-ups. Bestanden delen en bijlagen in kanalen hebben hun eigen limieten.</string>
+	<key>Unavailable</key>
+	<string>Niet beschikbaar</string>
+	<key>Upgrade to %@</key>
+	<string>Upgraden naar %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Walletactivering wordt apart berekend; bekijk de beschikbaarheid in de app.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>De limieten gelden voor het basisabonnement. Opslagpakketten voegen capaciteit toe. Maandelijkse uitvoeringseenheden worden naar rato berekend en worden niet gereset bij een abonnementswijziging.</string>
+	<key>Multisig wallet slots</key>
+	<string>Multisig-walletlimiet</string>
 </dict>
 </plist>

@@ -3318,5 +3318,53 @@
 	<string>جارٍ تفعيل مشترياتك…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>ستؤكد الشراء لدى Apple قبل الدفع.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>حول هذه المزايا</string>
+	<key>Active devices</key>
+	<string>الأجهزة النشطة</string>
+	<key>Active file request links</key>
+	<string>روابط طلب الملفات النشطة</string>
+	<key>Change plan</key>
+	<string>تغيير الخطة</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>تسري الحدود على القنوات التي تنشئها أو ترعاها. لا تستهلك توقيعات الأجهزة العادية الحصة الشهرية.</string>
+	<key>Compare all plans</key>
+	<string>مقارنة جميع الخطط</string>
+	<key>Current plan</key>
+	<string>الخطة الحالية</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>تتضمن جميع الخطط التشفير التام بين الطرفين وإلغاء صلاحية الأجهزة.</string>
+	<key>For everyday file exchange.</key>
+	<string>لتبادل الملفات اليومي.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>للنسخ الاحتياطية الكبيرة والتعاون المتكرر.</string>
+	<key>For more files and devices.</key>
+	<string>لمزيد من الملفات والأجهزة.</string>
+	<key>For your everyday essentials.</key>
+	<string>لأساسياتك اليومية.</string>
+	<key>No charge</key>
+	<string>مجانًا</string>
+	<key>Not included</key>
+	<string>غير مشمول</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>تعذّر تحميل مزايا الخطط. حاول مرة أخرى.</string>
+	<key>Price unavailable</key>
+	<string>السعر غير متاح</string>
+	<key>Subscribe to %@</key>
+	<string>الاشتراك في %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>ينطبق حد ملفات النسخ الاحتياطي على النسخ الاحتياطية السحابية. ولمشاركة الملفات ومرفقات القنوات حدودها الخاصة.</string>
+	<key>Unavailable</key>
+	<string>غير متاح</string>
+	<key>Upgrade to %@</key>
+	<string>الترقية إلى %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>تُفرض رسوم منفصلة لتفعيل المحافظ؛ تحقّق من التوفر في التطبيق.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>الحدود تخص الخطة الأساسية. تُضاف باقات التخزين بشكل منفصل. تُحسب وحدات التنفيذ الشهرية بالتناسب مع المدة ولا تُعاد إلى الصفر عند تغيير الخطة.</string>
+	<key>Multisig wallet slots</key>
+	<string>حصة المحافظ متعددة التوقيعات</string>
 </dict>
 </plist>

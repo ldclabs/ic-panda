@@ -38,6 +38,18 @@ fn benefit_list_uses_tier_devices_and_the_hubs_actual_wallet_quotas() {
         assert_eq!(view["plans"][index]["limits"]["active_devices"], devices);
         assert_eq!(view["plans"][index]["limits"]["team_wallets"], wallets);
         assert_eq!(
+            view["plans"][index]["limits"]["file_request_links"],
+            [0, 10, 50, 200][index]
+        );
+        assert_eq!(
+            view["plans"][index]["limits"]["backup_max_file_bytes"],
+            if index == 3 {
+                crate::files::MAX_BACKUP
+            } else {
+                crate::files::MAX_FILE
+            }
+        );
+        assert_eq!(
             view["plans"][index]["limits"]["storage_bytes"],
             catalog.plans[index].limits.storage_bytes
         );

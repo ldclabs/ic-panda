@@ -3318,5 +3318,53 @@
 	<string>正在开通权益…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>付款前需在 Apple 确认页确认购买。</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>权益说明</string>
+	<key>Active devices</key>
+	<string>活跃设备</string>
+	<key>Active file request links</key>
+	<string>活跃收取文件链接</string>
+	<key>Change plan</key>
+	<string>更改套餐</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>频道额度用于你创建或赞助的频道；普通设备签名不消耗每月正式签名额度。</string>
+	<key>Compare all plans</key>
+	<string>对比所有套餐</string>
+	<key>Current plan</key>
+	<string>当前套餐</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>所有套餐均包含端到端加密和设备撤销。</string>
+	<key>For everyday file exchange.</key>
+	<string>日常收集与交付文件。</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>适合大文件备份与频繁协作。</string>
+	<key>For more files and devices.</key>
+	<string>管理更多文件与设备。</string>
+	<key>For your everyday essentials.</key>
+	<string>保存日常重要资料。</string>
+	<key>No charge</key>
+	<string>免费</string>
+	<key>Not included</key>
+	<string>不包含</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>无法加载套餐权益，请重试。</string>
+	<key>Price unavailable</key>
+	<string>价格暂不可用</string>
+	<key>Subscribe to %@</key>
+	<string>订阅 %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>单文件备份上限适用于云备份；文件分享和频道附件有各自的限制。</string>
+	<key>Unavailable</key>
+	<string>暂不可用</string>
+	<key>Upgrade to %@</key>
+	<string>升级至 %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>多签钱包另收开通费，开放情况请在客户端查看。</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>以上为基础套餐额度，存储包另行增加容量。每月执行额度按有效时长折算，更改套餐不会重置已用额度。</string>
+	<key>Multisig wallet slots</key>
+	<string>多签钱包名额</string>
 </dict>
 </plist>

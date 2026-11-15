@@ -4,6 +4,18 @@ import XCTest
 final class LocalizationTests: XCTestCase {
     private let languages = ["en", "zh-Hans", "zh-Hant", "fr", "es", "ru", "ar", "hi", "id", "pt-BR", "ja", "de", "ko", "it", "tr", "vi", "th", "fil", "ms", "bn", "ur", "pl", "nl"]
 
+    func testPlanSelectionAndComparisonAreTranslatedInEveryInterfaceLanguage() throws {
+        for language in languages where language != "en" {
+            let path = try XCTUnwrap(Bundle.main.path(forResource: language, ofType: "lproj"))
+            let bundle = try XCTUnwrap(Bundle(path: path))
+            for key in ["Compare all plans", "Current plan", "For large backups and frequent collaboration.", "Subscribe to %@", "Upgrade to %@", "Change plan", "Active devices", "Active file request links", "Price unavailable", "Plan benefits could not be loaded. Try again.", "Every plan includes end-to-end encryption and device revocation."] {
+                let value = bundle.localizedString(forKey: key, value: nil, table: nil)
+                XCTAssertFalse(value.isEmpty, "\(language): \(key)")
+                XCTAssertNotEqual(value, key, "\(language): \(key)")
+            }
+        }
+    }
+
     func testBundleContainsEveryInterfaceLanguageAndOfflinePolicy() throws {
         for language in languages {
             XCTAssertTrue(Bundle.main.localizations.contains(language), language)

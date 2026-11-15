@@ -3318,5 +3318,53 @@
 	<string>Ativando sua compra…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Você confirmará a compra com a Apple antes de pagar.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Sobre estes benefícios</string>
+	<key>Active devices</key>
+	<string>Dispositivos ativos</string>
+	<key>Active file request links</key>
+	<string>Links ativos para solicitar arquivos</string>
+	<key>Change plan</key>
+	<string>Alterar plano</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Os limites valem para os canais que você cria ou patrocina. Assinaturas comuns dos dispositivos não consomem a cota mensal.</string>
+	<key>Compare all plans</key>
+	<string>Comparar todos os planos</string>
+	<key>Current plan</key>
+	<string>Plano atual</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Todos os planos incluem criptografia de ponta a ponta e revogação de dispositivos.</string>
+	<key>For everyday file exchange.</key>
+	<string>Para a troca de arquivos do dia a dia.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Para backups grandes e colaboração frequente.</string>
+	<key>For more files and devices.</key>
+	<string>Para mais arquivos e dispositivos.</string>
+	<key>For your everyday essentials.</key>
+	<string>Para o essencial do dia a dia.</string>
+	<key>No charge</key>
+	<string>Grátis</string>
+	<key>Not included</key>
+	<string>Não incluído</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Não foi possível carregar os benefícios dos planos. Tente novamente.</string>
+	<key>Price unavailable</key>
+	<string>Preço indisponível</string>
+	<key>Subscribe to %@</key>
+	<string>Assinar %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>O limite por arquivo de backup se aplica aos backups na nuvem. Compartilhamento de arquivos e anexos de canais têm limites próprios.</string>
+	<key>Unavailable</key>
+	<string>Indisponível</string>
+	<key>Upgrade to %@</key>
+	<string>Fazer upgrade para %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>A ativação de carteiras é cobrada separadamente; confira a disponibilidade no aplicativo.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Os limites são do plano base. Pacotes de armazenamento adicionam capacidade. As unidades mensais de execução são proporcionais ao período ativo e não são redefinidas ao alterar o plano.</string>
+	<key>Multisig wallet slots</key>
+	<string>Vagas para carteiras multifirma</string>
 </dict>
 </plist>

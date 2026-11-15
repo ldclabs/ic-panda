@@ -312,6 +312,25 @@ failed subscription-status read, or Restore purchases, uses `AppStore.sync()`;
 the app no longer refreshes app-download credentials as a prerequisite to buying.
 Late reads and synchronization results from a previous dMsg account are discarded.
 
+Plan cards describe the intended use, encrypted storage, device capacity and
+file collection or large-backup benefits. Their figures come from the certified
+commerce catalogue and the wallet hub's current creation quotas, exposed through
+`plan_catalog`; unavailable wallet quotas remain unknown. The shared client adds
+the published backup and file-request policy to this display. It does not change
+server admission. StoreKit's governed product mapping supplies the tier, and
+StoreKit alone supplies the localized price and billing period; cash catalogue
+prices are never used for an iOS offer.
+
+Compare all plans is a native screen with Free, Plus, Pro and Max, including
+backup limits, active upload links, conversations, execution allowance and wallet
+slots. Accessibility text uses stacked values rather than a four-column layout.
+The account membership badge opens this page's parent for every tier. Existing
+subscribers can manage billing in the current-plan section and retain the cards
+and upgrade differences; their actions open Apple's
+subscription management instead of starting a second purchase. First purchases
+keep the existing preflight, duplicate protection and local progress. No pricing
+website link is added. All new copy is localized in the app's 23 languages.
+
 The plan page keeps the current entitlement separate from the product scheduled
 for the next renewal. Returning from Apple subscription management or foregrounding
 the page refreshes that schedule after the workspace privacy cover lifts. Explicit

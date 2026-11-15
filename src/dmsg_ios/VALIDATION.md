@@ -1,5 +1,53 @@
 # iOS implementation validation
 
+## Membership cards and native comparison (2026-11-15)
+
+Implemented on the `916c9dd6` worktree. Plus, Pro and Max have localized use-case
+copy, visible resource differences, StoreKit prices/periods and explicit actions.
+All four tiers can be compared in-app. The account membership badge opens Plan
+and usage for every tier; active subscribers can manage billing in the current
+plan section before browsing upgrade cards. Existing subscriptions use Apple's
+management sheet, while first purchases keep the original preflight and delivery
+flow. No pricing website link was added.
+
+The mobile `plan_catalog` entry reuses the shared certified catalogue and live
+wallet quota reader. The shared display includes the published backup and file
+request policy; it does not change admission. Unknown wallet quotas are not zero,
+and governed product-to-tier mapping is decoded rather than guessed from SKU
+names. The native display model does not decode cash catalogue prices.
+
+Validation:
+
+- SE-sized iOS 18.4: all 213 Swift unit tests passed with local simulator signing.
+  Three focused UI scenarios passed across the signed runs: localized cards and
+  comparison, existing Plus upgrade choices, and catalogue retry/large text.
+  The initial unsigned run's three Keychain tests required entitlements; all
+  three passed after local signing was enabled.
+- iPhone 18 Pro Max, iOS 27.0: eight selected unit tests and seven UI tests passed.
+  Coverage includes Chinese light/dark, Traditional Chinese, German, Arabic RTL,
+  maximum accessibility text with stacked values, pending purchase phases,
+  foreign-account restrictions and scheduled downgrades. The long tool call
+  timed out while Xcode continued; the completed xcresult reports 15 passed,
+  zero failed, and the Xcode log ends with TEST EXECUTE SUCCEEDED.
+- After moving managed subscriptions into the current-plan section, the Plus
+  upgrade/management test and purchase-disabled read-only test both passed again.
+- Screenshots of cards, comparison, purchase progress and large-text layout were
+  exported from the test results and inspected. A container identifier that
+  obscured button identifiers was removed. RTL assertions preserve Foundation's
+  bidi isolation, and short slow scrolls avoid skipping controls at large sizes.
+- All 23 language resources passed key, format and plural checks and verification
+  against Swift's extracted strings. New plan strings have no English fallback
+  in the translated bundles.
+- The 10 shared commerce client tests, client/mobile Clippy with warnings denied,
+  formatting and diff checks passed. Optimized host/device/simulator Rust bridge
+  artifacts were rebuilt and their source fingerprint verified. Debug and Release
+  simulator app builds passed.
+
+UI checks use explicit offline fixtures. No physical-device, VoiceOver,
+real-Apple-payment, archive, upload or production deployment check was performed.
+
+Implementation and validation: Codex (OpenAI).
+
 ## Visible purchase preparation (2026-11-15)
 
 The selected price now keeps an activity indicator and distinct preparation,

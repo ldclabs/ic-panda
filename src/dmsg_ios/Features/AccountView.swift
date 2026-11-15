@@ -1,5 +1,4 @@
 import SwiftUI
-import StoreKit
 import DMsgCore
 
 struct AccountView: View {
@@ -7,7 +6,6 @@ struct AccountView: View {
     @Environment(SessionModel.self) private var model
     @State private var signingOut = false
     @State private var destination: Destination?
-    @State private var managing = false
     @State private var profile: AccountProfile?
     @State private var avatar: UIImage?
     @State private var display = DisplayLoad()
@@ -85,15 +83,11 @@ struct AccountView: View {
                 case .plan: SubscriptionView()
                 }
             }
-            .manageSubscriptionsSheet(isPresented: $managing)
             .task(id: "\(model.epoch):\(model.concealed):\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0):\(model.profileRevision)") { await loadProfile(force: loadedProfileRevision != model.profileRevision) }
             // Unlock can create this view before authentication removes the privacy
             // shield. Resume reads when it lifts, even if the account is unchanged.
             .task(id: "plan:\(model.epoch):\(model.concealed):\(model.session?.account ?? ""):\(model.session?.generation ?? 0):\(model.purchases.revision)") {
                 await loadPlan(force: loadedPurchaseRevision != model.purchases.revision)
-            }
-            .onChange(of: managing) { wasPresented, isPresented in
-                if wasPresented && !isPresented { Task { await loadPlan(force: true) } }
             }
             .onDisappear { avatarTask?.cancel() }
             .toolbar {
@@ -104,10 +98,6 @@ struct AccountView: View {
                 Button("Sign out", role: .destructive) { Task { await logout() } }
                 Button("Cancel", role: .cancel) { }
             } message: { Text("Your encrypted files remain here. Saved login and quick unlock are removed.") }
-    }
-
-    private var managesSubscription: Bool {
-        model.purchases.showsControls && plan?.managesSubscription(environment: model.purchases.storeEnvironment) == true
     }
 
     @ViewBuilder private var accountHeader: some View {
@@ -127,10 +117,7 @@ struct AccountView: View {
 
     @ViewBuilder private var membershipBadge: some View {
         if let plan {
-            Button {
-                if managesSubscription { managing = true }
-                else { destination = .plan }
-            } label: {
+            Button { destination = .plan } label: {
                 HStack(spacing: 8) {
                     AppGlyph.plan.image
                     Text(verbatim: plan.plan)
@@ -142,7 +129,7 @@ struct AccountView: View {
                 .frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).disabled(model.purchases.working)
                 .accessibilityLabel(Text("Plan") + Text(verbatim: ": \(plan.plan)"))
-                .accessibilityHint(managesSubscription ? Text("Manage subscriptions") : Text("Plan and usage"))
+                .accessibilityHint(Text("Plan and usage"))
                 .accessibilityIdentifier("account.membership-badge")
         } else if !planDisplay.failed {
             ProgressView().controlSize(.small).accessibilityLabel("Loading…")

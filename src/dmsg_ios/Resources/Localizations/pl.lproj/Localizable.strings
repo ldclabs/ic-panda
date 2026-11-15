@@ -3318,5 +3318,53 @@
 	<string>Aktywowanie zakupu…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Przed zapłatą potwierdzisz zakup w Apple.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Informacje o korzyściach</string>
+	<key>Active devices</key>
+	<string>Aktywne urządzenia</string>
+	<key>Active file request links</key>
+	<string>Aktywne linki do zbierania plików</string>
+	<key>Change plan</key>
+	<string>Zmień plan</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Limity dotyczą kanałów, które tworzysz lub finansujesz. Zwykłe podpisy urządzeń nie zużywają miesięcznej puli.</string>
+	<key>Compare all plans</key>
+	<string>Porównaj wszystkie plany</string>
+	<key>Current plan</key>
+	<string>Bieżący plan</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Każdy plan obejmuje szyfrowanie end-to-end i odbieranie dostępu urządzeniom.</string>
+	<key>For everyday file exchange.</key>
+	<string>Do codziennej wymiany plików.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Do dużych kopii zapasowych i częstej współpracy.</string>
+	<key>For more files and devices.</key>
+	<string>Dla większej liczby plików i urządzeń.</string>
+	<key>For your everyday essentials.</key>
+	<string>Na codzienne najważniejsze rzeczy.</string>
+	<key>No charge</key>
+	<string>Bezpłatnie</string>
+	<key>Not included</key>
+	<string>Nie obejmuje</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Nie udało się wczytać korzyści planów. Spróbuj ponownie.</string>
+	<key>Price unavailable</key>
+	<string>Cena niedostępna</string>
+	<key>Subscribe to %@</key>
+	<string>Subskrybuj %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>Limit pliku kopii zapasowej dotyczy kopii zapasowych w chmurze. Udostępnianie plików i załączniki w kanałach mają własne limity.</string>
+	<key>Unavailable</key>
+	<string>Niedostępne</string>
+	<key>Upgrade to %@</key>
+	<string>Przejdź na %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Aktywacja portfeli jest płatna osobno; sprawdź dostępność w aplikacji.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Limity dotyczą planu podstawowego. Pakiety przestrzeni zwiększają pojemność. Miesięczne jednostki wykonania są naliczane proporcjonalnie i nie resetują się po zmianie planu.</string>
+	<key>Multisig wallet slots</key>
+	<string>Limit portfeli wielopodpisowych</string>
 </dict>
 </plist>

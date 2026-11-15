@@ -23,14 +23,21 @@ final class PurchaseModel {
     var showsControls: Bool {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription") || args.contains("--ui-foreign-subscription") || args.contains("--ui-scheduled-subscription") || args.contains("--ui-subscription-status-unavailable") || args.contains("--ui-stale-subscription") || args.contains("--ui-expired-subscription")) { return true }
+        if args.contains("--ui-testing") && (args.contains("--ui-purchases") || args.contains("--ui-sandbox-subscription") || args.contains("--ui-max-subscription") || args.contains("--ui-plus-subscription") || args.contains("--ui-foreign-subscription") || args.contains("--ui-scheduled-subscription") || args.contains("--ui-subscription-status-unavailable") || args.contains("--ui-stale-subscription") || args.contains("--ui-expired-subscription")) { return true }
         #endif
         return enabled
     }
 
     struct Catalogue: Decodable {
         struct Configuration: Decodable {
-            struct ProductID: Decodable { let productId: String }
+            struct ProductID: Decodable {
+                struct Kind: Decodable {
+                    let plan: String?
+                    enum CodingKeys: String, CodingKey { case plan = "Plan" }
+                }
+                let productId: String
+                var kind: Kind? = nil
+            }
             let bundleId: String; let appAppleId: UInt64; let products: [ProductID]
         }
         let configuration: Configuration?; let accountToken: String
@@ -115,6 +122,7 @@ final class PurchaseModel {
         }
     }
     private(set) var products: [Product] = []
+    private(set) var productPlans: [String: String] = [:]
     private(set) var hasUnavailableProducts = false
     private(set) var loadIssue: LoadIssue?
     private(set) var loading = false
@@ -281,7 +289,7 @@ final class PurchaseModel {
         loading = true
         defer { if read == loadRevision { loading = false } }
         if account != model.session?.account {
-            products = []; token = nil; pendingTransactions = [:]; pendingRefreshes = []; awaitingApproval = []; feedback = nil; account = model.session?.account
+            products = []; productPlans = [:]; token = nil; pendingTransactions = [:]; pendingRefreshes = []; awaitingApproval = []; feedback = nil; account = model.session?.account
         }
         if feedback == Self.otherAccountMessage || feedback == Self.unverifiedMessage { feedback = nil }
         subscriptions = []; storeEnvironment = nil; loadIssue = nil; hasUnavailableProducts = false
@@ -292,13 +300,16 @@ final class PurchaseModel {
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
             guard let config = catalogue.configuration else {
                 Self.logger.error("Commerce has no App Store product configuration")
-                products = []; token = nil; subscriptions = []; return
+                products = []; productPlans = [:]; token = nil; subscriptions = []; return
             }
             guard config.bundleId == "net.dmsg.ios", config.appAppleId == 6827050680,
                   let token = UUID(uuidString: catalogue.accountToken) else { throw CocoaError(.coderInvalidValue) }
             // Restore needs the account token, even if Apple's product/status
             // lookup fails. Each submitted transaction is verified independently.
             self.token = token
+            productPlans = Dictionary(config.products.compactMap { item in
+                item.kind?.plan.map { (item.productId, $0) }
+            }, uniquingKeysWith: { first, _ in first })
             stage = .products
             let found = try await store.products(config.products.map(\.productId))
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
@@ -335,7 +346,7 @@ final class PurchaseModel {
         } catch {
             if current(model, epoch: epoch, account: expectedAccount), read == loadRevision {
                 loadIssue = stage
-                if stage == .catalogue { token = nil; products = [] }
+                if stage == .catalogue { token = nil; products = []; productPlans = [:] }
                 if stage == .products { products = [] }
                 let failure = error as NSError
                 Self.logger.warning("App Store load failed at \(stage.rawValue, privacy: .public): \(failure.domain, privacy: .public) (\(failure.code))")
@@ -624,12 +635,12 @@ final class PurchaseModel {
         return args.contains("--ui-testing") && args.contains("--ui-purchase-progress")
     }
 
-    func startProgressFixture(_ model: SessionModel) {
+    func startProgressFixture(_ model: SessionModel, product: String = "fixture-plus") {
         guard showsProgressFixture, !working, let account = model.session?.account else { return }
         let args = ProcessInfo.processInfo.arguments
         let phase: PurchasePhase = args.contains("--ui-purchase-applying") ? .applying
             : args.contains("--ui-purchase-confirming") ? .confirming : .preparing
-        purchaseActivity = PurchaseActivity(product: "fixture-plus", account: account, epoch: model.epoch, phase: phase)
+        purchaseActivity = PurchaseActivity(product: product, account: account, epoch: model.epoch, phase: phase)
         working = true
     }
 

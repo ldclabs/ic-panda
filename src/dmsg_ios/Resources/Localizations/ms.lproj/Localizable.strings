@@ -3318,5 +3318,53 @@
 	<string>Mengaktifkan pembelian anda…</string>
 	<key>You'll confirm with Apple before paying.</key>
 	<string>Anda akan mengesahkan pembelian melalui Apple sebelum membayar.</string>
+	<key>%@ / %@</key>
+	<string>%@ / %@</string>
+	<key>About these benefits</key>
+	<string>Tentang manfaat ini</string>
+	<key>Active devices</key>
+	<string>Peranti aktif</string>
+	<key>Active file request links</key>
+	<string>Pautan permintaan fail aktif</string>
+	<key>Change plan</key>
+	<string>Tukar pelan</string>
+	<key>Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.</key>
+	<string>Had saluran digunakan pada saluran yang anda cipta atau taja. Tandatangan peranti biasa tidak menggunakan kuota bulanan.</string>
+	<key>Compare all plans</key>
+	<string>Bandingkan semua pelan</string>
+	<key>Current plan</key>
+	<string>Pelan semasa</string>
+	<key>Every plan includes end-to-end encryption and device revocation.</key>
+	<string>Semua pelan merangkumi penyulitan hujung ke hujung dan pembatalan akses peranti.</string>
+	<key>For everyday file exchange.</key>
+	<string>Untuk pertukaran fail harian.</string>
+	<key>For large backups and frequent collaboration.</key>
+	<string>Untuk sandaran besar dan kerjasama yang kerap.</string>
+	<key>For more files and devices.</key>
+	<string>Untuk lebih banyak fail dan peranti.</string>
+	<key>For your everyday essentials.</key>
+	<string>Untuk keperluan harian anda.</string>
+	<key>No charge</key>
+	<string>Percuma</string>
+	<key>Not included</key>
+	<string>Tidak termasuk</string>
+	<key>Plan benefits could not be loaded. Try again.</key>
+	<string>Manfaat pelan tidak dapat dimuatkan. Cuba lagi.</string>
+	<key>Price unavailable</key>
+	<string>Harga tidak tersedia</string>
+	<key>Subscribe to %@</key>
+	<string>Langgan %@</string>
+	<key>The backup file limit applies to cloud backups. File sharing and channel attachments have their own limits.</key>
+	<string>Had fail sandaran terpakai pada sandaran awan. Perkongsian fail dan lampiran saluran mempunyai had tersendiri.</string>
+	<key>Unavailable</key>
+	<string>Tidak tersedia</string>
+	<key>Upgrade to %@</key>
+	<string>Naik taraf ke %@</string>
+	<key>Wallet activation is charged separately; check availability in the app.</key>
+	<string>Pengaktifan dompet dikenakan bayaran berasingan; semak ketersediaan dalam aplikasi.</string>
+	<key>Limits are for the base plan. Storage packs are additional. Monthly execution units are prorated and do not reset when changing plans.</key>
+	<string>Had ini untuk pelan asas. Pakej storan menambah kapasiti. Unit pelaksanaan bulanan dikira mengikut tempoh aktif dan tidak ditetapkan semula apabila menukar pelan.</string>
+	<key>Multisig wallet slots</key>
+	<string>Kuota dompet berbilang tandatangan</string>
 </dict>
 </plist>
