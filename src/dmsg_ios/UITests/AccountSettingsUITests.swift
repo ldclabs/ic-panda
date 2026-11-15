@@ -21,6 +21,44 @@ import XCTest
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)
     }
 
+    func testDefaultWelcomeOffersPasskeyAndInternetIdentity() {
+        for (language, label) in [("en", "Continue with a passkey"), ("zh-Hans", "使用通行密钥"), ("ar", "المتابعة بمفتاح مرور")] {
+            let app = XCUIApplication()
+            // No --ui-passkey: the default preview must match the normal welcome screen.
+            app.launchArguments = ["--ui-testing", "--ui-welcome", "-AppleLanguages", "(\(language))"] + (language == "ar" ? ["--ui-dark"] : [])
+            app.launch()
+            let login = app.buttons["login.start"]
+            XCTAssertTrue(login.waitForExistence(timeout: 8))
+            XCTAssertEqual(login.label, label)
+            XCTAssertTrue(login.isEnabled)
+            XCTAssertTrue(app.buttons["login.ii"].exists)
+            XCTAssertFalse(app.alerts.firstMatch.exists)
+            capture(app, "Default welcome with both login methods · \(language)")
+            login.tap()
+            XCTAssertTrue(app.buttons["passkey.login"].waitForExistence(timeout: 3))
+            let create = app.buttons["login.create-passkey"]
+            for _ in 0..<6 where !create.isHittable { app.swipeUp(velocity: .slow) }
+            XCTAssertTrue(create.isHittable)
+            capture(app, "Default preview passkey choices · \(language)")
+            app.terminate()
+        }
+    }
+
+    func testWelcomeWithoutPasskeyCapabilityKeepsInternetIdentity() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-welcome", "--ui-no-passkey", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let login = app.buttons["login.start"]
+        XCTAssertTrue(login.waitForExistence(timeout: 8))
+        XCTAssertEqual(login.label, "Continue with Internet Identity")
+        XCTAssertTrue(login.isEnabled)
+        XCTAssertFalse(app.buttons["login.ii"].exists)
+        XCTAssertFalse(app.buttons["passkey.login"].exists)
+        XCTAssertFalse(app.buttons["login.create-passkey"].exists)
+        capture(app, "Explicit Internet Identity-only preview")
+        app.terminate()
+    }
+
     func testExpiredLoginKeepsLocalPasswordCopyAvailable() {
         for (language, accountTab, vaultTab) in [("en", "Account", "Vault"), ("zh-Hans", "我的", "保险库"), ("ar", "الحساب", "الخزنة")] {
             let app = XCUIApplication()

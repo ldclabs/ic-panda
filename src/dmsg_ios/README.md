@@ -1171,6 +1171,10 @@ The production issuer defaults to the shared production configuration. The welco
 
 The security binding flow offers an existing Passkey before creating another identity. Its progress indicator stays inside the active action. Deployment discovery also finishes before credential creation. A temporary failure keeps the same response and any verified identity while this screen remains open in the same session, so Continue never opens another creation prompt; within the original challenge window it renews an issuer signature that has already expired. Leaving, locking or a background pause that starts a new session generation clears that attempt; Use an existing passkey then links the saved Passkey. Newly created credentials have a short distinguishing label (`dMsg · <8 hex digits>`); existing password-manager entries are unchanged and must be removed there if unused.
 
+Debug UI fixtures (`--ui-testing --ui-welcome`) show the primary Passkey entry by
+default. Use `--ui-no-passkey` to exercise the Internet Identity-only fallback;
+`--ui-passkey` separately selects a renewable current login for session tests.
+These flags never change the real core's capability checks or Release builds.
 Simulator UI fixtures cannot validate a real Passkey origin or Secure Enclave persistence. Build, protocol, simulator and outstanding real-device checks are recorded in [Passkey validation](../../docs/passkey-validation_zh.md).
 
 If a selected Passkey has reached its session limit, recovery pins both sign-out and the following login to that credential. It preserves the current workspace and the original binding intent, including when the current account uses Internet Identity. Ordinary sign-out-all remains a separate operation for the current login. The native `beginPasskey` bridge now carries an optional credential restriction and a `ResetSessions` operation; regenerate the Swift bindings and both Rust slices together before building the app.

@@ -39,6 +39,8 @@ final class NavigationTests: NavigationTestCase {
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: login)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
         XCTAssertFalse(app.alerts.firstMatch.exists)
+        XCTAssertEqual(login.label, "Continue with a passkey")
+        XCTAssertTrue(app.buttons["login.ii"].exists)
         XCTAssertTrue(app.staticTexts["On your first visit, sign in and follow the steps to create your encrypted workspace."].exists)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Production startup with passkey self-registration"; shot.lifetime = .keepAlways; add(shot)

@@ -231,7 +231,7 @@ final class SessionModel {
         SessionSnapshot(generation: 0, sequence: 0, state: state, account: account, deviceId: "fixture-device",
                         pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: true,
                         loginExpiresAtMs: NotificationTime.now + 86_400_000, loginRenewable: false,
-                        passkeyAvailable: false, setupPending: false, lastSyncAtMs: nil, syncError: nil)
+                        passkeyAvailable: fixturePasskeyAvailable, setupPending: false, lastSyncAtMs: nil, syncError: nil)
     }
 
     func receiveChannelHintFixture(_ channel: String) {

@@ -1,5 +1,32 @@
 # iOS implementation validation
 
+## Passkey entry in default previews (2026-11-15)
+
+Debug presentation fixtures previously exposed Passkey capability only when
+`--ui-passkey` was supplied. Default welcome previews therefore showed only
+Internet Identity even though normal production-configured startup offered both
+methods. Fixtures now default to Passkey capability; `--ui-no-passkey` selects
+the II-only fallback, and reminder account transitions retain that capability.
+The current login's renewable-session flag remains an independent opt-in.
+Release capability checks and authentication behavior are unchanged.
+
+Validation on the `4c76616b` worktree:
+
+- iPhone 18 Pro Max, iOS 27.0: three focused UI tests passed. Default English,
+  Simplified Chinese and dark Arabic previews show both methods and open the
+  Passkey sign-in/create screen; the explicit II-only fallback also passes.
+- SE-sized iOS 18.4: those three tests and the existing expired-II-login/local
+  password-copy test passed, four total. Exported Chinese and Arabic screenshots
+  were inspected on both simulator sizes.
+- On both runtimes, the normal-startup test uses the real bridge without
+  `--ui-testing` or staging configuration and now asserts the Passkey label and
+  secondary Internet Identity entry, rather than only checking an enabled button.
+- Debug simulator builds and `git diff --check` passed. No real credential was
+  created or used; physical-device authentication and a Release archive were not
+  exercised for this fixture-only change.
+
+Implementation and validation: Codex (OpenAI).
+
 ## Membership cards and native comparison (2026-11-15)
 
 Implemented on the `916c9dd6` worktree. Plus, Pro and Max have localized use-case
