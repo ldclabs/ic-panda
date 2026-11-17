@@ -1,5 +1,44 @@
 # iOS implementation validation
 
+## Review of recovery status and persistent vault drafts (2026-11-17)
+
+Reviewed the complete changes in `a9b371e9` and `355b4372`. Two iOS regressions
+from the latter were reproduced and fixed:
+
+- Swiping away an unchanged editor left its checkpoint active, so returning from
+  the background reopened the dismissed form. The presentation delegate now
+  discards that checkpoint when the swipe completes, with the same account-view
+  guard as the editor. Dirty forms still require an explicit discard decision.
+- An editor opened from a detail inside the Trash sheet was presented at the
+  root, replacing the source sheet and returning to the main list after saving.
+  Explicit edits now use their source view's presenter while retaining session
+  ownership of the form. Backgrounding keeps that presenter; locking clears it,
+  and an unlocked/restarted session restores its active draft at the root.
+
+Validation on the `355b4372` worktree with these fixes:
+
+- iPhone 17e / iOS 27.0: 32 selected tests passed (20 unit, 12 UI), covering both
+  regressions, draft lifecycle/account isolation, new/existing editors after app
+  switching, save failure/retry, discard confirmation, keyboard save, Chinese
+  dark UI, stale/pending recovery sheets and Arabic RTL synchronization UI.
+  Both new UI regressions failed before the fixes; the Trash test first needed
+  its row selector corrected before it reached the navigation regression.
+- Exported screenshots of the restored draft, the retained Trash detail, Chinese
+  dark editor, both recovery states and Arabic RTL account sync were inspected.
+  Existing nonfatal SwiftUI invalid-frame warnings remain during keyboard flows.
+- `cargo test --locked -p dmsg_client -p dmsg_mobile --lib`: 679 client tests and
+  46 mobile tests passed; five existing client tests remain ignored. Scoped Rust
+  formatting and strict Clippy, including `dmsg_mobile/ui-fixtures`, passed.
+- Android QA JVM tests were forced to rerun: 111 passed. The 23 iOS script tests,
+  all 23 localization catalogs, native artifact/source fingerprint verification
+  and `git diff --check` passed.
+
+Result bundles are `.build/ReviewVault-fixed.xcresult` and
+`.build/ReviewVault-regression.xcresult`; screenshots are under
+`.build/ReviewVault-evidence/`. This review did not rerun iOS 18/small-screen or
+physical-device tests, OS process-kill tests, live services, Android
+instrumentation, Release builds or the full mobile UI suites.
+
 ## Encrypted vault drafts across lifecycle changes (2026-11-17)
 
 Implemented on the `a9b371e9` worktree. Vault editors now belong to the session

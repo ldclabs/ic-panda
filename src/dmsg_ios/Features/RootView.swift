@@ -9,7 +9,6 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var model = model
-        @Bindable var vaultEditing = model.vaultEditing
         @Bindable var connect = ConnectNavigation.shared
         @Bindable var channelNavigation = ChannelNavigation.shared
         VStack(spacing: 0) {
@@ -43,7 +42,7 @@ struct RootView: View {
         }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .modifier(WorkspaceOverlays())
         .background(TouchActivityProbe { model.activity() })
-        .sheet(item: $vaultEditing.presented) { entry in NavigationStack { VaultEditor(entry: entry).id(model.viewGeneration) } }
+        .modifier(VaultEditorPresentation())
         .task(id: "vault-editor:\(model.unlocked):\(model.concealed):\(model.viewGeneration)") {
             await model.vaultEditing.load(model)
         }

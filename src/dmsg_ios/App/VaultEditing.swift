@@ -33,6 +33,7 @@ struct VaultEditorSession: Identifiable, Codable {
 @MainActor @Observable
 final class VaultEditing {
     var presented: VaultEditorSession?
+    private(set) var presenter: UUID?
     private(set) var failure: String?
     private var records: [String: VaultEditorSession] = [:]
     private var dirty: Set<String> = []
@@ -71,9 +72,9 @@ final class VaultEditing {
 
     func suspend() { generation &+= 1; writing?.cancel(); writing = nil; reading?.cancel(); reading = nil; loaded = false; loading = false }
 
-    func reset() { suspend(); records = [:]; dirty = []; presented = nil; failure = nil }
+    func reset() { suspend(); records = [:]; dirty = []; presented = nil; presenter = nil; failure = nil }
 
-    func open(_ target: VaultEditorTarget, model: SessionModel) async {
+    func open(_ target: VaultEditorTarget, model: SessionModel, presenter: UUID? = nil) async {
         await load(model, restore: false)
         guard model.unlocked, !model.concealed, loaded else { return }
         let entry: VaultEditorSession
@@ -83,7 +84,7 @@ final class VaultEditing {
             let form = VaultDraft(target: target)
             entry = VaultEditorSession(id: NativeApple.requestID(), itemID: target.item?.id, draft: form, initial: form, revision: 1, active: true)
         }
-        records[entry.id] = entry; dirty.insert(entry.id); presented = entry
+        records[entry.id] = entry; dirty.insert(entry.id); self.presenter = presenter; presented = entry
         write(model)
     }
 
@@ -104,7 +105,7 @@ final class VaultEditing {
 
     func finished(_ id: String) {
         records[id] = nil; dirty.remove(id)
-        if presented?.id == id { presented = nil }
+        if presented?.id == id { presented = nil; presenter = nil }
         #if DEBUG
         for account in fixtureRecords.keys { fixtureRecords[account]?[id] = nil }
         #endif
@@ -155,7 +156,7 @@ final class VaultEditing {
             for value in values where !dirty.contains(value.id) { records[value.id] = value }
             if let id = presented?.id, records[id] == nil { presented = nil }
             loaded = true; failure = nil
-            if restore, presented == nil { presented = values.first(where: \.active) }
+            if restore, presented == nil { presenter = nil; presented = values.first(where: \.active) }
         } catch {
             if generation == stamp, model.epoch == epoch, !Task.isCancelled {
                 failure = vaultReadError(error); model.report(error)

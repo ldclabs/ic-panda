@@ -54,6 +54,23 @@ struct VaultDraft: Codable, Equatable {
     }
 }
 
+/// Draft ownership stays in the session; an explicit edit opens above its source
+/// screen, including when that screen is already in a sheet. Restored drafts use
+/// the root presenter after the old navigation hierarchy has been removed.
+struct VaultEditorPresentation: ViewModifier {
+    var owner: UUID? = nil
+    @Environment(SessionModel.self) private var model
+
+    func body(content: Content) -> some View {
+        content.sheet(item: Binding(
+            get: { model.vaultEditing.presenter == owner ? model.vaultEditing.presented : nil },
+            set: { if model.vaultEditing.presenter == owner { model.vaultEditing.presented = $0 } }
+        )) { entry in
+            NavigationStack { VaultEditor(entry: entry).id(model.viewGeneration) }
+        }
+    }
+}
+
 struct VaultEditor: View {
     let entry: VaultEditorSession
     @Environment(SessionModel.self) private var model
@@ -180,7 +197,9 @@ struct VaultEditor: View {
                         Button("Done") { focus = nil }.accessibilityIdentifier("vault.edit.keyboard-done")
                     }
                 }
-                .background(DraftDismissGuard(blocked: dirty || saving) { if !saving { discard = true } }.frame(width: 0, height: 0))
+                .background(DraftDismissGuard(blocked: dirty || saving,
+                    attempted: { if !saving { discard = true } },
+                    dismissed: { Task { await discardDraft() } }).frame(width: 0, height: 0))
                 .confirmationDialog("Discard unsaved changes?", isPresented: $discard, titleVisibility: .visible) {
                     Button("Discard", role: .destructive) { Task { await discardDraft() } }
                     Button("Cancel", role: .cancel) {}
@@ -271,7 +290,8 @@ struct VaultEditor: View {
     }
 
     private func discardDraft() async {
-        guard !saving else { return }; saving = true; defer { saving = false }
+        guard !saving, openingGeneration == model.viewGeneration, model.unlocked else { return }
+        saving = true; defer { saving = false }
         do { try await model.vaultEditing.discard(entry.id, model: model); dismiss() }
         catch { failure = vaultReadError(error) }
     }
@@ -281,14 +301,16 @@ struct VaultEditor: View {
 private struct DraftDismissGuard: UIViewControllerRepresentable {
     let blocked: Bool
     let attempted: () -> Void
+    let dismissed: () -> Void
     func makeUIViewController(context: Context) -> Controller { Controller() }
     func updateUIViewController(_ controller: Controller, context: Context) {
-        controller.blocked = blocked; controller.attempted = attempted
+        controller.blocked = blocked; controller.attempted = attempted; controller.dismissed = dismissed
         controller.attach()
     }
     final class Controller: UIViewController, UIAdaptivePresentationControllerDelegate {
         var blocked = false
         var attempted: () -> Void = {}
+        var dismissed: () -> Void = {}
         override func viewDidAppear(_ animated: Bool) { super.viewDidAppear(animated); attach() }
         func attach() {
             DispatchQueue.main.async { [weak self] in
@@ -301,5 +323,6 @@ private struct DraftDismissGuard: UIViewControllerRepresentable {
         }
         func presentationControllerShouldDismiss(_ presentationController: UIPresentationController) -> Bool { !blocked }
         func presentationControllerDidAttemptToDismiss(_ presentationController: UIPresentationController) { attempted() }
+        func presentationControllerDidDismiss(_ presentationController: UIPresentationController) { dismissed() }
     }
 }

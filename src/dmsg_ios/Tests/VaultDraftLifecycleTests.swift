@@ -88,6 +88,22 @@ final class VaultDraftLifecycleTests: XCTestCase {
         XCTAssertFalse(reopened.draft.fields[1].changed, "An unchanged hidden field must not become an empty replacement")
     }
 
+    func testEditorKeepsItsPresenterAcrossBackgroundAndRestoresAtRootAfterLock() async throws {
+        let model = SessionModel(); activate(model)
+        let presenter = UUID()
+        await model.vaultEditing.open(VaultEditorTarget(item: nil), model: model, presenter: presenter)
+        let entry = try XCTUnwrap(model.vaultEditing.presented)
+        model.background(); model.lifecycle = .active
+        await model.vaultEditing.load(model)
+        XCTAssertEqual(model.vaultEditing.presenter, presenter)
+        XCTAssertEqual(model.vaultEditing.presented?.id, entry.id)
+        await model.lock()
+        XCTAssertNil(model.vaultEditing.presenter)
+        activate(model); await model.vaultEditing.load(model)
+        XCTAssertNil(model.vaultEditing.presenter)
+        XCTAssertEqual(model.vaultEditing.presented?.id, entry.id)
+    }
+
     func testFreshSessionOwnerRestoresTheActiveCheckpointAfterMemoryIsGone() async throws {
         let first = SessionModel(); activate(first)
         await first.vaultEditing.open(VaultEditorTarget(item: nil), model: first)

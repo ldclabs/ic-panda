@@ -2,6 +2,46 @@ import XCTest
 
 @MainActor
 final class VaultUITests: XCTestCase {
+    func testUnchangedEditorSwipeDoesNotReopenAfterBackground() {
+        let app = launch()
+        app.buttons["vault.add"].tap()
+        let title = app.textFields.matching(identifier: "vault.edit.title")
+            .matching(NSPredicate(format: "enabled == true")).firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        let start = app.navigationBars["New secret"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+        start.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)))
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5))
+        XCUIDevice.shared.press(.home); app.activate()
+        let add = app.buttons["vault.add"]
+        let available = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: add)
+        XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 5), .completed)
+        XCTAssertFalse(title.exists)
+    }
+
+    func testRestoredItemCanBeEditedFromTrashSheet() {
+        let app = launch()
+        app.buttons["vault.item.fixture-github"].tap()
+        app.buttons["vault.detail.more"].tap(); app.buttons["vault.detail.trash"].tap()
+        app.sheets.buttons["Move to Trash"].tap()
+        XCTAssertTrue(app.buttons["vault.tools"].waitForExistence(timeout: 5))
+        app.buttons["vault.tools"].tap(); app.buttons["Trash"].tap()
+        let item = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "GitHub,")).firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 5)); item.tap()
+        app.buttons["Restore"].tap()
+        let edit = app.buttons["vault.edit.open"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 5)); edit.tap()
+        let title = app.textFields["vault.edit.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        if title.exists {
+            title.tap(); title.typeText(" restored")
+            app.buttons["vault.edit.save"].tap()
+            let saved = app.staticTexts["vault.detail.title"]
+            XCTAssertTrue(saved.waitForExistence(timeout: 5))
+            XCTAssertEqual(saved.label, "GitHub restored")
+            capture(app, "Restored vault item edited from Trash")
+        }
+    }
+
     func testNewDraftSurvivesSwitchingToAnotherApp() {
         let app = launch()
         app.buttons["vault.add"].tap()

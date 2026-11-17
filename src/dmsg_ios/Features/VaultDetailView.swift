@@ -19,6 +19,7 @@ struct VaultDetailView: View {
     @State private var largeType: VaultLargeTypeTarget?
     @State private var workingField: String?
     @State private var working = false
+    @State private var editorPresenter = UUID()
     @State private var referenceTarget: ReferenceTarget?
     @State private var revealTask: Task<Void, Never>?
     @State private var revealRequest: UUID?
@@ -78,7 +79,7 @@ struct VaultDetailView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     if let item, item.canEdit, revision == nil {
-                        Button { clearRevealed(); Task { await model.vaultEditing.open(VaultEditorTarget(item: item), model: model) } } label: { Text("Edit") }
+                        Button { clearRevealed(); Task { await model.vaultEditing.open(VaultEditorTarget(item: item), model: model, presenter: editorPresenter) } } label: { Text("Edit") }
                             .accessibilityIdentifier("vault.edit.open")
                     }
                     if let item, !item.reserved { actions(item) }
@@ -96,6 +97,7 @@ struct VaultDetailView: View {
             .onChange(of: model.concealed) { _, value in if value { clearRevealed(); codes = [:] } }
             .onChange(of: model.epoch) { _, _ in clearRevealed(); codes = [:] }
             .onChange(of: model.vaultEditing.presented?.id) { _, value in if value == nil { reload &+= 1 } }
+            .modifier(VaultEditorPresentation(owner: editorPresenter))
             .sheet(item: $largeType) { target in NavigationStack { VaultLargeTypeView(target: target) } }
             .navigationDestination(item: $referenceTarget) { target in SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID) }
             .confirmationDialog("Move this secret to Trash?", isPresented: $deleting, titleVisibility: .visible) {
