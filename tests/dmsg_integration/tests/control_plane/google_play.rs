@@ -263,6 +263,42 @@ fn play_receipts_authorization_replacement_refund_and_upgrade_are_durable() {
 }
 
 #[test]
+fn restoring_an_undelivered_play_receipt_preserves_the_existing_cash_plan() {
+    let f = Fixture::commercial();
+    let owner = f.create(1);
+    pay(&f, &owner, "pro", 160);
+    configure(&f);
+    let mut transaction = transaction(&f, &owner);
+    transaction.state = PlayState::OnHold;
+    assert_eq!(
+        deliver(&f, &transaction).unwrap().plan_snapshot.plan_id,
+        PlanId::Pro
+    );
+    let original = receipt(&f, &transaction);
+    assert!(!original.delivered);
+    f.ic.advance_time(Duration::from_secs(60));
+    transaction.state = PlayState::Active;
+    transaction.revision += 1;
+    transaction.checked_at_ms = time(&f.ic);
+    assert_eq!(deliver(&f, &transaction), Err(Error::Forbidden));
+    assert_eq!(receipt(&f, &transaction), original);
+    let terms: Result<MembershipTerms> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_membership_terms",
+        (&transaction.beneficiary,),
+    );
+    let terms = terms.unwrap();
+    assert_eq!(terms.contracts.len(), 1);
+    assert_eq!(terms.contracts[0].plan.plan_id, PlanId::Pro);
+    assert!(matches!(
+        terms.contracts[0].source,
+        ContractSource::Cash { .. }
+    ));
+}
+
+#[test]
 #[ignore = "requires DMSG_PRE_GOOGLE_PLAY_WASM built from the previous public commit"]
 fn play_adapter_upgrade_preserves_existing_cash_subject_and_new_receipts() {
     let old = std::fs::read(

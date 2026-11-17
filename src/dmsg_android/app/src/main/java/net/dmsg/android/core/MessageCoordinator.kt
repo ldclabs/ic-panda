@@ -135,11 +135,16 @@ class MessageCoordinator(private val client: ClientController, private val scope
 
     fun refresh(channel: String? = selected) {
         channel ?: return
+        val stamp = client.currentStamp()?.takeIf(client::accepts) ?: return
         if (refreshing) { refreshAgain = true; return }
         refreshing = true
         fun finished() {
             refreshing = false
-            if (refreshAgain) { refreshAgain = false; refresh(selected) }
+            if (refreshAgain) {
+                refreshAgain = false
+                // The completion callback still owns message:refresh until it returns.
+                scope.launch { yield(); if (client.accepts(stamp)) refresh(selected) }
+            }
         }
         client.perform({ core -> client.operation { core.refreshChannel(channel, it) } }, key = "message:refresh",
             onError = { finished() }) {

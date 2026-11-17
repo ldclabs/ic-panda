@@ -316,7 +316,9 @@ fn apply(
                 receipt.base_term_expires =
                     Some(receipt.base_term_expires.unwrap_or(0).max(expires));
             }
-            if prior.is_none() && active && t.environment == PlayEnvironment::Production {
+            // An inactive first observation can be retained without admission.
+            // Restoring it must satisfy the same rule as a newly delivered plan.
+            if active && t.environment == PlayEnvironment::Production {
                 ensure(s.active(t.purchased_at_ms).is_none_or(|c| {
                     c.source.is_sandbox() || matches!(&c.source, ContractSource::GooglePlay { token_hash, environment, .. }
                         if *environment == t.environment && (*token_hash == t.token_hash || Some(*token_hash) == t.linked_token_hash))
@@ -879,6 +881,54 @@ mod tests {
             validate_transaction(&addon, &cfg, None, NOW),
             Err(Error::UnsupportedProtocol)
         );
+    }
+
+    #[test]
+    fn restoring_an_undelivered_receipt_rechecks_existing_plan_admission() {
+        for source in [
+            ContractSource::Cash {
+                order_id: Hash::new([9; 32]),
+            },
+            ContractSource::AppStore {
+                transaction_id: Hash::new([9; 32]),
+                environment: Some(dmsg_types::app_store::StoreEnvironment::Production),
+            },
+        ] {
+            let (mut subject, mut transaction, _) = initial();
+            subject.contracts[0].source = source;
+            transaction.token_hash = Hash::new([8; 32]);
+            transaction.purchased_at_ms = NOW;
+            transaction.term_starts_at_ms = Some(NOW);
+            transaction.state = PlayState::OnHold;
+            let (receipt, _) = apply(
+                &mut subject,
+                &transaction,
+                &kind(),
+                None,
+                None,
+                &catalog(),
+                NOW,
+            )
+            .unwrap();
+            assert!(!receipt.delivered);
+            let before = subject.clone();
+            transaction.state = PlayState::Active;
+            transaction.revision += 1;
+            transaction.checked_at_ms += MINUTE;
+            assert!(matches!(
+                apply(
+                    &mut subject,
+                    &transaction,
+                    &kind(),
+                    Some(&receipt),
+                    None,
+                    &catalog(),
+                    transaction.checked_at_ms,
+                ),
+                Err(Error::Forbidden)
+            ));
+            assert_eq!(subject, before);
+        }
     }
 
     #[test]

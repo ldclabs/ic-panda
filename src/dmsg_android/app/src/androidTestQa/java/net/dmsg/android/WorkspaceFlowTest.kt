@@ -8,6 +8,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import net.dmsg.android.core.ClientController
 import net.dmsg.android.core.ReadState
 import net.dmsg.android.core.valueOrNull
@@ -111,6 +114,21 @@ class WorkspaceFlowTest {
         android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
             "cp " + file.absolutePath + " /sdcard/Download/dmsg-qa/" + file.name
         )).use { it.readBytes() }
+    }
+
+    @Test fun coalescedChannelRefreshAllowsLaterRefreshesAfterFailure() {
+        val channel = "ab".repeat(32)
+        compose.runOnIdle {
+            client.messages.load(channel, refresh = false)
+            client.messages.refresh(channel)
+            client.messages.refresh(channel)
+        }
+        compose.waitUntil(15_000) { !client.isWorking("message:refresh") }
+        compose.runOnIdle {
+            client.messages.refresh(channel)
+            assertTrue("A coalesced refresh must not leave the channel permanently busy", client.isWorking("message:refresh"))
+        }
+        compose.waitUntil(15_000) { !client.isWorking("message:refresh") }
     }
 
     @Test fun nativePresentationUsesAGenericInAppBannerWithoutMarkingBusinessContentRead() {
@@ -1042,6 +1060,33 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Preview", substring = false).performClick()
         compose.waitUntil(10_000) { client.filePreview.preview.value()?.bitmap != null }
         compose.onNodeWithText("Complete file verified").assertExists()
+    }
+
+    @Test fun markingAnOpenLetterUnreadDoesNotImmediatelyMarkItReadAgain() {
+        val letter = net.dmsg.android.core.Letter("ac".repeat(32), "040g2081040g2081040g",
+            "An already read sample letter", true, false, "delivered", 1u)
+        compose.runOnIdle { client.navigation.open("inbox") }
+        compose.waitUntil(10_000) {
+            client.letters.incoming.value() != null && client.safety.blocked.value() != null &&
+                client.state.value.operations.none { it.startsWith("letter:") }
+        }
+        compose.runOnIdle { client.letters.incoming.accept(client.letters.incoming.begin(), listOf(letter)) }
+        compose.onNodeWithText(letter.text).performClick()
+        compose.onNodeWithText("Mark unread").performScrollTo().performClick()
+        compose.waitUntil(10_000) { !client.isWorking("letter:mark:" + letter.id) }
+        var markedAgain = false
+        val observer = runBlocking { withContext(Dispatchers.Main.immediate) {
+            CoroutineScope(Dispatchers.Main.immediate).launch(start = CoroutineStart.UNDISPATCHED) {
+                client.state.collect { if (it.working("letter:mark:" + letter.id)) markedAgain = true }
+            }
+        } }
+        try {
+            // Supply the acknowledged unread projection without requiring a live inbox service.
+            compose.runOnIdle { client.letters.incoming.accept(client.letters.incoming.begin(), listOf(letter.copy(read = false))) }
+            compose.waitForIdle()
+            compose.onNodeWithText("Mark read").assertExists()
+            compose.runOnIdle { assertFalse("The explicit unread choice must survive the detail recomposition", markedAgain) }
+        } finally { observer.cancel() }
     }
 
     @Test fun letterTextSurvivesClosingTheEditorAndIsSealedInTheNativeWorkspace() {

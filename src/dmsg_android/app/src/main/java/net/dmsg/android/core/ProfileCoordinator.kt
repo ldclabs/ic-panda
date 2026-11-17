@@ -58,7 +58,6 @@ class ProfileCoordinator(private val client: ClientController, private val paths
     private var photo: ByteArray? = null
     private var uploaded: String? = null
     private var picker: SessionStamp? = null
-    private var publishing: ProfileDraft? = null
     private var uncertain = false
     fun edit(value: ProfileDraft) { client.activity(); edited = true; formValue.value = value; errorValue.value = null }
     fun load(force: Boolean = false, rebase: Boolean = false) {
@@ -83,7 +82,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
         val request = publication.begin()
         client.perform({ parseProfilePublication(it.profilePublication().decode()) }, key = "profile:publication", replace = true, quiet = true, onError = { publication.fail(request, it) }) {
             publication.accept(request, it)
-            if (!it.pending && it.published && publishing == null) uncertain = false
+            if (!it.pending && it.published && !client.isWorking("profile:publish")) uncertain = false
         }
     }
     fun ready() = client.account.devices.value()?.canManage == true && expected != null && formValue.value.valid && edited && !conflictValue.value && !uncertain && publication.value()?.let { it.published && !it.pending } == true
@@ -96,7 +95,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
     }
     fun beginPhoto(): Boolean {
         val stamp = client.currentStamp() ?: return false
-        if (!client.accepts(stamp) || picker != null || uncertain || publishing != null) return false
+        if (!client.accepts(stamp) || picker != null || uncertain || client.isWorking("profile:publish")) return false
         picker = stamp; client.beginExternalInteraction(); return true
     }
     fun photoResult(uri: Uri?) {
@@ -123,7 +122,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
         val version = expected ?: return
         if (!ready()) return
         val submitted = formValue.value
-        publishing = submitted; uncertain = true; errorValue.value = null
+        uncertain = true; errorValue.value = null
         val image = photo?.copyOf()
         val alreadyUploaded = uploaded
         val stamp = client.currentStamp() ?: return
@@ -135,12 +134,12 @@ class ProfileCoordinator(private val client: ClientController, private val paths
                 result to url
             } finally { image?.fill(0) }
         }, key = "profile:publish", quiet = true, onError = {
-            errorValue.value = it; publishing = null
+            errorValue.value = it
             if (it == "VERSION_CONFLICT") conflictValue.value = true
             // Re-read the native account journal before allowing another edited request.
             status()
         }) { (result, url) ->
-            publishing = null; uncertain = false
+            uncertain = false
             val request = publication.begin(); publication.accept(request, result)
             if (formValue.value == submitted) {
                 edited = false; expected = result.updatedAt ?: expected
@@ -158,6 +157,6 @@ class ProfileCoordinator(private val client: ClientController, private val paths
     }
     fun clear(retainForm: Boolean = false) {
         saved.reset(); publication.reset(); bitmapValue.value = null
-        if (!retainForm) { photo?.fill(0); photo = null; uploaded = null; picker = null; publishing = null; expected = null; edited = false; uncertain = false; formValue.value = ProfileDraft(); conflictValue.value = false; errorValue.value = null }
+        if (!retainForm) { photo?.fill(0); photo = null; uploaded = null; picker = null; expected = null; edited = false; uncertain = false; formValue.value = ProfileDraft(); conflictValue.value = false; errorValue.value = null }
     }
 }

@@ -1,7 +1,20 @@
 # Android implementation validation
 
 
-## Current delivery checkpoint — 2026-11-17
+## Branch review and fixes — 2026-11-17
+
+Reviewed `codex/android-app` at `e92c5a24` against merge base `9488d02e` from local `main`. The checkout was clean before review. Remote refs were not refreshed; this is not a remote-latest claim. Earlier checkpoints below are historical evidence, not checks rerun for these fixes.
+
+- Fixed five defects: retained inactive Google Play receipts bypassing plan admission on restoration; coalesced channel refreshes attempting to reuse their still-owned operation slot; cancelled profile publication leaving a stale in-flight flag; explicit unread choices retriggering automatic read; and the CI Pixel 4 viewport never reaching the adaptive test's 840 dp two-pane threshold.
+- Rust library suites: auth 9 passed, client 671 passed / 5 ignored, mobile 45 passed, protocol 95 passed; commerce rerun after the fix: 69 passed / 2 ignored. The new commerce unit regression failed before the fix and passed afterward, covering both cash and App Store conflicts. Two Google Play PocketIC cases passed with the newly built commerce Wasm, including preservation of the existing cash plan and receipt after rejected restoration. The historical-Wasm upgrade case remained ignored. Extracted commerce Candid matches the checked-in interface.
+- Strict-dependency ARM64 QA app/test APK builds, production none/GMS Debug Kotlin compilation and 110 JVM tests passed. Both final Lint tasks passed with zero errors (none: 66 warnings / 1 hint; GMS: 65 warnings / 1 hint). Frontend login protocol tests: 10 passed. The resource check passed for all 23 languages with 2070 strings each and complete notification resources.
+- On a new, isolated API31 ARM64 AOSP emulator, the full QA XML reports 88 tests: 83 passed, 1 failed, 4 skipped. The failure was the adaptive test waiting for a two-pane layout on the default Pixel 4 landscape width of about 829 dp. After applying the CI script's new 1080×2400 / 420 dpi viewport, that one test passed, including rotation, injected folding, Arabic RTL and system 200% font size. This is a full run plus a focused rerun, not an all-green single invocation. The skipped cases require opt-in hardware, live network, 1000 MiB import or 1000-item scale probing.
+- Both new Android regressions failed against the original behavior and passed after repair: coalesced refresh recovery and an open letter's explicit unread choice. The latter injects an acknowledged unread projection into the real client UI; it does not exercise a live inbox service. Existing local profile/avatar QA passed; publication cancellation recovery was verified from the operation lifecycle, not by a live publication test. All-23-language recreation QA passed. Screenshots were visually inspected for local profile/letters, dark vault details, Chinese, long German labels, Arabic RTL and the adaptive large-font layout.
+- Final modified-Rust formatting, shell syntax and `git diff --check` passed. This review did not rerun Release/R8/APK/AAB packaging, x86_64 or API36 runtime, the GMS device suite, iOS runtime, physical hardware, live Passkey/FCM/Play/profile operations, complete manual accessibility checks or remote CI. Those release gates remain separate from this review's offline evidence.
+
+Local run logs use the `dmsg-android-review-` prefix in the temporary directory; generated reports remain under `app/build/`. No credentials or private design text are included in this record.
+
+## Pre-review delivery checkpoint — 2026-11-17
 
 Work is now in the primary checkout on `codex/android-app`, HEAD `d39965d9e7c8965ee82f010bf3a6629a179464e6` plus uncommitted changes. The Android linked worktree was removed after source/artifact preservation and a 474-file hash comparison. Earlier entries below are historical checkpoints, not the current gate status. No remote-latest claim.
 

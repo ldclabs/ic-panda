@@ -37,6 +37,10 @@ for ((attempt=0; attempt<150; attempt++)); do
   sleep 2
 done
 [[ "$booted" == true ]] || { printf 'Emulator boot timed out\n' >&2; exit 1; }
+# The adaptive suite exercises the >=840 dp two-pane layout in landscape.
+# Pixel 4 defaults to only 829 dp there; use the validated test viewport.
+adb -s "$ANDROID_SERIAL" shell wm size 1080x2400
+adb -s "$ANDROID_SERIAL" shell wm density 420
 adb -s "$ANDROID_SERIAL" shell input keyevent 82
 adb -s "$ANDROID_SERIAL" shell settings put global window_animation_scale 0
 adb -s "$ANDROID_SERIAL" shell settings put global transition_animation_scale 0

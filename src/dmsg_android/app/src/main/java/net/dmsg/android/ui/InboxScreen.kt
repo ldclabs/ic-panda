@@ -43,7 +43,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
     val location by rememberUpdatedState(LetterLocation(folder.name, search, selected, sent, editing))
     DisposableEffect(owner) { onDispose { client.letters.rememberLocation(location, owner) } }
     LaunchedEffect(state.epoch) { client.safety.loadBlocks(); client.letters.refresh() }
-    LaunchedEffect(selected, letter?.id, letter?.read) { letter?.takeIf { !it.read }?.let { client.letters.mark(it, read = true) } }
+    LaunchedEffect(selected, letter?.id) { letter?.takeIf { !it.read }?.let { client.letters.mark(it, read = true) } }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(str(R.string.text_on_this_device_4541a6f), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
