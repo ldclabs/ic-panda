@@ -1,6 +1,36 @@
 use super::*;
 use dmsg_types::google_play::*;
 
+// A released reader that has no GooglePlay variant. Do not use the current
+// shared ContractSource for the backward-compatibility assertion.
+#[derive(CandidType, Deserialize, Debug, PartialEq, Eq)]
+enum PreGoogleSource {
+    Cash {
+        order_id: Hash,
+    },
+    Sns {
+        claim_id: Hash,
+    },
+    AppStore {
+        transaction_id: Hash,
+        environment: Option<dmsg_types::app_store::StoreEnvironment>,
+    },
+    Compensation,
+}
+
+#[derive(CandidType, Deserialize, Debug, PartialEq, Eq)]
+struct PreGoogleContract {
+    contract_id: Hash,
+    source: PreGoogleSource,
+}
+
+#[derive(CandidType, Deserialize, Debug, PartialEq, Eq)]
+struct PreGoogleTerms {
+    contracts: Vec<PreGoogleContract>,
+    addons: Vec<StorageAddon>,
+    refund: Option<RefundWindow>,
+}
+
 fn configure(f: &Fixture) -> GooglePlayConfig {
     let config = GooglePlayConfig {
         verifiers: vec![person(90)],
@@ -91,6 +121,65 @@ fn receipt(f: &Fixture, t: &PlayTransaction) -> PlayReceipt {
         (&t.environment, t.token_hash),
     );
     result.unwrap().unwrap()
+}
+
+#[test]
+fn versioned_terms_keep_released_readers_and_google_sources_separate() {
+    let f = Fixture::commercial();
+    let paid = f.create(1);
+    let google = f.create(2);
+    pay(&f, &paid, "pro", 160);
+    let b = beneficiary(f.user, &paid);
+    let old: Result<PreGoogleTerms> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_membership_terms",
+        (&b,),
+    );
+    let old = old.unwrap();
+    assert_eq!(old.contracts.len(), 1);
+    assert!(matches!(
+        old.contracts[0].source,
+        PreGoogleSource::Cash { .. }
+    ));
+    assert!(old.refund.is_some());
+    let current: Result<MembershipTerms> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_membership_terms_v2",
+        (&b,),
+    );
+    let current = current.unwrap();
+    assert_eq!(
+        current.contracts[0].contract_id,
+        old.contracts[0].contract_id
+    );
+    assert_eq!(current.refund, old.refund);
+
+    configure(&f);
+    let t = transaction(&f, &google);
+    deliver(&f, &t).unwrap();
+    let old: Result<PreGoogleTerms> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_membership_terms",
+        (&t.beneficiary,),
+    );
+    assert_eq!(old, Err(Error::UnsupportedProtocol));
+    let current: Result<MembershipTerms> = query(
+        &f.ic,
+        f.commerce,
+        Principal::anonymous(),
+        "get_membership_terms_v2",
+        (&t.beneficiary,),
+    );
+    assert!(matches!(
+        current.unwrap().contracts[0].source,
+        ContractSource::GooglePlay { .. }
+    ));
 }
 
 #[test]
@@ -197,7 +286,7 @@ fn play_receipts_authorization_replacement_refund_and_upgrade_are_durable() {
         &f.ic,
         f.commerce,
         Principal::anonymous(),
-        "get_membership_terms",
+        "get_membership_terms_v2",
         (&t.beneficiary,),
     );
     let terms = terms.unwrap();
@@ -286,7 +375,7 @@ fn restoring_an_undelivered_play_receipt_preserves_the_existing_cash_plan() {
         &f.ic,
         f.commerce,
         Principal::anonymous(),
-        "get_membership_terms",
+        "get_membership_terms_v2",
         (&transaction.beneficiary,),
     );
     let terms = terms.unwrap();
@@ -305,6 +394,11 @@ fn play_adapter_upgrade_preserves_existing_cash_subject_and_new_receipts() {
         std::env::var_os("DMSG_PRE_GOOGLE_PLAY_WASM").expect("previous commerce Wasm"),
     )
     .unwrap();
+    assert_ne!(
+        dmsg_protocol::sha256(&old),
+        dmsg_protocol::sha256(&wasm("dmsg_commerce")),
+        "upgrade must use different Wasm artifacts"
+    );
     let f = Fixture::with_modules(
         false,
         100,
@@ -321,7 +415,7 @@ fn play_adapter_upgrade_preserves_existing_cash_subject_and_new_receipts() {
     let future_play = f.create(2);
     pay(&f, &paid, "pro", 160);
     let b = beneficiary(f.user, &paid);
-    let before: Result<MembershipTerms> = query(
+    let before: Result<PreGoogleTerms> = query(
         &f.ic,
         f.commerce,
         Principal::anonymous(),
@@ -337,7 +431,7 @@ fn play_adapter_upgrade_preserves_existing_cash_subject_and_new_receipts() {
         None,
     )
     .unwrap();
-    let after: Result<MembershipTerms> = query(
+    let after: Result<PreGoogleTerms> = query(
         &f.ic,
         f.commerce,
         Principal::anonymous(),
@@ -357,7 +451,7 @@ fn play_adapter_upgrade_preserves_existing_cash_subject_and_new_receipts() {
     )
     .unwrap();
     assert!(receipt(&f, &t).delivered);
-    let preserved: Result<MembershipTerms> = query(
+    let preserved: Result<PreGoogleTerms> = query(
         &f.ic,
         f.commerce,
         Principal::anonymous(),

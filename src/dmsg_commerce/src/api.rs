@@ -398,11 +398,18 @@ fn get_entitlement_batch(subjects: Vec<Beneficiary>) -> Result<CertifiedBatch> {
     })
 }
 
+/// Original display interface. Google Play terms require get_membership_terms_v2;
+/// return UnsupportedProtocol instead of changing the original source variant.
+#[ic_cdk::query]
+fn get_membership_terms(b: Beneficiary) -> Result<crate::terms_v1::MembershipTermsV1> {
+    get_membership_terms_v2(b)?.try_into()
+}
+
 /// A beneficiary's base contracts and storage add-ons for display, with the
 /// refund window of its first cash purchase. An account that never bought
 /// anything has none; its rights are the certified Free entitlement.
 #[ic_cdk::query]
-fn get_membership_terms(b: Beneficiary) -> Result<MembershipTerms> {
+fn get_membership_terms_v2(b: Beneficiary) -> Result<MembershipTerms> {
     valid_subject(&b)?;
     let at = now();
     let s = match load(&b) {

@@ -1099,7 +1099,7 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
             (beneficiaries,),
             key.as_slice()
         ),
-        ic.query(commerce, "get_membership_terms", (&beneficiary,)),
+        ic.query(commerce, "get_membership_terms_v2", (&beneficiary,)),
         catalog_by(&ic, commerce)
     )?;
     let terms = terms?;

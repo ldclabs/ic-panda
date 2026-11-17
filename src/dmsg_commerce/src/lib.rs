@@ -13,6 +13,7 @@ mod registrations;
 mod settlement;
 mod stable_codec;
 mod store;
+mod terms_v1;
 use candid::Principal;
 use dmsg_runtime::admin::Validation;
 use dmsg_types::app_store::*;

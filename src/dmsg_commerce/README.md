@@ -579,7 +579,13 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
 
 独立合同见 [dmsg-google-play/1](../../docs/protocol/google_play_zh.md)。治理设置精确包名、验证者和商品/选项/优惠映射；验证者提交当前 Developer API 事实，原始 purchaseToken 不上链。Production/Test 分开，正式合同优先。订阅用真实订单区分账期，存储加购按 token 去重并绑定原基础合同；可撤销权益及独立加购资格最长一小时。新 memory 38/39/40 分别保存配置、token 观察和回执，Subject schema 8 增加可缺省的 key 14，不改变 user/directory 稳定布局。
 
-本次 66 项 commerce 单元测试通过（2 项容量测试未运行）；协议 95 项单元、20 项向量与 3 项文档测试通过。PocketIC 已运行 `commerce::google_play::play_receipts_authorization_replacement_refund_and_upgrade_are_durable`，覆盖实际调用、越权、跨账号、重复、pending、linked 替换、存储退款与升级保留。另以公开 `e63962bb` 构建旧 commerce Wasm，运行下面的显式升级测试，保留原现金合同并在升级后新增、再次升级和读取 Play 回执。未部署、未接真实 Google 商品或资金。
+2026-11-17 兼容性审查：`e92c5a2` 直接扩展 `get_membership_terms` 返回的来源 variant，不能通过旧 Candid 的子类型检查。现冻结原查询的 v1 响应，新增 `get_membership_terms_v2` 读取完整来源；含 Play 合同的账户在旧查询得到 `UnsupportedProtocol`，既有来源仍可读取。共享客户端及服务端读取方需在 commerce 升级后使用 v2。认证权益字节与稳定 schema 不变，但已写入 Play 合同后不能降级到不认识该 variant 的旧 Wasm。`2719cc92` 已补齐未交付收据恢复时的套餐准入检查，本次保留该修复。
+
+可用 `bash scripts/test-dmsg-android-upgrade.sh` 从 `9488d02e` 独立构建旧 auth/commerce，检查新旧 Candid、旧客户端解码、身份/会话、现金合同和新增 Play 回执的升级保留；也可用 `DMSG_PRE_ANDROID_WASM_DIR` 复用同提交构建的旧模块（目录中的 `source-commit` 必须记录完整提交号）。该验证不包含真实 Google 购买或生产部署。
+
+本次实际验证：commerce 69 项单元测试、客户端 12 项商业测试、61 项商业/治理 PocketIC、4 项常规 Passkey PocketIC 通过；上述升级脚本的 5 项测试通过，包含从真实 `9488d02e` 模块开始的 commerce/auth 两项历史升级。auth/commerce 的旧 Candid 兼容检查及生成接口核对通过；auth、commerce、protocol、types 的严格 Clippy 通过。扩大到 client/integration 的严格 Clippy 被客户端已有的 3 条 `collapsible_if` 和 1 条 `large_enum_variant` 告警阻断，未修改这些范围外代码。2 项 commerce 容量测试及其余历史迁移用例未全部执行；未部署、未执行真实 Google 交易。
+
+2026-11-16 原适配验证：66 项 commerce 单元测试通过（2 项容量测试未运行）；协议 95 项单元、20 项向量与 3 项文档测试通过。PocketIC 已运行 `commerce::google_play::play_receipts_authorization_replacement_refund_and_upgrade_are_durable`，覆盖实际调用、越权、跨账号、重复、pending、linked 替换、存储退款与升级保留。另以公开 `e63962bb` 构建旧 commerce Wasm，运行下面的显式升级测试，保留原现金合同并在升级后新增、再次升级和读取 Play 回执。未部署、未接真实 Google 商品或资金。
 
 ```sh
 DMSG_PRE_GOOGLE_PLAY_WASM=/path/to/previous/dmsg_commerce.wasm \

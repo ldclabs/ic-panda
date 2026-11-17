@@ -531,6 +531,15 @@ type ContractSource = variant {
     token_hash : blob;
   };
 };
+type ContractSourceV1 = variant {
+  Sns : record { claim_id : blob };
+  Cash : record { order_id : blob };
+  AppStore : record {
+    transaction_id : blob;
+    environment : opt StoreEnvironment;
+  };
+  Compensation;
+};
 // Qualification observation; unverifiable is distinct from known ineligibility.
 type Eligibility = variant {
   // Current supporting facts cannot be verified.
@@ -770,6 +779,19 @@ type MembershipContract = record {
   // Exclusive interval end in Unix milliseconds.
   expires_at_ms : nat64;
 };
+type MembershipContractV1 = record {
+  resource_pauses : vec record { nat64; opt nat64 };
+  terminated_at_ms : opt nat64;
+  source : ContractSourceV1;
+  qualified_until_ms : nat64;
+  plan : PlanVersion;
+  observed_at_ms : nat64;
+  contract_id : blob;
+  starts_at_ms : nat64;
+  eligibility : Eligibility;
+  term_starts_at_ms : nat64;
+  expires_at_ms : nat64;
+};
 // A beneficiary's base contracts and storage add-ons for display: terms,
 // sources and renewals. Rights come only from the certified
 // [`EntitlementView`].
@@ -780,6 +802,11 @@ type MembershipTerms = record {
   // Storage add-ons not yet expired.
   addons : vec StorageAddon;
   // The first cash purchase while it can still be refunded.
+  refund : opt RefundWindow;
+};
+type MembershipTermsV1 = record {
+  contracts : vec MembershipContractV1;
+  addons : vec StorageAddon;
   refund : opt RefundWindow;
 };
 // Versioned monthly quota calculation; retain prior segments when terms change.
@@ -1108,18 +1135,19 @@ type Result_10 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_11 = variant { Ok : CheckoutView; Err : Error };
 type Result_12 = variant { Ok : ExecutionEntitlement; Err : Error };
 type Result_13 = variant { Ok : opt PlayReceipt; Err : Error };
-type Result_14 = variant { Ok : MembershipTerms; Err : Error };
-type Result_15 = variant { Ok : opt ProductReceipt; Err : Error };
-type Result_16 = variant { Ok : BillingOffer; Err : Error };
-type Result_17 = variant { Ok : CashTransferProgress; Err : Error };
-type Result_18 = variant { Ok : SettlementAsset; Err : Error };
-type Result_19 = variant { Ok : CheckoutQuote; Err : Error };
+type Result_14 = variant { Ok : MembershipTermsV1; Err : Error };
+type Result_15 = variant { Ok : MembershipTerms; Err : Error };
+type Result_16 = variant { Ok : opt ProductReceipt; Err : Error };
+type Result_17 = variant { Ok : BillingOffer; Err : Error };
+type Result_18 = variant { Ok : CashTransferProgress; Err : Error };
+type Result_19 = variant { Ok : SettlementAsset; Err : Error };
 type Result_2 = variant { Ok : ProductReceipt; Err : Error };
-type Result_20 = variant {
+type Result_20 = variant { Ok : CheckoutQuote; Err : Error };
+type Result_21 = variant {
   Ok : record { AppRegistration; opt ProductRegistration };
   Err : Error;
 };
-type Result_21 = variant { Ok : text; Err : text };
+type Result_22 = variant { Ok : text; Err : text };
 type Result_3 = variant { Ok : CashCancellationReceipt; Err : Error };
 type Result_4 = variant { Ok : CheckoutProgress; Err : Error };
 type Result_5 = variant { Ok : CheckoutDepositsPage; Err : Error };
@@ -1369,25 +1397,28 @@ service : (CommerceInit) -> {
   get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_12);
   get_google_play_config : () -> (opt GooglePlayConfig) query;
   get_google_play_receipt : (PlayEnvironment, blob) -> (Result_13) query;
+  // Original display interface. Google Play terms require get_membership_terms_v2;
+  // return UnsupportedProtocol instead of changing the original source variant.
+  get_membership_terms : (Beneficiary) -> (Result_14) query;
   // A beneficiary's base contracts and storage add-ons for display, with the
   // refund window of its first cash purchase. An account that never bought
   // anything has none; its rights are the certified Free entitlement.
-  get_membership_terms : (Beneficiary) -> (Result_14) query;
-  get_product_decision : (blob) -> (Result_15);
+  get_membership_terms_v2 : (Beneficiary) -> (Result_15) query;
+  get_product_decision : (blob) -> (Result_16);
   // Public, authenticated discovery. A paused configuration remains discoverable.
   integration_configuration_certificate : (text, opt text) -> (Result_10) query;
   list_catalogs : (opt nat64) -> (vec Catalog) query;
   open_checkout : (OpenCheckout) -> (Result_11);
-  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_16);
-  process_checkout_transfer : (blob) -> (Result_17);
+  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_17);
+  process_checkout_transfer : (blob) -> (Result_18);
   // Publish a reference price observed now; the price authority calls this routinely.
-  publish_settlement_price : (principal, nat, nat64) -> (Result_18);
-  quote_checkout : (BillingOffer, principal, Account) -> (Result_19);
+  publish_settlement_price : (principal, nat, nat64) -> (Result_19);
+  quote_checkout : (BillingOffer, principal, Account) -> (Result_20);
   // Replicated response used by the pinned user home during exact approval.
-  read_integration_configuration : (text, opt text) -> (Result_20);
+  read_integration_configuration : (text, opt text) -> (Result_21);
   // Safe progress can be advanced without revealing the payer or private bill.
   reconcile_checkout : (blob) -> (Result_4);
-  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_17);
+  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_18);
   refresh_catalog : () -> (Catalog);
   refresh_entitlement : (Beneficiary) -> (Result_1);
   // Register or replace an app at the next config version. Every listed product
@@ -1415,22 +1446,22 @@ service : (CommerceInit) -> {
   settlement_assets : () -> (vec SettlementAssetView) query;
   // Bounded maintenance; funds, original-source refunds and idempotency survive archival.
   sweep_checkout_history : () -> (CheckoutHistorySweep);
-  validate_admin_add_user_home : (principal) -> (Result_21) query;
-  validate_admin_set_limits : (CommerceLimits) -> (Result_21) query;
+  validate_admin_add_user_home : (principal) -> (Result_22) query;
+  validate_admin_set_limits : (CommerceLimits) -> (Result_22) query;
   validate_publish_settlement_price : (principal, nat, nat64) -> (
-      Result_21,
+      Result_22,
     ) query;
-  validate_register_integration_app : (AppRegistration) -> (Result_21) query;
+  validate_register_integration_app : (AppRegistration) -> (Result_22) query;
   validate_register_integration_product : (ProductRegistration) -> (
-      Result_21,
+      Result_22,
     ) query;
-  validate_register_settlement_asset : (SettlementAsset) -> (Result_21) query;
-  validate_schedule_policy : (Catalog) -> (Result_21) query;
-  validate_set_admission_pause : (bool) -> (Result_21) query;
-  validate_set_app_store_config : (AppStoreConfig) -> (Result_21) query;
-  validate_set_google_play_config : (GooglePlayConfig) -> (Result_21) query;
-  validate_set_settlement_price_authority : (principal) -> (Result_21) query;
-  validate_verify_settlement_asset : (principal, opt nat) -> (Result_21) query;
+  validate_register_settlement_asset : (SettlementAsset) -> (Result_22) query;
+  validate_schedule_policy : (Catalog) -> (Result_22) query;
+  validate_set_admission_pause : (bool) -> (Result_22) query;
+  validate_set_app_store_config : (AppStoreConfig) -> (Result_22) query;
+  validate_set_google_play_config : (GooglePlayConfig) -> (Result_22) query;
+  validate_set_settlement_price_authority : (principal) -> (Result_22) query;
+  validate_verify_settlement_asset : (principal, opt nat) -> (Result_22) query;
   verify_billing_offer : (BillingOffer) -> (Result);
   // Check the ledger's live decimals, fee, standards and, outside Local, one
   // real transfer block before quotes may use it.
