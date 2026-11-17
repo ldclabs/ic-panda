@@ -166,12 +166,18 @@ struct BoundSlot {
     /// For a key that takes only the fingerprints enrolled when it was
     /// made: their digest then.
     biometry: Option<Hash>,
+    #[serde(default)]
+    biometry_only: bool,
     /// Zero for older slots, which predate the hardware anchor metadata.
     #[serde(default)]
     created_at: u64,
 }
 
 impl BoundSlot {
+    fn biometry_only(&self) -> bool {
+        self.biometry_only || self.biometry.is_some()
+    }
+
     /// The slot's identifier, which the wrappings commit to.
     fn id(&self) -> Hash {
         crate::codec::digest(
@@ -182,7 +188,7 @@ impl BoundSlot {
 
     /// Preserve the binding on cancellation, temporary unavailability or loss.
     fn open(&self, hardware: &dyn PresenceKey) -> Result<Zeroizing<Key>> {
-        match hardware.open(&self.handle, &self.peer, self.biometry.is_some()) {
+        match hardware.open(&self.handle, &self.peer, self.biometry_only()) {
             Err(Error::Forbidden) => Err(Error::Forbidden),
             Err(_)
                 if self.biometry.is_some_and(|state| {
@@ -271,19 +277,20 @@ impl DeviceBinding {
     /// Refuses unavailable biometry, cancellation and mismatched secrets.
     pub fn open(self) -> Result<OpenedDeviceBinding> {
         let created_at = now_ms();
-        let biometry = match self.biometry_only {
-            true => Some(
-                self.hardware
-                    .biometry_state()
-                    .ok_or_else(|| Error::Unavailable("hardware: biometry unavailable".into()))?,
-            ),
-            false => None,
-        };
+        ensure(
+            !self.biometry_only || self.hardware.supports_biometry_only(),
+            Error::Unavailable("hardware: biometry unavailable".into()),
+        )?;
+        let biometry = self
+            .biometry_only
+            .then(|| self.hardware.biometry_state())
+            .flatten();
         let (handle, peer, created) = self.hardware.create(self.biometry_only)?;
         let slot = BoundSlot {
             handle: handle.into(),
             peer: peer.into(),
             biometry,
+            biometry_only: self.biometry_only,
             created_at,
         };
         let secret = slot.open(self.hardware.as_ref())?;
@@ -1467,6 +1474,7 @@ impl Client {
                         handle,
                         peer,
                         biometry: None,
+                        biometry_only: false,
                         created_at: 0,
                     })?,
                     secret,
@@ -1479,6 +1487,7 @@ impl Client {
                 handle: handle.into(),
                 peer: peer.into(),
                 biometry: None,
+                biometry_only: false,
                 created_at: now_ms(),
             };
             return Ok(Some(LoginUnlock {
@@ -1706,7 +1715,7 @@ impl Client {
         Ok(serde_json::json!({
             "device_bound": bound,
             "bound_key_available": slot.is_some(),
-            "bound_biometry_only": slot.as_ref().map(|s| s.biometry.is_some()),
+            "bound_biometry_only": slot.as_ref().map(|s| s.biometry_only()),
             "unprotected": {
                 "background_online": self.config.background_online,
                 "resident_agents": self.agents()?.list.iter().filter(|a| a.resident).count(),
@@ -1812,7 +1821,7 @@ impl Client {
         secure.delete(&self.fast_name()?)?;
         self.keep_login()?;
         let mut status = self.device_binding_status()?;
-        status["biometry_only"] = slot.biometry.is_some().into();
+        status["biometry_only"] = slot.biometry_only().into();
         Ok(status)
     }
 

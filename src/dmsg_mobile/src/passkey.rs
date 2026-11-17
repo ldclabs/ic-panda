@@ -1,4 +1,4 @@
-//! AuthenticationServices transports the same challenge/response as the browser.
+//! Native credential providers transport the same challenge/response as the browser.
 use super::*;
 use dmsg_client::hold::Hold;
 use dmsg_types::auth::{AuthAction, PasskeyCallback, PasskeyResponse};
@@ -9,6 +9,50 @@ impl MobileEngine {
         &self,
         operation: PasskeyOperation,
         credential_id: Option<Vec<u8>>,
+    ) -> Result<PasskeyStart> {
+        self.start_native_passkey(operation, credential_id, None)
+            .await
+    }
+
+    /// The app supplies its installed certificate hash, never a user-provided origin.
+    /// Admission is checked before opening Credential Manager. Signed bytes remain unchanged.
+    pub async fn begin_android_passkey(
+        &self,
+        operation: PasskeyOperation,
+        credential_id: Option<Vec<u8>>,
+        certificate: Vec<u8>,
+    ) -> Result<PasskeyStart> {
+        let certificate =
+            dmsg_types::Hash::new(certificate.try_into().map_err(|_| Error::IntegrityFailed)?);
+        self.start_native_passkey(operation, credential_id, Some(certificate))
+            .await
+    }
+
+    pub async fn complete_passkey(
+        &self,
+        state: Vec<u8>,
+        response: NativePasskeyResponse,
+    ) -> Result<SessionSnapshot> {
+        let callback = self.native_passkey_callback(state, response)?;
+        self.complete_login(callback).await
+    }
+
+    pub async fn complete_passkey_binding(
+        &self,
+        state: Vec<u8>,
+        response: NativePasskeyResponse,
+    ) -> Result<ObjectSnapshot> {
+        let callback = self.native_passkey_callback(state, response)?;
+        self.complete_binding(callback).await
+    }
+}
+
+impl MobileEngine {
+    async fn start_native_passkey(
+        &self,
+        operation: PasskeyOperation,
+        credential_id: Option<Vec<u8>>,
+        android_certificate: Option<dmsg_types::Hash>,
     ) -> Result<PasskeyStart> {
         ensure_valid(
             !matches!(operation, PasskeyOperation::ResetSessions) || credential_id.is_some(),
@@ -41,7 +85,13 @@ impl MobileEngine {
                             .await?;
                     }
                     let setup = h.with(|c| c.passkey_start(action, credential_id)).await?;
-                    setup.start(dmsg_protocol::login::IOS_CALLBACK.into()).await
+                    if let Some(certificate) = android_certificate {
+                        setup
+                            .start_android(LOGIN_CALLBACK.into(), certificate)
+                            .await
+                    } else {
+                        setup.start(LOGIN_CALLBACK.into()).await
+                    }
                 })
             })
             .await?;
@@ -74,26 +124,6 @@ impl MobileEngine {
         Ok(started)
     }
 
-    pub async fn complete_passkey(
-        &self,
-        state: Vec<u8>,
-        response: NativePasskeyResponse,
-    ) -> Result<SessionSnapshot> {
-        let callback = self.native_passkey_callback(state, response)?;
-        self.complete_login(callback).await
-    }
-
-    pub async fn complete_passkey_binding(
-        &self,
-        state: Vec<u8>,
-        response: NativePasskeyResponse,
-    ) -> Result<ObjectSnapshot> {
-        let callback = self.native_passkey_callback(state, response)?;
-        self.complete_binding(callback).await
-    }
-}
-
-impl MobileEngine {
     fn native_passkey_callback(
         &self,
         state: Vec<u8>,
@@ -125,7 +155,7 @@ impl MobileEngine {
         }
         Ok(format!(
             "{}#{}",
-            dmsg_protocol::login::IOS_CALLBACK,
+            LOGIN_CALLBACK,
             dmsg_client::codec::b64(&bytes)
         ))
     }

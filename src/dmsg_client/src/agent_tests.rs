@@ -27,6 +27,45 @@ use std::sync::Arc;
 const NOW: u64 = 1_790_000_000_000;
 const SEED: [u8; 32] = [3; 32];
 
+#[test]
+fn credential_pages_do_not_turn_missing_data_into_an_empty_inventory() {
+    use crate::agent::credential_page;
+    assert_eq!(
+        credential_page(json!({"result":[],"next_cursor":null})),
+        Ok((vec![], None))
+    );
+    // The service omits next_cursor on its final page, including an empty one.
+    assert_eq!(credential_page(json!({"result":[]})), Ok((vec![], None)));
+    for value in [
+        json!({}),
+        json!({"result":null,"next_cursor":null}),
+        json!({"result":[],"next_cursor":1}),
+        json!({"result":[],"next_cursor":""}),
+        json!({"result":["not a credential"],"next_cursor":null}),
+    ] {
+        assert_eq!(credential_page(value), Err(Error::IntegrityFailed));
+    }
+}
+
+#[test]
+fn credential_pages_bound_records_and_preserve_opaque_cursors() {
+    use crate::agent::credential_page;
+    let rows = vec![json!({"id":"account.credential","status":"suspended"}); 100];
+    let cursor = "opaque&cursor=with+reserved";
+    assert_eq!(
+        credential_page(json!({"result":rows,"next_cursor":cursor})),
+        Ok((rows, Some(cursor.into())))
+    );
+    assert_eq!(
+        credential_page(json!({"result":vec![json!({});101],"next_cursor":null})),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!(
+        credential_page(json!({"result":[],"next_cursor":"x".repeat(1025)})),
+        Err(Error::IntegrityFailed)
+    );
+}
+
 #[tokio::test]
 async fn invalid_controller_input_never_creates_an_approval_or_reads_the_network() {
     use crate::agent::PrincipalChange;

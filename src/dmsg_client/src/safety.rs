@@ -110,6 +110,17 @@ impl Client {
         Ok(job)
     }
 
+    /// Read the immutable selected report for another explicit review.
+    pub fn content_report(&self, id: &str) -> Result<Value> {
+        ensure_valid(crate::channel_log::is_hash(id), "report ID")?;
+        let report: Value = self
+            .workspace
+            .private(self.keys()?, &format!("{REPORT}{id}"))?
+            .ok_or(Error::NotFound)?;
+        ensure(report["id"] == id, Error::IntegrityFailed)?;
+        Ok(report)
+    }
+
     /// Report drafts and receipts saved on this device; secret-free list view.
     pub fn content_reports(&self) -> Result<Vec<Value>> {
         let mut result = Vec::new();
@@ -217,4 +228,45 @@ pub async fn submit_report<H: Hold>(h: &H, id: &str) -> Result<Value> {
         })
         .await?;
     Ok(receipt)
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn saved_report_exposes_only_the_original_selected_message_text() {
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        let channel = "ab".repeat(32);
+        crate::testing::joined_channel(&mut c, &channel);
+        crate::testing::saved_shared_file(&mut c, &channel, 1);
+        let account = c.account().unwrap().id.to_string();
+        let private = c
+            .prepare_content_report(
+                "channel",
+                &account,
+                &channel,
+                Some(1),
+                "spam",
+                "Reviewed note",
+                false,
+            )
+            .unwrap();
+        let id = private["id"].as_str().unwrap();
+        assert!(private["payload"].get("disclosed_text").is_none());
+        assert_eq!(private, c.content_report(id).unwrap());
+        let disclosed = c
+            .prepare_content_report("channel", &account, &channel, Some(1), "spam", "", true)
+            .unwrap();
+        assert_eq!(
+            disclosed["payload"]["disclosed_text"],
+            "A file already saved on this device"
+        );
+        assert!(disclosed["payload"].get("file").is_none());
+        assert!(
+            c.prepare_content_report("account", &account, &account, None, "spam", "", true)
+                .is_err()
+        );
+        assert!(c.content_report("../other-account").is_err());
+    }
 }

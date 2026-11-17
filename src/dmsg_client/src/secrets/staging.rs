@@ -203,6 +203,7 @@ impl Client {
                 trashed_at: None,
             };
             let version = Version {
+                mime: Some(m.mime.clone()),
                 size: m.size,
                 sha256: m.sha256.clone(),
                 created_at: now,

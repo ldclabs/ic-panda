@@ -133,6 +133,68 @@ pub fn unlocked(
     client
 }
 
+/// Synthetic complete state of the offline account; no certificate verification.
+pub fn account_state(client: &Client) -> crate::account::AccountState {
+    use dmsg_types::user::{
+        AccountInfo, ControllerRole, Device, DeviceInput, SensitivePolicy, VaultWriteState,
+    };
+    use std::collections::BTreeMap;
+    let account = account();
+    let device_id = client.workspace.meta.device_id;
+    let devices = BTreeMap::from([(
+        device_id,
+        Device {
+            input: DeviceInput {
+                device_id,
+                signing_pub: client.workspace.meta.signing_pub,
+                hpke_pub: client.workspace.meta.hpke_pub,
+                role: ControllerRole::Administrator,
+                capabilities: vec![
+                    Capability::RootManage,
+                    Capability::VaultUnlock,
+                    Capability::FormalApprove,
+                ],
+            },
+            added_at: 1,
+            added_by: None,
+            revoked_at: None,
+            next_sequence: 0,
+        },
+    )]);
+    crate::account::AccountState {
+        security: crate::testing::security(1, devices.clone()),
+        info: AccountInfo {
+            created_at_ms: 1,
+            issuer: account.issuer,
+            account_id: account.id,
+            home_user: account.home,
+            home_cose: account.home,
+            auth_bindings: vec![],
+            account_version: 1,
+            security_epoch: 1,
+            devices,
+            recovery_delay_ms: 0,
+            recovery_enabled: None,
+            pending_recovery: None,
+            recovered_device: None,
+            current_root: None,
+            root_slot: None,
+            vault_write_state: VaultWriteState::Ready,
+            sensitive_policy: SensitivePolicy::default(),
+            approval_keys: BTreeMap::new(),
+            hardware_policy: vec![],
+        },
+    }
+}
+
+/// Restore the fixed offline fixture's local keys after a lock, without network
+/// or platform authentication. Available only with the explicit testing feature.
+pub fn unlock_fixture(client: &mut Client) {
+    assert_eq!(client.account().unwrap().id, account().id);
+    client.keys = Some(client.workspace.unlock(&SECRET).unwrap());
+    client.root = Some(RootKeys::single(1, [5; 32]));
+}
+
 /// Point `client`'s relay at `origin`, a loopback server the test runs.
 pub fn relay_to(client: &mut Client, origin: &str) {
     client.config.relay = origin.into();
@@ -198,6 +260,61 @@ pub fn warm(client: &mut Client) {
     client.published = Some(state.certified_at);
     client.security = Some(state);
     client.homes = Some(vec![account().home]);
+}
+
+/// Two real local versions with different byte formats, for isolated native UI QA.
+pub fn file_history(client: &mut Client) -> String {
+    let first = client
+        .files_write(
+            "root",
+            "Version review.txt",
+            b"Original reviewed text version",
+        )
+        .unwrap();
+    let mut image = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::new_rgb8(4, 4)
+        .write_to(&mut image, image::ImageFormat::Png)
+        .unwrap();
+    client
+        .files_write("root", "Version review.txt", image.get_ref())
+        .unwrap();
+    first.file.id
+}
+
+/// Synthetic message metadata pointing to a genuinely imported local image.
+/// This exercises saved-copy UI without claiming remote delivery/signature proof.
+pub fn saved_shared_file(client: &mut Client, channel: &str, seq: u64) -> String {
+    let id = file_history(client);
+    client.files_rename(&id, "Received image.png").unwrap();
+    let file = client.files_show(&id).unwrap().file;
+    let mut version = client.version(&id, &file.current).unwrap();
+    version.origin = crate::library::catalog::Origin::SharedIn {
+        channel: channel.into(),
+        seq,
+    };
+    client.save_version(&id, &file.current, &version).unwrap();
+    shared_image(client, channel, seq);
+    let key = format!("{}{channel}:{seq:020}", crate::channel::INBOX);
+    let mut message: crate::channel::Message = client
+        .workspace
+        .private(client.keys().unwrap(), &key)
+        .unwrap()
+        .unwrap();
+    message.message_id = crate::upload::random_hex();
+    message.digest = "01".repeat(32);
+    message.text = "A file already saved on this device".into();
+    message.created_at = crate::now_ms();
+    let reference = message.file.as_mut().unwrap();
+    reference.name = file.name;
+    reference.mime = file.mime;
+    reference.size = file.size;
+    reference.file_id = id.clone();
+    reference.version = file.current;
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), &key, &message)
+        .unwrap();
+    id
 }
 
 /// A synthetic pending mailbox entry, for measuring the serialized pairing
@@ -370,4 +487,70 @@ pub fn command<P: serde::Serialize>(n: u8, epoch: u64, action: &str, payload: &P
         expires_at: u64::MAX,
     };
     sign_command(&signer, action, payload, "01", 10)
+}
+
+/// Synthetic membership and certified-name cache for offline UI permission checks.
+/// This is not a remote control-log or certificate-verification fixture.
+pub fn channel_members(client: &mut Client, channel: &str, role: crate::channel_log::Role) {
+    use crate::channel_log::{Member, Role};
+    let key = format!("channel:{channel}");
+    let mut local: serde_json::Value = client
+        .workspace
+        .private(client.keys().unwrap(), &key)
+        .unwrap()
+        .unwrap();
+    let mut ledger: crate::channel_log::Ledger =
+        serde_json::from_value(local["ledger"].clone()).unwrap();
+    let me = account().id.to_string();
+    let other = "040g2082040g2082040g";
+    let member = "040g2083040g2083040g";
+    ledger.members.clear();
+    ledger.owner = if role == Role::Owner {
+        me.clone()
+    } else {
+        other.into()
+    };
+    for (id, role) in [
+        (me.as_str(), role),
+        (
+            other,
+            if role == Role::Owner {
+                Role::Admin
+            } else {
+                Role::Owner
+            },
+        ),
+        (member, Role::Member),
+    ] {
+        ledger.members.insert(
+            id.into(),
+            Member {
+                account: id.into(),
+                role,
+                can_rotate: matches!(role, Role::Owner | Role::Admin),
+                joined_epoch: 1,
+                history: vec![],
+            },
+        );
+    }
+    local["ledger"] = serde_json::to_value(ledger).unwrap();
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), &key, &local)
+        .unwrap();
+    let mut names = std::collections::BTreeMap::new();
+    for id in [other, member] {
+        names.insert(
+            id.parse().unwrap(),
+            crate::display::Name {
+                name: Some("Mina".into()),
+                avatar_url: None,
+                updated_at: Some(1),
+                observed_at_ms: crate::now_ms(),
+            },
+        );
+    }
+    client
+        .keep_public_names(names.into_iter().collect())
+        .unwrap();
 }

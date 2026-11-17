@@ -342,8 +342,14 @@ impl MobileEngine {
         channel: String,
         key: String,
     ) -> Result<ObjectSnapshot> {
-        self.object(move |c| Box::pin(async move { c.channel_resume(&channel, &key).await }))
-            .await
+        let turn = self.read_turns.lane(&format!("channel-control:{channel}"));
+        self.held_object(move |h| {
+            Box::pin(async move {
+                let _turn = turn.lock().await;
+                channel::management::resume(h, &channel, &key).await
+            })
+        })
+        .await
     }
 
     pub async fn channel_details(&self, channel: String) -> Result<ObjectSnapshot> {
@@ -369,6 +375,74 @@ impl MobileEngine {
         .await
     }
 
+    /// Change only the reviewed name; unrelated notification preferences survive.
+    pub async fn rename_channel(
+        &self,
+        channel: String,
+        expected: String,
+        name: String,
+    ) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move {
+                h.with(|c| {
+                    ensure(
+                        c.channel_view(&channel)?.name == expected,
+                        Error::VersionConflict,
+                    )?;
+                    c.channel_settings(&channel, Some(&name), None, None)
+                })
+                .await
+            })
+        })
+        .await
+    }
+
+    pub async fn set_channel_hidden(
+        &self,
+        channel: String,
+        hidden: bool,
+    ) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move {
+                h.with(|c| c.channel_settings(&channel, None, None, Some(hidden)))
+                    .await
+            })
+        })
+        .await
+    }
+
+    pub async fn set_channel_muted(&self, channel: String, muted: bool) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move {
+                h.with(|c| c.channel_settings(&channel, None, Some(muted), None))
+                    .await
+            })
+        })
+        .await
+    }
+
+    pub async fn hidden_channels(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| {
+            Box::pin(async {
+                h.with(|c| {
+                    Ok(c.channel_list()?
+                        .into_iter()
+                        .filter(|v| v.hidden)
+                        .collect::<Vec<_>>())
+                })
+                .await
+            })
+        })
+        .await
+    }
+
+    pub async fn channel_invitation_attempts(&self, channel: String) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move { h.with(|c| c.channel_invitation_attempts(&channel)).await })
+        })
+        .await
+    }
+
     pub async fn channel_member_action(
         &self,
         change: ChannelMemberChange,
@@ -386,13 +460,11 @@ impl MobileEngine {
             request_id.len() == 64 && request_id.bytes().all(|b| b.is_ascii_hexdigit()),
             "request ID",
         )?;
+        let turn = self.read_turns.lane(&format!("channel-control:{channel}"));
         operation
-            .run(self.object(move |c| {
+            .run(self.held_object(move |h| {
                 Box::pin(async move {
-                    if action == "leave" {
-                        c.channel_leave(&channel, &request_id).await?;
-                        return Ok(json!({"left":true}));
-                    }
+                    let _turn = turn.lock().await;
                     let member = || {
                         account
                             .as_ref()
@@ -401,6 +473,7 @@ impl MobileEngine {
                             .ok_or_else(|| dmsg_types::invalid("account"))
                     };
                     let action = match action.as_str() {
+                        "leave" => channel_log::Action::Leave {},
                         "remove" => channel_log::Action::Remove { account: member()? },
                         "role" => channel_log::Action::Role {
                             account: member()?,
@@ -416,9 +489,12 @@ impl MobileEngine {
                         "rekey" => channel_log::Action::Rekey {},
                         _ => return Err(dmsg_types::invalid("channel action")),
                     };
-                    c.channel_control(&channel, action, &request_id).await?;
-                    serde_json::to_value(c.channel_view(&channel)?)
-                        .map_err(|_| Error::IntegrityFailed)
+                    channel::management::control(h, &channel, action, &request_id).await?;
+                    h.with(|c| {
+                        serde_json::to_value(c.channel_view(&channel)?)
+                            .map_err(|_| Error::IntegrityFailed)
+                    })
+                    .await
                 })
             }))
             .await

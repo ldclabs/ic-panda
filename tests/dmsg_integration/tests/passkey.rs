@@ -210,6 +210,10 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> Self {
+        Self::with_wasm(wasm())
+    }
+
+    fn with_wasm(initial_wasm: Vec<u8>) -> Self {
         let ic = PocketIcBuilder::new()
             .with_initial_time((std::time::SystemTime::now() - Duration::from_secs(120)).into())
             .with_nns_subnet()
@@ -220,7 +224,7 @@ impl Fixture {
         ic.add_cycles(auth, 100_000_000_000_000);
         ic.install_canister(
             auth,
-            wasm(),
+            initial_wasm,
             Encode!(&AuthInit {
                 governance: controller,
                 admission_key: None,
@@ -328,6 +332,114 @@ impl Fixture {
         )
         .unwrap();
     }
+}
+
+fn android_response(challenge: &Hash, certificate: &Hash) -> PasskeyResponse {
+    let mut proof = response(challenge, false);
+    let mut client: serde_json::Value = serde_json::from_slice(&proof.client_data_json).unwrap();
+    client["origin"] = serde_json::json!(dmsg_protocol::passkey::android_origin(certificate));
+    proof.client_data_json = serde_json::to_vec(&client).unwrap().into();
+    let key = SigningKey::from_slice(&[42; 32]).unwrap();
+    let signature: p256::ecdsa::Signature = key.sign(
+        &[
+            proof.authenticator_data.as_ref(),
+            sha256(&proof.client_data_json).as_slice(),
+        ]
+        .concat(),
+    );
+    proof.signature = signature.to_der().as_bytes().to_vec().into();
+    proof
+}
+
+#[test]
+#[ignore = "requires DMSG_PRE_ANDROID_AUTH_WASM pointing to a pre-policy Wasm"]
+fn pre_android_upgrade_preserves_identity_sessions_and_exact_certificate_policy() {
+    let old =
+        std::fs::read(std::env::var_os("DMSG_PRE_ANDROID_AUTH_WASM").expect("pre-policy Wasm"))
+            .unwrap();
+    assert_ne!(
+        sha256(&old),
+        sha256(&wasm()),
+        "upgrade must use different Wasm artifacts"
+    );
+    let f = Fixture::with_wasm(old);
+    let first = Device::new(1);
+    let original = f.register(&first);
+    f.verify(&original);
+    f.ic.upgrade_canister(f.auth, wasm(), Encode!().unwrap(), Some(f.controller))
+        .unwrap();
+    let signers = || {
+        let bytes =
+            f.ic.query_call(
+                f.auth,
+                Principal::anonymous(),
+                "android_signers",
+                Encode!().unwrap(),
+            )
+            .unwrap();
+        Decode!(&bytes, Vec<Hash>).unwrap()
+    };
+    assert!(signers().is_empty());
+    assert_eq!(f.stats().identities, 1);
+    assert_eq!(f.stats().sessions, 1);
+    f.update::<Result<u64>>(first.sender().unwrap(), "renew", Encode!().unwrap())
+        .unwrap();
+    let renewed = f.delegation(&first).unwrap();
+    assert_eq!(original.user_key, renewed.user_key);
+    f.verify(&renewed);
+
+    let certificate = Hash::new([0x35; 32]);
+    let second = Device::new(2);
+    let login = |certificate: &Hash| {
+        let c = f.challenge(&second, AuthAction::Login);
+        f.update::<Result<u64>>(
+            second.sender().unwrap(),
+            "login",
+            Encode!(&AuthenticatePasskey {
+                challenge: c.challenge,
+                response: android_response(&c.challenge, certificate)
+            })
+            .unwrap(),
+        )
+    };
+    assert_eq!(login(&certificate), Err(Error::IntegrityFailed));
+    assert!(
+        f.ic.update_call(
+            f.auth,
+            second.sender().unwrap(),
+            "admin_set_android_signers",
+            Encode!(&vec![certificate]).unwrap()
+        )
+        .is_err()
+    );
+    f.update::<Result<()>>(
+        f.controller,
+        "admin_set_android_signers",
+        Encode!(&vec![certificate]).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(signers(), vec![certificate]);
+    assert_eq!(login(&Hash::new([0x36; 32])), Err(Error::IntegrityFailed));
+    login(&certificate).unwrap();
+    let second_grant = f.delegation(&second).unwrap();
+    assert_eq!(original.user_key, second_grant.user_key);
+    f.verify(&second_grant);
+    assert_eq!(f.stats().identities, 1);
+    assert_eq!(f.stats().sessions, 2);
+    f.ic.upgrade_canister(f.auth, wasm(), Encode!().unwrap(), Some(f.controller))
+        .unwrap();
+    assert_eq!(signers(), vec![certificate]);
+    f.update::<Result<()>>(
+        f.controller,
+        "admin_set_android_signers",
+        Encode!(&Vec::<Hash>::new()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(login(&certificate), Err(Error::IntegrityFailed));
+    // Certificate removal closes new assertions; existing grants use their separate revocation path.
+    f.update::<Result<u64>>(second.sender().unwrap(), "renew", Encode!().unwrap())
+        .unwrap();
+    assert_eq!(f.delegation(&second).unwrap().user_key, original.user_key);
 }
 
 #[test]

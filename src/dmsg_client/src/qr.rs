@@ -76,6 +76,29 @@ pub fn scan(image: &[u8]) -> Result<String> {
         .ok_or(Error::NotFound)
 }
 
+/// Decode a bounded camera luminance frame without encoding an intermediate
+/// image. The frame is text transport only and cannot approve an operation.
+///
+/// # Errors
+/// Invalid dimensions, more than four million pixels, or an unreadable code
+/// are rejected before or during bounded image analysis.
+pub fn scan_luma(width: u32, height: u32, pixels: &[u8]) -> Result<String> {
+    let count = u64::from(width) * u64::from(height);
+    ensure(
+        width > 0 && height > 0 && count <= 4_000_000 && count == pixels.len() as u64,
+        Error::InvalidInput("QR frame".into()),
+    )?;
+    let mut prepared =
+        rqrr::PreparedImage::prepare_from_greyscale(width as usize, height as usize, |x, y| {
+            pixels[y * width as usize + x]
+        });
+    prepared
+        .detect_grids()
+        .into_iter()
+        .find_map(|grid| grid.decode().ok().map(|(_, text)| text))
+        .ok_or(Error::NotFound)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,5 +119,21 @@ mod tests {
         assert_eq!(grids.len(), 1);
         assert_eq!(grids[0].decode().unwrap().1, text);
         assert_eq!(png_data(&"x".repeat(4097)), Err(Error::QuotaExceeded));
+    }
+
+    #[test]
+    fn camera_frames_round_trip_and_reject_mismatched_or_oversized_buffers() {
+        let text = "dmsg-device-request-fixture";
+        let uri = png_data(text).unwrap();
+        let bytes = STANDARD.decode(uri.split_once(',').unwrap().1).unwrap();
+        let frame = image::load_from_memory(&bytes).unwrap().into_luma8();
+        assert_eq!(
+            scan_luma(frame.width(), frame.height(), frame.as_raw()).unwrap(),
+            text
+        );
+        assert!(scan_luma(0, 10, &[]).is_err());
+        assert!(scan_luma(2, 2, &[0; 3]).is_err());
+        assert!(scan_luma(u32::MAX, u32::MAX, &[0]).is_err());
+        assert!(scan_luma(2001, 2000, &[0]).is_err());
     }
 }

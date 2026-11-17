@@ -25,6 +25,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use zeroize::Zeroizing;
 
+#[path = "link_jobs.rs"]
+pub mod jobs;
+
 /// The sealed records of the links this device made.
 pub(crate) const LINK: &str = "lib-link:";
 /// Sealed publication journals of feedback screenshots, by operation.
@@ -696,6 +699,9 @@ async fn publish_link<H: Hold>(
     };
     h.with(|c| {
         c.workspace.store.atomic(|_| {
+            if let Some(key) = operation {
+                jobs::check_intent(c, key)?;
+            }
             c.workspace.put_private(
                 c.keys()?,
                 &format!("lib-share-job:{upload_id}"),

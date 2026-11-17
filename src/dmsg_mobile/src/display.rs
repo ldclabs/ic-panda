@@ -342,7 +342,7 @@ mod tests {
                 .await
                 .is_err()
         );
-        engine.close().await.unwrap();
+        engine.shutdown().await.unwrap();
     }
 
     #[tokio::test]
@@ -439,7 +439,7 @@ mod tests {
         assert_eq!(engine.session_state().await.unwrap().pending_sync, 1);
         assert_eq!(engine.inbox(false).await.unwrap().json, "[]");
         server.await.unwrap();
-        engine.close().await.unwrap();
+        engine.shutdown().await.unwrap();
     }
 
     #[tokio::test]
@@ -484,7 +484,7 @@ mod tests {
                 .iter()
                 .any(|p| p.contains("/v1/inboxes/"))
         );
-        engine.close().await.unwrap();
+        engine.shutdown().await.unwrap();
         server.abort();
     }
 }

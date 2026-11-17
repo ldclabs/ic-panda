@@ -16,6 +16,8 @@ pub const MAX_TTL_MS: u64 = 30 * DAY;
 pub const CALLBACK_PATH: &str = "/auth/callback";
 /// Fixed Associated Domains callback for the native iOS application.
 pub const IOS_CALLBACK: &str = "https://dmsg.net/_/ios/auth/callback";
+/// Fixed verified App Link callback for the native Android application.
+pub const ANDROID_CALLBACK: &str = "https://dmsg.net/_/android/auth/callback";
 /// A callback's closed set of transports; arbitrary HTTPS redirects are refused.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CallbackTarget {
@@ -23,6 +25,8 @@ pub enum CallbackTarget {
     Loopback(u16),
     /// The iOS app's associated HTTPS callback.
     Ios,
+    /// The Android app's verified HTTPS callback.
+    Android,
 }
 
 /// Validate the exact callback spelling before contacting Internet Identity.
@@ -32,6 +36,8 @@ pub enum CallbackTarget {
 pub fn callback_target(next_url: &str) -> Result<CallbackTarget> {
     if next_url == IOS_CALLBACK {
         Ok(CallbackTarget::Ios)
+    } else if next_url == ANDROID_CALLBACK {
+        Ok(CallbackTarget::Android)
     } else {
         callback_port(next_url).map(CallbackTarget::Loopback)
     }

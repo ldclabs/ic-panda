@@ -815,7 +815,12 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` for an unknown file or version.
     pub fn files_version_use(&mut self, id: &str, version: &str) -> Result<FileView> {
-        let (mut file, version_id, _) = self.pick_version(id, Some(version))?;
+        let (mut file, version_id, chosen) = self.pick_version(id, Some(version))?;
+        if let Some(mime) = chosen.mime {
+            file.mime = mime;
+        } else if file.current != version_id {
+            file.mime = "application/octet-stream".into();
+        }
         file.current = version_id;
         file.updated_at = now_ms();
         self.save_file(id, file)?;
@@ -834,6 +839,10 @@ impl Client {
         file.versions.retain(|v| v.id != version_id);
         if file.current == version_id {
             file.current = file.versions.last().expect("a version left").id.clone();
+            file.mime = self
+                .version(id, &file.current)?
+                .mime
+                .unwrap_or_else(|| "application/octet-stream".into());
         }
         file.updated_at = now_ms();
         let key = format!("{VERSION}{id}:{version_id}");

@@ -22,7 +22,19 @@
 
 会话每分钟最多延长一次 delegation。升级清空签名缓存后，仍处于该间隔内的会话可通过 `renew` 补发原授权，保持原到期时间；补发仍计入全局续期预算，签名恢复后不能再次绕过间隔。已经退出的会话不能补发。
 
-服务端仅接受 RP ID `dmsg.net`、精确 origin `https://dmsg.net`、ES256、UP 与 UV 标志。注册要求 none attestation，凭据 ID 与 attested data 一致；登录验证 authenticatorData 和原始 clientDataJSON 的签名。检查 crossOrigin/topOrigin，拒绝子域 origin。同步 Passkey 的签名计数不作为是否有效的判断依据。
+服务端仅接受 RP ID `dmsg.net`、ES256、UP 与 UV 标志。网页与 iOS origin 为精确 `https://dmsg.net`；原生 Android 仅接受下节精确证书准入。注册要求 none attestation，凭据 ID 与 attested data 一致；登录验证 authenticatorData 和原始 clientDataJSON 的签名。检查 crossOrigin/topOrigin，拒绝子域 origin。同步 Passkey 的签名计数不作为是否有效的判断依据。
+
+## Android 原生 origin 与发布证书
+
+Android Credential Manager 的 origin 为 `android:apk-key-hash:<base64url-no-padding(SHA-256(installed-signing-certificate-DER))>`。客户端从当前安装包读取证书，仅原样转交返回的 `clientDataJSON`；服务端用其配置的证书哈希生成规范 origin 并精确比较，不接受通配符、任意 `android:` 前缀、追加路径或带填充的编码别名。[Android 官方说明](https://developer.android.com/identity/passkeys/create-passkeys)
+
+`dmsg_auth.android_signers()` 返回当前允许的 SHA-256 列表；治理/controller 使用 `admin_set_android_signers(vec blob32)` 原子替换，配套 `validate_admin_set_android_signers` 可在执行前审阅。最多 8 项，不接受重复或全零值；空列表为默认值，关闭原生 Android 注册/登录/退出全部的断言准入。开发/测试证书只加入隔离测试 issuer，生产列表只登记实际发行证书。服务端不能仅由哈希自动判断其是否是 debug 证书，发布配置审查必须拒绝开发证书。
+
+Android 在申请系统凭据前查询签发方准入，注册继续完成 readiness、admission 与 targets 预检查；未知证书不会先创建系统凭据。最终认证仍以 canister 当前政策和原始签名为准，预检查不代替权威校验。包名、证书和 `dmsg.net` 的 Digital Asset Links 还需分别配置 `delegate_permission/common.handle_all_urls` 与 `delegate_permission/common.get_login_creds`；这份准入列表不是 DAL 的替代。
+
+证书轮换按安装包实际 signer 同时登记新旧正式证书，完成发行过渡后移除旧项。移除项会拒绝新的 WebAuthn 证明，不自动撤销已登记硬件会话或已经签发的最长 12 小时 delegation；现有 `logout/logout_all` 与账户设备撤销保持独立。生产不使用测试向量中的合成证书。
+
+新增稳定内存 ID 4 独立保存列表；ID 0–3 的配置、salt、身份、会话与注册 caller 索引编码不变。旧 Wasm→新 Wasm 使用原地升级，不重装。测试向量为 [passkey-android-v1.json](../../tests/vectors/client/passkey-android-v1.json)。本地升级测试不表示线上 issuer 已升级或任何证书已准入。
 
 ## 浏览器与 iOS
 

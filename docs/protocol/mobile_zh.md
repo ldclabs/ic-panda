@@ -110,7 +110,9 @@ AutoFill 的已确认选择保存在账户的加密工作区中。主应用在�
 
 Widget 和 App Intents 仅提供通用导航及显式暂存，不返回秘密、不后台解锁或批准。浏览器唤起沿用[connect 合同](connect-v1_zh.md)的导航提示；页面结果仍由原操作恢复和验证。
 
-当前 TestFlight 和 App Store Release 固定连接生产业务服务，内购入口、恢复与交易监听/提交由构建开关关闭；receipt 路径不选择业务环境，也不能证明付款。只有显式启用 `DMSG_USE_STAGING=YES` 的 Debug 构建读取 `StagingDeployment.json`，该文件仅含公开端点和 canister ID，使用独立工作区、Keychain 与偏好设置。配置没有自定义 IC 根密钥或任意登录回调选项，普通网页链接不能选择环境。
+当前 TestFlight 和 App Store Release 固定连接生产业务服务；工程 `DMSG_IN_APP_PURCHASES_ENABLED=YES` 已启用内购入口、恢复及交易监听/提交。该开关仅证明客户端具备入口，不表示服务、商品或真实购买已经验收。receipt 路径不选择业务环境，也不能证明付款。只有显式启用 `DMSG_USE_STAGING=YES` 的 Debug 构建读取 `StagingDeployment.json`，该文件仅含公开端点和 canister ID，使用独立工作区、Keychain 与偏好设置。配置没有自定义 IC 根密钥或任意登录回调选项，普通网页链接不能选择环境。
+
+Android 的 gms 与 none 渠道能力、独立安装证明和 Google Play 权威链路分别见 [Android 合同](android_zh.md) 与 [Play 合同](google_play_zh.md)。Google 测试交易由 Developer API 判定，不能从构建环境推导；Android 不提交 Apple 证明或伪造 StoreKit 交易。
 
 ## 7. 验证边界
 

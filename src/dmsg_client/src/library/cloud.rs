@@ -358,6 +358,7 @@ impl Client {
                     self.save_version(&file.id, &file.version, &version)?;
                 } else {
                     let version = Version {
+                        mime: Some(file.mime.clone()),
                         size: file.size,
                         sha256: file.sha256.clone(),
                         created_at: manifest.created_at,
@@ -384,6 +385,7 @@ impl Client {
                     record.versions.sort_by_key(|v| v.created_at);
                     if newest {
                         record.current = file.version.clone();
+                        record.mime = file.mime.clone();
                     }
                     record.updated_at = now;
                     self.workspace.store.atomic(|_| {
@@ -405,6 +407,7 @@ impl Client {
                 };
                 let name = self.catalog()?.free_name(&folder, &safe_name(&file.name));
                 let version = Version {
+                    mime: Some(file.mime.clone()),
                     size: file.size,
                     sha256: file.sha256.clone(),
                     created_at: manifest.created_at,

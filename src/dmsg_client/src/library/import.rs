@@ -477,6 +477,7 @@ impl Client {
             None
         };
         let version = Version {
+            mime: Some(job.mime.clone()),
             size,
             sha256: digest.clone(),
             created_at: now,

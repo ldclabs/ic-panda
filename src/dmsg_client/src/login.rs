@@ -292,6 +292,25 @@ impl LoginSession {
         )
     }
 
+    /// A login returned only through the Android verified App Link callback.
+    ///
+    /// # Errors
+    /// As [`Self::new`].
+    pub fn android(
+        targets: &[Principal],
+        derivation_origin: &str,
+        ttl_ms: u64,
+        now: u64,
+    ) -> Result<Self> {
+        Self::with_callback(
+            targets,
+            derivation_origin,
+            dmsg_protocol::login::ANDROID_CALLBACK.into(),
+            ttl_ms,
+            now,
+        )
+    }
+
     fn with_callback(
         targets: &[Principal],
         derivation_origin: &str,

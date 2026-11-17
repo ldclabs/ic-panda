@@ -907,6 +907,9 @@ fn contract_view(c: &MembershipContract) -> Json {
         ContractSource::AppStore { transaction_id, .. } => {
             ("AppStore", hex::encode(**transaction_id))
         }
+        ContractSource::GooglePlay { transaction_id, .. } => {
+            ("GooglePlay", hex::encode(**transaction_id))
+        }
         ContractSource::Compensation => ("Compensation", String::new()),
     };
     json!({
@@ -914,10 +917,12 @@ fn contract_view(c: &MembershipContract) -> Json {
         "plan": format!("{:?}", c.plan.plan_id),
         "method": method,
         "store_environment": match &c.source {
-            ContractSource::AppStore { environment, .. } => Some(environment.clone().unwrap_or(dmsg_types::app_store::StoreEnvironment::Production)),
+            ContractSource::AppStore { environment, .. } => Some(if environment.as_ref() == Some(&dmsg_types::app_store::StoreEnvironment::Sandbox) { "Sandbox" } else { "Production" }),
+            ContractSource::GooglePlay { environment, .. } => Some(if *environment == dmsg_types::google_play::PlayEnvironment::Test { "Test" } else { "Production" }),
             _ => None,
         },
         "source": source,
+        "store_token_hash": match &c.source { ContractSource::GooglePlay { token_hash, .. } => Some(hex::encode(**token_hash)), _ => None },
         "term_starts_at_ms": c.term_starts_at_ms,
         "starts_at_ms": c.starts_at_ms,
         "expires_at_ms": c.expires_at_ms,
@@ -1003,9 +1008,11 @@ fn offers(
                     &["Cash", "Panda"],
                 );
             };
-            // Apple renews this term itself; other payment waits until it ends.
-            if matches!(c.source, ContractSource::AppStore { .. }) {
-                return wait("APP_STORE_MANAGED", None);
+            // Store renewal is managed by its provider; do not start a parallel cash term.
+            match c.source {
+                ContractSource::AppStore { .. } => return wait("APP_STORE_MANAGED", None),
+                ContractSource::GooglePlay { .. } => return wait("GOOGLE_PLAY_MANAGED", None),
+                _ => {}
             }
             let same = c.plan.plan_id == p.plan_id;
             let higher = price(&c.plan.plan_id).is_some_and(|cents| p.price_cents > cents);
@@ -1150,7 +1157,10 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
     status["renew_from_ms"] = match (current, next) {
         (Some(c), None)
             if c.terminated_at_ms.is_none()
-                && !matches!(c.source, ContractSource::AppStore { .. }) =>
+                && !matches!(
+                    c.source,
+                    ContractSource::AppStore { .. } | ContractSource::GooglePlay { .. }
+                ) =>
         {
             c.expires_at_ms.saturating_sub(RENEWAL_WINDOW_MS).into()
         }
@@ -1816,6 +1826,194 @@ pub async fn app_store_products<H: Hold>(h: &H) -> Result<Json> {
     Ok(
         json!({"configuration":configured,"account_token":token,"home":beneficiary.authority_canister.to_text(),"account":account.to_string()}),
     )
+}
+
+/// Governed Google selections and their account binding. The SDK supplies the
+/// actual localized offer price; no checkout amount is derived from this list.
+pub async fn google_play_products<H: Hold>(h: &H) -> Result<Json> {
+    let (beneficiary, scope) = h
+        .with(|c| {
+            Ok((
+                c.beneficiary()?,
+                (c.session_state().account, c.session_generation()),
+            ))
+        })
+        .await?;
+    let commerce = services(h).await?.commerce;
+    let ic = h.anonymous().await?;
+    let configured: Option<dmsg_types::google_play::GooglePlayConfig> =
+        ic.query(commerce, "get_google_play_config", ()).await?;
+    let account = dmsg_protocol::billing::beneficiary_account(&beneficiary)?;
+    let token = dmsg_protocol::google_play::account_token(beneficiary.authority_canister, &account);
+    let storage = if configured.is_some() {
+        catalog_by(&ic, commerce).await?.storage_products
+    } else {
+        vec![]
+    };
+    h.with(|c| {
+        ensure(
+            (c.session_state().account, c.session_generation()) == scope,
+            Error::Locked,
+        )
+    })
+    .await?;
+    Ok(
+        json!({"configuration":configured,"account_token":token,"home":beneficiary.authority_canister.to_text(),"account":account.to_string(),"storage_products":storage.iter().map(|p|json!({"id":hex::encode(*p.product_id),"bytes":p.storage_bytes})).collect::<Vec<_>>()}),
+    )
+}
+
+/// Read-only admission immediately before opening Play Billing. Google reports
+/// the purchase environment only after payment; a debug build is not evidence.
+pub async fn google_play_purchase_check<H: Hold>(
+    h: &H,
+    product: &str,
+    option: &str,
+    offer: Option<&str>,
+    package: &str,
+) -> Result<Json> {
+    use dmsg_types::google_play::*;
+    let (beneficiary, scope) = h
+        .with(|c| {
+            Ok((
+                c.beneficiary()?,
+                (c.session_state().account, c.session_generation()),
+            ))
+        })
+        .await?;
+    let commerce = services(h).await?.commerce;
+    let ic = h.anonymous().await?;
+    let config: Option<GooglePlayConfig> = ic.query(commerce, "get_google_play_config", ()).await?;
+    let config = config.ok_or(Error::UnsupportedProtocol)?;
+    ensure(config.package_name == package, Error::UnsupportedProtocol)?;
+    let selected = config
+        .products
+        .iter()
+        .find(|p| {
+            let id = match &p.kind {
+                PlayProductKind::Plan { base_plan_id, .. } => base_plan_id,
+                PlayProductKind::Storage {
+                    purchase_option_id, ..
+                } => purchase_option_id,
+            };
+            p.enabled && p.product_id == product && id == option && p.offer_id.as_deref() == offer
+        })
+        .ok_or(Error::UnsupportedProtocol)?;
+    let (status, catalog) =
+        futures_util::try_join!(plan_status(h, false), catalog_by(&ic, commerce))?;
+    ensure(
+        match &selected.kind {
+            PlayProductKind::Plan { plan, .. } => catalog.plans.iter().any(|p| p.plan_id == *plan),
+            PlayProductKind::Storage { product, .. } => catalog
+                .storage_products
+                .iter()
+                .any(|p| p.product_id == *product),
+        },
+        Error::UnsupportedProtocol,
+    )?;
+    let reason = google_play_purchase_reason(&selected.kind, &status, &config.environment);
+    let base = if matches!(selected.kind, PlayProductKind::Storage { .. }) {
+        status["current"]["contract"].clone()
+    } else {
+        Json::Null
+    };
+    h.with(|c| {
+        ensure(
+            (c.session_state().account, c.session_generation()) == scope,
+            Error::Locked,
+        )
+    })
+    .await?;
+    Ok(
+        json!({"eligible":reason.is_none(),"reason":reason,"environment":config.environment,"accept_test":config.accept_test,"kind":if matches!(selected.kind,PlayProductKind::Plan { .. }){"subscription"}else{"storage"},"base_contract":base,"current":status["current"],"authority":{"home":beneficiary.authority_canister.to_text(),"commerce":commerce.to_text(),"verifiers":config.verifiers}}),
+    )
+}
+
+fn google_play_purchase_reason(
+    kind: &dmsg_types::google_play::PlayProductKind,
+    status: &Json,
+    environment: &dmsg_types::google_play::PlayEnvironment,
+) -> Option<&'static str> {
+    use dmsg_types::google_play::*;
+    if status["source"] == "Unverifiable" {
+        return Some("unavailable");
+    }
+    if status["source"] == "Suspended" {
+        return Some("subscription_suspended");
+    }
+    let current = &status["current"];
+    if !current.is_null() && current["method"] != "GooglePlay" {
+        return Some("external_plan");
+    }
+    if matches!(kind, PlayProductKind::Storage { .. })
+        && (current.is_null()
+            || status["source"] != "Active"
+            || current["contract"].as_str().is_none()
+            || current["store_environment"]
+                != if *environment == PlayEnvironment::Test {
+                    "Test"
+                } else {
+                    "Production"
+                })
+    {
+        return Some("subscription_required");
+    }
+    None
+}
+
+#[cfg(test)]
+mod google_play_purchase_tests {
+    use super::*;
+    use dmsg_types::google_play::*;
+
+    #[test]
+    fn preflight_never_offers_external_overlap_unknown_rights_or_unbound_storage() {
+        let plan = PlayProductKind::Plan {
+            plan: PlanId::Plus,
+            base_plan_id: "annual".into(),
+        };
+        let storage = PlayProductKind::Storage {
+            product: Hash::new([1; 32]),
+            purchase_option_id: "buy".into(),
+        };
+        let free = json!({"source":"Free","current":null});
+        assert_eq!(
+            google_play_purchase_reason(&plan, &free, &PlayEnvironment::Production),
+            None
+        );
+        assert_eq!(
+            google_play_purchase_reason(&storage, &free, &PlayEnvironment::Production),
+            Some("subscription_required")
+        );
+        for method in ["AppStore", "Cash", "SNS"] {
+            assert_eq!(
+                google_play_purchase_reason(
+                    &plan,
+                    &json!({"source":"Active","current":{"method":method}}),
+                    &PlayEnvironment::Production
+                ),
+                Some("external_plan")
+            );
+        }
+        let mut owned = json!({"source":"Active","current":{"method":"GooglePlay","store_environment":"Production","contract":"11".repeat(32)}});
+        assert_eq!(
+            google_play_purchase_reason(&storage, &owned, &PlayEnvironment::Production),
+            None
+        );
+        owned["current"]["store_environment"] = "Test".into();
+        assert_eq!(
+            google_play_purchase_reason(&storage, &owned, &PlayEnvironment::Production),
+            Some("subscription_required")
+        );
+        assert_eq!(
+            google_play_purchase_reason(&storage, &owned, &PlayEnvironment::Test),
+            None
+        );
+        owned["source"] = "Unverifiable".into();
+        assert_eq!(
+            google_play_purchase_reason(&plan, &owned, &PlayEnvironment::Production),
+            Some("unavailable")
+        );
+    }
 }
 
 /// Recheck the supported plan transition before presenting Apple's payment UI.

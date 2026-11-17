@@ -1159,6 +1159,10 @@ fn notifications_sandbox_term_never_raises_a_plan_expiry() {
         .unwrap();
     assert_eq!(plans(), 0);
     client
+        .project_plan_notification(&status("Test"), 1_000)
+        .unwrap();
+    assert_eq!(plans(), 0);
+    client
         .project_plan_notification(&status("Production"), 1_000)
         .unwrap();
     assert_eq!(plans(), 1);
@@ -1166,6 +1170,13 @@ fn notifications_sandbox_term_never_raises_a_plan_expiry() {
     formal["next"] = serde_json::json!({"store_environment":"Sandbox"});
     client.project_plan_notification(&formal, 2_000).unwrap();
     assert_eq!(plans(), 1, "A test renewal does not renew a formal term");
+    formal["next"] = serde_json::json!({"store_environment":"Test"});
+    client.project_plan_notification(&formal, 2_000).unwrap();
+    assert_eq!(
+        plans(),
+        1,
+        "A Play test renewal does not renew a formal term"
+    );
     client
         .project_plan_notification(&status("Sandbox"), 3_000)
         .unwrap();

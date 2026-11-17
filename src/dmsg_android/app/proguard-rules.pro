@@ -1,0 +1,6 @@
+-keep class net.dmsg.core.** { *; }
+-keep class net.dmsg.android.core.NativeBootstrap { *; }
+-keep class com.sun.jna.** { *; }
+-keep class * implements com.sun.jna.Callback { *; }
+-keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
+-dontwarn java.awt.**

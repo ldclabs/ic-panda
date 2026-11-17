@@ -130,6 +130,9 @@ pub struct Backup {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Version {
+    /// The media type of these immutable bytes. Older records use the file hint.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mime: Option<String>,
     /// Plaintext length.
     pub size: u64,
     /// Plaintext SHA-256, hex.
@@ -164,7 +167,13 @@ impl Version {
             id: file_id.into(),
             version: version_id.into(),
             name: record.name.clone(),
-            mime: record.mime.clone(),
+            mime: self.mime.clone().unwrap_or_else(|| {
+                if record.current == version_id {
+                    record.mime.clone()
+                } else {
+                    "application/octet-stream".into()
+                }
+            }),
             size: self.size,
             sha256: self.sha256.clone(),
             chunks: self
@@ -257,6 +266,8 @@ pub struct FileView {
 pub struct VersionView {
     /// Version ID.
     pub id: String,
+    /// Immutable media type when recorded for this version.
+    pub mime: Option<String>,
     /// Length.
     pub size: u64,
     /// SHA-256.
@@ -582,7 +593,7 @@ impl Catalog {
             id: id.into(),
             folder: file.folder.clone(),
             name: file.name.clone(),
-            mime: file.mime.clone(),
+            mime: current.mime.clone().unwrap_or_else(|| file.mime.clone()),
             size: current.size,
             sha256: current.sha256.clone(),
             tags: file.tags.clone(),
@@ -634,6 +645,7 @@ fn named<'a>(
 /// A version view.
 pub(crate) fn version_view(id: &str, version: &Version, current: bool) -> VersionView {
     VersionView {
+        mime: version.mime.clone(),
         id: id.into(),
         size: version.size,
         sha256: version.sha256.clone(),

@@ -6,6 +6,8 @@ English | [简体中文](dmsg_architecture_zh.md)
 
 Reviewed against public source `9fd70dca` on 2026-10-24. This document describes the desktop/iOS/CLI/MCP clients, public contracts, canister roles and scaling model. Interfaces and measured capacity follow each component README and Candid file. Historical capacity samples retain their original measurement scope; they do not include later profile metadata or prove production throughput. Private services appear only through public contracts. A source review is not a deployment verification or security audit.
 
+Android commerce addendum, 2026-11-16: the independent [Google Play contract](protocol/google_play_zh.md) uses certified commerce entitlements with separate subscription-period and storage-purchase identities. Commerce retains its configuration, observations and receipts; user/directory stable layouts are unchanged. Local protocol, Wasm and upgrade checks do not establish live Google service or purchase acceptance. Historical capacity figures below exclude this addition.
+
 Mobile addendum, 2026-10-27: iOS reuses the Rust core through UniFFI. Extensions receive explicit, expiring exports; background transfer handles ciphertext only. See the [mobile contract](protocol/mobile_zh.md) for APNs/App Attest, StoreKit verification and commerce entitlements, deletion and reporting, and the [iOS validation record](../src/dmsg_ios/VALIDATION.md) for actual checks. Apple configuration and physical-device acceptance remain outstanding. Historical capacity figures below do not include the new transaction observations.
 
 ## 1. Design Principles

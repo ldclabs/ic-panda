@@ -74,6 +74,7 @@ pub(crate) struct PendingBinding {
 pub(crate) fn recovery_view(pending: &PendingRecovery, device: &Hash) -> Json {
     json!({
         "op_id": hex::encode(*pending.request.op_id),
+        "digest": hex::encode(*dmsg_protocol::digest("dmsg/pending-recovery/v1", pending)),
         "new_auth": pending.request.new_auth.to_text(),
         "device_id": hex::encode(*pending.request.device.device_id),
         "this_device": pending.request.device.device_id == *device,
@@ -499,7 +500,7 @@ impl Client {
         self.finish_account_change(&change.command()?).await
     }
 
-    async fn finish_account_change(&mut self, command: &AccountCommand) -> Result<()> {
+    pub(crate) async fn finish_account_change(&mut self, command: &AccountCommand) -> Result<()> {
         if let AccountCommand::SetRecoveryPolicy { enabled, delay_ms } = command {
             let account = self.account()?.clone();
             let state = self.refresh(account.home, &account.id).await?;

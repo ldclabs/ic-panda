@@ -4,6 +4,7 @@ use cbor2::Value;
 use p256::ecdsa::{Signature, SigningKey, signature::Signer};
 
 fn setup() {
+    save_android_signers(vec![]);
     IDENTITIES.with_borrow_mut(|m| m.clear_new());
     SESSIONS.with_borrow_mut(|m| m.clear_new());
     REGISTRATIONS.with_borrow_mut(|m| m.clear_new());

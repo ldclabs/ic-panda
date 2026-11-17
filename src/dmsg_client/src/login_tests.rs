@@ -58,6 +58,21 @@ fn body(session: &LoginSession, delegation: Vec<u8>) -> Vec<u8> {
 }
 
 #[test]
+fn android_login_scopes_the_delegation_and_rejects_another_session() {
+    let s = LoginSession::android(&targets(), "https://dmsg.net", DEFAULT_TTL_MS, NOW).unwrap();
+    assert_eq!(s.request.next_url, dmsg_protocol::login::ANDROID_CALLBACK);
+    let callback = body(&s, chain(&s.request.session_pubkey, NOW + 600_000, None));
+    let accepted = s.accept(&callback, NOW).unwrap();
+    let links = accepted.identity.delegation_chain();
+    assert_eq!(links[1].delegation.targets, Some(targets()));
+    assert_ne!(
+        links[1].delegation.pubkey,
+        s.request.session_pubkey.to_vec()
+    );
+    assert!(session().accept(&callback, NOW).is_err());
+}
+
+#[test]
 fn accepts_a_delegation_to_the_session_key() {
     let s = session();
     let key = s.request.session_pubkey.to_vec();

@@ -50,6 +50,7 @@ record!(SubjectRepr => Subject {
     10 => last_service_end_ms: Option<u64>,
     12 => retry_after_ms: u64,
     13 => last_sandbox_service_end_ms: Option<u64>,
+    14 => store_qualifications: Option<BTreeMap<Hash, (u64, u64)>>,
 });
 
 record!(ConfigRepr => Config {
@@ -125,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn previous_subject_schema_without_sandbox_history_still_decodes() {
+    fn previous_subject_schema_without_optional_store_fields_still_decodes() {
         let subject = Subject::new(beneficiary(
             Principal::from_slice(&[1]),
             &AccountId([2; 12]),
@@ -134,8 +135,27 @@ mod tests {
         else {
             panic!("record")
         };
-        fields.retain(|(key, _)| *key != cbor2::Value::Integer(13.into()));
+        fields.retain(|(key, _)| {
+            ![
+                cbor2::Value::Integer(13.into()),
+                cbor2::Value::Integer(14.into()),
+            ]
+            .contains(key)
+        });
         let old = cbor2::to_vec(&cbor2::Value::Map(fields)).unwrap();
         assert_eq!(compact_from_bytes::<Subject>(&old), subject);
+    }
+
+    #[test]
+    fn independent_store_qualification_survives_stable_roundtrip() {
+        let mut subject = Subject::new(beneficiary(
+            Principal::from_slice(&[1]),
+            &AccountId([2; 12]),
+        ));
+        subject.store_qualifications = Some(BTreeMap::from([(Hash::new([7; 32]), (100, 200))]));
+        assert_eq!(
+            compact_from_bytes::<Subject>(&compact_bytes(&subject)),
+            subject
+        );
     }
 }

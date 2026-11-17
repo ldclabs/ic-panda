@@ -30,6 +30,13 @@ use futures_util::future::{join, join3, try_join_all};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+mod prepared_approval;
+pub(crate) use prepared_approval::reconcile_one as reconcile_prepared_approval;
+pub use prepared_approval::{
+    HardwareAccountApproval, PreparedAccountApproval, PreparedAccountKey, ProvedAccountApproval,
+    ProvedAccountKey,
+};
+
 /// A home accepts approvals at most five minutes ahead; leave a skew margin.
 pub(crate) const APPROVAL_MS: u64 = 270_000;
 /// A name authorization at most one minute ahead.
@@ -872,6 +879,21 @@ impl Client {
         command: AccountCommand,
         fixed: Option<(Hash, u64)>,
     ) -> Result<AccountMutation> {
+        let (mut mutation, message, purpose) =
+            self.prepare_unsigned_mutation(state, command, fixed, u64::MAX, now_ms())?;
+        mutation.approval.hardware = self.hardware_proof(&state.info, purpose, message)?;
+        Ok(mutation)
+    }
+
+    /// Freeze replay fields and device signature before any hardware prompt.
+    fn prepare_unsigned_mutation(
+        &mut self,
+        state: &AccountState,
+        command: AccountCommand,
+        fixed: Option<(Hash, u64)>,
+        deadline: u64,
+        now: u64,
+    ) -> Result<(AccountMutation, Hash, Option<HardwarePurpose>)> {
         let account = self.account()?;
         let device = state.active(&self.workspace.meta.device_id)?;
         let anyone = match &command {
@@ -909,11 +931,12 @@ impl Client {
                 security_epoch: state.info.security_epoch,
                 sequence: device.next_sequence,
                 request_id,
-                expires_at: now_ms() + ttl,
+                expires_at: (now + ttl).min(deadline),
                 signature: Ed25519Signature::new([0; 64]),
                 hardware: None,
             },
         };
+        ensure(now < mutation.approval.expires_at, Error::Expired)?;
         let message = approval_message(
             account.home,
             &account.id,
@@ -936,8 +959,7 @@ impl Client {
             }
             command => command_purpose(command),
         };
-        mutation.approval.hardware = self.hardware_proof(&state.info, purpose, message)?;
-        Ok(mutation)
+        Ok((mutation, message, purpose))
     }
 
     /// A pairing request for the login's account, signed by this provisional

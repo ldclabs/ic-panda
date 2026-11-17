@@ -218,6 +218,6 @@ final class NotificationTests: XCTestCase {
             _ = try await engine.notificationStatus()
             XCTFail("Stale UI handle read a replacement session")
         } catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
-        try await engine.close()
+        try await engine.shutdown()
     }
 }

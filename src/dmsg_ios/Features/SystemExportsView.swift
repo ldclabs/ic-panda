@@ -126,8 +126,9 @@ struct SystemExportsView: View {
         if model.uiTesting { return false }
         #endif
         guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-        let state: HardwareSecurityStatus = try model.decode(try await engine.hardwareSecurity())
-        return state.boundBiometryOnly == true
+        struct ExportPolicy: Decodable { let biometryOnly: Bool }
+        let state: ExportPolicy = try model.decode(try await engine.systemExportPolicy())
+        return state.biometryOnly
     }
 
     private func refreshSnapshots() {

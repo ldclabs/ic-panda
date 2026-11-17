@@ -14,6 +14,9 @@
 #[path = "connect_reads.rs"]
 mod reads;
 pub use reads::{entries, reconcile_reads};
+#[path = "connect_prepared.rs"]
+mod prepared;
+pub use prepared::{HardwareConnect, PreparedConnect, ProvedConnect};
 
 use crate::approval::{self, Action, State};
 use crate::attest::{Subject, statement_view};
@@ -556,6 +559,9 @@ pub(crate) struct Operation {
     pinned: Option<Hash>,
     execution: Option<String>,
     auth: Option<AuthJob>,
+    /// A proved fixed execution waiting for the relay's original pin decision.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    prepared: Option<prepared::Execution>,
     /// The checkout journal an approved checkout runs.
     checkout: Option<String>,
     result: Option<String>,
@@ -1351,6 +1357,7 @@ impl Client {
             pinned: None,
             execution: None,
             auth: None,
+            prepared: None,
             checkout: None,
             result: None,
             result_digest: None,
@@ -1506,6 +1513,10 @@ impl Client {
                 }
             }
             if op.state != before {
+                let prepared = op.prepared.is_some();
+                if op.state.terminal() {
+                    op.prepared = None;
+                }
                 self.save_operation(&op)?;
                 let state = match op.state {
                     OpState::Elsewhere => Some(State::Elsewhere),
@@ -1514,10 +1525,12 @@ impl Client {
                     _ => None,
                 };
                 if let (Some(state), Ok(mut approval)) = (state, self.approval_record(&op.approval))
-                    && approval.state == State::AwaitingUser
+                    && (approval.state == State::AwaitingUser
+                        || (prepared
+                            && matches!(approval.state, State::Executing | State::Unknown)))
                 {
                     approval.state = state;
-                    approval.updated_at = now_ms();
+                    approval.updated_at = now;
                     self.save_approval(&approval)?;
                 }
             }

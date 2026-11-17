@@ -469,6 +469,59 @@ impl Request {
     }
 }
 
+/// Compute a settlement without writing, so account journals and approvals can
+/// commit their terminal or uncertain state together in one store transaction.
+pub(crate) fn apply_outcome(request: &mut Request, outcome: Result<()>, now: u64) -> Result<()> {
+    request.updated_at = now;
+    match outcome {
+        // An executor may settle the request itself, such as a web
+        // request another device took first.
+        Ok(()) if !matches!(request.state, State::Executing | State::Unknown) => Ok(()),
+        Ok(()) => {
+            request.state = State::Done;
+            request.error = None;
+            Ok(())
+        }
+        Err(Error::ExecutionUnknown) => {
+            request.state = State::Unknown;
+            Err(Error::ExecutionUnknown)
+        }
+        // It may have run, and nothing can tell any more.
+        Err(Error::ResultExpired) => {
+            request.state = State::Lost;
+            request.error = Some(crate::error_code(&Error::ResultExpired));
+            Err(Error::ResultExpired)
+        }
+        // The service is still working through a step; retry within the
+        // request's window so a transient check finishes on its own.
+        Err(Error::Pending) if now < request.expires_at => {
+            request.state = State::Executing;
+            request.error = Some(crate::error_code(&Error::Pending));
+            Err(Error::Pending)
+        }
+        // Past the window, the order's reconcile remains for the person.
+        Err(Error::Pending) => {
+            request.state = State::Failed;
+            request.error = Some(crate::error_code(&Error::Pending));
+            Err(Error::Pending)
+        }
+        // Nothing ran: no login, no network or stale certified data.
+        // The request keeps waiting for the person to try again.
+        Err(error @ (Error::AuthRequired | Error::Unavailable(_) | Error::PolicyStale))
+            if !request.started =>
+        {
+            request.state = State::AwaitingUser;
+            request.error = Some(crate::error_code(&error));
+            Err(error)
+        }
+        Err(error) => {
+            request.state = State::Failed;
+            request.error = Some(crate::error_code(&error));
+            Err(error)
+        }
+    }
+}
+
 /// What a decision leaves to run.
 pub enum Decision {
     /// Decided, and executed when approved: the request's view.
@@ -747,6 +800,7 @@ impl Client {
             .prune_approvals(&State::TERMINAL, now.saturating_sub(RETAIN_MS))?
         {
             self.workspace.delete_private(&Self::approval_key(&id))?;
+            self.delete_approved_account_journal(&id)?;
         }
         for row in self
             .workspace
@@ -1427,54 +1481,7 @@ impl Client {
         outcome: Result<()>,
     ) -> Result<Json> {
         let now = now_ms();
-        request.updated_at = now;
-        let result = match outcome {
-            // An executor may settle the request itself, such as a web
-            // request another device took first.
-            Ok(()) if !matches!(request.state, State::Executing | State::Unknown) => Ok(()),
-            Ok(()) => {
-                request.state = State::Done;
-                request.error = None;
-                Ok(())
-            }
-            Err(Error::ExecutionUnknown) => {
-                request.state = State::Unknown;
-                Err(Error::ExecutionUnknown)
-            }
-            // It may have run, and nothing can tell any more.
-            Err(Error::ResultExpired) => {
-                request.state = State::Lost;
-                request.error = Some(crate::error_code(&Error::ResultExpired));
-                Err(Error::ResultExpired)
-            }
-            // The service is still working through a step; retry within the
-            // request's window so a transient check finishes on its own.
-            Err(Error::Pending) if now < request.expires_at => {
-                request.state = State::Executing;
-                request.error = Some(crate::error_code(&Error::Pending));
-                Err(Error::Pending)
-            }
-            // Past the window, the order's reconcile remains for the person.
-            Err(Error::Pending) => {
-                request.state = State::Failed;
-                request.error = Some(crate::error_code(&Error::Pending));
-                Err(Error::Pending)
-            }
-            // Nothing ran: no login, no network or stale certified data.
-            // The request keeps waiting for the person to try again.
-            Err(error @ (Error::AuthRequired | Error::Unavailable(_) | Error::PolicyStale))
-                if !request.started =>
-            {
-                request.state = State::AwaitingUser;
-                request.error = Some(crate::error_code(&error));
-                Err(error)
-            }
-            Err(error) => {
-                request.state = State::Failed;
-                request.error = Some(crate::error_code(&error));
-                Err(error)
-            }
-        };
+        let result = apply_outcome(request, outcome, now);
         self.save_approval(request)?;
         result?;
         self.approval_view(request)
@@ -1589,6 +1596,15 @@ impl Client {
     /// Reconcile requests not handled by the wallet or attestation step runners.
     /// The daemon runs the separate runners outside its client lock.
     pub async fn approvals_reconcile_others(&mut self) -> Result<usize> {
+        let prepared = reconcile_prepared_accounts(&self.hold()).await?;
+        Ok(prepared + self.approvals_reconcile_legacy().await?)
+    }
+
+    /// Reconcile only the remaining exclusive workflows. Mobile hosts run
+    /// prepared account operations separately through their cooperative Hold.
+    /// # Errors
+    /// Returns workspace errors; each operation retains its own outcome.
+    pub async fn approvals_reconcile_legacy(&mut self) -> Result<usize> {
         let requests = self
             .unsettled(false)?
             .into_iter()
@@ -1596,6 +1612,10 @@ impl Client {
             .collect::<Vec<_>>();
         let count = requests.len();
         for mut request in requests {
+            if self.has_approved_account_journal(&request.id)? {
+                let _ = self.finish_prepared_account_approval(&request.id).await;
+                continue;
+            }
             let outcome = match request.action.clone() {
                 // An interrupted local permission is not replayed on restart.
                 Action::DeviceTransfer { .. } => Err(Error::Forbidden),
@@ -2008,6 +2028,27 @@ pub async fn reconcile_attestations<H: Hold>(h: &H) -> Result<usize> {
         .await?;
     }
     Ok(count)
+}
+
+/// Reconcile exact, independently journaled account approvals outside Client.
+/// # Errors
+/// Returns workspace/session errors; unknown remote results retain their IDs.
+pub async fn reconcile_prepared_accounts<H: Hold>(h: &H) -> Result<usize> {
+    let ids = h
+        .with(|c| {
+            let mut ids = Vec::new();
+            for request in c.unsettled(false)? {
+                if c.has_approved_account_journal(&request.id)? {
+                    ids.push(request.id);
+                }
+            }
+            Ok(ids)
+        })
+        .await?;
+    for id in &ids {
+        let _ = crate::account::reconcile_prepared_approval(h, id).await;
+    }
+    Ok(ids.len())
 }
 
 /// Ask to replace a device's capabilities, such as turning on

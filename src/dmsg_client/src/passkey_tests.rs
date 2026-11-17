@@ -92,6 +92,7 @@ async fn registration_preflight_failure_never_starts_a_creation_challenge() {
             Arc::new(Hardware),
             AuthAction::Register,
             dmsg_protocol::login::IOS_CALLBACK.into(),
+            None,
             None
         )
         .await,

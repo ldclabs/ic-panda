@@ -3,3 +3,8 @@ module_name = "DMsgCore"
 ffi_module_name = "DMsgCoreFFI"
 generate_module_map = true
 generate_immutable_records = true
+
+[bindings.kotlin]
+package_name = "net.dmsg.core"
+cdylib_name = "dmsg_mobile"
+android = true

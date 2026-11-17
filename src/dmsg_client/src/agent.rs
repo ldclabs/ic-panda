@@ -835,21 +835,53 @@ pub async fn delegation_credentials<H: Hold>(h: &H) -> Result<Vec<Json>> {
     let base = format!("{}/delegations", h.with(|c| c.base()).await?);
     let mut credentials = Vec::new();
     let mut cursor: Option<String> = None;
+    let mut cursors = std::collections::BTreeSet::new();
     loop {
         let path = match &cursor {
-            Some(cursor) => format!("{base}?limit=100&cursor={cursor}"),
+            Some(cursor) => {
+                let query = url::form_urlencoded::Serializer::new(String::new())
+                    .append_pair("limit", "100")
+                    .append_pair("cursor", cursor)
+                    .finish();
+                format!("{base}?{query}")
+            }
             None => format!("{base}?limit=100"),
         };
-        let page = h.get(&path).await?;
-        credentials.extend(page["result"].as_array().cloned().unwrap_or_default());
-        match page["next_cursor"].as_str() {
-            Some(next) if credentials.len() < 10_000 => cursor = Some(next.into()),
-            _ => {
+        let (page, next) = credential_page(h.get(&path).await?)?;
+        credentials.extend(page);
+        match next {
+            Some(next) => {
+                ensure(cursors.insert(next.clone()), Error::IntegrityFailed)?;
+                ensure(
+                    credentials.len() < 10_000 && cursors.len() < 100,
+                    Error::QuotaExceeded,
+                )?;
+                cursor = Some(next);
+            }
+            None => {
                 h.with(|_| Ok(())).await?;
                 return Ok(credentials);
             }
         }
     }
+}
+
+/// An absent or malformed page is not evidence that the account has no credentials.
+pub(crate) fn credential_page(page: Json) -> Result<(Vec<Json>, Option<String>)> {
+    let mut page = page.as_object().cloned().ok_or(Error::IntegrityFailed)?;
+    let Some(Json::Array(rows)) = page.remove("result") else {
+        return Err(Error::IntegrityFailed);
+    };
+    ensure(
+        rows.len() <= 100 && rows.iter().all(Json::is_object),
+        Error::IntegrityFailed,
+    )?;
+    let next = match page.remove("next_cursor") {
+        None | Some(Json::Null) => None,
+        Some(Json::String(next)) if !next.is_empty() && next.len() <= 1024 => Some(next),
+        _ => return Err(Error::IntegrityFailed),
+    };
+    Ok((rows, next))
 }
 
 fn sdk(error: SdkError) -> Error {

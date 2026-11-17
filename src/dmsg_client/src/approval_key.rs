@@ -28,6 +28,68 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_json::{Value as Json, json};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+/// One final protocol commitment, prepared without asking for the person.
+pub(crate) struct PreparedHardwareProof {
+    hardware: Arc<dyn ApprovalKeys>,
+    key: LocalKey,
+    reason: &'static str,
+    message: Hash,
+    expires_at: u64,
+    deadline: Instant,
+    signer: Option<Arc<dyn crate::secure::PreparedSignature>>,
+}
+
+/// The original plan and its hardware answer stay together until client validation.
+pub(crate) struct HardwareProofAnswer {
+    prepared: PreparedHardwareProof,
+    signature: Result<[u8; 64]>,
+}
+
+impl PreparedHardwareProof {
+    pub(crate) fn cancellation(&self) -> crate::secure::SigningCancellation {
+        crate::secure::SigningCancellation(self.signer.clone())
+    }
+
+    fn check_time(&self, now: u64) -> Result<()> {
+        ensure(
+            now < self.expires_at && Instant::now() < self.deadline,
+            Error::Expired,
+        )
+    }
+
+    /// Blocking user interaction; the caller must run this outside every Hold step.
+    pub(crate) fn sign(self) -> HardwareProofAnswer {
+        let signature = (|| {
+            self.check_time(now_ms())?;
+            if let Some(signer) = &self.signer {
+                let signature = signer.sign()?;
+                self.check_time(now_ms())?;
+                return Ok(signature);
+            }
+            let answer = self.hardware.authorize_keys(
+                self.reason,
+                self.key.biometry_only(),
+                &[self.key.handle.to_vec()],
+            )?;
+            self.check_time(now_ms())?;
+            let signature = answer.sign(&self.key.handle, &self.message)?;
+            self.check_time(now_ms())?;
+            Ok(signature)
+        })();
+        HardwareProofAnswer {
+            prepared: self,
+            signature,
+        }
+    }
+}
+
+impl HardwareProofAnswer {
+    pub(crate) fn error(&self) -> Option<Error> {
+        self.signature.as_ref().err().cloned()
+    }
+}
 
 /// The sealed list of this device's keys.
 const KEYS: &str = "approval-keys";
@@ -51,7 +113,15 @@ pub(crate) struct LocalKey {
     /// For a key that takes only the fingerprints enrolled when it was
     /// made: their digest then.
     biometry: Option<Hash>,
+    #[serde(default)]
+    biometry_only: bool,
     created_at: u64,
+}
+
+impl LocalKey {
+    fn biometry_only(&self) -> bool {
+        self.biometry_only || self.biometry.is_some()
+    }
 }
 
 /// What this device last read of its registered key and the policy.
@@ -79,6 +149,31 @@ struct KeyTools {
     account: crate::workspace::AccountRef,
 }
 
+/// Own the provider object until its handle is durably referenced by the client.
+struct PendingKey {
+    hardware: Arc<dyn ApprovalKeys>,
+    handle: Vec<u8>,
+    kept: bool,
+}
+
+impl PendingKey {
+    fn new(hardware: Arc<dyn ApprovalKeys>, handle: &[u8]) -> Self {
+        Self {
+            hardware,
+            handle: handle.to_vec(),
+            kept: false,
+        }
+    }
+}
+
+impl Drop for PendingKey {
+    fn drop(&mut self) {
+        if !self.kept {
+            let _ = self.hardware.delete_key(&self.handle);
+        }
+    }
+}
+
 /// A new local key awaiting its proof of possession outside the client.
 pub struct KeyRequestPreparation {
     hardware: Arc<dyn ApprovalKeys>,
@@ -86,6 +181,8 @@ pub struct KeyRequestPreparation {
     device_id: Hash,
     generation: u64,
     key: LocalKey,
+    pending: PendingKey,
+    signer: Option<Arc<dyn crate::secure::PreparedSignature>>,
 }
 
 /// A proved key, not persisted until the originating session is rechecked.
@@ -95,6 +192,27 @@ pub struct ProvedKeyRequest {
 }
 
 impl KeyRequestPreparation {
+    fn freeze(mut self) -> Result<Self> {
+        let message = approval_key_message(
+            self.account.home,
+            &self.account.id,
+            self.device_id,
+            &self.key.public_key,
+        );
+        self.signer = self.hardware.prepare_signature(
+            "approval_key",
+            self.key.biometry_only(),
+            &self.key.handle,
+            &message,
+        )?;
+        Ok(self)
+    }
+
+    /// Keep this in the async owner so cancellation revokes only this prompt.
+    pub fn cancellation(&self) -> crate::secure::SigningCancellation {
+        crate::secure::SigningCancellation(self.signer.clone())
+    }
+
     /// Ask once and prove the new key without borrowing the client.
     ///
     /// # Errors
@@ -106,10 +224,17 @@ impl KeyRequestPreparation {
             self.device_id,
             &self.key.public_key,
         );
-        let raw = self
-            .hardware
-            .authorize("approval_key", self.key.biometry.is_some())?
-            .sign(&self.key.handle, &message)?;
+        let raw = match &self.signer {
+            Some(signer) => signer.sign()?,
+            None => self
+                .hardware
+                .authorize_keys(
+                    "approval_key",
+                    self.key.biometry_only(),
+                    &[self.key.handle.to_vec()],
+                )?
+                .sign(&self.key.handle, &message)?,
+        };
         let proof = low_s(&self.key.public_key, &message, &raw)?;
         Ok(ProvedKeyRequest {
             preparation: self,
@@ -168,13 +293,43 @@ fn biometry(presence: Option<Arc<dyn PresenceKey>>, biometry_only: bool) -> Resu
     if !biometry_only {
         return Ok(None);
     }
-    presence
-        .and_then(|p| p.biometry_state())
-        .map(Some)
-        .ok_or_else(|| Error::Unavailable("Touch ID is not set up".into()))
+    let presence = presence.ok_or_else(|| Error::Unavailable("biometry unavailable".into()))?;
+    ensure(
+        presence.supports_biometry_only(),
+        Error::Unavailable("biometry unavailable".into()),
+    )?;
+    Ok(presence.biometry_state())
 }
 
 impl Client {
+    /// Hardware handles for the displayed decision, prepared before prompting.
+    /// No future action can add a signing key to this set.
+    pub fn approval_signing_handles(&self, id: &str) -> Result<Vec<Vec<u8>>> {
+        let request = self.approval_record(id)?;
+        let mut handles = Vec::new();
+        if let Some(seen) = &self.hardware_seen {
+            if let Some(key) = self.registered_key(seen.key)? {
+                handles.push(key.handle.to_vec());
+            }
+        }
+        if let Action::ApprovalKey { public_key, .. } = &request.action {
+            if let Some(key) = self
+                .local_approval_keys()?
+                .into_iter()
+                .find(|k| k.public_key == *public_key)
+            {
+                if !handles.contains(&key.handle.to_vec()) {
+                    handles.push(key.handle.to_vec());
+                }
+            }
+        }
+        ensure(
+            !handles.is_empty() && handles.len() <= 2,
+            Error::IntegrityFailed,
+        )?;
+        Ok(handles)
+    }
+
     /// Keep this device's approval keys in `keys`, such as the Secure
     /// Enclave.
     pub fn set_approval_keys(&mut self, keys: Arc<dyn ApprovalKeys>) {
@@ -216,14 +371,24 @@ impl Client {
     /// is not `registered` goes.
     fn keep_approval_key(&self, key: LocalKey, registered: Option<Hash>) -> Result<()> {
         let mut keys = self.local_approval_keys()?;
+        let mut discarded = Vec::new();
         keys.push(key);
         while keys.len() > MAX_KEYS {
             match keys.iter().position(|k| Some(k.key_id) != registered) {
-                Some(at) => keys.remove(at),
+                Some(at) => discarded.push(keys.remove(at)),
                 None => break,
-            };
+            }
         }
-        self.workspace.put_private(self.keys()?, KEYS, &keys)
+        self.workspace.put_private(self.keys()?, KEYS, &keys)?;
+        if let Some(hardware) = &self.approval_keys {
+            for key in discarded {
+                // Only after storage commits: a failed write keeps the old keys usable.
+                if keys.iter().all(|retained| retained.handle != key.handle) {
+                    let _ = hardware.delete_key(&key.handle);
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Keep what `info` says of this device's key and the policy, for
@@ -285,7 +450,7 @@ impl Client {
             )?;
         }
         Ok(match (key, &self.approval_keys) {
-            (Some(key), Some(hardware)) => Some((hardware.clone(), key.biometry.is_some())),
+            (Some(key), Some(hardware)) => Some((hardware.clone(), key.biometry_only())),
             _ => None,
         })
     }
@@ -314,13 +479,13 @@ impl Client {
                 let old = self
                     .registered_key(seen.key)?
                     .ok_or_else(|| Error::InvalidInput(APPROVAL_KEY_REQUIRED.into()))?;
-                old.biometry.is_some()
+                old.biometry_only()
             }
             _ => false,
         };
         Ok(match (key, &self.approval_keys) {
             (Some(key), Some(hardware)) => {
-                Some((hardware.clone(), old_biometry || key.biometry.is_some()))
+                Some((hardware.clone(), old_biometry || key.biometry_only()))
             }
             _ => None,
         })
@@ -351,7 +516,7 @@ impl Client {
                         !self.require_prepared_approval,
                         Error::Unavailable(HARDWARE_AUTHORIZATION_REQUIRED.into()),
                     )?;
-                    Some((hardware.clone(), key.biometry.is_some()))
+                    Some((hardware.clone(), key.biometry_only()))
                 }
                 _ => None,
             },
@@ -397,6 +562,107 @@ impl Client {
         }))
     }
 
+    /// Freeze the exact hardware message before the host starts authentication.
+    pub(crate) fn prepare_hardware_proof(
+        &self,
+        info: &AccountInfo,
+        purpose: HardwarePurpose,
+        message: Hash,
+        expires_at: u64,
+        now: u64,
+    ) -> Result<PreparedHardwareProof> {
+        self.keys()?;
+        let registered = info
+            .approval_keys
+            .get(&self.workspace.meta.device_id)
+            .map(|key| key.key_id);
+        let key = self
+            .registered_key(registered)?
+            .ok_or_else(|| Error::InvalidInput(APPROVAL_KEY_REQUIRED.into()))?;
+        let remaining = expires_at
+            .checked_sub(now)
+            .filter(|ms| *ms > 0)
+            .ok_or(Error::Expired)?;
+        let hardware = self.approval_hardware()?;
+        let message = hardware_message(message, key.key_id);
+        let signer = hardware.prepare_signature(
+            purpose_name(purpose),
+            key.biometry_only(),
+            &key.handle,
+            &message,
+        )?;
+        Ok(PreparedHardwareProof {
+            hardware,
+            reason: purpose_name(purpose),
+            message,
+            key,
+            expires_at,
+            deadline: Instant::now() + Duration::from_millis(remaining.min(90_000)),
+            signer,
+        })
+    }
+
+    /// This device's new key proves only its fixed registration context. The
+    /// mutation authorizing replacement is prepared after this proof is known.
+    pub(crate) fn prepare_key_possession(
+        &self,
+        device: Hash,
+        public_key: &[u8],
+        expires_at: u64,
+        now: u64,
+    ) -> Result<PreparedHardwareProof> {
+        ensure(
+            device == self.workspace.meta.device_id,
+            Error::IntegrityFailed,
+        )?;
+        let account = self.account()?;
+        let key = self
+            .local_approval_keys()?
+            .into_iter()
+            .find(|k| k.public_key.as_slice() == public_key)
+            .ok_or(Error::NotFound)?;
+        let remaining = expires_at
+            .checked_sub(now)
+            .filter(|ms| *ms > 0)
+            .ok_or(Error::Expired)?;
+        let hardware = self.approval_hardware()?;
+        let message = approval_key_message(account.home, &account.id, device, public_key);
+        let signer = hardware.prepare_signature(
+            "approval_key",
+            key.biometry_only(),
+            &key.handle,
+            &message,
+        )?;
+        Ok(PreparedHardwareProof {
+            hardware,
+            reason: "approval_key",
+            message,
+            key,
+            expires_at,
+            deadline: Instant::now() + Duration::from_millis(remaining.min(90_000)),
+            signer,
+        })
+    }
+
+    /// Verify a hardware answer against its frozen message and this device's key state.
+    pub(crate) fn complete_hardware_proof(
+        &mut self,
+        answer: HardwareProofAnswer,
+        now: u64,
+    ) -> Result<HardwareProof> {
+        let HardwareProofAnswer {
+            prepared,
+            signature,
+        } = answer;
+        // Classify actual key failures even if the request expired while asking.
+        let signature = self.approval_signature(&prepared.key, &prepared.message, signature)?;
+        prepared.check_time(now)?;
+        Ok(HardwareProof {
+            key_id: prepared.key.key_id,
+            signature,
+        })
+    }
+
     /// Sign `message` with `key`: with the person's answer for this
     /// decision, or by asking about `what` now.
     fn approval_sign(
@@ -412,9 +678,18 @@ impl Client {
             }
             None => self
                 .approval_hardware()?
-                .authorize(what, key.biometry.is_some())
+                .authorize_keys(what, key.biometry_only(), &[key.handle.to_vec()])
                 .and_then(|answer| answer.sign(&key.handle, message)),
         };
+        self.approval_signature(key, message, signed)
+    }
+
+    fn approval_signature(
+        &mut self,
+        key: &LocalKey,
+        message: &Hash,
+        signed: Result<[u8; 64]>,
+    ) -> Result<P256Signature> {
         // A key made after a late anchor says nothing about the old keys
         // copied here before it. Only those may settle that anchor, by what
         // the enclave answered: a key it cannot open here, not a
@@ -523,13 +798,13 @@ impl Client {
         Ok(json!({
             "available": self.approval_keys.as_ref().is_some_and(|hardware| hardware.available()),
             "device_bound": self.workspace.bound()?,
-            "biometry": self.presence.as_ref().and_then(|p| p.biometry_state()).is_some(),
+            "biometry": self.presence.as_ref().is_some_and(|p| p.supports_biometry_only()),
             "key": registered.map(|k| json!({
                 "key_id": hex::encode(*k.key_id),
                 "registered_at": k.registered_at,
                 "registered_by": hex::encode(*k.registered_by),
                 "here": own.is_some(),
-                "biometry_only": own.map(|k| k.biometry.is_some()),
+                "biometry_only": own.map(|k| k.biometry_only()),
                 "fingerprints_changed": own.and_then(|k| k.biometry).map(|s| self.biometry_changed(s)),
             })),
             "waiting": local
@@ -624,6 +899,7 @@ pub async fn register_request<H: Hold>(h: &H, source: &str, biometry_only: bool)
     let state = crate::account::refreshed(h).await?;
     let biometry = biometry(presence, biometry_only)?;
     let (public_key, handle) = hardware.create(biometry_only)?;
+    let mut pending = PendingKey::new(hardware, &handle);
     let key_id = approval_key_id(&public_key)?;
     h.with(|c| {
         let device_id = c.workspace.meta.device_id;
@@ -634,10 +910,12 @@ pub async fn register_request<H: Hold>(h: &H, source: &str, biometry_only: bool)
                 public_key: public_key.clone().into(),
                 handle: handle.into(),
                 biometry,
+                biometry_only,
                 created_at: now_ms(),
             },
             state.info.approval_keys.get(&device_id).map(|k| k.key_id),
         )?;
+        pending.kept = true;
         let request = c.approval_create(
             source,
             Action::ApprovalKey {
@@ -684,20 +962,25 @@ pub async fn prepare_key_request<H: Hold>(
     state.active(&device_id)?;
     let biometry = biometry(presence, biometry_only)?;
     let (public_key, handle) = hardware.create(biometry_only)?;
+    let pending = PendingKey::new(hardware.clone(), &handle);
     let key_id = approval_key_id(&public_key)?;
-    Ok(KeyRequestPreparation {
+    KeyRequestPreparation {
         hardware,
         account,
         device_id,
         generation,
+        pending,
+        signer: None,
         key: LocalKey {
             key_id,
             public_key: public_key.into(),
             handle: handle.into(),
             biometry,
+            biometry_only,
             created_at: now_ms(),
         },
-    })
+    }
+    .freeze()
 }
 
 /// Save a proved registration only in its original account/session, using a
@@ -712,6 +995,7 @@ pub async fn complete_key_request<H: Hold>(h: &H, proved: ProvedKeyRequest) -> R
         device_id,
         generation,
         key,
+        mut pending,
         ..
     } = preparation;
     h.with(|c| {
@@ -733,6 +1017,7 @@ pub async fn complete_key_request<H: Hold>(h: &H, proved: ProvedKeyRequest) -> R
             key,
             state.info.approval_keys.get(&device_id).map(|k| k.key_id),
         )?;
+        pending.kept = true;
         Ok(b64(&canonical(&KeyRequest {
             format: REQUEST.into(),
             home: account.home,
@@ -783,27 +1068,36 @@ pub(crate) async fn successor_key<H: Hold>(
         return Ok(None);
     };
     let (public_key, handle) = hardware.create(false)?;
+    let pending = PendingKey::new(hardware.clone(), &handle);
     let preparation = KeyRequestPreparation {
         hardware,
         account,
         device_id,
         generation,
+        pending,
+        signer: None,
         key: LocalKey {
             key_id: approval_key_id(&public_key)?,
             public_key: public_key.into(),
             handle: handle.into(),
             biometry: None,
+            biometry_only: false,
             created_at: now_ms(),
         },
-    };
-    let ProvedKeyRequest { preparation, proof } =
-        tokio::task::spawn_blocking(move || preparation.prove())
-            .await
-            .map_err(|_| Error::Unavailable("hardware: the request stopped".into()))??;
+    }
+    .freeze()?;
+    let _signature = preparation.cancellation();
+    let ProvedKeyRequest {
+        mut preparation,
+        proof,
+    } = tokio::task::spawn_blocking(move || preparation.prove())
+        .await
+        .map_err(|_| Error::Unavailable("hardware: the request stopped".into()))??;
     h.with(|c| {
         ensure(c.session_generation() == generation, Error::Locked)?;
         let public_key = preparation.key.public_key.clone();
         c.keep_approval_key(preparation.key, None)?;
+        preparation.pending.kept = true;
         Ok(Some(ApprovalKeyInput { public_key, proof }))
     })
     .await

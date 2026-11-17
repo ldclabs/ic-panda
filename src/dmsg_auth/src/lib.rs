@@ -85,7 +85,7 @@ fn inspect_message() {
         "renew" => session(caller).is_some_and(|s| {
             now >= s.renewed_at.saturating_add(MINUTE) || signature_missing(&s).unwrap_or(false)
         }),
-        "admin_set_limits" | "admin_set_admission_key" => {
+        "admin_set_limits" | "admin_set_admission_key" | "admin_set_android_signers" => {
             admin::check_admin(caller, config().governance).is_ok()
         }
         "prepare_challenge" | "register" | "login" | "logout" | "logout_all" => {
@@ -255,6 +255,32 @@ fn validate_admin_set_admission_key(key: Option<Hash>) -> Validation {
         }
         Ok(format!("Set auth registration admission key: {key:?}"))
     })())
+}
+
+#[ic_cdk::query]
+fn android_signers() -> Vec<Hash> {
+    store::android_signers()
+}
+
+#[ic_cdk::update]
+fn admin_set_android_signers(signers: Vec<Hash>) -> Result<()> {
+    let caller = ic_cdk::api::msg_caller();
+    admin::check_admin(caller, config().governance)?;
+    dmsg_protocol::passkey::validate_android_signers(&signers)?;
+    save_android_signers(signers);
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_android_signers(signers: Vec<Hash>) -> Validation {
+    validation(
+        dmsg_protocol::passkey::validate_android_signers(&signers).map(|()| {
+            format!(
+                "Replace Android Passkey certificate allowlist with {} entries: {signers:?}",
+                signers.len()
+            )
+        }),
+    )
 }
 
 ic_cdk::export_candid!();

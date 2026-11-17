@@ -185,7 +185,9 @@ type Result_3 = variant { Ok : AuthChallenge; Err : Error };
 type Result_4 = variant { Ok : text; Err : text };
 service : (AuthInit) -> {
   admin_set_admission_key : (opt blob) -> (Result);
+  admin_set_android_signers : (vec blob) -> (Result);
   admin_set_limits : (AuthLimits) -> (Result);
+  android_signers : () -> (vec blob) query;
   auth_stats : () -> (AuthStats) query;
   get_delegation : (blob) -> (Result_1) query;
   login : (AuthenticatePasskey) -> (Result_2);
@@ -195,5 +197,6 @@ service : (AuthInit) -> {
   register : (RegisterPasskey) -> (Result_2);
   renew : () -> (Result_2);
   validate_admin_set_admission_key : (opt blob) -> (Result_4) query;
+  validate_admin_set_android_signers : (vec blob) -> (Result_4) query;
   validate_admin_set_limits : (AuthLimits) -> (Result_4) query;
 }

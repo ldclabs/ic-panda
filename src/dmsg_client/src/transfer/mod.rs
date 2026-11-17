@@ -116,10 +116,13 @@ pub const PREFIXES: &[(&str, Class)] = &[
     ("lib-fetch:", Class::Stays),
     ("lib-link:", Class::Stays),
     ("feedback-share:", Class::Stays),
+    ("file-link-intent:", Class::Stays),
+    ("file-link-publication:", Class::Stays),
     // Request links and received-file metadata are read again from the relay;
     // an explicitly saved copy is already covered by the library records.
     ("lib-request:", Class::Stays),
     ("lib-request-file:", Class::Stays),
+    ("file-request-intent:", Class::Stays),
     ("backup:", Class::Stays),
     ("mobile-transfer:", Class::Stays),
     // Wallet jobs, quotes, drafts and activations bind this device's
@@ -145,6 +148,7 @@ pub const PREFIXES: &[(&str, Class)] = &[
     ("channel-file:", Class::Stays),
     ("channel-observed:", Class::Stays),
     ("channel-job:", Class::Stays),
+    ("channel-creation:", Class::Stays),
     ("channel-control:", Class::Stays),
     ("inbox-job:", Class::Stays),
     ("inbox-letter:", Class::Stays),
@@ -152,6 +156,9 @@ pub const PREFIXES: &[(&str, Class)] = &[
     ("letter-draft:", Class::Stays),
     ("letter-status:", Class::Stays),
     ("send-intent:", Class::Stays),
+    ("composer-checkpoint:", Class::Stays),
+    ("composer-receipt:", Class::Stays),
+    ("approved-account:", Class::Stays),
     // Approvals, attestations, connections and grants of this device.
     ("approval:", Class::Stays),
     ("attest:", Class::Stays),

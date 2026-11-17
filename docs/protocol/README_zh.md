@@ -11,7 +11,7 @@
 | 账户、设备与恢复 | [账户与根](account_root_zh.md) · [II 浏览器登录](login-v1_zh.md) · [Passkey](passkey-v1_zh.md) · [设备邀请](device_pairing_zh.md) · [设备间直传](device_transfer_zh.md) |
 | 网页应用接入 | [dmsg-connect/1](connect-v1_zh.md) |
 | 认证与类型化动作 | [集成](integration_zh.md) · [应用动作](app-action_zh.md) · [生成的 CDDL](integration.cddl) |
-| 订阅结账与 PANDA 会员 | [Commerce 2](commerce_zh.md) · [资源 CDDL](commerce.cddl) |
+| 订阅结账与 PANDA 会员 | [Commerce 2](commerce_zh.md) · [资源 CDDL](commerce.cddl) · [Google Play](google_play_zh.md) |
 | 加密内容与文件 | [云端](cloud_zh.md) · [频道](channel_migration_zh.md) |
 | Agent 身份与事件 | [Agent Delegation](agent_zh.md) · [Mail 事件](mail_events_zh.md) |
 | 无内容系统通知 | [dmsg-notifications/1](notifications_zh.md) |

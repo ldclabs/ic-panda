@@ -269,11 +269,13 @@ fn offer(
             )
         }
         Sku::Plan(id) => {
-            // Apple renews an App Store term itself; another base term waits until it ends.
+            // Store renewals stay with their provider; another base term waits until expiry.
             ensure(
                 !s.contracts.iter().any(|c| {
-                    matches!(c.source, ContractSource::AppStore { .. })
-                        && !c.source.is_sandbox()
+                    matches!(
+                        c.source,
+                        ContractSource::AppStore { .. } | ContractSource::GooglePlay { .. }
+                    ) && !c.source.is_sandbox()
                         && model::end(c) > at
                 }),
                 Error::Forbidden,

@@ -6,6 +6,7 @@ import {
   callbackPort,
   callbackTarget,
   IOS_CALLBACK,
+  ANDROID_CALLBACK,
   encodeError,
   encodeResult,
   parseRequest,
@@ -75,6 +76,23 @@ describe('dmsg-login/1 vectors', () => {
       'https://dmsg.net:443/_/ios/auth/callback',
       'dmsg://auth/callback',
       'https://dmsg.net.evil.example/_/ios/auth/callback'
+    ]) {
+      expect(() => callbackTarget(url)).toThrow()
+    }
+  })
+
+  it('accepts only the exact verified Android callback', () => {
+    expect(callbackTarget(ANDROID_CALLBACK)).toBe('android')
+    for (const url of [
+      ANDROID_CALLBACK + '/',
+      ANDROID_CALLBACK + '?next=x',
+      ANDROID_CALLBACK + '#x',
+      'https://dmsg.net:443/_/android/auth/callback',
+      'https://DMSG.net/_/android/auth/callback',
+      'https://dmsg.net@evil.example/_/android/auth/callback',
+      'http://dmsg.net/_/android/auth/callback',
+      'dmsg://auth/callback',
+      'https://dmsg.net.evil.example/_/android/auth/callback'
     ]) {
       expect(() => callbackTarget(url)).toThrow()
     }

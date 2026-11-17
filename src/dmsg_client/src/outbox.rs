@@ -8,8 +8,34 @@ pub use crate::letters::send_free_letter;
 
 const PREFIX: &str = "send-intent:";
 const LIMIT: usize = 100;
+#[path = "outbox_composer.rs"]
+mod composer;
+pub use composer::ComposerDraft;
 /// An older send waits for the person, who may no longer mean it.
 const RECOVER_MS: u64 = 24 * 60 * 60 * 1000;
+
+/// One writer process and monotonically increasing authored revision.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DraftStamp {
+    /// Random 128-bit process identifier, encoded as lowercase hex.
+    pub writer: String,
+    /// Increased for each edit or explicit send in this writer.
+    pub revision: u64,
+}
+
+impl DraftStamp {
+    fn validate(&self) -> Result<()> {
+        ensure_valid(
+            self.writer.len() == 32
+                && self
+                    .writer
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                && self.revision > 0,
+            "draft stamp",
+        )
+    }
+}
 
 /// A locally sealed message awaiting relay confirmation.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -34,6 +60,9 @@ pub struct Intent {
     pub attachment: Option<Attachment>,
     /// Unix milliseconds.
     pub created_at: u64,
+    /// Local batch and position preserve attachment order after restart.
+    #[serde(default)]
+    pub batch: Option<(String, u32)>,
     /// An attempt began; absence of a reply never implies cancellation.
     pub attempted: bool,
     /// Stable error code only.
@@ -56,16 +85,6 @@ impl Client {
     pub(crate) fn forget_message_intent(&self, channel: &str, id: &str) -> Result<()> {
         self.workspace
             .delete_private(&format!("{PREFIX}{channel}:{id}"))
-    }
-
-    /// Persist a batch of already authored drafts in one local transaction.
-    pub fn save_message_drafts(&self, drafts: &[(String, String)]) -> Result<()> {
-        self.workspace.store.atomic(|_| {
-            for (channel, text) in drafts {
-                self.channel_draft(channel, text)?;
-            }
-            Ok(())
-        })
     }
 
     /// Atomically seal an intent and clear the matching composer draft.
@@ -165,6 +184,7 @@ impl Client {
             retract: draft.retract.clone(),
             attachment,
             created_at: crate::now_ms(),
+            batch: None,
             attempted: false,
             error: None,
         };
@@ -188,8 +208,11 @@ impl Client {
     /// Refuses a locked workspace or a corrupt record.
     pub fn message_intents(&self, channel: &str) -> Result<Vec<Intent>> {
         let prefix = format!("{PREFIX}{channel}:");
-        self.workspace
-            .private_after(self.keys()?, &prefix, &prefix, LIMIT)
+        let mut intents: Vec<Intent> =
+            self.workspace
+                .private_after(self.keys()?, &prefix, &prefix, LIMIT)?;
+        intents.sort_by(|a, b| a.order().cmp(&b.order()));
+        Ok(intents)
     }
 
     /// Sends in any channel that never reached a verdict, oldest first, to
@@ -207,12 +230,22 @@ impl Client {
                     .as_deref()
                     .is_none_or(|code| code == "CANCELLED" || crate::sync::transient(code))
         });
-        intents.sort_by_key(|i| i.created_at);
+        intents.sort_by(|a, b| a.order().cmp(&b.order()));
         Ok(intents)
     }
 }
 
 impl Intent {
+    fn order(&self) -> (u64, &str, u32) {
+        let (batch, position) = self
+            .batch
+            .as_ref()
+            .map_or((self.id.as_str(), 0), |(id, position)| {
+                (id.as_str(), *position)
+            });
+        (self.created_at, batch, position)
+    }
+
     fn key(&self) -> String {
         format!("{PREFIX}{}:{}", self.channel, self.id)
     }
@@ -289,6 +322,114 @@ mod tests {
     use super::*;
     use crate::testing::{MemoryStorage, TempDir, joined_channel, unlocked};
     use std::sync::Arc;
+
+    #[test]
+    fn a_lost_queue_reply_cannot_revive_the_sent_draft_or_mint_another_intent() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        let channel = "a1".repeat(32);
+        joined_channel(&mut client, &channel);
+        let stamp = DraftStamp {
+            writer: "ab".repeat(16),
+            revision: 1,
+        };
+        client
+            .save_stamped_draft(&channel, "last keystroke", &stamp)
+            .unwrap();
+        let id = client
+            .queue_stamped_message(&channel, "last keystroke", &stamp, None, None)
+            .unwrap();
+        // The queue committed but its UI reply was lost before an explicit lock flush.
+        client
+            .save_stamped_message_drafts(&[(&channel, "last keystroke", Some(&stamp))])
+            .unwrap();
+        assert!(client.channel_view(&channel).unwrap().draft.is_empty());
+        assert_eq!(
+            client
+                .queue_stamped_message(&channel, "last keystroke", &stamp, None, None)
+                .unwrap(),
+            id
+        );
+        assert_eq!(client.message_intents(&channel).unwrap().len(), 1);
+        client.forget_message_intent(&channel, &id).unwrap();
+        assert_eq!(
+            client
+                .queue_stamped_message(&channel, "last keystroke", &stamp, None, None)
+                .unwrap(),
+            id
+        );
+        assert!(client.message_intents(&channel).unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_old_save_cannot_replace_new_typing_and_equal_text_can_be_a_new_intent() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        let channel = "a1".repeat(32);
+        joined_channel(&mut client, &channel);
+        let first = DraftStamp {
+            writer: "ab".repeat(16),
+            revision: 1,
+        };
+        let id = client
+            .queue_stamped_message(&channel, "repeat", &first, None, None)
+            .unwrap();
+        let next = DraftStamp {
+            revision: 2,
+            ..first.clone()
+        };
+        assert!(
+            client
+                .save_stamped_draft(&channel, "repeat", &next)
+                .unwrap()
+        );
+        assert!(
+            !client
+                .save_stamped_draft(&channel, "repeat", &first)
+                .unwrap()
+        );
+        assert_eq!(client.channel_view(&channel).unwrap().draft, "repeat");
+        assert_eq!(
+            client.queue_stamped_message(&channel, "repeat", &first, None, None),
+            Ok(id.clone())
+        );
+        assert_ne!(
+            client
+                .queue_stamped_message(&channel, "repeat", &next, None, None)
+                .unwrap(),
+            id
+        );
+        assert_eq!(client.message_intents(&channel).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn stamped_draft_replay_cannot_change_text_and_a_new_writer_can_resume() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        let channel = "a1".repeat(32);
+        joined_channel(&mut client, &channel);
+        let stamp = DraftStamp {
+            writer: "ab".repeat(16),
+            revision: 20,
+        };
+        client.save_stamped_draft(&channel, "kept", &stamp).unwrap();
+        assert_eq!(
+            client.save_stamped_draft(&channel, "changed", &stamp),
+            Err(Error::IdempotencyConflict)
+        );
+        assert_eq!(client.channel_view(&channel).unwrap().draft, "kept");
+        let restarted = DraftStamp {
+            writer: "cd".repeat(16),
+            revision: 1,
+        };
+        client
+            .save_stamped_draft(&channel, "after restart", &restarted)
+            .unwrap();
+        assert_eq!(
+            client.channel_view(&channel).unwrap().draft,
+            "after restart"
+        );
+    }
 
     #[tokio::test]
     async fn queued_text_is_sealed_survives_restart_and_retains_its_id_after_failure() {

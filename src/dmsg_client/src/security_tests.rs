@@ -2,6 +2,29 @@ use super::*;
 use crate::approval::Action;
 use crate::codec::{canonical, decode};
 
+#[test]
+fn recovery_view_binds_the_entire_certified_request_not_only_its_operation_id() {
+    let (device, input) = crate::testing::device(9, None);
+    let mut pending = dmsg_types::user::PendingRecovery {
+        request: dmsg_types::user::RecoveryRequest {
+            op_id: Hash::new([7; 32]),
+            new_auth: Principal::from_slice(&[8; 29]),
+            device: input.input,
+            expires_at: 5000,
+        },
+        execute_after: 4000,
+    };
+    let original = recovery_view(&pending, &device);
+    assert_eq!(
+        original["digest"],
+        hex::encode(*dmsg_protocol::digest("dmsg/pending-recovery/v1", &pending))
+    );
+    pending.execute_after += 1;
+    let changed = recovery_view(&pending, &device);
+    assert_eq!(original["op_id"], changed["op_id"]);
+    assert_ne!(original["digest"], changed["digest"]);
+}
+
 #[tokio::test]
 async fn removing_a_login_discards_its_retained_signing_identity() {
     let dir = crate::testing::TempDir::new();

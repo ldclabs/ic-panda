@@ -313,7 +313,7 @@ final class SessionModel {
             case .production: engine = try await MobileEngine.open(directory: files.workspace.path, staging: files.staging.path, platform: security)
             case .staging(let configuration): engine = try await MobileEngine.openStaging(directory: files.workspace.path, staging: files.staging.path, platform: security, deployment: configuration)
             }
-            guard UIApplication.shared.isProtectedDataAvailable, openingEpoch == epoch else { try? await engine.close(); return }
+            guard UIApplication.shared.isProtectedDataAvailable, openingEpoch == epoch else { try? await engine.shutdown(); return }
             self.files = files; self.security = security; self.engine = engine
             try adopt(try await engine.sessionState())
             uncoverIfActive()
@@ -437,7 +437,7 @@ final class SessionModel {
     /// The approved selection follows its current items, rebuilding a missing
     /// copy and renewing before expiry. No selection means nothing is exported.
     func refreshAutoFill() async {
-        struct Security: Decodable { let boundBiometryOnly: Bool? }
+        struct Security: Decodable { let biometryOnly: Bool }
         guard let engine, let account = session?.account, unlocked, !concealed,
               !autoFillChanging, !autoFillRefreshing else { return }
         autoFillRefreshing = true; defer { autoFillRefreshing = false }
@@ -454,9 +454,9 @@ final class SessionModel {
                 try store.invalidate()
                 try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities()
             } else {
-                let security: Security = try decode(try await engine.hardwareSecurity())
+                let security: Security = try decode(try await engine.systemExportPolicy())
                 guard current == epoch, generation == autoFillGeneration, !Task.isCancelled else { return }
-                guard try await publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly || security.boundBiometryOnly == true, account: account, epoch: current, generation: generation) else { return }
+                guard try await publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly || security.biometryOnly, account: account, epoch: current, generation: generation) else { return }
             }
             guard current == epoch, generation == autoFillGeneration, !Task.isCancelled else { return }
             try await engine.autofillPublished(digest: refresh.digest)
@@ -969,7 +969,7 @@ final class SessionModel {
     func background() {
         let letterDrafts = letters.pendingInputs
         let feedbackDraft = feedback.pendingInput
-        let messageDrafts = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
+        let messageDrafts = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil) } }
         let account = session?.account
         let finishing = unlocked && !immediateBackgroundLock
         stopAutomaticSync(.background)
@@ -1091,7 +1091,7 @@ final class SessionModel {
             await networkReturned()
             await letters.flush(self)
             await feedback.flush(self)
-            let pending = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
+            let pending = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil) } }
             let current = epoch
             do {
                 try await engine?.saveMessageDrafts(drafts: pending)
@@ -1123,7 +1123,7 @@ final class SessionModel {
         epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
         clearCloudBackups()
-        if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.close() } }
+        if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.shutdown() } }
         engine = nil; security?.cancelPresence()
     }
 
@@ -1131,7 +1131,7 @@ final class SessionModel {
         if clearClipboard { automaticUnlock.suppress() }
         if clearClipboard { lifecycleGeneration &+= 1 }
         let account = session?.account, engine = engine
-        let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
+        let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil) } }
         let letterDrafts = letters.pendingInputs
         let feedbackDraft = feedback.pendingInput
         let flush = unlocked && account != nil && (!drafts.isEmpty || !letterDrafts.isEmpty || feedbackDraft != nil)

@@ -122,6 +122,15 @@ fn build() -> Json {
         request_json(&ios),
         &encode_login(&ios),
     ));
+    let android = LoginRequest {
+        next_url: ANDROID_CALLBACK.into(),
+        ..base.clone()
+    };
+    requests.push(vector(
+        "Android verified HTTPS callback",
+        request_json(&android),
+        &encode_login(&android),
+    ));
 
     let result = LoginResult {
         v: 1,
@@ -299,6 +308,27 @@ fn mobile_callback_is_exact_and_not_a_general_https_redirect() {
         "https://DMSG.net/_/ios/auth/callback",
         "https://dmsg.net@evil.example/_/ios/auth/callback",
         "https://staging.dmsg.net/_/ios/auth/callback",
+        "dmsg://auth/callback",
+    ] {
+        assert!(callback_target(wrong).is_err(), "{wrong}");
+    }
+}
+
+#[test]
+fn android_callback_is_exact_and_not_a_general_https_redirect() {
+    assert_eq!(
+        callback_target(ANDROID_CALLBACK).unwrap(),
+        CallbackTarget::Android,
+    );
+    for wrong in [
+        "https://dmsg.net/_/android/auth/callback/",
+        "https://dmsg.net:443/_/android/auth/callback",
+        "https://dmsg.net/_/android/auth/callback?next=https://evil.example",
+        "https://dmsg.net/_/android/auth/callback#result",
+        "https://DMSG.net/_/android/auth/callback",
+        "https://dmsg.net@evil.example/_/android/auth/callback",
+        "https://staging.dmsg.net/_/android/auth/callback",
+        "http://dmsg.net/_/android/auth/callback",
         "dmsg://auth/callback",
     ] {
         assert!(callback_target(wrong).is_err(), "{wrong}");

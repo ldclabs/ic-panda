@@ -29,6 +29,6 @@ final class ContentSyncTests: XCTestCase {
             do { _ = try await engine.sync(automatic: true, operation: token); XCTFail("Locked core accepted sync") }
             catch MobileError.Failure(let code) { XCTAssertNotEqual(code, "CANCELLED", "New visit reuses no cancelled token") }
         }
-        try await engine.close()
+        try await engine.shutdown()
     }
 }

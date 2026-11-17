@@ -10,6 +10,64 @@ use dmsg_types::DAY;
 
 fn no_progress(_: u64, _: u64) {}
 
+#[test]
+fn historical_file_types_do_not_follow_the_newest_contents_or_a_rename() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let first = client
+        .files_write("root", "history.txt", b"Original text")
+        .unwrap();
+    let mut png = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::new_rgb8(2, 2)
+        .write_to(&mut png, image::ImageFormat::Png)
+        .unwrap();
+    let second = client
+        .files_write("root", "history.txt", png.get_ref())
+        .unwrap();
+    assert_eq!(first.file.id, second.file.id);
+    assert_eq!(second.file.mime, "image/png");
+    client.files_rename(&first.file.id, "Renamed.jpg").unwrap();
+    let old = client
+        .library_manifest(&first.file.id, Some(&first.version))
+        .unwrap()
+        .2;
+    assert_eq!(old.mime, "text/plain");
+    assert_eq!(old.name, "Renamed.jpg");
+    let mut old_record = client.version(&first.file.id, &first.version).unwrap();
+    old_record.mime = None;
+    client
+        .save_version(&first.file.id, &first.version, &old_record)
+        .unwrap();
+    assert_eq!(
+        client
+            .library_manifest(&first.file.id, Some(&first.version))
+            .unwrap()
+            .2
+            .mime,
+        "application/octet-stream"
+    );
+    old_record.mime = Some("text/plain".into());
+    client
+        .save_version(&first.file.id, &first.version, &old_record)
+        .unwrap();
+    let view = client
+        .files_version_use(&first.file.id, &first.version)
+        .unwrap();
+    assert_eq!(view.mime, "text/plain");
+    let new = client
+        .library_manifest(&first.file.id, Some(&second.version))
+        .unwrap()
+        .2;
+    assert_eq!(new.mime, "image/png");
+    client
+        .files_version_delete(&first.file.id, &first.version)
+        .unwrap();
+    assert_eq!(
+        client.files_show(&first.file.id).unwrap().file.mime,
+        "image/png"
+    );
+}
+
 fn write(dir: &TempDir, name: &str, bytes: &[u8]) -> std::path::PathBuf {
     let path = dir.path(name);
     std::fs::write(&path, bytes).unwrap();

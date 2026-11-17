@@ -91,7 +91,9 @@ pub(crate) fn unavailable(source: &str, reason: &str) -> dmsg_types::Error {
 
 /// Disable reqwest's own protocol retries so this is the only retry budget.
 pub(crate) fn client() -> Result<reqwest::Client, reqwest::Error> {
-    client_builder().build()
+    client_builder()
+        .build()
+        .inspect_err(|error| Diagnostic::request("client", error).emit())
 }
 
 fn client_builder() -> reqwest::ClientBuilder {

@@ -15,6 +15,39 @@ pub const P256_SPKI_PREFIX: &[u8] = &[
 pub const MAX_CREDENTIAL_ID: usize = 1024;
 /// Maximum browser callback, with CBOR framing.
 pub const MAX_PASSKEY_CALLBACK: usize = 24 * 1024;
+/// Maximum explicitly admitted Android signing certificates, including rotation.
+pub const MAX_ANDROID_SIGNERS: usize = 8;
+
+/// Origin emitted by Android Credential Manager for an installed signing certificate.
+pub fn android_origin(certificate: &Hash) -> String {
+    format!(
+        "android:apk-key-hash:{}",
+        URL_SAFE_NO_PAD.encode(certificate.as_slice())
+    )
+}
+
+/// Exact certificate admission; prefixes, wildcard origins and padded aliases are refused.
+pub fn allowed_origin(origin: &str, android_signers: &[Hash]) -> bool {
+    origin == PASSKEY_ORIGIN
+        || android_signers
+            .iter()
+            .any(|hash| origin == android_origin(hash))
+}
+
+/// Validate the bounded governance policy. An empty list disables native Android login.
+/// # Errors
+/// Duplicate, all-zero or excessive certificate hashes are refused.
+pub fn validate_android_signers(signers: &[Hash]) -> Result<()> {
+    ensure_valid(signers.len() <= MAX_ANDROID_SIGNERS, "Android signer limit")?;
+    let mut seen = std::collections::BTreeSet::new();
+    for hash in signers {
+        ensure_valid(
+            hash.as_slice().iter().any(|b| *b != 0) && seen.insert(**hash),
+            "Android signer",
+        )?;
+    }
+    Ok(())
+}
 
 /// Validate a hardware caller's public key and return its SEC1 point.
 /// # Errors
@@ -61,7 +94,12 @@ struct ClientData {
     top_origin: Option<String>,
 }
 
-fn client_data(response: &PasskeyResponse, challenge: &Hash, register: bool) -> Result<Hash> {
+fn client_data(
+    response: &PasskeyResponse,
+    challenge: &Hash,
+    register: bool,
+    android_signers: &[Hash],
+) -> Result<Hash> {
     credential_hash(&response.credential_id)?;
     ensure(
         response.client_data_json.len() <= 4096,
@@ -77,7 +115,7 @@ fn client_data(response: &PasskeyResponse, challenge: &Hash, register: bool) -> 
                 "webauthn.get"
             })
             && data.challenge == URL_SAFE_NO_PAD.encode(challenge.as_slice())
-            && data.origin == PASSKEY_ORIGIN
+            && allowed_origin(&data.origin, android_signers)
             && !data.cross_origin
             && data.top_origin.is_none(),
         Error::IntegrityFailed,
@@ -119,7 +157,18 @@ fn integer(n: i64) -> Value {
 /// # Errors
 /// Refuses another RP/origin/challenge, missing UV, unsupported keys or malformed data.
 pub fn verify_registration(response: &PasskeyResponse, challenge: &Hash) -> Result<Vec<u8>> {
-    client_data(response, challenge, true)?;
+    verify_registration_with_android(response, challenge, &[])
+}
+
+/// Verify registration with an explicitly configured Android certificate policy.
+/// # Errors
+/// Applies the same RP/challenge/UV/attestation checks as web registration.
+pub fn verify_registration_with_android(
+    response: &PasskeyResponse,
+    challenge: &Hash,
+    android_signers: &[Hash],
+) -> Result<Vec<u8>> {
+    client_data(response, challenge, true, android_signers)?;
     ensure(
         response.signature.is_empty() && response.authenticator_data.len() <= 8192,
         Error::IntegrityFailed,
@@ -181,7 +230,19 @@ pub fn verify_registration(response: &PasskeyResponse, challenge: &Hash) -> Resu
 /// # Errors
 /// Refuses invalid client/authenticator data and incorrect DER ES256 signatures.
 pub fn verify_assertion(response: &PasskeyResponse, challenge: &Hash, public: &[u8]) -> Result<()> {
-    let client_hash = client_data(response, challenge, false)?;
+    verify_assertion_with_android(response, challenge, public, &[])
+}
+
+/// Verify an assertion without rewriting the authenticator's signed client data.
+/// # Errors
+/// Refuses unlisted certificates and every invalid web assertion condition.
+pub fn verify_assertion_with_android(
+    response: &PasskeyResponse,
+    challenge: &Hash,
+    public: &[u8],
+    android_signers: &[Hash],
+) -> Result<()> {
+    let client_hash = client_data(response, challenge, false, android_signers)?;
     authenticator(&response.authenticator_data, false)?;
     if response.authenticator_data[32] & 0x80 == 0 {
         ensure(

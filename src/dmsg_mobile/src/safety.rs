@@ -32,6 +32,29 @@ impl MobileEngine {
         self.sync_blocked_accounts().await
     }
 
+    /// Apply the local choice immediately; online synchronization is a separate action.
+    pub async fn set_blocked_account_local(
+        &self,
+        account: String,
+        blocked: bool,
+    ) -> Result<Vec<String>> {
+        self.held(move |h| {
+            Box::pin(async move {
+                h.with(|c| {
+                    c.set_blocked_account(&account, blocked)?;
+                    c.blocked_accounts()
+                })
+                .await
+            })
+        })
+        .await
+    }
+
+    pub async fn report_details(&self, id: String) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| Box::pin(async move { h.with(|c| c.content_report(&id)).await }))
+            .await
+    }
+
     pub async fn sync_blocked_accounts(&self) -> Result<ObjectSnapshot> {
         self.held_object(|h| Box::pin(async { dmsg_client::safety::sync_blocks(h).await }))
             .await
@@ -62,9 +85,13 @@ impl MobileEngine {
         id: String,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
+        let turn = self.read_turns.lane(&format!("report:{id}"));
         operation
             .run(self.held_object(move |h| {
-                Box::pin(async move { dmsg_client::safety::submit_report(h, &id).await })
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    dmsg_client::safety::submit_report(h, &id).await
+                })
             }))
             .await
     }

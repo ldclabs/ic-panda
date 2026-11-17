@@ -521,6 +521,15 @@ type ContractSource = variant {
   };
   // Product-granted compensation benefit.
   Compensation;
+  // Benefit paid through a separately verified Google Play purchase.
+  GooglePlay : record {
+    // Stable order/consumable identity; never a bearer purchase token.
+    transaction_id : blob;
+    // Google's real/test purchase classification.
+    environment : PlayEnvironment;
+    // Hashed token identifies the subscription that may be replaced.
+    token_hash : blob;
+  };
 };
 // Qualification observation; unverifiable is distinct from known ineligibility.
 type Eligibility = variant {
@@ -723,6 +732,19 @@ type FieldType = variant {
     item : FieldType;
   };
 };
+// Independent admission policy; an Apple verifier is not implicitly admitted.
+type GooglePlayConfig = record {
+  // Authorized Google verification service principals.
+  verifiers : vec principal;
+  // Primary purchase environment.
+  environment : PlayEnvironment;
+  // Governed product/option/offer mappings; no inferred SKU meaning.
+  products : vec PlayProduct;
+  // Exact Android package, including any distribution suffix.
+  package_name : text;
+  // Explicit production opt-in for test base subscriptions, not consumables.
+  accept_test : bool;
+};
 // Fixed base contract and its separately observed resource qualification.
 type MembershipContract = record {
   // Known or unverifiable qualification loss; closed intervals preserve monthly history.
@@ -822,6 +844,124 @@ type PlanVersion = record {
   plan_id : PlanId;
   // Base resource limits.
   limits : ResourceLimits;
+};
+// Google test purchases use the same API, independently of business staging.
+type PlayEnvironment = variant {
+  // A real Google Play purchase.
+  Production;
+  // A purchase identified as a test by Google's authenticated response.
+  Test;
+};
+// One allowed product/option/offer tuple. IDs do not encode a dMsg tier.
+type PlayProduct = record {
+  // Exact Google product identifier.
+  product_id : text;
+  // Entitlement and exact option controlled by governance.
+  kind : PlayProductKind;
+  // Disabling new purchases retains verification of existing receipts.
+  enabled : bool;
+  // Null selects the base offer, never an arbitrary discount.
+  offer_id : opt text;
+};
+// Exact storefront selection; price and offer tokens come from Play Billing.
+type PlayProductKind = variant {
+  // A consumable storage addon for the current Google subscription term.
+  Storage : record {
+    // Existing governed dMsg storage product.
+    product : blob;
+    // Exact Google one-time purchase option.
+    purchase_option_id : text;
+  };
+  // Auto-renewing base membership. Prepaid, installment and rental products
+  // are not silently interpreted as an annual dMsg subscription.
+  Plan : record {
+    // Existing governed dMsg tier.
+    plan : PlanId;
+    // Exact Google base plan.
+    base_plan_id : text;
+  };
+};
+// Authority-side reconciliation result, readable only by configured verifiers.
+type PlayReceipt = record {
+  // Last actual provider check.
+  checked_at_ms : nat64;
+  // Stable receipt identity.
+  transaction_id : blob;
+  // Original, immutable recipient.
+  beneficiary : Beneficiary;
+  // Current provider state.
+  state : PlayState;
+  // Whether this receipt ever produced its entitlement (not just a callback).
+  delivered : bool;
+  // Last accepted provider observation order.
+  revision : nat64;
+  // Fixed storage term end, or current subscription expiry.
+  expires_at_ms : opt nat64;
+};
+// Current provider state. Cancellation of renewal retains access until expiry.
+type PlayState = variant {
+  // Google subscription is suspended for a payment problem.
+  OnHold;
+  // Google subscription is paused.
+  Paused;
+  // A one-time purchase is canceled or fully refunded.
+  Refunded;
+  // Google retains subscription access during its grace period.
+  Grace;
+  // Current Google subscription or one-time purchase is active.
+  Active;
+  // A pending subscription was canceled before payment.
+  PendingCanceled;
+  // Subscription has ended, including immediate provider revocation.
+  Expired;
+  // Renewal is canceled; current access still follows Google's expiry.
+  Canceled;
+  // Payment is not complete; must not deliver or acknowledge.
+  Pending;
+};
+// Facts obtained from authenticated Developer APIs, not client JSON or RTDN
+// event order. The verifier must re-read current state before granting access.
+type PlayTransaction = record {
+  // Time current Google state was read; must be fresh at canister application.
+  checked_at_ms : nat64;
+  // Stable 64-character account binding, independently recomputed here.
+  account_binding : text;
+  // The provider identifies this token as replaced; it cannot revive later.
+  replaced : bool;
+  // Exact selected Google product ID.
+  product_id : text;
+  // Actual predecessor token identified by Google's linkedPurchaseToken.
+  linked_token_hash : opt blob;
+  // Exact entitlement beneficiary bound by Google's obfuscated account ID.
+  beneficiary : Beneficiary;
+  // Storage only: original base contract, bound by Google's obfuscated
+  // profile ID. Recovery must not attach an old purchase to a new term.
+  base_contract_id : opt blob;
+  // Original order's billing-period anchor. A deferred replacement transfers
+  // its remaining interval without starting a new paid year. Absent for
+  // storage and earlier non-transferred observations.
+  term_starts_at_ms : opt nat64;
+  // Base plan or purchase option ID, depending on the governed kind.
+  option_id : text;
+  // Current verified subscription or product state.
+  state : PlayState;
+  // Start of the owned interval: max of the order period anchor and this
+  // token's subscription start. One-time products use completion time.
+  purchased_at_ms : nat64;
+  // Exact observed offer; absent for the base offer.
+  offer_id : opt text;
+  // Environment from Google's test-purchase field.
+  environment : PlayEnvironment;
+  // Latest successful order for subscriptions; optional for one-time products.
+  order_id : opt text;
+  // Durable observation order assigned by the verifier for this token.
+  revision : nat64;
+  // SHA-256 of the raw Google purchase token; the token is never on-chain.
+  token_hash : blob;
+  // Package under which the Developer API verified the token.
+  package_name : text;
+  // Current subscription expiry from subscriptionsv2, never an order snapshot.
+  expires_at_ms : opt nat64;
 };
 // Explicit product permission; not a claim that the payer has a project role.
 type ProductApproval = record {
@@ -967,18 +1107,19 @@ type Result_1 = variant { Ok : EntitlementView; Err : Error };
 type Result_10 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_11 = variant { Ok : CheckoutView; Err : Error };
 type Result_12 = variant { Ok : ExecutionEntitlement; Err : Error };
-type Result_13 = variant { Ok : MembershipTerms; Err : Error };
-type Result_14 = variant { Ok : opt ProductReceipt; Err : Error };
-type Result_15 = variant { Ok : BillingOffer; Err : Error };
-type Result_16 = variant { Ok : CashTransferProgress; Err : Error };
-type Result_17 = variant { Ok : SettlementAsset; Err : Error };
-type Result_18 = variant { Ok : CheckoutQuote; Err : Error };
-type Result_19 = variant {
+type Result_13 = variant { Ok : opt PlayReceipt; Err : Error };
+type Result_14 = variant { Ok : MembershipTerms; Err : Error };
+type Result_15 = variant { Ok : opt ProductReceipt; Err : Error };
+type Result_16 = variant { Ok : BillingOffer; Err : Error };
+type Result_17 = variant { Ok : CashTransferProgress; Err : Error };
+type Result_18 = variant { Ok : SettlementAsset; Err : Error };
+type Result_19 = variant { Ok : CheckoutQuote; Err : Error };
+type Result_2 = variant { Ok : ProductReceipt; Err : Error };
+type Result_20 = variant {
   Ok : record { AppRegistration; opt ProductRegistration };
   Err : Error;
 };
-type Result_2 = variant { Ok : ProductReceipt; Err : Error };
-type Result_20 = variant { Ok : text; Err : text };
+type Result_21 = variant { Ok : text; Err : text };
 type Result_3 = variant { Ok : CashCancellationReceipt; Err : Error };
 type Result_4 = variant { Ok : CheckoutProgress; Err : Error };
 type Result_5 = variant { Ok : CheckoutDepositsPage; Err : Error };
@@ -1195,6 +1336,7 @@ service : (CommerceInit) -> {
   // Replace the admission limits. Accepted subjects, orders and recovery are unaffected.
   admin_set_limits : (CommerceLimits) -> (Result);
   apply_app_store_transaction : (StoreTransaction) -> (Result_1);
+  apply_google_play_transaction : (PlayTransaction) -> (Result_1);
   // Only a failed call to an authority leaves the decision unknown. Every other failure
   // is a durable rejection, so the settlement service can refund without waiting.
   apply_product_decision : (ProductDecision) -> (Result_2);
@@ -1225,25 +1367,27 @@ service : (CommerceInit) -> {
   get_commerce_limits : () -> (CommerceLimits) query;
   get_entitlement_batch : (vec Beneficiary) -> (Result_10) query;
   get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_12);
+  get_google_play_config : () -> (opt GooglePlayConfig) query;
+  get_google_play_receipt : (PlayEnvironment, blob) -> (Result_13) query;
   // A beneficiary's base contracts and storage add-ons for display, with the
   // refund window of its first cash purchase. An account that never bought
   // anything has none; its rights are the certified Free entitlement.
-  get_membership_terms : (Beneficiary) -> (Result_13) query;
-  get_product_decision : (blob) -> (Result_14);
+  get_membership_terms : (Beneficiary) -> (Result_14) query;
+  get_product_decision : (blob) -> (Result_15);
   // Public, authenticated discovery. A paused configuration remains discoverable.
   integration_configuration_certificate : (text, opt text) -> (Result_10) query;
   list_catalogs : (opt nat64) -> (vec Catalog) query;
   open_checkout : (OpenCheckout) -> (Result_11);
-  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_15);
-  process_checkout_transfer : (blob) -> (Result_16);
+  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_16);
+  process_checkout_transfer : (blob) -> (Result_17);
   // Publish a reference price observed now; the price authority calls this routinely.
-  publish_settlement_price : (principal, nat, nat64) -> (Result_17);
-  quote_checkout : (BillingOffer, principal, Account) -> (Result_18);
+  publish_settlement_price : (principal, nat, nat64) -> (Result_18);
+  quote_checkout : (BillingOffer, principal, Account) -> (Result_19);
   // Replicated response used by the pinned user home during exact approval.
-  read_integration_configuration : (text, opt text) -> (Result_19);
+  read_integration_configuration : (text, opt text) -> (Result_20);
   // Safe progress can be advanced without revealing the payer or private bill.
   reconcile_checkout : (blob) -> (Result_4);
-  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_16);
+  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_17);
   refresh_catalog : () -> (Catalog);
   refresh_entitlement : (Beneficiary) -> (Result_1);
   // Register or replace an app at the next config version. Every listed product
@@ -1266,25 +1410,27 @@ service : (CommerceInit) -> {
   // refresh and expiry continue.
   set_admission_pause : (bool) -> (Result);
   set_app_store_config : (AppStoreConfig) -> (Result);
+  set_google_play_config : (GooglePlayConfig) -> (Result);
   set_settlement_price_authority : (principal) -> (Result);
   settlement_assets : () -> (vec SettlementAssetView) query;
   // Bounded maintenance; funds, original-source refunds and idempotency survive archival.
   sweep_checkout_history : () -> (CheckoutHistorySweep);
-  validate_admin_add_user_home : (principal) -> (Result_20) query;
-  validate_admin_set_limits : (CommerceLimits) -> (Result_20) query;
+  validate_admin_add_user_home : (principal) -> (Result_21) query;
+  validate_admin_set_limits : (CommerceLimits) -> (Result_21) query;
   validate_publish_settlement_price : (principal, nat, nat64) -> (
-      Result_20,
+      Result_21,
     ) query;
-  validate_register_integration_app : (AppRegistration) -> (Result_20) query;
+  validate_register_integration_app : (AppRegistration) -> (Result_21) query;
   validate_register_integration_product : (ProductRegistration) -> (
-      Result_20,
+      Result_21,
     ) query;
-  validate_register_settlement_asset : (SettlementAsset) -> (Result_20) query;
-  validate_schedule_policy : (Catalog) -> (Result_20) query;
-  validate_set_admission_pause : (bool) -> (Result_20) query;
-  validate_set_app_store_config : (AppStoreConfig) -> (Result_20) query;
-  validate_set_settlement_price_authority : (principal) -> (Result_20) query;
-  validate_verify_settlement_asset : (principal, opt nat) -> (Result_20) query;
+  validate_register_settlement_asset : (SettlementAsset) -> (Result_21) query;
+  validate_schedule_policy : (Catalog) -> (Result_21) query;
+  validate_set_admission_pause : (bool) -> (Result_21) query;
+  validate_set_app_store_config : (AppStoreConfig) -> (Result_21) query;
+  validate_set_google_play_config : (GooglePlayConfig) -> (Result_21) query;
+  validate_set_settlement_price_authority : (principal) -> (Result_21) query;
+  validate_verify_settlement_asset : (principal, opt nat) -> (Result_21) query;
   verify_billing_offer : (BillingOffer) -> (Result);
   // Check the ledger's live decimals, fee, standards and, outside Local, one
   // real transfer block before quotes may use it.

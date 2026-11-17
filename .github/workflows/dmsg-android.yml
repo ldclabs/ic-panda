@@ -1,0 +1,110 @@
+name: dMsg Android
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/dmsg_android/**
+      - src/dmsg_mobile/**
+      - src/dmsg_client/**
+      - src/dmsg_protocol/**
+      - src/dmsg_types/**
+      - src/dmsg_ios/Resources/Localizations/**
+      - scripts/android/**
+      - tests/vectors/**
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - .github/workflows/dmsg-android.yml
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_BUILD_JOBS: '3'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+jobs:
+  resources:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash scripts/android/verify.sh resources
+  packages:
+    needs: resources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1
+          targets: aarch64-linux-android,x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name != 'pull_request' }}
+      - name: Install reviewed Android build tools
+        run: |
+          sdkmanager 'cmdline-tools;22.0'
+          "$ANDROID_HOME/cmdline-tools/22.0/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+      - run: bash scripts/android/verify.sh build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dmsg-android-packages
+          path: |
+            src/dmsg_android/app/build/reports/
+            src/dmsg_android/app/build/test-results/
+            src/dmsg_android/app/build/generated/dmsg/manifest.json
+            src/dmsg_android/app/build/outputs/apk/production*/release/*.apk
+            src/dmsg_android/app/build/outputs/bundle/production*Release/*.aab
+            src/dmsg_android/app/build/outputs/mapping/
+            src/dmsg_android/app/build/outputs/native-debug-symbols/
+  emulator:
+    needs: resources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [31, 36]
+    env:
+      DMSG_ANDROID_IMAGE: system-images;android-${{ matrix.api }};google_apis;x86_64
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-read-only: true
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1
+          targets: x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: false
+      - name: Install emulator and reviewed build tools
+        run: |
+          sdkmanager 'cmdline-tools;22.0'
+          "$ANDROID_HOME/cmdline-tools/22.0/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' emulator "$DMSG_ANDROID_IMAGE"
+          sudo chmod a+rw /dev/kvm
+      - run: bash scripts/android/ci-emulator.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dmsg-android-api${{ matrix.api }}
+          path: |
+            src/dmsg_android/app/build/reports/
+            src/dmsg_android/app/build/test-results/
+            src/dmsg_android/app/build/outputs/androidTest-results/
+            src/dmsg_android/app/build/generated/dmsg/manifest.json
+            src/dmsg_android/app/build/generated/dmsg-qa/manifest.json

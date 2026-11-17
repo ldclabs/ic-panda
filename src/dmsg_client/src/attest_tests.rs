@@ -23,6 +23,147 @@ fn file_statement(text: &str, sha256: Option<String>) -> StatementInput {
     }
 }
 
+#[test]
+fn a_prepared_attestation_and_its_approval_commit_in_one_workspace_transaction() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let view = client
+        .attest_request("gui", text("Reviewed statement"), None)
+        .unwrap();
+    let mut request = client
+        .approval_record(view["id"].as_str().unwrap())
+        .unwrap();
+    let Action::Attest {
+        statement, origin, ..
+    } = request.action.clone()
+    else {
+        panic!("statement");
+    };
+    let state = crate::testing::account_state(&client);
+    let now = now_ms();
+    let (attestation, _) = client
+        .attest_unsigned(
+            &request.id,
+            Subject::Statement { statement, origin },
+            &state,
+            request.expires_at,
+            now,
+        )
+        .unwrap();
+    client
+        .journal_prepared_attestation(&mut request, &attestation, now)
+        .unwrap();
+    let stored = client.approval_record(&request.id).unwrap();
+    assert_eq!(stored.state, State::Executing);
+    assert!(stored.started);
+    assert_eq!(
+        stored.execution.as_deref(),
+        Some(attestation.execution_id().as_str())
+    );
+    assert_eq!(
+        canonical(
+            &client
+                .attestation(&attestation.execution_id())
+                .unwrap()
+                .unwrap()
+        ),
+        canonical(&attestation)
+    );
+}
+
+#[test]
+fn final_attestation_bytes_are_frozen_before_auth_and_stale_state_cannot_replace_them() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let view = client
+        .attest_request("gui", text("Reviewed statement"), None)
+        .unwrap();
+    let id = view["id"].as_str().unwrap();
+    let request = client.approval_record(id).unwrap();
+    let Action::Attest {
+        statement, origin, ..
+    } = request.action.clone()
+    else {
+        panic!("statement")
+    };
+    let state = crate::testing::account_state(&client);
+    let now = crate::now_ms();
+    let (attestation, message) = client
+        .attest_unsigned(
+            id,
+            Subject::Statement { statement, origin },
+            &state,
+            now + 5_000,
+            now,
+        )
+        .unwrap();
+    assert_eq!(attestation.request.approval().expires_at, now + 5_000);
+    assert!(attestation.request.approval().hardware.is_none());
+    assert!(
+        client
+            .attestation(&attestation.execution_id())
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(
+        client.approval_record(id).unwrap().state,
+        State::AwaitingUser
+    );
+    dmsg_protocol::verify(
+        &client.workspace.meta.signing_pub,
+        message.as_slice(),
+        attestation.request.approval().signature.as_slice(),
+    )
+    .unwrap();
+    let frozen = canonical(&attestation.request);
+    assert!(check_prepared_state(&attestation, state.info.account_version, &state).is_ok());
+
+    let mut changed = state.clone();
+    changed.info.account_version += 1;
+    assert_eq!(
+        check_prepared_state(&attestation, 1, &changed),
+        Err(Error::PolicyStale)
+    );
+    let mut changed = state.clone();
+    changed.info.security_epoch += 1;
+    assert_eq!(
+        check_prepared_state(&attestation, 1, &changed),
+        Err(Error::PolicyStale)
+    );
+    let mut changed = state.clone();
+    changed
+        .info
+        .devices
+        .get_mut(&client.workspace.meta.device_id)
+        .unwrap()
+        .next_sequence += 1;
+    changed.security = crate::testing::security(1, changed.info.devices.clone());
+    assert_eq!(
+        check_prepared_state(&attestation, 1, &changed),
+        Err(Error::PolicyStale)
+    );
+    assert_eq!(canonical(&attestation.request), frozen);
+    assert!(
+        client
+            .attestation(&attestation.execution_id())
+            .unwrap()
+            .is_none()
+    );
+    let other = Attestation {
+        approval: "another approved request".into(),
+        ..attestation.clone()
+    };
+    client.save_attestation(&other).unwrap();
+    assert_eq!(
+        client.attest_sequence_available(&attestation.execution_id()),
+        Err(Error::PolicyStale)
+    );
+    assert_eq!(
+        client.attestation(&attestation.execution_id()).unwrap(),
+        Some(other)
+    );
+}
+
 fn label(text: &str) -> Vec<ActionLabel> {
     vec![
         ActionLabel {
@@ -1003,10 +1144,12 @@ fn a_sequence_another_attestation_holds_is_not_signed_again() {
     // Two approvals read the account before either signed: the second does
     // not sign under the sequence the first took, nor replace its journal.
     let first = client
-        .attest_sign_with("one", subject("one"), &state)
+        .attest_sign_with("one", subject("one"), &state, now_ms())
         .unwrap();
     assert_eq!(
-        client.attest_sign_with("two", subject("two"), &state).err(),
+        client
+            .attest_sign_with("two", subject("two"), &state, now_ms())
+            .err(),
         Some(Error::PolicyStale)
     );
     assert_eq!(
@@ -1021,7 +1164,7 @@ fn a_sequence_another_attestation_holds_is_not_signed_again() {
         })
         .unwrap();
     let second = client
-        .attest_sign_with("two", subject("two"), &state)
+        .attest_sign_with("two", subject("two"), &state, now_ms())
         .unwrap();
     assert_eq!(second.approval, "two");
 }

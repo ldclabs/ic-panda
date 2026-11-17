@@ -6,6 +6,7 @@ mod capacity;
 mod checkout;
 mod checkout_model;
 mod checkout_store;
+mod google_play;
 mod model;
 mod product;
 mod registrations;
@@ -15,6 +16,7 @@ mod store;
 use candid::Principal;
 use dmsg_runtime::admin::Validation;
 use dmsg_types::app_store::*;
+use dmsg_types::google_play::*;
 use dmsg_types::{billing::*, integration::*, integration_billing::*, membership::*, *};
 use icrc_ledger_types::icrc1::account::Account;
 

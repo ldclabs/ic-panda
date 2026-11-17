@@ -54,6 +54,9 @@ const HOLD_MS: u64 = 10 * MINUTE;
 const RECORD: &str = "lib-request:";
 const RECEIVED: &str = "lib-request-file:";
 
+#[path = "request_jobs.rs"]
+pub mod jobs;
+
 /// What the person with the link reads, sealed under the link's page key.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -636,82 +639,27 @@ pub async fn request_create<H: Hold>(
     draft: RequestDraft<'_>,
     terms: RequestTerms,
 ) -> Result<RequestView> {
-    check_draft(&draft)?;
-    let lifetime = terms.expires_in_ms.unwrap_or(LIFETIME_MS);
-    ensure_valid(lifetime > 0 && lifetime <= MAX_LIFETIME_MS, "expires_in_ms")?;
-    if let Some(total) = terms.max_total_bytes {
-        ensure_valid(total >= MIN_TOTAL, "max_total_bytes")?;
-    }
-    let (_, security) = h.signed(Client::fresh).await?;
-    ensure(
-        security.snapshot.vault_write_state == dmsg_types::user::VaultWriteState::Ready,
-        Error::RekeyRequired,
-    )?;
-    h.signed(Client::root_now).await?;
-    let (account, account_base, base) = h
-        .with(|c| Ok((c.account()?.id.to_string(), c.base()?, c.requests_base()?)))
+    let h = Unlocked::new(h).await?;
+    let id = h
+        .with(|c| {
+            let intents = c.prepare_file_request_intents(
+                draft.title,
+                draft.instructions,
+                &[draft.label.to_owned()],
+                terms,
+            )?;
+            Ok(intents[0]["id"]
+                .as_str()
+                .ok_or(Error::IntegrityFailed)?
+                .to_owned())
+        })
         .await?;
-    let max_total_bytes = match terms.max_total_bytes {
-        Some(total) => total,
-        None => {
-            let quota = h.get(&format!("{account_base}/quota")).await?;
-            let lifecycle = &quota["lifecycle"];
-            let wanted = match lifecycle["backup_max_file_bytes"].as_u64() {
-                Some(limit) if limit > PLAIN_FILE_LIMIT => DEFAULT_TOTAL_MAX,
-                _ => DEFAULT_TOTAL,
-            };
-            lifecycle["storage_limit"]
-                .as_u64()
-                .map_or(wanted, |limit| wanted.min(limit))
-        }
-    };
-    let request_id = random_hex();
-    let page_key = Zeroizing::new(random_key());
-    let seed = Zeroizing::new(random_key());
-    let secrets = RequestSecrets {
-        hpke_seed: b64(&seed[..]),
-        page_key: b64(&page_key[..]),
-        label: draft.label.to_owned(),
-        title: draft.title.to_owned(),
-        instructions: draft.instructions.to_owned(),
-    };
-    let descriptor = seal_descriptor(
-        &page_key,
-        &RequestDescriptor {
-            format: REQUEST_FORMAT.into(),
-            account: account.clone(),
-            request_id: request_id.clone(),
-            hpke_pub: b64(&hpke_public(&seed)),
-            title: secrets.title.clone(),
-            instructions: secrets.instructions.clone(),
-        },
-    );
-    ensure_valid(descriptor.len() <= MAX_DESCRIPTOR, "instructions")?;
-    let management = h
-        .with(|c| c.seal_request_secrets(&request_id, &secrets))
-        .await?;
-    let token = upload_token(&page_key, &account, &request_id);
-    let reply = h
-        .post(
-            &format!("{base}/links"),
-            "dmsg/request/create/v1",
-            &json!({
-                "request_id": request_id,
-                "expires_at": now_ms() + lifetime.min(MAX_LIFETIME_MS - MINUTE),
-                "max_total_bytes": max_total_bytes,
-                "token_hash": token_hash(&token),
-                "descriptor": descriptor,
-                "management": management,
-            }),
-            &Hash::new(random_id()),
-        )
-        .await?;
-    let remote: RemoteLink = parse(reply)?;
-    ensure(remote.request_id == request_id, Error::IntegrityFailed)?;
+    jobs::run(&h, &id).await?;
     h.with(|c| {
-        let now = now_ms();
-        let record = c.keep_link(remote, now)?;
-        c.request_view(&record, now)
+        c.request_view(
+            &c.request_record(&id)?.ok_or(Error::IntegrityFailed)?,
+            now_ms(),
+        )
     })
     .await
 }

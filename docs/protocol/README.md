@@ -11,7 +11,7 @@ The current contract has three document profiles v1, 12-byte Xid accounts and de
 | Accounts, devices and recovery | [Account/root](account_root.md) · [II browser login](login-v1.md) · [Passkey](passkey-v1_zh.md) · [Device invitations](device_pairing.md) · [Device transfer](device_transfer.md) |
 | Web application connection | [dmsg-connect/1](connect-v1.md) |
 | Authentication and typed actions | [Integration](integration.md) · [App actions](app-action.md) · [Generated CDDL](integration.cddl) |
-| Subscription checkout and PANDA membership | [Commerce 2](commerce.md) · [Resource CDDL](commerce.cddl) |
+| Subscription checkout and PANDA membership | [Commerce 2](commerce.md) · [Resource CDDL](commerce.cddl) · [Google Play](google_play_zh.md) |
 | Encrypted content and files | [Cloud](cloud.md) · [Channels](channel_migration.md) |
 | Agent identity and events | [Agent Delegation](agent.md) · [Mail events](mail_events.md) |
 | Content-free system notifications | [dmsg-notifications/1 (中文)](notifications_zh.md) |

@@ -5,6 +5,28 @@ use std::sync::Once;
 
 struct Diagnostics;
 
+fn emit(line: String) {
+    #[cfg(target_os = "android")]
+    {
+        #[link(name = "log")]
+        unsafe extern "C" {
+            fn __android_log_write(
+                priority: i32,
+                tag: *const std::ffi::c_char,
+                text: *const std::ffi::c_char,
+            ) -> i32;
+        }
+        // Only already decoded, fixed diagnostic labels reach this function.
+        if let Ok(line) = std::ffi::CString::new(line) {
+            unsafe {
+                __android_log_write(4, c"dMsg".as_ptr(), line.as_ptr());
+            }
+        }
+    }
+    #[cfg(not(target_os = "android"))]
+    eprintln!("{line}");
+}
+
 impl log::Log for Diagnostics {
     fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
         (metadata.target() == TARGET && metadata.level() <= log::Level::Warn)
@@ -15,17 +37,17 @@ impl log::Log for Diagnostics {
         if self.enabled(record.metadata())
             && let Some(diagnostic) = Diagnostic::decode(&record.args().to_string())
         {
-            eprintln!(
+            emit(format!(
                 "dmsg: {} {} {}",
                 diagnostic.source,
                 diagnostic.reason,
                 diagnostic.http_status.unwrap_or(0)
-            );
+            ));
         }
         if record.target() == TIMING_TARGET
             && let Some((phase, millis)) = MessageTiming::decode(&record.args().to_string())
         {
-            eprintln!("dmsg: message_timing {phase} {millis}");
+            emit(format!("dmsg: message_timing {phase} {millis}"));
         }
     }
 

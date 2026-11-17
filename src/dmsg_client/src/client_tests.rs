@@ -1181,6 +1181,7 @@ fn bind_offline(client: &mut Client, hardware: &Hardware, storage: &MemoryStorag
         handle: handle.into(),
         peer: peer.into(),
         biometry: biometry.then(|| hardware.biometry_state().unwrap()),
+        biometry_only: false,
         created_at: 0,
     };
     storage
@@ -1206,6 +1207,7 @@ async fn a_committed_binding_keeps_its_hardware_slot_when_wal_cleanup_is_blocked
         handle: handle.into(),
         peer: peer.into(),
         biometry: None,
+        biometry_only: false,
         created_at: 0,
     };
     let name = client.bound_name().unwrap();
@@ -1262,6 +1264,7 @@ fn a_rolled_back_binding_discards_only_its_unused_hardware_slot() {
         handle: handle.into(),
         peer: peer.into(),
         biometry: None,
+        biometry_only: false,
         created_at: 0,
     };
     let name = client.bound_name().unwrap();
@@ -1360,4 +1363,54 @@ async fn a_fingerprint_only_slot_is_lost_once_the_fingerprints_change() {
     );
     assert_eq!(storage.get(&name).unwrap().unwrap(), slot);
     assert!(client.workspace.bound().unwrap());
+}
+
+#[tokio::test]
+async fn strict_biometry_does_not_require_an_enrollment_digest() {
+    struct CurrentSet;
+    impl PresenceKey for CurrentSet {
+        fn presence(&self) -> Option<Presence> {
+            Some(Presence::Biometrics)
+        }
+        fn supports_biometry_only(&self) -> bool {
+            true
+        }
+        fn biometry_state(&self) -> Option<Hash> {
+            None
+        }
+        fn create(&self, only: bool) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<Key>)> {
+            assert!(only);
+            Ok((vec![1], vec![2], Zeroizing::new([7; 32])))
+        }
+        fn open(&self, handle: &[u8], context: &[u8], only: bool) -> Result<Zeroizing<Key>> {
+            assert_eq!(handle, &[1]);
+            assert_eq!(context, &[2]);
+            assert!(only);
+            Ok(Zeroizing::new([7; 32]))
+        }
+        fn confirm(&self, _: &str) -> Result<()> {
+            Ok(())
+        }
+    }
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, Some(Arc::new(MemoryStorage::default())));
+    log_in(&mut client, 3, now_ms() + DAY).await;
+    client.set_presence_key(Arc::new(CurrentSet));
+    let opened = client.prepare_device_binding(true).unwrap().open().unwrap();
+    assert_eq!(opened.slot.biometry, None);
+    assert!(opened.slot.biometry_only());
+    let saved: BoundSlot =
+        crate::codec::decode(&crate::codec::canonical(&opened.slot), 4096).unwrap();
+    assert!(saved.biometry_only());
+    assert_eq!(*saved.open(&CurrentSet).unwrap(), [7; 32]);
+    // Existing iOS records infer their policy from the enrollment digest.
+    let legacy = BoundSlot {
+        handle: vec![1].into(),
+        peer: vec![2].into(),
+        biometry: Some(Hash::new([3; 32])),
+        biometry_only: false,
+        created_at: 0,
+    };
+    assert!(legacy.biometry_only());
+    assert_eq!(saved.id(), legacy.id());
 }

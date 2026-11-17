@@ -21,6 +21,10 @@ pub struct Subject {
     #[serde(default)]
     pub last_sandbox_service_end_ms: Option<u64>,
     pub retry_after_ms: u64,
+    /// Refundable independent addons require their own fresh store observation,
+    /// including when their original base subscription has ended.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub store_qualifications: Option<std::collections::BTreeMap<Hash, (u64, u64)>>,
 }
 
 impl Subject {
@@ -36,6 +40,7 @@ impl Subject {
             last_service_end_ms: None,
             last_sandbox_service_end_ms: None,
             retry_after_ms: 0,
+            store_qualifications: None,
         }
     }
 
@@ -56,7 +61,7 @@ pub fn end(c: &MembershipContract) -> u64 {
 pub const CASH_LEASE_MS: u64 = 30 * DAY;
 
 /// Longest resource lease for rights a refund can end at any moment: a first
-/// cash purchase in its refund window, or an App Store subscription.
+/// cash purchase in its refund window, or a store subscription.
 pub const REFUNDABLE_LEASE_MS: u64 = 60 * MINUTE;
 
 /// The subject's first cash base contract while its unused time can still be
@@ -115,6 +120,9 @@ pub fn set_eligibility(
 
 pub fn add_storage(s: &mut Subject, addon: StorageAddon, at: u64) -> Result<()> {
     s.addons.retain(|a| a.expires_at_ms > at);
+    if let Some(qualifications) = &mut s.store_qualifications {
+        qualifications.retain(|id, _| s.addons.iter().any(|a| a.contract_id == *id));
+    }
     ensure(s.addons.len() < MAX_ADDONS, Error::QuotaExceeded)?;
     s.addons.push(addon);
     Ok(())
@@ -126,11 +134,13 @@ pub fn prune(s: &mut Subject, at: u64) -> Result<()> {
     let month_start = month_bounds(month_utc(at)?)?.0;
     s.contracts.retain(|c| {
         let end = end(c);
-        // Keep Apple replacement/refund boundaries while the original receipt
+        // Keep store replacement/refund boundaries while the original receipt
         // could still be replayed or legitimately restored after a refund reversal.
-        let retain_apple =
-            matches!(c.source, ContractSource::AppStore { .. }) && c.expires_at_ms > month_start;
-        if end <= month_start && !retain_apple {
+        let retain_store = matches!(
+            c.source,
+            ContractSource::AppStore { .. } | ContractSource::GooglePlay { .. }
+        ) && c.expires_at_ms > month_start;
+        if end <= month_start && !retain_store {
             let last = if c.source.is_sandbox() {
                 &mut s.last_sandbox_service_end_ms
             } else {
@@ -147,6 +157,9 @@ pub fn prune(s: &mut Subject, at: u64) -> Result<()> {
             .retain(|(_, end)| end.is_none_or(|end| end > month_start));
     }
     s.addons.retain(|a| a.expires_at_ms > at);
+    if let Some(qualifications) = &mut s.store_qualifications {
+        qualifications.retain(|id, _| s.addons.iter().any(|a| a.contract_id == *id));
+    }
     Ok(())
 }
 
@@ -234,8 +247,10 @@ pub fn project(
     // so its lease is bounded by the day membership issues.
     let source = active.as_ref().map(|c| &c.source);
     let lease = if refund_window(s, at).is_some()
-        || matches!(source, Some(ContractSource::AppStore { .. }))
-    {
+        || matches!(
+            source,
+            Some(ContractSource::AppStore { .. } | ContractSource::GooglePlay { .. })
+        ) {
         REFUNDABLE_LEASE_MS
     } else if matches!(source, Some(ContractSource::Sns { .. })) {
         PANDA_LEASE_MS
@@ -262,7 +277,9 @@ pub fn project(
             || (c.eligibility == Eligibility::Eligible
                 && matches!(
                     c.source,
-                    ContractSource::Sns { .. } | ContractSource::AppStore { .. }
+                    ContractSource::Sns { .. }
+                        | ContractSource::AppStore { .. }
+                        | ContractSource::GooglePlay { .. }
                 )
                 && at >= c.qualified_until_ms)
         {
@@ -290,6 +307,20 @@ pub fn project(
             sources.push(a.contract_id);
             until = until.min(a.expires_at_ms);
             addons.push(a.clone());
+            if let Some((checked, expires)) = s
+                .store_qualifications
+                .as_ref()
+                .and_then(|m| m.get(&a.contract_id))
+            {
+                observed = observed.min(*checked);
+                until = until.min(*expires);
+                if *expires <= at {
+                    // Preserve last known limits for display, but issue no usable stale lease.
+                    status = SourceStatus::Unverifiable;
+                    eligibility = Eligibility::Unverifiable;
+                    until = at;
+                }
+            }
         }
     }
     let next = s

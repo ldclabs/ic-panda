@@ -197,7 +197,8 @@ pub(crate) fn register(
         !REGISTRATIONS.with_borrow(|m| m.contains_key(&caller.as_slice().to_vec())),
         Error::IdempotencyConflict,
     )?;
-    let public = verify_registration(&input.response, &input.challenge)?;
+    let public =
+        verify_registration_with_android(&input.response, &input.challenge, &android_signers())?;
     let id = credential_hash(&input.response.credential_id)?;
     ensure(identity(&id).is_none(), Error::IdempotencyConflict)?;
     let mut cfg = config();
@@ -246,7 +247,12 @@ pub(crate) fn login(caller: Principal, input: AuthenticatePasskey, now: u64) -> 
     let id = credential_hash(&input.response.credential_id)?;
     let identity = identity(&id).ok_or(Error::NotFound)?;
     ensure(p.nonce > identity.logout_nonce, Error::AuthRequired)?;
-    verify_assertion(&input.response, &input.challenge, &identity.public)?;
+    verify_assertion_with_android(
+        &input.response,
+        &input.challenge,
+        &identity.public,
+        &android_signers(),
+    )?;
     remember(caller, id, identity, p, now)
 }
 
@@ -284,7 +290,12 @@ pub(crate) fn logout_all(caller: Principal, input: AuthenticatePasskey, now: u64
     let id = credential_hash(&input.response.credential_id)?;
     let mut identity = identity(&id).ok_or(Error::NotFound)?;
     ensure(p.nonce > identity.logout_nonce, Error::AuthRequired)?;
-    verify_assertion(&input.response, &input.challenge, &identity.public)?;
+    verify_assertion_with_android(
+        &input.response,
+        &input.challenge,
+        &identity.public,
+        &android_signers(),
+    )?;
     for who in &identity.sessions {
         SESSIONS.with_borrow_mut(|m| m.remove(&who.as_slice().to_vec()));
         remove_pending(*who);

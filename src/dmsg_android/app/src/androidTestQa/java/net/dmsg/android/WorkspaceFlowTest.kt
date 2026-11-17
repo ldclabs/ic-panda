@@ -1,0 +1,1520 @@
+package net.dmsg.android
+
+import android.graphics.Bitmap
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import net.dmsg.android.core.ClientController
+import net.dmsg.android.core.ReadState
+import net.dmsg.android.core.valueOrNull
+import net.dmsg.android.ui.DMsgApp
+import net.dmsg.core.MobileEngine
+import net.dmsg.core.VaultEdit
+import net.dmsg.core.FieldEdit
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.io.File
+import java.util.UUID
+
+/** Isolated QA variant only. Reads and writes use the real offline Rust database. */
+@RunWith(AndroidJUnit4::class)
+class WorkspaceFlowTest {
+    @get:Rule val compose = createComposeRule()
+    private lateinit var client: ClientController
+    private lateinit var native: MobileEngine
+    private lateinit var directory: File
+    private lateinit var stagingDirectory: File
+    private var uptime = 0L
+
+    @Before fun open() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as DMsgApplication
+        // Each fixture has its own native database. Installation navigation hints and
+        // preferences must be fresh too; process-restart flows exercise persistence
+        // within their own test instead of leaking it into the next test account.
+        val preferences = File(net.dmsg.android.platform.PrivateFiles(app).root, "preferences.json")
+        if (preferences.isFile) {
+            val previous = org.json.JSONObject(preferences.readText())
+            val pending = listOf("pending_connect", "pending_workspace", "pending_notice", "pending_reminder")
+                .filter { previous.has(it) && !previous.isNull(it) }
+            if (pending.isNotEmpty()) android.util.Log.i("dMsgQA", "Discarding prior fixture navigation keys: " + pending.joinToString())
+            check(preferences.delete())
+        }
+        compose.runOnUiThread {
+            uptime = android.os.SystemClock.elapsedRealtime()
+            client = ClientController(app, uptime = { uptime }) { paths, platform ->
+                directory = File(paths.workspace, "ui-fixtures/" + UUID.randomUUID())
+                stagingDirectory = paths.staging
+                val core = MobileEngine.openUiFixture(directory.absolutePath, paths.staging.absolutePath, platform).also { native = it }
+                val item = core.vaultPage("", null, false, 0u, 100u).items.first { it.title == "Studio account" }
+                val detail = core.vaultItem(item.id, null).item
+                core.saveItem(item.id, item.revision, VaultEdit(detail.title, detail.kind, detail.notes, detail.favorite, detail.tags,
+                    detail.fields.map { FieldEdit(it.id, it.kind, it.label, it.section, if (it.id == "password") "Sample-only password" else it.value) }, detail.files))
+                core
+            }
+            client.start()
+        }
+        compose.setContent { DMsgApp(client, browser = { error("Unexpected external navigation") }, share = { _, _ -> error("Unexpected external share") }) }
+        compose.waitUntil(20_000) { client.state.value.unlocked }
+        compose.runOnIdle { client.automaticSync(false); client.dark(false) }
+        try { compose.waitUntil(10_000) { client.vault.listing.state.value is ReadState.Ready } }
+        catch (error: Throwable) {
+            throw AssertionError("Fixture vault not ready: page=${client.navigation.state.value.current.page}, " +
+                "read=${client.vault.listing.state.value.javaClass.simpleName}, unlocked=${client.state.value.unlocked}, " +
+                "concealed=${client.state.value.concealed}, operations=${client.state.value.operations}", error)
+        }
+    }
+
+    @After fun close() {
+        if (::client.isInitialized) runBlocking { withContext(Dispatchers.Main.immediate) { client.shutdown() } }
+        if (::directory.isInitialized) directory.deleteRecursively()
+    }
+
+    private fun capture(name: String) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        compose.waitForIdle()
+        instrumentation.waitForIdleSync()
+        Thread.sleep(250) // System-bar appearance is applied by SystemUI after the Compose frame.
+        val bitmap = checkNotNull(instrumentation.uiAutomation.takeScreenshot())
+        val app = instrumentation.targetContext
+        val file = File(app.getExternalFilesDir(null), "$name.png")
+        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("mkdir -p /sdcard/Download/dmsg-qa")).use { it.readBytes() }
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("cp " + file.absolutePath + " /sdcard/Download/dmsg-qa/$name.png")).use { it.readBytes() }
+    }
+
+    private fun capturePermissionFailure(name: String) {
+        capture(name)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val app = instrumentation.targetContext
+        val nodes = StringBuilder("flags=" + instrumentation.uiAutomation.serviceInfo.flags +
+            " unlocked=" + client.state.value.unlocked + " concealed=" + client.state.value.concealed +
+            " qrRequest=" + (client.qr.state.value.request != null) + " qrShowing=" + client.qr.state.value.request?.showing + "\n")
+        fun inspect(node: android.view.accessibility.AccessibilityNodeInfo?, depth: Int = 0) {
+            if (node == null || depth > 20) return
+            val bounds = android.graphics.Rect().also(node::getBoundsInScreen)
+            nodes.append(" ".repeat(depth)).append(node.packageName).append(" | ").append(node.className)
+                .append(" | ").append(node.viewIdResourceName).append(" | ").append(node.text?.take(200))
+                .append(" | enabled=").append(node.isEnabled).append(" | ").append(bounds).append("\n")
+            for (i in 0 until node.childCount) inspect(node.getChild(i), depth + 1)
+        }
+        inspect(instrumentation.uiAutomation.rootInActiveWindow)
+        val file = File(app.getExternalFilesDir(null), name + "-tree.txt").apply { writeText(nodes.toString()) }
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
+            "cp " + file.absolutePath + " /sdcard/Download/dmsg-qa/" + file.name
+        )).use { it.readBytes() }
+    }
+
+    @Test fun nativePresentationUsesAGenericInAppBannerWithoutMarkingBusinessContentRead() {
+        compose.waitUntil(15_000) { client.state.value.operations.none { it.startsWith("notices:") } }
+        val account = client.state.value.session!!.account!!
+        val original = runBlocking { native.notificationPreferences(account) }
+        val preferences = net.dmsg.android.core.parseNoticePreferences(kotlinx.serialization.json.Json.parseToJsonElement(original.json))
+        runBlocking {
+            native.notificationSetGlobal(preferences.global.revision, preferences.global.copy(enabled = true).json())
+            native.notificationSetAccount(account, preferences.account!!.revision, preferences.account.copy(enabled = true).json())
+            native.seedUiReminders()
+        }
+        compose.runOnIdle { client.notices.refresh() }
+        compose.waitUntil(10_000) { client.notices.presented.value != null }
+        val plan = client.notices.presented.value!!
+        compose.onNodeWithText("Open reminder").assertIsDisplayed()
+        compose.onNodeWithText("Sample-only password").assertDoesNotExist()
+        val snapshot = runBlocking { native.notificationReference(account, plan.target.json()) }
+        val unchanged = net.dmsg.android.core.parseReminder(kotlinx.serialization.json.Json.parseToJsonElement(snapshot.json))
+        assertEquals(0uL, unchanged.readVersion); assertEquals(0uL, unchanged.observed)
+        capture("qa-notice-foreground-banner")
+        compose.runOnIdle { client.notices.dismiss() }
+        compose.onNodeWithText("Open reminder").assertDoesNotExist()
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("notifications")) }
+        compose.waitUntil(10_000) { client.notifications.preferences.value() != null }
+        capture("qa-notice-android-settings")
+        compose.runOnIdle { client.background() }
+        assertNull(client.notices.presented.value)
+    }
+
+    @Test fun reminderAccountChoiceSurvivesLockAndANewerIntentDismissesItWithoutReading() {
+        val seeded = runBlocking { native.seedUiReminders() }
+        val rows = kotlinx.serialization.json.Json.parseToJsonElement(seeded.json) as kotlinx.serialization.json.JsonArray
+        val item = rows.map { net.dmsg.android.core.parseReminder(it) }.first { it.target.kind == "channel" }
+        val account = client.state.value.session!!.account
+        val foreign = item.copy(account = "081040g2081040g20810")
+        compose.runOnIdle { client.notifications.open(foreign) }
+        compose.onNodeWithText("This reminder belongs to another account").assertIsDisplayed()
+        assertEquals(account, client.state.value.session!!.account)
+        val saved = client.noticeNavigation.save()!!
+        capture("qa-notice-account-choice")
+        compose.runOnIdle {
+            client.noticeNavigation.clear(discard = true)
+            client.noticeNavigation.restore(saved)
+            client.routePendingNotice()
+        }
+        compose.onNodeWithText("This reminder belongs to another account").assertIsDisplayed()
+        val current = runBlocking { native.notificationReference(item.account, item.target.json()) }
+        val untouched = net.dmsg.android.core.parseReminder(kotlinx.serialization.json.Json.parseToJsonElement(current.json))
+        assertEquals(0uL, untouched.observed); assertEquals(0uL, untouched.readVersion)
+        compose.runOnIdle { client.lock(false) }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        compose.onNodeWithText("This reminder belongs to another account").assertIsDisplayed()
+        compose.runOnIdle { client.requestWorkspace(net.dmsg.android.core.WorkspaceLink("files")) }
+        compose.onNodeWithText("This reminder belongs to another account").assertDoesNotExist()
+        assertNull(client.noticeNavigation.save())
+    }
+
+    @Test fun missingOpaqueReminderAndChangedRecoveryNeverFallThroughToAnotherRequest() {
+        val approvals = runBlocking { native.approvals().json }
+        compose.runOnIdle { client.requestNotice(net.dmsg.android.core.NoticeRoute.parse("local:" + "fa".repeat(32))!!) }
+        compose.waitUntil(10_000) { client.noticeNavigation.destination.state.value is ReadState.Failed }
+        compose.onNodeWithText("Reminder unavailable").assertIsDisplayed()
+        compose.onNodeWithText("Close").performClick()
+        assertEquals(approvals, runBlocking { native.approvals().json })
+        val expected = "bb".repeat(32)
+        val actual = "cc".repeat(32)
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("recovery", id = expected)) }
+        compose.waitUntil(10_000) { client.account.recovery.state.value is ReadState.Failed }
+        val now = System.currentTimeMillis().toULong()
+        compose.runOnIdle {
+            client.account.recovery.accept(client.account.recovery.begin(), net.dmsg.android.core.RecoveryStatus(client.state.value.session!!.account!!, true, true, false, 86_400_000u,
+                net.dmsg.android.core.RecoveryPending("dd".repeat(32), now + 10_000u, now + 20_000u, false, actual)))
+        }
+        compose.onNodeWithText("This recovery request is no longer pending").assertIsDisplayed()
+        compose.onNodeWithText("Review cancelling recovery").assertDoesNotExist()
+        capture("qa-notice-old-recovery")
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("recovery", id = actual)) }
+        compose.onNodeWithText("Pending recovery").assertIsDisplayed()
+        assertEquals(approvals, runBlocking { native.approvals().json })
+    }
+
+    @Test fun systemExportSelectionNeedsExplicitPublicationAndClearsOnLock() {
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("system-autofill")) }
+        compose.waitUntil(10_000) { client.systemExports.status.value() != null }
+        compose.onNodeWithText("Select login items").performClick()
+        compose.waitUntil(10_000) { !client.systemExports.logins.value().isNullOrEmpty() }
+        val selected = client.systemExports.logins.value()!!.first { it.title == "Studio account" }
+        compose.runOnIdle { client.systemExports.toggle(selected) }
+        assertEquals(listOf(selected.id), client.systemExports.chosen.value.map { it.id })
+        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("Sample-only password").assertDoesNotExist()
+        val nativeSelection = runBlocking { native.autofillSelection() }
+        assertTrue(nativeSelection.items.isEmpty())
+        capture("qa-system-autofill-selection")
+        compose.runOnIdle { client.systemExports.remove(net.dmsg.android.platform.ExportPurpose.credentials) }
+        compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("exports:") } }
+        assertTrue(client.systemExports.chosen.value.isEmpty())
+        assertTrue(runBlocking { native.autofillSelection() }.items.isEmpty())
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("system-files")) }
+        compose.waitUntil(10_000) { client.systemExports.status.value() != null }
+        capture("qa-system-file-copies")
+        compose.runOnIdle { client.lock(false) }
+        compose.waitUntil(10_000) { !client.state.value.unlocked }
+        assertTrue(client.systemExports.chosen.value.isEmpty())
+        assertNull(client.systemExports.status.value())
+    }
+
+    @Test fun workspaceEntryWaitsForUnlockAndCannotApproveOrOverrideALaterIntent() {
+        val before = runBlocking { native.approvals().json }
+        compose.runOnIdle { client.acceptCallback("dmsg://open/approvals") }
+        assertEquals("approvals", client.navigation.state.value.current.page)
+        assertEquals(before, runBlocking { native.approvals().json })
+        compose.runOnIdle { client.acceptCallback("dmsg://open/approvals?approve=true") }
+        assertEquals(before, runBlocking { native.approvals().json })
+        compose.runOnIdle { client.background() }
+        compose.runOnIdle { client.acceptCallback("dmsg://open/files") }
+        assertEquals("approvals", client.navigation.state.value.current.page)
+        compose.runOnIdle { client.foreground() }
+        compose.waitUntil(10_000) { !client.state.value.concealed && client.navigation.state.value.current.page == "files" }
+        val refreshed = native.scoped(client.state.value.session!!.generation)
+        try { assertEquals(before, runBlocking { refreshed.approvals().json }) } finally { refreshed.destroy() }
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        compose.runOnIdle { client.acceptCallback("dmsg://open/imports") }
+        assertEquals("files", client.navigation.state.value.current.page)
+        compose.onNodeWithText("Import into this account").assertDoesNotExist()
+    }
+
+    @Test fun crossApplicationDropReleasesItsReadGrantAndWaitsForExplicitImport() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val app = instrumentation.targetContext
+        val authority = instrumentation.context.packageName + ".drag-fixture"
+        val uri = android.net.Uri.parse("content://$authority/sample")
+        val provider = app.packageManager.resolveContentProvider(authority, 0)!!
+        assertNotEquals(android.os.Process.myUid(), provider.applicationInfo.uid)
+        fun accessDenied(): Boolean = try {
+            app.contentResolver.query(uri, null, null, null, null)?.close(); false
+        } catch (_: SecurityException) { true }
+        assertTrue("The source is private before the OS drag grant", accessDenied())
+        val root = File(app.noBackupFilesDir, "system/incoming")
+        val storage = net.dmsg.android.platform.IncomingShareStore(root, net.dmsg.android.platform.IncomingKeys(app, root))
+        assertTrue(storage.list().isEmpty())
+        val baseline = runBlocking { native.files("root").json }
+        compose.runOnIdle { client.navigation.open("files") }
+        compose.waitForIdle()
+        val bounds = compose.onRoot().fetchSemanticsNode().boundsInWindow
+        app.startActivity(android.content.Intent().setClassName(instrumentation.context.packageName, "net.dmsg.android.DragFixtureActivity")
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        try {
+            var source: android.graphics.Rect? = null
+            var stableSince = android.os.SystemClock.elapsedRealtime()
+            compose.waitUntil(10_000) {
+                val observed = instrumentation.uiAutomation.rootInActiveWindow?.findAccessibilityNodeInfosByText("Drag sample file")
+                    ?.firstOrNull()?.let { android.graphics.Rect().also(it::getBoundsInScreen) }
+                if (observed != source) { source = observed; stableSince = android.os.SystemClock.elapsedRealtime() }
+                source != null && android.os.SystemClock.elapsedRealtime() - stableSince >= 250
+            }
+            val start = checkNotNull(source)
+            val x = start.exactCenterX(); val y = start.exactCenterY()
+            val endX = bounds.left + bounds.width * 0.25f; val endY = bounds.top + bounds.height * 0.65f
+            val down = android.os.SystemClock.uptimeMillis()
+            fun motion(action: Int, px: Float, py: Float) {
+                val event = android.view.MotionEvent.obtain(down, android.os.SystemClock.uptimeMillis(), action, px, py, 0)
+                event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+                try { assertTrue(instrumentation.uiAutomation.injectInputEvent(event, true)) } finally { event.recycle() }
+            }
+            motion(android.view.MotionEvent.ACTION_DOWN, x, y)
+            Thread.sleep(android.view.ViewConfiguration.getLongPressTimeout().toLong() + 250)
+            for (step in 1..20) {
+                motion(android.view.MotionEvent.ACTION_MOVE, x + (endX - x) * step / 20f, y + (endY - y) * step / 20f)
+                Thread.sleep(16)
+            }
+            instrumentation.waitForIdleSync()
+            motion(android.view.MotionEvent.ACTION_UP, endX, endY)
+            try { compose.waitUntil(15_000) { !client.incoming.intake.value.working && client.incoming.entries.value()?.size == 1 } }
+            catch (error: Throwable) {
+                capturePermissionFailure("qa-drag-failure")
+                throw AssertionError("Drop intake=${client.incoming.intake.value}; route=${client.navigation.state.value.current}; source=$start; target=$endX,$endY", error)
+            }
+            compose.waitUntil(5_000) { accessDenied() }
+            assertEquals(baseline, runBlocking { native.files("root").json })
+            assertEquals("incoming-shares", client.navigation.state.value.current.page)
+            assertEquals("External sample.txt", storage.list().single().name)
+            for (file in root.walkTopDown().filter(File::isFile)) {
+                assertFalse(file.readBytes().toString(Charsets.ISO_8859_1).contains("External sample share"))
+            }
+            capture("qa-cross-app-file-drop-review")
+        } finally { storage.list().forEach { storage.remove(it.id) } }
+    }
+
+    @Test fun externalProviderShareStaysEncryptedUntilExplicitAccountImportAndIsDeduplicated() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val app = instrumentation.targetContext
+        val authority = instrumentation.context.packageName + ".incoming-fixture"
+        val provider = app.packageManager.resolveContentProvider(authority, 0)
+        assertNotNull(provider)
+        assertNotEquals(android.os.Process.myUid(), provider!!.applicationInfo.uid)
+        val uri = android.net.Uri.parse("content://" + authority + "/sample")
+        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(android.content.Intent.EXTRA_STREAM, uri) }
+        val root = File(app.noBackupFilesDir, "system/incoming")
+        val storage = net.dmsg.android.platform.IncomingShareStore(root, net.dmsg.android.platform.IncomingKeys(app, root))
+        assertTrue(storage.list().isEmpty())
+        val baseline = runBlocking { native.files("root").json }
+        try {
+            val finished = java.util.concurrent.atomic.AtomicInteger()
+            compose.runOnIdle { assertTrue(client.incoming.receive(intent) { finished.incrementAndGet() }) }
+            compose.waitUntil(10_000) { !client.incoming.intake.value.working && client.incoming.entries.value()?.size == 1 }
+            compose.waitUntil(5_000) { finished.get() == 1 }
+            val entry = client.incoming.entries.value()!!.single()
+            assertEquals("External sample.txt", entry.name)
+            for (file in root.walkTopDown().filter(File::isFile)) assertFalse(file.readBytes().toString(Charsets.ISO_8859_1).contains("External sample share"))
+            assertEquals(baseline, runBlocking { native.files("root").json })
+            compose.onNodeWithText("Preview shared text").performScrollTo().performClick()
+            compose.waitUntil(10_000) { client.incoming.previews.value[entry.id] != null }
+            compose.onNodeWithText("External sample share, never a real secret.").performScrollTo().assertIsDisplayed()
+            capture("qa-incoming-encrypted-review")
+            compose.onNodeWithText("Import into this account").performScrollTo().performClick()
+            compose.onNodeWithText("Cancel", useUnmergedTree = true).performClick()
+            assertEquals(baseline, runBlocking { native.files("root").json })
+            compose.onNodeWithText("Import into this account").performScrollTo().performClick()
+            compose.onNodeWithText("Import", useUnmergedTree = true).performClick()
+            compose.waitUntil(10_000) { client.incoming.entries.state.value is ReadState.Empty && !client.state.value.working("incoming:import:" + entry.id) }
+            val files = net.dmsg.android.core.parseFiles(runBlocking { native.files("root").json }).second
+            assertEquals(1, files.size)
+            assertEquals(entry.digest, files.single().sha256)
+            compose.runOnIdle { assertTrue(client.incoming.receive(intent)) }
+            compose.waitUntil(10_000) { !client.incoming.intake.value.working && client.incoming.intake.value.duplicate }
+            assertTrue(storage.list().isEmpty())
+            assertEquals(files.single().id, net.dmsg.android.core.parseFiles(runBlocking { native.files("root").json }).second.single().id)
+            capture("qa-incoming-imported-once")
+        } finally { storage.list().forEach { storage.remove(it.id) } }
+    }
+
+    @Test fun incomingShareRejectsOwnProviderAndNeverInterpretsSenderAccountOrApprovalFields() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val root = File(app.noBackupFilesDir, "system/incoming")
+        val storage = net.dmsg.android.platform.IncomingShareStore(root, net.dmsg.android.platform.IncomingKeys(app, root))
+        assertTrue(storage.list().isEmpty())
+        val approvals = runBlocking { native.approvals().json }
+        val own = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse("content://" + app.packageName + ".files/private-data"))
+        }
+        compose.runOnIdle { assertTrue(client.incoming.receive(own)) }
+        assertEquals("INVALID_INPUT", client.incoming.intake.value.error)
+        assertTrue(storage.list().isEmpty())
+        assertEquals(approvals, runBlocking { native.approvals().json })
+        val text = "Locked intake sample " + UUID.randomUUID().toString()
+        val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/plain"; putExtra(android.content.Intent.EXTRA_TEXT, text)
+            data = android.net.Uri.parse("dmsg://connect/request?approve=true")
+            putExtra("account", "foreign-account"); putExtra("approve", true)
+        }
+        try {
+            compose.runOnIdle { client.lock() }
+            compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+            compose.runOnIdle { assertTrue(client.incoming.receive(share)) }
+            compose.waitUntil(10_000) { !client.incoming.intake.value.working && client.incoming.intake.value.count == 1 }
+            assertNull(client.incoming.entries.value())
+            assertNull(storage.list().single().account)
+            compose.onNodeWithText(text).assertDoesNotExist()
+            for (file in root.walkTopDown().filter(File::isFile)) assertFalse(file.readBytes().toString(Charsets.ISO_8859_1).contains(text))
+            capture("qa-incoming-locked")
+        } finally { storage.list().forEach { storage.remove(it.id) } }
+    }
+
+    @Test fun expiredCipherGrantStopsInTheRealSystemJobWithoutOpeningOrFinishingAFile() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val store = checkNotNull(net.dmsg.android.platform.cipherStore(app))
+        assertNull(store.snapshot())
+        val bytes = "sample encrypted bytes only".toByteArray()
+        val id = "9a".repeat(32)
+        val account = client.state.value.session!!.account!!
+        val now = System.currentTimeMillis().toULong()
+        val part = net.dmsg.android.platform.CipherPart("0", bytes.size.toLong(), net.dmsg.android.platform.CipherTransferStore.digest(bytes), "https://relay.example.test/mobile-transfer/v1/" + account + "/" + id + "/0?token=" + "bc".repeat(32))
+        val plan = net.dmsg.android.platform.CipherPlan(id, account, client.state.value.session!!.deviceId!!, "GET", "de".repeat(32), now - 1000u, listOf(part))
+        val scheduler = net.dmsg.android.platform.CipherScheduler(app)
+        val filesBefore = runBlocking { native.files("root").json }
+        try {
+            store.start(plan, now - 2000u)
+            val active = store.retry(now - 1500u)
+            compose.runOnIdle { scheduler.schedule(active) }
+            compose.waitUntil(15_000) { store.snapshot()?.error == "TRANSFER_EXPIRED" }
+            assertEquals("failed", store.snapshot()!!.phase)
+            assertTrue(store.snapshot()!!.completed.isEmpty())
+            assertEquals(filesBefore, runBlocking { native.files("root").json })
+            compose.runOnIdle { client.navigation.open("file-transfers"); client.backgroundFiles.load() }
+            compose.waitUntil(10_000) { client.backgroundFiles.current.value()?.plan?.id == id }
+            compose.onNodeWithText("Verify and finish").assertDoesNotExist()
+            compose.onNodeWithText("No pending transfers").assertDoesNotExist()
+            capture("qa-background-expired-grant")
+        } finally { scheduler.cancel(); store.discard(plan) }
+    }
+
+    @Test fun deviceReceiverStopsInBackgroundAndResumesTheOriginalSessionWithoutExportApproval() {
+        val before = runBlocking { native.approvals().json }
+        compose.runOnIdle { client.navigation.open("device-transfer") }
+        compose.waitUntil(10_000) { client.deviceTransfers.status.state.value is ReadState.Empty && client.accountWorkspace.local.state.value is ReadState.Ready }
+        compose.onNodeWithText("Receive here").performScrollTo().performClick()
+        compose.waitForIdle()
+        try { compose.waitUntil(10_000) { client.deviceTransfers.status.value()?.state == "waiting" } }
+        catch (error: Throwable) {
+            capture("qa-device-receiver-failure")
+            throw AssertionError("receiver status=" + client.deviceTransfers.status.state.value + " notice=" + client.deviceTransfers.notice.value + " native=" + native.transferStatus().json, error)
+        }
+        val started = client.deviceTransfers.status.value()!!
+        assertTrue(started.port!! > 0u)
+        capture("qa-device-receiver")
+        compose.runOnIdle { client.background() }
+        compose.waitUntil(10_000) {
+            net.dmsg.android.core.parseDeviceTransfer(kotlinx.serialization.json.Json.parseToJsonElement(native.transferStatus().json))?.running == false
+        }
+        assertNull(client.deviceTransfers.status.value())
+        assertTrue(client.deviceTransfers.suspended.value)
+        assertTrue(runCatching { java.net.Socket().use { it.connect(java.net.InetSocketAddress("127.0.0.1", started.port.toInt()), 500) } }.isFailure)
+        compose.runOnIdle { client.foreground() }
+        compose.waitUntil(10_000) { client.deviceTransfers.status.value()?.state == "waiting" && !client.state.value.concealed }
+        assertEquals(started.session, client.deviceTransfers.status.value()!!.session)
+        val refreshed = native.scoped(client.state.value.session!!.generation)
+        try { assertEquals(before, runBlocking { refreshed.approvals().json }) } finally { refreshed.destroy() }
+        compose.onNodeWithText("Stop transfer").performClick()
+        compose.waitUntil(10_000) { client.deviceTransfers.status.value()?.state == "cancelled" }
+        assertFalse(client.deviceTransfers.suspended.value)
+        compose.onNodeWithText("Resume transfer").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.deviceTransfers.status.value()?.state == "waiting" }
+        assertEquals(started.session, client.deviceTransfers.status.value()!!.session)
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        assertNull(client.deviceTransfers.status.value())
+        assertFalse(net.dmsg.android.core.parseDeviceTransfer(kotlinx.serialization.json.Json.parseToJsonElement(native.transferStatus().json))!!.running)
+    }
+
+    @Test fun malformedHandoverRequestNeverCreatesApprovalAndKeepsTheAuthoredToken() {
+        val before = runBlocking { native.approvals().json }
+        compose.runOnIdle { client.navigation.open("handover-review"); client.handovers.editToken("not-a-valid-request") }
+        compose.onNodeWithText("Check request").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.handovers.review.state.value is ReadState.Failed }
+        assertEquals("not-a-valid-request", client.handovers.token.value)
+        compose.onNodeWithText("Review replacement approval").assertIsNotEnabled()
+        assertEquals(before, runBlocking { native.approvals().json })
+        capture("qa-handover-invalid-request")
+    }
+
+    @Test fun localAgentPermissionsNeedReviewAndManagedPrivateKeyCannotBeRevealed() {
+        compose.runOnIdle { client.navigation.open("agents") }
+        compose.waitUntil(10_000) { client.agents.listing.state.value is ReadState.Empty }
+        compose.onNodeWithTag("agent-label").performTextInput("research")
+        compose.onNodeWithText("Create agent").performClick()
+        compose.waitUntil(10_000) { client.agents.listing.value()?.size == 1 }
+        val agent = client.agents.listing.value()!!.single()
+        assertTrue(agent.id.startsWith("did:agent:"))
+        assertNotEquals(agent.id, agent.label)
+        assertFalse(agent.resident)
+        compose.onNodeWithText("research").performClick()
+        compose.waitUntil(10_000) { client.agents.grants.state.value is ReadState.Empty }
+        compose.onNodeWithTag("Pause this agent").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.agents.listing.value()?.single()?.paused == true }
+        compose.onNodeWithTag("agent-capabilities").performScrollTo().performTextInput("vault.list")
+        compose.onNodeWithText("Review permissions").performClick()
+        compose.waitUntil(10_000) { client.approvals.detail.state.value is ReadState.Ready }
+        val approval = client.approvals.detail.value()!!
+        assertEquals("grant", approval.kind)
+        assertEquals("awaiting_user", approval.state)
+        assertEquals("[]", runBlocking { native.agentGrants().json })
+        capture("qa-agent-permissions-review")
+        val key = runBlocking { native.vaultPage("", null, false, 0u, 100u).items.first { it.reserved && it.tags.contains("dmsg-agent") } }
+        val detail = runBlocking { native.vaultItem(key.id, null).item }
+        assertTrue(runBlocking { runCatching { native.revealField(key.id, detail.revision, "key") }.isFailure })
+        compose.runOnIdle { client.navigation.open("vault"); client.navigation.push(net.dmsg.android.core.Route("vault", key.id)) }
+        compose.waitUntil(10_000) { client.vault.detail.value()?.id == key.id }
+        compose.onNodeWithText("Share secret snapshot").assertDoesNotExist()
+        compose.onNodeWithText("This key is managed by dMsg. Its private fields cannot be revealed, edited or copied.").performScrollTo().assertIsDisplayed()
+        capture("qa-agent-managed-key")
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("agent", agent.id)) }
+        compose.waitUntil(10_000) { client.agents.listing.value()?.size == 1 }
+        compose.onNodeWithText("Remove this local agent").performScrollTo().performClick()
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals(1, net.dmsg.android.core.parseManagedAgents(kotlinx.serialization.json.Json.parseToJsonElement(runBlocking { native.agents().json })).size)
+        compose.onNodeWithText("Remove this local agent").performScrollTo().performClick()
+        compose.onNodeWithText("Remove", useUnmergedTree = true).performClick()
+        compose.waitUntil(10_000) { client.agents.listing.state.value is ReadState.Empty }
+    }
+
+    @Test fun unreadableAgentPrincipalDoesNotOfferEnableOrCreateCredentials() {
+        val approvalsBefore = runBlocking { native.approvals().json }
+        compose.runOnIdle { client.navigation.open("agent-delegations") }
+        compose.waitUntil(10_000) { client.agents.principal.state.value is ReadState.Failed }
+        compose.onNodeWithText("Review enabling a principal").assertDoesNotExist()
+        compose.onNodeWithText("No credentials").assertDoesNotExist()
+        compose.onNodeWithText("Grant delegation").assertDoesNotExist()
+        assertEquals(approvalsBefore, runBlocking { native.approvals().json })
+        capture("qa-agent-principal-unavailable")
+    }
+
+    @Test fun browserDeepLinkRequiresTheMatchingAccountAndNeverApproves() {
+        val foreign = "080g2081040g2081040g"
+        val baseline = runBlocking { native.approvals().json }
+        val link = net.dmsg.android.core.ConnectLink("request", foreign, "ab".repeat(32))
+        compose.runOnIdle { client.acceptCallback(link.url()) }
+        compose.onNodeWithText("Choose account").assertExists()
+        compose.onNodeWithText(foreign).assertExists()
+        compose.onNodeWithText("Approve").assertDoesNotExist()
+        assertEquals(ReadState.Idle, client.browserConnections.request.state.value)
+        assertEquals(baseline, runBlocking { native.approvals().json })
+        capture("qa-browser-wrong-account")
+        compose.onNodeWithText("Dismiss request").performClick()
+        compose.runOnIdle { client.acceptCallback(link.url() + "&approve=true") }
+        assertNotEquals("browser-request", client.navigation.state.value.current.page)
+        assertEquals(baseline, runBlocking { native.approvals().json })
+        compose.runOnIdle { client.dismissConnectLink(); client.clearNotice() }
+    }
+
+    @Test fun serviceDeletionRequiresDependencyReviewAndCancelHasNoEffect() {
+        val account = client.state.value.session!!.account!!
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("account-delete")) }
+        compose.waitUntil(10_000) { client.accountDeletion.status.state.value is ReadState.Failed && !client.state.value.working("account:devices") }
+        val review = net.dmsg.android.core.AccountDeletionPreview("ab".repeat(32), account, 3u, false,
+            listOf(net.dmsg.android.core.AccountDeletionChannel("cd".repeat(32), "Owned conversation")), emptyList(), false)
+        compose.runOnIdle {
+            client.accountDeletion.status.accept(client.accountDeletion.status.begin(), net.dmsg.android.core.AccountDeletionStatus(null))
+            client.accountDeletion.preview.accept(client.accountDeletion.preview.begin(), review)
+            client.account.devices.accept(client.account.devices.begin(), net.dmsg.android.core.AccountDevices(account, "aaaaa-aa", 1u, 1u, "Ready", 1u, listOf(
+                net.dmsg.android.core.AccountDevice("aa".repeat(32), "Administrator", listOf("RootManage"), 1u, null, null, true))))
+            client.accountDeletion.edit(net.dmsg.android.core.AccountDeletionDraft(account, false))
+            client.clearNotice()
+        }
+        compose.onNodeWithText("Request account deletion").assertIsNotEnabled()
+        compose.runOnIdle { client.accountDeletion.preview.accept(client.accountDeletion.preview.begin(), review.copy(channels = emptyList())) }
+        compose.onNodeWithText("Request account deletion").assertIsNotEnabled()
+        compose.runOnIdle { client.accountDeletion.edit(net.dmsg.android.core.AccountDeletionDraft(account, true)) }
+        compose.onNodeWithText("Request account deletion").assertIsEnabled().performClick()
+        compose.onNodeWithText("Permanently delete this service account?").assertExists()
+        capture("qa-service-deletion-review")
+        compose.onNodeWithText("Cancel").performClick()
+        assertTrue(client.state.value.unlocked)
+        assertNull(client.accountDeletion.status.value()!!.deletion)
+        compose.runOnIdle { client.accountDeletion.status.fail(client.accountDeletion.status.begin(), "UNAVAILABLE") }
+        compose.onNodeWithText("Request account deletion").assertIsNotEnabled()
+    }
+
+    @Test fun walletViewerCannotProposeAndUnverifiedAddressesCannotBeCopied() {
+        val wallet = "aaaaa-aa"
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("wallet", wallet)) }
+        compose.waitUntil(10_000) { client.wallets.details.state.value is ReadState.Failed }
+        compose.runOnIdle {
+            client.wallets.details.accept(client.wallets.details.begin(), net.dmsg.android.core.WalletDetails(wallet, "Reviewed wallet", false,
+                net.dmsg.android.core.WalletMember("owner", "", "Viewer", "Active"), emptyList(),
+                listOf(net.dmsg.android.core.WalletAddress(0u, "unverified-destination", "Account", "Icp", false, "chain_key", false, null)),
+                emptyList(), net.dmsg.android.core.WalletPolicy(2u, 2u, kotlinx.serialization.json.JsonObject(emptyMap()))))
+            client.wallets.history.accept(client.wallets.history.begin(), net.dmsg.android.core.WalletProposalPage(emptyList(), null))
+            client.clearNotice()
+        }
+        compose.onNodeWithText("Propose transfer").assertDoesNotExist()
+        compose.onNodeWithText("Address verification failed").assertExists()
+        compose.onNodeWithText("Copy verified address").assertDoesNotExist()
+        capture("qa-wallet-viewer")
+    }
+
+    @Test fun transferAmountPrecisionRejectsUnreviewedSubmission() {
+        val wallet = "aaaaa-aa"
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("wallet-transfer", wallet)) }
+        compose.waitUntil(10_000) { client.wallets.assets.state.value is ReadState.Failed && client.wallets.details.state.value is ReadState.Failed }
+        compose.runOnIdle {
+            client.wallets.details.accept(client.wallets.details.begin(), net.dmsg.android.core.WalletDetails(wallet, "Reviewed wallet", false,
+                net.dmsg.android.core.WalletMember("owner", "", "Admin", "Active"), emptyList(),
+                listOf(net.dmsg.android.core.WalletAddress(0u, "verified-source", "Account", "Icp", true, "chain_key", false, null)),
+                emptyList(), net.dmsg.android.core.WalletPolicy(2u, 2u, kotlinx.serialization.json.JsonObject(emptyMap()))))
+            client.wallets.assets.accept(client.wallets.assets.begin(), listOf(net.dmsg.android.core.WalletAsset("icp", "ICP", 8, null)))
+            client.wallets.edit(net.dmsg.android.core.WalletTransferDraft(wallet, 0u, "icp", "reviewed-recipient", "1.00000001"))
+            client.clearNotice()
+        }
+        compose.onNodeWithText("100000001").assertExists()
+        val input = client.wallets.input(client.wallets.transfers.value.getValue(wallet))!!
+        assertEquals("100000001", input.amount)
+        assertEquals("reviewed-recipient", input.recipient)
+        compose.onNodeWithText("Amount").performTextClearance()
+        compose.onNodeWithText("Amount").performTextInput("1.000000001")
+        assertNull(client.wallets.input(client.wallets.transfers.value.getValue(wallet)))
+        compose.onNodeWithText("Preview transfer").assertIsNotEnabled()
+        capture("qa-wallet-exact-amount")
+        // No preview means no submission; neither a request journal nor proposal is invented.
+        compose.runOnIdle { client.wallets.submitTransfer(wallet) }
+        assertNull(client.wallets.submissions.value["transfer:" + wallet])
+        assertTrue(runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.pendingWalletProposals().json) as kotlinx.serialization.json.JsonArray }.isEmpty())
+    }
+
+    @Test fun membershipKeepsUnverifiedRightsUnknownAndComparesAllFourTiers() {
+        // Synthetic display values only; no certified remote entitlement is claimed.
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("membership")) }
+        compose.waitUntil(10_000) { client.state.value.operations.none { it.startsWith("membership:") } }
+        compose.runOnIdle {
+            val limits = net.dmsg.android.core.PlanLimits(100uL * 1024u * 1024u, 2u, 5u, 2u)
+            val plan = net.dmsg.android.core.MembershipPlan("Max", "Unverifiable", "Unverifiable", 1u, limits, null)
+            client.membership.plan.accept(client.membership.plan.begin(), plan)
+            client.membership.usage.accept(client.membership.usage.begin(), net.dmsg.android.core.MembershipUsage(null, null, "UNAVAILABLE", "AUTH_REQUIRED"))
+            client.membership.catalog.accept(client.membership.catalog.begin(), net.dmsg.android.core.MembershipCatalog(
+                net.dmsg.android.core.membershipTiers.mapIndexed { index, tier -> net.dmsg.android.core.PlanBenefit(tier, limits.copy(storage = limits.storage * (index + 1).toULong()), 100uL * 1024u * 1024u, index.toULong() * 10u, null) }, "UNAVAILABLE"))
+            client.clearNotice()
+        }
+        compose.onNodeWithText("Status needs updating").assertExists()
+        compose.onNodeWithText("Some usage is unavailable. Unknown values are not zero.").assertExists()
+        capture("qa-membership-unverified")
+        compose.onNodeWithTag("membership-list").performScrollToNode(hasText("Compare all plans"))
+        compose.onNodeWithText("Compare all plans").performClick()
+        compose.onNodeWithTag("membership-list").performScrollToNode(hasTestTag("plan-card-Max"))
+        compose.onNodeWithTag("plan-card-Max").assertExists()
+        compose.onAllNodesWithText("Current plan").assertCountEquals(0)
+        capture("qa-membership-comparison")
+    }
+
+    @Test fun notificationChoicesUseIndependentConsentAndKeepConflictingEdits() {
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("notifications")) }
+        compose.waitUntil(10_000) { client.notifications.preferences.state.value is ReadState.Ready }
+        assertFalse(client.notifications.draft.value!!.global.enabled)
+        assertFalse(client.notifications.draft.value!!.account!!.enabled)
+        compose.onNodeWithTag("notification-settings").performScrollToNode(hasTestTag("Enable notifications"))
+        compose.onNodeWithTag("Enable notifications").performClick()
+        compose.waitUntil(10_000) { !client.state.value.working("notices:save") && client.notifications.preferences.value()?.global?.enabled == true }
+        assertFalse(client.notifications.preferences.value()!!.account!!.enabled)
+        compose.onNodeWithTag("notification-settings").performScrollToNode(hasTestTag("Notify for this account"))
+        compose.onNodeWithTag("Notify for this account").performClick()
+        compose.onNodeWithText("Cancel").performClick()
+        assertFalse(client.notifications.preferences.value()!!.account!!.enabled)
+        compose.onNodeWithTag("Notify for this account").performClick()
+        compose.onNodeWithText("Enable for this account").performClick()
+        compose.waitUntil(10_000) { client.notifications.preferences.value()?.account?.enabled == true && !client.state.value.working("notices:save") }
+        val old = client.notifications.preferences.value()!!
+        runBlocking { native.notificationSetGlobal(old.global.revision, old.global.copy(badge = "off").json()) }
+        compose.runOnIdle { client.notifications.edit(global = old.global.copy(enabled = false)) }
+        compose.waitUntil(10_000) { client.notifications.saveError.value == "VERSION_CONFLICT" && client.notifications.preferences.value()?.global?.badge == "off" }
+        assertFalse(client.notifications.draft.value!!.global.enabled)
+        compose.onNodeWithTag("notification-settings").performScrollToNode(hasText("Review and retry saved edits"))
+        compose.onNodeWithText("Review and retry saved edits").performClick()
+        compose.onNodeWithText("Apply").performClick()
+        compose.waitUntil(10_000) { !client.state.value.working("notices:save") && client.notifications.saveError.value == null && client.notifications.preferences.value()?.global?.enabled == false }
+        val stored = runBlocking { net.dmsg.android.core.parseNoticePreferences(kotlinx.serialization.json.Json.parseToJsonElement(native.notificationPreferences(null).json)) }
+        assertFalse(stored.global.enabled); assertTrue(stored.account!!.enabled)
+        capture("qa-notification-preferences")
+    }
+
+    @Test fun reminderReadAndSnoozeDoNotObserveOrCompleteTheOriginalAction() {
+        val seeded = runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiReminders().json) as kotlinx.serialization.json.JsonArray }
+        val action = net.dmsg.android.core.parseReminder(seeded[0])
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("reminders")) }
+        compose.waitUntil(10_000) { client.notifications.reminders.value()?.items?.any { it.id == action.id } == true }
+        compose.onNodeWithText("Mark reminder read").performClick()
+        compose.waitUntil(10_000) { client.notifications.reminders.value()?.items?.find { it.id == action.id }?.isUnread == false }
+        val read = client.notifications.reminders.value()!!.items.single { it.id == action.id }
+        assertTrue(read.open); assertTrue(read.actionable); assertEquals(0uL, read.observed)
+        assertEquals(9007199254740993uL, read.readVersion)
+        compose.onNodeWithText("Remind later").performClick()
+        compose.onNodeWithText("In 15 minutes").performClick()
+        compose.waitUntil(10_000) { client.notifications.reminders.value()?.items?.find { it.id == action.id }?.snoozedUntil != null }
+        capture("qa-reminders-action")
+        compose.onNodeWithText("Recent").performClick()
+        compose.waitUntil(10_000) { client.notifications.reminders.value()?.items?.size == 2 }
+        compose.onNodeWithTag("reminders-list").performScrollToNode(hasText("Mark reminders for all accounts as read"))
+        compose.onNodeWithText("Mark reminders for all accounts as read").performClick()
+        compose.onNodeWithText("Mark as read").performClick()
+        compose.waitUntil(10_000) { client.notifications.reminders.value()?.items?.all { !it.isUnread } == true }
+        assertTrue(client.notifications.reminders.value()!!.items.all { it.observed == 0uL })
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked }
+        assertNull(client.notifications.reminders.value())
+    }
+
+    @Test fun separateVaultDetailAndLockConcealTheDecryptedContent() {
+        capture("qa-vault-light")
+        compose.onNodeWithText("Studio account").performClick()
+        compose.waitUntil(10_000) { client.vault.detail.state.value is ReadState.Ready }
+        compose.onNodeWithText("Offline QA fixture · no real credentials").assertExists()
+        capture("qa-vault-detail-light")
+        compose.runOnIdle { client.dark(true) }
+        capture("qa-vault-detail-dark")
+        compose.onNodeWithContentDescription("Field actions").performClick()
+        compose.onNodeWithText("Reveal").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithText("Sample-only password").fetchSemanticsNodes().isNotEmpty() }
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        compose.onNodeWithText("Offline QA fixture · no real credentials").assertDoesNotExist()
+        compose.onNodeWithText("Studio account").assertDoesNotExist()
+        compose.onNodeWithText("Sample-only password").assertDoesNotExist()
+        assertEquals("locked", runBlocking { native.sessionState() }.state)
+    }
+
+    @Test fun automaticReadsAndTransferPollingDoNotExtendTheIdleUnlockWindow() {
+        compose.runOnIdle { client.activity(); uptime += 14 * 60_000L + 30_000 }
+        var read = false
+        compose.runOnIdle { client.perform({ it.accounts() }, key = "test:automatic-read", quiet = true) { read = true } }
+        compose.waitUntil(10_000) { read }
+        compose.runOnIdle { uptime += 30_001; client.checkInactivity() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        assertEquals("locked", runBlocking { native.sessionState() }.state)
+    }
+
+    @Test fun cloudInventoryAndVerificationProgressRemainDistinctFromCompletedTransfers() {
+        // Synthetic display states only. No remote upload/download is claimed here.
+        compose.runOnIdle { client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("cloud-files")) }
+        compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("cloud:list:") } }
+        compose.runOnIdle {
+            client.cloudFiles.inventory.accept(client.cloudFiles.inventory.begin(), net.dmsg.android.core.CloudInventory(listOf(
+                net.dmsg.android.core.CloudBackup("qa-cloud", "file-one", "version-one", "Design archive.zip", listOf("Studio"), 42uL * 1024u * 1024u,
+                    "application/zip", "01".repeat(32), "Other authorized device", 4u, null, 1_800_000_000_000u, 44uL * 1024u * 1024u, false, false),
+                net.dmsg.android.core.CloudBackup("qa-locked-cloud", null, null, null, emptyList(), null, null, null,
+                    "Other authorized device", 3u, null, 1_800_000_000_000u, 18uL * 1024u * 1024u, true, false)
+            ), true, 1_800_000_000_000u))
+            client.clearNotice()
+        }
+        compose.onNodeWithText("Design archive.zip").assertExists()
+        capture("qa-cloud-inventory")
+        compose.onNodeWithText("Encrypted backup").performClick()
+        compose.onNodeWithText("Synchronize the account to obtain the content key before restoring this copy.").assertExists()
+        compose.onNodeWithText("Restore this copy").assertDoesNotExist()
+        capture("qa-cloud-missing-key")
+        compose.runOnIdle { client.fileWork.pause(); client.navigation.push(net.dmsg.android.core.Route("file-transfers")) }
+        compose.waitUntil(10_000) { !client.state.value.working("files:jobs") }
+        compose.runOnIdle {
+            client.fileWork.stop()
+            client.clearNotice()
+            client.fileWork.jobs.accept(client.fileWork.jobs.begin(), listOf(net.dmsg.android.core.DurableFileJob(
+                "qa-download", "download", "Design archive.zip", null, null, "verifying", 42u, 42u, 42uL * 1024u * 1024u, 42uL * 1024u * 1024u, null, null)))
+        }
+        compose.onNodeWithText("Restore · Verifying all contents").assertExists()
+        compose.onNodeWithText("Verified and complete").assertDoesNotExist()
+        capture("qa-file-verifying")
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = File(app.cacheDir, "dmsg-shared/version-fixture/" + UUID.randomUUID() + ".txt")
+        source.parentFile!!.mkdirs(); source.writeText("Version navigation fixture, no personal content")
+        val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", source)
+        compose.runOnIdle { assertTrue(client.transfers.beginImport("root")); client.transfers.importResult(uri) }
+        compose.waitUntil(15_000) { client.transfers.tasks.value.values.any { it.kind == "import" && it.phase == "done" } }
+        source.delete()
+        val local = runBlocking { net.dmsg.android.core.parseFiles(native.files("root").json).second.single() }
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("files", id = local.id, revision = "missing-version")) }
+        compose.waitUntil(10_000) { client.library.detail.state.value is ReadState.Ready }
+        compose.onNodeWithText("The requested version is unavailable on this device. Choose another version explicitly.").assertExists()
+        compose.onNodeWithText("Share a verified copy").assertDoesNotExist()
+        capture("qa-file-version-missing")
+        compose.onNodeWithText("View the current version").performClick()
+        compose.onNodeWithText(local.name).assertExists()
+    }
+
+    @Test fun fileLinkReviewDefaultsToAnonymousAndRetriesOneFixedVersion() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = File(app.cacheDir, "dmsg-shared/link-fixture/Reviewed version.txt")
+        source.parentFile!!.mkdirs(); source.writeText("Public QA sample for fixed-version sharing")
+        val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", source)
+        compose.runOnIdle { assertTrue(client.transfers.beginImport("root")); client.transfers.importResult(uri) }
+        compose.waitUntil(15_000) { client.transfers.tasks.value.values.any { it.kind == "import" && it.phase == "done" } }
+        source.delete()
+        val file = runBlocking { net.dmsg.android.core.parseFiles(native.files("root").json).second.single() }
+        compose.runOnIdle { client.clearNotice(); client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("file-link-compose", id = file.id, revision = file.version)) }
+        compose.waitUntil(10_000) { client.fileLinks.target.state.value is ReadState.Ready }
+        compose.onNodeWithTag("file-link-profile").performScrollTo().assertIsOff()
+        capture("qa-file-link-privacy")
+        compose.onNodeWithText("Optional password").performScrollTo().performTextInput("QA-only optional password")
+        compose.onNodeWithText("Share by link").assertIsDisplayed()
+        compose.waitUntil(5_000) { compose.onNodeWithText("Optional password").isDisplayed() }
+        capture("qa-file-link-compose")
+        compose.runOnIdle { client.fileLinks.create() }
+        compose.waitUntil(20_000) { client.fileLinks.intents.value()?.size == 1 && !client.state.value.operations.any { it.startsWith("links:run:") || it == "links:prepare" } }
+        val original = client.fileLinks.intents.value()!!.single()
+        assertEquals(file.version, original.version); assertFalse(original.showProfile); assertTrue(original.password)
+        assertEquals("", client.fileLinks.draft.value.password)
+        compose.runOnIdle { client.clearNotice(); client.fileLinks.resume(original.id) }
+        compose.waitUntil(20_000) { !client.state.value.working("links:run:${original.id}") }
+        val persisted = runBlocking { native.fileLinkIntents().json }
+        val rows = kotlinx.serialization.json.Json.parseToJsonElement(persisted) as kotlinx.serialization.json.JsonArray
+        assertEquals(1, rows.size)
+        assertEquals(original.id, net.dmsg.android.core.parseFileLinkIntent(rows.single()).id)
+        assertFalse(persisted.contains("QA-only optional password"))
+        compose.runOnIdle { client.clearNotice() }
+        capture("qa-file-link-original-task")
+    }
+
+    @Test fun requestBatchRetriesOriginalRecipientsAndKeepsUnpublishedKeysPrivate() {
+        compose.runOnIdle { client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("file-request-compose")) }
+        compose.onNodeWithText("What do you need?").performTextInput("Signed project documents")
+        compose.onNodeWithText("Instructions (optional)").performTextInput("Upload the signed copy, please.")
+        compose.onNodeWithText("Who is it for? (optional)").performTextInput("Ada\nLee")
+        capture("qa-file-request-compose")
+        compose.runOnIdle { client.fileRequests.create() }
+        compose.waitUntil(20_000) { client.fileRequests.intents.value()?.size == 2 && !client.state.value.working("requests:prepare") && !client.state.value.working("requests:publish") }
+        val original = client.fileRequests.intents.value()!!
+        val batch = original.first().batch
+        assertEquals(setOf("Ada", "Lee"), original.map { it.label }.toSet())
+        assertTrue(original.all { it.batch == batch && it.link == null })
+        compose.runOnIdle { client.clearNotice(); client.fileRequests.resumeBatch(batch) }
+        compose.waitUntil(20_000) { !client.state.value.working("requests:publish") }
+        val persisted = runBlocking { native.fileRequestIntents().json }
+        val rows = (kotlinx.serialization.json.Json.parseToJsonElement(persisted) as kotlinx.serialization.json.JsonArray).map { net.dmsg.android.core.parseFileRequestIntent(it) }
+        assertEquals(original.map { it.id }.toSet(), rows.map { it.id }.toSet())
+        assertFalse(persisted.contains("hpke_seed")); assertFalse(persisted.contains("page_key"))
+        compose.runOnIdle { client.clearNotice() }
+        capture("qa-file-request-original-batch")
+    }
+
+    @Test fun receivedFileStatesNeverAutomaticallyImportAndDowngradeKeepsSaveAvailable() {
+        // Display fixtures only: no remote receipt, download or deletion is claimed.
+        val before = runBlocking { native.files("root").json }
+        compose.runOnIdle { client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("file-requests")) }
+        compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("requests:list:") || it == "cloud:capacity" } }
+        val id = "ca".repeat(32)
+        val now = System.currentTimeMillis().toULong()
+        val request = net.dmsg.android.core.FileRequest(id, "https://dmsg.net/r/qa-only#synthetic", "Project delivery", "One link per collaborator", "Ada", now + 14uL * 86_400_000u, 500uL * 1024u * 1024u, now, "paused", 3u, 900u, true, now)
+        compose.runOnIdle {
+            client.fileRequests.links.accept(client.fileRequests.links.begin(), listOf(request))
+            client.cloudFiles.capacity.accept(client.cloudFiles.capacity.begin(), net.dmsg.android.core.BackupCapacity(100uL * 1024u * 1024u, 1_000_000u, 900u, 0u, 0u))
+            client.clearNotice()
+        }
+        compose.onNodeWithText("New collection link").assertIsNotEnabled()
+        compose.onNodeWithText("Project delivery").performClick()
+        compose.waitUntil(10_000) { !client.state.value.working("requests:files") }
+        val incoming = net.dmsg.android.core.ReceivedFile("cb".repeat(32), id, "received", "Signed agreement.pdf", "application/pdf", 300u, "Ada", "Please review", null, now, 320u, null)
+        compose.runOnIdle {
+            client.fileRequests.received.accept(client.fileRequests.received.begin(), net.dmsg.android.core.FileRequestsCoordinator.Received(id, listOf(incoming,
+                incoming.copy(id = "cc".repeat(32), state = "unreadable", name = null, mime = null, size = null, senderName = null, senderNote = null),
+                incoming.copy(id = "cd".repeat(32), state = "withdrawn", name = "Withdrawn draft.pdf"))))
+            client.clearNotice()
+        }
+        compose.onNodeWithText("Save to library").performScrollTo().assertIsEnabled()
+        capture("qa-file-request-received")
+        compose.onNodeWithText("Save to library").performClick()
+        compose.onNodeWithText("Save into folder").assertExists()
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals(before, runBlocking { native.files("root").json })
+        assertTrue(client.fileRequests.saving.value.isEmpty())
+    }
+
+    @Test fun multipleAttachmentsStayInTheDraftThenQueueTogetherWithoutErasingNewTyping() {
+        val channel = "ab".repeat(32)
+        compose.runOnIdle { client.navigation.open("messages"); client.navigation.select(channel) }
+        compose.waitUntil(10_000) { client.messages.draftsReady.value }
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val sources = listOf("First attachment.txt", "Second attachment.txt").map { name ->
+            File(app.cacheDir, "dmsg-shared/composer-${UUID.randomUUID()}/$name").apply { parentFile!!.mkdirs(); writeText("Synthetic attachment contents") }
+        }
+        val uris = sources.map { androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", it) }
+        compose.runOnIdle { assertTrue(client.transfers.beginImport("root", channel)); client.transfers.importResults(uris) }
+        compose.waitUntil(15_000) { client.messages.composer(channel).attachments.size == 2 && client.transfers.tasks.value.values.any { it.kind == "import" && it.phase == "done" } }
+        sources.forEach(File::delete)
+        assertTrue(runBlocking { native.outbox(channel).items }.isEmpty())
+        compose.onNode(hasSetTextAction() and hasText("Continue the conversation")).performTextReplacement("Review both files before Friday.")
+        compose.waitUntil(10_000) { runBlocking { native.messageComposers().json }.contains("Review both files before Friday.") }
+        val before = client.messages.composer(channel)
+        assertEquals(2, before.attachments.size)
+        compose.runOnIdle { client.navigation.open("files"); client.navigation.open("messages"); client.clearNotice() }
+        assertEquals(before, client.messages.composer(channel))
+        capture("qa-message-multiple-attachments")
+        compose.runOnIdle {
+            client.messages.send(channel)
+            client.messages.edit(channel, before.copy(text = "Next draft while the queue commits"))
+        }
+        compose.waitUntil(20_000) { !client.state.value.working("message:queue:$channel") && client.messages.composer(channel).attachments.isEmpty() }
+        val queued = runBlocking { native.outbox(channel).items }
+        assertEquals(2, queued.size)
+        assertEquals("Review both files before Friday.", queued[0].text)
+        assertTrue(queued[1].text.isEmpty())
+        assertEquals(listOf("First attachment.txt", "Second attachment.txt"), queued.map { it.attachmentName })
+        assertEquals("Next draft while the queue commits", client.messages.composer(channel).text)
+        compose.waitUntil(10_000) { runBlocking { native.messageComposers().json }.contains("Next draft while the queue commits") }
+        compose.runOnIdle { client.clearNotice() }
+        capture("qa-message-persistent-outbox")
+    }
+
+    @Test fun lockingRevokesAndDeletesAnUnfinishedCameraCapture() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val paths = net.dmsg.android.platform.PrivateFiles(app)
+        val owner = checkNotNull(client.state.value.session?.account)
+        assertTrue(runCatching { runBlocking { paths.stage(android.net.Uri.fromFile(File(app.filesDir, "private-file")), owner) { true } } }.isFailure)
+        lateinit var uri: android.net.Uri
+        compose.runOnIdle { assertTrue(client.transfers.beginImport("root")); uri = checkNotNull(client.transfers.beginCapture()) }
+        val image = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
+        checkNotNull(app.contentResolver.openOutputStream(uri)).use { image.compress(Bitmap.CompressFormat.JPEG, 90, it) }; image.recycle()
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        assertTrue(runCatching { app.contentResolver.openInputStream(uri)?.use { it.read() } }.isFailure)
+        compose.runOnIdle { client.transfers.captureResult(true) }
+        assertTrue(client.transfers.tasks.value.isEmpty())
+    }
+
+    @Test fun documentPickerCancellationReturnsThroughThePrivacyCover() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        compose.runOnIdle { client.navigation.open("files") }
+        compose.waitUntil(10_000) { client.library.listing.value()?.folder == "root" }
+        capture("qa-file-picker-launch")
+        compose.onNodeWithContentDescription("Import files").performClick()
+        compose.onNodeWithText("Choose documents").performClick()
+        compose.waitUntil(10_000) { instrumentation.uiAutomation.rootInActiveWindow?.packageName?.toString()?.contains("documentsui") == true }
+        compose.runOnUiThread { client.background() }
+        assertTrue(client.state.value.concealed)
+        assertNotNull(client.transfers.pendingImportStamp())
+        assertTrue(instrumentation.uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK))
+        instrumentation.waitForIdleSync()
+        compose.runOnUiThread { client.foreground() }
+        compose.waitUntil(10_000) { !client.state.value.concealed && client.transfers.pendingImportStamp() == null }
+        compose.runOnIdle { assertTrue(client.transfers.beginImport("root")); client.transfers.importResult(null) }
+    }
+
+    @Test fun previewAndExportRequireTheCompleteVerifiedFileAndClearOnLock() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = File(app.cacheDir, "dmsg-shared/preview-${UUID.randomUUID()}/Review notes.txt")
+        val content = "Only verified file contents appear here.\n中文与 emoji 🧪 remain intact."
+        source.parentFile!!.mkdirs(); source.writeText(content)
+        val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", source)
+        compose.runOnIdle { assertTrue(client.transfers.beginImport("root")); client.transfers.importResult(uri) }
+        compose.waitUntil(15_000) { client.transfers.tasks.value.values.any { it.kind == "import" && it.phase == "done" } }
+        source.delete()
+        val file = runBlocking { net.dmsg.android.core.parseFiles(native.files("root").json).second.single() }
+        compose.runOnIdle { client.clearNotice(); client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("file-preview", id = file.id, revision = file.version)) }
+        compose.waitUntil(10_000) { client.filePreview.preview.state.value is ReadState.Ready }
+        compose.onNodeWithText("Complete file verified").assertExists()
+        compose.onNodeWithText(content).assertExists()
+        capture("qa-file-verified-text")
+        val target = File(app.cacheDir, "dmsg-shared/export-${UUID.randomUUID()}/Saved copy.txt")
+        target.parentFile!!.mkdirs(); target.createNewFile()
+        val destination = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", target)
+        compose.runOnIdle { assertTrue(client.transfers.beginExport(file)); client.transfers.exportResult(destination) }
+        compose.waitUntil(10_000) { client.transfers.tasks.value["file:export:${file.id}"]?.phase == "done" }
+        assertEquals(content, target.readText())
+        val blob = directory.walkTopDown().filter { it.isFile && it.name.matches(Regex("[0-9a-f]{64}")) && it.parentFile?.parentFile?.name == "blobs" }.single()
+        val original = blob.readBytes()
+        blob.writeBytes(original.copyOf().apply { this[0] = (this[0].toInt() xor 64).toByte() })
+        compose.runOnIdle { client.filePreview.open(file.id, file.version) }
+        compose.waitUntil(10_000) { client.filePreview.preview.state.value is ReadState.Failed }
+        compose.onNodeWithText(content).assertDoesNotExist()
+        compose.onNodeWithText("Complete file verified").assertDoesNotExist()
+        capture("qa-file-verification-failed")
+        blob.writeBytes(original)
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        assertNull(client.filePreview.preview.value())
+    }
+
+    @Test fun verifiedImagePreviewBoundsItsBitmap() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = File(app.cacheDir, "dmsg-shared/preview-${UUID.randomUUID()}/Reference image.png")
+        source.parentFile!!.mkdirs()
+        val image = Bitmap.createBitmap(2400, 1200, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(image)
+        canvas.drawColor(android.graphics.Color.rgb(245, 247, 239))
+        val paint = android.graphics.Paint().apply { color = android.graphics.Color.rgb(49, 91, 64) }
+        canvas.drawRoundRect(220f, 220f, 2180f, 980f, 100f, 100f, paint)
+        source.outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }; image.recycle()
+        val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", source)
+        compose.runOnIdle { assertTrue(client.transfers.beginImport("root")); client.transfers.importResult(uri) }
+        compose.waitUntil(15_000) { client.transfers.tasks.value.values.any { it.kind == "import" && it.phase == "done" } }
+        val file = runBlocking { net.dmsg.android.core.parseFiles(native.files("root").json).second.single() }
+        compose.runOnIdle { client.clearNotice(); client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("file-preview", id = file.id, revision = file.version)) }
+        compose.waitUntil(10_000) { client.filePreview.preview.state.value is ReadState.Ready }
+        val bitmap = checkNotNull(client.filePreview.preview.value()?.bitmap)
+        assertTrue(bitmap.width <= 1600 && bitmap.height <= 1600)
+        capture("qa-file-verified-image")
+        source.delete()
+    }
+
+    @Test fun fileMetadataConflictsKeepInputAndHistoryUsesItsOwnMediaType() {
+        val detail = runBlocking { net.dmsg.android.core.parseFileDetails(kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiFileHistory().json)) }
+        val id = detail.file.id
+        val original = detail.versions.first { !it.current }
+        assertEquals("text/plain", original.mime)
+        assertEquals("image/png", detail.file.mime)
+        compose.runOnIdle { client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("files", id = id)) }
+        compose.waitUntil(10_000) { client.library.detail.value()?.file?.id == id }
+        compose.onNodeWithText("Edit notes, tags and favorite").performScrollTo().performClick()
+        compose.onNodeWithText("Note", substring = false).performTextInput("My reviewed note")
+        runBlocking { native.updateFileMetadata(id, net.dmsg.core.FileMetadata(emptyList(), "", false), net.dmsg.core.FileMetadata(listOf("added elsewhere"), "Concurrent stored note", true)) }
+        compose.onNodeWithText("Save", substring = false).performClick()
+        compose.waitUntil(10_000) { client.library.editorError.value == "VERSION_CONFLICT" && client.library.detail.value()?.file?.note == "Concurrent stored note" }
+        compose.onNodeWithText("My reviewed note").assertExists()
+        compose.onNodeWithText("Use my edits after reviewing this update").performScrollTo().performClick()
+        compose.onNodeWithText("Save", substring = false).performClick()
+        compose.waitUntil(10_000) { client.library.editor.value == null && client.library.detail.value()?.file?.note == "My reviewed note" }
+        assertEquals(listOf("added elsewhere"), client.library.detail.value()!!.file.tags)
+        assertTrue(client.library.detail.value()!!.file.starred)
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("files", id = id, revision = original.id)) }
+        compose.onNodeWithText("Make this the current version").performScrollTo().assertExists()
+        capture("qa-file-version-review")
+        compose.onNodeWithText("Make this the current version").performClick()
+        compose.onNodeWithText("Confirm").performClick()
+        compose.waitUntil(10_000) { client.library.detail.value()?.file?.version == original.id }
+        assertEquals("text/plain", client.library.detail.value()!!.file.mime)
+        compose.onNodeWithText("Preview verified contents").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.filePreview.preview.value()?.file?.version == original.id }
+        compose.onNodeWithText("Original reviewed text version").assertExists()
+    }
+
+    @Test fun batchFileActionsKeepFailuresSelectedAndPurgeOnlyTrashedFiles() {
+        val detail = runBlocking { net.dmsg.android.core.parseFileDetails(kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiFileHistory().json)) }
+        val id = detail.file.id
+        val folder = runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.createFolder("root", "Batch target").json) as kotlinx.serialization.json.JsonObject }
+        val folderId = (folder["id"] as kotlinx.serialization.json.JsonPrimitive).content
+        compose.runOnIdle { client.navigation.open("files"); client.library.browse("root") }
+        compose.waitUntil(10_000) { client.library.listing.value()?.files?.any { it.id == id } == true }
+        compose.runOnIdle {
+            client.library.choose(id); client.library.choose(folderId)
+            client.library.batch("move", listOf(net.dmsg.android.core.FileActionTarget(id, detail.file.name, false), net.dmsg.android.core.FileActionTarget(folderId, "Batch target", true)), folderId)
+        }
+        compose.waitUntil(10_000) { !client.state.value.working("files:batch") && client.library.results.value.size == 2 }
+        assertNull(client.library.results.value.first { it.id == id }.error)
+        assertNotNull(client.library.results.value.first { it.id == folderId }.error)
+        assertTrue(folderId in client.library.selection.value)
+        val moved = runBlocking { net.dmsg.android.core.parseFileDetails(kotlinx.serialization.json.Json.parseToJsonElement(native.fileDetails(id).json)) }
+        assertEquals(folderId, moved.file.folder)
+        assertTrue(runCatching { runBlocking { native.purgeFile(folderId) } }.isFailure)
+        compose.runOnIdle { client.library.clearSelection(); client.library.batch("trash", listOf(net.dmsg.android.core.FileActionTarget(folderId, "Batch target", true))) }
+        compose.waitUntil(10_000) { !client.state.value.working("files:batch") }
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("file-trash")) }
+        compose.waitUntil(10_000) { client.library.listing.value()?.trash == true && client.library.listing.value()?.folders?.any { it.id == folderId } == true }
+        capture("qa-file-trash-risk")
+        compose.onNodeWithText("Empty local trash").performScrollTo().performClick()
+        compose.onNodeWithText("Confirm").performClick()
+        compose.waitUntil(10_000) { !client.state.value.working("files:batch") && client.library.results.value.any { it.id == folderId && it.action == "purge" && it.error == null } }
+        assertTrue(runCatching { runBlocking { native.fileDetails(id) } }.isFailure)
+        compose.onNodeWithText("Operation results").assertExists()
+    }
+
+    @Test fun aSavedMessageAttachmentUsesItsLocalVerifiedCopyWithoutDownloading() {
+        // Message metadata is synthetic; image import, local lookup and preview use the core.
+        val seeded = runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiReceivedFile().json) as kotlinx.serialization.json.JsonObject }
+        val channel = (seeded["channel"] as kotlinx.serialization.json.JsonPrimitive).content
+        val id = (seeded["file"] as kotlinx.serialization.json.JsonPrimitive).content
+        compose.runOnIdle { client.navigation.open("messages"); client.navigation.select(channel) }
+        compose.waitUntil(10_000) { client.messageAttachments.states.value["$channel:1"]?.file?.id == id }
+        compose.onNodeWithText("Local copy saved to Files").assertExists()
+        assertFalse(client.state.value.operations.any { it.startsWith("message:file-save:") })
+        capture("qa-message-saved-attachment")
+        compose.onNodeWithText("Preview", substring = false).performClick()
+        compose.waitUntil(10_000) { client.filePreview.preview.value()?.bitmap != null }
+        compose.onNodeWithText("Complete file verified").assertExists()
+    }
+
+    @Test fun letterTextSurvivesClosingTheEditorAndIsSealedInTheNativeWorkspace() {
+        compose.onAllNodesWithText("Messages").onLast().performClick()
+        compose.onNodeWithText("Letters").performClick()
+        compose.onNodeWithContentDescription("Write a letter").performClick()
+        compose.onNodeWithText("Recipient account ID").performTextReplacement("040g2081040g2081040g")
+        val text = "Last authored line · 中文 🧪"
+        compose.onNodeWithText("Message", substring = false).performTextInput(text)
+        compose.onNodeWithText("Keep draft").performScrollTo().performClick()
+        compose.onNodeWithText("Drafts").performClick()
+        compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("letter:save:") } }
+        compose.onNodeWithText(text).assertExists()
+        capture("qa-letter-drafts")
+        val saved = runBlocking { native.letterDrafts().json }
+        assertTrue(saved.contains(text))
+        // No plaintext form state is written by Android or SQLite's clear metadata.
+        directory.walkTopDown().filter { it.isFile && (it.name.endsWith("sqlite") || it.name.endsWith("-wal")) }.forEach {
+            assertFalse(it.readBytes().toString(Charsets.ISO_8859_1).contains("Last authored line"))
+        }
+        compose.runOnIdle { client.navigation.open("vault"); client.navigation.open("messages"); client.navigation.open("inbox") }
+        compose.onNodeWithText("Drafts").performClick()
+        compose.onNodeWithText(text).assertExists()
+    }
+
+    @Test fun deniedCameraRetainsPasteAndDoesNotCreateAnApproval() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val app = instrumentation.targetContext
+        instrumentation.uiAutomation.serviceInfo = instrumentation.uiAutomation.serviceInfo.apply {
+            flags = flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+        }
+        instrumentation.uiAutomation.revokeRuntimePermission(app.packageName, android.Manifest.permission.CAMERA)
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
+            "pm clear-permission-flags " + app.packageName + " android.permission.CAMERA user-set user-fixed"
+        )).use { it.readBytes() }
+        compose.runOnIdle { client.navigation.open("pair-approve") }
+        compose.onNodeWithText("Scan device request").performClick()
+        // Advance Compose's test clock so the scanner's LaunchedEffect requests permission
+        // before polling the separate system window.
+        compose.waitForIdle()
+        instrumentation.uiAutomation.waitForIdle(200, 5000)
+        val deadline = android.os.SystemClock.elapsedRealtime() + 8000
+        var deniedBySystem = false
+        var tapSent = false
+        var lastTap = 0L
+        while (android.os.SystemClock.elapsedRealtime() < deadline) {
+            fun denied(node: android.view.accessibility.AccessibilityNodeInfo?): Boolean {
+                node ?: return false
+                if (node.viewIdResourceName?.let { it.endsWith(":id/permission_deny_button") || it.endsWith(":id/permission_deny_and_dont_ask_again_button") } == true) {
+                    val bounds = android.graphics.Rect().also(node::getBoundsInScreen)
+                    val time = android.os.SystemClock.elapsedRealtime()
+                    if (!node.isEnabled || bounds.isEmpty || time - lastTap < 500) return false
+                    lastTap = time
+                    // Use the system node's reported bounds for a real touch.
+                    android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
+                        "input tap " + bounds.centerX() + " " + bounds.centerY()
+                    )).use { it.readBytes() }
+                    return true
+                }
+                for (i in 0 until node.childCount) if (denied(node.getChild(i))) return true
+                return false
+            }
+            val root = instrumentation.uiAutomation.rootInActiveWindow
+            if (tapSent && root?.packageName == app.packageName) { deniedBySystem = true; break }
+            if (denied(root)) tapSent = true
+            // Wait for the system window to close; a touch during its opening animation
+            // may be ignored. Retry only while the same system deny button is present.
+            // The app's fallback exists underneath the permission window even before
+            // that window appears. Its semantics do not prove the system replied.
+            Thread.sleep(50)
+        }
+        if (!deniedBySystem) capturePermissionFailure("qa-camera-permission-not-denied")
+        assertTrue("The system permission dialog was explicitly denied", deniedBySystem)
+        try {
+            compose.waitUntil(10_000) { runCatching { compose.onAllNodesWithText("Use pasted text").fetchSemanticsNodes().isNotEmpty() }.getOrDefault(false) }
+        } catch (error: Throwable) {
+            capturePermissionFailure("qa-camera-permission-return")
+            throw error
+        }
+        compose.onNodeWithText("Read from an image").assertExists()
+        assertTrue(client.approvals.receipts.value.isEmpty())
+        capture("qa-camera-denied")
+        compose.onNodeWithText("Use pasted text").performClick()
+        compose.onNodeWithText("Device request").performTextInput("untrusted QR text")
+        compose.onNodeWithText("Review request").assertExists()
+        assertTrue(client.approvals.receipts.value.isEmpty())
+    }
+
+    @Test fun historicalReadsCannotReplaceTheCurrentDetailOrEditorRevision() {
+        val id = client.vault.listing.value()!!.items.first { it.title == "Studio account" }.id
+        val previous = runBlocking { native.vaultItem(id, null).item }
+        val current = runBlocking { native.saveItem(id, previous.revision, VaultEdit("Updated studio account", previous.kind, "Current notes", previous.favorite, previous.tags,
+            previous.fields.map { FieldEdit(it.id, it.kind, it.label, it.section, if (it.concealed) null else it.value) }, previous.files)).item }
+        compose.runOnIdle { client.vault.browse() }
+        compose.waitUntil(10_000) { client.vault.listing.value()?.items?.any { it.title == "Updated studio account" } == true }
+        compose.onNodeWithText("Updated studio account").performClick()
+        compose.onNodeWithText("Version history").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.vaultHistory.history.value()?.versions?.size == 3 }
+        capture("qa-vault-history")
+        compose.onNodeWithTag("vault-version:" + previous.revision).performClick()
+        compose.onNodeWithText("You are viewing an immutable historical version.").assertExists()
+        compose.onNodeWithText("Offline QA fixture · no real credentials").assertExists()
+        assertEquals(current.revision, client.vault.detail.value()?.revision)
+        compose.runOnIdle { client.navigation.back(); client.navigation.back() }
+        compose.onNodeWithText("Current notes").assertExists()
+    }
+
+    @Test fun privacyAndSavedAccountMetadataRemainAvailableWhileLocked() {
+        val account = client.state.value.session!!.account!!
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        compose.onNodeWithText("Privacy policy").performScrollTo().performClick()
+        compose.onNodeWithText("Android app").assertExists()
+        compose.waitUntil(10_000) { compose.onAllNodesWithText("dMsg Privacy Policy").fetchSemanticsNodes().isNotEmpty() }
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        assertEquals(23, app.assets.list("privacy")!!.size)
+        capture("qa-offline-privacy")
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithText("Saved accounts").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.accountWorkspace.accounts.value()?.any { it.id == account } == true }
+        compose.onAllNodesWithText(account).onLast().assertExists()
+        compose.onNodeWithText("Current account").assertExists()
+        assertFalse(client.state.value.unlocked)
+        assertEquals("locked", runBlocking { native.sessionState() }.state)
+    }
+
+    @Test fun publicProfileDraftAndOrientedAvatarStayLocalAndCacheClearKeepsLibraryFiles() {
+        runBlocking { native.seedUiProfile() }
+        val file = runBlocking { net.dmsg.android.core.parseFileDetails(kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiFileHistory().json)) }
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("profile")) }
+        compose.waitUntil(10_000) { client.profile.saved.value()?.name == "Mina's workspace" }
+        compose.onNodeWithText("Name", substring = false).performTextReplacement("Reviewed local name")
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = File(app.cacheDir, "dmsg-shared/profile-orientation.jpg").apply { parentFile!!.mkdirs() }
+        val picture = Bitmap.createBitmap(1600, 800, Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.rgb(49, 91, 64)) }
+        val jpg = java.io.ByteArrayOutputStream().use { picture.compress(Bitmap.CompressFormat.JPEG, 90, it); it.toByteArray() }
+        picture.recycle()
+        val exif = "ffe1002245786966000049492a0008000000010012010300010000000600000000000000".chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        source.writeBytes(jpg.take(2).toByteArray() + exif + jpg.drop(2).toByteArray())
+        val normalized = net.dmsg.android.platform.ProfileImages.prepare(source)
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeByteArray(normalized, 0, normalized.size, bounds)
+        assertEquals(256, bounds.outWidth); assertEquals(512, bounds.outHeight)
+        assertTrue(normalized.size <= 512 * 1024); normalized.fill(0)
+        val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", source)
+        compose.runOnIdle { assertTrue(client.profile.beginPhoto()); client.profile.photoResult(uri) }
+        compose.waitUntil(10_000) { client.profile.bitmap.value != null && client.profile.form.value.avatarChanged }
+        val cached = runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.cachedDisplay("profile-editor", "").json) as kotlinx.serialization.json.JsonObject }
+        val savedProfile = cached["data"] as kotlinx.serialization.json.JsonObject
+        assertEquals("Mina's workspace", (savedProfile["name"] as kotlinx.serialization.json.JsonPrimitive).content)
+        assertEquals(kotlinx.serialization.json.JsonNull, savedProfile["avatar_url"])
+        compose.onNodeWithText("Public avatar", substring = false).performScrollTo().assertExists()
+        capture("qa-profile-local-avatar")
+        compose.runOnIdle { client.navigation.back(); client.navigation.push(net.dmsg.android.core.Route("profile")) }
+        compose.onNodeWithText("Reviewed local name").assertExists()
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("display-cache")) }
+        compose.waitUntil(10_000) { (client.accountWorkspace.cache.value()?.bytes ?: 0u) > 0u }
+        compose.onNodeWithText("Clear cached data").performClick()
+        compose.onNodeWithText("Clear", substring = false).performClick()
+        compose.waitUntil(10_000) { client.accountWorkspace.cache.value()?.bytes == 0uL }
+        assertEquals(file.file.id, runBlocking { net.dmsg.android.core.parseFileDetails(kotlinx.serialization.json.Json.parseToJsonElement(native.fileDetails(file.file.id).json)) }.file.id)
+        source.delete()
+    }
+
+    @Test fun removingLocalDataRequiresTheActualRiskListAndConfirmation() {
+        runBlocking { native.seedUiFileHistory() }
+        val account = client.state.value.session!!.account!!
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("account-remove")) }
+        compose.waitUntil(10_000) { client.accountWorkspace.local.value()?.unbacked == 2uL }
+        compose.onNodeWithText("Unbacked file versions").assertExists()
+        capture("qa-local-removal-risk")
+        compose.onNodeWithText("Remove this account's local data").performScrollTo().performClick()
+        compose.onNodeWithText("Remove local data permanently?").assertExists()
+        compose.onNodeWithText("Cancel").performClick()
+        assertTrue(client.state.value.unlocked)
+        compose.onNodeWithText("Remove this account's local data").performClick()
+        compose.onNode(hasText("Remove local data", substring = false) and hasClickAction()).performClick()
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        val scoped = native.scoped(runBlocking { native.sessionState() }.generation)
+        val accounts = try { runBlocking { net.dmsg.android.core.parseSavedAccounts(kotlinx.serialization.json.Json.parseToJsonElement(scoped.accounts().json)) } } finally { scoped.destroy() }
+        assertTrue(accounts.none { it.id == account })
+        assertFalse(client.accountNames.value.containsKey(account))
+    }
+
+    @Test fun anUnpostedInvitationCanBeFoundAfterTheUiFormIsLost() {
+        val channel = "ab".repeat(32)
+        compose.runOnIdle { client.navigation.open("messages"); client.channels.editInvite(channel, net.dmsg.android.core.ChannelInvite("040g2082040g2082040g")); client.navigation.push(net.dmsg.android.core.Route("channel-invite", channel = channel)) }
+        compose.onNodeWithText("Create invitation").performScrollTo().performClick()
+        compose.waitUntil(15_000) { !client.state.value.working("channel:invite:" + channel) && client.channels.invitationAttempts.value()?.items?.size == 1 }
+        val original = client.channels.invitationAttempts.value()!!.items.single()
+        compose.runOnIdle { client.channels.clear(); client.channels.loadInvites(channel) }
+        compose.waitUntil(10_000) { client.channels.invitationAttempts.value()?.items?.size == 1 }
+        compose.onNodeWithText("Continue original invitation").performScrollTo().performClick()
+        compose.waitUntil(15_000) { !client.state.value.working("channel:invite:" + channel) }
+        assertEquals(original.request, client.channels.invites.value[channel]?.request)
+        assertEquals(listOf(original), client.channels.invitationAttempts.value()!!.items)
+    }
+
+    @Test fun localBlocksApplyEvenWhenOnlineSynchronizationFailsAndUnblockIsExplicit() {
+        val target = "040g2082040g2082040g"
+        compose.runOnIdle { client.navigation.open("messages"); client.safety.openBlock(target) }
+        compose.onNodeWithText("Block account").performScrollTo().performClick()
+        compose.onNodeWithText("Block this account?").assertExists()
+        compose.onNodeWithText("Confirm").performClick()
+        compose.waitUntil(10_000) { client.safety.blocked.value()?.contains(target) == true }
+        assertTrue(runBlocking { native.blockedAccounts() }.contains(target))
+        compose.waitUntil(15_000) { client.safety.blockSyncError.value != null }
+        compose.onNodeWithText("Unblock").performScrollTo().assertExists()
+        capture("qa-local-block-offline")
+        compose.onNodeWithText("Unblock").performClick()
+        compose.onNodeWithText("Unblock this account?").assertExists()
+        compose.onNodeWithText("Cancel").performClick()
+        assertTrue(runBlocking { native.blockedAccounts() }.contains(target))
+        compose.onNodeWithText("Unblock").performClick()
+        compose.onNodeWithText("Confirm").performClick()
+        compose.waitUntil(10_000) { client.safety.blocked.value()?.isEmpty() == true }
+        assertTrue(runBlocking { native.blockedAccounts() }.isEmpty())
+    }
+
+    @Test fun reportingReviewsOnlyChosenEvidenceAndOfflineRetriesKeepTheSameReport() {
+        val channel = "ab".repeat(32)
+        runBlocking { native.seedUiReceivedFile() }
+        val account = client.state.value.session!!.account!!
+        compose.runOnIdle { client.navigation.open("messages"); client.safety.openReport(net.dmsg.android.core.ReportTarget("channel", account, channel, 1u)) }
+        compose.onNodeWithText("Describe the issue").performTextInput("Only this reviewed explanation")
+        InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(200, 5000)
+        compose.onNodeWithText("Review report").assertIsDisplayed().performClick()
+        compose.waitUntil(10_000) { client.safety.report.value() != null }
+        val original = client.safety.report.value()!!.report.id
+        assertNull(client.safety.report.value()!!.disclosedText)
+        compose.onNodeWithText("No message text is included.").assertExists()
+        compose.onNodeWithText("A file already saved on this device").assertDoesNotExist()
+        capture("qa-report-disclosure-review")
+        compose.onNodeWithText("Submit this report").performScrollTo().performClick()
+        compose.waitUntil(15_000) { !client.state.value.working("safety:report:submit:$original") && client.safety.submissionErrors.value[original] != null }
+        assertEquals("pending", client.safety.report.value()!!.report.state)
+        compose.runOnIdle { client.clearNotice() }
+        compose.onNodeWithText("Submit this report").performScrollTo().performClick()
+        compose.waitUntil(15_000) { !client.state.value.working("safety:report:submit:$original") }
+        val reports = runBlocking { net.dmsg.android.core.parseContentReports(kotlinx.serialization.json.Json.parseToJsonElement(native.reportHistory(false).json)) }
+        assertEquals(listOf(original), reports.map { it.id })
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("reports", id = original)) }
+        compose.waitUntil(10_000) { client.safety.report.value()?.report?.id == original }
+        compose.onNodeWithText("Only this reviewed explanation").assertExists()
+        compose.onNodeWithText("No message text is included.").assertExists()
+        assertFalse(client.safety.report.value()!!.report.state in setOf("received", "reviewed"))
+    }
+
+    @Test fun channelSettingsKeepNameDraftsAndMuteDoesNotPublishAnUnfinishedRename() {
+        val channel = "ab".repeat(32)
+        runBlocking { native.seedUiChannelMembers("owner") }
+        compose.runOnIdle { client.navigation.open("messages"); client.navigation.push(net.dmsg.android.core.Route("channel-settings", channel = channel)) }
+        compose.waitUntil(10_000) { client.channels.review.value()?.details?.members?.size == 3 }
+        compose.onNodeWithText("Conversation name").performTextReplacement("Name still being edited")
+        compose.onNodeWithText("15 minutes").performClick()
+        compose.waitUntil(10_000) { client.channels.review.value()?.details?.muted == true }
+        assertEquals("test channel", client.channels.review.value()!!.details.name)
+        compose.onNodeWithText("Name still being edited").assertExists()
+        assertEquals("Name still being edited", client.channels.names.value[channel])
+        compose.onNodeWithText("Save name").performClick()
+        compose.waitUntil(10_000) { client.channels.review.value()?.details?.name == "Name still being edited" }
+        // The lazy member row may not be composed while the name editor/IME is visible.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("040g2082040g2082040g"))
+        compose.onNodeWithText("040g2082040g2082040g").assertIsDisplayed()
+        compose.waitUntil(10_000) { client.participants.people.value["040g2082040g2082040g"]?.name == "Mina" }
+        capture("qa-channel-member-identity")
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Archive conversation"))
+        compose.onNodeWithText("Archive conversation").performClick()
+        compose.onNodeWithText("Archive this conversation?").assertExists()
+        compose.onNodeWithText("Confirm change").assertExists()
+        capture("qa-channel-archive-review")
+        compose.onNodeWithText("Cancel").performClick()
+        assertTrue(runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.pendingChannelOperations(channel).json) as kotlinx.serialization.json.JsonArray }.isEmpty())
+        compose.runOnIdle { client.channels.hide(channel, true) }
+        compose.waitUntil(10_000) { client.channels.review.value()?.details?.hidden == true }
+        assertTrue(runBlocking { native.channels() }.items.none { it.id == channel })
+        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("channel-hidden")) }
+        compose.waitUntil(10_000) { client.channels.hidden.value()?.singleOrNull()?.id == channel }
+        compose.onNodeWithText("Show again").performClick()
+        compose.waitUntil(10_000) { client.channels.hidden.value()?.isEmpty() == true }
+        assertTrue(runBlocking { native.channels() }.items.any { it.id == channel })
+    }
+
+    @Test fun channelMemberCannotReachOwnerActionsAndInviteIsReviewedBeforeJoining() {
+        val channel = "ab".repeat(32)
+        runBlocking { native.seedUiChannelMembers("member") }
+        compose.runOnIdle { client.navigation.open("messages"); client.navigation.push(net.dmsg.android.core.Route("channel-settings", channel = channel)) }
+        compose.waitUntil(10_000) { client.channels.review.value()?.details?.members?.size == 3 }
+        compose.onNodeWithText("Leave conversation").performScrollTo().assertExists()
+        compose.onNodeWithText("Archive conversation").assertDoesNotExist()
+        compose.onNodeWithText("Update conversation keys").assertDoesNotExist()
+        compose.onNodeWithText("Remove member").assertDoesNotExist()
+        val invitation = """{"format":"dmsg-channel-invitation/1","channel":"${"ab".repeat(32)}","genesis":"${"bc".repeat(32)}","head":"${"cd".repeat(32)}","invitation":"${"de".repeat(32)}","account":"040g2082040g2082040g","name":"Invitation for Mina","expires_at":${System.currentTimeMillis() + 60_000}}"""
+        val link = "dmsg://channel/join#" + java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(invitation.toByteArray())
+        compose.runOnIdle { client.acceptCallback(link) }
+        compose.onNodeWithText("Invitation for Mina").performScrollTo().assertExists()
+        compose.onNodeWithText("Switch to the invited account before joining.").performScrollTo().assertExists()
+        compose.onNodeWithText("Join conversation").performScrollTo().assertIsNotEnabled()
+        assertFalse(client.state.value.working("channel:setup"))
+        capture("qa-channel-invitation-account-review")
+    }
+
+    @Test fun offlineChannelCreationKeepsItsOriginalSealedAttempt() {
+        compose.runOnIdle { client.navigation.open("messages"); client.channels.openSetup(false) }
+        compose.onNodeWithText("Conversation name").performTextInput("Original creation attempt")
+        compose.onNodeWithText("Announcements").performClick()
+        compose.onNodeWithText("Create conversation").performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+        try { compose.waitUntil(15_000) { !client.state.value.working("channel:setup") && client.channels.creations.value()?.size == 1 } }
+        catch (error: Throwable) {
+            capturePermissionFailure("qa-channel-creation-failure")
+            throw AssertionError("Creation setup=${client.channels.setup.value}; operations=${client.state.value.operations}; creations=${client.channels.creations.state.value}", error)
+        }
+        val original = client.channels.creations.value()!!.single()
+        compose.onNodeWithText("Retry original creation").performScrollTo().performClick()
+        compose.waitUntil(15_000) { !client.state.value.working("channel:setup") }
+        assertEquals(original, client.channels.creations.value()!!.single())
+        assertEquals("distribution", original.kind)
+        capture("qa-channel-original-creation-retry")
+        compose.onNodeWithText("Discard if not yet signed").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.channels.creations.value()?.isEmpty() == true }
+        assertNull(client.channels.setup.value.request)
+    }
+
+    @Test fun folderNavigationAndComposerRetainTheAuthoredInput() {
+        compose.onAllNodesWithText("Files").onLast().performClick()
+        compose.waitUntil(10_000) { client.library.listing.value()?.folders?.isNotEmpty() == true }
+        compose.onNodeWithText("Project materials").performClick()
+        compose.waitUntil(10_000) { client.library.folder != "root" }
+        compose.onNodeWithContentDescription("All files").performClick()
+        compose.waitUntil(10_000) { client.library.folder == "root" }
+        assertFalse(client.navigation.state.value.canGoBack)
+        compose.onNodeWithText("Project materials").assertExists()
+        compose.onAllNodesWithText("Messages").onLast().performClick()
+        compose.waitUntil(10_000) { client.messages.channels.value()?.isNotEmpty() == true }
+        compose.onNodeWithText("test channel").performClick()
+        compose.onNodeWithText("Continue the conversation").assertExists()
+        compose.runOnIdle { client.messages.edit("ab".repeat(32), client.messages.composer("ab".repeat(32)).copy(text = "Still here")) }
+        compose.runOnIdle { client.navigation.back() }
+        compose.onNodeWithText("test channel").performClick()
+        compose.onNodeWithText("Still here").assertExists()
+        capture("qa-conversation")
+    }
+
+    @Test fun fieldReferencesAndRotationKeepSecretsConcealedAndRequireAChangedRevision() {
+        compose.onNodeWithText("Studio account").performClick()
+        compose.waitUntil(10_000) { client.vault.detail.state.value is ReadState.Ready }
+        val item = client.vault.detail.value()!!
+        compose.onNodeWithContentDescription("Field actions").performClick()
+        compose.onNodeWithText("Field reference and rotation").performClick()
+        compose.waitUntil(10_000) { client.secretTools.reference.state.value is ReadState.Ready }
+        compose.onNodeWithText("Sample-only password").assertDoesNotExist()
+        compose.onNodeWithText("No dependencies recorded on this device.").assertExists()
+        capture("qa-secret-reference")
+        compose.onNodeWithText("Start a rotation checklist").performClick()
+        compose.onNodeWithText("Start checklist").performClick()
+        compose.waitUntil(10_000) { client.secretTools.rotation.state.value is ReadState.Ready }
+        val rotation = client.secretTools.rotation.value()!!.rotation
+        // No provider action has happened. The core refuses the owner's first step
+        // until the actual field has changed, even if another metadata revision exists.
+        assertTrue(runCatching { runBlocking { native.secretRotationUpdate(rotation.id, "created", null) } }.isFailure)
+        assertFalse(client.secretTools.rotation.value()!!.rotation.created)
+        val changed = runBlocking {
+            native.saveItem(item.id, item.revision, VaultEdit(item.title, item.kind, item.notes, item.favorite, item.tags,
+                item.fields.map { FieldEdit(it.id, it.kind, it.label, it.section, if (it.id == "password") "Rotated sample-only password" else null) }, item.files))
+        }
+        runBlocking { native.secretRotationUpdate(rotation.id, "created", null); native.secretRotationUpdate(rotation.id, "tested", null) }
+        compose.runOnIdle { client.secretTools.rotation(rotation.id) }
+        compose.waitUntil(10_000) { client.secretTools.rotation.value()?.rotation?.tested == true }
+        assertEquals(changed.item.revision, client.secretTools.rotation.value()!!.rotation.next)
+        assertFalse(client.secretTools.rotation.value()!!.rotation.referencesChecked)
+        capture("qa-secret-rotation")
+        compose.runOnIdle { client.navigation.open("secret-health") }
+        compose.waitUntil(10_000) { client.secretTools.health.state.value is ReadState.Ready }
+        assertEquals(rotation.id, client.secretTools.health.value()!!.rotations.single().id)
+        compose.onNodeWithText("Rotated sample-only password").assertDoesNotExist()
+        capture("qa-secret-health")
+    }
+
+    @Test fun selectedSnapshotPreparationStaysLocalAndReusesItsOriginalApproval() {
+        compose.onNodeWithText("Studio account").performClick()
+        compose.waitUntil(10_000) { client.vault.detail.state.value is ReadState.Ready }
+        val item = client.vault.detail.value()!!
+        compose.onNodeWithText("Share secret snapshot").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.secretSharing.draft.value != null }
+        assertFalse(client.secretSharing.draft.value!!.selected)
+        val label = item.fields.first { it.id == "password" }.label.ifBlank { net.dmsg.android.platform.str(R.string.text_password_347d7fc) }
+        compose.onNodeWithText(label, substring = false).performClick()
+        assertEquals(setOf("password"), client.secretSharing.draft.value!!.fields)
+        assertFalse(client.secretSharing.draft.value!!.notes)
+        capture("qa-secret-compose")
+        compose.onNodeWithText("Prepare selected snapshot").performScrollTo().performClick()
+        compose.waitUntil(15_000) { client.secretSharing.job.state.value is ReadState.Ready }
+        val job = client.secretSharing.job.value()!!
+        assertEquals("prepared", job.state)
+        assertNull(job.request)
+        assertNull(client.secretSharing.link.value)
+        compose.onNodeWithText("Review publication or resume").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.approvals.detail.state.value is ReadState.Ready }
+        val approval = client.approvals.detail.value()!!
+        assertEquals("awaiting_user", approval.state)
+        assertEquals(listOf("password"), approval.secret!!.fields.map { it.id })
+        assertFalse(approval.secret!!.notes)
+        compose.onNodeWithText("Sample-only password").assertDoesNotExist()
+        capture("qa-secret-approval")
+        compose.waitUntil(10_000) { runCatching { compose.onNodeWithText("Approve").assertIsEnabled(); true }.getOrDefault(false) }
+        compose.onNodeWithText("Approve").performClick()
+        compose.onNodeWithText("Approve the reviewed request?").assertExists()
+        compose.onNodeWithText(approval.digest).assertExists()
+        val idBounds = compose.onNodeWithText(approval.id).fetchSemanticsNode().boundsInRoot
+        val digestBounds = compose.onNodeWithText(approval.digest).fetchSemanticsNode().boundsInRoot
+        assertTrue("Reviewed request and digest must not overlap", idBounds.bottom <= digestBounds.top)
+        capture("qa-approval-final-review")
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals("awaiting_user", net.dmsg.android.core.parseApproval(kotlinx.serialization.json.Json.parseToJsonElement(runBlocking { native.approval(approval.id).json })).state)
+        val original = runBlocking { native.secretShareRequest(job.id).json }
+        assertTrue(original.contains(approval.id))
+        val unchanged = runBlocking { native.secretShare(job.id, false).json }
+        assertTrue(unchanged.contains("awaiting_user"))
+        assertFalse(unchanged.contains("Sample-only password"))
+        // Approval has not been accepted: no cloud upload/publication is attempted.
+        compose.runOnIdle { client.navigation.back(); client.navigation.back() }
+        compose.onNodeWithText("Open prepared snapshot").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.secretSharing.job.value()?.id == job.id }
+        assertEquals(job.id, client.secretSharing.draft.value!!.prepared)
+    }
+
+    @Test fun externalPickerResultWaitsForForegroundAndCannotCrossLock() {
+        var deliveries = 0
+        val stamp = client.currentStamp()!!
+        compose.runOnIdle {
+            client.beginExternalInteraction(); client.background()
+            client.deliverExternalResult("test-picker", stamp) { deliveries += 1 }
+        }
+        compose.waitForIdle()
+        assertEquals(0, deliveries)
+        compose.runOnIdle { client.foreground() }
+        compose.waitUntil(10_000) { deliveries == 1 }
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        compose.runOnIdle { client.deliverExternalResult("late-picker", stamp) { deliveries += 1 } }
+        compose.waitUntil(10_000) { !client.state.value.operations.contains("external-result:late-picker") }
+        assertEquals(1, deliveries)
+    }
+
+    @Test fun passwordImportChecksTheStagedDigestAndWritesOnlySelectedRecords() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = File(app.cacheDir, "dmsg-shared/import-fixture/" + UUID.randomUUID() + ".csv")
+        source.parentFile!!.mkdirs()
+        source.writeText("name,url,username,password\nChosen record,https://example.test,reader,import-only secret\nExcluded record,https://example.net,other,not imported\n")
+        val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", source)
+        compose.runOnIdle { client.navigation.open("vault-import"); assertTrue(client.vaultImport.begin()); client.vaultImport.result(uri) }
+        compose.waitUntil(15_000) { client.vaultImport.preview.state.value is ReadState.Ready }
+        val preview = client.vaultImport.preview.value()!!
+        assertEquals(2, preview.items.size)
+        assertTrue(client.vaultImport.form.value!!.selected.isEmpty())
+        compose.onNodeWithText("import-only secret").assertDoesNotExist()
+        compose.onNodeWithText("Chosen record").performScrollTo().performClick()
+        val handle = client.vaultImport.form.value!!.handle
+        val staged = File(stagingDirectory, handle)
+        val original = staged.readBytes()
+        staged.appendText("\n")
+        net.dmsg.core.OperationToken().use { token ->
+            assertTrue(runCatching { runBlocking { native.vaultImportSelected(handle, preview.digest, listOf(0u), token) } }.isFailure)
+        }
+        staged.writeBytes(original); original.fill(0)
+        capture("qa-password-import")
+        compose.onNodeWithText("Import selected records").assertIsDisplayed().performClick()
+        compose.waitUntil(15_000) { client.vaultImport.form.value?.completed != null }
+        assertEquals(1, client.vaultImport.form.value!!.completed!!.size)
+        val items = runBlocking { native.vaultPage("", null, false, 0u, 100u).items }
+        assertTrue(items.any { it.title == "Chosen record" })
+        assertFalse(items.any { it.title == "Excluded record" })
+        compose.waitUntil(10_000) { !staged.exists() }
+        source.delete()
+    }
+}

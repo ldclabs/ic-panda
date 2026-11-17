@@ -47,6 +47,19 @@ async fn fixture(origin: &str) -> (MobileEngine, testing::TempDir, String) {
 }
 
 #[tokio::test]
+async fn system_export_policy_is_local_and_requires_the_unlocked_workspace() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let snapshot = engine.system_export_policy().await.unwrap();
+    let policy: serde_json::Value = serde_json::from_str(&snapshot.json).unwrap();
+    assert_eq!(policy["biometry_only"], false);
+    assert_eq!(policy["biometry_available"], false);
+    engine.lock_now();
+    assert!(
+        matches!(engine.system_export_policy().await, Err(MobileError::Failure { code }) if code == "LOCKED")
+    );
+}
+
+#[tokio::test]
 async fn binding_read_failure_keeps_the_verified_identity_and_rejects_foreign_retries() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let origin = format!("http://{}", listener.local_addr().unwrap());
@@ -100,7 +113,7 @@ async fn binding_read_failure_keeps_the_verified_identity_and_rejects_foreign_re
     assert!(engine.login.lock().unwrap().pending.is_some());
     engine.lock_now();
     assert!(engine.login.lock().unwrap().pending.is_none());
-    engine.close().await.unwrap();
+    engine.shutdown().await.unwrap();
     server.abort();
 }
 
@@ -118,7 +131,7 @@ async fn cancelling_binding_stops_the_pending_network_step_without_restoring_it(
         matches!(tokio::time::timeout(std::time::Duration::from_secs(1), task).await.unwrap().unwrap(), Err(MobileError::Failure { code }) if code == "LOCKED")
     );
     assert!(engine.login.lock().unwrap().pending.is_none());
-    engine.close().await.unwrap();
+    engine.shutdown().await.unwrap();
 }
 
 #[tokio::test]
@@ -139,7 +152,7 @@ async fn capacity_reset_preserves_the_current_account_and_rejects_a_stale_comple
         Err(MobileError::Failure { code }) if code == "LOCKED")
     );
     assert_eq!(engine.session_state().await.unwrap().state, "unlocked");
-    engine.close().await.unwrap();
+    engine.shutdown().await.unwrap();
 }
 
 #[tokio::test]
@@ -227,7 +240,7 @@ async fn reminder_acknowledgement_clears_badges_but_preserves_registration_healt
         engine.session_state().await.unwrap().account,
         before.account
     );
-    engine.close().await.unwrap();
+    engine.shutdown().await.unwrap();
 }
 
 #[tokio::test]
@@ -235,5 +248,145 @@ async fn ordinary_passkey_logout_still_ends_the_current_local_session() {
     let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
     let after = engine.finish_passkey_logout(None).await.unwrap();
     assert_ne!(after.state, "unlocked");
-    engine.close().await.unwrap();
+    engine.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn file_edits_compare_original_fields_and_version_deletion_never_targets_a_new_head() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let (id, first, second) = engine
+        .host
+        .run(|c| {
+            Box::pin(async {
+                let first = c.files_write("root", "Reviewed.txt", b"First version")?;
+                let second = c.files_write("root", "Reviewed.txt", b"Second version")?;
+                Ok((first.file.id, first.version, second.version))
+            })
+        })
+        .await
+        .unwrap();
+    let before = FileMetadata {
+        tags: vec![],
+        note: String::new(),
+        starred: false,
+    };
+    engine
+        .update_file_metadata(
+            id.clone(),
+            before.clone(),
+            FileMetadata {
+                tags: vec!["review".into()],
+                note: "Kept note".into(),
+                starred: true,
+            },
+        )
+        .await
+        .unwrap();
+    assert!(
+        matches!(engine.update_file_metadata(id.clone(), before.clone(), before).await, Err(MobileError::Failure { code }) if code == "VERSION_CONFLICT")
+    );
+    engine
+        .use_file_version(id.clone(), first.clone(), second.clone())
+        .await
+        .unwrap();
+    assert!(
+        matches!(engine.delete_file_version(id.clone(), second.clone(), second.clone()).await, Err(MobileError::Failure { code }) if code == "VERSION_CONFLICT")
+    );
+    assert!(
+        matches!(engine.delete_file_version(id.clone(), first.clone(), first.clone()).await, Err(MobileError::Failure { code }) if code == "VERSION_CONFLICT")
+    );
+    let result = engine
+        .delete_file_version(id.clone(), second, first)
+        .await
+        .unwrap();
+    assert!(result.json.contains("Kept note"));
+    assert!(engine.purge_file(id.clone()).await.is_err());
+    assert!(engine.file_details(id.clone()).await.is_ok());
+    engine.trash_file(id.clone()).await.unwrap();
+    engine.purge_file(id.clone()).await.unwrap();
+    assert!(engine.file_details(id).await.is_err());
+    engine.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn locking_after_a_letter_queue_commit_does_not_revive_it_or_drop_other_drafts() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let account = testing::account().id.to_string();
+    let sent = "a1".repeat(32);
+    let unfinished = "b2".repeat(32);
+    engine
+        .queue_free_letter(
+            sent.clone(),
+            account.clone(),
+            "Original letter".into(),
+            None,
+        )
+        .await
+        .unwrap();
+    engine
+        .lock_with_drafts(
+            account.clone(),
+            vec![],
+            vec![
+                LetterDraftInput {
+                    id: sent.clone(),
+                    recipient: account.clone(),
+                    text: "Late editor".into(),
+                    invitation: None,
+                },
+                LetterDraftInput {
+                    id: unfinished.clone(),
+                    recipient: account,
+                    text: "Last authored line".into(),
+                    invitation: None,
+                },
+            ],
+            None,
+        )
+        .await
+        .unwrap();
+    let generation = engine.host.inner.generation();
+    engine
+        .host
+        .inner
+        .with_at(generation, |c| {
+            testing::unlock_fixture(c);
+            let drafts = c.letter_drafts()?;
+            assert_eq!(drafts.len(), 1);
+            assert_eq!(drafts[0].id, unfinished);
+            assert_eq!(drafts[0].text, "Last authored line");
+            let history = c.letter_history()?;
+            assert_eq!(history[0]["id"], sent);
+            assert_eq!(history[0]["text"], "Original letter");
+            Ok(())
+        })
+        .await
+        .unwrap();
+    engine.shutdown().await.unwrap();
+}
+
+#[test]
+fn channel_links_require_exact_routes_and_keep_expiry_as_unsigned_integer() {
+    let value = serde_json::json!({
+        "format":"dmsg-channel-invitation/1", "channel":"ab".repeat(32), "genesis":"bc".repeat(32),
+        "head":"cd".repeat(32), "invitation":"de".repeat(32), "account":"040g2081040g2081040g",
+        "name":"Review this channel", "expires_at":u64::MAX
+    });
+    let encoded = dmsg_client::codec::b64(&serde_json::to_vec(&value).unwrap());
+    let link = format!("dmsg://channel/join#{encoded}");
+    assert_eq!(
+        super::parse_channel_invitation(&link).unwrap().expires_at,
+        u64::MAX
+    );
+    for link in [
+        format!("dmsg://channel/join?approve=true#{encoded}"),
+        format!("dmsg://channel.evil/join#{encoded}"),
+        format!("dmsg://channel/join#{encoded}="),
+        format!("dmsg://channel/join/{encoded}"),
+    ] {
+        assert!(super::parse_channel_invitation(&link).is_err());
+    }
+    let mut wrong = value.clone();
+    wrong["account"] = "invalid-account".into();
+    assert!(super::parse_channel_invitation(&wrong.to_string()).is_err());
 }

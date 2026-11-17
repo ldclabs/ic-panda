@@ -1,9 +1,15 @@
 //! Native mobile API. The generated API exposes named operations, not daemon RPC.
 mod agents;
+#[cfg(target_os = "android")]
+mod android;
 mod apple;
 mod approvals;
 mod background;
+mod google;
 pub use apple::{AppAssertion, PushRegistration};
+pub use google::{
+    AndroidIntegrityProof, AndroidPurchase, AndroidPurchasePreparation, AndroidPushRegistration,
+};
 mod connect;
 mod content;
 pub use content::{ChannelMemberChange, CredentialSelection};
@@ -12,6 +18,9 @@ mod display;
 mod error;
 mod feedback;
 mod file_library;
+pub use file_library::FileMetadata;
+#[cfg(feature = "ui-fixtures")]
+mod ui_fixtures;
 pub use feedback::FeedbackDraftInput;
 mod hints;
 mod messaging;
@@ -56,7 +65,7 @@ pub use error::MobileError;
 use error::Result;
 pub use models::*;
 pub use operation::{OperationToken, TransferProgress};
-pub use platform::{Agreement, Platform, SigningKey};
+pub use platform::{HardwareSecret, Platform, SigningKey};
 pub use secrets::{SecretAttachmentSelection, SecretPackageSelection, SecretSnapshotInput};
 use serde_json::json;
 use session::ScopedHost;
@@ -69,7 +78,33 @@ use tokio::runtime::Runtime;
 
 static SNAPSHOT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+// The native library fixes its callback at build time. The application cannot
+// choose another host's callback or an arbitrary redirect through the FFI.
+const LOGIN_CALLBACK: &str = if cfg!(target_os = "android") {
+    dmsg_protocol::login::ANDROID_CALLBACK
+} else {
+    dmsg_protocol::login::IOS_CALLBACK
+};
+
 uniffi::setup_scaffolding!();
+
+/// Source fingerprint shared by native Android slices and their generated Kotlin.
+#[uniffi::export]
+pub fn build_identity() -> String {
+    env!("DMSG_MOBILE_BUILD_ID").into()
+}
+
+/// Render transport text with the shared protocol's bounded QR encoder.
+#[uniffi::export]
+pub fn qr_png(text: String) -> Result<String> {
+    dmsg_client::qr::png_data(&text).map_err(Into::into)
+}
+
+/// Decode a camera frame locally; the returned text still requires review.
+#[uniffi::export]
+pub fn scan_qr_luma(width: u32, height: u32, pixels: Vec<u8>) -> Result<String> {
+    dmsg_client::qr::scan_luma(width, height, &pixels).map_err(Into::into)
+}
 
 #[uniffi::export]
 pub fn vault_kinds() -> Vec<String> {
@@ -380,25 +415,40 @@ impl MobileEngine {
                             Error::Locked,
                         )?;
                         for draft in drafts {
-                            c.channel_draft(&draft.channel, &draft.text)?;
+                            let content = draft.content()?;
+                            match draft.stamp {
+                                Some(stamp) => {
+                                    c.save_stamped_composer(
+                                        &draft.channel,
+                                        &content,
+                                        &stamp.into(),
+                                    )?;
+                                }
+                                None => c.channel_draft(&draft.channel, &draft.text)?,
+                            }
                         }
                         let now = dmsg_client::now_ms();
                         for draft in letters {
-                            c.save_letter_draft_at(
+                            match c.save_letter_draft_at(
                                 &draft.id,
                                 &draft.recipient,
                                 &draft.text,
                                 draft.invitation,
                                 now,
-                            )?;
+                            ) {
+                                // Queue committed before the UI received its reply.
+                                // The sealed original intent supersedes this editor.
+                                Ok(()) | Err(Error::VersionConflict) => {}
+                                Err(error) => return Err(error),
+                            }
                         }
                         // Last, so a report the core refuses keeps no letter from saving.
                         if let Some(mut draft) = feedback {
                             if let Some(current) = c.feedback()? {
-                                ensure(
-                                    current.id == draft.id && current.state == "draft",
-                                    Error::VersionConflict,
-                                )?;
+                                ensure(current.id == draft.id, Error::VersionConflict)?;
+                                if current.state != "draft" {
+                                    return Ok(());
+                                }
                                 draft.revision = current.revision;
                             }
                             draft.save(c)?;
@@ -440,7 +490,7 @@ impl MobileEngine {
         self.session_state().await
     }
 
-    pub async fn close(&self) -> Result<()> {
+    pub async fn shutdown(&self) -> Result<()> {
         self.host.inner.close();
         self.platform.cancel_presence();
         self.cancel_login();
@@ -512,7 +562,12 @@ impl MobileEngine {
         let session = runtime()
             .spawn(async move {
                 let targets = dmsg_client::account::login_targets(&config).await?;
-                LoginSession::ios(
+                let start = if cfg!(target_os = "android") {
+                    LoginSession::android
+                } else {
+                    LoginSession::ios
+                };
+                start(
                     &targets,
                     "https://dmsg.net",
                     dmsg_client::login::DEFAULT_TTL_MS,
@@ -583,10 +638,7 @@ impl MobileEngine {
         let (target, fragment) = callback
             .split_once('#')
             .ok_or_else(|| dmsg_types::invalid("callback"))?;
-        ensure_valid(
-            target == dmsg_protocol::login::IOS_CALLBACK,
-            "callback target",
-        )?;
+        ensure_valid(target == LOGIN_CALLBACK, "callback target")?;
         let bytes = dmsg_client::codec::unb64(fragment)?;
         let (revision, generation, task) = {
             let mut login = self.login.lock().map_err(|_| Error::Locked)?;
@@ -651,10 +703,7 @@ impl MobileEngine {
         let (target, fragment) = callback
             .split_once('#')
             .ok_or_else(|| dmsg_types::invalid("callback"))?;
-        ensure_valid(
-            target == dmsg_protocol::login::IOS_CALLBACK,
-            "callback target",
-        )?;
+        ensure_valid(target == LOGIN_CALLBACK, "callback target")?;
         let mut session = self
             .login
             .lock()
@@ -1069,10 +1118,10 @@ impl MobileEngine {
     }
 
     pub async fn reconcile(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
-        let _turn = self.approval_turn.lock().await;
         let turn = self.read_turns.lane("connect-read");
         operation
             .run(async {
+                let _turn = self.approval_turn.lock().await;
                 let shared = self
                     .held(move |h| {
                         Box::pin(async move {
@@ -1084,9 +1133,12 @@ impl MobileEngine {
                             let attestations =
                                 dmsg_client::approval::reconcile_attestations(h).await?;
                             let wallets = dmsg_client::approval::reconcile_wallets(h).await?;
+                            let accounts =
+                                dmsg_client::approval::reconcile_prepared_accounts(h).await?;
                             let _turn = turn.lock().await;
                             Ok(attestations
                                 + wallets
+                                + accounts
                                 + dmsg_client::connect::reconcile_reads(h).await?)
                         })
                     })
@@ -1094,7 +1146,7 @@ impl MobileEngine {
                 // Account/root mutations and payment journals retain their exclusive
                 // runner. Ordinary background reads never enter that runner.
                 self.object(move |c| {
-                    Box::pin(async move { Ok(shared + c.approvals_reconcile_others().await?) })
+                    Box::pin(async move { Ok(shared + c.approvals_reconcile_legacy().await?) })
                 })
                 .await
             })
@@ -1162,13 +1214,14 @@ impl MobileEngine {
                         .filter(|v| !v.hidden)
                         .map(|v| {
                             let pending = c.message_intents(&v.id)?;
-                            let can_publish = v.ledger.as_ref().is_some_and(|l| {
-                                dmsg_client::channel_log::may_publish(l, &account)
-                            });
-                            let can_invite = v
-                                .ledger
-                                .as_ref()
-                                .is_some_and(|l| messaging::can_invite_to_channel(l, &account));
+                            let can_publish = !v.left
+                                && v.ledger.as_ref().is_some_and(|l| {
+                                    dmsg_client::channel_log::may_publish(l, &account)
+                                });
+                            let can_invite = !v.left
+                                && v.ledger
+                                    .as_ref()
+                                    .is_some_and(|l| messaging::can_invite_to_channel(l, &account));
                             Ok(ChannelItem {
                                 last_at: v
                                     .last
@@ -1178,16 +1231,21 @@ impl MobileEngine {
                                     .max(v.active_at),
                                 news: v.news,
                                 muted: v.muted,
-                                status: v
-                                    .ledger
-                                    .as_ref()
-                                    .map(|l| match l.status {
-                                        dmsg_client::channel_log::Status::Active => "active",
-                                        dmsg_client::channel_log::Status::Archived => "archived",
-                                        _ => "rotation_required",
-                                    })
-                                    .unwrap_or("unavailable")
-                                    .into(),
+                                status: if v.left {
+                                    "left".into()
+                                } else {
+                                    v.ledger
+                                        .as_ref()
+                                        .map(|l| match l.status {
+                                            dmsg_client::channel_log::Status::Active => "active",
+                                            dmsg_client::channel_log::Status::Archived => {
+                                                "archived"
+                                            }
+                                            _ => "rotation_required",
+                                        })
+                                        .unwrap_or("unavailable")
+                                        .into()
+                                },
                                 can_publish,
                                 can_invite,
                                 pending_sends: pending.len() as u64,
@@ -1218,22 +1276,48 @@ impl MobileEngine {
         name: String,
         operation: Arc<OperationToken>,
     ) -> Result<String> {
-        operation
-            .run(async {
-                self.host
-                    .run(move |c| {
-                        Box::pin(async move {
-                            c.channel_create(
-                                &name,
-                                dmsg_client::channel_log::ChannelType::Collaboration,
-                            )
-                            .await
-                        })
-                    })
-                    .await
-                    .map_err(Into::into)
-            })
+        let request = hex::encode(dmsg_client::crypto::random_id());
+        self.create_channel_intent(name, "collaboration".into(), request, operation)
             .await
+    }
+
+    /// A persistent setup attempt, reusable after an unknown reply or app restart.
+    pub async fn create_channel_intent(
+        &self,
+        name: String,
+        kind: String,
+        request: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<String> {
+        let kind = match kind.as_str() {
+            "direct" => dmsg_client::channel_log::ChannelType::Direct,
+            "collaboration" => dmsg_client::channel_log::ChannelType::Collaboration,
+            "distribution" => dmsg_client::channel_log::ChannelType::Distribution,
+            _ => return Err(dmsg_types::invalid("channel type").into()),
+        };
+        let turn = self.read_turns.lane(&format!("channel-create:{request}"));
+        operation
+            .run(self.held(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    h.with(|c| c.channel_prepare_creation(&name, kind, &request))
+                        .await?;
+                    dmsg_client::channel::management::create(h, &request).await
+                })
+            }))
+            .await
+    }
+
+    pub async fn channel_creations(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| Box::pin(async { h.with(|c| c.channel_creations()).await }))
+            .await
+    }
+
+    pub async fn discard_channel_creation(&self, request: String) -> Result<()> {
+        self.held(move |h| {
+            Box::pin(async move { h.with(|c| c.channel_discard_creation(&request)).await })
+        })
+        .await
     }
 
     pub async fn join_channel(
@@ -1241,17 +1325,24 @@ impl MobileEngine {
         invitation: String,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
-        ensure_valid(invitation.len() <= 16 * 1024, "invitation")?;
-        let bytes = if let Some(fragment) = invitation.trim().strip_prefix("dmsg://channel/join#") {
-            dmsg_client::codec::unb64(fragment)?
-        } else {
-            invitation.into_bytes()
-        };
-        let invitation: dmsg_client::channel::Invitation =
-            serde_json::from_slice(&bytes).map_err(|_| dmsg_types::invalid("invitation"))?;
+        let invitation = parse_channel_invitation(&invitation)?;
+        let turn = self
+            .read_turns
+            .lane(&format!("channel-control:{}", invitation.channel));
         operation
-            .run(self.object(move |c| Box::pin(async move { c.channel_join(&invitation).await })))
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    dmsg_client::channel::management::join(h, &invitation).await
+                })
+            }))
             .await
+    }
+
+    /// Untrusted link fields for review; joining still verifies the signed control log.
+    pub fn channel_invitation_summary(&self, invitation: String) -> Result<String> {
+        serde_json::to_string(&parse_channel_invitation(&invitation)?)
+            .map_err(|_| Error::IntegrityFailed.into())
     }
 
     pub async fn invite_channel(
@@ -1260,32 +1351,46 @@ impl MobileEngine {
         account: String,
         operation: Arc<OperationToken>,
     ) -> Result<String> {
+        self.invite_channel_intent(
+            channel,
+            account,
+            hex::encode(dmsg_client::crypto::random_id()),
+            operation,
+        )
+        .await
+    }
+
+    pub async fn invite_channel_intent(
+        &self,
+        channel: String,
+        account: String,
+        request: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<String> {
         let account = account
             .parse()
             .map_err(|_| dmsg_types::invalid("account"))?;
+        let turn = self.read_turns.lane(&format!("channel-control:{channel}"));
         operation
-            .run(async {
-                self.host
-                    .run(move |c| {
-                        Box::pin(async move {
-                            let invitation = dmsg_client::channel::invite(
-                                &c.cooperative_hold(),
-                                &channel,
-                                &account,
-                                dmsg_client::channel_log::Role::Member,
-                            )
-                            .await?;
-                            let bytes = serde_json::to_vec(&invitation)
-                                .map_err(|_| Error::IntegrityFailed)?;
-                            Ok(format!(
-                                "dmsg://channel/join#{}",
-                                dmsg_client::codec::b64(&bytes)
-                            ))
-                        })
-                    })
-                    .await
-                    .map_err(Into::into)
-            })
+            .run(self.held(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    let invitation = dmsg_client::channel::invite_named(
+                        h,
+                        &channel,
+                        &account,
+                        dmsg_client::channel_log::Role::Member,
+                        &request,
+                    )
+                    .await?;
+                    let bytes =
+                        serde_json::to_vec(&invitation).map_err(|_| Error::IntegrityFailed)?;
+                    Ok(format!(
+                        "dmsg://channel/join#{}",
+                        dmsg_client::codec::b64(&bytes)
+                    ))
+                })
+            }))
             .await
     }
 
@@ -1352,10 +1457,19 @@ impl MobileEngine {
         self.host
             .run(move |c| {
                 Box::pin(async move {
-                    c.save_message_drafts(
+                    let drafts: Vec<_> = drafts
+                        .into_iter()
+                        .map(|d| {
+                            let content = d.content()?;
+                            Ok((d.channel, content, d.stamp.map(Into::into)))
+                        })
+                        .collect::<dmsg_types::Result<_>>()?;
+                    c.save_composer_drafts(
                         &drafts
-                            .into_iter()
-                            .map(|d| (d.channel, d.text))
+                            .iter()
+                            .map(|(channel, content, stamp)| {
+                                (channel.as_str(), content, stamp.as_ref())
+                            })
                             .collect::<Vec<_>>(),
                     )
                 })
@@ -1374,6 +1488,41 @@ impl MobileEngine {
     pub async fn queue_message(&self, channel: String, text: String) -> Result<String> {
         self.host
             .run(move |c| Box::pin(async move { c.queue_message(&channel, &text).map(|i| i.id) }))
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn save_authored_draft(&self, draft: MessageDraft) -> Result<bool> {
+        let content = draft.content()?;
+        let stamp = draft
+            .stamp
+            .ok_or_else(|| dmsg_types::invalid("draft stamp"))?
+            .into();
+        self.host
+            .run(move |c| {
+                Box::pin(async move { c.save_stamped_composer(&draft.channel, &content, &stamp) })
+            })
+            .await
+            .map_err(Into::into)
+    }
+
+    /// Complete encrypted composer snapshots, including selected file versions and replies.
+    pub async fn message_composers(&self) -> Result<ObjectSnapshot> {
+        self.object(|c| Box::pin(async { c.message_composers() }))
+            .await
+    }
+
+    /// Queue all selected attachments atomically and return their original ordered IDs.
+    pub async fn queue_authored_messages(&self, draft: MessageDraft) -> Result<Vec<String>> {
+        let content = draft.content()?;
+        let stamp = draft
+            .stamp
+            .ok_or_else(|| dmsg_types::invalid("draft stamp"))?
+            .into();
+        self.host
+            .run(move |c| {
+                Box::pin(async move { c.queue_stamped_composer(&draft.channel, &content, &stamp) })
+            })
             .await
             .map_err(Into::into)
     }
@@ -1415,9 +1564,11 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<SentMessage> {
         let generation = self.host.generation();
+        let turn = self.read_turns.lane(&format!("message-send:{channel}"));
         let message = operation
             .run(self.held(move |h| {
                 Box::pin(async move {
+                    let _turn = turn.lock().await;
                     let value = dmsg_client::outbox::send(h, &channel, &message_id).await?;
                     let message: dmsg_client::channel::Message =
                         serde_json::from_value(value["message"].clone())
@@ -1489,9 +1640,13 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         let progress = operation.clone();
+        let turn = self
+            .read_turns
+            .lane(&format!("attachment:{channel}:{sequence}"));
         operation
             .run(self.held_object(move |h| {
                 Box::pin(async move {
+                    let _turn = turn.lock().await;
                     dmsg_client::channel::save_regular_shared(
                         h,
                         &channel,
@@ -2160,4 +2315,39 @@ impl MobileEngine {
         transition.finish()?;
         self.session_state().await
     }
+}
+
+fn parse_channel_invitation(input: &str) -> Result<dmsg_client::channel::Invitation> {
+    ensure_valid(input.len() <= 16 * 1024, "invitation")?;
+    let trimmed = input.trim();
+    let bytes = if let Some(fragment) = trimmed.strip_prefix("dmsg://channel/join#") {
+        ensure_valid(
+            !fragment.is_empty()
+                && fragment
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_'),
+            "invitation URL",
+        )?;
+        dmsg_client::codec::unb64(fragment)?
+    } else {
+        trimmed.as_bytes().to_vec()
+    };
+    let invitation: dmsg_client::channel::Invitation =
+        serde_json::from_slice(&bytes).map_err(|_| dmsg_types::invalid("invitation"))?;
+    ensure_valid(
+        invitation.format == "dmsg-channel-invitation/1"
+            && [
+                &invitation.channel,
+                &invitation.genesis,
+                &invitation.head,
+                &invitation.invitation,
+            ]
+            .iter()
+            .all(|id| dmsg_client::channel_log::is_hash(id))
+            && invitation.account.parse::<dmsg_types::AccountId>().is_ok()
+            && invitation.name.chars().count() <= 100
+            && !invitation.name.chars().any(char::is_control),
+        "invitation",
+    )?;
+    Ok(invitation)
 }

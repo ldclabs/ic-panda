@@ -326,6 +326,7 @@ impl Client {
             None => None,
         };
         let version = Version {
+            mime: Some(source.mime.clone()),
             size: source.size,
             sha256: source.sha256,
             created_at: now,

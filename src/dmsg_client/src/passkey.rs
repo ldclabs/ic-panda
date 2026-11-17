@@ -71,6 +71,26 @@ impl PasskeySetup {
             self.action,
             callback,
             self.credential,
+            None,
+        )
+        .await
+    }
+
+    /// Check native Android admission before a credential provider creates a Passkey.
+    /// # Errors
+    /// Refuses unconfigured signing certificates and preserves service failures.
+    pub async fn start_android(
+        self,
+        callback: String,
+        certificate: Hash,
+    ) -> Result<PasskeySession> {
+        PasskeySession::start(
+            self.config,
+            self.hardware,
+            self.action,
+            callback,
+            self.credential,
+            Some(certificate),
         )
         .await
     }
@@ -243,11 +263,17 @@ impl PasskeySession {
         action: AuthAction,
         next_url: String,
         expected_credential: Option<ByteBuf>,
+        android_certificate: Option<Hash>,
     ) -> Result<Self> {
         dmsg_protocol::login::callback_target(&next_url)?;
         let auth = config.auth.ok_or(Error::UnsupportedProtocol)?;
         let mut key = DeviceLogin::new(auth, hardware.as_ref())?;
         let ic = Ic::connect(&config, key.identity(hardware.clone())).await?;
+        if let Some(certificate) = android_certificate {
+            let admitted: Vec<Hash> = ic.query(auth, "android_signers", ()).await?;
+            dmsg_protocol::passkey::validate_android_signers(&admitted)?;
+            ensure(admitted.contains(&certificate), Error::UnsupportedProtocol)?;
+        }
         // Finish registration preflight before asking the authenticator to save
         // a credential. A failed ticket request must not leave an orphan passkey.
         let admission = if action == AuthAction::Register {

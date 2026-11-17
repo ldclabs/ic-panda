@@ -3738,3 +3738,16 @@ Screenshots are under `.build/autofill-recovery-20261114/`. Full Rust and full U
 suites were not rerun for this change. Real-device Face ID/passcode authentication,
 credential return into another app, and TestFlight upgrade acceptance remain
 unverified. No build-number change, archive or TestFlight upload was performed.
+
+
+## 2026-11-16 本机系统副本策略读取
+
+Android 对齐过程中发现系统副本设置依赖联网 hardware_security；新增共享 system_export_policy 本机读取，并同步 SystemExportsView 与 SessionModel 的自动刷新。绑定槽缺失时失败，不能将未知策略视为允许密码回退。
+
+本工作区重建 device/simulator 桥接成功，iPhone 18 Pro/iOS 27 模拟器安装启动成功；dMsgTests 213 通过、0 失败、0 跳过。日志 test_sim_2026-11-16T01-28-53-562Z_pid45641_860c7499.log，xcresult 为 test_sim_2026-11-16T01-28-53-562Z_pid45641_52919a34.xcresult；共享移动核心 44 测试通过。未执行真机自动填充认证、真实账号或线上修改。
+
+## 2026-11-16 Android 共享接口后的完整回归
+
+当前共享核心重新生成 device/simulator XCFramework 与 Swift 绑定。正常模拟器签名下，完整 `dMsgTests` **213 通过、0 失败、0 跳过**，结果包 `test_sim_2026-11-16T15-50-10-679Z_pid45641_16abab40.xcresult`。中英文 AppStoreScreenshotTests **2 通过**，结果包 `test_sim_2026-11-16T15-53-17-555Z_pid45641_807a9ea0.xcresult`，导出 10 张本轮原生截图用于 Android 界面核对。
+
+首轮误加 `CODE_SIGNING_ALLOWED=NO` 导致 3 个 Keychain 测试以缺少 entitlement 失败，其余 210 通过。恢复正常签名后，先定向 3 项通过，再运行上述完整 213 项；没有为此修改生产 Keychain 代码。截图使用离线合成数据；没有真机、真实登录、支付或线上内容写入。

@@ -90,7 +90,15 @@ async fn post_mobile<H: dmsg_client::hold::Hold>(
     if matches!(result, Err(Error::ExecutionUnknown))
         && matches!(
             action,
-            "challenge" | "attest" | "push-register" | "purchase"
+            "challenge"
+                | "attest"
+                | "push-register"
+                | "purchase"
+                | "android-challenge"
+                | "android-push-register"
+                | "android-push-unregister"
+                | "android-purchase"
+                | "android-purchase-prepare"
         )
     {
         // Hold signs again against the current session and device authority;

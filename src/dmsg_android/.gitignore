@@ -1,0 +1,9 @@
+.gradle/
+.kotlin/
+local.properties
+**/build/
+app/src/main/jniLibs/
+app/src/main/java/net/dmsg/core/
+google-services.json
+*.keystore
+*.jks

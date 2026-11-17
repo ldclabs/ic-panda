@@ -5,7 +5,9 @@ import { decode, encode } from 'cborg'
 
 export const DERIVATION_ORIGINS = ['https://dmsg.net', 'https://panda.fans']
 export const IOS_CALLBACK = 'https://dmsg.net/_/ios/auth/callback'
-export function callbackTarget(url: string): 'ios' | number {
+export const ANDROID_CALLBACK = 'https://dmsg.net/_/android/auth/callback'
+export function callbackTarget(url: string): 'ios' | 'android' | number {
+  if (url === ANDROID_CALLBACK) return 'android'
   return url === IOS_CALLBACK ? 'ios' : callbackPort(url)
 }
 export const MIN_TTL_MS = 60_000

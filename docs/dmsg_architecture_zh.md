@@ -6,6 +6,8 @@
 
 核对日期：2026-10-24，公开源码基线 `9fd70dca`。本文概述桌面/iOS/CLI/MCP 客户端、公开合同、canister 职责与扩容方式；接口与实测容量以各组件 README 和 Candid 为准。历史容量样本保留原测量范围，不包含后来新增的资料元数据，也不证明生产吞吐。私有服务只通过公开合同描述；源码核对不等于部署核验或安全审计。
 
+2026-11-16 Android 商业补充：独立 [Google Play 合同](protocol/google_play_zh.md) 复用 commerce 认证权益，订阅账期与存储加购分别去重；新增配置、观察与回执保留在 commerce，未修改 user/directory 稳定布局。当前仅完成本地协议、Wasm 与升级回归，不代表 Google 服务或购买已上线；下述历史容量数据不包含此增量。
+
 2026-10-27 移动补充：iOS 通过 UniFFI 复用 Rust 核心，扩展只读取有时限的显式导出副本；后台传输只处理密文。APNs/App Attest、StoreKit 验证与 commerce 权益、删除／举报合同见 [mobile](protocol/mobile_zh.md)，实际验证边界见 [iOS 验证记录](../src/dmsg_ios/VALIDATION.md)。未完成 Apple 外部配置和真机验收；下面的历史容量数字不包含新增交易观察。
 
 ## 1. 设计原则

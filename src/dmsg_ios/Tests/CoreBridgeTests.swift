@@ -7,10 +7,16 @@ final class CoreBridgeTests: XCTestCase {
         func set(name: String, secret: Data) throws { throw MobileError.Failure(code: "UNAVAILABLE") }
         func delete(name: String) throws {}
         func presence() -> UInt8 { 0 }
-        func createAgreement(biometryOnly: Bool) throws -> Agreement { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
-        func openAgreement(handle: Data, peer: Data, biometryOnly: Bool) throws -> Data { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        func createSecret(biometryOnly: Bool) throws -> HardwareSecret { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        func openSecret(handle: Data, context: Data, biometryOnly: Bool) throws -> Data { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        func supportsBiometryOnly() -> Bool { false }
+        func authorizeKeys(reason: String, biometryOnly: Bool, handles: [Data]) throws -> UInt64 { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        func prepareSignature(reason: String, biometryOnly: Bool, handle: Data, message: Data) throws -> UInt64 { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        func signPrepared(preparation: UInt64) throws -> Data { throw MobileError.Failure(code: "CANCELLED") }
+        func releasePrepared(preparation: UInt64) {}
         func biometryState() -> Data? { nil }
         func createSigning(biometryOnly: Bool) throws -> SigningKey { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        func deleteSigning(handle: Data) throws {}
         func authorize(reason: String, biometryOnly: Bool) throws -> UInt64 { throw MobileError.Failure(code: "CANCELLED") }
         func signAuthorized(authorization: UInt64, handle: Data, message: Data) throws -> Data { throw MobileError.Failure(code: "CANCELLED") }
         func releaseAuthorization(authorization: UInt64) {}
@@ -70,6 +76,6 @@ final class CoreBridgeTests: XCTestCase {
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
         do { _ = try await engine.profileAvatar(url: "https://assets.dmsg.net/avatar.png"); XCTFail("Stale avatar fetch") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
-        try await engine.close()
+        try await engine.shutdown()
     }
 }

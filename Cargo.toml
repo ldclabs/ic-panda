@@ -57,6 +57,13 @@ codegen-units = 1
 [profile.release.package.ic_signin_with]
 codegen-units = 1
 
+[profile.mobile]
+inherits = "release"
+lto = false
+debug = 1
+strip = false
+codegen-units = 16
+
 [workspace.package]
 edition = "2024"
 version = "3.1.10"

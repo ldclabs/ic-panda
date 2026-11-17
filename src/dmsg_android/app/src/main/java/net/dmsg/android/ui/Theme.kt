@@ -1,0 +1,151 @@
+package net.dmsg.android.ui
+
+import net.dmsg.android.R
+import net.dmsg.android.platform.str
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.util.Locale
+
+
+private val light = lightColorScheme(
+    primary = Color(0xFF315B40), onPrimary = Color.White,
+    primaryContainer = Color(0xFFDCEBD5), onPrimaryContainer = Color(0xFF193A23),
+    secondary = Color(0xFF52634F), onSecondary = Color.White,
+    secondaryContainer = Color(0xFFE8EEE2), onSecondaryContainer = Color(0xFF1B2B20),
+    tertiary = Color(0xFF52685C), onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFD5E8DC), onTertiaryContainer = Color(0xFF183326),
+    surfaceTint = Color(0xFF315B40), outline = Color(0xFF758270),
+    onBackground = Color(0xFF1B2B20), surfaceVariant = Color(0xFFE7EDE1),
+    surfaceContainerLowest = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFF3F6EE), surfaceContainerHighest = Color(0xFFE1E8DA),
+    inverseSurface = Color(0xFF26342A), inverseOnSurface = Color(0xFFF0F3EB), inversePrimary = Color(0xFFB3D6A9),
+    background = Color(0xFFFBFCF7), surface = Color(0xFFFBFCF7),
+    surfaceContainer = Color(0xFFF0F3EB), surfaceContainerHigh = Color(0xFFE8EEE2),
+    onSurface = Color(0xFF1B2B20), onSurfaceVariant = Color(0xFF616F61), outlineVariant = Color(0xFFDCE3D6),
+)
+private val dark = darkColorScheme(
+    primary = Color(0xFFB3D6A9), onPrimary = Color(0xFF183720),
+    primaryContainer = Color(0xFF344F37), onPrimaryContainer = Color(0xFFD5EDCC),
+    secondary = Color(0xFFBECEB7), onSecondary = Color(0xFF24351F),
+    secondaryContainer = Color(0xFF35472E), onSecondaryContainer = Color(0xFFDCEBD5),
+    tertiary = Color(0xFFB4CEBC), onTertiary = Color(0xFF20372B),
+    tertiaryContainer = Color(0xFF364E40), onTertiaryContainer = Color(0xFFD0EAD7),
+    surfaceTint = Color(0xFFB3D6A9), outline = Color(0xFF84927F),
+    onBackground = Color(0xFFE4EBDF), surfaceVariant = Color(0xFF354436),
+    surfaceContainerLowest = Color(0xFF0C140F), surfaceContainerLow = Color(0xFF18231B), surfaceContainerHighest = Color(0xFF314335),
+    inverseSurface = Color(0xFFE4EBDF), inverseOnSurface = Color(0xFF26342A), inversePrimary = Color(0xFF315B40),
+    background = Color(0xFF111A15), surface = Color(0xFF111A15),
+    surfaceContainer = Color(0xFF1D2A20), surfaceContainerHigh = Color(0xFF293A2B),
+    onSurface = Color(0xFFE4EBDF), onSurfaceVariant = Color(0xFFB0BDAC), outlineVariant = Color(0xFF354436),
+)
+
+@Composable fun DMsgTheme(isDark: Boolean?, content: @Composable () -> Unit) {
+    val darkTheme = isDark ?: isSystemInDarkTheme()
+    val view = LocalView.current
+    SideEffect {
+        var context: Context? = view.context
+        while (context is ContextWrapper && context !is Activity) context = context.baseContext
+        (context as? Activity)?.window?.let { window ->
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
+    }
+    MaterialTheme(colorScheme = if (darkTheme) dark else light,
+        shapes = Shapes(small = RoundedCornerShape(14.dp), medium = RoundedCornerShape(20.dp), large = RoundedCornerShape(26.dp)), content = content)
+}
+
+@Composable fun Notice(text: String, warning: Boolean = false) {
+    Row(Modifier.fillMaxWidth().background(if (warning) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp)).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(Icons.Outlined.Info, null, Modifier.size(18.dp), tint = if (warning) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, fontSize = 13.sp, lineHeight = 21.sp, color = if (warning) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable fun SectionTitle(text: String) { Text(text, Modifier.padding(top = 18.dp, bottom = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium) }
+
+fun errorText(code: String): String = when (code) {
+    "INVALID_INPUT", "INVALID_AGENT_LABEL" -> str(R.string.text_check_the_input_or_paste_the_complete_request_then_try_again_75d51aa)
+    "PENDING", "TRANSFER_PENDING" -> str(R.string.text_an_earlier_task_still_needs_attention_check_its_status_before_sta_6778343)
+    "WRONG_ACCOUNT" -> str(R.string.text_switch_to_the_account_originally_selected_for_this_task_80ba072)
+    "SOURCE_CHANGED" -> str(R.string.text_the_source_changed_while_being_copied_share_or_select_it_again_2a5daba)
+    "EXPORT_NOT_CONFIGURED" -> str(R.string.text_choose_and_publish_copies_in_dmsg_first_b899658)
+    "EXPORT_EXPIRED", "EXPORT_KEY_UNAVAILABLE" -> str(R.string.text_these_copies_are_no_longer_available_unlock_dmsg_and_update_them_b6bafe0)
+    "EXPORT_LOCKED" -> str(R.string.text_authorize_file_access_again_to_open_these_copies_31d0586)
+    "AUTOFILL_UNVERIFIED" -> str(R.string.text_the_app_could_not_be_verified_for_this_website_no_password_was_sh_5cb4c69)
+    "DEVICE_LOCKED" -> str(R.string.text_unlock_the_phone_before_opening_these_copies_92b7796)
+    "INCOMING_KEY_UNAVAILABLE" -> str(R.string.text_this_installation_cannot_open_the_pending_shared_copies_4de1049)
+    "INVALID_LINK" -> str(R.string.text_this_link_is_not_a_supported_dmsg_request_679a1ec)
+    "KEY_VERIFIED" -> str(R.string.text_the_key_signed_and_verified_a_local_challenge_eb69eeb)
+    "PREVIEW_EXPIRED" -> str(R.string.text_refresh_the_transfer_preview_before_submitting_9a48d14)
+    "REMINDER_UNAVAILABLE" -> str(R.string.text_this_reminder_cannot_open_its_original_item_here_f6a992c)
+    "MEMBERSHIP_STALE" -> str(R.string.text_refresh_to_verify_the_current_membership_171ab7c)
+    "QR_NOT_FOUND" -> str(R.string.text_no_readable_qr_code_was_found_try_a_clearer_image_or_paste_its_te_88baa89)
+    "LOCKED" -> str(R.string.text_unlock_this_account_to_continue_9b246bc)
+    "AUTH_REQUIRED", "LOGIN_EXPIRED" -> str(R.string.text_sign_in_again_to_continue_6feacbb)
+    "CANCELLED" -> str(R.string.text_cancelled_02eb7d5)
+    "FORBIDDEN" -> str(R.string.text_this_device_does_not_have_permission_for_this_action_69ed54b)
+    "HARDWARE_KEY_INVALIDATED" -> str(R.string.text_this_device_s_hardware_key_is_no_longer_valid_keep_your_data_and_05cb8b7)
+    "BIOMETRIC_LOCKOUT" -> str(R.string.text_biometric_authentication_is_temporarily_locked_wait_then_try_agai_ca0505f)
+    "BIOMETRIC_LOCKOUT_PERMANENT" -> str(R.string.text_unlock_the_phone_with_its_screen_lock_credential_before_using_bio_fcf1764)
+    "BIOMETRIC_NOT_ENROLLED" -> str(R.string.text_enroll_a_strong_biometric_in_android_settings_before_using_this_p_83623a6)
+    "DEVICE_CREDENTIAL_NOT_SET" -> str(R.string.text_set_a_screen_lock_in_android_settings_to_use_hardware_authenticat_2b8c0bc)
+    "HARDWARE_SECURITY_UPDATE_REQUIRED" -> str(R.string.text_android_requires_a_security_update_before_this_authenticator_can_1e33b02)
+    "AUTHENTICATION_TIMEOUT" -> str(R.string.text_authentication_timed_out_start_a_new_confirmation_when_ready_b072688)
+    "PASSKEY_PROVIDER_UNAVAILABLE" -> str(R.string.text_no_compatible_credential_provider_is_available_use_internet_ident_4840b1a)
+    "PASSKEY_NOT_FOUND" -> str(R.string.text_no_matching_passkey_was_found_choose_another_credential_provider_b64bc6d)
+    "PASSKEY_ORIGIN_MISMATCH" -> str(R.string.text_this_credential_does_not_match_the_installed_app_s_signing_identi_3ab98e0)
+    "UNSUPPORTED_PROTOCOL" -> str(R.string.text_this_capability_is_not_enabled_for_this_app_and_service_configura_a9dc1a0)
+    "VERSION_CONFLICT" -> str(R.string.text_a_newer_version_is_available_your_draft_is_kept_compare_the_versi_de2c8b5)
+    "DRAFT_SAVE_FAILED" -> str(R.string.text_the_last_draft_could_not_be_saved_the_workspace_was_locked_check_b528afd)
+    "DRAFT_NOT_READY" -> str(R.string.text_wait_for_the_saved_draft_to_load_then_add_the_file_from_files_2a4e4e5)
+    "ATTACHMENT_LIMIT" -> str(R.string.text_choose_up_to_10_local_files_each_no_larger_than_100_mib_for_messa_462e2bd)
+    "MESSAGE_TOO_LONG" -> str(R.string.text_messages_can_contain_up_to_16_000_utf_8_bytes_the_previous_text_i_dbc5f00)
+    "ATTACHMENTS_READY" -> str(R.string.text_attachments_are_ready_review_the_message_then_tap_send_f705248)
+    "NO_IMAGE_IN_CLIPBOARD" -> str(R.string.text_there_is_no_readable_image_in_the_clipboard_01312ac)
+    "CAMERA_UNAVAILABLE" -> str(R.string.text_no_camera_app_is_available_choose_a_photo_or_document_instead_8161abc)
+    "CAMERA_PERMISSION_DENIED" -> str(R.string.text_camera_access_was_declined_photos_and_documents_are_still_availab_d4bcc11)
+    "FILE_LIMIT" -> str(R.string.text_the_file_exceeds_this_action_s_size_limit_or_the_device_is_low_on_c3694f1)
+    "FILE_TOO_LARGE" -> str(R.string.text_this_version_exceeds_your_current_cloud_backup_limit_abfb9cb)
+    "PASSWORD_TOO_LONG" -> str(R.string.text_this_password_is_too_long_use_a_shorter_one_15146f6)
+    "NOT_LOCAL" -> str(R.string.text_restore_a_local_copy_before_backing_up_this_version_2ebc857)
+    "BACKUP_NOT_STARTED" -> str(R.string.text_no_backup_was_started_refresh_the_file_and_plan_limits_before_ret_79c7468)
+    "INVALID_TITLE" -> str(R.string.text_enter_a_title_of_up_to_200_characters_6c1167a)
+    "INVALID_TAGS" -> str(R.string.text_use_up_to_20_tags_with_at_most_40_characters_each_aefe28f)
+    "INVALID_FIELDS" -> str(R.string.text_check_the_highlighted_fields_before_saving_493f982)
+    "FIELD_NAME_REQUIRED" -> str(R.string.text_field_name_is_required_f93fcc5)
+    "FIELD_LABEL_TOO_LONG" -> str(R.string.text_field_names_and_sections_allow_up_to_100_characters_0a34bdb)
+    "FIELD_VALUE_TOO_LONG" -> str(R.string.text_a_field_allows_up_to_10_000_characters_da567ba)
+    "INVALID_OTP" -> str(R.string.text_enter_a_valid_setup_key_or_otpauth_url_4c24868)
+    "INVALID_DATE", "INVALID_MONTH" -> str(R.string.text_enter_a_valid_calendar_date_in_the_format_shown_d3dfa61)
+    "INVALID_EMAIL" -> str(R.string.text_enter_a_valid_email_address_a1e2014)
+    "INVALID_URL" -> str(R.string.text_enter_an_http_or_https_website_address_7bc7ea4)
+    "NETWORK_UNAVAILABLE", "UNAVAILABLE" -> str(R.string.text_the_service_is_unavailable_local_content_is_still_kept_551ab6a)
+    "HARDWARE_UNAVAILABLE", "PRESENCE_UNAVAILABLE" -> str(R.string.text_hardware_verification_is_unavailable_no_operation_was_approved_7078547)
+    "EXECUTION_UNKNOWN" -> str(R.string.text_the_result_is_not_yet_known_reconcile_the_original_operation_befo_5248399)
+    "INTEGRITY_FAILED" -> str(R.string.text_verification_failed_the_content_was_not_accepted_6ec9a76)
+    "NOT_FOUND" -> str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f)
+    "FILE_EXPORTED" -> str(R.string.text_a_copy_was_saved_to_the_location_you_chose_3141816)
+    "FILE_SAVED_LOCALLY" -> str(R.string.text_saved_on_this_device_206afd9)
+    "SAVED_LOCALLY" -> str(R.string.text_saved_on_this_device_waiting_to_sync_0ee5478)
+    "SYNC_COMPLETE" -> str(R.string.text_sync_completed_03e1220)
+    "BACKUP_STATUS_UPDATED" -> str(R.string.text_backup_status_updated_check_the_file_s_cloud_copy_7a65947)
+    else -> str(R.string.operation_failed_code, code)
+}

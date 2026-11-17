@@ -52,7 +52,7 @@ pub trait PresenceKey: Send + Sync {
     fn presence(&self) -> Option<Presence>;
 
     /// A new hardware key and a secret only it recovers: the key's opaque
-    /// handle, the peer public key and the secret. Asks nothing. A
+    /// handle, opaque platform context and the secret. Asks nothing. A
     /// `biometry_only` key takes only the fingerprints enrolled now, never
     /// the device password.
     ///
@@ -74,6 +74,11 @@ pub trait PresenceKey: Send + Sync {
     /// changed is lost, not just unavailable.
     fn biometry_state(&self) -> Option<Hash>;
 
+    /// A platform can enforce current-biometry keys without exposing an enrollment digest.
+    fn supports_biometry_only(&self) -> bool {
+        self.biometry_state().is_some()
+    }
+
     /// Ask the person to confirm approving a high-risk request of type
     /// `what` (such as `checkout` or `device_revoke`), which names the
     /// system's question.
@@ -88,6 +93,20 @@ pub trait PresenceKey: Send + Sync {
 /// with the person present. The user home requires their signature for the
 /// approvals an account protects.
 pub trait ApprovalKeys: Send + Sync {
+    /// Prepare one exact signature without prompting. Mobile providers return
+    /// a cancellable operation; legacy desktop providers authorize at sign time.
+    /// # Errors
+    /// Refuses unavailable keys or an invalid message before any human prompt.
+    fn prepare_signature(
+        &self,
+        _what: &str,
+        _biometry_only: bool,
+        _handle: &[u8],
+        _message: &Hash,
+    ) -> Result<Option<std::sync::Arc<dyn PreparedSignature>>> {
+        Ok(None)
+    }
+
     /// Whether this provider currently has hardware capable of user presence.
     /// This is capability discovery, not evidence that a stored key will open.
     fn available(&self) -> bool {
@@ -102,6 +121,16 @@ pub trait ApprovalKeys: Send + Sync {
     /// Returns `Error::Unavailable` when the hardware refuses.
     fn create(&self, biometry_only: bool) -> Result<(Vec<u8>, Vec<u8>)>;
 
+    /// Remove an unreferenced key from providers that retain named key objects.
+    /// Wrapped-key providers need no separate deletion once their handle is gone.
+    ///
+    /// # Errors
+    /// Returns the provider's storage failure; callers never delete a kept key
+    /// merely because authentication was cancelled.
+    fn delete_key(&self, _handle: &[u8]) -> Result<()> {
+        Ok(())
+    }
+
     /// Ask the person once, about a request of type `what`; the answer
     /// signs with this device's approval keys until it is dropped.
     ///
@@ -109,6 +138,17 @@ pub trait ApprovalKeys: Send + Sync {
     /// Returns `Error::Forbidden` when the person declines and
     /// `Error::Unavailable` when the hardware cannot ask now.
     fn authorize(&self, what: &str, biometry_only: bool) -> Result<Box<dyn Authorized>>;
+
+    /// Prepare only the named signing-key operations outside the Client.
+    /// Per-use platforms authenticate each operation now; sign must not prompt.
+    fn authorize_keys(
+        &self,
+        what: &str,
+        biometry_only: bool,
+        _handles: &[Vec<u8>],
+    ) -> Result<Box<dyn Authorized>> {
+        self.authorize(what, biometry_only)
+    }
 }
 
 /// The person's answer to one question, which signs with approval keys
@@ -121,6 +161,38 @@ pub trait Authorized: Send + Sync {
     /// Returns `Error::IntegrityFailed` for a key this hardware no longer
     /// opens and `Error::Unavailable` otherwise.
     fn sign(&self, handle: &[u8], message: &Hash) -> Result<[u8; 64]>;
+}
+
+/// One immutable, single-use signing operation owned by a host decision.
+pub trait PreparedSignature: Send + Sync {
+    /// Authenticate and sign the already fixed message, off the Client executor.
+    /// # Errors
+    /// Refuses cancelled, consumed or expired operations and invalidated keys.
+    fn sign(&self) -> Result<[u8; 64]>;
+
+    /// Revoke this operation, including a prompt queued but not yet displayed.
+    fn cancel(&self);
+}
+
+/// A host keeps this guard across the blocking worker await. Cancelling that
+/// future immediately revokes only its prepared signature, even while the
+/// worker still owns another reference to the operation.
+#[derive(Default)]
+pub struct SigningCancellation(pub(crate) Option<std::sync::Arc<dyn PreparedSignature>>);
+
+impl SigningCancellation {
+    /// Bind the async owner's lifetime to this one prepared operation.
+    pub fn new(signature: std::sync::Arc<dyn PreparedSignature>) -> Self {
+        Self(Some(signature))
+    }
+}
+
+impl Drop for SigningCancellation {
+    fn drop(&mut self) {
+        if let Some(operation) = &self.0 {
+            operation.cancel();
+        }
+    }
 }
 
 /// Hardware that keeps signing keys usable without the person, only on the

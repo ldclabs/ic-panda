@@ -111,6 +111,7 @@ fn client(dir: &TempDir, software: &Arc<Software>, biometry: Option<Hash>) -> (C
         public_key: public_key.into(),
         handle: handle.into(),
         biometry,
+        biometry_only: false,
         created_at: 1,
     };
     client.keep_approval_key(key.clone(), None).unwrap();
@@ -177,6 +178,107 @@ fn state(info: AccountInfo) -> crate::account::AccountState {
 }
 
 #[test]
+fn prepared_proofs_authenticate_only_after_the_exact_commitment_is_frozen() {
+    let dir = TempDir::new();
+    let software = Arc::new(Software::default());
+    let (mut client, key) = client(&dir, &software, None);
+    let info = info(&client, Some(&key), &[HardwarePurpose::Attestation]);
+    let now = now_ms();
+    let message = Hash::new([42; 32]);
+    let prepared = client
+        .prepare_hardware_proof(
+            &info,
+            HardwarePurpose::Attestation,
+            message,
+            now + 60_000,
+            now,
+        )
+        .unwrap();
+    assert_eq!(software.asked.load(SeqCst), 0);
+    // Sign without borrowing the Client. The proof cannot be redirected to a new message.
+    let answered = prepared.sign();
+    assert_eq!(software.asked.load(SeqCst), 1);
+    let proof = client.complete_hardware_proof(answered, now_ms()).unwrap();
+    verify_p256(
+        &key.public_key,
+        hardware_message(message, key.key_id).as_slice(),
+        &proof.signature,
+    )
+    .unwrap();
+    assert!(
+        verify_p256(
+            &key.public_key,
+            hardware_message(Hash::new([43; 32]), key.key_id).as_slice(),
+            &proof.signature
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn new_key_possession_is_signed_before_it_can_be_embedded_in_a_replacement_mutation() {
+    let dir = TempDir::new();
+    let software = Arc::new(Software::default());
+    let (mut client, key) = client(&dir, &software, None);
+    let account = client.account().unwrap().clone();
+    let device = client.workspace.meta.device_id;
+    let now = now_ms();
+    let prepared = client
+        .prepare_key_possession(device, &key.public_key, now + 60_000, now)
+        .unwrap();
+    assert_eq!(software.asked.load(SeqCst), 0);
+    let proof = client
+        .complete_hardware_proof(prepared.sign(), now_ms())
+        .unwrap();
+    verify_p256(
+        &key.public_key,
+        approval_key_message(account.home, &account.id, device, &key.public_key).as_slice(),
+        &proof.signature,
+    )
+    .unwrap();
+    assert!(
+        verify_p256(
+            &key.public_key,
+            hardware_message(Hash::new([0; 32]), key.key_id).as_slice(),
+            &proof.signature
+        )
+        .is_err()
+    );
+    assert!(
+        client
+            .prepare_key_possession(Hash::new([0; 32]), &key.public_key, now + 60_000, now)
+            .is_err()
+    );
+    assert!(client.pending().unwrap().is_none());
+}
+
+#[test]
+fn expired_prepared_proofs_never_start_a_hardware_prompt() {
+    let dir = TempDir::new();
+    let software = Arc::new(Software::default());
+    let (mut client, key) = client(&dir, &software, None);
+    let info = info(&client, Some(&key), &[HardwarePurpose::Attestation]);
+    let now = now_ms();
+    let mut prepared = client
+        .prepare_hardware_proof(
+            &info,
+            HardwarePurpose::Attestation,
+            Hash::new([42; 32]),
+            now + 60_000,
+            now,
+        )
+        .unwrap();
+    prepared.expires_at = now - 1;
+    let answered = prepared.sign();
+    assert_eq!(answered.error(), Some(Error::Expired));
+    assert_eq!(software.asked.load(SeqCst), 0);
+    assert_eq!(
+        client.complete_hardware_proof(answered, now_ms()).err(),
+        Some(Error::Expired)
+    );
+}
+
+#[test]
 fn key_maintenance_does_not_require_a_lost_key_while_the_policy_is_off() {
     let dir = TempDir::new();
     let software = Arc::new(Software::default());
@@ -196,6 +298,7 @@ fn key_maintenance_does_not_require_a_lost_key_while_the_policy_is_off() {
         public_key: public_key.into(),
         handle: handle.into(),
         biometry: None,
+        biometry_only: false,
         created_at: now_ms(),
     };
     client

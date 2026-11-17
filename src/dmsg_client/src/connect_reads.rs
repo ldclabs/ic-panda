@@ -61,6 +61,7 @@ pub async fn entries<H: Hold>(h: &H, fetched: u64) -> Result<ConnectReport> {
             .with(|c| {
                 let op = c.operation(&key)?;
                 Ok(op.checkout.is_none()
+                    && !c.running.contains_key(&op.approval)
                     && matches!(
                         op.state,
                         OpState::Authorizing | OpState::Authorized | OpState::ExecutionUnknown
@@ -79,7 +80,7 @@ pub async fn entries<H: Hold>(h: &H, fetched: u64) -> Result<ConnectReport> {
     Ok(report)
 }
 
-async fn checks<H: Hold>(h: &H) -> Result<Checks> {
+pub(super) async fn checks<H: Hold>(h: &H) -> Result<Checks> {
     let path = h.with(|c| c.connect_path("/pairings")).await?;
     let data = h.get(&path).await?;
     h.with(|c| {
@@ -405,6 +406,12 @@ async fn reconcile_read<H: Hold>(h: &H, key: &str) -> Result<()> {
     let (op, device) = h
         .with(|c| Ok((c.operation(key)?, c.workspace.meta.device_id)))
         .await?;
+    if op.prepared.is_some() {
+        if op.state == OpState::Authorizing && !prepared::reconcile_pin(h, key).await? {
+            return Ok(());
+        }
+        return prepared::execute(h, key).await;
+    }
     if op.state.terminal() {
         return match op.state {
             OpState::Signed | OpState::Returned => Ok(()),

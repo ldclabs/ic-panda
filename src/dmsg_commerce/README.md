@@ -4,7 +4,7 @@ dMsg 的商业服务 canister，承担三项职责：
 
 1. **集成注册表**：保存治理登记的应用（`AppRegistration`）和产品（`ProductRegistration`），并发布认证配置。`dmsg_user`、`membership` 和客户端都从这里读取。
 2. **通用现金结算**：为任何已登记产品收取 ckUSDC / ckUSDT。每个订单有独立的收款子账户，按账本分别记账，负责入金核验、原路退款和商户收入归集。结算部分不写死 dMsg 的收款方。
-3. **dMsg 账户产品**：作为产品 `dmsg` 的报价权威与适配器，提供年度套餐、现金升级和存储包，接受 `membership` 的 PANDA 全额抵扣决定，以及治理授权验证方提供的 Apple 交易事实，并把合同投影成认证资源权益，以及 `dmsg_user` 使用的 UTC 月执行额度。
+3. **dMsg 账户产品**：作为产品 `dmsg` 的报价权威与适配器，提供年度套餐、现金升级和存储包，接受 `membership` 的 PANDA 全额抵扣决定，以及治理授权验证方提供的 Apple 和 Google Play 交易事实，并把合同投影成认证资源权益，以及 `dmsg_user` 使用的 UTC 月执行额度。
 
 完整接口见 [dmsg_commerce.did](dmsg_commerce.did)。公开合同见 [commerce v2](../../docs/protocol/commerce.md) 与 [integration](../../docs/protocol/integration.md)；类型见 [integration_billing](../dmsg_types/src/integration_billing.rs)、[billing](../dmsg_types/src/billing.rs)；纯规则见 [commerce_v2](../dmsg_protocol/src/commerce_v2.rs) 与 [product_book](../dmsg_protocol/src/product_book.rs)。
 
@@ -573,3 +573,18 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
 ```
 
 该测试在旧 Wasm 中创建订单和部分归集的未派发转账，更新产品商户登记后升级，验证原参数、原商户与剩余收入不变，定时任务自动恢复并结清。`automatic_settlement_reindexes_existing_jobs_after_upgrade` 使用 `DMSG_PRE_SETTLEMENT_INDEX_WASM` 指定最初自动结算版 Wasm，验证已有任务和旧补建游标在新增出金子索引后仍能恢复原转账。普通 commerce 回归覆盖新安装后的自动到账、退款和转账重试。
+
+
+### Google Play 权威适配（2026-11-16，本地实现）
+
+独立合同见 [dmsg-google-play/1](../../docs/protocol/google_play_zh.md)。治理设置精确包名、验证者和商品/选项/优惠映射；验证者提交当前 Developer API 事实，原始 purchaseToken 不上链。Production/Test 分开，正式合同优先。订阅用真实订单区分账期，存储加购按 token 去重并绑定原基础合同；可撤销权益及独立加购资格最长一小时。新 memory 38/39/40 分别保存配置、token 观察和回执，Subject schema 8 增加可缺省的 key 14，不改变 user/directory 稳定布局。
+
+本次 66 项 commerce 单元测试通过（2 项容量测试未运行）；协议 95 项单元、20 项向量与 3 项文档测试通过。PocketIC 已运行 `commerce::google_play::play_receipts_authorization_replacement_refund_and_upgrade_are_durable`，覆盖实际调用、越权、跨账号、重复、pending、linked 替换、存储退款与升级保留。另以公开 `e63962bb` 构建旧 commerce Wasm，运行下面的显式升级测试，保留原现金合同并在升级后新增、再次升级和读取 Play 回执。未部署、未接真实 Google 商品或资金。
+
+```sh
+DMSG_PRE_GOOGLE_PLAY_WASM=/path/to/previous/dmsg_commerce.wasm \
+DMSG_WASM_DIR=/path/to/current/wasm \
+cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane \
+  commerce::google_play::play_adapter_upgrade_preserves_existing_cash_subject_and_new_receipts \
+  -- --exact --ignored
+```

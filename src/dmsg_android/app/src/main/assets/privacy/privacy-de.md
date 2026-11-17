@@ -1,0 +1,49 @@
+# dMsg Datenschutzerklärung
+
+Letzte Aktualisierung: 2026-10-29.
+
+dMsg verschlüsselt private Inhalte auf Ihren autorisierten Geräten. Diese Erklärung gilt für dmsg.net, die schreibgeschützte bisherige Web-App, die Desktop- und iOS-Apps, connect.dmsg.net, den Cloud-Dienst und die Canister auf dem Internet Computer (ICP). „Wir“ bezeichnet das Team, das dMsg unter der Governance der ICPanda DAO betreibt. Die Verfügbarkeit einzelner Funktionen hängt von der App-Version und der Dienstkonfiguration ab.
+
+Wir verkaufen keine personenbezogenen Daten und nutzen Ihre Inhalte nicht für Werbezwecke. Die Website enthält keine Werbe- oder Analyse-Tracker.
+
+## 1. Inhalte und öffentliche Informationen
+
+Tresor-Einträge (Vault), private Nachrichten und Dateien werden vor dem Hochladen verschlüsselt. Inhaltsschlüssel verbleiben auf autorisierten Geräten oder in Wiederherstellungs- bzw. Geräte-Umschlägen, die der Dienst nicht öffnen kann. Empfänger können geteilte Kopien lesen und speichern. Öffentliche Profile, Avatare, Handles (Benutzernamen), Verzeichnisdokumente und Informationen, die Sie bewusst veröffentlichen, sind öffentlich. Eine Meldung wegen Missbrauchs ist eine gesonderte Offenlegung: Moderatoren erhalten den Meldegrund, Ihre Notiz, Konto- und Ressourcenkennungen sowie ausschließlich den Nachrichtentext, den Sie ausdrücklich beifügen. Durch eine Meldung erhalten Moderatoren niemals die Schlüssel zu Ihrem Konto.
+
+## 2. Dienst-Metadaten
+
+Der Dienst verarbeitet Konto- und Anmeldekennungen, öffentliche Geräteschlüssel, Kanalmitgliedschaften, Kontakt- und Blockierregeln, Objektgrößen, Anfragezeitpunkte, IP-Adressen sowie betriebliche Anfrageinformationen. Zertifizierte Kontozustände, Signaturbelege und Berechtigungen (Entitlements) ermöglichen es Client-Apps und Diensten, Berechtigungen zu prüfen. Ledger-Transaktionen sowie öffentliche oder zertifizierte On-Chain-Einträge können grundsätzlich nicht gelöscht werden.
+
+Wenn Sie Benachrichtigungen aktivieren, verarbeitet der Benachrichtigungsdienst zusätzlich die Daten, die zum Filtern von Hinweisen vor dem Versand erforderlich sind: undurchsichtige (opake) Ressourcenkennungen, stummgeschaltete oder ausgeblendete Kanäle, Ruhezeiten und Zeitzone, Lesebestätigungen (wann Sie eine Erinnerung tatsächlich angesehen haben und bis zu welcher Nachricht) sowie welche Konten auf derselben Installation registriert sind. Für Fristerinnerungen zu einer ausstehenden Kontowiederherstellung lädt Ihr Gerät den Wiederherstellungsdatensatz einschließlich der neuen Anmeldeidentität und des öffentlichen Geräteschlüssels hoch; der Dienst überprüft ihn und speichert lediglich die Erinnerung und deren Ausführungszeitpunkt. Der Dienst erhält weder Kanalnamen noch Nachrichteninhalte oder Schlüssel zu deren Entschlüsselung. Das Widerrufen der Registrierung, das Entfernen des Kontos vom Gerät oder das Löschen des Dienstkontos löscht diese Einstellungen, Lesebestätigungen und Installationsverknüpfungen; Zustell- und Wiederholungsprotokolle werden nur bis zu ihrem Ablauf aufbewahrt.
+
+## 3. Apple-Dienste und Zahlungen
+
+Unter iOS nutzen optionale Benachrichtigungen den Apple Push Notification Service (APNs). Apple und unser Zustelldienst verarbeiten eine Installationskennung, ein Geräte-Token und Zustell-Metadaten. Benachrichtigungen enthalten lediglich eine allgemeine Erinnerung und eine opake Zielroute, jedoch niemals Nachrichtentexte, Passwörter oder Dateinamen. Sie können Benachrichtigungen in dMsg oder in den Systemeinstellungen deaktivieren; bereits zugestellte Benachrichtigungen lassen sich nicht immer zurückrufen. Erhalten mehrere Konten auf derselben Installation Benachrichtigungen, können Apple und unser Zustelldienst diese über das gemeinsame Geräte-Token einander zuordnen; dMsg holt Ihre Zustimmung ein, bevor Benachrichtigungen für ein weiteres Konto aktiviert werden.
+
+App Attest verarbeitet eine von der App erzeugte Schlüsselkennung, Attestierungs- bzw. Assertionsnachweise und Challenges, um die App-Installation zu überprüfen. Face ID, Touch ID und der Gerätecode werden vom Betriebssystem verarbeitet; dMsg erhält weder biometrische Daten noch Ihren Gerätecode.
+
+StoreKit-Käufe werden von Apple abgewickelt. Unser Verifizierungsdienst und der Commerce-Canister verarbeiten Transaktions- und Produktkennungen, ein kontobindendes Token, Kauf- und Ablaufdaten sowie den Erstattungs- bzw. Widerrufsstatus. Zahlungskartendaten erhalten sie nicht. Andere dMsg-Clients unterstützen gegebenenfalls ICP-Wallet-Zahlungen und die PANDA-Mitgliedschaft mit öffentlichen Ledger- und Berechtigungseinträgen. Das Löschen Ihres dMsg-Kontos kündigt kein Apple-Abonnement; verwalten Sie Abonnements in Ihrem Apple Account.
+
+Richtlinien und Vorschläge von Multisig-Wallets werden von den Wallet-Canistern verarbeitet; deren Sichtbarkeit richtet sich nach den Einstellungen der jeweiligen Wallet. Blockchain-RPC-Anbieter erhalten die Adressen, Transaktionsdaten und IP-Informationen, die für Kontostandsabfragen, Gebührensimulationen und das Senden (Broadcasting) von Transaktionen erforderlich sind. Zu den Standard-Endpunkten gehören mempool.space, PublicNode, mainnet.base.org und api.mainnet-beta.solana.com; für selbst konfigurierte Alternativen gelten deren eigene Datenschutzbestimmungen.
+
+## 4. Lokale Daten und Systemintegrationen
+
+Die nativen Apps speichern einen lokal verschlüsselten Arbeitsbereich, vom Betriebssystem geschützte Schlüssel (sofern unterstützt), Entwürfe, ausstehende Vorgänge und Einstellungen. Durch das Entsperren werden ausgewählte Inhalte im Arbeitsspeicher der App verfügbar. Exportierte Dateien und kopierte Texte können von den jeweiligen Ziel-Apps gespeichert werden.
+
+Die iOS-Teilen-Erweiterung (Share Extension) legt lediglich die von Ihnen ausgewählten Elemente für einen späteren Kontoimport bereit. Die Integrationen für das automatische Ausfüllen von Passwörtern (AutoFill) und die Dateien-App enthalten ausschließlich ausdrücklich ausgewählte, separat verschlüsselte Snapshots. AutoFill erfordert eine eigenständige Systemauthentifizierung; Snapshots laufen nach 24 Stunden ab. Zugriffssitzungen für die Dateien-App dauern höchstens fünf Minuten und enden, sobald dMsg gesperrt wird; die Dateien-App und andere Empfänger können bereits heruntergeladene Kopien jedoch behalten. Änderungen an den Quelleinträgen aktualisieren einen bereits exportierten Snapshot nicht automatisch.
+
+Ausdrücklich gestartete Hintergrundübertragungen speichern lediglich begrenzten Chiffretext und eine Übertragungsberechtigung in einem separaten Geräteverzeichnis, das nach dem ersten Entsperren des Geräts zugänglich ist. Sie enthalten weder Kontosignatur- noch Inhaltsschlüssel. Das ursprüngliche Konto muss entsperrt werden, um eine Übertragung zu prüfen und abzuschließen. Das Betriebssystem kann die Übertragung verzögern oder beenden.
+
+Die Website speichert Ihre Sprachauswahl lokal. Die bisherige Web-App nutzt den Browserspeicher für Sitzungen und zwischengespeicherte Daten; ihre Wallet-Ansicht kann Kurse von ICPSwap abrufen. Das Deinstallieren einer App oder das Löschen ihrer Anwendungsdaten kann zum dauerhaften Verlust von Inhalten führen, die noch nicht synchronisiert oder exportiert wurden.
+
+## 5. Dienstleister und Aufbewahrung
+
+Cloudflare verarbeitet Cloud-Chiffretext und Anfrage-Metadaten. ICP-Node-Provider und Gateways betreiben Canister und Websites. Apple vertreibt die iOS-App und stellt die oben beschriebenen optionalen Dienste bereit. Internet Identity, Wallet-Anbieter und verbundene Anwendungen unterliegen ihren eigenen Datenschutzrichtlinien. Wir können bei uns gespeicherte Informationen offenlegen, wenn wir gesetzlich dazu verpflichtet sind, einschließlich ausdrücklich eingereichter Meldungen; Klartext, den wir nicht besitzen, können wir nicht herausgeben.
+
+Cloud-Chiffretext unterliegt den Speicher- und Löschregeln des jeweiligen Kontos. Das Löschen eines Dienstkontos ist ein nachverfolgbarer Bereinigungsauftrag: Er sperrt neue Dienstzugriffe, entfernt kontoeigene Cloud-Inhalte sowie öffentliche Avatar-Kopien und meldet den Abschluss erst nach erfolgter Bereinigung. Davon unberührt bleiben geteilte Kopien bei anderen Nutzern, lokale Kopien auf anderen Geräten, die öffentliche Ledger-Historie sowie erforderliche Finanz- und Anti-Replay-Aufzeichnungen. Offene Transaktionen oder eigene aktive Kanäle müssen unter Umständen zuvor abgewickelt bzw. aufgelöst werden. Meldungsdaten werden zur Prüfung bis zu 90 Tage lang aufbewahrt; Zustell-Token verfallen, sofern sie nicht erneuert werden. Betriebsprotokolle werden nur so lange gespeichert, wie dies für Sicherheit, Missbrauchsprävention und Fehlerbehebung erforderlich ist.
+
+## 6. Ihre Möglichkeiten, Rechte und Kontakt
+
+Sie können Inhalte exportieren oder löschen, Geräte oder Browser widerrufen, Absender blockieren, Missbrauch melden, Kontaktregeln ändern, die Löschung Ihres Dienstkontos beantragen und die Kontodaten auf diesem Gerät separat entfernen. Je nach Ihrem Wohnort haben Sie gegebenenfalls das Recht auf Auskunft, Berichtigung, Löschung oder Widerspruch gegen die Verarbeitung personenbezogener Daten. Wenden Sie sich für Anfragen oder vertrauliche Sicherheitsmeldungen an den [Support](https://dmsg.net/_/support). Wir erläutern Ihnen gerne, in welchen Fällen Verschlüsselung, aufbewahrungspflichtige Transaktionsdaten oder unveränderliche öffentliche Einträge einer Anfrage Grenzen setzen.
+
+Kein System ist vollkommen sicher. App-Updates und Canister-Upgrades unter DAO-Governance setzen weiterhin Vertrauen voraus. dMsg richtet sich nicht an Kinder unter 13 Jahren oder unterhalb des jeweils geltenden Mindestalters für die Nutzung von Online-Diensten ohne elterliche Zustimmung. Bei wesentlichen Änderungen dieser Erklärung aktualisieren wir das Datum oben und kündigen die Änderungen in der App oder auf der Website an.

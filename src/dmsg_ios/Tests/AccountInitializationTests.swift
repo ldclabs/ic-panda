@@ -63,6 +63,6 @@ final class AccountInitializationTests: XCTestCase {
         XCTAssertTrue(model.busy)
         XCTAssertFalse(model.initializingAccount)
         XCTAssertTrue(model.finishBusyOperation(operation))
-        try await engine.close()
+        try await engine.shutdown()
     }
 }

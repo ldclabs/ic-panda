@@ -363,6 +363,59 @@ impl From<dmsg_client::channel::Message> for MessageItem {
 pub struct MessageDraft {
     pub channel: String,
     pub text: String,
+    pub stamp: Option<MessageDraftStamp>,
+    pub attachments: Vec<ComposerAttachment>,
+    pub reply_sequence: Option<u64>,
+    pub reply_digest: Option<String>,
+}
+
+#[derive(Clone, uniffi::Record)]
+pub struct ComposerAttachment {
+    pub file: String,
+    pub version: String,
+    pub name: String,
+}
+
+impl MessageDraft {
+    pub(super) fn content(&self) -> dmsg_types::Result<dmsg_client::outbox::ComposerDraft> {
+        let reply_to = match (self.reply_sequence, &self.reply_digest) {
+            (None, None) => None,
+            (Some(seq), Some(digest)) => Some(dmsg_client::channel::MessageRef {
+                seq,
+                digest: digest.clone(),
+            }),
+            _ => return Err(dmsg_types::invalid("reply")),
+        };
+        Ok(dmsg_client::outbox::ComposerDraft {
+            text: self.text.clone(),
+            attachments: self
+                .attachments
+                .iter()
+                .map(|f| dmsg_client::outbox::Attachment {
+                    file: f.file.clone(),
+                    version: f.version.clone(),
+                    name: f.name.clone(),
+                })
+                .collect(),
+            reply_to,
+        })
+    }
+}
+
+/// Authored revision used to fence late autosaves and a lost queue reply.
+#[derive(uniffi::Record)]
+pub struct MessageDraftStamp {
+    pub writer: String,
+    pub revision: u64,
+}
+
+impl From<MessageDraftStamp> for dmsg_client::outbox::DraftStamp {
+    fn from(value: MessageDraftStamp) -> Self {
+        Self {
+            writer: value.writer,
+            revision: value.revision,
+        }
+    }
 }
 
 #[derive(Clone, uniffi::Record)]

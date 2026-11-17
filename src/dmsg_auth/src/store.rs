@@ -121,11 +121,21 @@ thread_local! {
     // One registration per hardware caller keeps an admission ticket from
     // creating more identities by logging out and registering repeatedly.
     pub(crate) static REGISTRATIONS: RefCell<StableBTreeMap<Vec<u8>, [u8; 32], Memory>> = RefCell::new(StableBTreeMap::init(memory(3)));
+    // A new memory ID preserves every existing record layout and identity seed.
+    static ANDROID_SIGNERS: RefCell<StableCell<Stored<Vec<Hash>>, Memory>> = RefCell::new(StableCell::init(memory(4), Stored(vec![])));
     pub(crate) static TRANSIENT: RefCell<Transient> = RefCell::new(Transient::default());
 }
 
 fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
+}
+
+pub(crate) fn android_signers() -> Vec<Hash> {
+    ANDROID_SIGNERS.with_borrow(|cell| cell.get().0.clone())
+}
+
+pub(crate) fn save_android_signers(signers: Vec<Hash>) {
+    ANDROID_SIGNERS.with_borrow_mut(|cell| cell.set(Stored(signers)));
 }
 
 pub(crate) fn config() -> Config {

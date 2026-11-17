@@ -1,0 +1,49 @@
+# Informativa sulla privacy di dMsg
+
+Ultimo aggiornamento: 2026-10-29.
+
+dMsg crittografa i contenuti privati sui tuoi dispositivi autorizzati. La presente informativa riguarda dmsg.net, l'applicazione web legacy di sola lettura, le app per desktop e iOS, connect.dmsg.net, il servizio cloud e i canister su Internet Computer (ICP). Con "noi" si intende il team che gestisce dMsg sotto la governance di ICPanda DAO. La disponibilità delle singole funzionalità dipende dalla versione dell'app e dalla configurazione del servizio.
+
+Non vendiamo dati personali né utilizziamo i tuoi contenuti a fini pubblicitari. Il sito web non contiene tracker pubblicitari o di analisi.
+
+## 1. Contenuti e informazioni pubbliche
+
+Gli elementi della cassaforte (Vault), i messaggi privati e i file vengono crittografati prima del caricamento. Le chiavi dei contenuti rimangono sui dispositivi autorizzati o in buste crittografiche di recupero/dispositivo che il servizio non è in grado di aprire. I destinatari possono leggere e conservare le copie condivise. I profili pubblici, gli avatar, gli handle (nomi utente), i documenti di directory e le informazioni che pubblichi intenzionalmente sono pubblici. Una segnalazione costituisce una comunicazione separata: i moderatori ricevono il motivo, la nota, gli identificatori dell'account o della risorsa e solo il testo del messaggio che scegli esplicitamente di allegare. L'invio di una segnalazione non fornisce ai moderatori le chiavi del tuo account.
+
+## 2. Metadati del servizio
+
+Il servizio elabora gli identificatori di account e di accesso, le chiavi pubbliche dei dispositivi, l'appartenenza ai canali, le regole di contatto e di blocco, le dimensioni degli oggetti, la tempistica delle richieste, gli indirizzi IP e le informazioni operative relative alle richieste. Lo stato certificato dell'account, le ricevute di firma e i diritti di utilizzo (entitlement) consentono alle app client e ai servizi di verificare le autorizzazioni. Le transazioni sul ledger e i record on-chain pubblici o certificati generalmente non possono essere cancellati.
+
+Se attivi le notifiche, il servizio di notifica elabora anche ciò che serve per filtrare gli avvisi prima dell'invio: identificatori opachi delle risorse, i canali che hai silenziato o nascosto, la fascia oraria silenziosa e il fuso orario, le conferme di visualizzazione (quando hai effettivamente visto un promemoria e fino a quale messaggio) e quali account sono registrati sulla stessa installazione. Per i promemoria di scadenza di un recupero dell'account in attesa, il tuo dispositivo carica il record di recupero, inclusi la nuova identità di accesso e la chiave pubblica del dispositivo; il servizio lo verifica e conserva solo il promemoria e l'orario di esecuzione. Il servizio non riceve i nomi dei canali, il contenuto dei messaggi né le chiavi per decrittografarli. Revocare la registrazione, rimuovere l'account dal dispositivo o eliminare l'account del servizio cancella queste preferenze, le conferme di visualizzazione e i collegamenti all'installazione; i record di recapito e di nuovo tentativo vengono conservati solo fino alla loro scadenza.
+
+## 3. Servizi Apple e pagamenti
+
+Su iOS, le notifiche facoltative utilizzano il servizio Apple Push Notification (APNs). Apple e il nostro servizio di recapito elaborano un identificatore di installazione, un token del dispositivo e i metadati di recapito. Le notifiche contengono un promemoria generico e un percorso opaco, mai il corpo del messaggio, una password o il nome di un file. Puoi disattivare le notifiche in dMsg o nelle impostazioni di sistema; le notifiche già consegnate non sempre possono essere revocate. Se più account ricevono notifiche sulla stessa installazione, il token del dispositivo condiviso consente ad Apple e al nostro servizio di recapito di associarli; dMsg chiede il tuo consenso prima di attivare le notifiche per un altro account.
+
+App Attest elabora un identificatore di chiave generato dall'app, prove di attestazione/asserzione e challenge crittografiche per verificare l'autenticità dell'installazione dell'app. Face ID, Touch ID e il codice del dispositivo sono gestiti dal sistema operativo; dMsg non riceve immagini biometriche né il tuo codice di sblocco.
+
+Gli acquisti tramite StoreKit sono gestiti da Apple. Il nostro servizio di verifica e il canister commerciale elaborano gli identificatori di transazione e prodotto, un token di associazione all'account, le date di acquisto e di scadenza e lo stato di rimborso o revoca. Non ricevono i dati della tua carta di pagamento. Altri client dMsg possono supportare pagamenti tramite wallet ICP e l'iscrizione PANDA, con relativi record pubblici sul ledger e sui diritti. L'eliminazione dell'account dMsg non annulla un abbonamento Apple; gestisci gli abbonamenti nel tuo Apple Account.
+
+Le regole e le proposte dei wallet multifirma (multisig) vengono elaborate dai canister del wallet; la loro visibilità segue le impostazioni del wallet stesso. I provider RPC della blockchain ricevono gli indirizzi, i dati delle transazioni e le informazioni IP necessari per le richieste di saldo, la simulazione delle commissioni e la trasmissione (broadcasting) delle transazioni. Gli endpoint predefiniti includono mempool.space, PublicNode, mainnet.base.org e api.mainnet-beta.solana.com; eventuali endpoint alternativi configurati seguono le proprie informative sulla privacy.
+
+## 4. Dati locali e integrazioni di sistema
+
+Le app native mantengono uno spazio di lavoro locale crittografato, chiavi protette dal sistema operativo ove supportato, bozze, operazioni in sospeso e preferenze. Lo sblocco rende disponibili i contenuti selezionati nella memoria dell'app. I file esportati e il testo copiato possono essere conservati dalle app di destinazione.
+
+L'estensione Condividi (Share) di iOS prepara solo gli elementi da te selezionati per una successiva importazione nell'account. Le integrazioni con Inserimento automatico password (AutoFill) e con l'app File contengono esclusivamente snapshot selezionati esplicitamente e crittografati separatamente. L'inserimento automatico richiede un'autenticazione di sistema indipendente; gli snapshot scadono dopo 24 ore. Le sessioni di accesso all'app File durano al massimo cinque minuti e terminano quando dMsg viene bloccato, ma l'app File e altri destinatari possono conservare le copie già scaricate. La modifica degli elementi di origine non aggiorna automaticamente uno snapshot già esportato.
+
+I trasferimenti espliciti in background archiviano solo testo cifrato limitato e un'autorizzazione di trasferimento in una directory separata del dispositivo, accessibile dopo il primo sblocco del dispositivo. Non contengono chiavi di firma dell'account né chiavi dei contenuti. L'account originale deve essere sbloccato per verificare e completare il trasferimento. Il sistema operativo può ritardare o interrompere il recapito.
+
+Il sito web ricorda localmente la lingua selezionata. L'applicazione web legacy utilizza l'archiviazione del browser per le sessioni e i dati memorizzati nella cache; la sua vista wallet può richiedere quotazioni a ICPSwap. La rimozione di un'app o la cancellazione dei relativi dati può comportare la perdita definitiva dei contenuti mai sincronizzati o esportati.
+
+## 5. Fornitori e conservazione dei dati
+
+Cloudflare elabora il testo cifrato cloud e i metadati delle richieste. I provider di nodi e i gateway ICP gestiscono i canister e i siti web. Apple distribuisce l'app iOS e fornisce i servizi facoltativi descritti sopra. Internet Identity, i fornitori di wallet e le applicazioni connesse dispongono di proprie informative sulla privacy. Possiamo divulgare le informazioni in nostro possesso quando richiesto dalla legge, comprese le segnalazioni inviate esplicitamente; non possiamo divulgare testo in chiaro (plaintext) di cui non siamo in possesso.
+
+Il testo cifrato nel cloud segue le regole di archiviazione ed eliminazione dell'account. L'eliminazione dell'account del servizio è una richiesta di pulizia tracciata: blocca nuovi accessi al servizio, rimuove i contenuti cloud di proprietà dell'account e le copie pubbliche dell'avatar, e segnala il completamento solo al termine della pulizia. Non cancella le copie condivise con altre persone, le copie locali su altri dispositivi, la cronologia del ledger pubblico o i necessari record finanziari e anti-replay. Eventuali transazioni in sospeso o canali attivi di proprietà potrebbero dover essere chiusi prima. I record delle segnalazioni vengono conservati fino a 90 giorni per la revisione; i token di recapito scadono se non rinnovati. I log operativi vengono conservati solo per il tempo necessario alla sicurezza, alla prevenzione degli abusi e alla risoluzione dei problemi.
+
+## 6. Scelte, diritti e contatti
+
+Puoi esportare o eliminare contenuti, revocare dispositivi o browser, bloccare mittenti, segnalare abusi, modificare le regole di contatto, richiedere l'eliminazione dell'account del servizio e rimuovere separatamente i dati dell'account da questo dispositivo. A seconda della tua giurisdizione, potresti avere il diritto di accedere, rettificare, cancellare o opporti al trattamento dei dati personali. Contatta il [Supporto](https://dmsg.net/_/support) per richieste o segnalazioni riservate di vulnerabilità. Ti spiegheremo i casi in cui la crittografia, i record di transazione conservati per legge o i registri pubblici immutabili pongono limiti a una richiesta.
+
+Nessun sistema è sicuro in modo assoluto. Gli aggiornamenti delle app e gli upgrade dei canister sotto la governance della DAO rimangono punti basati sulla fiducia. dMsg non è destinato a minori di 13 anni o di età inferiore all'età minima applicabile per l'utilizzo di servizi online senza il consenso dei genitori. In caso di modifiche sostanziali all'informativa, aggiorneremo la data indicata in alto e ne daremo comunicazione nell'app o sul sito web.

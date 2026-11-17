@@ -91,6 +91,161 @@ pub struct AttestRun {
     attestation: Option<Attestation>,
 }
 
+/// An owner decision awaiting exact-message preparation and hardware confirmation.
+/// It exposes no legacy execution path that could skip the hardware step.
+pub struct HardwareAttestation {
+    run: AttestRun,
+}
+
+/// Final signed device statement and hardware commitment, still local and unjournaled.
+pub struct PreparedAttestation {
+    run: AttestRun,
+    attestation: Attestation,
+    account_version: u64,
+    hardware: crate::approval_key::PreparedHardwareProof,
+}
+
+/// Hardware result bound to its original immutable attestation plan.
+pub struct ProvedAttestation {
+    run: AttestRun,
+    attestation: Attestation,
+    account_version: u64,
+    answer: crate::approval_key::HardwareProofAnswer,
+}
+
+impl HardwareAttestation {
+    /// Read current certified state before constructing the final hardware message.
+    /// # Errors
+    /// Refuses expired, changed or invalid requests without prompting or publishing.
+    pub async fn prepare<H: Hold>(self, h: &H) -> Result<PreparedAttestation> {
+        let h = Unlocked::new(h).await?;
+        h.with(|c| c.attest_waiting(&self.run, now_ms())).await?;
+        let file = match self.run.file.as_ref().and_then(|file| file.path.as_ref()) {
+            Some(path) => {
+                let path = std::path::PathBuf::from(path);
+                Some(
+                    tokio::task::spawn_blocking(move || file_sha256(&path))
+                        .await
+                        .map_err(|_| Error::Unavailable("file verification stopped".into()))?,
+                )
+            }
+            None => None,
+        };
+        let read = self.run.read(file).await;
+        h.with(|c| {
+            let now = now_ms();
+            c.attest_waiting(&self.run, now)?;
+            let state = c.attest_checked_read(&self.run, read, now)?;
+            let (attestation, message) = c.attest_unsigned(
+                &self.run.request.id,
+                self.run.subject.clone(),
+                &state,
+                self.run.request.expires_at,
+                now,
+            )?;
+            let hardware = c.prepare_hardware_proof(
+                &state.info,
+                HardwarePurpose::Attestation,
+                message,
+                attestation.request.approval().expires_at,
+                now,
+            )?;
+            Ok(PreparedAttestation {
+                run: self.run,
+                attestation,
+                account_version: state.info.account_version,
+                hardware,
+            })
+        })
+        .await
+    }
+}
+
+impl PreparedAttestation {
+    /// Keep this guard in the async owner while its blocking signer runs.
+    pub fn cancellation(&self) -> crate::secure::SigningCancellation {
+        self.hardware.cancellation()
+    }
+
+    /// Blocking hardware authentication over bytes already fixed by prepare.
+    /// This consumes the plan and must be called off the client executor.
+    pub fn sign(self) -> ProvedAttestation {
+        ProvedAttestation {
+            run: self.run,
+            attestation: self.attestation,
+            account_version: self.account_version,
+            answer: self.hardware.sign(),
+        }
+    }
+}
+
+impl ProvedAttestation {
+    /// The host can classify a known hardware failure without relabelling network errors.
+    pub fn hardware_error(&self) -> Option<Error> {
+        self.answer.error()
+    }
+
+    /// Revalidate after authentication, journal the same bytes, then submit once.
+    /// # Errors
+    /// A changed account version, security epoch, device sequence or request
+    /// requires a new review; no automatic reconstruction or re-signing occurs.
+    pub async fn commit<H: Hold>(mut self, h: &H) -> Result<Json> {
+        let h = Unlocked::new(h).await?;
+        if self.answer.error().is_some() {
+            return h
+                .with(|c| {
+                    let now = now_ms();
+                    c.attest_waiting(&self.run, now)?;
+                    let error = c
+                        .complete_hardware_proof(self.answer, now)
+                        .err()
+                        .ok_or(Error::IntegrityFailed)?;
+                    c.approval_unconfirmed(&self.run.request.id, &error)?;
+                    Err(error)
+                })
+                .await;
+        }
+        let state =
+            crate::account::read_account(&self.run.ic, self.run.home, &self.run.account).await?;
+        h.with(|c| {
+            let now = now_ms();
+            c.attest_waiting(&self.run, now)?;
+            c.observe(&self.run.account, &state.security)?;
+            c.observe_hardware(&state.info);
+            check_prepared_state(&self.attestation, self.account_version, &state)?;
+            c.attest_sequence_available(&self.attestation.execution_id())?;
+            let hardware = c.complete_hardware_proof(self.answer, now)?;
+            self.attestation.request.approval_mut().hardware = Some(hardware);
+            ensure(
+                now < self.attestation.request.approval().expires_at,
+                Error::Expired,
+            )?;
+            c.journal_prepared_attestation(&mut self.run.request, &self.attestation, now)?;
+            self.run.attestation = Some(self.attestation);
+            Ok(())
+        })
+        .await?;
+        let sent = self.run.send().await;
+        h.with(|c| c.attest_settle(self.run, sent)).await
+    }
+}
+
+fn check_prepared_state(
+    attestation: &Attestation,
+    account_version: u64,
+    state: &crate::account::AccountState,
+) -> Result<()> {
+    let approval = attestation.request.approval();
+    let current = state.active(&approval.device_id)?;
+    ensure(
+        state.info.account_id == attestation.request.account()
+            && state.info.account_version == account_version
+            && state.info.security_epoch == approval.security_epoch
+            && current.next_sequence == approval.sequence,
+        Error::PolicyStale,
+    )
+}
+
 /// What [`AttestRun::read`] found before signing.
 struct RunRead {
     file: Option<Result<Hash>>,
@@ -238,10 +393,17 @@ pub enum Signed {
 }
 
 impl Signed {
-    fn approval(&self) -> &Approval {
+    pub(crate) fn approval(&self) -> &Approval {
         match self {
             Signed::Document(r) => &r.approval,
             Signed::Action(r) => &r.approval,
+        }
+    }
+
+    pub(crate) fn approval_mut(&mut self) -> &mut Approval {
+        match self {
+            Signed::Document(request) => &mut request.approval,
+            Signed::Action(request) => &mut request.approval,
         }
     }
 
@@ -738,12 +900,12 @@ pub fn verify_bundle(
 }
 
 impl Client {
-    fn attestation(&self, execution: &str) -> Result<Option<Attestation>> {
+    pub(crate) fn attestation(&self, execution: &str) -> Result<Option<Attestation>> {
         self.workspace
             .private(self.keys()?, &format!("{PREFIX}{execution}"))
     }
 
-    fn save_attestation(&self, attestation: &Attestation) -> Result<()> {
+    pub(crate) fn save_attestation(&self, attestation: &Attestation) -> Result<()> {
         self.workspace.put_private(
             self.keys()?,
             &format!("{PREFIX}{}", attestation.execution_id()),
@@ -918,7 +1080,7 @@ impl Client {
         self.session()?;
         let account = self.account()?.clone();
         let state = self.refresh(account.home, &account.id).await?;
-        self.attest_sign_with(approval, subject, &state)
+        self.attest_sign_with(approval, subject, &state, now_ms())
     }
 
     /// [`Self::attest_prepare`] with the account's state already read.
@@ -927,7 +1089,25 @@ impl Client {
         approval: &str,
         subject: Subject,
         state: &crate::account::AccountState,
+        now: u64,
     ) -> Result<Attestation> {
+        let (mut attestation, message) =
+            self.attest_unsigned(approval, subject, state, u64::MAX, now)?;
+        attestation.request.approval_mut().hardware =
+            self.hardware_proof(&state.info, Some(HardwarePurpose::Attestation), message)?;
+        self.save_attestation(&attestation)?;
+        Ok(attestation)
+    }
+
+    /// Construct final protocol bytes without asking for presence or journaling.
+    pub(crate) fn attest_unsigned(
+        &mut self,
+        approval: &str,
+        subject: Subject,
+        state: &crate::account::AccountState,
+        deadline: u64,
+        now: u64,
+    ) -> Result<(Attestation, Hash)> {
         let account = self.account()?.clone();
         let device_id = self.workspace.meta.device_id;
         let device = state.active(&device_id)?;
@@ -940,7 +1120,6 @@ impl Client {
         )?;
         let policy = &state.info.sensitive_policy;
         ensure(!policy.frozen, Error::Locked)?;
-        let now = now_ms();
         let mut approval_fields = Approval {
             device_id,
             security_epoch: state.info.security_epoch,
@@ -951,17 +1130,14 @@ impl Client {
                 device_id,
                 device.next_sequence,
             ),
-            expires_at: now + APPROVAL_MS,
+            expires_at: (now + APPROVAL_MS).min(deadline),
             signature: Ed25519Signature::new([0; 64]),
             hardware: None,
         };
         // The state may have been read before another attestation took this
         // sequence: one still open or recorded keeps its journal, and this
         // one waits for a fresh read. A sequence the home refused is free.
-        let held = self
-            .attestation(&hex::encode(*approval_fields.request_id))?
-            .is_some_and(|a| matches!(a.stage, Stage::Unknown | Stage::Complete | Stage::Lost));
-        ensure(!held, Error::PolicyStale)?;
+        self.attest_sequence_available(&hex::encode(*approval_fields.request_id))?;
         let (statement, origin) = match &subject {
             Subject::Statement { statement, origin } => (statement.clone(), origin.clone()),
             Subject::Action(action) => {
@@ -994,8 +1170,6 @@ impl Client {
             &approval_fields,
         );
         approval_fields.signature = Ed25519Signature::new(sign(&keys.signing, message.as_slice()));
-        approval_fields.hardware =
-            self.hardware_proof(&state.info, Some(HardwarePurpose::Attestation), message)?;
         let request = match subject {
             Subject::Statement { statement, origin } => Signed::Document(AttestRequest {
                 account_id: account.id,
@@ -1028,10 +1202,17 @@ impl Client {
             error: None,
             created_at: now,
         };
-        // Journaled before it is sent: the home may record it even if the
-        // reply is lost.
-        self.save_attestation(&attestation)?;
-        Ok(attestation)
+        Ok((attestation, message))
+    }
+
+    pub(crate) fn attest_sequence_available(&self, execution: &str) -> Result<()> {
+        let held = self.attestation(execution)?.is_some_and(|attestation| {
+            matches!(
+                attestation.stage,
+                Stage::Unknown | Stage::Complete | Stage::Lost
+            )
+        });
+        ensure(!held, Error::PolicyStale)
     }
 
     /// Check an artifact and its receipt against what was signed and keep
@@ -1073,8 +1254,86 @@ impl Client {
         Ok(attestation)
     }
 
-    /// The run of an approved attestation request; needs a login, since the
-    /// home accepts attestations only from a Principal bound to the account.
+    /// Begin exact-message hardware preparation while the request stays undecided.
+    /// Cancelling before a proved plan commits leaves no executable journal.
+    /// # Errors
+    /// Refuses changed/expired requests and requests without a hardware-key answer.
+    pub fn prepare_hardware_attestation(
+        &mut self,
+        id: &str,
+        shown: &str,
+        via: &str,
+    ) -> Result<HardwareAttestation> {
+        ensure(matches!(via, "gui" | "cli"), Error::Forbidden)?;
+        let now = now_ms();
+        self.expire_approvals(now)?;
+        let request = self.approval_record(id)?;
+        ensure(
+            hex::encode(*request.digest()) == shown,
+            Error::IntegrityFailed,
+        )?;
+        ensure(
+            matches!(
+                request.action,
+                Action::Attest { .. } | Action::AttestAction { .. }
+            ),
+            Error::UnsupportedProtocol,
+        )?;
+        ensure(
+            matches!(
+                self.approval_presence(id)?,
+                Some((crate::approval::Ask::Hardware(..), _))
+            ),
+            Error::Forbidden,
+        )?;
+        let mut run = self.attest_run(&request)?;
+        self.attest_waiting(&run, now)?;
+        run.request.decided_via = Some(via.into());
+        Ok(HardwareAttestation { run })
+    }
+
+    fn journal_prepared_attestation(
+        &mut self,
+        request: &mut crate::approval::Request,
+        attestation: &Attestation,
+        now: u64,
+    ) -> Result<()> {
+        request.state = crate::approval::State::Executing;
+        request.decided_at = Some(now);
+        request.updated_at = now;
+        request.started = true;
+        request.error = None;
+        request.execution = Some(attestation.execution_id());
+        self.workspace.store.atomic(|_| {
+            self.save_attestation(attestation)?;
+            self.write_approval(request)
+        })?;
+        self.running.insert(request.id.clone(), now);
+        Ok(())
+    }
+
+    fn attest_waiting(&self, run: &AttestRun, now: u64) -> Result<()> {
+        self.keys()?;
+        ensure(
+            self.account()?.id == run.account && self.session_generation == run.generation,
+            Error::Locked,
+        )?;
+        let current = self.approval_record(&run.request.id)?;
+        ensure(
+            current.state == crate::approval::State::AwaitingUser && now < current.expires_at,
+            Error::Expired,
+        )?;
+        ensure(
+            current.expires_at == run.request.expires_at,
+            Error::IntegrityFailed,
+        )?;
+        ensure(
+            current.digest() == run.request.digest(),
+            Error::IntegrityFailed,
+        )
+    }
+
+    /// The run of an approved attestation request; needs a login bound to the account.
     pub(crate) fn attest_run(&self, request: &crate::approval::Request) -> Result<AttestRun> {
         let ic = self.session()?.ic.clone();
         let account = self.account()?.clone();
@@ -1136,6 +1395,18 @@ impl Client {
     }
 
     fn attest_signed(&mut self, run: &AttestRun, read: RunRead) -> Result<Attestation> {
+        let now = now_ms();
+        let state = self.attest_checked_read(run, read, now)?;
+        self.attest_sign_with(&run.request.id, run.subject.clone(), &state, now)
+    }
+
+    fn attest_checked_read(
+        &mut self,
+        run: &AttestRun,
+        read: RunRead,
+        now: u64,
+    ) -> Result<crate::account::AccountState> {
+        ensure(now < run.request.expires_at, Error::Expired)?;
         if let (Subject::Statement { statement, .. }, Some(file)) = (&run.subject, &run.file) {
             match read.file {
                 Some(found) => ensure(
@@ -1151,7 +1422,7 @@ impl Client {
         let state = read.account?;
         self.observe(&run.account, &state.security)?;
         self.observe_hardware(&state.info);
-        self.attest_sign_with(&run.request.id, run.subject.clone(), &state)
+        Ok(state)
     }
 
     /// Keep what [`AttestRun::send`] got back and settle the request.

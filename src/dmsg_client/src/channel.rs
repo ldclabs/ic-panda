@@ -50,6 +50,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 use zeroize::Zeroizing;
 
+#[path = "channel_management.rs"]
+pub mod management;
+
 #[path = "channel_snapshot.rs"]
 pub mod snapshot;
 
@@ -112,6 +115,8 @@ struct Keyring {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(default)]
 struct Local {
+    /// This device verified its leave command outcome; the old ledger remains historical.
+    left: bool,
     /// Relay cursor of the control log.
     control: u64,
     /// Relay sequence of the last message read.
@@ -551,6 +556,8 @@ fn background_packet(text: &str, file: bool, packet: Option<&Json>) -> bool {
 /// A channel as this device knows it.
 #[derive(Serialize, Clone, Debug, Default)]
 pub struct ChannelView {
+    /// A leave command succeeded on this device; the cached ledger is historical.
+    pub left: bool,
     /// Channel ID.
     pub id: String,
     /// Name, as this account calls it.
@@ -1435,67 +1442,129 @@ pub async fn invite<H: Hold>(
     account: &AccountId,
     role: Role,
 ) -> Result<Invitation> {
-    let invitation = random_hex();
+    invite_named(h, channel, account, role, &random_hex()).await
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct Inviting {
+    account: String,
+    role: Role,
+    expires_at: u64,
+    control: Option<Control>,
+}
+
+/// Retry an invitation with the same recipient, invitation ID and expiry.
+pub async fn invite_named<H: Hold>(
+    h: &H,
+    channel: &str,
+    account: &AccountId,
+    role: Role,
+    invitation: &str,
+) -> Result<Invitation> {
+    ensure_valid(is_hash(invitation), "invitation ID")?;
     let target = account.to_string();
-    let me = h.with(|c| c.me()).await?;
-    let mut ledger = pull(h, channel, None, None).await?;
-    if ledger.status == Status::RotationRequired && may_rotate(&ledger, &me) {
-        ledger = rotate(h, channel)
-            .await?
-            .ledger
-            .ok_or(Error::IntegrityFailed)?;
+    let work_key = format!("invite-intent:{invitation}");
+    let operation = format!("control:{invitation}");
+    let intent = h
+        .with(|c| {
+            if let Some(intent) = c.job::<Inviting>(channel, &work_key)? {
+                ensure(
+                    intent.account == target && intent.role == role,
+                    Error::IdempotencyConflict,
+                )?;
+                return Ok(intent);
+            }
+            let intent = Inviting {
+                account: target.clone(),
+                role,
+                expires_at: now_ms() + INVITATION_MS,
+                control: None,
+            };
+            c.save_job(channel, &work_key, &intent)?;
+            Ok(intent)
+        })
+        .await?;
+    if let Some(packet) = h
+        .with(|c| Ok(c.local(channel)?.invites.get(invitation).cloned()))
+        .await?
+    {
+        ensure(
+            packet.account == target && packet.expires_at > now_ms(),
+            Error::Expired,
+        )?;
+        return Ok(packet);
     }
-    h.signed(Client::root_now).await?;
-    let now = now_ms();
-    let expires_at = now + INVITATION_MS;
-    let mut control = Control {
-        expected_head: ledger.head.clone(),
-        expected_acl_version: ledger.acl_version,
-        action: Action::Invite {
-            invitation_id: invitation.clone(),
-            account: target.clone(),
-            role,
-            expires_at,
-            envelope_upload: None,
-        },
-    };
-    advance(&ledger, &control, &me, &"0".repeat(64), now)?;
-    if ledger.status == Status::Active {
-        open_epoch(h, channel, ledger.epoch).await?;
-        let current = recipients(h, std::slice::from_ref(&target)).await?;
-        let uploads = h
-            .with(|c| {
-                c.check_channel_head(channel, &ledger)?;
-                c.history_prepare(
-                    channel,
-                    &ledger,
-                    &target,
-                    ledger.epoch,
-                    ledger.epoch,
-                    &current.recipients,
-                    &invitation,
-                )
-            })
-            .await?;
-        for upload in &uploads {
-            send_upload(h, channel, upload, Source::Store).await?;
-        }
-        if let Action::Invite {
-            envelope_upload, ..
-        } = &mut control.action
+    let existing = h.with(|c| c.job::<Operation>(channel, &operation)).await?;
+    let payload = if let Some(job) = existing {
+        job.payload
+    } else {
+        ensure(intent.expires_at > now_ms(), Error::Expired)?;
+        let me = h.with(|c| c.me()).await?;
+        let mut ledger = pull(h, channel, None, None).await?;
+        if intent.control.is_none()
+            && ledger.status == Status::RotationRequired
+            && may_rotate(&ledger, &me)
         {
-            *envelope_upload = Some(uploads[0].plan.upload_id.clone());
+            ledger = rotate(h, channel)
+                .await?
+                .ledger
+                .ok_or(Error::IntegrityFailed)?;
         }
-    }
-    post(
-        h,
-        channel,
-        &format!("control:{invitation}"),
-        CONTROL,
-        json(&control),
-        "/control",
-    )
-    .await?;
+        h.signed(Client::root_now).await?;
+        let mut control = intent.control.clone().unwrap_or_else(|| Control {
+            expected_head: ledger.head.clone(),
+            expected_acl_version: ledger.acl_version,
+            action: Action::Invite {
+                invitation_id: invitation.into(),
+                account: target.clone(),
+                role,
+                expires_at: intent.expires_at,
+                envelope_upload: None,
+            },
+        });
+        advance(&ledger, &control, &me, &"0".repeat(64), now_ms())?;
+        h.with(|c| {
+            c.check_channel_head(channel, &ledger)?;
+            c.save_job(
+                channel,
+                &work_key,
+                &Inviting {
+                    control: Some(control.clone()),
+                    ..intent.clone()
+                },
+            )
+        })
+        .await?;
+        if ledger.status == Status::Active {
+            open_epoch(h, channel, ledger.epoch).await?;
+            let current = recipients(h, std::slice::from_ref(&target)).await?;
+            let uploads = h
+                .with(|c| {
+                    c.check_channel_head(channel, &ledger)?;
+                    c.history_prepare(
+                        channel,
+                        &ledger,
+                        &target,
+                        ledger.epoch,
+                        ledger.epoch,
+                        &current.recipients,
+                        invitation,
+                    )
+                })
+                .await?;
+            for upload in &uploads {
+                send_upload(h, channel, upload, Source::Store).await?;
+            }
+            if let Action::Invite {
+                envelope_upload, ..
+            } = &mut control.action
+            {
+                *envelope_upload = Some(uploads[0].plan.upload_id.clone());
+            }
+        }
+        json(&control)
+    };
+    post(h, channel, &operation, CONTROL, payload, "/control").await?;
     h.with(|c| c.forget_job(channel, &format!("history-plan:{invitation}")))
         .await?;
     let ledger = pull_changed(h, channel).await?;
@@ -1507,18 +1576,17 @@ pub async fn invite<H: Hold>(
             channel: channel.into(),
             genesis: ring.genesis,
             head: ledger.head,
-            invitation: invitation.clone(),
-            account: account.to_string(),
+            invitation: invitation.into(),
+            account: target,
             name: ring.name,
-            expires_at,
+            expires_at: intent.expires_at,
         };
-        // Kept to hand over again while it is open.
         let now = now_ms();
         let mut local = c.local(channel)?;
         local
             .invites
             .retain(|id, i| i.expires_at > now && ledger.invitations.contains_key(id));
-        local.invites.insert(invitation, packet.clone());
+        local.invites.insert(invitation.into(), packet.clone());
         c.save_local(channel, &local)?;
         Ok(packet)
     })
@@ -3256,6 +3324,9 @@ impl Client {
                 // carry epoch keys for its devices; a grant's messages are
                 // read again.
                 CONTROL => match from::<Control>(&stored.payload).map(|c| c.action) {
+                    // Rejoining from another device is a verified acceptance,
+                    // not merely a stale overview that still lists this account.
+                    Ok(Action::Accept { .. }) if stored.account == me => local.left = false,
                     Ok(Action::History {
                         account,
                         from_epoch,
@@ -3423,40 +3494,9 @@ impl Client {
     /// # Errors
     /// Returns `Error::RekeyRequired` while the account waits for a new root.
     pub async fn channel_create(&mut self, name: &str, kind: ChannelType) -> Result<String> {
-        ensure_valid(
-            !name.is_empty()
-                && name.chars().count() <= MAX_NAME
-                && !name.chars().any(char::is_control),
-            "name",
-        )?;
-        self.root_ready().await?;
-        let channel = random_hex();
-        let genesis = Genesis {
-            channel_id: channel.clone(),
-            nonce: random_hex(),
-            kind,
-        };
-        let job = self
-            .sign_operation(GENESIS, base(&channel)?, json(&genesis), random_hex())
-            .await?;
-        self.save_keyring(
-            None,
-            &Keyring {
-                format: FORMAT.into(),
-                id: channel.clone(),
-                name: name.into(),
-                genesis: hex_sha256(&unb64(&job.cose)?),
-                keys: BTreeMap::new(),
-                muted: false,
-                hidden: false,
-            },
-        )?;
-        self.save_job(&channel, "genesis", &job)?;
-        self.channel_post(&channel, "genesis", GENESIS, job.payload, "")
-            .await?;
-        self.channel_pull(&channel, None, None).await?;
-        self.channel_rotate(&channel).await?;
-        Ok(channel)
+        let request = random_hex();
+        self.channel_prepare_creation(name, kind, &request)?;
+        management::create(&self.hold(), &request).await
     }
 
     /// The channels this account knows.
@@ -3543,6 +3583,7 @@ impl Client {
             })
             .collect();
         Ok(ChannelView {
+            left: local.left,
             id: ring.id,
             name: ring.name,
             genesis: ring.genesis,
@@ -3576,75 +3617,7 @@ impl Client {
     /// Returns `Error::Forbidden` for an invitation to another account or
     /// one that expired.
     pub async fn channel_join(&mut self, invitation: &Invitation) -> Result<Ledger> {
-        let me = self.me()?;
-        ensure(
-            invitation.format == "dmsg-channel-invitation/1"
-                && invitation.account == me
-                && invitation.expires_at > now_ms()
-                && is_hash(&invitation.invitation)
-                && is_hash(&invitation.genesis),
-            Error::Forbidden,
-        )?;
-        self.root_ready().await?;
-        match self.keyring(&invitation.channel) {
-            Ok((_, ring)) => ensure(ring.genesis == invitation.genesis, Error::IntegrityFailed)?,
-            Err(Error::NotFound) => self.save_keyring(
-                None,
-                &Keyring {
-                    format: FORMAT.into(),
-                    id: invitation.channel.clone(),
-                    name: invitation.name.chars().take(MAX_NAME).collect(),
-                    genesis: invitation.genesis.clone(),
-                    keys: BTreeMap::new(),
-                    muted: false,
-                    hidden: false,
-                },
-            )?,
-            Err(error) => return Err(error),
-        }
-        let ledger = self
-            .channel_pull(
-                &invitation.channel,
-                Some(&invitation.invitation),
-                Some(&invitation.head),
-            )
-            .await?;
-        if !ledger.members.contains_key(&me) {
-            ensure(
-                ledger
-                    .invitations
-                    .get(&invitation.invitation)
-                    .is_some_and(|i| i.account == me),
-                Error::Forbidden,
-            )?;
-            let control = Control {
-                expected_head: ledger.head.clone(),
-                expected_acl_version: ledger.acl_version,
-                action: Action::Accept {
-                    invitation_id: invitation.invitation.clone(),
-                },
-            };
-            self.channel_post(
-                &invitation.channel,
-                &format!("accept:{}", invitation.invitation),
-                CONTROL,
-                json(&control),
-                "/control",
-            )
-            .await?;
-        }
-        let ledger = self.channel_pull(&invitation.channel, None, None).await?;
-        // A sealed invitation joined the current epoch: open its key now.
-        if ledger.epoch > 0
-            && ledger
-                .members
-                .get(&me)
-                .is_some_and(|m| m.joined_epoch == ledger.epoch)
-        {
-            self.channel_open_epoch(&invitation.channel, ledger.epoch)
-                .await?;
-        }
-        Ok(ledger)
+        management::join(&self.hold(), invitation).await
     }
 
     /// Apply a control action, checked locally against the current channel
@@ -3659,8 +3632,8 @@ impl Client {
         operation: &str,
     ) -> Result<Ledger> {
         ensure_valid(!matches!(action, Action::Leave {}), "action")?;
-        self.control_post(channel, action, operation).await?;
-        self.channel_pull(channel, None, None).await
+        management::control(&self.hold(), channel, action, operation).await?;
+        self.local(channel)?.ledger.ok_or(Error::IntegrityFailed)
     }
 
     /// Leave a channel. The relay serves nothing more to a member that left,
@@ -3669,35 +3642,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::Forbidden` for the owner, who transfers or archives.
     pub async fn channel_leave(&mut self, channel: &str, operation: &str) -> Result<()> {
-        self.control_post(channel, Action::Leave {}, operation)
-            .await
-    }
-
-    async fn control_post(&mut self, channel: &str, action: Action, operation: &str) -> Result<()> {
-        ensure_valid(
-            !matches!(
-                action,
-                Action::Accept { .. } | Action::Transfer { .. } | Action::History { .. }
-            ),
-            "action",
-        )?;
-        let key = format!("control:{operation}");
-        let payload = match self.job::<Operation>(channel, &key)? {
-            Some(job) => job.payload,
-            None => {
-                let ledger = self.channel_pull(channel, None, None).await?;
-                let control = Control {
-                    expected_head: ledger.head.clone(),
-                    expected_acl_version: ledger.acl_version,
-                    action,
-                };
-                advance(&ledger, &control, &self.me()?, &"0".repeat(64), now_ms())?;
-                json(&control)
-            }
-        };
-        self.channel_post(channel, &key, CONTROL, payload, "/control")
-            .await
-            .map(|_| ())
+        management::control(&self.hold(), channel, Action::Leave {}, operation).await
     }
 
     /// Invite `account`; returns the invitation to hand to it. The epoch's
@@ -5977,17 +5922,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` for an unknown operation.
     pub async fn channel_resume(&mut self, channel: &str, key: &str) -> Result<Json> {
-        let operation: Operation = self.job(channel, key)?.ok_or(Error::NotFound)?;
-        let suffix = operation
-            .path
-            .strip_prefix(&base(channel)?)
-            .ok_or(Error::IntegrityFailed)?
-            .to_string();
-        let result = self
-            .channel_post(channel, key, &operation.action, operation.payload, &suffix)
-            .await?;
-        self.channel_pull(channel, None, None).await?;
-        Ok(result)
+        management::resume(&self.hold(), channel, key).await
     }
 }
 

@@ -186,9 +186,10 @@ struct LibraryVersion: Decodable, Identifiable {
     var device: String? = nil
     var status: String? = nil
     var backup: FileBackupReceipt? = nil
+    var mime: String? = nil
 
     func file(in parent: LibraryFile) -> LibraryFile {
-        LibraryFile(id: parent.id, name: parent.name, mime: parent.mime, size: size, current: id,
+        LibraryFile(id: parent.id, name: parent.name, mime: mime ?? (current ? parent.mime : "application/octet-stream"), size: size, current: id,
                     sha256: sha256, status: status ?? (local ? "local" : "cloud_only"), versions: parent.versions,
                     local: local, folder: parent.folder, path: parent.path, createdAt: createdAt,
                     updatedAt: createdAt, trashedAt: parent.trashedAt, backup: backup)

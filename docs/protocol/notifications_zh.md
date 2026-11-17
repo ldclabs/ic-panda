@@ -52,7 +52,7 @@ HTTP PoP 的 body digest 覆盖整个外层。服务同时校验原命令作者�
 
 ### v1 请求字段
 
-安装持有证明使用独立 Ed25519 密钥，私钥保存在宿主安全存储，`installation = SHA256(public_key)`。登记的 canonical CBOR 外层为 `{installation, public_key, proof, platform, language, apple}`：公钥为小写 hex，proof 为无 padding base64url，platform 为 `desktop/ios/android`，apple 为 `null` 或 `{installation: UUID, revision}`。iOS 的 apple 引用已通过 App Attest 验证的 APNs 登记，不接受绕过原平台证明的 token。Android 尚未启用时明确拒绝登记，不声明该平台可用。
+安装持有证明使用独立 Ed25519 密钥，私钥保存在宿主安全存储，`installation = SHA256(public_key)`。登记的 canonical CBOR 外层为 `{installation, public_key, proof, platform, language, apple}`：公钥为小写 hex，proof 为无 padding base64url，platform 为 `desktop/ios/android`，apple 为 `null` 或 `{installation: UUID, revision}`。iOS 的 apple 引用已通过 App Attest 验证的 APNs 登记，不接受绕过原平台证明的 token。Android 使用独立 `android:{installation,revision}` 引用，`apple:null`，安装为外层通知安装摘要；详见 [dmsg-android/1](android_zh.md)。其他平台不发送 android 字段，原签名字节不变。服务未声明 Android 能力时明确拒绝登记。
 
 证明签名输入为 `SHA256(canonical-CBOR([1, "dmsg/notification/installation/v1", details]))`；details 为除 proof 外的登记字段，加上 `account`、`device`、HTTP PoP 的 `request_id`、服务的 `environment`（local/staging/production）及 `application: "dmsg"`。HTTP PoP 仍覆盖完整请求体。返回 `{protocol, installation, registration, revision, expires_at, receiver, scopes}`；租期 7 天，续期需要有效设备认证，不通过接收凭据续租。
 

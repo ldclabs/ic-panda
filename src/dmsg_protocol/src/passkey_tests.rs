@@ -63,6 +63,85 @@ fn assertion(challenge: &Hash) -> PasskeyResponse {
     }
 }
 
+fn with_origin(mut response: PasskeyResponse, origin: &str) -> PasskeyResponse {
+    let mut data: serde_json::Value = serde_json::from_slice(&response.client_data_json).unwrap();
+    data["origin"] = serde_json::json!(origin);
+    response.client_data_json = serde_json::to_vec(&data).unwrap().into();
+    if !response.signature.is_empty() {
+        let message = [
+            response.authenticator_data.as_ref(),
+            sha256(&response.client_data_json).as_slice(),
+        ]
+        .concat();
+        let signature: Signature = key().sign(&message);
+        response.signature = signature.to_der().as_bytes().to_vec().into();
+    }
+    response
+}
+
+#[test]
+fn android_certificates_are_exact_and_do_not_relax_webauthn() {
+    let challenge = Hash::new([9; 32]);
+    let certificate = Hash::new([0x35; 32]);
+    let policy = [certificate];
+    let origin = android_origin(&certificate);
+    let registration = with_origin(registration(&challenge), &origin);
+    assert!(verify_registration(&registration, &challenge).is_err());
+    let public = verify_registration_with_android(&registration, &challenge, &policy).unwrap();
+    let proof = with_origin(assertion(&challenge), &origin);
+    verify_assertion_with_android(&proof, &challenge, &public, &policy).unwrap();
+    assert!(verify_assertion(&proof, &challenge, &public).is_err());
+    assert!(verify_assertion_with_android(&proof, &Hash::new([8; 32]), &public, &policy).is_err());
+    for invalid in [
+        android_origin(&Hash::new([0x36; 32])),
+        format!("{origin}="),
+        format!("{origin}/"),
+        "android:apk-key-hash:*".into(),
+        "android:com.example.dmsg".into(),
+        "https://dmsg.net.evil.example".into(),
+    ] {
+        let changed = with_origin(proof.clone(), &invalid);
+        assert!(verify_assertion_with_android(&changed, &challenge, &public, &policy).is_err());
+    }
+    for position in [0, 32] {
+        let mut changed = proof.clone();
+        changed.authenticator_data[position] ^= 4;
+        let changed = with_origin(changed, &origin); // A valid signature still cannot bypass RP/UV.
+        assert!(verify_assertion_with_android(&changed, &challenge, &public, &policy).is_err());
+    }
+    let mut rewritten = proof.clone();
+    rewritten.client_data_json = client(&challenge, false).into();
+    assert!(verify_assertion_with_android(&rewritten, &challenge, &public, &policy).is_err());
+    verify_assertion_with_android(&assertion(&challenge), &challenge, &public, &policy).unwrap();
+
+    let vector = serde_json::json!({
+        "protocol": "dmsg-passkey/1", "generator": "src/dmsg_protocol/src/passkey_tests.rs",
+        "certificate_sha256_hex": hex::encode(certificate.as_slice()), "origin": origin,
+        "challenge_hex": hex::encode(challenge.as_slice()), "public_key_hex": hex::encode(public),
+        "registration_cbor": URL_SAFE_NO_PAD.encode(crate::canonical(&registration)),
+        "assertion_cbor": URL_SAFE_NO_PAD.encode(crate::canonical(&proof)),
+        "note": "Synthetic certificate. Never admit this hash in production."
+    });
+    let text = serde_json::to_string_pretty(&vector).unwrap() + "\n";
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/vectors/client/passkey-android-v1.json");
+    if std::env::var_os("DMSG_WRITE_CLIENT_VECTORS").is_some() {
+        std::fs::write(&path, &text).unwrap();
+    }
+    assert_eq!(std::fs::read_to_string(path).unwrap(), text);
+}
+
+#[test]
+fn android_policy_is_bounded_and_disabled_by_default() {
+    assert!(validate_android_signers(&[]).is_ok());
+    assert!(!allowed_origin(&android_origin(&Hash::new([1; 32])), &[]));
+    assert!(validate_android_signers(&[Hash::new([0; 32])]).is_err());
+    assert!(validate_android_signers(&[Hash::new([1; 32]); 2]).is_err());
+    let hashes: Vec<_> = (1..=9).map(|n| Hash::new([n; 32])).collect();
+    assert!(validate_android_signers(&hashes[..8]).is_ok());
+    assert!(validate_android_signers(&hashes).is_err());
+}
+
 #[test]
 fn registration_and_assertion_preserve_the_signed_bytes() {
     for action in [

@@ -1,0 +1,584 @@
+{
+  "items": {
+    "en": {
+      "one": "%1$s item",
+      "other": "%1$s items"
+    },
+    "zh-Hans": {
+      "other": "%1$s 个条目"
+    },
+    "zh-Hant": {
+      "other": "%1$s 個項目"
+    },
+    "de": {
+      "one": "%1$s Eintrag",
+      "other": "%1$s Einträge"
+    },
+    "es": {
+      "one": "%1$s elemento",
+      "other": "%1$s elementos",
+      "many": "%1$s elementos"
+    },
+    "fr": {
+      "one": "%1$s élément",
+      "other": "%1$s éléments",
+      "many": "%1$s éléments"
+    },
+    "it": {
+      "one": "%1$s elemento",
+      "other": "%1$s elementi",
+      "many": "%1$s elementi"
+    },
+    "nl": {
+      "one": "%1$s item",
+      "other": "%1$s items"
+    },
+    "pt-BR": {
+      "one": "%1$s item",
+      "other": "%1$s itens",
+      "many": "%1$s itens"
+    },
+    "ja": {
+      "other": "%1$s 件の項目"
+    },
+    "ko": {
+      "other": "항목 %1$s개"
+    },
+    "bn": {
+      "other": "%1$sটি আইটেম",
+      "one": "%1$sটি আইটেম"
+    },
+    "hi": {
+      "other": "%1$s आइटम",
+      "one": "%1$s आइटम"
+    },
+    "id": {
+      "other": "%1$s item"
+    },
+    "ms": {
+      "other": "%1$s item"
+    },
+    "fil": {
+      "other": "%1$s item"
+    },
+    "vi": {
+      "other": "%1$s mục"
+    },
+    "ru": {
+      "one": "%1$s элемент",
+      "few": "%1$s элемента",
+      "many": "%1$s элементов",
+      "other": "%1$s элемента"
+    },
+    "pl": {
+      "one": "%1$s element",
+      "few": "%1$s elementy",
+      "many": "%1$s elementów",
+      "other": "%1$s elementu"
+    },
+    "ar": {
+      "zero": "%1$s عنصر",
+      "one": "%1$s عنصر",
+      "two": "%1$s عنصران",
+      "few": "%1$s عناصر",
+      "many": "%1$s عنصرًا",
+      "other": "%1$s عنصر"
+    },
+    "ur": {
+      "one": "%1$s آئٹم",
+      "other": "%1$s آئٹمز"
+    },
+    "tr": {
+      "other": "%1$s öğe",
+      "one": "%1$s öğe"
+    },
+    "th": {
+      "other": "%1$s รายการ"
+    }
+  },
+  "days": {
+    "en": {
+      "one": "%1$s day",
+      "other": "%1$s days"
+    },
+    "zh-Hans": {
+      "other": "%1$s 天"
+    },
+    "zh-Hant": {
+      "other": "%1$s 天"
+    },
+    "de": {
+      "one": "%1$s Tag",
+      "other": "%1$s Tage"
+    },
+    "es": {
+      "one": "%1$s día",
+      "other": "%1$s días",
+      "many": "%1$s días"
+    },
+    "fr": {
+      "one": "%1$s jour",
+      "other": "%1$s jours",
+      "many": "%1$s jours"
+    },
+    "it": {
+      "one": "%1$s giorno",
+      "other": "%1$s giorni",
+      "many": "%1$s giorni"
+    },
+    "nl": {
+      "one": "%1$s dag",
+      "other": "%1$s dagen"
+    },
+    "pt-BR": {
+      "one": "%1$s dia",
+      "other": "%1$s dias",
+      "many": "%1$s dias"
+    },
+    "ja": {
+      "other": "%1$s 日"
+    },
+    "ko": {
+      "other": "%1$s일"
+    },
+    "bn": {
+      "other": "%1$s দিন",
+      "one": "%1$s দিন"
+    },
+    "hi": {
+      "other": "%1$s दिन",
+      "one": "%1$s दिन"
+    },
+    "id": {
+      "other": "%1$s hari"
+    },
+    "ms": {
+      "other": "%1$s hari"
+    },
+    "fil": {
+      "other": "%1$s araw"
+    },
+    "vi": {
+      "other": "%1$s ngày"
+    },
+    "ru": {
+      "one": "%1$s день",
+      "few": "%1$s дня",
+      "many": "%1$s дней",
+      "other": "%1$s дня"
+    },
+    "pl": {
+      "one": "%1$s dzień",
+      "few": "%1$s dni",
+      "many": "%1$s dni",
+      "other": "%1$s dnia"
+    },
+    "ar": {
+      "zero": "%1$s يوم",
+      "one": "%1$s يوم",
+      "two": "%1$s يومان",
+      "few": "%1$s أيام",
+      "many": "%1$s يومًا",
+      "other": "%1$s يوم"
+    },
+    "ur": {
+      "other": "%1$s دن",
+      "one": "%1$s دن"
+    },
+    "tr": {
+      "other": "%1$s gün",
+      "one": "%1$s gün"
+    },
+    "th": {
+      "other": "%1$s วัน"
+    }
+  },
+  "draft_attachments": {
+    "en": {
+      "one": "Draft · %1$s attachment",
+      "other": "Draft · %1$s attachments"
+    },
+    "zh-Hans": {
+      "other": "草稿 · %1$s 个附件"
+    },
+    "zh-Hant": {
+      "other": "草稿 · %1$s 個附件"
+    },
+    "de": {
+      "one": "Entwurf · %1$s Anhang",
+      "other": "Entwurf · %1$s Anhänge"
+    },
+    "es": {
+      "one": "Borrador · %1$s archivo adjunto",
+      "other": "Borrador · %1$s archivos adjuntos",
+      "many": "Borrador · %1$s archivos adjuntos"
+    },
+    "fr": {
+      "one": "Brouillon · %1$s pièce jointe",
+      "other": "Brouillon · %1$s pièces jointes",
+      "many": "Brouillon · %1$s pièces jointes"
+    },
+    "it": {
+      "one": "Bozza · %1$s allegato",
+      "other": "Bozza · %1$s allegati",
+      "many": "Bozza · %1$s allegati"
+    },
+    "nl": {
+      "one": "Concept · %1$s bijlage",
+      "other": "Concept · %1$s bijlagen"
+    },
+    "pt-BR": {
+      "one": "Rascunho · %1$s anexo",
+      "other": "Rascunho · %1$s anexos",
+      "many": "Rascunho · %1$s anexos"
+    },
+    "ja": {
+      "other": "下書き · 添付ファイル %1$s 件"
+    },
+    "ko": {
+      "other": "초안 · 첨부 파일 %1$s개"
+    },
+    "bn": {
+      "other": "খসড়া · %1$sটি সংযুক্তি",
+      "one": "খসড়া · %1$sটি সংযুক্তি"
+    },
+    "hi": {
+      "other": "ड्राफ़्ट · %1$s अटैचमेंट",
+      "one": "ड्राफ़्ट · %1$s अटैचमेंट"
+    },
+    "id": {
+      "other": "Draf · %1$s lampiran"
+    },
+    "ms": {
+      "other": "Draf · %1$s lampiran"
+    },
+    "fil": {
+      "other": "Draft · %1$s attachment"
+    },
+    "vi": {
+      "other": "Bản nháp · %1$s tệp đính kèm"
+    },
+    "ru": {
+      "one": "Черновик · %1$s вложение",
+      "few": "Черновик · %1$s вложения",
+      "many": "Черновик · %1$s вложений",
+      "other": "Черновик · %1$s вложения"
+    },
+    "pl": {
+      "one": "Wersja robocza · %1$s załącznik",
+      "few": "Wersja robocza · %1$s załączniki",
+      "many": "Wersja robocza · %1$s załączników",
+      "other": "Wersja robocza · %1$s załącznika"
+    },
+    "ar": {
+      "zero": "مسودة · %1$s مرفق",
+      "one": "مسودة · %1$s مرفق",
+      "two": "مسودة · %1$s مرفقان",
+      "few": "مسودة · %1$s مرفقات",
+      "many": "مسودة · %1$s مرفقًا",
+      "other": "مسودة · %1$s مرفق"
+    },
+    "ur": {
+      "one": "مسودہ · %1$s منسلکہ",
+      "other": "مسودہ · %1$s منسلکات"
+    },
+    "tr": {
+      "other": "Taslak · %1$s ek",
+      "one": "Taslak · %1$s ek"
+    },
+    "th": {
+      "other": "ฉบับร่าง · ไฟล์แนบ %1$s รายการ"
+    }
+  },
+  "create_links": {
+    "en": {
+      "one": "Create %1$s link",
+      "other": "Create %1$s links"
+    },
+    "zh-Hans": {
+      "other": "创建 %1$s 条链接"
+    },
+    "zh-Hant": {
+      "other": "建立 %1$s 個連結"
+    },
+    "de": {
+      "one": "%1$s Link erstellen",
+      "other": "%1$s Links erstellen"
+    },
+    "es": {
+      "one": "Crear %1$s enlace",
+      "other": "Crear %1$s enlaces",
+      "many": "Crear %1$s enlaces"
+    },
+    "fr": {
+      "one": "Créer %1$s lien",
+      "other": "Créer %1$s liens",
+      "many": "Créer %1$s liens"
+    },
+    "it": {
+      "other": "Crea %1$s link",
+      "one": "Crea %1$s link",
+      "many": "Crea %1$s link"
+    },
+    "nl": {
+      "one": "%1$s link maken",
+      "other": "%1$s links maken"
+    },
+    "pt-BR": {
+      "one": "Criar %1$s link",
+      "other": "Criar %1$s links",
+      "many": "Criar %1$s links"
+    },
+    "ja": {
+      "other": "リンクを %1$s 件作成"
+    },
+    "ko": {
+      "other": "링크 %1$s개 만들기"
+    },
+    "bn": {
+      "other": "%1$sটি লিংক তৈরি করুন",
+      "one": "%1$sটি লিংক তৈরি করুন"
+    },
+    "hi": {
+      "other": "%1$s लिंक बनाएँ",
+      "one": "%1$s लिंक बनाएँ"
+    },
+    "id": {
+      "other": "Buat %1$s tautan"
+    },
+    "ms": {
+      "other": "Cipta %1$s pautan"
+    },
+    "fil": {
+      "other": "Gumawa ng %1$s link"
+    },
+    "vi": {
+      "other": "Tạo %1$s liên kết"
+    },
+    "ru": {
+      "one": "Создать %1$s ссылку",
+      "few": "Создать %1$s ссылки",
+      "many": "Создать %1$s ссылок",
+      "other": "Создать %1$s ссылки"
+    },
+    "pl": {
+      "one": "Utwórz %1$s link",
+      "few": "Utwórz %1$s linki",
+      "many": "Utwórz %1$s linków",
+      "other": "Utwórz %1$s linku"
+    },
+    "ar": {
+      "zero": "إنشاء %1$s رابط",
+      "one": "إنشاء %1$s رابط",
+      "two": "إنشاء %1$s رابطين",
+      "few": "إنشاء %1$s روابط",
+      "many": "إنشاء %1$s رابطًا",
+      "other": "إنشاء %1$s رابط"
+    },
+    "ur": {
+      "other": "%1$s لنک بنائیں",
+      "one": "%1$s لنک بنائیں"
+    },
+    "tr": {
+      "other": "%1$s bağlantı oluştur",
+      "one": "%1$s bağlantı oluştur"
+    },
+    "th": {
+      "other": "สร้างลิงก์ %1$s รายการ"
+    }
+  },
+  "files": {
+    "en": {
+      "one": "%1$s file",
+      "other": "%1$s files"
+    },
+    "zh-Hans": {
+      "other": "%1$s个文件"
+    },
+    "zh-Hant": {
+      "other": "%1$s個檔案"
+    },
+    "ar": {
+      "zero": "%1$s ملف",
+      "one": "%1$s ملف",
+      "two": "%1$s ملفان",
+      "few": "%1$s ملفات",
+      "many": "%1$s ملفًا",
+      "other": "%1$s ملف"
+    },
+    "bn": {
+      "other": "%1$sটি ফাইল",
+      "one": "%1$sটি ফাইল"
+    },
+    "de": {
+      "one": "%1$s Datei",
+      "other": "%1$s Dateien"
+    },
+    "es": {
+      "one": "%1$s archivo",
+      "other": "%1$s archivos",
+      "many": "%1$s archivos"
+    },
+    "fil": {
+      "other": "%1$s file"
+    },
+    "fr": {
+      "one": "%1$s fichier",
+      "other": "%1$s fichiers",
+      "many": "%1$s fichiers"
+    },
+    "hi": {
+      "one": "%1$s फ़ाइल",
+      "other": "%1$s फ़ाइलें"
+    },
+    "id": {
+      "other": "%1$s file"
+    },
+    "it": {
+      "other": "%1$s file",
+      "one": "%1$s file",
+      "many": "%1$s file"
+    },
+    "ja": {
+      "other": "%1$s件のファイル"
+    },
+    "ko": {
+      "other": "%1$s개 파일"
+    },
+    "ms": {
+      "other": "%1$s fail"
+    },
+    "nl": {
+      "one": "%1$s bestand",
+      "other": "%1$s bestanden"
+    },
+    "pl": {
+      "one": "%1$s plik",
+      "few": "%1$s pliki",
+      "many": "%1$s plików",
+      "other": "%1$s pliku"
+    },
+    "pt-BR": {
+      "one": "%1$s arquivo",
+      "other": "%1$s arquivos",
+      "many": "%1$s arquivos"
+    },
+    "ru": {
+      "one": "%1$s файл",
+      "few": "%1$s файла",
+      "many": "%1$s файлов",
+      "other": "%1$s файла"
+    },
+    "th": {
+      "other": "%1$s ไฟล์"
+    },
+    "tr": {
+      "other": "%1$s dosya",
+      "one": "%1$s dosya"
+    },
+    "ur": {
+      "one": "%1$s فائل",
+      "other": "%1$s فائلیں"
+    },
+    "vi": {
+      "other": "%1$s tệp"
+    }
+  },
+  "minutes": {
+    "en": {
+      "one": "%1$s minute",
+      "other": "%1$s minutes"
+    },
+    "zh-Hans": {
+      "other": "%1$s分钟"
+    },
+    "zh-Hant": {
+      "other": "%1$s分鐘"
+    },
+    "ar": {
+      "zero": "%1$s دقيقة",
+      "one": "%1$s دقيقة",
+      "two": "%1$s دقيقتان",
+      "few": "%1$s دقائق",
+      "many": "%1$s دقيقة",
+      "other": "%1$s دقيقة"
+    },
+    "bn": {
+      "one": "%1$s মিনিট",
+      "other": "%1$s মিনিট"
+    },
+    "de": {
+      "one": "%1$s Minute",
+      "other": "%1$s Minuten"
+    },
+    "es": {
+      "one": "%1$s minuto",
+      "other": "%1$s minutos",
+      "many": "%1$s minutos"
+    },
+    "fil": {
+      "other": "%1$s minuto"
+    },
+    "fr": {
+      "one": "%1$s minute",
+      "other": "%1$s minutes",
+      "many": "%1$s minutes"
+    },
+    "hi": {
+      "other": "%1$s मिनट",
+      "one": "%1$s मिनट"
+    },
+    "id": {
+      "other": "%1$s menit"
+    },
+    "it": {
+      "one": "%1$s minuto",
+      "other": "%1$s minuti",
+      "many": "%1$s minuti"
+    },
+    "ja": {
+      "other": "%1$s分"
+    },
+    "ko": {
+      "other": "%1$s분"
+    },
+    "ms": {
+      "other": "%1$s minit"
+    },
+    "nl": {
+      "one": "%1$s minuut",
+      "other": "%1$s minuten"
+    },
+    "pl": {
+      "one": "%1$s minuta",
+      "few": "%1$s minuty",
+      "many": "%1$s minut",
+      "other": "%1$s minuty"
+    },
+    "pt-BR": {
+      "one": "%1$s minuto",
+      "other": "%1$s minutos",
+      "many": "%1$s minutos"
+    },
+    "ru": {
+      "one": "%1$s минута",
+      "few": "%1$s минуты",
+      "many": "%1$s минут",
+      "other": "%1$s минуты"
+    },
+    "th": {
+      "other": "%1$s นาที"
+    },
+    "tr": {
+      "other": "%1$s dakika",
+      "one": "%1$s dakika"
+    },
+    "ur": {
+      "other": "%1$s منٹ",
+      "one": "%1$s منٹ"
+    },
+    "vi": {
+      "other": "%1$s phút"
+    }
+  }
+}

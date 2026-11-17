@@ -21,11 +21,16 @@ hex.workspace = true
 log.workspace = true
 thiserror.workspace = true
 
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.22"
+rustls-platform-verifier = "=0.7.1"
+
 [dev-dependencies]
 dmsg_client = { path = "../dmsg_client", features = ["testing"] }
 
 [features]
 bindgen = ["uniffi/cli"]
+ui-fixtures = ["dmsg_client/testing"]
 
 [[bin]]
 name = "dmsg-mobile-bindgen"

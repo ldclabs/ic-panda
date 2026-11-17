@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_background" android:orientation="vertical" android:padding="10dp"
+    android:theme="@android:style/Theme.DeviceDefault.DayNight">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="6dp" android:paddingEnd="6dp" android:text="dMsg" android:textSize="16sp" android:textStyle="bold" android:textColor="@color/widget_ink" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+        <TextView android:id="@+id/widget_vault" style="@style/WidgetCell" android:text="@string/shortcut_vault" />
+        <TextView android:id="@+id/widget_messages" style="@style/WidgetCell" android:text="@string/shortcut_messages" />
+        <TextView android:id="@+id/widget_files" style="@style/WidgetCell" android:text="@string/shortcut_files" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+        <TextView android:id="@+id/widget_approvals" style="@style/WidgetCell" android:text="@string/shortcut_approvals" />
+        <TextView android:id="@+id/widget_imports" style="@style/WidgetCell" android:text="@string/shortcut_imports" />
+    </LinearLayout>
+</LinearLayout>

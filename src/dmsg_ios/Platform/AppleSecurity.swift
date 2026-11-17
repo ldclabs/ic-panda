@@ -13,6 +13,17 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     private var active: LAContext?
     private var authorization: UInt64?
     private var nextAuthorization: UInt64 = 0
+    private final class PreparedSigning {
+        let reason: String, only: Bool, handle: Data, message: Data
+        let context = LAContext()
+        let deadline = DispatchTime.now().uptimeNanoseconds + 90_000_000_000
+        var started = false
+        init(reason: String, only: Bool, handle: Data, message: Data) {
+            self.reason = reason; self.only = only; self.handle = handle; self.message = message
+            context.touchIDAuthenticationAllowableReuseDuration = 0
+        }
+    }
+    private var prepared: [UInt64: PreparedSigning] = [:]
 
     init(installation: String, environment: String = "production", notificationWorkspace: URL? = nil) {
         service = "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").\(environment).\(installation)"
@@ -136,18 +147,59 @@ final class AppleSecurity: Platform, @unchecked Sendable {
         return access
     }
 
-    func createAgreement(biometryOnly: Bool) throws -> Agreement {
+    func supportsBiometryOnly() -> Bool { biometryState() != nil }
+
+    func authorizeKeys(reason: String, biometryOnly: Bool, handles: [Data]) throws -> UInt64 {
+        guard !handles.isEmpty, handles.count <= 2 else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+        return try authorize(reason: reason, biometryOnly: biometryOnly)
+    }
+
+    func prepareSignature(reason: String, biometryOnly: Bool, handle: Data, message: Data) throws -> UInt64 {
+        guard !handle.isEmpty, message.count == 32 else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+        guard SecureEnclave.isAvailable else { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        let item = PreparedSigning(reason: reason, only: biometryOnly, handle: handle, message: message)
+        mutex.lock(); defer { mutex.unlock() }
+        guard prepared.count < 64 else { throw MobileError.Failure(code: "QUOTA_EXCEEDED") }
+        nextAuthorization &+= 1
+        prepared[nextAuthorization] = item
+        return nextAuthorization
+    }
+
+    func signPrepared(preparation token: UInt64) throws -> Data {
+        mutex.lock(); let item = prepared[token]; mutex.unlock()
+        guard let item else { throw MobileError.Failure(code: "CANCELLED") }
+        defer { releasePrepared(preparation: token) }
+        do {
+            let context = try authenticate(reason: explanation(item.reason), operation: .useKeySign, biometryOnly: item.only, preparation: token)
+            let key = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: item.handle, authenticationContext: context)
+            let signature = try key.signature(for: item.message).rawRepresentation
+            mutex.lock(); let current = prepared[token] === item && active === context && DispatchTime.now().uptimeNanoseconds < item.deadline; mutex.unlock()
+            guard current else { throw MobileError.Failure(code: "CANCELLED") }
+            return signature
+        } catch { throw mapped(error) }
+    }
+
+    func releasePrepared(preparation token: UInt64) {
+        mutex.lock()
+        let item = prepared.removeValue(forKey: token)
+        if let item, active === item.context { active = nil; authorization = nil }
+        mutex.unlock()
+        item?.context.invalidate()
+    }
+
+    func createSecret(biometryOnly: Bool) throws -> HardwareSecret {
         guard SecureEnclave.isAvailable else { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
         do {
             let key = try SecureEnclave.P256.KeyAgreement.PrivateKey(accessControl: access(biometryOnly))
             let peer = P256.KeyAgreement.PrivateKey()
             let shared = try peer.sharedSecretFromKeyAgreement(with: key.publicKey)
-            return Agreement(handle: key.dataRepresentation, peer: peer.publicKey.x963Representation,
+            return HardwareSecret(handle: key.dataRepresentation, context: peer.publicKey.x963Representation,
                              secret: shared.withUnsafeBytes { Data($0) })
         } catch { throw mapped(error) }
     }
 
-    func openAgreement(handle: Data, peer: Data, biometryOnly: Bool) throws -> Data {
+    func openSecret(handle: Data, context: Data, biometryOnly: Bool) throws -> Data {
+        let peer = context
         guard !handle.isEmpty, peer.count == 65, peer.first == 4 else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
         let context = try authenticate(reason: String(localized: "Unlock your dMsg workspace"), operation: .useKeyKeyExchange, biometryOnly: biometryOnly)
         defer { finish(context) }
@@ -171,6 +223,10 @@ final class AppleSecurity: Platform, @unchecked Sendable {
             return SigningKey(publicKey: compressed, handle: key.dataRepresentation)
         } catch { throw mapped(error) }
     }
+
+    // CryptoKit's dataRepresentation is the wrapped key itself. There is no
+    // separately named Keychain item to delete when the core drops this handle.
+    func deleteSigning(handle: Data) throws {}
 
     /// A key that never asks for the person and works once the iPhone has
     /// been unlocked after it started: it shows only that a workspace still
@@ -257,8 +313,9 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     }
 
     func cancelPresence() {
-        mutex.lock(); let context = active; active = nil; authorization = nil; mutex.unlock()
+        mutex.lock(); let context = active; let items = Array(prepared.values); prepared.removeAll(); active = nil; authorization = nil; mutex.unlock()
         context?.invalidate()
+        for item in items { item.context.invalidate() }
     }
 
     private func finish(_ context: LAContext) {
@@ -271,13 +328,20 @@ final class AppleSecurity: Platform, @unchecked Sendable {
         var success = false
     }
 
-    private func authenticate(reason: String, operation: LAAccessControlOperation? = nil, biometryOnly: Bool = false) throws -> LAContext {
+    private func authenticate(reason: String, operation: LAAccessControlOperation? = nil, biometryOnly: Bool = false, preparation: UInt64? = nil) throws -> LAContext {
         precondition(!Thread.isMainThread)
         let accessControl = try operation.map { _ in try access(biometryOnly) }
-        let context = LAContext()
-        context.touchIDAuthenticationAllowableReuseDuration = 0
         mutex.lock()
         guard active == nil else { mutex.unlock(); throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        let context: LAContext
+        if let preparation {
+            guard let item = prepared[preparation], !item.started, DispatchTime.now().uptimeNanoseconds < item.deadline else {
+                mutex.unlock(); throw MobileError.Failure(code: "CANCELLED")
+            }
+            item.started = true; context = item.context
+        } else {
+            context = LAContext(); context.touchIDAuthenticationAllowableReuseDuration = 0
+        }
         active = context
         mutex.unlock()
         let answer = Answer(), semaphore = DispatchSemaphore(value: 0)

@@ -6,7 +6,7 @@ use crate::{
     error::{MobileError, Result},
     runtime,
 };
-use dmsg_client::{approval_key, client::LoginUnlock};
+use dmsg_client::{approval_key, client::LoginUnlock, hold::Hold};
 use dmsg_types::{Error, Hash, ensure, ensure_valid};
 
 /// Map failures of a known hardware step without relabelling network or
@@ -19,6 +19,23 @@ pub(crate) fn hardware_failure(error: Error) -> MobileError {
         Error::IntegrityFailed => MobileError::Failure {
             code: "HARDWARE_KEY_INVALIDATED".into(),
         },
+        Error::Unavailable(message)
+            if message.strip_prefix("hardware: ").is_some_and(|code| {
+                matches!(
+                    code,
+                    "BIOMETRIC_LOCKOUT"
+                        | "BIOMETRIC_LOCKOUT_PERMANENT"
+                        | "BIOMETRIC_NOT_ENROLLED"
+                        | "DEVICE_CREDENTIAL_NOT_SET"
+                        | "HARDWARE_SECURITY_UPDATE_REQUIRED"
+                        | "AUTHENTICATION_TIMEOUT"
+                )
+            }) =>
+        {
+            MobileError::Failure {
+                code: message["hardware: ".len()..].into(),
+            }
+        }
         Error::Unavailable(_) => MobileError::Failure {
             code: "HARDWARE_UNAVAILABLE".into(),
         },
@@ -69,6 +86,39 @@ impl MobileEngine {
 
 #[uniffi::export]
 impl MobileEngine {
+    /// Independent system copies inherit the local binding's authentication
+    /// policy. This read never refreshes account authority over the network.
+    pub async fn system_export_policy(&self) -> Result<ObjectSnapshot> {
+        let biometry_available = self.platform.supports_biometry_only();
+        self.held_object(move |h| {
+            Box::pin(async move {
+                h.with(|c| {
+                    let binding = c.device_binding_status()?;
+                    let bound = binding["device_bound"]
+                        .as_bool()
+                        .ok_or(Error::IntegrityFailed)?;
+                    ensure(
+                        !bound || binding["bound_key_available"].as_bool() == Some(true),
+                        Error::IntegrityFailed,
+                    )?;
+                    let biometry_only = if bound {
+                        binding["bound_biometry_only"]
+                            .as_bool()
+                            .ok_or(Error::IntegrityFailed)?
+                    } else {
+                        false
+                    };
+                    Ok(serde_json::json!({
+                        "biometry_only": biometry_only,
+                        "biometry_available": biometry_available,
+                    }))
+                })
+                .await
+            })
+        })
+        .await
+    }
+
     pub async fn hardware_security(&self) -> Result<ObjectSnapshot> {
         self.held_object(|h| Box::pin(async { approval_key::owner_security_status(h).await }))
             .await
@@ -88,8 +138,13 @@ impl MobileEngine {
                 Box::pin(async move { approval_key::prepare_key_request(h, biometry_only).await })
             })
             .await?;
+        let _signature = prepared.cancellation();
+        let host = self.host.inner.clone();
         let proved = runtime()
-            .spawn_blocking(move || prepared.prove())
+            .spawn_blocking(move || {
+                ensure(generation == host.generation(), Error::Locked)?;
+                prepared.prove()
+            })
             .await
             .map_err(|_| MobileError::Failure {
                 code: "HARDWARE_UNAVAILABLE".into(),

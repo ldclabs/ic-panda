@@ -3,6 +3,7 @@
 pub mod account;
 pub mod agent;
 pub mod app_store;
+pub mod google_play;
 /// Passkey login and renewable device sessions.
 pub mod auth;
 pub mod billing;

@@ -187,6 +187,15 @@ pub enum ContractSource {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         environment: Option<crate::app_store::StoreEnvironment>,
     },
+    /// Benefit paid through a separately verified Google Play purchase.
+    GooglePlay {
+        /// Stable order/consumable identity; never a bearer purchase token.
+        transaction_id: Hash,
+        /// Hashed token identifies the subscription that may be replaced.
+        token_hash: Hash,
+        /// Google's real/test purchase classification.
+        environment: crate::google_play::PlayEnvironment,
+    },
     /// Product-granted compensation benefit.
     Compensation,
 }
@@ -198,6 +207,9 @@ impl ContractSource {
             self,
             Self::AppStore {
                 environment: Some(crate::app_store::StoreEnvironment::Sandbox),
+                ..
+            } | Self::GooglePlay {
+                environment: crate::google_play::PlayEnvironment::Test,
                 ..
             }
         )

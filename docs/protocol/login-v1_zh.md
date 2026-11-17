@@ -93,7 +93,9 @@ POST 的应答：成功 200；`Origin` 或 `Content-Type` 不符 403；其他校
 - `http://127.0.0.1:<port>/auth/callback`
 - `http://[::1]:<port>/auth/callback`
 
-另接受 iOS 的精确 HTTPS 回调 `https://dmsg.net/_/ios/auth/callback`。不接受端口（包括显式 `:443`）、尾部斜杠、其他大小写、query、fragment、其他 HTTPS 地址或自定义 scheme。`localhost` 仍不接受。消息编码和版本保持为 1。
+另接受 iOS 的精确 HTTPS 回调 `https://dmsg.net/_/ios/auth/callback` 和 Android 的精确 HTTPS 回调 `https://dmsg.net/_/android/auth/callback`。不接受端口（包括显式 `:443`）、尾部斜杠、其他大小写、query、fragment、其他 HTTPS 地址或自定义 scheme。`localhost` 仍不接受。消息编码和版本保持为 1。
+
+Android 核心在编译时固定回调地址，登录绑定和原生 Passkey 响应使用同一地址。Android 通过系统浏览器和经过验证的 App Link 接收登录结果；生产登录验收前，须在站点 `/.well-known/assetlinks.json` 中关联实际签名证书和包名。协议支持不代表 Android 应用或域名关联已经完成发布验收。
 
 移动端发起的登录与登录绑定固定使用 `https://dmsg.net` 派生域，不再提供 `panda.fans` 选项。旧域认证与旧数据迁移继续通过桌面端的既有流程进行；这项入口限制不改变协议对桌面迁移请求的支持，也不自动合并两个派生身份的账户。
 

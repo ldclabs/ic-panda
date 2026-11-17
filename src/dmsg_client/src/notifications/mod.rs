@@ -802,11 +802,14 @@ impl crate::Client {
         };
         let current = &status["current"];
         let revision = status["notification_revision"].as_u64().unwrap_or(1).max(1);
-        // Sandbox terms last hours and renew as new contracts, so each would alert at once.
+        // Accelerated store test terms must not raise ordinary expiry reminders.
+        let test_term = |term: &serde_json::Value| {
+            matches!(term["store_environment"].as_str(), Some("Sandbox" | "Test"))
+        };
         let active = current["contract"].as_str().filter(|_| {
-            (status["next"].is_null() || status["next"]["store_environment"] == "Sandbox")
+            (status["next"].is_null() || test_term(&status["next"]))
                 && current["terminated_at_ms"].is_null()
-                && current["store_environment"] != "Sandbox"
+                && !test_term(current)
                 && current["ends_at_ms"].as_u64().is_some_and(|at| at > now)
         });
         for mut item in self.workspace.store.notification_items()? {
@@ -858,6 +861,15 @@ pub async fn refresh_capabilities(h: &impl crate::hold::Hold) -> Result<()> {
         let receive = capabilities.as_ref().is_some_and(|v| {
             v["protocol"] == "dmsg-notifications/1" && v["feed"] == true && v["preferences"] == true
         });
+        let android = receive
+            && capabilities.as_ref().is_some_and(|v| {
+                v["platforms"]
+                    .as_array()
+                    .is_some_and(|platforms| platforms.iter().any(|p| p == "android"))
+            });
+        c.workspace
+            .store
+            .set_meta("notification:android_v1", &android)?;
         c.workspace
             .store
             .set_meta("notification:remote_v1", &receive)

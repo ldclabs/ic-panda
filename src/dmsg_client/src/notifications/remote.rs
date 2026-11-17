@@ -50,6 +50,15 @@ pub struct AppleRegistration {
     pub revision: u64,
 }
 
+/// Verified FCM registration; the installation is the notification key digest.
+#[derive(Clone, Serialize, Deserialize)]
+pub struct AndroidRegistration {
+    /// Independent notification installation hash.
+    pub installation: String,
+    /// Current service-side provider revision.
+    pub revision: u64,
+}
+
 #[derive(Default, Serialize, Deserialize)]
 struct SyncState {
     expected: u64,
@@ -126,6 +135,13 @@ pub async fn sync_recovery(h: &impl Hold, context: &ReceiveContext) -> Result<()
 }
 
 impl Client {
+    /// Public installation identity only; never exposes its signing seed.
+    pub fn notification_installation_id(&self) -> Result<String> {
+        Ok(hex_sha256(&crypto::signing_public(
+            &*self.installation_seed()?,
+        )))
+    }
+
     fn retired_notification_name(&self, context: &ReceiveContext) -> String {
         self.notification_secret_name(&format!(
             "revoke:{}:{}",
@@ -475,6 +491,24 @@ pub async fn register(
     language: &str,
     apple: Option<AppleRegistration>,
 ) -> Result<Option<ReceiveContext>> {
+    register_provider(h, language, apple, None).await
+}
+
+/// Android registration cannot silently fall back to desktop or Apple admission.
+pub async fn register_android(
+    h: &impl Hold,
+    language: &str,
+    android: AndroidRegistration,
+) -> Result<Option<ReceiveContext>> {
+    register_provider(h, language, None, Some(android)).await
+}
+
+async fn register_provider(
+    h: &impl Hold,
+    language: &str,
+    apple: Option<AppleRegistration>,
+    android: Option<AndroidRegistration>,
+) -> Result<Option<ReceiveContext>> {
     let h = Unlocked::new(h).await?;
     let Some((account, device, key, current)) = h
         .with(|c| {
@@ -509,6 +543,7 @@ pub async fn register(
         .await?;
     if !needs_auth
         && apple.is_none()
+        && android.is_none()
         && let Some(context) = current
             .as_ref()
             .filter(|c| c.expires_at > now_ms() + 86_400_000)
@@ -521,7 +556,12 @@ pub async fn register(
     let language = language.to_string();
     let response = h.send(|c| {
         ensure(c.account()?.id == account,Error::Locked)?;
-        let details = json!({"installation":installation,"public_key":hex::encode(public_key),"platform":if apple.is_some(){"ios"}else{"desktop"},"language":language,"apple":apple});
+        let mut details = json!({"installation":installation,"public_key":hex::encode(public_key),"platform":if android.is_some(){"android"}else if apple.is_some(){"ios"}else{"desktop"},"language":language,"apple":apple});
+        if let Some(android) = &android {
+            ensure(c.workspace.store.meta::<bool>("notification:android_v1")?.unwrap_or(false), Error::UnsupportedProtocol)?;
+            ensure(android.installation == installation && android.revision > 0, Error::IntegrityFailed)?;
+            details["android"] = serde_json::to_value(android).map_err(|_| Error::IntegrityFailed)?;
+        }
         let mut proof = details.clone();
         proof["account"] = account.to_string().into(); proof["device"] = device.clone().into(); proof["request_id"] = request_id.clone().into();
         proof["environment"] = crate::config::environment_name(&c.config().environment).into(); proof["application"] = "dmsg".into();
