@@ -1,5 +1,37 @@
 # iOS implementation validation
 
+## Recovery status sheet responsiveness (2026-11-17)
+
+The account-status list nested `RecoveryNotice`'s periodic `TimelineView` inside
+the page's own timeline. With the recovery row visible, opening the sheet could
+stall navigation-bar/sheet layout until another scheduled update. This was
+reproduced with offline presentation fixtures; LLDB showed the main thread in
+UIKit layout, and the affected UI tests timed out with the nested timeline.
+`RecoveryNotice` now renders one row using the containing page's date. The page
+continues to own visibility and freshness updates every 30 seconds.
+
+Validation on the `62a085e2` worktree:
+
+- iPhone 17e, iOS 27.0: all eight selected tests passed (six recovery/sync unit
+  tests and two UI regressions). The stale-recovery menu opens and closes from
+  Vault, Files and Vault again; ordinary item navigation still works afterward.
+  The pending-recovery test covers both the feedback overlay and the menu.
+- The three stale-recovery menu opens took approximately 1.5–1.7 seconds from
+  the XCTest tap to its first successful Done-button query, including automation
+  idle waits. Each regression requires opening within five seconds; these are
+  simulator checks, not physical-device latency measurements.
+- SE-sized iOS 18.4: the same eight tests and the existing Chinese dark / Arabic
+  RTL first-sync tests passed (ten total). Exported recovery screenshots on both
+  runtimes and the small-screen sync screenshots were visually inspected.
+- Debug simulator compilation, native bridge source-fingerprint verification
+  and `git diff --check` passed. Result bundles are
+  `.build/RecoveryStatus-fixed.xcresult` and `.build/RecoveryStatus-ios18.xcresult`;
+  screenshots and the original main-thread stack are in `.build/RecoveryStatus-evidence/`.
+
+Physical-device testing, live recovery-service queries, a Release archive and the
+full Swift/Rust suites were not run. Recovery authorization and network code were
+not changed.
+
 ## Passkey entry in default previews (2026-11-15)
 
 Debug presentation fixtures previously exposed Passkey capability only when

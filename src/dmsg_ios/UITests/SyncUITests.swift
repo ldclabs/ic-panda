@@ -2,6 +2,60 @@ import XCTest
 
 @MainActor
 final class SyncUITests: XCTestCase {
+    func testStaleRecoveryStatusOpensAndDismissesPromptly() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-recovery-stale", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        for tab in [0, 2, 0] {
+            app.tabBars.buttons.element(boundBy: tab).tap()
+            app.buttons["activity.open"].firstMatch.tap()
+            let entry = app.buttons["workspace.status"].firstMatch
+            XCTAssertTrue(entry.waitForExistence(timeout: 3))
+            XCTAssertEqual(entry.label, "检查恢复状态")
+            let start = Date()
+            entry.tap()
+            let done = app.buttons["workspace.status.done"]
+            XCTAssertTrue(done.waitForExistence(timeout: 3))
+            XCTAssertLessThan(Date().timeIntervalSince(start), 5, "Opening status must not stall the main thread")
+            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "recovery.warning").firstMatch.exists)
+            XCTAssertTrue(app.otherElements["sync.status"].exists)
+            if tab == 2 {
+                let shot = XCTAttachment(screenshot: app.screenshot())
+                shot.name = "Stale recovery status · Chinese"; shot.lifetime = .keepAlways; add(shot)
+            }
+            done.tap()
+            XCTAssertTrue(app.buttons["activity.open"].firstMatch.waitForExistence(timeout: 3))
+        }
+        let item = app.buttons["vault.item.fixture-github"]
+        item.tap()
+        XCTAssertTrue(app.buttons["vault.field.more.password"].waitForExistence(timeout: 3))
+        app.terminate()
+    }
+
+    func testPendingRecoveryFeedbackAndMenuStayResponsive() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-recovery-pending", "--ui-dark", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let feedback = app.buttons.matching(identifier: "workspace.feedback")
+            .matching(NSPredicate(format: "label == %@", "Account recovery is pending")).firstMatch
+        XCTAssertTrue(feedback.waitForExistence(timeout: 8))
+        let start = Date()
+        feedback.tap()
+        let done = app.buttons["workspace.status.done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 3))
+        XCTAssertLessThan(Date().timeIntervalSince(start), 5, "Recovery feedback must not stall sheet layout")
+        XCTAssertTrue(app.buttons["Review"].exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Pending recovery status · Dark"; shot.lifetime = .keepAlways; add(shot)
+        done.tap()
+        app.openActivity("workspace.status")
+        XCTAssertTrue(done.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Review"].exists)
+        done.tap()
+        XCTAssertTrue(app.buttons["vault.item.fixture-github"].isHittable)
+        app.terminate()
+    }
+
     func testPausedSyncDoesNotInterruptBrowsing() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-files-rich", "--ui-channel", "--ui-sync-paused", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]

@@ -244,8 +244,9 @@ final class SessionModel {
         session = state; vault = items; fixtureVaultItems = items
         if let account = state.account {
             notifications.installFixtures(account: account)
+            let staleRecovery = ProcessInfo.processInfo.arguments.contains("--ui-recovery-stale")
             recoveryWarning = RecoveryObservation(account: account, pending: false, digest: nil,
-                observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000), stale: false)
+                observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000) - (staleRecovery ? 172_800_000 : 0), stale: staleRecovery)
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-approval") {
             approvals = [ApprovalView(id: String(repeating: "d", count: 64), digest: String(repeating: "e", count: 64),

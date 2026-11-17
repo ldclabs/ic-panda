@@ -41,7 +41,7 @@ struct WorkspaceStatusView: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
             List {
-                if RecoveryNotice.isVisible(model, at: timeline.date) { RecoveryNotice() }
+                if RecoveryNotice.isVisible(model, at: timeline.date) { RecoveryNotice(date: timeline.date) }
                 if model.unlocked {
                     ContentSyncStatusView()
                     Button("Sync now") { Task { await model.synchronize() } }.disabled(model.busy || model.syncCoolingDown).accessibilityIdentifier("sync.retry")
