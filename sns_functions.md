@@ -78,3 +78,5 @@
 3_042 ghcje-dyaaa-aaaas-qg7va-cai admin_set_uploader
 3_043 mpld4-maaaa-aaaas-qhepa-cai admin_set_limits
 3_044 mpld4-maaaa-aaaas-qhepa-cai admin_set_admission_key
+3_045 mpld4-maaaa-aaaas-qhepa-cai admin_set_android_signers
+3_046 uwist-sqaaa-aaaaj-qsjyq-cai set_google_play_config
