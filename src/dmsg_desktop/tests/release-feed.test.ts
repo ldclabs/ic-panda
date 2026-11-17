@@ -57,10 +57,17 @@ test('beta discovery paginates past canister releases and caches repeated checks
   assert.equal(requests.length, 2)
 })
 
-test('stable discovery does not trust a beta marked latest; errors and rate limits are not up-to-date', async () => {
+test('stable discovery passes the pinned bridge without accepting beta; invalid responses and rate limits fail', async () => {
   const signal = new AbortController().signal
-  const beta = new ReleaseFeed(async () => Response.json(release('1.3.0-beta.1')))
-  await assert.rejects(beta.latest('stable', '1.2.2', 'darwin', 'arm64', signal), /complete stable/)
+  const stable = new ReleaseFeed(async (input) => {
+    assert.ok(!String(input).endsWith('/latest'))
+    return Response.json([release('1.5.8'), release('2.0.0-beta.1'), release('1.6.0'), { ...release('9.0.0'), draft: true }])
+  })
+  assert.equal((await stable.latest('stable', '1.5.8', 'darwin', 'arm64', signal))?.version, '1.6.0')
+  const beta = new ReleaseFeed(async () => Response.json([release('2.0.0-beta.1')]))
+  assert.equal(await beta.latest('stable', '1.5.8', 'darwin', 'arm64', signal), null)
+  const malformed = new ReleaseFeed(async () => Response.json(release('1.6.0')))
+  await assert.rejects(malformed.latest('stable', '1.5.8', 'darwin', 'arm64', signal), /Invalid GitHub releases/)
   let calls = 0
   const limited = new ReleaseFeed(async () => {
     calls++

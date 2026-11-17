@@ -1,10 +1,10 @@
 //! Releases and installs of `dmsg`: the latest stable SemVer release of the
 //! repository, a download checked against its published SHA-256 and, on
-//! macOS, signed by the same team as the running binary, and the one shared
-//! location that the install scripts, Homebrew and the desktop app use.
+//! macOS, signed by its team or the pinned recipient of the LDC transition,
+//! and the shared location that the install scripts, Homebrew and the desktop app use.
 //!
-//! The repository also publishes canister releases (`canisters-v*`); only the stable dMsg
-//! client release is marked as the latest one.
+//! GitHub Latest stays on the LDC bridge for old clients. New clients enumerate
+//! complete stable releases, excluding canister releases (`canisters-v*`).
 
 use crate::remote::Failure;
 use semver::Version;
@@ -82,6 +82,15 @@ async fn get(http: &reqwest::Client, url: &str, accept: &str) -> Result<Vec<u8>,
 
 /// The version of the latest dMsg client release.
 pub async fn latest(http: &reqwest::Client) -> Result<String, Failure> {
+    if base() == RELEASES {
+        return latest_from_api(
+            http,
+            "https://api.github.com/repos/ldclabs/ic-panda/releases",
+        )
+        .await;
+    }
+    // Explicit mirrors keep their existing /latest contract. The official
+    // GitHub Latest entry stays pinned to the LDC bridge for older clients.
     let url = format!("{}/latest", base());
     let bytes = get(http, &url, "application/json").await?;
     let reply: Value = serde_json::from_slice(&bytes).map_err(unavailable)?;
@@ -92,6 +101,53 @@ pub async fn latest(http: &reqwest::Client) -> Result<String, Failure> {
             format!("the latest release ({tag}) is not a dMsg client release"),
         )
     })
+}
+
+async fn latest_from_api(http: &reqwest::Client, api: &str) -> Result<String, Failure> {
+    let asset =
+        asset().ok_or_else(|| Failure::new("UNSUPPORTED", "no release for this platform"))?;
+    let mut best: Option<String> = None;
+    for page in 1.. {
+        let bytes = get(
+            http,
+            &format!("{api}?per_page=100&page={page}"),
+            "application/vnd.github+json",
+        )
+        .await?;
+        let releases: Vec<Value> = serde_json::from_slice(&bytes).map_err(unavailable)?;
+        for release in &releases {
+            if let Some(version) = downloadable_version(release, asset)
+                && best.as_ref().is_none_or(|best| newer(version, best))
+            {
+                best = Some(version.to_string());
+            }
+        }
+        if releases.len() < 100 {
+            break;
+        }
+    }
+    best.ok_or_else(|| {
+        Failure::new(
+            "NOT_FOUND",
+            "no complete stable dMsg release for this platform",
+        )
+    })
+}
+
+fn downloadable_version<'a>(release: &'a Value, asset: &str) -> Option<&'a str> {
+    let version = stable_version(release)?;
+    if release["draft"] != false || release["prerelease"] != false {
+        return None;
+    }
+    let assets = release["assets"].as_array()?;
+    [asset.to_string(), format!("{asset}.sha256")]
+        .iter()
+        .all(|name| {
+            assets.iter().any(|item| {
+                item["name"].as_str() == Some(name.as_str()) && item["state"] == "uploaded"
+            })
+        })
+        .then_some(version)
 }
 
 fn stable_version(reply: &Value) -> Option<&str> {
@@ -196,29 +252,99 @@ fn team(path: &Path) -> Option<String> {
     String::from_utf8_lossy(&output.stderr)
         .lines()
         .find_map(|line| line.strip_prefix("TeamIdentifier="))
-        .filter(|team| *team != "not set")
+        .filter(|team| valid_team(team))
         .map(str::to_string)
 }
 
-/// A binary signed by a team accepts another one, a replacement or an
-/// installed one, only when it verifies and is signed by the same team; an
-/// unsigned build has nothing to compare.
+#[cfg(any(target_os = "macos", test))]
+fn valid_team(team: &str) -> bool {
+    team.len() == 10
+        && team
+            .bytes()
+            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
+}
+
+#[cfg(any(target_os = "macos", test))]
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MacSigningPolicy {
+    source_team: String,
+    recipient_team: String,
+    daemon_identifier: String,
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn mac_signing_policy() -> MacSigningPolicy {
+    serde_json::from_str(include_str!("../../../scripts/dmsg/macos-signing.json"))
+        .expect("reviewed macOS signing policy")
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn mac_requirement(identifier: &str, teams: &[&str]) -> String {
+    assert!(
+        !identifier.is_empty()
+            && identifier
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-')
+    );
+    assert!(!teams.is_empty() && teams.iter().all(|team| valid_team(team)));
+    let teams = teams
+        .iter()
+        .map(|team| format!("certificate leaf[subject.OU] = \"{team}\""))
+        .collect::<Vec<_>>()
+        .join(" or ");
+    format!(
+        "identifier \"{identifier}\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and ({teams})"
+    )
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn update_teams<'a>(
+    policy: &'a MacSigningPolicy,
+    signer: &'a str,
+    verified_source: bool,
+) -> Vec<&'a str> {
+    if signer == policy.source_team && verified_source {
+        vec![policy.source_team.as_str(), policy.recipient_team.as_str()]
+    } else {
+        vec![signer]
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn matches_requirement(path: &Path, requirement: &str) -> bool {
+    Command::new("/usr/bin/codesign")
+        .args(["--verify", "--strict", "-R", &format!("={requirement}")])
+        .arg(path)
+        .output()
+        .is_ok_and(|output| output.status.success())
+}
+
+/// Only a genuine LDC Developer ID dmsg may introduce the pinned recipient.
+/// A recipient binary accepts its own team only, never a rollback to LDC.
+/// Unsigned development builds retain their local-install behavior.
 #[cfg(target_os = "macos")]
 fn check_signature(candidate: &Path) -> Result<(), Failure> {
-    let Some(expected) = std::env::current_exe().ok().and_then(|exe| team(&exe)) else {
+    let own = std::env::current_exe().map_err(unavailable)?;
+    let Some(expected) = team(&own) else {
         return Ok(());
     };
-    let verified = Command::new("/usr/bin/codesign")
-        .args(["--verify", "--strict"])
-        .arg(candidate)
-        .status()
-        .is_ok_and(|status| status.success());
-    if verified && team(candidate).as_deref() == Some(expected.as_str()) {
+    let policy = mac_signing_policy();
+    let source = mac_requirement(&policy.daemon_identifier, &[&policy.source_team]);
+    let teams = update_teams(&policy, &expected, matches_requirement(&own, &source));
+    if matches_requirement(
+        candidate,
+        &mac_requirement(&policy.daemon_identifier, &teams),
+    ) {
         return Ok(());
     }
     Err(Failure::new(
         "INTEGRITY_FAILED",
-        format!("the new binary is not signed by team {expected}"),
+        format!(
+            "the binary must be Developer ID signed as {} by {}",
+            policy.daemon_identifier,
+            teams.join(" or ")
+        ),
     ))
 }
 
@@ -362,6 +488,91 @@ fn install_at(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_authenticated_source_may_introduce_the_recipient() {
+        let policy = mac_signing_policy();
+        assert_eq!(
+            update_teams(&policy, &policy.source_team, true),
+            [&policy.source_team, &policy.recipient_team]
+        );
+        assert_eq!(
+            update_teams(&policy, &policy.source_team, false),
+            [&policy.source_team]
+        );
+        assert_eq!(
+            update_teams(&policy, &policy.recipient_team, true),
+            [&policy.recipient_team]
+        );
+        assert_eq!(update_teams(&policy, "OTHERTEAM1", true), ["OTHERTEAM1"]);
+        for invalid in ["", "not set", "short", "S9Z2WAMAV8\" or true", "s9z2wamav8"] {
+            assert!(!valid_team(invalid));
+        }
+        let requirement = mac_requirement(
+            &policy.daemon_identifier,
+            &[&policy.source_team, &policy.recipient_team],
+        );
+        assert!(requirement.contains("identifier \"net.dmsg.dmsg\""));
+        assert!(requirement.contains("anchor apple generic"));
+        assert!(requirement.contains("certificate leaf[field.1.2.840.113635.100.6.1.13] exists"));
+    }
+
+    fn complete_release(version: &str) -> Value {
+        let asset = asset().unwrap();
+        json!({"tag_name":version,"draft":false,"prerelease":false,"assets":[
+            {"name":asset,"state":"uploaded"}, {"name":format!("{asset}.sha256"),"state":"uploaded"}
+        ]})
+    }
+
+    #[test]
+    fn enumeration_requires_complete_stable_assets_for_this_platform() {
+        let asset = asset().unwrap();
+        assert_eq!(
+            downloadable_version(&complete_release("1.6.0"), asset),
+            Some("1.6.0")
+        );
+        for version in ["1.6.0-beta.1", "canisters-v3.0.0", "v1.6.0"] {
+            assert!(downloadable_version(&complete_release(version), asset).is_none());
+        }
+        for (field, value) in [
+            ("draft", json!(true)),
+            ("prerelease", json!(true)),
+            ("assets", json!([])),
+        ] {
+            let mut release = complete_release("1.6.0");
+            release[field] = value;
+            assert!(downloadable_version(&release, asset).is_none());
+        }
+        let mut uploading = complete_release("1.6.0");
+        uploading["assets"][1]["state"] = json!("new");
+        assert!(downloadable_version(&uploading, asset).is_none());
+    }
+
+    #[tokio::test]
+    async fn discovery_passes_the_pinned_bridge_and_paginates_without_selecting_beta() {
+        use axum::{Json, Router, http::Uri, routing::get};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let app = Router::new().route(
+            "/releases",
+            get(|uri: Uri| async move {
+                let values = match uri.query().unwrap() {
+                    "per_page=100&page=1" => vec![complete_release("1.5.8"); 100],
+                    "per_page=100&page=2" => vec![
+                        complete_release("1.6.1-beta.1"),
+                        complete_release("1.6.0"),
+                        complete_release("1.5.9"),
+                    ],
+                    query => panic!("unexpected release page: {query}"),
+                };
+                Json(values)
+            }),
+        );
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let result = latest_from_api(&http().unwrap(), &format!("http://{address}/releases")).await;
+        server.abort();
+        assert_eq!(result.unwrap(), "1.6.0");
+    }
 
     #[test]
     fn the_default_update_requires_a_stable_client_release() {

@@ -22,6 +22,7 @@ error() { printf 'Error: %s\n' "$1" >&2; exit 1; }
 FILE="$1"
 : "${MAC_CSC_LINK:?}" "${MAC_CSC_KEY_PASSWORD:?}"
 : "${APPLE_ID:?}" "${APPLE_APP_SPECIFIC_PASSWORD:?}" "${APPLE_TEAM_ID:?}"
+node "$(dirname "$0")/macos-signing.cjs" check-team "$APPLE_TEAM_ID"
 
 WORK=$(mktemp -d)
 KEYCHAIN="${WORK}/signing.keychain-db"
@@ -67,6 +68,9 @@ PLIST
 codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --options runtime --timestamp \
     --identifier net.dmsg.dmsg --entitlements "${WORK}/entitlements.plist" "$FILE"
 codesign --verify --strict --verbose=2 "$FILE"
+# The notary team also names the FSKit IPC group. Refuse a certificate/team
+# mismatch before notarization; never ship an entitlement for the wrong team.
+codesign --verify --strict -R "=identifier \"net.dmsg.dmsg\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = \"${APPLE_TEAM_ID}\"" "$FILE"
 
 mkdir "${WORK}/notarize"
 cp "$FILE" "${WORK}/notarize/"

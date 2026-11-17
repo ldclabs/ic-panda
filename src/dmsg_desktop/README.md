@@ -607,7 +607,7 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   `resources/runtime`; its version must be the app's. The app never runs it
   as a daemon: each start runs `dmsg install` with it, which puts it at the
   shared location unless the one there is newer or Homebrew's and, on macOS,
-  signed by the same Developer ID team, and the app
+  signed as `net.dmsg.dmsg` by an accepted Developer ID team, and the app
   then runs the installed `dmsg` (`src/main/runtime.ts`). If the install
   fails, the main window shows its error and the next start tries again. On macOS the bundled
   file keeps the release binary's own signature (`signIgnore`).
@@ -616,10 +616,10 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   older daemon; busy work may need to settle before the daemon can restart.
 - `electron-builder.yml` is the base: ad hoc signed, no update feed;
   `package:dir` uses it. `electron-builder.local.cjs` (`package`) signs a
-  local package with the keychain's Developer ID Application identity when
-  there is one, with the release entitlements and without notarization, and
+  local package with the current release team's Developer ID Application
+  identity when available, with the release entitlements and without notarization, and
   gives it the release's update feed, so it downloads and installs releases
-  signed by the same team; without one, or with
+  allowed by its designated requirement; without that identity, or with
   `CSC_IDENTITY_AUTO_DISCOVERY=false`, it stays ad hoc with no feed. A
   macOS package gets the feed only with its dmg or zip, never from `--dir`.
   `electron-builder.release.cjs` (the release
@@ -628,6 +628,14 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   and the update feed of the GitHub release (`latest-mac.yml`, `latest.yml`
   for stable; `beta-mac.yml`, `beta.yml` for beta). Tags are bare versions,
   such as `1.3.0` or `1.4.0-beta.1`; see [release instructions](../../scripts/dmsg/README.md).
+- The macOS 1.5.8 transition stays signed by LDC (`S9Z2WAMAV8`). Its outer
+  app requirement and CLI verifier also accept Yiwen (`63G8VNQPXB`), always
+  with the exact dMsg identifier and Apple Developer ID constraints. Signing
+  policy is pinned in `scripts/dmsg/macos-signing.json`; changing CI secrets
+  alone cannot switch teams. Nested helpers retain individual requirements,
+  and FSKit peers must still share one team. Keychain service names, opaque
+  hardware handles and workspace paths are preserved; a later team switch
+  may require system Keychain consent. See the [transition runbook](docs/macos-team-transfer.md).
 - Packages register the `dmsg:` scheme (`CFBundleURLTypes` on macOS, the
   NSIS installer on Windows) besides `setAsDefaultProtocolClient` at run time.
   The Windows app installs per user under `%LOCALAPPDATA%\Programs\dMsg`,
@@ -651,7 +659,9 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   `update-channel` file; it does not sync between accounts or devices. Beta
   includes newer stable releases. Release selection checks canonical SemVer,
   GitHub prerelease flags and complete platform assets, with paginated queries
-  and short caches. A later stable hotfix cannot hide a higher beta version.
+  and short caches for both channels. GitHub Latest stays on 1.5.8 for old
+  stable clients; the bridge and later clients enumerate newer releases.
+  A later stable hotfix cannot hide a higher beta version.
   The selected tag pins the updater's feed and all downloads; the manifest
   version and filenames must match before a download starts.
 - Changing the channel cancels and invalidates the prior candidate, download

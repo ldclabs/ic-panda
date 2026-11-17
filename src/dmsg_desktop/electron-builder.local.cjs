@@ -1,5 +1,5 @@
 // Local packages (`pnpm package`): on a Mac whose keychain has a Developer ID
-// Application identity, signed with it and given the update feed of the
+// Application identity for the release team, signed with it and given the update feed of the
 // GitHub release, so they download and install releases like a release
 // package; otherwise ad hoc signed with no feed (electron-builder.yml).
 // CSC_IDENTITY_AUTO_DISCOVERY=false keeps them ad hoc. `package:dir` stays on
@@ -10,20 +10,22 @@ const path = require('node:path')
 const { parse } = require('yaml')
 const { publishConfig } = require('../../scripts/dmsg/release-config.cjs')
 const { version } = require('./package.json')
+const { policy } = require('../../scripts/dmsg/macos-signing.cjs')
 
 const config = parse(fs.readFileSync(path.join(__dirname, 'electron-builder.yml'), 'utf8'))
 
-/** The keychain's first Developer ID Application identity, without the prefix electron-builder adds itself. */
+/** The release team's Developer ID identity, without the prefix electron-builder adds itself. */
 function developerId() {
   if (process.platform !== 'darwin' || process.env.CSC_IDENTITY_AUTO_DISCOVERY === 'false') return null
   const identities = execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], { encoding: 'utf8' })
-  return identities.match(/"Developer ID Application: (.+)"/)?.[1] ?? null
+  return [...identities.matchAll(/"Developer ID Application: ([^"\n]+)"/g)]
+    .map(match => match[1]).find(identity => identity.endsWith(`(${policy.releaseTeam})`)) ?? null
 }
 
 const identity = developerId()
 if (identity) {
-  // Squirrel.Mac installs only updates signed like the running app, so the
-  // feed installs releases only into a package signed by their team. Local
+  // Squirrel.Mac checks the running app's designated requirement, including
+  // the pinned recipient during the transition. Local
   // packages are not notarized, so they need no secure timestamp either; macOS
   // runs them since they were not downloaded.
   config.mac.identity = identity
@@ -31,6 +33,7 @@ if (identity) {
   config.mac.entitlementsInherit = 'resources/entitlements.mac.plist'
   config.mac.notarize = false
   config.mac.timestamp = 'none'
+  config.mac.sign = require('./scripts/sign-macos.cjs')
   config.publish = [publishConfig(version)]
   config.generateUpdatesFilesForAllChannels = false
 }

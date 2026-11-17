@@ -80,11 +80,8 @@ export class ReleaseFeed {
   }
 
   async latest(channel: UpdateChannel, current: string, platform: string, arch: string, signal: AbortSignal): Promise<DesktopRelease | null> {
-    if (channel === 'stable') {
-      const release = desktopRelease(await this.read(`${API}/latest`, signal), platform, arch)
-      if (!release || release.channel !== 'stable') throw new Error('The latest release has no complete stable dMsg update for this platform.')
-      return selectRelease([release], channel, current)
-    }
+    // GitHub Latest remains on the LDC bridge for legacy clients. Both channels
+    // enumerate complete releases; selectRelease still keeps stable off beta.
     const candidates: DesktopRelease[] = []
     for (let page = 1; ; page++) {
       signal.throwIfAborted()

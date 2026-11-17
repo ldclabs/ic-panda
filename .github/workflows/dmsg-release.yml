@@ -1,7 +1,8 @@
 name: dMsg release
 # The dMsg client: the dmsg CLI and daemon for macOS, Linux and Windows, and
 # the desktop app for macOS and Windows. Tags are X.Y.Z or X.Y.Z-beta.N.
-# Only stable releases become latest and update Homebrew; beta releases are opt-in.
+# GitHub Latest stays on the LDC bridge for legacy updaters. New clients enumerate
+# complete releases; every stable release still updates Homebrew. Beta is opt-in.
 #
 # Secrets of the dmsg-release environment (macOS signing/notarization are required):
 #   MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD   Developer ID Application .p12 (base64) and password
@@ -201,6 +202,17 @@ jobs:
       - name: Verify binary and package checksums
         working-directory: release
         run: sha256sum --check ./*.sha256
+      - name: Require the legacy update bridge before a later stable release
+        if: needs.version.outputs.prerelease == 'false' && needs.version.outputs.make_latest == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bridge=$(node -p 'require("./scripts/dmsg/macos-signing.json").bridgeVersion')
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          if [ "$latest" != "$bridge" ]; then
+            echo "GitHub Latest must remain on the LDC transition release $bridge before publishing a later stable release." >&2
+            exit 1
+          fi
       - uses: softprops/action-gh-release@v3
         id: upload
         with:

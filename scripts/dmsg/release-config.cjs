@@ -1,10 +1,14 @@
 /** One version rule for CI and both desktop packagers. Tags equal the version, without a prefix. */
+const { bridgeVersion, sourceTeam, releaseTeam } = require('./macos-signing.json')
 function releaseConfig(version) {
   if (typeof version !== 'string' || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-beta\.(0|[1-9]\d*))?$/.test(version)) {
     throw new Error(`Expected X.Y.Z or X.Y.Z-beta.N, got ${version}`)
   }
   const prerelease = version.includes('-')
-  return { version, channel: prerelease ? 'beta' : 'latest', prerelease, make_latest: !prerelease }
+  if (version === bridgeVersion && releaseTeam !== sourceTeam) throw new Error('The legacy bridge must retain its LDC signature')
+  // Legacy clients only know /releases/latest and trust LDC. Keep that entry
+  // on the LDC bridge; the bridge and later clients enumerate releases.
+  return { version, channel: prerelease ? 'beta' : 'latest', prerelease, make_latest: version === bridgeVersion }
 }
 
 function publishConfig(version) {

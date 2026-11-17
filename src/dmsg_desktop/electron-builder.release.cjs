@@ -6,6 +6,7 @@ const path = require('node:path')
 const { parse } = require('yaml')
 const { publishConfig } = require('../../scripts/dmsg/release-config.cjs')
 const { version } = require('./package.json')
+const { assertReleaseTeam } = require('../../scripts/dmsg/macos-signing.cjs')
 
 const config = parse(fs.readFileSync(path.join(__dirname, 'electron-builder.yml'), 'utf8'))
 const signed = Boolean(process.env.CSC_LINK)
@@ -22,11 +23,13 @@ delete config.mac.identity
 config.mac.entitlements = 'resources/entitlements.mac.plist'
 config.mac.entitlementsInherit = 'resources/entitlements.mac.plist'
 config.mac.notarize = true
+config.mac.sign = require('./scripts/sign-macos.cjs')
 if (
   process.platform === 'darwin' &&
   !(process.env.APPLE_ID && process.env.APPLE_APP_SPECIFIC_PASSWORD && process.env.APPLE_TEAM_ID)
 )
   throw new Error('Notarization needs APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID')
+if (process.platform === 'darwin') assertReleaseTeam(process.env.APPLE_TEAM_ID)
 if (process.platform === 'win32') {
   if (signed) {
     if (!process.env.DMSG_WINDOWS_PUBLISHER) throw new Error('Set DMSG_WINDOWS_PUBLISHER to the certificate subject')

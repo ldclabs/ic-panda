@@ -227,7 +227,7 @@ dmsg logs [-n 100]               # the newest lines of the run log
 
 [`scripts/dmsg/install.sh`](../../scripts/dmsg/install.sh) (macOS Apple
 Silicon, Linux) and [`install.ps1`](../../scripts/dmsg/install.ps1) (Windows
-x64) download the latest release, check its SHA-256 and run `dmsg install`;
+x64) download GitHub Latest, check its SHA-256 and run `dmsg install`;
 `--uninstall`/`-Uninstall` stops the daemon and removes the login registration
 and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
 
@@ -237,23 +237,31 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
   directory) unless the one there is the same release or newer, or Homebrew's
   (left to `brew upgrade dmsg`). When this binary is signed by a Developer ID
   team (macOS), an installed one stays only if it verifies and is signed by
-  the same team, checked before anything runs it: a shared one that fails is
+  an accepted team with the exact `net.dmsg.dmsg` identifier, checked before
+  anything runs it: a shared one that fails is
   replaced, and a Homebrew one that fails gives way to the shared location.
   The desktop app runs its bundled copy only this way and then runs the
   installed one, so the CLI, agents and the app share one daemon. `--json`
   reports `{action, path, version, on_path}` with `action` one of
   `installed`, `upgraded`, `replaced`, `current`, `kept_newer`, `homebrew`.
 - **Releases.** Since 1.3.0, dMsg client tags are bare versions (`1.3.0`,
-  `1.4.0-beta.1`); only stable versions are the
-  repository's latest release (canister releases are not).
+  `1.4.0-beta.1`). From 1.5.8, the official updater enumerates GitHub releases
+  and chooses the highest stable version with this platform's binary and
+  checksum fully uploaded. GitHub Latest remains on the LDC-signed 1.5.8
+  bridge for older clients and default installers; canister tags and betas
+  are excluded from the CLI's stable selection.
   `dmsg update --check --json` reports `{current, latest, available,
   homebrew}`. `dmsg update` downloads this platform's binary
   (`dmsg-macos-arm64`, `dmsg-linux-x86_64`, `dmsg-linux-arm64`,
   `dmsg-windows-x64.exe`), checks it against the release's `.sha256` and, when
   this binary is signed by a Developer ID team, that the new one verifies and
-  is signed by the same team; then it replaces this binary through a staged
-  file. `DMSG_RELEASE_URL` replaces `https://github.com/ldclabs/ic-panda/releases`
-  (tests, mirrors).
+  has the exact `net.dmsg.dmsg` identifier and an accepted Developer ID team;
+  then it replaces this binary through a staged file. A verified LDC binary
+  (`S9Z2WAMAV8`) accepts LDC or the pinned recipient Yiwen (`63G8VNQPXB`).
+  Yiwen binaries accept Yiwen only; other signing teams accept their own team.
+  See the [macOS transition runbook](../dmsg_desktop/docs/macos-team-transfer.md).
+  `DMSG_RELEASE_URL` replaces `https://github.com/ldclabs/ic-panda/releases`
+  (tests, mirrors); explicit mirrors retain their `/latest` JSON contract.
 - **Stopping for an update** (plan DT10). `restart` and `update` stop a
   running daemon with `daemon/stop {if_idle: true}`: the daemon refuses new
   requests and background passes, waits for the running operation and stops
