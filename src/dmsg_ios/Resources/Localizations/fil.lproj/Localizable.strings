@@ -429,7 +429,7 @@
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Suriin ang aktibidad ng device na ito bago magpasya kung kailangan pa rin ng access.</string>
 	<key>Checking permission…</key>
-	<string>Sinusuri ang pahintulot...</string>
+	<string>Sinusuri ang pahintulot…</string>
 	<key>Checklist completed</key>
 	<string>Nakumpleto ang checklist</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
@@ -1227,7 +1227,7 @@
 	<key>Load more</key>
 	<string>Mag-load pa</string>
 	<key>Loading the verified request…</key>
-	<string>Nilo-load ang na-verify na kahilingan...</string>
+	<string>Nilo-load ang na-verify na kahilingan…</string>
 	<key>Loading…</key>
 	<string>Naglo-load…</string>
 	<key>Local</key>
@@ -2379,7 +2379,7 @@
 	<key>Show dismissed findings</key>
 	<string>Ipakita ang mga na-dismiss na natuklasan</string>
 	<key>Show draft</key>
-	<string>Ipakita kung ano ang iyong na-type</string>
+	<string>Ipakita ang draft</string>
 	<key>Show in Large Type</key>
 	<string>Ipakita sa malaking teksto</string>
 	<key>Show in library</key>

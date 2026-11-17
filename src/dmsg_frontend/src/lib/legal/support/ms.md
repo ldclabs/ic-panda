@@ -6,14 +6,14 @@ dMsg dibina secara terbuka oleh ICPanda DAO. Untuk masalah yang anda boleh mengh
 
 ## Mana nak tanya
 
-- **Laporan pepijat:** [Isu GitHub](https://github.com/ldclabs/ic-panda/issues) untuk masalah dengan tapak web, apl warisan, sambungan atau canisters.
+- **Laporan pepijat:** [Isu GitHub](https://github.com/ldclabs/ic-panda/issues) untuk masalah dengan tapak web, apl lama, sambungan atau canisters.
 - **Soalan dan komuniti:** komuniti [ICPanda di OpenChat](https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai).
 - **Berita dan pengumuman:** [@ICPandaDAO di X](https://x.com/ICPandaDAO).
 - **Mencapai DAO:** [al.ink/ICPanda](https://al.ink/ICPanda).
 
-## Apl warisan
+## Apl lama
 
-Apl lama adalah baca sahaja. Log masuk dengan identiti sedia ada anda untuk membaca perbualan lama dan memuat turun lampiran yang boleh anda akses. Simpan penyemak imbas asal dan datanya, terutamanya jika anda menggunakan mod kunci tempatan: kunci yang disimpan hanya dalam penyemak imbas yang anda kosongkan tidak boleh dipulihkan. Untuk beralih ke dMsg baharu, pasang apl desktop dan mulakan migrasi di bawah Tetapan › Legasi; ia membuka halaman warisan tapak ini untuk menyerahkan sejarah anda kepada peranti itu.
+Apl lama adalah baca sahaja. Log masuk dengan identiti sedia ada anda untuk membaca perbualan lama dan memuat turun lampiran yang boleh anda akses. Simpan penyemak imbas asal dan datanya, terutamanya jika anda menggunakan mod kunci tempatan: kunci yang disimpan hanya dalam penyemak imbas yang anda kosongkan tidak boleh dipulihkan. Untuk beralih ke dMsg baharu, pasang apl desktop dan mulakan migrasi di bawah Tetapan › Versi Lama; ia membuka halaman versi lama tapak ini untuk menyerahkan sejarah anda kepada peranti itu.
 
 ## Pembayaran dan pesanan
 

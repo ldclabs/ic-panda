@@ -1227,7 +1227,7 @@
 	<key>Load more</key>
 	<string>Carica di più</string>
 	<key>Loading the verified request…</key>
-	<string>Caricamento della richiesta verificata...</string>
+	<string>Caricamento della richiesta verificata…</string>
 	<key>Loading…</key>
 	<string>Caricamento…</string>
 	<key>Local</key>
@@ -1945,7 +1945,7 @@
 	<key>Reported account</key>
 	<string>Conto segnalato</string>
 	<key>Request ID</key>
-	<string>Richiedi un documento d'identità</string>
+	<string>ID richiesta</string>
 	<key>Request account deletion</key>
 	<string>Richiedi la cancellazione dell'account</string>
 	<key>Request account recovery</key>
@@ -2379,13 +2379,13 @@
 	<key>Show dismissed findings</key>
 	<string>Mostra risultati respinti</string>
 	<key>Show draft</key>
-	<string>Mostra quello che hai digitato</string>
+	<string>Mostra bozza</string>
 	<key>Show in Large Type</key>
 	<string>Mostra a caratteri grandi</string>
 	<key>Show in library</key>
 	<string>Mostra nella libreria</string>
 	<key>Show share link</key>
-	<string>Mostra collegamento di condivisione</string>
+	<string>Mostra link di condivisione</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
 	<string>Visualizzazione dei contenuti salvati. L'ultima sincronizzazione non è terminata.</string>
 	<key>Shown in Devices on that device, which must be an administrator.</key>
@@ -2951,7 +2951,7 @@
 	<key>Waiting for first sync</key>
 	<string>In attesa della prima sincronizzazione</string>
 	<key>Waiting for notification registration…</key>
-	<string>In attesa della registrazione della notifica...</string>
+	<string>In attesa della registrazione della notifica…</string>
 	<key>Waiting for the other device</key>
 	<string>In attesa dell’altro dispositivo</string>
 	<key>Waiting for your decision</key>

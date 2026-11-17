@@ -483,7 +483,7 @@
     <string name="text_created_on_new_device_a77d6d9" formatted="false">"Utworzono na nowym urządzeniu"</string>
     <string name="text_creating_links_requires_plus_or_above_you_can_still_read_save_and_e4a97b9" formatted="false">"Tworzenie linków wymaga Plus lub wyższego planu. Nadal możesz czytać, zapisywać i usuwać już odebrane pliki."</string>
     <string name="text_credential_expired_ee251a7" formatted="false">"Poświadczenie wygasło"</string>
-    <string name="text_credential_id_b5cd509" formatted="false">"Identyfikator uwierzytelnienia"</string>
+    <string name="text_credential_id_b5cd509" formatted="false">"ID danych logowania"</string>
     <string name="text_credential_reused_e86cc3c" formatted="false">"Poświadczenia ponownie wykorzystane"</string>
     <string name="text_credential_rotation_1ec9a4c" formatted="false">"Rotacja poświadczeń"</string>
     <string name="text_current_6865fd6" formatted="false">"Aktualny"</string>
@@ -1029,7 +1029,7 @@
     <string name="text_no_recent_use_observed_on_this_device_21ea584" formatted="false">"Nie zaobserwowano niedawnego użycia tego urządzenia"</string>
     <string name="text_no_recipient_4b720be" formatted="false">"Brak odbiorcy"</string>
     <string name="text_no_reminders_yet_13d6558" formatted="false">"Nie ma jeszcze przypomnień"</string>
-    <string name="text_no_reports_22f7dd6" formatted="false">"Nie ma jeszcze żadnych rekordów"</string>
+    <string name="text_no_reports_22f7dd6" formatted="false">"Brak zgłoszeń"</string>
     <string name="text_no_saved_accounts_f8486b6" formatted="false">"Brak zapisanych kont"</string>
     <string name="text_no_selected_login_matches_this_website_update_your_selected_copie_9eaf25d" formatted="false">"Żadne wybrane dane logowania nie pasują do witryny. Zaktualizuj wybrane kopie w dMsg."</string>
     <string name="text_no_shared_items_waiting_0f756a2" formatted="false">"Brak oczekujących elementów udostępnionych"</string>

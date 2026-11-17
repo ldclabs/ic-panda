@@ -2023,7 +2023,7 @@ export default {
     nameUnknown: 'Sin confirmar',
     nameDone: 'Hecha',
     nameRejected: 'Rechazada',
-    roleHolder: 'Titular en la versión anterior',
+    roleHolder: 'Titular anterior',
     roleLogin: 'Inicio de sesión',
     myNames: 'Mis nombres',
     myNamesHint: 'Los nombres de esta cuenta, en todos los dispositivos.',

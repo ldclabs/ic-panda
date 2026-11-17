@@ -1329,7 +1329,7 @@
     <string name="text_request_8ce9f87" formatted="false">"Richiesta: "</string>
     <string name="text_request_account_deletion_b443c94" formatted="false">"Richiedi la cancellazione dell\'account"</string>
     <string name="text_request_account_recovery_c8c08bd" formatted="false">"Richiedi il recupero dell\'account"</string>
-    <string name="text_request_id_3182520" formatted="false">"Richiedi un documento d\'identità"</string>
+    <string name="text_request_id_3182520" formatted="false">"ID richiesta"</string>
     <string name="text_request_recovery_9ec2322" formatted="false">"Richiedi il recupero"</string>
     <string name="text_request_state_e7453d3" formatted="false">"Stato della richiesta"</string>
     <string name="text_requested_at_878a0ba" formatted="false">"Richiesto il"</string>
@@ -1590,14 +1590,14 @@
     <string name="text_show_again_1409301" formatted="false">"Mostra di nuovo"</string>
     <string name="text_show_device_request_8145c2f" formatted="false">"Mostra richiesta del dispositivo"</string>
     <string name="text_show_dismissed_findings_3b8c890" formatted="false">"Mostra risultati respinti"</string>
-    <string name="text_show_draft_5987b01" formatted="false">"Mostra quello che hai digitato"</string>
+    <string name="text_show_draft_5987b01" formatted="false">"Mostra bozza"</string>
     <string name="text_show_in_files_8b64e4b" formatted="false">"Mostra in File"</string>
     <string name="text_show_in_library_ea56489" formatted="false">"Mostra nella libreria"</string>
     <string name="text_show_more_items_688023e" formatted="false">"Mostra altri elementi"</string>
     <string name="text_show_more_purchases_650e0c2" formatted="false">"Mostra altri acquisti"</string>
     <string name="text_show_my_public_profile_21b825f" formatted="false">"Mostra il mio profilo pubblico"</string>
     <string name="text_show_saved_invitation_12e2d3b" formatted="false">"Mostra invito salvato"</string>
-    <string name="text_show_share_link_fb39fbb" formatted="false">"Mostra collegamento di condivisione"</string>
+    <string name="text_show_share_link_fb39fbb" formatted="false">"Mostra link di condivisione"</string>
     <string name="text_showing_the_first_128_kib_the_complete_file_was_verified_export_t_fec615a" formatted="false">"Sono mostrati i primi 128 KiB. Il file completo è stato verificato; esportalo per leggere il resto."</string>
     <string name="text_showing_the_last_verified_copy_616cefe" formatted="false">"Viene mostrata l\'ultima copia verificata. "</string>
     <string name="text_sign_a_document_or_action_6db21d5" formatted="false">"Firma un documento o un\'azione"</string>

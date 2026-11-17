@@ -1590,7 +1590,7 @@
     <string name="text_show_again_1409301" formatted="false">"Ipakita muli"</string>
     <string name="text_show_device_request_8145c2f" formatted="false">"Ipakita ang kahilingan ng device"</string>
     <string name="text_show_dismissed_findings_3b8c890" formatted="false">"Ipakita ang mga na-dismiss na natuklasan"</string>
-    <string name="text_show_draft_5987b01" formatted="false">"Ipakita kung ano ang iyong na-type"</string>
+    <string name="text_show_draft_5987b01" formatted="false">"Ipakita ang draft"</string>
     <string name="text_show_in_files_8b64e4b" formatted="false">"Ipakita sa Mga File"</string>
     <string name="text_show_in_library_ea56489" formatted="false">"Ipakita sa library"</string>
     <string name="text_show_more_items_688023e" formatted="false">"Magpakita ng higit pang item"</string>

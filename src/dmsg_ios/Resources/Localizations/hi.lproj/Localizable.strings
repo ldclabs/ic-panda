@@ -297,7 +297,7 @@
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>पृष्ठभूमि स्थानांतरण प्रारंभ हुआ. स्थानान्तरण में इसकी प्रगति की समीक्षा करें।</string>
 	<key>Backing up…</key>
-	<string>बैकअप लिया जा रहा है...</string>
+	<string>बैकअप लिया जा रहा है…</string>
 	<key>Backup failed</key>
 	<string>बैकअप विफल</string>
 	<key>Backup list could not be refreshed</key>
@@ -429,7 +429,7 @@
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>यह तय करने से पहले कि क्या एक्सेस की अभी भी आवश्यकता है, इस डिवाइस की गतिविधि की जाँच करें।</string>
 	<key>Checking permission…</key>
-	<string>अनुमति की जाँच की जा रही है...</string>
+	<string>अनुमति की जाँच की जा रही है…</string>
 	<key>Checklist completed</key>
 	<string>चेकलिस्ट पूरी हो गई</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
@@ -1227,9 +1227,9 @@
 	<key>Load more</key>
 	<string>और अधिक लोड करें</string>
 	<key>Loading the verified request…</key>
-	<string>सत्यापित अनुरोध लोड हो रहा है...</string>
+	<string>सत्यापित अनुरोध लोड हो रहा है…</string>
 	<key>Loading…</key>
-	<string>लोड हो रहा है...</string>
+	<string>लोड हो रहा है…</string>
 	<key>Local</key>
 	<string>स्थानीय</string>
 	<key>Local content</key>
@@ -1989,7 +1989,7 @@
 	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
 	<string>रीस्टोर करते समय चुना गया संस्करण डाउनलोड और सत्यापित होता है, फिर उसे खोला जा सकता है।</string>
 	<key>Restoring…</key>
-	<string>पुनर्स्थापित किया जा रहा है...</string>
+	<string>पुनर्स्थापित किया जा रहा है…</string>
 	<key>Result</key>
 	<string>नतीजा</string>
 	<key>Result unconfirmed</key>
@@ -2379,7 +2379,7 @@
 	<key>Show dismissed findings</key>
 	<string>खारिज किए गए निष्कर्ष दिखाएँ</string>
 	<key>Show draft</key>
-	<string>दिखाएँ कि आपने क्या टाइप किया है</string>
+	<string>ड्राफ़्ट दिखाएँ</string>
 	<key>Show in Large Type</key>
 	<string>बड़े अक्षरों में दिखाएँ</string>
 	<key>Show in library</key>
@@ -2527,7 +2527,7 @@
 	<key>Synced</key>
 	<string>समन्वयित</string>
 	<key>Syncing…</key>
-	<string>सिंक हो रहा है...</string>
+	<string>सिंक हो रहा है…</string>
 	<key>System authentication</key>
 	<string>सिस्टम प्रमाणीकरण</string>
 	<key>System integrations</key>
@@ -2923,7 +2923,7 @@
 	<key>Verifying account content…</key>
 	<string>खाते की सामग्री सत्यापित हो रही है…</string>
 	<key>Verifying…</key>
-	<string>सत्यापन किया जा रहा है...</string>
+	<string>सत्यापन किया जा रहा है…</string>
 	<key>Version</key>
 	<string>संस्करण</string>
 	<key>Version history</key>
@@ -2951,7 +2951,7 @@
 	<key>Waiting for first sync</key>
 	<string>पहले सिंक की प्रतीक्षा</string>
 	<key>Waiting for notification registration…</key>
-	<string>अधिसूचना पंजीकरण की प्रतीक्षा की जा रही है...</string>
+	<string>अधिसूचना पंजीकरण की प्रतीक्षा की जा रही है…</string>
 	<key>Waiting for the other device</key>
 	<string>दूसरे उपकरण की प्रतीक्षा</string>
 	<key>Waiting for your decision</key>
@@ -2963,7 +2963,7 @@
 	<key>Waiting to submit</key>
 	<string>सबमिट करने की प्रतीक्षा की जा रही है</string>
 	<key>Waiting to sync</key>
-	<string>सिंक होने की प्रतीक्षा की जा रही है</string>
+	<string>सिंक की प्रतीक्षा</string>
 	<key>Wallet</key>
 	<string>वॉलेट</string>
 	<key>Wallet access</key>

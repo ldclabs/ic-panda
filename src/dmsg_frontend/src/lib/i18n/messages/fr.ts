@@ -227,7 +227,7 @@ export default {
   'Upload file': 'Téléverser un fichier',
   'File name:': 'Nom du fichier :',
   'File size:': 'Taille du fichier :',
-  'bytes': ' octets',
+  'bytes': 'octets',
   'Encrypted size:': 'Taille chiffrée :',
   'Consume': 'Consommation',
   'gas, balance': 'gas, solde',

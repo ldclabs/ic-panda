@@ -2004,7 +2004,7 @@
     <string name="text_wallet_and_external_credential_access_7351124" formatted="false">"Доступ к кошельку и внешним учётным данным"</string>
     <string name="text_wallet_available_87d44fd" formatted="false">"Кошелёк доступен"</string>
     <string name="text_wallet_bindings_ce20aea" formatted="false">"Привязки кошельков"</string>
-    <string name="text_wallet_canister_id_a1a88b6" formatted="false">"ID канистры кошелька"</string>
+    <string name="text_wallet_canister_id_a1a88b6" formatted="false">"ID канистера кошелька"</string>
     <string name="text_wallet_controls_8173ebf" formatted="false">"Управление кошельком"</string>
     <string name="text_wallet_proposal_45007ea" formatted="false">"Предложение кошелька"</string>
     <string name="text_wallet_secret_58fc026" formatted="false">"Секрет кошелька"</string>

@@ -1590,7 +1590,7 @@
     <string name="text_show_again_1409301" formatted="false">"फिर दिखाएँ"</string>
     <string name="text_show_device_request_8145c2f" formatted="false">"डिवाइस अनुरोध दिखाएँ"</string>
     <string name="text_show_dismissed_findings_3b8c890" formatted="false">"खारिज किए गए निष्कर्ष दिखाएँ"</string>
-    <string name="text_show_draft_5987b01" formatted="false">"दिखाएँ कि आपने क्या टाइप किया है"</string>
+    <string name="text_show_draft_5987b01" formatted="false">"ड्राफ़्ट दिखाएँ"</string>
     <string name="text_show_in_files_8b64e4b" formatted="false">"फ़ाइलों में दिखाएँ"</string>
     <string name="text_show_in_library_ea56489" formatted="false">"लाइब्रेरी में दिखाएँ"</string>
     <string name="text_show_more_items_688023e" formatted="false">"और आइटम दिखाएँ"</string>
@@ -1687,7 +1687,7 @@
     <string name="text_synchronization_status_has_not_been_read_c16ea3e" formatted="false">"सिंक की स्थिति अभी नहीं पढ़ी गई।"</string>
     <string name="text_synchronize_online_blocks_491966e" formatted="false">"ऑनलाइन ब्लॉक सिंक करें"</string>
     <string name="text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e" formatted="false">"यह प्रति बहाल करने से पहले सामग्री कुंजी पाने के लिए खाता सिंक करें।"</string>
-    <string name="text_synchronizing_21e4747" formatted="false">"सिंक हो रहा है..."</string>
+    <string name="text_synchronizing_21e4747" formatted="false">"सिंक हो रहा है…"</string>
     <string name="text_system_authentication_0802d32" formatted="false">"सिस्टम प्रमाणीकरण"</string>
     <string name="text_system_authentication_permits_access_to_selected_copies_for_five_150be41" formatted="false">"सिस्टम प्रमाणीकरण चुनी प्रतियों की पहुँच पाँच मिनट देता है। dMsg या फ़ोन लॉक करने से पहुँच समाप्त होती है। दूसरे ऐप पहले पढ़ी प्रतियाँ रख सकते हैं।"</string>
     <string name="text_system_b9dd0f7" formatted="false">"सिस्टम"</string>
@@ -1997,8 +1997,8 @@
     <string name="text_waiting_to_confirm_the_original_result_fbe6478" formatted="false">"मूल परिणाम की पुष्टि की प्रतीक्षा"</string>
     <string name="text_waiting_to_send_93d9311" formatted="false">"भेजने की प्रतीक्षा: "</string>
     <string name="text_waiting_to_submit_b989b07" formatted="false">"सबमिट करने की प्रतीक्षा की जा रही है"</string>
-    <string name="text_waiting_to_sync_865c0a0" formatted="false">"सिंक होने की प्रतीक्षा की जा रही है"</string>
-    <string name="text_waiting_to_sync_9a0891e" formatted="false">"सिंक होने की प्रतीक्षा की जा रही है"</string>
+    <string name="text_waiting_to_sync_865c0a0" formatted="false">"सिंक की प्रतीक्षा"</string>
+    <string name="text_waiting_to_sync_9a0891e" formatted="false">"सिंक की प्रतीक्षा"</string>
     <string name="text_wallet_77c08be" formatted="false">"वॉलेट"</string>
     <string name="text_wallet_access_could_not_be_checked_verify_it_independently_before_9b16c58" formatted="false">"वॉलेट पहुँच नहीं जाँची जा सकी। आगे बढ़ने से पहले स्वतंत्र रूप से सत्यापित करें।"</string>
     <string name="text_wallet_and_external_credential_access_7351124" formatted="false">"वॉलेट और बाहरी क्रेडेंशियल की पहुँच"</string>

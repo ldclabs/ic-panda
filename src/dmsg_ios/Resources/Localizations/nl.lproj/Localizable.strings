@@ -429,7 +429,7 @@
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Controleer de activiteit van dit apparaat voordat je beslist of er nog steeds toegang nodig is.</string>
 	<key>Checking permission…</key>
-	<string>Toestemming controleren...</string>
+	<string>Toestemming controleren…</string>
 	<key>Checklist completed</key>
 	<string>Controlelijst voltooid</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
@@ -1229,7 +1229,7 @@
 	<key>Loading the verified request…</key>
 	<string>Het geverifieerde verzoek laden…</string>
 	<key>Loading…</key>
-	<string>Laden...</string>
+	<string>Laden…</string>
 	<key>Local</key>
 	<string>Lokaal</string>
 	<key>Local content</key>
@@ -2527,7 +2527,7 @@
 	<key>Synced</key>
 	<string>Gesynchroniseerd</string>
 	<key>Syncing…</key>
-	<string>Synchroniseren...</string>
+	<string>Synchroniseren…</string>
 	<key>System authentication</key>
 	<string>Systeemverificatie</string>
 	<key>System integrations</key>

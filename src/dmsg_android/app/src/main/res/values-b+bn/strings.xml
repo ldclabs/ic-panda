@@ -1687,7 +1687,7 @@
     <string name="text_synchronization_status_has_not_been_read_c16ea3e" formatted="false">"সিঙ্কের অবস্থা পড়া হয়নি।"</string>
     <string name="text_synchronize_online_blocks_491966e" formatted="false">"অনলাইন ব্লক সিঙ্ক করুন"</string>
     <string name="text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e" formatted="false">"এই কপি ফেরানোর আগে বিষয়বস্তুর কী পেতে অ্যাকাউন্ট সিঙ্ক করুন।"</string>
-    <string name="text_synchronizing_21e4747" formatted="false">"সিঙ্ক হচ্ছে..."</string>
+    <string name="text_synchronizing_21e4747" formatted="false">"সিঙ্ক হচ্ছে…"</string>
     <string name="text_system_authentication_0802d32" formatted="false">"সিস্টেম প্রমাণীকরণ"</string>
     <string name="text_system_authentication_permits_access_to_selected_copies_for_five_150be41" formatted="false">"সিস্টেম প্রমাণীকরণ নির্বাচিত কপিতে পাঁচ মিনিট প্রবেশাধিকার দেয়। dMsg বা ফোন লক করলে প্রবেশাধিকার শেষ হয়। অন্য অ্যাপ ইতিমধ্যে পড়া কপি রাখতে পারে।"</string>
     <string name="text_system_b9dd0f7" formatted="false">"সিস্টেম"</string>

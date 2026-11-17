@@ -2975,7 +2975,7 @@
 	<key>Wallet bindings</key>
 	<string>Привязки кошельков</string>
 	<key>Wallet canister ID</key>
-	<string>ID канистры кошелька</string>
+	<string>ID канистера кошелька</string>
 	<key>Wallet controls</key>
 	<string>Управление кошельком</string>
 	<key>Wallet details and policy</key>

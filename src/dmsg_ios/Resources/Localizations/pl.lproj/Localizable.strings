@@ -683,7 +683,7 @@
 	<key>Credential</key>
 	<string>Poświadczenie</string>
 	<key>Credential ID</key>
-	<string>Identyfikator uwierzytelnienia</string>
+	<string>ID danych logowania</string>
 	<key>Credential expired</key>
 	<string>Poświadczenie wygasło</string>
 	<key>Credential reused</key>
@@ -1431,7 +1431,7 @@
 	<key>No item attachments</key>
 	<string>Brak załączników do elementów</string>
 	<key>No items</key>
-	<string>Nie ma jeszcze żadnych rekordów</string>
+	<string>Brak elementów</string>
 	<key>No letters yet</key>
 	<string>Nie ma jeszcze żadnych listów</string>
 	<key>No links yet. Make one and send it to whoever should send you files.</key>
@@ -1453,7 +1453,7 @@
 	<key>No registered approval key</key>
 	<string>Brak zarejestrowanego klucza zatwierdzającego</string>
 	<key>No reports</key>
-	<string>Nie ma jeszcze żadnych rekordów</string>
+	<string>Brak zgłoszeń</string>
 	<key>No section</key>
 	<string>Bez sekcji</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>

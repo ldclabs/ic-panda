@@ -2023,7 +2023,7 @@ export default {
     nameUnknown: 'Non confirmée',
     nameDone: 'Terminée',
     nameRejected: 'Refusée',
-    roleHolder: 'Titulaire dans l’ancienne version',
+    roleHolder: 'Ancien titulaire',
     roleLogin: 'Connexion',
     myNames: 'Mes noms',
     myNamesHint: 'Les noms de ce compte, sur tous les appareils.',

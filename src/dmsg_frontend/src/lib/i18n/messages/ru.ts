@@ -86,7 +86,7 @@ export default {
   'Update': 'Обновить',
   'Import token': 'Импорт токена',
   'You can import a new token to wallet by providing its ledger canister ID.':
-    'Укажите ID канистры реестра, чтобы добавить токен в кошелёк.',
+    'Укажите ID канистера реестра, чтобы добавить токен в кошелёк.',
   'How to find ICRC token ledger': 'Как найти реестр токена ICRC',
   'Import': 'Импортировать',
   'Token not found': 'Токен не найден',

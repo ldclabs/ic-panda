@@ -13,7 +13,7 @@ dMsg dibuat untuk umum oleh ICPanda DAO. Untuk masalah yang dapat Anda ulang, bu
 
 ## Aplikasi lama
 
-Aplikasi lawas bersifat hanya baca. Masuk dengan identitas Anda yang ada untuk membaca percakapan lama dan mengunduh lampiran yang dapat Anda akses. Simpan browser asli dan datanya, terutama jika Anda menggunakan mode Kunci lokal: kunci yang hanya disimpan di browser yang Anda bersihkan tidak dapat dipulihkan. Untuk pindah ke dMsg baru, instal aplikasi desktop dan mulai migrasi di bawah Pengaturan › Warisan; itu membuka halaman lama situs ini untuk menyerahkan riwayat Anda ke perangkat itu.
+Aplikasi lawas bersifat hanya baca. Masuk dengan identitas Anda yang ada untuk membaca percakapan lama dan mengunduh lampiran yang dapat Anda akses. Simpan browser asli dan datanya, terutama jika Anda menggunakan mode Kunci lokal: kunci yang hanya disimpan di browser yang Anda bersihkan tidak dapat dipulihkan. Untuk pindah ke dMsg baru, instal aplikasi desktop dan mulai migrasi di bawah Pengaturan › Versi Lama; itu membuka halaman lama situs ini untuk menyerahkan riwayat Anda ke perangkat itu.
 
 ## Pembayaran dan pesanan
 

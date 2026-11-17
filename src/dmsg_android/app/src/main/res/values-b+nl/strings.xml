@@ -1687,7 +1687,7 @@
     <string name="text_synchronization_status_has_not_been_read_c16ea3e" formatted="false">"Synchronisatiestatus is niet gelezen."</string>
     <string name="text_synchronize_online_blocks_491966e" formatted="false">"Online blokkeringen synchroniseren"</string>
     <string name="text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e" formatted="false">"Synchroniseer het account om de inhoudssleutel te verkrijgen voordat je deze kopie herstelt."</string>
-    <string name="text_synchronizing_21e4747" formatted="false">"Synchroniseren..."</string>
+    <string name="text_synchronizing_21e4747" formatted="false">"Synchroniseren…"</string>
     <string name="text_system_authentication_0802d32" formatted="false">"Systeemverificatie"</string>
     <string name="text_system_authentication_permits_access_to_selected_copies_for_five_150be41" formatted="false">"Systeemauthenticatie geeft vijf minuten toegang tot geselecteerde kopieën. dMsg of je telefoon vergrendelen beëindigt de toegang. Andere apps kunnen reeds gelezen kopieën bewaren."</string>
     <string name="text_system_b9dd0f7" formatted="false">"Systeem"</string>

@@ -216,7 +216,7 @@ export default {
   "Username Permanent Account": "使用者名稱永久帳戶",
   ", please transfer the username": "，請將使用者名稱",
   "to this account.": "轉移到此帳戶。",
-  "(Sign in at": "（登入時間：",
+  "(Sign in at": "（登入於",
   "Activate": "啟用",
   "A": "一個",
   "is a fixed account tied to your username that never changes. It allows you to add multiple delegate accounts, enabling team members to use it at the same time—perfect for collaboration.": "是與使用者名稱綁定的固定帳戶，不會改變。它支援新增多個授權代理帳戶，方便團隊成員共同使用。",

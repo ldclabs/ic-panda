@@ -242,7 +242,7 @@ export default {
   'Username Permanent Account': '用户名永久账户',
   ', please transfer the username': '，请将用户名',
   'to this account.': '转移到此账户。',
-  '(Sign in at': '（登录时间：',
+  '(Sign in at': '（登录于',
   'Activate': '激活',
   'A': '一个',
   'is a fixed account tied to your username that never changes. It allows you to add multiple delegate accounts, enabling team members to use it at the same time—perfect for collaboration.':

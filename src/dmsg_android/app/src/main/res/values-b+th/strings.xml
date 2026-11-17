@@ -1687,7 +1687,7 @@
     <string name="text_synchronization_status_has_not_been_read_c16ea3e" formatted="false">"ยังไม่ได้อ่านสถานะการซิงก์"</string>
     <string name="text_synchronize_online_blocks_491966e" formatted="false">"ซิงก์บล็อกออนไลน์"</string>
     <string name="text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e" formatted="false">"ซิงก์บัญชีเพื่อรับคีย์เนื้อหาก่อนกู้คืนสำเนานี้"</string>
-    <string name="text_synchronizing_21e4747" formatted="false">"กำลังซิงค์..."</string>
+    <string name="text_synchronizing_21e4747" formatted="false">"กำลังซิงค์…"</string>
     <string name="text_system_authentication_0802d32" formatted="false">"การรับรองความถูกต้องของระบบ"</string>
     <string name="text_system_authentication_permits_access_to_selected_copies_for_five_150be41" formatted="false">"การยืนยันตัวตนของระบบอนุญาตให้เข้าถึงสำเนาที่เลือกเป็นเวลาห้านาที การล็อก dMsg หรือโทรศัพท์จะสิ้นสุดการเข้าถึง แอปอื่นอาจเก็บสำเนาที่อ่านไปแล้วได้"</string>
     <string name="text_system_b9dd0f7" formatted="false">"ระบบ"</string>

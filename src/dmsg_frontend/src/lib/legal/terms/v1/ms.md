@@ -2,7 +2,7 @@
 
 Versi 1. Kemas kini terakhir: 2026-11-07.
 
-Terma ini mengawal penggunaan dMsg oleh anda: laman web dmsg.net, aplikasi web dMsg warisan (legacy), sambungan pelayar dMsg, perkhidmatan awan dMsg dan canister dMsg pada Internet Computer (ICP). "dMsg" dan "kami" merujuk kepada pasukan yang mengendalikan perkhidmatan dMsg di bawah tadbir urus ICPanda DAO. "Anda" merujuk kepada individu atau organisasi yang menggunakan dMsg.
+Terma ini mengawal penggunaan dMsg oleh anda: laman web dmsg.net, aplikasi web dMsg lama (legacy), sambungan pelayar dMsg, perkhidmatan awan dMsg dan canister dMsg pada Internet Computer (ICP). "dMsg" dan "kami" merujuk kepada pasukan yang mengendalikan perkhidmatan dMsg di bawah tadbir urus ICPanda DAO. "Anda" merujuk kepada individu atau organisasi yang menggunakan dMsg.
 
 ## 1. Menerima terma ini
 
@@ -14,7 +14,7 @@ Anda mestilah mencapai umur yang sah untuk menggunakan perkhidmatan dalam talian
 
 dMsg ialah ruang kerja peribadi dan perkhidmatan tandatangan identiti. Sambungan pelayar menyulitkan dan menyahsulit nota, mesej serta fail anda pada peranti yang anda luluskan. Perkhidmatan awan menyimpan serta menghantar teks sifir (ciphertext) dan mengendalikan saluran, peraturan kenalan serta peti masuk. Canister pada ICP menyimpan status akaun, peranti, pemulihan, handle (nama pengguna awam), resit tandatangan, pembayaran dan kelayakan.
 
-dMsg sedang dibangunkan secara aktif. Kami boleh menambah, mengubah, mengehadkan atau mengalih keluar ciri. Ciri yang diterangkan di laman web mungkin belum tersedia lagi. Aplikasi web warisan adalah baca sahaja (read-only).
+dMsg sedang dibangunkan secara aktif. Kami boleh menambah, mengubah, mengehadkan atau mengalih keluar ciri. Ciri yang diterangkan di laman web mungkin belum tersedia lagi. Aplikasi web lama adalah baca sahaja (read-only).
 
 ## 3. Akaun, peranti dan pemulihan anda
 

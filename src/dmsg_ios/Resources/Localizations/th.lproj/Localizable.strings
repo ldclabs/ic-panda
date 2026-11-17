@@ -297,7 +297,7 @@
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>เริ่มการถ่ายโอนเบื้องหลังแล้ว ตรวจสอบความคืบหน้าในการโอน</string>
 	<key>Backing up…</key>
-	<string>กำลังสำรองข้อมูล...</string>
+	<string>กำลังสำรองข้อมูล…</string>
 	<key>Backup failed</key>
 	<string>สำรองข้อมูลไม่สำเร็จ</string>
 	<key>Backup list could not be refreshed</key>
@@ -429,7 +429,7 @@
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>ตรวจสอบกิจกรรมของอุปกรณ์นี้ก่อนที่จะตัดสินใจว่ายังจำเป็นต้องเข้าถึงหรือไม่</string>
 	<key>Checking permission…</key>
-	<string>กำลังตรวจสอบสิทธิ์...</string>
+	<string>กำลังตรวจสอบสิทธิ์…</string>
 	<key>Checklist completed</key>
 	<string>รายการตรวจสอบเสร็จสมบูรณ์</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
@@ -1227,9 +1227,9 @@
 	<key>Load more</key>
 	<string>โหลดเพิ่ม</string>
 	<key>Loading the verified request…</key>
-	<string>กำลังโหลดคำขอที่ยืนยันแล้ว...</string>
+	<string>กำลังโหลดคำขอที่ยืนยันแล้ว…</string>
 	<key>Loading…</key>
-	<string>กำลังโหลด...</string>
+	<string>กำลังโหลด…</string>
 	<key>Local</key>
 	<string>ท้องถิ่น</string>
 	<key>Local content</key>
@@ -1989,7 +1989,7 @@
 	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
 	<string>การกู้คืนจะดาวน์โหลดและตรวจสอบเวอร์ชันที่เลือกก่อนจึงจะเปิดได้</string>
 	<key>Restoring…</key>
-	<string>กำลังคืนค่า...</string>
+	<string>กำลังคืนค่า…</string>
 	<key>Result</key>
 	<string>ผลลัพธ์</string>
 	<key>Result unconfirmed</key>
@@ -2527,7 +2527,7 @@
 	<key>Synced</key>
 	<string>ซิงค์แล้ว</string>
 	<key>Syncing…</key>
-	<string>กำลังซิงค์...</string>
+	<string>กำลังซิงค์…</string>
 	<key>System authentication</key>
 	<string>การรับรองความถูกต้องของระบบ</string>
 	<key>System integrations</key>
@@ -2923,7 +2923,7 @@
 	<key>Verifying account content…</key>
 	<string>กำลังตรวจสอบเนื้อหาบัญชี…</string>
 	<key>Verifying…</key>
-	<string>กำลังยืนยัน...</string>
+	<string>กำลังยืนยัน…</string>
 	<key>Version</key>
 	<string>เวอร์ชัน</string>
 	<key>Version history</key>
@@ -2951,7 +2951,7 @@
 	<key>Waiting for first sync</key>
 	<string>กำลังรอซิงค์ครั้งแรก</string>
 	<key>Waiting for notification registration…</key>
-	<string>กำลังรอการลงทะเบียนการแจ้งเตือน...</string>
+	<string>กำลังรอการลงทะเบียนการแจ้งเตือน…</string>
 	<key>Waiting for the other device</key>
 	<string>กำลังรออุปกรณ์อีกเครื่อง</string>
 	<key>Waiting for your decision</key>

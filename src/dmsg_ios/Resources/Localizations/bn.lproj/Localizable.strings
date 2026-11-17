@@ -297,7 +297,7 @@
 	<key>Background transfer started. Review its progress in Transfers.</key>
 	<string>ব্যাকগ্রাউন্ড ট্রান্সফার শুরু হয়েছে। স্থানান্তরে এর অগ্রগতি পর্যালোচনা করুন।</string>
 	<key>Backing up…</key>
-	<string>ব্যাক আপ করা হচ্ছে...</string>
+	<string>ব্যাক আপ করা হচ্ছে…</string>
 	<key>Backup failed</key>
 	<string>ব্যাকআপ ব্যর্থ</string>
 	<key>Backup list could not be refreshed</key>
@@ -429,7 +429,7 @@
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>অ্যাক্সেস এখনও প্রয়োজন কিনা তা সিদ্ধান্ত নেওয়ার আগে এই ডিভাইসের কার্যকলাপ পরীক্ষা করুন৷</string>
 	<key>Checking permission…</key>
-	<string>অনুমতি পরীক্ষা করা হচ্ছে...</string>
+	<string>অনুমতি পরীক্ষা করা হচ্ছে…</string>
 	<key>Checklist completed</key>
 	<string>চেকলিস্ট সম্পন্ন হয়েছে</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
@@ -1227,9 +1227,9 @@
 	<key>Load more</key>
 	<string>আরো লোড</string>
 	<key>Loading the verified request…</key>
-	<string>যাচাইকৃত অনুরোধ লোড হচ্ছে...</string>
+	<string>যাচাইকৃত অনুরোধ লোড হচ্ছে…</string>
 	<key>Loading…</key>
-	<string>লোড হচ্ছে...</string>
+	<string>লোড হচ্ছে…</string>
 	<key>Local</key>
 	<string>স্থানীয়</string>
 	<key>Local content</key>
@@ -1989,7 +1989,7 @@
 	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
 	<string>পুনরুদ্ধারের সময় নির্বাচিত সংস্করণ ডাউনলোড ও যাচাই হয়, তারপর সেটি খোলা যায়।</string>
 	<key>Restoring…</key>
-	<string>পুনরুদ্ধার করা হচ্ছে...</string>
+	<string>পুনরুদ্ধার করা হচ্ছে…</string>
 	<key>Result</key>
 	<string>ফলাফল</string>
 	<key>Result unconfirmed</key>
@@ -2527,7 +2527,7 @@
 	<key>Synced</key>
 	<string>সিঙ্ক করা হয়েছে</string>
 	<key>Syncing…</key>
-	<string>সিঙ্ক হচ্ছে...</string>
+	<string>সিঙ্ক হচ্ছে…</string>
 	<key>System authentication</key>
 	<string>সিস্টেম প্রমাণীকরণ</string>
 	<key>System integrations</key>
@@ -2923,7 +2923,7 @@
 	<key>Verifying account content…</key>
 	<string>অ্যাকাউন্টের বিষয়বস্তু যাচাই হচ্ছে…</string>
 	<key>Verifying…</key>
-	<string>যাচাই করা হচ্ছে...</string>
+	<string>যাচাই করা হচ্ছে…</string>
 	<key>Version</key>
 	<string>সংস্করণ</string>
 	<key>Version history</key>
@@ -2951,7 +2951,7 @@
 	<key>Waiting for first sync</key>
 	<string>প্রথম সিঙ্কের অপেক্ষায়</string>
 	<key>Waiting for notification registration…</key>
-	<string>বিজ্ঞপ্তি নিবন্ধনের জন্য অপেক্ষা করা হচ্ছে...</string>
+	<string>বিজ্ঞপ্তি নিবন্ধনের জন্য অপেক্ষা করা হচ্ছে…</string>
 	<key>Waiting for the other device</key>
 	<string>অন্য ডিভাইসের অপেক্ষা</string>
 	<key>Waiting for your decision</key>

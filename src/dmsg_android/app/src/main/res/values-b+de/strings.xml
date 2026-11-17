@@ -1330,7 +1330,7 @@
     <string name="text_request_account_deletion_b443c94" formatted="false">"Fordern Sie die Löschung Ihres Kontos an"</string>
     <string name="text_request_account_recovery_c8c08bd" formatted="false">"Fordern Sie eine Kontowiederherstellung an"</string>
     <string name="text_request_id_3182520" formatted="false">"ID anfordern"</string>
-    <string name="text_request_recovery_9ec2322" formatted="false">"Fordern Sie eine Wiederherstellung an"</string>
+    <string name="text_request_recovery_9ec2322" formatted="false">"Wiederherstellung anfordern"</string>
     <string name="text_request_state_e7453d3" formatted="false">"Anfragestatus"</string>
     <string name="text_requested_at_878a0ba" formatted="false">"Angefragt am"</string>
     <string name="text_requesting_app_c06bb1c" formatted="false">"Anfragende App"</string>
@@ -1369,13 +1369,13 @@
     <string name="text_retry_after_ed1af9a" formatted="false">"Erneut versuchen nach · "</string>
     <string name="text_retry_directory_publication_361ba81" formatted="false">"Veröffentlichung im Verzeichnis wiederholen"</string>
     <string name="text_retry_original_attachment_752ccb1" formatted="false">"Ursprünglichen Anhang erneut versuchen"</string>
-    <string name="text_retry_original_change_670ac66" formatted="false">"Versuchen Sie die ursprüngliche Änderung erneut"</string>
+    <string name="text_retry_original_change_670ac66" formatted="false">"Ursprüngliche Änderung wiederholen"</string>
     <string name="text_retry_original_creation_bc1e0df" formatted="false">"Ursprüngliche Erstellung erneut versuchen"</string>
     <string name="text_retry_original_encrypted_blocks_8091317" formatted="false">"Ursprüngliche verschlüsselte Datenblöcke erneut versuchen"</string>
     <string name="text_retry_original_import_c3a9967" formatted="false">"Ursprünglichen Import erneut versuchen"</string>
     <string name="text_retry_original_import_request_8c64bea" formatted="false">"Ursprüngliche Importanfrage erneut versuchen"</string>
     <string name="text_retry_original_invitation_2751ed3" formatted="false">"Ursprüngliche Einladung erneut versuchen"</string>
-    <string name="text_retry_original_letter_5a838c3" formatted="false">"Versuchen Sie es noch einmal mit dem ursprünglichen Brief"</string>
+    <string name="text_retry_original_letter_5a838c3" formatted="false">"Ursprünglichen Brief wiederholen"</string>
     <string name="text_retry_original_message_695da75" formatted="false">"Ursprüngliche Nachricht erneut versuchen"</string>
     <string name="text_retry_original_report_4bb9eaa" formatted="false">"Ursprüngliche Meldung erneut versuchen"</string>
     <string name="text_retry_preview_8e414a8" formatted="false">"Vorschau erneut versuchen"</string>
@@ -1590,7 +1590,7 @@
     <string name="text_show_again_1409301" formatted="false">"Erneut anzeigen"</string>
     <string name="text_show_device_request_8145c2f" formatted="false">"Geräteanfrage anzeigen"</string>
     <string name="text_show_dismissed_findings_3b8c890" formatted="false">"Verworfene Ergebnisse anzeigen"</string>
-    <string name="text_show_draft_5987b01" formatted="false">"Zeigen Sie, was Sie eingegeben haben"</string>
+    <string name="text_show_draft_5987b01" formatted="false">"Entwurf anzeigen"</string>
     <string name="text_show_in_files_8b64e4b" formatted="false">"In Dateien anzeigen"</string>
     <string name="text_show_in_library_ea56489" formatted="false">"In Bibliothek anzeigen"</string>
     <string name="text_show_more_items_688023e" formatted="false">"Weitere Einträge anzeigen"</string>
@@ -1687,7 +1687,7 @@
     <string name="text_synchronization_status_has_not_been_read_c16ea3e" formatted="false">"Der Synchronisierungsstatus wurde noch nicht abgerufen."</string>
     <string name="text_synchronize_online_blocks_491966e" formatted="false">"Blockierungen online synchronisieren"</string>
     <string name="text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e" formatted="false">"Synchronisiere das Konto, um den Inhaltsschlüssel zu erhalten, bevor du diese Kopie wiederherstellst."</string>
-    <string name="text_synchronizing_21e4747" formatted="false">"Synchronisierung..."</string>
+    <string name="text_synchronizing_21e4747" formatted="false">"Synchronisierung…"</string>
     <string name="text_system_authentication_0802d32" formatted="false">"Systemauthentifizierung"</string>
     <string name="text_system_authentication_permits_access_to_selected_copies_for_five_150be41" formatted="false">"Die Systemauthentifizierung erlaubt fünf Minuten lang Zugriff auf ausgewählte Kopien. Das Sperren von dMsg oder des Smartphones beendet den Zugriff. Andere Apps können bereits gelesene Kopien behalten."</string>
     <string name="text_system_b9dd0f7" formatted="false">"System"</string>

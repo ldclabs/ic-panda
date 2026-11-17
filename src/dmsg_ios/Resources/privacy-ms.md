@@ -2,7 +2,7 @@
 
 Kemas kini terakhir: 2026-10-29.
 
-dMsg menyulitkan kandungan peribadi pada peranti anda yang dibenarkan. Dasar ini meliputi dmsg.net, aplikasi web warisan (legacy) baca sahaja, aplikasi desktop dan iOS, connect.dmsg.net, perkhidmatan awan serta canister pada Internet Computer (ICP). “Kami” bermaksud pasukan yang mengendalikan dMsg di bawah tadbir urus ICPanda DAO. Ketersediaan ciri individu bergantung pada versi aplikasi dan konfigurasi perkhidmatan.
+dMsg menyulitkan kandungan peribadi pada peranti anda yang dibenarkan. Dasar ini meliputi dmsg.net, aplikasi web lama (legacy) baca sahaja, aplikasi desktop dan iOS, connect.dmsg.net, perkhidmatan awan serta canister pada Internet Computer (ICP). “Kami” bermaksud pasukan yang mengendalikan dMsg di bawah tadbir urus ICPanda DAO. Ketersediaan ciri individu bergantung pada versi aplikasi dan konfigurasi perkhidmatan.
 
 Kami tidak menjual data peribadi atau menggunakan kandungan anda untuk tujuan pengiklanan. Laman web ini tidak mengandungi penjejak pengiklanan atau analitik.
 
@@ -34,7 +34,7 @@ Sambungan Kongsi (Share) iOS hanya menyediakan sementara item yang anda pilih un
 
 Pemindahan latar belakang yang dimulakan secara eksplisit hanya menyimpan teks sifir terhad dan kuasa pemindahan di dalam direktori peranti berasingan yang boleh diakses selepas peranti dibuka kunci buat kali pertama. Ia tidak memegang kunci tandatangan akaun atau kunci kandungan. Akaun asal mesti dibuka kunci untuk mengesahkan dan melengkapkan pemindahan. Sistem pengendalian mungkin menangguhkan atau menghentikan penghantaran.
 
-Laman web mengingati pilihan bahasa anda secara setempat. Aplikasi web warisan menggunakan storan pelayar untuk sesi dan data cache; paparan dompetnya mungkin meminta harga daripada ICPSwap. Mengalih keluar aplikasi atau mengosongkan datanya boleh menyebabkan kehilangan kekal kandungan yang tidak pernah disegerakkan atau dieksport.
+Laman web mengingati pilihan bahasa anda secara setempat. Aplikasi web lama menggunakan storan pelayar untuk sesi dan data cache; paparan dompetnya mungkin meminta harga daripada ICPSwap. Mengalih keluar aplikasi atau mengosongkan datanya boleh menyebabkan kehilangan kekal kandungan yang tidak pernah disegerakkan atau dieksport.
 
 ## 5. Pembekal perkhidmatan dan pengekalan data
 

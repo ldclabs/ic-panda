@@ -1955,7 +1955,7 @@
 	<key>Request from the new device</key>
 	<string>Anfrage des neuen Geräts</string>
 	<key>Request recovery</key>
-	<string>Fordern Sie eine Wiederherstellung an</string>
+	<string>Wiederherstellung anfordern</string>
 	<key>Requested permissions</key>
 	<string>Angeforderte Berechtigungen</string>
 	<key>Requests that need your decision appear here.</key>
@@ -2011,9 +2011,9 @@
 	<key>Retry loading profile</key>
 	<string>Versuchen Sie erneut, das Profil zu laden</string>
 	<key>Retry original change</key>
-	<string>Versuchen Sie die ursprüngliche Änderung erneut</string>
+	<string>Ursprüngliche Änderung wiederholen</string>
 	<key>Retry original letter</key>
-	<string>Versuchen Sie es noch einmal mit dem ursprünglichen Brief</string>
+	<string>Ursprünglichen Brief wiederholen</string>
 	<key>Retry preview</key>
 	<string>Vorschau erneut versuchen</string>
 	<key>Retry publication</key>
@@ -2299,7 +2299,7 @@
 	<key>Send message</key>
 	<string>Nachricht senden</string>
 	<key>Send queued message</key>
-	<string>Senden Sie eine Nachricht in der Warteschlange</string>
+	<string>Wartende Nachricht senden</string>
 	<key>Send to a device</key>
 	<string>An ein Gerät senden</string>
 	<key>Send to an administrator</key>
@@ -2379,7 +2379,7 @@
 	<key>Show dismissed findings</key>
 	<string>Verworfene Ergebnisse anzeigen</string>
 	<key>Show draft</key>
-	<string>Zeigen Sie, was Sie eingegeben haben</string>
+	<string>Entwurf anzeigen</string>
 	<key>Show in Large Type</key>
 	<string>In großer Schrift anzeigen</string>
 	<key>Show in library</key>
@@ -2527,7 +2527,7 @@
 	<key>Synced</key>
 	<string>Synchronisiert</string>
 	<key>Syncing…</key>
-	<string>Synchronisierung...</string>
+	<string>Synchronisierung…</string>
 	<key>System authentication</key>
 	<string>Systemauthentifizierung</string>
 	<key>System integrations</key>

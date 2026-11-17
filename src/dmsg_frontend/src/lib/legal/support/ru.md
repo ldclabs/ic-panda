@@ -6,7 +6,7 @@ ICPanda DAO разрабатывает dMsg открыто. Если пробл�
 
 ## Куда обращаться
 
-- **Сообщения об ошибках:** [issues на GitHub](https://github.com/ldclabs/ic-panda/issues) — для проблем с сайтом, старым приложением, расширением или канистрами.
+- **Сообщения об ошибках:** [issues на GitHub](https://github.com/ldclabs/ic-panda/issues) — для проблем с сайтом, старым приложением, расширением или канистерами.
 - **Вопросы и сообщество:** [сообщество ICPanda в OpenChat](https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai).
 - **Новости и объявления:** [@ICPandaDAO в X](https://x.com/ICPandaDAO).
 - **Связаться с DAO:** [al.ink/ICPanda](https://al.ink/ICPanda).

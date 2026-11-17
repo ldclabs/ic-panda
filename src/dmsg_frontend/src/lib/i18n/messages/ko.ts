@@ -199,7 +199,7 @@ export default {
   "gas, balance": "가스, 잔액",
   "Upload": "업로드",
   "Unlock your existing keys to read this archive.": "이 아카이브를 읽으려면 기존 키를 잠금 해제하세요.",
-  "Unlock legacy history": "레거시 역사 잠금 해제",
+  "Unlock legacy history": "기존 기록 잠금 해제",
   "Back to channels": "채널로 돌아가기",
   "Choose a channel to read your history.": "기록을 읽으려면 채널을 선택하세요.",
   "Update link": "링크 업데이트",
