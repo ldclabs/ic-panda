@@ -4,6 +4,50 @@ import XCTest
 @testable import dMsg
 
 final class SystemExportsTests: XCTestCase {
+    func testLegacyCredentialAuthenticationFailureKeepsTheSnapshotRetryable() throws {
+        let store = try SystemExports(.credentials, root: root())
+        let prepared = try store.prepareCredentials([
+            CredentialInput(title: "Example", username: "alice", password: "saved-secret", origin: "https://example.com")
+        ], account: "migration-test", expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 60_000)
+        _ = try activate(prepared, in: store)
+        let legacy: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "net.dmsg.export.credentials", kSecAttrAccount as String: prepared.header.id,
+            kSecAttrAccessGroup as String: KeychainMigration.originalPrefix + ExportPurpose.credentials.keyGroupSuffix,
+            kSecAttrSynchronizable as String: false]
+        var destination = legacy
+        destination[kSecAttrAccessGroup as String] = ExportPurpose.credentials.group
+        defer {
+            SecItemDelete(legacy as CFDictionary)
+            SecItemDelete(destination as CFDictionary)
+        }
+        var item = legacy
+        item[kSecValueData as String] = prepared.key.withUnsafeBytes { Data($0) }
+        // Inject the OS authentication result below; the simulator cannot
+        // exercise a real passcode/biometry prompt on a protected item.
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        XCTAssertEqual(SecItemAdd(item as CFDictionary, nil), errSecSuccess)
+
+        for (status, expected) in [(errSecUserCanceled, ExportAccessError.authenticationCancelled),
+                                   (errSecAuthFailed, .authenticationFailed),
+                                   (errSecInteractionNotAllowed, .authenticationFailed)] {
+            var attempted = false
+            XCTAssertThrowsError(try store.authenticate(migrateItem: { _, _ in
+                attempted = true
+                return status
+            })) { XCTAssertEqual($0 as? ExportAccessError, expected) }
+            XCTAssertTrue(attempted)
+            XCTAssertEqual(try store.header().id, prepared.header.id)
+            XCTAssertEqual(SecItemCopyMatching(legacy as CFDictionary, nil), errSecSuccess)
+            XCTAssertEqual(SecItemCopyMatching(destination as CFDictionary, nil), errSecItemNotFound)
+        }
+
+        let retried = try store.authenticate()
+        let entry = try XCTUnwrap(store.credentialMetadata(retried).first)
+        XCTAssertEqual(try store.credential(entry.id, opened: retried), "saved-secret")
+        XCTAssertEqual(SecItemCopyMatching(legacy as CFDictionary, nil), errSecItemNotFound)
+        XCTAssertEqual(SecItemCopyMatching(destination as CFDictionary, nil), errSecSuccess)
+    }
+
     func testLegacyFileSessionMovesOnceAndLockCannotResurrectIt() throws {
         let directory = try root(), source = directory.appending(path: "sample.bin")
         try Data([1]).write(to: source)

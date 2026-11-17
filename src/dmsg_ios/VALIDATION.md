@@ -3861,3 +3861,33 @@ Follow-up after the owner registered and associated the new group (2026-11-17):
   Keychain migration was executed in this follow-up. The owner chose to keep
   the phone untouched and build/upload the old-team TestFlight transition
   themselves. Physical-device unlock/content checks remain pending.
+
+## 2026-11-17 — 迁移提交审查与 AutoFill 重试修复
+
+审查 `b413ed1d` 与 `826c155f`，确认并修复一项 P2：旧 AutoFill 副本的首次
+Keychain 迁移发生认证取消或暂时失败时，迁移异常绕过了原有认证错误映射，
+导致扩展隐藏重试入口并提示重新生成副本。现在迁移和后续读取使用相同的
+取消／失败语义，保留原密钥及快照供重试；不改变迁移范围、密钥保护或签名策略。
+
+新增回归先在未修复代码上失败，再在修复后通过：注入取消、认证失败和设备
+不可交互状态，确认源密钥与快照保留、目标尚未写入，随后真实迁移并解密同一副本。
+状态注入不等于真机生物识别／密码认证验收。
+
+本轮实际执行：
+
+- 重新构建 iOS Rust 桥接库及 device/simulator 切片，源码与产物指纹校验通过。
+- iPhone 18 Pro / iOS 27.0 模拟器：完整 `dMsgTests` 加
+  `KeychainMigrationUITests`，**223 通过、0 失败、0 跳过**。
+  结果包：`test_sim_2026-11-17T09-08-38-946Z_pid96099_8916e981.xcresult`。
+- 导出并检查迁移页面的中文浅色、阿拉伯语深色 RTL 截图，文案和重试按钮可见，
+  无裁切；页面测试覆盖重试及禁止进入登录／新建账户。
+- iOS 构建脚本单元测试 **23 通过**；包含 DerivedData 提取的 **23 语言**校验通过。
+- 桌面 `pnpm check` 无错误／警告，`pnpm test` **203 通过**。
+- `cargo test --locked -p dmsg_cli release::tests` **7 通过**。
+- macOS LDC Developer ID 夹具通过旧版到桥接版及错误标识、篡改、ad-hoc、反向
+  团队信任拒绝检查；接收团队证书不可用，未验证真实 Yiwen 签名。
+- `git diff --check` 通过。
+
+未运行：真机 AutoFill 认证交互、跨团队 Keychain／Secure Enclave 升级、实际
+Squirrel 安装、Electron 交互回归、完整 iOS UI 套件、全量 Rust 测试／Clippy、
+发布及部署。上述结果不替代两个迁移说明中的跨团队实机发布门禁。

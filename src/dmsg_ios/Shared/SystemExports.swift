@@ -182,13 +182,20 @@ struct SystemExports: Sendable {
             if let directory = try? directory(previous) { try? FileManager.default.removeItem(at: directory) }
         }
     }
-    func authenticate() throws -> OpenExport {
+    func authenticate(migrateItem: (CFDictionary, CFDictionary) -> OSStatus = SecItemUpdate) throws -> OpenExport {
         let header = try header()
         let context = LAContext(); context.localizedReason = String(localized: "Access the copies you explicitly exported from dMsg")
         defer { context.invalidate() }
         if let legacyKeyGroup {
-            try KeychainMigration.move(service: service, from: legacyKeyGroup, to: keyGroup,
-                account: header.id, context: context)
+            do {
+                try KeychainMigration.move(service: service, from: legacyKeyGroup, to: keyGroup,
+                    account: header.id, context: context, update: migrateItem)
+            } catch KeychainMigration.Failure.unavailable(let status) {
+                // Migration authenticates the same saved copy as the read
+                // below. Keep cancellation and failures retryable in AutoFill.
+                if status == errSecUserCanceled { throw ExportAccessError.authenticationCancelled }
+                throw ExportAccessError.authenticationFailed
+            }
         }
         var query = query(header.id); query[kSecReturnData as String] = true; query[kSecMatchLimit as String] = kSecMatchLimitOne; query[kSecUseAuthenticationContext as String] = context
         var result: CFTypeRef?
