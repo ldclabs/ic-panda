@@ -139,7 +139,7 @@
       >{#if callbackTarget(request.next_url) === 'ios'}
         {$t('Return to the dMsg iOS app after signing in.')}
       {:else if callbackTarget(request.next_url) === 'android'}
-        Return to the dMsg Android app after signing in.
+        {$t('Return to the dMsg Android app after signing in.')}
       {:else}
         {$t('Connecting to dMsg on this computer (port {port}).', {
           port: callbackTarget(request.next_url)
