@@ -3366,5 +3366,9 @@
 	<string>Los límites corresponden al plan base. Los paquetes de almacenamiento se añaden aparte. Las unidades mensuales de ejecución se prorratean y no se reinician al cambiar de plan.</string>
 	<key>Multisig wallet slots</key>
 	<string>Cupos de carteras multifirma</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>No se pudieron preparar tus claves guardadas. Desbloquea este iPhone e inténtalo de nuevo. Tu espacio de trabajo no se ha borrado.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Esta actualización no puede acceder a tus claves guardadas. Mantén dMsg instalado y contacta con soporte desde otro dispositivo autorizado. Tu espacio de trabajo no se ha borrado.</string>
 </dict>
 </plist>

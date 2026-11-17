@@ -3366,5 +3366,9 @@
 	<string>Die Limits gelten für den Basistarif. Speicherpakete kommen hinzu. Monatliche Ausführungseinheiten werden anteilig berechnet und beim Tarifwechsel nicht zurückgesetzt.</string>
 	<key>Multisig wallet slots</key>
 	<string>Multisig-Wallet-Kontingent</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Deine gespeicherten Schlüssel konnten nicht vorbereitet werden. Entsperre dieses iPhone und versuche es erneut. Dein Arbeitsbereich wurde nicht gelöscht.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Dieses Update kann nicht auf deine gespeicherten Schlüssel zugreifen. Lass dMsg installiert und kontaktiere den Support von einem anderen autorisierten Gerät aus. Dein Arbeitsbereich wurde nicht gelöscht.</string>
 </dict>
 </plist>

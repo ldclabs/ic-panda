@@ -1,8 +1,40 @@
 import CryptoKit
+import Security
 import XCTest
 @testable import dMsg
 
 final class SystemExportsTests: XCTestCase {
+    func testLegacyFileSessionMovesOnceAndLockCannotResurrectIt() throws {
+        let directory = try root(), source = directory.appending(path: "sample.bin")
+        try Data([1]).write(to: source)
+        let store = try SystemExports(.files, root: directory)
+        let input = FileExportInput(url: source, name: "sample.bin", sha256: try IncomingShares.digest(source), size: 1)
+        let prepared = try store.prepareFiles([input], account: "migration-test", expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 60_000)
+        let opened = try activate(prepared, in: store)
+        let oldGroup = KeychainMigration.originalPrefix + ExportPurpose.files.keyGroupSuffix
+        let service = "net.dmsg.export.files"
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service, kSecAttrAccount as String: "file-session",
+            kSecAttrAccessGroup as String: oldGroup, kSecAttrSynchronizable as String: false]
+        defer { store.lockFiles(); SecItemDelete(query as CFDictionary) }
+        let bytes = prepared.key.withUnsafeBytes { Data($0) }
+        let session = SystemExports.FileSession(snapshot: opened.header.id, key: bytes, expires: opened.header.expires)
+        var item = query
+        item[kSecValueData as String] = try JSONEncoder().encode(session)
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        XCTAssertEqual(SecItemAdd(item as CFDictionary, nil), errSecSuccess)
+
+        let migrated = try store.fileSession()
+        XCTAssertEqual(migrated.key.withUnsafeBytes { Data($0) }, bytes)
+        XCTAssertEqual(SecItemCopyMatching(query as CFDictionary, nil), errSecItemNotFound)
+        store.lockFiles()
+        XCTAssertThrowsError(try store.fileSession())
+
+        try store.unlockFiles(opened)
+        XCTAssertEqual(try store.fileSession().key.withUnsafeBytes { Data($0) }, bytes)
+        XCTAssertEqual(SecItemCopyMatching(query as CFDictionary, nil), errSecItemNotFound)
+    }
+
     func testALoginMatchesItsSiteAndSubdomainsButNotALookalike() {
         let login = CredentialExport(id: "1", title: "GitHub", username: "lin", origin: "https://www.github.com/login")
         for service in ["github.com", "https://github.com", "https://gist.github.com/x", "www.github.com"] {

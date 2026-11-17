@@ -3366,5 +3366,9 @@
 	<string>सीमाएँ बेस प्लान के लिए हैं। स्टोरेज पैक से अतिरिक्त क्षमता मिलती है। मासिक निष्पादन इकाइयाँ सक्रिय अवधि के अनुपात में मिलती हैं और प्लान बदलने पर रीसेट नहीं होतीं।</string>
 	<key>Multisig wallet slots</key>
 	<string>मल्टीसिग वॉलेट की सीमा</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>आपकी सहेजी गई कुंजियाँ तैयार नहीं हो सकीं। इस iPhone को अनलॉक करके फिर प्रयास करें। आपका कार्यक्षेत्र मिटाया नहीं गया है।</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>यह अपडेट आपकी सहेजी गई कुंजियों तक नहीं पहुँच सकता। dMsg को इंस्टॉल रहने दें और किसी अन्य अधिकृत डिवाइस से सहायता से संपर्क करें। आपका कार्यक्षेत्र मिटाया नहीं गया है।</string>
 </dict>
 </plist>

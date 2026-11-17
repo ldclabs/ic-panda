@@ -17,6 +17,9 @@ settings:
     # LDC Labs Limited. Must match the app ID in dmsg.net's
     # apple-app-site-association, or the login callback never returns.
     DEVELOPMENT_TEAM: S9Z2WAMAV8
+    # Simulators have no provisioning profile to supply this namespace. Device
+    # builds continue to use the prefix from their actual signing profile.
+    "AppIdentifierPrefix[sdk=iphonesimulator*]": "$(DEVELOPMENT_TEAM)."
     CODE_SIGN_STYLE: Automatic
 packages:
   DMsgCore:
@@ -95,6 +98,7 @@ targets:
     sources:
       - Extensions/Credentials
       - Shared/SystemExports.swift
+      - Shared/KeychainMigration.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
       - Resources/Localizations
@@ -114,6 +118,7 @@ targets:
     sources:
       - Extensions/Files
       - Shared/SystemExports.swift
+      - Shared/KeychainMigration.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
       - Resources/Localizations
@@ -133,6 +138,7 @@ targets:
     sources:
       - Extensions/FilesUI
       - Shared/SystemExports.swift
+      - Shared/KeychainMigration.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
       - Resources/Localizations

@@ -16,6 +16,7 @@
 	<string>$(DMSG_ATTEST_ENVIRONMENT)</string>
 	<key>com.apple.security.application-groups</key>
 	<array>
+		<string>group.net.dmsg.ios.keychain</string>
 		<string>group.net.dmsg.ios.incoming</string>
 		<string>group.net.dmsg.ios.autofill</string>
 		<string>group.net.dmsg.ios.files</string>

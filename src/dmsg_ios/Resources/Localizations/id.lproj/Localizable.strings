@@ -3366,5 +3366,9 @@
 	<string>Batas ini berlaku untuk paket dasar. Paket penyimpanan menambah kapasitas. Unit eksekusi bulanan dihitung secara prorata dan tidak direset saat mengganti paket.</string>
 	<key>Multisig wallet slots</key>
 	<string>Kuota dompet multisig</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Kunci tersimpan Anda tidak dapat disiapkan. Buka kunci iPhone ini dan coba lagi. Ruang kerja Anda belum dihapus.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Pembaruan ini tidak dapat mengakses kunci tersimpan Anda. Jangan hapus dMsg dan hubungi dukungan dari perangkat lain yang telah diotorisasi. Ruang kerja Anda belum dihapus.</string>
 </dict>
 </plist>

@@ -3366,5 +3366,9 @@
 	<string>以上为基础套餐额度，存储包另行增加容量。每月执行额度按有效时长折算，更改套餐不会重置已用额度。</string>
 	<key>Multisig wallet slots</key>
 	<string>多签钱包名额</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>无法准备已保存的密钥。请解锁此 iPhone 后重试。你的工作区未被清除。</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>本次更新无法访问已保存的密钥。请保留已安装的 dMsg，并从另一台已授权设备联系支持。你的工作区未被清除。</string>
 </dict>
 </plist>

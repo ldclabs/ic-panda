@@ -3366,5 +3366,9 @@
 	<string>Os limites são do plano base. Pacotes de armazenamento adicionam capacidade. As unidades mensais de execução são proporcionais ao período ativo e não são redefinidas ao alterar o plano.</string>
 	<key>Multisig wallet slots</key>
 	<string>Vagas para carteiras multifirma</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Não foi possível preparar suas chaves salvas. Desbloqueie este iPhone e tente novamente. Seu espaço de trabalho não foi apagado.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Esta atualização não pode acessar suas chaves salvas. Mantenha o dMsg instalado e entre em contato com o suporte por outro dispositivo autorizado. Seu espaço de trabalho não foi apagado.</string>
 </dict>
 </plist>

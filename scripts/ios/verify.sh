@@ -23,10 +23,12 @@ memory_gb="$(( $(sysctl -n hw.memsize) / 1073741824 ))"
 workers=$(( memory_gb / 5 < cores / 2 ? memory_gb / 5 : cores / 2 ))
 workers=$(( workers < 1 ? 1 : workers > 4 ? 4 : workers ))
 workers="${DMSG_IOS_TEST_WORKERS:-$workers}"
+# Keychain access-group tests need the simulator app's ad-hoc signature.
+# No device certificate or provisioning profile is used here.
 xcodebuild -project src/dmsg_ios/dMsg.xcodeproj -scheme dMsg \
   -destination "platform=iOS Simulator,id=$simulator" \
   -derivedDataPath src/dmsg_ios/.build/DerivedData -resultBundlePath "$result" \
   -parallel-testing-enabled YES -parallel-testing-worker-count "$workers" \
-  CODE_SIGNING_ALLOWED=NO test
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
 
 python3 scripts/ios/localizations.py --derived-data src/dmsg_ios/.build/DerivedData

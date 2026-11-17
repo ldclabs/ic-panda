@@ -3366,5 +3366,9 @@
 	<string>Limity dotyczą planu podstawowego. Pakiety przestrzeni zwiększają pojemność. Miesięczne jednostki wykonania są naliczane proporcjonalnie i nie resetują się po zmianie planu.</string>
 	<key>Multisig wallet slots</key>
 	<string>Limit portfeli wielopodpisowych</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Nie udało się przygotować zapisanych kluczy. Odblokuj tego iPhone’a i spróbuj ponownie. Twój obszar roboczy nie został usunięty.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Ta aktualizacja nie ma dostępu do zapisanych kluczy. Nie odinstalowuj dMsg i skontaktuj się z pomocą techniczną z innego autoryzowanego urządzenia. Twój obszar roboczy nie został usunięty.</string>
 </dict>
 </plist>

@@ -3366,5 +3366,9 @@
 	<string>Had ini untuk pelan asas. Pakej storan menambah kapasiti. Unit pelaksanaan bulanan dikira mengikut tempoh aktif dan tidak ditetapkan semula apabila menukar pelan.</string>
 	<key>Multisig wallet slots</key>
 	<string>Kuota dompet berbilang tandatangan</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Kunci tersimpan anda tidak dapat disediakan. Buka kunci iPhone ini dan cuba lagi. Ruang kerja anda belum dipadamkan.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Kemas kini ini tidak dapat mengakses kunci tersimpan anda. Kekalkan pemasangan dMsg dan hubungi sokongan daripada peranti lain yang dibenarkan. Ruang kerja anda belum dipadamkan.</string>
 </dict>
 </plist>

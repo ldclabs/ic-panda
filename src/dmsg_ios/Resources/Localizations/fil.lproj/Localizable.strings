@@ -3366,5 +3366,9 @@
 	<string>Para sa pangunahing plano ang mga limitasyon. Dagdag ang mga storage pack. Proporsyonal sa aktibong panahon ang buwanang execution units at hindi ito nire-reset kapag nagpalit ng plano.</string>
 	<key>Multisig wallet slots</key>
 	<string>Quota ng multisig wallet</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Hindi maihanda ang iyong mga naka-save na key. I-unlock ang iPhone na ito at subukang muli. Hindi nabura ang iyong workspace.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Hindi ma-access ng update na ito ang iyong mga naka-save na key. Panatilihing naka-install ang dMsg at makipag-ugnayan sa suporta mula sa ibang awtorisadong device. Hindi nabura ang iyong workspace.</string>
 </dict>
 </plist>

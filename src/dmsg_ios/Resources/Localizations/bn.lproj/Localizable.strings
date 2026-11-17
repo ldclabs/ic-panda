@@ -3366,5 +3366,9 @@
 	<string>সীমাগুলি মূল প্ল্যানের জন্য। স্টোরেজ প্যাক অতিরিক্ত ধারণক্ষমতা যোগ করে। মাসিক কার্যনির্বাহ ইউনিট সক্রিয় সময়ের অনুপাতে গণনা করা হয় এবং প্ল্যান বদলালে রিসেট হয় না।</string>
 	<key>Multisig wallet slots</key>
 	<string>মাল্টিসিগ ওয়ালেটের সীমা</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>আপনার সংরক্ষিত কীগুলি প্রস্তুত করা যায়নি। এই iPhone আনলক করে আবার চেষ্টা করুন। আপনার কর্মক্ষেত্র মুছে ফেলা হয়নি।</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>এই আপডেট আপনার সংরক্ষিত কীগুলি অ্যাক্সেস করতে পারছে না। dMsg ইনস্টল করা রাখুন এবং অন্য একটি অনুমোদিত ডিভাইস থেকে সহায়তার সঙ্গে যোগাযোগ করুন। আপনার কর্মক্ষেত্র মুছে ফেলা হয়নি।</string>
 </dict>
 </plist>

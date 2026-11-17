@@ -1,4 +1,5 @@
 import Foundation
+import Security
 import Observation
 import SwiftUI
 import AuthenticationServices
@@ -141,7 +142,7 @@ final class SessionModel {
     private var backgroundAt: ContinuousClock.Instant?
     private var lastActivity = ContinuousClock.now
     private var security: AppleSecurity?
-    private var opening = false
+    private(set) var opening = false
     private var closing: Task<Void, Never>?
     private var authenticationGeneration: UInt64 = 0
     private var lifecycleGeneration: UInt64 = 0
@@ -270,13 +271,21 @@ final class SessionModel {
     #endif
 
     private(set) var environment = "production"
+    private(set) var keychainPreparationFailure: KeychainMigration.Failure?
 
-    func start() async {
+    func start(retrying: Bool = false) async {
         guard !opening, engine == nil else { return }
         lifecycle = UIApplication.shared.applicationState == .active ? .resuming : .inactive
         opening = true; defer { opening = false }
+        keychainPreparationFailure = nil
         #if DEBUG
         if uiTesting {
+            if ProcessInfo.processInfo.arguments.contains("--ui-keychain-missing") {
+                keychainPreparationFailure = .preparationMissing; lifecycle = .active; return
+            }
+            if !fixtureLoaded, !retrying, ProcessInfo.processInfo.arguments.contains("--ui-keychain-retry") {
+                keychainPreparationFailure = .unavailable(errSecInteractionNotAllowed); lifecycle = .active; return
+            }
             if !fixtureLoaded { loadFixtures(); fixtureLoaded = true }
             // Reproduce an unlocked view appearing before authentication uncovers it.
             if ProcessInfo.processInfo.arguments.contains("--ui-account-unlock") {
@@ -307,7 +316,10 @@ final class SessionModel {
             immediateBackgroundLock = preferences.immediateBackgroundLock
             backupHintDismissed = preferences.backupHintDismissed ?? []
             selectedTab = preferences.lastTab.flatMap(AppTab.init(rawValue:)) ?? .vault
-            let security = AppleSecurity(installation: files.installation, environment: deployment.name, notificationWorkspace: files.workspace)
+            let security = try await Task.detached {
+                try AppleSecurity(installation: files.installation, environment: deployment.name, notificationWorkspace: files.workspace)
+            }.value
+            guard UIApplication.shared.isProtectedDataAvailable, openingEpoch == epoch else { return }
             let engine: MobileEngine
             switch deployment {
             case .production: engine = try await MobileEngine.open(directory: files.workspace.path, staging: files.staging.path, platform: security)
@@ -321,7 +333,8 @@ final class SessionModel {
             await unlockAutomaticallyIfNeeded()
         } catch {
             if openingEpoch == epoch {
-                report(error)
+                if let failure = error as? KeychainMigration.Failure { keychainPreparationFailure = failure }
+                else { report(error) }
                 if session == nil { uncoverIfActive() }
             }
         }

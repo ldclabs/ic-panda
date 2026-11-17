@@ -3366,5 +3366,9 @@
 	<string>ขีดจำกัดนี้เป็นของแพ็กเกจพื้นฐาน แพ็กเกจพื้นที่จัดเก็บจะเพิ่มความจุ หน่วยการดำเนินการรายเดือนคำนวณตามสัดส่วนระยะเวลาใช้งานและไม่รีเซ็ตเมื่อเปลี่ยนแพ็กเกจ</string>
 	<key>Multisig wallet slots</key>
 	<string>โควตากระเป๋าเงินหลายลายเซ็น</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>ไม่สามารถเตรียมคีย์ที่บันทึกไว้ได้ โปรดปลดล็อก iPhone เครื่องนี้แล้วลองอีกครั้ง พื้นที่ทำงานของคุณยังไม่ถูกลบ</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>การอัปเดตนี้ไม่สามารถเข้าถึงคีย์ที่บันทึกไว้ได้ โปรดเก็บ dMsg ไว้ในเครื่องและติดต่อฝ่ายสนับสนุนจากอุปกรณ์อื่นที่ได้รับอนุญาต พื้นที่ทำงานของคุณยังไม่ถูกลบ</string>
 </dict>
 </plist>

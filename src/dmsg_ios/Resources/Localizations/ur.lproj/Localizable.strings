@@ -3366,5 +3366,9 @@
 	<string>حدود بنیادی پلان کے لیے ہیں۔ اسٹوریج پیک اضافی گنجائش دیتے ہیں۔ ماہانہ عمل درآمد کی اکائیاں فعال مدت کے تناسب سے ملتی ہیں اور پلان بدلنے پر ری سیٹ نہیں ہوتیں۔</string>
 	<key>Multisig wallet slots</key>
 	<string>ملٹی سگ والیٹس کا کوٹا</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>آپ کی محفوظ کردہ کلیدیں تیار نہیں ہو سکیں۔ اس iPhone کو ان لاک کرکے دوبارہ کوشش کریں۔ آپ کا ورک اسپیس مٹایا نہیں گیا۔</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>یہ اپ ڈیٹ آپ کی محفوظ کردہ کلیدوں تک رسائی حاصل نہیں کر سکتی۔ dMsg کو انسٹال رہنے دیں اور کسی دوسرے مجاز آلے سے سپورٹ سے رابطہ کریں۔ آپ کا ورک اسپیس مٹایا نہیں گیا۔</string>
 </dict>
 </plist>

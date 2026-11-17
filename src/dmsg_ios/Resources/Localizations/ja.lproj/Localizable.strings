@@ -3366,5 +3366,9 @@
 	<string>上限は基本プランのものです。ストレージパックは容量を追加します。月間実行枠は有効期間に応じて按分され、プランを変更しても使用済み枠はリセットされません。</string>
 	<key>Multisig wallet slots</key>
 	<string>マルチシグウォレット枠</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>保存済みの鍵を準備できませんでした。このiPhoneのロックを解除して、もう一度お試しください。ワークスペースは消去されていません。</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>このアップデートでは保存済みの鍵にアクセスできません。dMsgを削除せず、別の承認済みデバイスからサポートにお問い合わせください。ワークスペースは消去されていません。</string>
 </dict>
 </plist>

@@ -25,14 +25,40 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     }
     private var prepared: [UInt64: PreparedSigning] = [:]
 
-    init(installation: String, environment: String = "production", notificationWorkspace: URL? = nil) {
+    init(installation: String, environment: String = "production", notificationWorkspace: URL? = nil,
+         signingPrefix: String? = nil) throws {
         service = "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").\(environment).\(installation)"
         self.notificationWorkspace = notificationWorkspace
+        let prefix = try signingPrefix ?? KeychainMigration.signingPrefix()
+        if prefix == KeychainMigration.originalPrefix {
+            try KeychainMigration.move(service: service,
+                from: prefix + (Bundle.main.bundleIdentifier ?? "net.dmsg.ios"), to: KeychainMigration.mainGroup)
+        }
+        // A receipt in the destination keychain, not a preference that survives
+        // without its keys. Check it before the Rust core can open or mutate an
+        // existing workspace under a new team. Fresh installs need no migration.
+        let receipt = "dmsg:keychain:app-group:v1"
+        let expected = Data(installation.utf8)
+        let saved: Data?
+        do { saved = try read(receipt) }
+        catch { throw KeychainMigration.Failure.unavailable(errSecNotAvailable) }
+        if saved != expected {
+            if let saved, saved != expected { throw KeychainMigration.Failure.preparationMissing }
+            if prefix != KeychainMigration.originalPrefix, let notificationWorkspace,
+               try !FileManager.default.contentsOfDirectory(atPath: notificationWorkspace.path).isEmpty {
+                throw KeychainMigration.Failure.preparationMissing
+            }
+            // The receipt is not a secret or an unlock factor. Do not require
+            // a device passcode merely to open a fresh app's welcome screen.
+            do { try write(receipt, secret: expected, accessibility: kSecAttrAccessibleWhenUnlockedThisDeviceOnly) }
+            catch { throw KeychainMigration.Failure.unavailable(errSecNotAvailable) }
+        }
     }
 
     private func query(_ name: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: service, kSecAttrAccount as String: name,
+         kSecAttrAccessGroup as String: KeychainMigration.mainGroup,
          kSecAttrSynchronizable as String: false]
     }
 
@@ -55,9 +81,9 @@ final class AppleSecurity: Platform, @unchecked Sendable {
         try write(notificationName(name), secret: secret)
     }
 
-    private func write(_ name: String, secret: Data) throws {
+    private func write(_ name: String, secret: Data, accessibility: CFString = kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly) throws {
         let attributes: [String: Any] = [kSecValueData as String: secret,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly]
+            kSecAttrAccessible as String: accessibility]
         let status = SecItemUpdate(query(name) as CFDictionary, attributes as CFDictionary)
         if status == errSecItemNotFound {
             let status = SecItemAdd(query(name).merging(attributes) { _, value in value } as CFDictionary, nil)

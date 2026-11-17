@@ -3366,5 +3366,9 @@
 	<string>한도는 기본 요금제 기준입니다. 저장 공간 팩은 용량을 추가합니다. 월간 실행 할당량은 이용 기간에 비례하여 계산되며 요금제를 변경해도 초기화되지 않습니다.</string>
 	<key>Multisig wallet slots</key>
 	<string>멀티시그 지갑 한도</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>저장된 키를 준비할 수 없습니다. 이 iPhone의 잠금을 해제하고 다시 시도하세요. 작업 공간은 삭제되지 않았습니다.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>이 업데이트는 저장된 키에 접근할 수 없습니다. dMsg를 삭제하지 말고 다른 승인된 기기에서 지원팀에 문의하세요. 작업 공간은 삭제되지 않았습니다.</string>
 </dict>
 </plist>

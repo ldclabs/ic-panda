@@ -60,20 +60,22 @@ struct SystemExports: Sendable {
     let purpose: ExportPurpose
     let root: URL
     private let keyGroup: String
+    private let legacyKeyGroup: String?
     private var service: String { "net.dmsg.export." + purpose.rawValue }
     init(_ purpose: ExportPurpose, root: URL? = nil, keyGroup: String? = nil) throws {
         self.purpose = purpose
         guard let directory = root ?? FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: purpose.group) else { throw CocoaError(.fileReadNoPermission) }
         self.root = directory.appending(path: "exports")
-        let prefix = Bundle.main.object(forInfoDictionaryKey: "DMsgKeychainPrefix") as? String ?? ""
-        self.keyGroup = keyGroup ?? (prefix + purpose.keyGroupSuffix)
-        guard keyGroup != nil || (!prefix.isEmpty && !prefix.contains("$(")) else { throw CocoaError(.fileReadNoPermission) }
+        self.keyGroup = keyGroup ?? purpose.group
+        if keyGroup == nil, try KeychainMigration.signingPrefix() == KeychainMigration.originalPrefix {
+            legacyKeyGroup = KeychainMigration.originalPrefix + purpose.keyGroupSuffix
+        } else { legacyKeyGroup = nil }
         try FileManager.default.createDirectory(at: self.root, withIntermediateDirectories: true, attributes: [.protectionKey: FileProtectionType.complete])
         var protected = self.root; var values = URLResourceValues(); values.isExcludedFromBackup = true; try protected.setResourceValues(values)
     }
-    private func query(_ name: String) -> [String: Any] {
+    private func query(_ name: String, group: String? = nil) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
-         kSecAttrAccount as String: name, kSecAttrAccessGroup as String: keyGroup, kSecAttrSynchronizable as String: false]
+         kSecAttrAccount as String: name, kSecAttrAccessGroup as String: group ?? keyGroup, kSecAttrSynchronizable as String: false]
     }
     private func encode<T: Encodable>(_ value: T) throws -> Data {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]; return try encoder.encode(value)
@@ -176,6 +178,7 @@ struct SystemExports: Sendable {
         lockFiles()
         if let previous, previous.id != prepared.header.id {
             SecItemDelete(query(previous.id) as CFDictionary)
+            if let legacyKeyGroup { SecItemDelete(query(previous.id, group: legacyKeyGroup) as CFDictionary) }
             if let directory = try? directory(previous) { try? FileManager.default.removeItem(at: directory) }
         }
     }
@@ -183,6 +186,10 @@ struct SystemExports: Sendable {
         let header = try header()
         let context = LAContext(); context.localizedReason = String(localized: "Access the copies you explicitly exported from dMsg")
         defer { context.invalidate() }
+        if let legacyKeyGroup {
+            try KeychainMigration.move(service: service, from: legacyKeyGroup, to: keyGroup,
+                account: header.id, context: context)
+        }
         var query = query(header.id); query[kSecReturnData as String] = true; query[kSecMatchLimit as String] = kSecMatchLimitOne; query[kSecUseAuthenticationContext as String] = context
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
@@ -233,6 +240,9 @@ struct SystemExports: Sendable {
     func fileSession() throws -> OpenExport {
         guard purpose == .files else { throw CocoaError(.fileReadNoPermission) }
         let header = try header()
+        if let legacyKeyGroup {
+            try KeychainMigration.move(service: service, from: legacyKeyGroup, to: keyGroup, account: "file-session")
+        }
         var query = query("file-session"); query[kSecReturnData as String] = true; query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data else { throw CocoaError(.userCancelled) }
@@ -240,13 +250,21 @@ struct SystemExports: Sendable {
         guard session.snapshot == header.id, session.key.count == 32, Double(session.expires) > Date.now.timeIntervalSince1970 * 1000 else { throw CocoaError(.userCancelled) }
         return OpenExport(header: header, key: SymmetricKey(data: session.key))
     }
-    func lockFiles() { if purpose == .files { SecItemDelete(query("file-session") as CFDictionary) } }
+    func lockFiles() {
+        guard purpose == .files else { return }
+        SecItemDelete(query("file-session") as CFDictionary)
+        if let legacyKeyGroup { SecItemDelete(query("file-session", group: legacyKeyGroup) as CFDictionary) }
+    }
     func discard(_ prepared: PreparedExport) { try? FileManager.default.removeItem(at: prepared.directory) }
     func invalidate(account: String? = nil) throws {
         if let account, let current = try? header(), current.accountHash != IncomingShares.accountHash(account) { return }
         var query: [String: Any] = [kSecClass as String:kSecClassGenericPassword,kSecAttrService as String:service,kSecAttrAccessGroup as String:keyGroup]
         query[kSecAttrSynchronizable as String] = false
         SecItemDelete(query as CFDictionary)
+        if let legacyKeyGroup {
+            query[kSecAttrAccessGroup as String] = legacyKeyGroup
+            SecItemDelete(query as CFDictionary)
+        }
         if FileManager.default.fileExists(atPath: root.path) { try FileManager.default.removeItem(at: root) }
     }
 }

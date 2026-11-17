@@ -3366,5 +3366,9 @@
 	<string>Hạn mức áp dụng cho gói cơ bản. Gói dung lượng bổ sung thêm sức chứa. Đơn vị thực thi hằng tháng được tính theo thời gian sử dụng và không đặt lại khi đổi gói.</string>
 	<key>Multisig wallet slots</key>
 	<string>Số ví đa chữ ký cho phép</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Không thể chuẩn bị các khóa đã lưu. Hãy mở khóa iPhone này rồi thử lại. Không gian làm việc của bạn chưa bị xóa.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Bản cập nhật này không thể truy cập các khóa đã lưu. Hãy giữ dMsg trên máy và liên hệ bộ phận hỗ trợ từ một thiết bị được ủy quyền khác. Không gian làm việc của bạn chưa bị xóa.</string>
 </dict>
 </plist>

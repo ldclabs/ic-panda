@@ -509,6 +509,15 @@ The manual `dmsg-ios.yml` workflow runs the same checks on a runner with the
 reviewed SDK. A missing SDK is an explicit failure, not a lower-version pass.
 The workflow has not been run on GitHub as part of local development.
 
+## App transfer preparation
+
+The old-team transition build moves main-app credentials into the dedicated
+`group.net.dmsg.ios.keychain` App Group before opening the core. Register this
+group for the main app in the developer portal before archiving. Keep the
+current team for this release. See [the transfer runbook](docs/app-transfer_zh.md)
+for extension handling, skipped-version protection and required physical-device
+checks. This code does not establish successful cross-team Secure Enclave access.
+
 ## 一键生成 TestFlight IPA
 
 在已配置 Apple 开发者账号和签名的 Mac 上，从仓库根目录执行：

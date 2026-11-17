@@ -3366,5 +3366,9 @@
 	<string>De limieten gelden voor het basisabonnement. Opslagpakketten voegen capaciteit toe. Maandelijkse uitvoeringseenheden worden naar rato berekend en worden niet gereset bij een abonnementswijziging.</string>
 	<key>Multisig wallet slots</key>
 	<string>Multisig-walletlimiet</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Je opgeslagen sleutels konden niet worden voorbereid. Ontgrendel deze iPhone en probeer het opnieuw. Je werkruimte is niet gewist.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Deze update heeft geen toegang tot je opgeslagen sleutels. Laat dMsg geïnstalleerd en neem contact op met ondersteuning vanaf een ander geautoriseerd apparaat. Je werkruimte is niet gewist.</string>
 </dict>
 </plist>

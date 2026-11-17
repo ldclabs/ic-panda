@@ -3366,5 +3366,9 @@
 	<string>Ces limites concernent l’offre de base. Les packs de stockage s’y ajoutent. Le quota mensuel d’exécution est calculé au prorata et ne se réinitialise pas lors d’un changement d’offre.</string>
 	<key>Multisig wallet slots</key>
 	<string>Places de portefeuilles multisignatures</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Impossible de préparer vos clés enregistrées. Déverrouillez cet iPhone et réessayez. Votre espace de travail n’a pas été effacé.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Cette mise à jour ne peut pas accéder à vos clés enregistrées. Gardez dMsg installé et contactez l’assistance depuis un autre appareil autorisé. Votre espace de travail n’a pas été effacé.</string>
 </dict>
 </plist>

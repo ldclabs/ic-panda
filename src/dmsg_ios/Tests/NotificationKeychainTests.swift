@@ -7,7 +7,7 @@ import XCTest
 final class NotificationKeychainTests: XCTestCase {
     func testNotificationCredentialsSurviveAContainerPathChange() throws {
         let installation = UUID().uuidString
-        let security = AppleSecurity(installation: installation)
+        let security = try AppleSecurity(installation: installation)
         defer { removeService(installation) }
         let before = "dmsg:notifications:" + String(repeating: "1", count: 64) + ":"
         let after = "dmsg:notifications:" + String(repeating: "2", count: 64) + ":"
@@ -53,7 +53,7 @@ final class NotificationKeychainTests: XCTestCase {
         // The broken retry already generated a new key, but that key was never
         // accepted as the existing APNs registration's notification owner.
         try insertLegacy(installation, name: currentPrefix + "installation", data: Data(repeating: 8, count: 32))
-        let security = AppleSecurity(installation: installation, notificationWorkspace: files.workspace)
+        let security = try AppleSecurity(installation: installation, notificationWorkspace: files.workspace)
         // Receiver reads can happen before an installation-key read.
         XCTAssertEqual(try security.get(name: currentPrefix + account), receiver)
         XCTAssertEqual(try security.get(name: currentPrefix + "installation"), seed)
@@ -67,7 +67,7 @@ final class NotificationKeychainTests: XCTestCase {
         let next = directory.appending(path: "next-container")
         try FileManager.default.moveItem(at: files.root, to: next)
         let nextFiles = try PrivateFiles(base: next)
-        let restarted = AppleSecurity(installation: installation, notificationWorkspace: nextFiles.workspace)
+        let restarted = try AppleSecurity(installation: installation, notificationWorkspace: nextFiles.workspace)
         let nextPrefix = prefix(nextFiles.workspace)
         XCTAssertEqual(try restarted.get(name: nextPrefix + "installation"), seed)
         XCTAssertEqual(try restarted.get(name: nextPrefix + account), renewed)
@@ -81,9 +81,9 @@ final class NotificationKeychainTests: XCTestCase {
     func testNotificationNamespacesStayWithinTheirInstallationAndEnvironment() throws {
         let first = UUID().uuidString, second = UUID().uuidString
         defer { removeService(first); removeService(first, environment: "staging"); removeService(second) }
-        let production = AppleSecurity(installation: first)
-        let staging = AppleSecurity(installation: first, environment: "staging")
-        let reinstalled = AppleSecurity(installation: second)
+        let production = try AppleSecurity(installation: first)
+        let staging = try AppleSecurity(installation: first, environment: "staging")
+        let reinstalled = try AppleSecurity(installation: second)
         let name = "dmsg:notifications:" + String(repeating: "1", count: 64) + ":installation"
         try production.set(name: name, secret: Data(repeating: 7, count: 32))
         XCTAssertNil(try staging.get(name: name))

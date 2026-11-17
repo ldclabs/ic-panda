@@ -3366,5 +3366,9 @@
 	<string>Sınırlar temel plan içindir. Depolama paketleri ek kapasite sağlar. Aylık yürütme birimleri etkin süreye göre hesaplanır ve plan değiştirildiğinde sıfırlanmaz.</string>
 	<key>Multisig wallet slots</key>
 	<string>Çok imzalı cüzdanı kotası</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>Kayıtlı anahtarlarınız hazırlanamadı. Bu iPhone’un kilidini açıp tekrar deneyin. Çalışma alanınız silinmedi.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>Bu güncelleme kayıtlı anahtarlarınıza erişemiyor. dMsg uygulamasını yüklü tutun ve yetkilendirilmiş başka bir cihazdan destek ekibiyle iletişime geçin. Çalışma alanınız silinmedi.</string>
 </dict>
 </plist>

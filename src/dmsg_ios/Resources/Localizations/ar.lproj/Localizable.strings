@@ -3366,5 +3366,9 @@
 	<string>الحدود تخص الخطة الأساسية. تُضاف باقات التخزين بشكل منفصل. تُحسب وحدات التنفيذ الشهرية بالتناسب مع المدة ولا تُعاد إلى الصفر عند تغيير الخطة.</string>
 	<key>Multisig wallet slots</key>
 	<string>حصة المحافظ متعددة التوقيعات</string>
+	<key>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</key>
+	<string>تعذّر تجهيز مفاتيحك المحفوظة. افتح قفل هذا الـ iPhone وحاول مرة أخرى. لم يتم مسح مساحة عملك.</string>
+	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
+	<string>لا يستطيع هذا التحديث الوصول إلى مفاتيحك المحفوظة. أبقِ dMsg مثبتًا وتواصل مع الدعم من جهاز آخر مُصرّح له. لم يتم مسح مساحة عملك.</string>
 </dict>
 </plist>

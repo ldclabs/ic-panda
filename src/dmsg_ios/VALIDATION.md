@@ -3769,3 +3769,95 @@ UniFFI 是源码/二进制接口变更，旧 Swift 绑定不能与新 Rust 库�
 正常模拟器签名下 `dMsgTests` **213 通过、0 失败、0 跳过**，结果包为 `test_sim_2026-11-17T03-00-12-290Z_pid44633_db7620c4.xcresult`。首轮 Xcode 测试构建及并行 Rust 回归因本机磁盘耗尽失败；清理生成的编译缓存后重新运行，没有修改断言、签名或超时策略。client/mobile/CLI 的严格 Clippy 已通过。没有真机认证、真实购买、线上数据写入或部署。
 
 最终 Rust 回归在关闭增量缓存后完成：`dmsg_client` 672 项通过、5 项忽略，`dmsg_mobile` 45 项通过，`dmsg_cli` 123 项通过、6 项忽略。修改文件的 Rust 格式与 `git diff --check` 通过；忽略项按原配置未运行。本次修复只影响客户端传输编码，不追加 canister 升级；客户端会员查询仍遵循先部署 commerce v2 查询、再发布调用方的既有顺序。
+
+## 2026-11-17 — App-transfer Keychain preparation
+
+Implemented the old-team transition on public source baseline `6b44959b`:
+
+- The main app moves its exact installation/environment service from the old
+  team-prefixed access group to `group.net.dmsg.ios.keychain` before opening the
+  Rust engine. The group is granted only to the main app. Stored bytes and
+  accessibility remain unchanged, including inactive accounts and bound slots.
+- A non-secret receipt in the destination group distinguishes prepared installs
+  from existing workspaces that skipped preparation. A new-team prefix with an
+  existing workspace and no receipt stops before core startup, retaining files.
+  The receipt does not prove hardware-key or cross-team compatibility.
+- AutoFill and Files use their own existing App Groups as keychain groups. An
+  existing snapshot migrates at explicit authenticated access; the short Files
+  session can migrate without a prompt. Lock/invalidation also remove the old
+  entries so they cannot be resurrected. Snapshot/session expiry is unchanged.
+- Main Keychain migration failures show a retry screen with 23 localized copies.
+  No account initialization or reset is offered on that screen. Secure Enclave
+  handles, hardware anchors, approval keys and Rust recovery policy are unchanged.
+- Simulator Keychain tests now use ad-hoc signing. Unsigned apps correctly fail
+  access-group operations with `errSecMissingEntitlement`; removing entitlements
+  or bypassing checks is not a test fix. Only simulator builds derive the test
+  prefix from DEVELOPMENT_TEAM; device builds retain their provisioning prefix.
+
+Executed on Xcode 27.2 (27B52), iOS 27.0 iPhone 18 Pro simulator:
+
+- Simulator build/run passed; generated Rust artifacts matched their source
+  fingerprint (`python3 scripts/ios/artifacts.py verify`, debug slices).
+- All unit tests plus `KeychainMigrationUITests`: **221 passed, 0 failed, 0
+  skipped**. The MCP call timed out, but the completed xcresult independently
+  reported Passed via `xcresulttool get test-results summary`.
+- After the final receipt-accessibility and legacy-Files-session additions,
+  the final selected regression run passed **26 tests, 0 failed, 0 skipped**:
+  KeychainMigrationTests, NotificationKeychainTests, SystemExportsTests,
+  LocalizationTests and KeychainMigrationUITests. Result:
+  `.build/KeychainTransfer-verified.xcresult`; log:
+  `.build/keychain-transfer-verified.log`.
+- The tests cover preserved bytes/protection, account/environment/installation
+  separation, duplicate conflicts without data deletion, idempotent retries,
+  deleted-key non-resurrection, skipped-preparation refusal without touching
+  workspace bytes, fresh recipient installs, unavailable/denied Keychain access,
+  Files-session migration and lock, plus the existing notification-path repair.
+- Chinese/light retry and Arabic/dark skipped-preparation UI screenshots were
+  exported and visually inspected: text and retry action remain visible without
+  clipping. Screenshot artifacts are under `.build/KeychainTransfer-screenshots`.
+  UI tests verify retry and that blocked startup offers no login/create action.
+- `python3 -B -m unittest discover -s scripts/ios -p 'test_*.py'`: **23 passed**.
+- `localizations.py` including the derived-data extraction check: **23 languages
+  verified**. `git diff --check` passed.
+- `testflight.py --dry-run` proposed `1.2.1 (33)` for six bundles on the old team;
+  no build number, archive, export or upload was changed by that preview.
+
+Not established by these checks: real cross-team signatures/profiles, protected
+Secure Enclave operations, passcode/biometry changes, App Store/TestFlight upgrade
+on a physical device, or production APNs/App Attest/purchases. The fake recipient
+prefix in a unit test checks routing only. The complete existing UI suite and
+Rust test/clippy suites were not rerun for this Swift-only implementation; the
+whole `verify.sh` pipeline was not run. No automatic recovery/import for users
+who skipped preparation was added. See `docs/app-transfer_zh.md` for the release
+sequence and remaining physical-device requirements.
+
+Device signing attempt (same session): `xcodebuild` Debug for generic iOS with
+`-allowProvisioningUpdates` failed. Xcode reported “The network connection was
+lost” and that the existing `iOS Team Provisioning Profile: net.dmsg.ios` does not
+support `group.net.dmsg.ios.keychain`. Portal registration was not confirmed;
+refreshing the main-app profile remains required. No device-signed build,
+App Store archive, upload or App Transfer was completed. The browser connection
+also timed out, and `devicectl list devices` could not initialize CoreDeviceService,
+so no physical-device test was run. The owner confirmed Apple Support permits
+the old-team transition release; that confirmation is not a signing/test result.
+
+Follow-up after the owner registered and associated the new group (2026-11-17):
+
+- Re-ran the generic-device Debug build with `-allowProvisioningUpdates`;
+  **BUILD SUCCEEDED**. The main app received a refreshed old-team profile that
+  authorizes `group.net.dmsg.ios.keychain`.
+- Verified code signatures for the app and all five extensions with
+  `codesign --verify --strict`. Decoded embedded profiles and compared their
+  App Groups with the signed entitlements. All six bundles use `S9Z2WAMAV8`;
+  the new private group is present only in the main app's signature/profile.
+  The old main/autofill/files Keychain groups remain available for migration.
+- Device build: `.build/TransferSigning/Build/Products/Debug-iphoneos/dMsg.app`.
+  Log: `.build/keychain-transfer-signing-registered.log`; sanitized signature
+  metadata: `.build/keychain-transfer-signatures.json`. This is a development
+  build of `1.2.1 (32)`, not an App Store distribution archive.
+- CoreDevice discovery succeeds outside the filesystem sandbox. The paired
+  physical iPhone 13 Pro currently has a developer-installed dMsg `1.2.1 (32)`.
+  Only app metadata was read; no app was installed/launched and no on-device
+  Keychain migration was executed in this follow-up. The owner chose to keep
+  the phone untouched and build/upload the old-team TestFlight transition
+  themselves. Physical-device unlock/content checks remain pending.

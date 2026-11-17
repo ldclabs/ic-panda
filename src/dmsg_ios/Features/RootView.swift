@@ -16,7 +16,16 @@ struct RootView: View {
                 Text("Test environment · Separate accounts and test purchases").font(.caption.weight(.semibold)).padding(8).frame(maxWidth: .infinity).background(.orange.opacity(0.12))
             }
             Group {
-                if model.unlocked {
+                if let failure = model.keychainPreparationFailure {
+                    ContentUnavailableView {
+                        Label("dMsg", systemImage: "lock.shield")
+                    } description: {
+                        Text(failure.message)
+                    } actions: {
+                        Button("Retry") { Task { await model.start(retrying: true) } }.disabled(model.opening)
+                            .accessibilityIdentifier("keychain.retry")
+                    }
+                } else if model.unlocked {
                     TabView(selection: $model.selectedTab) {
                         VaultView().tabItem { Label(AppTab.vault.title, glyph: AppTab.vault.icon) }.tag(AppTab.vault)
                         MessagesView().tabItem { Label(AppTab.messages.title, glyph: AppTab.messages.icon) }.tag(AppTab.messages).badge(unreadMessages)
