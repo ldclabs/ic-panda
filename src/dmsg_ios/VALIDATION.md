@@ -3751,3 +3751,21 @@ Android 对齐过程中发现系统副本设置依赖联网 hardware_security；
 当前共享核心重新生成 device/simulator XCFramework 与 Swift 绑定。正常模拟器签名下，完整 `dMsgTests` **213 通过、0 失败、0 跳过**，结果包 `test_sim_2026-11-16T15-50-10-679Z_pid45641_16abab40.xcresult`。中英文 AppStoreScreenshotTests **2 通过**，结果包 `test_sim_2026-11-16T15-53-17-555Z_pid45641_807a9ea0.xcresult`，导出 10 张本轮原生截图用于 Android 界面核对。
 
 首轮误加 `CODE_SIGNING_ALLOWED=NO` 导致 3 个 Keychain 测试以缺少 entitlement 失败，其余 210 通过。恢复正常签名后，先定向 3 项通过，再运行上述完整 213 项；没有为此修改生产 Keychain 代码。截图使用离线合成数据；没有真机、真实登录、支付或线上内容写入。
+
+## 2026-11-17 iOS 与桌面共享增量审查
+
+审查 `e92c5a24`，在包含 `2fb7f9e1` 的本地主线上修复；未核对远端或部署。该提交没有直接修改 Electron 界面或 daemon，桌面通过 `dmsg_client` 受到影响。主要变化为：
+
+- 移动硬件签署先固定消息、期限和账户版本，再在 Client 执行器外认证；取消和锁定使原准备失效，已提交操作按原日志对账。桌面保留原硬件 provider 的默认实现。
+- 共享核心增加账户批准、频道创建、邀请、文件链接、收取文件及完整消息草稿的持久记录，为移动宿主提供可恢复调用；iOS 原有调用继续保留。
+- iOS 跟随 UniFFI 更新 `shutdown`、硬件秘密/签署回调及草稿参数，并从本机绑定读取系统副本的生物认证策略；文件历史读取对应版本的 MIME。
+
+UniFFI 是源码/二进制接口变更，旧 Swift 绑定不能与新 Rust 库混用，必须成套生成和发布。旧绑定槽、审批钥匙和版本记录的新增字段使用缺省读取，绑定槽身份仍由原 peer 数据确定；这不等于承诺旧客户端能反向读取所有新增的本地任务记录。
+
+确认并修复了一个跨版本传输问题：版本记录新增 `mime`，但 `dmsg-device-transfer/1` 仍原样发送，旧客户端的严格版本解码会失败。新增固定 v1 编码，由清单摘要和实际发送共用，保留发送端本地记录；v1 仍携带文件级 MIME，不传新增的历史版本 MIME。新接收端对缺失的历史 MIME 使用既有保守回退。使用升级前的严格记录类型先复现 `IntegrityFailed`，修复后 17 项传输测试通过，包含断线恢复、授权清单和完整文件读取。
+
+本次重新生成 device/simulator XCFramework 与 Swift 绑定，源码和产物指纹验证通过；iPhone 18 Pro / iOS 27 模拟器构建、安装和启动成功，中文文件页截图位于 `.build/ios-desktop-review-20261117/files-zh.jpg`。桌面 `pnpm check` 和 200 项测试通过。本轮没有修改界面布局，没有执行 Electron 全交互截图矩阵；模拟器不证明真机 Face ID、Secure Enclave 或真实旧版设备互传。
+
+正常模拟器签名下 `dMsgTests` **213 通过、0 失败、0 跳过**，结果包为 `test_sim_2026-11-17T03-00-12-290Z_pid44633_db7620c4.xcresult`。首轮 Xcode 测试构建及并行 Rust 回归因本机磁盘耗尽失败；清理生成的编译缓存后重新运行，没有修改断言、签名或超时策略。client/mobile/CLI 的严格 Clippy 已通过。没有真机认证、真实购买、线上数据写入或部署。
+
+最终 Rust 回归在关闭增量缓存后完成：`dmsg_client` 672 项通过、5 项忽略，`dmsg_mobile` 45 项通过，`dmsg_cli` 123 项通过、6 项忽略。修改文件的 Rust 格式与 `git diff --check` 通过；忽略项按原配置未运行。本次修复只影响客户端传输编码，不追加 canister 升级；客户端会员查询仍遵循先部署 commerce v2 查询、再发布调用方的既有顺序。

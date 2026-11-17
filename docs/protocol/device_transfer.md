@@ -100,6 +100,13 @@ Bodies, each a CBOR map with a single key naming its type:
 The sender serves only names and digests its manifest lists, and refuses
 anything else with `FORBIDDEN`.
 
+Version records retain the original v1 field set: the local catalog's optional
+per-version `mime` is not sent. Both manifest hashes and record replies use this
+same projection, without rewriting the sender's local records. The file record
+continues to carry its current MIME type. A receiving client cannot recover a
+historical version's separate MIME hint from v1 transfer alone; this preserves
+interoperation with released clients that reject unknown version fields.
+
 ## 4. Manifest
 
 ```text

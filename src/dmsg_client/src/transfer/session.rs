@@ -348,7 +348,7 @@ where
                         // A record gone since the manifest goes out empty.
                         let value = h
                             .with(|c| {
-                                let value = c.workspace.open_sealed(c.keys()?, &key)?;
+                                let value = library::record(c, &key)?;
                                 Ok(value.map(|v| v.to_vec()).unwrap_or_default())
                             })
                             .await?;

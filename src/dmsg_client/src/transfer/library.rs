@@ -5,16 +5,33 @@
 
 use super::Entry;
 use crate::client::Client;
-use crate::codec::{decode, sha256};
+use crate::codec::{canonical, decode, sha256};
 use crate::files::BlobStore;
 use crate::library::catalog::{
     FILE, FOLDER, FileRecord, Folder, ROOT, VERSION, Version, validate_name,
 };
 use crate::workspace::MAX_PRIVATE;
 use dmsg_types::{Error, Result, ensure};
+use zeroize::Zeroizing;
 
 /// The library's record prefixes, in the order the receiver commits them.
 pub(crate) const PHASES: [&str; 3] = [FOLDER, VERSION, FILE];
+
+/// The exact v1 record bytes, shared by the manifest and record sender.
+pub(crate) fn record(c: &Client, key: &str) -> Result<Option<Zeroizing<Vec<u8>>>> {
+    let Some(value) = c.workspace.open_sealed(c.keys()?, key)? else {
+        return Ok(None);
+    };
+    if key.starts_with(VERSION) {
+        let mut version: Version = decode(&value, MAX_PRIVATE)?;
+        // v1 receivers strictly decode the original version record. Keep the
+        // newer per-version hint local; the file record still carries its MIME.
+        if version.mime.take().is_some() {
+            return Ok(Some(Zeroizing::new(canonical(&version))));
+        }
+    }
+    Ok(Some(value))
+}
 
 /// Every library record as an entry. A version lists its chunks and
 /// thumbnail when all of them are on this device; otherwise it is offered
@@ -27,7 +44,7 @@ pub(crate) fn entries(c: &mut Client) -> Result<Vec<Entry>> {
     let mut entries = vec![];
     for prefix in PHASES {
         for key in c.workspace.store.sealed_keys(prefix)? {
-            let Some(value) = c.workspace.open_sealed(c.keys()?, &key)? else {
+            let Some(value) = record(c, &key)? else {
                 continue;
             };
             let mut digests = vec![];

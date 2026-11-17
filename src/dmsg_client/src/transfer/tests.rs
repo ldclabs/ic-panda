@@ -261,6 +261,57 @@ fn library(c: &mut Client) -> Vec<Entry> {
     library::entries(c).unwrap()
 }
 
+#[test]
+fn v1_exports_decode_on_pre_mime_clients_without_rewriting_local_versions() {
+    // The released receiver rejects unknown fields; using today's Version here
+    // would miss an incompatible change to the transfer's record format.
+    #[derive(Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct VersionV1 {
+        size: u64,
+        sha256: String,
+        created_at: u64,
+        device: String,
+        origin: crate::library::catalog::Origin,
+        key: String,
+        chunks: Vec<crate::upload::ChunkRef>,
+        thumbnail: Option<String>,
+        local: bool,
+        backup: Option<crate::library::catalog::Backup>,
+    }
+
+    let mut p = pair();
+    for entry in library(&mut p.old)
+        .into_iter()
+        .filter(|entry| entry.key.starts_with(VERSION))
+    {
+        let original = p
+            .old
+            .workspace
+            .open_sealed(p.old.keys().unwrap(), &entry.key)
+            .unwrap()
+            .unwrap();
+        assert!(cbor2::from_slice::<VersionV1>(&original).is_err());
+        let value = library::record(&p.old, &entry.key).unwrap().unwrap();
+        let legacy: VersionV1 = crate::codec::decode(&value, crate::workspace::MAX_PRIVATE)
+            .expect("v1 export must remain readable by the released client");
+        assert_eq!(canonical(&legacy), value.as_slice());
+        assert_eq!(entry.sha256, sha256(&value));
+        assert_eq!(entry.size, value.len() as u64);
+        let current: crate::library::catalog::Version =
+            crate::codec::decode(&value, crate::workspace::MAX_PRIVATE).unwrap();
+        assert!(current.mime.is_none());
+        assert_eq!(
+            p.old
+                .workspace
+                .open_sealed(p.old.keys().unwrap(), &entry.key)
+                .unwrap()
+                .unwrap(),
+            original,
+        );
+    }
+}
+
 #[tokio::test]
 async fn the_library_moves_whole_and_reads_the_same() {
     let mut p = pair();
