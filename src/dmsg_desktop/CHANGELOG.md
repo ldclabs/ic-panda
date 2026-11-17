@@ -6,7 +6,7 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
-## [1.5.8-beta.1] - 2026-11-17
+## [1.5.8] - 2026-11-18
 
 ### macOS signing transition
 
