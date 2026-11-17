@@ -7,8 +7,8 @@ use dmsg_types::user::HardwarePurpose;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub(super) enum Kind {
-    Attest(crate::attest::Attestation),
-    Authenticate(AuthJob),
+    Attest(Box<crate::attest::Attestation>),
+    Authenticate(Box<AuthJob>),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -242,7 +242,10 @@ impl HardwareConnect {
                     &c.keys()?.signing,
                     message.as_slice(),
                 ));
-                (Kind::Authenticate(AuthJob { request, approval }), message)
+                (
+                    Kind::Authenticate(Box::new(AuthJob { request, approval })),
+                    message,
+                )
             } else {
                 let subject = if self.operation.command.method == "signDocument" {
                     Subject::Statement {
@@ -259,7 +262,7 @@ impl HardwareConnect {
                     self.request.expires_at,
                     now,
                 )?;
-                (Kind::Attest(attestation), message)
+                (Kind::Attest(Box::new(attestation)), message)
             };
             let execution = Execution {
                 review: self.request.digest(),
@@ -488,7 +491,7 @@ pub(super) async fn execute<H: Hold>(h: &H, key: &str) -> Result<()> {
         Err(error) => Err(error),
         Ok(true) => match &execution.kind {
             Kind::Attest(attestation) => {
-                match crate::attest::dispatch(h, attestation.clone()).await {
+                match crate::attest::dispatch(h, (**attestation).clone()).await {
                     Ok(verified) => attestation_result(&verified),
                     Err(error) => {
                         h.with(|c| {
@@ -571,7 +574,7 @@ fn activate(
                 op.execution = Some(attestation.execution_id());
                 request.execution = op.execution.clone();
             }
-            Kind::Authenticate(job) => op.auth = Some(job.clone()),
+            Kind::Authenticate(job) => op.auth = Some((**job).clone()),
         }
         op.prepared = None;
         c.save_operation(&op)?;

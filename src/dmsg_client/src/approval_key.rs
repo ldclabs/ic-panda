@@ -307,21 +307,19 @@ impl Client {
     pub fn approval_signing_handles(&self, id: &str) -> Result<Vec<Vec<u8>>> {
         let request = self.approval_record(id)?;
         let mut handles = Vec::new();
-        if let Some(seen) = &self.hardware_seen {
-            if let Some(key) = self.registered_key(seen.key)? {
-                handles.push(key.handle.to_vec());
-            }
+        if let Some(seen) = &self.hardware_seen
+            && let Some(key) = self.registered_key(seen.key)?
+        {
+            handles.push(key.handle.to_vec());
         }
-        if let Action::ApprovalKey { public_key, .. } = &request.action {
-            if let Some(key) = self
+        if let Action::ApprovalKey { public_key, .. } = &request.action
+            && let Some(key) = self
                 .local_approval_keys()?
                 .into_iter()
                 .find(|k| k.public_key == *public_key)
-            {
-                if !handles.contains(&key.handle.to_vec()) {
-                    handles.push(key.handle.to_vec());
-                }
-            }
+            && !handles.contains(&key.handle.to_vec())
+        {
+            handles.push(key.handle.to_vec());
         }
         ensure(
             !handles.is_empty() && handles.len() <= 2,

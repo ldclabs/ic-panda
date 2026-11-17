@@ -585,6 +585,8 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
 
 本次实际验证：commerce 69 项单元测试、客户端 12 项商业测试、61 项商业/治理 PocketIC、4 项常规 Passkey PocketIC 通过；上述升级脚本的 5 项测试通过，包含从真实 `9488d02e` 模块开始的 commerce/auth 两项历史升级。auth/commerce 的旧 Candid 兼容检查及生成接口核对通过；auth、commerce、protocol、types 的严格 Clippy 通过。扩大到 client/integration 的严格 Clippy 被客户端已有的 3 条 `collapsible_if` 和 1 条 `large_enum_variant` 告警阻断，未修改这些范围外代码。2 项 commerce 容量测试及其余历史迁移用例未全部执行；未部署、未执行真实 Google 交易。
 
+同日客户端告警后续修复：合并硬件签署句柄的条件判断，将浏览器预备执行的两个大载荷置于 `Box`，同步调整构造及取值。包含 client/integration 的上述严格 Clippy 已通过；客户端全套默认测试 671 项通过、5 项按原配置忽略。此次清理不修改 canister 代码或接口，无需追加 canister 升级。
+
 2026-11-16 原适配验证：66 项 commerce 单元测试通过（2 项容量测试未运行）；协议 95 项单元、20 项向量与 3 项文档测试通过。PocketIC 已运行 `commerce::google_play::play_receipts_authorization_replacement_refund_and_upgrade_are_durable`，覆盖实际调用、越权、跨账号、重复、pending、linked 替换、存储退款与升级保留。另以公开 `e63962bb` 构建旧 commerce Wasm，运行下面的显式升级测试，保留原现金合同并在升级后新增、再次升级和读取 Play 回执。未部署、未接真实 Google 商品或资金。
 
 ```sh

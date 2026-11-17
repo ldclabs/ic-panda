@@ -39,7 +39,7 @@ fn staged(client: &mut Client) -> (Operation, Execution, AccountState) {
     let execution = Execution {
         review: request.digest(),
         version: state.info.account_version,
-        kind: Kind::Attest(attestation),
+        kind: Kind::Attest(Box::new(attestation)),
     };
     let op = Operation {
         key: "browser-original".into(),
@@ -107,7 +107,7 @@ async fn a_proved_browser_message_is_not_executable_before_its_original_request_
     );
     assert_eq!(
         client.attestation(&attestation.execution_id()).unwrap(),
-        Some(attestation.clone())
+        Some((**attestation).clone())
     );
     // A second runner cannot claim or replace the already journaled request.
     assert!(!activate(&mut client, &op.key, &execution, &state, now_ms()).unwrap());
