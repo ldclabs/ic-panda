@@ -5,6 +5,33 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
+## 1.2.2
+
+### Build 33 — 2026-11-17
+
+- Keep unfinished vault edits encrypted on this device across app switching,
+  locking and restarts. Restore the active draft for the same account after
+  unlocking, preserve input after save failures, and clear it after saving or
+  explicitly discarding it.
+- Keep editors attached to their source view, including items restored inside
+  Trash. Swiping away an unchanged editor no longer makes it reopen after
+  returning from the background.
+- Fix account-status sheets that could stall when an on-chain recovery notice
+  was visible, while retaining periodic status updates.
+- Prepare existing Keychain credentials and approved AutoFill and Files copies
+  for a future App Store team transfer. Preserve the workspace and device
+  identity, and keep migration failures retryable. Cross-team upgrades still
+  require signed-device validation before rollout.
+- Keep AutoFill's authentication retry available when migration is cancelled or
+  fails, instead of asking users to regenerate an intact copy.
+- Keep device-to-device file transfers readable by previously released iOS and
+  desktop clients when newer file-version metadata is present.
+- Read membership terms through the versioned commerce query, including plans
+  purchased through Google Play. Requires the matching commerce service upgrade
+  before client rollout; purchases in this iOS app continue to use StoreKit.
+- Improve translated terminology, compact labels and punctuation across locales,
+  including Malay and Russian privacy text.
+
 ## 1.2.1
 
 ### Build 32 — 2026-11-15

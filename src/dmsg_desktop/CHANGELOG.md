@@ -6,18 +6,29 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
-## [1.5.8] - 2026-11-17
+## [1.5.8-beta.1] - 2026-11-17
 
 ### macOS signing transition
 
 - Prepare desktop and CLI updates for the move from LDC Labs Limited to
   Yiwen AI Limited. This version still uses LDC's Developer ID signature and
   additionally accepts the specific Yiwen team for future dMsg updates.
-- Keep the transition version available to older stable updaters. New clients
-  discover later complete releases without depending on GitHub's Latest label.
+- Discover complete releases for the selected update channel without depending
+  on GitHub's Latest label. This beta does not replace the planned stable 1.5.8
+  bridge required by older stable updaters before the signing-team change.
 - Preserve existing workspaces and credential storage. macOS may request
   Keychain permission after the future signing-team change; this release
   does not copy credentials or reset hardware keys.
+
+### Compatibility and localization
+
+- Keep device-to-device file transfers readable by previously released iOS and
+  desktop clients when newer file-version metadata is present.
+- Read membership terms through the versioned commerce query, including plans
+  purchased through Google Play. Requires the matching commerce service upgrade
+  before client rollout.
+- Improve translated terminology, payment and application deadlines, compact
+  labels and punctuation across locales.
 
 ## [1.5.7] - 2026-11-14
 
