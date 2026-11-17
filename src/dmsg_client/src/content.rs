@@ -447,7 +447,18 @@ impl Client {
             payload,
             crate::now_ms(),
         );
-        let job = self.prepare_job(&record, file, record.created_at)?;
+        let conflict = self.write_record(&record, file, || Ok(()))?;
+        Ok((record, conflict))
+    }
+
+    /// Commit a prepared version and a related local record in one transaction.
+    pub(crate) fn write_record(
+        &self,
+        record: &EncryptedObject,
+        file: Option<&FileManifest>,
+        finish: impl FnOnce() -> Result<()>,
+    ) -> Result<bool> {
+        let job = self.prepare_job(record, file, record.created_at)?;
         let head = self.workspace.store.head(&record.id)?;
         let conflict = head != record.parent;
         let row = ObjectRow {
@@ -455,7 +466,7 @@ impl Client {
             item: record.id.clone(),
             revision: record.revision.clone(),
             kind: record.kind.clone(),
-            frame: canonical(&record),
+            frame: canonical(record),
             state: LOCAL.into(),
             conflict,
             resolved: false,
@@ -465,11 +476,11 @@ impl Client {
             store.put_object(&row)?;
             store.set_job(&row.key, &job)?;
             if !conflict {
-                store.set_head(&row.item, &row.revision, kind)?;
+                store.set_head(&row.item, &row.revision, &record.kind)?;
             }
-            Ok(())
+            finish()
         })?;
-        Ok((record, conflict))
+        Ok(conflict)
     }
 }
 

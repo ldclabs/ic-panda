@@ -5,7 +5,6 @@ struct SecretHealthView: View {
     @Environment(SessionModel.self) private var model
     @State private var report: SecretHealthReport?
     @State private var subjects: [String: VaultItem] = [:]
-    @State private var editing: VaultEditorTarget?
     @State private var includeDismissed = false
     @State private var dismissing: SecretHealthReport.Finding?
     @State private var working = false
@@ -27,7 +26,7 @@ struct SecretHealthView: View {
                                 if let item = subjects[finding.subject] {
                                     Text(item.title).font(.subheadline.weight(.medium))
                                     Text(item.fields.first(where: { $0.id == field }).map(vaultFieldTitle) ?? vaultFieldName(field)).font(.caption)
-                                    if item.canEdit { Button("Edit item") { editing = VaultEditorTarget(item: item) } }
+                                    if item.canEdit { Button("Edit item") { Task { await model.vaultEditing.open(VaultEditorTarget(item: item), model: model) } } }
                                 }
                                 Text(secretNextAction(finding.action)).font(.footnote).foregroundStyle(.secondary)
                                 NavigationLink("Review field and dependencies") { SecretFieldReferenceView(itemID: finding.subject, fieldID: field) }
@@ -58,7 +57,7 @@ struct SecretHealthView: View {
             } else if loading { ProgressView() }
             else { Button("Retry") { Task { await load() } } }
         }.privateScreen().navigationTitle("Local security review").navigationBarTitleDisplayMode(.inline).task { await load() }.refreshable { await load() }
-            .sheet(item: $editing, onDismiss: { Task { await load() } }) { target in NavigationStack { VaultEditor(target: target) } }
+            .onChange(of: model.vaultEditing.presented?.id) { _, value in if value == nil { Task { await load() } } }
             .confirmationDialog("Dismiss this observation?", isPresented: Binding(get: { dismissing != nil }, set: { if !$0 { dismissing = nil } })) {
                 Button("Dismiss this observation") { if let finding = dismissing { Task { await dismiss(finding) } } }
             } message: { Text("This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.") }

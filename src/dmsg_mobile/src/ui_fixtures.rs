@@ -167,8 +167,56 @@ impl MobileEngine {
             })
             .await
             .map_err(|_| Error::Unavailable("fixture worker".into()))??;
+        Ok(Self::fixture_engine(client, staging, platform))
+    }
+
+    /// QA-only restart of the encrypted offline fixture. No production credentials.
+    #[uniffi::constructor]
+    pub async fn reopen_ui_fixture(
+        directory: String,
+        staging: String,
+        platform: Box<dyn Platform>,
+    ) -> Result<Arc<Self>> {
+        let path = PathBuf::from(directory);
+        ensure(path.is_absolute() && path.is_dir(), Error::NotFound)?;
+        let client = runtime()
+            .spawn_blocking(move || testing::reopen_fixture(&path))
+            .await
+            .map_err(|_| Error::Unavailable("fixture restart".into()))??;
+        Ok(Self::fixture_engine(
+            client,
+            PathBuf::from(staging),
+            platform,
+        ))
+    }
+
+    /// QA-only unlock for the fixed, loopback-only synthetic account.
+    pub async fn unlock_ui_fixture(&self) -> Result<SessionSnapshot> {
+        ensure(
+            self.config.environment == dmsg_types::Environment::Local
+                && self.config.ic_host == "http://127.0.0.1:9",
+            Error::Forbidden,
+        )?;
+        let generation = self.host.inner.generation();
+        self.host
+            .inner
+            .with_at(generation, |c| {
+                ensure(
+                    c.session_state().account == Some(testing::account().id.to_string()),
+                    Error::Forbidden,
+                )?;
+                testing::unlock_fixture(c);
+                Ok(())
+            })
+            .await?;
+        self.scoped(generation)?.session_state().await
+    }
+}
+
+impl MobileEngine {
+    fn fixture_engine(client: Client, staging: PathBuf, platform: Box<dyn Platform>) -> Arc<Self> {
         let config = client.config().clone();
-        Ok(Arc::new(Self {
+        Arc::new(Self {
             host: ScopedHost::new(Host::start(client, runtime().handle()), 0),
             platform: Arc::from(platform),
             config,
@@ -181,6 +229,6 @@ impl MobileEngine {
             sync_signal: Arc::default(),
             plan_checked: Arc::default(),
             transfers: Arc::default(),
-        }))
+        })
     }
 }

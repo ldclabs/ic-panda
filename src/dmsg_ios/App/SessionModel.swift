@@ -11,9 +11,9 @@ final class SessionModel {
     private(set) var engine: MobileEngine?
     private(set) var files: PrivateFiles?
     private(set) var session: SessionSnapshot?
-    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); feedback.suspend(); resetFilePresentation() } }
+    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); feedback.suspend(); vaultEditing.suspend(); resetFilePresentation() } }
     // Background invalidates reads through epoch while retaining this workspace's forms.
-    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset(); feedback.reset(); people.reset(); thumbnails.reset() } }
+    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset(); feedback.reset(); vaultEditing.reset(); people.reset(); thumbnails.reset() } }
     var lifecycle = SessionLifecycle.inactive
     var concealed: Bool { lifecycle != .active }
     var busy: Bool { busyOperation != nil }
@@ -62,6 +62,7 @@ final class SessionModel {
     let messageSending = MessageSending()
     let letters = LetterWorkspace()
     let feedback = FeedbackWorkspace()
+    let vaultEditing = VaultEditing()
     let people = PeopleDirectory()
     let thumbnails = ThumbnailStore()
     private var dirtyDrafts: Set<String> = []
@@ -240,6 +241,7 @@ final class SessionModel {
     }
 
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
+        vaultEditing.usesFixtures = true
         contentSync = .fixture(initialized: true)
         session = state; vault = items; fixtureVaultItems = items
         if let account = state.account {
@@ -981,6 +983,8 @@ final class SessionModel {
     func inactive() { lifecycleGeneration &+= 1; lifecycle = .inactive; if unlocked { privacyShield.show() } }
 
     func background() {
+        let vaultDrafts = vaultEditing.pendingInputs
+        vaultEditing.prepareLockFixture(self)
         let letterDrafts = letters.pendingInputs
         let feedbackDraft = feedback.pendingInput
         let messageDrafts = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil) } }
@@ -997,16 +1001,18 @@ final class SessionModel {
         deviceTransfer.background()
         backgroundAt = .now
         if finishing, let engine {
-            finishInBackground(engine)
-        } else {
+            finishInBackground(engine, vaultDrafts: vaultDrafts)
+        } else if !immediateBackgroundLock {
             engine?.suspend()
         }
         if immediateBackgroundLock {
+            // lockWithDrafts establishes its own barrier. Pausing this handle
+            // first would invalidate it before the final local checkpoint.
             let engine = engine
             clearContent(clearClipboard: false)
-            if let account, !letterDrafts.isEmpty || !messageDrafts.isEmpty || feedbackDraft != nil {
+            if let account, !letterDrafts.isEmpty || !messageDrafts.isEmpty || feedbackDraft != nil || !vaultDrafts.isEmpty {
                 closing = Task {
-                    do { _ = try await engine?.lockWithDrafts(account: account, drafts: messageDrafts, letters: letterDrafts, feedback: feedbackDraft) }
+                    do { _ = try await engine?.lockWithDrafts(account: account, drafts: messageDrafts, letters: letterDrafts, feedback: feedbackDraft, vault: vaultDrafts) }
                     catch { engine?.lockNow() }
                 }
             } else { engine?.lockNow() }
@@ -1015,7 +1021,7 @@ final class SessionModel {
 
     /// What the person just did leaves before the app stops: sends an
     /// interruption left open, then already signed versions. The screen is covered.
-    private func finishInBackground(_ engine: MobileEngine) {
+    private func finishInBackground(_ engine: MobileEngine, vaultDrafts: [VaultDraftInput]) {
         endBackgroundFinish()
         let operation = OperationToken(), syncing = automaticSyncEnabled
         let task = UIApplication.shared.beginBackgroundTask(withName: "dMsg finish") { [weak self] in
@@ -1024,6 +1030,8 @@ final class SessionModel {
         guard task != .invalid else { engine.suspend(); return }
         backgroundFinish = (operation, task)
         Task { [weak self] in
+            do { for draft in vaultDrafts { _ = try await engine.checkpointVaultDraft(draft: draft) } }
+            catch { self?.reportBackground(error) }
             for row in (try? await engine.recoverableMessages()) ?? [] {
                 _ = try? await engine.sendMessage(channel: row.channel, messageId: row.message.id, operation: operation)
             }
@@ -1148,12 +1156,14 @@ final class SessionModel {
         let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil) } }
         let letterDrafts = letters.pendingInputs
         let feedbackDraft = feedback.pendingInput
-        let flush = unlocked && account != nil && (!drafts.isEmpty || !letterDrafts.isEmpty || feedbackDraft != nil)
+        let vaultDrafts = vaultEditing.pendingInputs
+        vaultEditing.prepareLockFixture(self)
+        let flush = unlocked && account != nil && (!drafts.isEmpty || !letterDrafts.isEmpty || feedbackDraft != nil || !vaultDrafts.isEmpty)
         clearContent(clearClipboard: clearClipboard)
         deviceTransfer.reset()
         let work = beginBusyOperation(); defer { finishBusyOperation(work) }
         do {
-            if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts, letters: letterDrafts, feedback: feedbackDraft)) }
+            if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts, letters: letterDrafts, feedback: feedbackDraft, vault: vaultDrafts)) }
             else { try adopt(try await engine?.lock()) }
         } catch {
             _ = try? await engine?.lock()

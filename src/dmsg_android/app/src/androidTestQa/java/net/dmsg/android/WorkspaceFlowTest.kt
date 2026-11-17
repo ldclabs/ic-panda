@@ -2,6 +2,7 @@ package net.dmsg.android
 
 import android.graphics.Bitmap
 import androidx.compose.ui.test.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -36,6 +37,7 @@ class WorkspaceFlowTest {
     private lateinit var directory: File
     private lateinit var stagingDirectory: File
     private var uptime = 0L
+    private var uiVersion by mutableStateOf(0)
 
     @Before fun open() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as DMsgApplication
@@ -64,7 +66,7 @@ class WorkspaceFlowTest {
             }
             client.start()
         }
-        compose.setContent { DMsgApp(client, browser = { error("Unexpected external navigation") }, share = { _, _ -> error("Unexpected external share") }) }
+        compose.setContent { key(uiVersion) { DMsgApp(client, browser = { error("Unexpected external navigation") }, share = { _, _ -> error("Unexpected external share") }) } }
         compose.waitUntil(20_000) { client.state.value.unlocked }
         compose.runOnIdle { client.automaticSync(false); client.dark(false) }
         try { compose.waitUntil(10_000) { client.vault.listing.state.value is ReadState.Ready } }
@@ -78,6 +80,62 @@ class WorkspaceFlowTest {
     @After fun close() {
         if (::client.isInitialized) runBlocking { withContext(Dispatchers.Main.immediate) { client.shutdown() } }
         if (::directory.isInitialized) directory.deleteRecursively()
+    }
+
+    @Test fun newVaultDraftSurvivesBackgroundAndFlushesBeforeImmediateLock() {
+        compose.runOnIdle { client.vaultDrafts.open(null) }
+        compose.waitUntil(5_000) { client.vaultDrafts.presented.value }
+        compose.onNodeWithTag("vault-editor-title").performTextInput("Unfinished new item")
+        compose.runOnIdle { client.background() }
+        compose.runOnIdle { client.foreground() }
+        compose.waitUntil(10_000) { !client.state.value.concealed }
+        compose.onNodeWithTag("vault-editor-title").assertTextContains("Unfinished new item")
+        compose.runOnIdle {
+            client.vaultDrafts.update { it.copy(title = "Final keystroke", tags = "unfinished,", notes = "Not yet submitted") }
+            client.lock()
+        }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        assertNull(client.vaultDrafts.current.value)
+        compose.onNodeWithTag("vault-editor").assertDoesNotExist()
+        compose.runOnIdle { client.perform({ it.unlockUiFixture() }, transition = true) }
+        compose.waitUntil(10_000) { client.state.value.unlocked && client.vaultDrafts.presented.value }
+        compose.onNodeWithTag("vault-editor-title").assertTextContains("Final keystroke")
+        assertEquals("unfinished,", client.vaultDrafts.current.value!!.tags)
+        capture("qa-vault-draft-after-lock")
+    }
+
+    @Test fun existingVaultDraftSurvivesTimeoutAndNativeControllerRestart() {
+        val summary = runBlocking { native.vaultPage("", null, false, 0u, 100u) }.items.first { it.title == "Studio account" }
+        val item = runBlocking { native.vaultItem(summary.id, null) }.item
+        compose.runOnIdle { client.vaultDrafts.open(item) }
+        compose.waitUntil(5_000) { client.vaultDrafts.presented.value }
+        compose.onNodeWithTag("vault-editor-title").performTextReplacement("Edited after restart")
+        compose.runOnIdle { client.background(); uptime += 181_000; client.foreground() }
+        compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as DMsgApplication
+        runBlocking { withContext(Dispatchers.Main.immediate) { client.shutdown() } }
+        compose.runOnUiThread {
+            client = ClientController(app, uptime = { uptime }) { paths, platform ->
+                MobileEngine.reopenUiFixture(directory.absolutePath, paths.staging.absolutePath, platform).also { native = it }
+            }
+            uiVersion += 1; client.start()
+        }
+        compose.waitUntil(20_000) { client.state.value.unlocked && client.vaultDrafts.presented.value }
+        compose.onNodeWithTag("vault-editor-title").assertTextContains("Edited after restart")
+        assertEquals(item.revision, client.vaultDrafts.current.value!!.revision)
+        assertNull(client.vaultDrafts.current.value!!.fields.first { it.id == "password" }.edit().value)
+        val input = client.vaultDrafts.input()
+        compose.onNodeWithTag("vault-editor-save").performScrollTo().performClick()
+        compose.waitUntil(10_000) { !client.vaultDrafts.presented.value }
+        val saved = runBlocking { native.vaultItem(item.id, null) }
+        assertEquals("Edited after restart", saved.item.title)
+        assertFalse(saved.item.conflict)
+        assertEquals("Sample-only password", runBlocking { native.revealField(saved.item.id, saved.item.revision, "password") }.value)
+        assertFalse(runBlocking { native.checkpointVaultDraft(input) })
+        compose.runOnIdle { client.background(); client.foreground() }
+        compose.waitUntil(10_000) { !client.state.value.concealed }
+        compose.onNodeWithTag("vault-editor").assertDoesNotExist()
+        capture("qa-vault-draft-committed-after-restart")
     }
 
     private fun capture(name: String) {

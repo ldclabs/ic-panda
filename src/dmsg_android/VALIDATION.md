@@ -1,5 +1,44 @@
 # Android implementation validation
 
+## Encrypted vault drafts and lifecycle recovery — 2026-11-17
+
+Implemented on the `a9b371e9` worktree. Vault input now belongs to the account
+session and the shared Rust LDK-encrypted checkpoint store. Background request
+invalidation no longer closes the editor. The final pending snapshot participates
+in the lock barrier; unlocking or reopening the same workspace restores the
+active draft, its original revision, hidden-field replacement intent and raw
+input. Save consumes the checkpoint in the same transaction as the item version;
+discard/commit fences prevent delayed writes from reviving it. Drafts remain local
+and are explicitly excluded from device-transfer records.
+
+Validation:
+
+- Shared Rust library suites passed: `dmsg_client` 679 passed / 5 existing ignored,
+  `dmsg_mobile` 46 passed. Clippy with `-D warnings`, including the `ui-fixtures`
+  feature, passed. Tests cover encrypted SQLite/WAL bytes, restart, account
+  isolation, pause/lock barriers, old handles and revisions, atomic rollback,
+  idempotent commit, unchanged saves and concurrent item revisions.
+- Production-none QA Kotlin compilation and all 111 JVM tests passed. On an
+  isolated API 36 ARM64 emulator, all three targeted instrumentation tests passed:
+  background plus last-keystroke lock flushing; timeout followed by native-core
+  and controller reconstruction from the same encrypted database, then saving
+  through the UI; and Activity recreation. Hidden values that were not replaced
+  remain intact, and consumed drafts cannot reopen after another background cycle.
+- The QA-only restart/unlock helpers require the fixed offline fixture account
+  and are absent from ordinary builds. These tests do not authenticate a real
+  user. The reconstruction test closes and reopens the native database and
+  controller inside instrumentation; it is not a real OS process-kill test.
+- Generated native/binding fingerprints were verified by Gradle. Source changes
+  during the initial native build were correctly rejected; that build was rerun
+  after the core stabilized. Restored-editor and saved-item screenshots were
+  inspected. Final results are under `app/build/test-results/testProductionNoneQaUnitTest`
+  and `app/build/outputs/androidTest-results/connected/qa/flavors/productionNone`;
+  screenshots are under `app/build/reports/vault-drafts`.
+
+Physical devices, live services, process-kill instrumentation, API 31, x86_64,
+GMS, Release/R8 and the full Android UI suite were not rerun for this change.
+Existing Kotlin/Compose deprecation and redundant-nullability warnings remain.
+
 
 ## Branch review and fixes — 2026-11-17
 

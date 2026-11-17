@@ -102,9 +102,15 @@ open editor's draft. Historical versions show their timestamp and can be compare
 with the current version. Conflict resolution supports individual metadata and
 field choices and checks the expected current revision before saving.
 
-Editors keep dirty drafts within the unlocked account session, confirm discard
-from Cancel or a swipe, preserve edits when changing type, and disable mutation
-while saving. Failures retain the draft with a visible retryable error. Fields can
+Editors checkpoint complete input in the shared core's account-local encrypted
+draft store. Switching apps retains the editor; locking clears visible input and
+unlocking the same account restores it, including after restart. Drafts retain
+unfinished tags, field replacement intent, attachments and the original item
+revision. They stay on this device and create no content version or sync job until
+Save. Saving consumes the draft atomically with the item; discard fences late
+writes. Editors confirm discard from Cancel or a swipe, preserve edits when
+changing type, and disable mutation while saving. Failures retain the draft with
+a visible retryable error. Fields can
 be reordered in a compact list. Each field puts its editable name before its value,
 with optional grouping below; adding a field focuses its name, and Next moves to
 its value. Validation appears after leaving an input or attempting to save. Date,

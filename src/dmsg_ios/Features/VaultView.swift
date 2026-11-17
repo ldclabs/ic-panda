@@ -3,7 +3,6 @@ import SwiftUI
 
 struct VaultView: View {
     @Environment(SessionModel.self) private var model
-    @State private var editing: VaultEditorTarget?
     @State private var trash = false
     @State private var filtering = false
 
@@ -69,7 +68,6 @@ struct VaultView: View {
                 description: Text("Your hidden fields stay concealed until you choose to reveal them.")) }
         }
         .onChange(of: model.route.vaultItem) { _, value in if value != nil { model.activity() } }
-        .sheet(item: $editing) { target in NavigationStack { VaultEditor(target: target) } }
         .sheet(isPresented: $trash) { NavigationStack { VaultTrashView() } }
         .sheet(isPresented: $filtering) { NavigationStack { VaultFiltersView() } }
     }
@@ -97,7 +95,8 @@ struct VaultView: View {
     private func clear() { model.search = ""; model.vaultTag = ""; model.vaultFilter = "all" }
 
     private func add() {
-        editing = VaultEditorTarget(item: nil, kind: vaultKinds().contains(model.vaultFilter) ? model.vaultFilter : "login", favorite: model.vaultFilter == "favorites")
+        let target = VaultEditorTarget(item: nil, kind: vaultKinds().contains(model.vaultFilter) ? model.vaultFilter : "login", favorite: model.vaultFilter == "favorites")
+        Task { await model.vaultEditing.open(target, model: model) }
     }
 }
 
@@ -194,9 +193,8 @@ struct VaultRow: View {
     }
 }
 
-struct VaultEditorTarget: Identifiable {
+struct VaultEditorTarget {
     let item: VaultItem?
     var kind = "login"
     var favorite = false
-    var id: String { item?.id ?? "new" }
 }

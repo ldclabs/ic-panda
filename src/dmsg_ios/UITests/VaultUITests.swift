@@ -2,6 +2,46 @@ import XCTest
 
 @MainActor
 final class VaultUITests: XCTestCase {
+    func testNewDraftSurvivesSwitchingToAnotherApp() {
+        let app = launch()
+        app.buttons["vault.add"].tap()
+        // Resume briefly includes disabled privacy snapshots in iOS 27's AX tree.
+        let title = app.textFields.matching(identifier: "vault.edit.title")
+            .matching(NSPredicate(format: "enabled == true")).firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText("New draft kept")
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        XCTAssertEqual(title.value as? String, "New draft kept")
+        capture(app, "New vault draft after app switch")
+        app.navigationBars.buttons["Cancel"].tap(); app.sheets.buttons["Discard"].tap()
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5))
+        let add = app.buttons["vault.add"]
+        let available = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: add)
+        XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 5), .completed)
+        add.tap()
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        XCTAssertTrue(["", "Title"].contains(title.value as? String ?? "unexpected value"))
+        XCTAssertFalse(app.buttons["vault.edit.save"].isEnabled)
+    }
+
+    func testExistingDraftSurvivesRepeatedBackgroundAndSavesItsChanges() {
+        let app = launch()
+        app.buttons["vault.item.fixture-github"].tap(); app.buttons["vault.edit.open"].tap()
+        let title = app.textFields.matching(identifier: "vault.edit.title")
+            .matching(NSPredicate(format: "enabled == true")).firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText(" edited")
+        for _ in 0..<2 {
+            XCUIDevice.shared.press(.home); app.activate()
+            XCTAssertTrue(title.waitForExistence(timeout: 5))
+            XCTAssertEqual(title.value as? String, "GitHub edited")
+        }
+        app.buttons["vault.edit.save"].tap()
+        XCTAssertTrue(app.staticTexts["vault.detail.title"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["vault.detail.title"].label, "GitHub edited")
+        capture(app, "Edited vault item saved after app switch")
+    }
+
     private func launch(_ extra: [String] = [], language: String = "en") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-vault-rich", "-AppleLanguages", "(\(language))", "-AppleLocale", language] + extra

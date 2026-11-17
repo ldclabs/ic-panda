@@ -342,6 +342,7 @@ async fn locking_after_a_letter_queue_commit_does_not_revive_it_or_drop_other_dr
                 },
             ],
             None,
+            vec![],
         )
         .await
         .unwrap();
@@ -389,4 +390,68 @@ fn channel_links_require_exact_routes_and_keep_expiry_as_unsigned_integer() {
     let mut wrong = value.clone();
     wrong["account"] = "invalid-account".into();
     assert!(super::parse_channel_invitation(&wrong.to_string()).is_err());
+}
+
+#[tokio::test]
+async fn vault_drafts_cross_pause_and_lock_barriers_without_accepting_old_handles() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let mut draft = vault::VaultDraftInput {
+        id: "d4".repeat(32),
+        item_id: None,
+        base_revision: None,
+        revision: 1,
+        form: r#"{"title":"Before background","password":"private draft"}"#.into(),
+        active: true,
+    };
+    assert!(engine.checkpoint_vault_draft(draft.clone()).await.unwrap());
+    engine.suspend();
+    let state = engine.resume(engine.control_generation()).await.unwrap();
+    let resumed = engine.scoped(state.generation).unwrap();
+    assert!(engine.checkpoint_vault_draft(draft.clone()).await.is_err());
+    assert!(
+        resumed
+            .vault_drafts()
+            .await
+            .unwrap()
+            .json
+            .contains("Before background")
+    );
+    draft.revision = 2;
+    draft.form = r#"{"title":"Last keystroke before lock","password":"private draft"}"#.into();
+    let locked = resumed
+        .lock_with_drafts(
+            testing::account().id.to_string(),
+            vec![],
+            vec![],
+            None,
+            vec![draft.clone()],
+        )
+        .await
+        .unwrap();
+    assert!(resumed.vault_drafts().await.is_err());
+    engine
+        .host
+        .inner
+        .with_at(locked.generation, |c| {
+            testing::unlock_fixture(c);
+            Ok(())
+        })
+        .await
+        .unwrap();
+    let reopened = engine.scoped(locked.generation).unwrap();
+    assert!(
+        reopened
+            .vault_drafts()
+            .await
+            .unwrap()
+            .json
+            .contains("Last keystroke before lock")
+    );
+    reopened
+        .discard_vault_draft(draft.id.clone())
+        .await
+        .unwrap();
+    assert!(!reopened.checkpoint_vault_draft(draft).await.unwrap());
+    assert_eq!(reopened.vault_drafts().await.unwrap().json, "[]");
+    engine.shutdown().await.unwrap();
 }

@@ -5,6 +5,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class VaultDraftTest {
+    @Test fun storedFormsRetainIncompleteInputHiddenFieldIntentAndBaseRevision() {
+        val draft = VaultDraft("a".repeat(64), "b".repeat(64), "", "login", "unfinished notes", false, "typing tag,",
+            listOf(DraftField("password", "concealed", "", "", "", false, true),
+                DraftField("otp", "otp", "", "", "incomplete otp", true, true)), listOf("c".repeat(64)))
+        val stored = kotlinx.serialization.json.Json.parseToJsonElement(vaultDraftForm(draft, draft))
+            as kotlinx.serialization.json.JsonObject
+        assertEquals(draft, parseVaultDraft(stored.getValue("draft")))
+        assertEquals(draft, parseVaultDraft(stored.getValue("initial")))
+        assertNull(parseVaultDraft(stored.getValue("draft")).fields.first().edit().value)
+    }
     @Test fun preservingHiddenValueIsDifferentFromExplicitlyClearingIt() {
         val original = DraftField("password", "concealed", "", "", "", false, true)
         assertNull(original.edit().value)

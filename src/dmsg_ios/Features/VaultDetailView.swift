@@ -19,7 +19,6 @@ struct VaultDetailView: View {
     @State private var largeType: VaultLargeTypeTarget?
     @State private var workingField: String?
     @State private var working = false
-    @State private var editing: VaultEditorTarget?
     @State private var referenceTarget: ReferenceTarget?
     @State private var revealTask: Task<Void, Never>?
     @State private var revealRequest: UUID?
@@ -79,13 +78,13 @@ struct VaultDetailView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     if let item, item.canEdit, revision == nil {
-                        Button { clearRevealed(); editing = VaultEditorTarget(item: item) } label: { Text("Edit") }
+                        Button { clearRevealed(); Task { await model.vaultEditing.open(VaultEditorTarget(item: item), model: model) } } label: { Text("Edit") }
                             .accessibilityIdentifier("vault.edit.open")
                     }
                     if let item, !item.reserved { actions(item) }
                 }
             }
-            .task(id: readKey) { if !model.concealed && editing == nil { await load() } }
+            .task(id: readKey) { if !model.concealed && model.vaultEditing.presented == nil { await load() } }
             .task(id: "codes:\(item?.id ?? ""):\(item?.revision ?? ""):\(model.epoch):\(model.concealed)") { await watchCodes() }
             .task(id: copied) {
                 guard copied != nil else { return }
@@ -93,10 +92,10 @@ struct VaultDetailView: View {
                 if !Task.isCancelled { copied = nil }
             }
             .onDisappear { clearRevealed(); codes = [:] }
-            .onChange(of: id) { _, _ in clearRevealed(); editing = nil; referenceTarget = nil; codes = [:] }
+            .onChange(of: id) { _, _ in clearRevealed(); referenceTarget = nil; codes = [:] }
             .onChange(of: model.concealed) { _, value in if value { clearRevealed(); codes = [:] } }
             .onChange(of: model.epoch) { _, _ in clearRevealed(); codes = [:] }
-            .sheet(item: $editing, onDismiss: { reload &+= 1 }) { target in NavigationStack { VaultEditor(target: target) } }
+            .onChange(of: model.vaultEditing.presented?.id) { _, value in if value == nil { reload &+= 1 } }
             .sheet(item: $largeType) { target in NavigationStack { VaultLargeTypeView(target: target) } }
             .navigationDestination(item: $referenceTarget) { target in SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID) }
             .confirmationDialog("Move this secret to Trash?", isPresented: $deleting, titleVisibility: .visible) {

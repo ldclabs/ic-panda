@@ -387,8 +387,9 @@ impl MobileEngine {
         drafts: Vec<MessageDraft>,
         letters: Vec<LetterDraftInput>,
         feedback: Option<FeedbackDraftInput>,
+        vault: Vec<vault::VaultDraftInput>,
     ) -> Result<SessionSnapshot> {
-        ensure_valid(drafts.len() <= 100, "drafts")?;
+        ensure_valid(drafts.len() <= 100 && vault.len() <= 100, "drafts")?;
         let transition = self.host.begin_transition()?;
         struct LockOnDrop {
             host: Host,
@@ -428,6 +429,9 @@ impl MobileEngine {
                             }
                         }
                         let now = dmsg_client::now_ms();
+                        for draft in vault {
+                            c.checkpoint_vault_draft(&draft.into())?;
+                        }
                         for draft in letters {
                             match c.save_letter_draft_at(
                                 &draft.id,
@@ -994,33 +998,14 @@ impl MobileEngine {
             .host
             .run_at(generation, move |c| {
                 Box::pin(async move {
-                    let changes = dmsg_client::vault::Changes {
-                        title: Some(edit.title),
-                        notes: Some(edit.notes),
-                        favorite: Some(edit.favorite),
-                        tags: Some(edit.tags),
-                        files: edit.files,
-                        fields: Some(
-                            edit.fields
-                                .into_iter()
-                                .map(|f| dmsg_client::vault::FieldChange {
-                                    id: Some(f.id),
-                                    kind: Some(f.kind),
-                                    label: Some(f.label),
-                                    section: Some(f.section),
-                                    value: f.value,
-                                })
-                                .collect(),
-                        ),
-                        ..Default::default()
-                    };
+                    let (kind, changes) = edit.changes();
                     let entry = if let Some(id) = id {
                         let base = revision
                             .as_deref()
                             .ok_or_else(|| dmsg_types::invalid("revision"))?;
                         c.vault_edit(&id, Some(base), &changes)?
                     } else {
-                        c.vault_create(&edit.kind, &changes)?
+                        c.vault_create(&kind, &changes)?
                     };
                     Ok(VaultItem::from(entry))
                 })

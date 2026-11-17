@@ -26,6 +26,7 @@ struct VaultDraft: Codable, Equatable {
     var notes = ""
     var favorite = false
     var tags = ""
+    var tagEntry = ""
     var fields: [Field] = []
     var files: [String] = []
     var baseRevision: String?
@@ -54,17 +55,14 @@ struct VaultDraft: Codable, Equatable {
 }
 
 struct VaultEditor: View {
-    let target: VaultEditorTarget
+    let entry: VaultEditorSession
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    @State private var draft: VaultDraft
     @State private var initial: VaultDraft
-    @State private var initialized = false
     @State private var openingGeneration: UInt64 = 0
     @State private var saving = false
     @State private var discard = false
     @State private var failure: String?
-    @State private var tagEntry = ""
     @State private var choosingAttachment = false
     @State private var attachmentFiles: [String: LibraryFile] = [:]
     @State private var editMode: EditMode = .inactive
@@ -72,13 +70,19 @@ struct VaultEditor: View {
     /// Each save attempt reveals every error and scrolls to the first one, even after an earlier attempt.
     @State private var saveAttempts = 0
     @FocusState private var focus: VaultEditorFocus?
-    private var dirty: Bool { draft != initial || !tagEntry.isEmpty }
-    private var draftKey: String { "vault:" + target.id }
+    private var draft: VaultDraft {
+        get { model.vaultEditing.form(id: entry.id) ?? entry.draft }
+        nonmutating set {
+            guard openingGeneration == model.viewGeneration else { return }
+            model.vaultEditing.update(newValue, id: entry.id, model: model)
+        }
+    }
+    private var form: Binding<VaultDraft> { Binding(get: { draft }, set: { draft = $0 }) }
+    private var dirty: Bool { draft != initial }
 
-    init(target: VaultEditorTarget) {
-        self.target = target
-        let draft = VaultDraft(target: target)
-        _draft = State(initialValue: draft); _initial = State(initialValue: draft)
+    init(entry: VaultEditorSession) {
+        self.entry = entry
+        _initial = State(initialValue: entry.initial)
     }
 
     var body: some View {
@@ -87,18 +91,18 @@ struct VaultEditor: View {
                 Section {
                     VStack(alignment: .leading) {
                         Text("Title").font(.caption).foregroundStyle(.secondary)
-                        TextField("Title", text: $draft.title).focused($focus, equals: .title).accessibilityIdentifier("vault.edit.title")
+                        TextField("Title", text: form.title).focused($focus, equals: .title).accessibilityIdentifier("vault.edit.title")
                     }
-                    if target.item == nil {
-                        Picker("Type", selection: $draft.kind) {
+                    if entry.itemID == nil {
+                        Picker("Type", selection: form.kind) {
                             ForEach(vaultKinds(), id: \.self) { Text(vaultKindName($0)).tag($0) }
                         }.accessibilityIdentifier("vault.edit.type")
                     }
-                    Toggle("Favorite", isOn: $draft.favorite)
-                    VaultTagEditor(tags: $draft.tags, entry: $tagEntry).focused($focus, equals: .tags)
+                    Toggle("Favorite", isOn: form.favorite)
+                    VaultTagEditor(tags: form.tags, entry: form.tagEntry).focused($focus, equals: .tags)
                 }
                 Section {
-                    ForEach($draft.fields) { $field in
+                    ForEach(form.fields) { $field in
                         Group {
                             if editMode.isEditing {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -106,7 +110,7 @@ struct VaultEditor: View {
                                     Text(vaultFieldKindTitle(field.kind)).font(.caption).foregroundStyle(.secondary)
                                 }.padding(.vertical, 4)
                             } else {
-                                VaultEditorField(field: $field, existing: target.item != nil, validationRequested: saveAttempts > 0,
+                                VaultEditorField(field: $field, existing: entry.itemID != nil, validationRequested: saveAttempts > 0,
                                                  addedField: $addedField, focus: $focus)
                             }
                         }.id(field.id)
@@ -133,7 +137,7 @@ struct VaultEditor: View {
                             .accessibilityIdentifier("vault.edit.reorder")
                     }
                 }
-                Section("Notes") { TextEditor(text: $draft.notes).focused($focus, equals: .notes).frame(minHeight: 120).accessibilityLabel("Notes") }
+                Section("Notes") { TextEditor(text: form.notes).focused($focus, equals: .notes).frame(minHeight: 120).accessibilityLabel("Notes") }
                 Section("Item attachments") {
                     ForEach(draft.files, id: \.self) { id in
                         HStack {
@@ -151,20 +155,23 @@ struct VaultEditor: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Text("Saved locally first. Sync status is shown separately.").font(.footnote).foregroundStyle(.secondary)
-            }.environment(\.editMode, $editMode).disabled(saving)
+            }.environment(\.editMode, $editMode).disabled(saving || !model.vaultEditing.ready)
                 .accessibilityIdentifier("vault.edit.form")
                 .safeAreaInset(edge: .top) {
-                    if let failure {
+                    if let failure = failure ?? model.vaultEditing.failure {
                         NoticeBar(text: failure).padding(.horizontal, 16).padding(.vertical, 4)
                             .accessibilityElement(children: .combine).accessibilityIdentifier("vault.edit.failure")
+                        if model.vaultEditing.failure != nil {
+                            Button("Retry") { Task { await model.vaultEditing.flush(model); await model.vaultEditing.load(model) } }
+                        }
                     }
                 }.privateScreen()
-                .navigationTitle(target.item == nil ? "New secret" : "Edit secret").navigationBarTitleDisplayMode(.inline)
+                .navigationTitle(entry.itemID == nil ? "New secret" : "Edit secret").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if dirty { discard = true } else { dismiss() } }.disabled(saving).keyboardShortcut(.cancelAction) }
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if dirty { discard = true } else { Task { await discardDraft() } } }.disabled(saving).keyboardShortcut(.cancelAction) }
                     ToolbarItem(placement: .confirmationAction) {
                         Button { Task { await save() } } label: { if saving { ProgressView() } else { Text("Save") } }
-                            .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving)
+                            .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving || !model.vaultEditing.ready)
                             .accessibilityIdentifier("vault.edit.save")
                             .keyboardShortcut("s", modifiers: .command)
                     }
@@ -175,25 +182,18 @@ struct VaultEditor: View {
                 }
                 .background(DraftDismissGuard(blocked: dirty || saving) { if !saving { discard = true } }.frame(width: 0, height: 0))
                 .confirmationDialog("Discard unsaved changes?", isPresented: $discard, titleVisibility: .visible) {
-                    Button("Discard", role: .destructive) { model.settingsDrafts[draftKey] = nil; dismiss() }
+                    Button("Discard", role: .destructive) { Task { await discardDraft() } }
                     Button("Cancel", role: .cancel) {}
                 }
                 .onAppear {
-                    guard !initialized else { return }
                     openingGeneration = model.viewGeneration
-                    if let data = model.settingsDrafts[draftKey], let saved = try? JSONDecoder().decode(VaultDraft.self, from: data) { draft = saved }
-                    initialized = true
                 }
-                .onChange(of: draft.kind) { previous, _ in if target.item == nil { draft.addTemplate(from: previous) } }
-                .onChange(of: draft) { _, _ in
-                    guard initialized, openingGeneration == model.viewGeneration, model.unlocked else { return }
-                    model.activity(); model.settingsDrafts[draftKey] = try? JSONEncoder().encode(draft)
-                }
+                .onChange(of: draft.kind) { previous, _ in if entry.itemID == nil { draft.addTemplate(from: previous) } }
                 .onChange(of: addedField) { _, id in
                     if let id { withAnimation { proxy.scrollTo(id, anchor: .top) } }
                 }
                 .onChange(of: saveAttempts) { _, _ in
-                    if let field = draft.fields.first(where: { vaultInputError($0, existing: target.item != nil) != nil }) {
+                    if let field = draft.fields.first(where: { vaultInputError($0, existing: entry.itemID != nil) != nil }) {
                         withAnimation { proxy.scrollTo(field.id, anchor: .top) }
                     }
                 }
@@ -217,11 +217,17 @@ struct VaultEditor: View {
     }
 
     private func loadAttachments() async {
-        guard let id = target.item?.id else { return }; let epoch = model.epoch
+        let epoch = model.epoch
         do {
-            guard let result = try await model.engine?.secretItemAttachments(itemId: id), epoch == model.epoch else { return }
-            let listing: SecretAttachmentListing = try model.decode(result)
-            for entry in listing.files { if let file = entry.details?.file { attachmentFiles[entry.id] = file } }
+            if let id = entry.itemID, let result = try await model.engine?.secretItemAttachments(itemId: id), epoch == model.epoch {
+                let listing: SecretAttachmentListing = try model.decode(result)
+                for entry in listing.files { if let file = entry.details?.file { attachmentFiles[entry.id] = file } }
+            }
+            for id in draft.files where attachmentFiles[id] == nil {
+                let details = try? await model.fileDetails(id)
+                guard epoch == model.epoch, !Task.isCancelled else { return }
+                attachmentFiles[id] = details?.file
+            }
         } catch { if epoch == model.epoch { failure = vaultReadError(error) } }
     }
 
@@ -230,35 +236,44 @@ struct VaultEditor: View {
         focus = nil
         editMode = .inactive
         saveAttempts += 1
-        guard !draft.fields.contains(where: { vaultInputError($0, existing: target.item != nil) != nil }) else { return }
-        saving = true; failure = nil; defer { saving = false }; let epoch = model.epoch
+        guard !draft.fields.contains(where: { vaultInputError($0, existing: entry.itemID != nil) != nil }) else { return }
+        saving = true; failure = nil; defer { saving = false }; let scope = model.viewGeneration
         // A tag still being typed counts.
-        draft.tags = (vaultTags(draft.tags) + vaultTags(tagEntry)).joined(separator: ", "); tagEntry = ""
+        draft.tags = (vaultTags(draft.tags) + vaultTags(draft.tagEntry)).joined(separator: ", "); draft.tagEntry = ""
+        model.vaultEditing.update(draft, id: entry.id, model: model)
         do {
             let edit = VaultEdit(title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines), kind: draft.kind, notes: draft.notes,
                 favorite: draft.favorite, tags: vaultTags(draft.tags),
                 fields: draft.fields.map { field in
                     let value = ["date", "month", "otp", "url", "email", "phone"].contains(field.kind) ? field.value.trimmingCharacters(in: .whitespacesAndNewlines) : field.value
-                    return FieldEdit(id: field.id, kind: field.kind, label: field.label, section: field.section, value: target.item != nil && !field.changed ? nil : value)
+                    return FieldEdit(id: field.id, kind: field.kind, label: field.label, section: field.section, value: entry.itemID != nil && !field.changed ? nil : value)
                 },
-                files: target.item == nil || draft.files != initial.files ? draft.files : nil)
+                files: entry.itemID == nil || draft.files != initial.files ? draft.files : nil)
             let conflict: Bool
             #if DEBUG
-            if model.uiTesting { try model.saveVaultFixture(target: target, edit: edit); conflict = false }
+            if model.uiTesting {
+                try model.saveVaultFixture(target: VaultEditorTarget(item: model.fixtureVaultItems.first { $0.id == entry.itemID }), edit: edit); conflict = false
+            }
             else {
                 guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-                conflict = try await engine.saveItem(id: target.item?.id, revision: draft.baseRevision, edit: edit).item.conflict
+                conflict = try await engine.commitVaultDraft(draft: model.vaultEditing.input(id: entry.id), edit: edit).item.conflict
             }
             #else
             guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-            conflict = try await engine.saveItem(id: target.item?.id, revision: draft.baseRevision, edit: edit).item.conflict
+            conflict = try await engine.commitVaultDraft(draft: model.vaultEditing.input(id: entry.id), edit: edit).item.conflict
             #endif
-            guard epoch == model.epoch else { return }
-            model.settingsDrafts[draftKey] = nil; initial = draft
+            guard scope == model.viewGeneration else { return }
+            model.vaultEditing.finished(entry.id); initial = draft
             model.notice = String(localized: conflict ? "Saved as a separate version. Review sync conflicts." : "Saved on this device")
             if model.uiTesting { await model.loadVault() } else { await model.updateSession() }
             dismiss()
-        } catch { if epoch == model.epoch { failure = vaultReadError(error) } }
+        } catch { if scope == model.viewGeneration { failure = vaultReadError(error) } }
+    }
+
+    private func discardDraft() async {
+        guard !saving else { return }; saving = true; defer { saving = false }
+        do { try await model.vaultEditing.discard(entry.id, model: model); dismiss() }
+        catch { failure = vaultReadError(error) }
     }
 }
 

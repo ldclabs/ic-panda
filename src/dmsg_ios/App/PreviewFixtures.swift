@@ -324,7 +324,7 @@ extension SessionModel {
     func saveVaultFixture(target: VaultEditorTarget, edit: VaultEdit) throws {
         fixtureVaultSaveAttempts += 1
         if ProcessInfo.processInfo.arguments.contains("--ui-vault-save-failure") && fixtureVaultSaveAttempts == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
-        let previous = fixtureVaultItems.first { $0.id == target.id }
+        let previous = fixtureVaultItems.first { $0.id == target.item?.id }
         let now = UInt64(Date.now.timeIntervalSince1970 * 1000)
         let id = previous?.id ?? "fixture-created"
         let fields = edit.fields.map { field in

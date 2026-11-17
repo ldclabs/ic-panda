@@ -1,7 +1,58 @@
-use crate::{MobileEngine, ObjectSnapshot, error::Result};
+use crate::{MobileEngine, ObjectSnapshot, VaultDetail, VaultEdit, VaultItem, error::Result};
 use dmsg_client::vault::{Changes, Filter, Keep, Side, reading};
 use dmsg_types::{Error, ensure, ensure_valid};
 use std::collections::BTreeMap;
+
+#[derive(Clone, uniffi::Record)]
+pub struct VaultDraftInput {
+    pub id: String,
+    pub item_id: Option<String>,
+    pub base_revision: Option<String>,
+    pub revision: u64,
+    pub form: String,
+    pub active: bool,
+}
+
+impl From<VaultDraftInput> for dmsg_client::vault::drafts::Draft {
+    fn from(value: VaultDraftInput) -> Self {
+        Self {
+            id: value.id,
+            item_id: value.item_id,
+            base_revision: value.base_revision,
+            revision: value.revision,
+            form: value.form,
+            active: value.active,
+        }
+    }
+}
+
+impl VaultEdit {
+    pub(crate) fn changes(self) -> (String, Changes) {
+        (
+            self.kind,
+            Changes {
+                title: Some(self.title),
+                notes: Some(self.notes),
+                favorite: Some(self.favorite),
+                tags: Some(self.tags),
+                files: self.files,
+                fields: Some(
+                    self.fields
+                        .into_iter()
+                        .map(|f| dmsg_client::vault::FieldChange {
+                            id: Some(f.id),
+                            kind: Some(f.kind),
+                            label: Some(f.label),
+                            section: Some(f.section),
+                            value: f.value,
+                        })
+                        .collect(),
+                ),
+                ..Default::default()
+            },
+        )
+    }
+}
 
 #[derive(uniffi::Record)]
 pub struct VaultBrowseRequest {
@@ -17,6 +68,43 @@ pub struct VaultBrowseRequest {
 
 #[uniffi::export]
 impl MobileEngine {
+    pub async fn vault_drafts(&self) -> Result<ObjectSnapshot> {
+        self.object(|c| Box::pin(async { c.vault_drafts() })).await
+    }
+
+    pub async fn checkpoint_vault_draft(&self, draft: VaultDraftInput) -> Result<bool> {
+        self.host
+            .run(move |c| Box::pin(async move { c.checkpoint_vault_draft(&draft.into()) }))
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn discard_vault_draft(&self, id: String) -> Result<()> {
+        self.host
+            .run(move |c| Box::pin(async move { c.discard_vault_draft(&id) }))
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn commit_vault_draft(
+        &self,
+        draft: VaultDraftInput,
+        edit: VaultEdit,
+    ) -> Result<VaultDetail> {
+        let generation = self.host.generation();
+        let item = self
+            .host
+            .run(move |c| {
+                Box::pin(async move {
+                    let (kind, changes) = edit.changes();
+                    c.commit_vault_draft(&draft.into(), &kind, &changes)
+                        .map(VaultItem::from)
+                })
+            })
+            .await?;
+        Ok(VaultDetail { generation, item })
+    }
+
     pub async fn browse_vault(&self, request: VaultBrowseRequest) -> Result<ObjectSnapshot> {
         let VaultBrowseRequest {
             query,

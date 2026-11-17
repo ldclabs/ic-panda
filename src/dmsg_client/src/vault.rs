@@ -19,6 +19,7 @@
 //! merge or copy reaches them, and no other item takes such a tag.
 
 pub mod autofill;
+pub mod drafts;
 pub mod health;
 pub mod import;
 pub mod otp;

@@ -97,7 +97,7 @@ class ClientController internal constructor(private val application: Application
     val filePreview = FilePreviewCoordinator(this) { files }
     val vaultImport = VaultImportCoordinator(this, scope) { files }
     val qr = QrCoordinator(this)
-    val vaultDrafts = VaultDrafts()
+    val vaultDrafts = VaultDrafts(this)
     val navigation = WorkspaceNavigation()
     val synchronization = SyncCoordinator(this, scope)
     val clipboard = PrivateClipboard(application)
@@ -257,7 +257,8 @@ class ClientController internal constructor(private val application: Application
         val pending = account?.let(messages::pending).orEmpty()
         val letterDrafts = letters.pending()
         val feedbackDraft = feedback.pending()
-        val needsFlush = pending.isNotEmpty() || letterDrafts.isNotEmpty() || feedbackDraft != null
+        val vaultInputs = vaultDrafts.pending()
+        val needsFlush = pending.isNotEmpty() || letterDrafts.isNotEmpty() || feedbackDraft != null || vaultInputs.isNotEmpty()
         val handle = runCatching { sessions.handle() }.getOrNull()
         prompts.cancel()
         authentication.cancel()
@@ -278,7 +279,7 @@ class ClientController internal constructor(private val application: Application
                     if (needsFlush && handle != null && account != null) {
                         try {
                             withTimeout(2000) { handle.lockWithDrafts(account,
-                                pending.map { it.native() }, letterDrafts, feedbackDraft) }
+                                pending.map { it.native() }, letterDrafts, feedbackDraft, vaultInputs) }
                         } catch (error: Throwable) { failedDrafts = true; root.lockNow(); root.sessionState() }
                     } else root.sessionState()
                 }
@@ -293,6 +294,7 @@ class ClientController internal constructor(private val application: Application
     }
 
     fun background() {
+        vaultDrafts.suspend()
         deviceTransfers.background(); incoming.clear(); systemExports.clear(); noticeNavigation.clear(); notices.stop(); push.stop(); purchases.stop()
         appForeground = false
         participants.clear(); browserConnections.clear(); accountDeletion.clear(retainDraft = true); wallets.clear(retainForms = true); agents.clear(retainForms = true); handovers.clear(retainForms = true); membership.clear(); purchases.clear(); notifications.clear(retainDraft = true); profile.clear(retainForm = true); synchronization.stop(); fileWork.stop(); backgroundFiles.clear(); cloudFiles.clear(); fileLinks.clear(retainForm = true); fileRequests.clear(); filePreview.clear(); messageAttachments.clear()
@@ -307,6 +309,7 @@ class ClientController internal constructor(private val application: Application
             val pending = owner?.let(messages::pending).orEmpty()
             val letterDrafts = letters.pending()
             val feedbackDraft = feedback.pending()
+            val vaultInputs = vaultDrafts.pending()
             val handle = runCatching { sessions.handle() }.getOrNull()
             messages.suspend(); transfers.suspend()
             val backgroundEpoch = epoch
@@ -314,6 +317,7 @@ class ClientController internal constructor(private val application: Application
                 try {
                     if (handle != null) withContext(Dispatchers.IO) {
                         withTimeout(2000) {
+                            for (draft in vaultInputs) handle.checkpointVaultDraft(draft)
                             for (draft in pending) { handle.saveAuthoredDraft(draft.native()); messages.saved(draft) }
                             for (draft in letterDrafts) handle.saveLetterDraft(draft.id, draft.recipient, draft.text, draft.invitation)
                             feedbackDraft?.let { value ->

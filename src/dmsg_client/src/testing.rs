@@ -195,6 +195,15 @@ pub fn unlock_fixture(client: &mut Client) {
     client.root = Some(RootKeys::single(1, [5; 32]));
 }
 
+/// Reopen only the synthetic offline account using its fixed test unlock secret.
+pub fn reopen_fixture(directory: &Path) -> dmsg_types::Result<Client> {
+    let mut client = Client::open(config(false), directory, None)?;
+    client.select(crate::client::Slot::Account(account().id))?;
+    client.keys = Some(client.workspace.unlock(&SECRET)?);
+    client.root = Some(RootKeys::single(1, [5; 32]));
+    Ok(client)
+}
+
 /// Point `client`'s relay at `origin`, a loopback server the test runs.
 pub fn relay_to(client: &mut Client, origin: &str) {
     client.config.relay = origin.into();

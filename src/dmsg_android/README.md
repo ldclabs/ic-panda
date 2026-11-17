@@ -4,6 +4,15 @@ Native Kotlin/Compose app using the same in-process Rust client as iOS. The Andr
 
 ## Local development
 
+Vault editors checkpoint complete, possibly unfinished input through the shared
+Rust core into the account's encrypted local workspace. Backgrounding and Activity
+recreation retain the editor. Locking removes its plaintext; unlocking the same
+account or reopening the app restores the active draft and its original item
+revision. Keep draft closes the editor without discarding its local checkpoint.
+Save atomically commits the item and consumes the draft, and late writes cannot
+revive a saved or discarded draft. These drafts are device-local and do not enter
+cloud synchronization or device-transfer records.
+
 Install the Android SDK 36, build tools 36, NDK 28.2.13676358 and a JDK 21. Set ANDROID_HOME and JAVA_HOME in the local environment. Install the Rust targets with:
 
     rustup target add aarch64-linux-android x86_64-linux-android

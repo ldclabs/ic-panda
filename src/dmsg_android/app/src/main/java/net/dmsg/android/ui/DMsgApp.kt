@@ -58,17 +58,19 @@ private val destinations = listOf(
     val fold = rememberWorkspaceFold()
     val route = navigation.current.page
     val selected = navigation.current.id.orEmpty()
-    var edit by remember { mutableStateOf<VaultItem?>(null) }
-    var showEditor by remember { mutableStateOf(false) }
+    val showEditor by client.vaultDrafts.presented.collectAsStateWithLifecycle()
     var discardEditor by remember { mutableStateOf(false) }
     var activityMenu by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     fun go(next: String) { client.navigation.open(next); client.refresh(next) }
     fun select(id: String) { client.navigation.select(id) }
-    fun closeEditor() { if (client.vaultDrafts.dirty) discardEditor = true else showEditor = false }
+    fun closeEditor() { if (client.vaultDrafts.dirty) discardEditor = true else client.vaultDrafts.discard() }
     val qrImage = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { client.qr.image(context, it) }
     val passwordImport = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument(), client.vaultImport::result)
-    LaunchedEffect(state.epoch) { showEditor = false; discardEditor = false; edit = null }
+    LaunchedEffect(state.epoch) { discardEditor = false }
+    LaunchedEffect(state.unlocked, state.concealed, state.session?.account) {
+        if (state.unlocked && !state.concealed) client.vaultDrafts.load()
+    }
     LaunchedEffect(state.unlocked) { if (state.unlocked) client.refresh(route) }
     LaunchedEffect(state.error, state.notice) {
         (state.error ?: state.notice)?.let { snackbar.showSnackbar(errorText(it)); client.clearNotice() }
@@ -120,7 +122,7 @@ private val destinations = listOf(
                             } },
                             floatingActionButton = {
                                 if (selected.isEmpty() && route == "files") FileIntakeButton(client, folder = navigation.current.folder, extended = true)
-                                else if (selected.isEmpty() && route == "vault") ExtendedFloatingActionButton(onClick = { edit = null; showEditor = true }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_5a5d1d1)) })
+                                else if (selected.isEmpty() && route == "vault") ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_5a5d1d1)) })
                             },
                             snackbarHost = { SnackbarHost(snackbar) },
                         ) { padding ->
@@ -129,8 +131,8 @@ private val destinations = listOf(
                                 val pageContent: @Composable () -> Unit = { when (route) {
                                     "vault" -> {
                                         if (wide) WorkspacePanes(fold, list = { VaultScreen(client, ::select) }, detail = {
-                                            if (selected.isNotEmpty()) SecretScreen(client, selected) { edit = it; showEditor = true } else EmptyPanel(str(R.string.text_choose_an_item_3782357))
-                                        }) else if (selected.isNotEmpty()) SecretScreen(client, selected) { edit = it; showEditor = true }
+                                            if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) } else EmptyPanel(str(R.string.text_choose_an_item_3782357))
+                                        }) else if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) }
                                         else VaultScreen(client, ::select)
                                     }
                                     "messages" -> if (wide) WorkspacePanes(fold, list = { MessagesScreen(client, state, "", ::select, { go("inbox") }) }, detail = {
@@ -250,12 +252,11 @@ private val destinations = listOf(
             if (showEditor && state.unlocked && !state.concealed) ModalBottomSheet(onDismissRequest = ::closeEditor, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = {
                 if (it == SheetValue.Hidden && client.vaultDrafts.dirty) { discardEditor = true; false } else true
             })) {
-                VaultEditor(client, edit, close = ::closeEditor) { showEditor = false }
+                VaultEditor(client, close = ::closeEditor)
             }
             if (discardEditor && state.unlocked && !state.concealed) AlertDialog(onDismissRequest = { discardEditor = false }, title = { Text(str(R.string.text_keep_your_changes_01fdac5)) },
-                text = { Text(str(R.string.text_a_draft_stays_only_in_this_unlocked_account_session_locking_or_sw_d3947fa)) },
-                confirmButton = { TextButton(onClick = { discardEditor = false; showEditor = false }) { Text(str(R.string.text_keep_draft_89639c8)) } },
-                dismissButton = { TextButton(onClick = { client.vaultDrafts.discard(); discardEditor = false; showEditor = false }) { Text(str(R.string.text_discard_changes_9c7370b)) } })
+                confirmButton = { TextButton(onClick = { discardEditor = false; client.vaultDrafts.keep() }) { Text(str(R.string.text_keep_draft_89639c8)) } },
+                dismissButton = { TextButton(onClick = { client.vaultDrafts.discard(); discardEditor = false }) { Text(str(R.string.text_discard_changes_9c7370b)) } })
         }
     }
     }

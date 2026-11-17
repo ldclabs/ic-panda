@@ -1,5 +1,48 @@
 # iOS implementation validation
 
+## Encrypted vault drafts across lifecycle changes (2026-11-17)
+
+Implemented on the `a9b371e9` worktree. Vault editors now belong to the session
+rather than individual list/detail sheets. Input bindings synchronously retain
+the latest authored form and checkpoint it through the shared Rust core after a
+short debounce. Background finishing and explicit locking include pending vault
+input. Lock clears the native UI's plaintext; the same account restores its active
+encrypted draft after unlocking. Raw tags, attachment references, field replacement
+intent and the original item revision survive. Saving consumes the draft atomically
+with the item version, while discard and completed saves reject late writes.
+Immediate background locking uses the lock operation's own barrier, retaining a
+valid native handle until the final checkpoint has been written.
+
+Validation:
+
+- Shared Rust suites passed: client 679 passed / 5 existing ignored, mobile 46
+  passed. The tests inspect encrypted SQLite/WAL bytes and cover account isolation,
+  database restart, pause/lock barriers, late writes, failed transactions, conflict
+  preservation, unchanged saves and retrying an already committed new item.
+  Clippy with `-D warnings` and the QA fixture feature passed.
+- SE-sized iOS 18.4: 12 selected unit tests and three UI regressions passed across
+  focused runs. The UI tests switch away from new/existing editors, return, save,
+  discard and reopen, and retain input while an incoming item revision arrives.
+- iPhone 17e / iOS 27.0: 14 selected unit tests and six UI regressions passed across
+  focused runs, including save failure/retry, explicit discard and swipe dismissal.
+  The six draft lifecycle unit tests cover explicit/immediate lock flushing, account isolation,
+  field intent and reconstruction of a fresh UI session from a checkpoint.
+- The UI/lifecycle fixtures do not unlock a production Rust workspace. Real
+  encrypted-store restart is covered by Rust tests and Android QA. XCTest waits
+  for enabled fields after privacy snapshots disappear, accepts each runtime's
+  empty-field representation, and waits for dismissal before tapping the toolbar.
+  Earlier runs exposed those automation synchronization differences; this is not
+  an all-green single invocation. Nonfatal SwiftUI invalid-frame warnings remain
+  during keyboard focus; inspected restored-editor and saved-item screenshots
+  showed the expected content and layout on both runtimes.
+- Swift build, regenerated device/simulator bridges, source-fingerprint verification,
+  Rust formatting and `git diff --check` passed. Result bundles use the
+  `.build/VaultDrafts-*.xcresult` prefix; inspected screenshots are in
+  `.build/VaultDrafts-evidence/`.
+
+Physical devices, OS process-kill/cold-launch UI tests, live synchronization,
+Release archives and the full Swift UI suite were not run for this change.
+
 ## Recovery status sheet responsiveness (2026-11-17)
 
 The account-status list nested `RecoveryNotice`'s periodic `TimelineView` inside
