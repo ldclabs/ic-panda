@@ -33,8 +33,15 @@ struct FileBackupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     FileSummaryRow(name: file.name, mime: file.mime, subtitle: fileSize(file.size))
                     if explicitRevisions {
-                        LabeledContent("Version", value: file.current).font(.caption).textSelection(.enabled)
-                            .accessibilityIdentifier("backup.revision." + file.backupKey)
+                        VStack(alignment: .leading, spacing: 4) {
+                            let path = file.path ?? []
+                            LabeledContent("Folder", value: path.isEmpty ? String(localized: "Files") : path.joined(separator: " / "))
+                            if let created = file.createdAt {
+                                LabeledContent("Created") { Text(fileDate(created), format: .dateTime) }
+                            }
+                            LabeledContent("Version", value: file.current).textSelection(.enabled)
+                                .accessibilityIdentifier("backup.revision." + file.backupKey)
+                        }.font(.caption)
                     }
                     if let outcome = outcomes[file.backupKey] {
                         Label(outcome.message, systemImage: outcome.failed ? "exclamationmark.circle" : "checkmark.circle").font(.footnote)

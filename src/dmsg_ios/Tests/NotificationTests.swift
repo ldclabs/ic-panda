@@ -151,8 +151,8 @@ final class NotificationTests: XCTestCase {
     func testDeliverySummaryIdentifiesWhichSettingControlsAlerts() {
         var preferences = NoticePreferences(global: .init(revision: 1, enabled: false, pausedUntil: nil, quietHours: nil, securityException: false, badge: "all"),
             account: .init(revision: 1, enabled: false, categories: [:], mergeDevices: true, agentMail: [:], remoteRevision: 0), accountId: "test", remoteSupported: true)
-        func text(_ permission: UNAuthorizationStatus) -> String {
-            NotificationSettingsView.deliverySummary(permission: permission, saved: preferences, at: .now)
+        func text(_ permission: UNAuthorizationStatus, alerts: UNNotificationSetting = .enabled) -> String {
+            NotificationSettingsView.deliverySummary(permission: permission, alerts: alerts, saved: preferences, at: .now)
         }
         XCTAssertEqual(text(.denied), String(localized: "Allow alerts in iOS Settings to receive system notifications."))
         XCTAssertEqual(text(.notDetermined), String(localized: "Allow notifications to receive system alerts."))
@@ -161,7 +161,8 @@ final class NotificationTests: XCTestCase {
         XCTAssertEqual(text(.authorized), String(localized: "Notifications are off for this account."))
         preferences.account?.enabled = true
         XCTAssertEqual(text(.authorized), String(localized: "System alerts follow your preferences below."))
-        XCTAssertEqual(text(.provisional), String(localized: "Notifications are delivered quietly."))
+        XCTAssertEqual(text(.authorized, alerts: .disabled), String(localized: "Allow alerts in iOS Settings to receive system notifications."))
+        XCTAssertEqual(text(.provisional, alerts: .disabled), String(localized: "Notifications are delivered quietly."))
     }
 
     func testSecurityAlertsNeedDeviceAccountAndCategory() {

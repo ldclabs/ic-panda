@@ -106,7 +106,8 @@ struct ConversationView: View {
                     }
                     // The end of the conversation being on screen is what counts as read and as following along.
                     Color.clear.frame(height: 1).id(Self.bottom)
-                        .reminderVisible(.channel(channel.id), watermark: last?.sequence, ready: historyAnchor == nil && query.isEmpty && last != nil && last?.unreadable == false) {
+                        .reminderVisible(.channel(channel.id), watermark: historyAnchor == nil ? last?.sequence : nil,
+                                         ready: messagesKnown && historyAnchor == nil && query.isEmpty && last?.unreadable == false) {
                             if let last { await model.channelRead(channel.id, through: last.sequence) }
                         }
                         .onScrollVisibilityChange(threshold: 0.01) { nearBottom = $0 }
@@ -135,7 +136,7 @@ struct ConversationView: View {
                     if (historyAnchor != nil || !nearBottom) && searchQuery.isEmpty {
                         let unseen = shown.filter { $0.sequence > lastSeen && $0.account != own }.count
                         Button {
-                            if historyAnchor != nil { historyAnchor = nil; oldestLoaded = nil; nearBottom = true }
+                            followLatest()
                             withAnimation { proxy.scrollTo(Self.bottom, anchor: .bottom) }
                         } label: {
                             HStack(spacing: 4) {
@@ -157,7 +158,7 @@ struct ConversationView: View {
             .safeAreaInset(edge: .top, spacing: 0) { if searching { searchBar } }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ConversationComposer(channel: currentChannel, restriction: channelRestriction(currentChannel.status), receiving: receiving != nil,
-                                     willQueue: { if historyAnchor != nil { historyAnchor = nil; oldestLoaded = nil }; queuedAt = .now }, failed: { await load() })
+                                     willQueue: { followLatest(); queuedAt = .now }, failed: { await load() })
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -227,6 +228,15 @@ struct ConversationView: View {
 
     private func openSearch() {
         searching = true; searchFocused = true
+    }
+
+    private func followLatest() {
+        guard historyAnchor != nil else { return }
+        messageRequest = nil
+        messages = []; messagesKnown = false; loadFailed = false
+        oldestLoaded = nil; nextBefore = nil; hasEarlier = false; preserveMessage = nil
+        nearBottom = true
+        historyAnchor = nil
     }
 
     private func channelRestriction(_ status: String) -> String {
@@ -355,7 +365,7 @@ struct ConversationView: View {
     private func hide(_ message: MessageItem, hidden: Bool) async {
         let epoch = model.epoch
         do {
-            try await model.engine?.hideMessage(channel: channel.id, sequence: message.sequence, hidden: hidden)
+            try await model.setMessageHidden(channel: channel.id, sequence: message.sequence, hidden: hidden)
             if epoch == model.epoch, !Task.isCancelled { await load() }
         } catch { if epoch == model.epoch { model.report(error) } }
     }
@@ -419,7 +429,7 @@ struct ConversationView: View {
     }
 
     private func load() async {
-        guard !loadingEarlier || query != loadedQuery else { return }
+        guard !loadingEarlier || !messagesKnown || query != loadedQuery else { return }
         let started = ContinuousClock.now
         let epoch = model.epoch, query = query, request = UUID(), sendRevision = model.messageSending.revision
         messageRequest = request
@@ -427,7 +437,7 @@ struct ConversationView: View {
         let earlier = query == loadedQuery
             ? oldestLoaded ?? (searchQuery.isEmpty && !nearBottom ? messages.first?.sequence : nil) : nil
         do {
-            var page = try await readMessages(before: searchQuery.isEmpty ? historyAnchor.map { $0 == .max ? $0 : $0 + 1 } : nil)
+            var page = try await readMessages(before: historyAnchor.map { $0 == .max ? $0 : $0 + 1 })
             var fresh = page.items
             // Keep explicitly loaded history even after scrolling back down.
             // An initial sync still follows only the latest bounded page.

@@ -630,11 +630,15 @@ import XCTest
         let option = app.buttons["Files · Read"]; XCTAssertTrue(option.waitForExistence(timeout: 4)); option.tap()
         let target = app.textFields["agent.permission.target"]
         XCTAssertTrue(target.exists); XCTAssertFalse(app.buttons["agent.permission.add"].isEnabled)
-        target.tap(); target.typeText("root\n")
+        tap("agent.permission.folder", in: app)
+        tap("files.folder.fixture-projects", in: app)
+        tap("files.folder.fixture-folder", in: app)
+        tap("files.folder.choose", in: app)
+        XCTAssertEqual(target.value as? String, "fixture-folder")
         tap("agent.permission.add", in: app); tap("agent.permission.review", in: app)
         let summary = app.staticTexts["approval.summary"]
         XCTAssertTrue(summary.waitForExistence(timeout: 5))
-        XCTAssertTrue(summary.label.contains("root")); XCTAssertTrue(summary.label.contains("7 days"))
+        XCTAssertTrue(summary.label.contains("fixture-folder")); XCTAssertTrue(summary.label.contains("7 days"))
         XCTAssertTrue(summary.label.contains("did:agent:studio.test"))
         capture(app, "Folder-scoped agent grant with its lifetime")
     }

@@ -6,8 +6,9 @@ struct NotificationSettingsView: View {
     var focusRegistration = false
     @Environment(SessionModel.self) private var model
     @Environment(\.scenePhase) private var scenePhase
-    @State private var permission: UNAuthorizationStatus?
+    @State private var systemSettings: UNNotificationSettings?
     @State private var advanced = false
+    private var permission: UNAuthorizationStatus? { systemSettings?.authorizationStatus }
     private var status: String {
         guard let permission else { return String(localized: "Checking permission…") }
         return [.authorized, .provisional, .ephemeral].contains(permission) ? String(localized: "Allowed") : String(localized: "Not enabled")
@@ -44,9 +45,10 @@ struct NotificationSettingsView: View {
             if focusRegistration, draft != nil { registrationSection }
             Section {
                 LabeledContent("System permission", value: status)
-                if let permission, let saved {
+                if let systemSettings, let saved {
                     TimelineView(.periodic(from: .now, by: 60)) { time in
-                        Text(Self.deliverySummary(permission: permission, saved: saved, at: time.date))
+                        Text(Self.deliverySummary(permission: systemSettings.authorizationStatus, alerts: systemSettings.alertSetting,
+                                                  saved: saved, at: time.date))
                             .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("notifications.delivery-summary")
                     }
                 }
@@ -223,7 +225,7 @@ struct NotificationSettingsView: View {
             others = (counts?.accounts ?? []).filter { $0.enabled && $0.account != next.accountId }.map(\.account)
         } catch { if current == scope { failed = true } }
     }
-    static func deliverySummary(permission: UNAuthorizationStatus, saved: NoticePreferences, at now: Date) -> String {
+    static func deliverySummary(permission: UNAuthorizationStatus, alerts: UNNotificationSetting, saved: NoticePreferences, at now: Date) -> String {
         if permission == .denied { return String(localized: "Allow alerts in iOS Settings to receive system notifications.") }
         if permission == .notDetermined { return String(localized: "Allow notifications to receive system alerts.") }
         if !saved.global.enabled { return String(localized: "Notifications are off on this device.") }
@@ -232,6 +234,7 @@ struct NotificationSettingsView: View {
             return String(localized: "Paused") + " · " + fileDate(until).formatted(date: .abbreviated, time: .shortened)
         }
         if permission == .provisional { return String(localized: "Notifications are delivered quietly.") }
+        if alerts == .disabled { return String(localized: "Allow alerts in iOS Settings to receive system notifications.") }
         return String(localized: "System alerts follow your preferences below.")
     }
 
@@ -239,7 +242,7 @@ struct NotificationSettingsView: View {
         let current = scope
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard current == scope else { return }
-        permission = settings.authorizationStatus
+        systemSettings = settings
     }
 
     /// Changes save shortly after the last one, so a run of toggles is one write.

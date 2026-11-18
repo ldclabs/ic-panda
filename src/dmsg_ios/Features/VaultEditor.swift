@@ -31,6 +31,14 @@ struct VaultDraft: Codable, Equatable {
     var files: [String] = []
     var baseRevision: String?
 
+    var isSimpleLogin: Bool {
+        guard kind == "login", fields.map(\.id) == vaultTemplate(kind: "login").map(\.id) else { return false }
+        return fields.allSatisfy { field in
+            field.label.isEmpty && field.section.isEmpty &&
+                (["username", "password"].contains(field.id) || field.value.isEmpty)
+        }
+    }
+
     init(target: VaultEditorTarget) {
         if let item = target.item {
             title = item.title; kind = item.kind; notes = item.notes; favorite = item.favorite
@@ -98,16 +106,12 @@ struct VaultEditor: View {
     private var form: Binding<VaultDraft> { Binding(get: { draft }, set: { draft = $0 }) }
     private var dirty: Bool { draft != initial }
     private var quickLogin: Bool {
-        entry.itemID == nil && draft.kind == "login" && !customizingFields
+        entry.itemID == nil && !customizingFields && draft.isSimpleLogin
     }
 
     init(entry: VaultEditorSession) {
         self.entry = entry
         _initial = State(initialValue: entry.initial)
-        let template = vaultTemplate(kind: "login").map(\.id)
-        _customizingFields = State(initialValue: entry.draft.fields.map(\.id) != template || entry.draft.fields.contains {
-            !$0.label.isEmpty || !$0.section.isEmpty || (!["username", "password"].contains($0.id) && !$0.value.isEmpty)
-        })
     }
 
     var body: some View {

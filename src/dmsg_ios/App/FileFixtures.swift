@@ -24,6 +24,10 @@ extension SessionModel {
             setFileCloudFixture(backups)
             selectedTab = .files
         }
+        if ProcessInfo.processInfo.arguments.contains("--ui-agent-grants") {
+            fixtureFileFolders = [FolderItem(id: "fixture-projects", name: "Projects", parent: "root", path: []),
+                                  FolderItem(id: "fixture-folder", name: "Research", parent: "fixture-projects", path: ["Projects"])]
+        }
         for file in fixtureFiles {
             fixtureFileVersions[file.id] = [LibraryVersion(id: file.current, size: file.size, sha256: file.sha256, createdAt: file.createdAt ?? 1_793_000_000_000,
                                                         current: true, local: file.canOpen, status: file.status, backup: file.backup)]

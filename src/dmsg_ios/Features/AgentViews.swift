@@ -54,6 +54,8 @@ struct AgentDetailView: View {
     @State private var grants: [Grant] = []
     @State private var pattern = ""
     @State private var target = ""
+    @State private var folders: [FolderItem] = []
+    @State private var choosingFolder = false
     @State private var request: ApprovalView?
     @State private var removing = false
     @State private var revoking: Grant?
@@ -61,8 +63,10 @@ struct AgentDetailView: View {
     @State private var loaded = false
     @State private var failed = false
     @State private var scope: UInt64 = 0
-    struct Draft: Codable { let capabilities: String; let days: UInt64 }
+    struct Draft: Codable { let capabilities: String; let days: UInt64; let pattern: String; let target: String }
     struct Grant: Decodable, Identifiable { let id: String; let grantee: String; let capabilities: [String]; let revokedAt: UInt64?; let expiresAt: UInt64? }
+    private var hasDraft: Bool { !capabilities.isEmpty || !pattern.isEmpty || days != 7 }
+
     var body: some View {
         Form {
             SettingsLoadStatus(loading: !loaded && !failed, failed: failed) { Task { await load() } }
@@ -87,7 +91,7 @@ struct AgentDetailView: View {
                         }
                     }.buttonStyle(.borderless)
                 }
-                Picker("Permissions", selection: $pattern) {
+                Picker("Permissions", selection: Binding(get: { pattern }, set: { pattern = $0; target = "" })) {
                     Text("Choose a permission").tag("")
                     ForEach(AgentPermissionName.options, id: \.self) { Text(AgentPermissionName.title($0)).tag($0) }
                 }.accessibilityIdentifier("agent.permission.picker")
@@ -101,10 +105,8 @@ struct AgentDetailView: View {
                     } else if pattern.contains("<tag>") && !model.vaultCounts.tags.isEmpty {
                         Menu("Tags") { ForEach(model.vaultCounts.tags, id: \.self) { tag in Button(tag) { target = tag } } }
                     } else if pattern.contains("<folder>") {
-                        Menu("Folder") {
-                            Button("Files") { target = "root" }
-                            ForEach(model.library.folders) { folder in Button(folder.name) { target = folder.id } }
-                        }
+                        SettingsAction("Choose folder", systemImage: "folder") { choosingFolder = true }
+                            .accessibilityIdentifier("agent.permission.folder")
                     }
                 }
                 Button("Add permission") {
@@ -124,15 +126,24 @@ struct AgentDetailView: View {
                     .accessibilityIdentifier("agent.permission.review")
             }
             SettingsAction("Remove this local agent", role: .destructive) { removing = true }
-        }.onChange(of: pattern) { _, _ in target = "" }
-            .disabled(working || !loaded).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle(agent.label).confirmLeavingDraft(!capabilities.isEmpty)
+        }.disabled(working || !loaded).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle(agent.label).confirmLeavingDraft(hasDraft)
             .task {
                 scope = model.viewGeneration
                 if !loaded { paused = agent.paused }
-                if let draft = model.formDraft("agent:" + agent.id, as: Draft.self) { capabilities = draft.capabilities; days = draft.days }
+                if let draft = model.formDraft("agent:" + agent.id, as: Draft.self) {
+                    capabilities = draft.capabilities; days = draft.days; pattern = draft.pattern; target = draft.target
+                    model.settingsDrafts.removeValue(forKey: "agent:" + agent.id)
+                }
                 await load()
             }
-            .onDisappear { if !capabilities.isEmpty { model.keepFormDraft("agent:" + agent.id, value: Draft(capabilities: capabilities, days: days), generation: scope) } }
+            .onDisappear {
+                if hasDraft {
+                    model.keepFormDraft("agent:" + agent.id, value: Draft(capabilities: capabilities, days: days, pattern: pattern, target: target), generation: scope)
+                }
+            }
+            .sheet(isPresented: $choosingFolder) {
+                NavigationStack { FileFolderPicker { id, _ in target = id } }
+            }
             .confirmationDialog("Revoke grant", isPresented: Binding(get: { revoking != nil }, set: { if !$0 { revoking = nil } }), presenting: revoking) { grant in
                 Button("Revoke grant", role: .destructive) { Task {
                     if await perform({ try await $0.revokeAgentPermissions(id: grant.id) }) != nil { await load() }
@@ -170,10 +181,14 @@ struct AgentDetailView: View {
         let name: String?
         switch parts[0] {
         case "channel.read", "channel.publish": name = model.channels.first { $0.id == id }?.name
-        case "files.read", "files.write": name = id == "root" ? String(localized: "Files") : model.library.folders.first { $0.id == id }?.name
+        case "files.read", "files.write": name = id == "root" ? String(localized: "Files") : folders.first { $0.id == id }.map(folderName)
         default: name = nil
         }
         return name.map { label + " (" + $0 + ")" } ?? label
+    }
+
+    private func folderName(_ folder: FolderItem) -> String {
+        ((folder.path ?? []) + [folder.name]).joined(separator: " / ")
     }
 
     private var candidate: String? {
@@ -190,6 +205,7 @@ struct AgentDetailView: View {
         #if DEBUG
         if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-agent-grants") {
             grants = [Grant(id: "old", grantee: agent.id, capabilities: ["channel.read:studio"], revokedAt: nil, expiresAt: 1)]
+            folders = model.fixtureFileFolders
             loaded = true; return
         }
         #endif
@@ -197,7 +213,9 @@ struct AgentDetailView: View {
             guard let engine = model.engine else { return }
             let values: [Grant] = try model.decode(try await engine.agentGrants())
             let listing: AgentsView.Listing = try model.decode(try await engine.agents())
+            let folders = try? await engine.fileFolders()
             guard epoch == model.epoch && visible, !Task.isCancelled else { return }
+            if let folders { self.folders = (try? model.decode(folders)) ?? self.folders }
             grants = values; paused = listing.agents.first { $0.id == agent.id }?.paused ?? agent.paused; loaded = true
         } catch { if epoch == model.epoch && visible, !Task.isCancelled { failed = true; loaded = true } }
     }

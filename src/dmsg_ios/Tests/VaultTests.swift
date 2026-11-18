@@ -111,6 +111,17 @@ final class VaultTests: XCTestCase {
         XCTAssertEqual(draft.fields.map(\.id), ["username", "credential", "url", "expires"])
     }
 
+    func testLoginWithAFieldFromAnotherTemplateUsesTheFullEditor() throws {
+        var draft = VaultDraft(target: VaultEditorTarget(item: nil))
+        XCTAssertTrue(draft.isSimpleLogin)
+        draft.kind = "ssh"; draft.addTemplate(from: "login")
+        let key = try XCTUnwrap(draft.fields.firstIndex { $0.id == "private_key" })
+        draft.fields[key].value = "key draft"
+        draft.kind = "login"; draft.addTemplate(from: "ssh")
+        XCTAssertEqual(draft.fields.first { $0.id == "private_key" }?.value, "key draft")
+        XCTAssertFalse(draft.isSimpleLogin)
+    }
+
     func testOTPExpiresIndependentlyOfOtherDisplayedFields() {
         let now = Date(timeIntervalSince1970: 1000)
         var shown = ["otp": RevealedVaultValue(text: "123456", expires: now.addingTimeInterval(2))]

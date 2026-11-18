@@ -34,7 +34,8 @@ struct MessagesView: View {
     private var searchKey: ChannelSearchKey {
         ChannelSearchKey(query: mode == 0 ? query.trimmingCharacters(in: .whitespacesAndNewlines) : "",
                          epoch: model.epoch, revision: model.contentRevision, concealed: model.concealed || !model.unlocked,
-                         channels: model.channels.map(\.id), blocked: model.blockedAccounts, retry: searchRetry)
+                         channels: model.channels.map { ChannelSearchSource(id: $0.id, lastAt: $0.lastAt) },
+                         messagesRevision: model.messageSearchRevision, blocked: model.blockedAccounts, retry: searchRetry)
     }
     @State private var limit = 50
     @State private var marking: Set<String> = []
@@ -226,10 +227,10 @@ struct MessagesView: View {
             if searchKey == key && !Task.isCancelled { searchFailed = true }
             return
         }
-        for id in key.channels {
+        for source in key.channels {
             guard searchKey == key && !Task.isCancelled else { return }
             do {
-                let group = try await localMatches(id, before: nil, for: key)
+                let group = try await localMatches(source.id, before: nil, for: key)
                 guard searchKey == key && !Task.isCancelled else { return }
                 if !group.items.isEmpty { searchGroups.append(group) }
             } catch {
@@ -471,10 +472,16 @@ private struct ChannelSearchKey: Equatable {
     let epoch: UInt64
     let revision: UInt64
     let concealed: Bool
-    let channels: [String]
+    let channels: [ChannelSearchSource]
+    let messagesRevision: UInt64
     let blocked: Set<String>
     let retry: Int
     var tooLong: Bool { query.lowercased().unicodeScalars.count > 200 }
+}
+
+private struct ChannelSearchSource: Equatable {
+    let id: String
+    let lastAt: UInt64
 }
 
 private struct ChannelSearchGroup: Identifiable {

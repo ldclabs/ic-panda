@@ -105,6 +105,7 @@ final class InboxUITests: XCTestCase {
         XCTAssertTrue(addAccount.waitForExistence(timeout: 3)); addAccount.tap()
         let account = app.textFields["inbox.account.0"]
         XCTAssertTrue(account.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Enter a valid account ID."].exists)
         policy.tap(); app.buttons["Anyone, free of charge"].tap()
         XCTAssertFalse(app.textFields["inbox.account.0"].exists)
         XCTAssertTrue(app.staticTexts["Anyone you haven’t blocked can write for free."].exists)

@@ -49,9 +49,13 @@ struct MessageAccountInput: View {
     let title: LocalizedStringKey
     @Binding var account: String
     var identifier = "message.recipient"
+    var required = false
     @FocusState private var focused: Bool
     @State private var leftField = false
-    private var invalid: Bool { !account.isEmpty && !validMessageAccount(account) && (account.utf8.count >= 20 || leftField && !focused) }
+    private var invalid: Bool {
+        if account.isEmpty { return required && !focused }
+        return !validMessageAccount(account) && (account.utf8.count >= 20 || leftField && !focused)
+    }
 
     var body: some View {
         SettingsField(title, invalid: invalid) {

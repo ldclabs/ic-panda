@@ -48,7 +48,7 @@ struct InboxSettingsView: View {
                 Section("Selected accounts") {
                     ForEach(draft.allow.indices, id: \.self) { index in
                         VStack(alignment: .leading, spacing: 6) {
-                            MessageAccountInput(title: "Account ID", account: $draft.allow[index], identifier: "inbox.account.\(index)")
+                            MessageAccountInput(title: "Account ID", account: $draft.allow[index], identifier: "inbox.account.\(index)", required: true)
                             if let name = model.accountIdentities[draft.allow[index]]?.name { Text(name).font(.caption) }
                             Button("Remove", role: .destructive) { draft.allow.remove(at: index) }.buttonStyle(.borderless)
                         }

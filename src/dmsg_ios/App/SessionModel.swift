@@ -39,6 +39,7 @@ final class SessionModel {
     private(set) var blockedAccounts: Set<String> = []
     var activeChannel: String?
     private(set) var contentRevision: UInt64 = 0
+    private(set) var messageSearchRevision: UInt64 = 0
     private(set) var profileRevision: UInt64 = 0
     var vaultFilter = "all"
     var vaultTag = ""
@@ -556,6 +557,13 @@ final class SessionModel {
             do { try await Task.sleep(for: .seconds(3)) } catch { return }
             _ = try? await coreOperation { try await engine.reportChannelCursor(channel: channel, operation: $0) }
         }
+    }
+
+    func setMessageHidden(channel: String, sequence: UInt64, hidden: Bool) async throws {
+        guard let engine else { return }
+        let current = epoch
+        try await engine.hideMessage(channel: channel, sequence: sequence, hidden: hidden)
+        if current == epoch { messageSearchRevision &+= 1 }
     }
 
     func deliverMessage(channel: String, item: OutgoingMessage) {

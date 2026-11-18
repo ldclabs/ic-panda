@@ -339,11 +339,10 @@ func approvalSummary(type: String, detail: DisplayValue) -> String? {
         return parts.joined(separator: "\n")
     case "wallet":
         guard let action = string("action"), let name = string("name") ?? string("wallet") else { return nil }
-        let prefix: String
-        if action == "cosign", case .boolean(true)? = fields["collect_only"] { prefix = String(localized: "Import cosignatures") }
-        else if let title = walletSummaryAction(action, decision: string("decision")) { prefix = title }
-        else { return nil }
+        let collectOnly: Bool? = if case .boolean(let value)? = fields["collect_only"] { value } else { nil }
+        guard let prefix = walletSummaryAction(action, decision: string("decision"), collectOnly: collectOnly) else { return nil }
         var parts = [prefix, name]
+        if let wallet = string("wallet"), wallet != name { parts.append(wallet) }
         if action == "create", let price = string("price_e8s"), let fee = string("ledger_fee_e8s") {
             parts += [AtomicAmount.display(price, decimals: 8) + " ICP",
                       String(localized: "Fee") + " " + AtomicAmount.display(fee, decimals: 8) + " ICP"]
@@ -354,12 +353,14 @@ func approvalSummary(type: String, detail: DisplayValue) -> String? {
     }
 }
 
-private func walletSummaryAction(_ action: String, decision: String?) -> String? {
+private func walletSummaryAction(_ action: String, decision: String?, collectOnly: Bool?) -> String? {
     switch action {
     case "create": String(localized: "Create wallet")
     case "join": String(localized: "Review joining wallet")
     case "unbind": String(localized: "Remove device binding")
-    case "cosign": String(localized: "Cosign proposal")
+    case "cosign" where collectOnly == true: String(localized: "Cosign on this device")
+    case "cosign" where collectOnly == false:
+        String(localized: "Cosign on this device") + " · " + String(localized: "Execute with collected signatures")
     case "decide" where decision == "approve": String(localized: "Review approval")
     case "decide" where decision == "reject": String(localized: "Review rejection")
     case "decide" where decision == "veto": String(localized: "Veto proposal")
