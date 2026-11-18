@@ -1,5 +1,17 @@
 import Foundation
 
+func validMessageAccount(_ value: String) -> Bool {
+    let bytes = value.utf8
+    // A 12-byte Xid has 20 base32 digits. The final digit carries one bit.
+    return bytes.count == 20 && (bytes.last == 48 || bytes.last == 103)
+        && bytes.allSatisfy { (48...57).contains($0) || (97...118).contains($0) }
+}
+
+func validHexID(_ value: String) -> Bool {
+    let bytes = value.utf8
+    return bytes.count == 64 && bytes.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
+}
+
 struct AccountProfile: Decodable {
     let name: String?
     let description: String?
@@ -75,8 +87,6 @@ struct FileLink: Decodable, Identifiable {
     }
 }
 
-/// What a new link shares: a library version, or a backup that may not be in
-/// this device's library. `remote` says its chunks must come down first.
 /// A link that takes files from people with no account.
 struct FileRequest: Decodable, Identifiable {
     let requestId: String
@@ -117,6 +127,7 @@ struct ReceivedFile: Decodable, Identifiable {
     var id: String { uploadId }
 }
 
+/// A library version or a cloud backup to share. A remote target must be downloaded first.
 struct FileLinkTarget: Identifiable {
     enum Source { case version(file: String, version: String), backup(upload: String) }
     /// The core's limit for a link.

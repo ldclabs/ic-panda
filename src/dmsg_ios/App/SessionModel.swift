@@ -13,7 +13,10 @@ final class SessionModel {
     private(set) var session: SessionSnapshot?
     private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); feedback.suspend(); vaultEditing.suspend(); resetFilePresentation() } }
     // Background invalidates reads through epoch while retaining this workspace's forms.
-    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset(); feedback.reset(); vaultEditing.reset(); people.reset(); thumbnails.reset() } }
+    private(set) var viewGeneration: UInt64 = 0 { didSet {
+        settingsDrafts = [:]; attachmentDrafts = [:]; replyDrafts = [:]; queuingChannels = []; composerQueue = ComposerQueue()
+        letters.reset(); feedback.reset(); vaultEditing.reset(); people.reset(); thumbnails.reset()
+    } }
     var lifecycle = SessionLifecycle.inactive
     var concealed: Bool { lifecycle != .active }
     var busy: Bool { busyOperation != nil }
@@ -55,6 +58,11 @@ final class SessionModel {
     /// Navigation/layout may recreate a detail column; drafts belong to the
     /// account session and are also persisted by the core.
     var drafts: [String: String] = [:]
+    // Attachments and reply targets survive navigation within this unlocked workspace.
+    var attachmentDrafts: [String: [LibraryFile]] = [:]
+    var replyDrafts: [String: MessageItem] = [:]
+    var queuingChannels: Set<String> = []
+    @ObservationIgnored var composerQueue = ComposerQueue()
     /// In-memory form drafts never cross a lock or account transition.
     var settingsDrafts: [String: Data] = [:]
     private(set) var accountIdentities: [String: LocalAccountIdentity] = [:]
@@ -443,7 +451,7 @@ final class SessionModel {
         let prepared = try await Task.detached { try store.prepareCredentials(selected, account: account, expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 86_400_000) }.value
         guard current == epoch, generation == autoFillGeneration, !Task.isCancelled,
               (try? store.header(checkExpiry: false).id) == snapshot else { store.discard(prepared); return false }
-        do { try store.publish(prepared, biometryOnly: biometryOnly) } catch { store.discard(prepared); throw error }
+        try store.publish(prepared, biometryOnly: biometryOnly)
         let metadata = try store.credentialMetadata(OpenExport(header: prepared.header, key: prepared.key))
         let identities = metadata.filter { !$0.origin.isEmpty }.map { ASPasswordCredentialIdentity(serviceIdentifier: ASCredentialServiceIdentifier(identifier: $0.origin, type: .URL), user: $0.username, recordIdentifier: prepared.header.id + ":" + $0.id) }
         try await ASCredentialIdentityStore.shared.replaceCredentialIdentities(identities)
@@ -510,6 +518,7 @@ final class SessionModel {
     }
 
     func setDraft(channel: String, text: String) {
+        guard drafts[channel] != text else { return }
         drafts[channel] = text; dirtyDrafts.insert(channel)
     }
 
@@ -517,8 +526,17 @@ final class SessionModel {
         if drafts[channel] == text { dirtyDrafts.remove(channel) }
     }
 
+    func saveEditedDraft(channel: String, epoch stamp: UInt64) async {
+        guard epoch == stamp, dirtyDrafts.contains(channel), let text = drafts[channel], let engine else { return }
+        do {
+            try await engine.saveDraft(channel: channel, text: text)
+            if epoch == stamp { draftSaved(channel: channel, text: text) }
+        } catch { if epoch == stamp, drafts[channel] == text { report(error) } }
+    }
+
     func clearQueuedDraft(channel: String, sent: String) {
-        if drafts[channel] == sent { drafts[channel] = "" }
+        if drafts[channel] == sent { drafts[channel] = ""; dirtyDrafts.remove(channel) }
+        else if drafts[channel] != nil { dirtyDrafts.insert(channel) }
     }
 
     /// The read position follows to this account's other devices, once reading pauses.

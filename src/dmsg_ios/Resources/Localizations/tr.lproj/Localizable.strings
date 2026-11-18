@@ -3296,6 +3296,8 @@
 	<string>Yalnızca taslak kaldırılır. Görüntü kopyaları ve mevcut paylaşım bağlantıları Dosyalar’da kalır.</string>
 	<key>Report a problem</key>
 	<string>Sorun bildir</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Son değişiklikleriniz kaydedilmedi.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Şifreli taslak kaydediliyor…</string>
 	<key>Screenshots</key>

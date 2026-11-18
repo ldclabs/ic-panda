@@ -3296,6 +3296,8 @@
 	<string>Viene eliminata solo la bozza. Copie e link esistenti restano in File.</string>
 	<key>Report a problem</key>
 	<string>Segnala un problema</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Le ultime modifiche non sono state salvate.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Salvataggio della bozza cifrata…</string>
 	<key>Screenshots</key>

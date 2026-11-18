@@ -66,7 +66,17 @@ struct SubscriptionView: View {
     @State private var catalogueFailed = false
     @State private var catalogueLoading = false
     @State private var catalogueRequest = UUID()
+
     var body: some View {
+        ScrollViewReader { proxy in
+            planList.onChange(of: model.purchases.purchaseActivity?.product) { _, product in
+                // A tapped offer can be at the bottom of the viewport. Reveal its new status and Apple's confirmation hint together.
+                if let product { proxy.scrollTo(product, anchor: .center) }
+            }
+        }
+    }
+
+    private var planList: some View {
         List {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Section("Current plan and limits") {
@@ -312,6 +322,7 @@ struct SubscriptionView: View {
                     planAction(offer)
                 }.listRowBackground(Color.clear).listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .id(product(for: offer)?.id ?? offer.id)
             }
             // An unmapped product never borrows another tier's benefits.
             productRows(model.purchases.products.filter { $0.type == .autoRenewable && model.purchases.productPlans[$0.id] == nil })
@@ -342,10 +353,10 @@ struct SubscriptionView: View {
                 #if DEBUG
                 if showsProductFixtures {
                     PurchaseButton(price: price(for: offer) ?? "", title: title,
-                        phase: model.purchases.purchasePhase(for: "fixture-\(offer.id.lowercased())", model: model),
+                        phase: model.purchases.purchasePhase(for: offer.id, model: model),
                         disabled: model.purchases.working || currentTier == nil || model.purchases.loadIssue != nil || model.purchases.subscriptionMessage != nil,
                         identifier: "plan.purchase.fixture-\(offer.id.lowercased())") {
-                            model.purchases.startProgressFixture(model, product: "fixture-\(offer.id.lowercased())")
+                            model.purchases.startProgressFixture(model, product: offer.id)
                         }
                 } else { Text("Price unavailable").font(.footnote).foregroundStyle(.secondary) }
                 #else
@@ -365,7 +376,7 @@ struct SubscriptionView: View {
                     disabled: model.purchases.working || !canPurchase(product), identifier: "plan.purchase.\(product.id)") {
                         Task { await model.purchases.purchase(product, model: model) }
                     }
-            }
+            }.id(product.id)
         }
     }
     private func canPurchase(_ product: Product) -> Bool {

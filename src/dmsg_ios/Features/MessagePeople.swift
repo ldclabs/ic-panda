@@ -1,7 +1,16 @@
 import SwiftUI
 @preconcurrency import DMsgCore
 
-struct MessagePerson: Decodable { let name: String?; let avatarUrl: String? }
+struct MessagePerson: Decodable, Equatable { let name: String?; let avatarUrl: String? }
+
+extension View {
+    /// Lazy rows request their displayed identity when they appear or the workspace resumes.
+    func loadMessagePerson(_ account: String?, model: SessionModel) -> some View {
+        task(id: "\(account ?? ""):\(model.profileRevision):\(model.concealed)") {
+            if let account, !model.concealed { model.people.request([account], model: model) }
+        }
+    }
+}
 
 struct MessageIdentity: View {
     let account: String
@@ -32,7 +41,7 @@ struct MessageIdentity: View {
                         .buttonStyle(.borderless).frame(minHeight: 44)
                 } else { IDCopyButton(value: account, label: "Copy account ID") }
             }
-        }.task(id: "\(account):\(model.profileRevision)") { model.people.request([account], model: model) }
+        }.loadMessagePerson(account, model: model)
     }
 }
 

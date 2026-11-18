@@ -258,40 +258,30 @@ struct SecretSnapshotItemPicker: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var selected: VaultItem?
-    @State private var search = ""
-    @State private var items: [VaultItem] = []
-    @State private var hasMore = false
-    @State private var reading = false
+    @State private var search = VaultPickerSearch()
+    @State private var opening: String?
     var body: some View {
-        List {
-            ForEach(items, id: \.id) { item in
-                Button { Task { await select(item.id) } } label: { VaultRow(item: item) }.disabled(item.reserved)
-            }
-            if hasMore { LoadMoreRow(working: reading, trigger: items.count) { await load(reset: false) } }
-            if reading { ProgressView() }
-        }.privateScreen().navigationTitle("Choose a secret").navigationBarTitleDisplayMode(.inline).searchable(text: $search)
+        VaultItemPicker(search: search, kind: nil, limit: 100) {
+            if opening != nil { ProgressView("Loading…") }
+        } row: { item in
+            Button { opening = item.id } label: { VaultRow(item: item) }
+                .disabled(item.reserved || opening != nil).accessibilityIdentifier("secret.picker.\(item.id)")
+        }.privateScreen().navigationTitle("Choose a secret").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
-            .task(id: search) {
-                do {
-                    try await Task.sleep(for: .milliseconds(200))
-                    await load(reset: true)
-                } catch { model.report(error) }
-            }
+            .onChange(of: search.query) { _, _ in opening = nil }
+            .onDisappear { opening = nil }
+            .task(id: opening) { if let id = opening { await select(id) } }
             .navigationDestination(isPresented: Binding(get: { selected != nil }, set: { if !$0 { selected = nil } })) {
                 if let selected { SecretSnapshotComposer(item: selected, initialChannel: channel) }
             }
     }
-    private func load(reset: Bool) async {
-        let epoch = model.epoch, query = search; reading = true; defer { reading = false }
-        do {
-            guard let page = try await model.engine?.vaultPage(query: query, kind: nil, favoritesOnly: false, offset: reset ? 0 : UInt32(items.count), limit: 100),
-                  epoch == model.epoch, query == search, !Task.isCancelled else { return }
-            items = reset ? page.items : items + page.items; hasMore = page.hasMore
-        } catch { if epoch == model.epoch { model.report(error) } }
-    }
     private func select(_ id: String) async {
-        let epoch = model.epoch
-        do { if let result = try await model.engine?.vaultItem(id: id, revision: nil), epoch == model.epoch { selected = result.item } }
-        catch { if epoch == model.epoch { model.report(error) } }
+        let epoch = model.epoch, query = search.query
+        defer { if opening == id && !Task.isCancelled { opening = nil } }
+        do {
+            let item = try await model.readVaultItem(id: id)
+            guard epoch == model.epoch, !model.concealed, !Task.isCancelled, opening == id, search.query == query else { return }
+            selected = item
+        } catch { if epoch == model.epoch, !model.concealed, opening == id, search.query == query { model.report(error) } }
     }
 }

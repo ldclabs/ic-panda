@@ -209,7 +209,14 @@ final class FileManagementUITests: FileLibraryTestCase {
         let field = app.textFields["files.name"]
         XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap()
         let old = field.value as? String ?? ""
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count) + "Renamed image.png")
+        XCTAssertFalse(app.buttons["files.name.save"].isEnabled)
+        field.typeText("\n")
+        XCTAssertFalse(app.staticTexts["files.action.failure"].exists)
+        XCTAssertEqual(field.value as? String, old)
+        field.tap()
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText("Renamed image.png")
+        XCTAssertEqual(field.value as? String, "Renamed image.png")
         field.typeText("\n")
         XCTAssertTrue(app.staticTexts["files.action.failure"].waitForExistence(timeout: 5))
         XCTAssertEqual(field.value as? String, "Renamed image.png")

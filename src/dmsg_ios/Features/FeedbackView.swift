@@ -23,6 +23,7 @@ struct FeedbackView: View {
                 Text(FeedbackWorkspace.recipient).font(.caption.monospaced()).textSelection(.enabled).environment(\.layoutDirection, .leftToRight)
             }
             if !form.loaded {
+                if let failure = form.failure { NoticeBar(text: failure).accessibilityIdentifier("feedback.failure") }
                 SettingsAction("Retry", working: form.busy) { Task { await form.load(model) } }
             } else {
                 Section {
@@ -63,14 +64,15 @@ struct FeedbackView: View {
                 }
                 Section {
                     Text(form.context).font(.footnote).foregroundStyle(.secondary)
-                    if form.saving || form.dirty { Text("Saving encrypted draft…").font(.footnote) }
+                    if form.saving { Text("Saving encrypted draft…").font(.footnote) }
+                    else if form.dirty { Text("Your latest changes have not been saved.").font(.footnote).accessibilityIdentifier("feedback.unsaved") }
                     else if form.record?.state == "sent" { Label("Feedback delivered. This does not mean it has been read.", systemImage: "checkmark.circle").accessibilityIdentifier("feedback.sent") }
                     else if form.record?.state == "pending" { Text("Delivery is unconfirmed. Retry keeps the original report.").font(.footnote) }
                     else if form.record != nil { Text("Draft saved encrypted on this device.").font(.footnote).foregroundStyle(.secondary) }
                     if let failure = importFailure ?? form.failure ?? form.record?.error.map({ letterSendFailure(MobileError.Failure(code: $0)) }) {
                         NoticeBar(text: failure).accessibilityIdentifier("feedback.failure")
                     }
-                    if form.dirty, form.failure != nil { SettingsAction("Retry") { Task { await form.flush(model) } } }
+                    if form.dirty, form.failure != nil { SettingsAction("Retry") { Task { await form.flush(model) } }.disabled(form.saving || form.busy).accessibilityIdentifier("feedback.retry-save") }
                     if form.record?.state == "sent" {
                         SettingsAction("New feedback", prominent: true) { Task { await form.clear(model) } }.accessibilityIdentifier("feedback.new")
                     } else {
@@ -92,7 +94,7 @@ struct FeedbackView: View {
             .onChange(of: photos) { _, values in if !values.isEmpty { Task { await importPhotos(values) } } }
             .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.png, .jpeg, .webP, .gif]) { result in
                 if case .success(let url) = result { Task { await importFiles([url]) } }
-                else if case .failure(let error) = result { importFailure = InboxLoading.message(error) }
+                else if case .failure(let error) = result { importFailure = model.fileFailureMessage(error) }
             }
             .confirmationDialog("Discard feedback draft?", isPresented: $discarding, titleVisibility: .visible) {
                 Button("Discard", role: .destructive) { Task { await form.clear(model) } }
@@ -101,7 +103,8 @@ struct FeedbackView: View {
 
     private func append(_ url: URL, epoch: UInt64) async throws {
         guard active, epoch == model.epoch, !Task.isCancelled else { throw CancellationError() }
-        let file = try await model.importLibraryDocument(url, folder: "root")
+        guard form.screenshots.count < 3 else { throw MobileError.Failure(code: "INVALID_INPUT") }
+        let file = try await model.importLibraryDocument(url, folder: "root", use: .feedbackScreenshot)
         guard active, epoch == model.epoch, !Task.isCancelled else { throw CancellationError() }
         guard form.screenshots.count < 3, file.size <= 10 * 1024 * 1024, ["image/png", "image/jpeg", "image/webp", "image/gif"].contains(file.mime) else { throw MobileError.Failure(code: "INVALID_INPUT") }
         if !form.screenshots.contains(where: { $0.file == file.id }) {
@@ -121,7 +124,7 @@ struct FeedbackView: View {
                 guard epoch == model.epoch else { return }
                 try await append(copy.file, epoch: epoch)
             }
-        } catch { if epoch == model.epoch, !(error is CancellationError) { importFailure = InboxLoading.message(error) } }
+        } catch { if epoch == model.epoch { importFailure = model.fileFailureMessage(error) } }
     }
 
     private func importFiles(_ urls: [URL]) async {
@@ -129,6 +132,6 @@ struct FeedbackView: View {
         let epoch = model.epoch; importing = true; importFailure = nil
         defer { if epoch == model.epoch { importing = false } }
         do { for url in urls { try await append(url, epoch: epoch) } }
-        catch { if epoch == model.epoch, !(error is CancellationError) { importFailure = InboxLoading.message(error) } }
+        catch { if epoch == model.epoch { importFailure = model.fileFailureMessage(error) } }
     }
 }

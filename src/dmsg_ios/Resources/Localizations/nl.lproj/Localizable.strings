@@ -3296,6 +3296,8 @@
 	<string>Alleen het concept wordt verwijderd. Kopieën en bestaande links blijven in Bestanden.</string>
 	<key>Report a problem</key>
 	<string>Een probleem melden</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Je laatste wijzigingen zijn niet opgeslagen.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Versleuteld concept opslaan…</string>
 	<key>Screenshots</key>

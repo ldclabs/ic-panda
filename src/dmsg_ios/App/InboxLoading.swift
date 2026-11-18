@@ -14,10 +14,13 @@ final class InboxLoading {
     private(set) var refreshing = false
     private(set) var failure: String?
     private var revision: UInt64 = 0
+    private var refreshPending = false
 
     typealias Read = @MainActor (Bool) async throws -> InboxSnapshot
 
     func cached(read: Read) async {
+        guard !Task.isCancelled else { return }
+        revision &+= 1
         let before = revision
         do {
             let snapshot = try await read(false)
@@ -30,9 +33,17 @@ final class InboxLoading {
     }
 
     func refresh(read: Read) async {
-        guard !refreshing, !Task.isCancelled else { return }
+        guard !Task.isCancelled else { return }
+        if refreshing { refreshPending = true; return }
         refreshing = true
-        defer { refreshing = false }
+        defer { refreshing = false; refreshPending = false }
+        repeat {
+            refreshPending = false
+            await refreshOnce(read: read)
+        } while refreshPending && !Task.isCancelled
+    }
+
+    private func refreshOnce(read: Read) async {
         do {
             let snapshot = try await read(true)
             guard !Task.isCancelled else { return }

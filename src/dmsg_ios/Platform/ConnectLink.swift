@@ -19,9 +19,9 @@ struct ConnectLink: Equatable, Sendable, Identifiable {
         guard Set(query.map(\.name)).count == query.count, query.allSatisfy({ ["account","request"].contains($0.name) && $0.value != nil }) else { return nil }
         let account = query.first(where: { $0.name == "account" })?.value
         let request = query.first(where: { $0.name == "request" })?.value
-        if let account, account.range(of: "^[0-9a-v]{20}$", options: .regularExpression) == nil { return nil }
+        if let account, !validMessageAccount(account) { return nil }
         if destination == .request {
-            guard account != nil, let request, request.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil else { return nil }
+            guard account != nil, let request, validHexID(request) else { return nil }
         } else if request != nil { return nil }
         self.destination = destination; self.account = account; self.request = request
     }

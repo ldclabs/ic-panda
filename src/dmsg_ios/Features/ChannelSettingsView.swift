@@ -17,6 +17,7 @@ struct ChannelSettingsView: View {
     @State private var scope: UInt64 = 0
     @State private var visible = true
     private var dirty: Bool { details.map { name != $0.name } ?? false }
+    private var channelName: ConversationName { ConversationName(name) }
     struct Member: Decodable { let role: String; let canRotate: Bool }
     struct Ledger: Decodable { let members: [String: Member]; let status: String }
     struct Details: Decodable {
@@ -30,7 +31,7 @@ struct ChannelSettingsView: View {
         Form {
             SettingsLoadStatus(loading: loading, failed: failed) { Task { await load() } }
             Section("Conversation") {
-                SettingsField("Conversation name", counter: "\(name.count) / 100") { TextField("Conversation name", text: $name) }
+                SettingsField("Conversation name", counter: "\(channelName.count) / 100") { TextField("Conversation name", text: $name) }
                 Toggle("Mute notifications", isOn: Binding(get: { muted }, set: { value in muted = value; Task { await setMuted(value) } }))
                 Menu(NoticeCopy.text("noticeLater")) {
                     Button(NoticeCopy.text("noticePause15")) { Task { await mute(until: NotificationTime.now + 900_000) } }
@@ -47,7 +48,7 @@ struct ChannelSettingsView: View {
                     } }.disabled(working)
                 }
                 if dirty {
-                    SettingsAction("Save name", prominent: true) { Task { await save() } }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || name.count > 100 || working)
+                    SettingsAction("Save name", prominent: true) { Task { await save() } }.disabled(!channelName.valid || working)
                 }
             }.disabled(details == nil || working)
             Section("Members") {
@@ -148,10 +149,10 @@ struct ChannelSettingsView: View {
         }
     }
     private func save() async {
-        guard let engine = model.engine, !working else { return }; let epoch = model.epoch
+        guard let engine = model.engine, !working, channelName.valid else { return }; let epoch = model.epoch
         working = true; defer { working = false }
         do {
-            let result = try await engine.channelSettings(channel: channel, name: name.trimmingCharacters(in: .whitespacesAndNewlines), muted: muted, hidden: details?.hidden ?? false)
+            let result = try await engine.channelSettings(channel: channel, name: channelName.value, muted: muted, hidden: details?.hidden ?? false)
             if epoch == model.epoch, visible {
                 let next: Details = try model.decode(result); details = next; name = next.name; muted = next.muted
                 model.settingsDrafts.removeValue(forKey: "channel:" + channel); model.notice = String(localized: "Saved")

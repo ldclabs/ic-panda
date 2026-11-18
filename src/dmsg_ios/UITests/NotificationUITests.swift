@@ -147,7 +147,7 @@ import XCTest
         app.buttons["reminders.menu"].tap(); app.buttons["reminders.settings"].tap()
         let enabled = app.switches["notifications.enabled"]
         XCTAssertTrue(enabled.waitForExistence(timeout: 5))
-        enabled.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.tapSwitch("notifications.enabled")
         let saving = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: enabled)
         XCTAssertEqual(XCTWaiter.wait(for: [saving], timeout: 3), .completed)
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -326,7 +326,7 @@ import XCTest
         for _ in 0..<8 where !account.exists || !account.isHittable { app.swipeUp() }
         XCTAssertTrue(account.waitForExistence(timeout: 5))
         XCTAssertEqual(account.value as? String, "0")
-        account.coordinate(withNormalizedOffset: CGVector(dx: language == "ar" ? 0.08 : 0.92, dy: 0.5)).tap()
+        app.tapSwitch("notifications.account", rightToLeft: language == "ar")
         let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: account)
         XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
         // The change saves by itself, and a second account still needs consent first.
@@ -357,9 +357,7 @@ import XCTest
         let enabled = app.switches["notifications.enabled"]
         XCTAssertTrue(enabled.waitForExistence(timeout: 5))
         XCTAssertEqual(enabled.value as? String, "1")
-        // SwiftUI exposes the whole labeled row as the switch's frame. Tap its
-        // native thumb, on the leading side in RTL, rather than the label center.
-        enabled.coordinate(withNormalizedOffset: CGVector(dx: language == "ar" ? 0.08 : 0.92, dy: 0.5)).tap()
+        app.tapSwitch("notifications.enabled", rightToLeft: language == "ar")
         let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: enabled)
         XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
         XCTAssertEqual(enabled.value as? String, "0")

@@ -3296,6 +3296,8 @@
 	<string>僅刪除草稿。截圖副本和已有分享連結仍保留在檔案庫。</string>
 	<key>Report a problem</key>
 	<string>回報問題</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>最新變更尚未儲存。</string>
 	<key>Saving encrypted draft…</key>
 	<string>正在儲存加密草稿…</string>
 	<key>Screenshots</key>

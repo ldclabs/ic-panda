@@ -3296,6 +3296,8 @@
 	<string>صرف مسودہ ہٹایا جاتا ہے۔ تصاویر کی نقول اور موجودہ اشتراکی روابط فائلوں میں رہتے ہیں۔</string>
 	<key>Report a problem</key>
 	<string>مسئلے کی اطلاع دیں</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>آپ کی تازہ ترین تبدیلیاں محفوظ نہیں ہوئیں۔</string>
 	<key>Saving encrypted draft…</key>
 	<string>خفیہ کردہ مسودہ محفوظ ہو رہا ہے…</string>
 	<key>Screenshots</key>

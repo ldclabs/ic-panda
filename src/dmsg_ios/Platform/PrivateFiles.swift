@@ -1,4 +1,22 @@
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
+
+enum LibraryImportUse: Sendable {
+    case library, attachment, feedbackScreenshot
+
+    func validate(_ source: URL, size: Int) throws {
+        let limit = switch self { case .library: 1000; case .attachment: 100; case .feedbackScreenshot: 10 }
+        guard size >= 0, size <= limit * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
+        if self == .feedbackScreenshot {
+            guard let image = CGImageSourceCreateWithURL(source as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
+                  let type = CGImageSourceGetType(image),
+                  [UTType.png, .jpeg, .webP, .gif].contains(where: { $0.identifier == type as String }) else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+        }
+    }
+}
 
 struct PrivateFiles: Sendable {
     let root: URL
@@ -54,7 +72,7 @@ struct PrivateFiles: Sendable {
         }
     }
 
-    func importDocument(_ url: URL, account: String, folder: String = "root", purpose: String = "file", sharedId: String? = nil) throws -> URL {
+    func importDocument(_ url: URL, account: String, folder: String = "root", purpose: String = "file", sharedId: String? = nil, use: LibraryImportUse = .library) throws -> URL {
         guard account.count == 20, account.utf8.allSatisfy({ (48...57).contains($0) || (97...118).contains($0) }) else {
             throw CocoaError(.fileWriteInvalidFileName)
         }
@@ -66,7 +84,6 @@ struct PrivateFiles: Sendable {
         let destination = directory.appending(path: url.lastPathComponent)
         var record = PendingImport(id: directory.lastPathComponent, account: account, name: url.lastPathComponent,
             folder: folder, purpose: purpose, ready: false, sharedId: sharedId)
-        try save(record)
         var copied = false
         defer {
             if !copied {
@@ -74,14 +91,16 @@ struct PrivateFiles: Sendable {
                 try? FileManager.default.removeItem(at: directory.appendingPathExtension("json"))
             }
         }
+        try save(record)
         var coordinationError: NSError?
         var copyError: Error?
         NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinationError) { source in
             do {
                 // URL resource values can retain a size from an earlier import of this path.
                 let attributes = try FileManager.default.attributesOfItem(atPath: source.path)
-                guard let size = (attributes[.size] as? NSNumber)?.intValue,
-                      size >= 0, size <= (purpose == "file" ? 1000 : 100) * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
+                guard attributes[.type] as? FileAttributeType == .typeRegular else { throw CocoaError(.fileReadUnknown) }
+                guard let size = (attributes[.size] as? NSNumber)?.intValue else { throw CocoaError(.fileReadUnknown) }
+                try (purpose == "file" ? use : .attachment).validate(source, size: size)
                 let available = try staging.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage
                 if let available, available < Int64(size) * 3 + 8 * 1024 * 1024 { throw CocoaError(.fileWriteOutOfSpace) }
                 try FileManager.default.copyItem(at: source, to: destination)

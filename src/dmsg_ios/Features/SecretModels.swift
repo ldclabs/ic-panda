@@ -91,7 +91,6 @@ struct SecretRotation: Decodable, Identifiable {
     let created: Bool
     let tested: Bool
     let referencesChecked: Bool
-    let referencesDigest: String?
     let upstreamRevoked: Bool
     let evidence: String
     let createdAt: UInt64

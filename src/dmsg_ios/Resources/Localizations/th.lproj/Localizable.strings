@@ -3296,6 +3296,8 @@
 	<string>ลบเฉพาะฉบับร่าง สำเนาภาพและลิงก์แชร์เดิมยังอยู่ในไฟล์</string>
 	<key>Report a problem</key>
 	<string>รายงานปัญหา</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>ยังไม่ได้บันทึกการเปลี่ยนแปลงล่าสุด</string>
 	<key>Saving encrypted draft…</key>
 	<string>กำลังบันทึกฉบับร่างแบบเข้ารหัส…</string>
 	<key>Screenshots</key>

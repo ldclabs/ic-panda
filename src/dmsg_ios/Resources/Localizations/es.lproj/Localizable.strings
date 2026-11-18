@@ -3296,6 +3296,8 @@
 	<string>Solo se elimina el borrador. Las copias y los enlaces existentes quedan en Archivos.</string>
 	<key>Report a problem</key>
 	<string>Informar de un problema</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Tus últimos cambios no se han guardado.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Guardando borrador cifrado…</string>
 	<key>Screenshots</key>

@@ -27,6 +27,17 @@ final class CipherTransferTests: XCTestCase {
             device: sample.device, method: "PUT", uploadId: sample.uploadId,
             expiresAt: sample.expiresAt, parts: parts)))
     }
+    func testTransferValidationRequiresWholeSlotAndDigestValues() throws {
+        let (store, sample, _, _) = try fixture()
+        let part = sample.parts[0]
+        for (slot, digest) in [("0\n", part.digest), ("00", part.digest), ("0", part.digest + "\n")] {
+            let invalid = CipherTransfer(id: sample.id, account: sample.account, device: sample.device,
+                method: sample.method, uploadId: sample.uploadId, expiresAt: sample.expiresAt,
+                parts: [.init(slot: slot, size: part.size, digest: digest, url: part.url)])
+            XCTAssertThrowsError(try store.validate(invalid))
+        }
+    }
+
     func testRestartRetainsOnlyBoundedCiphertextAndTaskProgress() throws {
         let (store,transfer,input,bytes) = try fixture()
         try store.start(transfer); try store.receive(transfer.id, attempt: 0, slot: "0", temporary: input)

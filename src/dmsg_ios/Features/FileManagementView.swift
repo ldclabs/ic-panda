@@ -47,6 +47,7 @@ struct FileNameEditor: View {
     @State private var generation: UInt64 = 0
     private var draftKey: String { "file.name:" + (target?.id ?? "new:" + parent) }
     private var clean: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var canSave: Bool { !working && Self.valid(name) && clean != target?.name }
 
     static func valid(_ name: String) -> Bool {
         let value = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -57,15 +58,19 @@ struct FileNameEditor: View {
     var body: some View {
         Form {
             SettingsField(target?.folder == false ? "File name" : "Folder name", invalid: !name.isEmpty && !Self.valid(name)) {
-                TextField("Name", text: $name).textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .submitLabel(.done).onSubmit { if Self.valid(name) && !working { Task { await save() } } }.disabled(working)
+                TextField("Name", text: Binding(get: { name }, set: { value in
+                    guard value != name else { return }
+                    name = value; failure = nil
+                    model.keepFormDraft(draftKey, value: value, generation: generation)
+                })).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .submitLabel(.done).onSubmit { Task { await save() } }.disabled(working)
                     .accessibilityIdentifier("files.name")
             }
             if !name.isEmpty && !Self.valid(name) { Text("Use a name of 1–255 characters without slashes or control characters.").font(.footnote).foregroundStyle(.red) }
             if let failure { Text(failure).font(.footnote).foregroundStyle(.red).accessibilityIdentifier("files.action.failure") }
             if working { ProgressView("Saving…") }
             SettingsAction(target == nil ? "Create" : "Save name", prominent: true) { Task { await save() } }
-                .disabled(working || !Self.valid(name) || clean == target?.name).accessibilityIdentifier("files.name.save")
+                .disabled(!canSave).accessibilityIdentifier("files.name.save")
         }.privateScreen().navigationTitle(target == nil ? "New folder" : "Rename")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(working) } }
             .onAppear {
@@ -73,12 +78,11 @@ struct FileNameEditor: View {
                 if !initialized { generation = model.viewGeneration; name = model.formDraft(draftKey, as: String.self) ?? target?.name ?? ""; initialized = true }
             }
             .onDisappear { visible = false }
-            .onChange(of: name) { _, value in failure = nil; model.keepFormDraft(draftKey, value: value, generation: generation) }
             .interactiveDismissDisabled(working)
     }
 
     private func save() async {
-        guard !working, Self.valid(name) else { return }; let stamp = model.epoch, value = clean
+        guard canSave else { return }; let stamp = model.epoch, value = clean
         working = true; failure = nil; defer { working = false }
         do {
             if let target { try await model.renameLibraryItem(target.id, name: value) }

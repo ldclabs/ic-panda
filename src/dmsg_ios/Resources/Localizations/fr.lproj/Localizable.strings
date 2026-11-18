@@ -3296,6 +3296,8 @@
 	<string>Seul le brouillon est supprimé. Les copies et les liens existants restent dans Fichiers.</string>
 	<key>Report a problem</key>
 	<string>Signaler un problème</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Vos dernières modifications n’ont pas été enregistrées.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Enregistrement du brouillon chiffré…</string>
 	<key>Screenshots</key>

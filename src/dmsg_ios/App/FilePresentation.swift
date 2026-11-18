@@ -33,7 +33,7 @@ enum FileSort: String, CaseIterable {
             switch self {
             case .name: break
             case .date: if $0.date != $1.date { return $0.date > $1.date }
-            case .size: if $0.size != $1.size { return ($0.size ?? 0) > ($1.size ?? 0) }
+            case .size: if ($0.size ?? 0) != ($1.size ?? 0) { return ($0.size ?? 0) > ($1.size ?? 0) }
             }
             let order = $0.displayName.localizedStandardCompare($1.displayName)
             if order != .orderedSame { return order == .orderedAscending }

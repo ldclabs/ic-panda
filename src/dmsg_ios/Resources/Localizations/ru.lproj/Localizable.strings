@@ -3296,6 +3296,8 @@
 	<string>Удаляется только черновик. Копии снимков и ссылки остаются в Файлах.</string>
 	<key>Report a problem</key>
 	<string>Сообщить о проблеме</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Последние изменения не сохранены.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Сохранение зашифрованного черновика…</string>
 	<key>Screenshots</key>

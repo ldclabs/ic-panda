@@ -122,12 +122,13 @@ struct LoadMoreRow: View {
 struct SettingsLoadStatus: View {
     let loading: Bool
     let failed: Bool
+    var failureText: String? = nil
     let retry: () -> Void
 
     var body: some View {
         if loading { ProgressView("Loading…") }
         if failed {
-            NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device."))
+            NoticeBar(text: failureText ?? String(localized: "Connection unavailable. Your saved content stays on this device."))
             SettingsAction("Retry", action: retry).disabled(loading)
         }
     }

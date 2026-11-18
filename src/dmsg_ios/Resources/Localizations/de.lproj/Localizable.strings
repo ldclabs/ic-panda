@@ -3296,6 +3296,8 @@
 	<string>Nur der Entwurf wird entfernt. Screenshot-Kopien und vorhandene Freigabelinks bleiben in Dateien.</string>
 	<key>Report a problem</key>
 	<string>Problem melden</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Deine letzten Änderungen wurden nicht gespeichert.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Verschlüsselter Entwurf wird gespeichert…</string>
 	<key>Screenshots</key>

@@ -49,8 +49,41 @@ final class MessagingUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["message.attachment.draft"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["message.send"].isEnabled)
         XCTAssertEqual(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "message.pending.")).count, 0)
-        capture(app, "Attachment stays in composer until Send")
+        let message = app.staticTexts["Hello channel · 频道消息已显示"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        message.press(forDuration: 1); app.buttons["Reply"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(channel.waitForExistence(timeout: 5)); channel.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["message.attachment.draft"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Cancel reply"].exists)
+        capture(app, "Reopened conversation keeps its attachment and reply until Send")
+        app.buttons["message.send"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["message.attachment.draft"].waitForNonExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Cancel reply"].exists)
     }
+    func testSnapshotPickerKeepsResultsScopedToTheCurrentSearch() {
+        let app = start(["--ui-channel", "--ui-snapshot-search-offline"])
+        let channel = app.buttons["channel.row.fixture-channel"]
+        XCTAssertTrue(channel.waitForExistence(timeout: 8)); channel.tap()
+        app.buttons["Attach"].tap(); app.buttons["Share secret snapshot"].tap()
+        let github = app.buttons["secret.picker.fixture-github"]
+        XCTAssertTrue(github.waitForExistence(timeout: 5))
+        let field = app.searchFields.firstMatch
+        if !field.isHittable { app.swipeDown() }
+        field.tap(); field.typeText("x")
+        XCTAssertFalse(github.exists, "The old result must disappear while the new read is in flight")
+        let retry = app.buttons["Retry"].firstMatch
+        XCTAssertTrue(retry.waitForExistence(timeout: 5), "A failed search must offer an inline retry")
+        XCTAssertFalse(github.exists, "A result from the previous search must no longer be selectable")
+        guard retry.exists else { return }
+        field.buttons["Clear text"].tap()
+        field.typeText("Work"); XCTAssertEqual(field.value as? String, "Work")
+        let mail = app.buttons["secret.picker.fixture-mail"]
+        XCTAssertTrue(mail.waitForExistence(timeout: 5)); XCTAssertFalse(github.exists)
+        mail.tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "secret.snapshot.destination").firstMatch.waitForExistence(timeout: 5))
+    }
+
     func testChangingInviteeClearsTheOldShareLink() {
         let app = start(["--ui-channel"])
         let channel = app.buttons["channel.row.fixture-channel"]; XCTAssertTrue(channel.waitForExistence(timeout: 10)); channel.tap()

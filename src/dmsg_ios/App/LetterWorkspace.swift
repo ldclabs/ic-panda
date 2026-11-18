@@ -9,7 +9,7 @@ struct LetterDraft: Codable, Identifiable, Equatable {
     var invitation: String?
     var updatedAt: UInt64 = 0
     var empty: Bool { recipient.isEmpty && text.isEmpty && (invitation ?? "").isEmpty }
-    var invitationValid: Bool { invitation?.isEmpty != false || invitation?.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil }
+    var invitationValid: Bool { invitation.map { $0.isEmpty || validHexID($0) } ?? true }
     var valid: Bool {
         validMessageAccount(recipient) && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         && text.utf8.count <= 6000 && invitationValid
@@ -25,10 +25,6 @@ struct SentLetter: Decodable, Identifiable {
     let error: String?
     let pending: Bool
     let editable: Bool
-}
-
-func validMessageAccount(_ value: String) -> Bool {
-    value.range(of: "^[0-9a-v]{19}[0g]$", options: .regularExpression) != nil
 }
 
 func letterStateTitle(_ state: String) -> String {

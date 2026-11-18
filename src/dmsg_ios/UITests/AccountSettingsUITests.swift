@@ -189,7 +189,7 @@ import XCTest
             tap("security.logins", in: app)
             let add = app.buttons["security.bind-passkey"]
             XCTAssertTrue(add.waitForExistence(timeout: 5)); add.tap()
-            let create = app.buttons["security.create-passkey"]
+            let create = app.buttons.matching(identifier: "security.create-passkey").firstMatch
             XCTAssertTrue(create.waitForExistence(timeout: 3)); create.tap()
             let busy = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: add)
             XCTAssertEqual(XCTWaiter.wait(for: [busy], timeout: 2), .completed)
@@ -468,9 +468,11 @@ import XCTest
         tap("Notifications", in: app)
         let enabled = app.switches["notifications.enabled"]
         XCTAssertTrue(enabled.waitForExistence(timeout: 5))
-        let original = enabled.value as? String
-        enabled.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-        XCTAssertNotEqual(enabled.value as? String, original)
+        let original = enabled.value as? String ?? ""
+        XCTAssertEqual(original, "1")
+        app.tapSwitch("notifications.enabled")
+        let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value != %@", original), object: enabled)
+        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 5), .completed)
         XCUIDevice.shared.press(.home)
         app.returnToForeground(showing: app.switches.matching(identifier: "notifications.enabled"))
         XCTAssertNotEqual(enabled.value as? String, original)
@@ -534,13 +536,13 @@ import XCTest
         tap("Select login items", in: app)
         let github = app.switches["GitHub"].firstMatch
         XCTAssertTrue(github.waitForExistence(timeout: 5))
-        github.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.tapSwitch("GitHub")
         XCTAssertEqual(github.value as? String, "1")
         let search = app.searchFields.firstMatch
         search.tap(); search.typeText("Work")
         let mail = app.switches["Work email"].firstMatch
         XCTAssertTrue(mail.waitForExistence(timeout: 5))
-        mail.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.tapSwitch("Work email")
         XCTAssertEqual(mail.value as? String, "1")
         tap("autofill.done", in: app)
         tap("Select login items", in: app)
@@ -548,6 +550,25 @@ import XCTest
         XCTAssertEqual(github.value as? String, "1")
         XCTAssertEqual(mail.value as? String, "1")
         capture(app, "AutoFill retains selection across search and reopening")
+    }
+
+    func testFailedAutoFillSearchHidesPreviousResultsAndPreservesSelection() {
+        let app = open(["--ui-autofill-search-offline"])
+        tap("System integrations", in: app)
+        tap("system.autofill", in: app)
+        tap("Select login items", in: app)
+        let github = app.switches["GitHub"].firstMatch
+        XCTAssertTrue(github.waitForExistence(timeout: 5))
+        app.tapSwitch("GitHub")
+        let search = app.searchFields.firstMatch
+        search.tap(); search.typeText("Work")
+        XCTAssertTrue(app.buttons["Retry"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(github.exists)
+        capture(app, "Failed AutoFill query keeps the selection and hides old rows")
+        tap("autofill.done", in: app)
+        tap("Select login items", in: app)
+        XCTAssertTrue(github.waitForExistence(timeout: 5))
+        XCTAssertEqual(github.value as? String, "1")
     }
 
     func testSystemExportBiometryChoiceSurvivesReturningToTheForeground() {

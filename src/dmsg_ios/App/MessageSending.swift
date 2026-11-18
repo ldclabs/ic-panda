@@ -124,3 +124,26 @@ enum MessageFailure {
         }
     }
 }
+
+/// A retry of the same reviewed input reuses its queue request.
+struct ComposerQueue {
+    static let batchLimit = 10
+    private let writer = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+    private var revision: UInt64 = 0
+    private var pending: [String: MessageDraft] = [:]
+
+    mutating func prepare(channel: String, text: String, files: [LibraryFile], reply: MessageItem?) -> MessageDraft {
+        let attachments = files.map { ComposerAttachment(file: $0.id, version: $0.current, name: $0.name) }
+        if let draft = pending[channel], draft.text == text, draft.attachments == attachments,
+           draft.replySequence == reply?.sequence, draft.replyDigest == reply?.digest { return draft }
+        revision &+= 1
+        let draft = MessageDraft(channel: channel, text: text, stamp: MessageDraftStamp(writer: writer, revision: revision),
+                                 attachments: attachments, replySequence: reply?.sequence, replyDigest: reply?.digest)
+        pending[channel] = draft
+        return draft
+    }
+
+    mutating func finish(_ draft: MessageDraft) {
+        if pending[draft.channel]?.stamp == draft.stamp { pending.removeValue(forKey: draft.channel) }
+    }
+}

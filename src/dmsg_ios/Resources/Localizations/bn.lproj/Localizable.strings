@@ -3296,6 +3296,8 @@
 	<string>শুধু খসড়া মুছে যাবে। ছবির কপি ও বিদ্যমান শেয়ার লিংক ফাইলে থাকবে।</string>
 	<key>Report a problem</key>
 	<string>সমস্যা জানান</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>আপনার সাম্প্রতিক পরিবর্তনগুলি সংরক্ষিত হয়নি।</string>
 	<key>Saving encrypted draft…</key>
 	<string>এনক্রিপ্ট করা খসড়া সংরক্ষণ হচ্ছে…</string>
 	<key>Screenshots</key>

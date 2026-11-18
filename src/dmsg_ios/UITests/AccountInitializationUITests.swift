@@ -43,6 +43,21 @@ final class AccountInitializationUITests: XCTestCase {
         capture(app, "Existing account binding after passkey sign-in")
     }
 
+    func testEditingBindingAccountRetiresThePreviousRequest() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-setup", "--ui-passkey", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch(); app.buttons["login.join"].tap()
+        let field = app.textFields["Account ID"], create = app.buttons["Create binding request"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap()
+        field.typeText("040g2081040g2081040g"); create.tap()
+        let accept = app.buttons["Accept approved binding"], copy = app.buttons["Copy binding request"]
+        XCTAssertTrue(accept.waitForExistence(timeout: 5)); XCTAssertTrue(copy.exists)
+        field.tap(); field.typeKey("a", modifierFlags: .command); field.typeText("040g2082040g2082040g")
+        XCTAssertEqual(field.value as? String, "040g2082040g2082040g")
+        XCTAssertFalse(accept.exists); XCTAssertFalse(copy.exists); XCTAssertTrue(create.isEnabled)
+        create.tap(); XCTAssertTrue(accept.waitForExistence(timeout: 5))
+    }
+
     func testNewPasskeySetupRemainsReachableInLargeArabic() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-setup", "--ui-passkey", "--ui-dark",

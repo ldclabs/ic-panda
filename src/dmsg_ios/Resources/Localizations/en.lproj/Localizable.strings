@@ -3296,6 +3296,8 @@
 	<string>Only the draft is removed. Screenshot copies and existing share links remain in Files.</string>
 	<key>Report a problem</key>
 	<string>Report a problem</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Your latest changes have not been saved.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Saving encrypted draft…</string>
 	<key>Screenshots</key>

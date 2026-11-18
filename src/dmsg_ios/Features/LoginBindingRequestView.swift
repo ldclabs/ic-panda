@@ -3,26 +3,53 @@ import SwiftUI
 struct LoginBindingRequestView: View {
     @Environment(SessionModel.self) private var model
     @State private var account = ""
-    @State private var token: String?
+    @State private var issued: (account: String, token: String)?
+    @State private var working = false
+
     var body: some View {
         Form {
             NoticeBar(text: String(localized: "Ask an administrator to bind this login to your existing account. Device authorization is a separate step."))
             TextField("Account ID", text: $account).textInputAutocapitalization(.never).autocorrectionDisabled()
-            Button("Create binding request") { Task {
-                do {
-                    if let result = try await model.engine?.createBindingRequest(account: account) {
-                        token = try JSONDecoder().decode(String.self, from: Data(result.json.utf8))
-                    }
-                } catch { model.report(error) }
-            } }.disabled(account.count != 20)
-            if let token {
-                ShareLink(item: token) { Label("Share binding request", systemImage: "square.and.arrow.up") }
-                Button("Copy binding request") { model.clipboard.copy(token) }
-                Button("Accept approved binding") { Task {
-                    do { _ = try await model.engine?.acceptBinding(account: account); await model.updateSession() }
-                    catch { model.report(error) }
-                } }
+            Button("Create binding request") { Task { await create() } }.disabled(!validMessageAccount(account))
+            if let issued, issued.account == account {
+                ShareLink(item: issued.token) { Label("Share binding request", systemImage: "square.and.arrow.up") }
+                Button("Copy binding request") { model.clipboard.copy(issued.token) }
+                Button("Accept approved binding") { Task { await accept(issued.account) } }
             }
-        }.privateScreen().navigationTitle("Join account")
+            if working { ProgressView("Loading…") }
+        }.disabled(working).privateScreen().navigationTitle("Join account")
+            .onChange(of: account) { _, _ in issued = nil }
+            .onChange(of: model.viewGeneration) { _, _ in issued = nil }
+    }
+
+    private func create() async {
+        guard !working, validMessageAccount(account) else { return }
+        let target = account, stamp = model.epoch
+        working = true; defer { working = false }
+        do {
+            let token = try await bindingToken(for: target)
+            guard stamp == model.epoch, target == account, !Task.isCancelled else { return }
+            issued = (target, token)
+        } catch { if stamp == model.epoch { model.report(error) } }
+    }
+
+    private func bindingToken(for target: String) async throws -> String {
+        #if DEBUG
+        if model.uiTesting { return "fixture-binding-" + target }
+        #endif
+        guard let engine = model.engine else { throw CancellationError() }
+        let result = try await engine.createBindingRequest(account: target)
+        return try JSONDecoder().decode(String.self, from: Data(result.json.utf8))
+    }
+
+    private func accept(_ target: String) async {
+        guard !working, issued?.account == target, account == target, let engine = model.engine else { return }
+        let stamp = model.epoch
+        working = true; defer { working = false }
+        do {
+            _ = try await engine.acceptBinding(account: target)
+            guard stamp == model.epoch else { return }
+            await model.updateSession()
+        } catch { if stamp == model.epoch { model.report(error) } }
     }
 }

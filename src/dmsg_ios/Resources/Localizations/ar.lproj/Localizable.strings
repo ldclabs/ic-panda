@@ -3296,6 +3296,8 @@
 	<string>تُحذف المسودة فقط. تبقى نسخ الصور وروابط المشاركة الموجودة في الملفات.</string>
 	<key>Report a problem</key>
 	<string>الإبلاغ عن مشكلة</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>لم تُحفظ تغييراتك الأخيرة.</string>
 	<key>Saving encrypted draft…</key>
 	<string>جارٍ حفظ المسودة المشفرة…</string>
 	<key>Screenshots</key>

@@ -3296,6 +3296,8 @@
 	<string>Apenas o rascunho é removido. Cópias e links existentes ficam em Arquivos.</string>
 	<key>Report a problem</key>
 	<string>Relatar um problema</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Suas últimas alterações não foram salvas.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Salvando rascunho criptografado…</string>
 	<key>Screenshots</key>

@@ -2,6 +2,24 @@ import SwiftUI
 import VisionKit
 import AVFoundation
 
+struct ConversationName {
+    let value: String
+    init(_ input: String) { value = input.trimmingCharacters(in: .whitespacesAndNewlines) }
+    var count: Int { value.unicodeScalars.count }
+    var valid: Bool { !value.isEmpty && count <= 100 && !value.unicodeScalars.contains { $0.properties.generalCategory == .control } }
+}
+
+struct ChannelCreationAttempt: Codable {
+    let name: String
+    let request: String
+
+    init(name: ConversationName, previous: Self?) {
+        if let previous, previous.name == name.value { self = previous; return }
+        self.name = name.value
+        request = NativeApple.requestID()
+    }
+}
+
 struct ConversationSetupView: View {
     var invitee = ""
     var onCreated: (String) -> Void = { _ in }
@@ -13,16 +31,18 @@ struct ConversationSetupView: View {
     @State private var working = false
     @State private var failure: String?
     @State private var created: String?
+    @State private var creation: ChannelCreationAttempt?
     @State private var visible = true
     @State private var leaving = false
     @State private var scope: UInt64 = 0
     @State private var completed = false
     @State private var scanning = false
-    private struct Draft: Codable { var joining: Bool; var name: String; var invitation: String }
+    private struct Draft: Codable { var joining: Bool; var name: String; var invitation: String; var creation: ChannelCreationAttempt? }
+    private var channelName: ConversationName { ConversationName(name) }
     private var summary: ChannelInvitationSummary? { ChannelInvitationSummary.parse(invitation) }
     private var valid: Bool {
         if joining { return summary?.account == model.session?.account && (summary?.expiresAt ?? 0) > UInt64(Date.now.timeIntervalSince1970 * 1000) }
-        return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && name.count <= 100 && !name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+        return channelName.valid
     }
     init(invitation: String = "", invitee: String = "", onCreated: @escaping (String) -> Void = { _ in }) {
         self.invitee = invitee; self.onCreated = onCreated
@@ -56,7 +76,7 @@ struct ConversationSetupView: View {
                             if summary.account != model.session?.account { NoticeBar(text: String(localized: "Switch to the invited account before joining.")) }
                             Text("The invitation is verified when you choose Join conversation.").font(.footnote).foregroundStyle(.secondary)
                         } else if !invitation.isEmpty { Text("The invitation is invalid.").foregroundStyle(.red) }
-                    } else { SettingsField("Conversation name", counter: "\(name.count) / 100") { TextField("Conversation name", text: $name) } }
+                    } else { SettingsField("Conversation name", counter: "\(channelName.count) / 100") { TextField("Conversation name", text: $name) } }
                     if let failure { NoticeBar(text: failure) }
                     if working { ProgressView() }
                     SettingsAction(LocalizedStringKey(joining ? "Join conversation" : "Create conversation"), prominent: true) { Task { await complete() } }.disabled(!valid || working)
@@ -69,11 +89,13 @@ struct ConversationSetupView: View {
             .confirmationDialog("Leave this form?", isPresented: $leaving) { Button("Keep draft and leave") { dismiss() } }
             .onAppear {
                 visible = true; scope = model.viewGeneration
-                if invitation.isEmpty, let saved = model.formDraft("conversation-setup", as: Draft.self) { joining = saved.joining; name = saved.name; invitation = saved.invitation }
+                if invitation.isEmpty, let saved = model.formDraft("conversation-setup", as: Draft.self) {
+                    joining = saved.joining; name = saved.name; invitation = saved.invitation; creation = saved.creation
+                }
             }
             .onDisappear {
                 visible = false
-                if created == nil && !completed { model.keepFormDraft("conversation-setup", value: Draft(joining: joining, name: name, invitation: invitation), generation: scope) }
+                if created == nil && !completed { model.keepFormDraft("conversation-setup", value: Draft(joining: joining, name: name, invitation: invitation, creation: creation), generation: scope) }
             }
     }
     private func complete() async {
@@ -84,10 +106,15 @@ struct ConversationSetupView: View {
             if joining {
                 _ = try await coreOperation { try await engine.joinChannel(invitation: invitation, operation: $0) }
                 id = summary?.channel ?? ""
-            } else { id = try await coreOperation { try await engine.createChannel(name: name.trimmingCharacters(in: .whitespacesAndNewlines), operation: $0) } }
+            } else {
+                let attempt = ChannelCreationAttempt(name: channelName, previous: creation)
+                creation = attempt
+                id = try await coreOperation { try await engine.createChannelIntent(name: attempt.name, kind: "collaboration", request: attempt.request, operation: $0) }
+            }
             guard epoch == model.epoch, visible else { return }
-            await model.loadChannels(); model.settingsDrafts.removeValue(forKey: "conversation-setup")
+            await model.loadChannels()
             guard epoch == model.epoch, visible else { return }; completed = true
+            model.settingsDrafts.removeValue(forKey: "conversation-setup")
             onCreated(id)
             // A new conversation has one member, so inviting someone is the next step.
             name = ""

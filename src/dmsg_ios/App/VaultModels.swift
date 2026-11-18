@@ -66,6 +66,36 @@ extension VaultItem {
 }
 
 extension SessionModel {
+    func readVaultPickerPage(query: String, kind: String?, offset: UInt32, limit: UInt32) async throws -> VaultPage {
+        #if DEBUG
+        if uiTesting {
+            let args = ProcessInfo.processInfo.arguments
+            if kind == "login", !query.isEmpty, args.contains("--ui-autofill-search-offline") {
+                throw MobileError.Failure(code: "UNAVAILABLE")
+            }
+            if kind == nil, query == "x", args.contains("--ui-snapshot-search-offline") {
+                try await Task.sleep(for: .seconds(2))
+                throw MobileError.Failure(code: "UNAVAILABLE")
+            }
+            let matches = fixtureVaultItems.filter { !$0.deleted && (kind == nil || $0.kind == kind)
+                && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)) }
+            return VaultPage(generation: session?.generation ?? 0, items: Array(matches.dropFirst(Int(offset)).prefix(Int(limit))),
+                             hasMore: Int(offset) + Int(limit) < matches.count)
+        }
+        #endif
+        guard let engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        let stamp = epoch
+        do {
+            let page = try await engine.vaultPage(query: query, kind: kind, favoritesOnly: false, offset: offset, limit: limit)
+            guard epoch == stamp, !concealed, page.generation == session?.generation else { throw CancellationError() }
+            return page
+        } catch {
+            guard epoch == stamp, !concealed, !Task.isCancelled else { throw CancellationError() }
+            reportBackground(error)
+            throw error
+        }
+    }
+
     func readVaultItem(id: String, revision: String? = nil) async throws -> VaultItem {
         #if DEBUG
         if uiTesting {

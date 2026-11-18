@@ -61,6 +61,13 @@ final class FileLibraryTests: XCTestCase {
         XCTAssertEqual(FileSort.date.files([b,a]).map(\.id), ["a","b"])
     }
 
+    func testUnknownAndZeroBackupSizesUseTheSameNameTieBreak() {
+        let unknown = CloudBackup(uploadId: "z", name: "Z.txt", size: nil, bytes: 12, needsRoot: true, local: false)
+        let empty = CloudBackup(uploadId: "a", name: "A.txt", size: 0, bytes: 16, needsRoot: false, local: true)
+        XCTAssertEqual(FileSort.size.backups([unknown, empty], query: "").map(\.id), ["a", "z"])
+        XCTAssertEqual(FileSort.size.backups([empty, unknown], query: "").map(\.id), ["a", "z"])
+    }
+
     func testCapacityNeverUnderflowsWhenReservationsExceedSpace() {
         XCTAssertNil(FileBackupCapacity(backupMaxFileBytes: nil, storageLimit: nil, committed: 10, reserved: 10).remaining)
         XCTAssertEqual(FileBackupCapacity(backupMaxFileBytes: 100, storageLimit: 100, committed: 80, reserved: 30).remaining, 0)

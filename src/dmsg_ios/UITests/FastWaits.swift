@@ -13,6 +13,18 @@ extension XCUIElement {
 }
 
 extension XCUIApplication {
+    /// SwiftUI can expose both the labeled row and UIKit's switch thumb in the same cell.
+    func tapSwitch(_ identifier: String, rightToLeft: Bool = false) {
+        let cell = cells.containing(.switch, identifier: identifier).firstMatch
+        let thumb = cell.switches.matching(NSPredicate(format: "label == ''")).firstMatch
+        if thumb.exists { thumb.press(forDuration: 0.2) }
+        else {
+            // In a row-only accessibility tree the switch follows the layout direction.
+            switches[identifier].firstMatch.coordinate(withNormalizedOffset:
+                CGVector(dx: rightToLeft ? 0.08 : 0.92, dy: 0.5)).press(forDuration: 0.2)
+        }
+    }
+
     /// Comes back from the Home Screen. For a moment the system keeps a redacted copy
     /// of the screen beside the real one, so `query` has two matches until it goes.
     func returnToForeground(showing query: XCUIElementQuery) {

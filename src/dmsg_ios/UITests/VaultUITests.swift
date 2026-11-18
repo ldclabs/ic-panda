@@ -68,12 +68,12 @@ final class VaultUITests: XCTestCase {
     func testExistingDraftSurvivesRepeatedBackgroundAndSavesItsChanges() {
         let app = launch()
         app.buttons["vault.item.fixture-github"].tap(); app.buttons["vault.edit.open"].tap()
-        let title = app.textFields.matching(identifier: "vault.edit.title")
-            .matching(NSPredicate(format: "enabled == true")).firstMatch
+        let editableTitles = app.textFields.matching(identifier: "vault.edit.title")
+            .matching(NSPredicate(format: "enabled == true"))
+        let title = editableTitles.firstMatch
         XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText(" edited")
         for _ in 0..<2 {
-            XCUIDevice.shared.press(.home); app.activate()
-            XCTAssertTrue(title.waitForExistence(timeout: 5))
+            XCUIDevice.shared.press(.home); app.returnToForeground(showing: editableTitles)
             XCTAssertEqual(title.value as? String, "GitHub edited")
         }
         app.buttons["vault.edit.save"].tap()
@@ -540,8 +540,26 @@ final class VaultUITests: XCTestCase {
     func testVaultControlsHaveAccessibleTargetsAndDescriptions() throws {
         let app = launch()
         app.buttons["vault.item.fixture-github"].tap()
-        XCTAssertTrue(app.buttons["vault.field.more.password"].waitForExistence(timeout: 5))
+        // The detail enters the accessibility tree during the push transition.
+        for id in ["vault.edit.open", "vault.copy.password", "vault.field.more.password"] {
+            let element = app.descendants(matching: .any).matching(identifier: id).firstMatch
+            wait(for: [expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: element)], timeout: 5)
+            XCTAssertGreaterThanOrEqual(element.frame.width, 44, id)
+            if id != "vault.edit.open" { XCTAssertGreaterThanOrEqual(element.frame.height, 44, id) }
+        }
         try app.performAccessibilityAudit(for: [.hitRegion, .trait, .sufficientElementDescription])
+
+        // UIKit reports the toolbar item's visible frame. Exercise both edges of the touch target.
+        let edit = app.buttons["vault.edit.open"]
+        for offset in [-21.5, 21.5] {
+            let center = edit.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            center.withOffset(CGVector(dx: 0, dy: offset)).tap()
+            guard app.textFields["vault.edit.title"].waitForExistence(timeout: 5) else {
+                XCTFail("Edit must open at vertical offset \(offset)"); return
+            }
+            app.buttons["Cancel"].firstMatch.tap()
+            XCTAssertTrue(edit.waitForExistence(timeout: 5))
+        }
     }
 
     func testIncomingRevisionRefreshesTheOpenDetail() {

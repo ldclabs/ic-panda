@@ -14,6 +14,7 @@ struct DesktopPairingView: View {
     @State private var attempt: UUID?
     @State private var working = false
     @State private var delivery: Delivery?
+    @State private var expired = false
     @State private var failed = false
     @State private var cameraDenied = false
     @State private var needsLogin = false
@@ -42,8 +43,8 @@ struct DesktopPairingView: View {
                 NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
                 Button("Continue with Internet Identity") { Task { await model.login(usingInternetIdentity: true) } }.disabled(working || model.busy)
             }
-            if failed {
-                NoticeBar(text: String(localized: "Device request delivery is unconfirmed. Check your connection and the desktop before retrying."))
+            if failed || expired {
+                NoticeBar(text: expired ? String(localized: "This request has expired") : String(localized: "Device request delivery is unconfirmed. Check your connection and the desktop before retrying."))
                 Button("Check authorization") { Task { await refresh() } }.disabled(working)
             }
             if let delivery {
@@ -55,14 +56,23 @@ struct DesktopPairingView: View {
                 }
             }
         }.privateScreen().navigationTitle("Scan desktop invitation").navigationBarTitleDisplayMode(.inline)
-            .onChange(of: invitation) { delivery = nil; failed = false }
+            .onChange(of: invitation) { delivery = nil; failed = false; expired = false }
             .sheet(isPresented: $scanning) {
                 QRCodeScanner { text in
                     invitation = text; delivery = nil; scanning = false; attempt = UUID()
                 }
             }
             .task { await scan() }
-            // Notices the desktop's decision without being asked.
+            .task(id: delivery?.expiresAt) {
+                guard let receipt = delivery else { return }
+                let remaining = Date(timeIntervalSince1970: Double(receipt.expiresAt) / 1000).timeIntervalSinceNow
+                if remaining > 0 {
+                    do { try await Task.sleep(for: .seconds(remaining)) } catch { return }
+                }
+                guard !Task.isCancelled, delivery?.expiresAt == receipt.expiresAt else { return }
+                delivery = nil; expired = true
+            }
+            // Stop polling when the request expires, even if a refresh was slow.
             .task(id: delivery?.deviceId) {
                 guard delivery != nil else { return }
                 while !Task.isCancelled {
@@ -72,12 +82,19 @@ struct DesktopPairingView: View {
                 }
             }
             .task(id: attempt) {
-                guard attempt != nil, let engine = model.engine else { return }
+                guard attempt != nil else { return }
                 let epoch = model.epoch
                 let token = invitation.trimmingCharacters(in: .whitespacesAndNewlines)
-                working = true; failed = false; delivery = nil
+                working = true; failed = false; expired = false; delivery = nil
                 defer { working = false }
                 do {
+                    #if DEBUG
+                    if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-pairing-expiry") {
+                        delivery = Delivery(deviceId: String(repeating: "aa", count: 32), expiresAt: UInt64(Date.now.timeIntervalSince1970 * 1000) + 3_000)
+                        return
+                    }
+                    #endif
+                    guard let engine = model.engine else { return }
                     let result: Delivery = try model.decode(try await engine.joinDeviceInvitation(invitation: token))
                     guard !Task.isCancelled, epoch == model.epoch else { return }
                     delivery = result
@@ -107,14 +124,14 @@ struct DesktopPairingView: View {
         let epoch = model.epoch
         do {
             _ = try await engine.refreshAccount()
-            guard epoch == model.epoch else { return }
-            needsLogin = false
+            if epoch == model.epoch, !Task.isCancelled { needsLogin = false }
         }
         catch {
-            guard epoch == model.epoch else { return }
-            if let failure = error as? MobileError, case .Failure(let code) = failure, code == "AUTH_REQUIRED" {
-                needsLogin = true
-            } else { model.reportBackground(error) }
+            if epoch == model.epoch, !Task.isCancelled {
+                if let failure = error as? MobileError, case .Failure(let code) = failure, code == "AUTH_REQUIRED" {
+                    needsLogin = true
+                } else { model.reportBackground(error) }
+            }
         }
         if epoch == model.epoch { await model.updateSession() }
     }

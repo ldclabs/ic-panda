@@ -219,7 +219,7 @@ final class NavigationTests: NavigationTestCase {
             XCTAssertLessThan(phase.frame.minY - price.frame.maxY, 20)
             XCTAssertFalse(price.isEnabled)
             XCTAssertEqual(price.value as? String, phase.label)
-            XCTAssertTrue(app.staticTexts["plan.purchase-preparing-hint"].exists)
+            XCTAssertTrue(app.staticTexts["plan.purchase-preparing-hint"].isHittable)
             XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.purchase-progress").firstMatch.exists,
                 "A purchase uses its own visible indicator, not another spinner below the catalogue")
             capture(app, name: "Purchase preparation at selected price · \(language) · \(dark ? "dark" : "light")")
@@ -480,7 +480,11 @@ final class NavigationTests: NavigationTestCase {
         XCTAssertTrue(manage.isHittable)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "plan.backup-limit.Free").firstMatch.exists)
         if tier != "Free" {
-            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "plan.current-subscription").firstMatch.exists)
+            // Manage is at the top; the current subscription is a separate row below Usage.
+            let current = app.descendants(matching: .any).matching(identifier: "plan.current-subscription")
+                .matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", tier, tier)).firstMatch
+            for _ in 0..<12 where !current.isHittable { app.swipeUp() }
+            XCTAssertTrue(current.isHittable)
             XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "plan.purchase.")).count, 0)
         }
         capture(app, name: "Subscription management · \(tier) · \(language)")
@@ -977,6 +981,28 @@ final class DeviceNavigationTests: NavigationTestCase {
             XCTAssertFalse(app.staticTexts["pair.desktop.device"].exists, "Typing an invitation does not authorize a device")
             app.terminate()
         }
+    }
+
+    func testDesktopPairingReceiptExpiresAndAllowsANewAttempt() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-access", "--ui-pairing", "--ui-pairing-expiry", "-AppleLanguages", "(en)"]
+        app.launch()
+        let authorize = app.buttons["login.authorize"]
+        XCTAssertTrue(authorize.waitForExistence(timeout: 5))
+        for _ in 0..<4 where !authorize.isHittable { app.swipeUp() }
+        authorize.tap(); app.buttons["pair.desktop"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "pair.desktop.invitation").firstMatch
+        input.tap(); input.typeText("fixture-invite")
+        let send = app.buttons["pair.desktop.send"]
+        send.tap()
+        let device = app.staticTexts["pair.desktop.device"]
+        XCTAssertTrue(device.waitForExistence(timeout: 2))
+        XCTAssertFalse(send.isEnabled)
+        XCTAssertTrue(app.staticTexts["This request has expired"].waitForExistence(timeout: 8))
+        XCTAssertFalse(device.exists)
+        XCTAssertTrue(send.isEnabled)
+        XCTAssertTrue(app.buttons["Check authorization"].exists)
+        capture(app, name: "Expired desktop pairing receipt")
     }
 }
 

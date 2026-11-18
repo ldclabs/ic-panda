@@ -4,6 +4,75 @@ import XCTest
 
 @MainActor
 final class VaultTests: XCTestCase {
+    func testVaultImportRetryBelongsOnlyToTheCurrentStagedFile() async throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let paths = try PrivateFiles(base: base), account = "040g2081040g2081040g"
+        let csv = base.appending(path: "first.csv")
+        try Data("name,username\nWork,user".utf8).write(to: csv)
+        func stage(_ url: URL) throws -> String {
+            let copy = try paths.importDocument(url, account: account, purpose: "vault")
+            return account + "/" + copy.deletingLastPathComponent().lastPathComponent + "/" + copy.lastPathComponent
+        }
+        let review = VaultImportReview()
+        let preview = VaultImportReview.Preview(format: "csv", digest: "digest", skipped: 0, incomplete: 0,
+            items: [.init(index: 0, title: "Work", username: "", duplicate: false)])
+        try await review.inspect(stage: { try stage(csv) }, read: { _ in preview })
+        let saved = try XCTUnwrap(paths.pending(account: account).first)
+        do {
+            try await review.inspect(stage: { try stage(base.appending(path: "missing.csv")) }) { _ in
+                XCTFail("A failed copy has no source to preview"); return preview
+            }
+            XCTFail("Expected staging failure")
+        } catch { XCTAssertTrue(error is CocoaError) }
+        guard case .needsCopy = review.phase else { return XCTFail("The first file must not be offered for retry") }
+        XCTAssertEqual(try paths.pending(account: account).map(\.handle), [saved.handle])
+        do {
+            try await review.inspect(stage: { saved.handle }, read: { _ in throw CocoaError(.fileReadUnknown) })
+            XCTFail("Expected preview failure")
+        } catch let error as CocoaError { XCTAssertEqual(error.code, .fileReadUnknown) }
+        guard case let .staged(handle) = review.phase else { return XCTFail("The latest staged file should be retryable") }
+        XCTAssertEqual(handle, saved.handle)
+        try await review.inspect(stage: { handle }) { source in XCTAssertEqual(source, saved.handle); return preview }
+        review.finish(ids: ["item"], picks: [0])
+        guard case let .imported(ids, titles) = review.phase else { return XCTFail("Expected the committed records") }
+        XCTAssertEqual(ids, ["item"]); XCTAssertEqual(titles["item"], "Work")
+    }
+
+    func testPickerIgnoresThePreviousPageWhenReturningToTheSameSearch() async {
+        let search = VaultPickerSearch()
+        let current = VaultPage(generation: 1, items: [], hasMore: false)
+        var pending: CheckedContinuation<VaultPage, Error>?
+        let old = Task { await search.load { _, _ in try await withCheckedThrowingContinuation { pending = $0 } } }
+        while pending == nil { await Task.yield() }
+        search.query = "Work"; search.query = ""
+        await search.load { _, offset in XCTAssertEqual(offset, 0); return current }
+        pending?.resume(throwing: CocoaError(.fileReadUnknown))
+        await old.value
+        XCTAssertEqual(search.phase, .ready(hasMore: false))
+    }
+
+    func testPickerRetriesOnlyTheFailedPageAndClearsItemsOnNewInput() async throws {
+        let model = SessionModel(); model.loadFixtures()
+        let first = try XCTUnwrap(model.vault.first), next = try XCTUnwrap(model.vault.dropFirst().first)
+        let search = VaultPickerSearch()
+        await search.load { _, offset in
+            XCTAssertEqual(offset, 0); return VaultPage(generation: 1, items: [first], hasMore: true)
+        }
+        await search.load { _, offset in
+            XCTAssertEqual(offset, 1)
+            await search.load { _, _ in XCTFail("Only one read may own this page"); return VaultPage(generation: 1, items: [], hasMore: false) }
+            throw MobileError.Failure(code: "INTEGRITY_FAILED")
+        }
+        XCTAssertEqual(search.failure, InboxLoading.message(MobileError.Failure(code: "INTEGRITY_FAILED")))
+        XCTAssertEqual(search.items, [first])
+        await search.load { _, offset in
+            XCTAssertEqual(offset, 1); return VaultPage(generation: 1, items: [next], hasMore: false)
+        }
+        XCTAssertEqual(search.phase, .ready(hasMore: false)); XCTAssertEqual(search.items, [first, next])
+        search.query = "different"; XCTAssertEqual(search.phase, .waiting); XCTAssertTrue(search.items.isEmpty)
+    }
+
     func testWebsiteActionsOnlyOpenWebURLsAndKeepTheOriginalAddress() {
         func field(_ value: String, kind: String = "url", concealed: Bool = false) -> VaultField {
             VaultField(id: "url", kind: kind, label: "", section: "", value: value, concealed: concealed)

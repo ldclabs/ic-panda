@@ -55,13 +55,13 @@ struct IncomingShares: Sendable {
         let provisional = IncomingShare(id: id, name: filename, size: Int64(size), sha256: "")
         let destination = try file(provisional), directory = destination.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.protectionKey: FileProtectionType.complete])
-        try write(provisional)
         var done = false; defer {
             if !done {
                 try? FileManager.default.removeItem(at: directory)
                 try? FileManager.default.removeItem(at: root.appending(path: provisional.id + ".json"))
             }
         }
+        try write(provisional)
         try FileManager.default.copyItem(at: source, to: destination)
         try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: destination.path)
         guard (try destination.resourceValues(forKeys: [.fileSizeKey]).fileSize) == size else { throw CocoaError(.fileReadCorruptFile) }

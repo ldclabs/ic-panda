@@ -101,6 +101,23 @@ final class SystemExportsTests: XCTestCase {
         try JSONEncoder().encode(prepared.header).write(to: store.root.appending(path: "current.json"))
         return OpenExport(header: prepared.header, key: prepared.key)
     }
+
+    func testFailedPublicationDiscardsOnlyTheUnpublishedFiles() throws {
+        let store = try SystemExports(.files, root: root(), keyGroup: "unavailable-test-group")
+        let expires = UInt64(Date.now.timeIntervalSince1970 * 1000) + 60_000
+        let source = store.root.appending(path: "test.txt")
+        try Data("sample".utf8).write(to: source)
+        let files = [FileExportInput(url: source, name: "test.txt", sha256: try IncomingShares.digest(source), size: 6)]
+        let current = try store.prepareFiles(files, account: "fixture", expires: expires)
+        let opened = try activate(current, in: store)
+        let next = try store.prepareFiles(files, account: "fixture", expires: expires)
+        XCTAssertThrowsError(try store.publish(next, biometryOnly: false))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: next.directory.path))
+        XCTAssertThrowsError(try store.unlockFiles(opened))
+        store.discard(current)
+        XCTAssertEqual(try store.header().id, current.header.id)
+        XCTAssertEqual(try store.fileMetadata(opened).map(\.name), ["test.txt"])
+    }
     func testCredentialCopiesBindSnapshotAccountAndEntry() throws {
         let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
         let prepared = try store.prepareCredentials([CredentialInput(title: "Example", username: "alice", password: "selected-secret", origin: "https://example.com")], account: "account-one", expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 60_000)

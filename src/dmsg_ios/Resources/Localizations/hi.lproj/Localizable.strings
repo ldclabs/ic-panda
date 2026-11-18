@@ -3296,6 +3296,8 @@
 	<string>केवल ड्राफ़्ट हटता है। स्क्रीनशॉट की प्रतियाँ और मौजूदा शेयर लिंक फ़ाइलों में रहते हैं।</string>
 	<key>Report a problem</key>
 	<string>समस्या की रिपोर्ट करें</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>आपके हाल के बदलाव सहेजे नहीं गए हैं।</string>
 	<key>Saving encrypted draft…</key>
 	<string>एन्क्रिप्टेड ड्राफ़्ट सहेजा जा रहा है…</string>
 	<key>Screenshots</key>

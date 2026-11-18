@@ -79,8 +79,9 @@ struct VaultDetailView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     if let item, item.canEdit, revision == nil {
-                        Button { clearRevealed(); Task { await model.vaultEditing.open(VaultEditorTarget(item: item), model: model, presenter: editorPresenter) } } label: { Text("Edit") }
-                            .accessibilityIdentifier("vault.edit.open")
+                        Button { clearRevealed(); Task { await model.vaultEditing.open(VaultEditorTarget(item: item), model: model, presenter: editorPresenter) } } label: {
+                            Text("Edit").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                        }.accessibilityIdentifier("vault.edit.open")
                     }
                     if let item, !item.reserved { actions(item) }
                 }

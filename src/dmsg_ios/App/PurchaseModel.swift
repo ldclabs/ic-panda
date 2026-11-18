@@ -635,7 +635,7 @@ final class PurchaseModel {
         return args.contains("--ui-testing") && args.contains("--ui-purchase-progress")
     }
 
-    func startProgressFixture(_ model: SessionModel, product: String = "fixture-plus") {
+    func startProgressFixture(_ model: SessionModel, product: String) {
         guard showsProgressFixture, !working, let account = model.session?.account else { return }
         let args = ProcessInfo.processInfo.arguments
         let phase: PurchasePhase = args.contains("--ui-purchase-applying") ? .applying

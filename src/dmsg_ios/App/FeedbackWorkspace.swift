@@ -57,6 +57,9 @@ final class FeedbackWorkspace {
     private var generation: UInt64 = 0
     private var writing: Task<Void, Never>?
     private var sending: Task<Void, Never>?
+    #if DEBUG
+    private var fixtureSaveUnavailable = ProcessInfo.processInfo.arguments.contains("--ui-feedback-save-failure")
+    #endif
 
     var editable: Bool { record == nil || record?.state == "draft" }
     var valid: Bool { text.utf8.count <= 4500 && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !screenshots.isEmpty) }
@@ -106,6 +109,7 @@ final class FeedbackWorkspace {
 
     func update(_ text: String, screenshots: [FeedbackScreenshot]? = nil, model: SessionModel) {
         guard loaded, editable, !busy else { return }
+        guard text != self.text || (screenshots != nil && screenshots != self.screenshots) else { return }
         self.text = text
         if let screenshots { self.screenshots = screenshots }
         edits &+= 1; dirty = true; model.activity()
@@ -115,8 +119,8 @@ final class FeedbackWorkspace {
     private func startWrite(_ model: SessionModel) {
         guard writing == nil, dirty else { return }
         let stamp = generation, epoch = model.epoch
+        saving = true
         writing = Task {
-            saving = true
             var reconciled = false
             defer { if stamp == generation { saving = false; writing = nil } }
             do {
@@ -124,6 +128,9 @@ final class FeedbackWorkspace {
                     let revision = edits
                     let next: FeedbackRecord
                     if model.uiTesting {
+                        #if DEBUG
+                        if fixtureSaveUnavailable { throw MobileError.Failure(code: "LOCAL_STORAGE_UNAVAILABLE") }
+                        #endif
                         next = FeedbackRecord(id: id, revision: input.revision + 1, recipient: Self.recipient, text: input.text, context: input.context, screenshots: self.screenshots, state: "draft", editable: true)
                     } else {
                         guard let engine = model.engine else { return }
@@ -145,6 +152,9 @@ final class FeedbackWorkspace {
     }
 
     func flush(_ model: SessionModel) async {
+        #if DEBUG
+        if model.uiTesting, dirty, failure != nil { fixtureSaveUnavailable = false }
+        #endif
         startWrite(model)
         await writing?.value
     }

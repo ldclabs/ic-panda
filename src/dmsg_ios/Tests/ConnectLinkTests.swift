@@ -7,6 +7,10 @@ final class ConnectLinkTests: XCTestCase {
         let link = try XCTUnwrap(ConnectLink(URL(string: "https://connect.dmsg.net/app/request?account=\(account)&request=\(request)")!))
         XCTAssertEqual(link.destination, .request); XCTAssertEqual(link.account, account); XCTAssertEqual(link.request, request)
         XCTAssertNotNil(ConnectLink(URL(string: "dmsg://connect/pair")!))
+        for invalid in [String(account.dropLast()) + "1", account + "%0A"] {
+            XCTAssertNil(ConnectLink(URL(string: "dmsg://connect/pair?account=\(invalid)")!))
+        }
+        XCTAssertNil(ConnectLink(URL(string: "dmsg://connect/request?account=\(account)&request=\(request)%0A")!))
         for url in ["https://evil.test/app/pair", "https://connect.dmsg.net.evil.test/app/pair", "https://user@connect.dmsg.net/app/pair", "https://connect.dmsg.net/app/pair?account=\(account)&account=\(account)", "dmsg://connect/request?account=\(account)", "dmsg://connect/pair?callback=https://evil.test", "dmsg://connect/pair#secret"] {
             XCTAssertNil(ConnectLink(URL(string: url)!), url)
         }

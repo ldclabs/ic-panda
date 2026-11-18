@@ -6,6 +6,9 @@ The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
 v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
+The [iOS state-machine inventory (中文)](docs/implicit-state-machines.zh.md)
+maps user actions, asynchronous callbacks and extension lifecycles to their source and regression tests.
+
 ## First sign-in
 
 An authenticated login without an account opens a focused Get started screen.
@@ -51,7 +54,11 @@ Conversation rows show recent activity, unread, mute, draft and pending-send
 states. The verified ledger controls publishing and invitation affordances.
 Search includes attachment names and pages beyond 100 results. Timelines show
 dates, unread boundaries and reply previews with navigation to the original.
-Attachments remain in the composer until Send, including the reply reference.
+Leaving and reopening a conversation in the same unlocked workspace retains its
+selected attachments and reply. Send queues the reviewed file versions in selection
+order, with text and the reply on the first message. The current queue request is
+reused on retry. A new conversation also keeps its original creation request
+when its unchanged form is retried.
 System files and photos can be imported there; received attachments show progress
 and open the verified local library copy. Settings preserve edits during refresh,
 and reminder routes display available local messages before awaiting the network.
@@ -192,7 +199,10 @@ reviewing the preserved draft. Settings drafts stay only in the unlocked session
 and are cleared on lock or account transitions. Usage reads cloud and execution
 counts independently; unavailable values are never displayed as zero.
 
-AutoFill selection survives searches and reopening its picker. Export status shows
+AutoFill selection survives searches and reopening its picker. Changing a search
+hides previous results immediately, including when the next read fails. A published
+Files snapshot remains available for authentication if opening its short system
+session fails. Export status shows
 counts and expiry without opening secrets or bypassing system authentication.
 Enabling dMsg in the system AutoFill settings also shows the setup path when no
 logins have been selected. The credential extension distinguishes missing copies,
@@ -1205,6 +1215,7 @@ No logs or images are collected automatically. Links may be opened by anyone
 holding the complete URL.
 
 Draft writes belong to the account workspace and survive navigation and restart.
+A failed save keeps the text editable, reports the unsaved changes and offers a retry.
 Explicit lock flushes the latest authored draft behind the session transition
 fence. Interrupted uploads and sends retry their original identities; success
 requires confirmed visible delivery, not merely a queued operation. A report

@@ -34,7 +34,6 @@ struct ConversationView: View {
     @State private var query = ""
     @State private var searching = false
     @FocusState private var searchFocused: Bool
-    @State private var replying: MessageItem?
     @State private var editingMessage: MessageEdit?
     @State private var selectingText: MessageEdit?
     @State private var retracting: MessageItem?
@@ -147,7 +146,7 @@ struct ConversationView: View {
             .toolbar(sizeClass == .compact ? .hidden : .automatic, for: .tabBar)
             .safeAreaInset(edge: .top, spacing: 0) { if searching { searchBar } }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                ConversationComposer(channel: currentChannel, restriction: channelRestriction(currentChannel.status), receiving: receiving != nil, replying: $replying,
+                ConversationComposer(channel: currentChannel, restriction: channelRestriction(currentChannel.status), receiving: receiving != nil,
                                      willQueue: { queuedAt = .now }, failed: { await load() })
             }
             .toolbar {
@@ -174,7 +173,6 @@ struct ConversationView: View {
             .sheet(item: $openingFile) { file in NavigationStack { FileDetailDestination(id: file.id, version: file.current).toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openingFile = nil } } } } }
             .sheet(isPresented: $inviting) { NavigationStack { ChannelInvitationView(channel: channel.id) } }
             .sheet(item: $secretPackage) { source in NavigationStack { SecretPackageImportView(source: source) } }
-            .task(id: model.profileRevision) { requestPeople() }
             .onChange(of: model.filesRevision) { _, _ in receivedFiles = [:]; checkedAttachments = [] }
             .task(id: "\(channel.id):\(model.contentRevision):\(model.filesRevision):\(model.epoch):\(query)") {
                 model.activeChannel = channel.id
@@ -267,6 +265,7 @@ struct ConversationView: View {
         } actions: {
             messageActions(message, own: own)
         }.accessibilityIdentifier("message.row.\(message.sequence)")
+            .loadMessagePerson(row.firstOfGroup ? message.account : nil, model: model)
     }
 
     private func replyPreview(_ reference: UInt64, original: MessageItem?, reveal: @escaping (UInt64) -> Void) -> some View {
@@ -274,6 +273,7 @@ struct ConversationView: View {
             VStack(alignment: .leading, spacing: 3) {
                 if let original {
                     Text(model.personName(original.account)).font(.caption.bold())
+                        .loadMessagePerson(original.account, model: model)
                     Text(original.hidden ? String(localized: "Hidden message") : original.retracted ? String(localized: "Message withdrawn") : original.unreadable ? String(localized: "This message could not be verified.") : original.text.isEmpty ? original.attachmentName ?? "" : original.text).font(.caption).lineLimit(2)
                 } else { Text("Reply to message \(reference)").font(.caption) }
             }.padding(8).frame(maxWidth: .infinity, alignment: .leading).background(Theme.forest.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
@@ -304,7 +304,7 @@ struct ConversationView: View {
 
     @ViewBuilder private func messageActions(_ message: MessageItem, own: Bool) -> some View {
         if !message.hidden && !message.unreadable && !message.retracted {
-            if currentChannel.canPublish { Button("Reply") { replying = message } }
+            if currentChannel.canPublish { Button("Reply") { model.replyDrafts[channel.id] = message } }
             if !message.text.isEmpty {
                 Button("Copy") { model.clipboard.copy(message.text); model.notice = String(localized: "Copied") }
                 Button("Select text") { selectingText = MessageEdit(message: message) }
@@ -340,10 +340,6 @@ struct ConversationView: View {
             }
         } actions: { EmptyView() }
             .accessibilityElement(children: .contain).accessibilityIdentifier("message.pending.\(item.id)")
-    }
-
-    private func requestPeople() {
-        model.people.request(Set(messages.map(\.account)).union([model.session?.account ?? ""]), model: model)
     }
 
     private func hide(_ message: MessageItem, hidden: Bool) async {
@@ -435,7 +431,7 @@ struct ConversationView: View {
             }
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
             // This runs every second during a sync; an unchanged page redraws nothing.
-            if messages != fresh { messages = fresh; requestPeople() }
+            if messages != fresh { messages = fresh }
             if hasEarlier != page.hasMore { hasEarlier = page.hasMore }
             if nextBefore != page.nextBefore { nextBefore = page.nextBefore }
             if firstUnread == nil && channel.unread > 0 {
@@ -489,7 +485,6 @@ struct ConversationView: View {
             let rows = Dictionary((page.items + messages).map { ($0.sequence, $0) }, uniquingKeysWith: { first, _ in first })
             messages = rows.values.sorted { $0.sequence < $1.sequence }
             oldestLoaded = messages.first?.sequence; hasEarlier = page.hasMore; nextBefore = page.nextBefore
-            requestPeople()
         } catch { if epoch == model.epoch, messageRequest == request, !Task.isCancelled { model.report(error) } }
     }
 

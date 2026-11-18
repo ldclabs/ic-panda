@@ -75,4 +75,45 @@ final class InboxTests: XCTestCase {
         await state.refresh { _ in throw CancellationError() }
         XCTAssertEqual(state.letters.count, 1); XCTAssertNil(state.failure); XCTAssertFalse(state.refreshing)
     }
+
+    func testHintsDuringAnInboxRefreshDrainOnceEvenAfterFailure() async {
+        let state = InboxLoading()
+        var reads = 0
+        var resume: CheckedContinuation<Void, Never>?
+        let read: InboxLoading.Read = { fresh in
+            if fresh {
+                reads += 1
+                if reads == 1 {
+                    await withCheckedContinuation { resume = $0 }
+                    throw MobileError.Failure(code: "NETWORK_UNAVAILABLE")
+                }
+            }
+            return InboxSnapshot(letters: [self.letter(fresh ? "new" : "cached")], complete: true)
+        }
+        let first = Task { await state.refresh(read: read) }
+        while resume == nil { await Task.yield() }
+        await state.refresh(read: read)
+        await state.refresh(read: read)
+        resume?.resume()
+        await first.value
+        XCTAssertEqual(reads, 2)
+        XCTAssertEqual(state.letters.map(\.id), ["new"])
+        XCTAssertNil(state.failure)
+        XCTAssertFalse(state.refreshing)
+    }
+
+    func testNewerLocalReadWinsWhenAnOlderSnapshotReturnsFirst() async {
+        let state = InboxLoading()
+        var older: CheckedContinuation<InboxSnapshot, Never>?
+        var newer: CheckedContinuation<InboxSnapshot, Never>?
+        let first = Task { await state.cached { _ in await withCheckedContinuation { older = $0 } } }
+        while older == nil { await Task.yield() }
+        let second = Task { await state.cached { _ in await withCheckedContinuation { newer = $0 } } }
+        while newer == nil { await Task.yield() }
+        older?.resume(returning: InboxSnapshot(letters: [letter("old")], complete: true))
+        await first.value
+        newer?.resume(returning: InboxSnapshot(letters: [letter("new")], complete: true))
+        await second.value
+        XCTAssertEqual(state.letters.map(\.id), ["new"])
+    }
 }

@@ -3296,6 +3296,8 @@
 	<string>Draft lang ang aalisin. Mananatili sa Files ang mga kopya at umiiral na share link.</string>
 	<key>Report a problem</key>
 	<string>Mag-ulat ng problema</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Hindi pa nase-save ang mga huli mong pagbabago.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Sine-save ang naka-encrypt na draft…</string>
 	<key>Screenshots</key>

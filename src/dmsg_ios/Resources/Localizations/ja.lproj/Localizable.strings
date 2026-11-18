@@ -3296,6 +3296,8 @@
 	<string>下書きのみ削除します。画像のコピーと既存の共有リンクはファイルに残ります。</string>
 	<key>Report a problem</key>
 	<string>問題を報告</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>最新の変更は保存されていません。</string>
 	<key>Saving encrypted draft…</key>
 	<string>暗号化した下書きを保存中…</string>
 	<key>Screenshots</key>

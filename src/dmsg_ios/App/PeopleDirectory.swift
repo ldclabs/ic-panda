@@ -17,6 +17,13 @@ final class PeopleDirectory {
 
     /// Accounts checked in the last ten minutes are left alone.
     func request(_ accounts: some Sequence<String>, model: SessionModel) {
+        request(accounts) { [weak self, weak model] batch in
+            guard let self, let model, !model.concealed, let engine = model.engine else { return false }
+            return await self.read(batch, engine: engine, model: model)
+        }
+    }
+
+    func request(_ accounts: some Sequence<String>, read: @escaping @MainActor ([String]) async -> Bool) {
         let now = ContinuousClock.now
         for account in accounts where validMessageAccount(account) {
             if checked[account].map({ $0.duration(to: now) >= .seconds(600) }) ?? true {
@@ -24,11 +31,18 @@ final class PeopleDirectory {
             }
         }
         guard !waiting.isEmpty, worker == nil else { return }
-        worker = Task { [weak self, weak model] in
-            // Rows appearing together arrive as one batch.
-            try? await Task.sleep(for: .milliseconds(80))
-            if let self, let model { await self.drain(model) }
-            self?.worker = nil
+        worker = Task { [weak self] in
+            do { try await Task.sleep(for: .milliseconds(80)) } catch { return }
+            guard let self else { return }
+            while !waiting.isEmpty {
+                let batch = Array(waiting.prefix(100))
+                waiting.subtract(batch)
+                let completed = await read(batch)
+                // reset() already released this worker and its queue.
+                guard !Task.isCancelled else { return }
+                if !completed { for account in batch { checked.removeValue(forKey: account) } }
+            }
+            worker = nil
         }
     }
 
@@ -40,35 +54,31 @@ final class PeopleDirectory {
         waiting = []; checked = [:]; people = [:]; images = [:]
     }
 
-    private func drain(_ model: SessionModel) async {
+    private func read(_ batch: [String], engine: MobileEngine, model: SessionModel) async -> Bool {
         let epoch = model.epoch
-        while !waiting.isEmpty {
-            guard let engine = model.engine, epoch == model.epoch, !Task.isCancelled else { return forget() }
-            let batch = Array(waiting.prefix(100))
-            waiting.subtract(batch)
-            for refresh in [false, true] {
-                do {
-                    let snapshot = try await coreOperation { try await engine.channelNames(accounts: batch, refresh: refresh, operation: $0) }
-                    let names: [String: MessagePerson] = try model.decode(snapshot)
-                    guard epoch == model.epoch, !Task.isCancelled else { return forget(batch) }
-                    people.merge(names) { _, next in next }
-                    var seen: Set<String> = []
-                    for (account, person) in names {
-                        guard let url = person.avatarUrl, seen.insert(url).inserted, refresh || images[url] == nil else { continue }
-                        let bytes = try? await engine.channelAvatar(account: account, refresh: refresh)
+        var completed = false
+        for refresh in [false, true] {
+            guard epoch == model.epoch, !Task.isCancelled else { return false }
+            do {
+                let snapshot = try await coreOperation { try await engine.channelNames(accounts: batch, refresh: refresh, operation: $0) }
+                let names: [String: MessagePerson] = try model.decode(snapshot)
+                guard epoch == model.epoch, !Task.isCancelled else { return false }
+                for (account, person) in names where people[account] != person { people[account] = person }
+                completed = true
+                var seen: Set<String> = []
+                for (account, person) in names {
+                    guard epoch == model.epoch, !Task.isCancelled else { return false }
+                    guard let url = person.avatarUrl, seen.insert(url).inserted, refresh || images[url] == nil else { continue }
+                    do {
+                        let bytes = try await engine.channelAvatar(account: account, refresh: refresh)
                         let image = await AvatarImage.decode(bytes)
-                        guard epoch == model.epoch, !Task.isCancelled else { return forget(batch) }
+                        guard epoch == model.epoch, !Task.isCancelled else { return false }
                         if refresh || image != nil { images[url] = image }
-                    }
-                } catch { /* Names and initials remain available while offline. */ }
-            }
+                    } catch { /* Keep the saved image when the refresh is offline. */ }
+                }
+            } catch { /* Keep published names available while offline. */ }
         }
-    }
-
-    /// Work a lock or a trip to the background cut short is asked for again.
-    private func forget(_ batch: [String] = []) {
-        for account in batch + Array(waiting) { checked[account] = nil }
-        waiting = []
+        return completed
     }
 }
 

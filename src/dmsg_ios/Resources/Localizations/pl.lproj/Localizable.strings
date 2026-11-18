@@ -3296,6 +3296,8 @@
 	<string>Usuwany jest tylko szkic. Kopie i istniejące linki pozostają w Plikach.</string>
 	<key>Report a problem</key>
 	<string>Zgłoś problem</string>
+	<key>Your latest changes have not been saved.</key>
+	<string>Ostatnie zmiany nie zostały zapisane.</string>
 	<key>Saving encrypted draft…</key>
 	<string>Zapisywanie zaszyfrowanego szkicu…</string>
 	<key>Screenshots</key>

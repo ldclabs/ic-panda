@@ -22,7 +22,7 @@ struct ChannelInvitationSummary: Decodable {
         } else { data = input.data(using: .utf8) }
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
         guard let data, let value = try? decoder.decode(Self.self, from: data), value.format == "dmsg-channel-invitation/1",
-              validMessageAccount(value.account), value.channel.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil else { return nil }
+              validMessageAccount(value.account), validHexID(value.channel) else { return nil }
         return value
     }
 }

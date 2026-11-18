@@ -166,6 +166,8 @@ struct SystemExports: Sendable {
     }
     /// Publish only after the main app rechecks the originating account/session.
     func publish(_ prepared: PreparedExport, biometryOnly: Bool) throws {
+        var published = false
+        defer { if !published { discard(prepared) } }
         let previous = try? header(checkExpiry: false)
         guard let acl = SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
             biometryOnly ? .biometryCurrentSet : .userPresence, nil) else { throw CocoaError(.fileWriteNoPermission) }
@@ -175,6 +177,7 @@ struct SystemExports: Sendable {
         guard SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess else { throw CocoaError(.fileWriteNoPermission) }
         do { try encode(prepared.header).write(to: root.appending(path: "current.json"), options: [.atomic, .completeFileProtection]) }
         catch { SecItemDelete(query(prepared.header.id) as CFDictionary); throw error }
+        published = true
         lockFiles()
         if let previous, previous.id != prepared.header.id {
             SecItemDelete(query(previous.id) as CFDictionary)
@@ -238,7 +241,7 @@ struct SystemExports: Sendable {
     struct FileSession: Codable { let snapshot: String; let key: Data; let expires: UInt64 }
     /// File Provider's short session is established only by its interactive UI.
     func unlockFiles(_ opened: OpenExport) throws {
-        guard purpose == .files else { throw CocoaError(.fileReadNoPermission) }
+        guard purpose == .files, try header().id == opened.header.id else { throw CocoaError(.fileReadNoPermission) }
         let session = FileSession(snapshot: opened.header.id, key: opened.key.withUnsafeBytes { Data($0) }, expires: min(opened.header.expires, UInt64(Date.now.timeIntervalSince1970 * 1000) + 300_000))
         lockFiles()
         var entry = query("file-session"); entry[kSecValueData as String] = try encode(session); entry[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
@@ -262,7 +265,11 @@ struct SystemExports: Sendable {
         SecItemDelete(query("file-session") as CFDictionary)
         if let legacyKeyGroup { SecItemDelete(query("file-session", group: legacyKeyGroup) as CFDictionary) }
     }
-    func discard(_ prepared: PreparedExport) { try? FileManager.default.removeItem(at: prepared.directory) }
+    /// A committed snapshot is removed by replacement or explicit invalidation.
+    func discard(_ prepared: PreparedExport) {
+        guard (try? header(checkExpiry: false).id) != prepared.header.id else { return }
+        try? FileManager.default.removeItem(at: prepared.directory)
+    }
     func invalidate(account: String? = nil) throws {
         if let account, let current = try? header(), current.accountHash != IncomingShares.accountHash(account) { return }
         var query: [String: Any] = [kSecClass as String:kSecClassGenericPassword,kSecAttrService as String:service,kSecAttrAccessGroup as String:keyGroup]

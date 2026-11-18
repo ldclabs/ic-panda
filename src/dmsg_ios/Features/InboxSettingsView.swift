@@ -16,7 +16,7 @@ struct InboxSettingsView: View {
     struct Change: Codable, Equatable {
         var mode: String; var allow: [String]
         var normalized: Change { Change(mode: mode, allow: allow.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }) }
-        var valid: Bool { Set(allow).count == allow.count && allow.allSatisfy { $0.range(of: "^[0-9a-v]{19}[0g]$", options: .regularExpression) != nil } }
+        var valid: Bool { Set(allow).count == allow.count && allow.allSatisfy(validMessageAccount) }
     }
     struct Draft: Codable { let change: Change; let pending: Change? }
 

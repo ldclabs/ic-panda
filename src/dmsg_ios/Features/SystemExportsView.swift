@@ -198,12 +198,15 @@ struct SystemExportsView: View {
             let store = try SystemExports(.files), values = inputs
             let prepared = try await Task.detached { try store.prepareFiles(values, account: account, expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 86_400_000) }.value
             guard epoch == model.epoch, !Task.isCancelled else { store.discard(prepared); return }
-            do { try store.publish(prepared, biometryOnly: biometryOnly); try store.unlockFiles(OpenExport(header: prepared.header, key: prepared.key)) }
-            catch { store.discard(prepared); throw error }
+            try store.publish(prepared, biometryOnly: biometryOnly)
+            refreshSnapshots()
+            // Files can still authenticate the published snapshot if the short session failed.
+            let access = Result { try store.unlockFiles(OpenExport(header: prepared.header, key: prepared.key)) }
             try await NSFileProviderManager.add(domain)
             await signalFiles()
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            refreshSnapshots(); model.notice = String(localized: "Files app snapshot updated")
+            try access.get()
+            model.notice = String(localized: "Files app snapshot updated")
         } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
     }
     private func signalFiles() async {
@@ -213,59 +216,34 @@ struct SystemExportsView: View {
 }
 
 struct AutoFillSelectionView: View {
-    let initial: [VaultItem]
     let selected: ([VaultItem]) -> Void
-    @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    @State private var items: [VaultItem] = []
-    @State private var chosen: [String: VaultItem] = [:]
-    @State private var query = ""
-    @State private var more = false
-    @State private var working = false
-    @State private var failed = false
-    @State private var request = UUID()
+    @State private var chosen: [String: VaultItem]
+    @State private var search = VaultPickerSearch()
+
+    init(initial: [VaultItem], selected: @escaping ([VaultItem]) -> Void) {
+        self.selected = selected
+        _chosen = State(initialValue: Dictionary(uniqueKeysWithValues: initial.map { ($0.id, $0) }))
+    }
 
     var body: some View {
-        List {
+        VaultItemPicker(search: search, kind: "login", limit: 60, placement: .navigationBarDrawer(displayMode: .always)) {
             LabeledContent("Selected", value: chosen.count.formatted()).accessibilityIdentifier("autofill.selected")
-            SettingsLoadStatus(loading: working, failed: failed) { Task { await load(reset: true) } }
-            ForEach(items, id: \.id) { item in
-                Toggle(item.title, isOn: Binding(get: { chosen[item.id] != nil }, set: {
-                    if $0 { chosen[item.id] = item } else { chosen.removeValue(forKey: item.id) }
-                })).disabled(item.reserved || (chosen[item.id] == nil && chosen.count >= 50))
-            }
-            if !working && !failed && items.isEmpty { ContentUnavailableView.search(text: query) }
-            if more { LoadMoreRow(working: working, trigger: items.count) { await load(reset: false) } }
+        } row: { item in
+            Toggle(item.title, isOn: Binding(get: { chosen[item.id] != nil }, set: {
+                if $0 { chosen[item.id] = item } else { chosen.removeValue(forKey: item.id) }
+            })).disabled(item.reserved || (chosen[item.id] == nil && chosen.count >= 50))
         }.privateScreen().navigationTitle("Select login items")
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always))
             .safeAreaInset(edge: .bottom) {
                 Button { selected(chosen.values.sorted { $0.title < $1.title }); dismiss() } label: { Text("Done").frame(maxWidth: .infinity) }
                     .buttonStyle(.borderedProminent).controlSize(.large).frame(maxWidth: .infinity)
                     .padding().background(Theme.paper).accessibilityIdentifier("autofill.done")
             }
-            .onAppear { chosen = Dictionary(uniqueKeysWithValues: initial.map { ($0.id, $0) }) }
-            .task(id: query) { try? await Task.sleep(for: .milliseconds(200)); if !Task.isCancelled { await load(reset: true) } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
     }
 
-    private func load(reset: Bool) async {
-        let token = UUID(), epoch = model.epoch, query = query; request = token
-        working = true; failed = false; defer { if request == token { working = false } }
-        #if DEBUG
-        if model.uiTesting {
-            items = model.vault.filter { $0.kind == "login" && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)) }
-            more = false; return
-        }
-        #endif
-        guard let engine = model.engine else { failed = true; return }
-        do {
-            let page = try await engine.vaultPage(query: query, kind: "login", favoritesOnly: false, offset: reset ? 0 : UInt32(items.count), limit: 60)
-            guard !Task.isCancelled, epoch == model.epoch, request == token else { return }
-            items = reset ? page.items : items + page.items; more = page.hasMore
-        } catch { if epoch == model.epoch, !Task.isCancelled, request == token { failed = true } }
-    }
 }
 
 private struct ExportSnapshotStatus: View {

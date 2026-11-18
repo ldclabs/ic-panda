@@ -73,7 +73,8 @@ extension SessionModel {
         guard let files, let account = session?.account else { return }
         let counts = await Task.detached {
             let pending = (try? files.pending(account: account).count) ?? 0
-            let shared = (try? IncomingShares().list().filter { $0.accountHash == nil || $0.accountHash == IncomingShares.accountHash(account) }.count) ?? 0
+            let hash = IncomingShares.accountHash(account)
+            let shared = (try? IncomingShares().list().count { $0.accountHash == nil || $0.accountHash == hash }) ?? 0
             return (pending, shared)
         }.value
         guard stamp == epoch, !Task.isCancelled else { return }

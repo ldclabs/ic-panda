@@ -92,9 +92,14 @@ final class SessionPolicyTests: XCTestCase {
     func testExplicitLockInvalidatesPriorUIRequests() async {
         let model = SessionModel()
         let original = model.epoch
+        model.attachmentDrafts["channel"] = [LibraryFile(id: "file", name: "private.txt", mime: "text/plain", size: 12,
+            current: "version-1", sha256: "", status: "local", versions: 1)]
+        model.queuingChannels.insert("channel")
         await model.lock()
         XCTAssertGreaterThan(model.epoch, original)
         XCTAssertFalse(model.unlocked)
+        XCTAssertTrue(model.attachmentDrafts.isEmpty)
+        XCTAssertTrue(model.queuingChannels.isEmpty)
     }
 
     func testExactDecimalDisplayDoesNotRoundAmounts() throws {
@@ -324,6 +329,30 @@ final class SessionPolicyTests: XCTestCase {
         try files.finishImport(staged)
         XCTAssertTrue(try files.pending(account: account).isEmpty)
         XCTAssertTrue(FileManager.default.fileExists(atPath: original.path))
+    }
+
+    func testRejectedAttachmentsLeaveNoPendingImportAndRegularFilesKeepTheirLimit() throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let paths = try PrivateFiles(base: base), account = "040g2081040g2081040g"
+        let source = base.appending(path: "example.png")
+        let folder = base.appending(path: "folder")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        XCTAssertThrowsError(try paths.importDocument(folder, account: account))
+        try Data("plain text".utf8).write(to: source)
+        XCTAssertThrowsError(try paths.importDocument(source, account: account, use: .feedbackScreenshot))
+        let ordinary = try paths.importDocument(source, account: account)
+        try paths.finishImport(ordinary)
+        let file = try FileHandle(forWritingTo: source)
+        defer { try? file.close() }
+        for (use, limit) in [(LibraryImportUse.feedbackScreenshot, 10), (.attachment, 100)] {
+            try file.truncate(atOffset: UInt64(limit * 1024 * 1024 + 1))
+            XCTAssertThrowsError(try paths.importDocument(source, account: account, use: use)) {
+                XCTAssertEqual(($0 as? CocoaError)?.code, .fileReadTooLarge)
+                XCTAssertEqual(fileFailure($0), String(localized: "This file exceeds the size limit for this operation."))
+            }
+        }
+        XCTAssertTrue(try paths.pending(account: account).isEmpty)
     }
 
 }

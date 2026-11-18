@@ -2,9 +2,9 @@ import XCTest
 
 @MainActor
 final class FeedbackUITests: XCTestCase {
-    private func open(language: String = "en", dark: Bool = false, failure: Bool = false) -> XCUIApplication {
+    private func open(language: String = "en", dark: Bool = false, failure: Bool = false, extra: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : []) + (failure ? ["--ui-feedback-failure"] : [])
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : []) + (failure ? ["--ui-feedback-failure"] : []) + extra
         app.launch()
         let account = ["zh-Hans": "我的", "ar": "الحساب", "de": "Konto"][language] ?? "Account"
         XCTAssertTrue(app.buttons[account].waitForExistence(timeout: 10)); app.buttons[account].tap()
@@ -53,6 +53,22 @@ final class FeedbackUITests: XCTestCase {
         tap(app.buttons["feedback.new"], in: app)
         for _ in 0..<6 where !field(app).isHittable { app.swipeDown() }
         XCTAssertEqual(field(app).value as? String, "")
+    }
+
+    func testRefusedDraftSaveShowsUnsavedAndRetriesTheSameText() {
+        let app = open(extra: ["--ui-feedback-save-failure"])
+        field(app).tap(); field(app).typeText("X")
+        app.buttons["feedback.keyboard-done"].tap()
+        let unsaved = app.staticTexts["feedback.unsaved"]
+        for _ in 0..<4 where !unsaved.isHittable { app.swipeUp() }
+        XCTAssertTrue(unsaved.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Saving encrypted draft…"].exists)
+        capture(app, "Refused save keeps the feedback text available for retry")
+        tap(app.buttons["feedback.retry-save"], in: app)
+        XCTAssertTrue(app.staticTexts["Draft saved encrypted on this device."].waitForExistence(timeout: 5))
+        XCTAssertFalse(unsaved.exists)
+        for _ in 0..<4 where !field(app).isHittable { app.swipeDown() }
+        XCTAssertEqual(field(app).value as? String, "X")
     }
 
     func testScreenshotFeedbackInChineseGermanArabicAndBothThemes() {

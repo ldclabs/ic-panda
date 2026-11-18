@@ -7,13 +7,19 @@ struct ConversationComposer: View {
     let channel: ChannelItem
     let restriction: String
     let receiving: Bool
-    @Binding var replying: MessageItem?
     let willQueue: () -> Void
     let failed: () async -> Void
     @Environment(SessionModel.self) private var model
     @FocusState private var focused: Bool
-    @State private var attachments: [LibraryFile] = []
-    @State private var queuing = false
+    private var attachments: [LibraryFile] {
+        get { model.attachmentDrafts[channel.id] ?? [] }
+        nonmutating set { model.attachmentDrafts[channel.id] = newValue.isEmpty ? nil : newValue }
+    }
+    private var replying: MessageItem? {
+        get { model.replyDrafts[channel.id] }
+        nonmutating set { model.replyDrafts[channel.id] = newValue }
+    }
+    private var queuing: Bool { model.queuingChannels.contains(channel.id) }
     @State private var importing = false
     @State private var working = false
     @State private var choosingFile = false
@@ -39,6 +45,7 @@ struct ConversationComposer: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading) {
                         Text(model.personName(replying.account)).font(.caption.bold())
+                            .loadMessagePerson(replying.account, model: model)
                         Text(replying.text.isEmpty ? replying.attachmentName ?? "" : replying.text).font(.caption).lineLimit(2)
                     }
                     Spacer()
@@ -49,7 +56,7 @@ struct ConversationComposer: View {
             if receiving || working { TransferStatusView().padding(.horizontal) }
             HStack(alignment: .bottom, spacing: 10) {
                 attachMenu
-                TextField("Write a message", text: Binding(get: { draft }, set: { model.setDraft(channel: channel.id, text: $0) }), axis: .vertical)
+                TextField("Write a message", text: Binding(get: { draft }, set: { model.activity(); model.setDraft(channel: channel.id, text: $0) }), axis: .vertical)
                     .lineLimit(1...5).focused($focused)
                     .padding(12).background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
                     .accessibilityIdentifier("message.draft").disabled(!channel.canPublish)
@@ -84,30 +91,26 @@ struct ConversationComposer: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in canPasteImage = UIPasteboard.general.hasImages }
         .task(id: "\(channel.id):\(model.epoch)") {
             ownerEpoch = model.epoch
-            if model.drafts[channel.id] == nil { model.setDraft(channel: channel.id, text: channel.draft) }
+            if model.drafts[channel.id] == nil { model.drafts[channel.id] = channel.draft }
         }
-        .onChange(of: draft) { _, value in
-            model.activity()
+        .onChange(of: draft) { _, _ in
             let previous = persistTask; previous?.cancel()
             let epoch = model.epoch, channelID = channel.id
             persistTask = Task {
                 await previous?.value
                 try? await Task.sleep(for: .milliseconds(500))
                 guard !Task.isCancelled, epoch == model.epoch else { return }
-                do {
-                    try await model.engine?.saveDraft(channel: channelID, text: value)
-                    if epoch == model.epoch { model.draftSaved(channel: channelID, text: value) }
-                } catch { if epoch == model.epoch { model.report(error) } }
+                await model.saveEditedDraft(channel: channelID, epoch: epoch)
             }
         }
         .onDisappear {
             actionTask?.cancel()
             let persistence = persistTask; persistence?.cancel()
             guard ownerEpoch == model.epoch else { return }
-            let value = draft, channelID = channel.id, engine = model.engine, epoch = ownerEpoch
+            let channelID = channel.id, epoch = ownerEpoch
             Task {
                 await persistence?.value
-                if epoch == model.epoch { try? await engine?.saveDraft(channel: channelID, text: value) }
+                await model.saveEditedDraft(channel: channelID, epoch: epoch)
             }
         }
     }
@@ -179,7 +182,7 @@ struct ConversationComposer: View {
 
     private func attach(url: URL) async throws {
         let epoch = model.epoch
-        let file = try await model.importLibraryDocument(url, folder: "root")
+        let file = try await model.importLibraryDocument(url, folder: "root", use: .attachment)
         guard file.size <= Self.maxAttachmentBytes else { throw CocoaError(.fileReadTooLarge) }
         if epoch == model.epoch { add(file) }
     }
@@ -195,36 +198,46 @@ struct ConversationComposer: View {
     /// One message per file; the text and the reply go with the first.
     private func send() async {
         model.activity()
-        guard !queuing, channel.canPublish else { return }
+        guard channel.canPublish, !empty, !tooLong, model.queuingChannels.insert(channel.id).inserted else { return }
+        let workspace = model.viewGeneration
+        defer { if workspace == model.viewGeneration { model.queuingChannels.remove(channel.id) } }
         willQueue()
         var text = draft, reply = replying
         let persistence = persistTask; persistence?.cancel()
-        queuing = true; defer { queuing = false }
+        let files = attachments
         let epoch = model.epoch
         do {
             await persistence?.value
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            for file in attachments.isEmpty ? [nil] : attachments.map(Optional.some) {
-                let id: String
-                #if DEBUG
-                if model.uiTesting { id = UUID().uuidString }
-                else { id = try await queue(text, reply: reply, file: file) }
-                #else
-                id = try await queue(text, reply: reply, file: file)
-                #endif
-                guard epoch == model.epoch, !Task.isCancelled else { return }
-                model.clearQueuedDraft(channel: channel.id, sent: text); replying = nil
-                attachments.removeAll { $0.id == file?.id }
-                model.deliverMessage(channel: channel.id, item: OutgoingMessage(id: id, text: text, attachmentName: file?.name, attempted: false, error: nil))
+            for start in stride(from: 0, to: max(1, files.count), by: ComposerQueue.batchLimit) {
+                try Task.checkCancellation()
+                guard epoch == model.epoch else { return }
+                let batch = Array(files.dropFirst(start).prefix(ComposerQueue.batchLimit))
+                let prepared = model.composerQueue.prepare(channel: channel.id, text: text, files: batch, reply: reply)
+                let ids = try await queue(prepared)
+                guard workspace == model.viewGeneration else { return }
+                guard ids.count == max(1, batch.count) else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+                model.composerQueue.finish(prepared)
+                model.clearQueuedDraft(channel: channel.id, sent: text)
+                if replying?.id == reply?.id { replying = nil }
+                attachments.removeAll { file in batch.contains { $0.id == file.id && $0.current == file.current } }
+                guard epoch == model.epoch else { return }
+                for (index, id) in ids.enumerated() {
+                    model.deliverMessage(channel: channel.id, item: OutgoingMessage(id: id, text: index == 0 ? text : "",
+                        attachmentName: batch.isEmpty ? nil : batch[index].name, attempted: false, error: nil))
+                }
                 text = ""; reply = nil
             }
         } catch { if epoch == model.epoch, !Task.isCancelled { Haptics.failure(); await failed(); model.report(error) } }
+        // A queue commit clears its text in core; preserve a newer edit made during the call.
+        await model.saveEditedDraft(channel: channel.id, epoch: epoch)
     }
 
-    private func queue(_ text: String, reply: MessageItem?, file: LibraryFile?) async throws -> String {
+    private func queue(_ draft: MessageDraft) async throws -> [String] {
+        #if DEBUG
+        if model.uiTesting { return (0..<max(1, draft.attachments.count)).map { _ in UUID().uuidString } }
+        #endif
         guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-        if let file { return try await engine.queueAttachmentReply(channel: channel.id, file: file.id, text: text, sequence: reply?.sequence, digest: reply?.digest) }
-        if let reply { return try await engine.queueMessageAction(channel: channel.id, action: "reply", sequence: reply.sequence, digest: reply.digest, text: text) }
-        return try await engine.queueMessage(channel: channel.id, text: text)
+        return try await engine.queueAuthoredMessages(draft: draft)
     }
 }

@@ -4005,3 +4005,37 @@ Keychain 迁移发生认证取消或暂时失败时，迁移异常绕过了原�
 未运行：真机 AutoFill 认证交互、跨团队 Keychain／Secure Enclave 升级、实际
 Squirrel 安装、Electron 交互回归、完整 iOS UI 套件、全量 Rust 测试／Clippy、
 发布及部署。上述结果不替代两个迁移说明中的跨团队实机发布门禁。
+
+## 2026-11-18 iOS 代码复核
+
+本次核对范围包括 App、Features、Platform、Shared、五个系统扩展、快捷指令、Swift 与 Rust 桥接、资源和测试。桌面提交 `925f582d` 是本次工作的公开基线。
+
+| 操作 | 回归关注点 |
+| --- | --- |
+| 收件箱刷新 | 刷新中收到多个新提示时再读一次，即使首读失败也能取得新信件。并行本地读取保留较新的结果。相同 Swift 场景在旧实现中只读一次，保留旧信件和错误。修复后读两次，显示新信件并清除错误。[收件箱测试](Tests/InboxTests.swift) |
+| 频道编辑与发送 | 同一解锁工作区内返回频道仍保留已选附件和回复对象。发送使用所选文件版本和原请求编号，按选择顺序入队。一批最多十项，已有多选流程可继续提交下一批。锁定会清除内存里的附件和回复。重试创建同名频道会复用本次表单的创建请求。创建、重命名均按核心使用的 Unicode 标量计数。[消息测试](Tests/MessagingTests.swift) · [会话界面用例](UITests/MessagingUITests.swift) |
+| 参与者资料 | 消息分组和引用显示时才请求作者。取消的上次读取不能清空新工作区的队列，网络读取失败保留已有头像。205 个不同账号加重复行的用例核对三个批次。[参与者回归](Tests/MessagingTests.swift) |
+| 自动填充与“文件”导出 | 自动填充换词或查询失败时收起上一组结果，已勾选项保留。加密文件快照一旦发布，开启短期访问失败仍可重新认证。发布失败清理尚未发布的数据。[系统副本测试](Tests/SystemExportsTests.swift) · [选择器回归](UITests/AccountSettingsUITests.swift) |
+| 反馈、文件与设备 | 反馈保存失败显示未保存状态，可用原文重试。截图格式、截图及消息附件大小在复制进文件库前检查。桌面配对回执按核心返回的到期时间结束等待，可检查授权或重新提交。连接链接与收件规则共用规范账号校验。[反馈](UITests/FeedbackUITests.swift) · [导入](Tests/SessionPolicyTests.swift) · [设备配对](UITests/NavigationTests.swift) · [链接](Tests/ConnectLinkTests.swift) |
+| 邀请与传输标识 | 信件邀请、频道链接、连接请求和后台传输使用与核心一致的校验，标识必须是 64 个小写十六进制字符。带末尾换行的标识或分块编号在提交前被拒绝。[消息](Tests/MessagingTests.swift) · [传输](Tests/CipherTransferTests.swift) |
+| 购买进度 | 在底部点击套餐时，原阿拉伯语深色界面的准备状态被底栏遮住。开始购买时列表定位到所选套餐，随后确认和交付阶段的变化保留滚动位置。[套餐页面](Features/SubscriptionView.swift) · [购买界面用例](UITests/NavigationTests.swift) |
+| 文件改名 | 键盘完成键和保存按钮使用同一条件。保留原名时不会提交，改名失败可编辑草稿并重试。[改名表单](Features/FileManagementView.swift) · [键盘回归](UITests/FileLibraryUITests.swift) |
+| 保险库详情 | 「编辑」按钮原可见尺寸约为 43 × 36 点。加宽后，UIKit 仍报告 36 点可见高度。实际在中心上下各 21.5 点点击，均能打开编辑器。回归同时核对复制、字段菜单的 44 点区域，并在页面可操作后运行辅助功能审计。[保险库详情](Features/VaultDetailView.swift) · [实际点击回归](UITests/VaultUITests.swift) |
+
+云备份按大小排序时，缺失大小和零字节之间按名称稳定排序。共享暂存和文件导入会清理首次写入记录失败产生的目录。另移除了 Swift 轮换界面没有读取的解码字段，并将文件链接的说明移回对应类型。[备份排序测试](Tests/FileLibraryTests.swift) · [暂存导入](Platform/PrivateFiles.swift)
+
+在 iPhone 18 Pro 模拟器（iOS 27.0）上运行整个 dMsg 方案。首轮 465 项中，447 项通过，10 项失败，8 项按用例条件跳过。跳过的是 5 个商店预览录制场景和 3 个 iPad 宽屏场景。最终代码串行运行全部 238 项单元测试和 16 项相关界面测试，254 项全部通过。逐一比对两个结果包，首轮失败的 10 项均已通过。最终这轮为定向复测。完整方案和最终复测的本地结果包分别是 `.build/ios-review-20261118/all.xcresult` 与 `.build/ios-review-20261118/verified.xcresult`。
+
+自动填充跨搜索与重新打开的选择、通知草稿前后台切换、中文深色与阿拉伯语 RTL 通知开关各连续执行三次，12 次全部通过。对照修复前后的阿拉伯语截图，已确认所选套餐的价格、准备进度和 Apple 确认提示一起出现在底栏上方。
+
+真机架构的未签名 Release 构建包含 arm64 主应用及五个扩展。Rust 移动核心 46 项、消息入队合同 3 项、iOS 构建脚本 23 项通过。设备和模拟器桥接产物的源码指纹、23 种语言资源、通知文案以及 35 个业务图标的校验通过。实机生物认证、生产 APNs、真实 App Store 交易和 iPad 宽屏不在此次验证内。
+
+测试目标编译时，Apple 的 StoreKitTest 头文件 `SKTestTransaction.h` 对 `SKPaymentTransactionState` 给出弃用提示。本次购买回归使用本地 StoreKit 测试环境。
+
+待评审的范围如下。
+
+- 频道文字草稿已有加密持久化。本次保留附件和回复的范围是同一解锁工作区。跨锁定或应用重启恢复完整草稿，涉及现有 iOS 多选行为与核心单份草稿十个附件上限的约定。[会话模型](App/SessionModel.swift) · [核心草稿合同](../dmsg_client/src/outbox_composer.rs)
+- 系统分享项目一旦被某个账号认领，其他账号仍能看见文件名并丢弃暂存副本。现有界面只允许原账号继续导入。可评审另一个账号应能看到和管理哪些内容。[待导入列表](Features/IncomingSharesView.swift)
+- 信件列表和收件人选择器会预读候选账号的名称及头像，以便按名称搜索尚未显示的联系人。大收件箱需要权衡首次查看的读取量和首次搜索的等待时间，同时可以评估只为可见行请求头像。[信件列表](Features/MessagesView.swift) · [收件人选择器](Features/MessagePeople.swift)
+- 后台下载在每次进度回调读取、解析并校验传输清单。是否值得缓存分块元数据，需要真实后台传输的耗时和能耗数据，同时保留暂停、取消和重启后的检查。[下载回调](Platform/BackgroundTransfers.swift)
+- iOS 27.0 模拟器的全量结果在 3 项反馈表单和 13 项保险库编辑用例中记录了同一条 `Invalid frame dimension (negative or non-finite)`。这两个表单都使用键盘工具栏。将反馈页工具栏简化为单个按钮后，警告仍出现，完成键和保存结果均正常，因此保留了原有布局。XCTest 未给出业务代码行，需要其他系统版本或真机对照。[反馈表单](Features/FeedbackView.swift) · [保险库编辑器](Features/VaultEditor.swift)

@@ -107,12 +107,11 @@ final class CipherTransferStore: @unchecked Sendable {
         try JSONEncoder().encode(state).write(to: index, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
     func validate(_ transfer: CipherTransfer) throws {
-        let hex: (String) -> Bool = { $0.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil }
-        guard hex(transfer.id), hex(transfer.uploadId), ["GET","PUT"].contains(transfer.method), !transfer.parts.isEmpty, transfer.parts.count <= 1001,
+        guard validHexID(transfer.id), validHexID(transfer.uploadId), ["GET","PUT"].contains(transfer.method), !transfer.parts.isEmpty, transfer.parts.count <= 1001,
               Set(transfer.parts.map(\.slot)).count == transfer.parts.count,
               transfer.parts.allSatisfy({ part in
-                  let validSlot = part.slot == "manifest" || part.slot.range(of: "^(0|[1-9][0-9]{0,2})$", options: .regularExpression) != nil
-                  return validSlot && part.size <= 1024 * 1024 + 64 && hex(part.digest) && part.url.scheme == "https" && part.url.user == nil && part.url.password == nil && part.url.fragment == nil
+                  let validSlot = part.slot == "manifest" || (part.slot.utf8.count <= 3 && UInt(part.slot).map(String.init) == part.slot)
+                  return validSlot && part.size <= 1024 * 1024 + 64 && validHexID(part.digest) && part.url.scheme == "https" && part.url.user == nil && part.url.password == nil && part.url.fragment == nil
               }) else { throw CocoaError(.fileReadCorruptFile) }
     }
     func path(_ transfer: CipherTransfer, _ slot: String) throws -> URL {

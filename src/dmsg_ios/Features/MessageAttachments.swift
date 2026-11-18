@@ -65,7 +65,7 @@ struct AttachmentPicker: View {
         guard !working else { return }; let epoch = model.epoch
         working = true; defer { working = false }
         do {
-            let file = try await model.importLibraryDocument(url, folder: folder)
+            let file = try await model.importLibraryDocument(url, folder: folder, use: .attachment)
             guard file.size <= 100 * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
             if epoch == model.epoch, visible, !Task.isCancelled { choose(file) }
         }
@@ -74,15 +74,21 @@ struct AttachmentPicker: View {
 }
 
 extension SessionModel {
-    func importLibraryDocument(_ url: URL, folder: String) async throws -> LibraryFile {
+    func importLibraryDocument(_ url: URL, folder: String, use: LibraryImportUse = .library) async throws -> LibraryFile {
         #if DEBUG
-        if uiTesting { return importFileFixture(url, folder: folder) }
+        if uiTesting {
+            if use != .library {
+                let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize
+                try use.validate(url, size: size ?? Int.max)
+            }
+            return importFileFixture(url, folder: folder)
+        }
         #endif
         guard let paths = files, let engine, let account = session?.account else { throw CancellationError() }
         let epoch = epoch
         let result = try await transfer.run(url.lastPathComponent) { operation in
             transfer.phase = String(localized: "Preparing and copying file…")
-            let staged = try await Task.detached { try paths.importDocument(url, account: account, folder: folder) }.value
+            let staged = try await Task.detached { try paths.importDocument(url, account: account, folder: folder, use: use) }.value
             guard epoch == self.epoch, !Task.isCancelled else {
                 if !FileManager.default.fileExists(atPath: paths.workspace.appending(path: "accounts").appending(path: account).path) { try? paths.finishImport(staged) }
                 throw CancellationError()

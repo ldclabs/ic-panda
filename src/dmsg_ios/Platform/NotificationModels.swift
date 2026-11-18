@@ -31,12 +31,13 @@ enum ReminderTarget: Hashable, Codable {
         case "summary": self = .summary(try c.decode(ReminderCategory.self, forKey: .id))
         case "inbox":
             let id = try c.decodeIfPresent(String.self, forKey: .id)
-            guard id == nil || Self.hash(id!) else { throw Self.invalid(decoder) }; self = .inbox(id)
+            if let id, !validHexID(id) { throw Self.invalid(decoder) }
+            self = .inbox(id)
         default:
             let id = try c.decode(String.self, forKey: .id)
             switch kind {
             case "channel", "approval", "recovery", "plan":
-                guard Self.hash(id) else { throw Self.invalid(decoder) }
+                guard validHexID(id) else { throw Self.invalid(decoder) }
                 switch kind { case "channel": self = .channel(id); case "approval": self = .approval(id); case "recovery": self = .recovery(id); default: self = .plan(id) }
             case "agent_mail": guard id.hasPrefix("did:agent:") && id.count <= 256 else { throw Self.invalid(decoder) }; self = .agentMail(id)
             case "task": guard id.hasPrefix("conflicts:") || id.hasPrefix("sync_failed:") else { throw Self.invalid(decoder) }; self = .task(id)
@@ -84,7 +85,6 @@ enum ReminderTarget: Hashable, Codable {
         }
     }
 
-    static func hash(_ value: String) -> Bool { value.utf8.count == 64 && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) } }
     private static func invalid(_ decoder: Decoder) -> DecodingError { .dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Unsupported notification target")) }
 }
 
@@ -145,7 +145,7 @@ enum NotificationRoute {
                   route.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) else { return nil }
             return route
         }
-        if let local = payload["local"] as? String, ReminderTarget.hash(local) { return "local:" + local }
+        if let local = payload["local"] as? String, validHexID(local) { return "local:" + local }
         return nil
     }
 }
