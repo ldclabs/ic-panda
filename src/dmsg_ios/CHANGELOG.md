@@ -5,6 +5,23 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
+## 1.2.3
+
+### Build 34 — 2026-11-18
+
+- Keep selected attachments and replies while moving between conversations in
+  an unlocked workspace. Preserve the next draft while a send with several
+  attachments finishes queueing.
+- Refresh the inbox again when new mail arrives during a refresh. Look up
+  conversation participants as their messages appear.
+- Make failed feedback saves retryable and show when a desktop pairing request
+  has expired.
+- Retain AutoFill selections across searches. Keep password import retries tied
+  to the copy selected for preview, and let Files authenticate a published copy
+  when temporary access could not be opened.
+- Keep login binding requests tied to the entered account, and bring purchase
+  progress into view beside the selected price.
+
 ## 1.2.2
 
 ### Build 33 — 2026-11-17

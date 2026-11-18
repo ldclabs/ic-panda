@@ -94,14 +94,7 @@ struct ConversationComposer: View {
             if model.drafts[channel.id] == nil { model.drafts[channel.id] = channel.draft }
         }
         .onChange(of: draft) { _, _ in
-            let previous = persistTask; previous?.cancel()
-            let epoch = model.epoch, channelID = channel.id
-            persistTask = Task {
-                await previous?.value
-                try? await Task.sleep(for: .milliseconds(500))
-                guard !Task.isCancelled, epoch == model.epoch else { return }
-                await model.saveEditedDraft(channel: channelID, epoch: epoch)
-            }
+            persistDraft(epoch: model.epoch, after: .milliseconds(500))
         }
         .onDisappear {
             actionTask?.cancel()
@@ -113,6 +106,20 @@ struct ConversationComposer: View {
                 await model.saveEditedDraft(channel: channelID, epoch: epoch)
             }
         }
+    }
+
+    @discardableResult
+    private func persistDraft(epoch: UInt64, after delay: Duration) -> Task<Void, Never> {
+        let previous = persistTask; previous?.cancel()
+        let channelID = channel.id
+        let save = Task {
+            await previous?.value
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            await model.saveEditedDraft(channel: channelID, epoch: epoch)
+        }
+        persistTask = save
+        return save
     }
 
     private var attachMenu: some View {
@@ -200,7 +207,6 @@ struct ConversationComposer: View {
         model.activity()
         guard channel.canPublish, !empty, !tooLong, model.queuingChannels.insert(channel.id).inserted else { return }
         let workspace = model.viewGeneration
-        defer { if workspace == model.viewGeneration { model.queuingChannels.remove(channel.id) } }
         willQueue()
         var text = draft, reply = replying
         let persistence = persistTask; persistence?.cancel()
@@ -208,10 +214,9 @@ struct ConversationComposer: View {
         let epoch = model.epoch
         do {
             await persistence?.value
-            guard epoch == model.epoch, !Task.isCancelled else { return }
             for start in stride(from: 0, to: max(1, files.count), by: ComposerQueue.batchLimit) {
                 try Task.checkCancellation()
-                guard epoch == model.epoch else { return }
+                guard epoch == model.epoch else { break }
                 let batch = Array(files.dropFirst(start).prefix(ComposerQueue.batchLimit))
                 let prepared = model.composerQueue.prepare(channel: channel.id, text: text, files: batch, reply: reply)
                 let ids = try await queue(prepared)
@@ -221,7 +226,7 @@ struct ConversationComposer: View {
                 model.clearQueuedDraft(channel: channel.id, sent: text)
                 if replying?.id == reply?.id { replying = nil }
                 attachments.removeAll { file in batch.contains { $0.id == file.id && $0.current == file.current } }
-                guard epoch == model.epoch else { return }
+                guard epoch == model.epoch else { break }
                 for (index, id) in ids.enumerated() {
                     model.deliverMessage(channel: channel.id, item: OutgoingMessage(id: id, text: index == 0 ? text : "",
                         attachmentName: batch.isEmpty ? nil : batch[index].name, attempted: false, error: nil))
@@ -229,8 +234,10 @@ struct ConversationComposer: View {
                 text = ""; reply = nil
             }
         } catch { if epoch == model.epoch, !Task.isCancelled { Haptics.failure(); await failed(); model.report(error) } }
-        // A queue commit clears its text in core; preserve a newer edit made during the call.
-        await model.saveEditedDraft(channel: channel.id, epoch: epoch)
+        guard workspace == model.viewGeneration else { return }
+        model.queuingChannels.remove(channel.id)
+        // Use the same draft task as autosave so another send waits for this write.
+        await persistDraft(epoch: epoch, after: .zero).value
     }
 
     private func queue(_ draft: MessageDraft) async throws -> [String] {

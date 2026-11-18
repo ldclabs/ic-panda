@@ -1413,7 +1413,7 @@ export default {
     "stopsAt": "Berhenti di",
     "usageHint": "Tandatangan rasmi bulan ini terhadap elaun pelan itu.",
     "waitingBrowser": "Menunggu penyemak imbas yang membuka halaman berpasangan…",
-    "browserInviteExpired": "Pautan pemasangan ini telah tamat tempoh. Mulakan pemasangan baharu untuk menyambungkan pelayar.",
+    "browserInviteExpired": "Pautan gandingan ini telah tamat tempoh. Gandingkan semula untuk menyambungkan pelayar.",
     "year": "tahun",
     "tabPrincipal": "Identiti pemilik",
     "tabAgentIds": "ID ejen",

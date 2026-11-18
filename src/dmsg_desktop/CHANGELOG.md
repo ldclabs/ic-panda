@@ -6,6 +6,20 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.9] - 2026-11-18
+
+- Keep unsent channel drafts when switching conversations. Retry a direct
+  invitation in the channel already created, and show when a browser pairing
+  invitation has expired.
+- Keep file selections across searches, offer retry when a search fails, and
+  refresh visible sender names after clearing the display cache.
+- Keep inputs after a refused confirmation. When a write has no confirmed
+  outcome, open its status or approval history from the explicit review action.
+- Preserve local preferences and window placement, and keep composition
+  keystrokes in the input when using an input method.
+- Update the macOS secret-files volume and cache probe to the current FSKit
+  handlers.
+
 ## [1.5.8] - 2026-11-18
 
 ### macOS signing transition

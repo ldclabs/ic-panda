@@ -58,10 +58,9 @@
   $effect(() => { if (!open) { visit++; submitting = false; failure = null } })
   onDestroy(() => { visit++ })
 
-  function close() {
-    if (submitting) return
-    if (uncertain) void Promise.resolve().then(onReview).catch(e => toast(() => describeError(e)))
+  function review() {
     open = false
+    void Promise.resolve().then(onReview).catch(e => toast(() => describeError(e)))
   }
 
   async function decide() {
@@ -78,7 +77,7 @@
   }
 </script>
 
-<Dialog bind:open={() => open, (next) => next ? open = true : close()} dismissible={!submitting} {title} {description} {icon} {tone} {testid}>
+<Dialog bind:open dismissible={!submitting && !uncertain} {title} {description} {icon} {tone} {testid}>
   {#if body}<fieldset class="min-w-0" disabled={submitting || uncertain}>{@render body()}</fieldset>{/if}
   {#if failure}
     <Notice tone={uncertain ? 'warn' : 'danger'} testid="confirmation-error">{message}</Notice>
@@ -86,9 +85,9 @@
   {#snippet footer()}
     <span class="flex-1"></span>
     {#if uncertain}
-      <button class={buttonClass('primary')} onclick={close} data-testid="confirmation-review">{t('confirmCheckStatus')}</button>
+      <button class={buttonClass('primary')} onclick={review} data-testid="confirmation-review">{t('confirmCheckStatus')}</button>
     {:else}
-      <button class={buttonClass('ghost')} disabled={submitting} onclick={close}>{t('cancel')}</button>
+      <button class={buttonClass('ghost')} disabled={submitting} onclick={() => (open = false)}>{t('cancel')}</button>
       <button class={buttonClass(tone === 'danger' ? 'danger' : 'primary')} disabled={busy || submitting} aria-busy={submitting} onclick={decide} data-testid={confirmTestid ?? (testid ? `${testid}-confirm` : undefined)}>{failure ? t('retry') : confirm}</button>
     {/if}
   {/snippet}

@@ -35,6 +35,21 @@ final class MessagingTests: XCTestCase {
     }
 
     @MainActor
+    func testLaterTypingStaysPendingUntilAllAttachmentBatchesFinish() {
+        let model = SessionModel(), channel = "channel"
+        model.setDraft(channel: channel, text: "Caption")
+        XCTAssertEqual(model.draftForAutosave(channel: channel), "Caption")
+        model.queuingChannels.insert(channel)
+        model.setDraft(channel: channel, text: "Next message")
+        XCTAssertNil(model.draftForAutosave(channel: channel))
+        model.clearQueuedDraft(channel: channel, sent: "Caption")
+        model.clearQueuedDraft(channel: channel, sent: "")
+        XCTAssertNil(model.draftForAutosave(channel: channel))
+        model.queuingChannels.remove(channel)
+        XCTAssertEqual(model.draftForAutosave(channel: channel), "Next message")
+    }
+
+    @MainActor
     func testPeopleDirectoryBatchesOnlyDistinctRequestedAccounts() async throws {
         let directory = PeopleDirectory()
         let accounts = (0..<205).map { String(format: "%019x0", $0) }

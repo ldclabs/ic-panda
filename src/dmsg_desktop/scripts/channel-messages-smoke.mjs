@@ -15,6 +15,9 @@ const status = () => ({ state: 'unlocked', session: 'fixture', account, device_i
 const channel = { id, name: '频道消息 · Conversation', genesis: '44'.repeat(32), ledger: { channel_id: id, type: 'collaboration', owner: account, epoch: 1, status: 'active', members: Object.fromEntries([account, peer].map((account, index) => [account, { account, role: index ? 'member' : 'owner', joined_epoch: 1, can_rotate: !index, history: [] }])) }, message_cursor: 2, readable_epochs: [1] }
 const row = (seq, account, text) => ({ seq, account, text, message_id: String(seq).padStart(64, '0'), digest: 'dd'.repeat(32), epoch: 1, created_at: Date.now(), stored_at: Date.now(), file: null })
 const messages = [row(1, peer, '收到 👋 你好，欢迎加入频道。'), row(2, account, '测试消息 · My message')]
+const previewAuthor = '040g2082040g2082040g'
+channel.last = row(3, previewAuthor, 'List preview')
+let previewName = 'Preview sender'
 const png = `data:image/png;base64,${(await readFile('resources/icon.png')).toString('base64')}`
 const emit = (type, data = {}) => { for (const socket of sockets) socket.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: ++seq, type, data } })) }
 const methods = {
@@ -28,7 +31,7 @@ const methods = {
   'channel/sync': () => ({ through: messages.length, received: 0 }), 'channel/outbox': () => [],
   'channel/receipts': () => ({ latest_seq: messages.length, cursors: {} }),
   'channel/mark': () => channel, 'channel/draft': () => null,
-  'channel/names': p => Object.fromEntries(p.accounts.map(a => [a, { name: a === account ? 'Me' : 'ICPanda', avatar_url: `https://avatar.example/${a}.png`, stale: false }])),
+  'channel/names': p => Object.fromEntries(p.accounts.map(a => [a, { name: a === account ? 'Me' : a === previewAuthor ? previewName : 'ICPanda', avatar_url: `https://avatar.example/${a}.png`, stale: false }])),
   'channel/avatar': () => ({ url: png }),
   'channel/queue': p => ({ message_id: p.message_id }),
   'channel/send': async p => { await new Promise(resolve => { releaseSend = resolve }); const message = { ...row(messages.length + 1, account, p.text), message_id: p.message_id }; messages.push(message); return { message, receipt: { seq: message.seq } } },
@@ -66,6 +69,11 @@ try {
   await main.evaluate(() => { location.hash = '/settings/appearance' }); await main.getByTestId('channel-messages').waitFor({ state: 'detached' })
   await main.evaluate(() => { location.hash = '/channels' }); await main.getByTestId('channel-item').first().click(); await main.locator('[data-seq="2"] img').waitFor()
   assert.equal(calls.filter(c => c.method === 'channel/avatar').length, avatarReads, 'reopening the channel reuses in-memory images')
+  const preview = main.getByTestId('channel-preview')
+  await preview.filter({ hasText: 'Preview sender: List preview' }).waitFor()
+  previewName = 'Updated sender'
+  emit('cache/changed', { kind: 'all' })
+  await preview.filter({ hasText: 'Updated sender: List preview' }).waitFor({ timeout: 5000 })
   const draft = main.getByTestId('channel-text')
   await draft.fill('Pending message 发送中'); await draft.press('Enter')
   const pending = main.getByTestId('message-outgoing'); await pending.waitFor(); await right(pending)

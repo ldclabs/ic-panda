@@ -526,8 +526,14 @@ final class SessionModel {
         if drafts[channel] == text { dirtyDrafts.remove(channel) }
     }
 
+    func draftForAutosave(channel: String) -> String? {
+        // Each queue batch clears the core's text slot. Keep later edits dirty until the send settles.
+        guard !queuingChannels.contains(channel), dirtyDrafts.contains(channel) else { return nil }
+        return drafts[channel]
+    }
+
     func saveEditedDraft(channel: String, epoch stamp: UInt64) async {
-        guard epoch == stamp, dirtyDrafts.contains(channel), let text = drafts[channel], let engine else { return }
+        guard epoch == stamp, let text = draftForAutosave(channel: channel), let engine else { return }
         do {
             try await engine.saveDraft(channel: channel, text: text)
             if epoch == stamp { draftSaved(channel: channel, text: text) }

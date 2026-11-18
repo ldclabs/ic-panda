@@ -20,7 +20,7 @@ const pending = new Set<string>()
 const active = new Set<string>()
 const rerun = new Set<string>()
 let session: string | null = null
-let generation = 0
+let generation = $state(0)
 const waiting = new Set<string>()
 let timer: ReturnType<typeof setTimeout> | null = null
 
@@ -69,7 +69,9 @@ export function visibleName(account: string | undefined): Attachment {
 }
 
 function ask(account: string, demand: Demand) {
-  if (!demand || !session) return
+  if (!demand) return
+  void generation
+  if (!session) return
   void changed
   const cycle = demand === 'search' ? untrack(() => refresh) : refresh
   if (asked.get(account) === cycle || (demand === 'search' && asked.has(account))) return
