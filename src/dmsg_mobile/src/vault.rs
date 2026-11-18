@@ -1,9 +1,11 @@
-use crate::{MobileEngine, ObjectSnapshot, VaultDetail, VaultEdit, VaultItem, error::Result};
+use crate::{
+    MobileEngine, ObjectSnapshot, VaultDetail, VaultEdit, VaultItem, draft_lock, error::Result,
+};
 use dmsg_client::vault::{Changes, Filter, Keep, Side, reading};
 use dmsg_types::{Error, ensure, ensure_valid};
 use std::collections::BTreeMap;
 
-#[derive(Clone, uniffi::Record)]
+#[derive(Clone, uniffi::Record, serde::Serialize, serde::Deserialize)]
 pub struct VaultDraftInput {
     pub id: String,
     pub item_id: Option<String>,
@@ -93,14 +95,29 @@ impl MobileEngine {
 
     pub async fn checkpoint_vault_draft(&self, draft: VaultDraftInput) -> Result<bool> {
         self.host
-            .run(move |c| Box::pin(async move { c.checkpoint_vault_draft(&draft.into()) }))
+            .run(move |c| {
+                Box::pin(async move {
+                    let draft = draft.into();
+                    let saved = c.checkpoint_vault_draft(&draft)?;
+                    draft_lock::resolved(c, |p| {
+                        p.vault
+                            .retain(|d| d.id != draft.id || d.revision > draft.revision)
+                    })?;
+                    Ok(saved)
+                })
+            })
             .await
             .map_err(Into::into)
     }
 
     pub async fn discard_vault_draft(&self, id: String) -> Result<()> {
         self.host
-            .run(move |c| Box::pin(async move { c.discard_vault_draft(&id) }))
+            .run(move |c| {
+                Box::pin(async move {
+                    c.discard_vault_draft(&id)?;
+                    draft_lock::resolved(c, |p| p.vault.retain(|d| d.id != id))
+                })
+            })
             .await
             .map_err(Into::into)
     }
@@ -116,8 +133,10 @@ impl MobileEngine {
             .run(move |c| {
                 Box::pin(async move {
                     let (kind, changes) = edit.changes();
-                    c.commit_vault_draft(&draft.into(), &kind, &changes)
-                        .map(VaultItem::from)
+                    let draft = draft.into();
+                    let item = c.commit_vault_draft(&draft, &kind, &changes)?;
+                    draft_lock::resolved(c, |p| p.vault.retain(|d| d.id != draft.id))?;
+                    Ok(VaultItem::from(item))
                 })
             })
             .await?;

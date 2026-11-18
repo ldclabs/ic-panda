@@ -13,7 +13,7 @@ pub(super) fn can_invite_to_channel(ledger: &channel_log::Ledger, account: &str)
         })
 }
 
-#[derive(uniffi::Record)]
+#[derive(uniffi::Record, serde::Serialize, serde::Deserialize)]
 pub struct LetterDraftInput {
     pub id: String,
     pub recipient: String,
@@ -66,7 +66,10 @@ impl MobileEngine {
     ) -> Result<()> {
         self.host
             .run(move |c| {
-                Box::pin(async move { c.save_letter_draft(&id, &recipient, &text, invitation) })
+                Box::pin(async move {
+                    c.save_letter_draft(&id, &recipient, &text, invitation)?;
+                    draft_lock::resolved(c, |p| p.letters.retain(|d| d.id != id))
+                })
             })
             .await?;
         Ok(())
@@ -74,7 +77,12 @@ impl MobileEngine {
 
     pub async fn discard_letter_draft(&self, id: String) -> Result<()> {
         self.host
-            .run(move |c| Box::pin(async move { c.discard_letter_draft(&id) }))
+            .run(move |c| {
+                Box::pin(async move {
+                    c.discard_letter_draft(&id)?;
+                    draft_lock::resolved(c, |p| p.letters.retain(|d| d.id != id))
+                })
+            })
             .await?;
         Ok(())
     }

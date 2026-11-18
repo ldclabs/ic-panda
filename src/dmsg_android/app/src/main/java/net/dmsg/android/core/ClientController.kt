@@ -119,7 +119,7 @@ class ClientController internal constructor(private val application: Application
     private data class BindingReturn(val callback: String, val generation: ULong, val deadline: Long)
     private var bindingReturn: BindingReturn? = null
     private var backgroundLock: Job? = null
-    private var controlToken = 0L
+    private var afterLock: (() -> Unit)? = null
     private var controlBusy = false
     private var backgroundFinish: Job? = null
     private val syncPreferences = mutableMapOf<String, Boolean>()
@@ -212,8 +212,10 @@ class ClientController internal constructor(private val application: Application
                     if (incomingConnect != null || pendingWorkspace != null || pendingNotice != null || noticeNavigation.save() != null) navigationIntent = 1L
                 }
                 if (navigationIntent != 0L) this@ClientController.preferences()
-                val session = withContext(Dispatchers.IO) { opened.third.sessionState() }
-                sessions.adopt(session)
+                val restored = withContext(Dispatchers.IO) { readSession(opened.third) }
+                val session = restored.session
+                if (!sessions.adopt(session)) return@launch
+                restoreEditors(restored.pending)
                 navigation.activate(session.account)
                 mutable.value = UiState(starting = false, concealed = false, session = session, epoch = epoch,
                     dark = when (saved?.optString("appearance")) { "dark" -> true; "light" -> false; else -> null }, immediateLock = policy.immediateBackgroundLock)
@@ -247,48 +249,57 @@ class ClientController internal constructor(private val application: Application
         mutable.update { UiState(starting = false, concealed = concealed, epoch = epoch, dark = it.dark, immediateLock = it.immediateLock) }
     }
 
-    fun lock(cancelLogin: Boolean = true, clearClipboard: Boolean = cancelLogin, after: () -> Unit = {}) {
+    fun lock(cancelLogin: Boolean = true, clearClipboard: Boolean = cancelLogin, after: (() -> Unit)? = null) {
         val root = engine ?: return
-        if (clearClipboard) automaticUnlock.suppress()
-        val cleanupFiles = files?.fenceIO()
-        val control = ++controlToken
+        if (clearClipboard) { automaticUnlock.suppress(); clipboard.clearOwned() }
+        if (after != null) afterLock = after
+        if (controlBusy) return
         controlBusy = true
-        val account = sessions.snapshot?.account
+        val cleanupFiles = files?.fenceIO()
+        val session = sessions.snapshot
+        val account = session?.account
         val pending = account?.let(messages::pending).orEmpty()
         val letterDrafts = letters.pending()
         val feedbackDraft = feedback.pending()
         val vaultInputs = vaultDrafts.pending()
         val needsFlush = pending.isNotEmpty() || letterDrafts.isNotEmpty() || feedbackDraft != null || vaultInputs.isNotEmpty()
-        val handle = runCatching { sessions.handle() }.getOrNull()
+        val device = session?.deviceId
+        val checkpoint = if (needsFlush && account != null && device != null) {
+            root.beginDraftLock(account, device, pending.map { it.native() }, letterDrafts, feedbackDraft, vaultInputs)
+        } else { root.lockNow(); null }
         prompts.cancel()
         authentication.cancel()
         bindingReturn = null
-        root.cancelLogin()
         operations.cancelAll()
         messages.suspend()
-        if (clearClipboard) clipboard.clearOwned()
         clearPrivate(false)
         pendingLogin = false; bindingLogin = false
-        val at = epoch
-        if (!needsFlush || handle == null || account == null) root.lockNow()
         mutable.update { it.copy(busy = true) }
         scope.launch {
-            var failedDrafts = false
+            val saved = try {
+                withContext(Dispatchers.IO) { checkpoint?.finish() }
+                !needsFlush || checkpoint != null
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { false }
+            finally { checkpoint?.destroy() }
+            var ready = false
             try {
-                val result = withContext(Dispatchers.IO) {
-                    if (needsFlush && handle != null && account != null) {
-                        try {
-                            withTimeout(2000) { handle.lockWithDrafts(account,
-                                pending.map { it.native() }, letterDrafts, feedbackDraft, vaultInputs) }
-                        } catch (error: Throwable) { failedDrafts = true; root.lockNow(); root.sessionState() }
-                    } else root.sessionState()
+                if (appForeground) {
+                    val generation = root.controlGeneration()
+                    val result = withContext(Dispatchers.IO) { root.resume(generation) }
+                    if (appForeground && root.controlGeneration() == generation) {
+                        adopt(result)
+                        mutable.update { it.copy(concealed = false) }
+                        ready = true
+                    }
                 }
-                if (at == epoch) { adopt(result); if (failedDrafts) showError("DRAFT_SAVE_FAILED") else after() }
-            } catch (error: Throwable) { root.lockNow(); if (at == epoch) showError(errorCode(error)) }
-            finally {
-                handle?.destroy()
-                if (controlToken == control) { controlBusy = false; updateOperations() }
-            }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (error: Exception) { if (appForeground) showError(errorCode(error)) }
+            finally { controlBusy = false; updateOperations() }
+            val continuation = afterLock
+            afterLock = null
+            if (!saved) showError("DRAFT_SAVE_FAILED")
+            else if (ready) continuation?.invoke()
         }
         scope.launch(Dispatchers.IO) { cleanupFiles?.invoke() }
     }
@@ -302,6 +313,12 @@ class ClientController internal constructor(private val application: Application
         if (!externalLoginReturn) {
             automaticUnlock.rearm()
             policy.background()
+            if (policy.immediateBackgroundLock || controlBusy) {
+                backgroundLock?.cancel()
+                lock(false)
+                mutable.update { it.copy(concealed = true, epoch = epoch) }
+                return
+            }
             sessions.fence.invalidate()
             operations.cancelAll()
             prompts.cancel()
@@ -336,7 +353,7 @@ class ClientController internal constructor(private val application: Application
         mutable.update { it.copy(concealed = true, epoch = epoch) }
         backgroundLock?.cancel()
         backgroundLock = scope.launch {
-            delay(if (!externalLoginReturn && policy.immediateBackgroundLock) 0 else 180_000)
+            delay(180_000)
             lock(false)
         }
     }
@@ -354,14 +371,36 @@ class ClientController internal constructor(private val application: Application
                 backgroundFinish?.join()
                 val expected = current.controlGeneration()
                 val session = withContext(Dispatchers.IO) {
-                    if (externalLoginReturn) current.sessionState() else current.resume(expected)
+                    readSession(current, if (externalLoginReturn) null else current.resume(expected))
                 }
                 if (at == epoch) { adopt(session); if (!prompts.isAuthenticating && !passkeys.isAuthenticating) { externalLoginReturn = false; mutable.update { it.copy(concealed = false) }; synchronization.start(); fileWork.start(); backgroundFiles.start(); systemExports.start(); incoming.checkPending(); deviceTransfers.foreground(); routePendingWorkspace(); notices.start(); push.start(); purchases.start(); tryAutomaticUnlock() } }
             } catch (error: Throwable) { if (at == epoch) mutable.update { it.copy(concealed = false, error = errorCode(error)) } }
         }
     }
 
-    private fun adopt(next: SessionSnapshot) {
+    private data class EditorSession(val session: SessionSnapshot, val pending: EditorDrafts?)
+
+    private suspend fun readSession(root: MobileEngine, known: SessionSnapshot? = null): EditorSession {
+        val next = known ?: root.sessionState()
+        val previous = state.value.session
+        if (next.state != "unlocked" || previous?.state == "unlocked" && previous.generation == next.generation) {
+            return EditorSession(next, null)
+        }
+        val handle = root.scoped(next.generation)
+        return try { EditorSession(next, handle.restoreEditorDrafts()) } finally { handle.destroy() }
+    }
+
+    private fun restoreEditors(pending: EditorDrafts?) {
+        if (pending == null) return
+        pending.letters.forEach(letters::restore)
+        pending.feedback?.let(feedback::restore)
+        pending.vault.forEach(vaultDrafts::restore)
+        pending.drafts.forEach { messages.restore(requireNotNull(sessions.snapshot?.account), it) }
+    }
+
+    private fun adopt(restored: EditorSession) = adopt(restored.session, restored.pending)
+
+    private fun adopt(next: SessionSnapshot, pending: EditorDrafts? = null) {
         val before = state.value.session
         if (!sessions.adopt(next)) return
         navigation.activate(next.account)
@@ -384,6 +423,7 @@ class ClientController internal constructor(private val application: Application
             if (retain) transfers.suspend() else transfers.clear()
         }
         if (before?.account != next.account || next.state != "unlocked") vaultDrafts.clear()
+        restoreEditors(pending)
         mutable.update {
             if (changed) UiState(starting = false, concealed = it.concealed, session = next, epoch = epoch,
                 dark = it.dark, immediateLock = it.immediateLock)
@@ -445,9 +485,10 @@ class ClientController internal constructor(private val application: Application
                 val result = if (serial == null) withContext(Dispatchers.IO) { work(handle) }
                     else serial.withLock { withContext(Dispatchers.IO) { work(handle) } }
                 if (operations.owns(key, job) && at == epoch && appForeground && (!state.value.concealed || transition)) {
-                    val snapshot = withContext(Dispatchers.IO) { root.sessionState() }
+                    val restored = withContext(Dispatchers.IO) { readSession(root) }
+                    val snapshot = restored.session
                     if (operations.owns(key, job) && at == epoch) {
-                        adopt(snapshot)
+                        adopt(restored)
                         if (transition || snapshot.generation == generation) {
                             if (transition) mutable.update { it.copy(concealed = false) }
                             apply(result)
@@ -457,7 +498,7 @@ class ClientController internal constructor(private val application: Application
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (error: Throwable) {
                 if (operations.owns(key, job) && at == epoch) {
-                    runCatching { withContext(Dispatchers.IO) { root.sessionState() } }.getOrNull()?.let(::adopt)
+                    runCatching { withContext(Dispatchers.IO) { readSession(root) } }.getOrNull()?.let(::adopt)
                     val code = errorCode(error)
                     onError(code); if (!quiet) showError(code)
                 }

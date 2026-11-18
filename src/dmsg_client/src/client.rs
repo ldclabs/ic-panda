@@ -417,6 +417,7 @@ impl InFlight {
 
 /// A device's client.
 pub struct Client {
+    pub(crate) lock_drafts: crate::draft_checkpoint::LockDraftCheckpoint,
     /// Mobile policy: hardware presence is required for every fast unlock.
     require_fast_presence: bool,
     /// Changes on every explicit lock, invalidating in-flight sync work and
@@ -806,6 +807,7 @@ impl Client {
         )?;
         let workspace = idle(&config.environment)?;
         let mut client = Self {
+            lock_drafts: Default::default(),
             require_fast_presence: false,
             session_generation: 0,
             display_generation: 0,
@@ -2146,6 +2148,8 @@ impl Client {
             WORKSPACE,
             "workspace.sqlite-wal",
             "workspace.sqlite-shm",
+            crate::draft_checkpoint::FILE,
+            crate::draft_checkpoint::TEMP,
             AGENT_RUNTIME,
             "agents.sqlite-wal",
             "agents.sqlite-shm",

@@ -27,6 +27,7 @@ pub mod display;
 #[cfg(test)]
 mod display_tests;
 mod downloads;
+mod draft_checkpoint;
 pub mod evidence;
 pub mod feedback;
 pub mod files;

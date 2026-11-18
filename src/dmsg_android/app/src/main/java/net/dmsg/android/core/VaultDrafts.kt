@@ -43,6 +43,7 @@ class VaultDrafts(private val client: ClientController) {
     private data class Record(val input: VaultDraftInput, val draft: VaultDraft, val original: VaultDraft)
     private val drafts = mutableMapOf<String, Record>()
     private val pending = mutableSetOf<String>()
+    private val recovered = mutableSetOf<String>()
     private val turn = Mutex()
     private val mutable = MutableStateFlow<VaultDraft?>(null)
     val current = mutable.asStateFlow()
@@ -76,6 +77,7 @@ class VaultDrafts(private val client: ClientController) {
         if (next == old.draft) return
         val input = old.input.copy(revision = old.input.revision + 1u, form = vaultDraftForm(next, old.original))
         drafts[id] = Record(input, next, old.original); mutable.value = next; pending += id
+        recovered -= id
         write(input)
     }
 
@@ -85,6 +87,16 @@ class VaultDrafts(private val client: ClientController) {
             if (!accepted) finished(input.id)
             else acknowledge(input)
         }
+    }
+
+    internal fun restore(input: VaultDraftInput) {
+        if (input.id in pending) return
+        val form = Json.parseToJsonElement(input.form).jsonObject
+        val value = parseVaultDraft(form.getValue("draft"))
+        drafts[input.id] = Record(input, value, parseVaultDraft(form.getValue("initial")))
+        pending += input.id
+        recovered += input.id
+        if (input.active) { selected = input.id; mutable.value = value; presenting.value = true }
     }
 
     fun pending(): List<VaultDraftInput> = pending.mapNotNull { drafts[it]?.input }
@@ -104,7 +116,7 @@ class VaultDrafts(private val client: ClientController) {
     }
 
     fun finished(id: String) {
-        drafts.remove(id); pending -= id
+        drafts.remove(id); pending -= id; recovered -= id
         if (selected == id) { selected = null; mutable.value = null; presenting.value = false }
     }
 
@@ -113,7 +125,7 @@ class VaultDrafts(private val client: ClientController) {
         if (after != null) afterLoad = after
         if (loading || !client.state.value.unlocked || client.state.value.concealed) return
         loading = true
-        val inputs = pending()
+        val inputs = pending().filterNot { it.id in recovered }
         client.perform({ core ->
             val closed = inputs.filterNot { core.checkpointVaultDraft(it) }.map { it.id }.toSet()
             val values = core.vaultDrafts().decode().jsonArray.map { value ->
@@ -137,7 +149,7 @@ class VaultDrafts(private val client: ClientController) {
     }
 
     fun suspend() { loaded = false; loading = false; afterLoad = null }
-    fun clear() { suspend(); drafts.clear(); pending.clear(); selected = null; mutable.value = null; presenting.value = false }
+    fun clear() { suspend(); drafts.clear(); pending.clear(); recovered.clear(); selected = null; mutable.value = null; presenting.value = false }
 }
 
 internal fun vaultDraftForm(draft: VaultDraft, original: VaultDraft) = buildJsonObject {

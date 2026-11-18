@@ -21,11 +21,14 @@ struct Command {
     generation: u64,
     job: Job,
 }
-#[derive(Clone, Copy, Default)]
+type LockJob = Box<dyn FnOnce(&mut Client) + Send>;
+
+#[derive(Clone, Default)]
 struct Control {
     generation: u64,
     lock_generation: u64,
     close: bool,
+    checkpoint: Option<Arc<std::sync::Mutex<Option<LockJob>>>>,
 }
 
 struct Hosted {
@@ -34,14 +37,22 @@ struct Hosted {
 }
 
 impl Hosted {
-    fn apply(&mut self, control: Control) {
-        if self.generation == control.generation {
+    fn apply(&mut self, control: &Control) {
+        if self.generation >= control.generation {
             return;
         }
         if let Some(client) = self.client.as_mut() {
             client.abandon_host_work();
             if control.lock_generation > self.generation {
-                client.lock();
+                let checkpoint = control
+                    .checkpoint
+                    .as_ref()
+                    .and_then(|slot| slot.lock().unwrap().take());
+                if let Some(checkpoint) = checkpoint {
+                    checkpoint(client);
+                } else {
+                    client.lock();
+                }
             }
             if control.close {
                 client.shutdown();
@@ -83,15 +94,15 @@ impl Host {
                     biased;
                     changed = changes.changed() => {
                         if changed.is_err() { break; }
-                        let control = *changes.borrow_and_update();
-                        owned.lock().await.apply(control);
+                        let control = changes.borrow_and_update().clone();
+                        owned.lock().await.apply(&control);
                         if control.close { break; }
                     }
                     command = receiver.recv() => {
                         let Some(command) = command else { break; };
                         let mut state = owned.lock().await;
-                        let control = *changes.borrow_and_update();
-                        state.apply(control);
+                        let control = changes.borrow_and_update().clone();
+                        state.apply(&control);
                         if control.close { break; }
                         if command.generation != state.generation { continue; }
                         let Some(client) = state.client.as_mut() else { break; };
@@ -107,8 +118,8 @@ impl Host {
                         };
                         if cancelled {
                             if let Some(client) = state.client.as_mut() { client.abandon_host_work(); }
-                            let control = *changes.borrow_and_update();
-                            state.apply(control);
+                            let control = changes.borrow_and_update().clone();
+                            state.apply(&control);
                             if control.close { break; }
                         }
                     }
@@ -136,8 +147,8 @@ impl Host {
     ) -> Result<T> {
         let result = {
             let mut state = self.client.lock().await;
-            let control = *self.locked.borrow();
-            state.apply(control);
+            let control = self.locked.borrow().clone();
+            state.apply(&control);
             dmsg_types::ensure(
                 generation == control.generation
                     && !control.close
@@ -181,7 +192,25 @@ impl Host {
     /// Invalidate queued/in-flight operations immediately. The next command
     /// acts as a barrier after the worker has discarded keys.
     pub fn lock(&self) {
-        self.control(true, false, false);
+        self.control(true, false, false, None);
+    }
+
+    /// Fence callers immediately. The owning worker seals the last input in memory,
+    /// drops the account keys, then persists only the ciphertext. A repeated lock,
+    /// pause, close or dropped waiter cannot cancel the first checkpoint.
+    pub fn lock_with_checkpoint<T: Send + 'static>(
+        &self,
+        seal: impl FnOnce(&Client) -> Result<T> + Send + 'static,
+        persist: impl FnOnce(&mut Client, T) -> Result<()> + Send + 'static,
+    ) -> oneshot::Receiver<Result<()>> {
+        let (reply, done) = oneshot::channel();
+        let job = Box::new(move |client: &mut Client| {
+            let sealed = seal(client);
+            client.lock();
+            let _ = reply.send(sealed.and_then(|value| persist(client, value)));
+        });
+        self.control(true, false, false, Some(job));
+        done
     }
 
     /// Fence work during a host-controlled identity transition without losing
@@ -205,7 +234,7 @@ impl Host {
 
     /// Stop all work while retaining keys only for the host's background grace.
     pub fn pause(&self) {
-        self.control(false, false, true);
+        self.control(false, false, true, None);
     }
 
     /// Permit foreground work again, but only in the lifecycle generation
@@ -228,7 +257,7 @@ impl Host {
 
     /// Cancel work, clear keys and close the database on its owning executor.
     pub fn close(&self) {
-        self.control(true, true, true);
+        self.control(true, true, true, None);
     }
 
     /// Wait until the worker has dropped its keys and SQLite connection.
@@ -244,8 +273,17 @@ impl Host {
             .map_err(|_| Error::Unavailable("client host stopped".into()))
     }
 
-    fn control(&self, lock: bool, close: bool, pause: bool) {
+    fn control(&self, lock: bool, close: bool, pause: bool, checkpoint: Option<LockJob>) {
         self.locked.send_modify(|control| {
+            if let Some(job) = checkpoint
+                && !control.close
+                && !control
+                    .checkpoint
+                    .as_ref()
+                    .is_some_and(|slot| slot.lock().unwrap().is_some())
+            {
+                control.checkpoint = Some(Arc::new(std::sync::Mutex::new(Some(job))));
+            }
             if pause {
                 self.paused.store(true, Ordering::Release);
             }
@@ -382,6 +420,38 @@ mod tests {
         );
         assert_eq!(host.fence_if(old), Err(Error::Locked));
         host.close();
+        host.closed().await.unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn checkpoint_fences_immediately_and_drops_keys_before_slow_storage() {
+        let dir = TempDir::new();
+        let client = crate::testing::unlocked(&dir.0, false, None);
+        let host = Host::start(client, &tokio::runtime::Handle::current());
+        let old = host.generation();
+        let (writing, started) = oneshot::channel();
+        let (release, wait) = std::sync::mpsc::channel();
+        let done = host.lock_with_checkpoint(
+            |c| {
+                assert!(c.keys().is_ok());
+                Ok(())
+            },
+            move |c, ()| {
+                assert!(c.keys().is_err());
+                writing.send(()).unwrap();
+                wait.recv_timeout(Duration::from_secs(10)).unwrap();
+                Ok(())
+            },
+        );
+        started.await.unwrap();
+        assert_eq!(
+            host.run_at(old, |_| Box::pin(async { Ok(()) })).await,
+            Err(Error::Locked)
+        );
+        host.pause();
+        host.close();
+        release.send(()).unwrap();
+        done.await.unwrap().unwrap();
         host.closed().await.unwrap();
     }
 

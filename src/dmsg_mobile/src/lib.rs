@@ -14,6 +14,8 @@ mod connect;
 mod content;
 pub use content::{ChannelMemberChange, CredentialSelection};
 mod diagnostics;
+mod draft_lock;
+pub use draft_lock::{DraftLock, EditorDrafts};
 mod display;
 mod error;
 mod feedback;
@@ -1485,7 +1487,15 @@ impl MobileEngine {
             .into();
         self.host
             .run(move |c| {
-                Box::pin(async move { c.save_stamped_composer(&draft.channel, &content, &stamp) })
+                Box::pin(async move {
+                    let result = c.save_stamped_composer(&draft.channel, &content, &stamp)?;
+                    if result {
+                        draft_lock::resolved(c, |p| {
+                            p.drafts.retain(|d| d.channel != draft.channel)
+                        })?;
+                    }
+                    Ok(result)
+                })
             })
             .await
             .map_err(Into::into)
@@ -1506,7 +1516,11 @@ impl MobileEngine {
             .into();
         self.host
             .run(move |c| {
-                Box::pin(async move { c.queue_stamped_composer(&draft.channel, &content, &stamp) })
+                Box::pin(async move {
+                    let result = c.queue_stamped_composer(&draft.channel, &content, &stamp)?;
+                    draft_lock::resolved(c, |p| p.drafts.retain(|d| d.channel != draft.channel))?;
+                    Ok(result)
+                })
             })
             .await
             .map_err(Into::into)

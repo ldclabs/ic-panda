@@ -194,6 +194,78 @@ class WorkspaceFlowTest {
         capture("qa-vault-draft-after-lock")
     }
 
+    @Test fun lastInputSurvivesRepeatedLockWhileTheDatabaseIsBusy() {
+        compose.runOnIdle { client.vaultDrafts.open(null) }
+        compose.waitUntil(5_000) { client.vaultDrafts.presented.value }
+        val account = requireNotNull(client.state.value.session?.account)
+        val workspace = File(directory, "accounts/$account")
+        val database = android.database.sqlite.SQLiteDatabase.openDatabase(
+            File(workspace, "workspace.sqlite").path, null,
+            android.database.sqlite.SQLiteDatabase.OPEN_READWRITE or android.database.sqlite.SQLiteDatabase.ENABLE_WRITE_AHEAD_LOGGING)
+        val previous = native.scoped(native.controlGeneration())
+        val last = "最后输入的内容🔒"
+        val id = net.dmsg.android.core.requestId()
+        try {
+            database.beginTransactionNonExclusive()
+            compose.runOnIdle {
+                client.vaultDrafts.update { it.copy(title = last, tags = "未完成,") }
+                client.letters.update(net.dmsg.android.core.LetterDraft(id = id, text = last))
+                // The background grace can already have fenced the UI's old handle.
+                native.`suspend`()
+                client.lock()
+                client.lock()
+                assertFalse(client.state.value.unlocked)
+                assertNull(client.vaultDrafts.current.value)
+                assertTrue(client.letters.drafts.value.isEmpty())
+            }
+            assertTrue(runCatching { runBlocking { previous.vaultDrafts() } }.isFailure)
+            // Keep the writer longer than the old two-second deadline. Lock and
+            // the encrypted checkpoint must finish without acquiring this writer.
+            compose.waitUntil(10_000) { client.state.value.session?.state == "locked" && !client.state.value.busy }
+            android.os.SystemClock.sleep(2_100)
+            val checkpoint = File(workspace, "mobile-lock-drafts.v1")
+            assertTrue(checkpoint.isFile)
+            assertFalse(checkpoint.readText().contains(last))
+        } finally {
+            if (database.inTransaction()) database.endTransaction()
+            database.close()
+            previous.destroy()
+        }
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as DMsgApplication
+        runBlocking { withContext(Dispatchers.Main.immediate) { client.shutdown() } }
+        compose.runOnUiThread {
+            client = ClientController(app, uptime = { uptime }) { paths, platform ->
+                MobileEngine.reopenUiFixture(directory.absolutePath, paths.staging.absolutePath, platform).also { native = it }
+            }
+            uiVersion += 1
+            client.start()
+        }
+        compose.waitUntil(20_000) { client.state.value.unlocked && client.vaultDrafts.presented.value }
+        compose.onNodeWithTag("vault-editor-title").assertTextContains(last)
+        assertEquals("未完成,", client.vaultDrafts.current.value!!.tags)
+        assertEquals(last, runBlocking { net.dmsg.android.core.parseLetterDrafts(
+            kotlinx.serialization.json.Json.parseToJsonElement(native.letterDrafts().json)) }.single { it.id == id }.text)
+        assertFalse(File(workspace, "mobile-lock-drafts.v1").exists())
+    }
+
+    @Test fun unlockReturnsAnOversizedPasteToItsLetterEditor() {
+        val id = net.dmsg.android.core.requestId()
+        val pasted = "a".repeat(33 * 1024)
+        compose.runOnIdle {
+            client.letters.update(net.dmsg.android.core.LetterDraft(id = id, text = pasted))
+            client.lock()
+        }
+        compose.waitUntil(10_000) { client.state.value.session?.state == "locked" && !client.state.value.busy }
+        compose.runOnIdle { client.perform({ it.unlockUiFixture() }, transition = true) }
+        compose.waitUntil(10_000) { client.state.value.unlocked && client.letters.drafts.value[id]?.text == pasted }
+        compose.runOnIdle { client.letters.update(client.letters.drafts.value.getValue(id).copy(text = "可继续编辑")) }
+        compose.waitUntil(10_000) { client.letters.pending().isEmpty() }
+        val current = native.scoped(native.controlGeneration())
+        try { assertTrue(runBlocking { current.letterDrafts() }.json.contains("可继续编辑")) }
+        finally { current.destroy() }
+        assertFalse(File(directory, "accounts/${client.state.value.session?.account}/mobile-lock-drafts.v1").exists())
+    }
+
     @Test fun existingVaultDraftSurvivesTimeoutAndNativeControllerRestart() {
         val summary = runBlocking { native.vaultPage("", null, false, 0u, 100u) }.items.first { it.title == "Studio account" }
         val item = runBlocking { native.vaultItem(summary.id, null) }.item

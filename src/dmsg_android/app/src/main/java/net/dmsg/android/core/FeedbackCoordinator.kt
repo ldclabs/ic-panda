@@ -55,6 +55,9 @@ class FeedbackCoordinator(private val client: ClientController) {
     }
     fun edit() { val id = report.value()?.id ?: return; client.perform({ it.editFeedback(id) }, key = "feedback:edit", serial = turn) { load() } }
     fun discard() { val value = report.value() ?: return; dirty = false; client.perform({ it.clearFeedback(value.id, value.revision) }, key = "feedback:discard", serial = turn) { dirty = false; mutable.value = null; load() } }
+    internal fun restore(input: FeedbackDraftInput) {
+        if (!dirty) { mutable.value = input; dirty = true }
+    }
     fun pending() = mutable.value?.takeIf { dirty }
     fun acknowledge(value: FeedbackDraftInput?) { if (value != null && value == mutable.value) dirty = false }
     fun clear(retainDrafts: Boolean = false) { report.reset(); if (!retainDrafts) { mutable.value = null; dirty = false } }

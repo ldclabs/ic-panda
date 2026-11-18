@@ -509,7 +509,10 @@ impl MobileEngine {
     ) -> Result<()> {
         self.host
             .run(move |c| {
-                Box::pin(async move { c.queue_free_letter(&id, &recipient, &text, invitation) })
+                Box::pin(async move {
+                    c.queue_free_letter(&id, &recipient, &text, invitation)?;
+                    draft_lock::resolved(c, |p| p.letters.retain(|d| d.id != id))
+                })
             })
             .await?;
         Ok(())

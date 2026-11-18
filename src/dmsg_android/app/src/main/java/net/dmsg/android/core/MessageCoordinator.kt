@@ -238,6 +238,14 @@ class MessageCoordinator(private val client: ClientController, private val scope
             if (selected == channel) load(channel, false, preserveLoaded = true)
             browse()
         }
+    internal fun restore(account: String, input: MessageDraft) {
+        if (ledger.text(account, input.channel) != null) return
+        val reply = input.replySequence?.let { sequence -> input.replyDigest?.let { ComposerReply(sequence, it) } }
+        val value = MessageComposer(input.text, input.attachments, reply)
+        mutableComposers.value += input.channel to value
+        ledger.edit(account, input.channel, value)
+    }
+
     fun pending(account: String) = ledger.pending(account)
     fun saved(draft: DraftLedger.Draft) = ledger.saved(draft)
     fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); refreshing = false; refreshAgain = false }

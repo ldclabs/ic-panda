@@ -455,3 +455,147 @@ async fn vault_drafts_cross_pause_and_lock_barriers_without_accepting_old_handle
     assert_eq!(reopened.vault_drafts().await.unwrap().json, "[]");
     engine.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn android_draft_lock_survives_pause_a_dropped_waiter_and_workspace_restart() {
+    let (engine, dir, _) = fixture("http://127.0.0.1:9").await;
+    let state = engine.session_state().await.unwrap();
+    let account = state.account.unwrap();
+    let channel = "ab".repeat(32);
+    engine
+        .host
+        .inner
+        .with_at(state.generation, |c| {
+            testing::joined_channel(c, &channel);
+            Ok(())
+        })
+        .await
+        .unwrap();
+    let queued = "a1".repeat(32);
+    engine
+        .queue_free_letter(
+            queued.clone(),
+            account.clone(),
+            "already queued".into(),
+            None,
+        )
+        .await
+        .unwrap();
+    let last = "刚输入的最后一行🔒";
+    let letter = |id| LetterDraftInput {
+        id,
+        recipient: String::new(),
+        text: last.into(),
+        invitation: None,
+    };
+    engine.suspend();
+    let lock = engine.begin_draft_lock(
+        account.clone(),
+        state.device_id.unwrap(),
+        vec![MessageDraft {
+            channel,
+            text: last.into(),
+            stamp: Some(MessageDraftStamp {
+                writer: "ab".repeat(16),
+                revision: 2,
+            }),
+            attachments: vec![ComposerAttachment {
+                file: "33".repeat(32),
+                version: "44".repeat(32),
+                name: "photo.png".into(),
+            }],
+            reply_sequence: Some(3),
+            reply_digest: Some("55".repeat(32)),
+        }],
+        vec![letter(queued.clone()), letter("b2".repeat(32))],
+        Some(FeedbackDraftInput {
+            id: "c3".repeat(32),
+            revision: 0,
+            text: last.into(),
+            context: "Android".into(),
+            files: vec![],
+        }),
+        vec![vault::VaultDraftInput {
+            id: "d4".repeat(32),
+            item_id: None,
+            base_revision: None,
+            revision: 2,
+            form: serde_json::json!({"field":last,"tags":"unfinished,"}).to_string(),
+            active: true,
+        }],
+    );
+    drop(lock);
+    assert!(engine.scoped(state.generation).is_err());
+    engine.lock_now();
+    engine.shutdown().await.unwrap();
+    let file = dir.path(&format!("accounts/{account}/mobile-lock-drafts.v1"));
+    assert!(!std::fs::read_to_string(&file).unwrap().contains(last));
+    let mut reopened = testing::reopen_fixture(&dir.0).unwrap();
+    let restored = crate::draft_lock::recover(&mut reopened).unwrap();
+    assert!(restored.is_none());
+    let composer = &reopened.message_composers().unwrap()[0]["draft"];
+    assert_eq!(composer["text"], last);
+    assert_eq!(composer["reply_to"]["seq"], 3);
+    assert_eq!(composer["attachments"][0]["name"], "photo.png");
+    let letters = reopened.letter_drafts().unwrap();
+    assert_eq!(letters.len(), 1);
+    assert_eq!(letters[0].text, last);
+    assert_eq!(reopened.letter_history().unwrap()[0]["id"], queued);
+    assert_eq!(reopened.feedback().unwrap().unwrap().text, last);
+    assert!(reopened.vault_drafts().unwrap()[0].form.contains(last));
+    assert!(!file.exists());
+}
+
+#[tokio::test]
+async fn rejected_letter_remains_editable_after_unlock_until_corrected() {
+    let (engine, _dir, _) = fixture("http://127.0.0.1:9").await;
+    let state = engine.session_state().await.unwrap();
+    let id = "38".repeat(32);
+    let pasted = "a".repeat(33 * 1024);
+    engine
+        .begin_draft_lock(
+            state.account.unwrap(),
+            state.device_id.unwrap(),
+            vec![],
+            vec![LetterDraftInput {
+                id: id.clone(),
+                recipient: String::new(),
+                text: pasted.clone(),
+                invitation: None,
+            }],
+            None,
+            vec![],
+        )
+        .finish()
+        .await
+        .unwrap();
+    let generation = engine.control_generation();
+    engine
+        .host
+        .inner
+        .with_at(generation, |c| {
+            testing::unlock_fixture(c);
+            Ok(())
+        })
+        .await
+        .unwrap();
+    let current = engine.scoped(generation).unwrap();
+    assert_eq!(current.session_state().await.unwrap().state, "unlocked");
+    let restored = current.restore_editor_drafts().await.unwrap().unwrap();
+    assert_eq!(restored.letters[0].text, pasted);
+    assert!(current.restore_editor_drafts().await.unwrap().is_some());
+    current
+        .save_letter_draft(id, String::new(), "corrected".into(), None)
+        .await
+        .unwrap();
+    assert!(current.restore_editor_drafts().await.unwrap().is_none());
+    assert!(
+        current
+            .letter_drafts()
+            .await
+            .unwrap()
+            .json
+            .contains("corrected")
+    );
+    engine.shutdown().await.unwrap();
+}

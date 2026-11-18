@@ -1,7 +1,7 @@
 use super::*;
 
 /// Authored feedback waiting for a local save, also flushed by an explicit lock.
-#[derive(Clone, uniffi::Record)]
+#[derive(Clone, uniffi::Record, serde::Serialize, serde::Deserialize)]
 pub struct FeedbackDraftInput {
     pub id: String,
     pub revision: u64,
@@ -36,7 +36,12 @@ impl MobileEngine {
         self.held_object(move |h| {
             Box::pin(async move {
                 let _turn = turn.lock().await;
-                h.with(|c| draft.save(c)).await
+                h.with(|c| {
+                    let saved = draft.save(c)?;
+                    draft_lock::resolved(c, |p| p.feedback = None)?;
+                    Ok(saved)
+                })
+                .await
             })
         })
         .await
@@ -75,7 +80,11 @@ impl MobileEngine {
         self.held(move |h| {
             Box::pin(async move {
                 let _turn = turn.lock().await;
-                h.with(|c| c.clear_feedback(&id, revision)).await
+                h.with(|c| {
+                    c.clear_feedback(&id, revision)?;
+                    draft_lock::resolved(c, |p| p.feedback = None)
+                })
+                .await
             })
         })
         .await

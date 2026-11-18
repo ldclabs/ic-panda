@@ -359,7 +359,7 @@ impl From<dmsg_client::channel::Message> for MessageItem {
     }
 }
 
-#[derive(uniffi::Record)]
+#[derive(uniffi::Record, serde::Serialize, serde::Deserialize)]
 pub struct MessageDraft {
     pub channel: String,
     pub text: String,
@@ -369,7 +369,7 @@ pub struct MessageDraft {
     pub reply_digest: Option<String>,
 }
 
-#[derive(Clone, uniffi::Record)]
+#[derive(Clone, uniffi::Record, serde::Serialize, serde::Deserialize)]
 pub struct ComposerAttachment {
     pub file: String,
     pub version: String,
@@ -403,7 +403,7 @@ impl MessageDraft {
 }
 
 /// Authored revision used to fence late autosaves and a lost queue reply.
-#[derive(uniffi::Record)]
+#[derive(Clone, uniffi::Record, serde::Serialize, serde::Deserialize)]
 pub struct MessageDraftStamp {
     pub writer: String,
     pub revision: u64,
