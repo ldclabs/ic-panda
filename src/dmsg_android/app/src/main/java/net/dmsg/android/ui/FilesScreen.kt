@@ -38,7 +38,7 @@ import java.io.File
     LaunchedEffect(selected, state.epoch) { if (selected.isNotEmpty()) client.library.select(selected) }
     val current = details.valueOrNull()?.takeIf { it.file.id == selected }
     val historical = current?.versions?.find { it.id == selectedVersion }
-    val file = current?.file?.let { if (selectedVersion != null && historical == null) null else if (historical == null) it else it.copy(version = historical.id, mime = historical.mime ?: (if (historical.current) it.mime else "application/octet-stream"), size = historical.size, sha256 = historical.sha256, status = historical.status, local = historical.local, backup = historical.backup) }
+    val file = current?.file?.let { if (selectedVersion != null && historical == null) null else if (historical == null) it else it.atVersion(historical) }
     if (selected.isEmpty()) FileBrowserScreen(client, state, trash, select) else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(details, { client.library.select(selected) })
         if (current != null && selectedVersion != null && historical == null) {

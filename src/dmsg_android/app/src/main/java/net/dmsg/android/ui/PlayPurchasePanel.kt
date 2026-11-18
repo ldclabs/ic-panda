@@ -81,6 +81,7 @@ private val purchaseWorking = setOf(PurchasePhase.LOADING, PurchasePhase.PREPARI
         ModalBottomSheet(onDismissRequest = onClose, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             Column(Modifier.fillMaxWidth().heightIn(max = 680.dp).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(bottom = 24.dp).testTag("play-review"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(offerTitle(offer), style = MaterialTheme.typography.headlineSmall)
+                LabelValue(str(R.string.text_account_4ab56e9), view.beneficiary ?: str(R.string.text_not_verified_e9586ea))
                 if (offer.description.isNotBlank()) Text(offer.description, style = MaterialTheme.typography.bodyMedium)
                 offer.phases.forEachIndexed { index, phase ->
                     LabelValue(if (offer.selection.kind == PlayKind.STORAGE) str(R.string.text_pay_once_84cad17) else if (phase.recurring) str(R.string.text_each_year_a4c5bef) else str(R.string.text_introductory_phase_f6477c6) + if (offer.phases.size > 1) " ${index + 1}" else "", phase.price)
@@ -94,7 +95,7 @@ private val purchaseWorking = setOf(PurchasePhase.LOADING, PurchasePhase.PREPARI
                 }
                 PurchaseProgress(view)
                 val storageReady = offer.selection.kind != PlayKind.STORAGE || offer.selection.storageBytes != null && plan?.let { !it.needsRefresh(System.currentTimeMillis().toULong()) && it.term?.method == "GooglePlay" } == true
-                Button(onClick = { onBuy() }, enabled = hasActivity && view.canBuy && view.pending == 0 && view.phase !in purchaseWorking && storageReady, modifier = Modifier.fillMaxWidth().testTag("play-buy")) { Text(str(R.string.text_continue_with_google_play_c7da724)) }
+                Button(onClick = { onBuy() }, enabled = hasActivity && view.beneficiary != null && view.canBuy && view.pending == 0 && view.phase !in purchaseWorking && storageReady, modifier = Modifier.fillMaxWidth().testTag("play-buy")) { Text(str(R.string.text_continue_with_google_play_c7da724)) }
                 if (!storageReady) TextButton(onClick = { onRefreshMembership() }) { Text(str(R.string.text_refresh_membership_5fe7c8a)) }
                 if (view.pending > 0 || view.phase == PurchasePhase.FAILED || view.phase == PurchasePhase.DELIVERED) TextButton(onClick = onRestore, enabled = view.phase !in purchaseWorking, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_check_the_original_purchase_0283791)) }
                 TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_close_6cf4a77)) }
@@ -114,6 +115,7 @@ private fun offerTitle(offer: PlayOffer) = offer.selection.plan?.let { "dMsg $it
             PurchasePhase.VERIFYING -> str(R.string.text_3_checking_delivery_f91776b)
             PurchasePhase.PENDING -> if (view.receipts.any { it.state == "Pending" }) str(R.string.text_payment_is_still_pending_in_google_play_db721a6) else str(R.string.text_your_purchase_is_being_verified_finish_restoring_it_before_buying_8803db3)
             PurchasePhase.DELIVERED -> str(R.string.text_purchase_recovered_membership_is_being_refreshed_9ba2023)
+            PurchasePhase.IDLE -> if (view.cancelled && view.pending == 0) str(R.string.text_cancelled_bf41d7d) else null
             else -> null
         }
         label?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }

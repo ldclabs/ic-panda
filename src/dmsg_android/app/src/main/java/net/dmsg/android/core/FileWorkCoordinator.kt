@@ -92,13 +92,18 @@ class FileWorkCoordinator(private val client: ClientController, private val scop
         failures.value = emptyMap()
         load(true)
     }
-    fun backup(file: LibraryFile) {
-        client.perform({ core -> parseBackupAdmission(core.backupFile(file.id, file.version).decode()) },
-            key = "file:backup:${file.id}") { admission ->
-            if (admission.accepted) { paused = false; load(true); client.navigation.push(Route("file-transfers")) }
-            else client.showError(when (admission.skipped.firstOrNull()) { "too_large" -> "FILE_TOO_LARGE"; "not_local" -> "NOT_LOCAL"; else -> "BACKUP_NOT_STARTED" })
+    fun queued() { paused = false; load(true) }
+
+    fun backup(file: LibraryFile, immutableRevision: Boolean = false) {
+        client.perform({ core ->
+            val result = if (immutableRevision) core.backupFileRevision(file.id, file.version) else core.backupFile(file.id, file.version)
+            parseBackupAdmission(result.decode()).outcome()
+        }, key = "file:backup:${file.id}") { result ->
+            if (result.accepted) { queued(); client.navigation.push(Route("file-transfers")) }
+            else client.showError(result.code)
         }
     }
+
     fun restore(upload: String, folder: String) {
         client.perform({ core -> client.operation { core.restoreBackup(upload, folder, it) } }, key = "file:restore:$upload") {
             paused = false; load(true); client.navigation.push(Route("file-transfers"))

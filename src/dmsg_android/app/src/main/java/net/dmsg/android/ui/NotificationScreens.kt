@@ -4,8 +4,6 @@ import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import net.dmsg.android.platform.localizedNumber
 import android.app.TimePickerDialog
-import android.content.Intent
-import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,10 +11,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 import java.time.ZoneId
@@ -41,6 +40,15 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
     val state by client.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val permission = LocalNoticePermission.current
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
+    val focused = LocalWindowInfo.current.isWindowFocused
+    val allowed = client.notices.system.allowed()
+    val blockedChannels = remember(lifecycle, focused, allowed) { noticeCategories.filter(client.notices.system::channelBlocked) }
+    fun openSystem(category: String? = null) {
+        client.beginExternalInteraction()
+        context.startActivity(client.notices.system.settings(category))
+    }
+    var advanced by remember { mutableStateOf(false) }
     var confirmingAccount by remember { mutableStateOf(false) }
     var confirmingRetry by remember { mutableStateOf(false) }
     LaunchedEffect(state.epoch) { client.notifications.load() }
@@ -48,18 +56,14 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
         item {
             Text(str(R.string.text_notification_delivery_937a3db), modifier = Modifier.openedReminderVisible(client, preferences is ReadState.Ready) { it.kind == "service" && it.id?.startsWith("registration:") == true }, style = MaterialTheme.typography.titleMedium)
             ReadFeedback(preferences, client.notifications::load)
-            if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) OutlinedButton(onClick = permission) { Text(str(R.string.text_allow_system_notifications_2b06bbf)) }
-            noticeCategories.forEach { category ->
-                TextButton(onClick = { client.beginExternalInteraction(); context.startActivity(client.notices.system.settings(category)) }) { Text(str(R.string.text_android_settings_33f5c54) + noticeCategoryTitle(category)) }
+            LabelValue(str(R.string.text_system_permission_ecf1e5e), if (allowed) str(R.string.text_allowed_888622f) else str(R.string.text_not_allowed_48efbe6))
+            if (!allowed && android.os.Build.VERSION.SDK_INT >= 33) OutlinedButton(onClick = permission) { Text(str(R.string.text_allow_system_notifications_2b06bbf)) }
+            TextButton(onClick = { openSystem() }) { Text(str(R.string.text_open_notification_settings_aa6d826)) }
+            if (allowed) blockedChannels.forEach { category ->
+                TextButton(onClick = { openSystem(category) }) {
+                    Text(noticeCategoryTitle(category) + " · " + str(R.string.text_system_permission_ecf1e5e) + " · " + str(R.string.text_not_allowed_48efbe6))
+                }
             }
-            TextButton(onClick = client.notices::test) { Text(str(R.string.notice_test)) }
-            test?.let { result -> Text(when (result) {
-                net.dmsg.android.platform.SystemNotices.Result.SUBMITTED -> str(R.string.text_test_notification_submitted_to_android_2ea1fbf)
-                net.dmsg.android.platform.SystemNotices.Result.SUPPRESSED -> str(R.string.text_allow_notifications_and_the_service_category_in_android_settings_613b226)
-                net.dmsg.android.platform.SystemNotices.Result.FAILED -> str(R.string.text_the_test_notification_could_not_be_submitted_try_again_2f69e15)
-            }) }
-            LabelValue(str(R.string.text_system_permission_ecf1e5e), if (NotificationManagerCompat.from(context).areNotificationsEnabled()) str(R.string.text_allowed_888622f) else str(R.string.text_not_allowed_48efbe6))
-            OutlinedButton(onClick = { client.beginExternalInteraction(); context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)) }) { Text(str(R.string.text_open_notification_settings_aa6d826)) }
             Notice(when (push) {
                 net.dmsg.android.core.PushCoordinator.Status.UNCONFIGURED -> str(R.string.text_background_delivery_is_unavailable_in_this_build_opening_dmsg_ref_c768a1b)
                 net.dmsg.android.core.PushCoordinator.Status.CONSENT -> str(R.string.text_enable_account_reminders_below_then_register_this_device_for_back_d2141d8)
@@ -71,6 +75,20 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
                 net.dmsg.android.core.PushCoordinator.Status.FAILED -> str(R.string.text_registration_was_not_confirmed_check_the_connection_and_retry_6a52481)
             })
             if (client.push.configured) OutlinedButton(onClick = client.push::enable, enabled = state.unlocked && push != net.dmsg.android.core.PushCoordinator.Status.WORKING && !state.working("notices:save")) { Text(str(R.string.text_register_renew_background_delivery_629efa3)) }
+        }
+        item {
+            SettingToggle(str(R.string.text_advanced), advanced, { advanced = it })
+            if (advanced) {
+                noticeCategories.filterNot { allowed && it in blockedChannels }.forEach { category ->
+                    TextButton(onClick = { openSystem(category) }) { Text(str(R.string.text_android_settings_33f5c54) + noticeCategoryTitle(category)) }
+                }
+                TextButton(onClick = client.notices::test) { Text(str(R.string.notice_test)) }
+                test?.let { result -> Text(when (result) {
+                    net.dmsg.android.platform.SystemNotices.Result.SUBMITTED -> str(R.string.text_test_notification_submitted_to_android_2ea1fbf)
+                    net.dmsg.android.platform.SystemNotices.Result.SUPPRESSED -> str(R.string.text_allow_notifications_and_the_service_category_in_android_settings_613b226)
+                    net.dmsg.android.platform.SystemNotices.Result.FAILED -> str(R.string.text_the_test_notification_could_not_be_submitted_try_again_2f69e15)
+                }) }
+            }
         }
         draft?.let { value ->
             item {
@@ -122,14 +140,14 @@ internal fun noticeCategoryTitle(category: String) = when (category) {
                     NoticeSwitch(str(R.string.text_notify_for_this_account_f989be2), account.enabled) { enabled ->
                         if (enabled) confirmingAccount = true else client.notifications.edit(account = account.copy(enabled = false))
                     }
-                    NoticeSwitch(str(R.string.text_coordinate_with_other_devices_c33e88f), account.mergeDevices) { client.notifications.edit(account = account.copy(mergeDevices = it)) }
+                    if (advanced) NoticeSwitch(str(R.string.text_coordinate_with_other_devices_c33e88f), account.mergeDevices) { client.notifications.edit(account = account.copy(mergeDevices = it)) }
                 }
                 items(noticeCategories, key = { it }) { category ->
                     val selected = account.categories.getValue(category)
                     Card {
                         Column {
                             NoticeSwitch(noticeCategoryTitle(category), selected.enabled) { enabled -> client.notifications.edit(account = account.copy(categories = account.categories + (category to selected.copy(enabled = enabled)))) }
-                            NoticeSwitch(str(R.string.text_sound_29e55cd) + " · " + noticeCategoryTitle(category), selected.sound) { sound -> client.notifications.edit(account = account.copy(categories = account.categories + (category to selected.copy(sound = sound)))) }
+                            if (advanced) NoticeSwitch(str(R.string.text_sound_29e55cd) + " · " + noticeCategoryTitle(category), selected.sound) { sound -> client.notifications.edit(account = account.copy(categories = account.categories + (category to selected.copy(sound = sound)))) }
                         }
                     }
                 }
@@ -147,13 +165,29 @@ private fun minuteTime(minutes: Int) = (minutes / 60).toString().padStart(2, '0'
 @Composable fun NotificationTimezoneScreen(client: ClientController) {
     val draft by client.notifications.draft.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
-    val zones = remember { ZoneId.getAvailableZoneIds().sorted() }
+    val locale = net.dmsg.android.platform.AppLanguage.locale()
+    val current = draft?.global?.quiet?.timezone
+    val zones = remember(locale, current) {
+        val names = android.icu.text.TimeZoneNames.getInstance(locale)
+        val ids = java.util.TimeZone.getAvailableIDs().mapNotNull { android.icu.util.TimeZone.getCanonicalID(it) }
+            .filter { '/' in it || it == "UTC" }.toMutableSet()
+        current?.let(ids::add)
+        val sorter = java.text.Collator.getInstance(locale)
+        ids.map { id ->
+            val name = names.getExemplarLocationName(id) ?: id.substringAfterLast('/').replace('_', ' ')
+            val zone = java.util.TimeZone.getTimeZone(id)
+            Triple(id, name, zone.getDisplayName(false, java.util.TimeZone.LONG, locale))
+        }.sortedWith(compareBy<Triple<String, String, String>> { it.first != current }.thenComparator { a, b -> sorter.compare(a.second, b.second) })
+    }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text(str(R.string.text_search_time_zones_e44910f)) }, singleLine = true)
         LazyColumn {
-            items(zones.filter { it.contains(query, ignoreCase = true) }, key = { it }) { zone ->
-                ListItem(headlineContent = { Text(zone) }, trailingContent = { if (draft?.global?.quiet?.timezone == zone) Text(str(R.string.text_selected_fea261f)) },
-                    modifier = Modifier.clickable { draft?.global?.let { global -> global.quiet?.let { client.notifications.edit(global = global.copy(quiet = it.copy(timezone = zone))) } }; client.navigation.back() })
+            val visible = zones.filter { (id, city, region) -> listOf(id, city, region).any { it.contains(query.trim(), ignoreCase = true) } }
+            if (visible.isEmpty()) item { EmptyPanel(str(R.string.no_matches)) }
+            items(visible, key = { it.first }) { (id, city, region) ->
+                ListItem(headlineContent = { Text(city) }, supportingContent = { Text(region + " · " + id) },
+                    trailingContent = { if (current == id) Text(str(R.string.text_selected_fea261f)) },
+                    modifier = Modifier.clickable { draft?.global?.let { global -> global.quiet?.let { client.notifications.edit(global = global.copy(quiet = it.copy(timezone = id))) } }; client.navigation.back() })
             }
         }
     }

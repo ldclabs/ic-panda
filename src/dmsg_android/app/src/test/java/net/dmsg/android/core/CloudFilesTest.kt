@@ -24,6 +24,24 @@ class CloudFilesTest {
         assertFalse(job.copy(retryAt = null).due(200u))
         assertEquals(9007199254740993uL, job.bytes)
     }
+    @Test fun reviewedVersionsRetryOnlyFailuresAndDoNotReserveExistingJobsTwice() {
+        fun row(rev: String, size: ULong, status: String = "local") = ReviewedBackup(
+            LibraryFile("file", "Test.txt", size, status, "", "text/plain", rev, "root", true, false, emptyList(), "", 1u), 1u, rev == "latest")
+        val a = row("old", 100u)
+        val b = row("latest", 200u)
+        val existing = row("queued", 1000u, "backing_up")
+        val limits = BackupCapacity(250u, 300u, 0u, 0u, null)
+        val all = BackupBatch(setOf(a.key, b.key, existing.key), listOf(a, b, existing))
+        assertTrue(all.fits(limits))
+        assertFalse(all.fits(limits.copy(reserved = 1u)))
+        val retry = all.copy(outcomes = mapOf(a.key to BackupAdmission(listOf("job"), emptyList()).outcome(),
+            b.key to BackupOutcome("UNAVAILABLE", false), existing.key to BackupAdmission(emptyList(), listOf("in_progress")).outcome()))
+        assertEquals(listOf(b), retry.pending)
+        assertTrue(retry.fits(limits.copy(committed = 100u)))
+        assertFalse(retry.fits(limits.copy(fileLimit = null)))
+        assertFalse(retry.copy(outcomes = retry.outcomes + (b.key to BackupAdmission(emptyList(), listOf("backed_up")).outcome())).fits(limits))
+    }
+
     @Test fun availableSpaceNeverWrapsUnsignedCounters() {
         assertEquals(0uL, BackupCapacity(1u, 10u, ULong.MAX_VALUE, 2u, null).remaining)
         assertEquals(0uL, BackupCapacity(1u, 10u, 5u, ULong.MAX_VALUE, null).remaining)

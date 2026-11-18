@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -108,11 +110,18 @@ private val destinations = listOf(
                             }, actions = {
                                 if (route == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
                                 Box {
-                                    IconButton(onClick = { activityMenu = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || noticeStatus.valueOrNull()?.counts?.unverified == true || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null || syncStatus?.running == true || (state.session?.pendingSync ?: 0u) > 0u) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
+                                    IconButton(onClick = { activityMenu = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
                                     DropdownMenu(activityMenu, { activityMenu = false }) {
-                                        DropdownMenuItem(text = { Text(str(R.string.text_reminders_e43c7b0) + " · " + (noticeStatus.valueOrNull()?.counts?.total?.let { localizedNumber(it) } ?: "—")) }, onClick = { activityMenu = false; go("reminders") })
-                                        DropdownMenuItem(text = { Text(str(R.string.text_approvals_1b5e94c) + " · " + (state.session?.approvalsWaiting?.let { localizedNumber(it) } ?: "—")) }, onClick = { activityMenu = false; go("approvals") })
-                                        DropdownMenuItem(text = { Text(str(R.string.text_account_synchronization_77ccb72)) }, onClick = { activityMenu = false; go("sync") })
+                                        val reminders = noticeStatus.valueOrNull()?.counts?.total
+                                        val approvals = state.session?.approvalsWaiting
+                                        val actions = listOf(
+                                            Triple("approvals", str(R.string.text_approvals_1b5e94c) + " · " + (approvals?.let { localizedNumber(it) } ?: "—"), (approvals ?: 0u) > 0u),
+                                            Triple("reminders", str(R.string.text_reminders_e43c7b0) + " · " + (reminders?.let { localizedNumber(it) } ?: "—"), (reminders ?: 0uL) > 0uL),
+                                            Triple("sync", str(R.string.text_account_synchronization_77ccb72), syncStatus?.error != null),
+                                        )
+                                        actions.sortedByDescending { it.third }.forEach { (page, label, _) ->
+                                            DropdownMenuItem(text = { Text(label) }, onClick = { activityMenu = false; go(page) })
+                                        }
                                         DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { activityMenu = false; go("secret-activity") })
                                     }
                                 }
@@ -121,8 +130,8 @@ private val destinations = listOf(
                                 destinations.forEach { destination -> NavigationBarItem(selected = navigation.workspace.route == destination.id, onClick = { go(destination.id) }, icon = { Icon(destination.icon, null) }, label = { Text(str(destination.label)) }) }
                             } },
                             floatingActionButton = {
-                                if (selected.isEmpty() && route == "files") FileIntakeButton(client, folder = navigation.current.folder, extended = true)
-                                else if (selected.isEmpty() && route == "vault") ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_5a5d1d1)) })
+                                if ((selected.isEmpty() || wide) && route == "files") FileIntakeButton(client, folder = navigation.current.folder, extended = true)
+                                else if ((selected.isEmpty() || wide) && route == "vault") ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, modifier = Modifier.semantics { contentDescription = str(R.string.text_new_item_9916f9f) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_5a5d1d1)) })
                             },
                             snackbarHost = { SnackbarHost(snackbar) },
                         ) { padding ->
@@ -207,7 +216,9 @@ private val destinations = listOf(
                                     "file-transfers" -> TransferScreen(client)
                                     "file-preview" -> FilePreviewScreen(client, selected, navigation.current.revision.orEmpty())
                                     "cloud-files" -> CloudFilesScreen(client, selected)
-                                    "file-backup" -> FileBackupScreen(client, selected, navigation.current.revision)
+                                    "file-unbacked" -> UnbackedFilesScreen(client)
+                                    "file-backup" -> if (navigation.current.field == "batch") BatchBackupScreen(client)
+                                        else FileBackupScreen(client, selected, navigation.current.revision, navigation.current.field == "revision")
                                     "file-requests" -> FileRequestsScreen(client, selected)
                                     "file-request-compose" -> FileRequestComposerScreen(client)
                                     "file-request-batch" -> FileRequestBatchScreen(client, selected)
@@ -322,6 +333,7 @@ private fun title(route: String) = when (route) {
     "file-transfers" -> str(R.string.text_transfers_6fdfd95)
     "file-preview" -> str(R.string.text_verified_preview_80df961)
     "cloud-files" -> str(R.string.text_cloud_backups_ab4daf1)
+    "file-unbacked" -> str(R.string.without_backup)
     "file-backup" -> str(R.string.text_back_up_to_cloud_ee48ac0)
     "file-requests" -> str(R.string.text_collect_files_3ad17e5)
     "file-request-compose", "file-request-batch" -> str(R.string.text_collection_links_91ac11d)

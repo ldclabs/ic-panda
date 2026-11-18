@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,11 +25,12 @@ import net.dmsg.android.R
 import net.dmsg.android.core.*
 import net.dmsg.core.PasskeyOperation
 
+private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
+
 @Composable internal fun EntryScreen(client: ClientController, state: UiState, browser: (String) -> Unit, snackbar: SnackbarHostState) {
     val page by client.access.collectAsStateWithLifecycle()
     val authentication by client.authentication.state.collectAsStateWithLifecycle()
     val incoming by client.incoming.intake.collectAsStateWithLifecycle()
-    var creating by remember { mutableStateOf(false) }
     var information by remember { mutableStateOf<String?>(null) }
     var choosingAccount by remember { mutableStateOf(false) }
     var choosingLanguage by remember { mutableStateOf(false) }
@@ -36,11 +38,12 @@ import net.dmsg.core.PasskeyOperation
     var confirmingReset by remember { mutableStateOf(false) }
     var slow by remember { mutableStateOf(false) }
     val status = state.session?.state
+    var intent by rememberSaveable(status, state.session?.account, state.session?.passkeyAvailable) { mutableStateOf<PasskeyIntent?>(null) }
     val setup = state.session?.setupPending == true || status == "no_account"
     val authorize = status == "pairing_required" || status == "root_required"
     LaunchedEffect(state.busy, setup) { slow = false; if (state.busy && setup) { delay(15_000); slow = true } }
     BackHandler(page != AccessPage.WELCOME) { client.showAccess(AccessPage.WELCOME) }
-    BackHandler(creating) { creating = false; client.cancelAuthentication() }
+    BackHandler(intent != null) { intent = null; client.cancelAuthentication() }
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         if (status == "moved") { Box(Modifier.padding(padding)) { MovedWorkspaceScreen(client) }; return@Scaffold }
         if (page != AccessPage.WELCOME) {
@@ -61,27 +64,37 @@ import net.dmsg.core.PasskeyOperation
                 if (incoming.working) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(str(R.string.text_encrypting_shared_items_for_later_import_8caa029)) }
                 else if (incoming.count > 0) Notice(str(R.string.text_shared_items_are_waiting_unlock_an_account_to_review_and_import_t_713dc4a))
                 incoming.error?.let { Notice(errorText(it), true) }
-                if (creating) IconButton(onClick = { creating = false; client.cancelAuthentication() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
+                if (intent != null) IconButton(onClick = { intent = null; client.cancelAuthentication() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
                 Image(painterResource(R.drawable.dmsg_mark), null, Modifier.padding(top = 24.dp).size(64.dp))
-                Text(if (creating) str(R.string.text_create_your_sign_in_cfa2f8b) else if (status == "locked") str(R.string.text_welcome_back_70da839) else str(R.string.text_keep_what_matters_private_2a3adeb),
-                    style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                Text(if (creating) str(R.string.text_your_passkey_will_be_saved_by_your_credential_provider_this_creat_527af1f)
-                    else str(R.string.text_protect_passwords_notes_and_files_with_end_to_end_encryption_sync_50ec150), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(str(when (intent) {
+                    PasskeyIntent.NEW_WORKSPACE -> R.string.access_new_workspace
+                    PasskeyIntent.EXISTING_ACCOUNT -> R.string.access_existing_account
+                    null -> if (status == "locked") R.string.text_welcome_back_70da839 else R.string.text_keep_what_matters_private_2a3adeb
+                }), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                Text(str(when (intent) {
+                    PasskeyIntent.NEW_WORKSPACE -> R.string.text_your_passkey_will_be_saved_by_your_credential_provider_this_creat_527af1f
+                    PasskeyIntent.EXISTING_ACCOUNT -> R.string.access_linked_login
+                    null -> R.string.text_protect_passwords_notes_and_files_with_end_to_end_encryption_sync_50ec150
+                }), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
                 when {
                     state.session == null -> {
                         Notice(str(R.string.text_the_encrypted_workspace_could_not_be_opened_on_this_device_871676c), true)
                         Button(onClick = client::start) { Text(str(R.string.text_try_again_672e778)) }
                     }
-                    creating -> {
+                    intent == PasskeyIntent.NEW_WORKSPACE -> {
                         Button(onClick = { client.passkey(PasskeyOperation.REGISTER) }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                             Icon(Icons.Outlined.Key, null); Spacer(Modifier.width(10.dp)); Text(str(R.string.text_create_passkey_fb912be))
                         }
-                        TextButton(onClick = { creating = false }) { Text(str(R.string.text_already_have_a_passkey_sign_in_9207f1f)) }
+                        TextButton(onClick = { intent = PasskeyIntent.EXISTING_ACCOUNT }, enabled = !authentication.working && !state.busy) { Text(str(R.string.text_already_have_a_passkey_sign_in_9207f1f)) }
+                    }
+                    intent == PasskeyIntent.EXISTING_ACCOUNT -> {
+                        Notice(str(R.string.text_approve_this_phone_from_an_authorized_device_then_continue_here_7cbcaea))
+                        Button(onClick = { client.passkey() }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_existing_passkey)) }
                     }
                     setup -> {
-                        Button(onClick = client::initialize, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_get_started_64034d2)) }
-                        if (status == "no_account") OutlinedButton(onClick = { client.showAccess(AccessPage.JOIN_ACCOUNT) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_join_an_existing_account_cc7175b)) }
+                        Button(onClick = client::initialize, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_new_workspace)) }
+                        if (status == "no_account") OutlinedButton(onClick = { client.showAccess(AccessPage.JOIN_ACCOUNT) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.access_existing_account)) }
                         Notice(if (slow) str(R.string.text_the_network_is_taking_longer_than_usual_your_setup_progress_is_ke_d703303)
                             else str(R.string.text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122))
                     }
@@ -95,12 +108,18 @@ import net.dmsg.core.PasskeyOperation
                             Icon(Icons.Outlined.LockOpen, null); Spacer(Modifier.width(10.dp)); Text(str(R.string.text_unlock_workspace_ec9cb2a))
                         }
                         if (state.session?.passkeyAvailable == true) {
-                            Button(onClick = { client.passkey() }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_passkey_0c861d7)) }
-                            OutlinedButton(onClick = { creating = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_create_a_new_sign_in_11ef15b)) }
+                            if (state.session?.account == null && state.session?.fastUnlock != true) {
+                                Button(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_new_workspace)) }
+                                OutlinedButton(onClick = { intent = PasskeyIntent.EXISTING_ACCOUNT }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_existing_account)) }
+                            } else {
+                                OutlinedButton(onClick = { client.passkey() }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_passkey_0c861d7)) }
+                            }
                         }
                         if (state.session?.passkeyAvailable == true || state.session?.fastUnlock == true) OutlinedButton(onClick = { client.login(open = browser) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
                         else Button(onClick = { client.login(open = browser) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
-                        Text(str(R.string.text_sign_in_opens_your_system_browser_content_access_still_requires_a_6a9bef5), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (state.session?.fastUnlock == true) str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d)
+                            else if (state.session?.passkeyAvailable == true) str(R.string.signin_saved_passkey)
+                            else str(R.string.text_sign_in_opens_your_system_browser_content_access_still_requires_a_6a9bef5), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 if (authentication.canContinue) {

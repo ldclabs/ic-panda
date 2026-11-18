@@ -15,7 +15,7 @@ import net.dmsg.core.*
 import java.security.SecureRandom
 
 enum class PurchasePhase { IDLE, LOADING, PREPARING, CONFIRMING, VERIFYING, PENDING, DELIVERED, UNAVAILABLE, FAILED }
-data class PurchaseView(val phase: PurchasePhase = PurchasePhase.IDLE, val offers: List<PlayOffer> = emptyList(), val unavailable: Int = 0, val receipts: List<PlayReceipt> = emptyList(), val pending: Int = 0, val canBuy: Boolean = false, val selected: PlayOffer? = null, val error: String? = null)
+data class PurchaseView(val phase: PurchasePhase = PurchasePhase.IDLE, val offers: List<PlayOffer> = emptyList(), val unavailable: Int = 0, val receipts: List<PlayReceipt> = emptyList(), val pending: Int = 0, val canBuy: Boolean = false, val selected: PlayOffer? = null, val error: String? = null, val beneficiary: String? = null, val cancelled: Boolean = false)
 
 /** Screen epochs own presentation; the independent payment ledger owns receipts. */
 class PlayPurchaseCoordinator(private val client: ClientController, private val application: Application, private val scope: CoroutineScope) {
@@ -40,7 +40,10 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
             billing.status.drop(1).collect { status ->
                 if (!eligible || status.ownerBinding != null && status.ownerBinding != catalogue?.account?.binding) return@collect
                 when (status.event) {
-                    "received", "pending", "cancelled" -> refresh()
+                    "received", "pending", "cancelled" -> {
+                        mutable.value = mutable.value.copy(cancelled = status.event == "cancelled", canBuy = false)
+                        refresh()
+                    }
                     "PLAY_ALREADY_OWNED" -> refresh(queryStore = true)
                     "PAYMENT_STORAGE_UNAVAILABLE", "PLAY_SERVICE_UNAVAILABLE", "PLAY_PRODUCT_UNAVAILABLE" -> mutable.value = mutable.value.copy(phase = PurchasePhase.FAILED, error = status.event, canBuy = false)
                 }
@@ -72,7 +75,7 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
             catalogue = result.catalogue
             val selected = mutable.value.selected?.let { old -> result.products.offers.find { it.selection.id == old.selection.id } }
             if (selected != mutable.value.selected) reviewRevision++
-            mutable.value = mutable.value.copy(offers = result.products.offers, unavailable = result.products.unavailable.size, selected = selected)
+            mutable.value = mutable.value.copy(beneficiary = result.catalogue.account.account, offers = result.products.offers, unavailable = result.products.unavailable.size, selected = selected)
             accept(result.reconciliation)
         }
     }
@@ -136,7 +139,15 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
     }
     private fun accept(result: Reconciliation) {
         val changed = mutable.value.receipts != result.receipts
-        mutable.value = mutable.value.copy(phase = if (result.pending > 0) PurchasePhase.PENDING else if (result.completed) PurchasePhase.DELIVERED else PurchasePhase.IDLE, receipts = result.receipts, pending = result.pending, canBuy = result.canBuy, error = null)
+        val returnedCancellation = catalogue?.account?.binding?.let(billing::takeCancellation) == true
+        val confirming = billing.status.value.launching
+        mutable.value = mutable.value.copy(phase = when {
+            result.pending > 0 -> PurchasePhase.PENDING
+            result.completed -> PurchasePhase.DELIVERED
+            confirming -> PurchasePhase.CONFIRMING
+            else -> PurchasePhase.IDLE
+        }, receipts = result.receipts, pending = result.pending, canBuy = result.canBuy && !confirming,
+            cancelled = result.pending == 0 && !result.completed && (returnedCancellation || mutable.value.cancelled), error = null)
         if (result.completed || changed && result.receipts.any { it.delivered || it.state in setOf("Refunded", "Expired", "OnHold", "Paused") }) client.membership.load(true)
         schedule(result.pending > 0)
         deferred()
@@ -156,7 +167,7 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
     }
     fun select(offer: PlayOffer) {
         if (!eligible || mutable.value.phase in setOf(PurchasePhase.PREPARING, PurchasePhase.CONFIRMING)) return
-        reviewRevision++; mutable.value = mutable.value.copy(selected = offer, error = null)
+        reviewRevision++; mutable.value = mutable.value.copy(selected = offer, cancelled = false, error = null)
     }
     fun cancelPreparation() { if (mutable.value.phase == PurchasePhase.PREPARING) { reviewRevision++; client.cancelOperation(CHECKOUT); mutable.value = mutable.value.copy(phase = PurchasePhase.IDLE); scope.launch { yield(); refresh() } } }
     fun dismiss() { cancelPreparation(); reviewRevision++; mutable.value = mutable.value.copy(selected = null) }
@@ -165,9 +176,10 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
         val catalogue = catalogue ?: return
         val offer = mutable.value.selected ?: return
         if (!eligible || !mutable.value.canBuy || mutable.value.pending > 0 || client.isWorking(CHECKOUT) || client.isWorking(SYNC) || billing.status.value.launching) return
+        if (mutable.value.beneficiary != catalogue.account.account || client.state.value.session?.account != catalogue.account.account) { failed("ACCOUNT_MISMATCH"); return }
         val review = reviewRevision
         val reviewedTerm = if (offer.selection.kind == PlayKind.STORAGE) client.membership.plan.value()?.term else null
-        mutable.value = mutable.value.copy(phase = PurchasePhase.PREPARING, canBuy = false, error = null)
+        mutable.value = mutable.value.copy(phase = PurchasePhase.PREPARING, cancelled = false, canBuy = false, error = null)
         client.perform({ core ->
             billing.restore()
             val outstanding = reconcile(core, catalogue.account, false, false)
@@ -194,13 +206,13 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
             check(prepared.requiredFlag("prepared")) { "INTEGRITY_FAILED" }
             Checkout(catalogue.account, base, replacement, prepared.requiredUnsigned("expires_at"), reviewedTerm)
         }, key = CHECKOUT, quiet = true, onError = ::failed) { prepared ->
-            if (!eligible || review != reviewRevision || mutable.value.selected != offer) return@perform
+            if (!eligible || review != reviewRevision || mutable.value.selected != offer || client.state.value.session?.account != prepared.owner.account || mutable.value.beneficiary != prepared.owner.account) return@perform
             if (prepared.reviewedTerm != null && client.membership.plan.value()?.term != prepared.reviewedTerm) { failed("PLAY_PLAN_CHANGED"); return@perform }
             if (System.currentTimeMillis().toULong() >= prepared.expiry) { failed("EXPIRED"); return@perform }
             client.beginExternalInteraction()
             val error = runCatching { billing.launch(activity, offer, prepared.owner, prepared.base, prepared.replacement) }.getOrElse { client.errorCode(it) }
             if (error == null) mutable.value = mutable.value.copy(phase = PurchasePhase.CONFIRMING, canBuy = false)
-            else if (error == "cancelled") mutable.value = mutable.value.copy(phase = PurchasePhase.IDLE, canBuy = true)
+            else if (error == "cancelled") { mutable.value = mutable.value.copy(phase = PurchasePhase.IDLE, cancelled = true, canBuy = false); again = true }
             else failed(error)
             deferred()
         }

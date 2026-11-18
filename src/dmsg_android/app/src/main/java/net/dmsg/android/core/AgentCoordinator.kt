@@ -18,8 +18,8 @@ data class AgentAuthority(val scopes: String = "", val audiences: String = "") {
             }
     }
 }
-data class AgentPermissionsDraft(val capabilities: String = "", val days: String = "7") {
-    val valid get() = days.toULongOrNull() in 1uL..366uL && agentLines(capabilities).let { it.size in 1..64 && it.distinct().size == it.size && it.all { value -> value.toByteArray(Charsets.UTF_8).size <= 512 && value.none(Char::isISOControl) } }
+data class AgentPermissionsDraft(val capabilities: String = "", val days: String = "7", val pattern: String = "", val target: String = "") {
+    val valid get() = days.toULongOrNull() in 1uL..366uL && agentLines(capabilities).let { it.size in 1..16 && it.distinct().size == it.size && it.all { value -> value.toByteArray(Charsets.UTF_8).size <= 512 && value.none(Char::isISOControl) } }
 }
 data class AgentDelegationDraft(val name: String = "", val controller: AgentAuthority = AgentAuthority(), val unrestricted: Boolean = false, val subject: String = "", val grant: AgentAuthority = AgentAuthority(), val days: String = "7") {
     val validController get() = name.trim().isNotEmpty() && name.toByteArray(Charsets.UTF_8).size <= 64 && name.none(Char::isISOControl) && (unrestricted || controller.valid)
@@ -74,7 +74,7 @@ class AgentCoordinator(private val client: ClientController) {
     fun remove(agent: ManagedAgent) = client.perform({ it.removeAgent(agent.label) }, key = "agents:remove:" + agent.id, onError = { load() }) { permissionsValue.value -= agent.id; load(); client.navigation.back() }
     fun requestPermissions(agent: ManagedAgent) {
         val draft = permissionsValue.value[agent.id] ?: return
-        if (!draft.valid) return
+        if (!draft.valid || agentLines(draft.capabilities).any { !net.dmsg.core.validAgentCapability(it) }) return
         client.approvals.request("agent:permissions:" + agent.id) { it.requestAgentPermissions(agent.label, agentLines(draft.capabilities), draft.days.toULong()) }
     }
     fun revokeGrant(grant: AgentDeviceGrant) = client.perform({ it.revokeAgentPermissions(grant.id) }, key = "agents:revoke:" + grant.id, onError = { load() }) { load() }

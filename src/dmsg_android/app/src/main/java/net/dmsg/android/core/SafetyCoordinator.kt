@@ -73,7 +73,8 @@ class SafetyCoordinator(private val client: ClientController) {
     }
     fun savePolicy() {
         val draft = pendingValue.value ?: draftValue.value ?: return
-        if (!draft.valid || policy.value() == null) return
+        val reviewed = policy.value() ?: return
+        if (!draft.valid || pendingValue.value == null && draft.mode == reviewed.mode && draft.allow.toSet() == reviewed.allow.toSet()) return
         pendingValue.value = draft
         client.perform({ core -> client.operation { core.configureInbox(draft.mode, draft.allow, it) } }, key = "safety:policy:save", onError = {
             if (it in setOf("INVALID_INPUT", "FORBIDDEN", "QUOTA_EXCEEDED", "VERSION_CONFLICT", "IDEMPOTENCY_CONFLICT")) pendingValue.value = null

@@ -82,6 +82,96 @@ class WorkspaceFlowTest {
         if (::directory.isInitialized) directory.deleteRecursively()
     }
 
+    @Test fun newLoginExposesNamedInputsAndKeepsSaveWithinReach() {
+        compose.onNodeWithContentDescription("New item").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("vault-editor-title").performTextInput("Travel login")
+        compose.onNodeWithText("Username").performScrollTo().performTextInput("traveler")
+        compose.onNode(hasSetTextAction() and hasText("Password")).performScrollTo().performTextInput("fixture-only")
+        compose.onNodeWithTag("vault-editor-save").assertIsDisplayed()
+        capture("ux-password-editor")
+        compose.onNodeWithTag("vault-editor-save").performClick()
+        compose.waitUntil(10_000) { client.vault.listing.value()?.items?.any { it.title == "Travel login" } == true }
+        compose.onNodeWithText("Travel login").performClick()
+        compose.onNodeWithText("traveler").assertExists()
+        compose.onNodeWithText("fixture-only").assertDoesNotExist()
+        capture("ux-new-login-saved")
+    }
+
+    @Test fun directorySearchFindsVerifiedFileAndReturnsToTheSameQuery() {
+        val meta = runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiReceivedFile().json) as kotlinx.serialization.json.JsonObject }
+        val channel = (meta.getValue("channel") as kotlinx.serialization.json.JsonPrimitive).content
+        compose.runOnIdle { client.navigation.open("messages") }
+        compose.onNode(hasSetTextAction()).performTextInput("NoSuchFixtureResult")
+        compose.waitUntil(10_000) { compose.onAllNodesWithText("No matching results").fetchSemanticsNodes().isNotEmpty() }
+        capture("ux-search-no-matches")
+        compose.onNode(hasSetTextAction()).performTextReplacement("Received image.png")
+        compose.waitUntil(12_000) { client.messages.matches.value()?.singleOrNull()?.channel == channel }
+        capture("ux-search-across-conversations")
+        compose.onNode(hasClickAction() and hasText("A file already saved on this device")).performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.messages.reference.value()?.message?.sequence == 1uL }
+        capture("ux-search-original")
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNode(hasSetTextAction()).assertTextContains("Received image.png")
+    }
+
+    @Test fun unbackedFilesReviewTheExactSelectedVersionsTogether() {
+        val chosen = runBlocking {
+            listOf("Alpha.txt", "Beta.txt", "Gamma.txt").map { name ->
+                val data = net.dmsg.android.core.parseFileDetails(kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiFileHistory().json))
+                native.renameFile(data.file.id, name)
+                data.file.id to data.versions.single { !it.current }
+            }
+        }
+        compose.runOnIdle { client.navigation.open("files") }
+        compose.waitUntil(10_000) { (client.accountWorkspace.local.value()?.unbacked ?: 0uL) >= 6uL }
+        compose.onNodeWithText("Unbacked file versions").performScrollTo().performClick()
+        compose.waitUntil(10_000) { client.cloudFiles.unbacked.value()?.size == 3 }
+        chosen.take(2).forEach { (id, version) ->
+            compose.onNodeWithTag("unbacked-version:" + id + ":" + version.id).performScrollTo().performClick()
+        }
+        compose.onNodeWithTag("backup-review-selection").assertIsEnabled().performClick()
+        val selected = chosen.take(2).map { net.dmsg.android.core.BackupVersionKey(it.first, it.second.id) }
+        compose.runOnIdle {
+            val batch = client.cloudFiles.batch.value
+            assertEquals(selected.toSet(), batch.review.map { it.key }.toSet())
+            assertEquals(chosen.take(2).sumOf { it.second.size }, batch.review.sumOf { it.file.size })
+        }
+        compose.onNodeWithText("Alpha.txt").assertExists()
+        compose.onNodeWithText("Beta.txt").assertExists()
+        compose.onNodeWithText("Gamma.txt").assertDoesNotExist()
+        compose.onNodeWithTag("backup-queue-selection").assertIsNotEnabled()
+        capture("ux-batch-backup-review")
+        // The test provides a display-only quota. Queue admission still uses the real offline core.
+        compose.waitUntil(10_000) { client.cloudFiles.capacity.state.value is ReadState.Failed || client.cloudFiles.capacity.state.value is ReadState.Stale }
+        compose.runOnIdle {
+            client.cloudFiles.capacity.accept(client.cloudFiles.capacity.begin(), net.dmsg.android.core.BackupCapacity(1024uL, 1uL, 0uL, 0uL, null))
+        }
+        compose.onNodeWithTag("backup-queue-selection").assertIsNotEnabled()
+        compose.runOnIdle {
+            client.cloudFiles.capacity.accept(client.cloudFiles.capacity.begin(), net.dmsg.android.core.BackupCapacity(1024uL, 2048uL, 0uL, 0uL, null))
+        }
+        compose.onNodeWithTag("backup-queue-selection").assertIsEnabled().performClick()
+        compose.waitUntil(20_000) { client.cloudFiles.batch.value.outcomes.size == 2 && !client.isWorking("cloud:backup-batch") }
+        compose.runOnIdle { assertEquals(selected.toSet(), client.cloudFiles.batch.value.outcomes.keys) }
+        capture("ux-batch-backup-results")
+    }
+
+    @Test fun receivingRulesOnlyOfferRelevantAccountsAndEdits() {
+        compose.runOnIdle { client.navigation.open("inbox-settings") }
+        compose.waitUntil(10_000) { client.safety.policy.state.value is ReadState.Failed || client.safety.policy.state.value is ReadState.Stale || client.safety.policy.value() != null }
+        val saved = listOf("080g2081040g2081040g")
+        compose.runOnIdle {
+            client.safety.policy.accept(client.safety.policy.begin(), net.dmsg.android.core.ReceivingPolicy("closed", saved, 100u, 1u, false))
+            client.safety.editReceiving(net.dmsg.android.core.ReceivingDraft("closed", saved))
+        }
+        compose.onNodeWithText("Add account").assertDoesNotExist()
+        compose.onNodeWithText("Save receiving policy").performScrollTo().assertIsNotEnabled()
+        capture("ux-closed-inbox")
+        compose.onNodeWithText("Selected accounts").performScrollTo().performClick()
+        compose.onNodeWithText(saved.single()).assertExists()
+        compose.onNodeWithText("Save receiving policy").performScrollTo().assertIsEnabled()
+    }
+
     @Test fun newVaultDraftSurvivesBackgroundAndFlushesBeforeImmediateLock() {
         compose.runOnIdle { client.vaultDrafts.open(null) }
         compose.waitUntil(5_000) { client.vaultDrafts.presented.value }
@@ -125,7 +215,7 @@ class WorkspaceFlowTest {
         assertEquals(item.revision, client.vaultDrafts.current.value!!.revision)
         assertNull(client.vaultDrafts.current.value!!.fields.first { it.id == "password" }.edit().value)
         val input = client.vaultDrafts.input()
-        compose.onNodeWithTag("vault-editor-save").performScrollTo().performClick()
+        compose.onNodeWithTag("vault-editor-save").assertIsDisplayed().performClick()
         compose.waitUntil(10_000) { !client.vaultDrafts.presented.value }
         val saved = runBlocking { native.vaultItem(item.id, null) }
         assertEquals("Edited after restart", saved.item.title)
@@ -320,7 +410,8 @@ class WorkspaceFlowTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val app = instrumentation.targetContext
         val authority = instrumentation.context.packageName + ".drag-fixture"
-        val uri = android.net.Uri.parse("content://$authority/sample")
+        val sample = UUID.randomUUID().toString()
+        val uri = android.net.Uri.parse("content://$authority/sample").buildUpon().appendQueryParameter("sample", sample).build()
         val provider = app.packageManager.resolveContentProvider(authority, 0)!!
         assertNotEquals(android.os.Process.myUid(), provider.applicationInfo.uid)
         fun accessDenied(): Boolean = try {
@@ -335,7 +426,7 @@ class WorkspaceFlowTest {
         compose.waitForIdle()
         val bounds = compose.onRoot().fetchSemanticsNode().boundsInWindow
         app.startActivity(android.content.Intent().setClassName(instrumentation.context.packageName, "net.dmsg.android.DragFixtureActivity")
-            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            .putExtra("sample", sample).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
         try {
             var source: android.graphics.Rect? = null
             var stableSince = android.os.SystemClock.elapsedRealtime()
@@ -385,7 +476,7 @@ class WorkspaceFlowTest {
         val provider = app.packageManager.resolveContentProvider(authority, 0)
         assertNotNull(provider)
         assertNotEquals(android.os.Process.myUid(), provider!!.applicationInfo.uid)
-        val uri = android.net.Uri.parse("content://" + authority + "/sample")
+        val uri = android.net.Uri.parse("content://$authority/sample").buildUpon().appendQueryParameter("sample", UUID.randomUUID().toString()).build()
         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(android.content.Intent.EXTRA_STREAM, uri) }
         val root = File(app.noBackupFilesDir, "system/incoming")
         val storage = net.dmsg.android.platform.IncomingShareStore(root, net.dmsg.android.platform.IncomingKeys(app, root))
@@ -545,7 +636,10 @@ class WorkspaceFlowTest {
         compose.waitUntil(10_000) { client.agents.grants.state.value is ReadState.Empty }
         compose.onNodeWithTag("Pause this agent").performScrollTo().performClick()
         compose.waitUntil(10_000) { client.agents.listing.value()?.single()?.paused == true }
-        compose.onNodeWithTag("agent-capabilities").performScrollTo().performTextInput("vault.list")
+        compose.onNodeWithTag("agent-permission-picker").performScrollTo().performClick()
+        compose.onNodeWithTag("permission-option:vault.list").performScrollTo().performClick()
+        compose.onNodeWithTag("agent-permission-add").performScrollTo().performClick()
+        capture("ux-agent-permissions")
         compose.onNodeWithText("Review permissions").performClick()
         compose.waitUntil(10_000) { client.approvals.detail.state.value is ReadState.Ready }
         val approval = client.approvals.detail.value()!!
@@ -1243,6 +1337,15 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Updated studio account").performClick()
         compose.onNodeWithText("Version history").performScrollTo().performClick()
         compose.waitUntil(10_000) { client.vaultHistory.history.value()?.versions?.size == 3 }
+        compose.runOnIdle {
+            val changes = client.vaultHistory.history.value()!!.versions.first().changes
+            assertEquals(setOf("title", "notes"), changes.toSet())
+        }
+        compose.onNodeWithText("Current notes").assertDoesNotExist()
+        compose.onNodeWithTag("vault-version-device:" + current.revision).performClick()
+        compose.onNode(hasSetTextAction()).performTextInput("Studio phone")
+        compose.onNodeWithText("Save").performClick()
+        compose.waitUntil(10_000) { client.vaultHistory.history.value()?.versions?.all { it.alias == "Studio phone" } == true }
         capture("qa-vault-history")
         compose.onNodeWithTag("vault-version:" + previous.revision).performClick()
         compose.onNodeWithText("You are viewing an immutable historical version.").assertExists()
@@ -1552,6 +1655,7 @@ class WorkspaceFlowTest {
         compose.waitUntil(10_000) { runCatching { compose.onNodeWithText("Approve").assertIsEnabled(); true }.getOrDefault(false) }
         compose.onNodeWithText("Approve").performClick()
         compose.onNodeWithText("Approve the reviewed request?").assertExists()
+        compose.onNodeWithText("Anyone with the link").assertExists()
         compose.onNodeWithText(approval.digest).assertExists()
         val idBounds = compose.onNodeWithText(approval.id).fetchSemanticsNode().boundsInRoot
         val digestBounds = compose.onNodeWithText(approval.digest).fetchSemanticsNode().boundsInRoot

@@ -60,6 +60,31 @@ class SystemExportsTest {
             assertEquals(initialized, app.hasMainClient)
         } finally { ExportFileAccess.lock(); store.invalidate(); prepared?.close(); source.delete(); content.fill(0) }
     }
+    @Test fun publishedFileAccessExpiresAfterFiveRealMinutes() {
+        org.junit.Assume.assumeTrue(InstrumentationRegistry.getArguments().getString("checkAccessExpiry") == "true")
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val store = SystemExportStore(File(app.noBackupFilesDir, "system/exports/files"), ExportPurpose.files, Keys())
+        val root = DocumentsContract.buildChildDocumentsUri(app.packageName + ".documents", "root")
+        val source = File.createTempFile("expiry-", ".txt", app.cacheDir)
+        val bytes = "Disposable expiry sample".toByteArray()
+        source.writeBytes(bytes)
+        try {
+            store.invalidate()
+            store.prepareFiles(listOf(ExportFileInput(source, "Expiry sample.txt", "text/plain", bytes.size.toLong(), SystemExportStore.digest(bytes))), "test-account", false).use { prepared ->
+                store.publish(prepared)
+                ExportFileAccess.grant(app, store, prepared.opened)
+                val uri = app.contentResolver.query(root, null, null, null, null)!!.use { rows ->
+                    assertTrue(rows.moveToFirst())
+                    DocumentsContract.buildDocumentUri(app.packageName + ".documents", rows.getString(rows.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)))
+                }
+                assertArrayEquals(bytes, app.contentResolver.openInputStream(uri)!!.use { it.readBytes() })
+                android.os.SystemClock.sleep(300_100)
+                app.contentResolver.query(root, null, null, null, null)!!.use { assertEquals(0, it.count) }
+                assertTrue(runCatching { app.contentResolver.openInputStream(uri)!!.use { it.read() } }.isFailure)
+            }
+        } finally { ExportFileAccess.lock(); store.invalidate(); source.delete() }
+    }
+
     @Test fun exportedProviderCannotBeQueriedByAnUnrelatedUidWithoutASystemGrant() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val app = instrumentation.targetContext
@@ -77,7 +102,7 @@ class SystemExportsTest {
         val ui = instrumentation.uiAutomation
         fun shell(command: String) = android.os.ParcelFileDescriptor.AutoCloseInputStream(ui.executeShellCommand(command)).use { it.readBytes().toString(Charsets.UTF_8).trim() }
         fun find(node: android.view.accessibility.AccessibilityNodeInfo?, text: String): android.view.accessibility.AccessibilityNodeInfo? {
-            if (node == null) return null
+            if (node == null || !node.refresh()) return null
             if (node.text?.toString() == text) return node
             for (index in 0 until node.childCount) find(node.getChild(index), text)?.let { return it }
             return null
@@ -115,7 +140,15 @@ class SystemExportsTest {
                     if (appWindow && (!window.isActive || !window.isFocused || window.root?.packageName != app.packageName)) continue
                     var target = find(window.root, text)
                     while (target != null && !target.isClickable) target = target.parent
-                    if (target?.isEnabled == true && target.isVisibleToUser && target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)) return
+                    if (target?.isEnabled != true || !target.isVisibleToUser) continue
+                    if (appWindow) {
+                        val bounds = android.graphics.Rect()
+                        target.getBoundsInScreen(bounds)
+                        if (!bounds.isEmpty) {
+                            shell("input tap " + bounds.centerX() + " " + bounds.centerY())
+                            return
+                        }
+                    } else if (target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)) return
                 }
                 Thread.sleep(100)
             }

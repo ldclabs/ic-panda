@@ -11,15 +11,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 /** The label, value and control are one focusable, keyboard-operable target. */
-@Composable internal fun SelectionRow(title: String, checked: Boolean, enabled: Boolean = true, subtitle: String? = null, change: (Boolean) -> Unit) {
+@Composable internal fun SelectionRow(title: String, checked: Boolean, enabled: Boolean = true, subtitle: String? = null, modifier: Modifier = Modifier, accessibilityLabel: String? = null, change: (Boolean) -> Unit) {
     val haptics = LocalHapticFeedback.current
     ListItem(
-        modifier = Modifier.heightIn(min = 56.dp).semantics(mergeDescendants = true) {}
+        modifier = modifier.heightIn(min = 56.dp).semantics(mergeDescendants = true) { accessibilityLabel?.let { contentDescription = it } }
             .toggleable(checked, enabled = enabled, role = Role.Checkbox) {
                 change(it)
                 haptics.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)

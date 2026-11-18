@@ -35,8 +35,19 @@ import net.dmsg.core.MessageItem
 @Composable fun MessagesScreen(client: ClientController, state: UiState, selected: String, select: (String) -> Unit, inbox: () -> Unit) {
     val listing by client.messages.channels.state.collectAsStateWithLifecycle()
     val drafts by client.messages.composers.collectAsStateWithLifecycle()
-    var search by remember { mutableStateOf("") }
-    LaunchedEffect(state.epoch) { client.messages.browse() }
+    val search by client.messages.directoryQuery.collectAsStateWithLifecycle()
+    val matches by client.messages.matches.state.collectAsStateWithLifecycle()
+    val blocks by client.safety.blocked.state.collectAsStateWithLifecycle()
+    val channels = listing.valueOrNull().orEmpty()
+    val ids = channels.map { it.id }
+    val blocked = blocks.valueOrNull()?.takeIf { blocks is ReadState.Ready || blocks is ReadState.Empty }
+    val query = search.trim()
+    val tooLong = query.codePointCount(0, query.length) > 200
+    val matchingChannels = channels.filter { query.isEmpty() || it.name.contains(query, true) }
+    LaunchedEffect(state.epoch) { client.messages.browse(); client.safety.loadBlocks() }
+    LaunchedEffect(search, ids, blocked, selected, state.epoch) {
+        if (selected.isEmpty() && blocked != null) client.messages.searchDirectory(search, ids, blocked)
+    }
     if (selected.isEmpty()) LazyColumn(Modifier.fillMaxSize(), state = workspaceListState(client.navigation, "messages:list"), contentPadding = PaddingValues(20.dp)) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -46,16 +57,16 @@ import net.dmsg.core.MessageItem
                 IconButton(onClick = { client.channels.openSetup(false) }) { Icon(Icons.Outlined.Add, str(R.string.text_new_channel_6ea7fcc)) }
                 IconButton(onClick = { client.channels.openSetup(true) }) { Icon(Icons.AutoMirrored.Outlined.Login, str(R.string.text_join_5f4ca2d)) }
             }
-            WorkspaceSearchField(search, { search = it }, str(R.string.text_search_conversations_554f767))
+            WorkspaceSearchField(search, client.messages::editDirectoryQuery, str(R.string.text_search_messages_ee3eb59))
             TextButton(onClick = { client.navigation.push(Route("message-settings")) }) { Text(str(R.string.text_message_settings_1a28455)) }
             ReadFeedback(listing, client.messages::browse)
         }
-        items(listing.valueOrNull().orEmpty().filter { search.isBlank() || it.name.contains(search, true) || it.preview.contains(search, true) }, key = { it.id }) { channel ->
+        items(matchingChannels, key = { it.id }) { channel ->
             val draft = drafts[channel.id]?.text ?: channel.draft
             val attachmentCount = drafts[channel.id]?.attachments?.size ?: 0
             ListItem(modifier = Modifier.clickable { select(channel.id) }, headlineContent = { Text(channel.name) }, supportingContent = {
                 Column {
-                    Text(if (draft.isNotEmpty()) str(R.string.text_draft_4a4143d) + draft else if (attachmentCount > 0) quantity(R.plurals.draft_attachments, attachmentCount) else channel.preview, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (query.isEmpty()) Text(if (draft.isNotEmpty()) str(R.string.text_draft_4a4143d) + draft else if (attachmentCount > 0) quantity(R.plurals.draft_attachments, attachmentCount) else channel.preview, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (channel.pendingSends > 0u) Text(str(R.string.text_waiting_to_send_93d9311) + channel.pendingSends, style = MaterialTheme.typography.labelSmall)
                 }
             }, leadingContent = { Icon(if (channel.news) Icons.Outlined.Campaign else Icons.Outlined.Forum, null, tint = MaterialTheme.colorScheme.primary) }, trailingContent = {
@@ -67,7 +78,33 @@ import net.dmsg.core.MessageItem
             })
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
-        item { if (listing is ReadState.Empty) Notice(str(R.string.text_start_a_private_channel_or_join_with_an_invitation_no_contacts_ar_ac9dfa2)) }
+        if (query.isNotEmpty()) {
+            item {
+                Text(str(if (tooLong) R.string.search_query_limit else R.string.search_local_messages), style = MaterialTheme.typography.bodySmall)
+                if (!tooLong) {
+                    if (blocked == null) ReadFeedback(blocks, client.safety::loadBlocks)
+                    else ReadFeedback(matches, { client.messages.searchDirectory(search, ids, blocked) })
+                }
+            }
+            if (!tooLong && blocked != null) {
+                matches.valueOrNull().orEmpty().forEach { group ->
+                    val channel = channels.firstOrNull { it.id == group.channel } ?: return@forEach
+                    val visible = group.items.filter { it.account !in blocked }
+                    if (visible.isNotEmpty()) item { SectionTitle(channel.name) }
+                    items(visible, key = { "hit:" + group.channel + ":" + it.id }) { hit ->
+                        ListItem(headlineContent = { Text(hit.text.ifBlank { hit.attachmentName.orEmpty() }, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                            supportingContent = { Column {
+                                if (hit.text.isNotBlank() && !hit.attachmentDeleted) hit.attachmentName?.let { Text(it) }
+                                Text(messageTime(hit.createdAtMs))
+                            } }, modifier = Modifier.clickable { client.navigation.push(Route("message-reference", channel = group.channel, sequence = hit.sequence)) })
+                    }
+                    if (group.before != null) item {
+                        TextButton(onClick = { client.messages.moreMatches(group, blocked) }, enabled = matches !is ReadState.Loading) { Text(str(R.string.text_load_earlier_messages_1e9b531)) }
+                    }
+                }
+                if (matchingChannels.isEmpty() && matches is ReadState.Empty && (listing is ReadState.Ready || listing is ReadState.Empty)) item { EmptyPanel(str(R.string.no_matches)) }
+            }
+        } else if (listing is ReadState.Empty) item { Notice(str(R.string.text_start_a_private_channel_or_join_with_an_invitation_no_contacts_ar_ac9dfa2)) }
     } else ConversationScreen(client, state, selected)
 
 }
@@ -235,6 +272,7 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
             blocked.valueOrNull() == null -> ReadFeedback(blocked, { client.safety.loadBlocks() })
             shown != null && shown.account in blocked.valueOrNull().orEmpty() -> Notice(str(R.string.text_this_account_is_blocked_on_this_device_26320f6))
             reference is ReadState.Empty -> Notice(str(R.string.text_the_original_message_is_unavailable_in_the_history_you_can_access_7dc55f5))
+            shown?.hidden == true -> Notice(str(R.string.text_the_original_message_is_unavailable_in_the_history_you_can_access_7dc55f5))
             shown?.unreadable == true -> Notice(str(R.string.text_this_message_cannot_be_verified_or_opened_0021683), true)
             shown?.retracted == true -> Notice(str(R.string.text_message_withdrawn_c19a5e2))
             shown != null -> {

@@ -25,6 +25,7 @@ class GooglePlayBilling(private val context: Context, private val store: PlayPur
     @Volatile private var owned = emptyList<PlayPurchase>()
     private var launchOwner: PlayAccount? = null
     private var launchSelection: PlaySelection? = null
+    private var cancelledBinding: String? = null
     private val billing by lazy {
         BillingClient.newBuilder(context.applicationContext).setListener { result, purchases ->
             val originalOwner = launchOwner
@@ -49,7 +50,18 @@ class GooglePlayBilling(private val context: Context, private val store: PlayPur
             }
         }.enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()).enableAutoServiceReconnection().build()
     }
-    private fun publish(launching: Boolean, event: String?, binding: String? = null) { mutable.value = PlayBillingStatus(mutable.value.revision + 1, launching, event, binding) }
+    private fun publish(launching: Boolean, event: String?, binding: String? = null) {
+        if (event == "cancelled") cancelledBinding = binding
+        if (event == "confirming") cancelledBinding = null
+        mutable.value = PlayBillingStatus(mutable.value.revision + 1, launching, event, binding)
+    }
+
+    // Play may return while the activity is stopped. Keep only the opaque owner until it resumes.
+    override fun takeCancellation(ownerBinding: String): Boolean {
+        if (cancelledBinding != ownerBinding) return false
+        cancelledBinding = null
+        return true
+    }
     private fun billingEvent(code: Int): String = when (code) {
         BillingClient.BillingResponseCode.OK -> "ready"
         BillingClient.BillingResponseCode.USER_CANCELED -> "cancelled"
@@ -139,8 +151,7 @@ class GooglePlayBilling(private val context: Context, private val store: PlayPur
             purchases.addAll(converted)
         }
         owned = purchases.toList()
-        launchOwner = null; launchSelection = null
-        publish(false, "restored")
+        if (!mutable.value.launching) publish(false, "restored")
         purchases
     }
     override fun currentPurchases(): List<PlayPurchase> = owned
@@ -161,7 +172,7 @@ class GooglePlayBilling(private val context: Context, private val store: PlayPur
         launchOwner = owner; launchSelection = offer.selection
         publish(true, "confirming", owner.binding)
         val result = billing.launchBillingFlow(activity, params.build())
-        if (result.responseCode != BillingClient.BillingResponseCode.OK) { launchOwner = null; launchSelection = null; publish(false, billingEvent(result.responseCode)); return billingEvent(result.responseCode) }
+        if (result.responseCode != BillingClient.BillingResponseCode.OK) { launchOwner = null; launchSelection = null; publish(false, billingEvent(result.responseCode), owner.binding); return billingEvent(result.responseCode) }
         return null
     }
     private fun PlayKind.sdk() = if (this == PlayKind.SUBSCRIPTION) BillingClient.ProductType.SUBS else BillingClient.ProductType.INAPP

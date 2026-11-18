@@ -40,7 +40,7 @@ class VaultCoordinator(private val client: ClientController) {
             val snapshot = core.browseVault(VaultBrowseRequest(next.text, next.kind, next.favorites, next.tag, next.sort, offset, 100u, next.trash))
             check(snapshot.generation == core.controlGeneration()) { "LOCKED" }
             parseVaultListing(snapshot.decode())
-        }, key = "vault:list", replace = true, onError = { listing.fail(request, it) }) { page ->
+        }, key = "vault:list", replace = true, quiet = true, onError = { listing.fail(request, it) }) { page ->
             val joined = if (previous == null) page else page.copy(items = (previous.items + page.items).distinctBy { it.id })
             listing.accept(request, joined)
             val current = detail.value()
@@ -56,7 +56,7 @@ class VaultCoordinator(private val client: ClientController) {
             val value = core.vaultItem(id, null)
             check(value.generation == core.controlGeneration()) { "LOCKED" }
             value.item
-        }, key = "vault:detail", replace = true, onError = { detail.fail(request, it) }) { detail.accept(request, it) }
+        }, key = "vault:detail", replace = true, quiet = true, onError = { detail.fail(request, it) }) { detail.accept(request, it) }
     }
 
     fun favorite(item: VaultItem) {

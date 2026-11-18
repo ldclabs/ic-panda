@@ -14,7 +14,7 @@ import net.dmsg.android.platform.str
 
 @Composable internal fun WorkspaceSearchField(value: String, change: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     OutlinedTextField(value, change, modifier.fillMaxWidth(), singleLine = true,
-        shape = RoundedCornerShape(24.dp), placeholder = { Text(placeholder) },
+        shape = RoundedCornerShape(24.dp), label = { Text(placeholder) },
         leadingIcon = { Icon(Icons.Outlined.Search, null) },
         trailingIcon = if (value.isNotEmpty()) {
             { IconButton(onClick = { change("") }) { Icon(Icons.Outlined.Close, str(R.string.text_clear_search_3f4dec6)) } }

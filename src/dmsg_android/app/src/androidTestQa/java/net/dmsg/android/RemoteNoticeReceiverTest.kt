@@ -65,6 +65,38 @@ class RemoteNoticeReceiverTest {
         assertEquals(RemoteNoticeReceiver.Result.SUPPRESSED, receiver.receive("123456789", data + ("event_id" to "1".repeat(64)), config))
         assertEquals(before, app.hasMainClient)
     }
+    @Test fun eachAccountOwnsItsPendingIntentAndCanDisableDeliverySeparately() = withStore { app, store, first, saved ->
+        val other = "080g2081040g2081040g"
+        val otherRegistration = "2".repeat(64)
+        val otherSystem = "3".repeat(64)
+        val json = JSONObject(saved).put("account_id", other).toString()
+        val second = first.copy(account = other, registration = otherRegistration, preferences = parseNoticePreferences(Json.parseToJsonElement(json)))
+        store.consent(other)
+        assertTrue(store.put(second, json, store.sequence()))
+        if (Build.VERSION.SDK_INT >= 33) ParcelFileDescriptor.AutoCloseInputStream(
+            InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("pm grant " + app.packageName + " android.permission.POST_NOTIFICATIONS")
+        ).use { it.readBytes() }
+        val receiver = RemoteNoticeReceiver(app)
+        val config = GoogleConfiguration(app.packageName, "production", "test-only", "public-test-only", "test-project", 123456789)
+        val secondPayload = payload() + mapOf("registration" to otherRegistration, "system_id" to otherSystem,
+            "route" to (installation + "4".repeat(64)), "event_id" to "5".repeat(64))
+        val manager = app.getSystemService(NotificationManager::class.java)
+        try {
+            assertEquals(RemoteNoticeReceiver.Result.SUBMITTED, receiver.receive("123456789", payload(), config))
+            assertEquals(RemoteNoticeReceiver.Result.SUBMITTED, receiver.receive("123456789", secondPayload, config))
+            val until = android.os.SystemClock.elapsedRealtime() + 5000
+            while (android.os.SystemClock.elapsedRealtime() < until && manager.activeNotifications.none { it.tag == otherSystem }) Thread.sleep(50)
+            val firstNotice = manager.activeNotifications.single { it.tag == system }.notification
+            val secondNotice = manager.activeNotifications.single { it.tag == otherSystem }.notification
+            assertNotEquals(firstNotice.contentIntent, secondNotice.contentIntent)
+            assertEquals(otherRegistration, secondNotice.extras.getString("dmsg.registration"))
+            assertNotNull(secondNotice.publicVersion)
+            store.forget(account)
+            assertEquals(RemoteNoticeReceiver.Result.SUPPRESSED, receiver.receive("123456789", payload(), config))
+            assertEquals(RemoteNoticeReceiver.Result.SUBMITTED, receiver.receive("123456789", secondPayload, config))
+        } finally { SystemNotices(app).remove(listOf(otherSystem)) }
+    }
+
     @Test fun localEditsLogoutAndTokenChangesFenceDelayedRegistrationResults() = withStore { app, store, lease, json ->
         val old = store.sequence()
         store.edit(lease.preferences.copy(account = lease.preferences.account!!.copy(categories = lease.preferences.account.categories + ("message" to NoticeCategory(false, false)))))

@@ -40,7 +40,7 @@ import net.dmsg.android.core.*
         Text(if (connected) str(R.string.text_live_updates_connected_1679882) else str(R.string.text_live_updates_disconnected_opening_dmsg_checks_for_changes_a261ad7), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Button(onClick = client::sync, enabled = !session.working("sync:manual")) { Text(str(R.string.text_sync_now_bf05b83)) }
         ReadFeedback(local, client.accountWorkspace::local)
-        local.valueOrNull()?.let { LocalContentPanel(it) }
+        local.valueOrNull()?.let { LocalContentPanel(it) { client.navigation.push(Route("file-unbacked")) } }
         AccountRow(str(R.string.text_cloud_backups_ab4daf1)) { client.navigation.push(Route("cloud-files")) }
         AccountRow(str(R.string.text_version_conflicts_0df1b3c)) { client.navigation.push(Route("conflicts")) }
         Notice(str(R.string.text_account_synchronization_does_not_automatically_back_up_local_file_422bc19))

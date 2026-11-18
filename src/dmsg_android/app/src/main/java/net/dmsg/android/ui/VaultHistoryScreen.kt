@@ -20,33 +20,67 @@ import net.dmsg.android.core.*
 @Composable fun VaultHistoryScreen(client: ClientController, id: String) {
     val read by client.vaultHistory.history.state.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
-    var restoring by remember { mutableStateOf<VaultVersion?>(null) }
-    var limit by remember(id) { mutableIntStateOf(100) }
+    var restoring by remember(id, state.epoch) { mutableStateOf<Pair<String, String>?>(null) }
+    var naming by remember(id, state.epoch) { mutableStateOf<VaultVersion?>(null) }
     LaunchedEffect(id, state.epoch) { client.vaultHistory.load(id) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { ReadFeedback(read, { client.vaultHistory.load(id) }) }
-        items(read.valueOrNull()?.versions.orEmpty().take(limit), key = { it.revision }) { version ->
+        items(read.valueOrNull()?.takeIf { it.current.id == id }?.versions.orEmpty(), key = { it.revision }) { version ->
             Column {
                 ListItem(headlineContent = { Text(displayTime(version.at)) }, supportingContent = { Column {
                     if (version.current) Text(str(R.string.text_current_version_b3f03bb))
                     if (version.deleted) Text(str(R.string.text_in_trash_3b5e1bf))
                     if (version.conflict) Text(str(R.string.text_conflicting_version_ffce550))
                     if (!version.synced) Text(str(R.string.text_waiting_to_sync_9a0891e))
-                    Text(version.device, style = MaterialTheme.typography.bodySmall)
+                    if (version.changes.isNotEmpty()) Text(version.changes.joinToString(" · ") { historyChange(it) })
+                    val deviceName = version.alias ?: if (version.device == state.session?.deviceId) str(R.string.text_this_device_ce825c6)
+                        else str(R.string.history_device) + " · " + version.device.take(8)
+                    TextButton(onClick = { naming = version }, modifier = Modifier.testTag("vault-version-device:" + version.revision)) { Text(deviceName) }
                 } }, modifier = Modifier.testTag("vault-version:" + version.revision).clickable { client.navigation.push(Route("vault-version", id, revision = version.revision)) })
                 if (!version.current && !version.deleted && read.valueOrNull()?.current?.reserved == false && read.valueOrNull()?.current?.deleted == false) {
                     TextButton(onClick = { client.navigation.push(Route("vault-compare", id, revision = version.revision)) }) { Text(str(R.string.text_compare_with_current_33863ce)) }
-                    TextButton(onClick = { restoring = version }, enabled = !state.working("vault:restore:" + id)) { Text(str(R.string.text_restore_this_version_463fc13)) }
+                    TextButton(onClick = { read.valueOrNull()?.current?.revision?.let { head -> restoring = version.revision to head } },
+                        enabled = read is ReadState.Ready && !state.working("vault:restore:" + id)) { Text(str(R.string.text_restore_this_version_463fc13)) }
                 }
                 HorizontalDivider()
             }
         }
-        if ((read.valueOrNull()?.versions?.size ?: 0) > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+        if (read.valueOrNull()?.more == true) item { TextButton(onClick = { client.vaultHistory.load(id, more = true) }, enabled = read !is ReadState.Loading) { Text(str(R.string.text_load_more_4e1d9f8)) } }
     }
-    restoring?.let { version -> AlertDialog(onDismissRequest = { restoring = null }, title = { Text(str(R.string.text_restore_as_a_new_current_version_4bad49d)) }, text = { Text(str(R.string.text_existing_history_stays_a_changed_current_version_requires_another_3a702a6)) }, confirmButton = { TextButton(onClick = {
-        read.valueOrNull()?.current?.revision?.let { expected -> client.vaultHistory.restore(id, version.revision, expected) { restoring = null } }
+    naming?.let { row ->
+        var name by remember(row.device) { mutableStateOf(row.alias.orEmpty()) }
+        val trimmed = name.trim()
+        AlertDialog(onDismissRequest = { naming = null }, title = { Text(str(R.string.text_local_label_c31fe59)) }, text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SelectionContainer { Text(row.device, style = MaterialTheme.typography.bodySmall) }
+                OutlinedTextField(name, { name = it }, label = { Text(str(R.string.text_local_label_c31fe59)) }, singleLine = true)
+            }
+        }, confirmButton = {
+            TextButton(enabled = trimmed != row.alias.orEmpty() && trimmed.codePointCount(0, trimmed.length) <= 80 && trimmed.none(Char::isISOControl) && !state.working("vault:history:alias"),
+                onClick = { client.vaultHistory.deviceAlias(id, row.device, trimmed) { naming = null } }) { Text(str(R.string.text_save_ec8e6d5)) }
+        }, dismissButton = { TextButton(onClick = { naming = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    }
+    restoring?.let { (revision, head) -> AlertDialog(onDismissRequest = { restoring = null }, title = { Text(str(R.string.text_restore_as_a_new_current_version_4bad49d)) }, text = { Text(str(R.string.text_existing_history_stays_a_changed_current_version_requires_another_3a702a6)) }, confirmButton = { TextButton(enabled = !state.working("vault:restore:" + id), onClick = {
+        restoring = null
+        client.vaultHistory.restore(id, revision, head)
     }) { Text(str(R.string.text_restore_b04c493)) } }, dismissButton = { TextButton(onClick = { restoring = null }) { Text(str(R.string.text_cancel_998b9c4)) } }) }
 }
+
+private fun historyChange(code: String) = str(when (code) {
+    "created" -> R.string.text_created_36ba304
+    "deleted" -> R.string.history_deleted
+    "restored" -> R.string.text_restore_b04c493
+    "title" -> R.string.text_title_4c18fa6
+    "type" -> R.string.text_type_6172196
+    "password" -> R.string.text_password_347d7fc
+    "fields" -> R.string.history_fields
+    "notes" -> R.string.text_notes_f7df47b
+    "tags" -> R.string.text_tags_33e9c4d
+    "attachments" -> R.string.text_attachments_be5733e
+    "favorite" -> R.string.text_favorite_898f4c6
+    "conflict" -> R.string.text_conflicting_version_ffce550
+    else -> R.string.text_unavailable_4ae32d2
+})
 
 @Composable fun VaultComparisonScreen(client: ClientController, id: String, revision: String) {
     val read by client.vaultHistory.comparison.state.collectAsStateWithLifecycle()

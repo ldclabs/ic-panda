@@ -34,14 +34,19 @@ class PlayPurchaseUiTest {
         File(directory,"$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
     }
     @Test fun reviewShowsActualOfferPhasesAndCannotDoubleStartWhilePreparing() {
-        var view by mutableStateOf(PurchaseView(offers=listOf(offer),canBuy=true))
+        var view by mutableStateOf(PurchaseView(beneficiary="040g2081040g2081040g",offers=listOf(offer),canBuy=true))
         var purchases=0
         compose.setContent { DMsgTheme(false) { Surface { Column(Modifier.safeDrawingPadding().padding(20.dp).verticalScroll(rememberScrollState())) {
             Text("UI fixture · no payment")
             PlayPurchaseContent(view,null,true,{view=view.copy(selected=it)},{},{},{view=view.copy(selected=null)}, {purchases++;view=view.copy(phase=PurchasePhase.PREPARING)}, {},{})
         } } } }
         compose.onNodeWithTag("play-offer-${offer.selection.id}").performScrollTo().performClick()
+        compose.onNodeWithText("040g2081040g2081040g").assertExists()
         compose.onNodeWithText("Each year").assertIsDisplayed()
+        compose.runOnIdle { view = view.copy(beneficiary = null) }
+        compose.onNodeWithTag("play-buy").assertIsNotEnabled()
+        compose.runOnIdle { view = view.copy(beneficiary = "040g2081040g2081040g", cancelled = true) }
+        compose.onNodeWithText("Cancelled").assertExists()
         compose.onNodeWithTag("play-buy").performScrollTo().assertIsEnabled()
         capture("qa-play-review")
         compose.onNodeWithTag("play-buy").performClick()

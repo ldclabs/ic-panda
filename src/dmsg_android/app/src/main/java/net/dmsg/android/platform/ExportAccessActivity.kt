@@ -18,6 +18,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.*
@@ -50,26 +54,34 @@ class ExportAccessActivity : ComponentActivity() {
         lifecycleScope.launch { delay(120_000); finish() }
         setContent {
             DMsgTheme(null) {
-                Scaffold { padding ->
+                Scaffold(modifier = Modifier.imePadding(), bottomBar = {
+                    TextButton(onClick = { finish() }, modifier = Modifier.navigationBarsPadding().fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text(str(R.string.text_cancel_998b9c4))
+                    }
+                }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(if (files) str(R.string.text_files_app_copies_96ebae6) else str(R.string.text_choose_a_password_972ff98), style = MaterialTheme.typography.headlineSmall)
+                        Text(if (files) str(R.string.text_files_app_copies_96ebae6) else str(R.string.text_choose_a_password_972ff98), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
                         if (files) Text(str(R.string.text_system_authentication_permits_access_to_selected_copies_for_five_150be41))
                         else target?.let { value ->
                             Text(str(R.string.text_requesting_app_c06bb1c) + ": " + value.packageName)
                             value.host?.let { Text(str(R.string.text_website_claimed_by_app_ae298e3) + ": " + it) }
                             Text(str(R.string.text_dmsg_verifies_the_installed_app_before_sharing_a_password_only_lo_38ddeeb))
                         }
+                        error?.let { Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) { Notice(errorText(it), true) } }
                         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                         if (opened == null) Button(onClick = ::authenticate, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_authenticate_a0fd7c1)) }
                         if (opened != null && !files) OutlinedTextField(query, { query = it.take(256) }, label = { Text(str(R.string.text_search_selected_logins_048697e)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                        entries.filter { query.isBlank() || listOf(it.title, it.username, it.origin).any { text -> text.contains(query, true) } }.forEach { entry ->
+                        val matches = entries.filter { query.isBlank() || listOf(it.title, it.username, it.origin).any { text -> text.contains(query, true) } }
+                        matches.forEach { entry ->
                             OutlinedButton(onClick = { fill(entry) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                                 Column(Modifier.fillMaxWidth()) { Text(entry.title); Text(entry.username); Text(entry.origin) }
                             }
                         }
                         if (opened != null && !files && entries.isEmpty()) Notice(str(R.string.text_no_selected_login_matches_this_website_update_your_selected_copie_9eaf25d))
-                        error?.let { Notice(errorText(it), true) }
-                        TextButton(onClick = { finish() }) { Text(str(R.string.text_cancel_998b9c4)) }
+                        if (opened != null && !files && entries.isNotEmpty() && matches.isEmpty()) {
+                            Text(str(R.string.no_matches), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                            TextButton(onClick = { query = "" }) { Text(str(R.string.text_clear_search_3f4dec6)) }
+                        }
                     }
                 }
             }
@@ -89,7 +101,10 @@ class ExportAccessActivity : ComponentActivity() {
                     setResult(Activity.RESULT_OK); finish()
                 } else entries = withContext(Dispatchers.IO) { store.credentials(result).filter { target?.host == null || AutofillTrust.host(it.origin) == target?.host } }
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (failure: Throwable) { error = safeError(failure) }
+            catch (failure: Throwable) {
+                val reason = safeError(failure)
+                if (reason == "CANCELLED") finish() else error = reason
+            }
             finally { busy = false }
         }
     }

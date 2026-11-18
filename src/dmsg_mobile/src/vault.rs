@@ -68,6 +68,25 @@ pub struct VaultBrowseRequest {
 
 #[uniffi::export]
 impl MobileEngine {
+    pub async fn vault_history_page(
+        &self,
+        id: String,
+        before: Option<String>,
+        limit: u32,
+    ) -> Result<ObjectSnapshot> {
+        self.object(move |c| {
+            Box::pin(async move { c.vault_history_page(&id, before.as_deref(), limit as usize) })
+        })
+        .await
+    }
+
+    pub async fn set_history_device_alias(&self, device: String, name: String) -> Result<()> {
+        self.host
+            .run(move |c| Box::pin(async move { c.set_history_device_alias(&device, &name) }))
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn vault_drafts(&self) -> Result<ObjectSnapshot> {
         self.object(|c| Box::pin(async { c.vault_drafts() })).await
     }

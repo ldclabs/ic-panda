@@ -175,8 +175,41 @@ import net.dmsg.core.*
     }
     decision?.let { (value, approve) ->
         AlertDialog(onDismissRequest = { decision = null }, title = { Text(if (approve) str(R.string.text_approve_the_reviewed_request_18d90f3) else str(R.string.text_reject_this_request_24df6c9)) }, text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { Text(approvalTitle(value.kind)); SelectionContainer { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(value.id); Text(value.digest, style = MaterialTheme.typography.bodySmall)  } }; Text(str(R.string.text_this_decision_is_bound_to_the_exact_request_and_digest_shown_0594140)) }
-        }, confirmButton = { TextButton(onClick = { decision = null; client.approvals.decide(value, approve) }, enabled = value.id == selected && now < value.expiresAt && state.unlocked) { Text(if (approve) str(R.string.text_approve_this_request_fac866f) else str(R.string.text_reject_this_request_46758a1)) } }, dismissButton = { TextButton(onClick = { decision = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(approvalTitle(value.kind), style = MaterialTheme.typography.titleMedium)
+                val secret = value.secret
+                if (secret != null) {
+                    Text(secret.title, style = MaterialTheme.typography.titleSmall)
+                    val recipient = when {
+                        secret.importing -> secret.destination
+                        secret.channel != null -> secret.channel.name + " · " + secret.channel.id
+                        secret.password == true -> str(R.string.review_anyone_with_the_link_and_password)
+                        else -> str(R.string.review_anyone_with_the_link)
+                    }
+                    recipient?.let { LabelValue(str(R.string.text_destination_63c1289), it) }
+                    if (secret.fields.isNotEmpty()) LabelValue(str(R.string.text_selected_fields_cf5d199), secret.fields.joinToString { vaultFieldTitle(it.id, it.kind, it.label) })
+                    if (secret.notes) Text(str(R.string.text_notes_f7df47b))
+                    if (secret.files.isNotEmpty()) LabelValue(str(R.string.text_selected_attachments_4c5e318), secret.files.joinToString { it.name })
+                    secret.expiry?.let { Text(str(R.string.text_expires_1efbbe3) + displayTime(it)) }
+                } else {
+                    val body = value.detail as? JsonObject
+                    if (value.kind == "wallet" && (body?.get("action") as? JsonPrimitive)?.contentOrNull == "create") {
+                        listOf("price_e8s" to R.string.text_amount_bfc0adf, "ledger_fee_e8s" to R.string.text_fee_92d2050).forEach { (key, label) ->
+                            val atomic = (body[key] as? JsonPrimitive)?.contentOrNull
+                            val formatted = atomic?.let { runCatching { AtomicAmount.display(it, 8) }.getOrNull() }
+                            if (formatted != null) LabelValue(str(label), formatted + " ICP")
+                        }
+                    }
+                    HumanRecord(value.detail)
+                }
+                HorizontalDivider()
+                SelectionContainer { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(value.id, style = MaterialTheme.typography.bodySmall)
+                    Text(value.digest, style = MaterialTheme.typography.bodySmall)
+                } }
+                Text(str(R.string.text_this_decision_is_bound_to_the_exact_request_and_digest_shown_0594140), style = MaterialTheme.typography.bodySmall)
+            }
+        }, confirmButton = { TextButton(onClick = { decision = null; client.approvals.decide(value, approve) }, enabled = current?.id == value.id && current.digest == value.digest && current.state == "awaiting_user" && detail is ReadState.Ready && now < value.expiresAt && state.unlocked) { Text(if (approve) str(R.string.text_approve_this_request_fac866f) else str(R.string.text_reject_this_request_46758a1)) } }, dismissButton = { TextButton(onClick = { decision = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
     }
 }
 
@@ -203,6 +236,13 @@ import net.dmsg.core.*
 private fun fieldLabel(key: String): String = when (key) {
     "account" -> str(R.string.text_account_4ab56e9); "device_id" -> str(R.string.text_device_id_b31993b)
     "source" -> str(R.string.text_source_fcdba0f); "expires_at", "expiresAt" -> str(R.string.text_expires_at_ms_0d84f58)
+    "role" -> str(R.string.text_role_b9e0249)
+    "grantee", "recipient" -> str(R.string.text_destination_63c1289)
+    "capabilities" -> str(R.string.text_permissions_be9338a)
+    "days" -> str(R.string.text_valid_for_days_13075ad)
+    "action" -> str(R.string.text_action_91069d1)
+    "wallet" -> str(R.string.text_wallet_77c08be)
+    "name" -> str(R.string.text_name_dd4dc4c)
     "state" -> str(R.string.text_state_91c2d40); "digest" -> str(R.string.text_reviewed_digest_ea1e6f9)
     "type" -> str(R.string.text_action_91069d1); "detail" -> str(R.string.text_details_8b33589); "risk" -> str(R.string.text_risk_d65cf0d)
     else -> key.replace('_', ' ').replaceFirstChar { it.uppercase() }

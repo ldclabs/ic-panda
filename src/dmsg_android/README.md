@@ -2,6 +2,8 @@
 
 Native Kotlin/Compose app using the same in-process Rust client as iOS. The Android implementation is being aligned with iOS 1.2.1 (32); see [validation](VALIDATION.md) for actual checks and outstanding work. There is no daemon or web wrapper.
 
+For the interaction fixes, emulator and local ledger results, and remaining acceptance checks, see the [Android UX review (Chinese)](docs/ux-review-2026-11-18.zh.md).
+
 ## Local development
 
 Vault editors checkpoint complete, possibly unfinished input through the shared

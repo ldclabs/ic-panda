@@ -60,16 +60,16 @@ class AccountCoordinator(private val client: ClientController) {
     fun editRecovery(value: RecoveryDraft) { mutableRecovery.value = value; recoveryDirty = true }
     fun devices() {
         val request = devices.begin()
-        client.perform({ parseDevices(it.devices().decode()) }, key = "account:devices", replace = true, onError = { devices.fail(request, it) }) { devices.accept(request, it) }
+        client.perform({ parseDevices(it.devices().decode()) }, key = "account:devices", replace = true, quiet = true, onError = { devices.fail(request, it) }) { devices.accept(request, it) }
     }
     fun security() {
         val request = security.begin()
-        client.perform({ parseSecurity(it.security().decode()) }, key = "account:security", replace = true, onError = { security.fail(request, it) }) { security.accept(request, it); if (!recoveryDirty) mutableRecovery.value = RecoveryDraft(it.recoveryEnabled, (it.recoveryDelayMs / 86_400_000uL).toInt().coerceIn(1, 7)) }
+        client.perform({ parseSecurity(it.security().decode()) }, key = "account:security", replace = true, quiet = true, onError = { security.fail(request, it) }) { security.accept(request, it); if (!recoveryDirty) mutableRecovery.value = RecoveryDraft(it.recoveryEnabled, (it.recoveryDelayMs / 86_400_000uL).toInt().coerceIn(1, 7)) }
         devices()
     }
     fun hardware() {
         val request = hardware.begin()
-        client.perform({ parseHardware(it.hardwareSecurity().decode()) }, key = "account:hardware", replace = true, onError = { hardware.fail(request, it) }) { hardware.accept(request, it); if (!hardwareDirty) mutableHardware.value = HardwareDraft(it.policy.toSet()) }
+        client.perform({ parseHardware(it.hardwareSecurity().decode()) }, key = "account:hardware", replace = true, quiet = true, onError = { hardware.fail(request, it) }) { hardware.accept(request, it); if (!hardwareDirty) mutableHardware.value = HardwareDraft(it.policy.toSet()) }
     }
     fun recovery() {
         val request = recovery.begin()

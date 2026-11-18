@@ -70,7 +70,7 @@ class FileCoordinator(private val client: ClientController) {
             if (search.isBlank()) Listing(next, search, discarded, folders, files)
             else if (discarded) Listing(next, search, discarded, folders.filter { it.name.contains(search, true) }, files.filter { it.name.contains(search, true) || it.note.contains(search, true) || it.tags.any { tag -> tag.contains(search, true) } })
             else Listing(next, search, discarded, emptyList(), core.searchFiles(search, next.takeIf { it != "root" }).decode().arrayRows().map(::parseFile))
-        }, key = "files:list", replace = true, onError = { listing.fail(request, it) }) {
+        }, key = "files:list", replace = true, quiet = true, onError = { listing.fail(request, it) }) {
             listing.accept(request, it)
             selectionValue.value = selectionValue.value.intersect((it.files.map { it.id } + it.folders.map { it.id }).toSet())
             cache.remove(key); cache[key] = it

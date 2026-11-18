@@ -9,6 +9,7 @@ import net.dmsg.core.*
 import kotlinx.serialization.json.*
 
 data class MessageTimeline(val channel: String, val query: String, val items: List<MessageItem>, val hasMore: Boolean, val before: ULong?)
+data class ChannelMatches(val channel: String, val items: List<MessageItem>, val before: ULong?)
 data class MessageOutbox(val channel: String, val items: List<OutgoingMessage>)
 data class ComposerReply(val sequence: ULong, val digest: String, val preview: String? = null)
 data class MessageComposer(val text: String = "", val attachments: List<ComposerAttachment> = emptyList(), val reply: ComposerReply? = null) {
@@ -62,6 +63,54 @@ class MessageCoordinator(private val client: ClientController, private val scope
         }
     }
 
+    private val directoryText = MutableStateFlow("")
+    val directoryQuery = directoryText.asStateFlow()
+    val matches = ReadStore<List<ChannelMatches>> { it.isEmpty() }
+
+    fun editDirectoryQuery(text: String) {
+        if (text == directoryText.value) return
+        client.cancelOperation("message:directory")
+        matches.reset()
+        directoryText.value = text
+    }
+
+    fun searchDirectory(text: String, sources: List<String>, blocked: Set<String>) {
+        val query = text.trim()
+        if (text != directoryText.value || query.isEmpty() || query.codePointCount(0, query.length) > 200) return
+        val request = matches.begin(false)
+        client.perform({ core ->
+            delay(180)
+            sources.map { channel -> localMatches(core, channel, query, blocked, null) }.filter { it.items.isNotEmpty() }
+        }, key = "message:directory", replace = true, quiet = true, onError = { matches.fail(request, it) }) {
+            matches.accept(request, it)
+        }
+    }
+
+    fun moreMatches(group: ChannelMatches, blocked: Set<String>) {
+        val before = group.before ?: return
+        val query = directoryText.value.trim()
+        val previous = matches.value() ?: return
+        val request = matches.begin()
+        client.perform({ localMatches(it, group.channel, query, blocked, before) }, key = "message:directory", replace = true,
+            quiet = true, onError = { matches.fail(request, it) }) { next ->
+            matches.accept(request, previous.map { if (it.channel == group.channel) next.copy(items = group.items + next.items) else it })
+        }
+    }
+
+    private suspend fun localMatches(core: MobileEngine, channel: String, query: String, blocked: Set<String>, before: ULong?): ChannelMatches {
+        var cursor = before
+        while (true) {
+            val page = core.searchMessagesPage(channel, query, cursor)
+            val hits = page.items.asReversed().filter { item ->
+                !item.hidden && !item.retracted && !item.unreadable && item.account !in blocked &&
+                    (item.text.contains(query, true) || !item.attachmentDeleted && item.attachmentName?.contains(query, true) == true)
+            }
+            val next = page.nextBefore.takeIf { page.hasMore && it != cursor }
+            if (hits.isNotEmpty() || next == null) return ChannelMatches(channel, hits, next)
+            cursor = next
+        }
+    }
+
     fun composer(channel: String): MessageComposer = mutableComposers.value[channel]
         ?: MessageComposer(channels.value()?.firstOrNull { it.id == channel }?.draft.orEmpty())
 
@@ -107,8 +156,10 @@ class MessageCoordinator(private val client: ClientController, private val scope
     fun locate(channel: String, sequence: ULong) {
         val request = reference.begin(false)
         client.perform({ core ->
-            val page = client.operation { core.earlierMessages(channel, if (sequence == ULong.MAX_VALUE) sequence else sequence + 1u, 1u, it) }
-            ReferencedMessage(channel, sequence, page.items.singleOrNull { it.sequence == sequence })
+            val before = if (sequence == ULong.MAX_VALUE) sequence else sequence + 1u
+            val cached = core.messages(channel, before, 1u).items.singleOrNull { it.sequence == sequence }
+            val message = cached ?: client.operation { core.earlierMessages(channel, before, 1u, it) }.items.singleOrNull { it.sequence == sequence }
+            ReferencedMessage(channel, sequence, message)
         }, key = "message:reference", replace = true, quiet = true, onError = { reference.fail(request, it) }) { reference.accept(request, it) }
     }
     fun leaveReference() { client.cancelOperation("message:reference"); reference.reset() }
@@ -123,7 +174,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
             if (more && search.isBlank() && previous?.before != null) client.operation { core.earlierMessages(channel, previous.before, 100u, it) }
             else if (search.isBlank()) core.messages(channel, null, 100u)
             else core.searchMessagesPage(channel, search, if (more) previous?.before else null)
-        }, key = "message:timeline", replace = true, onError = { timeline.fail(request, it) }) { page ->
+        }, key = "message:timeline", replace = true, quiet = true, onError = { timeline.fail(request, it) }) { page ->
             val items = if (previous == null) page.items else (page.items + previous.items).distinctBy { it.id }.sortedBy { it.sequence }
             timeline.accept(request, MessageTimeline(channel, search, items, if (preserveLoaded && previous != null) previous.hasMore else page.hasMore, if (preserveLoaded && previous != null) previous.before else page.nextBefore))
         }
@@ -191,7 +242,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
     fun saved(draft: DraftLedger.Draft) = ledger.saved(draft)
     fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); refreshing = false; refreshAgain = false }
     fun clear(account: String?, retainDrafts: Boolean = false) {
-        suspend(); channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
+        suspend(); matches.reset(); directoryText.value = ""; channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
         if (!retainDrafts) { account?.let(ledger::clear); mutableComposers.value = emptyMap(); readyValue.value = false; pendingQueues.clear(); selected = null; query = "" }
     }
 }

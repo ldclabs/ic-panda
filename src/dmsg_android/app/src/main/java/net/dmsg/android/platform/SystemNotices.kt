@@ -21,6 +21,7 @@ class SystemNotices(private val context: Context) {
     data class Presentation(val id: String, val route: NoticeRoute, val category: String, val sound: Boolean, val update: Boolean, val generic: Boolean = false, val count: ULong? = null, val registration: String? = null)
     private val manager = context.getSystemService(NotificationManager::class.java)
     fun allowed() = NotificationManagerCompat.from(context).areNotificationsEnabled()
+    fun channelBlocked(category: String) = manager.getNotificationChannel(channel(category))?.importance == NotificationManager.IMPORTANCE_NONE
     fun refreshExistingChannelNames() {
         for (category in noticeCategories) {
             val existing = manager.getNotificationChannel(channel(category)) ?: continue
@@ -46,7 +47,7 @@ class SystemNotices(private val context: Context) {
     fun post(value: Presentation): Result {
         check(validNoticeHash(value.id) && value.category in noticeCategories) { "INVALID_INPUT" }
         installChannels()
-        if (!allowed() || manager.getNotificationChannel(channel(value.category))?.importance == NotificationManager.IMPORTANCE_NONE) return Result.SUPPRESSED
+        if (!allowed() || channelBlocked(value.category)) return Result.SUPPRESSED
         val intent = Intent(context, MainActivity::class.java).setAction(OPEN)
             .setData(Uri.Builder().scheme("dmsg-notice").authority("open").appendPath(value.route.value).build())
             .putExtra("version", 1).putExtra("route", value.route.value).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -68,7 +69,7 @@ class SystemNotices(private val context: Context) {
     fun remove(ids: List<String>) { ids.filter(::validNoticeHash).forEach { manager.cancel(it, 0) } }
     fun test(): Result {
         installChannels()
-        if (!allowed() || manager.getNotificationChannel(channel("service"))?.importance == NotificationManager.IMPORTANCE_NONE) return Result.SUPPRESSED
+        if (!allowed() || channelBlocked("service")) return Result.SUPPRESSED
         val pending = PendingIntent.getActivity(context, 0, WorkspaceEntries.intent(context, "notifications"), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val public = NotificationCompat.Builder(context, channel("service")).setSmallIcon(R.drawable.dmsg_notification)
             .setContentTitle("dMsg").setContentText(body("service", true)).build()

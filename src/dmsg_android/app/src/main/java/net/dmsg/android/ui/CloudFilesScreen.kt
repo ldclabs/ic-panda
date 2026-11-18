@@ -15,6 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import net.dmsg.android.platform.localizedNumber
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -113,22 +115,107 @@ import net.dmsg.android.core.*
     }, confirmButton = { TextButton(onClick = { client.cloudFiles.delete(current) { deleting = false; client.navigation.back() } }, enabled = !state.working("cloud:delete:${current.id}")) { Text(str(R.string.text_delete_cloud_copy_2cefb18)) } }, dismissButton = { TextButton(onClick = { deleting = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
-@Composable fun FileBackupScreen(client: ClientController, id: String, version: String?) {
+@Composable fun UnbackedFilesScreen(client: ClientController) {
+    val state by client.cloudFiles.unbacked.state.collectAsStateWithLifecycle()
+    val batch by client.cloudFiles.batch.collectAsStateWithLifecycle()
+    val clientState by client.state.collectAsStateWithLifecycle()
+    val choosing = state is ReadState.Ready && !clientState.working("cloud:backup-batch")
+    val groups = state.valueOrNull().orEmpty()
+    val selected = groups.flatMap { group -> group.versions.filter { BackupVersionKey(group.file.id, it.id) in batch.selected } }
+    LaunchedEffect(Unit) { client.cloudFiles.listUnbacked() }
+    Column(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { ReadFeedback(state, client.cloudFiles::listUnbacked) }
+            if (state is ReadState.Empty) item { EmptyPanel(str(R.string.backup_all_caught_up)) }
+            groups.forEach { group ->
+                item { SectionTitle((group.file.path + group.file.name).joinToString(" / ")) }
+                items(group.versions.asReversed(), key = { group.file.id + ":" + it.id }) { v ->
+                    val key = BackupVersionKey(group.file.id, v.id)
+                    val version = versionLabel(v.current, v.createdAt)
+                    val details = listOfNotNull(fileSize(v.size), str(R.string.text_in_progress_6906b67).takeIf { v.status == "backing_up" }).joinToString(" · ")
+                    SelectionRow(title = version, checked = key in batch.selected, subtitle = details,
+                        enabled = choosing, modifier = Modifier.testTag("unbacked-version:" + group.file.id + ":" + v.id),
+                        accessibilityLabel = listOf((group.file.path + group.file.name).joinToString(" / "), version, details).joinToString(" · ")) { client.cloudFiles.choose(key, it) }
+                }
+            }
+        }
+        if (groups.isNotEmpty()) Button(onClick = client.cloudFiles::reviewSelection, enabled = selected.isNotEmpty() && choosing,
+            modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("backup-review-selection")) {
+            Text(str(R.string.text_back_up_to_cloud_ee48ac0) + if (selected.isEmpty()) "" else " · " + localizedNumber(selected.size) + " · " + fileSize(selected.sumOf { it.size }))
+        }
+    }
+}
+
+private fun versionLabel(current: Boolean, at: ULong) =
+    str(if (current) R.string.text_current_version_b3f03bb else R.string.text_historical_version_119b50c) + " · " + messageTime(at)
+
+@Composable fun BatchBackupScreen(client: ClientController) {
+    val batch by client.cloudFiles.batch.collectAsStateWithLifecycle()
+    val capacity by client.cloudFiles.capacity.state.collectAsStateWithLifecycle()
+    val state by client.state.collectAsStateWithLifecycle()
+    val busy = state.working("cloud:backup-batch")
+    val limits = (capacity as? ReadState.Ready)?.value
+    LaunchedEffect(Unit) { client.cloudFiles.capacity() }
+    Column(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item {
+                Notice(str(R.string.backup_selected_help))
+                LabelValue(str(R.string.text_versions_0ff2bdb), localizedNumber(batch.review.size))
+                LabelValue(str(R.string.backup_total_size), fileSize(batch.review.sumOf { it.file.size }))
+                ReadFeedback(capacity, client.cloudFiles::capacity)
+                limits?.let { value ->
+                    Text(str(R.string.text_maximum_per_file_5718825) + (value.fileLimit?.let(::fileSize) ?: str(R.string.text_not_verified_e9586ea)))
+                    Text(str(R.string.text_cloud_space_remaining_c2a586d) + (value.remaining?.let(::fileSize) ?: str(R.string.text_unknown_d748bba)))
+                    value.remaining?.takeIf { batch.bytesToReserve > it }?.let { remaining ->
+                        Notice(str(R.string.backup_total_size) + " · " + fileSize(batch.bytesToReserve) + "\n" +
+                            str(R.string.text_cloud_space_remaining_c2a586d) + fileSize(remaining), true)
+                    }
+                }
+            }
+            items(batch.review, key = { it.file.id + ":" + it.file.version }) { row ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(row.path, style = MaterialTheme.typography.titleSmall)
+                    Text(versionLabel(row.current, row.at) + " · " + fileSize(row.file.size))
+                    if (row.file.status != "backing_up" && limits?.fileLimit?.let { row.file.size > it } == true) Notice(str(R.string.text_this_version_exceeds_your_current_backup_limit_9a1b414), true)
+                    batch.outcomes[row.key]?.let { outcome -> Text(when (outcome.code) {
+                        "queued" -> str(R.string.text_queued_2afa45a)
+                        "backed_up" -> str(R.string.backup_already_saved)
+                        "in_progress" -> str(R.string.text_in_progress_6906b67)
+                        else -> errorText(outcome.code)
+                    }, color = if (outcome.accepted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }
+                }
+            }
+            item { TextButton(onClick = { client.navigation.push(Route("file-transfers")) }) { Text(str(R.string.text_file_transfers_2b83297)) } }
+        }
+        if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+        if (batch.pending.isNotEmpty()) Button(onClick = client.cloudFiles::queueReviewed, enabled = !busy && limits?.let(batch::fits) == true,
+            modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("backup-queue-selection")) {
+            Text(str(if (batch.outcomes.isEmpty()) R.string.text_queue_encrypted_backup_bd8aaaf else R.string.text_retry_563171c))
+        }
+    }
+}
+
+@Composable fun FileBackupScreen(client: ClientController, id: String, version: String?, immutableRevision: Boolean = false) {
     val state by client.state.collectAsStateWithLifecycle()
     val capacity by client.cloudFiles.capacity.state.collectAsStateWithLifecycle()
     val details by client.library.detail.state.collectAsStateWithLifecycle()
-    val file = details.valueOrNull()?.file?.takeIf { it.id == id && it.version == version }
+    val reviewed = details.valueOrNull()?.takeIf { it.file.id == id && it.file.trashedAt == null }
+    val revision = reviewed?.versions?.find { it.id == version }
+    val file = if (immutableRevision) revision?.let { reviewed.file.atVersion(it) }?.takeIf { it.local && it.backup == null }
+        else reviewed?.file?.takeIf { it.version == version && it.local && it.backup == null }
     val limits = capacity.valueOrNull()
     LaunchedEffect(id, state.epoch) { client.library.select(id); client.cloudFiles.capacity() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Notice(str(R.string.text_save_an_encrypted_cloud_copy_of_this_version_your_local_copy_stay_b3a0064))
         ReadFeedback(details, { client.library.select(id) }); ReadFeedback(capacity, client.cloudFiles::capacity)
-        if (file != null) { Text(file.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(file.size)) }
+        if (file != null) { Text(file.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(file.size))
+            revision?.let { Text(str(if (it.current) R.string.text_current_version_b3f03bb else R.string.text_historical_version_119b50c) + " · " + messageTime(it.createdAt)) }
+        } else if (details is ReadState.Ready) Notice(str(R.string.text_the_requested_version_is_unavailable_on_this_device_choose_anothe_4d07481))
         Text(str(R.string.text_maximum_per_file_5718825) + (limits?.fileLimit?.let(::fileSize) ?: str(R.string.text_not_verified_e9586ea)))
         Text(str(R.string.text_cloud_space_remaining_c2a586d) + (limits?.remaining?.let(::fileSize) ?: str(R.string.text_unknown_d748bba)))
         if (file != null && limits?.fileLimit != null && file.size > limits.fileLimit) Notice(str(R.string.text_this_version_exceeds_your_current_backup_limit_9a1b414), true)
-        Button(onClick = { file?.let(client.fileWork::backup) }, enabled = file != null && limits?.fileLimit != null && file.size <= limits.fileLimit && capacity !is ReadState.Loading && capacity !is ReadState.Stale && capacity !is ReadState.Failed && !state.working("file:backup:$id"), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_queue_encrypted_backup_bd8aaaf)) }
-        OutlinedButton(onClick = { file?.let(client.backgroundFiles::upload) }, enabled = file != null && limits?.fileLimit != null && file.size <= limits.fileLimit && capacity is ReadState.Ready && !state.working("cipher:prepare"), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_upload_ciphertext_in_background_7f3ae2e)) }
+        Button(onClick = { file?.let { client.fileWork.backup(it, immutableRevision) } }, enabled = file != null && limits?.fileLimit != null && file.size <= limits.fileLimit && capacity !is ReadState.Loading && capacity !is ReadState.Stale && capacity !is ReadState.Failed && !state.working("file:backup:$id"), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_queue_encrypted_backup_bd8aaaf)) }
+        if (!immutableRevision || revision?.current == true) OutlinedButton(onClick = { file?.let(client.backgroundFiles::upload) }, enabled = file != null && limits?.fileLimit != null && file.size <= limits.fileLimit && capacity is ReadState.Ready && !state.working("cipher:prepare"), modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_upload_ciphertext_in_background_7f3ae2e)) }
         Text(str(R.string.text_background_tasks_can_continue_after_locking_the_system_receives_o_80cbbad), style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = { client.navigation.push(Route("file-transfers")) }) { Text(str(R.string.text_file_transfers_2b83297)) }
     }

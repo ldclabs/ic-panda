@@ -95,12 +95,13 @@ import net.dmsg.android.core.*
     }
 }
 
-@Composable internal fun LocalContentPanel(value: LocalContent) {
+@Composable internal fun LocalContentPanel(value: LocalContent, reviewUnbacked: (() -> Unit)? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(str(R.string.text_only_on_this_device_6efee99), style = MaterialTheme.typography.titleMedium)
         LabelValue(str(R.string.text_changes_waiting_to_sync_344814b), localizedNumber(value.pending))
         LabelValue(str(R.string.text_unbacked_file_versions_f59bc2a), localizedNumber(value.unbacked))
         LabelValue(str(R.string.text_unbacked_file_size_ba4e1e4), fileSize(value.unbackedBytes))
+        if (value.unbacked > 0u && reviewUnbacked != null) TextButton(onClick = reviewUnbacked) { Text(str(R.string.without_backup)) }
         LabelValue(str(R.string.text_local_file_versions_3f6a112), localizedNumber(value.versions))
         LabelValue(str(R.string.text_last_successful_sync_de178f0), value.lastSync?.let(::displayTime) ?: str(R.string.text_not_recorded_f28a3d3))
     }
@@ -116,7 +117,7 @@ import net.dmsg.android.core.*
         SelectionContainer { Text(account) }
         Notice(str(R.string.text_this_removes_this_account_s_encrypted_workspace_and_saved_login_f_74b5e96))
         ReadFeedback(local, client.accountWorkspace::local)
-        local.valueOrNull()?.let { LocalContentPanel(it) }
+        local.valueOrNull()?.let { LocalContentPanel(it) { client.navigation.push(Route("file-unbacked")) } }
         Button(onClick = { confirming = true }, enabled = local is ReadState.Ready && !state.busy, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(str(R.string.text_remove_this_account_s_local_data_a2189f8)) }
     }
     if (confirming) AlertDialog(onDismissRequest = { confirming = false }, title = { Text(str(R.string.text_remove_local_data_permanently_46fc877)) }, text = {

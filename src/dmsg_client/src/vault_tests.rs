@@ -342,6 +342,73 @@ fn dmsg_keys_are_read_only() {
 }
 
 #[test]
+fn history_pages_show_categories_without_values_and_keep_device_aliases_local() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let created = client
+        .vault_create("login", &login("Private title"))
+        .unwrap();
+    let changed = client
+        .vault_edit(
+            &created.id,
+            None,
+            &Changes {
+                notes: Some("Private note".into()),
+                set: Some(vec![FieldChange {
+                    id: Some("password".into()),
+                    value: Some("private replacement".into()),
+                    ..FieldChange::default()
+                }]),
+                ..Changes::default()
+            },
+        )
+        .unwrap();
+    let first = client.vault_history_page(&created.id, None, 1).unwrap();
+    assert_eq!(first.head, changed.revision);
+    assert!(first.more);
+    assert_eq!(first.versions[0].changes, ["notes", "password"]);
+    let device = &first.versions[0].version.device;
+    client
+        .set_history_device_alias(device, "Desk phone")
+        .unwrap();
+    let older = client
+        .vault_history_page(&created.id, Some(&changed.revision), 1)
+        .unwrap();
+    assert!(!older.more);
+    assert_eq!(older.versions[0].changes, ["created"]);
+    assert_eq!(
+        older.versions[0].device_alias.as_deref(),
+        Some("Desk phone")
+    );
+    let description = serde_json::to_string(&first).unwrap();
+    for private in [
+        "Private title",
+        "Private note",
+        "s3cret",
+        "private replacement",
+    ] {
+        assert!(!description.contains(private));
+    }
+    client.set_history_device_alias(device, "").unwrap();
+    assert!(
+        client
+            .vault_history_page(&created.id, None, 1)
+            .unwrap()
+            .versions[0]
+            .device_alias
+            .is_none()
+    );
+    assert!(
+        client
+            .vault_history_page(&created.id, Some("missing"), 1)
+            .is_err()
+    );
+    client.lock();
+    assert!(client.vault_history_page(&created.id, None, 1).is_err());
+    assert!(client.set_history_device_alias(device, "Locked").is_err());
+}
+
+#[test]
 fn history_shows_and_reverts_versions() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);

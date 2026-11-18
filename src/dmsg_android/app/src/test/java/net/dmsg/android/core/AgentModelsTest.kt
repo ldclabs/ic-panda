@@ -16,6 +16,9 @@ class AgentModelsTest {
         assertTrue(AgentPermissionsDraft("vault.list", "366").valid)
         assertFalse(AgentPermissionsDraft("vault.list", "367").valid)
         assertFalse(AgentPermissionsDraft("vault.list", "0").valid)
+        val permissions = (1..16).joinToString("\n") { "files.read:folder-$it" }
+        assertTrue(AgentPermissionsDraft(permissions).valid)
+        assertFalse(AgentPermissionsDraft(permissions + "\nvault.list").valid)
         assertFalse(validAgentLabel("Agent"))
     }
 

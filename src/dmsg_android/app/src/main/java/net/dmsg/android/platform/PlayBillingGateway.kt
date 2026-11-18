@@ -9,6 +9,7 @@ class PlayReplacement(val purchase: PlayPurchase, val deferred: Boolean)
 interface PlayBillingGateway {
     val available: Boolean
     val status: StateFlow<PlayBillingStatus>
+    fun takeCancellation(ownerBinding: String): Boolean = false
     suspend fun products(selections: List<PlaySelection>): PlayProductQuery
     suspend fun restore(force: Boolean = false): List<PlayPurchase>
     fun currentPurchases(): List<PlayPurchase>

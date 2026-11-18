@@ -20,9 +20,11 @@ public final class DragFixtureActivity extends Activity {
         source.setGravity(Gravity.CENTER);
         source.setTextSize(18);
         source.setPadding(16, 16, 16, 16);
+        Uri uri = Uri.parse("content://" + getPackageName() + ".drag-fixture/sample").buildUpon()
+            .appendQueryParameter("sample", getIntent().getStringExtra("sample")).build();
         source.setOnLongClickListener(view -> {
             boolean started = view.startDragAndDrop(
-                ClipData.newUri(getContentResolver(), "Sample file", Uri.parse("content://" + getPackageName() + ".drag-fixture/sample")),
+                ClipData.newUri(getContentResolver(), "Sample file", uri),
                 new View.DragShadowBuilder(view), null, View.DRAG_FLAG_GLOBAL | View.DRAG_FLAG_GLOBAL_URI_READ);
             android.util.Log.i("DMsgDragFixture", "started=" + started);
             // Android 16 excludes a different task behind this floating Activity

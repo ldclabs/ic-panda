@@ -21,6 +21,7 @@
 pub mod autofill;
 pub mod drafts;
 pub mod health;
+pub mod history;
 pub mod import;
 pub mod otp;
 pub mod reading;

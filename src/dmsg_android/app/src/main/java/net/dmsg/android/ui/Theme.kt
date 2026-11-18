@@ -16,6 +16,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.core.view.WindowCompat
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -79,7 +81,7 @@ private val dark = darkColorScheme(
     }
 }
 
-@Composable fun SectionTitle(text: String) { Text(text, Modifier.padding(top = 18.dp, bottom = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium) }
+@Composable fun SectionTitle(text: String) { Text(text, Modifier.semantics { heading() }.padding(top = 18.dp, bottom = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium) }
 
 fun errorText(code: String): String = when (code) {
     "INVALID_INPUT", "INVALID_AGENT_LABEL" -> str(R.string.text_check_the_input_or_paste_the_complete_request_then_try_again_75d51aa)

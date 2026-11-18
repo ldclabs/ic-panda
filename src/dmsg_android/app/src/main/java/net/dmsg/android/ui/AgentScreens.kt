@@ -8,6 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -78,7 +80,7 @@ import net.dmsg.android.core.*
                 if (grants is ReadState.Empty || grants is ReadState.Ready && currentGrants.isEmpty()) Text(str(R.string.text_no_device_grants_2e01884))
                 currentGrants.forEach { grant ->
                     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SelectionContainer { Text(grant.capabilities.joinToString("\n")) }
+                        SelectionContainer { Text(grant.capabilities.joinToString("\n", transform = ::permissionDescription)) }
                         grant.expiresAt?.let { LabelValue(str(R.string.text_expires_12414d7), displayTime(it)) }
                         AgentFingerprint(str(R.string.text_grant_id_1fc1a04), grant.id)
                         if (grant.revokedAt != null) Text(str(R.string.text_revoked_c4fbad3))
@@ -90,7 +92,7 @@ import net.dmsg.android.core.*
                         }
                     } }
                 }
-                OutlinedTextField(draft.capabilities, { client.agents.editPermissions(id, draft.copy(capabilities = it)) }, Modifier.fillMaxWidth().revealFocusedInput().testTag("agent-capabilities"), label = { Text(str(R.string.text_capabilities_one_per_line_86f9e92)) }, minLines = 3, maxLines = 8)
+                AgentPermissionPicker(client, id, draft)
                 AgentDaysField(draft.days) { client.agents.editPermissions(id, draft.copy(days = it)) }
                 TextButton(onClick = { removing = true }, enabled = fresh && !busy) { Text(str(R.string.text_remove_this_local_agent_27c101c), color = MaterialTheme.colorScheme.error) }
             } else if (listing is ReadState.Ready || listing is ReadState.Empty) EmptyPanel(str(R.string.text_this_local_agent_was_removed_e18a5d0))
@@ -104,8 +106,102 @@ import net.dmsg.android.core.*
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { AgentFingerprint(str(R.string.text_agent_id_badfded), id); Text(str(R.string.text_previously_delivered_credentials_and_copies_remain_independent_re_045f5cb)) }
     }, confirmButton = { TextButton(onClick = { removing = false; client.agents.remove(agent) }) { Text(str(R.string.text_remove_78190c6), color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton(onClick = { removing = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
     revoking?.let { grant -> AlertDialog(onDismissRequest = { revoking = null }, title = { Text(str(R.string.text_revoke_this_device_grant_bfda0fb)) }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { Text(grant.capabilities.joinToString("\n")); AgentFingerprint(str(R.string.text_grant_id_1fc1a04), grant.id) }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { Text(grant.capabilities.joinToString("\n", transform = ::permissionDescription)); AgentFingerprint(str(R.string.text_grant_id_1fc1a04), grant.id) }
     }, confirmButton = { TextButton(onClick = { revoking = null; client.agents.revokeGrant(grant) }) { Text(str(R.string.text_revoke_411a6c9), color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton(onClick = { revoking = null }) { Text(str(R.string.text_cancel_998b9c4)) } }) }
+}
+
+@Composable private fun AgentPermissionPicker(client: ClientController, id: String, draft: AgentPermissionsDraft) {
+    val options = remember { net.dmsg.core.agentCapabilityVocabulary().filterNot { it == "profile.read" } }
+    val permissions = agentLines(draft.capabilities)
+    var expanded by remember(id) { mutableStateOf(false) }
+    val pattern = draft.pattern
+    val target = draft.target
+    var choosing by remember(pattern, id) { mutableStateOf(false) }
+    val kind = pattern.substringAfter(":<", "").removeSuffix(">")
+    val candidate = if (kind.isEmpty()) pattern else pattern.substringBefore(':') + ":" + target.trim()
+    fun edit(next: AgentPermissionsDraft) { client.agents.editPermissions(id, next) }
+    permissions.forEach { value ->
+        ListItem(headlineContent = { Text(permissionDescription(value)) }, trailingContent = {
+            IconButton(onClick = { edit(draft.copy(capabilities = (permissions - value).joinToString("\n"))) }) {
+                Icon(Icons.Outlined.Close, str(R.string.text_remove_78190c6) + " · " + permissionDescription(value))
+            }
+        })
+    }
+    Box {
+        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.testTag("agent-permission-picker")) {
+            Text(if (pattern.isEmpty()) str(R.string.choose_permission) else permissionDescription(pattern))
+        }
+        DropdownMenu(expanded, { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(text = { Text(permissionDescription(option)) }, modifier = Modifier.testTag("permission-option:" + option),
+                    onClick = { edit(draft.copy(pattern = option, target = "")); expanded = false })
+            }
+        }
+    }
+    if (kind.isNotEmpty()) {
+        val label = str(when (kind) {
+            "folder" -> R.string.text_folder_b0d1441
+            "channel" -> R.string.permission_channel_id
+            "policy" -> R.string.permission_policy_id
+            "wallet" -> R.string.text_wallet_canister_id_a1a88b6
+            "origin" -> R.string.text_website_ad80f52
+            else -> R.string.text_tags_33e9c4d
+        })
+        OutlinedTextField(target, { edit(draft.copy(target = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), singleLine = true, label = { Text(label) })
+        if (kind in setOf("channel", "folder")) {
+            val channels by client.messages.channels.state.collectAsStateWithLifecycle()
+            val folders by client.library.tree.state.collectAsStateWithLifecycle()
+            LaunchedEffect(kind) { if (kind == "channel") client.messages.browse() else client.library.loadTree() }
+            val choices = if (kind == "channel") channels.valueOrNull().orEmpty().map { it.id to it.name }
+                else listOf("root" to str(R.string.shortcut_files)) + folders.valueOrNull().orEmpty().filterNot { it.id == "root" }.map { it.id to (if (it.path.lastOrNull() == it.name) it.path else it.path + it.name).joinToString(" / ") }
+            if (choices.isNotEmpty()) Box {
+                TextButton(onClick = { choosing = true }) { Text(str(if (kind == "channel") R.string.text_conversations_23a085e else R.string.text_folder_b0d1441)) }
+                DropdownMenu(choosing, { choosing = false }) {
+                    choices.forEach { (value, title) -> DropdownMenuItem(text = { Text(title) }, onClick = { edit(draft.copy(target = value)); choosing = false }) }
+                }
+            }
+        }
+    }
+    TextButton(onClick = { edit(draft.copy(capabilities = (permissions + candidate).joinToString("\n"), pattern = "", target = "")) },
+        enabled = pattern.isNotEmpty() && permissions.size < 16 && candidate !in permissions && net.dmsg.core.validAgentCapability(candidate),
+        modifier = Modifier.testTag("agent-permission-add")) { Text(str(R.string.add_permission)) }
+}
+
+internal fun permissionDescription(value: String): String {
+    val code = value.substringBefore(':')
+    val group = when (code.substringBeforeLast('.')) {
+        "account" -> str(R.string.permission_account_information)
+        "vault", "secret" -> str(R.string.shortcut_vault)
+        "files" -> str(R.string.shortcut_files)
+        "channel" -> str(R.string.text_conversations_23a085e)
+        "inbox" -> str(R.string.text_inbox_2cd8ee3)
+        "profile" -> str(R.string.text_public_profile_a67b108)
+        "wallet" -> str(R.string.text_wallet_77c08be)
+        "agent.delegation" -> str(R.string.permission_delegations)
+        "agent.profile" -> "Agent Profile"
+        "discourse" -> "Agent Discourse"
+        "mail" -> "Agent Mail"
+        "knowledge" -> "Agent Knowledge"
+        else -> return when (code) {
+            "attest.request" -> str(R.string.permission_request_a_signature)
+            "action.request" -> str(R.string.permission_request_an_action)
+            "events.endpoint" -> str(R.string.permission_manage_event_endpoints)
+            else -> value
+        }
+    }
+    val action = when (code.substringAfterLast('.')) {
+        "read" -> R.string.text_read_e0ed4e0
+        "write" -> R.string.permission_write
+        "list" -> R.string.permission_list_items
+        "publish" -> R.string.text_publish_88bb01f
+        "contact" -> R.string.text_write_a_letter_1a8f9c9
+        "use" -> R.string.permission_use_a_secret_through_a_device_policy
+        "propose" -> R.string.text_create_proposal_4946bd1
+        "execute" -> R.string.text_execute_approved_proposal_99a02a0
+        else -> return value
+    }
+    val target = value.substringAfter(':', "")
+    return listOfNotNull(group, str(action), target.takeIf { it.isNotEmpty() && !it.startsWith('<') }?.let { if (it == "*") str(R.string.text_all_eae0ae1) + " (*)" else it }).joinToString(" · ")
 }
 
 @Composable fun AgentDelegationsScreen(client: ClientController) {

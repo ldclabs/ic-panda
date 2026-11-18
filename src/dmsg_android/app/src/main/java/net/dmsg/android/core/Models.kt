@@ -9,6 +9,8 @@ data class LibraryFile(val id: String, val name: String, val size: ULong, val st
     val backup: FileBackup? = null, val trashedAt: ULong? = null, val path: List<String> = emptyList())
 data class FileBackup(val upload: String, val generation: ULong, val backedUpAt: ULong, val verified: Boolean)
 data class FileVersion(val id: String, val size: ULong, val sha256: String, val createdAt: ULong, val device: String, val local: Boolean, val current: Boolean, val status: String, val backup: FileBackup?, val mime: String? = null)
+fun LibraryFile.atVersion(v: FileVersion) = copy(version = v.id, mime = v.mime ?: (if (v.current) mime else "application/octet-stream"), size = v.size, sha256 = v.sha256, status = v.status, local = v.local, backup = v.backup)
+
 data class FileDetails(val file: LibraryFile, val versions: List<FileVersion>)
 data class Letter(val id: String, val sender: String, val text: String, val read: Boolean, val archived: Boolean, val state: String, val createdAt: ULong)
 data class Approval(val id: String, val digest: String, val kind: String, val state: String, val source: String, val risk: String, val expiresAt: ULong, val supported: Boolean)

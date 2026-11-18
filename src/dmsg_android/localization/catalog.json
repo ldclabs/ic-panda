@@ -1,4 +1,9 @@
 {
+  "add_permission": {
+    "en": "Add permission",
+    "zh-Hans": "添加权限",
+    "ios": "Add permission"
+  },
   "android_purchase_privacy": {
     "en": "Google Play purchases use Google account, billing and device verification services when configured. Purchase tokens are retained encrypted until the service verifies delivery. dMsg content is not sent to Google. The service policy below also describes Apple-specific services used by other dMsg apps.",
     "zh-Hans": "启用 Google Play 购买后，会使用 Google 账号、结算和设备验证服务。购买凭证将加密保留，直到服务核验交付。dMsg 内容不会发送给 Google。下方服务政策还说明其他 dMsg 应用使用的 Apple 专属服务。"
@@ -7,6 +12,16 @@
     "en": "App language",
     "zh-Hans": "应用语言",
     "ios": "Language"
+  },
+  "backup_all_caught_up": {
+    "en": "All caught up",
+    "zh-Hans": "暂时没有待处理请求",
+    "ios": "All caught up"
+  },
+  "choose_permission": {
+    "en": "Choose a permission",
+    "zh-Hans": "选择一项权限",
+    "ios": "Choose a permission"
   },
   "cipher_transfer_running": {
     "en": "Transferring encrypted blocks",
@@ -19,6 +34,16 @@
   "cipher_transfer_title": {
     "en": "Encrypted transfers",
     "zh-Hans": "加密传输"
+  },
+  "customize_fields": {
+    "en": "Customize fields",
+    "zh-Hans": "自定义字段",
+    "ios": "Customize fields"
+  },
+  "empty_folder": {
+    "en": "No files in this folder",
+    "zh-Hans": "此文件夹中没有文件",
+    "ios": "No files in this folder"
   },
   "follow_system_language": {
     "en": "Follow system language",
@@ -36,6 +61,11 @@
     "en": "Created %1$s of %2$s",
     "zh-Hans": "已创建 %1$s / %2$s"
   },
+  "no_matches": {
+    "en": "No matching results",
+    "zh-Hans": "无匹配结果",
+    "ios": "No matching results"
+  },
   "operation_failed_code": {
     "en": "This operation could not finish. Code: %1$s",
     "zh-Hans": "操作未完成，错误码：%1$s"
@@ -43,6 +73,96 @@
   "otp_accessibility_hint": {
     "en": "One-time code. Use field actions to copy it or show it in large type.",
     "zh-Hans": "一次性验证码。使用字段操作可复制或以大字显示。"
+  },
+  "permission_account_information": {
+    "en": "Account information",
+    "zh-Hans": "账号信息",
+    "ios": "Account information"
+  },
+  "permission_channel_id": {
+    "en": "Channel ID",
+    "zh-Hans": "频道 ID",
+    "ios": "Channel ID"
+  },
+  "permission_delegations": {
+    "en": "Delegations",
+    "zh-Hans": "委托",
+    "ios": "Delegations"
+  },
+  "permission_list_items": {
+    "en": "List items",
+    "zh-Hans": "列出条目",
+    "ios": "List items"
+  },
+  "permission_manage_event_endpoints": {
+    "en": "Manage event endpoints",
+    "zh-Hans": "管理事件接收端点",
+    "ios": "Manage event endpoints"
+  },
+  "permission_policy_id": {
+    "en": "Policy ID",
+    "zh-Hans": "策略 ID",
+    "ios": "Policy ID"
+  },
+  "permission_request_a_signature": {
+    "en": "Request a signature",
+    "zh-Hans": "请求签名",
+    "ios": "Request a signature"
+  },
+  "permission_request_an_action": {
+    "en": "Request an action",
+    "zh-Hans": "请求执行操作",
+    "ios": "Request an action"
+  },
+  "permission_use_a_secret_through_a_device_policy": {
+    "en": "Use a secret through a device policy",
+    "zh-Hans": "按设备策略使用秘密",
+    "ios": "Use a secret through a device policy"
+  },
+  "permission_write": {
+    "en": "Write",
+    "zh-Hans": "写入",
+    "ios": "Write"
+  },
+  "receive_closed": {
+    "en": "No one can send a new letter while receiving is closed.",
+    "zh-Hans": "关闭收信后，任何人都无法发来新信。",
+    "ios": "No one can send a new letter while receiving is closed."
+  },
+  "receive_free": {
+    "en": "Anyone you haven’t blocked can write for free.",
+    "zh-Hans": "所有未被你屏蔽的人都可以免费来信。",
+    "ios": "Anyone you haven’t blocked can write for free."
+  },
+  "receive_selected": {
+    "en": "Only selected accounts or people with a valid invitation can write.",
+    "zh-Hans": "只有选定账号或持有效邀请的人可以来信。",
+    "ios": "Only selected accounts or people with a valid invitation can write."
+  },
+  "review_anyone_with_the_link": {
+    "en": "Anyone with the link",
+    "zh-Hans": "持有链接的任何人",
+    "ios": "Anyone with the link"
+  },
+  "review_anyone_with_the_link_and_password": {
+    "en": "Anyone with the link and password",
+    "zh-Hans": "同时持有链接和密码的任何人",
+    "ios": "Anyone with the link and password"
+  },
+  "review_receiving": {
+    "en": "Receiving",
+    "zh-Hans": "接收",
+    "ios": "Receiving"
+  },
+  "search_local_messages": {
+    "en": "Searches messages saved on this device.",
+    "zh-Hans": "搜索此设备已保存的消息。",
+    "ios": "Searches messages saved on this device."
+  },
+  "search_query_limit": {
+    "en": "Use up to 200 characters to search.",
+    "zh-Hans": "搜索词最多可输入 200 个字符。",
+    "ios": "Use up to 200 characters to search."
   },
   "security_confirm": {
     "en": "Confirm in dMsg",
@@ -83,6 +203,11 @@
     "en": "Vault",
     "zh-Hans": "保险库",
     "ios": "Vault"
+  },
+  "signin_saved_passkey": {
+    "en": "Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.",
+    "zh-Hans": "如果已经创建过通行密钥，请使用已保存的密钥。只有需要另一个登录身份时才创建新密钥。",
+    "ios": "Use a saved passkey if you already created one. Create a new passkey only if you need another login identity."
   },
   "text_15_minutes_b81c469": {
     "en": "15 minutes",
@@ -9159,5 +9284,60 @@
     "en": "Username",
     "zh-Hans": "用户名",
     "ios": "Username"
+  },
+  "without_backup": {
+    "en": "Without a cloud backup",
+    "zh-Hans": "没有云端备份",
+    "ios": "Without a cloud backup"
+  },
+  "access_new_workspace": {
+    "en": "Set up a new workspace",
+    "zh-Hans": "设置新的工作区",
+    "ios": "Set up a new workspace"
+  },
+  "access_existing_account": {
+    "en": "Open an existing account",
+    "zh-Hans": "打开已有账号",
+    "ios": "Open an existing account"
+  },
+  "access_existing_passkey": {
+    "en": "Use an existing passkey",
+    "zh-Hans": "使用已有通行密钥",
+    "ios": "Use an existing passkey"
+  },
+  "access_linked_login": {
+    "en": "Use a login already linked to the account you want to open.",
+    "zh-Hans": "请使用已关联目标账号的登录方式。",
+    "ios": "Use a login already linked to the account you want to open."
+  },
+  "history_device": {
+    "en": "Device",
+    "zh-Hans": "设备",
+    "ios": "Device"
+  },
+  "history_fields": {
+    "en": "Fields",
+    "zh-Hans": "字段",
+    "ios": "Fields"
+  },
+  "history_deleted": {
+    "en": "Deleted",
+    "zh-Hans": "删除时间",
+    "ios": "Deleted"
+  },
+  "backup_total_size": {
+    "en": "Total size",
+    "zh-Hans": "总量上限",
+    "ios": "Total size"
+  },
+  "backup_already_saved": {
+    "en": "This version is already backed up.",
+    "zh-Hans": "此版本已备份。",
+    "ios": "This version is already backed up."
+  },
+  "backup_selected_help": {
+    "en": "Files are backed up only when you explicitly choose to do so.",
+    "zh-Hans": "只有你明确选择时，才会备份文件。",
+    "ios": "Files are backed up only when you explicitly choose to do so."
   }
 }

@@ -45,10 +45,15 @@ import net.dmsg.android.core.*
             if (form != null) {
                 listOf("closed", "contacts", "free").forEach { mode -> FilterChip(form.mode == mode, { client.safety.editReceiving(form.copy(mode = mode)) }, { Text(receivingMode(mode)) }, enabled = !working && pending == null) }
                 if (form.mode == "paid") Notice(str(R.string.text_the_current_policy_requires_payment_selecting_a_free_or_closed_po_5699ffb))
-                Text(str(R.string.text_selected_accounts_e482d88), style = MaterialTheme.typography.titleMedium)
+                when (form.mode) {
+                    "closed" -> Text(str(R.string.receive_closed))
+                    "contacts" -> Text(str(R.string.receive_selected))
+                    "free" -> Text(str(R.string.receive_free))
+                }
+                if (form.mode == "contacts") SectionTitle(str(R.string.text_selected_accounts_e482d88))
             }
         }
-        itemsIndexed(form?.allow.orEmpty()) { index, id ->
+        itemsIndexed(form?.takeIf { it.mode == "contacts" }?.allow.orEmpty()) { index, id ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f)) { ParticipantIdentity(client, id, true) }
                 TextButton(onClick = { form?.let { client.safety.editReceiving(it.copy(allow = it.allow.filterIndexed { i, _ -> i != index })) } }, enabled = !working && pending == null) { Text(str(R.string.text_remove_78190c6)) }
@@ -56,10 +61,12 @@ import net.dmsg.android.core.*
         }
         item {
             if (form != null) {
-                RecipientField(client, adding, { adding = it.trim() }, enabled = !working && pending == null)
-                TextButton(onClick = { client.safety.editReceiving(form.copy(allow = form.allow + adding)); adding = "" }, enabled = !working && pending == null && validAccount(adding) && adding !in form.allow && form.allow.size < 1000) { Text(str(R.string.text_add_account_5fa00b0)) }
+                if (form.mode == "contacts") {
+                    RecipientField(client, adding, { adding = it.trim() }, enabled = !working && pending == null)
+                    TextButton(onClick = { client.safety.editReceiving(form.copy(allow = form.allow + adding)); adding = "" }, enabled = !working && pending == null && validAccount(adding) && adding !in form.allow && form.allow.size < 1000) { Text(str(R.string.text_add_account_5fa00b0)) }
+                }
                 policy.valueOrNull()?.let { Text(str(R.string.text_inbox_capacity_e9297a7) + (it.capacity?.toString() ?: str(R.string.text_not_configured_7f1e4ed)), style = MaterialTheme.typography.bodySmall) }
-                Button(onClick = { confirming = true }, enabled = !working && form.valid && policy.valueOrNull() != null) { Text(if (pending != null) str(R.string.text_retry_original_change_670ac66) else str(R.string.text_save_receiving_policy_8dcc597)) }
+                Button(onClick = { confirming = true }, enabled = !working && form.valid && policy.valueOrNull()?.let { pending != null || it.mode != form.mode || it.allow.toSet() != form.allow.toSet() } == true) { Text(if (pending != null) str(R.string.text_retry_original_change_670ac66) else str(R.string.text_save_receiving_policy_8dcc597)) }
             }
             if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
             AccountRow(str(R.string.text_blocked_accounts_c7f6322)) { client.navigation.push(Route("blocked-accounts")) }
@@ -109,7 +116,7 @@ import net.dmsg.android.core.*
         else if (form != null) {
             ParticipantIdentity(client, target.account, true)
             listOf("spam", "harassment", "illegal", "other").forEach { reason -> FilterChip(form.reason == reason, { client.safety.editReport(form.copy(reason = reason)) }, { Text(reportReason(reason)) }) }
-            OutlinedTextField(form.note, { client.safety.editReport(form.copy(note = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), minLines = 3, label = { Text(str(R.string.text_describe_the_issue_d8ac397)) }, supportingText = { Text(localizedNumber(form.note.toByteArray(Charsets.UTF_8).size) + " / " + localizedNumber(2000) + " " + str(R.string.text_utf_8_bytes_121f5ad)) }, isError = !form.valid)
+            OutlinedTextField(form.note, { client.safety.editReport(form.copy(note = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), minLines = 3, label = { Text(str(R.string.text_describe_the_issue_d8ac397)) }, supportingText = { Text(localizedNumber(form.note.toByteArray(Charsets.UTF_8).size) + " / " + localizedNumber(2000) + " " + str(R.string.text_utf_8_bytes_121f5ad)) }, isError = form.note.isNotEmpty() && !form.valid)
             if (target.kind != "account") SettingToggle(str(R.string.text_include_this_message_s_text_359f600), form.disclose, { client.safety.editReport(form.copy(disclose = it)) })
             Notice(str(R.string.text_only_the_details_you_review_and_text_you_explicitly_select_are_se_a93daca))
             if (review !is ReadState.Idle) ReadFeedback(review, client.safety::prepareReport)

@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import net.dmsg.core.*
 
-data class VaultVersion(val revision: String, val at: ULong, val device: String, val current: Boolean, val deleted: Boolean, val conflict: Boolean, val synced: Boolean)
-data class VaultHistory(val current: VaultItem, val versions: List<VaultVersion>)
+data class VaultVersion(val revision: String, val at: ULong, val device: String, val current: Boolean, val deleted: Boolean, val conflict: Boolean, val synced: Boolean, val changes: List<String>, val alias: String?)
+data class VaultHistory(val current: VaultItem, val versions: List<VaultVersion>, val more: Boolean)
 data class ConflictField(val id: String, val kind: String, val label: String, val section: String, val value: String) {
     val hidden: Boolean get() = kind in setOf("concealed", "otp")
 }
@@ -14,7 +14,7 @@ data class ConflictItem(val id: String, val revision: String, val title: String,
 data class VaultConflict(val copy: ConflictItem, val current: ConflictItem, val hidden: List<String>) { val key: String get() = copy.id + ":" + copy.revision }
 data class ConflictChoice(val expected: String, val picks: Set<String> = emptySet(), val merging: Boolean = false)
 data class ConflictPart(val id: String, val current: String, val other: String, val hidden: Boolean = false)
-fun parseVaultVersions(value: JsonElement) = value.arrayRows().map { VaultVersion(it.required("revision"), it.requiredUnsigned("at"), it.required("device"), it.requiredFlag("current"), it.requiredFlag("deleted"), it.requiredFlag("conflict"), it.requiredFlag("synced")) }
+fun parseVaultVersions(value: JsonElement) = value.arrayRows().map { VaultVersion(it.required("revision"), it.requiredUnsigned("at"), it.required("device"), it.requiredFlag("current"), it.requiredFlag("deleted"), it.requiredFlag("conflict"), it.requiredFlag("synced"), it.strings("changes"), it.text("device_alias")) }
 private fun parseConflictItem(value: JsonElement): ConflictItem {
     val entry = value.objectValue(); val item = entry["item"]!!.objectValue()
     return ConflictItem(entry.required("id"), entry.required("revision"), item.required("title"), item.required("notes"), item.strings("tags"), item.strings("files"), item.requiredFlag("favorite"), entry.requiredFlag("deleted"), item.rows("fields").map {
@@ -45,11 +45,33 @@ class VaultHistoryCoordinator(private val client: ClientController) {
     fun choose(value: VaultConflict, next: ConflictChoice) { if (next.expected == value.current.revision) mutableChoices.value += value.key to next }
     private var item: String? = null
     private var version: Pair<String, String>? = null
-    fun load(id: String) {
-        val request = history.begin(keep = item == id); item = id
-        client.perform({ core -> VaultHistory(core.vaultItem(id, null).item, parseVaultVersions(core.vaultHistory(id).decode())) }, key = "vault:history", replace = true,
-            onError = { history.fail(request, it) }) { history.accept(request, it) }
+    fun load(id: String, more: Boolean = false) {
+        val previous = history.value()?.takeIf { more && it.current.id == id && it.more }
+        if (more && (previous == null || history.state.value is ReadState.Loading)) return
+        val request = history.begin(keep = item == id)
+        item = id
+        client.perform({ core ->
+            var page = core.vaultHistoryPage(id, previous?.versions?.lastOrNull()?.revision, 50u).decode().objectValue()
+            val append = previous != null && page.required("head") == previous.current.revision
+            if (previous != null && !append) page = core.vaultHistoryPage(id, null, 50u).decode().objectValue()
+            val current = if (append) previous!!.current else core.vaultItem(id, page.required("head")).item
+            val versions = parseVaultVersions(page.getValue("versions"))
+            VaultHistory(current, if (append) previous!!.versions + versions else versions, page.requiredFlag("more"))
+        }, key = "vault:history", replace = true, quiet = true, onError = { history.fail(request, it) }) { history.accept(request, it) }
     }
+
+    fun deviceAlias(id: String, device: String, name: String, saved: () -> Unit) {
+        val alias = name.trim()
+        client.perform({ it.setHistoryDeviceAlias(device, alias) }, key = "vault:history:alias") {
+            history.value()?.takeIf { it.current.id == id }?.let { value ->
+                history.accept(history.begin(), value.copy(versions = value.versions.map { row ->
+                    if (row.device == device) row.copy(alias = alias.ifEmpty { null }) else row
+                }))
+            }
+            saved()
+        }
+    }
+
     fun select(id: String, revision: String) {
         val request = historical.begin(keep = version == (id to revision)); version = id to revision
         client.perform({ it.vaultItem(id, revision).item }, key = "vault:historical", replace = true,
@@ -60,7 +82,8 @@ class VaultHistoryCoordinator(private val client: ClientController) {
         client.perform({ core -> core.vaultItem(id, null).item to core.vaultItem(id, revision).item }, key = "vault:compare", replace = true,
             onError = { comparison.fail(request, it) }) { comparison.accept(request, it) }
     }
-    fun restore(id: String, revision: String, expected: String, done: () -> Unit) = client.perform({ it.revertItem(id, revision, expected) }, key = "vault:restore:" + id) { load(id); client.vault.browse(); client.vault.select(id); done() }
+    fun restore(id: String, revision: String, expected: String) = client.perform({ it.revertItem(id, revision, expected) }, key = "vault:restore:" + id,
+        onError = { load(id) }) { load(id); client.vault.browse(); client.vault.select(id) }
     fun conflicts() {
         val request = conflicts.begin()
         client.perform({ parseVaultConflicts(it.conflicts().decode()) }, key = "vault:conflicts", replace = true,

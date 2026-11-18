@@ -62,14 +62,17 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
                         item { ReadFeedback(blocked, { client.safety.loadBlocks() }); ReadFeedback(incoming, { client.letters.refresh() }) }
                         val rows = incoming.valueOrNull().orEmpty().filter { blocked.valueOrNull()?.contains(it.sender) == false && it.archived == (folder == LetterFolder.ARCHIVED) && (search.isBlank() || it.text.contains(search, true) || it.sender.contains(search, true)) }
                         items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.sender, row.text, messageTime(row.createdAt), !row.read) { selected = row.id } }
-                        if (rows.isEmpty() && (incoming is ReadState.Ready || incoming is ReadState.Empty)) item { EmptyPanel(str(R.string.text_no_letters_here_edd0b41)) }
+                        if (rows.isEmpty() && blocked.valueOrNull() != null && (incoming is ReadState.Ready || incoming is ReadState.Empty || incoming is ReadState.Stale)) item {
+                            EmptyPanel(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches))
+                            if (folder == LetterFolder.INBOX && search.isBlank()) OutlinedButton(onClick = { editing = client.letters.create() }) { Text(str(R.string.text_write_a_letter_1a8f9c9)) }
+                        }
                         if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
                     }
                     LetterFolder.SENT, LetterFolder.PENDING -> {
                         item { ReadFeedback(history, { client.letters.refresh(false) }); Notice(str(R.string.text_sending_history_is_saved_on_this_device_older_records_may_not_con_b7b9992)) }
                         val rows = history.valueOrNull().orEmpty().filter { it.pending == (folder == LetterFolder.PENDING) && (search.isBlank() || it.recipient.contains(search, true) || it.text?.contains(search, true) == true) }
                         items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.recipient, row.text ?: str(R.string.text_message_body_unavailable_6b03555), letterState(row.state) + " · " + messageTime(row.createdAt), false) { sent = row.id } }
-                        if (rows.isEmpty() && (history is ReadState.Ready || history is ReadState.Empty)) item { EmptyPanel(str(R.string.text_no_letters_here_edd0b41)) }
+                        if (rows.isEmpty() && (history is ReadState.Ready || history is ReadState.Empty)) item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches)) }
                         if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
                     }
                     LetterFolder.DRAFTS -> {
