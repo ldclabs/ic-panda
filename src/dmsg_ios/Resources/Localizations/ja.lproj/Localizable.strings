@@ -2664,8 +2664,8 @@
 	<string>このアカウントには登録済みの承認キーが必要です。このデバイスをハードウェア セキュリティで設定するか、別の承認されたデバイスに問い合わせてください。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>このアクションはこのデバイスではサポートされていません。シークレット スナップショットは、専用のインポート フローを使用する必要があります。</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>このブラウザリクエストは別のアカウントに属しています。切り替えると、現在のワークスペースがロックされ、そのドラフトが保持されます。</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>このリクエストを閉じ、dMsg で以下のアカウントを開いてから、リクエストをもう一度開いてください。</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>これを元に戻すことはできません。サインアウトだけではアカウントは削除されません。</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>保存済みの鍵を準備できませんでした。このiPhoneのロックを解除して、もう一度お試しください。ワークスペースは消去されていません。</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>このアップデートでは保存済みの鍵にアクセスできません。dMsgを削除せず、別の承認済みデバイスからサポートにお問い合わせください。ワークスペースは消去されていません。</string>
+	<key>Search conversations</key>
+	<string>会話を検索</string>
+	<key>Search letters</key>
+	<string>手紙を検索</string>
+	<key>Select a letter</key>
+	<string>手紙を選択</string>
+	<key>Account information</key>
+	<string>アカウント情報</string>
+	<key>Add a device and keep using this one.</key>
+	<string>このデバイスを使い続けながら、別のデバイスを追加します。</string>
+	<key>Add permission</key>
+	<string>権限を追加</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>システム通知を受け取るには、iOSの設定で通知を許可してください。</string>
+	<key>Anyone with the link</key>
+	<string>リンクを知っている人</string>
+	<key>Anyone with the link and password</key>
+	<string>リンクとパスワードを知っている人</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>ブロックしていない人は誰でも無料で手紙を送れます。</string>
+	<key>Authorize %@ as %@.</key>
+	<string>%1$@ を %2$@ として承認します。</string>
+	<key>Choose a permission</key>
+	<string>権限を選択</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>承認済みの2台のデバイス間でファイルをコピーします。</string>
+	<key>Cosign proposal</key>
+	<string>提案に共同署名</string>
+	<key>Create wallet</key>
+	<string>ウォレットを作成</string>
+	<key>Customize fields</key>
+	<string>フィールドをカスタマイズ</string>
+	<key>Import cosignatures</key>
+	<string>共同署名を読み込む</string>
+	<key>List items</key>
+	<string>項目を一覧表示</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>このデバイスの役割を交換先のデバイスに移します。</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>受信を閉じている間は、誰からも新しい手紙を受け取りません。</string>
+	<key>Notifications are off for this account.</key>
+	<string>このアカウントでは通知がオフです。</string>
+	<key>Notifications are off on this device.</key>
+	<string>このデバイスでは通知がオフです。</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>選択したアカウントと、有効な招待を持つ人だけが手紙を送れます。</string>
+	<key>Open an existing account</key>
+	<string>既存のアカウントを開く</string>
+	<key>Policy ID</key>
+	<string>ポリシーID</string>
+	<key>Proposal</key>
+	<string>提案</string>
+	<key>Read</key>
+	<string>読み取り</string>
+	<key>Manage event endpoints</key>
+	<string>イベントの受信エンドポイントを管理</string>
+	<key>Request a signature</key>
+	<string>署名をリクエスト</string>
+	<key>Request an action</key>
+	<string>操作をリクエスト</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>取り消すと以後のダウンロードを停止します。保存済みのコピーは残ります。</string>
+	<key>Searching…</key>
+	<string>検索中…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>選択したアカウントと、有効な招待を持つ人は無料で手紙を送れます。</string>
+	<key>Set up a new workspace</key>
+	<string>新しいワークスペースを設定</string>
+	<key>Share %@ with %@.</key>
+	<string>「%1$@」を %2$@ と共有します。</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>会話を開始して、メンバーとメッセージやファイルをやり取りできます。</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>システム通知には以下の設定が適用されます。</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>検索語は200文字以内で入力してください。</string>
+	<key>Write</key>
+	<string>書き込み</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>アカウントに直接手紙を送ります。返信するかは受信者が決めます。ここからの送信は無料です。</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>システムの通知を受け取るには、通知を許可してください。</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>通知は目立たない方法で配信されます。</string>
+	<key>Veto proposal</key>
+	<string>提案に拒否権を行使</string>
 </dict>
 </plist>

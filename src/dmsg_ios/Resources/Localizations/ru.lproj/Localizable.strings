@@ -2664,8 +2664,8 @@
 	<string>Для аккаунта нужен зарегистрированный ключ подтверждения. Настройте устройство в разделе аппаратной безопасности или используйте другое авторизованное устройство.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Действие не поддерживается на этом устройстве. Для снимков секретов нужно использовать специальную процедуру импорта.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>Запрос относится к другому аккаунту. Переключение заблокирует текущее пространство и сохранит черновик.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Закройте запрос, откройте указанный ниже аккаунт в dMsg, затем снова откройте запрос.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Это действие необратимо. Выход из аккаунта сам по себе его не удаляет.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Не удалось подготовить сохранённые ключи. Разблокируйте этот iPhone и повторите попытку. Ваше рабочее пространство не удалено.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Это обновление не может получить доступ к сохранённым ключам. Не удаляйте dMsg и обратитесь в поддержку с другого авторизованного устройства. Ваше рабочее пространство не удалено.</string>
+	<key>Search conversations</key>
+	<string>Поиск бесед</string>
+	<key>Search letters</key>
+	<string>Поиск писем</string>
+	<key>Select a letter</key>
+	<string>Выберите письмо</string>
+	<key>Account information</key>
+	<string>Сведения об аккаунте</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Добавьте устройство и продолжайте пользоваться этим.</string>
+	<key>Add permission</key>
+	<string>Добавить разрешение</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Разрешите уведомления в настройках iOS, чтобы получать системные оповещения.</string>
+	<key>Anyone with the link</key>
+	<string>Любой, у кого есть ссылка</string>
+	<key>Anyone with the link and password</key>
+	<string>Любой, у кого есть ссылка и пароль</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Все, кого вы не заблокировали, могут писать вам бесплатно.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>Авторизовать %1$@ с ролью «%2$@».</string>
+	<key>Choose a permission</key>
+	<string>Выбрать разрешение</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Копируйте файлы между двумя авторизованными устройствами.</string>
+	<key>Cosign proposal</key>
+	<string>Совместно подписать предложение</string>
+	<key>Create wallet</key>
+	<string>Создать кошелёк</string>
+	<key>Customize fields</key>
+	<string>Настроить поля</string>
+	<key>Import cosignatures</key>
+	<string>Импортировать совместные подписи</string>
+	<key>List items</key>
+	<string>Просматривать список элементов</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Передайте роль этого устройства новому устройству.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Пока приём закрыт, никто не может присылать вам новые письма.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Уведомления для этого аккаунта выключены.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Уведомления на этом устройстве выключены.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Вам могут писать только выбранные аккаунты и люди с действующим приглашением.</string>
+	<key>Open an existing account</key>
+	<string>Открыть существующий аккаунт</string>
+	<key>Policy ID</key>
+	<string>ID политики</string>
+	<key>Proposal</key>
+	<string>Предложение</string>
+	<key>Read</key>
+	<string>Читать</string>
+	<key>Manage event endpoints</key>
+	<string>Управлять адресами получения событий</string>
+	<key>Request a signature</key>
+	<string>Запросить подпись</string>
+	<key>Request an action</key>
+	<string>Запросить действие</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Отзыв ссылки запрещает дальнейшие загрузки. Сохранённые копии остаются.</string>
+	<key>Searching…</key>
+	<string>Поиск…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Выбранные аккаунты и люди с действующим приглашением могут писать бесплатно.</string>
+	<key>Set up a new workspace</key>
+	<string>Настроить новое рабочее пространство</string>
+	<key>Share %@ with %@.</key>
+	<string>Поделиться «%1$@» с %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Начните беседу, чтобы обмениваться сообщениями и файлами с участниками.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Системные оповещения учитывают настройки ниже.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Для поиска введите не более 200 символов.</string>
+	<key>Write</key>
+	<string>Записывать</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Напишите напрямую на аккаунт. Получатель сам решит, отвечать ли. Отправка отсюда бесплатна.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Разрешите уведомления, чтобы получать системные оповещения.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Уведомления доставляются без звука.</string>
+	<key>Veto proposal</key>
+	<string>Наложить вето на предложение</string>
 </dict>
 </plist>

@@ -121,25 +121,41 @@ struct MembershipPlanCard<Action: View>: View {
 struct MembershipComparisonView: View {
     let catalogue: MembershipCatalogue
     let currentPlan: String?
-    let prices: [String: String]
+    let prices: () -> [String: String]
+    let retry: () async -> Void
+    @Environment(SessionModel.self) private var model
     @Environment(\.dynamicTypeSize) private var textSize
 
     var body: some View {
         List {
             Section {
                 if let currentPlan { LabeledContent("Current plan", value: currentPlan) }
+                if !model.purchases.showsControls {
+                    Text("Plans cannot be changed in this version of the app. Your current plan and usage remain available.").font(.footnote)
+                }
                 Text("Every plan includes end-to-end encryption and device revocation.").font(.subheadline).foregroundStyle(.secondary)
             }
-            Section("App Store subscriptions") {
-                ForEach(catalogue.ordered) { plan in
-                    let value = plan.tier == .free ? String(localized: "No charge") : prices[plan.id] ?? String(localized: "Price unavailable")
-                    if textSize.isAccessibilitySize {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(verbatim: plan.planId).font(.headline)
-                            Text(verbatim: value).fixedSize(horizontal: false, vertical: true)
-                        }.accessibilityElement(children: .combine)
-                    } else {
-                        LabeledContent(plan.planId, value: value)
+            if model.purchases.showsControls {
+                Section("App Store subscriptions") {
+                    let available = prices()
+                    ForEach(catalogue.ordered.filter { $0.tier == .free || available[$0.id] != nil }) { plan in
+                        let value = available[plan.id] ?? String(localized: "No charge")
+                        if textSize.isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(verbatim: plan.planId).font(.headline)
+                                Text(verbatim: value).fixedSize(horizontal: false, vertical: true)
+                            }.accessibilityElement(children: .combine)
+                        } else {
+                            LabeledContent(plan.planId, value: value)
+                        }
+                    }
+                    if catalogue.ordered.contains(where: { $0.tier != .free && available[$0.id] == nil }) {
+                        if model.purchases.loading { ProgressView("Loading…") }
+                        else {
+                            Text("Price unavailable").foregroundStyle(.secondary)
+                            SettingsAction("Retry") { Task { await retry() } }.disabled(model.purchases.working)
+                                .accessibilityIdentifier("plan.compare.retry")
+                        }
                     }
                 }
             }

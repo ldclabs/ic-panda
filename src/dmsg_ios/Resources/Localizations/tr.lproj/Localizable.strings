@@ -2664,8 +2664,8 @@
 	<string>Bu hesap kayıtlı bir onay anahtarı gerektiriyor. Bu cihazı Donanım güvenliğinde kurun veya başka bir yetkili cihaza sorun.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Bu işlem bu cihazda desteklenmiyor. Gizli anlık yedeklerin özel içe aktarma akışlarını kullanması gerekir.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>Bu tarayıcı isteği başka bir hesaba ait. Geçiş, mevcut çalışma alanını kilitler ve taslağını korur.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Bu isteği kapatın, dMsg’de aşağıda gösterilen hesabı açın ve ardından isteği yeniden açın.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Bu geri alınamaz. Tek başına çıkış yapmak hesabı silmez.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Kayıtlı anahtarlarınız hazırlanamadı. Bu iPhone’un kilidini açıp tekrar deneyin. Çalışma alanınız silinmedi.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Bu güncelleme kayıtlı anahtarlarınıza erişemiyor. dMsg uygulamasını yüklü tutun ve yetkilendirilmiş başka bir cihazdan destek ekibiyle iletişime geçin. Çalışma alanınız silinmedi.</string>
+	<key>Search conversations</key>
+	<string>Sohbet ara</string>
+	<key>Search letters</key>
+	<string>Mektup ara</string>
+	<key>Select a letter</key>
+	<string>Bir mektup seçin</string>
+	<key>Account information</key>
+	<string>Hesap bilgileri</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Bir cihaz ekleyip bu cihazı kullanmaya devam edin.</string>
+	<key>Add permission</key>
+	<string>İzin ekle</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Sistem bildirimlerini almak için iOS Ayarları’nda uyarılara izin verin.</string>
+	<key>Anyone with the link</key>
+	<string>Bağlantıya sahip herkes</string>
+	<key>Anyone with the link and password</key>
+	<string>Bağlantı ve parolaya sahip herkes</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Engellemediğiniz herkes ücretsiz yazabilir.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>%1$@ için %2$@ rolüne izin ver.</string>
+	<key>Choose a permission</key>
+	<string>İzin seç</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>İki yetkili cihaz arasında dosya kopyalayın.</string>
+	<key>Cosign proposal</key>
+	<string>Teklifi birlikte imzala</string>
+	<key>Create wallet</key>
+	<string>Cüzdan oluştur</string>
+	<key>Customize fields</key>
+	<string>Alanları özelleştir</string>
+	<key>Import cosignatures</key>
+	<string>Ortak imzaları içe aktar</string>
+	<key>List items</key>
+	<string>Öğeleri listele</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Bu cihazın rolünü yerine geçecek cihaza aktarın.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Mektup alımı kapalıyken kimse yeni mektup gönderemez.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Bu hesabın bildirimleri kapalı.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Bu cihazın bildirimleri kapalı.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Yalnızca seçili hesaplar veya geçerli daveti olan kişiler yazabilir.</string>
+	<key>Open an existing account</key>
+	<string>Mevcut bir hesabı aç</string>
+	<key>Policy ID</key>
+	<string>İlke kimliği</string>
+	<key>Proposal</key>
+	<string>Teklif</string>
+	<key>Read</key>
+	<string>Oku</string>
+	<key>Manage event endpoints</key>
+	<string>Olay uç noktalarını yönet</string>
+	<key>Request a signature</key>
+	<string>İmza iste</string>
+	<key>Request an action</key>
+	<string>Eylem iste</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>İptal edildikten sonra yeni indirmeler engellenir. Kaydedilmiş kopyalar kalır.</string>
+	<key>Searching…</key>
+	<string>Aranıyor…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Seçili hesaplar ve geçerli daveti olanlar ücretsiz yazabilir.</string>
+	<key>Set up a new workspace</key>
+	<string>Yeni çalışma alanı kur</string>
+	<key>Share %@ with %@.</key>
+	<string>%1$@ öğesini %2$@ ile paylaş.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Üyelerle mesaj ve dosya alışverişi yapmak için bir sohbet başlatın.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Sistem uyarıları aşağıdaki tercihlerinize uyar.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Arama için en fazla 200 karakter kullanın.</string>
+	<key>Write</key>
+	<string>Yaz</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Bir hesaba doğrudan yazın. Yanıt verip vermemeye alıcı karar verir. Buradan göndermek ücretsizdir.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Sistem uyarılarını almak için bildirimlere izin verin.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Bildirimler sessizce iletilir.</string>
+	<key>Veto proposal</key>
+	<string>Teklifi veto et</string>
 </dict>
 </plist>

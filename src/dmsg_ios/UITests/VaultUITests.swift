@@ -93,6 +93,13 @@ final class VaultUITests: XCTestCase {
         return app
     }
 
+    private func newNote(in app: XCUIApplication) {
+        let strip = app.scrollViews["vault.scopes"], note = app.buttons["vault.scope.note"]
+        if strip.exists, note.frame.midX > strip.frame.maxX { strip.swipeLeft() }
+        else if strip.exists, note.frame.midX < strip.frame.minX { strip.swipeRight() }
+        note.tap(); app.buttons["vault.add"].tap()
+    }
+
     private func capture(_ app: XCUIApplication, _ name: String) {
         let loading = app.activityIndicators["vault.loading"]
         if loading.exists { XCTAssertTrue(loading.waitForNonExistence(timeout: 8)) }
@@ -114,9 +121,19 @@ final class VaultUITests: XCTestCase {
         if done.exists && done.isHittable { done.tap() }
         let menu = app.descendants(matching: .any).matching(identifier: "vault.edit.add-field").firstMatch
         let form = app.collectionViews["vault.edit.form"]
-        for _ in 0..<6 where !menu.isHittable { form.swipeUp() }
-        XCTAssertTrue(menu.isHittable)
-        // Use the same Menu AX workaround as the field action menu above.
+        let high = form.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.24))
+        let low = form.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.70))
+        for _ in 0..<12 {
+            if menu.exists {
+                let middle = menu.frame.midY
+                if middle > app.navigationBars.firstMatch.frame.maxY + 8 && middle < form.frame.maxY - 16 { break }
+                if middle <= app.navigationBars.firstMatch.frame.maxY + 8 {
+                    high.press(forDuration: 0.05, thenDragTo: low); continue
+                }
+            }
+            low.press(forDuration: 0.05, thenDragTo: high)
+        }
+        XCTAssertTrue(menu.exists)
         menu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         let option = app.buttons["vault.edit.add-field.\(kind)"]
         XCTAssertTrue(option.waitForExistence(timeout: 5)); option.tap()
@@ -428,15 +445,46 @@ final class VaultUITests: XCTestCase {
         app.typeKey("n", modifierFlags: .command)
         let title = app.textFields["vault.edit.title"]
         XCTAssertTrue(title.waitForExistence(timeout: 5))
-        title.tap(); title.typeText("Keyboard item")
-        app.typeKey("s", modifierFlags: .command)
-        XCTAssertTrue(app.buttons["vault.item.fixture-created"].waitForExistence(timeout: 5))
-        capture(app, "Keyboard creates and saves a vault item")
+        title.tap(); title.typeText("Keyboard item\n")
+        let username = app.textFields["vault.edit.field.username"], password = app.secureTextFields["vault.edit.field.password"]
+        XCTAssertTrue(username.exists); username.typeText("demo-user\n")
+        XCTAssertFalse(app.textFields["vault.edit.name.username"].exists)
+        XCTAssertTrue(password.exists); password.typeText("test-password\n")
+        let row = app.buttons["vault.item.fixture-created"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        // Decline the optional iOS Passwords prompt when AutoFill is enabled on this device.
+        let later = app.buttons.matching(NSPredicate(format: "label IN %@", ["Not Now", "Later", "以后", "稍后"])).firstMatch
+        if later.waitForExistence(timeout: 3) { later.tap(); XCTAssertTrue(later.waitForNonExistence(timeout: 5)) }
+        XCTAssertTrue(row.label.contains("demo-user"))
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: row)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
+        row.tap()
+        XCTAssertTrue(app.buttons["vault.copy.password"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["vault.copy.username"].value as? String, "demo-user")
+        capture(app, "Keyboard saves a login and reopens the saved credentials")
+    }
+
+    func testGeneratedPasswordCanBeSavedFromTheQuickLoginForm() {
+        let app = launch()
+        app.buttons["vault.add"].tap()
+        let title = app.textFields["vault.edit.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText("Generated login")
+        app.buttons["vault.edit.keyboard-done"].tap()
+        let generate = app.buttons["Generate password"]
+        for _ in 0..<4 where !generate.isHittable { app.swipeUp() }
+        generate.tap()
+        let value = app.staticTexts["vault.generator.value"]
+        XCTAssertTrue(value.waitForExistence(timeout: 4)); XCTAssertEqual(value.label.count, 20)
+        app.buttons["Use password"].tap()
+        app.buttons["vault.edit.save"].tap()
+        let row = app.buttons["vault.item.fixture-created"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+        XCTAssertTrue(app.buttons["vault.copy.password"].waitForExistence(timeout: 5))
     }
 
     func testCustomFieldStartsWithNameAndKeepsItsValueOutOfTheNoteList() {
         let app = launch()
-        app.buttons["vault.scope.note"].tap(); app.buttons["vault.add"].tap()
+        newNote(in: app)
         let title = app.textFields["vault.edit.title"]
         XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText("dmsg names")
         addField(app, kind: "text")
@@ -469,7 +517,7 @@ final class VaultUITests: XCTestCase {
 
     func testUnnamedFieldReportsItsNameAfterEditingAndPreservesTheValue() {
         let app = launch(language: "zh-Hans")
-        app.buttons["vault.scope.note"].tap(); app.buttons["vault.add"].tap()
+        newNote(in: app)
         let title = app.textFields["vault.edit.title"]
         XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText("字段草稿")
         addField(app, kind: "text")
@@ -494,7 +542,7 @@ final class VaultUITests: XCTestCase {
 
     func testEverySaveAttemptReturnsToTheFirstInvalidField() {
         let app = launch()
-        app.buttons["vault.scope.note"].tap(); app.buttons["vault.add"].tap()
+        newNote(in: app)
         let title = app.textFields["vault.edit.title"]
         XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap(); title.typeText("Retry")
         addField(app, kind: "text")
@@ -520,7 +568,7 @@ final class VaultUITests: XCTestCase {
         for (language, extra) in [("zh-Hans", ["--ui-dark"]), ("de", []),
                                   ("ar", ["--ui-dark", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])] {
             let app = launch(extra, language: language)
-            app.buttons["vault.scope.note"].tap(); app.buttons["vault.add"].tap()
+            newNote(in: app)
             addField(app, kind: "concealed")
             let name = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "vault.edit.name.field_")).firstMatch
             XCTAssertTrue(name.waitForExistence(timeout: 5))

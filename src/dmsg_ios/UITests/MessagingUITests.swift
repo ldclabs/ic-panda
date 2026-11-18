@@ -41,6 +41,21 @@ final class MessagingUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Keep this letter draft"].waitForExistence(timeout: 5))
         capture(app, "Sent letter can be reopened")
     }
+
+    func testPartialRecipientIsValidatedAfterLeavingTheField() {
+        let app = start()
+        letters(app)
+        app.buttons["letters.compose"].tap()
+        let recipient = field(app, "message.recipient")
+        recipient.tap(); recipient.typeText("040")
+        let invalid = app.staticTexts["Enter a valid account ID."]
+        XCTAssertFalse(invalid.exists)
+        capture(app, "Partial recipient while editing")
+        field(app, "letter.text").tap()
+        XCTAssertTrue(invalid.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["letter.send"].isEnabled)
+        capture(app, "Incomplete recipient after leaving the field")
+    }
     func testSelectingAnAttachmentDoesNotSendIt() {
         let app = start(["--ui-channel", "--ui-detail-navigation"])
         let channel = app.buttons["channel.row.fixture-channel"]; XCTAssertTrue(channel.waitForExistence(timeout: 10)); channel.tap()
@@ -104,6 +119,21 @@ final class MessagingUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Invite member"].exists)
         capture(app, "Read only conversation explains why sending is unavailable")
     }
+    func testWorkspaceSearchFindsOlderMessagesAndAttachmentsByChannel() {
+        let app = start(["--ui-search-workspace"])
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("roadmap\n")
+        let file = app.buttons["messages.hit.fixture-channel.1"], message = app.buttons["messages.hit.fixture-research.1"]
+        XCTAssertTrue(file.waitForExistence(timeout: 5)); XCTAssertTrue(message.waitForExistence(timeout: 5))
+        for sequence in 2...5 { XCTAssertFalse(app.buttons["messages.hit.fixture-channel.\(sequence)"].exists) }
+        capture(app, "Workspace search groups the filename and earlier text")
+        message.tap()
+        XCTAssertTrue(app.staticTexts["Original roadmap discussion"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Meeting notes"].exists)
+        app.buttons["conversation.latest"].tap()
+        XCTAssertTrue(app.staticTexts["Meeting notes"].waitForExistence(timeout: 5))
+    }
+
     func testAttachmentNameSearchKeepsTheMatchingMessage() {
         let app = start(["--ui-channel", "--ui-channel-attachment"])
         let channel = app.buttons["channel.row.fixture-channel"]; XCTAssertTrue(channel.waitForExistence(timeout: 10)); channel.tap()

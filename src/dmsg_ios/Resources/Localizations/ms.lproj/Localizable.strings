@@ -2664,8 +2664,8 @@
 	<string>Akaun ini memerlukan kunci kelulusan berdaftar. Sediakan peranti ini dalam keselamatan Perkakasan, atau tanya peranti lain yang dibenarkan.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Tindakan ini tidak disokong pada peranti ini. Gambar rahsia mesti menggunakan aliran import khusus mereka.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>Permintaan penyemak imbas ini dimiliki oleh akaun lain. Penukaran mengunci ruang kerja semasa dan mengekalkan drafnya.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Tutup permintaan ini, buka akaun yang ditunjukkan di bawah dalam dMsg, kemudian buka semula permintaan ini.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Ini tidak boleh dibuat asal. Log keluar sahaja tidak memadamkan akaun.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Kunci tersimpan anda tidak dapat disediakan. Buka kunci iPhone ini dan cuba lagi. Ruang kerja anda belum dipadamkan.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Kemas kini ini tidak dapat mengakses kunci tersimpan anda. Kekalkan pemasangan dMsg dan hubungi sokongan daripada peranti lain yang dibenarkan. Ruang kerja anda belum dipadamkan.</string>
+	<key>Search conversations</key>
+	<string>Cari perbualan</string>
+	<key>Search letters</key>
+	<string>Cari surat</string>
+	<key>Select a letter</key>
+	<string>Pilih surat</string>
+	<key>Account information</key>
+	<string>Maklumat akaun</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Tambah peranti dan terus gunakan peranti ini.</string>
+	<key>Add permission</key>
+	<string>Tambah kebenaran</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Benarkan isyarat dalam Seting iOS untuk menerima pemberitahuan sistem.</string>
+	<key>Anyone with the link</key>
+	<string>Sesiapa yang mempunyai pautan</string>
+	<key>Anyone with the link and password</key>
+	<string>Sesiapa yang mempunyai pautan dan kata laluan</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Sesiapa yang tidak anda sekat boleh menulis secara percuma.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>Benarkan %1$@ sebagai %2$@.</string>
+	<key>Choose a permission</key>
+	<string>Pilih kebenaran</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Salin fail antara dua peranti yang dibenarkan.</string>
+	<key>Cosign proposal</key>
+	<string>Tandatangani cadangan bersama</string>
+	<key>Create wallet</key>
+	<string>Cipta dompet</string>
+	<key>Customize fields</key>
+	<string>Sesuaikan medan</string>
+	<key>Import cosignatures</key>
+	<string>Import tandatangan bersama</string>
+	<key>List items</key>
+	<string>Senaraikan item</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Pindahkan peranan peranti ini kepada peranti gantinya.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Tiada sesiapa boleh menghantar surat baharu apabila penerimaan ditutup.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Pemberitahuan dimatikan untuk akaun ini.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Pemberitahuan dimatikan pada peranti ini.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Hanya akaun terpilih atau orang yang mempunyai jemputan sah boleh menulis.</string>
+	<key>Open an existing account</key>
+	<string>Buka akaun sedia ada</string>
+	<key>Policy ID</key>
+	<string>ID dasar</string>
+	<key>Proposal</key>
+	<string>Cadangan</string>
+	<key>Read</key>
+	<string>Baca</string>
+	<key>Manage event endpoints</key>
+	<string>Urus titik akhir peristiwa</string>
+	<key>Request a signature</key>
+	<string>Minta tandatangan</string>
+	<key>Request an action</key>
+	<string>Minta tindakan</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Pembatalan menghentikan muat turun seterusnya. Salinan yang disimpan kekal.</string>
+	<key>Searching…</key>
+	<string>Sedang mencari…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Akaun terpilih dan orang yang mempunyai jemputan sah boleh menulis secara percuma.</string>
+	<key>Set up a new workspace</key>
+	<string>Sediakan ruang kerja baharu</string>
+	<key>Share %@ with %@.</key>
+	<string>Kongsi %1$@ dengan %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Mulakan perbualan untuk bertukar mesej dan fail dengan ahli.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Isyarat sistem mengikut pilihan anda di bawah.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Gunakan sehingga 200 aksara untuk mencari.</string>
+	<key>Write</key>
+	<string>Tulis</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Tulis terus kepada akaun. Penerima menentukan sama ada mahu membalas. Penghantaran dari sini percuma.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Benarkan pemberitahuan untuk menerima isyarat sistem.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Pemberitahuan dihantar secara senyap.</string>
+	<key>Veto proposal</key>
+	<string>Veto cadangan</string>
 </dict>
 </plist>

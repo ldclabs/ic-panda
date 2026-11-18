@@ -354,6 +354,15 @@ impl Client {
         }
         targets.sort();
         targets.dedup();
+        self.plan_version_backups(targets, max_file_bytes, now)
+    }
+
+    fn plan_version_backups(
+        &mut self,
+        targets: Vec<(String, String)>,
+        max_file_bytes: u64,
+        now: u64,
+    ) -> Result<(BackupRequest, Vec<BackupJob>)> {
         let mut request = BackupRequest::default();
         let mut jobs = Vec::new();
         for (file, version_id) in targets {
@@ -446,14 +455,62 @@ pub async fn backup<H: Hold>(h: &H, ids: &[String], all_versions: bool) -> Resul
 
 /// Plan exactly the file version the user selected, rechecking after quota I/O.
 pub async fn backup_version<H: Hold>(h: &H, id: &str, version: &str) -> Result<BackupRequest> {
-    backup_checked(h, &[id.to_string()], false, Some((id, version))).await
+    backup_checked(
+        h,
+        &[],
+        false,
+        Some(ReviewedVersion {
+            file: id,
+            version,
+            require_current: true,
+        }),
+    )
+    .await
+}
+
+/// Back up an explicitly selected immutable revision, even after a newer revision was saved.
+pub async fn backup_revision<H: Hold>(h: &H, id: &str, version: &str) -> Result<BackupRequest> {
+    backup_checked(
+        h,
+        &[],
+        false,
+        Some(ReviewedVersion {
+            file: id,
+            version,
+            require_current: false,
+        }),
+    )
+    .await
+}
+
+#[derive(Clone, Copy)]
+struct ReviewedVersion<'a> {
+    file: &'a str,
+    version: &'a str,
+    require_current: bool,
+}
+
+impl ReviewedVersion<'_> {
+    fn check(self, c: &mut Client) -> Result<()> {
+        let catalog = c.catalog()?;
+        let file = catalog.files.get(self.file).ok_or(Error::NotFound)?;
+        ensure(!catalog.file_trashed(file), Error::NotFound)?;
+        if self.require_current {
+            ensure(file.current == self.version, Error::VersionConflict)
+        } else {
+            ensure(
+                file.versions.iter().any(|v| v.id == self.version),
+                Error::NotFound,
+            )
+        }
+    }
 }
 
 async fn backup_checked<H: Hold>(
     h: &H,
     ids: &[String],
     all_versions: bool,
-    expected: Option<(&str, &str)>,
+    expected: Option<ReviewedVersion<'_>>,
 ) -> Result<BackupRequest> {
     let (_, security) = h
         .signed(|c| {
@@ -473,11 +530,13 @@ async fn backup_checked<H: Hold>(
     )?;
     let (mut request, jobs) = h
         .with(|c| {
-            if let Some((id, version)) = expected {
-                ensure(
-                    c.file_record(id)?.current == version,
-                    Error::VersionConflict,
-                )?;
+            if let Some(reviewed) = expected {
+                reviewed.check(c)?;
+                return c.plan_version_backups(
+                    vec![(reviewed.file.to_string(), reviewed.version.to_string())],
+                    max_file_bytes,
+                    now_ms(),
+                );
             }
             c.plan_backups(ids, all_versions, max_file_bytes, now_ms())
         })
@@ -497,15 +556,19 @@ async fn backup_checked<H: Hold>(
         }
     }
     h.signed(|c| {
-        if let Some((id, version)) = expected {
-            ensure(
-                c.file_record(id)?.current == version,
-                Error::VersionConflict,
-            )?;
+        if let Some(reviewed) = expected {
+            reviewed.check(c)?;
         }
         c.root_now()?;
         let generation = c.roots()?.generation;
         for job in &jobs {
+            ensure(
+                c.workspace
+                    .store
+                    .library_job::<BackupJob>(&job_key(&job.file, &job.version))?
+                    .is_none(),
+                Error::VersionConflict,
+            )?;
             ensure(job.plan.root_generation == generation, Error::RekeyRequired)?;
             let version = c.version(&job.file, &job.version)?;
             ensure(

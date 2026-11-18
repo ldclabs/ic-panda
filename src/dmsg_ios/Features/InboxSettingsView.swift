@@ -20,6 +20,17 @@ struct InboxSettingsView: View {
     }
     struct Draft: Codable { let change: Change; let pending: Change? }
 
+    private var usesAllowList: Bool { draft.mode == "contacts" || draft.mode == "paid" }
+    private var changeToSave: Change { usesAllowList ? draft.normalized : Change(mode: draft.mode, allow: saved.allow) }
+    private var ruleSummary: LocalizedStringKey {
+        switch draft.mode {
+        case "closed": "No one can send a new letter while receiving is closed."
+        case "contacts": "Only selected accounts or people with a valid invitation can write."
+        case "free": "Anyone you haven’t blocked can write for free."
+        default: "Selected accounts and valid invitations can write for free."
+        }
+    }
+
     var body: some View {
         Form {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
@@ -30,26 +41,29 @@ struct InboxSettingsView: View {
                     Text("Selected accounts").tag("contacts")
                     Text("Anyone, free of charge").tag("free")
                     if draft.mode == "paid" { Text("Current policy requires payment").tag("paid") }
-                }
+                }.accessibilityIdentifier("inbox.policy.mode")
+                Text(ruleSummary).font(.footnote).foregroundStyle(.secondary)
             }.disabled(!loaded || working || pending != nil)
-            Section("Selected accounts") {
-                ForEach(draft.allow.indices, id: \.self) { index in
-                    VStack(alignment: .leading, spacing: 6) {
-                        SettingsField("Account ID") { TextField("Account ID", text: $draft.allow[index]).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
-                        if let name = model.accountIdentities[draft.allow[index]]?.name { Text(name).font(.caption) }
-                        if !Change(mode: draft.mode, allow: [draft.normalized.allow[index]]).valid { Text("Enter a valid account ID.").font(.caption).foregroundStyle(.red) }
-                        Button("Remove", role: .destructive) { draft.allow.remove(at: index) }.buttonStyle(.borderless)
+            if usesAllowList {
+                Section("Selected accounts") {
+                    ForEach(draft.allow.indices, id: \.self) { index in
+                        VStack(alignment: .leading, spacing: 6) {
+                            MessageAccountInput(title: "Account ID", account: $draft.allow[index], identifier: "inbox.account.\(index)")
+                            if let name = model.accountIdentities[draft.allow[index]]?.name { Text(name).font(.caption) }
+                            Button("Remove", role: .destructive) { draft.allow.remove(at: index) }.buttonStyle(.borderless)
+                        }
                     }
-                }
-                SettingsAction("Add account") { draft.allow.append("") }
-                if !draft.normalized.valid { Text("Check account IDs and remove duplicates.").font(.footnote).foregroundStyle(.red) }
-            }.disabled(!loaded || working || pending != nil)
+                    SettingsAction("Add account") { draft.allow.append("") }
+                    let entered = draft.normalized.allow.filter { !$0.isEmpty }
+                    if Set(entered).count != entered.count { Text("Check account IDs and remove duplicates.").font(.footnote).foregroundStyle(.red) }
+                }.disabled(!loaded || working || pending != nil || draft.mode == "paid")
+            }
             NavigationLink("Blocked accounts") { BlockedAccountsView() }
             Text("Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.").font(.footnote).foregroundStyle(.secondary)
             if pending != nil {
                 SettingsAction("Retry original change", prominent: true) { Task { if let pending { await save(pending) } } }.disabled(working)
             } else {
-                SettingsAction("Save receiving policy", prominent: true) { confirming = true }.disabled(!loaded || working || draft.mode == "paid" || !draft.normalized.valid || draft.normalized == saved)
+                SettingsAction("Save receiving policy", prominent: true) { confirming = true }.disabled(!loaded || working || draft.mode == "paid" || !changeToSave.valid || changeToSave == saved)
             }
             if !loaded && !working { SettingsAction("Retry") { Task { await load(force: true) } } }
             if working { ProgressView() }
@@ -57,7 +71,7 @@ struct InboxSettingsView: View {
             .task { scope = model.viewGeneration; await load() }
             .onDisappear { if draft != saved || pending != nil { model.keepFormDraft("inbox", value: Draft(change: draft, pending: pending), generation: scope) } }
             .confirmationDialog("Apply these receiving rules?", isPresented: $confirming) {
-                Button("Save settings") { Task { await save(draft.normalized) } }
+                Button("Save settings") { Task { await save(changeToSave) } }
             }
     }
 

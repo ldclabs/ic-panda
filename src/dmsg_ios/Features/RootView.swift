@@ -52,7 +52,7 @@ struct RootView: View {
             NavigationStack { ConversationSetupView(invitation: invitation.value) { _ in model.selectedTab = .messages } }
         }
         .onChange(of: connect.pending) { _, _ in showApprovals = false; showIncoming = false }
-        .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView() }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
+        .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView(showsDone: true) }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
         .task { routeIntent() }
         .onChange(of: IntentNavigation.shared.destination) { _, _ in routeIntent() }
         .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent(); model.announceIncomingShares() } }
@@ -149,35 +149,50 @@ struct ActivityButton: View {
             let status = WorkspaceStatus.current(model, at: timeline.date)
             let approvals = model.session?.approvalsWaiting ?? 0
             let reminders = model.notifications.status?.counts
-            let waiting = approvals > 0 || (reminders?.actionable ?? 0) > 0 || reminders?.unverified == true || status != nil
+            let reminderCount = reminders?.actionable ?? 0
+            let decisions = approvals > 0 || reminderCount > 0 || reminders?.unverified == true
+            let syncFirst = status != nil && (status?.urgent == true || !decisions)
             Menu {
-                Button(action: openApprovals) {
-                    Text("Approvals")
-                    if approvals > 0 { Text(approvals.formatted()) }
-                    AppGlyph.approvals.image
-                }.accessibilityIdentifier("approvals.open")
+                if syncFirst { syncEntry(status) }
+                if approvals > 0 || reminderCount == 0 { approvalEntry(approvals) }
                 Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: {
                     Text(NoticeCopy.text("noticeTitle"))
-                    if let count = reminders?.actionable, count > 0 { Text(count.formatted()) }
+                    if reminderCount > 0 { Text(reminderCount.formatted()) }
                     Image(systemName: "clock")
                 }.accessibilityIdentifier("reminders.open")
-                Button { showingStatus = true } label: {
-                    Text(status?.title ?? "Account synchronization")
-                    if let count = status?.count, count > 0 { Text(count.formatted()) }
-                    Image(systemName: status?.symbol ?? "arrow.triangle.2.circlepath")
-                }.accessibilityIdentifier("workspace.status")
+                if approvals == 0 && reminderCount > 0 { approvalEntry(approvals) }
+                if !syncFirst { syncEntry(status) }
             } label: {
-                Image(systemName: status?.urgent == true ? status?.symbol ?? "bell" : "bell")
+                Image(systemName: syncFirst ? status?.symbol ?? "bell" : "bell")
                     .foregroundStyle(status?.urgent == true ? .orange : Theme.forest)
-                    .frame(minWidth: 28, minHeight: 44)
+                    .frame(minWidth: 44, minHeight: 44)
                     .overlay(alignment: .topTrailing) {
-                        if waiting { Circle().fill(.orange).frame(width: 7, height: 7).padding(.top, 8).accessibilityHidden(true) }
+                        if decisions { Circle().fill(.orange).frame(width: 7, height: 7).padding(.top, 8).accessibilityHidden(true) }
                     }
-            }.accessibilityLabel(status?.urgent == true ? status?.title ?? "Activity" : "Activity")
-                .accessibilityValue(waiting ? (approvals + (reminders?.actionable ?? 0)).formatted() : "")
+            }.accessibilityLabel(syncFirst ? status?.title ?? "Activity" : "Activity")
+                .accessibilityValue([
+                    approvals > 0 ? String(localized: "Approvals") + " " + approvals.formatted() : nil,
+                    reminderCount > 0 ? NoticeCopy.text("noticeTitle") + " " + reminderCount.formatted() : nil
+                ].compactMap { $0 }.joined(separator: ", "))
                 .accessibilityIdentifier("activity.open")
         }.sheet(isPresented: $showingStatus) { NavigationStack { WorkspaceStatusView() } }
     }
+    private func approvalEntry(_ count: UInt64) -> some View {
+        Button(action: openApprovals) {
+            Text("Approvals")
+            if count > 0 { Text(count.formatted()) }
+            AppGlyph.approvals.image
+        }.accessibilityIdentifier("approvals.open")
+    }
+
+    private func syncEntry(_ status: WorkspaceStatus?) -> some View {
+        Button { showingStatus = true } label: {
+            Text(status?.title ?? "Account synchronization")
+            if let count = status?.count, count > 0 { Text(count.formatted()) }
+            Image(systemName: status?.symbol ?? "arrow.triangle.2.circlepath")
+        }.accessibilityIdentifier("workspace.status")
+    }
+
 }
 
 struct ReminderButton: View {
@@ -304,9 +319,16 @@ struct AccessView: View {
 
     @ViewBuilder private var signInActions: some View {
         if model.session?.passkeyAvailable == true {
-            NavigationLink { PasskeyAccessView() } label: {
-                AccessActionLabel("Continue with a passkey", symbol: "key")
-            }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsAuthorization, quiet: fastUnlock || needsAuthorization))
+            let welcome = model.session?.account == nil && !model.signingIntoAnotherAccount
+            if welcome {
+                NavigationLink { PasskeyAccessView(intent: .create) } label: {
+                    AccessActionLabel("Set up a new workspace", symbol: "person.crop.circle.badge.plus")
+                }.modifier(AccessActionStyle(prominent: true)).disabled(model.engine == nil && !model.uiTesting)
+                    .accessibilityIdentifier("login.new-workspace")
+            }
+            NavigationLink { PasskeyAccessView(intent: welcome ? .existing : .choose) } label: {
+                AccessActionLabel(welcome ? "Open an existing account" : "Continue with a passkey", symbol: "key")
+            }.modifier(AccessActionStyle(prominent: !welcome && !fastUnlock && !needsAuthorization, quiet: fastUnlock || needsAuthorization))
                 .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
             Button { Task { await model.login(usingInternetIdentity: true) } } label: {
                 AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle")
@@ -330,6 +352,8 @@ struct AccessView: View {
 }
 
 private struct PasskeyAccessView: View {
+    enum Intent { case create, existing, choose }
+    let intent: Intent
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var creating = false
@@ -337,30 +361,38 @@ private struct PasskeyAccessView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                Text("Use an existing passkey").font(.title.bold()).fixedSize(horizontal: false, vertical: true)
-                Text("Use a login already linked to the account you want to open.")
-                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button { Task { await model.login() } } label: {
-                    AccessActionLabel("Continue with a passkey", symbol: "key", working: model.busy && !creating)
-                }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("passkey.login")
-                if model.canResetPasskeySessions {
-                    Button { Task { await model.login(passkeyOperation: .resetSessions) } } label: {
-                        AccessActionLabel("Sign out this passkey’s devices and continue", symbol: "rectangle.portrait.and.arrow.right")
-                    }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.reset-devices")
+                if intent != .create {
+                    Text("Use an existing passkey").font(.title.bold()).fixedSize(horizontal: false, vertical: true)
+                    Text("Use a login already linked to the account you want to open.")
+                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Button { Task { await model.login() } } label: {
+                        AccessActionLabel("Continue with a passkey", symbol: "key", working: model.busy && !creating)
+                    }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("passkey.login")
+                    if model.canResetPasskeySessions {
+                        Button { Task { await model.login(passkeyOperation: .resetSessions) } } label: {
+                            AccessActionLabel("Sign out this passkey’s devices and continue", symbol: "rectangle.portrait.and.arrow.right")
+                        }.modifier(AccessActionStyle(prominent: false, quiet: true)).accessibilityIdentifier("login.reset-devices")
+                    }
+                    if intent == .existing {
+                        Text("To use your existing account on this iPhone, approve this device from one of your authorized devices.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
-                Divider()
-                Text("Create a passkey").font(.headline)
-                Text("Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.")
-                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button { Task {
-                    creating = true; defer { creating = false }
-                    await model.login(passkeyOperation: .register)
-                } } label: {
-                    AccessActionLabel("Create a passkey", symbol: "person.crop.circle.badge.plus", working: creating)
-                }.modifier(AccessActionStyle(prominent: false)).accessibilityIdentifier("login.create-passkey")
+                if intent != .existing {
+                    if intent == .choose { Divider() }
+                    Text("Create a passkey").font(intent == .create ? .title.bold() : .headline)
+                    Text("Each new passkey creates a separate login identity. To add one to your current account, use Add a passkey login in account security.")
+                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Button { Task {
+                        creating = true; defer { creating = false }
+                        await model.login(passkeyOperation: .register)
+                    } } label: {
+                        AccessActionLabel("Create a passkey", symbol: "person.crop.circle.badge.plus", working: creating)
+                    }.modifier(AccessActionStyle(prominent: intent == .create)).accessibilityIdentifier("login.create-passkey")
+                }
             }.disabled(model.busy || (model.engine == nil && !model.uiTesting))
                 .padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
-        }.background(Theme.paper).navigationTitle("Continue with a passkey").navigationBarTitleDisplayMode(.inline)
+        }.background(Theme.paper).navigationTitle(intent == .create ? "Set up a new workspace" : intent == .existing ? "Open an existing account" : "Continue with a passkey").navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(model.busy)
             .onChange(of: model.session?.generation) { _, _ in
                 if model.session?.state == "no_account" || model.session?.state == "pairing_required" || model.session?.state == "root_required" { dismiss() }

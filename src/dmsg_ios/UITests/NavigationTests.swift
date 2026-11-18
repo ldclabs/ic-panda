@@ -39,7 +39,8 @@ final class NavigationTests: NavigationTestCase {
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: login)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
         XCTAssertFalse(app.alerts.firstMatch.exists)
-        XCTAssertEqual(login.label, "Continue with a passkey")
+        XCTAssertEqual(login.label, "Open an existing account")
+        XCTAssertTrue(app.buttons["login.new-workspace"].exists)
         XCTAssertTrue(app.buttons["login.ii"].exists)
         XCTAssertTrue(app.staticTexts["On your first visit, sign in and follow the steps to create your encrypted workspace."].exists)
         let shot = XCTAttachment(screenshot: app.screenshot())
@@ -704,9 +705,8 @@ final class SecretNavigationTests: NavigationTestCase {
         XCTAssertTrue(password.waitForExistence(timeout: 5))
         XCTAssertEqual(password.value as? String, "0")
         XCTAssertEqual(username.value as? String, "0")
-        // SwiftUI exposes the whole Form row as a switch, but its center can
-        // be label whitespace. Hit the actual trailing control in this LTR test.
-        password.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        // The entire row, including the space between its name and checkmark, selects the field.
+        password.tap()
         XCTAssertEqual(password.value as? String, "1", "The field must be selected before resizing")
         XCUIDevice.shared.orientation = .landscapeLeft
         XCUIDevice.shared.orientation = .portrait
@@ -925,11 +925,19 @@ final class DeviceNavigationTests: NavigationTestCase {
         succession.tap()
         XCTAssertTrue(app.buttons["succession.review"].waitForExistence(timeout: 5))
         capture(app, name: "Replace a device · \(language)")
-        back(app)
+        let devicesBack = app.navigationBars.buttons[language == "ar" ? "الأجهزة" : "Devices"].firstMatch
+        if devicesBack.exists { devicesBack.tap() } else { app.navigationBars.buttons.firstMatch.tap() }
         XCTAssertTrue(transfer.waitForExistence(timeout: 5))
         transfer.tap()
         XCTAssertTrue(app.buttons["transfer.receive"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["transfer.resume"].exists)
+        XCTAssertFalse(app.textFields["transfer.session"].exists)
+        let direction = app.segmentedControls["transfer.direction"]
+        direction.buttons[language == "ar" ? "إرسال" : "Sending"].tap()
+        XCTAssertTrue(app.textFields["transfer.session"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.textFields["transfer.address"].exists)
+        app.buttons[language == "ar" ? "العنوان" : "Address"].tap()
+        XCTAssertTrue(app.textFields["transfer.address"].waitForExistence(timeout: 4))
         capture(app, name: "Transfer between devices · \(language)")
     }
 
@@ -1021,6 +1029,24 @@ final class SubscriptionPresentationTests: NavigationTestCase {
         tab(app, symbol: "Glyph-account", title: account).tap()
         let plan = app.buttons["account.membership-badge"]
         reveal(plan, in: app); plan.tap()
+    }
+
+    func testComparisonCanRetryUnavailablePricesWithoutStartingAPurchase() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-purchases", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch(); tab(app, symbol: "Glyph-account", title: "Account").tap()
+        let plan = app.buttons["account.membership-badge"]; reveal(plan, in: app); plan.tap()
+        let compare = app.buttons["plan.compare"]; reveal(compare, in: app); compare.tap()
+        let retry = app.buttons["plan.compare.retry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 5)); XCTAssertTrue(retry.isEnabled)
+        let comparison = app.descendants(matching: .any).matching(identifier: "plan.comparison").firstMatch
+        XCTAssertTrue(comparison.waitForExistence(timeout: 5))
+        let notices = comparison.staticTexts.matching(identifier: "Price unavailable")
+        XCTAssertEqual(notices.count, 1)
+        retry.tap()
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["plan.purchase.fixture-plus"].exists)
+        capture(app, name: "One retry for missing prices on comparison")
     }
 
     func testLocalizedCardsAndFullComparison() {

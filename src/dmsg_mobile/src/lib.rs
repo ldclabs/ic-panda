@@ -1743,6 +1743,11 @@ impl MobileEngine {
             .await
     }
 
+    pub async fn unbacked_file_versions(&self) -> Result<ObjectSnapshot> {
+        self.object(|c| Box::pin(async { c.unbacked_file_versions() }))
+            .await
+    }
+
     pub async fn open_file(
         &self,
         id: String,
@@ -1859,6 +1864,19 @@ impl MobileEngine {
     pub async fn create_folder(&self, parent: String, name: String) -> Result<ObjectSnapshot> {
         self.object(move |c| Box::pin(async move { c.files_mkdir(&parent, &name) }))
             .await
+    }
+
+    pub async fn backup_file_revision(
+        &self,
+        id: String,
+        version: String,
+    ) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move {
+                dmsg_client::library::backup::backup_revision(h, &id, &version).await
+            })
+        })
+        .await
     }
 
     pub async fn trash_file(&self, id: String) -> Result<()> {

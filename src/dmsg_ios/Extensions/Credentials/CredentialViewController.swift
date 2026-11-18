@@ -107,6 +107,16 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
             let others = shown.filter { entry in !matching.contains { $0.id == entry.id } }
             sections = [(String(localized: "For this site"), matching)] + (others.isEmpty ? [] : [(String(localized: "Other logins"), others)])
         }
+        if shown.isEmpty {
+            let empty = UILabel()
+            empty.text = query.isEmpty ? String(localized: "No items") : String(localized: "No matching results")
+            empty.font = .preferredFont(forTextStyle: .body)
+            empty.adjustsFontForContentSizeCategory = true
+            empty.textColor = .secondaryLabel
+            empty.textAlignment = .center
+            empty.numberOfLines = 0
+            table.backgroundView = empty
+        } else { table.backgroundView = nil }
         table.reloadData()
     }
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) { arrange() }

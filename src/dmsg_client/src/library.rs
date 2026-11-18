@@ -453,6 +453,31 @@ impl Client {
         Ok(Details { file, versions })
     }
 
+    /// List local, unbacked revisions of live files, including historical revisions.
+    pub fn unbacked_file_versions(&mut self) -> Result<Vec<Details>> {
+        let ids: Vec<_> = {
+            let catalog = self.catalog()?;
+            catalog
+                .files
+                .iter()
+                .filter(|(_, f)| !catalog.file_trashed(f))
+                .map(|(id, _)| id.clone())
+                .collect()
+        };
+        let mut result = Vec::new();
+        for id in ids {
+            let mut details = self.files_show(&id)?;
+            details.versions.retain(|v| v.local && v.backup.is_none());
+            if !details.versions.is_empty() {
+                result.push(details);
+            }
+        }
+        result.sort_by(|a, b| {
+            (&a.file.path, &a.file.name, &a.file.id).cmp(&(&b.file.path, &b.file.name, &b.file.id))
+        });
+        Ok(result)
+    }
+
     /// Files not in the trash that `filter` keeps and whose name, tags or
     /// note contain `query`, by path and name; an empty query lists them
     /// newest first.

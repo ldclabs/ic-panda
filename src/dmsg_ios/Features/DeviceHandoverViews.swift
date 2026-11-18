@@ -503,7 +503,9 @@ struct DeviceTransferView: View {
     @State private var to = ""
     @State private var address = ""
 
-    private var sends: Bool { succession?.side == "predecessor" }
+    @State private var sending = false
+    @State private var enteringAddress = false
+    private var sends: Bool { succession.map { $0.side == "predecessor" } ?? sending }
     private var sessionShown: String { session.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
     private var toShown: String { to.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
     private var canSend: Bool {
@@ -528,11 +530,17 @@ struct DeviceTransferView: View {
                 NoticeBar(text: String(localized: "The other device was not found on the local network. Enter its address."))
             }
             if !transfer.running {
+                if succession == nil {
+                    Picker("Transfer between devices", selection: $sending) {
+                        Text("Receiving").tag(false)
+                        Text("Sending").tag(true)
+                    }.pickerStyle(.segmented).accessibilityIdentifier("transfer.direction")
+                }
                 if !sends {
                     Button("Receive here", systemImage: "square.and.arrow.down") { Task { await transfer.receive(model, succession: succession?.id) } }
                         .accessibilityIdentifier("transfer.receive")
                 }
-                if succession == nil || sends {
+                if sends {
                     Section {
                         TextField("Session code", text: $session).font(.body.monospaced())
                             .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityIdentifier("transfer.session")
@@ -540,10 +548,12 @@ struct DeviceTransferView: View {
                             TextField("Receiving device ID", text: $to, axis: .vertical).font(.body.monospaced())
                                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                         }
-                        TextField("Address", text: $address).font(.body.monospaced()).keyboardType(.URL)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        Text("Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.")
-                            .font(.footnote).foregroundStyle(.secondary)
+                        DisclosureGroup("Address", isExpanded: $enteringAddress) {
+                            TextField("Address", text: $address).font(.body.monospaced()).keyboardType(.URL)
+                                .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityIdentifier("transfer.address")
+                            Text("Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
                         Button("Start sending") { Task {
                             await transfer.send(model, session: sessionShown, to: succession == nil ? toShown : nil,
                                                 address: address.isEmpty ? nil : DeviceTransferModel.parse(address), succession: succession?.id)
@@ -551,7 +561,8 @@ struct DeviceTransferView: View {
                     } header: { Text("Send to a device") } footer: { Text("Enter the session code the receiving device shows.") }
                 }
             }
-        }.privateScreen().navigationTitle("Transfer between devices").navigationBarTitleDisplayMode(.inline)
+        }.privateScreen().navigationTitle("Transfer between devices")
+            .onChange(of: transfer.bonjourFailed || transfer.localNetworkDenied, initial: true) { _, needsAddress in if needsAddress { enteringAddress = true } }.navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: Binding(get: { transfer.approval != nil }, set: { if !$0 { Task { await transfer.approved(model) } } })) {
                 if let request = transfer.approval { ApprovalDetailView(request: request) }
             }

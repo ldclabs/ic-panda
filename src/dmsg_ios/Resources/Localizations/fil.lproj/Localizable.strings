@@ -2664,8 +2664,8 @@
 	<string>Nangangailangan ang account na ito ng nakarehistrong key ng pag-apruba. I-set up ang device na ito sa seguridad ng Hardware, o magtanong sa isa pang awtorisadong device.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Hindi sinusuportahan ang pagkilos na ito sa device na ito. Dapat gamitin ng mga lihim na snapshot ang kanilang nakatuong daloy ng pag-import.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>Ang kahilingan sa browser na ito ay kabilang sa isa pang account. Ang paglipat ay nagla-lock sa kasalukuyang workspace at pinapanatili ang draft nito.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Isara ang kahilingang ito, buksan sa dMsg ang account na nasa ibaba, at buksan muli ang kahilingan.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Hindi na ito maaaring bawiin. Ang pag-sign out nang mag-isa ay hindi nagtatanggal ng account.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Hindi maihanda ang iyong mga naka-save na key. I-unlock ang iPhone na ito at subukang muli. Hindi nabura ang iyong workspace.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Hindi ma-access ng update na ito ang iyong mga naka-save na key. Panatilihing naka-install ang dMsg at makipag-ugnayan sa suporta mula sa ibang awtorisadong device. Hindi nabura ang iyong workspace.</string>
+	<key>Search conversations</key>
+	<string>Maghanap ng mga pag-uusap</string>
+	<key>Search letters</key>
+	<string>Maghanap ng mga liham</string>
+	<key>Select a letter</key>
+	<string>Pumili ng liham</string>
+	<key>Account information</key>
+	<string>Impormasyon ng account</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Magdagdag ng device at patuloy na gamitin ang isang ito.</string>
+	<key>Add permission</key>
+	<string>Magdagdag ng pahintulot</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Payagan ang mga alerto sa Mga Setting ng iOS para makatanggap ng mga notification ng system.</string>
+	<key>Anyone with the link</key>
+	<string>Sinumang may link</string>
+	<key>Anyone with the link and password</key>
+	<string>Sinumang may link at password</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Maaaring sumulat nang libre ang sinumang hindi mo hinarangan.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>Pahintulutan ang %1$@ bilang %2$@.</string>
+	<key>Choose a permission</key>
+	<string>Pumili ng pahintulot</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Kumopya ng mga file sa pagitan ng dalawang awtorisadong device.</string>
+	<key>Cosign proposal</key>
+	<string>Kasamang lumagda sa panukala</string>
+	<key>Create wallet</key>
+	<string>Gumawa ng wallet</string>
+	<key>Customize fields</key>
+	<string>Iangkop ang mga field</string>
+	<key>Import cosignatures</key>
+	<string>Mag-import ng mga kasamang lagda</string>
+	<key>List items</key>
+	<string>Ilista ang mga item</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Ilipat ang tungkulin ng device na ito sa kapalit nito.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Walang makakapagpadala ng bagong liham habang sarado ang pagtanggap.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Naka-off ang mga notification para sa account na ito.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Naka-off ang mga notification sa device na ito.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Ang mga napiling account o taong may wastong imbitasyon lang ang maaaring sumulat.</string>
+	<key>Open an existing account</key>
+	<string>Magbukas ng kasalukuyang account</string>
+	<key>Policy ID</key>
+	<string>ID ng patakaran</string>
+	<key>Proposal</key>
+	<string>Panukala</string>
+	<key>Read</key>
+	<string>Magbasa</string>
+	<key>Manage event endpoints</key>
+	<string>Pamahalaan ang mga endpoint ng event</string>
+	<key>Request a signature</key>
+	<string>Humiling ng lagda</string>
+	<key>Request an action</key>
+	<string>Humiling ng aksyon</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Pipigilan ng pagbawi ang mga susunod na pag-download. Mananatili ang mga naka-save na kopya.</string>
+	<key>Searching…</key>
+	<string>Naghahanap…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Maaaring sumulat nang libre ang mga napiling account at taong may wastong imbitasyon.</string>
+	<key>Set up a new workspace</key>
+	<string>Mag-set up ng bagong workspace</string>
+	<key>Share %@ with %@.</key>
+	<string>Ibahagi ang %1$@ sa %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Magsimula ng usapan para makipagpalitan ng mga mensahe at file sa mga miyembro.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Susundin ng mga alerto ng system ang mga kagustuhan sa ibaba.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Gumamit ng hanggang 200 character sa paghahanap.</string>
+	<key>Write</key>
+	<string>Magsulat</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Sumulat nang direkta sa isang account. Ang tatanggap ang magpapasya kung sasagot. Libre ang pagpapadala mula rito.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Payagan ang mga notification para makatanggap ng mga alerto ng system.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Tahimik na inihahatid ang mga notification.</string>
+	<key>Veto proposal</key>
+	<string>I-veto ang panukala</string>
 </dict>
 </plist>

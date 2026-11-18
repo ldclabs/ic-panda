@@ -88,6 +88,11 @@ extension SessionModel {
             }
             selectedTab = .messages
         }
+        if ProcessInfo.processInfo.arguments.contains("--ui-search-workspace") {
+            channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "Latest news"),
+                        ChannelItem(id: "fixture-research", name: "Research", unread: 0, draft: "", preview: "Meeting notes")]
+            selectedTab = .messages
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-inbox") { selectedTab = .messages }
         if ProcessInfo.processInfo.arguments.contains("--ui-syncing") { _ = beginBusyOperation(.synchronizing) }
         if ProcessInfo.processInfo.arguments.contains("--ui-recovery-pending") {
@@ -193,8 +198,21 @@ extension SessionModel {
         fixtureInboxLetters[index].read = read; fixtureInboxLetters[index].archived = archived
     }
 
-    func conversationFixture(before: UInt64?, query: String) -> MessagePage {
-        let items = fixtureChannelMessages.filter {
+    func conversationFixture(channel: String, before: UInt64?, query: String) -> MessagePage {
+        var source = fixtureChannelMessages
+        if ProcessInfo.processInfo.arguments.contains("--ui-search-workspace") {
+            func item(_ seq: UInt64, _ text: String, file: String? = nil, hidden: Bool = false, retracted: Bool = false,
+                      deleted: Bool = false, sender: String = "fixture-peer") -> MessageItem {
+                MessageItem(id: "\(channel)-\(seq)", sequence: seq, account: sender, text: text, createdAtMs: 1_793_513_600_000 + seq,
+                            attachmentName: file, attachmentMime: nil, attachmentSize: nil, unreadable: false, digest: "test-\(seq)",
+                            replySequence: nil, edited: false, retracted: retracted, attachmentDeleted: deleted, hidden: hidden)
+            }
+            source = channel == "fixture-channel"
+                ? [item(1, "Archive", file: "roadmap.pdf"), item(2, "roadmap hidden", hidden: true), item(3, "roadmap removed", retracted: true),
+                   item(4, "roadmap blocked", sender: "fixture-blocked"), item(5, "", file: "roadmap-gone.pdf", deleted: true), item(6, "Latest news")]
+                : [item(1, "Original roadmap discussion"), item(2, "Meeting notes")]
+        }
+        let items = source.filter {
             $0.sequence < (before ?? .max) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query) || $0.attachmentName?.localizedCaseInsensitiveContains(query) == true)
         }
         let limit = ProcessInfo.processInfo.arguments.contains("--ui-channel-history") ? 3 : 100

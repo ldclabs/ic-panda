@@ -84,6 +84,7 @@ struct VaultEditor: View {
     @State private var attachmentFiles: [String: LibraryFile] = [:]
     @State private var editMode: EditMode = .inactive
     @State private var addedField: String?
+    @State private var customizingFields = false
     /// Each save attempt reveals every error and scrolls to the first one, even after an earlier attempt.
     @State private var saveAttempts = 0
     @FocusState private var focus: VaultEditorFocus?
@@ -96,10 +97,17 @@ struct VaultEditor: View {
     }
     private var form: Binding<VaultDraft> { Binding(get: { draft }, set: { draft = $0 }) }
     private var dirty: Bool { draft != initial }
+    private var quickLogin: Bool {
+        entry.itemID == nil && draft.kind == "login" && !customizingFields
+    }
 
     init(entry: VaultEditorSession) {
         self.entry = entry
         _initial = State(initialValue: entry.initial)
+        let template = vaultTemplate(kind: "login").map(\.id)
+        _customizingFields = State(initialValue: entry.draft.fields.map(\.id) != template || entry.draft.fields.contains {
+            !$0.label.isEmpty || !$0.section.isEmpty || (!["username", "password"].contains($0.id) && !$0.value.isEmpty)
+        })
     }
 
     var body: some View {
@@ -109,6 +117,15 @@ struct VaultEditor: View {
                     VStack(alignment: .leading) {
                         Text("Title").font(.caption).foregroundStyle(.secondary)
                         TextField("Title", text: form.title).focused($focus, equals: .title).accessibilityIdentifier("vault.edit.title")
+                            .submitLabel(quickLogin ? .next : .done).onSubmit { focus = quickLogin ? .value("username") : nil }
+                    }
+                    if quickLogin {
+                        ForEach(form.fields) { $field in
+                            if field.id == "username" || field.id == "password" {
+                                VaultEditorField(field: $field, existing: false, validationRequested: saveAttempts > 0,
+                                                 addedField: $addedField, focus: $focus, compactLogin: true, submitLogin: { Task { await save() } })
+                            }
+                        }
                     }
                     if entry.itemID == nil {
                         Picker("Type", selection: form.kind) {
@@ -119,20 +136,24 @@ struct VaultEditor: View {
                     VaultTagEditor(tags: form.tags, entry: form.tagEntry).focused($focus, equals: .tags)
                 }
                 Section {
-                    ForEach(form.fields) { $field in
-                        Group {
-                            if editMode.isEditing {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(field.title)
-                                    Text(vaultFieldKindTitle(field.kind)).font(.caption).foregroundStyle(.secondary)
-                                }.padding(.vertical, 4)
-                            } else {
-                                VaultEditorField(field: $field, existing: entry.itemID != nil, validationRequested: saveAttempts > 0,
-                                                 addedField: $addedField, focus: $focus)
-                            }
-                        }.id(field.id)
-                    }.onMove { draft.fields.move(fromOffsets: $0, toOffset: $1) }
-                        .onDelete { draft.fields.remove(atOffsets: $0) }
+                    if quickLogin {
+                        Button("Customize fields") { customizingFields = true }.accessibilityIdentifier("vault.edit.customize")
+                    } else {
+                        ForEach(form.fields) { $field in
+                            Group {
+                                if editMode.isEditing {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(field.title)
+                                        Text(vaultFieldKindTitle(field.kind)).font(.caption).foregroundStyle(.secondary)
+                                    }.padding(.vertical, 4)
+                                } else {
+                                    VaultEditorField(field: $field, existing: entry.itemID != nil, validationRequested: saveAttempts > 0,
+                                                     addedField: $addedField, focus: $focus)
+                                }
+                            }.id(field.id)
+                        }.onMove { draft.fields.move(fromOffsets: $0, toOffset: $1) }
+                            .onDelete { draft.fields.remove(atOffsets: $0) }
+                    }
                     if !editMode.isEditing {
                         Menu {
                             addField("Text", kind: "text"); addField("Hidden value", kind: "concealed")
@@ -149,6 +170,7 @@ struct VaultEditor: View {
                         Spacer()
                         Button(editMode.isEditing ? "Done" : "Reorder fields") {
                             focus = nil
+                            customizingFields = true
                             withAnimation { editMode = editMode.isEditing ? .inactive : .active }
                         }.frame(minWidth: 44, minHeight: 44).disabled(draft.fields.isEmpty)
                             .accessibilityIdentifier("vault.edit.reorder")
@@ -192,11 +214,8 @@ struct VaultEditor: View {
                             .accessibilityIdentifier("vault.edit.save")
                             .keyboardShortcut("s", modifiers: .command)
                     }
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button("Done") { focus = nil }.accessibilityIdentifier("vault.edit.keyboard-done")
-                    }
                 }
+                .keyboardDone(visible: focus != nil, identifier: "vault.edit.keyboard-done") { focus = nil }
                 .background(DraftDismissGuard(blocked: dirty || saving,
                     attempted: { if !saving { discard = true } },
                     dismissed: { Task { await discardDraft() } }).frame(width: 0, height: 0))
@@ -228,6 +247,7 @@ struct VaultEditor: View {
 
     private func addField(_ title: LocalizedStringKey, kind: String) -> some View {
         Button(title) {
+            customizingFields = true
             let id = "field_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).lowercased()
             draft.fields.append(.init(id: id,
                 kind: kind, label: "", section: "", value: "", concealed: ["concealed", "otp"].contains(kind), changed: true))
@@ -251,11 +271,15 @@ struct VaultEditor: View {
     }
 
     private func save() async {
-        guard !saving else { return }
+        guard !saving, model.vaultEditing.ready else { return }
+        guard !draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { focus = .title; return }
         focus = nil
         editMode = .inactive
         saveAttempts += 1
-        guard !draft.fields.contains(where: { vaultInputError($0, existing: entry.itemID != nil) != nil }) else { return }
+        if draft.fields.contains(where: { vaultInputError($0, existing: entry.itemID != nil) != nil }) {
+            customizingFields = true
+            return
+        }
         saving = true; failure = nil; defer { saving = false }; let scope = model.viewGeneration
         // A tag still being typed counts.
         draft.tags = (vaultTags(draft.tags) + vaultTags(draft.tagEntry)).joined(separator: ", "); draft.tagEntry = ""
@@ -298,10 +322,10 @@ struct VaultEditor: View {
 }
 
 /// Gives swipe-to-dismiss the same draft decision as the Cancel button.
-private struct DraftDismissGuard: UIViewControllerRepresentable {
+struct DraftDismissGuard: UIViewControllerRepresentable {
     let blocked: Bool
     let attempted: () -> Void
-    let dismissed: () -> Void
+    var dismissed: () -> Void = {}
     func makeUIViewController(context: Context) -> Controller { Controller() }
     func updateUIViewController(_ controller: Controller, context: Context) {
         controller.blocked = blocked; controller.attempted = attempted; controller.dismissed = dismissed

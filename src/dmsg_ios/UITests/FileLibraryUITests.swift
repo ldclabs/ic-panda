@@ -65,10 +65,27 @@ final class FileLibraryUITests: FileLibraryTestCase {
         // reports it as hittable too, so only the screen shows whether it is drawn.
         let title = app.navigationBars.staticTexts["Files"]
         if !app.buttons["ToggleSidebar"].exists && title.exists { XCTAssertTrue(isBlank(title)) }
-        tap(app.buttons["files.options"], in: app)
         tap(app.buttons["files.transfers"], in: app)
         XCTAssertTrue(app.navigationBars.staticTexts["File transfers"].waitForExistence(timeout: 5))
         capture(app, "Pushed screen keeps a compact title")
+    }
+
+    func testBackupReminderSelectsSpecificVersionsOfOneFile() {
+        let app = launch(["--ui-unbacked-history"])
+        tap(app.buttons["files.unbacked.review"], in: app)
+        let current = app.switches["backup.choose.fixture-note:v1"], old = app.switches["backup.choose.fixture-note:v0"]
+        let review = app.buttons["backup.review-selected"]
+        XCTAssertTrue(review.waitForExistence(timeout: 5)); XCTAssertFalse(review.isEnabled)
+        tap(current, in: app); tap(old, in: app)
+        XCTAssertFalse(app.switches["backup.choose.fixture-local:v2"].exists)
+        tap(review, in: app)
+        for version in ["v1", "v0"] {
+            let row = app.descendants(matching: .any).matching(identifier: "backup.revision.fixture-note:" + version).firstMatch
+            XCTAssertTrue(row.waitForExistence(timeout: 4), version)
+        }
+        tap(app.buttons["files.backup.submit"], in: app)
+        XCTAssertTrue(app.buttons["File transfers"].waitForExistence(timeout: 5))
+        capture(app, "Two versions of one file reviewed and queued independently")
     }
 
     func testLargeTextScopeMenuSwitchesToCloud() {
@@ -393,8 +410,10 @@ final class FileRequestUITests: FileLibraryTestCase {
         for _ in 0..<6 where !profile.isHittable { app.swipeUp() }
         XCTAssertTrue(profile.isHittable)
         // SwiftUI exposes the whole row as a switch; tap its trailing control.
+        XCTAssertFalse(app.staticTexts["file.link.profile-warning"].exists)
         profile.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         XCTAssertEqual(profile.value as? String, "1")
+        XCTAssertTrue(app.staticTexts["file.link.profile-warning"].waitForExistence(timeout: 5))
         capture(app, "Link terms for a local file")
         tap(create, in: app)
         XCTAssertTrue(app.descendants(matching: .any)["file.link.working"].waitForExistence(timeout: 2))
@@ -433,6 +452,22 @@ final class FileRequestUITests: FileLibraryTestCase {
         tap(app.buttons[title], in: app)
     }
 
+    func testCancellingAnEditedCollectionKeepsInputUntilDiscard() {
+        let app = launch()
+        openRequests(app)
+        tap(app.buttons["file.request.new"], in: app)
+        let title = app.textFields["file.request.title"]
+        title.tap(); title.typeText("Invoice review")
+        app.navigationBars.buttons["Cancel"].tap()
+        let discard = app.buttons["Discard"]
+        XCTAssertTrue(discard.waitForExistence(timeout: 5))
+        app.sheets.buttons["Cancel"].firstMatch.tap()
+        XCTAssertEqual(title.value as? String, "Invoice review")
+        app.navigationBars.buttons["Cancel"].tap()
+        discard.tap()
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5))
+    }
+
     func testCollectingFilesOnAFreePlanLeadsToThePlans() {
         let app = launch(["--ui-files-request-free"])
         openRequests(app)
@@ -445,7 +480,7 @@ final class FileRequestUITests: FileLibraryTestCase {
     }
 
     func testOneLinkPerNameAndAFailureKeepsTheRest() {
-        let app = launch(["--ui-files-request-failure"])
+        let app = launch(["--ui-files-request-failure", "--ui-files-request-slow"])
         openRequests(app)
         tap(app.buttons["file.request.new"], in: app)
         let create = app.buttons["file.request.create"]
@@ -457,6 +492,8 @@ final class FileRequestUITests: FileLibraryTestCase {
         names.tap(); names.typeText("Ada\nLin\nMira")
         capture(app, "New link with three names")
         create.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["file.request.created"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["file.request.done"].exists)
         XCTAssertTrue(app.staticTexts["file.request.failure"].waitForExistence(timeout: 5))
         XCTAssertEqual(names.value as? String, "Lin\nMira")
         XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "file.request.created").count, 1)

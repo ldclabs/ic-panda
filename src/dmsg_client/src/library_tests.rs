@@ -1799,21 +1799,46 @@ async fn backup_planning_returns_a_durable_job_without_uploading_it() {
     let dir = TempDir::new();
     let mut c = unlocked(&dir.0, false, None);
     crate::testing::warm(&mut c);
-    let source = write(&dir, "queued.txt", b"durable job");
-    let id = c
-        .files_import(&source, ROOT, false, &mut no_progress)
-        .unwrap()
-        .file
-        .id;
+    let original = c
+        .files_write(ROOT, "queued.txt", b"first revision")
+        .unwrap();
+    let id = original.file.id;
+    let temp = c.files_write(ROOT, "new.txt", b"second revision").unwrap();
+    let current = c.files_replace(&temp.file.id, &id).unwrap().current;
+    let revisions = c.unbacked_file_versions().unwrap();
+    assert_eq!(revisions.len(), 1);
+    assert_eq!(revisions[0].versions.len(), 2);
     let h = Queue(std::sync::Mutex::new(c));
+    assert!(matches!(
+        backup::backup_version(&h, &id, &original.version).await,
+        Err(Error::VersionConflict)
+    ));
+    let historical = backup::backup_revision(&h, &id, &original.version)
+        .await
+        .unwrap();
+    assert_eq!(historical.started[0].version, original.version);
+    let duplicate = backup::backup_revision(&h, &id, &original.version)
+        .await
+        .unwrap();
+    assert!(duplicate.started.is_empty());
+    assert_eq!(duplicate.skipped.len(), 1);
     let queued = backup::backup(&h, std::slice::from_ref(&id), false)
         .await
         .unwrap();
     assert_eq!(queued.started.len(), 1);
+    assert_eq!(queued.started[0].version, current);
     assert_eq!(queued.started[0].sent, 0);
-    let mut c = h.0.lock().unwrap();
-    assert_eq!(c.files_backup_status().unwrap().len(), 1);
-    assert_eq!(c.files_show(&id).unwrap().file.status, "backing_up");
+    {
+        let mut c = h.0.lock().unwrap();
+        assert_eq!(c.files_backup_status().unwrap().len(), 2);
+        assert_eq!(c.files_show(&id).unwrap().file.status, "backing_up");
+        c.files_trash(std::slice::from_ref(&id)).unwrap();
+        assert!(c.unbacked_file_versions().unwrap().is_empty());
+    }
+    assert!(matches!(
+        backup::backup_revision(&h, &id, &original.version).await,
+        Err(Error::NotFound)
+    ));
 }
 
 #[tokio::test]
@@ -2091,6 +2116,10 @@ fn local_only_counts_local_versions_without_a_backup() {
     assert_eq!((only.versions, only.bytes), (2, kept.1 + backed.1));
     assert_eq!((only.unbacked_versions, only.unbacked_bytes), (1, kept.1));
     assert_eq!(only.last_sync_ok_at, None);
+    let candidates = client.unbacked_file_versions().unwrap();
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].file.id, kept.0.file.id);
+    assert_eq!(candidates[0].versions[0].id, kept.0.version);
 }
 
 #[tokio::test]

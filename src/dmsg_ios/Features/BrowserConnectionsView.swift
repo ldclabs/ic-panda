@@ -122,12 +122,12 @@ struct ConnectLandingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var approval: ApprovalView?
     @State private var loading = false
-    @State private var missing = false
+    @State private var lookupMessage: LocalizedStringKey = "Loading the verified request…"
     var body: some View {
         Group {
             if let account = link.account, account != model.session?.account {
                 Form {
-                    Text("This browser request belongs to another account. Switching locks the current workspace and preserves its draft.")
+                    Text("Close this request, open the account shown below in dMsg, then reopen the request.")
                     LabeledContent("Account ID", value: account)
                 }
             } else if !model.unlocked { AccessView() }
@@ -136,7 +136,7 @@ struct ConnectLandingView: View {
             else {
                 VStack(spacing: 20) {
                     if loading { ProgressView() }
-                    Text(LocalizedStringKey(missing ? "The request is not available to this device. It may have expired or already been handled." : "Loading the verified request…"))
+                    Text(lookupMessage)
                     Button("Retry") { Task { await locate() } }.disabled(loading)
                     NavigationLink("Open approvals") { ApprovalsView() }
                 }.padding()
@@ -147,13 +147,20 @@ struct ConnectLandingView: View {
     }
     private func locate() async {
         guard link.destination == .request, model.unlocked, model.session?.account == link.account, let request = link.request, let engine = model.engine else { return }
-        let epoch = model.epoch; loading = true; defer { loading = false }
+        let epoch = model.epoch; loading = true; lookupMessage = "Loading the verified request…"; defer { loading = false }
         do {
             _ = try await coreOperation { try await engine.syncConnect(operation: $0) }
             let id = try await engine.browserRequestApproval(request: request)
-            await model.loadApprovals()
+            let loaded = await model.loadApprovals()
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            approval = model.approvals.first { $0.id == id }; missing = approval == nil
-        } catch { if epoch == model.epoch { missing = true; model.report(error) } }
+            guard loaded else { lookupMessage = "The operation could not be completed. Please try again."; return }
+            approval = model.approvals.first { $0.id == id }
+            if approval == nil { lookupMessage = "The request is not available to this device. It may have expired or already been handled." }
+        } catch {
+            if epoch == model.epoch && !Task.isCancelled {
+                lookupMessage = "The operation could not be completed. Please try again."
+                model.report(error)
+            }
+        }
     }
 }

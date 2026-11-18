@@ -109,7 +109,6 @@ final class SessionModel {
     var filesQueryKey: String { filesFolder + "\u{0}" + filesSearch }
     var filesQueryIsCurrent: Bool { filesQuery == filesQueryKey }
     var approvals: [ApprovalView] = []
-    private(set) var approvalsFailed = false
     private(set) var recoveryWarning: RecoveryObservation?
     private(set) var recoveryRefreshFailed = false
     private(set) var checkingRecovery = false
@@ -206,7 +205,9 @@ final class SessionModel {
     var fixtureInboxRefreshes = 0
     var fixtureInboxComplete = false
     var fixtureInitializationAttempts = 0
+    var fixtureGrantReview: DisplayValue?
     var fixtureApprovalInFlight = false
+    var fixtureApprovalRefreshFailed = false
     #else
     let uiTesting = false
     #endif
@@ -249,6 +250,7 @@ final class SessionModel {
     }
 
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
+        if ProcessInfo.processInfo.arguments.contains("--ui-search-workspace") { blockedAccounts = ["fixture-blocked"] }
         vaultEditing.usesFixtures = true
         contentSync = .fixture(initialized: true)
         session = state; vault = items; fixtureVaultItems = items
@@ -1502,14 +1504,30 @@ final class SessionModel {
         cloudBackupsObservedAt = nil; cloudBackupsComplete = false; cloudBackupsError = nil
     }
 
-    func loadApprovals(refresh: Bool = false) async {
-        guard let engine else { return }; let current = epoch
+    @discardableResult
+    func loadApprovals(refresh: Bool = false) async -> Bool {
+        #if DEBUG
+        if uiTesting {
+            if refresh, ProcessInfo.processInfo.arguments.contains("--ui-approval-refresh-failure"), !fixtureApprovalRefreshFailed {
+                fixtureApprovalRefreshFailed = true
+                return false
+            }
+            return true
+        }
+        #endif
+        guard let engine else { return false }
+        let current = epoch
         do {
             if refresh { _ = try await coreOperation { try await engine.syncConnect(operation: $0) } }
             let result = try await engine.approvals()
             let values: [ApprovalView] = try decode(result)
-            guard current == epoch else { return }; approvals = values; approvalsFailed = false
-        } catch { if current == epoch { approvalsFailed = true; reportBackground(error) } }
+            guard current == epoch, !Task.isCancelled else { return false }
+            approvals = values
+            return true
+        } catch {
+            if current == epoch && !Task.isCancelled { reportBackground(error) }
+            return false
+        }
     }
 
     /// Public certified metadata only. It does not unlock content, upload it,
@@ -1664,7 +1682,7 @@ struct WorkspaceRoute: Equatable {
 }
 
 enum FilesRoute: Hashable {
-    case folder(String), file(String), transfers
+    case folder(String), file(String), transfers, unbacked
 }
 
 /// One automatic attempt per real visit. Authentication dialogs make the app

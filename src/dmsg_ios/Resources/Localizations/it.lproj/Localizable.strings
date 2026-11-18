@@ -2664,8 +2664,8 @@
 	<string>Questo account richiede una chiave di approvazione registrata. Configura questo dispositivo in Sicurezza hardware o chiedi a un altro dispositivo autorizzato.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Questa azione non è supportata su questo dispositivo. Gli snapshot segreti devono utilizzare il flusso di importazione dedicato.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>Questa richiesta del browser appartiene a un altro account. Il passaggio blocca l'area di lavoro corrente e ne preserva la bozza.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Chiudi la richiesta, apri in dMsg l’account indicato qui sotto, poi riapri la richiesta.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Questa operazione non può essere annullata. La sola disconnessione non elimina un account.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Impossibile preparare le chiavi salvate. Sblocca questo iPhone e riprova. Il tuo spazio di lavoro non è stato cancellato.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Questo aggiornamento non può accedere alle chiavi salvate. Mantieni dMsg installato e contatta l’assistenza da un altro dispositivo autorizzato. Il tuo spazio di lavoro non è stato cancellato.</string>
+	<key>Search conversations</key>
+	<string>Cerca conversazioni</string>
+	<key>Search letters</key>
+	<string>Cerca lettere</string>
+	<key>Select a letter</key>
+	<string>Seleziona una lettera</string>
+	<key>Account information</key>
+	<string>Informazioni sull’account</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Aggiungi un dispositivo e continua a usare questo.</string>
+	<key>Add permission</key>
+	<string>Aggiungi permesso</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Consenti gli avvisi nelle impostazioni di iOS per ricevere le notifiche di sistema.</string>
+	<key>Anyone with the link</key>
+	<string>Chiunque abbia il link</string>
+	<key>Anyone with the link and password</key>
+	<string>Chiunque abbia il link e la password</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Chiunque tu non abbia bloccato può scriverti gratuitamente.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>Autorizza %1$@ come %2$@.</string>
+	<key>Choose a permission</key>
+	<string>Scegli un permesso</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Copia i file tra due dispositivi autorizzati.</string>
+	<key>Cosign proposal</key>
+	<string>Controfirma la proposta</string>
+	<key>Create wallet</key>
+	<string>Crea portafoglio</string>
+	<key>Customize fields</key>
+	<string>Personalizza campi</string>
+	<key>Import cosignatures</key>
+	<string>Importa controfirme</string>
+	<key>List items</key>
+	<string>Elenca elementi</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Trasferisci il ruolo di questo dispositivo a quello sostitutivo.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Nessuno può inviarti nuove lettere mentre la ricezione è chiusa.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Le notifiche sono disattivate per questo account.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Le notifiche sono disattivate su questo dispositivo.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Possono scriverti solo gli account selezionati o chi dispone di un invito valido.</string>
+	<key>Open an existing account</key>
+	<string>Apri un account esistente</string>
+	<key>Policy ID</key>
+	<string>ID della regola</string>
+	<key>Proposal</key>
+	<string>Proposta</string>
+	<key>Read</key>
+	<string>Leggi</string>
+	<key>Manage event endpoints</key>
+	<string>Gestisci gli endpoint degli eventi</string>
+	<key>Request a signature</key>
+	<string>Richiedi una firma</string>
+	<key>Request an action</key>
+	<string>Richiedi un’azione</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>La revoca impedisce nuovi download. Le copie salvate vengono conservate.</string>
+	<key>Searching…</key>
+	<string>Ricerca in corso…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Gli account selezionati e chi dispone di un invito valido possono scriverti gratuitamente.</string>
+	<key>Set up a new workspace</key>
+	<string>Configura un nuovo spazio di lavoro</string>
+	<key>Share %@ with %@.</key>
+	<string>Condividi %1$@ con %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Avvia una conversazione per scambiare messaggi e file con i membri.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Gli avvisi di sistema seguono le preferenze indicate sotto.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Usa al massimo 200 caratteri per la ricerca.</string>
+	<key>Write</key>
+	<string>Scrivi</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Scrivi direttamente a un account. Il destinatario decide se rispondere. Da qui l’invio è gratuito.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Consenti le notifiche per ricevere gli avvisi di sistema.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Le notifiche vengono recapitate in modo silenzioso.</string>
+	<key>Veto proposal</key>
+	<string>Porre il veto alla proposta</string>
 </dict>
 </plist>

@@ -5,9 +5,15 @@ struct ApprovalsView: View {
     var showsDone = false
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @State private var verified: Bool?
+    @State private var readID: UUID?
+
     var body: some View {
         List {
-            if model.approvalsFailed { NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish.")) }
+            if verified == false {
+                NoticeBar(text: model.approvals.isEmpty ? String(localized: "The operation could not be completed. Please try again.") : String(localized: "Showing saved content. The latest sync did not finish."))
+                Button("Retry") { Task { await reload() } }.accessibilityIdentifier("approvals.retry")
+            }
             Section {
                 ForEach(model.approvals) { request in
                     NavigationLink { ApprovalDetailView(request: request) } label: {
@@ -22,14 +28,29 @@ struct ApprovalsView: View {
                         }
                     }.compactObjectRow()
                 }
-                if model.approvals.isEmpty { ContentUnavailableView("All caught up", image: AppGlyph.approvals.assetName, description: Text("Requests that need your decision appear here.")) }
+                if model.approvals.isEmpty {
+                    if verified == true {
+                        ContentUnavailableView("All caught up", image: AppGlyph.approvals.assetName, description: Text("Requests that need your decision appear here."))
+                            .accessibilityIdentifier("approvals.empty")
+                    } else if verified == nil { ProgressView("Syncing…") }
+                }
             } footer: {
                 Text("Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.")
             }
         }.privateScreen().navigationTitle("Approvals")
             .toolbar { if showsDone { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } } }
-            .task(id: model.contentRevision) { await model.loadApprovals(); await model.loadApprovals(refresh: true) }
-            .refreshable { await model.loadApprovals(refresh: true) }
+            .task(id: model.contentRevision) { await reload(showCached: true) }
+            .refreshable { await reload() }
+    }
+
+    private func reload(showCached: Bool = false) async {
+        let attempt = UUID()
+        readID = attempt
+        verified = nil
+        if showCached { await model.loadApprovals() }
+        guard readID == attempt, !Task.isCancelled else { return }
+        let success = await model.loadApprovals(refresh: true)
+        if readID == attempt && !Task.isCancelled { verified = success }
     }
 }
 
@@ -102,6 +123,11 @@ struct ApprovalDetailView: View {
         return .object(fields)
     }
 
+    private var summary: String? {
+        guard let reviewed else { return nil }
+        return approvalSummary(type: request.type, detail: reviewed)
+    }
+
     var body: some View {
         List {
             HStack(alignment: .top, spacing: 12) {
@@ -112,6 +138,10 @@ struct ApprovalDetailView: View {
                 }
             }.listRowBackground(Color.clear).listRowSeparator(.hidden)
                 .reminderVisible(.approval(request.id), watermark: observedVersion, ready: observedVersion != nil)
+            if let summary {
+                Text(summary).font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("approval.summary")
+            }
             if request.type == "device_pair" {
                 NoticeBar(text: String(localized: "This device may receive your private content. The content root must be redistributed after approval."))
                     .listRowBackground(Color.clear)
@@ -170,7 +200,8 @@ struct ApprovalDetailView: View {
                 }
                 Button("Cancel", role: .cancel) { decision = nil }
             } message: { _ in
-                Text("Your decision applies only to this request.")
+                if let summary { Text(verbatim: request.source + "\n" + summary) }
+                else { Text("Your decision applies only to this request.") }
             }
             .onDisappear { decisionTask?.cancel() }
     }
@@ -182,6 +213,7 @@ struct ApprovalDetailView: View {
         #if DEBUG
         if model.uiTesting {
             state = fixtureState ?? request.state; supported = true; readyAt = .now
+            if request.type == "grant", let grant = model.fixtureGrantReview { payload = .object(["detail": grant]); return }
             payload = .object(["detail": .object([
                 "capabilities": .array([.string("ContentSign"), .string("VaultUnlock"), .string("RootManage")]),
                 "device_id": .string(String(repeating: "a", count: 64)), "role": .string("member")
@@ -272,6 +304,69 @@ struct ApprovalDetailView: View {
     }
 }
 
+/// Summarize only the verified action. The complete payload remains available below it.
+func approvalSummary(type: String, detail: DisplayValue) -> String? {
+    guard case .object(let fields) = detail else { return nil }
+    func string(_ key: String) -> String? {
+        guard case .string(let value)? = fields[key], !value.isEmpty else { return nil }
+        return value
+    }
+    switch type {
+    case "device_pair":
+        guard let device = string("device_id"), let role = string("role") else { return nil }
+        let fingerprint = device.count > 20 ? String(device.prefix(8)) + "…" + String(device.suffix(8)) : device
+        var target = String(localized: "Authorize \(fingerprint) as \(deviceRoleTitle(role)).")
+        if case .boolean(true)? = fields["succession"] { target = String(localized: "Replace a device") + "\n" + target }
+        guard case .array(let values)? = fields["capabilities"] else { return target }
+        let permissions = values.map { deviceCapabilityTitle($0.text) }.formatted(.list(type: .and))
+        return target + (permissions.isEmpty ? "" : "\n" + permissions)
+    case "secret_share":
+        guard let title = string("title") else { return nil }
+        let recipient: String
+        if case .object(let channel)? = fields["channel"], case .string(let id)? = channel["channel_id"] {
+            if case .string(let name)? = channel["name"], !name.isEmpty { recipient = name + " · " + id }
+            else { recipient = id }
+        }
+        else if fields["channel"]?.isNull != false, case .boolean(let protected)? = fields["password"] {
+            recipient = String(localized: protected ? "Anyone with the link and password" : "Anyone with the link")
+        }
+        else { return nil }
+        return String(localized: "Share \(title) with \(recipient).")
+    case "grant":
+        guard let grantee = string("grantee"), case .array(let capabilities)? = fields["capabilities"] else { return nil }
+        var parts = [grantee] + capabilities.map { AgentPermissionName.describe($0.text) }
+        if let days = fields["days"].flatMap({ Int($0.text) }) { parts.append(String(localized: "\(days) days")) }
+        return parts.joined(separator: "\n")
+    case "wallet":
+        guard let action = string("action"), let name = string("name") ?? string("wallet") else { return nil }
+        let prefix: String
+        if action == "cosign", case .boolean(true)? = fields["collect_only"] { prefix = String(localized: "Import cosignatures") }
+        else if let title = walletSummaryAction(action, decision: string("decision")) { prefix = title }
+        else { return nil }
+        var parts = [prefix, name]
+        if action == "create", let price = string("price_e8s"), let fee = string("ledger_fee_e8s") {
+            parts += [AtomicAmount.display(price, decimals: 8) + " ICP",
+                      String(localized: "Fee") + " " + AtomicAmount.display(fee, decimals: 8) + " ICP"]
+        }
+        if case .object(let proposal)? = fields["proposal"], let id = proposal["id"], id.isScalar { parts.append(String(localized: "Proposal") + " " + id.text) }
+        return parts.joined(separator: " · ")
+    default: return nil
+    }
+}
+
+private func walletSummaryAction(_ action: String, decision: String?) -> String? {
+    switch action {
+    case "create": String(localized: "Create wallet")
+    case "join": String(localized: "Review joining wallet")
+    case "unbind": String(localized: "Remove device binding")
+    case "cosign": String(localized: "Cosign proposal")
+    case "decide" where decision == "approve": String(localized: "Review approval")
+    case "decide" where decision == "reject": String(localized: "Review rejection")
+    case "decide" where decision == "veto": String(localized: "Veto proposal")
+    default: nil
+    }
+}
+
 struct CanonicalDetails: View {
     let value: DisplayValue
     struct Row: Identifiable { let id: String; let label: String; let text: String }
@@ -339,8 +434,17 @@ func approvalFieldLabel(_ key: String) -> String {
 
 /// Role and permission names arrive as code identifiers such as `ManageAccount`.
 func approvalFieldValue(_ text: String, key: String) -> String {
-    guard ["role", "capabilities", "purpose", "purposes"].contains(key) else { return text }
-    return approvalFieldLabel(text)
+    switch key {
+    case "capabilities":
+        let title = deviceCapabilityTitle(text)
+        if text.contains(".") { return text }
+        return title == text ? approvalFieldLabel(text) : title
+    case "role":
+        let title = deviceRoleTitle(text)
+        return title == text ? approvalFieldLabel(text) : title
+    case "purpose", "purposes": return approvalFieldLabel(text)
+    default: return text
+    }
 }
 
 /// Approval requests a screen created and has not seen end, by the change each

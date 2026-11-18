@@ -1,5 +1,6 @@
 import XCTest
 import UIKit
+import UserNotifications
 @preconcurrency import DMsgCore
 @testable import dMsg
 
@@ -144,6 +145,23 @@ final class NotificationTests: XCTestCase {
             #"{"kind":"wallet","id":{"wallet":"aaaaa-aa","proposal":"01"}}"#,
             #"{"kind":"task","id":"arbitrary-rpc"}"#
         ] { XCTAssertThrowsError(try decode(json, as: ReminderTarget.self)) }
+    }
+
+    @MainActor
+    func testDeliverySummaryIdentifiesWhichSettingControlsAlerts() {
+        var preferences = NoticePreferences(global: .init(revision: 1, enabled: false, pausedUntil: nil, quietHours: nil, securityException: false, badge: "all"),
+            account: .init(revision: 1, enabled: false, categories: [:], mergeDevices: true, agentMail: [:], remoteRevision: 0), accountId: "test", remoteSupported: true)
+        func text(_ permission: UNAuthorizationStatus) -> String {
+            NotificationSettingsView.deliverySummary(permission: permission, saved: preferences, at: .now)
+        }
+        XCTAssertEqual(text(.denied), String(localized: "Allow alerts in iOS Settings to receive system notifications."))
+        XCTAssertEqual(text(.notDetermined), String(localized: "Allow notifications to receive system alerts."))
+        XCTAssertEqual(text(.authorized), String(localized: "Notifications are off on this device."))
+        preferences.global.enabled = true
+        XCTAssertEqual(text(.authorized), String(localized: "Notifications are off for this account."))
+        preferences.account?.enabled = true
+        XCTAssertEqual(text(.authorized), String(localized: "System alerts follow your preferences below."))
+        XCTAssertEqual(text(.provisional), String(localized: "Notifications are delivered quietly."))
     }
 
     func testSecurityAlertsNeedDeviceAccountAndCategory() {

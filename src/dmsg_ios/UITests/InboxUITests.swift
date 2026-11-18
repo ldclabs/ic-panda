@@ -77,6 +77,41 @@ final class InboxUITests: XCTestCase {
         capture(app, "Inbox restored letter · Chinese dark")
     }
 
+    func testTabletSelectedLetterIsReadableInBothAppearances() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad)
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        for dark in [false, true] {
+            let app = open(["-AppleLanguages", "(en)"] + (dark ? ["--ui-dark"] : []))
+            let row = app.buttons["inbox.row.fixture-letter"]
+            XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+            XCTAssertTrue(app.buttons["inbox.reply"].waitForExistence(timeout: 5))
+            XCTAssertTrue(row.isHittable)
+            let shot = XCTAttachment(screenshot: row.screenshot())
+            shot.name = dark ? "Selected letter row dark" : "Selected letter row light"
+            shot.lifetime = .keepAlways; add(shot)
+            capture(app, dark ? "Selected letter dark" : "Selected letter light")
+            app.terminate()
+        }
+    }
+
+    func testReceivingModesRevealOnlyRelevantAccountControls() {
+        let app = open(["--ui-inbox-empty", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+        app.buttons["Inbox settings"].tap()
+        let policy = app.buttons["inbox.policy.mode"], addAccount = app.buttons["Add account"]
+        XCTAssertTrue(policy.waitForExistence(timeout: 5))
+        XCTAssertFalse(addAccount.exists)
+        policy.tap(); app.buttons["Selected accounts"].tap()
+        XCTAssertTrue(addAccount.waitForExistence(timeout: 3)); addAccount.tap()
+        let account = app.textFields["inbox.account.0"]
+        XCTAssertTrue(account.waitForExistence(timeout: 3))
+        policy.tap(); app.buttons["Anyone, free of charge"].tap()
+        XCTAssertFalse(app.textFields["inbox.account.0"].exists)
+        XCTAssertTrue(app.staticTexts["Anyone you haven’t blocked can write for free."].exists)
+        policy.tap(); app.buttons["Selected accounts"].tap()
+        XCTAssertTrue(account.waitForExistence(timeout: 3))
+    }
+
     func testVerifiedEmptyInboxHasNoFailure() {
         let app = open(["--ui-inbox-empty", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
         XCTAssertTrue(app.descendants(matching: .any)["inbox.empty"].waitForExistence(timeout: 5))

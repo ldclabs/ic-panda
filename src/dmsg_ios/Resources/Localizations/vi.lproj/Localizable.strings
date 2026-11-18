@@ -2664,8 +2664,8 @@
 	<string>Tài khoản này yêu cầu khóa phê duyệt đã đăng ký. Thiết lập thiết bị này trong Bảo mật phần cứng hoặc yêu cầu một thiết bị được ủy quyền khác.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Hành động này không được hỗ trợ trên thiết bị này. Ảnh chụp nhanh bí mật phải sử dụng luồng nhập chuyên dụng của chúng.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>Yêu cầu trình duyệt này thuộc về một tài khoản khác. Việc chuyển đổi sẽ khóa không gian làm việc hiện tại và giữ nguyên bản nháp của nó.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Đóng yêu cầu này, mở tài khoản hiển thị bên dưới trong dMsg rồi mở lại yêu cầu.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Điều này không thể hoàn tác được. Việc đăng xuất một mình sẽ không xóa tài khoản.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Không thể chuẩn bị các khóa đã lưu. Hãy mở khóa iPhone này rồi thử lại. Không gian làm việc của bạn chưa bị xóa.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Bản cập nhật này không thể truy cập các khóa đã lưu. Hãy giữ dMsg trên máy và liên hệ bộ phận hỗ trợ từ một thiết bị được ủy quyền khác. Không gian làm việc của bạn chưa bị xóa.</string>
+	<key>Search conversations</key>
+	<string>Tìm cuộc trò chuyện</string>
+	<key>Search letters</key>
+	<string>Tìm thư</string>
+	<key>Select a letter</key>
+	<string>Chọn một thư</string>
+	<key>Account information</key>
+	<string>Thông tin tài khoản</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Thêm thiết bị và tiếp tục dùng thiết bị này.</string>
+	<key>Add permission</key>
+	<string>Thêm quyền</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Cho phép cảnh báo trong Cài đặt iOS để nhận thông báo hệ thống.</string>
+	<key>Anyone with the link</key>
+	<string>Bất kỳ ai có liên kết</string>
+	<key>Anyone with the link and password</key>
+	<string>Bất kỳ ai có liên kết và mật khẩu</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Bất kỳ ai bạn chưa chặn đều có thể gửi thư miễn phí.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>Cấp cho %1$@ vai trò %2$@.</string>
+	<key>Choose a permission</key>
+	<string>Chọn quyền</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Sao chép tệp giữa hai thiết bị đã được cấp quyền.</string>
+	<key>Cosign proposal</key>
+	<string>Đồng ký đề xuất</string>
+	<key>Create wallet</key>
+	<string>Tạo ví</string>
+	<key>Customize fields</key>
+	<string>Tùy chỉnh trường</string>
+	<key>Import cosignatures</key>
+	<string>Nhập chữ ký đồng ký</string>
+	<key>List items</key>
+	<string>Liệt kê mục</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Chuyển vai trò của thiết bị này sang thiết bị thay thế.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Không ai có thể gửi thư mới khi bạn đóng nhận thư.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Thông báo đã tắt cho tài khoản này.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Thông báo đã tắt trên thiết bị này.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Chỉ tài khoản đã chọn hoặc người có lời mời hợp lệ mới có thể gửi thư.</string>
+	<key>Open an existing account</key>
+	<string>Mở tài khoản hiện có</string>
+	<key>Policy ID</key>
+	<string>ID chính sách</string>
+	<key>Proposal</key>
+	<string>Đề xuất</string>
+	<key>Read</key>
+	<string>Đọc</string>
+	<key>Manage event endpoints</key>
+	<string>Quản lý điểm cuối nhận sự kiện</string>
+	<key>Request a signature</key>
+	<string>Yêu cầu chữ ký</string>
+	<key>Request an action</key>
+	<string>Yêu cầu thao tác</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Thu hồi sẽ chặn lượt tải xuống tiếp theo. Bản sao đã lưu vẫn còn.</string>
+	<key>Searching…</key>
+	<string>Đang tìm…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Tài khoản đã chọn và người có lời mời hợp lệ có thể gửi thư miễn phí.</string>
+	<key>Set up a new workspace</key>
+	<string>Thiết lập không gian làm việc mới</string>
+	<key>Share %@ with %@.</key>
+	<string>Chia sẻ %1$@ với %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Bắt đầu cuộc trò chuyện để trao đổi tin nhắn và tệp với các thành viên.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Cảnh báo hệ thống tuân theo các tùy chọn bên dưới.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Nhập tối đa 200 ký tự để tìm kiếm.</string>
+	<key>Write</key>
+	<string>Ghi</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Viết trực tiếp cho một tài khoản. Người nhận quyết định có trả lời hay không. Gửi từ đây là miễn phí.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Cho phép thông báo để nhận cảnh báo hệ thống.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Thông báo được gửi ở chế độ yên lặng.</string>
+	<key>Veto proposal</key>
+	<string>Phủ quyết đề xuất</string>
 </dict>
 </plist>

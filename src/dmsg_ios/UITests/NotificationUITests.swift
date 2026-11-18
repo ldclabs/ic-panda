@@ -284,10 +284,13 @@ import XCTest
         app.launch()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "040g2082040g2082040g")).firstMatch.waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["Switch to this account"].exists)
+        XCTAssertTrue(app.staticTexts["Close this request, open the account shown below in dMsg, then reopen the request."].exists)
         capture(app, "Browser request from another account")
         app.buttons["Done"].tap()
-        app.tabBars.buttons["Account"].tap()
-        app.buttons["account.profile"].tap()
+        app.buttons["Account"].firstMatch.tap()
+        let profile = app.buttons["account.profile"].firstMatch
+        if !profile.isHittable && app.buttons["ToggleSidebar"].exists { app.buttons["ToggleSidebar"].tap() }
+        profile.tap()
         XCTAssertTrue(app.staticTexts["040g2081040g2081040g"].waitForExistence(timeout: 5))
         app.terminate()
     }

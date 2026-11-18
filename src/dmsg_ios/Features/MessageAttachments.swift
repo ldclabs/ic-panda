@@ -17,6 +17,7 @@ struct AttachmentPicker: View {
     @State private var query = ""
     @State private var visible = true
     private var files: [LibraryFile] { listing.files.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) } }
+    private var folders: [FolderItem] { listing.folders.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) } }
     var body: some View {
         List {
             SettingsLoadStatus(loading: loading, failed: failed) { Task { await load() } }
@@ -25,14 +26,17 @@ struct AttachmentPicker: View {
                 Button("Import file", systemImage: "doc.badge.plus") { importing = true }
                 PhotosPicker(selection: $photo, matching: .images) { Label("Import photo", systemImage: "photo") }
             }.disabled(working)
-            ForEach(listing.folders.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { folder in
+            ForEach(folders) { folder in
                 NavigationLink(folder.name) { AttachmentPicker(folder: folder.id, choose: choose) }
             }
             ForEach(files) { file in
                 Button { choose(file) } label: { FileRow(file: file) }.disabled(working || file.size > 100 * 1024 * 1024)
                     .accessibilityIdentifier("attachment.choose.\(file.id)")
             }
-            if !loading && !failed && files.isEmpty && listing.folders.isEmpty { Text("Import a file or photo to attach it.").foregroundStyle(.secondary) }
+            if !loading && !failed && files.isEmpty && folders.isEmpty {
+                if query.isEmpty { Text("Import a file or photo to attach it.").foregroundStyle(.secondary) }
+                else { ContentUnavailableView.search(text: query) }
+            }
         }.privateScreen().navigationTitle("Choose an attachment").searchable(text: $query, prompt: "Search files")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if working { model.transfer.cancel() }; dismiss() } } }
             .onAppear { visible = true }

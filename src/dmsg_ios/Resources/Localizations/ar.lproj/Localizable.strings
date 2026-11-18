@@ -2636,8 +2636,8 @@
 	<string>يتطلب هذا الحساب مفتاح موافقة مسجّلًا. أعدّ هذا الجهاز في أمان العتاد، أو اطلب المعالجة من جهاز مخوّل آخر.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>هذا الإجراء غير مدعوم على هذا الجهاز. يجب استخدام مسار الاستيراد المخصص للقطات الأسرار.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>يخص طلب المتصفح حسابًا آخر. يؤدي التبديل إلى قفل مساحة العمل الحالية مع حفظ مسودتها.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>أغلق هذا الطلب، وافتح الحساب الموضّح أدناه في dMsg، ثم أعد فتح الطلب.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>لا يمكن التراجع عن ذلك. تسجيل الخروج وحده لا يحذف الحساب.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>تعذّر تجهيز مفاتيحك المحفوظة. افتح قفل هذا الـ iPhone وحاول مرة أخرى. لم يتم مسح مساحة عملك.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>لا يستطيع هذا التحديث الوصول إلى مفاتيحك المحفوظة. أبقِ dMsg مثبتًا وتواصل مع الدعم من جهاز آخر مُصرّح له. لم يتم مسح مساحة عملك.</string>
+	<key>Search conversations</key>
+	<string>البحث في المحادثات</string>
+	<key>Search letters</key>
+	<string>البحث في الرسائل</string>
+	<key>Select a letter</key>
+	<string>اختر رسالة</string>
+	<key>Account information</key>
+	<string>معلومات الحساب</string>
+	<key>Add a device and keep using this one.</key>
+	<string>أضف جهازًا واستمر في استخدام هذا الجهاز.</string>
+	<key>Add permission</key>
+	<string>إضافة إذن</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>اسمح بالتنبيهات في إعدادات iOS لتلقي إشعارات النظام.</string>
+	<key>Anyone with the link</key>
+	<string>أي شخص لديه الرابط</string>
+	<key>Anyone with the link and password</key>
+	<string>أي شخص لديه الرابط وكلمة المرور</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>يمكن لأي شخص لم تحظره مراسلتك مجانًا.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>التصريح لـ %1$@ بدور %2$@.</string>
+	<key>Choose a permission</key>
+	<string>اختيار إذن</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>انسخ الملفات بين جهازين مصرح لهما.</string>
+	<key>Cosign proposal</key>
+	<string>المشاركة في توقيع المقترح</string>
+	<key>Create wallet</key>
+	<string>إنشاء محفظة</string>
+	<key>Customize fields</key>
+	<string>تخصيص الحقول</string>
+	<key>Import cosignatures</key>
+	<string>استيراد التوقيعات المشتركة</string>
+	<key>List items</key>
+	<string>عرض قائمة العناصر</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>انقل دور هذا الجهاز إلى الجهاز البديل.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>لا يمكن لأحد إرسال رسائل جديدة إليك ما دام الاستقبال مغلقًا.</string>
+	<key>Notifications are off for this account.</key>
+	<string>الإشعارات معطلة لهذا الحساب.</string>
+	<key>Notifications are off on this device.</key>
+	<string>الإشعارات معطلة على هذا الجهاز.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>يمكن للحسابات المحددة أو لمن لديهم دعوة صالحة فقط مراسلتك.</string>
+	<key>Open an existing account</key>
+	<string>فتح حساب موجود</string>
+	<key>Policy ID</key>
+	<string>معرّف السياسة</string>
+	<key>Proposal</key>
+	<string>مقترح</string>
+	<key>Read</key>
+	<string>قراءة</string>
+	<key>Manage event endpoints</key>
+	<string>إدارة نقاط استقبال الأحداث</string>
+	<key>Request a signature</key>
+	<string>طلب توقيع</string>
+	<key>Request an action</key>
+	<string>طلب إجراء</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>يمنع الإلغاء التنزيلات اللاحقة. تبقى النسخ المحفوظة.</string>
+	<key>Searching…</key>
+	<string>جارٍ البحث…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>يمكن للحسابات المحددة ولمن لديهم دعوة صالحة مراسلتك مجانًا.</string>
+	<key>Set up a new workspace</key>
+	<string>إعداد مساحة عمل جديدة</string>
+	<key>Share %@ with %@.</key>
+	<string>مشاركة %1$@ مع %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>ابدأ محادثة لتبادل الرسائل والملفات مع الأعضاء.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>تتبع تنبيهات النظام التفضيلات أدناه.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>استخدم حتى 200 حرف للبحث.</string>
+	<key>Write</key>
+	<string>كتابة</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>اكتب مباشرة إلى حساب. يقرر المستلم ما إذا كان سيرد. الإرسال من هنا مجاني.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>اسمح بالإشعارات لتلقي تنبيهات النظام.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>تصل الإشعارات بهدوء.</string>
+	<key>Veto proposal</key>
+	<string>استخدام حق النقض ضد المقترح</string>
 </dict>
 </plist>

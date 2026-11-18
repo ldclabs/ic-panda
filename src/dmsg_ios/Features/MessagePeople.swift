@@ -45,16 +45,33 @@ struct MessageIdentity: View {
     }
 }
 
+struct MessageAccountInput: View {
+    let title: LocalizedStringKey
+    @Binding var account: String
+    var identifier = "message.recipient"
+    @FocusState private var focused: Bool
+    @State private var leftField = false
+    private var invalid: Bool { !account.isEmpty && !validMessageAccount(account) && (account.utf8.count >= 20 || leftField && !focused) }
+
+    var body: some View {
+        SettingsField(title, invalid: invalid) {
+            TextField(title, text: Binding(get: { account }, set: { account = $0.trimmingCharacters(in: .whitespacesAndNewlines) }))
+                .textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight)
+                .accessibilityIdentifier(identifier).focused($focused).onChange(of: focused) { wasFocused, nowFocused in
+                    if wasFocused && !nowFocused { leftField = true }
+                }
+        }
+        if invalid { Text("Enter a valid account ID.").font(.caption).foregroundStyle(.red) }
+    }
+}
+
 struct MessageRecipientField: View {
     let title: LocalizedStringKey
     @Binding var account: String
     @State private var choosing = false
+
     var body: some View {
-        SettingsField(title, invalid: !account.isEmpty && !validMessageAccount(account)) {
-            TextField(title, text: $account).textInputAutocapitalization(.never).autocorrectionDisabled()
-                .environment(\.layoutDirection, .leftToRight).accessibilityIdentifier("message.recipient")
-        }
-        if !account.isEmpty && !validMessageAccount(account) { Text("Enter a valid account ID.").font(.caption).foregroundStyle(.red) }
+        MessageAccountInput(title: title, account: $account)
         if validMessageAccount(account) { MessageIdentity(account: account, showID: true).id(account) }
         Button("Choose an account", systemImage: "person.crop.circle.badge.plus") { choosing = true }
         .sheet(isPresented: $choosing) { NavigationStack { MessagingAccountsPicker { account = $0 } } }

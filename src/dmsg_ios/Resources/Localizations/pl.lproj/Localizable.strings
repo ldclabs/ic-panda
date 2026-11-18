@@ -2664,8 +2664,8 @@
 	<string>To konto wymaga zarejestrowanego klucza zatwierdzającego. Skonfiguruj to urządzenie w obszarze Zabezpieczenia sprzętowe lub poproś inne autoryzowane urządzenie.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Ta czynność nie jest obsługiwana na tym urządzeniu. Tajne migawki muszą korzystać z dedykowanego przepływu importu.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>To żądanie przeglądarki należy do innego konta. Przełączanie blokuje bieżący obszar roboczy i zachowuje jego wersję roboczą.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Zamknij tę prośbę, otwórz w dMsg konto wskazane poniżej, a następnie ponownie otwórz prośbę.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Tego nie można cofnąć. Samo wylogowanie nie powoduje usunięcia konta.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Nie udało się przygotować zapisanych kluczy. Odblokuj tego iPhone’a i spróbuj ponownie. Twój obszar roboczy nie został usunięty.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Ta aktualizacja nie ma dostępu do zapisanych kluczy. Nie odinstalowuj dMsg i skontaktuj się z pomocą techniczną z innego autoryzowanego urządzenia. Twój obszar roboczy nie został usunięty.</string>
+	<key>Search conversations</key>
+	<string>Szukaj rozmów</string>
+	<key>Search letters</key>
+	<string>Szukaj listów</string>
+	<key>Select a letter</key>
+	<string>Wybierz list</string>
+	<key>Account information</key>
+	<string>Informacje o koncie</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Dodaj urządzenie i nadal korzystaj z tego.</string>
+	<key>Add permission</key>
+	<string>Dodaj uprawnienie</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Zezwól na alerty w ustawieniach iOS, aby otrzymywać powiadomienia systemowe.</string>
+	<key>Anyone with the link</key>
+	<string>Każdy, kto ma link</string>
+	<key>Anyone with the link and password</key>
+	<string>Każdy, kto ma link i hasło</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Każda niezablokowana osoba może pisać bezpłatnie.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>Autoryzuj %1$@ w roli %2$@.</string>
+	<key>Choose a permission</key>
+	<string>Wybierz uprawnienie</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Kopiuj pliki między dwoma autoryzowanymi urządzeniami.</string>
+	<key>Cosign proposal</key>
+	<string>Podpisz wspólnie propozycję</string>
+	<key>Create wallet</key>
+	<string>Utwórz portfel</string>
+	<key>Customize fields</key>
+	<string>Dostosuj pola</string>
+	<key>Import cosignatures</key>
+	<string>Importuj podpisy współsygnatariuszy</string>
+	<key>List items</key>
+	<string>Wyświetl listę elementów</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Przenieś rolę tego urządzenia na jego następcę.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Gdy odbiór jest wyłączony, nikt nie może wysyłać nowych listów.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Powiadomienia dla tego konta są wyłączone.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Powiadomienia na tym urządzeniu są wyłączone.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Mogą pisać tylko wybrane konta i osoby z ważnym zaproszeniem.</string>
+	<key>Open an existing account</key>
+	<string>Otwórz istniejące konto</string>
+	<key>Policy ID</key>
+	<string>ID zasad</string>
+	<key>Proposal</key>
+	<string>Propozycja</string>
+	<key>Read</key>
+	<string>Odczyt</string>
+	<key>Manage event endpoints</key>
+	<string>Zarządzaj punktami odbioru zdarzeń</string>
+	<key>Request a signature</key>
+	<string>Poproś o podpis</string>
+	<key>Request an action</key>
+	<string>Poproś o działanie</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Cofnięcie dostępu blokuje dalsze pobieranie. Zapisane kopie pozostają.</string>
+	<key>Searching…</key>
+	<string>Wyszukiwanie…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Wybrane konta i osoby z ważnym zaproszeniem mogą pisać bezpłatnie.</string>
+	<key>Set up a new workspace</key>
+	<string>Skonfiguruj nowy obszar roboczy</string>
+	<key>Share %@ with %@.</key>
+	<string>Udostępnij %1$@ odbiorcy %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Rozpocznij rozmowę, aby wymieniać wiadomości i pliki z uczestnikami.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Alerty systemowe uwzględniają poniższe preferencje.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Wpisz maksymalnie 200 znaków.</string>
+	<key>Write</key>
+	<string>Zapis</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Napisz bezpośrednio na konto. Odbiorca decyduje, czy odpowiedzieć. Wysyłka stąd jest bezpłatna.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Zezwól na powiadomienia, aby otrzymywać alerty systemowe.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Powiadomienia są dostarczane po cichu.</string>
+	<key>Veto proposal</key>
+	<string>Zawetuj propozycję</string>
 </dict>
 </plist>

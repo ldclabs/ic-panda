@@ -2664,8 +2664,8 @@
 	<string>এই অ্যাকাউন্টের জন্য একটি নিবন্ধিত অনুমোদন কী প্রয়োজন৷ হার্ডওয়্যার নিরাপত্তায় এই ডিভাইসটি সেট আপ করুন, অথবা অন্য অনুমোদিত ডিভাইস জিজ্ঞাসা করুন।</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>এই ক্রিয়াটি এই ডিভাইসে সমর্থিত নয়৷ গোপন স্ন্যাপশট অবশ্যই তাদের ডেডিকেটেড আমদানি প্রবাহ ব্যবহার করবে।</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>এই ব্রাউজার অনুরোধ অন্য অ্যাকাউন্টের অন্তর্গত. স্যুইচিং বর্তমান কর্মক্ষেত্র লক করে এবং এর খসড়া সংরক্ষণ করে।</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>এই অনুরোধটি বন্ধ করুন, dMsg-এ নিচে দেখানো অ্যাকাউন্টটি খুলুন, তারপর অনুরোধটি আবার খুলুন।</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>এটি পূর্বাবস্থায় ফেরানো যাবে না। একা সাইন আউট করলে কোনো অ্যাকাউন্ট মুছে যায় না।</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>আপনার সংরক্ষিত কীগুলি প্রস্তুত করা যায়নি। এই iPhone আনলক করে আবার চেষ্টা করুন। আপনার কর্মক্ষেত্র মুছে ফেলা হয়নি।</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>এই আপডেট আপনার সংরক্ষিত কীগুলি অ্যাক্সেস করতে পারছে না। dMsg ইনস্টল করা রাখুন এবং অন্য একটি অনুমোদিত ডিভাইস থেকে সহায়তার সঙ্গে যোগাযোগ করুন। আপনার কর্মক্ষেত্র মুছে ফেলা হয়নি।</string>
+	<key>Search conversations</key>
+	<string>কথোপকথন খুঁজুন</string>
+	<key>Search letters</key>
+	<string>চিঠি খুঁজুন</string>
+	<key>Select a letter</key>
+	<string>একটি চিঠি বেছে নিন</string>
+	<key>Account information</key>
+	<string>অ্যাকাউন্টের তথ্য</string>
+	<key>Add a device and keep using this one.</key>
+	<string>একটি ডিভাইস যোগ করে এই ডিভাইসটিও ব্যবহার করতে থাকুন।</string>
+	<key>Add permission</key>
+	<string>অনুমতি যোগ করুন</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>সিস্টেম বিজ্ঞপ্তি পেতে iOS সেটিংসে সতর্কতার অনুমতি দিন।</string>
+	<key>Anyone with the link</key>
+	<string>লিঙ্ক আছে এমন যে কেউ</string>
+	<key>Anyone with the link and password</key>
+	<string>লিঙ্ক ও পাসওয়ার্ড আছে এমন যে কেউ</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>আপনি যাঁদের অবরুদ্ধ করেননি তাঁরা বিনামূল্যে লিখতে পারেন।</string>
+	<key>Authorize %@ as %@.</key>
+	<string>%1$@-কে %2$@ হিসেবে অনুমোদন দিন।</string>
+	<key>Choose a permission</key>
+	<string>একটি অনুমতি বেছে নিন</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>দুটি অনুমোদিত ডিভাইসের মধ্যে ফাইল কপি করুন।</string>
+	<key>Cosign proposal</key>
+	<string>প্রস্তাবে যৌথ স্বাক্ষর করুন</string>
+	<key>Create wallet</key>
+	<string>ওয়ালেট তৈরি করুন</string>
+	<key>Customize fields</key>
+	<string>ফিল্ড সাজান</string>
+	<key>Import cosignatures</key>
+	<string>যৌথ স্বাক্ষর আমদানি করুন</string>
+	<key>List items</key>
+	<string>আইটেমের তালিকা দেখুন</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>এই ডিভাইসের ভূমিকা এর প্রতিস্থাপনকারী ডিভাইসে সরান।</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>চিঠি গ্রহণ বন্ধ থাকলে কেউ নতুন চিঠি পাঠাতে পারবেন না।</string>
+	<key>Notifications are off for this account.</key>
+	<string>এই অ্যাকাউন্টের বিজ্ঞপ্তি বন্ধ আছে।</string>
+	<key>Notifications are off on this device.</key>
+	<string>এই ডিভাইসে বিজ্ঞপ্তি বন্ধ আছে।</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>কেবল নির্বাচিত অ্যাকাউন্ট বা বৈধ আমন্ত্রণধারীরা চিঠি লিখতে পারেন।</string>
+	<key>Open an existing account</key>
+	<string>বিদ্যমান অ্যাকাউন্ট খুলুন</string>
+	<key>Policy ID</key>
+	<string>নীতির আইডি</string>
+	<key>Proposal</key>
+	<string>প্রস্তাব</string>
+	<key>Read</key>
+	<string>পড়ুন</string>
+	<key>Manage event endpoints</key>
+	<string>ইভেন্ট গ্রহণের এন্ডপয়েন্ট পরিচালনা করুন</string>
+	<key>Request a signature</key>
+	<string>স্বাক্ষরের অনুরোধ করুন</string>
+	<key>Request an action</key>
+	<string>পদক্ষেপের অনুরোধ করুন</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>প্রত্যাহার করলে পরবর্তী ডাউনলোড বন্ধ হবে। সংরক্ষিত কপি থেকে যাবে।</string>
+	<key>Searching…</key>
+	<string>খোঁজা হচ্ছে…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>নির্বাচিত অ্যাকাউন্ট ও বৈধ আমন্ত্রণধারীরা বিনামূল্যে লিখতে পারেন।</string>
+	<key>Set up a new workspace</key>
+	<string>নতুন কর্মক্ষেত্র সেট আপ করুন</string>
+	<key>Share %@ with %@.</key>
+	<string>%1$@ %2$@-এর সঙ্গে শেয়ার করুন।</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>সদস্যদের সঙ্গে বার্তা ও ফাইল আদান-প্রদান করতে কথোপকথন শুরু করুন।</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>সিস্টেমের সতর্কতা নিচের পছন্দগুলি অনুসরণ করে।</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>খোঁজার জন্য সর্বোচ্চ ২০০টি অক্ষর লিখুন।</string>
+	<key>Write</key>
+	<string>লিখুন</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>সরাসরি একটি অ্যাকাউন্টে চিঠি লিখুন। উত্তর দেবেন কি না প্রাপক ঠিক করবেন। এখান থেকে পাঠানো বিনামূল্যে।</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>সিস্টেম সতর্কতা পেতে বিজ্ঞপ্তির অনুমতি দিন।</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>বিজ্ঞপ্তি নীরবে পৌঁছায়।</string>
+	<key>Veto proposal</key>
+	<string>প্রস্তাবে ভেটো দিন</string>
 </dict>
 </plist>

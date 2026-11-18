@@ -109,6 +109,7 @@ struct FilesView: View {
                 case .folder(let id): folderScreen(id).navigationBarTitleDisplayMode(.inline)
                 case .file(let id): FileDetailDestination(id: id).id(id)
                 case .transfers: TransfersView()
+                case .unbacked: UnbackedVersionsView()
                 }
             }
     }
@@ -215,20 +216,28 @@ struct FilesView: View {
         if let local = model.filesLocalOnly, local.unbackedVersions > 0, let account = model.session?.account, !model.backupHintDismissed.contains(account) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top) {
-                    Label { Text("Without a cloud backup") + Text(verbatim: " · \(local.unbackedVersions.formatted()) · \(fileSize(UInt64(max(0, local.unbackedBytes))))") }
-                        icon: { AppGlyph.cloudOff.image }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Button("About files and backups", systemImage: "info.circle") { sheet = .help }
-                        .labelStyle(.iconOnly).buttonStyle(.borderless).frame(width: 44, height: 44)
-                    Button("Dismiss", systemImage: "xmark") { model.dismissBackupHint() }
-                        .labelStyle(.iconOnly).buttonStyle(.borderless).frame(width: 44, height: 44)
+                    Button { model.route.filesPath.append(.unbacked) } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("Without a cloud backup", glyph: .cloudOff)
+                            Text(verbatim: String(localized: "Versions") + " · " + local.unbackedVersions.formatted() + " · " + fileSize(UInt64(max(0, local.unbackedBytes))))
+                                .foregroundStyle(.secondary)
+                        }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                    }.buttonStyle(.borderless).accessibilityIdentifier("files.unbacked.review")
+                    Button { sheet = .help } label: {
+                        Label("About files and backups", systemImage: "info.circle")
+                            .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                    }.buttonStyle(.borderless).accessibilityIdentifier("files.unbacked.help")
+                    Button { model.dismissBackupHint() } label: {
+                        Label("Dismiss", systemImage: "xmark")
+                            .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                    }.buttonStyle(.borderless)
                         .accessibilityIdentifier("files.unbacked.dismiss")
                 }
                 if !textSize.isAccessibilitySize {
                     Text("Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-            }.font(.footnote).accessibilityIdentifier("files.unbacked")
+            }.font(.footnote).accessibilityElement(children: .contain).accessibilityIdentifier("files.unbacked")
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
         }
     }
@@ -289,6 +298,7 @@ struct FilesView: View {
                 }
                 Section {
                     Button("Trash", systemImage: "trash") { sheet = .trash }
+                    Button("Without a cloud backup", glyph: .cloudOff) { model.route.filesPath.append(.unbacked) }
                     Button("About files and backups", systemImage: "info.circle") { sheet = .help }
                 }
             }.accessibilityIdentifier("files.tools")

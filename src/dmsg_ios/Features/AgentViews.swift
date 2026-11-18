@@ -32,6 +32,12 @@ struct AgentsView: View {
     private func load() async {
         guard !loading else { return }; loading = true; failed = false; defer { loading = false }
         let epoch = model.epoch
+        #if DEBUG
+        if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-agent-grants") {
+            agents = [Agent(label: "Studio assistant", agentId: "did:agent:studio.test", paused: false)]
+            return
+        }
+        #endif
         do { if let value = try await model.engine?.agents(), epoch == model.epoch && visible, !Task.isCancelled { let values: Listing = try model.decode(value); agents = values.agents } }
         catch { if epoch == model.epoch && visible, !Task.isCancelled { failed = true } }
     }
@@ -46,14 +52,17 @@ struct AgentDetailView: View {
     @State private var capabilities = ""
     @State private var days: UInt64 = 7
     @State private var grants: [Grant] = []
+    @State private var pattern = ""
+    @State private var target = ""
     @State private var request: ApprovalView?
     @State private var removing = false
+    @State private var revoking: Grant?
     @State private var working = false
     @State private var loaded = false
     @State private var failed = false
     @State private var scope: UInt64 = 0
     struct Draft: Codable { let capabilities: String; let days: UInt64 }
-    struct Grant: Decodable, Identifiable { let id: String; let grantee: String; let capabilities: [String]; let revokedAt: UInt64? }
+    struct Grant: Decodable, Identifiable { let id: String; let grantee: String; let capabilities: [String]; let revokedAt: UInt64?; let expiresAt: UInt64? }
     var body: some View {
         Form {
             SettingsLoadStatus(loading: !loaded && !failed, failed: failed) { Task { await load() } }
@@ -64,24 +73,59 @@ struct AgentDetailView: View {
             Section("Device permissions") {
                 Text("Content you allow an external AI client to read is also handled under that client’s data policies. Grant access only to what the task needs.")
                     .font(.footnote).foregroundStyle(.secondary)
-                ForEach(grants.filter { $0.grantee == agent.agentId && $0.revokedAt == nil }) { grant in
+                ForEach(grants.filter { $0.grantee == agent.agentId }) { grant in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(grant.capabilities.joined(separator: "\n")).font(.caption.monospaced())
-                        Button("Revoke grant", role: .destructive) { Task {
-                            if await perform({ try await $0.revokeAgentPermissions(id: grant.id) }) != nil { await load() }
-                        } }
+                        ForEach(grant.capabilities, id: \.self) { item in Text(permissionDescription(item)) }
+                        if grant.revokedAt != nil { Text("Revoked").foregroundStyle(.secondary) }
+                        else {
+                            if let expiry = grant.expiresAt {
+                                TimelineView(.periodic(from: .now, by: 60)) { time in
+                                    LabeledContent(fileDate(expiry) <= time.date ? "Expired" : "Expires") { Text(fileDate(expiry), format: .dateTime) }
+                                }.font(.footnote)
+                            }
+                            Button("Revoke grant", role: .destructive) { revoking = grant }
+                        }
                     }.buttonStyle(.borderless)
                 }
-                SettingsField("Capabilities, one per line") { TextField("Capabilities, one per line", text: $capabilities, axis: .vertical).lineLimit(3...8).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
-                Stepper("\(days) days", value: $days, in: 1...366)
-                SettingsAction("Review permissions", prominent: true) { Task {
-                    if let value = await perform({ try await $0.requestAgentPermissions(label: agent.label, capabilities: lines(capabilities), days: days) }) {
-                        do { request = try model.decode(value) } catch { model.report(error) }
+                Picker("Permissions", selection: $pattern) {
+                    Text("Choose a permission").tag("")
+                    ForEach(AgentPermissionName.options, id: \.self) { Text(AgentPermissionName.title($0)).tag($0) }
+                }.accessibilityIdentifier("agent.permission.picker")
+                if let key = AgentPermissionName.target(pattern) {
+                    SettingsField(key) {
+                        TextField(key, text: $target).textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .environment(\.layoutDirection, .leftToRight).accessibilityIdentifier("agent.permission.target")
                     }
-                } }.disabled(capabilities.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if pattern.contains("<channel>") && !model.channels.isEmpty {
+                        Menu("Conversations") { ForEach(model.channels, id: \.id) { c in Button(c.name) { target = c.id } } }
+                    } else if pattern.contains("<tag>") && !model.vaultCounts.tags.isEmpty {
+                        Menu("Tags") { ForEach(model.vaultCounts.tags, id: \.self) { tag in Button(tag) { target = tag } } }
+                    } else if pattern.contains("<folder>") {
+                        Menu("Folder") {
+                            Button("Files") { target = "root" }
+                            ForEach(model.library.folders) { folder in Button(folder.name) { target = folder.id } }
+                        }
+                    }
+                }
+                Button("Add permission") {
+                    guard let candidate else { return }
+                    capabilities = (lines(capabilities) + [candidate]).joined(separator: "\n"); target = ""; pattern = ""
+                }.disabled(candidate == nil).accessibilityIdentifier("agent.permission.add")
+                ForEach(lines(capabilities), id: \.self) { value in
+                    HStack {
+                        Text(permissionDescription(value)).frame(maxWidth: .infinity, alignment: .leading)
+                        Button("Remove", systemImage: "minus.circle", role: .destructive) {
+                            capabilities = lines(capabilities).filter { $0 != value }.joined(separator: "\n")
+                        }.labelStyle(.iconOnly)
+                    }
+                }
+                Stepper("\(days) days", value: $days, in: 1...366)
+                SettingsAction("Review permissions", prominent: true) { Task { await reviewPermissions() } }.disabled(lines(capabilities).isEmpty || lines(capabilities).count > 16 || !lines(capabilities).allSatisfy { validAgentCapability(capability: $0) })
+                    .accessibilityIdentifier("agent.permission.review")
             }
             SettingsAction("Remove this local agent", role: .destructive) { removing = true }
-        }.disabled(working || !loaded).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle(agent.label).confirmLeavingDraft(!capabilities.isEmpty)
+        }.onChange(of: pattern) { _, _ in target = "" }
+            .disabled(working || !loaded).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle(agent.label).confirmLeavingDraft(!capabilities.isEmpty)
             .task {
                 scope = model.viewGeneration
                 if !loaded { paused = agent.paused }
@@ -89,6 +133,13 @@ struct AgentDetailView: View {
                 await load()
             }
             .onDisappear { if !capabilities.isEmpty { model.keepFormDraft("agent:" + agent.id, value: Draft(capabilities: capabilities, days: days), generation: scope) } }
+            .confirmationDialog("Revoke grant", isPresented: Binding(get: { revoking != nil }, set: { if !$0 { revoking = nil } }), presenting: revoking) { grant in
+                Button("Revoke grant", role: .destructive) { Task {
+                    if await perform({ try await $0.revokeAgentPermissions(id: grant.id) }) != nil { await load() }
+                } }
+            } message: { grant in
+                Text(([agent.label] + grant.capabilities.map { permissionDescription($0) }).joined(separator: "\n"))
+            }
             .confirmationDialog("Remove this local agent?", isPresented: $removing) {
                 Button("Remove", role: .destructive) { Task {
                     if await perform({ try await $0.removeAgent(label: agent.label) }) != nil { dismiss() }
@@ -96,8 +147,52 @@ struct AgentDetailView: View {
             } message: { Text("Previously delivered credentials and copies are independent. Revoke delegations separately where required.") }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) { if let request { ApprovalDetailView(request: request) } }
     }
+    private func reviewPermissions() async {
+        #if DEBUG
+        if model.uiTesting {
+            let now = NotificationTime.now
+            model.fixtureGrantReview = .object(["grantee": .string(agent.id), "capabilities": .array(lines(capabilities).map(DisplayValue.string)), "days": .number(Decimal(days))])
+            request = ApprovalView(id: "test-grant", digest: "test-grant", type: "grant", state: "awaiting_user", source: agent.label,
+                                   risk: "high", expiresAt: now + 60_000, mobileSupported: true, updatedAt: now)
+            return
+        }
+        #endif
+        if let value = await perform({ try await $0.requestAgentPermissions(label: agent.label, capabilities: lines(capabilities), days: days) }) {
+            do { request = try model.decode(value) } catch { model.report(error) }
+        }
+    }
+
+    private func permissionDescription(_ value: String) -> String {
+        let label = AgentPermissionName.describe(value)
+        let parts = value.split(separator: ":", maxSplits: 1)
+        guard parts.count == 2 else { return label }
+        let id = String(parts[1])
+        let name: String?
+        switch parts[0] {
+        case "channel.read", "channel.publish": name = model.channels.first { $0.id == id }?.name
+        case "files.read", "files.write": name = id == "root" ? String(localized: "Files") : model.library.folders.first { $0.id == id }?.name
+        default: name = nil
+        }
+        return name.map { label + " (" + $0 + ")" } ?? label
+    }
+
+    private var candidate: String? {
+        guard AgentPermissionName.options.contains(pattern) else { return nil }
+        let target = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        let code = pattern.split(separator: ":", maxSplits: 1)[0]
+        let value = AgentPermissionName.target(pattern) == nil ? String(code) : String(code) + ":" + target
+        let existing = lines(capabilities)
+        return validAgentCapability(capability: value) && existing.count < 16 && !existing.contains(value) ? value : nil
+    }
+
     private func load() async {
         let epoch = model.epoch; failed = false
+        #if DEBUG
+        if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-agent-grants") {
+            grants = [Grant(id: "old", grantee: agent.id, capabilities: ["channel.read:studio"], revokedAt: nil, expiresAt: 1)]
+            loaded = true; return
+        }
+        #endif
         do {
             guard let engine = model.engine else { return }
             let values: [Grant] = try model.decode(try await engine.agentGrants())
@@ -264,3 +359,68 @@ func credentialStateTitle(_ status: String) -> String {
 }
 
 private func lines(_ text: String) -> [String] { text.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty } }
+
+/// The shared core supplies the vocabulary. An unfamiliar grant stays visible verbatim.
+enum AgentPermissionName {
+    static let options = agentCapabilityVocabulary().filter { $0 != "profile.read" }
+
+    static func target(_ pattern: String) -> LocalizedStringKey? {
+        switch pattern.split(separator: ":", maxSplits: 1).last {
+        case "<channel>": "Channel ID"
+        case "<folder>": "Folder"
+        case "<tag>": "Tags"
+        case "<wallet>": "Wallet canister ID"
+        case "<policy>": "Policy ID"
+        case "<origin>": "Website"
+        default: nil
+        }
+    }
+
+    static func describe(_ value: String) -> String {
+        guard validAgentCapability(capability: value) else { return value }
+        let parts = value.split(separator: ":", maxSplits: 1)
+        guard let code = parts.first else { return value }
+        let label = title(String(code))
+        guard label != code else { return value }
+        guard parts.count == 2 else { return label }
+        let scope = parts[1] == "*" ? String(localized: "All") + " (*)" : String(parts[1])
+        return label + " · " + scope
+    }
+
+    static func title(_ pattern: String) -> String {
+        let code = String(pattern.prefix { $0 != ":" })
+        guard let separator = code.lastIndex(of: ".") else { return code }
+        let group: String
+        switch code[..<separator] {
+        case "account": group = String(localized: "Account information")
+        case "vault", "secret": group = String(localized: "Vault")
+        case "files": group = String(localized: "Files")
+        case "channel": group = String(localized: "Conversations")
+        case "inbox": group = String(localized: "Inbox")
+        case "profile": group = String(localized: "Public profile")
+        case "attest" where code == "attest.request": return String(localized: "Request a signature")
+        case "action" where code == "action.request": return String(localized: "Request an action")
+        case "agent.delegation": group = String(localized: "Delegations")
+        case "events" where code == "events.endpoint": return String(localized: "Manage event endpoints")
+        case "wallet": group = String(localized: "Wallet")
+        case "agent.profile": group = "Agent Profile"
+        case "discourse": group = "Agent Discourse"
+        case "mail": group = "Agent Mail"
+        case "knowledge": group = "Agent Knowledge"
+        default: return code
+        }
+        let verb: String
+        switch code[code.index(after: separator)...] {
+        case "read": verb = String(localized: "Read")
+        case "write": verb = String(localized: "Write")
+        case "list": verb = String(localized: "List items")
+        case "publish": verb = String(localized: "Publish")
+        case "contact": verb = String(localized: "Write a letter")
+        case "use": verb = String(localized: "Use a secret through a device policy")
+        case "propose": verb = String(localized: "Create proposal")
+        case "execute": verb = String(localized: "Execute approved proposal")
+        default: return code
+        }
+        return group + " · " + verb
+    }
+}

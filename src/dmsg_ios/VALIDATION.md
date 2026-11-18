@@ -1,5 +1,7 @@
 # iOS implementation validation
 
+The November 18 product and accessibility review covers the 15 UX tasks, simulator evidence, and remaining physical-device checks. [中文验收记录](docs/ux-review-2026-11-18.zh.md)
+
 ## Review of recovery status and persistent vault drafts (2026-11-17)
 
 Reviewed the complete changes in `a9b371e9` and `355b4372`. Two iOS regressions

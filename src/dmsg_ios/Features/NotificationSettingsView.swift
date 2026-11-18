@@ -5,7 +5,13 @@ import UserNotifications
 struct NotificationSettingsView: View {
     var focusRegistration = false
     @Environment(SessionModel.self) private var model
-    @State private var status = String(localized: "Checking permission…")
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var permission: UNAuthorizationStatus?
+    @State private var advanced = false
+    private var status: String {
+        guard let permission else { return String(localized: "Checking permission…") }
+        return [.authorized, .provisional, .ephemeral].contains(permission) ? String(localized: "Allowed") : String(localized: "Not enabled")
+    }
     @State private var saved: NoticePreferences?
     @State private var draft: NoticePreferences?
     @State private var loading = false
@@ -38,7 +44,20 @@ struct NotificationSettingsView: View {
             if focusRegistration, draft != nil { registrationSection }
             Section {
                 LabeledContent("System permission", value: status)
-                Button("Open notification settings") { if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) } }
+                if let permission, let saved {
+                    TimelineView(.periodic(from: .now, by: 60)) { time in
+                        Text(Self.deliverySummary(permission: permission, saved: saved, at: time.date))
+                            .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("notifications.delivery-summary")
+                    }
+                }
+                if permission == .notDetermined {
+                    Button(NoticeCopy.text("noticeSetupOpen")) { Task {
+                        do { _ = try await model.push.requestPermission() } catch { model.report(error) }
+                        await checkPermission()
+                    } }
+                } else {
+                    Button("Open notification settings") { if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) } }
+                }
                 SettingsAction(LocalizedStringKey(NoticeCopy.text("noticeTest"))) { Task { await test() } }.accessibilityIdentifier("notifications.test")
             }
             if draft != nil {
@@ -84,13 +103,16 @@ struct NotificationSettingsView: View {
                     Section(NoticeCopy.text("noticeAccount")) {
                         Toggle(NoticeCopy.text("noticeAccount"), isOn: Binding(get: { draft?.account?.enabled == true }, set: { draft?.account?.enabled = $0 })).accessibilityIdentifier("notifications.account")
                         ForEach(ReminderCategory.allCases, id: \.self) { category in
-                            VStack(alignment: .leading) {
-                                Toggle(category.title, isOn: categoryValue(category, sound: false))
-                                Toggle(NoticeCopy.text("noticeSound"), isOn: categoryValue(category, sound: true))
-                                    .disabled(draft?.account?.categories[category.rawValue]?.enabled != true)
-                            }
+                            Toggle(category.title, isOn: categoryValue(category, sound: false))
                         }
-                        Toggle(NoticeCopy.text("noticeMerge"), isOn: Binding(get: { draft?.account?.mergeDevices == true }, set: { draft?.account?.mergeDevices = $0 }))
+                        DisclosureGroup("Advanced", isExpanded: $advanced) {
+                            ForEach(ReminderCategory.allCases, id: \.self) { category in
+                                Toggle(isOn: categoryValue(category, sound: true)) {
+                                    Text(category.title + " · " + NoticeCopy.text("noticeSound"))
+                                }.disabled(draft?.account?.categories[category.rawValue]?.enabled != true)
+                            }
+                            Toggle(NoticeCopy.text("noticeMerge"), isOn: Binding(get: { draft?.account?.mergeDevices == true }, set: { draft?.account?.mergeDevices = $0 }))
+                        }.accessibilityIdentifier("notifications.advanced")
                     }
                 }
                 if !focusRegistration { registrationSection }
@@ -105,6 +127,7 @@ struct NotificationSettingsView: View {
             }
         }
         .disabled(working).privateScreen().navigationTitle(NoticeCopy.text("noticeSettings"))
+        .onChange(of: scenePhase) { _, phase in if phase == .active { Task { await checkPermission() } } }
         .onChange(of: draft?.global) { _, _ in scheduleSave() }
         .onChange(of: draft?.account) { _, _ in scheduleSave() }
         .onChange(of: model.notifications.preferences) { _, value in
@@ -200,14 +223,26 @@ struct NotificationSettingsView: View {
             others = (counts?.accounts ?? []).filter { $0.enabled && $0.account != next.accountId }.map(\.account)
         } catch { if current == scope { failed = true } }
     }
-    /// Changes save shortly after the last one, so a run of toggles is one write.
+    static func deliverySummary(permission: UNAuthorizationStatus, saved: NoticePreferences, at now: Date) -> String {
+        if permission == .denied { return String(localized: "Allow alerts in iOS Settings to receive system notifications.") }
+        if permission == .notDetermined { return String(localized: "Allow notifications to receive system alerts.") }
+        if !saved.global.enabled { return String(localized: "Notifications are off on this device.") }
+        if saved.account?.enabled == false { return String(localized: "Notifications are off for this account.") }
+        if let until = saved.global.pausedUntil, fileDate(until) > now {
+            return String(localized: "Paused") + " · " + fileDate(until).formatted(date: .abbreviated, time: .shortened)
+        }
+        if permission == .provisional { return String(localized: "Notifications are delivered quietly.") }
+        return String(localized: "System alerts follow your preferences below.")
+    }
+
     private func checkPermission() async {
         let current = scope
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard current == scope else { return }
-        status = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus) ? String(localized: "Allowed") : String(localized: "Not enabled")
+        permission = settings.authorizationStatus
     }
 
+    /// Changes save shortly after the last one, so a run of toggles is one write.
     private func scheduleSave() {
         saveTask?.cancel()
         guard dirty else { return }

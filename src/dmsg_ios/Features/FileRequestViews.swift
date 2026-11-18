@@ -95,6 +95,7 @@ struct FileRequestComposer: View {
     @State private var failure: String?
     @State private var created: [FileRequest] = []
     @State private var work: Task<Void, Never>?
+    @State private var confirmingDiscard = false
     @FocusState private var editing: Bool
 
     private var labels: [String] { names.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } }
@@ -108,7 +109,8 @@ struct FileRequestComposer: View {
         let wanted: UInt64 = (capacity?.backupMaxFileBytes ?? 0) > 100 * Self.mib ? 2048 : 500
         return totals.contains(wanted) ? wanted : totals.last ?? 1
     }
-    private var finished: Bool { !created.isEmpty && failure == nil }
+    private var finished: Bool { !working && progress.total > 0 && progress.done == progress.total }
+    private var hasDraft: Bool { !finished && (!title.isEmpty || !instructions.isEmpty || !names.isEmpty || days != 14 || total != 0 && total != preferred) }
 
     var body: some View {
         Form {
@@ -128,10 +130,21 @@ struct FileRequestComposer: View {
                 if finished {
                     ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.accessibilityIdentifier("file.request.done") }
                 } else {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { work?.cancel(); dismiss() } }
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            if hasDraft { confirmingDiscard = true }
+                            else { work?.cancel(); dismiss() }
+                        }
+                    }
                 }
             }
-            .interactiveDismissDisabled(working)
+            .background(DraftDismissGuard(blocked: hasDraft || working, attempted: {
+                if hasDraft { confirmingDiscard = true }
+            }).frame(width: 0, height: 0))
+            .confirmationDialog("Discard unsaved changes?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                Button("Discard", role: .destructive) { work?.cancel(); dismiss() }
+                Button("Cancel", role: .cancel) {}
+            }
             .onAppear { if total == 0 { total = preferred } }
             .onDisappear { work?.cancel() }
     }

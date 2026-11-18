@@ -102,7 +102,21 @@ extension SessionModel {
         return try decode(try await engine.fileDetails(id: id))
     }
 
-    func queueFileBackup(_ file: LibraryFile) async throws -> BackupAdmission {
+    func unbackedFileVersions() async throws -> [LibraryDetails] {
+        #if DEBUG
+        if uiTesting {
+            return try fixtureFiles.filter { $0.trashedAt == nil }.compactMap { file in
+                let details = try fileDetailsFixture(file.id)
+                let missing = details.versions.filter { $0.local && $0.backup == nil }
+                return missing.isEmpty ? nil : LibraryDetails(file: details.file, versions: missing)
+            }
+        }
+        #endif
+        guard let engine else { throw CancellationError() }
+        return try decode(try await engine.unbackedFileVersions())
+    }
+
+    func queueFileBackup(_ file: LibraryFile, explicitRevision: Bool = false) async throws -> BackupAdmission {
         let operation = "backup:\(file.id):\(file.current)", stamp = epoch
         guard fileOperations.insert(operation).inserted else { return BackupAdmission(started: [], skipped: [.init(reason: "in_progress")]) }
         defer { if stamp == epoch { fileOperations.remove(operation) } }
@@ -110,7 +124,10 @@ extension SessionModel {
         if uiTesting { return try backupFileFixture(file) }
         #endif
         guard let engine else { throw CancellationError() }
-        let result: BackupAdmission = try decode(try await engine.backupFile(id: file.id, expectedVersion: file.current))
+        let snapshot = explicitRevision
+            ? try await engine.backupFileRevision(id: file.id, version: file.current)
+            : try await engine.backupFile(id: file.id, expectedVersion: file.current)
+        let result: BackupAdmission = try decode(snapshot)
         guard stamp == epoch, !Task.isCancelled else { throw CancellationError() }
         await fileTransfers.load(self)
         await loadFiles()
@@ -189,7 +206,12 @@ extension SessionModel {
 
     func createFileRequest(title: String, instructions: String, label: String, expiresInMs: UInt64, maxTotalBytes: UInt64) async throws -> FileRequest {
         #if DEBUG
-        if uiTesting { return try createFileRequestFixture(title: title, instructions: instructions, label: label) }
+        if uiTesting {
+            if fixtureFileRequestAttempts == 1 && ProcessInfo.processInfo.arguments.contains("--ui-files-request-slow") {
+                try await Task.sleep(for: .seconds(2))
+            }
+            return try createFileRequestFixture(title: title, instructions: instructions, label: label)
+        }
         #endif
         guard let engine else { throw CancellationError() }
         return try decode(try await coreOperation {

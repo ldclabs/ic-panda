@@ -9,6 +9,8 @@ struct VaultEditorField: View {
     let validationRequested: Bool
     @Binding var addedField: String?
     var focus: FocusState<VaultEditorFocus?>.Binding
+    var compactLogin = false
+    var submitLogin: (() -> Void)?
     @Environment(\.dynamicTypeSize) private var textSize
     @State private var showingDraft = false
     private enum Tool: String, Identifiable { case scanner, generator, date; var id: Self { self } }
@@ -27,26 +29,38 @@ struct VaultEditorField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                let header = textSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
-                header {
-                    Text("Field name")
-                    if !textSize.isAccessibilitySize { Spacer() }
-                    Text(vaultFieldKindTitle(field.kind))
-                }.font(.caption).foregroundStyle(.secondary)
-                TextField("Field name", text: $field.label, prompt: Text(namePrompt))
-                    .font(.body.weight(.medium)).focused(focus, equals: .name(field.id))
-                    .submitLabel(.next).onSubmit { focus.wrappedValue = .value(field.id) }
-                    .accessibilityIdentifier("vault.edit.name.\(field.id)")
-                if (nameVisited || validationRequested), let error = vaultFieldNameError(field) {
-                    Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("vault.edit.name-error.\(field.id)")
+            if !compactLogin {
+                VStack(alignment: .leading, spacing: 6) {
+                    let header = textSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+                    header {
+                        Text("Field name")
+                        if !textSize.isAccessibilitySize { Spacer() }
+                        Text(vaultFieldKindTitle(field.kind))
+                    }.font(.caption).foregroundStyle(.secondary)
+                    TextField("Field name", text: $field.label, prompt: Text(namePrompt))
+                        .font(.body.weight(.medium)).focused(focus, equals: .name(field.id))
+                        .submitLabel(.next).onSubmit { focus.wrappedValue = .value(field.id) }
+                        .accessibilityIdentifier("vault.edit.name.\(field.id)")
+                    if (nameVisited || validationRequested), let error = vaultFieldNameError(field) {
+                        Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("vault.edit.name-error.\(field.id)")
+                    }
                 }
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text("Value").font(.caption).foregroundStyle(.secondary)
+                if compactLogin { Text(label).font(.caption).foregroundStyle(.secondary) }
+                else { Text("Value").font(.caption).foregroundStyle(.secondary) }
                 if field.concealed && !showingDraft {
-                    SecureField(placeholder, text: valueBinding).focused(focus, equals: .value(field.id))
+                    SecureField(compactLogin ? "Password" : placeholder, text: valueBinding).focused(focus, equals: .value(field.id))
+                        .submitLabel(.done).onSubmit { if let submitLogin { submitLogin() } else { focus.wrappedValue = nil } }
                         .accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
+                } else if compactLogin {
+                    TextField(label, text: valueBinding).focused(focus, equals: .value(field.id))
+                        .submitLabel(field.id == "username" ? .next : .done)
+                        .onSubmit {
+                            if field.id == "username" { focus.wrappedValue = .value("password") }
+                            else { submitLogin?() }
+                        }
+                        .accessibilityIdentifier("vault.edit.field.\(field.id)")
                 } else if ["private_key", "public_key", "phrase"].contains(field.id) || field.value.contains("\n") {
                     TextEditor(text: valueBinding).font(.body.monospaced()).frame(minHeight: 110)
                         .focused(focus, equals: .value(field.id)).accessibilityLabel(label).accessibilityIdentifier("vault.edit.field.\(field.id)")
@@ -86,17 +100,19 @@ struct VaultEditorField: View {
                 Text("Camera access is unavailable. Enter a setup key or allow camera access in Settings.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            DisclosureGroup(isExpanded: $sectionExpanded) {
-                TextField("Section", text: $field.section).focused(focus, equals: .section(field.id))
-                    .accessibilityIdentifier("vault.edit.section.\(field.id)")
-                    .submitLabel(.done).onSubmit { focus.wrappedValue = nil }
-            } label: {
-                HStack {
-                    Text("Section")
-                    Spacer()
-                    Text(field.section.isEmpty ? String(localized: "No section") : field.section).foregroundStyle(.secondary)
-                }
-            }.font(.subheadline)
+            if !compactLogin {
+                DisclosureGroup(isExpanded: $sectionExpanded) {
+                    TextField("Section", text: $field.section).focused(focus, equals: .section(field.id))
+                        .accessibilityIdentifier("vault.edit.section.\(field.id)")
+                        .submitLabel(.done).onSubmit { focus.wrappedValue = nil }
+                } label: {
+                    HStack {
+                        Text("Section")
+                        Spacer()
+                        Text(field.section.isEmpty ? String(localized: "No section") : field.section).foregroundStyle(.secondary)
+                    }
+                }.font(.subheadline)
+            }
         }.textInputAutocapitalization(.never).autocorrectionDisabled()
             .padding(.vertical, 6)
             .onAppear {

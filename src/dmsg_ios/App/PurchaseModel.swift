@@ -57,6 +57,28 @@ final class PurchaseModel {
         // Its environment is only a hint; a first-time buyer may not have it.
         var appEnvironment: @MainActor () async throws -> String = { try verifiedEnvironment(try await AppTransaction.shared) }
         var subscriptions: @MainActor ([Product], UUID) async throws -> [Subscription] = { try await inspect($0, token: $1) }
+        var subscriptionStatusTimeout: Duration = .seconds(30)
+
+        /// Only the ownership read has a deadline. A slow Apple result cannot authorize a later purchase.
+        @MainActor func checkedSubscriptions(_ products: [Product], token: UUID) async throws -> [Subscription] {
+            let result = AsyncThrowingStream<[Subscription], Error> { continuation in
+                let read = Task {
+                    do {
+                        let values = try await subscriptions(products, token)
+                        continuation.yield(values)
+                        continuation.finish()
+                    } catch { continuation.finish(throwing: error) }
+                }
+                let deadline = Task {
+                    do { try await Task.sleep(for: subscriptionStatusTimeout) } catch { return }
+                    continuation.finish(throwing: URLError(.timedOut))
+                }
+                continuation.onTermination = { _ in read.cancel(); deadline.cancel() }
+            }
+            for try await values in result { return values }
+            throw CancellationError()
+        }
+
         var sync: @MainActor () async throws -> Void = { try await AppStore.sync() }
         var preflight: @MainActor (SessionModel, String, String) async throws -> PurchaseCheck = { model, product, environment in
             guard let engine = model.engine else { throw CancellationError() }
@@ -253,10 +275,11 @@ final class PurchaseModel {
     /// Reads current verified transactions, including billing retry and renewal.
     /// Historical transactions must not veto a matching current transaction.
     private static func inspect(_ products: [Product], token: UUID) async throws -> [Subscription] {
-        let groups = Set(products.compactMap { $0.subscription?.subscriptionGroupID })
+        let groups = Dictionary(products.compactMap(\.subscription).map { ($0.subscriptionGroupID, $0) },
+                                uniquingKeysWith: { first, _ in first })
         var subscriptions: [Subscription] = []
-        for group in groups.sorted() {
-            let values = try await Product.SubscriptionInfo.status(for: group)
+        for (group, subscription) in groups.sorted(by: { $0.key < $1.key }) {
+            let values = try await subscription.status
             try Task.checkCancellation()
             let statuses = try values.map { value -> SubscriptionStatus in
                 guard case .verified(let transaction) = value.transaction,
@@ -322,7 +345,7 @@ final class PurchaseModel {
                 Self.logger.warning("App Store products unavailable: \(missing.joined(separator: ","), privacy: .public)")
             }
             stage = .subscriptions
-            let checked = try await store.subscriptions(products, token)
+            let checked = try await store.checkedSubscriptions(products, token: token)
             guard current(model, epoch: epoch, account: expectedAccount), read == loadRevision else { return }
             subscriptions = checked
             let environments = Set(checked.compactMap(\.environment))
@@ -407,7 +430,7 @@ final class PurchaseModel {
             // Recheck immediately before Apple's sheet, not only when the page loaded.
             stage = "subscription_status"
             let checked: [Subscription]
-            do { checked = try await store.subscriptions(products, token) }
+            do { checked = try await store.checkedSubscriptions(products, token: token) }
             catch {
                 if current(model, epoch: epoch, account: expectedAccount) {
                     subscriptions = []; loadIssue = .subscriptions; model.reportBackground(error)

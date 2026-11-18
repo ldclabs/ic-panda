@@ -2636,8 +2636,8 @@
 	<string>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Close this request, open the account shown below in dMsg, then reopen the request.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>This cannot be undone. Signing out alone does not delete an account.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Your saved keys could not be prepared. Unlock this iPhone and try again. Your workspace has not been erased.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</string>
+	<key>Search conversations</key>
+	<string>Search conversations</string>
+	<key>Search letters</key>
+	<string>Search letters</string>
+	<key>Select a letter</key>
+	<string>Select a letter</string>
+	<key>Account information</key>
+	<string>Account information</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Add a device and keep using this one.</string>
+	<key>Add permission</key>
+	<string>Add permission</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Allow alerts in iOS Settings to receive system notifications.</string>
+	<key>Anyone with the link</key>
+	<string>Anyone with the link</string>
+	<key>Anyone with the link and password</key>
+	<string>Anyone with the link and password</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Anyone you haven’t blocked can write for free.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>Authorize %1$@ as %2$@.</string>
+	<key>Choose a permission</key>
+	<string>Choose a permission</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Copy files between two authorized devices.</string>
+	<key>Cosign proposal</key>
+	<string>Cosign proposal</string>
+	<key>Create wallet</key>
+	<string>Create wallet</string>
+	<key>Customize fields</key>
+	<string>Customize fields</string>
+	<key>Import cosignatures</key>
+	<string>Import cosignatures</string>
+	<key>List items</key>
+	<string>List items</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Move this device’s role to its replacement.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>No one can send a new letter while receiving is closed.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Notifications are off for this account.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Notifications are off on this device.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Only selected accounts or people with a valid invitation can write.</string>
+	<key>Open an existing account</key>
+	<string>Open an existing account</string>
+	<key>Policy ID</key>
+	<string>Policy ID</string>
+	<key>Proposal</key>
+	<string>Proposal</string>
+	<key>Read</key>
+	<string>Read</string>
+	<key>Manage event endpoints</key>
+	<string>Manage event endpoints</string>
+	<key>Request a signature</key>
+	<string>Request a signature</string>
+	<key>Request an action</key>
+	<string>Request an action</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Revoking stops future downloads. Saved copies remain.</string>
+	<key>Searching…</key>
+	<string>Searching…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Selected accounts and valid invitations can write for free.</string>
+	<key>Set up a new workspace</key>
+	<string>Set up a new workspace</string>
+	<key>Share %@ with %@.</key>
+	<string>Share %1$@ with %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Start a conversation to exchange messages and files with members.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>System alerts follow your preferences below.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Use up to 200 characters to search.</string>
+	<key>Write</key>
+	<string>Write</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Write directly to an account. The recipient decides whether to reply. Sending here is free.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Allow notifications to receive system alerts.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Notifications are delivered quietly.</string>
+	<key>Veto proposal</key>
+	<string>Veto proposal</string>
 </dict>
 </plist>

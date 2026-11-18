@@ -32,6 +32,10 @@ extension SessionModel {
             fixtureFileVersions["fixture-local", default: []].insert(LibraryVersion(id: "v1", size: 1024, sha256: "old-version", createdAt: 1_792_000_000_000,
                 current: false, local: false, status: "cloud_only", backup: FileBackupReceipt(uploadId: "fixture-old-backup", verified: true, backedUpAt: 1_792_000_100_000)), at: 0)
         }
+        if ProcessInfo.processInfo.arguments.contains("--ui-unbacked-history") {
+            fixtureFileVersions["fixture-note", default: []].insert(LibraryVersion(id: "v0", size: 256, sha256: "test-old",
+                createdAt: 1_792_000_000_000, current: false, local: true, status: "local"), at: 0)
+        }
         updateFileSummaryFixture()
     }
 
@@ -248,7 +252,7 @@ extension SessionModel {
     }
 
     private func updateFileSummaryFixture() {
-        let files = fixtureFiles.filter { $0.trashedAt == nil && $0.canOpen }
+        let files = fixtureFiles.filter { $0.trashedAt == nil }.flatMap { fixtureFileVersions[$0.id] ?? [] }.filter(\.local)
         let unbacked = files.filter { $0.backup == nil }
         filesLocalOnly = LocalOnly(versions: files.count, bytes: Int64(files.reduce(0) { $0 + $1.size }),
                                   unbackedVersions: unbacked.count, unbackedBytes: Int64(unbacked.reduce(0) { $0 + $1.size }), pendingSync: 0, lastSyncOkAt: nil)

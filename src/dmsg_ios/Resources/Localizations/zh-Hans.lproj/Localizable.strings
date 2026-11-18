@@ -2664,8 +2664,8 @@
 	<string>此账号要求使用已注册的批准钥匙。请到“硬件安全”中设置本设备，或请其他已授权设备处理。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>此设备不支持此操作。秘密快照必须通过专用的导入流程处理。</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>此浏览器请求属于另一个账号。切换会锁定当前工作区并保存草稿。</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>请先关闭此请求，在 dMsg 中打开下方账号，再重新打开请求。</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>此操作无法撤销。仅退出登录不会删除账号。</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>无法准备已保存的密钥。请解锁此 iPhone 后重试。你的工作区未被清除。</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>本次更新无法访问已保存的密钥。请保留已安装的 dMsg，并从另一台已授权设备联系支持。你的工作区未被清除。</string>
+	<key>Search conversations</key>
+	<string>搜索对话</string>
+	<key>Search letters</key>
+	<string>搜索信件</string>
+	<key>Select a letter</key>
+	<string>选择一封信</string>
+	<key>Account information</key>
+	<string>账号信息</string>
+	<key>Add a device and keep using this one.</key>
+	<string>添加设备后，仍可继续使用本机。</string>
+	<key>Add permission</key>
+	<string>添加权限</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>要接收系统通知，请在 iOS 设置中允许通知。</string>
+	<key>Anyone with the link</key>
+	<string>持有链接的任何人</string>
+	<key>Anyone with the link and password</key>
+	<string>同时持有链接和密码的任何人</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>所有未被你屏蔽的人都可以免费来信。</string>
+	<key>Authorize %@ as %@.</key>
+	<string>将 %1$@ 授权为%2$@。</string>
+	<key>Choose a permission</key>
+	<string>选择一项权限</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>在两台已授权设备之间复制文件。</string>
+	<key>Cosign proposal</key>
+	<string>联署提案</string>
+	<key>Create wallet</key>
+	<string>创建钱包</string>
+	<key>Customize fields</key>
+	<string>自定义字段</string>
+	<key>Import cosignatures</key>
+	<string>导入联署签名</string>
+	<key>List items</key>
+	<string>列出条目</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>将这台设备的角色转移给替代设备。</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>关闭收信后，任何人都无法发来新信。</string>
+	<key>Notifications are off for this account.</key>
+	<string>此账号的通知已关闭。</string>
+	<key>Notifications are off on this device.</key>
+	<string>本机通知已关闭。</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>只有选定账号或持有效邀请的人可以来信。</string>
+	<key>Open an existing account</key>
+	<string>打开已有账号</string>
+	<key>Policy ID</key>
+	<string>策略 ID</string>
+	<key>Proposal</key>
+	<string>提案</string>
+	<key>Read</key>
+	<string>读取</string>
+	<key>Manage event endpoints</key>
+	<string>管理事件接收端点</string>
+	<key>Request a signature</key>
+	<string>请求签名</string>
+	<key>Request an action</key>
+	<string>请求执行操作</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>撤销后将无法继续下载。已保存的副本会保留。</string>
+	<key>Searching…</key>
+	<string>正在搜索…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>选定账号和持有效邀请的人可以免费来信。</string>
+	<key>Set up a new workspace</key>
+	<string>设置新的工作区</string>
+	<key>Share %@ with %@.</key>
+	<string>将“%1$@”分享给%2$@。</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>发起会话，与成员交换消息和文件。</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>系统将按下方偏好显示通知。</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>搜索词最多可输入 200 个字符。</string>
+	<key>Write</key>
+	<string>写入</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>直接写信给一个账号，由收件人决定是否回复。从这里发信免费。</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>允许通知后，即可接收系统提醒。</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>通知将静默送达。</string>
+	<key>Veto proposal</key>
+	<string>否决提案</string>
 </dict>
 </plist>

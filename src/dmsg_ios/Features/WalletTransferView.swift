@@ -99,6 +99,14 @@ struct WalletTransferView: View {
             if !submission.attempted { SettingsAction("Preview transfer") { Task { await inspect() } }.disabled(working || !inputValid) }
             if let preview {
                 Section("Preview") {
+                    if let asset = selectedAsset, let decimals = asset.decimals, let amount {
+                        LabeledContent("Amount", value: AtomicAmount.display(amount, decimals: decimals) + " " + (asset.symbol ?? asset.key))
+                        FingerprintRow(title: "Asset", value: asset.key)
+                    }
+                    if let source = sources.first(where: { $0.id == draft.from }) {
+                        FingerprintRow(title: "Source address", value: source.text)
+                    }
+                    FingerprintRow(title: "Recipient address", value: draft.recipient.trimmingCharacters(in: .whitespacesAndNewlines))
                     LabeledContent("Balance", value: AtomicAmount.display(preview.assetBalance, decimals: selectedAsset?.decimals ?? 0) + " " + (selectedAsset?.symbol ?? ""))
                     LabeledContent("Estimated fee", value: AtomicAmount.display(preview.estimatedFee, decimals: preview.feeDecimals) + " " + preview.feeAsset)
                     LabeledContent("Maximum fee", value: AtomicAmount.display(preview.maxFee, decimals: preview.feeDecimals) + " " + preview.feeAsset)

@@ -79,7 +79,7 @@ struct VaultView: View {
 
     @ViewBuilder private var empty: some View {
         if model.contentSync?.initialized != true {
-            ContentUnavailableView("Waiting for first sync", systemImage: "arrow.triangle.2.circlepath")
+            ContentUnavailableView(ContentSyncStatusView.title(model.contentSync), systemImage: "arrow.triangle.2.circlepath")
         } else if !model.search.isEmpty {
             ContentUnavailableView.search(text: model.search)
             Button("Clear filters") { clear() }
@@ -103,6 +103,7 @@ struct VaultView: View {
 private struct VaultBrowseBar: View {
     @Environment(SessionModel.self) private var model
     @Binding var filtering: Bool
+    @Environment(\.horizontalSizeClass) private var sizeClass
     private var moreSelected: Bool { vaultKinds().contains(model.vaultFilter) && !["login", "note"].contains(model.vaultFilter) }
 
     var body: some View {
@@ -132,6 +133,7 @@ private struct VaultBrowseBar: View {
                         }.id("types").accessibilityAddTraits(moreSelected ? .isSelected : []).accessibilityIdentifier("vault.types")
                     }.padding(.horizontal, 16)
                 }
+                .accessibilityIdentifier("vault.scopes")
                 .onChange(of: model.vaultFilter) { _, filter in
                     // Reveal an offscreen selection without recentering visible tabs.
                     proxy.scrollTo(["all", "favorites", "login", "note"].contains(filter) ? filter : "types")
@@ -145,9 +147,11 @@ private struct VaultBrowseBar: View {
 
     private func scope(_ value: String, title: LocalizedStringKey, symbol: String) -> some View {
         BrowseTab(selected: model.vaultFilter == value) { model.vaultFilter = value } label: {
-            if ["login", "note"].contains(value) {
-                AppGlyph.vaultItem(value).image.resizable().scaledToFit().frame(width: 17, height: 17).accessibilityHidden(true)
-            } else { Image(systemName: symbol) }
+            if sizeClass == .regular {
+                if ["login", "note"].contains(value) {
+                    AppGlyph.vaultItem(value).image.resizable().scaledToFit().frame(width: 17, height: 17).accessibilityHidden(true)
+                } else { Image(systemName: symbol).accessibilityHidden(true) }
+            }
             Text(title)
         }.id(value).accessibilityIdentifier("vault.scope.\(value)")
     }

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct FileBackupView: View {
     let files: [LibraryFile]
+    var explicitRevisions = false
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var capacity: FileBackupCapacity?
@@ -25,10 +26,17 @@ struct FileBackupView: View {
                 if let failure { FileInlineFailure(message: failure, working: loading) { Task { await load() } } }
                 NavigationLink("Current plan and limits") { SubscriptionView() }
             }
-            ForEach(files) { file in
+            if files.count > 1 {
+                LabeledContent("Selected", value: "\(files.count.formatted()) · \(fileSize(files.reduce(0) { $0 + $1.size }))")
+            }
+            ForEach(files, id: \.backupKey) { file in
                 VStack(alignment: .leading, spacing: 8) {
                     FileSummaryRow(name: file.name, mime: file.mime, subtitle: fileSize(file.size))
-                    if let outcome = outcomes[file.id] {
+                    if explicitRevisions {
+                        LabeledContent("Version", value: file.current).font(.caption).textSelection(.enabled)
+                            .accessibilityIdentifier("backup.revision." + file.backupKey)
+                    }
+                    if let outcome = outcomes[file.backupKey] {
                         Label(outcome.message, systemImage: outcome.failed ? "exclamationmark.circle" : "checkmark.circle").font(.footnote)
                     } else if let limit = capacity?.backupMaxFileBytes, file.size > limit {
                         Text("This file exceeds your current cloud backup file limit.").font(.footnote).foregroundStyle(.secondary)
@@ -70,14 +78,82 @@ struct FileBackupView: View {
     private func submit() async {
         guard !working else { return }; let stamp = model.epoch
         working = true; defer { working = false }
-        for file in files where !completed.contains(file.id) {
+        for file in files where !completed.contains(file.backupKey) {
             guard stamp == model.epoch, visible, !Task.isCancelled else { return }
             do {
-                let result = try await model.queueFileBackup(file)
+                let result = try await model.queueFileBackup(file, explicitRevision: explicitRevisions)
                 guard stamp == model.epoch, visible, !Task.isCancelled else { return }
-                outcomes[file.id] = FileActionResult(name: file.name, message: result.message, failed: !result.accepted)
-                if result.accepted { completed.insert(file.id) }
-            } catch { if stamp == model.epoch, visible, !Task.isCancelled { guard let message = model.fileFailureMessage(error) else { return }; outcomes[file.id] = FileActionResult(name: file.name, message: message, failed: true) } }
+                outcomes[file.backupKey] = FileActionResult(name: file.name, message: result.message, failed: !result.accepted)
+                if result.accepted { completed.insert(file.backupKey) }
+            } catch { if stamp == model.epoch, visible, !Task.isCancelled { guard let message = model.fileFailureMessage(error) else { return }; outcomes[file.backupKey] = FileActionResult(name: file.name, message: message, failed: true) } }
         }
+    }
+}
+
+private extension LibraryFile {
+    var backupKey: String { id + ":" + current }
+}
+
+struct UnbackedVersionsView: View {
+    @Environment(SessionModel.self) private var model
+    @State private var groups: [LibraryDetails] = []
+    @State private var selection: Set<String> = []
+    private struct Review: Identifiable { let id = UUID(); let files: [LibraryFile] }
+    @State private var review: Review?
+    @State private var loading = true
+    @State private var failure: String?
+    private var versions: [LibraryFile] { groups.flatMap { group in group.versions.map { $0.file(in: group.file) } } }
+    private var selected: [LibraryFile] { versions.filter { selection.contains($0.backupKey) } }
+
+    var body: some View {
+        List {
+            if loading { ProgressView("Loading…") }
+            if let failure { FileInlineFailure(message: failure, working: loading) { Task { await load() } } }
+            if !loading && failure == nil && groups.isEmpty { ContentUnavailableView("All caught up", systemImage: "checkmark.icloud") }
+            ForEach(groups, id: \.file.id) { group in
+                Section {
+                    ForEach(group.versions.reversed()) { version in
+                        let key = version.file(in: group.file).backupKey
+                        Toggle(isOn: Binding(get: { selection.contains(key) }, set: { value in
+                            if value { selection.insert(key) } else { selection.remove(key) }
+                        })) {
+                            VStack(alignment: .leading) {
+                                Text(fileDate(version.createdAt), format: .dateTime)
+                                Text(fileSize(version.size) + " · " + String(localized: version.current ? "Current version" : "Historical version")).font(.caption)
+                                if version.status == "backing_up" { Text("Backing up…").font(.caption) }
+                            }
+                        }.accessibilityIdentifier("backup.choose." + key)
+                    }
+                } header: { Text(((group.file.path ?? []) + [group.file.name]).joined(separator: " / ")).textCase(nil) }
+            }
+        }.toggleStyle(SelectionRowToggleStyle()).privateScreen().navigationTitle("Without a cloud backup")
+            .safeAreaInset(edge: .bottom) {
+                if !groups.isEmpty {
+                    Button {
+                        review = Review(files: selected)
+                    } label: {
+                        VStack {
+                            Text("Back up to cloud")
+                            if !selection.isEmpty { Text(verbatim: "\(selection.count.formatted()) · \(fileSize(selected.reduce(0) { $0 + $1.size }))").font(.caption) }
+                        }.frame(maxWidth: .infinity)
+                    }.buttonStyle(.borderedProminent).disabled(selection.isEmpty || loading).padding().background(.bar)
+                        .accessibilityIdentifier("backup.review-selected")
+                }
+            }
+            .task { await load() }.refreshable { await load() }
+            .sheet(item: $review, onDismiss: { Task { await load() } }) { review in
+                NavigationStack { FileBackupView(files: review.files, explicitRevisions: true) }
+            }
+    }
+
+    private func load() async {
+        let epoch = model.epoch
+        loading = true; failure = nil
+        defer { if epoch == model.epoch { loading = false } }
+        do {
+            let next = try await model.unbackedFileVersions()
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            groups = next; selection.formIntersection(versions.map(\.backupKey))
+        } catch { if epoch == model.epoch && !Task.isCancelled { failure = model.fileFailureMessage(error) } }
     }
 }

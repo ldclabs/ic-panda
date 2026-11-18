@@ -3,6 +3,28 @@ import XCTest
 @testable import dMsg
 
 final class AccountSettingsTests: XCTestCase {
+    func testApprovalSummariesUseOnlyTheReviewedTargetAndAction() throws {
+        func summary(_ type: String, _ json: String) throws -> String? {
+            approvalSummary(type: type, detail: try JSONDecoder().decode(DisplayValue.self, from: Data(json.utf8)))
+        }
+        let device = try XCTUnwrap(summary("device_pair", #"{"device_id":"test-new-device","role":"Member","capabilities":["VaultUnlock"]}"#))
+        XCTAssertTrue(device.contains("test-new-device")); XCTAssertTrue(device.contains(deviceRoleTitle("Member")))
+        let share = try XCTUnwrap(summary("secret_share", #"{"title":"Test item","channel":{"channel_id":"studio","name":"Studio"},"password":false}"#))
+        XCTAssertTrue(share.contains("Studio · studio")); XCTAssertTrue(share.contains("Test item"))
+        let link = try XCTUnwrap(summary("secret_share", #"{"title":"Private link","channel":null,"password":true}"#))
+        XCTAssertTrue(link.contains(String(localized: "Anyone with the link and password")))
+        XCTAssertNil(try summary("secret_share", #"{"title":"Unknown destination","channel":{}}"#))
+        let wallet = try XCTUnwrap(summary("wallet", #"{"action":"create","name":"Team","price_e8s":"250000000","ledger_fee_e8s":"10000"}"#))
+        XCTAssertTrue(wallet.contains("2.5 ICP")); XCTAssertTrue(wallet.contains("0.0001 ICP"))
+        let veto = try XCTUnwrap(summary("wallet", #"{"action":"decide","decision":"veto","wallet":"test-wallet","proposal":{"id":42}}"#))
+        XCTAssertTrue(veto.contains(String(localized: "Veto proposal"))); XCTAssertTrue(veto.contains("42"))
+        XCTAssertNil(try summary("wallet", #"{"action":"future","wallet":"demo"}"#))
+        let grant = try XCTUnwrap(summary("grant", #"{"grantee":"demo-agent","capabilities":["files.read:root","new.type:id"],"days":7}"#))
+        XCTAssertTrue(AgentPermissionName.describe("files.read:*").contains(String(localized: "All")))
+        XCTAssertEqual(AgentPermissionName.describe("events.endpoint"), String(localized: "Manage event endpoints"))
+        XCTAssertTrue(grant.contains("root")); XCTAssertTrue(grant.contains("new.type:id")); XCTAssertTrue(grant.contains("demo-agent"))
+    }
+
     @MainActor
     func testPasskeyFailuresExplainRegistrationAndKeepOtherLoginErrors() {
         let model = SessionModel()
@@ -207,6 +229,16 @@ final class AccountSettingsTests: XCTestCase {
         XCTAssertTrue(InboxSettingsView.Change(mode: "contacts", allow: [account]).valid)
         XCTAssertFalse(InboxSettingsView.Change(mode: "contacts", allow: [account, account]).valid)
         XCTAssertFalse(InboxSettingsView.Change(mode: "contacts", allow: [""]).valid)
+    }
+}
+
+extension AccountSettingsTests {
+    func testApprovalPermissionsUseTheDeviceSettingsVocabulary() {
+        for capability in ["ContentSign", "VaultUnlock", "RootManage", "FormalApprove"] {
+            XCTAssertEqual(approvalFieldValue(capability, key: "capabilities"), deviceCapabilityTitle(capability))
+        }
+        XCTAssertEqual(approvalFieldValue("administrator", key: "role"), deviceRoleTitle("administrator"))
+        XCTAssertEqual(approvalFieldValue("OriginalValue", key: "recipient"), "OriginalValue")
     }
 }
 

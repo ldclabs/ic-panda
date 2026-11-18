@@ -2664,8 +2664,8 @@
 	<string>บัญชีนี้ต้องมีรหัสอนุมัติที่ลงทะเบียนไว้ ตั้งค่าอุปกรณ์นี้ในความปลอดภัยของฮาร์ดแวร์ หรือสอบถามอุปกรณ์อื่นที่ได้รับอนุญาต</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>อุปกรณ์นี้ไม่รองรับการดำเนินการนี้ สแน็ปช็อตลับต้องใช้ขั้นตอนการนำเข้าเฉพาะ</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>คำขอเบราว์เซอร์นี้เป็นของบัญชีอื่น การสลับจะล็อกพื้นที่ทำงานปัจจุบันและรักษาแบบร่างไว้</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>ปิดคำขอนี้ เปิดบัญชีที่แสดงด้านล่างใน dMsg แล้วเปิดคำขออีกครั้ง</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>สิ่งนี้ไม่สามารถยกเลิกได้ การออกจากระบบเพียงอย่างเดียวไม่ได้เป็นการลบบัญชี</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>ไม่สามารถเตรียมคีย์ที่บันทึกไว้ได้ โปรดปลดล็อก iPhone เครื่องนี้แล้วลองอีกครั้ง พื้นที่ทำงานของคุณยังไม่ถูกลบ</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>การอัปเดตนี้ไม่สามารถเข้าถึงคีย์ที่บันทึกไว้ได้ โปรดเก็บ dMsg ไว้ในเครื่องและติดต่อฝ่ายสนับสนุนจากอุปกรณ์อื่นที่ได้รับอนุญาต พื้นที่ทำงานของคุณยังไม่ถูกลบ</string>
+	<key>Search conversations</key>
+	<string>ค้นหาการสนทนา</string>
+	<key>Search letters</key>
+	<string>ค้นหาจดหมาย</string>
+	<key>Select a letter</key>
+	<string>เลือกจดหมาย</string>
+	<key>Account information</key>
+	<string>ข้อมูลบัญชี</string>
+	<key>Add a device and keep using this one.</key>
+	<string>เพิ่มอุปกรณ์และใช้อุปกรณ์เครื่องนี้ต่อไป</string>
+	<key>Add permission</key>
+	<string>เพิ่มสิทธิ์</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>อนุญาตการแจ้งเตือนในการตั้งค่า iOS เพื่อรับการแจ้งเตือนจากระบบ</string>
+	<key>Anyone with the link</key>
+	<string>ทุกคนที่มีลิงก์</string>
+	<key>Anyone with the link and password</key>
+	<string>ทุกคนที่มีทั้งลิงก์และรหัสผ่าน</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>ทุกคนที่คุณไม่ได้บล็อกส่งจดหมายได้ฟรี</string>
+	<key>Authorize %@ as %@.</key>
+	<string>อนุญาตให้ %1$@ มีบทบาทเป็น %2$@</string>
+	<key>Choose a permission</key>
+	<string>เลือกสิทธิ์</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>คัดลอกไฟล์ระหว่างอุปกรณ์ที่ได้รับอนุญาตสองเครื่อง</string>
+	<key>Cosign proposal</key>
+	<string>ร่วมลงนามในข้อเสนอ</string>
+	<key>Create wallet</key>
+	<string>สร้างกระเป๋าเงิน</string>
+	<key>Customize fields</key>
+	<string>ปรับแต่งช่องข้อมูล</string>
+	<key>Import cosignatures</key>
+	<string>นำเข้าลายเซ็นร่วม</string>
+	<key>List items</key>
+	<string>แสดงรายการ</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>โอนบทบาทของอุปกรณ์เครื่องนี้ไปยังเครื่องที่มาแทน</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>เมื่อปิดรับจดหมาย จะไม่มีใครส่งจดหมายใหม่ถึงคุณได้</string>
+	<key>Notifications are off for this account.</key>
+	<string>ปิดการแจ้งเตือนสำหรับบัญชีนี้อยู่</string>
+	<key>Notifications are off on this device.</key>
+	<string>ปิดการแจ้งเตือนบนอุปกรณ์เครื่องนี้อยู่</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>เฉพาะบัญชีที่เลือกหรือผู้ที่มีคำเชิญที่ใช้ได้เท่านั้นที่ส่งจดหมายได้</string>
+	<key>Open an existing account</key>
+	<string>เปิดบัญชีที่มีอยู่</string>
+	<key>Policy ID</key>
+	<string>รหัสนโยบาย</string>
+	<key>Proposal</key>
+	<string>ข้อเสนอ</string>
+	<key>Read</key>
+	<string>อ่าน</string>
+	<key>Manage event endpoints</key>
+	<string>จัดการปลายทางรับเหตุการณ์</string>
+	<key>Request a signature</key>
+	<string>ขอลายเซ็น</string>
+	<key>Request an action</key>
+	<string>ขอให้ดำเนินการ</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>การเพิกถอนจะหยุดการดาวน์โหลดครั้งถัดไป สำเนาที่บันทึกไว้จะยังอยู่</string>
+	<key>Searching…</key>
+	<string>กำลังค้นหา…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>บัญชีที่เลือกและผู้ที่มีคำเชิญที่ใช้ได้ส่งจดหมายได้ฟรี</string>
+	<key>Set up a new workspace</key>
+	<string>ตั้งค่าพื้นที่ทำงานใหม่</string>
+	<key>Share %@ with %@.</key>
+	<string>แชร์ %1$@ กับ %2$@</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>เริ่มการสนทนาเพื่อแลกเปลี่ยนข้อความและไฟล์กับสมาชิก</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>ระบบจะแจ้งเตือนตามการตั้งค่าด้านล่าง</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>ใช้คำค้นหาไม่เกิน 200 ตัวอักษร</string>
+	<key>Write</key>
+	<string>เขียน</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>เขียนถึงบัญชีโดยตรง ผู้รับเป็นผู้ตัดสินใจว่าจะตอบหรือไม่ การส่งจากที่นี่ไม่มีค่าใช้จ่าย</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>อนุญาตการแจ้งเตือนเพื่อรับการแจ้งเตือนจากระบบ</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>ระบบจะส่งการแจ้งเตือนแบบเงียบ</string>
+	<key>Veto proposal</key>
+	<string>ใช้สิทธิยับยั้งข้อเสนอ</string>
 </dict>
 </plist>

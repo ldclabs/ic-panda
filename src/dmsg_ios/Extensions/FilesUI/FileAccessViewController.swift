@@ -15,8 +15,32 @@ final class FileAccessViewController: FPUIActionExtensionViewController {
         button.addAction(UIAction { [weak self] _ in self?.unlock() }, for: .touchUpInside)
         let cancel = UIButton(type: .system); cancel.setTitle(String(localized: "Cancel"), for: .normal)
         cancel.addAction(UIAction { [weak self] _ in self?.extensionContext.cancelRequest(withError: NSError(domain: FPUIErrorDomain, code: Int(FPUIExtensionErrorCode.userCancelled.rawValue))) }, for: .touchUpInside)
-        let stack = UIStackView(arrangedSubviews: [message,button,cancel]); stack.axis = .vertical; stack.spacing = 24; stack.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(stack)
-        NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),stack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 32),button.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),cancel.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)])
+        for action in [button, cancel] {
+            action.titleLabel?.font = .preferredFont(forTextStyle: .body)
+            action.titleLabel?.adjustsFontForContentSizeCategory = true
+            action.titleLabel?.numberOfLines = 0
+        }
+        let scroll = UIScrollView()
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scroll)
+        let stack = UIStackView(arrangedSubviews: [message, button, cancel])
+        stack.axis = .vertical
+        stack.spacing = 24
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        scroll.addSubview(stack)
+        NSLayoutConstraint.activate([
+            scroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scroll.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor, constant: -24),
+            stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -48),
+            stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 32),
+            stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -24),
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
+            cancel.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
+        ])
     }
     override func viewDidDisappear(_ animated: Bool) { super.viewDidDisappear(animated); generation += 1 }
     override func prepare(forError error: any Error) { loadViewIfNeeded() }

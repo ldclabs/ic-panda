@@ -2664,8 +2664,8 @@
 	<string>Für dieses Konto ist ein registrierter Genehmigungsschlüssel erforderlich. Richten Sie dieses Gerät in der Hardwaresicherheit ein oder fragen Sie ein anderes autorisiertes Gerät.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Diese Aktion wird auf diesem Gerät nicht unterstützt. Geheime Snapshots müssen ihren dedizierten Importfluss verwenden.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>Diese Browseranfrage gehört zu einem anderen Konto. Beim Wechseln wird der aktuelle Arbeitsbereich gesperrt und sein Entwurf bleibt erhalten.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Schließe diese Anfrage, öffne das unten angezeigte Konto in dMsg und öffne dann die Anfrage erneut.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Dies kann nicht rückgängig gemacht werden. Durch die alleinige Abmeldung wird kein Konto gelöscht.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Deine gespeicherten Schlüssel konnten nicht vorbereitet werden. Entsperre dieses iPhone und versuche es erneut. Dein Arbeitsbereich wurde nicht gelöscht.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Dieses Update kann nicht auf deine gespeicherten Schlüssel zugreifen. Lass dMsg installiert und kontaktiere den Support von einem anderen autorisierten Gerät aus. Dein Arbeitsbereich wurde nicht gelöscht.</string>
+	<key>Search conversations</key>
+	<string>Unterhaltungen suchen</string>
+	<key>Search letters</key>
+	<string>Briefe suchen</string>
+	<key>Select a letter</key>
+	<string>Brief auswählen</string>
+	<key>Account information</key>
+	<string>Kontoinformationen</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Füge ein Gerät hinzu und verwende dieses Gerät weiter.</string>
+	<key>Add permission</key>
+	<string>Berechtigung hinzufügen</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Erlaube Mitteilungen in den iOS-Einstellungen, um Systemmitteilungen zu erhalten.</string>
+	<key>Anyone with the link</key>
+	<string>Alle mit dem Link</string>
+	<key>Anyone with the link and password</key>
+	<string>Alle mit Link und Passwort</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Alle, die du nicht blockiert hast, können dir kostenlos schreiben.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>%1$@ als %2$@ autorisieren.</string>
+	<key>Choose a permission</key>
+	<string>Berechtigung auswählen</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Kopiere Dateien zwischen zwei autorisierten Geräten.</string>
+	<key>Cosign proposal</key>
+	<string>Vorschlag mitunterzeichnen</string>
+	<key>Create wallet</key>
+	<string>Wallet erstellen</string>
+	<key>Customize fields</key>
+	<string>Felder anpassen</string>
+	<key>Import cosignatures</key>
+	<string>Mitunterschriften importieren</string>
+	<key>List items</key>
+	<string>Einträge auflisten</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Übertrage die Rolle dieses Geräts auf das Ersatzgerät.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Bei geschlossenem Posteingang kann niemand neue Briefe senden.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Mitteilungen sind für dieses Konto ausgeschaltet.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Mitteilungen sind auf diesem Gerät ausgeschaltet.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Nur ausgewählte Konten oder Personen mit gültiger Einladung können dir schreiben.</string>
+	<key>Open an existing account</key>
+	<string>Vorhandenes Konto öffnen</string>
+	<key>Policy ID</key>
+	<string>Richtlinien-ID</string>
+	<key>Proposal</key>
+	<string>Vorschlag</string>
+	<key>Read</key>
+	<string>Lesen</string>
+	<key>Manage event endpoints</key>
+	<string>Ereignis-Endpunkte verwalten</string>
+	<key>Request a signature</key>
+	<string>Signatur anfordern</string>
+	<key>Request an action</key>
+	<string>Aktion anfordern</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Nach dem Widerruf sind keine weiteren Downloads möglich. Gespeicherte Kopien bleiben erhalten.</string>
+	<key>Searching…</key>
+	<string>Suche läuft…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Ausgewählte Konten und Personen mit gültiger Einladung können dir kostenlos schreiben.</string>
+	<key>Set up a new workspace</key>
+	<string>Neuen Arbeitsbereich einrichten</string>
+	<key>Share %@ with %@.</key>
+	<string>%1$@ mit %2$@ teilen.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Beginne eine Unterhaltung, um Nachrichten und Dateien mit den Mitgliedern auszutauschen.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Systemmitteilungen richten sich nach den folgenden Einstellungen.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Verwende höchstens 200 Zeichen für die Suche.</string>
+	<key>Write</key>
+	<string>Schreiben</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Schreibe direkt an ein Konto. Die empfangende Person entscheidet, ob sie antwortet. Der Versand ist hier kostenlos.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Erlaube Mitteilungen, um Systemhinweise zu erhalten.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Mitteilungen werden still zugestellt.</string>
+	<key>Veto proposal</key>
+	<string>Veto gegen Vorschlag einlegen</string>
 </dict>
 </plist>

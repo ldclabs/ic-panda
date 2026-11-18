@@ -78,10 +78,20 @@ func fileSize(_ bytes: UInt64) -> String {
     ByteCountFormatter.string(fromByteCount: Int64(clamping: bytes), countStyle: .file)
 }
 
-/// A plan's limit in the unit it is set in: 100 MiB reads as that, not as 104.9 MB.
+/// Quotas and the bytes counted against them use the same binary units.
 func fileLimit(_ bytes: UInt64) -> String {
-    let mib: UInt64 = 1024 * 1024, gib = 1024 * mib
-    return bytes >= gib && bytes % gib == 0 ? "\(bytes / gib) GiB" : "\(bytes / mib) MiB"
+    let kib: UInt64 = 1024, mib = kib * 1024, gib = mib * 1024
+    let divisor: UInt64
+    let unit: String
+    switch bytes {
+    case gib... where bytes % gib == 0: divisor = gib; unit = "GiB"
+    case mib...: divisor = mib; unit = "MiB"
+    case kib...: divisor = kib; unit = "KiB"
+    default: return "\(bytes) B"
+    }
+    if bytes % divisor == 0 { return "\(bytes / divisor) \(unit)" }
+    let count = (Double(bytes) / Double(divisor)).formatted(.number.precision(.fractionLength(0...2)))
+    return count + " " + unit
 }
 
 func fileDate(_ milliseconds: UInt64) -> Date { Date(timeIntervalSince1970: Double(milliseconds) / 1000) }

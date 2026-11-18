@@ -121,6 +121,8 @@ final class FileLibraryTests: XCTestCase {
         XCTAssertEqual(fileLimit(100 * 1024 * 1024), "100 MiB")
         XCTAssertEqual(fileLimit(1000 * 1024 * 1024), "1000 MiB")
         XCTAssertEqual(fileLimit(2048 * 1024 * 1024), "2 GiB")
+        XCTAssertEqual(fileLimit(1), "1 B")
+        XCTAssertEqual(fileLimit(512 * 1024), "512 KiB")
     }
 
     func testFileLinksDecodeAsTheCoreWritesThemAndExplainTheirState() throws {

@@ -24,7 +24,7 @@ struct LetterComposerView: View {
                 Form {
                     Section {
                         MessageRecipientField(title: "Recipient account ID", account: binding(\.recipient))
-                        SettingsField("Message", counter: "\(draft.text.utf8.count) / 6000", invalid: draft.text.utf8.count > 6000) {
+                        SettingsField("Message", counter: utf8ByteCounter(draft.text, limit: 6000), invalid: draft.text.utf8.count > 6000) {
                             TextField("Message", text: binding(\.text), axis: .vertical).lineLimit(5...12).accessibilityIdentifier("letter.text")
                         }
                         if draft.text.utf8.count > 6000 { Text("This letter is too long.").font(.caption).foregroundStyle(.red) }
@@ -35,7 +35,7 @@ struct LetterComposerView: View {
                             if !draft.invitationValid { Text("The invitation is invalid.").font(.caption).foregroundStyle(.red) }
                         }
                     } footer: {
-                        Text("Only free contact is supported here. This action cannot pay or approve a recipient's fee.")
+                        Text("Write directly to an account. The recipient decides whether to reply. Sending here is free.")
                     }.disabled(working)
                     if let error = model.letters.failures[initial.id] { NoticeBar(text: error) }
                     if working { ProgressView("Sending") }

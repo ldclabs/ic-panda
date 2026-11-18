@@ -34,12 +34,15 @@ struct FileLinkComposer: View {
     @ViewBuilder private var terms: some View {
         Section {
             Group {
-                Text("Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.")
+                LabeledContent("Recipient", value: String(localized: password.isEmpty ? "Anyone with the link" : "Anyone with the link and password"))
+                Text("Revoking stops future downloads. Saved copies remain.")
                 if target.remote {
                     Text("This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.")
                         .accessibilityIdentifier("file.link.remote")
                 }
-                Text("The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.").foregroundStyle(.secondary)
+                DisclosureGroup("Details") {
+                    Text("The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.").foregroundStyle(.secondary)
+                }
             }.padding(.vertical, 4)
         }.font(.footnote)
         Section("Link limits") {
@@ -53,7 +56,10 @@ struct FileLinkComposer: View {
             SecureField("Optional password", text: $password).textInputAutocapitalization(.never).autocorrectionDisabled()
                 .accessibilityIdentifier("file.link.password")
             Toggle("Show my public profile", isOn: $showProfile).accessibilityIdentifier("file.link.profile")
-            Text("Anyone with this link can see your public profile, even before entering a password.").font(.footnote).foregroundStyle(.secondary)
+            if showProfile {
+                Text("Anyone with this link can see your public profile, even before entering a password.")
+                    .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("file.link.profile-warning")
+            }
         }.disabled(working)
         if working { ProgressView("Encrypting and uploading a new copy…").accessibilityIdentifier("file.link.working") }
         if let failure { FileInlineFailure(message: failure, working: working) { submit() } }

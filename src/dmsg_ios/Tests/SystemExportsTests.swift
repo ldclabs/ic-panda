@@ -1,3 +1,4 @@
+import AppIntents
 import CryptoKit
 import Security
 import XCTest
@@ -225,6 +226,27 @@ final class SystemExportsTests: XCTestCase {
 }
 
 extension SystemExportsTests {
+    @MainActor
+    func testWorkspaceIntentsRouteAndStageWithoutPickingAnAccount() async throws {
+        let navigation = IntentNavigation.shared, previous = navigation.destination
+        defer { navigation.destination = previous }
+        let open = OpenWorkspaceIntent()
+        open.destination = .approvals
+        _ = try await open.perform()
+        XCTAssertEqual(navigation.destination, .approvals)
+        let url = try root().appending(path: UUID().uuidString + ".txt")
+        try Data("shortcut test".utf8).write(to: url)
+        let store = try IncomingShares()
+        let intent = ImportIntoDMsgIntent()
+        intent.files = [IntentFile(fileURL: url)]
+        _ = try await intent.perform()
+        let staged = try XCTUnwrap(store.list().first { $0.name == url.lastPathComponent })
+        defer { try? store.remove(staged) }
+        XCTAssertNil(staged.accountHash)
+        XCTAssertEqual(navigation.destination, .imports)
+        XCTAssertEqual(try String(contentsOf: store.file(staged), encoding: .utf8), "shortcut test")
+    }
+
     func testIncomingTextIsStagedAndInterruptedCopyRemainsDiscardable() throws {
         let directory = try root(), store = try IncomingShares(root: directory)
         let record = try store.stageText("sample text")

@@ -25,10 +25,21 @@ struct SecretSnapshotComposer: View {
                 Text(item.title).font(.title3.bold())
                 Text("Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.")
                     .font(.footnote).foregroundStyle(.secondary)
+                LabeledContent("Selected", value: [String(localized: "Fields") + " · " + fields.count.formatted(),
+                    String(localized: "Item attachments") + " · " + attachmentIDs.count.formatted(),
+                    notes ? String(localized: "Notes") : nil].compactMap { $0 }.joined(separator: "  "))
                 Picker("Destination", selection: $destination) {
                     Text("Share link").tag("link")
                     ForEach(model.channels, id: \.id) { channel in Text(channel.name).tag(channel.id) }
                 }.accessibilityIdentifier("secret.snapshot.destination")
+                if destination == "link" {
+                    LabeledContent("Recipient", value: String(localized: password.isEmpty ? "Anyone with the link" : "Anyone with the link and password"))
+                    LabeledContent("Expires after", value: String(localized: duration == 3_600_000 ? "1 hour" : duration == 86_400_000 ? "1 day" : "7 days"))
+                    Text("Revoking stops future downloads. Saved copies remain.").font(.footnote).foregroundStyle(.secondary)
+                } else {
+                    Text("A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
             }
             Section("Select fields to share") {
                 ForEach(item.fields, id: \.id) { field in
@@ -65,15 +76,15 @@ struct SecretSnapshotComposer: View {
                     Text("A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-            } else {
-                NoticeBar(text: String(localized: "A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall."))
             }
-            Text("Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.")
-                .font(.footnote).foregroundStyle(.secondary)
+            DisclosureGroup("Technical details") {
+                Text("Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             Button { work = Task { await prepare() } } label: {
                 if working { ProgressView() } else { Text("Prepare selected snapshot") }
             }.disabled(working || !hasSelection || item.reserved).accessibilityIdentifier("secret.snapshot.prepare")
-        }.disabled(working).privateScreen().navigationTitle("Share secret snapshot").navigationBarTitleDisplayMode(.inline)
+        }.toggleStyle(SelectionRowToggleStyle()).disabled(working).privateScreen().navigationTitle("Share secret snapshot").navigationBarTitleDisplayMode(.inline)
             .task {
                 if !initialized { destination = initialChannel ?? "link"; initialized = true }
                 await model.loadChannels()

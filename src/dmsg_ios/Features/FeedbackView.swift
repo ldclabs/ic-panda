@@ -27,7 +27,7 @@ struct FeedbackView: View {
                 SettingsAction("Retry", working: form.busy) { Task { await form.load(model) } }
             } else {
                 Section {
-                    SettingsField("Message", counter: "\(form.text.utf8.count) / 4500", invalid: form.text.utf8.count > 4500) {
+                    SettingsField("Message", counter: utf8ByteCounter(form.text, limit: 4500), invalid: form.text.utf8.count > 4500) {
                         TextField("Message", text: Binding(get: { form.text }, set: { form.update($0, model: model) }), axis: .vertical)
                             .lineLimit(5...12).focused($writing).disabled(frozen).accessibilityIdentifier("feedback.text")
                     }
@@ -88,7 +88,7 @@ struct FeedbackView: View {
         }.privateScreen().scrollDismissesKeyboard(.interactively).navigationTitle("Report a problem").navigationBarTitleDisplayMode(.inline)
             .onAppear { active = true }
             .onDisappear { active = false }
-            .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { writing = false }.accessibilityIdentifier("feedback.keyboard-done") } }
+            .keyboardDone(visible: writing, identifier: "feedback.keyboard-done") { writing = false }
             .task(id: model.epoch) { await form.load(model) }
             .photosPicker(isPresented: $choosingPhotos, selection: $photos, maxSelectionCount: max(1, 3 - form.screenshots.count), matching: .images, preferredItemEncoding: .compatible)
             .onChange(of: photos) { _, values in if !values.isEmpty { Task { await importPhotos(values) } } }

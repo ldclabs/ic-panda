@@ -171,18 +171,20 @@ final class DeploymentTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".storekit")
         // The local StoreKit catalogue supplies a real Product without contacting
         // Apple or making a purchase. Account/status reads are controlled below.
+        // Use numeric local product and group IDs for the StoreKit 18 simulator as well.
         let configuration = #"""
         {"identifier":"SubscriptionLoading","version":{"major":3,"minor":0},
          "settings":{"_locale":"en_US","_storefront":"USA"},"products":[],"nonRenewingSubscriptions":[],
-         "subscriptionGroups":[{"id":"fixture-annual","name":"Annual","localizations":[],"subscriptions":[
+         "subscriptionGroups":[{"id":"90000001","name":"Annual","localizations":[],"subscriptions":[
            {"adHocOffers":[],"codeOffers":[],"displayPrice":"9.99","familyShareable":false,"groupNumber":1,
-            "internalID":"fixture-plus","introductoryOffer":null,
+            "internalID":"90000002","introductoryOffer":null,
             "localizations":[{"description":"Test annual subscription","displayName":"Plus","locale":"en_US"}],
             "productID":"net.dmsg.ios.plus.annual","recurringSubscriptionPeriod":"P1Y","referenceName":"Plus Annual",
-            "subscriptionGroupID":"fixture-annual","type":"RecurringSubscription"}]}]}
+            "subscriptionGroupID":"90000001","type":"RecurringSubscription"}]}]}
         """#
         try Data(configuration.utf8).write(to: url)
-        defer { try? FileManager.default.removeItem(at: url) }
+        // The StoreKit session is used by the caller after this helper returns.
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
         let session = try SKTestSession(contentsOf: url)
         session.disableDialogs = true
         let products = try await Product.products(for: ["net.dmsg.ios.plus.annual"])
@@ -750,6 +752,29 @@ final class DeploymentTests: XCTestCase {
         XCTAssertEqual(reads, 2)
         XCTAssertEqual(purchases.feedback, PurchaseModel.otherAccountMessage)
         XCTAssertFalse(purchases.canPurchase(product))
+        XCTAssertFalse(purchases.pending)
+    }
+
+    func testStalledAppleStatusKeepsPricesAndRejectsALateOwnershipResult() async throws {
+        let (session, initial, product) = try await storeFixture()
+        defer { session.resetToDefaultState() }
+        let model = SessionModel(); model.loadFixtures()
+        var store = initial
+        store.subscriptionStatusTimeout = .milliseconds(100)
+        var delayed: CheckedContinuation<[PurchaseModel.Subscription], Never>?
+        store.subscriptions = { _, _ in await withCheckedContinuation { delayed = $0 } }
+        let purchases = PurchaseModel(enabled: true, store: store)
+        await purchases.load(model)
+        XCTAssertFalse(purchases.loading)
+        XCTAssertEqual(purchases.loadIssue, .subscriptions)
+        XCTAssertEqual(purchases.products.map(\.id), [product.id])
+        XCTAssertFalse(purchases.canPurchase(product))
+        let read = try XCTUnwrap(delayed)
+        read.resume(returning: [.init(id: product.subscription!.subscriptionGroupID, ownership: .available)])
+        await Task.yield()
+        XCTAssertEqual(purchases.loadIssue, .subscriptions)
+        XCTAssertFalse(purchases.canPurchase(product))
+        await purchases.purchase(product, model: model)
         XCTAssertFalse(purchases.pending)
     }
 

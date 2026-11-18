@@ -112,9 +112,9 @@ struct SubscriptionView: View {
             Section("Usage") {
                 if usageLoading { ProgressView() }
                 if let cloud = usage?.cloud {
-                    LabeledContent("Used", value: fileSize(cloud.committed))
-                    LabeledContent("Reserved for uploads", value: fileSize(cloud.reserved))
-                    if let remaining = cloud.remaining { LabeledContent("Remaining", value: fileSize(remaining)) }
+                    LabeledContent("Used", value: fileLimit(cloud.committed))
+                    LabeledContent("Reserved for uploads", value: fileLimit(cloud.reserved))
+                    if let remaining = cloud.remaining { LabeledContent("Remaining", value: fileLimit(remaining)) }
                     if let limit = cloud.storageLimit, limit > 0 { ProgressView(value: min(Double(cloud.committed) + Double(cloud.reserved), Double(limit)), total: Double(limit)).accessibilityLabel("Cloud storage") }
                     if let used = cloud.activeChannels, let limit = cloud.channelLimit {
                         LabeledContent("Active conversations", value: "\(used.formatted()) / \(limit.formatted())")
@@ -134,7 +134,7 @@ struct SubscriptionView: View {
             Section {
                 if let catalogue {
                     NavigationLink {
-                        MembershipComparisonView(catalogue: catalogue, currentPlan: currentTier, prices: planPrices)
+                        MembershipComparisonView(catalogue: catalogue, currentPlan: currentTier, prices: { planPrices }, retry: { await loadProducts(reconcile: false) })
                     } label: { Label("Compare all plans", systemImage: "list.bullet.rectangle") }
                     .accessibilityIdentifier("plan.compare")
                     Text("Every plan includes end-to-end encryption and device revocation.")

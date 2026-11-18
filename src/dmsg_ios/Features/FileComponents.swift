@@ -47,24 +47,23 @@ struct FileBrowseBar: View {
                     .init(value: .cloud, title: "Cloud backups", icon: AppGlyph.sync.image, identifier: "files.scope.cloud"),
                 ])
             } else { Spacer() }
-            Menu {
-                Button("File transfers", systemImage: "arrow.left.arrow.right", action: openTransfers)
-                    .accessibilityValue(active > 0 ? active.formatted() : "")
-                    .accessibilityIdentifier("files.transfers")
-                Divider()
-                Picker("Sort by", selection: $sort) {
-                    ForEach(FileSort.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-            } label: {
-                Image(systemName: "line.3.horizontal.decrease").font(.system(size: 18)).frame(width: 44, height: 44)
+            Button(action: openTransfers) {
+                Image(systemName: "arrow.left.arrow.right").frame(width: 44, height: 44).contentShape(Rectangle())
                     .overlay(alignment: .topTrailing) {
                         if active > 0 {
                             Text(active.formatted()).font(.caption2.bold().monospacedDigit()).foregroundStyle(Theme.paper)
                                 .padding(.horizontal, 4).background(Theme.forest, in: Capsule())
                         }
                     }
-            }.accessibilityLabel(Text("File transfers") + Text(verbatim: " · ") + Text("Sort by"))
-                .accessibilityValue(Text(sort.title) + Text(verbatim: active > 0 ? " · \(active.formatted())" : ""))
+            }.buttonStyle(.plain).accessibilityLabel("File transfers")
+                .accessibilityValue(active > 0 ? active.formatted() : "").accessibilityIdentifier("files.transfers")
+            Menu {
+                Picker("Sort by", selection: $sort) {
+                    ForEach(FileSort.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+            } label: {
+                Image(systemName: "arrow.up.arrow.down").font(.system(size: 18)).frame(width: 44, height: 44)
+            }.accessibilityLabel("Sort by").accessibilityValue(Text(sort.title))
                 .accessibilityIdentifier("files.options")
         }.font(.subheadline).padding(.bottom, 8).background(Theme.paper)
     }
@@ -89,9 +88,9 @@ struct FileSummaryRow: View {
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(name).font(.body.weight(.medium)).lineLimit(expanded ? nil : textSize.isAccessibilitySize ? 3 : 2).truncationMode(.middle)
+                Text(name).font(.body.weight(.medium)).lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).truncationMode(.middle)
                     .accessibilityLabel(name)
-                if !subtitle.isEmpty { Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(expanded ? nil : 2).fixedSize(horizontal: false, vertical: true) }
+                if !subtitle.isEmpty { Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(expanded || textSize.isAccessibilitySize ? nil : 2).fixedSize(horizontal: false, vertical: true) }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }.accessibilityElement(children: .combine)
     }

@@ -14,9 +14,15 @@ struct DevicesView: View {
         List {
             DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Section {
-                NavigationLink("Authorize another device") { PairApprovalView() }.disabled(!canManage)
-                NavigationLink("Replace a device") { SuccessionsView() }.accessibilityIdentifier("devices.succession")
-                NavigationLink("Transfer between devices") { DeviceTransferView() }.accessibilityIdentifier("devices.transfer")
+                NavigationLink { PairApprovalView() } label: {
+                    DeviceChoice(title: "Authorize another device", detail: "Add a device and keep using this one.")
+                }.disabled(!canManage)
+                NavigationLink { SuccessionsView() } label: {
+                    DeviceChoice(title: "Replace a device", detail: "Move this device’s role to its replacement.")
+                }.accessibilityIdentifier("devices.succession")
+                NavigationLink { DeviceTransferView() } label: {
+                    DeviceChoice(title: "Transfer between devices", detail: "Copy files between two authorized devices.")
+                }.accessibilityIdentifier("devices.transfer")
             }
             if display.loaded && !canManage { Text("An administrator device is required to change account security.").font(.footnote).foregroundStyle(.secondary) }
             SettingsLoadStatus(loading: false, failed: auxiliaryFailed) { Task { await load(force: true) } }
@@ -125,4 +131,16 @@ struct DeviceDetail: View {
         await receipts.settle(model)
     }
 
+}
+
+private struct DeviceChoice: View {
+    let title: LocalizedStringKey
+    let detail: LocalizedStringKey
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+            Text(detail).font(.footnote).foregroundStyle(.secondary)
+        }.accessibilityElement(children: .ignore).accessibilityLabel(title).accessibilityHint(detail)
+    }
 }

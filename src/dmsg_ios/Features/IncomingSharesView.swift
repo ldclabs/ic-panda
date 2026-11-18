@@ -1,14 +1,31 @@
 import SwiftUI
 
 struct IncomingSharesView: View {
+    var showsDone = false
+    @Environment(\.dismiss) private var dismiss
     @Environment(SessionModel.self) private var model
     @State private var entries: [IncomingShare] = []
     @State private var discarding: IncomingShare?
     @State private var working = false
     @State private var failed = false
+    @State private var loaded = false
+
     var body: some View {
         List {
             NoticeBar(text: String(localized: "Shared items are waiting on this device. Importing encrypts them into the currently selected account."))
+            if !entries.isEmpty, let account = model.session?.account {
+                Section {
+                    LabeledContent("Current account") {
+                        VStack(alignment: .trailing) {
+                            if let name = model.accountIdentities[account]?.name { Text(name) }
+                            Text(verbatim: account).font(.caption.monospaced()).textSelection(.enabled)
+                                .environment(\.layoutDirection, .leftToRight)
+                        }
+                    }
+                    let folder = model.filesFolder
+                    LabeledContent("Destination folder", value: folder == "root" ? String(localized: "Files") : model.filesListings[folder]?.folder?.name ?? folder)
+                }
+            }
             ForEach(entries) { entry in
                 VStack(alignment: .leading, spacing: 8) {
                     Text(entry.name).font(.headline)
@@ -21,13 +38,18 @@ struct IncomingSharesView: View {
                     Button("Discard staged copy", role: .destructive) { discarding = entry }.disabled(working)
                 }.buttonStyle(.borderless)
             }
-            if entries.isEmpty { Text(LocalizedStringKey(failed ? "Shared items are unavailable. Open the app again after unlocking this device." : "No shared items waiting")).foregroundStyle(.secondary) }
+            if entries.isEmpty {
+                if loaded { Text(LocalizedStringKey(failed ? "Shared items are unavailable. Open the app again after unlocking this device." : "No shared items waiting")).foregroundStyle(.secondary) }
+                else { ProgressView("Loading…") }
+            }
         }.privateScreen().navigationTitle("Shared with dMsg").task { await load() }.refreshable { await load() }
+            .toolbar { if showsDone { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.disabled(working) } } }
             .confirmationDialog("Discard this staged copy?", isPresented: Binding(get: { discarding != nil }, set: { if !$0 { discarding = nil } })) {
                 Button("Discard", role: .destructive) { if let discarding { Task { do { try IncomingShares().remove(discarding); await load() } catch { model.reportFileError(error) } } } }
             }
     }
     private func load() async {
+        defer { loaded = true }
         do { entries = try await Task.detached { try IncomingShares().list() }.value; failed = false }
         catch { failed = true }
     }

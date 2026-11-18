@@ -93,7 +93,7 @@ struct ReminderDestinationView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 ObjectIcon(name: symbol)
-                Text(title).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                Text(title).font(.headline).accessibilityAddTraits(.isHeader)
                 if !detail.isEmpty { Text(detail).font(.body).foregroundStyle(.secondary) }
                 actions()
                 Button("Back to reminders") { dismiss() }.frame(minHeight: 44)

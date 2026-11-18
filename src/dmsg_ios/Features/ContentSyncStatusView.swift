@@ -10,7 +10,7 @@ struct ContentSyncStatusView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 if status?.running == true { ProgressView().controlSize(.small) }
-                Text(title(status)).font(.subheadline.weight(.semibold))
+                Text(Self.title(status)).font(.subheadline.weight(.semibold))
             }
             if let status, status.running {
                 Text(stage(status.stage)).font(.footnote).foregroundStyle(.secondary)
@@ -51,7 +51,7 @@ struct ContentSyncStatusView: View {
         }.font(.caption).foregroundStyle(.secondary)
     }
 
-    private func title(_ status: ContentSyncStatus?) -> LocalizedStringKey {
+    static func title(_ status: ContentSyncStatus?) -> LocalizedStringKey {
         if status?.running == true { return status?.initialized == true ? "Syncing…" : "First sync" }
         if status?.error != nil { return "Sync paused" }
         return status?.initialized == true ? "Account synchronization" : "Waiting for first sync"

@@ -78,6 +78,42 @@ struct IDCopyButton: View {
     }
 }
 
+func utf8ByteCounter(_ text: String, limit: Int64) -> String {
+    text.utf8.count.formatted() + " / " + limit.formatted(.byteCount(style: .file, allowedUnits: .bytes))
+}
+
+extension View {
+    /// Keep the dismissal action above the focused form and the system keyboard.
+    func keyboardDone(visible: Bool, identifier: String, dismiss: @escaping () -> Void) -> some View {
+        safeAreaInset(edge: .bottom, spacing: 0) {
+            if visible {
+                HStack {
+                    Spacer()
+                    Button(action: dismiss) {
+                        Text("Done").padding(.horizontal, 16).frame(minHeight: 44).contentShape(Rectangle())
+                    }.buttonStyle(.borderless).accessibilityIdentifier(identifier)
+                }.background(.bar)
+            }
+        }
+    }
+}
+
+/// Explicit multi-selection in a list. The label and checkmark share one hit target.
+struct SelectionRowToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button { configuration.isOn.toggle() } label: {
+            HStack {
+                configuration.label
+                Spacer(minLength: 8)
+                Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(configuration.isOn ? Theme.forest : Color.secondary)
+                    .accessibilityHidden(true)
+            }.frame(minHeight: 44).contentShape(Rectangle())
+        }.buttonStyle(.plain)
+            .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label }.toggleStyle(.switch) }
+    }
+}
+
 /// Persistent labels remain visible after a field has a value.
 struct SettingsField<Content: View>: View {
     let title: LocalizedStringKey

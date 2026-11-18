@@ -22,7 +22,7 @@ import XCTest
     }
 
     func testDefaultWelcomeOffersPasskeyAndInternetIdentity() {
-        for (language, label) in [("en", "Continue with a passkey"), ("zh-Hans", "使用通行密钥"), ("ar", "المتابعة بمفتاح مرور")] {
+        for (language, label) in [("en", "Open an existing account"), ("zh-Hans", "打开已有账号"), ("ar", "فتح حساب موجود")] {
             let app = XCUIApplication()
             // No --ui-passkey: the default preview must match the normal welcome screen.
             app.launchArguments = ["--ui-testing", "--ui-welcome", "-AppleLanguages", "(\(language))"] + (language == "ar" ? ["--ui-dark"] : [])
@@ -36,8 +36,12 @@ import XCTest
             capture(app, "Default welcome with both login methods · \(language)")
             login.tap()
             XCTAssertTrue(app.buttons["passkey.login"].waitForExistence(timeout: 3))
+            XCTAssertFalse(app.buttons["login.create-passkey"].exists)
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+            app.buttons["login.new-workspace"].tap()
             let create = app.buttons["login.create-passkey"]
-            for _ in 0..<6 where !create.isHittable { app.swipeUp(velocity: .slow) }
+            XCTAssertTrue(create.waitForExistence(timeout: 3))
+            XCTAssertFalse(app.buttons["passkey.login"].exists)
             XCTAssertTrue(create.isHittable)
             capture(app, "Default preview passkey choices · \(language)")
             app.terminate()
@@ -97,7 +101,7 @@ import XCTest
             app.alerts.firstMatch.buttons.firstMatch.tap()
             app.buttons["login.start"].tap()
             XCTAssertTrue(app.buttons["passkey.login"].waitForExistence(timeout: 3))
-            XCTAssertTrue(app.buttons["login.create-passkey"].exists)
+            XCTAssertFalse(app.buttons["login.create-passkey"].exists)
             let reset = app.buttons["login.reset-devices"]
             for _ in 0..<4 where !reset.isHittable { app.swipeUp() }
             XCTAssertTrue(reset.isHittable)
@@ -316,12 +320,27 @@ import XCTest
         app.terminate()
     }
 
+    func testFailedApprovalRefreshDoesNotClaimThereAreNoRequests() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-approval-refresh-failure", "-AppleLanguages", "(en)"]
+        app.launch()
+        app.buttons["Account"].firstMatch.tap()
+        tap("account.approvals", in: app)
+        let retry = app.buttons["approvals.retry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        let empty = app.descendants(matching: .any)["approvals.empty"].firstMatch
+        XCTAssertFalse(empty.exists)
+        retry.tap()
+        XCTAssertTrue(empty.waitForExistence(timeout: 5))
+        XCTAssertFalse(retry.exists)
+    }
+
     func testApprovalLayoutAndConfirmations() {
         for (language, dark) in [("en", false), ("zh-Hans", true), ("de", false), ("ar", true)] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-approval", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
-            let tab = app.buttons[["en": "Account", "zh-Hans": "我的", "de": "Konto", "ar": "الحساب"][language]!]
+            let tab = app.buttons[["en": "Account", "zh-Hans": "我的", "de": "Konto", "ar": "الحساب"][language]!].firstMatch
             XCTAssertTrue(tab.waitForExistence(timeout: 8)); tab.tap()
             tap("account.approvals", in: app)
             let request = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Studio iPhone")).firstMatch
@@ -336,6 +355,8 @@ import XCTest
                 button.tap()
                 let alert = app.alerts.firstMatch
                 XCTAssertTrue(alert.waitForExistence(timeout: 3))
+                let confirmed = alert.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "Studio iPhone", "aaaaaaaa…aaaaaaaa"))
+                XCTAssertTrue(confirmed.firstMatch.exists)
                 capture(app, "Centered decision confirmation · \(language)")
                 alert.buttons[["en": "Cancel", "zh-Hans": "取消", "de": "Abbrechen", "ar": "إلغاء"][language]!].tap()
                 XCTAssertTrue(approve.isEnabled)
@@ -598,6 +619,24 @@ import XCTest
         tap("messages.reports", in: app)
         XCTAssertTrue(app.staticTexts["No reports"].waitForExistence(timeout: 5))
         capture(app, "Report history remains accessible in message settings")
+    }
+
+    func testAgentGrantSelectsOneFolderAndReviewsItsDuration() {
+        let app = open(["--ui-agent-grants"])
+        tap("account.advanced", in: app); tap("Agents", in: app); tap("Studio assistant", in: app)
+        let review = app.buttons["agent.permission.review"]
+        XCTAssertFalse(review.isEnabled)
+        tap("agent.permission.picker", in: app)
+        let option = app.buttons["Files · Read"]; XCTAssertTrue(option.waitForExistence(timeout: 4)); option.tap()
+        let target = app.textFields["agent.permission.target"]
+        XCTAssertTrue(target.exists); XCTAssertFalse(app.buttons["agent.permission.add"].isEnabled)
+        target.tap(); target.typeText("root\n")
+        tap("agent.permission.add", in: app); tap("agent.permission.review", in: app)
+        let summary = app.staticTexts["approval.summary"]
+        XCTAssertTrue(summary.waitForExistence(timeout: 5))
+        XCTAssertTrue(summary.label.contains("root")); XCTAssertTrue(summary.label.contains("7 days"))
+        XCTAssertTrue(summary.label.contains("did:agent:studio.test"))
+        capture(app, "Folder-scoped agent grant with its lifetime")
     }
 
     func testUsageShowsConsumptionSeparatelyFromLimits() {

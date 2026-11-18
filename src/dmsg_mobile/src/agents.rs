@@ -2,6 +2,18 @@ use super::*;
 use dmsg_client::agent;
 use dmsg_types::agent::{DelegationAuthority, PrincipalType};
 
+/// Device capabilities with their required target, from the core's grant contract.
+#[uniffi::export]
+pub fn agent_capability_vocabulary() -> Vec<String> {
+    dmsg_client::agents::vocabulary()
+}
+
+/// Check a fully specified permission before the user adds it to a grant.
+#[uniffi::export]
+pub fn valid_agent_capability(capability: String) -> bool {
+    dmsg_client::agents::validate_capability(&capability).is_ok()
+}
+
 #[uniffi::export]
 impl MobileEngine {
     pub async fn agents(&self) -> Result<ObjectSnapshot> {

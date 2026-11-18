@@ -15,6 +15,7 @@ struct InboxLetter: Decodable, Identifiable, Equatable {
 
 struct InboxRow: View {
     let letter: InboxLetter
+    var selected = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -27,10 +28,10 @@ struct InboxRow: View {
                 header {
                     MessageIdentity(account: letter.sender)
                     Text(Date(timeIntervalSince1970: Double(letter.createdAt) / 1000), style: .date)
-                        .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: true, vertical: false)
+                        .font(.caption2).foregroundStyle(selected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary)).fixedSize(horizontal: true, vertical: false)
                 }
                 Text(letter.state == "aborted" ? String(localized: "Not delivered") : letter.text)
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .font(.caption).foregroundStyle(selected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             }
         }.accessibilityElement(children: .combine)
             .accessibilityValue(letter.read ? "" : String(localized: "Unread messages"))

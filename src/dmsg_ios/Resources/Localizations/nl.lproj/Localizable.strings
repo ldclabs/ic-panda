@@ -2664,8 +2664,8 @@
 	<string>Voor dit account is een geregistreerde goedkeuringssleutel vereist. Stel dit apparaat in Hardwarebeveiliging in, of vraag een ander geautoriseerd apparaat.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
 	<string>Deze actie wordt niet ondersteund op dit apparaat. Geheime momentopnamen moeten hun speciale importstroom gebruiken.</string>
-	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>Dit browserverzoek hoort bij een ander account. Als je overschakelt, wordt de huidige werkruimte vergrendeld en blijft de diepgang behouden.</string>
+	<key>Close this request, open the account shown below in dMsg, then reopen the request.</key>
+	<string>Sluit dit verzoek, open het hieronder getoonde account in dMsg en open het verzoek opnieuw.</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
 	<string>Dit kan niet ongedaan worden gemaakt. Alleen uitloggen verwijdert geen account.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
@@ -3372,5 +3372,91 @@
 	<string>Je opgeslagen sleutels konden niet worden voorbereid. Ontgrendel deze iPhone en probeer het opnieuw. Je werkruimte is niet gewist.</string>
 	<key>This update cannot access your saved keys. Keep dMsg installed and contact support from another authorized device. Your workspace has not been erased.</key>
 	<string>Deze update heeft geen toegang tot je opgeslagen sleutels. Laat dMsg geïnstalleerd en neem contact op met ondersteuning vanaf een ander geautoriseerd apparaat. Je werkruimte is niet gewist.</string>
+	<key>Search conversations</key>
+	<string>Gesprekken zoeken</string>
+	<key>Search letters</key>
+	<string>Brieven zoeken</string>
+	<key>Select a letter</key>
+	<string>Kies een brief</string>
+	<key>Account information</key>
+	<string>Accountgegevens</string>
+	<key>Add a device and keep using this one.</key>
+	<string>Voeg een apparaat toe en blijf dit apparaat gebruiken.</string>
+	<key>Add permission</key>
+	<string>Bevoegdheid toevoegen</string>
+	<key>Allow alerts in iOS Settings to receive system notifications.</key>
+	<string>Sta meldingen toe in de iOS-instellingen om systeemmeldingen te ontvangen.</string>
+	<key>Anyone with the link</key>
+	<string>Iedereen met de link</string>
+	<key>Anyone with the link and password</key>
+	<string>Iedereen met de link en het wachtwoord</string>
+	<key>Anyone you haven’t blocked can write for free.</key>
+	<string>Iedereen die je niet hebt geblokkeerd, kan gratis schrijven.</string>
+	<key>Authorize %@ as %@.</key>
+	<string>%1$@ autoriseren als %2$@.</string>
+	<key>Choose a permission</key>
+	<string>Kies een bevoegdheid</string>
+	<key>Copy files between two authorized devices.</key>
+	<string>Kopieer bestanden tussen twee geautoriseerde apparaten.</string>
+	<key>Cosign proposal</key>
+	<string>Voorstel medeondertekenen</string>
+	<key>Create wallet</key>
+	<string>Wallet aanmaken</string>
+	<key>Customize fields</key>
+	<string>Velden aanpassen</string>
+	<key>Import cosignatures</key>
+	<string>Medeondertekeningen importeren</string>
+	<key>List items</key>
+	<string>Items weergeven</string>
+	<key>Move this device’s role to its replacement.</key>
+	<string>Draag de rol van dit apparaat over aan de vervanger.</string>
+	<key>No one can send a new letter while receiving is closed.</key>
+	<string>Zolang de ontvangst is gesloten, kan niemand nieuwe brieven sturen.</string>
+	<key>Notifications are off for this account.</key>
+	<string>Meldingen zijn uitgeschakeld voor dit account.</string>
+	<key>Notifications are off on this device.</key>
+	<string>Meldingen zijn uitgeschakeld op dit apparaat.</string>
+	<key>Only selected accounts or people with a valid invitation can write.</key>
+	<string>Alleen geselecteerde accounts en mensen met een geldige uitnodiging kunnen schrijven.</string>
+	<key>Open an existing account</key>
+	<string>Bestaand account openen</string>
+	<key>Policy ID</key>
+	<string>Beleids-ID</string>
+	<key>Proposal</key>
+	<string>Voorstel</string>
+	<key>Read</key>
+	<string>Lezen</string>
+	<key>Manage event endpoints</key>
+	<string>Eindpunten voor gebeurtenissen beheren</string>
+	<key>Request a signature</key>
+	<string>Handtekening aanvragen</string>
+	<key>Request an action</key>
+	<string>Actie aanvragen</string>
+	<key>Revoking stops future downloads. Saved copies remain.</key>
+	<string>Intrekken voorkomt nieuwe downloads. Opgeslagen kopieën blijven behouden.</string>
+	<key>Searching…</key>
+	<string>Zoeken…</string>
+	<key>Selected accounts and valid invitations can write for free.</key>
+	<string>Geselecteerde accounts en mensen met een geldige uitnodiging kunnen gratis schrijven.</string>
+	<key>Set up a new workspace</key>
+	<string>Nieuwe werkruimte instellen</string>
+	<key>Share %@ with %@.</key>
+	<string>%1$@ delen met %2$@.</string>
+	<key>Start a conversation to exchange messages and files with members.</key>
+	<string>Begin een gesprek om berichten en bestanden uit te wisselen met de deelnemers.</string>
+	<key>System alerts follow your preferences below.</key>
+	<string>Systeemmeldingen volgen de voorkeuren hieronder.</string>
+	<key>Use up to 200 characters to search.</key>
+	<string>Gebruik maximaal 200 tekens voor je zoekopdracht.</string>
+	<key>Write</key>
+	<string>Schrijven</string>
+	<key>Write directly to an account. The recipient decides whether to reply. Sending here is free.</key>
+	<string>Schrijf rechtstreeks naar een account. De ontvanger bepaalt of die antwoordt. Verzenden is hier gratis.</string>
+	<key>Allow notifications to receive system alerts.</key>
+	<string>Sta meldingen toe om systeemwaarschuwingen te ontvangen.</string>
+	<key>Notifications are delivered quietly.</key>
+	<string>Meldingen worden stil afgeleverd.</string>
+	<key>Veto proposal</key>
+	<string>Veto uitspreken over voorstel</string>
 </dict>
 </plist>
