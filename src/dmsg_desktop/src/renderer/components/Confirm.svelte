@@ -1,6 +1,9 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
+  import { onDestroy, type Snippet } from 'svelte'
   import { t } from '../i18n/index.svelte'
+  import { code, errorText } from '../rpc'
+  import Notice from './page/Notice.svelte'
+  import { toast } from './toast.svelte'
   import Dialog from './Dialog.svelte'
   import type { Glyph } from './glyphs'
   import { buttonClass } from './ui'
@@ -19,7 +22,10 @@
     tone = 'danger',
     busy = false,
     testid,
+    confirmTestid,
     onConfirm,
+    onReview,
+    describeError = errorText,
     body
   }: {
     open?: boolean
@@ -30,21 +36,60 @@
     tone?: 'warn' | 'danger'
     busy?: boolean
     testid?: string
-    onConfirm: () => unknown
+    confirmTestid?: string
+    /** Resolve after the write is accepted. Reject with its original error. */
+    onConfirm: () => Promise<void>
+    /** Read the authoritative state when a submitted operation has no confirmed outcome. */
+    onReview: () => unknown
+    describeError?: (cause: unknown) => string
     body?: Snippet
   } = $props()
 
-  async function decide() {
-    await onConfirm()
+  let submitting = $state(false)
+  let failure = $state.raw<{ cause: unknown } | null>(null)
+  const uncertain = $derived(failure !== null && ['EXECUTION_UNKNOWN', 'PENDING', 'RESULT_EXPIRED'].includes(code(failure.cause)))
+  const message = $derived.by(() => {
+    if (!failure) return ''
+    if (uncertain) return t('operationUnknown')
+    if (['FORBIDDEN', 'PERMISSION_DENIED'].includes(code(failure.cause))) return t('confirmForbidden')
+    return describeError(failure.cause)
+  })
+  let visit = 0
+  $effect(() => { if (!open) { visit++; submitting = false; failure = null } })
+  onDestroy(() => { visit++ })
+
+  function close() {
+    if (submitting) return
+    if (uncertain) void Promise.resolve().then(onReview).catch(e => toast(() => describeError(e)))
     open = false
+  }
+
+  async function decide() {
+    if (!open || busy || submitting || uncertain) return
+    const turn = visit
+    submitting = true
+    failure = null
+    try {
+      await onConfirm()
+      if (turn === visit) open = false
+    } catch (cause) {
+      if (turn === visit) failure = { cause }
+    } finally { if (turn === visit) submitting = false }
   }
 </script>
 
-<Dialog bind:open {title} {description} {icon} {tone} {testid}>
-  {#if body}{@render body()}{/if}
+<Dialog bind:open={() => open, (next) => next ? open = true : close()} dismissible={!submitting} {title} {description} {icon} {tone} {testid}>
+  {#if body}<fieldset class="min-w-0" disabled={submitting || uncertain}>{@render body()}</fieldset>{/if}
+  {#if failure}
+    <Notice tone={uncertain ? 'warn' : 'danger'} testid="confirmation-error">{message}</Notice>
+  {/if}
   {#snippet footer()}
     <span class="flex-1"></span>
-    <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>
-    <button class={buttonClass(tone === 'danger' ? 'danger' : 'primary')} disabled={busy} onclick={decide} data-testid={testid ? `${testid}-confirm` : undefined}>{confirm}</button>
+    {#if uncertain}
+      <button class={buttonClass('primary')} onclick={close} data-testid="confirmation-review">{t('confirmCheckStatus')}</button>
+    {:else}
+      <button class={buttonClass('ghost')} disabled={submitting} onclick={close}>{t('cancel')}</button>
+      <button class={buttonClass(tone === 'danger' ? 'danger' : 'primary')} disabled={busy || submitting} aria-busy={submitting} onclick={decide} data-testid={confirmTestid ?? (testid ? `${testid}-confirm` : undefined)}>{failure ? t('retry') : confirm}</button>
+    {/if}
   {/snippet}
 </Dialog>

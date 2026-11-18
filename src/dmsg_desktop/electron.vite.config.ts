@@ -6,11 +6,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
-    build: { rollupOptions: { input: { index: resolve('src/main/index.ts') } } }
+    build: { rollupOptions: { input: { index: resolve('src/main/index.ts') }, output: { format: 'cjs', entryFileNames: '[name].cjs' } } }
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
-    build: { rollupOptions: { output: { format: 'cjs', entryFileNames: '[name].js' } } }
+    build: { rollupOptions: { output: { format: 'cjs', entryFileNames: '[name].cjs' } } }
   },
   renderer: {
     root: resolve('src/renderer'),

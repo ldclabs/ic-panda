@@ -28,7 +28,7 @@
   import LibraryPicker from './channels/LibraryPicker.svelte'
   import LegacyHistory from './channels/LegacyHistory.svelte'
   import Members from './channels/Members.svelte'
-  import { accountOf, label } from './channels/names.svelte'
+  import { accountOf, label, visibleName } from './channels/names.svelte'
   import NewChannel from './channels/NewChannel.svelte'
   import Packet from './channels/Packet.svelte'
   import Thread, { type Outgoing } from './channels/Thread.svelte'
@@ -208,6 +208,7 @@
   })
 
   function pickLegacy(entry: any) {
+    flushDraft()
     selected = channel = null
     legacySelected = entry
     showLegacy = true
@@ -253,6 +254,7 @@
     if (!alive || selected !== id || openRequest !== request) return
     const list = page.items
     if (switching) {
+      flushDraft()
       messages = list
       more = page.has_more
       nextBefore = page.next_before
@@ -305,13 +307,24 @@
 
   const read = () => attempt(() => call('channel/sync', { id: channel.id, recent: true }))
 
-  // The composer's text outlives the window: the daemon keeps it a moment after typing stops.
+  function saveDraft(id: string, text: string) {
+    if (daemonBlocked()) return
+    void call('channel/draft', { id, text }).then(() => {
+      if (alive && channel?.id === id) channel.draft = text
+    }).catch(e => { if (alive && channel?.id === id) fail(e) })
+  }
+
+  function flushDraft() {
+    if (channel && (drafts[channel.id] ?? '') !== (channel.draft ?? '')) saveDraft(channel.id, drafts[channel.id] ?? '')
+  }
+
+  // Also flush before replacing the current channel or leaving the view.
   $effect(() => {
     const id = channel?.id
     if (!id) return
     const text = drafts[id] ?? ''
     if (text === (channel.draft ?? '')) return
-    const timer = setTimeout(() => void call('channel/draft', { id, text }).then(() => channel?.id === id && (channel.draft = text)), 600)
+    const timer = setTimeout(() => saveDraft(id, text), 600)
     return () => clearTimeout(timer)
   })
 
@@ -412,8 +425,9 @@
 
   const hide = (message: any, hidden: boolean) =>
     attempt(async () => {
-      const changed = await call<any>('channel/hide', { id: channel.id, seq: message.seq, hidden })
-      messages = messages.map((m) => (m.seq === message.seq ? changed : m))
+      const id = channel.id
+      const changed = await call<any>('channel/hide', { id, seq: message.seq, hidden })
+      if (alive && channel?.id === id) messages = messages.map((m) => (m.seq === message.seq ? changed : m))
     })
 
   const retract = () =>
@@ -447,8 +461,14 @@
     marked = seq
     const id = channel.id
     void call<any>('channel/mark', { id, through: seq, receipt: readReceipts() }).then((view) => {
-      channels = channels.map((c) => (c.id === id ? { ...c, read: view.read, unread: view.unread } : c))
-      if (channel?.id === id) channel = { ...channel, read: view.read, unread: view.unread }
+      if (!alive) return
+      channels = channels.map((c) => (c.id === id && view.read >= (c.read ?? 0) ? { ...c, read: view.read, unread: view.unread } : c))
+      if (channel?.id === id && view.read >= (channel.read ?? 0)) channel = { ...channel, read: view.read, unread: view.unread }
+    }).catch(e => {
+      if (alive && channel?.id === id && marked === seq) {
+        marked = channel.read ?? 0
+        fail(e)
+      }
     })
   }
 
@@ -468,38 +488,51 @@
   }
 
   async function find() {
+    const form = search, id = channel?.id
     const asked = search.query.trim()
-    if (!asked) return
-    const results = await call<any[]>('channel/search', { id: channel.id, query: asked }).catch((e) => {
-      fail(e)
-      return []
-    })
-    if (search.query.trim() === asked) search.results = results
+    if (!asked || !id || selected !== id) return
+    try {
+      const results = await call<any[]>('channel/search', { id, query: asked })
+      if (alive && selected === id && search === form) search.results = results
+    } catch (e) {
+      if (alive && selected === id && search === form) fail(e)
+    }
   }
 
   /** A search result opens with the messages around it. */
   async function jump(seq: number) {
-    channelVisit++; loadingEarlier = false
-    const list = await call<any[]>('channel/messages', { id: channel.id, after: Math.max(0, seq - 30), limit: PAGE })
-    messages = list
-    more = seq > 30
-    nextBefore = more ? messages[0]?.seq ?? null : null
-    highlight = seq
-    reading = true
-    search = { ...search, open: false }
+    const id = channel.id, form = search, visit = ++channelVisit
+    loadingEarlier = false
+    const current = () => alive && selected === id && channelVisit === visit && search === form
+    try {
+      const list = await call<any[]>('channel/messages', { id, after: Math.max(0, seq - 30), limit: PAGE })
+      if (!current()) return
+      messages = list
+      more = seq > 30
+      nextBefore = more ? messages[0]?.seq ?? null : null
+      highlight = seq
+      reading = true
+      search = { ...search, open: false }
+    } catch (e) { if (current()) fail(e) }
   }
 
   /** Back from a search result to the channel's newest messages. */
   async function latest() {
     const id = channel.id, visit = ++channelVisit
     loadingEarlier = false
-    const page = await call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE })
-    if (!alive || selected !== id || channelVisit !== visit) return
-    messages = page.items
-    more = page.has_more
-    nextBefore = page.next_before
-    highlight = null
-    reading = false
+    try {
+      const page = await call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE })
+      if (!alive || selected !== id || channelVisit !== visit) return false
+      messages = page.items
+      more = page.has_more
+      nextBefore = page.next_before
+      highlight = null
+      reading = false
+      return true
+    } catch (e) {
+      if (alive && selected === id && channelVisit === visit) fail(e)
+      return false
+    }
   }
 
   const settings = (change: Record<string, unknown>) => attempt(() => call('channel/settings', { id: channel.id, ...change }))
@@ -514,7 +547,7 @@
   const channelOf = (element: Element) => channels.find((c) => c.id === element.closest('[data-channel]')?.getAttribute('data-channel')) ?? null
 
   function onKey(event: KeyboardEvent) {
-    if (document.querySelector('[aria-modal="true"]')) return
+    if (event.isComposing || document.querySelector('[aria-modal="true"]')) return
     const held = window.dmsg.platform === 'darwin' ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
     const key = event.key.toLowerCase()
     if (held && !event.altKey && !event.shiftKey && key === 'f') {
@@ -640,7 +673,7 @@
       rememberPlain('channels.attached', $state.snapshot(attached))
       rememberPlain('channels.replies', $state.snapshot(replies))
       // The moment after typing stops, the daemon had not kept the text yet.
-      if (!daemonBlocked() && channel && (drafts[channel.id] ?? '') !== (channel.draft ?? '')) void call('channel/draft', { id: channel.id, text: drafts[channel.id] ?? '' }).catch(() => {})
+      flushDraft()
     }
   })
 </script>
@@ -697,8 +730,8 @@
         {#if draft}
           <span class="block truncate text-[12px] leading-snug text-warn">{t('draft')}: {draft}</span>
         {:else if entry.last}
-          <span class="block truncate text-[12px] leading-snug text-faint" data-testid="channel-preview">
-            {entry.last.account === me ? t('you') : label(entry.last.account)}: {entry.last.text || '…'}
+          <span {@attach visibleName(entry.last.account === me ? undefined : entry.last.account)} class="block truncate text-[12px] leading-snug text-faint" data-testid="channel-preview">
+            {entry.last.account === me ? t('you') : label(entry.last.account, false)}: {entry.last.text || '…'}
           </span>
         {:else}
           <span class="block truncate text-[12px] leading-snug text-faint">
@@ -973,12 +1006,12 @@
               <Icon name="search" class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />
               <input
                 bind:this={searchInput}
-                bind:value={search.query}
+                bind:value={() => search.query, (query) => { search = { open: true, query, results: null } }}
                 type="search"
                 class="ps-8"
                 placeholder={t('searchMessages')}
                 aria-label={t('searchMessages')}
-                onkeydown={(e) => e.key === 'Enter' && find()}
+                onkeydown={(e) => !e.isComposing && e.key === 'Enter' && find()}
                 data-testid="channel-search-query"
               />
             </label>
@@ -987,7 +1020,7 @@
                 {#each search.results as hit (hit.seq)}
                   <li>
                     <button class="flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-start text-[12.5px] hover:bg-wash" onclick={() => jump(hit.seq)}>
-                      <span class="shrink-0 font-medium">{hit.account === me ? t('you') : label(hit.account)}</span>
+                      <span {@attach visibleName(hit.account === me ? undefined : hit.account)} class="shrink-0 font-medium">{hit.account === me ? t('you') : label(hit.account, false)}</span>
                       <span class="min-w-0 flex-1 truncate text-muted">{hit.text || hit.file?.name}</span>
                       <span class="shrink-0 text-[11px] text-faint">{shortDay.format(hit.stored_at)}</span>
                     </button>

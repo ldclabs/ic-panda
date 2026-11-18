@@ -8,6 +8,7 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { WebSocketServer } from 'ws'
+import { notificationsFixture } from './notifications-fixture.mjs'
 
 const account = '040g2081040g2081040g',
   token = 'secrets-ui-fixture',
@@ -35,13 +36,13 @@ const status = () => ({
   idle_lock_ms: 900000,
   lock_at: Date.now() + 900000
 })
-const emit = () => {
+const emit = (type = 'approval/changed') => {
   for (const s of sockets)
     s.send(
       JSON.stringify({
         jsonrpc: '2.0',
         method: 'event',
-        params: { seq: sequence++, type: 'approval/changed', data: null }
+        params: { seq: sequence++, type, data: null }
       })
     )
 }
@@ -64,6 +65,7 @@ const makeRequest = (type, detail) => {
   return r
 }
 const methods = {
+  ...notificationsFixture(account, emit).methods,
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'app/activity': () => null,
   'daemon/status': status,
@@ -441,7 +443,7 @@ await writeFile(join(profile, 'locale'), 'en')
 await writeFile(join(profile, 'appearance'), 'light')
 const app = await electron.launch({
   executablePath: electronPath,
-  args: [resolve('out/main/index.js')],
+  args: [resolve('.')],
   env: {
     ...process.env,
     DMSG_DESKTOP_TEST: '1',

@@ -71,7 +71,15 @@
     confirming = true
   }
 
-  const discard = () => attempt(() => call('device/moved_discard', { id: discarding.id }))
+  async function refreshCopies() {
+    await refresh()
+    if (alive) await load()
+  }
+
+  async function discard() {
+    await call('device/moved_discard', { id: discarding.id })
+    if (alive) void refreshCopies().catch(e => { if (alive) error = errorText(e) })
+  }
 
   const replace = (copy: any) =>
     attempt(async () => {
@@ -138,5 +146,6 @@
   icon="trash"
   {busy}
   onConfirm={discard}
+  onReview={refreshCopies}
   testid="moved-discard-dialog"
 />

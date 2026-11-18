@@ -1,3 +1,6 @@
+import { untrack } from 'svelte'
+import type { Attachment } from 'svelte/attachments'
+import { visibility } from '../../components/visibility'
 import { call, CallError } from '../../rpc'
 import { shortId } from '../../shell/session'
 
@@ -10,7 +13,9 @@ type Name = { name: string | null; avatar_url?: string | null; stale: boolean }
 const known = $state<Record<string, Name>>({})
 const avatars = $state<Record<string, string | null>>({})
 const avatarRequests = new Map<string, number>()
-const asked = new Set<string>()
+const asked = new Map<string, number>()
+let refresh = $state(0)
+let changed = $state(0)
 const pending = new Set<string>()
 const active = new Set<string>()
 const rerun = new Set<string>()
@@ -39,28 +44,38 @@ export function namesSession(status: any) {
 
 /** Only incomplete/stale local reads need rereading after a batch commits. */
 export function namesChanged() {
-  if (!session) return
-  for (const id of pending) {
-    if (active.has(id)) { rerun.add(id); continue }
-    asked.delete(id)
-    ask(id)
-  }
+  if (!session || !pending.size) return
+  for (const id of pending) asked.delete(id)
+  pending.clear()
+  changed++
 }
 
-/** A visible window periodically rereads locally; only the daemon owns TTLs. */
+/** Only current display consumers react. Historical accounts stay cached until shown again. */
 export function refreshNames() {
-  if (!session) return
-  for (const id of [...asked]) {
-    if (active.has(id)) { rerun.add(id); continue }
-    asked.delete(id)
-    ask(id)
+  if (session) refresh++
+}
+
+// A search index needs initial names (including their completion events), not a periodic refresh of every candidate.
+type Demand = boolean | 'search'
+
+/** List rows render cached text. Only intersecting rows subscribe to refreshes. */
+export function visibleName(account: string | undefined): Attachment {
+  return node => {
+    if (!account) return
+    let visible = $state(false)
+    $effect(() => { if (visible) ask(account, true) })
+    return visibility(next => { visible = next })(node)
   }
 }
 
-function ask(account: string) {
-  if (!session || asked.has(account)) return
-  asked.add(account)
+function ask(account: string, demand: Demand) {
+  if (!demand || !session) return
+  void changed
+  const cycle = demand === 'search' ? untrack(() => refresh) : refresh
+  if (asked.get(account) === cycle || (demand === 'search' && asked.has(account))) return
+  asked.set(account, cycle)
   pending.add(account)
+  if (active.has(account)) { rerun.add(account); return }
   waiting.add(account)
   timer ??= setTimeout(async () => {
     const read = generation
@@ -88,31 +103,33 @@ function ask(account: string) {
         if (read !== generation) return
         for (const account of accounts) pending.add(account)
       }
+      let invalidated = false
       for (const account of accounts) {
         active.delete(account)
-        if (rerun.delete(account)) { asked.delete(account); ask(account) }
+        if (rerun.delete(account)) { asked.delete(account); invalidated = true }
       }
+      if (invalidated) changed++
     }
   }, 30)
 }
 
 /** The account's published display name, or null; asks and refreshes it. */
-export function nameOf(account: string | undefined, fetch = true): string | null {
+export function nameOf(account: string | undefined, fetch: Demand = true): string | null {
   if (!account || !session) return null
   const entry = known[account]
-  if (fetch && !asked.has(account)) ask(account)
+  ask(account, fetch)
   return entry?.name ?? null
 }
 
 /** How a view names an account: its display name, else its short ID. */
-export function label(account: string | undefined, fetch = true): string {
+export function label(account: string | undefined, fetch: Demand = true): string {
   return nameOf(account, fetch) ?? shortId(account ?? '')
 }
 
 /** Only the daemon fetches published images; rows share one request per URL. */
 export function avatarOf(account: string | undefined): string | null {
   if (!account || !session) return null
-  if (!asked.has(account)) ask(account)
+  ask(account, true)
   const url = known[account]?.avatar_url
   if (!url) return null
   if ((avatarRequests.get(url) ?? 0) <= Date.now()) {

@@ -60,6 +60,7 @@ class FeedbackWorkspace {
     const generation = this.generation, account = this.account
     const work = async () => {
       this.saving = true
+      this.failure = ''
       let reconciled = false
       try {
         while (this.dirty && generation === this.generation && account) {

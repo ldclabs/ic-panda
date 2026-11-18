@@ -154,17 +154,20 @@
   }
 
   /** Run `step` here: an approval to decide, wallet approvals, addresses to move, or the step recorded. */
-  const run = (task: any, step: string) =>
-    attempt(async () => {
-      const result: any = await call('device/succession_run', { id: task.id, step })
-      if (!alive) return
-      if (result?.kind && result?.id) await ask(result.id)
-      else if (Array.isArray(result?.requests)) {
-        if (result.requests[0]?.id) await ask(result.requests[0].id)
-        notice = t('successionApprovals', { n: result.requests.length })
-      } else if (Array.isArray(result?.addresses)) found[task.id] = result.addresses
-      else if (Array.isArray(result?.rotations)) notice = t('successionPartial')
-    })
+  async function performStep(task: any, step: string) {
+    const result: any = await call('device/succession_run', { id: task.id, step })
+    if (!alive) return
+    if (result?.kind && result?.id) await openDecision(result.id)
+    else if (Array.isArray(result?.requests)) {
+      if (result.requests[0]?.id) await openDecision(result.requests[0].id)
+      notice = t('successionApprovals', { n: result.requests.length })
+    } else if (Array.isArray(result?.addresses)) found[task.id] = result.addresses
+    else if (Array.isArray(result?.rotations)) notice = t('successionPartial')
+  }
+
+  // A request already exists. A failure opening its window cannot undo that request.
+  const openDecision = (id: string) => ask(id).catch(e => { if (alive) error = errorText(e) })
+  const run = (task: any, step: string) => attempt(() => performStep(task, step))
 
   const importCopy = (task: any, copy: any) =>
     attempt(async () => {
@@ -177,25 +180,21 @@
     leaving = { task, step, items }
   }
 
-  const skip = () => {
+  async function skip() {
     const chosen = leaving
     if (!chosen) return
-    return attempt(async () => {
-      await call('device/succession_skip', { id: chosen.task.id, step: chosen.step, skipped: chosen.items })
-      if (alive) leaving = null
-    })
+    await call('device/succession_skip', { id: chosen.task.id, step: chosen.step, skipped: chosen.items })
+    if (alive) void load()
   }
 
-  const stop = () =>
-    attempt(async () => {
-      await call('device/succession_cancel', { id: stopping.id })
-      if (alive) stopping = null
-    })
+  async function stop() {
+    await call('device/succession_cancel', { id: stopping.id })
+    if (alive) void load()
+  }
 
-  const revoke = () => {
-    const task = revoking
-    revoking = null
-    if (task) void run(task, 'revoke')
+  async function revoke() {
+    await performStep(revoking, 'revoke')
+    if (alive) void load()
   }
 
   onMount(() => {
@@ -326,6 +325,7 @@
   tone="warn"
   {busy}
   onConfirm={skip}
+  onReview={load}
   testid="succession-leave"
 />
 <Confirm
@@ -337,6 +337,7 @@
   tone="warn"
   {busy}
   onConfirm={stop}
+  onReview={load}
   testid="succession-stop"
 />
 <Confirm
@@ -347,6 +348,7 @@
   icon="device"
   {busy}
   onConfirm={revoke}
+  onReview={load}
   testid="succession-revoke-dialog"
 >
   {#snippet body()}

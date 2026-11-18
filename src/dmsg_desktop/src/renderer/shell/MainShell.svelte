@@ -2,7 +2,6 @@
   import { onMount, untrack, type Component } from 'svelte'
   import LinkConfirm from '../components/LinkConfirm.svelte'
   import Toaster from '../components/Toaster.svelte'
-  import { t } from '../i18n/index.svelte'
   import { MessageDeliveries, type Delivery } from '../message-delivery'
   import { call, onChange, single } from '../rpc'
   import { lastRoute, noteRoute } from '../view-memory'
@@ -225,6 +224,7 @@
 
   /** ⌘K opens the palette, ⌘1–⌘8 and ⌘, go to a view, ⌘L locks, ⌘/ lists the shortcuts (Ctrl elsewhere); ⌘[ and ⌘] go back and forward (Alt+arrows elsewhere). */
   function onKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     if (welcoming) return
     const step = travelCodes[event.code]
     const travelHeld = inset ? event.metaKey && !event.ctrlKey && !event.altKey : event.altKey && !event.ctrlKey && !event.metaKey

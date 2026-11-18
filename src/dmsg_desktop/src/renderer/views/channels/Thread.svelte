@@ -99,7 +99,7 @@
     onPaste: (files: File[]) => void
     /** The timeline shows a search result's surroundings, not the latest messages. */
     history?: boolean
-    onLatest: () => Promise<void>
+    onLatest: () => Promise<boolean>
     onDownload: (message: any) => void
     onSave: (message: any) => void
     onSnapshot: (message: any) => void
@@ -157,7 +157,7 @@
 
   /** The newest messages, from anywhere: a search result's surroundings first load them. */
   async function latest() {
-    if (history) await onLatest()
+    if (history && !await onLatest()) return
     atEnd = true
     remember(place, null)
     await tick()
@@ -233,7 +233,8 @@
   }
 
   function onKey(event: KeyboardEvent) {
-    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    if (event.isComposing) return
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       send()
     } else if (event.key === 'Escape' && (reply || editing)) {

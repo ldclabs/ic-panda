@@ -52,7 +52,7 @@ server.on('upgrade', (req, socket, head) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
 const profile = await mkdtemp(join(tmpdir(), 'dmsg-channel-ui-')), shots = resolve('test-results/channel-messages')
 await mkdir(shots, { recursive: true }); await writeFile(join(profile, 'locale'), 'en'); await writeFile(join(profile, 'appearance'), 'light')
-const app = await electron.launch({ executablePath: electronPath, colorScheme: null, args: [resolve('out/main/index.js')], env: { ...process.env, DMSG_DESKTOP_TEST: '1', DMSG_DESKTOP_USER_DATA: profile, DMSG_DESKTOP_DAEMON: `http://127.0.0.1:${server.address().port}`, DMSG_DESKTOP_TOKEN: token, DMSG_HOME: join(profile, 'home') } })
+const app = await electron.launch({ executablePath: electronPath, colorScheme: null, args: [resolve('.')], env: { ...process.env, DMSG_DESKTOP_TEST: '1', DMSG_DESKTOP_USER_DATA: profile, DMSG_DESKTOP_DAEMON: `http://127.0.0.1:${server.address().port}`, DMSG_DESKTOP_TOKEN: token, DMSG_HOME: join(profile, 'home') } })
 try {
   const main = await app.firstWindow(); main.setDefaultTimeout(15000)
   const failures = []; main.on('pageerror', error => failures.push(`${main.url()} ${error.stack}`))
@@ -113,6 +113,35 @@ try {
   await main.waitForTimeout(300)
   const requested = new Set(calls.filter(call => call.method === 'channel/names').slice(beforeNames).flatMap(call => call.params.accounts))
   assert.ok(requested.size > 0 && requested.size < 20, `only visible authors should be fetched, got ${requested.size}/60`)
+  const clock = Date.now()
+  const nameReads = () => calls.filter(call => call.method === 'channel/names')
+  const profileReads = () => calls.filter(call => call.method === 'profile/display').length
+  const focusAt = async elapsed => {
+    await main.clock.setFixedTime(new Date(clock + elapsed))
+    await main.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await main.waitForTimeout(150)
+  }
+  const minute = 60_000
+  const beforeFocus = nameReads().length, beforeProfile = profileReads()
+  await focusAt(minute)
+  assert.equal(nameReads().length, beforeFocus)
+  assert.equal(profileReads(), beforeProfile)
+
+  const timeline = main.getByTestId('channel-messages')
+  await timeline.evaluate(el => { el.scrollTop = 0 })
+  await main.waitForTimeout(200)
+  const beforeRefresh = nameReads().length
+  await focusAt(11 * minute)
+  const refreshed = new Set(nameReads().slice(beforeRefresh).flatMap(call => call.params.accounts))
+  assert.ok(refreshed.size > 0 && refreshed.size < 20)
+  assert.ok([...requested].some(account => !refreshed.has(account)), 'previously visible authors are not swept into the new batch')
+  const freshCount = nameReads().length
+  await focusAt(11 * minute + 1)
+  assert.equal(nameReads().length, freshCount)
+  await main.evaluate(() => { location.hash = '/settings/appearance' })
+  await timeline.waitFor({ state: 'detached' })
+  await focusAt(22 * minute)
+  assert.equal(nameReads().length, freshCount, 'a different page does not refresh past participants')
   assert.deepEqual(failures, [])
   console.log(`Channel Electron checks passed; screenshots: ${shots}`)
 } catch (error) {

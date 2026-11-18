@@ -22,7 +22,7 @@ export interface DesktopState {
 
 /** A view to open again: not an approval, and no query or ID that came from a link. */
 export const isViewRoute = (route: unknown): route is string =>
-  typeof route === 'string' && /^\/(channels|files|vault|inbox|approvals|agents|plan|wallet|settings)(\/[a-z-]+)?$/.test(route)
+  route === '/reminders' || (typeof route === 'string' && /^\/(channels|files|vault|inbox|approvals|agents|plan|wallet|settings)(\/[a-z-]+)?$/.test(route))
 
 const isBounds = (value: any): value is Bounds =>
   !!value && [value.x, value.y, value.width, value.height].every(Number.isFinite) && value.width > 0 && value.height > 0

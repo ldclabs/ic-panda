@@ -107,6 +107,8 @@ test('an invitation goes through its link and back, and its JSON reads too', () 
   assert.ok(link.startsWith('dmsg://channel/join#') && !/[+/=]/.test(link.slice(20)))
   assert.deepEqual(readInvitation(link), invitation)
   assert.deepEqual(readInvitation(JSON.stringify(invitation)), invitation)
+  assert.equal(readInvitation('{}'), null)
+  assert.equal(readInvitation(JSON.stringify({ format: 'dmsg-channel-owner-transfer/1' })), null)
   assert.equal(readInvitation('dmsg://channel/join#bm90IGFuIGludml0YXRpb24'), null)
 })
 

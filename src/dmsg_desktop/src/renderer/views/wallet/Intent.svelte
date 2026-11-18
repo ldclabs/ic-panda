@@ -1,17 +1,14 @@
 <script lang="ts">
   import { w } from './text'
-  import { locale } from '../../i18n/index.svelte'
   import Collapsible from '../../components/Collapsible.svelte'
   import PolicySummary from './PolicySummary.svelte'
   import CosignPolicy from './CosignPolicy.svelte'
   import {
     amountText,
-    durationText,
     intentHeadline,
     intentFeeAsset,
     assetIdentity,
     assetInfo,
-    feeAsset,
     intentFields,
     knownIntent,
     leaves,

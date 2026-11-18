@@ -90,7 +90,7 @@
         class="font-mono text-[12px]"
         suggestions={Object.keys(channel.ledger?.members ?? {})
           .filter((account) => account !== me)
-          .map((account) => ({ value: account, hint: label(account) }))}
+          .map((account) => ({ value: account, hint: label(account, 'search') }))}
       />
     </label>
     <p class="mt-3 text-[12.5px] text-muted">{t(inChannel ? 'transferInChannel' : 'transferHintOwner')}</p>

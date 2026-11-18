@@ -51,9 +51,10 @@ test('windows never decide or grant, and never send human', () => {
     library: { file: 'f', version: 'v' }
   })
   assert.equal(WINDOW_METHODS.has('approval/check_file'), false)
+  assert.equal(WALLET_CREATION_PAUSED, true, 'desktop creation stays paused until the multisig rollout resumes')
   for (const method of ['wallet/create', 'wallet/quote', 'wallet/quote_preview']) {
-    assert.equal(WINDOW_METHODS.has(method), !WALLET_CREATION_PAUSED, method)
-    if (WALLET_CREATION_PAUSED) assert.throws(() => windowParams(method, {}), { code: 'FORBIDDEN' })
+    assert.equal(WINDOW_METHODS.has(method), false, method)
+    assert.throws(() => windowParams(method, {}), { code: 'FORBIDDEN' })
   }
   for (const method of ['wallet/show', 'wallet/join', 'wallet/unbind', 'wallet/bindings', 'wallet/activation_continue', 'wallet/refund']) {
     assert.equal(WINDOW_METHODS.has(method), true, method)

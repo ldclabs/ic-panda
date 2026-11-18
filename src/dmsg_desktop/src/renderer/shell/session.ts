@@ -1,7 +1,7 @@
 import type { Glyph } from '../components/glyphs'
 import { toast } from '../components/toast.svelte'
 import { writable } from 'svelte/store'
-import { t, type Label } from '../i18n/index.svelte'
+import type { Label } from '../i18n/index.svelte'
 import { call, code, errorText } from '../rpc'
 import { closeLogin, login, startLogin } from './login.svelte'
 import { feedback } from '../feedback.svelte'

@@ -1,11 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import Icon from '../../components/Icon.svelte'
+  import Id from '../../components/page/Id.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { ago, call, onChange, size, when } from '../../rpc'
-  import { statusIcon, statusLabel, statusOf, statuses, statusTone, within } from './files'
+  import { ago, onChange, size, when } from '../../rpc'
+  import { foldersByParent, folderSubtree, statusIcon, statusLabel, statusOf, statuses, statusTone } from './files'
+  import { searchLibrary } from './search.svelte'
+  import SearchStatus from './SearchStatus.svelte'
 
   /**
    * One folder, selected: what lies under it (files, folders, their size
@@ -34,25 +37,15 @@
     onDiscard: () => void
   } = $props()
 
-  let files = $state<any[] | null>(null)
+  const search = searchLibrary(() => '', 0, () => folder.id)
+  const files = $derived(search.result.kind === 'ready' ? search.result.files : null)
 
-  const subfolders = $derived(folders.filter((f) => f.id !== folder.id && within(folders, f.id, folder.id)).length)
+  const children = $derived(foldersByParent(folders))
+  const subfolders = $derived(folderSubtree(children, [folder.id]).size - 1)
   const bytes = $derived((files ?? []).reduce((n, f) => n + (f.size ?? 0), 0))
   const counts = $derived(statuses.map((status) => ({ status, n: (files ?? []).filter((f) => statusOf(f.status) === status).length })).filter((c) => c.n))
 
-  const load = async () => {
-    const id = folder.id
-    const found = await call<any[]>('files/search', { query: '', folder: id }).catch(() => [])
-    if (id === folder.id) files = found
-  }
-
-  $effect(() => {
-    void folder.id
-    files = null
-    void load()
-  })
-
-  onMount(() => onChange(['files/changed'], load))
+  onMount(() => onChange(['files/changed'], search.retry))
 </script>
 
 <section class="flex h-full min-w-0 flex-col" aria-label={folder.name} data-testid="files-folder-detail">
@@ -75,7 +68,7 @@
     <dl class="grid gap-1" data-testid="files-folder-facts">
       <div class="grid grid-cols-[112px_1fr] items-center gap-x-4 py-1.5">
         <dt class="text-[12px] text-faint">{t('folderContents')}</dt>
-        <dd>{files ? t('folderCounts', { files: files.length, folders: subfolders, bytes: size(bytes) }) : '…'}</dd>
+        <dd class="min-w-0">{#if files}{t('folderCounts', { files: files.length, folders: subfolders, bytes: size(bytes) })}{:else}<SearchStatus {search} empty={t('loading')} />{/if}</dd>
       </div>
       <div class="grid grid-cols-[112px_1fr] items-center gap-x-4 py-1.5">
         <dt class="text-[12px] text-faint">{t('modified')}</dt>
@@ -103,6 +96,6 @@
   </div>
   <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-[11.5px] text-faint">
     <span class="inline-flex items-center gap-1.5"><Icon name="folder" class="size-3.5" />{t('createdAt')} {ago(folder.created_at)}</span>
-    <span title={folder.id}>ID <bdi dir="ltr" class="font-mono">{String(folder.id).slice(0, 10)}</bdi></span>
+    <Id id={folder.id} />
   </footer>
 </section>

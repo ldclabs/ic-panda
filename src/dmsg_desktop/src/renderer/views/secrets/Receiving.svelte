@@ -4,7 +4,6 @@
   import PackageImport from './PackageImport.svelte'
   import SecretInput from '../../components/SecretInput.svelte'
   import Field from '../../components/page/Field.svelte'
-  import Notice from '../../components/page/Notice.svelte'
   import { panel } from './workflow-state.svelte'
   import { card, DraftVersion } from './model'
   import { call } from '../../rpc'

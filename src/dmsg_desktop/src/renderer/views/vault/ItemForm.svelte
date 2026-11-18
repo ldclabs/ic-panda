@@ -147,6 +147,7 @@
   }
 
   function onKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault()
       submit()
@@ -283,7 +284,7 @@
     {t('notes')}
     <textarea bind:value={notes} rows={kind === 'note' ? 8 : 3} class="text-[13.5px] text-ink" data-testid="vault-notes"></textarea>
   </label>
-  <div class="grid gap-1 text-[12px] text-faint">{t('tags')}<TagInput bind:tags placeholder={t('tagsAdd')} maxLength={40} /></div>
+  <div class="grid gap-1 text-[12px] text-faint">{t('tags')}<TagInput bind:tags placeholder={t('tagsAdd')} maxLength={40} testid="vault-item-tags" /></div>
 
   <div class="grid gap-1.5 text-[12px] text-faint">
     {t('attachments')}

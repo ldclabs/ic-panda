@@ -59,6 +59,13 @@ test('restore reattaches the original account without showing history again', as
   f.presenter.remove([plan.system_id])
   assert.equal(restored.closes, 1)
   assert.equal(await f.presenter.activate(restored.id), false)
+  restored.emit('click')
+  assert.equal(f.opened.length, 1, 'a late native click cannot open a removed reminder')
+  f.presenter.present(makePlan({ delivery_id: 'f'.repeat(64) }))
+  restored.emit('click')
+  assert.equal(f.opened.length, 1, 'the removed instance cannot open its replacement')
+  f.notes[0].emit('click')
+  assert.equal(f.opened[1].delivery_id, 'f'.repeat(64))
 })
 
 test('new focus converts a pending OS banner to one quiet application hint', () => {

@@ -73,9 +73,13 @@
   async function attempt(work: () => Promise<unknown>) {
     const turn = generation
     busy = true
-    try { await work() }
-    catch (e) { if (current(turn)) toast(() => errorText(e)) }
-    finally { if (current(turn)) busy = false }
+    try {
+      await work()
+      return current(turn)
+    } catch (e) {
+      if (current(turn)) toast(() => errorText(e))
+      return false
+    } finally { if (current(turn)) busy = false }
   }
 
   function reader(key: string, method: string, apply: (value: any) => void) {
@@ -106,17 +110,12 @@
     } else if (tab === 'capabilities') void loadGrants()
   }
 
-  async function request(method: string, params: Record<string, unknown> = {}) {
+  async function createRequest(method: string, params: Record<string, unknown> = {}) {
     const turn = generation
-    let made = false
-    await attempt(async () => {
-      const created: any = await call(method, params)
-      if (!current(turn)) return
-      made = true
-      await bridge(() => window.dmsg.openApproval(created.id))
-    })
-    return made
+    const created = await call<{ id: string }>(method, params)
+    if (current(turn)) await bridge(() => window.dmsg.openApproval(created.id)).catch(e => { if (current(turn)) toast(() => errorText(e)) })
   }
+  const request = (method: string, params?: Record<string, unknown>) => attempt(() => createRequest(method, params))
   const run = (method: string, params: Record<string, unknown> = {}) => attempt(() => call(method, params))
 
   onMount(() => {
@@ -169,11 +168,11 @@
     {#if errors.hosted}<Notice failure={errors.hosted} tone="danger">{errors.hosted}</Notice>{/if}
     {#if tab === 'capabilities' && errors.grants}<Notice failure={errors.grants} tone="danger">{errors.grants}</Notice>{/if}
     {#if tab === 'overview'}
-      <Page wide><Overview {principal} principalError={errors.principal ?? ''} {loaded} {errors} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {run} onRetry={loadTab} bind:delegate /></Page>
+      <Page wide><Overview {principal} principalError={errors.principal ?? ''} {loaded} {errors} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {createRequest} {run} onRetry={loadTab} onReviewRequests={() => go('/approvals')} bind:delegate /></Page>
     {:else if tab === 'ids'}
-      <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} {delegateTo} /></Page>
+      <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} {delegateTo} onReview={loadHosted} /></Page>
     {:else if tab === 'capabilities'}
-      <Page wide><Capabilities {hosted} {grants} {unlocked} {busy} {run} /></Page>
+      <Page wide><Capabilities {hosted} {grants} {unlocked} {busy} {run} {attempt} onReview={loadGrants} /></Page>
     {:else if tab === 'discourse'}
       <Page wide><Discourse agents={hosted.agents} active={hosted.active} /></Page>
     {:else if tab === 'mail'}

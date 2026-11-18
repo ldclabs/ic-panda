@@ -43,6 +43,10 @@ import { accountsFlow } from './accounts-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { pairingFlow } from './pairing-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
+import { stateTransitionsFlow } from './state-transitions-flow.mjs'
+import { confirmationFlow } from './confirmation-flow.mjs'
+import { windowLifecycle } from './window-flow.mjs'
+import { navigationRegressions } from './navigation-regressions.mjs'
 import { shortcutsFlow } from './shortcuts-flow.mjs'
 import { gateRailFlow } from './gate-rail-flow.mjs'
 import { uxFlow } from './ux-flow.mjs'
@@ -1530,9 +1534,19 @@ async function formMatrix(app, page, shots, name, selector, matrix = [
     await page.evaluate(async ({ locale, theme }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(theme) }, { locale, theme })
     await page.waitForSelector(`html[lang|="${locale}"]`)
     await page.waitForFunction((dark) => matchMedia('(prefers-color-scheme: dark)').matches === dark, theme === 'dark')
-    if (!selector.includes('popover')) await page.locator(selector).scrollIntoViewIfNeeded()
+    // A refresh can replace a status notice while Playwright waits for it to stop moving.
+    if (!selector.includes('popover')) await page.locator(selector).evaluate(el => el.scrollIntoView({ block: 'nearest', inline: 'nearest' }))
     if (name === 'channel-retry') await page.getByTestId('outgoing-retry').scrollIntoViewIfNeeded()
     if (name === 'channel-queued') await page.getByTestId('message-outgoing').last().scrollIntoViewIfNeeded()
+    if (name === 'vault-tag-dialog') {
+      await page.waitForFunction(([w, h]) => innerWidth === w && innerHeight === h, [width, height])
+      await page.locator(selector).getByRole('textbox').click({ trial: true })
+      assert.ok(await page.getByTestId('vault-new-dialog').evaluate(dialog => {
+        const bounds = dialog.getBoundingClientRect()
+        return dialog.querySelector('header').getBoundingClientRect().top >= bounds.top &&
+          dialog.querySelector('footer').getBoundingClientRect().bottom <= bounds.bottom
+      }), 'focusing the tags keeps the dialog title and actions visible')
+    }
     if (selector.includes('popover') || selector.includes('dialog') || selector.includes('generator') || name.startsWith('transfer-')) {
       await page.waitForFunction((selector) => {
         const r = document.querySelector(selector)?.getBoundingClientRect()
@@ -1566,7 +1580,7 @@ const app = await electron.launch({
   executablePath: electronPath,
   // The appearance comes from the profile through nativeTheme, not from emulation.
   colorScheme: null,
-  args: [resolve('out/main/index.js')],
+  args: [resolve('.')],
   env: {
     ...process.env,
     DMSG_DESKTOP_TEST: '1',
@@ -1574,6 +1588,7 @@ const app = await electron.launch({
     DMSG_DESKTOP_DAEMON: `http://127.0.0.1:${port}`,
     DMSG_DESKTOP_TOKEN: token,
     DMSG_HOME: join(profile, 'home'),
+    ...(process.env.DMSG_DESKTOP_SMOKE === 'navigation' ? { DMSG_DESKTOP_TEST_STATE: '1' } : {}),
     ...(process.env.DMSG_DESKTOP_SMOKE === 'shortcuts' ? { DMSG_DESKTOP_TEST_SHORTCUTS: '1' } : {}),
     ...(process.env.DMSG_DESKTOP_SMOKE === 'ux' ? { DMSG_DESKTOP_TEST_APPROVAL_CLOSE: '1' } : {})
   }
@@ -1636,6 +1651,33 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'windows') {
+    const native = await windowLifecycle(app, main, shots)
+    assert.deepEqual(pageErrors, [])
+    console.log(native ? 'Window lifecycle passed, including native fullscreen' : 'Windowed hide and reopen passed')
+    break smoke
+  }
+  const checkTransitions = () => stateTransitionsFlow({ app, main, shots, formMatrix, methods, hold, waitFor, emit, channel, peer, file: libraryFile })
+  const checkConfirmations = () => confirmationFlow({ app, main, methods, hold, waitFor, formMatrix, shots })
+  if (process.env.DMSG_DESKTOP_SMOKE === 'confirmations') {
+    await checkConfirmations()
+    assert.deepEqual(pageErrors, [])
+    break smoke
+  }
+  const checkNavigation = () => navigationRegressions({ app, main, shots, profile, formMatrix, methods, hold, waitFor, channel, peer, file: libraryFile })
+  if (process.env.DMSG_DESKTOP_SMOKE === 'navigation') {
+    await checkNavigation()
+    assert.deepEqual(pageErrors, [])
+    await main.evaluate(() => { location.hash = '/reminders' })
+    await closeTest()
+    assert.equal(JSON.parse(await readFile(join(profile, 'desktop.json'), 'utf8')).route, '/reminders', 'quitting flushes the last view')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'state-transitions') {
+    await checkTransitions()
+    assert.deepEqual(pageErrors, [])
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'feedback') {
     await feedbackFlow({ app, main, shots, methods, calls, account, hold, waitFor })
     assert.deepEqual(pageErrors, [])
@@ -2253,10 +2295,16 @@ smoke: try {
   // expose no account/login IDs, and clicking only navigates to a fresh read.
   const recoveryNotes = () => app.evaluate(() => globalThis.__notes.filter((body) => body.includes('An account security change needs your review.')))
   const recoveryBefore = (await recoveryNotes()).length
+  const beforeLock = calls.length
   session = 'locked'
   declineUnlock = true
   emit('session/changed', { state: session })
   await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html'))?.hide())
+  // Deliver the fixture alert after the locked, background notification session takes over.
+  await waitFor(() => {
+    const context = calls.findLastIndex(c => c.method === 'notifications/context' && c.params.session === status().session && !c.params.context.foreground)
+    return context >= beforeLock && calls.slice(context + 1).some(c => c.method === 'notifications/next')
+  })
   pendingRecovery = { op_id: 'e1'.repeat(32), new_auth: login, execute_after: Date.now() + 3 * 86_400_000 }
   recoveryWarning = { account, pending: true, digest: 'e2'.repeat(32), observed_at_ms: Date.now(), stale: false }
   emit('recovery/changed')
@@ -4025,6 +4073,11 @@ smoke: try {
   await main.getByTestId('grant-target').fill('dmsg-keys')
   assert.equal(await main.isDisabled('[data-testid="grant-target-add"]'), true)
   await main.getByTestId('grant-target').fill('work')
+  await main.getByTestId('grant-parameter').getByRole('button', { name: 'Cancel', exact: true }).press('Enter')
+  await main.getByTestId('grant-parameter').waitFor({ state: 'detached' })
+  assert.equal(await chip('vault.read:work').count(), 0, 'keyboard cancellation does not add the scope')
+  await options.getByRole('button', { name: 'vault.read:<tag>', exact: true }).click()
+  await main.getByTestId('grant-target').fill('work')
   await main.getByTestId('grant-target').press('Enter')
   await main.getByTestId('grant-parameter').waitFor({ state: 'detached' })
   await main.click('[data-testid="grant-capabilities"]')
@@ -5270,77 +5323,11 @@ smoke: try {
 
   assert.deepEqual(pageErrors, [])
 
-  // Closing the main window hides it. In macOS full screen it leaves full
-  // screen first, since hiding it there leaves its Space behind, black; a
-  // second close during the exit changes nothing, and opening the window
-  // again cancels the hide. Full screen hides the traffic lights, so the
-  // window's buttons move to the edge.
-  const mainWindow = await app.browserWindow(main)
-  const nativeFullscreen = process.platform === 'darwin' && process.env.DMSG_DESKTOP_NATIVE_FULLSCREEN !== '0'
-  for (const mode of nativeFullscreen ? ['windowed', 'fullscreen', 'reopen-during-exit'] : ['windowed']) {
-    const fullScreen = mode !== 'windowed'
-    await app.evaluate(async ({ app }, [window, fullScreen]) => {
-      // Native macOS Space transitions need a foreground application, unlike CDP clicks.
-      app.focus({ steal: true })
-      window.show()
-      // Read the state: on macOS `show` follows occlusion, which a quick hide and show may never change.
-      for (let waited = 0; !window.isVisible(); waited += 50) {
-        if (waited >= 10_000) throw new Error('Window did not become visible')
-        await new Promise((resolve) => setTimeout(resolve, 50))
-      }
-      if (!fullScreen) return
-      window.focus()
-      const entered = new Promise((resolve, reject) => {
-        setTimeout(() => reject(new Error(`Window did not enter full screen (focused: ${window.isFocused()}); macOS needs dMsg in front and the screen unlocked`)), 10_000)
-        window.once('enter-full-screen', resolve)
-      })
-      window.setFullScreen(true)
-      await entered
-    }, [mainWindow, fullScreen])
-    if (fullScreen) {
-      await main.waitForSelector('html[data-fullscreen]')
-      assert.equal((await main.locator('[data-testid="sidebar-toggle"]').boundingBox()).x, 18)
-      if (mode === 'fullscreen') await main.screenshot({ path: join(shots, 'fullscreen.png') })
-    }
-    const closed = await app.evaluate(
-      async ({ app, Menu }, [window, mode]) => {
-        const event = mode === 'windowed' ? 'hide' : 'leave-full-screen'
-        let closes = 0
-        const count = () => closes++
-        window.on('close', count)
-        let finished
-        const done = new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error(`Window did not reach ${event}`)), 10_000)
-          finished = () => {
-            clearTimeout(timer)
-            window.removeListener(event, finished)
-            resolve()
-          }
-          window.once(event, finished)
-        })
-        window.close()
-        // macOS can hide synchronously without a separate hide notification.
-        // The assertions below still require a live hidden window that reopens.
-        if (mode === 'windowed' && !window.isDestroyed() && !window.isVisible()) finished()
-        // A person's second close, by ⌘W or the close button, reaches `close` at once. A second
-        // `window.close()` would wait out the transition in Electron, then hide the reopened window.
-        if (mode !== 'windowed') Menu.sendActionToFirstResponder('performClose:')
-        if (mode === 'reopen-during-exit') app.emit('activate')
-        await done
-        const result = { closes, hidden: !window.isVisible(), fullScreen: window.isFullScreen(), destroyed: window.isDestroyed() }
-        window.removeListener('close', count)
-        // The Dock brings back the same window and page.
-        app.emit('activate')
-        return { ...result, reopened: window.isVisible() }
-      },
-      [mainWindow, mode]
-    )
-    assert.deepEqual(closed, { closes: mode === 'windowed' ? 1 : 2, hidden: mode !== 'reopen-during-exit', fullScreen: false, destroyed: false, reopened: true }, `close and reopen (${mode})`)
-    await main.waitForSelector('html:not([data-fullscreen])')
-    // Nothing the close left pending may take back the reopened window.
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    assert.equal(await mainWindow.evaluate((window) => window.isVisible()), true, `still open after close and reopen (${mode})`)
-  }
+  const nativeFullscreen = await windowLifecycle(app, main, shots)
+  await checkTransitions()
+  await checkNavigation()
+  await checkConfirmations()
+  assert.deepEqual(pageErrors, [])
   // A launcher can disappear while Electron still reports an IPC failure.
   // Closing the real output pipes must leave the main process responsive.
   app.process().stdout?.destroy()

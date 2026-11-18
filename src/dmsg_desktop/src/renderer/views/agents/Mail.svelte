@@ -12,7 +12,7 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { stateLabel, t } from '../../i18n/index.svelte'
-  import { ago, call, code, single, when } from '../../rpc'
+  import { ago, call, CallError, code, errorText, single, when } from '../../rpc'
 
   /** Owner inspection never consumes the Agent's unread queue. */
   let {
@@ -83,8 +83,12 @@
 
   async function tool(name: string, input: Record<string, unknown> = {}, target = agent) {
     const answer: any = await call('ap/call', { agent: target, tool: `agent_protocols_${name}`, input })
-    if (answer.error) throw Object.assign(new Error(answer.error.message), { tool: answer.error.code })
+    if (answer.error) throw Object.assign(new CallError(`${String(answer.error.code).toUpperCase()}: ${answer.error.message}`), { tool: answer.error.code })
     return answer.result
+  }
+
+  function mailError(e: any) {
+    return e?.tool ? `${t('error')}: ${e.tool} ${e.message}` : errorText(e)
   }
 
   async function attempt(work: () => Promise<void>) {
@@ -97,7 +101,7 @@
       await work()
     } catch (e: any) {
       if (!alive || turn !== operation) return
-      error = `${t('error')}: ${e?.tool ?? (code(e) === 'LOCKED' ? t('locked') : code(e))}${e?.tool ? ` ${e.message}` : ''}`
+      error = code(e) === 'LOCKED' ? t('locked') : mailError(e)
     } finally {
       if (alive && turn === operation) {
         busy = false
@@ -177,7 +181,7 @@
       throw failure
     }
     if (!alive || agent !== target) return
-    await refreshBoxes(target)
+    await refreshBoxes(target).catch(e => { if (alive && agent === target) error = errorText(e) })
     if (result.failed?.length) error = result.failed.map((failure: any) => `${failure.route}: ${failure.code}`).join('\n')
     else notice = done
   }
@@ -202,12 +206,12 @@
     await refreshBoxes(target)
     if (alive && agent === target) notice = t('mailboxesRecovered')
   })
-  const replace = (box: any, change: Record<string, unknown>, done: string) => attempt(() => publishBox({
+  const replace = (box: any, change: Record<string, unknown>, done: string) => publishBox({
     mailbox_id: box.mailbox_id,
     routes: box.routes,
     ...(box.key_available === false && Array.isArray(change.routes) && change.routes.length === 0 ? { rotate_key: true } : {}),
     ...change
-  }, done))
+  }, done)
   const textOf = (message: any) =>
     message.parts
       .filter((part: any) => part.text)
@@ -360,10 +364,10 @@
                 {#if box.pending_routes?.length}<p class="text-muted">{t('mailboxPublicationPending')}: {box.pending_routes.join(', ')}</p>{/if}
                 <div class="flex flex-wrap gap-2">
                   {#if box.status !== 'closed'}
-                    <button class={buttonClass('secondary', 'xs')} disabled={busy || box.key_available === false} onclick={() => replace(box, {}, t('mailboxRenewed'))} data-testid="mailbox-renew"
+                    <button class={buttonClass('secondary', 'xs')} disabled={busy || box.key_available === false} onclick={() => attempt(() => replace(box, {}, t('mailboxRenewed')))} data-testid="mailbox-renew"
                       >{t('renew')}</button
                     >
-                    <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => replace(box, { rotate_key: true }, t('mailboxRotated'))} data-testid="mailbox-rotate"
+                    <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => attempt(() => replace(box, { rotate_key: true }, t('mailboxRotated')))} data-testid="mailbox-rotate"
                       >{t('rotateKey')}</button
                     >
                     <button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy} onclick={() => (closing = box)} data-testid="mailbox-close"
@@ -405,6 +409,8 @@
     confirm={t('closeMailbox')}
     {busy}
     testid="mailbox-close-dialog"
-    onConfirm={() => closing && replace(closing, { routes: [] }, t('mailboxClosed'))}
+    onConfirm={() => replace(closing, { routes: [] }, t('mailboxClosed'))}
+    onReview={loadSaved}
+    describeError={mailError}
   />
 {/if}

@@ -30,6 +30,7 @@
   const rows = $derived(Math.min(12, Math.max(multiline ? 3 : 1, value.split('\n').length)))
 
   function onKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     if (event.key === 'Enter' && !multiline && !event.metaKey && !event.ctrlKey) event.preventDefault()
   }
 </script>

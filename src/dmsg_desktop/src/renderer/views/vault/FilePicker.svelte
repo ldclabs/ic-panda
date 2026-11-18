@@ -3,7 +3,9 @@
   import Icon from '../../components/Icon.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { call, size } from '../../rpc'
+  import { size } from '../../rpc'
+  import SearchStatus from '../files/SearchStatus.svelte'
+  import { searchLibrary } from '../files/search.svelte'
 
   /**
    * Pick a file of the library to attach to an item: the item names it,
@@ -12,22 +14,11 @@
   let { open = $bindable(false), taken, onPick }: { open?: boolean; taken: string[]; onPick: (id: string) => void } = $props()
 
   let query = $state('')
-  let found = $state<any[]>([])
+  const search = searchLibrary(() => open ? query.trim() : null, 120)
+  const found = $derived(search.result.kind === 'ready' ? search.result.files.slice(0, 100) : [])
 
   $effect(() => {
-    if (!open) {
-      query = ''
-      return
-    }
-    const q = query.trim()
-    const timer = setTimeout(
-      () =>
-        void call<any[]>('files/search', { query: q })
-          .then((list) => q === query.trim() && (found = list.slice(0, 100)))
-          .catch(() => (found = [])),
-      120
-    )
-    return () => clearTimeout(timer)
+    if (!open) query = ''
   })
 
   function pick(id: string) {
@@ -52,7 +43,7 @@
           </button>
         </li>
       {:else}
-        <li class="px-2 py-6 text-center text-[12.5px] text-faint">{t('noFilesFound')}</li>
+        <li class="px-2 py-6"><SearchStatus {search} empty={t('noFilesFound')} /></li>
       {/each}
     </ul>
   </div>

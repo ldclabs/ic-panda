@@ -6,7 +6,6 @@
   import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import { buttonClass } from '../../components/ui'
-  import { copyText } from '../../components/clipboard'
   import { t } from '../../i18n/index.svelte'
   import { call, errorText, size, when } from '../../rpc'
   import FolderPicker from './FolderPicker.svelte'

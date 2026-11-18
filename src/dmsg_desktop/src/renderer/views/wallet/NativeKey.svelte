@@ -40,7 +40,7 @@
     }
   }
 
-  async function run(method: string, params: Record<string, unknown> = {}) {
+  async function run(method: string, params: Record<string, unknown> = {}, confirmed = false) {
     if (busy) return
     busy = true
     error = ''
@@ -49,6 +49,7 @@
       if (alive) await load()
     } catch (e) {
       if (!alive) return
+      if (confirmed) throw e
       if (method === 'wallet/native_create' && !params.software && e instanceof CallError && e.code === 'UNAVAILABLE') software = true
       else error = errorText(e)
     } finally {
@@ -125,6 +126,8 @@
   icon="key"
   tone="warn"
   {busy}
-  onConfirm={() => run('wallet/native_create', { software: true, biometry_only: false })}
+  onConfirm={() => run('wallet/native_create', { software: true, biometry_only: false }, true)}
+  onReview={load}
+  describeError={errorText}
   testid="wallet-native-software"
 />

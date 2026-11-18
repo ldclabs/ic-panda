@@ -165,15 +165,14 @@
     }
   }
 
-  const confirmCancel = () =>
-    attempt(async () => {
-      const refund = cancelling?.quote != null
-      const done: any = await call('plan/cancel', { id: cancelling!.job.id })
-      cancelling = null
-      const outcome = refundOutcome(done?.refunds ?? [])
-      toast(() => outcome.error ? `${t('error')}: ${outcome.error}` : t(refund || done?.refunds?.length ? outcome.label : 'orderCancelledNote'))
-      await reload()
-    })
+  async function confirmCancel() {
+    const refund = cancelling?.quote != null
+    const done: any = await call('plan/cancel', { id: cancelling!.job.id })
+    if (!alive) return
+    const outcome = refundOutcome(done?.refunds ?? [])
+    toast(() => outcome.error ? `${t('error')}: ${outcome.error}` : t(refund || done?.refunds?.length ? outcome.label : 'orderCancelledNote'))
+    void reload()
+  }
 
   /** The payer: a PEM file the main process picks, or the login again. */
   const usePayer = (login: boolean) =>
@@ -315,6 +314,7 @@
   {busy}
   testid="order-cancel"
   onConfirm={confirmCancel}
+  onReview={reload}
 >
   {#snippet body()}
     {#if cancelling?.quote}

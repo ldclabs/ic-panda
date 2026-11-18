@@ -67,6 +67,8 @@ test('closing an initializing connection cannot revive it or close its replaceme
 })
 
 test('only reviewed reads recover; account changes discard an old retry result', async () => {
+  for (const method of ['feedback/get', 'secrets/mounts/list', 'wallet/rpc']) assert.equal(isRead(method), true, method)
+  for (const method of ['feedback/save', 'feedback/send', 'secrets/mounts/start', 'wallet/rpc_set']) assert.equal(isRead(method), false, method)
   for (const method of ['plan/quote','wallet/quote','approval/respond','approval/quote','wallet/execute','wallet/propose','plan/checkout','agent/grant','ap/call','channel/send','inbox/ack','new/method']) assert.equal(isRead(method), false, method)
   let finish!: () => void
   let reads = 0, refreshes = 0

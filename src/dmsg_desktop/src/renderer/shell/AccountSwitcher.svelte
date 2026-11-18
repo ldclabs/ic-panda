@@ -10,7 +10,7 @@
   import { cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, sessionLabel, t } from '../i18n/index.svelte'
   import { call, onChange } from '../rpc'
-  import { nameOf, refreshNames } from '../views/channels/names.svelte'
+  import { nameOf, refreshNames, visibleName } from '../views/channels/names.svelte'
   import { startLogin } from './login.svelte'
   import { accountMenuRequested, logout, shortId, switchAccount, unlocking } from './session'
 
@@ -44,13 +44,20 @@
   })
 
   onMount(() => {
+    const interval = 10 * 60_000
+    let last = Date.now()
     const reread = () => {
-      if (unlockedAccount && !document.hidden && !daemonBlocked()) { void showProfile(unlockedAccount); refreshNames() }
+      const now = Date.now()
+      if (!unlockedAccount || document.hidden || daemonBlocked() || (now >= last && now - last < interval)) return
+      last = now
+      void showProfile(unlockedAccount)
+      refreshNames()
     }
     const off = onChange(['profile/changed'], () => { if (unlockedAccount) void showProfile(unlockedAccount) })
-    const timer = setInterval(reread, 60_000)
+    const timer = setInterval(reread, interval)
     window.addEventListener('focus', reread)
-    return () => { off(); clearInterval(timer); window.removeEventListener('focus', reread) }
+    document.addEventListener('visibilitychange', reread)
+    return () => { off(); clearInterval(timer); window.removeEventListener('focus', reread); document.removeEventListener('visibilitychange', reread) }
   })
 
   async function showProfile(id: string) {
@@ -116,7 +123,7 @@
       <DropdownMenu.Group>
         <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('localAccounts')}</DropdownMenu.GroupHeading>
         {#each accounts as a (a.account)}
-          {@const accountName = (a.account === unlockedAccount && name) || (unlockedAccount ? nameOf(a.account) : null)}
+          {@const accountName = (a.account === unlockedAccount && name) || (unlockedAccount ? nameOf(a.account, false) : null)}
           {@const counts = reminderAccounts.find((entry) => entry.account === a.account)?.counts}
           {@const reminders = counts ? counts.actionable + counts.unread : 0}
           <DropdownMenu.Item
@@ -125,7 +132,7 @@
             onSelect={() => switchAccount(a.account, a.fast_unlock)}
             data-value={a.account}
           >
-            <span class="min-w-0 flex-1">
+            <span class="min-w-0 flex-1" {@attach visibleName(unlockedAccount && !(a.account === unlockedAccount && name) ? a.account : undefined)}>
               {#if accountName}<span class="block truncate text-[13px] font-medium" title={accountName}>{accountName}</span>{/if}
               <span class={cn('block truncate font-mono text-xs', accountName && 'text-faint')} title={a.account}><bdi dir="ltr">{shortId(a.account)}</bdi></span>
               {#if !a.bound}<span class="block text-[11.5px] text-faint">{t('waitingDevice')}</span>{/if}

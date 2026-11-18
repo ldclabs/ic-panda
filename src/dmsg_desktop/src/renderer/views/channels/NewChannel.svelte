@@ -1,12 +1,13 @@
 <script lang="ts">
   import Notice from '../../components/page/Notice.svelte'
   import { RadioGroup, Tabs } from 'bits-ui'
-  import { untrack } from 'svelte'
+  import { onDestroy, untrack } from 'svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
   import type { Glyph } from '../../components/glyphs'
   import Icon from '../../components/Icon.svelte'
-  import { buttonClass, cn } from '../../components/ui'
+  import Id from '../../components/page/Id.svelte'
+  import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { call, CallError, errorText } from '../../rpc'
   import { invitationLink, readInvitation } from './channels'
@@ -39,9 +40,12 @@
   let kind = $state('direct')
   let target = $state('')
   let busy = $state(false)
-  let error = $state('')
-  /** The invitation of a new conversation, to hand to its other person. */
-  let made = $state<any>(null)
+  let failure = $state.raw<unknown>(null)
+  const error = $derived(failure ? errorText(failure) : '')
+  type DirectInvite = { kind: 'created'; channel: string; account: string } | { kind: 'invited'; link: string }
+  let direct = $state.raw<DirectInvite | null>(null)
+  let generation = 0
+  onDestroy(() => { generation++ })
 
   const kinds: { value: string; icon: Glyph }[] = [
     { value: 'direct', icon: 'user' },
@@ -64,40 +68,50 @@
 
   $effect(() => {
     if (!open) {
+      generation++
       name = ''
       target = ''
       kind = 'direct'
       invitation = ''
-      error = ''
-      made = null
+      failure = null
+      busy = false
+      direct = null
       peer = null
     }
   })
 
   async function submit() {
+    if (!open || busy || direct?.kind === 'invited') return
+    const run = generation
+    const current = () => open && run === generation
     busy = true
-    error = ''
+    failure = null
     try {
-      if (tab === 'create') {
-        const account = kind === 'direct' ? await accountOf(target) : null
-        const called = name.trim() || (account ? label(account) : '')
-        const created: any = await call('channel/create', { name: called, type: kind })
-        onOpened(created.id)
-        if (account) {
-          made = await call('channel/invite', { id: created.id, account })
-          return
-        }
-      } else {
+      if (!direct && tab === 'join') {
         const parsed = readInvitation(invitation)
         if (!parsed) throw new CallError('INVALID_INPUT: invitation')
-        const ledger: any = await call('channel/join', { invitation: parsed })
+        const ledger = await call<{ channel_id: string }>('channel/join', { invitation: parsed })
+        if (!current()) return
         onOpened(ledger.channel_id)
+        open = false
+        return
       }
-      open = false
+      if (!direct) {
+        const account = kind === 'direct' ? await accountOf(target) : null
+        if (!current()) return
+        const called = name.trim() || (account ? label(account) : '')
+        const created = await call<{ id: string }>('channel/create', { name: called, type: kind })
+        if (!current()) return
+        onOpened(created.id)
+        if (!account) { open = false; return }
+        direct = { kind: 'created', channel: created.id, account }
+      }
+      const packet = await call('channel/invite', { id: direct.channel, account: direct.account })
+      if (current()) direct = { kind: 'invited', link: invitationLink(packet) }
     } catch (e) {
-      error = errorText(e)
+      if (current()) failure = e
     } finally {
-      busy = false
+      if (current()) busy = false
     }
   }
 
@@ -106,20 +120,26 @@
 </script>
 
 <Dialog bind:open title={tab === 'create' ? t('newChannel') : t('joinChannel')} icon="channels" testid="channel-new-dialog">
-  {#if made}
+  {#if direct?.kind === 'invited'}
+    {@const link = direct.link}
     <div class="grid gap-2" data-testid="channel-invitation-box">
       <p class="text-[12.5px] text-ink-2">{t('directInvited')}</p>
-      <TextField readonly value={invitationLink(made)} label={t('invitation')} hideLabel mono class="text-[11px]" data-testid="channel-invitation-link" />
-      <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(invitationLink(made))}><Icon name="link" />{t('copyLink')}</button>
+      <TextField readonly value={link} label={t('invitation')} hideLabel mono class="text-[11px]" data-testid="channel-invitation-link" />
+      <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(link)}><Icon name="link" />{t('copyLink')}</button>
+    </div>
+  {:else if direct}
+    <div class="grid gap-2 text-[12.5px] text-ink-2" data-testid="channel-invite-pending">
+      <p role="status">{t('directInvitePending')}</p>
+      <p>{t('directWith')} <Id id={direct.account} full wrap /></p>
     </div>
   {:else}
     <Tabs.Root bind:value={() => tab, (next) => (tab = next as 'create' | 'join')}>
       <Tabs.List class="mb-4 flex gap-0.5 rounded-[10px] border border-line bg-surface-2 p-0.5">
-        <Tabs.Trigger value="create" class={tabClass}>{t('newChannel')}</Tabs.Trigger>
-        <Tabs.Trigger value="join" class={tabClass} data-testid="channel-join-tab">{t('joinChannel')}</Tabs.Trigger>
+        <Tabs.Trigger value="create" class={tabClass} disabled={busy}>{t('newChannel')}</Tabs.Trigger>
+        <Tabs.Trigger value="join" class={tabClass} disabled={busy} data-testid="channel-join-tab">{t('joinChannel')}</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="create" class="grid gap-3 outline-none">
-        <RadioGroup.Root bind:value={kind} class="grid grid-cols-3 gap-1.5" aria-label={t('type')}>
+        <RadioGroup.Root bind:value={kind} disabled={busy} class="grid grid-cols-3 gap-1.5" aria-label={t('type')}>
           {#each kinds as option (option.value)}
             <RadioGroup.Item
               value={option.value}
@@ -132,29 +152,29 @@
           {/each}
         </RadioGroup.Root>
         {#if kind === 'direct'}
-          <TextField bind:value={target} label={t('directWith')} placeholder={t('accountOrName')} mono spellcheck="false" data-testid="channel-peer" />
+          <TextField bind:value={target} disabled={busy} label={t('directWith')} placeholder={t('accountOrName')} mono spellcheck="false" data-testid="channel-peer" />
         {/if}
-        <TextField bind:value={name} label={kind === 'direct' ? t('channelNameOptional') : t('channelName')} data-testid="channel-name" />
+        <TextField bind:value={name} disabled={busy} label={kind === 'direct' ? t('channelNameOptional') : t('channelName')} data-testid="channel-name" />
       </Tabs.Content>
       <Tabs.Content value="join" class="grid gap-2 outline-none">
-        <TextArea bind:value={invitation} label={t('invitation')} rows={6} mono spellcheck="false" data-testid="channel-join-text" />
+        <TextArea bind:value={invitation} disabled={busy} label={t('invitation')} rows={6} mono spellcheck="false" data-testid="channel-join-text" />
       </Tabs.Content>
     </Tabs.Root>
   {/if}
   {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}
     <span class="flex-1"></span>
-    {#if made}
+    {#if direct?.kind === 'invited'}
       <button class={buttonClass('primary')} onclick={() => (open = false)}>{t('done')}</button>
     {:else}
       <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>
       <button
-        class={cn(buttonClass('primary'))}
-        disabled={busy || (tab === 'create' ? (kind === 'direct' ? !target.trim() : !name.trim()) : !invitation.trim())}
+        class={buttonClass('primary')}
+        disabled={busy || (!direct && (tab === 'create' ? (kind === 'direct' ? !target.trim() : !name.trim()) : !invitation.trim()))}
         onclick={submit}
         data-testid="channel-create"
       >
-        {tab === 'create' ? t('create') : t('join')}
+        {direct ? t(error ? 'retry' : 'invite') : t(tab === 'create' ? 'create' : 'join')}
       </button>
     {/if}
   {/snippet}

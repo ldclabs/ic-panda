@@ -8,7 +8,6 @@
   import { call } from '../../rpc'
   import { copyText } from '../../components/clipboard'
   import { buttonClass } from '../../components/ui'
-  import { t } from '../../i18n/index.svelte'
   import { workflowText as w } from './workflow-text'
   import { ux, term } from './experience-text'
   let { open }: { open: (id: string) => void } = $props()

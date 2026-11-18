@@ -53,7 +53,7 @@
     {:else}
       {#key status?.account}
         {#if tab === 'membership'}
-          <Membership {status} />
+          <Membership {status} onReviewPayments={() => { tab = 'payments' }} />
         {:else if tab === 'names'}
           <Names {status} {go} bind:ask />
         {:else}

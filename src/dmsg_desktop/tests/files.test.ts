@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ancestorsOf, carries, DRAG_TYPE, draggedIds, isSort, localOnlyRisk, matchesFile, ordered, runsAsProgram, STALE_SYNC_MS, within } from '../src/renderer/views/files/files.ts'
+import { ancestorsOf, carries, DRAG_TYPE, draggedIds, foldersByParent, folderSubtree, isSort, localOnlyRisk, matchesFile, ordered, runsAsProgram, STALE_SYNC_MS } from '../src/renderer/views/files/files.ts'
 import { isActiveRequest, MAX_REQUEST_LABELS, requestLabels, requestLimit, requestTotals } from '../src/renderer/views/files/requests.ts'
 
 const file = (name: string, updated_at: number, size: number, mime = 'application/octet-stream') => ({ name, updated_at, size, mime })
@@ -32,8 +32,10 @@ test('a folder knows its ancestors and what lies under it', () => {
   assert.deepEqual(ancestorsOf(folders, 'root'), [])
   // A cycle the daemon would never send still ends.
   assert.equal(ancestorsOf([{ id: 'x', parent: 'y', name: 'x' }, { id: 'y', parent: 'x', name: 'y' }], 'x').length <= 3, true)
-  assert.equal(within(folders, 'c', 'a'), true)
-  assert.equal(within(folders, 'a', 'c'), false)
+  const tree = foldersByParent([...folders, { id: 's', parent: 'a', name: '10' }], 'en')
+  assert.deepEqual(tree.get('a')?.map(folder => folder.name), ['10', '2026'])
+  assert.deepEqual(folderSubtree(tree, ['a', 'b']), new Set(['a', 'b', 'c', 's']))
+  assert.deepEqual(folderSubtree(tree, ['c']), new Set(['c']))
 })
 
 test('a drag carries library rows by their IDs, or files from the system', () => {

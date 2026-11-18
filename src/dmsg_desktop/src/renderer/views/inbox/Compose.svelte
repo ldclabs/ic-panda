@@ -94,6 +94,7 @@
   }
 
   function onKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault()
       void send()

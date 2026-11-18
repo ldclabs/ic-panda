@@ -121,9 +121,6 @@ const MULTILINE = new Set(['key', 'private_key', 'public_key', 'phrase', 'addres
 /** Hidden fields whose generator makes passwords rather than nothing. */
 const GENERATED = new Set(['password', 'credential', 'key', 'pin', 'license_key'])
 
-/** What a hidden value reads as before it is revealed. */
-export const MASK = '********'
-
 export const isType = (value: unknown): value is ItemType => types.includes(value as ItemType)
 
 /** An item's type; one this version does not know reads as a note. */

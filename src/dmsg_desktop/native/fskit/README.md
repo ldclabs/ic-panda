@@ -2,6 +2,11 @@
 
 Self-written FSKit/ExtensionKit module; no macFUSE runtime, license, installer or FUSE compatibility layer. Current sources use the macOS 27 SDK's cache and access callbacks. Other OS/SDK combinations are unverified.
 
+The production volume and the synthetic probe implement the macOS 27 volume
+and read/write handlers. Lookup and read replies carry item attributes. Directory
+enumeration retains its cookie and verifier, and a rejected write returns
+`EROFS`. The daemon still authorizes each read window. [Apple volume handler](https://developer.apple.com/documentation/fskit/fsvolume/handler) · [Apple read/write handler](https://developer.apple.com/documentation/fskit/fsvolume/readwritehandler)
+
 - `SecretsFS.swift` and `IPC.swift`: production module, `net.dmsg.desktop.SecretsFS`.
 - `Probe.swift`: separate synthetic-only test module. It never accesses a Vault or daemon account.
 - `DevelopmentHost.swift`: optional independent development host. Do not substitute it for the packaged desktop host.
@@ -37,6 +42,13 @@ Native configuration does not contain an owner API token, decryption key or plai
 See [validation scope](../../../../docs/protocol/secrets_zh.md#验证入口与边界) for actual evidence. The enabled, development-signed production module passes `real_fskit_window_reads_expire_revoke_and_stop`; cross-UID checks, sleep, distribution notarization and upgrade/uninstall acceptance still require separate evidence.
 
 ## Production module test
+
+On 2026-11-18 both modules passed Swift type checking with deprecations treated
+as errors under SDK 27.2. The freshly development-signed production extension
+served the real mount integration test below on macOS arm64. The test covered
+approval, repeated reads within the window, expiry, revocation and stopping the
+mount. The optional cross-UID assertion was skipped because sudo required a
+password. Distribution signing and notarization are separate release checks.
 
 Build the development host (it only registers the module), then enable **dMsg secret files** as above:
 

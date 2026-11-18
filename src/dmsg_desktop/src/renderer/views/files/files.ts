@@ -143,36 +143,41 @@ export function draggedIds(event: DragEvent): string[] {
 
 /** The folders from the root down to `id`, itself included, by walking up the parents. */
 export function ancestorsOf(folders: { id: string; parent: string; name: string }[], id: string): { id: string; name: string }[] {
+  if (id === ROOT) return []
   const chain: { id: string; name: string }[] = []
-  let cursor = folders.find((f) => f.id === id)
-  while (cursor && chain.length <= folders.length) {
-    chain.unshift({ id: cursor.id, name: cursor.name })
-    const parent: string = cursor.parent
-    cursor = folders.find((f) => f.id === parent)
+  const byId = new Map(folders.map(f => [f.id, f]))
+  const seen = new Set<string>()
+  let cursor = byId.get(id)
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id)
+    chain.push({ id: cursor.id, name: cursor.name })
+    cursor = byId.get(cursor.parent)
   }
-  return chain
+  return chain.reverse()
 }
 
-/** A folder tree from the flat list: children by parent, each level by name. */
-export function childrenOf(folders: { id: string; parent: string; name: string }[], parent: string, locale: string) {
-  return folders.filter((f) => f.parent === parent).sort((a, b) => a.name.localeCompare(b.name, locale, { numeric: true, sensitivity: 'base' }))
-}
-
-/** Whether `folder` is `ancestor` or lies under it. */
-export function within(folders: { id: string; parent: string }[], folder: string, ancestor: string): boolean {
-  let cursor: string | undefined = folder
-  for (let steps = 0; cursor && steps <= folders.length; steps++) {
-    if (cursor === ancestor) return true
-    cursor = folders.find((f) => f.id === cursor)?.parent
+/** Index the catalog once. Views that render siblings ask for the locale's numeric name order. */
+export function foldersByParent<T extends { parent: string; name: string }>(folders: T[], locale?: string) {
+  const groups = new Map<string, T[]>()
+  for (const folder of folders) {
+    const siblings = groups.get(folder.parent)
+    if (siblings) siblings.push(folder)
+    else groups.set(folder.parent, [folder])
   }
-  return cursor === ancestor
+  if (locale) {
+    const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' })
+    for (const siblings of groups.values()) siblings.sort((a, b) => collator.compare(a.name, b.name))
+  }
+  return groups
 }
 
-/** The MIME type a dropped-in text preview was decoded from, kept short for a badge. */
-export function shortMime(mime: string | undefined): string {
-  if (!mime) return ''
-  const [, subtype = mime] = mime.split('/')
-  return subtype.replace(/^x-/, '').replace(/^vnd\./, '').toUpperCase().slice(0, 12)
+/** The chosen folders and everything below them, visited once even when selections overlap. */
+export function folderSubtree(groups: Map<string, { id: string }[]>, roots: string[]) {
+  const ids = new Set(roots)
+  for (const id of ids) {
+    for (const child of groups.get(id) ?? []) ids.add(child.id)
+  }
+  return ids
 }
 
 /** What only this device holds, as `files/local_only` reports it. */

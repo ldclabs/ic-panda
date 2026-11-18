@@ -533,8 +533,26 @@ with `node scripts/generate-tray-locks.mjs` (requires `rsvg-convert`).
 pnpm --dir src/dmsg_desktop dev        # needs a dmsg binary on PATH or DMSG_BIN
 pnpm --dir src/dmsg_desktop test       # policy, update, language and view-rule unit tests
 pnpm --dir src/dmsg_desktop test:e2e   # build, then the Playwright-for-Electron smoke test
+pnpm --dir src/dmsg_desktop verify:local # type checks, unit tests, one build and the local Electron suites
+DMSG_DESKTOP_SMOKE=confirmations pnpm --dir src/dmsg_desktop test:e2e # refusals, uncertain writes and approval history
+DMSG_DESKTOP_SMOKE=navigation pnpm --dir src/dmsg_desktop test:e2e # channel switches, file searches, keyboard input and restoring the last view
 DMSG_SMOKE_SCOPE=channels pnpm --dir src/dmsg_desktop test:e2e # channel regression and locale screenshots
 ```
+
+Run `verify:local` on a desktop with an active graphical session. It builds once
+and runs the main smoke, device succession, notifications, channel messages,
+approval, wallet upgrade, vault detail, references, secrets and update-install
+fixtures in sequence. CI runs the type checks, unit tests and build. The
+development-signed FSKit mount test has its own [native prerequisites](native/fskit/README.md).
+
+On macOS, keep the session unlocked for native fullscreen and notification
+focus. With the screen locked, set `DMSG_DESKTOP_NATIVE_FULLSCREEN=0` and
+`DMSG_DESKTOP_NOTIFICATION_FOCUS=mock` to run the functional checks. The suites
+report the skipped Space transition and simulated focus in their output.
+
+Node runs the TypeScript tests as ES modules. The compiled Electron main and
+sandboxed preload use explicit CommonJS `.cjs` entries. Playwright starts the
+desktop package through its `main` entry.
 
 The smoke test runs the built app in a temporary profile against a mock
 daemon. It answers the main process's file dialogs and watches its clipboard
@@ -725,7 +743,9 @@ the export approval window.
 `DMSG_DESKTOP_SMOKE=legacy pnpm test:e2e` stops after the account-setup and
 legacy flows, including unavailable-account guidance and a failed initial
 setup followed by a successful retry. Later flows are explicitly skipped.
-On an automation host that cannot enter a native Space,
+On an unlocked Mac, `DMSG_DESKTOP_SMOKE=windows pnpm test:e2e` repeats only
+the windowed and native fullscreen close/reopen checks.
+On a host that cannot enter a native Space,
 `DMSG_DESKTOP_NATIVE_FULLSCREEN=0 pnpm test:e2e` runs the functional window
 flows and windowed hide/reopen assertions, and explicitly reports fullscreen
 as skipped. This is not a passing native fullscreen validation.
@@ -861,9 +881,22 @@ the following status query is delayed or fails. Connection-only interruptions
 mask portalled dialogs and make the document inert while preserving same-session
 edits. Each queued display read carries its own mode, so unrelated completions
 cannot turn a cache-event local reread into an entitlement refresh. Visible
-windows periodically reread profile/name snapshots; the daemon alone owns TTLs.
+windows recheck the current profile and displayed names at most once per ten
+minutes, including when focus returns. Name completion events still wake pending
+lookups immediately. Scrolling and navigation release the old rows, and name-based
+search can populate its index without refreshing every candidate on the timer.
+The daemon owns cache freshness.
 
 ## Explicit operation states (2026-11-09)
+
+The follow-up review covers channel navigation, keyboard input, file browsing,
+local preferences, confirmation outcomes and macOS package and FSKit checks.
+[Desktop review (中文)](docs/desktop-review.zh.md)
+
+The [desktop state machine inventory (中文)](docs/implicit-state-machines.zh.md)
+maps the transitions in the 1.5.8 baseline to their source and records six
+fixes verified in Electron. Run `DMSG_DESKTOP_SMOKE=state-transitions pnpm test:e2e`
+to exercise draft retention, pairing expiry, file searches and invitation retries.
 
 The desktop uses local state unions for operations whose phases own different
 resources or reviewed inputs. It keeps the existing message, file-task, login and
@@ -907,12 +940,12 @@ contracts.
 including synthetic backend cleanup and unconfirmed-unmount retry. The ignored
 `real_electron_cached_profile_and_reconnection` test also passed against the real
 Rust daemon: same-session edits survive disconnection, while a lock clears the
-form even with a delayed status response. Native FSKit sources passed Swift type
-checking with the macOS 27.2 SDK; existing SDK deprecation warnings remain.
+form even with a delayed status response. For the subsequent FSKit handler
+migration and signed mount test, see the [native validation record](native/fskit/README.md).
 
-This validation uses temporary profiles and synthetic accounts. It does not
-exercise production payments, the paused wallet-creation UI, real OS file/presence
-dialogs, a signed FSKit mount/unmount, or Windows/Linux integration.
+The November 9 window checks used temporary profiles and synthetic accounts.
+Production payments, the paused wallet-creation UI, real OS file/presence
+dialogs and Windows/Linux integration were outside those checks.
 
 ## Localization verification (2026-10-28)
 

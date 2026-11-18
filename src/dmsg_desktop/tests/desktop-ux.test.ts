@@ -15,10 +15,17 @@ test('the palette ranks a name that starts with the search first and stops at it
   assert.equal(matchScore('Work key', ['gitlab'], tokens), 0)
   const entries = [{ label: 'Work key', keywords: ['github'] }, { label: 'My github key' }, { label: 'GitHub token' }, { label: 'Unrelated' }]
   assert.deepEqual(best(entries, tokens).map((e) => e.label), ['GitHub token', 'My github key', 'Work key'])
-  const many = Array.from({ length: GROUP_LIMIT * 3 }, (_, i) => ({ label: `Item ${i}` }))
+  let scored = 0
+  const many = Array.from({ length: GROUP_LIMIT * 3 }, (_, i) => ({
+    get label() { scored++; return `Item ${i}` }
+  }))
   const found = best(many, ['item'])
   assert.equal(found.length, GROUP_LIMIT)
+  assert.equal(scored, GROUP_LIMIT, 'prefix matches are already the highest rank')
   assert.equal(found[0].label, 'Item 0', 'equal scores keep their order')
+  const mixed = [{ label: 'else', keywords: ['item'] }, { label: 'an item' }, ...many]
+  assert.deepEqual(best(mixed, ['item'], 2), many.slice(0, 2))
+  assert.deepEqual(best(mixed, [], 2), mixed.slice(0, 2))
 })
 
 test('addresses become links without the punctuation of their sentence', () => {
@@ -81,6 +88,9 @@ test('a departing view cannot put plaintext back after the session was invalidat
 
 test('the desktop state keeps only what it knows and only views', () => {
   assert.equal(isViewRoute('/vault/ssh'), true)
+  assert.equal(readDesktopState('{"route":"/reminders"}').route, '/reminders')
+  assert.equal(isViewRoute('/reminders?ended=1'), false)
+  assert.equal(isViewRoute('/reminders/private'), false)
   assert.equal(isViewRoute('/approval/abc'), false)
   assert.equal(isViewRoute('/channels?open=secret'), false)
   const state = readDesktopState(JSON.stringify({ bounds: { x: 1, y: 2, width: 0, height: 5 }, route: '/approval/1', maximized: 'yes', other: 1 }))

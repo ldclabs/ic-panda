@@ -17,10 +17,12 @@ export function matchScore(label: string, keywords: readonly string[] | undefine
 
 /** The entries that match, best first and otherwise in their own order, at most `limit`. */
 export function best<T extends { label: string; keywords?: string[] }>(entries: readonly T[], tokens: readonly string[], limit = GROUP_LIMIT): T[] {
-  const scored: { entry: T; score: number }[] = []
+  if (!tokens.length) return entries.slice(0, limit)
+  const ranked: T[][] = [[], [], [], []]
   for (const entry of entries) {
     const score = matchScore(entry.label, entry.keywords, tokens)
-    if (score) scored.push({ entry, score })
+    if (score && ranked[score].length < limit) ranked[score].push(entry)
+    if (ranked[3].length === limit) break
   }
-  return scored.sort((a, b) => b.score - a.score).slice(0, limit).map(({ entry }) => entry)
+  return [...ranked[3], ...ranked[2], ...ranked[1]].slice(0, limit)
 }

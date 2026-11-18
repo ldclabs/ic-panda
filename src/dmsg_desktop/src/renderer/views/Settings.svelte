@@ -51,8 +51,10 @@
   let account = $state<any>(null)
   /** Null while the device cannot sign for them: locked without a resident key. */
   let pairings = $state<any[] | null>([])
-  let invite = $state<any>(null)
-  let candidates = $state<any[]>([])
+  type BrowserInvite = Awaited<ReturnType<typeof window.dmsg.pair>>
+  type BrowserCandidate = { pairing_id: string; label: string }
+  let invite = $state.raw<BrowserInvite | null>(null)
+  let candidates = $state<BrowserCandidate[]>([])
   let now = $state(Date.now())
   onMount(() => { const clock = setInterval(() => { now = Date.now() }, 1000); return () => clearInterval(clock) })
   const syncStatus = $derived(syncState(status, now))
@@ -136,15 +138,17 @@
     invite = null; candidates = []; pairingBusy = false
   }
 
-  async function poll(invitation: any, revision: number) {
-    const valid = () => alive && part === 'browsers' && revision === pairingRevision && invite === invitation
-    if (!valid() || Date.now() >= invitation.expires_at) return
+  const expired = (invitation: BrowserInvite, at: number) => at >= invitation.expires_at
+
+  async function poll(invitation: BrowserInvite, revision: number) {
+    const valid = () => alive && part === 'browsers' && revision === pairingRevision && invite === invitation && !expired(invitation, Date.now())
+    if (!valid()) return
     try {
-      const found: any = await call('connect/candidates', { invite: invitation.invite_id })
+      const found = await call<{ candidates: BrowserCandidate[] }>('connect/candidates', { invite: invitation.invite_id })
       if (valid()) { candidates = found.candidates; error = '' }
     } catch (e) { if (valid()) error = errorText(e) }
     finally {
-      if (valid() && Date.now() < invitation.expires_at) timer = setTimeout(() => void poll(invitation, revision), 2000)
+      if (valid()) timer = setTimeout(() => void poll(invitation, revision), 2000)
     }
   }
 
@@ -156,17 +160,17 @@
     pairingBusy = true
     error = ''
     try {
-      const value = await bridge(() => window.dmsg.pair(copy))
+      const value = await bridge<BrowserInvite>(() => window.dmsg.pair(copy))
       if (!current(turn) || revision !== pairingRevision || part !== 'browsers') return
       invite = value
-      timer = setTimeout(() => void poll(invite, revision), 2000)
+      timer = setTimeout(() => void poll(value, revision), 2000)
     } catch (e) { if (current(turn) && revision === pairingRevision) error = errorText(e) }
     finally { if (current(turn) && revision === pairingRevision) pairingBusy = false }
   }
 
   /** The person compares the label with the browser that opened the link. */
-  async function grant(candidate: any) {
-    if (pairingBusy || !invite) return
+  async function grant(candidate: BrowserCandidate) {
+    if (pairingBusy || !invite || expired(invite, Date.now())) return
     const revision = ++pairingRevision
     const turn = generation
     const invitation = invite
@@ -337,7 +341,12 @@
                 <button class={buttonClass('secondary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-copy" onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
                 <button class={buttonClass('primary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-pair" onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>
               </div>
-              {#if invite}
+              {#if invite && expired(invite, now)}
+                <Notice tone="warn" testid="browser-expired">
+                  {t('browserInviteExpired')}
+                  {#snippet action()}<button class={buttonClass('ghost', 'xs')} disabled={pairingBusy} onclick={stopPairing} data-testid="browser-cancel">{t('dismiss')}</button>{/snippet}
+                </Notice>
+              {:else if invite}
                 <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
                   <button class={buttonClass('ghost', 'xs', 'justify-self-end')} disabled={pairingBusy} onclick={stopPairing} data-testid="browser-cancel">{t('cancel')}</button>
                   <p class="flex items-center gap-2 text-[12.5px] text-muted"><span class="shimmer">{t('waitingBrowser')}</span></p>

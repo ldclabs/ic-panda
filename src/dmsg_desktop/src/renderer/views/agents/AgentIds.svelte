@@ -6,7 +6,7 @@
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
-  import Field from '../../components/page/Field.svelte'
+  import TextField from '../../components/TextField.svelte'
   import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -29,13 +29,15 @@
     busy,
     run,
     attempt,
+    onReview,
     delegateTo
   }: {
     hosted: any
     unlocked: boolean
     busy: boolean
-    run: (method: string, params?: Record<string, unknown>) => Promise<void>
-    attempt: (work: () => Promise<unknown>) => Promise<void>
+    run: (method: string, params?: Record<string, unknown>) => Promise<boolean>
+    attempt: (work: () => Promise<unknown>) => Promise<boolean>
+    onReview: () => Promise<void>
     delegateTo: (agent: string) => void
   } = $props()
 
@@ -56,8 +58,8 @@
     })
 
   async function create() {
-    await run('agent/create', { label: label.trim() })
-    label = ''
+    const submitted = label
+    if (await run('agent/create', { label: submitted.trim() }) && alive && label === submitted) label = ''
   }
 
   async function profile(agent: string) {
@@ -170,7 +172,7 @@
   </ul>
   {#if unlocked}
     <div class="flex items-end gap-2 border-t border-line bg-surface-2/60 px-5 py-3.5">
-      <Field label={t('label')} class="max-w-xs flex-1"><input bind:value={label} data-testid="agent-label" /></Field>
+      <TextField label={t('label')} bind:value={label} class="max-w-xs flex-1" data-testid="agent-label" />
       <button class={buttonClass('primary')} disabled={busy || !label.trim()} onclick={create}>{t('create')}</button>
     </div>
   {/if}
@@ -229,7 +231,8 @@
   tone="warn"
   {busy}
   testid="agent-withdraw-dialog"
-  onConfirm={() => withdrawing && run('agent/credential_revoke', { agent: withdrawing.agent_id })}
+  onConfirm={() => call<void>('agent/credential_revoke', { agent: withdrawing.agent_id })}
+  {onReview}
 />
 
 <Confirm
@@ -239,5 +242,6 @@
   confirm={t('removeAgent')}
   {busy}
   testid="agent-remove-dialog"
-  onConfirm={() => removing && run('agent/remove', { agent: removing.agent_id })}
+  onConfirm={() => call<void>('agent/remove', { agent: removing.agent_id })}
+  {onReview}
 />

@@ -132,6 +132,7 @@
       // second explicit Save is required; no automatic overwrite/retry occurs.
       if (code(cause) === 'VERSION_CONFLICT') await load(false)
       if (alive && scope === origin) error = errorText(cause)
+      if (linked) throw cause
     } finally { if (alive && scope === origin) busy = false }
   }
 
@@ -245,7 +246,7 @@
   {/if}
 </div>
 
-<Confirm bind:open={linking} title={t('noticeLinkTitle')} description={t('noticeLinkBody')} confirm={t('noticeLinkConfirm')} icon="members" tone="warn" {busy} testid="notifications-link" onConfirm={() => save(true)}>
+<Confirm bind:open={linking} title={t('noticeLinkTitle')} description={t('noticeLinkBody')} confirm={t('noticeLinkConfirm')} icon="members" tone="warn" {busy} testid="notifications-link" onConfirm={() => save(true)} onReview={() => load()}>
   {#snippet body()}
     <p class="text-[12.5px] text-muted">{t('noticeLinkAccounts')}</p>
     <ul class="mt-2 flex flex-wrap gap-2" data-testid="notifications-link-accounts">

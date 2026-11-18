@@ -33,6 +33,7 @@
   }
 
   function onKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     if (event.key === 'Enter' || event.key === ',') {
       if (!text.trim()) return
       event.preventDefault()
@@ -71,10 +72,10 @@
   <input
     bind:this={input}
     bind:value={text}
+    aria-label={t('tags')}
     class="h-6 min-w-24 flex-1 border-0 bg-transparent px-1 py-0 text-[13px] shadow-none focus-visible:shadow-none focus-visible:ring-0"
     placeholder={tags.length ? '' : placeholder}
     disabled={tags.length >= max}
-    maxlength={maxLength}
     onkeydown={onKey}
     onblur={commit}
   />

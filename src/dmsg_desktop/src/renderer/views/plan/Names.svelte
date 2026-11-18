@@ -255,7 +255,7 @@
             placeholder={t('name')}
             aria-invalid={problem ? 'true' : undefined}
             data-testid="handle-name"
-            onkeydown={(e) => e.key === 'Enter' && wanted && !problem && lookup()}
+            onkeydown={(e) => !e.isComposing && e.key === 'Enter' && wanted && !problem && lookup()}
           />
         </label>
         <button class={buttonClass('secondary')} disabled={busy || !wanted || !!problem} onclick={lookup} data-testid="handle-lookup"><Icon name="search" />{t('lookUp')}</button>

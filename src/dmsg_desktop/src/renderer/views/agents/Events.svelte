@@ -86,21 +86,18 @@
     })
 
   /** The old secret stays valid for a day, so the upstream can switch. */
-  const rotate = (id: string) =>
-    attempt(async () => {
-      const rotated: any = await call('mcp-events/rotate', { endpoint_id: id })
-      if (!alive) return
-      secret = { endpoint_id: id, secret: rotated.secret }
-    })
+  async function rotate(id: string) {
+    const rotated: any = await call('mcp-events/rotate', { endpoint_id: id })
+    if (alive) secret = { endpoint_id: id, secret: rotated.secret }
+  }
 
-  const remove = (id: string) =>
-    attempt(async () => {
-      await call('mcp-events/delete', { endpoint_id: id })
-      if (!alive) return
-      revision++
-      if (secret?.endpoint_id === id) secret = null
-      if (alive) void readEndpoints()
-    })
+  async function remove(id: string) {
+    await call('mcp-events/delete', { endpoint_id: id })
+    if (!alive) return
+    revision++
+    if (secret?.endpoint_id === id) secret = null
+    void readEndpoints()
+  }
 
   onMount(() => {
     void reload()
@@ -188,7 +185,8 @@
   tone="warn"
   {busy}
   testid="endpoint-rotate-dialog"
-  onConfirm={() => rotating && rotate(rotating.endpoint_id)}
+  onConfirm={() => rotate(rotating.endpoint_id)}
+  onReview={readEndpoints}
 />
 
 <Confirm
@@ -198,5 +196,6 @@
   confirm={t('remove')}
   {busy}
   testid="endpoint-remove-dialog"
-  onConfirm={() => removing && remove(removing.endpoint_id)}
+  onConfirm={() => remove(removing.endpoint_id)}
+  onReview={readEndpoints}
 />

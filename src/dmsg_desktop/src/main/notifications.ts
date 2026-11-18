@@ -41,7 +41,9 @@ export class Notifications {
     const id = nativeNoticeId(plan.system_id)
     this.notes.set(plan.system_id, note)
     this.routes.set(id, plan)
-    if (!this.host.activation) note.on('click', () => { void this.host.open(this.routes.get(id) ?? plan).catch(() => {}) })
+    if (!this.host.activation) note.on('click', () => {
+      if (this.notes.get(plan.system_id) === note) void this.activate(id).catch(() => {})
+    })
     note.on('show', () => {
       if (this.notes.get(plan.system_id) === note) this.settle(plan, 'shown')
     })
@@ -95,9 +97,11 @@ export class Notifications {
 
   remove(systemIds: string[]) {
     for (const id of systemIds) {
-      try { this.notes.get(id)?.close(); this.host.remove?.(nativeNoticeId(id)) } catch { /* OS best effort. */ }
+      const note = this.notes.get(id)
+      this.shown.delete(id)
       this.notes.delete(id)
       this.routes.delete(nativeNoticeId(id))
+      try { note?.close(); this.host.remove?.(nativeNoticeId(id)) } catch { /* OS best effort. */ }
     }
   }
 

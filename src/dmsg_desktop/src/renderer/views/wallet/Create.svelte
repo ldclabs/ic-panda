@@ -15,7 +15,7 @@
   import { iconButtonClass, buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { bridge, call, units } from '../../rpc'
-  import { activationTotal, MAX_DRAFT_MEMBERS, memberInputs, memberProblem, thresholdLimits, type MemberDraft } from './new-wallet'
+  import { activationTotal, MAX_DRAFT_MEMBERS, MEMBER_ROLES, memberInputs, memberProblem, thresholdLimits, type MemberDraft } from './new-wallet'
 
   import { utf8Length } from './model'
   import { w } from './text'
@@ -56,7 +56,7 @@
       BigInt(readiness?.balance?.balance ?? '0') >= BigInt(total)
   )
   const roleOptions = $derived(
-    ['admin', 'approver', 'proposer', 'viewer', 'recovery'].map((role) => ({
+    MEMBER_ROLES.map((role) => ({
       value: role,
       label: w(role[0].toUpperCase() + role.slice(1))
     }))

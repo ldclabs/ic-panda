@@ -100,10 +100,13 @@ export function invitationLink(invitation: unknown): string {
 export function readInvitation(text: string): any | null {
   const value = text.trim()
   try {
-    if (value.startsWith('{')) return JSON.parse(value)
-    const encoded = value.startsWith(LINK) ? value.slice(LINK.length) : value
-    const binary = atob(encoded.replaceAll('-', '+').replaceAll('_', '/'))
-    const parsed = JSON.parse(new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0))))
+    let json = value
+    if (!value.startsWith('{')) {
+      const encoded = value.startsWith(LINK) ? value.slice(LINK.length) : value
+      const binary = atob(encoded.replaceAll('-', '+').replaceAll('_', '/'))
+      json = new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0)))
+    }
+    const parsed = JSON.parse(json)
     return parsed?.format === 'dmsg-channel-invitation/1' ? parsed : null
   } catch {
     return null

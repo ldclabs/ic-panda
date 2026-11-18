@@ -53,7 +53,7 @@ export function noticeTitle(item: NoticeItem, names: NoticeNames): string {
     case 'plan': return t('membership')
     case 'inbox': {
       const sender = id && names.letters.get(id)
-      return sender ? `${t('inbox')} · ${label(sender)}` : t('inbox')
+      return sender ? `${t('inbox')} · ${label(sender, false)}` : t('inbox')
     }
     case 'channel': return names.channels.get(id) ?? t('channels')
     case 'agent_mail': return t('noticeAgent')

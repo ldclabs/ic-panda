@@ -25,7 +25,7 @@ final class ProbeItem: FSItem {
 
 // A fresh file gets exactly one delayed synthetic grant. Once it expires,
 // every read fails until remount: an OS cache hit cannot hide behind reapproval.
-final class ProbeVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOperations, FSVolume.DataCacheHandler {
+final class ProbeVolume: FSVolume, FSVolume.Handler, FSVolume.ReadWriteHandler, FSVolume.DataCacheHandler {
     let logger = Logger(subsystem: "net.dmsg.SecretsProbe", category: "cache-gate")
     let root = ProbeItem(2)
     let files = ["fixture.env": ProbeItem(3), "second.bin": ProbeItem(4)]
@@ -58,36 +58,36 @@ final class ProbeVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOperat
         a.allocSize = a.size
         return a
     }
-    func activate(options: FSTaskOptions, replyHandler reply: @escaping (FSItem?, Error?) -> Void) { reply(root, nil) }
-    func deactivate(options: FSDeactivateOptions, replyHandler reply: @escaping (Error?) -> Void) {
+    func activateVolume(options: FSTaskOptions, replyHandler reply: @escaping (FSActivateResult?, Error?) -> Void) { reply(FSActivateResult(rootItem: root), nil) }
+    func deactivateVolume(options: FSDeactivateOptions, replyHandler reply: @escaping (Error?) -> Void) {
         queue.async { self.active = false; self.deadlines.removeAll(); reply(nil) }
     }
     func mount(options: FSTaskOptions, replyHandler reply: @escaping (Error?) -> Void) { reply(nil) }
     func unmount(replyHandler reply: @escaping () -> Void) { queue.async { self.active = false; self.deadlines.removeAll(); reply() } }
     func synchronize(flags: FSSyncFlags, replyHandler reply: @escaping (Error?) -> Void) { reply(nil) }
-    func getAttributes(_ desiredAttributes: FSItem.GetAttributesRequest, of item: FSItem, replyHandler reply: @escaping (FSItem.Attributes?, Error?) -> Void) {
-        guard let i = item as? ProbeItem else { return reply(nil, POSIXError(.EINVAL)) }; reply(attrs(i), nil)
+    func getAttributes(_ desiredAttributes: FSItem.GetAttributesRequest, of item: FSItem, context: FSContext, replyHandler reply: @escaping (FSGetAttributesResult?, Error?) -> Void) {
+        guard let i = item as? ProbeItem else { return reply(nil, POSIXError(.EINVAL)) }; reply(FSGetAttributesResult(attributes: attrs(i)), nil)
     }
-    func setAttributes(_ newAttributes: FSItem.SetAttributesRequest, on item: FSItem, replyHandler reply: @escaping (FSItem.Attributes?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
-    func lookupItem(named name: FSFileName, inDirectory directory: FSItem, replyHandler reply: @escaping (FSItem?, FSFileName?, Error?) -> Void) {
-        guard directory === root, let nameString = name.string, let item = files[nameString] else { return reply(nil, nil, POSIXError(.ENOENT)) }; reply(item, name, nil)
+    func setAttributes(_ newAttributes: FSItem.SetAttributesRequest, on item: FSItem, context: FSContext, replyHandler reply: @escaping (FSSetAttributesResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func lookupItem(named name: FSFileName, in directory: FSItem, context: FSContext, replyHandler reply: @escaping (FSLookupItemResult?, Error?) -> Void) {
+        guard directory === root, let nameString = name.string, let item = files[nameString] else { return reply(nil, POSIXError(.ENOENT)) }; reply(FSLookupItemResult(foundItem: item, itemName: name, itemAttributes: attrs(item)), nil)
     }
     func reclaimItem(_ item: FSItem, replyHandler reply: @escaping (Error?) -> Void) { reply(nil) }
-    func readSymbolicLink(_ item: FSItem, replyHandler reply: @escaping (FSFileName?, Error?) -> Void) { reply(nil, POSIXError(.ENOTSUP)) }
-    func createItem(named name: FSFileName, type: FSItem.ItemType, inDirectory directory: FSItem, attributes newAttributes: FSItem.SetAttributesRequest, replyHandler reply: @escaping (FSItem?, FSFileName?, Error?) -> Void) { reply(nil, nil, POSIXError(.EROFS)) }
-    func createSymbolicLink(named name: FSFileName, inDirectory directory: FSItem, attributes newAttributes: FSItem.SetAttributesRequest, linkContents contents: FSFileName, replyHandler reply: @escaping (FSItem?, FSFileName?, Error?) -> Void) { reply(nil, nil, POSIXError(.EROFS)) }
-    func createLink(to item: FSItem, named name: FSFileName, inDirectory directory: FSItem, replyHandler reply: @escaping (FSFileName?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
-    func removeItem(_ item: FSItem, named name: FSFileName, fromDirectory directory: FSItem, replyHandler reply: @escaping (Error?) -> Void) { reply(POSIXError(.EROFS)) }
-    func renameItem(_ item: FSItem, inDirectory sourceDirectory: FSItem, named sourceName: FSFileName, to destinationName: FSFileName, inDirectory destinationDirectory: FSItem, overItem: FSItem?, replyHandler reply: @escaping (FSFileName?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
-    func enumerateDirectory(_ directory: FSItem, startingAt cookie: FSDirectoryCookie, verifier: FSDirectoryVerifier, attributes: FSItem.GetAttributesRequest?, packer: FSDirectoryEntryPacker, replyHandler reply: @escaping (FSDirectoryVerifier, Error?) -> Void) {
-        guard directory === root else { return reply(FSDirectoryVerifier(0), POSIXError(.ENOTDIR)) }
+    func readSymbolicLink(_ item: FSItem, context: FSContext, replyHandler reply: @escaping (FSReadSymlinkResult?, Error?) -> Void) { reply(nil, POSIXError(.ENOTSUP)) }
+    func createItem(named name: FSFileName, type: FSItem.ItemType, in directory: FSItem, attributes newAttributes: FSItem.SetAttributesRequest, context: FSContext, replyHandler reply: @escaping (FSCreateItemResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func createSymbolicLink(named name: FSFileName, in directory: FSItem, attributes newAttributes: FSItem.SetAttributesRequest, linkContents contents: FSFileName, context: FSContext, replyHandler reply: @escaping (FSCreateSymlinkResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func createLink(to item: FSItem, named name: FSFileName, in directory: FSItem, context: FSContext, replyHandler reply: @escaping (FSCreateLinkResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func removeItem(_ item: FSItem, named name: FSFileName, from directory: FSItem, context: FSContext, replyHandler reply: @escaping (FSRemoveItemResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func renameItem(_ item: FSItem, inDirectory sourceDirectory: FSItem, named sourceName: FSFileName, to destinationName: FSFileName, inDirectory destinationDirectory: FSItem, overItem: FSItem?, context: FSContext, replyHandler reply: @escaping (FSRenameItemResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func enumerateDirectory(_ directory: FSItem, startingAt cookie: FSDirectoryCookie, verifier: FSDirectoryVerifier, attributes: FSItem.GetAttributesRequest?, packer: FSDirectoryEntryPacker, context: FSContext, replyHandler reply: @escaping (FSEnumerateDirectoryResult?, Error?) -> Void) {
+        guard directory === root else { return reply(nil, POSIXError(.ENOTDIR)) }
         let names = files.keys.sorted()
-        guard cookie.rawValue <= names.count else { return reply(FSDirectoryVerifier(0), POSIXError(.EINVAL)) }
+        guard cookie.rawValue <= names.count else { return reply(nil, POSIXError(.EINVAL)) }
         for index in Int(cookie.rawValue)..<names.count {
             let name = names[index], item = files[names[index]]!
             if !packer.packEntry(name: FSFileName(string: name), itemType: .file, itemID: FSItem.Identifier(rawValue: item.number)!, nextCookie: FSDirectoryCookie(UInt64(index + 1)), attributes: attrs(item)) { break }
         }
-        reply(FSDirectoryVerifier(1), nil)
+        reply(FSEnumerateDirectoryResult(verifier: 1), nil)
     }
     func open(_ item: FSItem, modes: FSVolume.OpenModes, cacheMode: FSVolume.DataCacheMode, context: FSContext, replyHandler reply: @escaping (FSOpenItemResult?, Error?) -> Void) {
         guard context.realUserID == Int(owner), context.effectiveUserID == Int(owner), !modes.contains(.write) else { return reply(nil, POSIXError(.EACCES)) }
@@ -100,19 +100,19 @@ final class ProbeVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOperat
         logger.info("refusing cache upgrade: \(cacheMode.rawValue, privacy: .public)")
         reply(nil, POSIXError(.ENOTSUP))
     }
-    func read(from item: FSItem, at offset: off_t, length: Int, into buffer: FSMutableFileDataBuffer, replyHandler reply: @escaping (Int, Error?) -> Void) {
-        guard let item = item as? ProbeItem, item.number != 2, offset >= 0, length >= 0, length <= 1048576 else { return reply(0, POSIXError(.EINVAL)) }
+    func read(from item: FSItem, at offset: off_t, length: Int, into buffer: FSMutableFileDataBuffer, replyHandler reply: @escaping (FSReadFileResult?, Error?) -> Void) {
+        guard let item = item as? ProbeItem, item.number != 2, offset >= 0, length >= 0, length <= 1048576 else { return reply(nil, POSIXError(.EINVAL)) }
         queue.async {
-            guard self.active, self.pending < 64 else { return reply(0, POSIXError(.EACCES)) }
+            guard self.active, self.pending < 64 else { return reply(nil, POSIXError(.EACCES)) }
             let now = DispatchTime.now().uptimeNanoseconds
             if let deadline = self.deadlines[item.number] {
-                guard now < deadline else { return reply(0, POSIXError(.EACCES)) }
-                self.copy(offset, length, buffer, reply)
+                guard now < deadline else { return reply(nil, POSIXError(.EACCES)) }
+                self.copy(item, offset, length, buffer, reply)
             } else {
                 self.pending += 1
                 self.queue.asyncAfter(deadline: .now() + 5) {
                     self.pending -= 1
-                    guard self.active else { return reply(0, POSIXError(.EACCES)) }
+                    guard self.active else { return reply(nil, POSIXError(.EACCES)) }
                     // Concurrent waits share the first grant and never renew it.
                     if self.deadlines[item.number] == nil {
                         self.deadlines[item.number] = DispatchTime.now().uptimeNanoseconds + 3_000_000_000
@@ -124,18 +124,18 @@ final class ProbeVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOperat
                             }
                         }
                     }
-                    guard DispatchTime.now().uptimeNanoseconds < self.deadlines[item.number]! else { return reply(0, POSIXError(.EACCES)) }
-                    self.copy(offset, length, buffer, reply)
+                    guard DispatchTime.now().uptimeNanoseconds < self.deadlines[item.number]! else { return reply(nil, POSIXError(.EACCES)) }
+                    self.copy(item, offset, length, buffer, reply)
                 }
             }
         }
     }
-    func copy(_ offset: off_t, _ length: Int, _ buffer: FSMutableFileDataBuffer, _ reply: (Int, Error?) -> Void) {
+    func copy(_ item: ProbeItem, _ offset: off_t, _ length: Int, _ buffer: FSMutableFileDataBuffer, _ reply: (FSReadFileResult?, Error?) -> Void) {
         let start = min(Int(offset), content.count), count = min(length, content.count - start)
         buffer.withUnsafeMutableBytes { destination in content.withUnsafeBytes { source in
             if count > 0 { destination.baseAddress!.copyMemory(from: source.baseAddress!.advanced(by: start), byteCount: count) }
         } }
-        reply(count, nil)
+        reply(FSReadFileResult(bytesRead: count, itemAttributes: attrs(item)), nil)
     }
-    func write(contents: Data, to item: FSItem, at offset: off_t, replyHandler reply: @escaping (Int, Error?) -> Void) { reply(0, POSIXError(.EROFS)) }
+    func write(contents: Data, to item: FSItem, at offset: off_t, replyHandler reply: @escaping (FSWriteFileResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
 }

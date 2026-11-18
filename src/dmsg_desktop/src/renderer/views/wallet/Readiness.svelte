@@ -1,5 +1,4 @@
 <script lang="ts">
-  import Notice from '../../components/page/Notice.svelte'
   import { teamReadiness, type Wallet } from './model'
   import { w } from './text'
   let { wallet }: { wallet: Wallet } = $props()

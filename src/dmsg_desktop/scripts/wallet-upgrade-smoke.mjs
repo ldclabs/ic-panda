@@ -89,7 +89,7 @@ const profile = await mkdtemp(join(tmpdir(), 'dmsg-wallet-upgrade-ui-')), shots 
 await mkdir(shots, { recursive: true })
 await writeFile(join(profile, 'locale'), 'zh')
 await writeFile(join(profile, 'appearance'), 'light')
-const app = await electron.launch({ executablePath: electronPath, colorScheme: null, args: [resolve('out/main/index.js')], env: { ...process.env, DMSG_DESKTOP_TEST: '1', DMSG_DESKTOP_USER_DATA: profile, DMSG_DESKTOP_DAEMON: `http://127.0.0.1:${server.address().port}`, DMSG_DESKTOP_TOKEN: token, DMSG_HOME: join(profile, 'home') } })
+const app = await electron.launch({ executablePath: electronPath, colorScheme: null, args: [resolve('.')], env: { ...process.env, DMSG_DESKTOP_TEST: '1', DMSG_DESKTOP_USER_DATA: profile, DMSG_DESKTOP_DAEMON: `http://127.0.0.1:${server.address().port}`, DMSG_DESKTOP_TOKEN: token, DMSG_HOME: join(profile, 'home') } })
 let main
 try {
   main = await app.firstWindow()

@@ -51,8 +51,7 @@
     !wallet.addresses.some((a) => a.control_details?.cosigner === c.id)
   let setupStep = $state(0),
     tested = $state<Record<string, boolean>>({}),
-    rollback = $state<any>(null),
-    balance = $state<any>(null)
+    rollback = $state<any>(null)
   const activeStep = $derived(
     setupStep ||
       (!keys.length
@@ -155,7 +154,7 @@
       codePending = false
     }
   }
-  async function run(method: string, params: any = {}) {
+  async function run(method: string, params: any = {}, confirmed = false) {
     if (busy) return
     const codeChange = method === 'wallet/change' && params.change?.kind === 'upgrade'
     busy = true
@@ -174,7 +173,6 @@
         tested[params.label] = result.verified === true
         notice = w('keyTestPassed')
       } else if (method === 'wallet/health') health = result
-      else if (method === 'wallet/balances') balance = result
       else if (method === 'wallet/rpc_check') checks = result
       else {
         notice = w('saved')
@@ -189,6 +187,7 @@
       if (result.notification_error) notice = w('notificationFailed')
     } catch (e) {
       if (!alive) return
+      if (confirmed) throw e
       if (codeChange) proposalError = { version: params.change.version, message: errorText(e) }
       else if (method === 'wallet/cosigner_new' && params.hardware && e instanceof CallError && e.code === 'UNAVAILABLE') softwareKey = true
       else error = errorText(e)
@@ -479,6 +478,8 @@
   icon="key"
   tone="warn"
   {busy}
-  onConfirm={() => run('wallet/cosigner_new', { label: keyLabel.trim(), hardware: false })}
+  onConfirm={() => run('wallet/cosigner_new', { label: keyLabel.trim(), hardware: false }, true)}
+  onReview={readKeys}
+  describeError={errorText}
   testid="wallet-software-key"
 />

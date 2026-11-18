@@ -4,6 +4,7 @@
 export const READ_METHODS = new Set([
   'channel/avatar',
   'notifications/list', 'notifications/status', 'notifications/settings',
+  'feedback/get', 'secrets/mounts/list', 'wallet/rpc',
   'app/initialize', 'daemon/status', 'session/status', 'session/accounts', 'session/login_result',
   'account/show', 'account/security', 'recovery/status', 'device/moved_list',
   'device/successions', 'device/succession_review', 'transfer/status',

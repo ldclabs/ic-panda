@@ -28,8 +28,8 @@ import {
   Tray,
   type IpcMainInvokeEvent
 } from 'electron'
-import { readFileSync, rmSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { isAppearance, type Appearance } from '../shared/appearance'
@@ -40,6 +40,7 @@ import { walletHistoryCsv } from '../shared/wallet-report'
 import { Daemon, reasonOf } from './daemon'
 import { DaemonError } from './error'
 import { PreparedOperation } from './prepared-operation'
+import { preferencesWriter } from './preferences'
 import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { requireRuntimeVersion, resolveRuntime } from './runtime'
 import { Notifications } from './notifications'
@@ -103,14 +104,24 @@ const keepsDesktopState = !testMode || process.env.DMSG_DESKTOP_TEST_STATE === '
 const desktopFile = () => join(app.getPath('userData'), 'desktop.json')
 let desktopTimer: ReturnType<typeof setTimeout> | undefined
 
+function saveDesktop() {
+  clearTimeout(desktopTimer)
+  desktopTimer = undefined
+  try {
+    const file = desktopFile()
+    writeFileSync(`${file}.tmp`, JSON.stringify(desktop))
+    renameSync(`${file}.tmp`, file)
+  } catch { /* Window placement is best effort. */ }
+}
+
 function keepDesktop(change: Partial<DesktopState>, now = false) {
   desktop = { ...desktop, ...change }
   clearTimeout(desktopTimer)
   if (!keepsDesktopState) return
-  const save = () => void writeFile(desktopFile(), JSON.stringify(desktop)).catch(() => {})
-  if (now) save()
-  else desktopTimer = setTimeout(save, 500)
+  if (now) saveDesktop()
+  else desktopTimer = setTimeout(saveDesktop, 500)
 }
+app.on('will-quit', () => { if (desktopTimer) saveDesktop() })
 /** English until the app is ready and knows its locale. */
 let locale: Locale = 'en'
 let text = textFor(locale)
@@ -223,7 +234,7 @@ function applyAppearance(next: Appearance) {
 /** A window learns its role, the current language and appearance from its arguments. */
 function webPreferences(role: 'main' | 'approval') {
   return {
-    preload: join(__dirname, '../preload/index.js'),
+    preload: join(__dirname, '../preload/index.cjs'),
     contextIsolation: true,
     sandbox: true,
     nodeIntegration: false,
@@ -552,43 +563,14 @@ handle('dmsg:files-export-many', 'main', async (_event, items: { id: string; nam
  * `preferences.json`, which the daemon reads and never takes from a request. Allowing the disk mount
  * asks in a system dialog first, which no window can answer.
  */
-handle('dmsg:files-preferences', 'main', async (_event, changes: { files_mount?: boolean; files_trash_days?: number; idle_lock_minutes?: number }) => {
-  const path = join(home, 'preferences.json')
-  let kept: { files_mount?: boolean; files_trash_days?: number; idle_lock_minutes?: number } = {}
-  try {
-    kept = JSON.parse(await readFile(path, 'utf8'))
-  } catch {
-    /* none yet */
-  }
-  const next = { files_mount: kept.files_mount === true, files_trash_days: kept.files_trash_days, idle_lock_minutes: kept.idle_lock_minutes }
-  if (typeof changes?.files_mount === 'boolean' && changes.files_mount !== next.files_mount) {
-    if (changes.files_mount) {
-      const { response } = await dialog.showMessageBox(main!, {
-        type: 'warning',
-        message: text.mountAllow,
-        detail: text.mountAllowDetail,
-        buttons: [text.allow, text.cancel],
-        defaultId: 1,
-        cancelId: 1
-      })
-      if (response !== 0) return null
-    }
-    next.files_mount = changes.files_mount
-  }
-  if (changes?.files_trash_days !== undefined) {
-    const days = Number(changes.files_trash_days)
-    if (!Number.isInteger(days) || days < 1 || days > 365) throw new DaemonError('INVALID_INPUT', 'files_trash_days')
-    next.files_trash_days = days
-  }
-  if (changes?.idle_lock_minutes !== undefined) {
-    const minutes = Number(changes.idle_lock_minutes)
-    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 24 * 60) throw new DaemonError('INVALID_INPUT', 'idle_lock_minutes')
-    next.idle_lock_minutes = minutes
-  }
-  await mkdir(home, { recursive: true })
-  await writeFile(path, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 })
-  return daemon.call('files/preferences_reload')
-})
+const savePreferences = preferencesWriter(home, async () => {
+  const { response } = await dialog.showMessageBox(main!, {
+    type: 'warning', message: text.mountAllow, detail: text.mountAllowDetail,
+    buttons: [text.allow, text.cancel], defaultId: 1, cancelId: 1
+  })
+  return response === 0
+}, () => daemon.call('files/preferences_reload'))
+handle('dmsg:files-preferences', 'main', (_event, changes) => savePreferences(changes))
 handle('dmsg:files-export', 'main', async (_event, id: string, version: string | null, name: string) => {
   const path = await pickSave({ defaultPath: basename(String(name)) })
   return path && daemon.call('files/export', { id: String(id), version: version ? String(version) : null, path })

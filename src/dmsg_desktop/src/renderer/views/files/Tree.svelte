@@ -4,7 +4,7 @@
   import Icon from '../../components/Icon.svelte'
   import { cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { carries, childrenOf, DRAG_TYPE, draggedIds, ROOT } from './files'
+  import { carries, foldersByParent, DRAG_TYPE, draggedIds, ROOT } from './files'
 
   /**
    * The library's places: the root and its folders as a tree, the starred
@@ -35,6 +35,7 @@
   } = $props()
 
   let collapsed = $state<Record<string, boolean>>({})
+  const children = $derived(foldersByParent(folders, locale()))
   let over = $state<string | null>(null)
 
   function onDragOver(event: DragEvent, folder: string) {
@@ -157,10 +158,10 @@
 {/snippet}
 
 {#snippet subtree(parent: string, depth: number)}
-  {#each childrenOf(folders, parent, locale()) as folder (folder.id)}
-    {@const kids = childrenOf(folders, folder.id, locale())}
-    {@render entry(folder, depth, kids.length > 0)}
-    {#if kids.length && !collapsed[folder.id]}
+  {#each children.get(parent) ?? [] as folder (folder.id)}
+    {@const hasChildren = children.has(folder.id)}
+    {@render entry(folder, depth, hasChildren)}
+    {#if hasChildren && !collapsed[folder.id]}
       {@render subtree(folder.id, depth + 1)}
     {/if}
   {/each}

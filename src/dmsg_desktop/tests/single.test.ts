@@ -47,3 +47,29 @@ test('a queued local reread retains its own mode', async () => {
   await Promise.all([first, event])
   assert.deepEqual(modes, ['swr', 'local'])
 })
+
+test('a failed refresh still drains the latest queued read', async () => {
+  const seen: string[] = []
+  let rejectFirst!: (error: Error) => void
+  const read = single(async (mode: string) => {
+    seen.push(mode)
+    if (seen.length === 1) await new Promise<void>((_, reject) => { rejectFirst = reject })
+  })
+  const first = read('swr')
+  const second = read('fresh')
+  const last = read('local')
+  rejectFirst(new Error('offline'))
+  await Promise.all([first, second, last])
+  assert.deepEqual(seen, ['swr', 'local'])
+})
+
+test('a synchronous error releases the shared refresh', async () => {
+  let attempts = 0
+  const read = single(() => {
+    if (++attempts === 1) throw new Error('invalid input')
+    return Promise.resolve()
+  })
+  await assert.rejects(read(), /invalid input/)
+  await read()
+  assert.equal(attempts, 2)
+})

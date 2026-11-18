@@ -18,7 +18,7 @@
   import { ago, call, closed, code, errorText, single, when } from '../rpc'
   import { shortId } from '../shell/session'
   import { remember, remembered } from '../view-memory'
-  import { label } from './channels/names.svelte'
+  import { label, visibleName } from './channels/names.svelte'
   import Compose from './inbox/Compose.svelte'
   import Rules from './inbox/Rules.svelte'
   import LinkedText from '../components/LinkedText.svelte'
@@ -88,7 +88,7 @@
 
   function matches(item: any) {
     const account = box === 'sent' ? item.recipient : item.sender
-    return [label(account), account, item.text ?? ''].some((text) => text.toLowerCase().includes(asked))
+    return [label(account, 'search'), account, item.text ?? ''].some((text) => text.toLowerCase().includes(asked))
   }
 
   function write(to = '') {
@@ -251,7 +251,7 @@
 </script>
 
 {#snippet sender(account: string)}
-  <bdi class="truncate text-[13px]" title={account}>{label(account)}</bdi>
+  <bdi {@attach visibleName(account)} class="truncate text-[13px]" title={account}>{label(account, false)}</bdi>
 {/snippet}
 
 <div class="@container flex h-full min-h-0 flex-wrap" data-testid="inbox">

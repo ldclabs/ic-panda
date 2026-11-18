@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { visibleName } from '../channels/names.svelte'
   import Icon from '../../components/Icon.svelte'
   import { cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
@@ -12,7 +13,7 @@
 <Icon name={item.target.kind === 'service' ? 'bell' : icons[category(item)]} class="mt-0.5 shrink-0 text-muted" />
 <span class="grid min-w-0 flex-1 gap-1">
   <span class={cn('flex items-start gap-2 font-medium text-ink [overflow-wrap:anywhere]', compact ? 'text-[13px]' : 'text-[13.5px]')}>
-    <span class="min-w-0 flex-1">{noticeTitle(item, names)}</span>
+    <span {@attach visibleName(item.target.kind === 'inbox' && item.target.id ? names.letters.get(item.target.id) : undefined)} class="min-w-0 flex-1">{noticeTitle(item, names)}</span>
     {#if noticeUnread(item)}<span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-forest" role="img" aria-label={t('reminderUnread')} data-testid="reminder-unread"></span>{/if}
   </span>
   <span class="text-[12.5px] leading-normal text-muted [overflow-wrap:anywhere]">{noticeBody(item)}</span>

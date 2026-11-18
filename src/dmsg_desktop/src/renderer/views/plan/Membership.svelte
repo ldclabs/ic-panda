@@ -26,7 +26,7 @@
    * is read on its own, so one that fails leaves the others. Buying opens
    * the checkout dialog; paying is the approval window's.
    */
-  let { status }: { status: any } = $props()
+  let { status, onReviewPayments }: { status: any; onReviewPayments: () => void } = $props()
   let plan = $state<any>(null)
   let catalog = $state<any>(null)
   let cloud = $state<any>(null)
@@ -135,14 +135,13 @@
       refund = await call('plan/refund_quote', { id: plan.refund.order })
     })
 
-  const confirmRefund = () =>
-    attempt(async () => {
-      const done: any = await call('plan/cancel', { id: refund.order })
-      refund = null
-      const outcome = refundOutcome(done?.refunds ?? [])
-      toast(() => outcome.error ? `${t('error')}: ${outcome.error}` : t(outcome.label))
-      void load(true)
-    })
+  async function confirmRefund() {
+    const done: any = await call('plan/cancel', { id: refund.order })
+    if (!alive) return
+    const outcome = refundOutcome(done?.refunds ?? [])
+    toast(() => outcome.error ? `${t('error')}: ${outcome.error}` : t(outcome.label))
+    void load(true)
+  }
 
   /** Acknowledging the notice starts its export window now at the latest. */
   const acknowledge = () =>
@@ -365,6 +364,7 @@
   {busy}
   testid="refund"
   onConfirm={confirmRefund}
+  onReview={onReviewPayments}
 >
   {#snippet body()}
     {#if refund}

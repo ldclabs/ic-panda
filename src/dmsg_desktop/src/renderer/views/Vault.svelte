@@ -401,6 +401,7 @@
   const openApproval = (id: string) => bridge(() => window.dmsg.openApproval(id)).catch((e) => toast(() => errorText(e)))
 
   function onSearchKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     if (event.key === 'ArrowDown' && shown.length) {
       event.preventDefault()
       void select(selected ?? shown[0].id, true)
@@ -425,6 +426,7 @@
    * secret, ⌘⇧U its user name and ⌘⇧O its one-time code (Ctrl elsewhere).
    */
   function onKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     const held = mod === '⌘' ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
     if (!held || event.altKey || creating || comparing || importing) return
     const key = event.key.toLowerCase()

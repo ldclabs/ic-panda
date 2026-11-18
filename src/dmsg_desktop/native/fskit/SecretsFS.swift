@@ -104,7 +104,7 @@ final class SecretNode: FSItem {
     }
 }
 
-final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOperations, FSVolume.DataCacheHandler, FSVolume.AccessCheckHandler {
+final class SecretVolume: FSVolume, FSVolume.Handler, FSVolume.ReadWriteHandler, FSVolume.DataCacheHandler, FSVolume.AccessCheckHandler {
     let socket: String
     let owner: uid_t
     let windowMilliseconds: UInt64
@@ -237,37 +237,37 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
     }
     func stop() { state.async { self.stopOnQueue() } }
 
-    func activate(options: FSTaskOptions, replyHandler reply: @escaping (FSItem?, Error?) -> Void) { reply(root, nil) }
-    func deactivate(options: FSDeactivateOptions, replyHandler reply: @escaping (Error?) -> Void) { stop(); reply(nil) }
+    func activateVolume(options: FSTaskOptions, replyHandler reply: @escaping (FSActivateResult?, Error?) -> Void) { reply(FSActivateResult(rootItem: root), nil) }
+    func deactivateVolume(options: FSDeactivateOptions, replyHandler reply: @escaping (Error?) -> Void) { stop(); reply(nil) }
     func mount(options: FSTaskOptions, replyHandler reply: @escaping (Error?) -> Void) { reply(nil) }
     func unmount(replyHandler reply: @escaping () -> Void) { stop(); reply() }
     func synchronize(flags: FSSyncFlags, replyHandler reply: @escaping (Error?) -> Void) { reply(nil) }
-    func getAttributes(_ desiredAttributes: FSItem.GetAttributesRequest, of item: FSItem, replyHandler reply: @escaping (FSItem.Attributes?, Error?) -> Void) {
-        guard let node = item as? SecretNode else { return reply(nil, POSIXError(.EINVAL)) }; reply(attributes(node), nil)
+    func getAttributes(_ desiredAttributes: FSItem.GetAttributesRequest, of item: FSItem, context: FSContext, replyHandler reply: @escaping (FSGetAttributesResult?, Error?) -> Void) {
+        guard let node = item as? SecretNode else { return reply(nil, POSIXError(.EINVAL)) }; reply(FSGetAttributesResult(attributes: attributes(node)), nil)
     }
-    func setAttributes(_ newAttributes: FSItem.SetAttributesRequest, on item: FSItem, replyHandler reply: @escaping (FSItem.Attributes?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
-    func lookupItem(named name: FSFileName, inDirectory directory: FSItem, replyHandler reply: @escaping (FSItem?, FSFileName?, Error?) -> Void) {
-        guard let parent = directory as? SecretNode, parent.entry == nil, let nameString = name.string, !nameString.contains("/"), nameString != ".", nameString != ".." else { return reply(nil, nil, POSIXError(.ENOENT)) }
-        state.async { let path = parent.path.isEmpty ? nameString : parent.path + "/" + nameString; guard let node = self.nodes[path], !node.invalid else { return reply(nil, nil, POSIXError(.ENOENT)) }; reply(node, name, nil) }
+    func setAttributes(_ newAttributes: FSItem.SetAttributesRequest, on item: FSItem, context: FSContext, replyHandler reply: @escaping (FSSetAttributesResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func lookupItem(named name: FSFileName, in directory: FSItem, context: FSContext, replyHandler reply: @escaping (FSLookupItemResult?, Error?) -> Void) {
+        guard let parent = directory as? SecretNode, parent.entry == nil, let nameString = name.string, !nameString.contains("/"), nameString != ".", nameString != ".." else { return reply(nil, POSIXError(.ENOENT)) }
+        state.async { let path = parent.path.isEmpty ? nameString : parent.path + "/" + nameString; guard let node = self.nodes[path], !node.invalid else { return reply(nil, POSIXError(.ENOENT)) }; reply(FSLookupItemResult(foundItem: node, itemName: name, itemAttributes: self.attributes(node)), nil) }
     }
     func reclaimItem(_ item: FSItem, replyHandler reply: @escaping (Error?) -> Void) { reply(nil) }
-    func readSymbolicLink(_ item: FSItem, replyHandler reply: @escaping (FSFileName?, Error?) -> Void) { reply(nil, POSIXError(.ENOTSUP)) }
-    func createItem(named name: FSFileName, type: FSItem.ItemType, inDirectory directory: FSItem, attributes newAttributes: FSItem.SetAttributesRequest, replyHandler reply: @escaping (FSItem?, FSFileName?, Error?) -> Void) { reply(nil, nil, POSIXError(.EROFS)) }
-    func createSymbolicLink(named name: FSFileName, inDirectory directory: FSItem, attributes newAttributes: FSItem.SetAttributesRequest, linkContents contents: FSFileName, replyHandler reply: @escaping (FSItem?, FSFileName?, Error?) -> Void) { reply(nil, nil, POSIXError(.EROFS)) }
-    func createLink(to item: FSItem, named name: FSFileName, inDirectory directory: FSItem, replyHandler reply: @escaping (FSFileName?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
-    func removeItem(_ item: FSItem, named name: FSFileName, fromDirectory directory: FSItem, replyHandler reply: @escaping (Error?) -> Void) { reply(POSIXError(.EROFS)) }
-    func renameItem(_ item: FSItem, inDirectory sourceDirectory: FSItem, named sourceName: FSFileName, to destinationName: FSFileName, inDirectory destinationDirectory: FSItem, overItem: FSItem?, replyHandler reply: @escaping (FSFileName?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
-    func enumerateDirectory(_ directory: FSItem, startingAt cookie: FSDirectoryCookie, verifier: FSDirectoryVerifier, attributes: FSItem.GetAttributesRequest?, packer: FSDirectoryEntryPacker, replyHandler reply: @escaping (FSDirectoryVerifier, Error?) -> Void) {
-        guard let parent = directory as? SecretNode, parent.entry == nil else { return reply(FSDirectoryVerifier(0), POSIXError(.ENOTDIR)) }
+    func readSymbolicLink(_ item: FSItem, context: FSContext, replyHandler reply: @escaping (FSReadSymlinkResult?, Error?) -> Void) { reply(nil, POSIXError(.ENOTSUP)) }
+    func createItem(named name: FSFileName, type: FSItem.ItemType, in directory: FSItem, attributes newAttributes: FSItem.SetAttributesRequest, context: FSContext, replyHandler reply: @escaping (FSCreateItemResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func createSymbolicLink(named name: FSFileName, in directory: FSItem, attributes newAttributes: FSItem.SetAttributesRequest, linkContents contents: FSFileName, context: FSContext, replyHandler reply: @escaping (FSCreateSymlinkResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func createLink(to item: FSItem, named name: FSFileName, in directory: FSItem, context: FSContext, replyHandler reply: @escaping (FSCreateLinkResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func removeItem(_ item: FSItem, named name: FSFileName, from directory: FSItem, context: FSContext, replyHandler reply: @escaping (FSRemoveItemResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func renameItem(_ item: FSItem, inDirectory sourceDirectory: FSItem, named sourceName: FSFileName, to destinationName: FSFileName, inDirectory destinationDirectory: FSItem, overItem: FSItem?, context: FSContext, replyHandler reply: @escaping (FSRenameItemResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
+    func enumerateDirectory(_ directory: FSItem, startingAt cookie: FSDirectoryCookie, verifier: FSDirectoryVerifier, attributes: FSItem.GetAttributesRequest?, packer: FSDirectoryEntryPacker, context: FSContext, replyHandler reply: @escaping (FSEnumerateDirectoryResult?, Error?) -> Void) {
+        guard let parent = directory as? SecretNode, parent.entry == nil else { return reply(nil, POSIXError(.ENOTDIR)) }
         state.async {
             let prefix = parent.path.isEmpty ? "" : parent.path + "/"
             let children = self.nodes.values.filter { !$0.path.isEmpty && !$0.invalid && $0.path.hasPrefix(prefix) && !$0.path.dropFirst(prefix.count).contains("/") }.sorted { $0.path < $1.path }
-            guard cookie.rawValue <= children.count else { return reply(FSDirectoryVerifier(0), POSIXError(.EINVAL)) }
+            guard cookie.rawValue <= children.count else { return reply(nil, POSIXError(.EINVAL)) }
             for index in Int(cookie.rawValue)..<children.count {
                 let node = children[index]; let name = String(node.path.dropFirst(prefix.count))
                 if !packer.packEntry(name: FSFileName(string: name), itemType: node.entry == nil ? .directory : .file, itemID: FSItem.Identifier(rawValue: node.number)!, nextCookie: FSDirectoryCookie(UInt64(index + 1)), attributes: self.attributes(node)) { break }
             }
-            reply(FSDirectoryVerifier(1), nil)
+            reply(FSEnumerateDirectoryResult(verifier: 1), nil)
         }
     }
     func checkAccess(to item: FSItem, requestedAccess access: FSVolume.AccessMask, context: FSContext, replyHandler reply: @escaping (FSCheckAccessResult?, Error?) -> Void) {
@@ -300,11 +300,11 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
         guard let node = item as? SecretNode, context.realUserID == Int(owner), context.effectiveUserID == Int(owner) else { return reply(nil, POSIXError(.EACCES)) }
         state.async { guard self.active, !node.invalid else { return reply(nil, POSIXError(.EACCES)) }; reply(FSUpgradeItemResult(grantedCoherency: .noCache), nil) }
     }
-    func read(from item: FSItem, at offset: off_t, length: Int, into buffer: FSMutableFileDataBuffer, replyHandler reply: @escaping (Int, Error?) -> Void) {
-        guard let node = item as? SecretNode, let entry = node.entry, offset >= 0, (0...1048576).contains(length) else { return reply(0, POSIXError(.EINVAL)) }
+    func read(from item: FSItem, at offset: off_t, length: Int, into buffer: FSMutableFileDataBuffer, replyHandler reply: @escaping (FSReadFileResult?, Error?) -> Void) {
+        guard let node = item as? SecretNode, let entry = node.entry, offset >= 0, (0...1048576).contains(length) else { return reply(nil, POSIXError(.EINVAL)) }
         state.async {
             self.expireOnQueue(node)
-            guard self.active, !node.invalid, !node.closed, self.jobs.values.filter({ $0.0 != nil }).count < 64 else { return reply(0, POSIXError(.EACCES)) }
+            guard self.active, !node.invalid, !node.closed, self.jobs.values.filter({ $0.0 != nil }).count < 64 else { return reply(nil, POSIXError(.EACCES)) }
             self.request(["method": "read", "entry": entry, "generation": node.generation, "offset": UInt64(offset), "length": length], node: node) { result in
                 do {
                     let value = try result.get()
@@ -333,15 +333,15 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
                         return true
                     }
                     guard copied, try continuousMilliseconds() < deadline else {
-                        buffer.withUnsafeMutableBytes { $0.initializeMemory(as: UInt8.self, repeating: 0) }
+                        _ = buffer.withUnsafeMutableBytes { $0.initializeMemory(as: UInt8.self, repeating: 0) }
                         throw POSIXError(.EACCES)
                     }
-                    reply(bytes.count, nil)
-                } catch { reply(0, POSIXError(.EACCES)) }
+                    reply(FSReadFileResult(bytesRead: bytes.count, itemAttributes: self.attributes(node)), nil)
+                } catch { reply(nil, POSIXError(.EACCES)) }
             }
         }
     }
-    func write(contents: Data, to item: FSItem, at offset: off_t, replyHandler reply: @escaping (Int, Error?) -> Void) { reply(0, POSIXError(.EROFS)) }
+    func write(contents: Data, to item: FSItem, at offset: off_t, replyHandler reply: @escaping (FSWriteFileResult?, Error?) -> Void) { reply(nil, POSIXError(.EROFS)) }
 }
 
 private extension UInt64 { func saturatingSubtract(_ other: UInt64) -> UInt64 { self >= other ? self - other : 0 } }

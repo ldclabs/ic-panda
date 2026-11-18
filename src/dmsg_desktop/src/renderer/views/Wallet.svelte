@@ -28,7 +28,6 @@
   import PolicySummary from './wallet/PolicySummary.svelte'
   import PolicyUsage from './wallet/PolicyUsage.svelte'
   import Readiness from './wallet/Readiness.svelte'
-  import Collapsible from '../components/Collapsible.svelte'
   import History from './wallet/History.svelte'
   import NcMigrate from './wallet/NcMigrate.svelte'
   import { w } from './wallet/text'
@@ -37,12 +36,8 @@
   import {
     actions,
     approvalCount,
-    amountText,
-    assetIdentity,
     assetKey,
     cyclesText,
-    finalStates,
-    stateAt,
     resultState,
     queueKind,
     intentHeadline,

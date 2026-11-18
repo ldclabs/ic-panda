@@ -43,7 +43,7 @@ const profile = await mkdtemp(join(tmpdir(), 'dmsg-cache-real-'))
 await writeFile(join(profile, 'locale'), 'en')
 let app
 try {
-  app = await electron.launch({ executablePath: electronPath, args: [resolve('out/main/index.js')], env: {
+  app = await electron.launch({ executablePath: electronPath, args: [resolve('.')], env: {
     ...process.env, DMSG_DESKTOP_TEST: '1', DMSG_DESKTOP_USER_DATA: profile,
     DMSG_DESKTOP_DAEMON: `http://127.0.0.1:${server.address().port}`, DMSG_DESKTOP_TOKEN: token, DMSG_HOME: join(profile, 'home')
   } })

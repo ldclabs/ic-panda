@@ -516,6 +516,9 @@ inline editors alone handle their own cancel shortcut.
 - The idle lock follows a person's input, which the main process reports;
   what windows read on events never keeps the device unlocked.
 - Never present a pending or unknown result as success.
+- A failed sensitive confirmation keeps its target, reason and selected permissions in the dialog.
+  An explicit refusal shows its cause and offers Retry. An unconfirmed write offers Check status.
+  This opens the relevant record or reads the current state. A new write requires a fresh confirmation.
 - A preview belongs to the exact input that produced it. Editing an input
   invalidates that preview, including responses still in flight. A response
   from a closed view must not update the next view.

@@ -20,6 +20,8 @@
   const valid = () => alive && status.state === 'unlocked' && status.account === owner
   const frozen = $derived(form.busy || importing || !form.loaded || (!!form.record && form.record.state !== 'draft'))
   const bytes = $derived(new TextEncoder().encode(form.text).length)
+  const recordLabels = { draft: 'feedbackSaved', pending: 'feedbackPending', sent: 'feedbackSent' } as const
+  const saveLabel = $derived(form.saving ? 'feedbackSaving' : form.dirty ? 'feedbackUnsaved' : form.record ? recordLabels[form.record.state] : null)
   const failure = $derived(importError || form.failure || form.record?.error || '')
   const failureText = $derived(failure === 'VERSION_CONFLICT' && form.record?.state === 'pending' ? t('letterPendingContact')
     : failure === 'REKEY_REQUIRED' ? t('letterRecipientKeyStale')
@@ -64,6 +66,7 @@
     }
   })
   function key(event: KeyboardEvent) {
+    if (event.isComposing) return
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && !frozen && bytes <= 4500 && (form.text.trim() || form.screenshots.length)) {
       event.preventDefault(); void form.send()
     }
@@ -100,7 +103,7 @@
           <button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={frozen || form.screenshots.length >= 3} onclick={() => add()} data-testid="feedback-attach"><Icon name="attach" />{t('feedbackAttach')}</button>
         </div>
         <p class="break-words text-[12px] text-muted" data-testid="feedback-context">{form.context}</p>
-        <p class="text-[12px] text-muted" role="status">{form.saving || form.dirty ? t('feedbackSaving') : form.record?.state === 'sent' ? t('feedbackSent') : form.record?.state === 'pending' ? t('feedbackPending') : form.record ? t('feedbackSaved') : ''}</p>
+        <p class="text-[12px] text-muted" role="status">{saveLabel ? t(saveLabel) : ''}</p>
         <div class="flex flex-wrap justify-end gap-2">
           {#if form.record?.state === 'sent'}
             <button class={buttonClass('primary')} onclick={() => form.clear()} data-testid="feedback-new">{t('feedbackNew')}</button>

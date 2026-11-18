@@ -5,6 +5,8 @@
   import Collapsible from '../../components/Collapsible.svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
+  import Confirm from '../../components/Confirm.svelte'
+  import TextField from '../../components/TextField.svelte'
   import Icon from '../../components/Icon.svelte'
   import Fact from '../../components/page/Fact.svelte'
   import Field from '../../components/page/Field.svelte'
@@ -38,6 +40,8 @@
     unlocked,
     busy,
     request,
+    createRequest,
+    onReviewRequests,
     run,
     onRetry,
     delegate = $bindable('')
@@ -53,7 +57,9 @@
     busy: boolean
     /** Whether the approval request was made. */
     request: (method: string, params?: Record<string, unknown>) => Promise<boolean>
-    run: (method: string, params?: Record<string, unknown>) => Promise<void>
+    createRequest: (method: string, params: Record<string, unknown>) => Promise<void>
+    onReviewRequests: () => void
+    run: (method: string, params?: Record<string, unknown>) => Promise<boolean>
     onRetry: () => void
     delegate?: string
   } = $props()
@@ -517,20 +523,11 @@
   {/snippet}
 </Dialog>
 
-<Dialog bind:open={() => !!revoking, (open) => !open && (revoking = null)} title={t('delegationRevoke')} description={t('delegationWarn')} icon="warning" tone="danger" testid="revoke-dialog">
-  <Field label={t('revokeReason')}><input bind:value={() => revoking?.reason ?? '', (v) => revoking && (revoking.reason = v)} data-testid="revoke-reason" /></Field>
-  {#snippet footer()}
-    <span class="flex-1"></span>
-    <button class={buttonClass('ghost')} onclick={() => (revoking = null)}>{t('cancel')}</button>
-    <button
-      class={buttonClass('danger')}
-      disabled={busy}
-      data-testid="revoke-confirm"
-      onclick={async () => {
-        if (!revoking) return
-        await request('agent/revoke', { id: revoking.credential.id, reason: revoking.reason.trim() || null })
-        revoking = null
-      }}>{t('revoke')}</button
-    >
+<Confirm bind:open={() => !!revoking, (open) => !open && (revoking = null)} title={t('delegationRevoke')} description={t('delegationWarn')}
+  confirm={t('revoke')} icon="warning" tone="danger" {busy} testid="revoke-dialog" confirmTestid="revoke-confirm"
+  onConfirm={() => createRequest('agent/revoke', { id: revoking!.credential.id, reason: revoking!.reason.trim() || null })}
+  onReview={onReviewRequests}>
+  {#snippet body()}
+    <TextField label={t('revokeReason')} bind:value={() => revoking?.reason ?? '', (v) => revoking && (revoking.reason = v)} data-testid="revoke-reason" />
   {/snippet}
-</Dialog>
+</Confirm>

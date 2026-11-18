@@ -10,8 +10,10 @@
   import { iconButtonClass } from '../components/ui'
   import { toast } from '../components/toast.svelte'
   import { bridge, call, errorText } from '../rpc'
-  import { nameOf } from '../views/channels/names.svelte'
+  import { nameOf, visibleName } from '../views/channels/names.svelte'
   import { focus as fileFocus } from '../views/files/focus.svelte'
+  import { searchLibrary } from '../views/files/search.svelte'
+  import SearchStatus from '../views/files/SearchStatus.svelte'
   import { focus } from '../views/vault/focus.svelte'
   import { workflowText } from '../views/secrets/workflow-text'
   import { isManaged, otpField, typeIcon, typeLabel, typeOf, valueOf, workflowIcon, workflows } from '../views/vault/vault'
@@ -51,6 +53,7 @@
     icon: Glyph
     run: () => unknown
     hint?: string
+    sender?: string
     keywords?: string[]
     checked?: boolean
     /** More to do with it, as a second level. */
@@ -66,33 +69,30 @@
   let items = $state<any[]>([])
   let channels = $state<any[]>([])
   let letters = $state<any[]>([])
-  let files = $state<any[]>([])
   const unlocked = $derived(status?.state === 'unlocked')
   const tokens = $derived(tokensOf(search))
 
   // Read again only when the palette opens or the lock changes, not on every status refresh.
   $effect(() => {
-    items = channels = letters = files = []
+    items = channels = letters = []
     detail = null
     if (!open) {
       search = ''
     } else if (unlocked) {
-      call<any[]>('vault/list').then((list) => open && (items = list)).catch(() => {})
-      call<any[]>('channel/list').then((list) => open && (channels = list)).catch(() => {})
-      call<any[]>('inbox/list', { refresh: false }).then((list) => open && (letters = list)).catch(() => {})
+      let current = true
+      call<any[]>('vault/list').then((list) => current && (items = list)).catch(() => {})
+      call<any[]>('channel/list').then((list) => current && (channels = list)).catch(() => {})
+      call<any[]>('inbox/list', { refresh: false }).then((list) => current && (letters = list)).catch(() => {})
+      return () => { current = false }
     }
   })
 
   // Files are searched in the daemon, a moment after typing stops.
-  $effect(() => {
-    const asked = search.trim()
-    if (!open || !unlocked || detail || asked.length < 2) {
-      files = []
-      return
-    }
-    const timer = setTimeout(() => void call<any[]>('files/search', { query: asked }).then((list) => asked === search.trim() && (files = list)).catch(() => {}), 150)
-    return () => clearTimeout(timer)
+  const fileSearch = searchLibrary(() => {
+    const query = search.trim()
+    return open && unlocked && !detail && query.length >= 2 ? query : null
   })
+  const files = $derived(fileSearch.result.kind === 'ready' ? fileSearch.result.files : [])
 
   /** Settings › About dMsg shows what the check finds. */
   function checkUpdates() {
@@ -142,15 +142,15 @@
     label: letter.text.split('\n')[0] || t('letter'),
     value: `letter:${letter.order_id}`,
     icon: 'inbox',
-    hint: nameOf(letter.sender) || shortId(letter.sender),
-    keywords: [nameOf(letter.sender), letter.sender, letter.text].filter(Boolean),
+    sender: letter.sender,
+    hint: nameOf(letter.sender, 'search') || shortId(letter.sender),
+    keywords: [nameOf(letter.sender, 'search'), letter.sender, letter.text].filter(Boolean),
     run: () => go(`/inbox?open=${letter.order_id}`)
   })))
   const fileEntries = $derived(files.slice(0, GROUP_LIMIT).map((file): Entry => ({
     label: file.name,
     value: `file:${file.id}`,
     icon: 'file',
-    keywords: [search],
     run: () => {
       fileFocus.id = file.id
       go(views.files.path)
@@ -178,7 +178,7 @@
       label: `${t('appearance')}: ${t(appearanceLabel[value])}`,
       icon: value,
       checked: appearance() === value,
-      run: () => setAppearance(value)
+      run: () => setAppearance(value).catch(() => toast(() => t('appearanceFailed')))
     }))
     if (!tokens.length) return [
       { heading: t('goTo'), entries: places },
@@ -190,7 +190,7 @@
       icon: 'language',
       keywords: [code, 'language'],
       checked: locale() === code,
-      run: () => setLocale(code)
+      run: () => setLocale(code).catch(() => toast(() => t('languageFailed')))
     }))
     return [
       { heading: t('vault'), entries: best(vaultEntries, tokens) },
@@ -235,6 +235,7 @@
   }
 
   function onInputKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     const atEnd = input?.selectionStart === search.length
     if (event.key === 'ArrowRight' && !detail && current?.more && atEnd) {
       event.preventDefault()
@@ -280,7 +281,9 @@
         </div>
         <Command.List class="max-h-[min(400px,60vh)] overflow-y-auto p-1.5">
           <Command.Viewport>
-            <Command.Empty class="py-10 text-center text-[13px] text-faint">{t('noResults')}</Command.Empty>
+            {#if fileSearch.result.kind !== 'failed'}
+              <Command.Empty class="py-10 text-center text-[13px] text-faint">{t(fileSearch.result.kind === 'loading' ? 'loading' : 'noResults')}</Command.Empty>
+            {/if}
             {#each groups as group (group.heading)}
               {#if group.entries.length}
                 <Command.Group>
@@ -296,7 +299,7 @@
                         <span class="grid size-6 shrink-0 place-items-center text-faint [&_svg]:size-4.5">
                           <Icon name={entry.icon} class="size-3.5" />
                         </span>
-                        <span class="min-w-0 flex-1 truncate">{entry.label}</span>
+                        <span {@attach visibleName(entry.sender)} class="min-w-0 flex-1 truncate">{entry.label}</span>
                         {#if entry.checked}<Icon name="check" class="size-3.5 text-forest" />{/if}
                         {#if entry.hint}<kbd class="max-w-[40%] truncate font-mono text-[10.5px] text-faint">{entry.hint}</kbd>{/if}
                         {#if entry.more}
@@ -317,12 +320,15 @@
             {/each}
           </Command.Viewport>
         </Command.List>
-        <div class="flex gap-4 border-t border-line bg-surface-2 px-4 py-2 text-[11.5px] text-faint">
-          <span class="inline-flex items-center gap-1.5"><Icon name="arrows" class="size-3.5" />{t('paletteMove')}</span>
-          <span class="inline-flex items-center gap-1.5"><Icon name="enter" class="size-3.5" />{t('paletteRun')}</span>
-          {#if current?.more}<span class="inline-flex items-center gap-1.5"><kbd class="font-mono text-[11px]">→</kbd>{t('paletteMore')}</span>{/if}
-        </div>
       </Command.Root>
+      {#if fileSearch.result.kind === 'failed'}
+        <div class="px-3 py-2"><SearchStatus search={fileSearch} empty="" /></div>
+      {/if}
+      <div class="flex gap-4 border-t border-line bg-surface-2 px-4 py-2 text-[11.5px] text-faint">
+        <span class="inline-flex items-center gap-1.5"><Icon name="arrows" class="size-3.5" />{t('paletteMove')}</span>
+        <span class="inline-flex items-center gap-1.5"><Icon name="enter" class="size-3.5" />{t('paletteRun')}</span>
+        {#if current?.more}<span class="inline-flex items-center gap-1.5"><kbd class="font-mono text-[11px]">→</kbd>{t('paletteMore')}</span>{/if}
+      </div>
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>

@@ -13,6 +13,7 @@
   import PaneHandle from '../components/PaneHandle.svelte'
   import Progress from '../components/Progress.svelte'
   import Select from '../components/Select.svelte'
+  import TextField from '../components/TextField.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
@@ -27,6 +28,8 @@
   import Detail from './files/Detail.svelte'
   import { ancestorsOf, isSort, matchesFile, ordered, ROOT, runsAsProgram, sortKeys, statusOf, type Sort, type SortKey } from './files/files'
   import FolderDetail from './files/FolderDetail.svelte'
+  import SearchStatus from './files/SearchStatus.svelte'
+  import { searchLibrary } from './files/search.svelte'
   import { focus } from './files/focus.svelte'
   import FolderPicker from './files/FolderPicker.svelte'
   import GrantDialog from './files/GrantDialog.svelte'
@@ -55,7 +58,6 @@
   let folders = $state<any[]>([])
   let tags = $state<{ tag: string; files: number }[]>([])
   let listing = $state<{ folder: any; folders: any[]; files: any[] } | null>(null)
-  let found = $state<any[] | null>(null)
   let trashListing = $state<{ folders: any[]; files: any[] } | null>(null)
   let cloud = $state<any[]>([])
   let cloudLoaded = $state(false)
@@ -123,6 +125,12 @@
   const unlocked = $derived(status?.state === 'unlocked')
   const tag = $derived(scope.startsWith('tag:') ? scope.slice(4) : null)
   const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'links' && scope !== 'requests' && !tag)
+  // Search this folder first. A miss asks the daemon for matches across the library.
+  const searchResults = searchLibrary(() => {
+    const q = query.trim()
+    return unlocked && folderScope && q && !listing?.files.some((f) => matchesFile(f, q)) ? q : null
+  })
+  const found = $derived(searchResults.result.kind === 'ready' ? searchResults.result.files : null)
   const names = $derived(Object.fromEntries((listing?.files ?? []).concat(found ?? []).map((f: any) => [f.id, f.name])))
   const cloudNames = $derived(Object.fromEntries(cloud.map((e) => [e.upload_id, e.name])))
   /** Rows from across the library show where they lie. */
@@ -199,7 +207,6 @@
   function pick(next: string) {
     scope = next
     query = ''
-    found = null
     selected = []
     anchor = null
     trashOpened = null
@@ -323,17 +330,6 @@
     return () => observer.disconnect()
   })
 
-  // The folder's own matches first; a search across the library once the text leaves this folder's names.
-  $effect(() => {
-    const q = query.trim()
-    if (!q || !folderScope || listing?.files.some((f) => matchesFile(f, q))) {
-      found = null
-      return
-    }
-    const timer = setTimeout(() => void call<any[]>('files/search', { query: q }).then((list) => q === query.trim() && (found = list)).catch(() => (found = [])), 150)
-    return () => clearTimeout(timer)
-  })
-
   $effect(() => void showDetails(currentId))
   $effect(() => void showTrashed(trashOpened))
 
@@ -399,6 +395,7 @@
    * selection; typing in a field or a dialog keeps its keys.
    */
   function onKey(event: KeyboardEvent) {
+    if (event.isComposing) return
     const target = event.target instanceof HTMLElement ? event.target : null
     const typing = !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
     const overlay = !!document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')
@@ -557,20 +554,23 @@
     else trash([folder.id])
   }
 
-  const createFolder = () =>
-    attempt(async () => {
-      const name = draft.trim()
-      if (!name || !naming) return
-      await call('files/mkdir', { parent: naming.parent, name })
-      naming = null
+  function createFolder() {
+    const name = draft.trim(), dialog = naming
+    if (busy || !name || !dialog) return
+    return attempt(async () => {
+      await call('files/mkdir', { parent: dialog.parent, name })
+      if (naming === dialog) naming = null
     })
-  const rename = () =>
-    attempt(async () => {
-      const name = draft.trim()
-      if (!name || !renaming) return
-      await call('files/rename', { id: renaming.id, name })
-      renaming = null
+  }
+
+  function rename() {
+    const name = draft.trim(), dialog = renaming
+    if (busy || !name || !dialog || name === dialog.name) return
+    return attempt(async () => {
+      await call('files/rename', { id: dialog.id, name })
+      if (renaming === dialog) renaming = null
     })
+  }
 
   /**
    * Backing up shows what goes and the cloud's room first; nothing is
@@ -1001,13 +1001,13 @@
             />
           {:else}
             {#if loaded}
-              <li class="grid justify-items-center gap-2 px-4 py-10 text-center" data-testid="files-empty">
+              <li class="grid gap-2 px-4 py-10 text-center" data-testid={searchResults.result.kind === 'failed' || searchResults.result.kind === 'loading' ? undefined : 'files-empty'}>
                 {#if query}
-                  <p class="text-[13px] text-muted [overflow-wrap:anywhere]">{t('noFilesMatch', { query })}</p>
+                  <SearchStatus search={searchResults} empty={t('noFilesMatch', { query })} />
                 {:else if !folderScope}
                   <p class="text-[13px] text-muted">{t('noItems')}</p>
                 {:else}
-                  <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="folder-open" /></span>
+                  <span class="grid size-11 place-items-center justify-self-center text-faint [&_svg]:size-6"><Icon name="folder-open" /></span>
                   <b class="text-[13.5px] font-semibold">{scope === ROOT && !folders.length ? t('emptyLibrary') : t('emptyFolder')}</b>
                   <p class="text-[12.5px] text-muted">{t('emptyFolderHint')}</p>
                 {/if}
@@ -1106,10 +1106,7 @@
 </Dialog>
 
 <Dialog bind:open={() => !!naming, (next) => !next && (naming = null)} title={t('newFolder')} icon="folder-add" testid="files-new-folder-dialog">
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div onkeydown={(event) => event.key === 'Enter' && createFolder()}>
-    <label class="grid gap-1 text-[12px] text-faint">{t('folderName')}<input bind:value={draft} class="text-[13.5px] text-ink" data-testid="files-folder-name" /></label>
-  </div>
+  <TextField label={t('folderName')} bind:value={draft} disabled={busy} onkeydown={(e) => !e.isComposing && e.key === 'Enter' && createFolder()} data-testid="files-folder-name" />
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (naming = null)}>{t('cancel')}</button>
@@ -1118,10 +1115,7 @@
 </Dialog>
 
 <Dialog bind:open={() => !!renaming, (next) => !next && (renaming = null)} title={t('renameFile')} description={renaming?.name} icon="edit" testid="files-rename-dialog">
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div onkeydown={(event) => event.key === 'Enter' && rename()}>
-    <label class="grid gap-1 text-[12px] text-faint">{t('newName')}<input bind:value={draft} class="text-[13.5px] text-ink" data-testid="files-rename-input" /></label>
-  </div>
+  <TextField label={t('newName')} bind:value={draft} disabled={busy} onkeydown={(e) => !e.isComposing && e.key === 'Enter' && rename()} data-testid="files-rename-input" />
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (renaming = null)}>{t('cancel')}</button>

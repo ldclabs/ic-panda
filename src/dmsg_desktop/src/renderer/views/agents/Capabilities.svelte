@@ -10,7 +10,7 @@
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { when } from '../../rpc'
+  import { call, when } from '../../rpc'
   import { grantState, matrix, serviceOrigins, sensitive, services, unknownCapabilities } from './agents'
 
   /**
@@ -26,13 +26,15 @@
     grants,
     unlocked,
     busy,
-    run
+    run, attempt, onReview
   }: {
     hosted: any
     grants: any[]
     unlocked: boolean
     busy: boolean
-    run: (method: string, params?: Record<string, unknown>) => Promise<void>
+    run: (method: string, params?: Record<string, unknown>) => Promise<boolean>
+    attempt: (work: () => Promise<unknown>) => Promise<boolean>
+    onReview: () => Promise<void>
   } = $props()
 
   let grantee = $state('')
@@ -89,14 +91,14 @@
   }
 
   async function grant() {
-    await run('grants/add', { agent: grantee, capabilities: chosen, days: days ? Number(days) : null })
+    await call('grants/add', { agent: grantee, capabilities: chosen, days: days ? Number(days) : null })
     ticked = {}
     others = []
     asking = null
     target = ''
   }
 
-  const submit = () => (wide.length ? (confirming = true) : grant())
+  const submit = () => (wide.length ? (confirming = true) : attempt(grant))
 </script>
 
 {#snippet cell(origins: string[] | undefined)}
@@ -205,8 +207,7 @@
           <div
             class="flex flex-wrap items-start gap-2 rounded-lg bg-surface-2/60 p-3"
             onkeydown={(event) => {
-              if (event.key === 'Enter') { event.preventDefault(); addFilled() }
-              else if (event.key === 'Escape') { event.stopPropagation(); asking = null }
+              if (!event.isComposing && event.key === 'Escape') { event.stopPropagation(); asking = null }
             }}
             data-testid="grant-parameter"
           >
@@ -217,6 +218,9 @@
               mono
               autofocus
               spellcheck={false}
+              onkeydown={(event) => {
+                if (!event.isComposing && event.key === 'Enter') { event.preventDefault(); addFilled() }
+              }}
               error={refused ? t('unknownCapabilities', { list: filled }) : undefined}
               class="min-w-48 flex-1"
               data-testid="grant-target"
@@ -293,6 +297,7 @@
   {busy}
   testid="grant-confirm-dialog"
   onConfirm={grant}
+  {onReview}
 >
   {#snippet body()}
     <div class="flex flex-wrap gap-1">{#each wide as capability (capability)}<Pill tone="warn" class="font-mono font-normal">{capability}</Pill>{/each}</div>
