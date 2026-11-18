@@ -14,8 +14,10 @@ class ReadStore<T>(private val empty: (T) -> Boolean = { false }) {
         mutable.value = ReadState.Loading(if (keep) value() else null)
         return next
     }
-    fun accept(request: Long, value: T) {
-        if (request == revision) mutable.value = if (empty(value)) ReadState.Empty(value) else ReadState.Ready(value)
+    fun accept(request: Long, value: T): Boolean {
+        if (request != revision) return false
+        mutable.value = if (empty(value)) ReadState.Empty(value) else ReadState.Ready(value)
+        return true
     }
     fun fail(request: Long, code: String) {
         if (request != revision) return

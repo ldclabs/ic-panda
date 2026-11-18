@@ -1,23 +1,46 @@
 package net.dmsg.android.platform
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.util.Base64
+import java.io.IOException
+import java.nio.ByteBuffer
 
-/** Decode core-produced image bytes within a fixed source and display budget. */
+/** Decode oriented images within a fixed source and display budget. */
 object BoundedImages {
     fun thumbnail(encoded: String, edge: Int = 320): Bitmap? {
-        require(edge in 1..1600)
         if (encoded.length > 12 * 1024 * 1024) return null
         val bytes = Base64.decode(encoded, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-        try {
-            if (bytes.size > 8 * 1024 * 1024) return null
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || bounds.outWidth.toLong() * bounds.outHeight > 40_000_000) return null
-            var sample = 1
-            while (bounds.outWidth / sample > edge || bounds.outHeight / sample > edge) sample *= 2
-            return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
-        } finally { bytes.fill(0) }
+        return try { thumbnail(bytes, edge) } finally { bytes.fill(0) }
+    }
+
+    fun thumbnail(bytes: ByteArray, edge: Int): Bitmap? {
+        if (bytes.isEmpty() || bytes.size > 8 * 1024 * 1024) return null
+        return preview(ImageDecoder.createSource(ByteBuffer.wrap(bytes)), edge)
+    }
+
+    fun preview(source: ImageDecoder.Source, edge: Int): Bitmap? = try {
+        decode(source, edge)
+    } catch (_: IOException) {
+        null
+    } catch (_: IllegalStateException) {
+        null
+    }
+
+    fun decode(bytes: ByteArray, edge: Int): Bitmap {
+        check(bytes.size <= 8 * 1024 * 1024) { "FILE_LIMIT" }
+        return decode(ImageDecoder.createSource(ByteBuffer.wrap(bytes)), edge)
+    }
+
+    fun decode(source: ImageDecoder.Source, edge: Int): Bitmap {
+        require(edge in 1..1600)
+        return ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+            val width = info.size.width
+            val height = info.size.height
+            check(width > 0 && height > 0 && width.toLong() * height <= 40_000_000) { "FILE_LIMIT" }
+            val scale = minOf(1.0, edge.toDouble() / maxOf(width, height))
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            decoder.setTargetSize(maxOf(1, (width * scale).toInt()), maxOf(1, (height * scale).toInt()))
+        }
     }
 }

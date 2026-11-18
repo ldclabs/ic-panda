@@ -25,7 +25,8 @@ class SystemExportsCoordinator(private val client: ClientController, private val
     val failure = failureValue.asStateFlow()
     @Volatile private var generation = 0L
     private var timer: Job? = null
-    var more = false; private set
+    private var nextLoginOffset: UInt? = null
+    val more get() = nextLoginOffset != null
     private var query = ""
     fun start() {
         if (timer?.isActive == true) return
@@ -45,10 +46,14 @@ class SystemExportsCoordinator(private val client: ClientController, private val
         }
     }
     fun browseLogins(search: String = query, next: Boolean = false) {
-        val previous = if (next && search == query) logins.value().orEmpty() else emptyList()
+        if (next && (search != query || logins.state.value is ReadState.Loading)) return
+        val offset = if (next) nextLoginOffset ?: return else 0u
+        val previous = if (next) logins.value().orEmpty() else emptyList()
+        if (!next) nextLoginOffset = null
         query = search; val request = logins.begin(next)
-        client.perform({ it.vaultPage(search, "login", false, previous.size.toUInt(), 60u) }, key = "exports:logins", replace = true, quiet = true, onError = { logins.fail(request, it) }) {
-            more = it.hasMore; logins.accept(request, (previous + it.items.filter { item -> !item.reserved }).distinctBy { item -> item.id })
+        client.perform({ it.vaultPage(search, "login", false, offset, 60u) }, key = "exports:logins", replace = true, quiet = true, onError = { logins.fail(request, it) }) { page ->
+            nextLoginOffset = if (page.hasMore) offset + page.items.size.toUInt() else null
+            logins.accept(request, (previous + page.items.filter { !it.reserved }).distinctBy { it.id })
         }
     }
     fun toggle(item: VaultItem) {
@@ -158,6 +163,6 @@ class SystemExportsCoordinator(private val client: ClientController, private val
     }
     fun clear() {
         generation++; timer?.cancel(); timer = null; ExportFileAccess.lock()
-        status.reset(); logins.reset(); fileChoices.reset(); chosenValue.value = emptyList(); filesValue.value = emptyList(); failureValue.value = null; onlyValue.value = false; more = false; query = ""
+        status.reset(); logins.reset(); fileChoices.reset(); chosenValue.value = emptyList(); filesValue.value = emptyList(); failureValue.value = null; onlyValue.value = false; nextLoginOffset = null; query = ""
     }
 }

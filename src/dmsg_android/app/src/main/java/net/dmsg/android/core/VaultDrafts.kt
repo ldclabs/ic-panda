@@ -20,9 +20,14 @@ data class VaultDraft(val id: String?, val revision: String?, val title: String,
     val key: String get() = id ?: "new"
     fun edit(): VaultEdit = VaultEdit(title.trim(), kind, notes, favorite,
         tags.split(',').map(String::trim).filter(String::isNotEmpty).distinct(), fields.map { it.edit() }, files)
-    fun switchKind(kind: String, template: List<VaultField>): VaultDraft {
-        val keep = fields.filter { it.changed || it.value.isNotEmpty() || it.label.isNotEmpty() || it.section.isNotEmpty() || template.any { next -> next.id == it.id } }
-        return copy(kind = kind, fields = keep + template.filter { field -> keep.none { it.id == field.id } }.map { it.draft(id == null) })
+    fun switchKind(kind: String, templateFor: (String) -> List<VaultField> = ::vaultTemplate): VaultDraft {
+        if (id != null || kind == this.kind) return this
+        val oldDefaults = templateFor(this.kind).associate { it.id to it.draft(true) }
+        val template = templateFor(kind)
+        val keep = fields.filter { field ->
+            field.copy(changed = true) != oldDefaults[field.id] || template.any { it.id == field.id && it.kind == field.kind }
+        }
+        return copy(kind = kind, fields = keep + template.filter { field -> keep.none { it.id == field.id } }.map { it.draft(true) })
     }
     fun newField(kind: String): VaultDraft = copy(fields = fields + DraftField("field_" + UUID.randomUUID().toString().replace("-", ""), kind, "", "", "", true, kind in listOf("concealed", "otp")))
     fun field(id: String, change: (DraftField) -> DraftField): VaultDraft = copy(fields = fields.map { if (it.id == id) change(it) else it })

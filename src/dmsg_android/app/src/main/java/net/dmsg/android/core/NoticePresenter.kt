@@ -62,8 +62,7 @@ class NoticePresenter(private val client: ClientController, private val context:
             client.notifications.status()
             val wait = batch.nextDue?.let { (it.coerceAtMost(Long.MAX_VALUE.toULong()).toLong() - System.currentTimeMillis()).coerceIn(250, 60_000) } ?: 60_000
             schedule(wait)
-            // Let ClientController release this operation's slot first.
-            if (again) { again = false; scope.launch { yield(); if (active) refresh() } }
+            if (again) { again = false; if (active) refresh() }
         }
     }
     private fun previewPermits(plan: NoticeDelivery): Boolean {

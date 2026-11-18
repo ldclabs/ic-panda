@@ -9,6 +9,14 @@ import net.dmsg.core.*
 import kotlinx.serialization.json.*
 
 data class MessageTimeline(val channel: String, val query: String, val items: List<MessageItem>, val hasMore: Boolean, val before: ULong?)
+internal fun MessageTimeline.withPage(page: MessagePage, older: Boolean): MessageTimeline {
+    if (older) return copy(items = (page.items + items).distinctBy { it.id }.sortedBy { it.sequence }, hasMore = page.hasMore, before = page.nextBefore)
+    val first = page.items.firstOrNull()?.sequence
+    val previous = if (query.isBlank() && page.hasMore && first != null && items.lastOrNull()?.let { it.sequence >= first } == true)
+        items.takeWhile { it.sequence < first } else emptyList()
+    return if (previous.isEmpty()) copy(items = page.items, hasMore = page.hasMore, before = page.nextBefore)
+    else copy(items = previous + page.items)
+}
 data class ChannelMatches(val channel: String, val items: List<MessageItem>, val before: ULong?)
 data class MessageOutbox(val channel: String, val items: List<OutgoingMessage>)
 data class ComposerReply(val sequence: ULong, val digest: String, val preview: String? = null)
@@ -25,6 +33,7 @@ fun parseMessageComposers(value: JsonElement): Map<String, MessageComposer> = va
 }
 
 internal fun remainingComposer(queued: MessageComposer, current: MessageComposer) = current.copy(
+    text = if (current.text == queued.text) "" else current.text,
     attachments = current.attachments.filterNot { file -> queued.attachments.any { it.file == file.file && it.version == file.version } },
     reply = current.reply.takeUnless { it?.sequence == queued.reply?.sequence && it?.digest == queued.reply?.digest },
 )
@@ -48,7 +57,6 @@ class MessageCoordinator(private val client: ClientController, private val scope
     private data class PendingQueue(val value: MessageComposer, val authored: DraftLedger.Draft)
     private val pendingQueues = mutableMapOf<String, PendingQueue>()
     private var selected: String? = null
-    private var refreshing = false
     private var refreshAgain = false
     var query = ""
         private set
@@ -66,6 +74,15 @@ class MessageCoordinator(private val client: ClientController, private val scope
     private val directoryText = MutableStateFlow("")
     val directoryQuery = directoryText.asStateFlow()
     val matches = ReadStore<List<ChannelMatches>> { it.isEmpty() }
+    private val searchRevision = MutableStateFlow(0L)
+    val directoryRevision = searchRevision.asStateFlow()
+
+    private fun invalidateDirectory() {
+        if (directoryText.value.isBlank()) return
+        client.cancelOperation("message:directory")
+        matches.reset()
+        searchRevision.value++
+    }
 
     fun editDirectoryQuery(text: String) {
         if (text == directoryText.value) return
@@ -175,8 +192,8 @@ class MessageCoordinator(private val client: ClientController, private val scope
             else if (search.isBlank()) core.messages(channel, null, 100u)
             else core.searchMessagesPage(channel, search, if (more) previous?.before else null)
         }, key = "message:timeline", replace = true, quiet = true, onError = { timeline.fail(request, it) }) { page ->
-            val items = if (previous == null) page.items else (page.items + previous.items).distinctBy { it.id }.sortedBy { it.sequence }
-            timeline.accept(request, MessageTimeline(channel, search, items, if (preserveLoaded && previous != null) previous.hasMore else page.hasMore, if (preserveLoaded && previous != null) previous.before else page.nextBefore))
+            val updated = previous?.withPage(page, older = more) ?: MessageTimeline(channel, search, page.items, page.hasMore, page.nextBefore)
+            timeline.accept(request, updated)
         }
         val outgoing = outbox.begin(keep = same)
         client.perform({ MessageOutbox(channel, it.outbox(channel).items) }, key = "message:outbox", replace = true,
@@ -187,28 +204,26 @@ class MessageCoordinator(private val client: ClientController, private val scope
     fun refresh(channel: String? = selected) {
         channel ?: return
         val stamp = client.currentStamp()?.takeIf(client::accepts) ?: return
-        if (refreshing) { refreshAgain = true; return }
-        refreshing = true
+        if (client.isWorking("message:refresh")) { refreshAgain = true; return }
+        refreshAgain = false
         fun finished() {
-            refreshing = false
             if (refreshAgain) {
                 refreshAgain = false
-                // The completion callback still owns message:refresh until it returns.
-                scope.launch { yield(); if (client.accepts(stamp)) refresh(selected) }
+                if (client.accepts(stamp)) refresh(selected)
             }
         }
         client.perform({ core -> client.operation { core.refreshChannel(channel, it) } }, key = "message:refresh",
             onError = { finished() }) {
             if (selected == channel) load(channel, false, preserveLoaded = true)
-            browse(); finished()
+            invalidateDirectory(); browse(); finished()
         }
     }
 
-    fun hint(channel: String?) { browse(); if (channel == selected) refresh(channel) }
-    fun reload() { browse(); selected?.let { load(it, false) } }
+    fun hint(channel: String?) { invalidateDirectory(); browse(); if (channel == selected) refresh(channel) }
+    fun reload() { invalidateDirectory(); browse(); selected?.let { load(it, false) } }
     fun search(text: String) { selected?.let { load(it, false, text) } }
     fun older() { selected?.let { load(it, false, more = true) } }
-    fun markVisible(channel: String, through: ULong) = client.perform({ it.markRead(channel, through) }, key = "message:read:" + channel) { browse() }
+    fun markVisible(channel: String, through: ULong) = client.perform({ it.markRead(channel, through) }, key = "message:read:" + channel, replace = true) { browse() }
 
     fun send(channel: String) {
         val key = "message:queue:" + channel
@@ -236,7 +251,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
     fun retry(channel: String, id: String) = client.perform({ core -> client.operation { core.sendMessage(channel, id, it) } },
         key = "message:send:" + id, serial = deliveryTurns.getOrPut(channel) { Mutex() }, onError = { if (selected == channel) load(channel, false, preserveLoaded = true) }) {
             if (selected == channel) load(channel, false, preserveLoaded = true)
-            browse()
+            invalidateDirectory(); browse()
         }
     internal fun restore(account: String, input: MessageDraft) {
         if (ledger.text(account, input.channel) != null) return
@@ -248,7 +263,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
 
     fun pending(account: String) = ledger.pending(account)
     fun saved(draft: DraftLedger.Draft) = ledger.saved(draft)
-    fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); refreshing = false; refreshAgain = false }
+    fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); refreshAgain = false }
     fun clear(account: String?, retainDrafts: Boolean = false) {
         suspend(); matches.reset(); directoryText.value = ""; channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
         if (!retainDrafts) { account?.let(ledger::clear); mutableComposers.value = emptyMap(); readyValue.value = false; pendingQueues.clear(); selected = null; query = "" }

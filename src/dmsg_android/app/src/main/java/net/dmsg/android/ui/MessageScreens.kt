@@ -37,15 +37,16 @@ import net.dmsg.core.MessageItem
     val drafts by client.messages.composers.collectAsStateWithLifecycle()
     val search by client.messages.directoryQuery.collectAsStateWithLifecycle()
     val matches by client.messages.matches.state.collectAsStateWithLifecycle()
+    val revision by client.messages.directoryRevision.collectAsStateWithLifecycle()
     val blocks by client.safety.blocked.state.collectAsStateWithLifecycle()
     val channels = listing.valueOrNull().orEmpty()
-    val ids = channels.map { it.id }
+    val ids = remember(channels) { channels.map { it.id } }
     val blocked = blocks.valueOrNull()?.takeIf { blocks is ReadState.Ready || blocks is ReadState.Empty }
     val query = search.trim()
     val tooLong = query.codePointCount(0, query.length) > 200
     val matchingChannels = channels.filter { query.isEmpty() || it.name.contains(query, true) }
     LaunchedEffect(state.epoch) { client.messages.browse(); client.safety.loadBlocks() }
-    LaunchedEffect(search, ids, blocked, selected, state.epoch) {
+    LaunchedEffect(search, ids, blocked, selected, state.epoch, revision) {
         if (selected.isEmpty() && blocked != null) client.messages.searchDirectory(search, ids, blocked)
     }
     if (selected.isEmpty()) LazyColumn(Modifier.fillMaxSize(), state = workspaceListState(client.navigation, "messages:list"), contentPadding = PaddingValues(20.dp)) {
@@ -135,10 +136,18 @@ import net.dmsg.core.MessageItem
     var visibleThrough by remember(channel) { mutableStateOf<ULong?>(null) }
     DisposableEffect(channel) { onDispose { noticeActive = false; client.notifications.hide(noticeOwner) } }
     val currentTimeline = timeline.valueOrNull()?.takeIf { it.channel == channel && it.query == search }
-    val rows = currentTimeline?.items.orEmpty().filter { blocked.valueOrNull()?.contains(it.account) == false }
+    val blockedAccounts = blocked.valueOrNull()
+    val rows = remember(currentTimeline, blockedAccounts) { currentTimeline?.items.orEmpty().filter { blockedAccounts?.contains(it.account) == false } }
+    val sequences = remember(rows) { rows.associate { "message:" + it.id to it.sequence } }
+    val firstUnread = remember(rows, info?.readThrough) { rows.firstOrNull { it.sequence > (info?.readThrough ?: 0u) }?.id }
     LaunchedEffect(channel, state.epoch) { client.safety.loadBlocks(); client.messages.load(channel, search = "") }
     LaunchedEffect(channel, rows, search, noticeFocused, timeline is ReadState.Ready, state.unlocked, state.concealed) {
-        if (search.isBlank()) snapshotFlow { scroll.layoutInfo.visibleItemsInfo.mapNotNull { visible -> rows.find { visible.key == "message:" + it.id }?.sequence }.maxOrNull() }
+        if (search.isNotBlank()) {
+            visibleThrough = null
+            client.notifications.hide(noticeOwner)
+            return@LaunchedEffect
+        }
+        snapshotFlow { scroll.layoutInfo.visibleItemsInfo.mapNotNull { visible -> sequences[visible.key] }.maxOrNull() }
             .distinctUntilChanged().collect { through ->
                 if (through != null && noticeFocused && state.unlocked && !state.concealed && timeline is ReadState.Ready) {
                     if (through > (info?.readThrough ?: 0u)) client.messages.markVisible(channel, through)
@@ -168,7 +177,7 @@ import net.dmsg.core.MessageItem
                 val day = messageDay(message.createdAtMs)
                 if (previous == null || messageDay(previous.createdAtMs) != day) Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(day, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
-                    if (message.sequence > (info?.readThrough ?: 0u) && rows.firstOrNull { it.sequence > (info?.readThrough ?: 0u) }?.id == message.id) Text(str(R.string.text_unread_messages_15b52a0), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    if (message.id == firstUnread) Text(str(R.string.text_unread_messages_15b52a0), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     if (previous?.account != message.account || messageDay(previous?.createdAtMs) != day) ParticipantIdentity(client, message.account, avatar = false)
                     Surface(Modifier.widthIn(max = 440.dp).combinedClickable(onClick = {}, onLongClick = { action = message }), shape = RoundedCornerShape(18.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer) {
                         Column(Modifier.padding(14.dp)) {
@@ -176,7 +185,7 @@ import net.dmsg.core.MessageItem
                                 TextButton(onClick = { client.navigation.push(Route("message-reference", channel = channel, sequence = sequence)) }) {
                                     Column { Text(str(R.string.text_reply_to_4ac60e6) + sequence, style = MaterialTheme.typography.labelSmall)
                                         val original = rows.find { it.sequence == sequence }
-                                        Text(original?.takeIf { !it.unreadable && !it.retracted }?.let { it.text.ifBlank { it.attachmentName.orEmpty() } } ?: str(R.string.text_view_original_message_a5b610b), maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                                        Text(original?.takeIf { !it.hidden && !it.unreadable && !it.retracted }?.let { it.text.ifBlank { if (it.attachmentDeleted) "" else it.attachmentName.orEmpty() } }?.takeIf(String::isNotBlank) ?: str(R.string.text_view_original_message_a5b610b), maxLines = 2, overflow = TextOverflow.Ellipsis) }
                                 }
                             }
                             Text(when { message.unreadable -> str(R.string.text_this_message_cannot_be_verified_or_opened_0021683)
@@ -279,7 +288,7 @@ internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms 
                 ParticipantIdentity(client, shown.account, showId = true)
                 Text(messageTime(shown.createdAtMs), style = MaterialTheme.typography.labelSmall)
                 SelectionContainer { Text(shown.text) }
-                shown.attachmentName?.let { Text(it) }
+                if (!shown.attachmentDeleted) shown.attachmentName?.let { Text(it) }
                 if (shown.edited) Text(str(R.string.text_edited_91efa39))
                 TextButton(onClick = { client.clipboard.copy(shown.text) }, enabled = shown.text.isNotEmpty()) { Text(str(R.string.text_copy_d6e9651)) }
             }

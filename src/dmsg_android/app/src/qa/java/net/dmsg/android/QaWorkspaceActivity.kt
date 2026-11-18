@@ -52,7 +52,12 @@ class QaWorkspaceModel(application: Application) : AndroidViewModel(application)
                     else -> field.value
                 }) }, item.files))
         }
-    }.apply { automaticSync(false); start() }
+    }
+
+    init {
+        client.start()
+        cleanup.launch { client.state.first { it.unlocked }; client.automaticSync(false) }
+    }
 
     /** Standalone real-clock profiling, never enabled in an ordinary APK. */
     fun seedScale() {

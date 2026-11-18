@@ -27,14 +27,14 @@ class FeedbackCoordinator(private val client: ClientController) {
         val request = report.begin()
         client.perform({ parseFeedback(it.feedback().decode()) }, key = "feedback:read", replace = true,
             onError = { report.fail(request, it) }) { value ->
-            report.accept(request, value)
+            if (!report.accept(request, value)) return@perform
             if (!dirty) mutable.value = if (value == null) FeedbackDraftInput(requestId(), 0u, "", "dMsg ${BuildConfig.VERSION_NAME} · Android ${android.os.Build.VERSION.RELEASE}", emptyList())
             else FeedbackDraftInput(value.id, value.revision, value.text, value.context, value.screenshots.map { it.file })
         }
     }
     fun update(value: FeedbackDraftInput) {
         client.activity()
-        if (client.isWorking("feedback:send") || report.value()?.state?.let { it != "draft" } == true) return
+        if (client.isWorking("feedback:send") || client.isWorking("feedback:discard") || report.value()?.state?.let { it != "draft" } == true) return
         mutable.value = value; dirty = true
         client.perform({ core ->
             val current = parseFeedback(core.feedback().decode())
@@ -47,14 +47,22 @@ class FeedbackCoordinator(private val client: ClientController) {
     }
     fun send() {
         val value = mutable.value ?: return
+        if (client.isWorking("feedback:discard")) return
         client.perform({ core ->
             val current = parseFeedback(core.feedback().decode())
+            check(current == null || current.id == value.id) { "VERSION_CONFLICT" }
             val saved = if (current?.state == "draft" || current == null) parseFeedback(core.saveFeedback(value.copy(revision = current?.revision ?: 0u)).decode())!! else current
             client.operation { core.sendFeedback(saved.id, saved.revision, it) }
         }, key = "feedback:send", serial = turn, onError = { load() }) { dirty = false; load() }
     }
     fun edit() { val id = report.value()?.id ?: return; client.perform({ it.editFeedback(id) }, key = "feedback:edit", serial = turn) { load() } }
-    fun discard() { val value = report.value() ?: return; dirty = false; client.perform({ it.clearFeedback(value.id, value.revision) }, key = "feedback:discard", serial = turn) { dirty = false; mutable.value = null; load() } }
+    fun discard() {
+        val value = report.value() ?: return
+        if (client.isWorking("feedback:send")) return
+        client.perform({ it.clearFeedback(value.id, value.revision) }, key = "feedback:discard", serial = turn, onError = { load() }) {
+            dirty = false; mutable.value = null; load()
+        }
+    }
     internal fun restore(input: FeedbackDraftInput) {
         if (!dirty) { mutable.value = input; dirty = true }
     }

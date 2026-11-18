@@ -3,6 +3,7 @@ package net.dmsg.android.ui
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -33,8 +34,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.*
-import net.dmsg.android.platform.QrImages
+import net.dmsg.android.core.ClientController
+import net.dmsg.android.core.QrRequest
+import net.dmsg.android.core.QrStep
 import net.dmsg.core.qrPng
 import net.dmsg.core.scanQrLuma
 import java.util.concurrent.Executors
@@ -56,11 +60,35 @@ import java.util.concurrent.atomic.AtomicBoolean
         ?: Notice(str(R.string.text_the_text_is_available_to_copy_while_the_qr_code_is_prepared_large_bc7825e))
 }
 
-@Composable fun QrScanner(requestPermission: Boolean, beforePermission: () -> Unit, readImage: () -> Unit, close: () -> Unit, decoded: (String) -> Unit) {
+/** Keep the launcher registered while its scanner is concealed or reading the selected image. */
+@Composable internal fun QrScannerHost(client: ClientController, concealed: Boolean) {
+    val state by client.qr.state.collectAsStateWithLifecycle()
+    val request = state as? QrRequest ?: return
+    val context = LocalContext.current
+    key(client, request.id) {
+        val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            client.qr.image(context, request.id, uri)
+        }
+        if (request.scanning && !concealed) {
+            QrScanner(requestPermission = request.step == QrStep.CAMERA, beforePermission = { client.qr.permission(request.id) },
+                readImage = {
+                    if (client.qr.chooseImage(request.id)) {
+                        try { picker.launch(arrayOf("image/*")) }
+                        catch (_: ActivityNotFoundException) {
+                            client.qr.image(context, request.id, null)
+                            client.showError("FILE_UNAVAILABLE")
+                        }
+                    }
+                }, close = client.qr::clear, decoded = { client.qr.cameraResult(request.id, it) })
+        }
+    }
+}
+
+@Composable private fun QrScanner(requestPermission: Boolean, beforePermission: () -> Unit, readImage: () -> Unit, close: () -> Unit, decoded: (String) -> Unit) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
     var allowed by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
-    var failure by remember { mutableStateOf<String?>(null) }
+    var cameraUnavailable by remember { mutableStateOf(false) }
     var front by remember { mutableStateOf(false) }
     val receive by rememberUpdatedState(decoded)
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { allowed = it }
@@ -109,10 +137,13 @@ import java.util.concurrent.atomic.AtomicBoolean
                                     for (y in 0 until height) for (x in 0 until width) pixels[y * width + x] = buffer.get(origin + y * plane.rowStride + x * plane.pixelStride)
                                     runCatching { scanQrLuma(width.toUInt(), height.toUInt(), pixels) }.getOrNull()
                                 } finally { pixels.fill(0) }
-                                if (found != null && alive.get() && accepted.compareAndSet(false, true)) main.execute { if (alive.get() && lifecycle.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) receive(found) }
+                                if (found != null && alive.get() && accepted.compareAndSet(false, true)) main.execute {
+                                    if (alive.get() && lifecycle.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) receive(found)
+                                    else accepted.set(false)
+                                }
                             } finally { frame.close() }
                         }
-                        runCatching { controller.bindToLifecycle(lifecycle) }.onFailure { failure = "CAMERA_UNAVAILABLE" }
+                        cameraUnavailable = runCatching { controller.bindToLifecycle(lifecycle) }.isFailure
                         onDispose { alive.set(false); controller.clearImageAnalysisAnalyzer(); controller.unbind(); executor.shutdownNow() }
                     }
                     AndroidView(factory = { PreviewView(it).apply { implementationMode = PreviewView.ImplementationMode.COMPATIBLE; this.controller = controller } }, update = { it.controller = controller }, modifier = Modifier.fillMaxWidth().weight(1f))
@@ -122,7 +153,7 @@ import java.util.concurrent.atomic.AtomicBoolean
                         TextButton(onClick = { beforePermission(); context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName))) }) { Text(str(R.string.text_open_settings_214dbbf)) }
                     }
                 }
-                failure?.let { Notice(if (it == "QR_NOT_FOUND") str(R.string.text_no_readable_qr_code_was_found_try_a_clearer_image_or_paste_the_te_e94a6e7) else str(R.string.text_the_camera_could_not_start_choose_an_image_or_paste_the_text_0883aee), true) }
+                if (cameraUnavailable) Notice(str(R.string.text_the_camera_could_not_start_choose_an_image_or_paste_the_text_0883aee), true)
                 OutlinedButton(onClick = readImage, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_read_from_an_image_2e25ed4)) }
                 TextButton(onClick = close) { Text(str(R.string.text_use_pasted_text_0909f6d)) }
             }

@@ -14,7 +14,6 @@
     <string name="backup_total_size" formatted="false">"Łączny rozmiar"</string>
     <string name="choose_permission" formatted="false">"Wybierz uprawnienie"</string>
     <string name="cipher_transfer_running" formatted="false">"Przesyłanie zaszyfrowanych bloków"</string>
-    <string name="cipher_transfer_stop" formatted="false">"Zatrzymaj"</string>
     <string name="cipher_transfer_title" formatted="false">"Zaszyfrowane transfery"</string>
     <string name="customize_fields" formatted="false">"Dostosuj pola"</string>
     <string name="empty_folder" formatted="false">"Brak plików w tym folderze"</string>
@@ -22,7 +21,6 @@
     <string name="history_deleted" formatted="false">"Data usunięcia"</string>
     <string name="history_device" formatted="false">"Urządzenie"</string>
     <string name="history_fields" formatted="false">"Pola"</string>
-    <string name="language_changed" formatted="false">"Zmieniono język"</string>
     <string name="language_search" formatted="false">"Znajdź język"</string>
     <string name="links_created_progress" formatted="true">"Utworzono %1$s z %2$s"</string>
     <string name="no_matches" formatted="false">"Brak pasujących wyników"</string>
@@ -75,7 +73,6 @@
     <string name="text_a_copy_was_saved_to_the_location_you_chose_3141816" formatted="false">"Kopia została zapisana w wybranym miejscu."</string>
     <string name="text_a_deletion_marker_will_sync_to_your_other_devices_version_history_18e2556" formatted="false">"Znacznik usunięcia zostanie zsynchronizowany z innymi urządzeniami. Historia wersji pozostanie zachowana."</string>
     <string name="text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376" formatted="false">"Sesja pobierania to limit pobrań, a nie licznik odczytów pliku. Wygaśnięcie i cofnięcie dostępu nie usuwają zapisanych kopii."</string>
-    <string name="text_a_draft_stays_only_in_this_unlocked_account_session_locking_or_sw_d3947fa" formatted="false">"Szkic pozostaje tylko w tej odblokowanej sesji konta. Blokada lub zmiana konta go usuwa."</string>
     <string name="text_a_field_allows_up_to_10_000_characters_da567ba" formatted="false">"Pole może zawierać do 10 000 znaków."</string>
     <string name="text_a_full_link_and_required_password_grant_retrieval_within_these_li_323a1eb" formatted="false">"Pełny link i wymagane hasło umożliwiają pobranie w podanych granicach. Cofnięcie dostępu nie usuwa zapisanych kopii."</string>
     <string name="text_a_hardware_cosigner_key_stays_in_this_device_s_keystore_register_627a57d" formatted="false">"Sprzętowy klucz współpodpisującego pozostaje w Keystore tego urządzenia. Zarejestruj jego klucz publiczny przez propozycję portfela."</string>
@@ -317,7 +314,6 @@
     <string name="text_cancel_transfer_23833f9" formatted="false">"Anuluj transfer"</string>
     <string name="text_cancelled_02eb7d5" formatted="false">"Anulowano."</string>
     <string name="text_cancelled_bf41d7d" formatted="false">"Anulowano"</string>
-    <string name="text_capabilities_one_per_line_86f9e92" formatted="false">"Możliwości, po jednej na linię"</string>
     <string name="text_chain_tip_c986d2d" formatted="false">"Wierzchołek łańcucha"</string>
     <string name="text_change_access_grant_3607d07" formatted="false">"Zmień nadany dostęp"</string>
     <string name="text_change_account_settings_db4ca2f" formatted="false">"Zmień ustawienia konta"</string>
@@ -490,7 +486,6 @@
     <string name="text_create_7570cfc" formatted="false">"Utwórz"</string>
     <string name="text_create_a_new_address_7cdbf66" formatted="false">"Utwórz nowy adres"</string>
     <string name="text_create_a_new_credential_at_its_provider_and_save_it_in_the_vault_2c5b164" formatted="false">"Utwórz nowe poświadczenie u jego dostawcy i zapisz je w skarbcu"</string>
-    <string name="text_create_a_new_sign_in_11ef15b" formatted="false">"Utwórz nową tożsamość logowania"</string>
     <string name="text_create_administrator_enrollment_request_42868af" formatted="false">"Utwórz żądanie rejestracji administratora"</string>
     <string name="text_create_agent_f6a5a91" formatted="false">"Utwórz agenta"</string>
     <string name="text_create_an_agent_identity_4207389" formatted="false">"Utwórz tożsamość agenta"</string>
@@ -511,7 +506,6 @@
     <string name="text_create_this_wallet_proposal_08ed869" formatted="false">"Utworzyć tę propozycję portfela?"</string>
     <string name="text_create_transfer_proposal_b198142" formatted="false">"Utwórz propozycję przeniesienia"</string>
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Utwórz zaszyfrowany obszar roboczy, aby rozpocząć zapisywanie haseł, notatek i plików."</string>
-    <string name="text_create_your_sign_in_cfa2f8b" formatted="false">"Utwórz tożsamość logowania"</string>
     <string name="text_created_36ba304" formatted="false">"Utworzono"</string>
     <string name="text_created_ae8a09c" formatted="false">"Utworzono · "</string>
     <string name="text_created_c1dc4dc" formatted="false">"Utworzono "</string>
@@ -547,8 +541,6 @@
     <string name="text_dark_0bea023" formatted="false">"Ciemny"</string>
     <string name="text_database_7bc9ec0" formatted="false">"Baza danych"</string>
     <string name="text_date_5da2748" formatted="false">"Data"</string>
-    <string name="text_days_1252a20" formatted="false">" dni"</string>
-    <string name="text_days_f586104" formatted="false">"dni"</string>
     <string name="text_delegation_starts_when_the_service_issues_the_credential_its_stat_1e20149" formatted="false">"Delegowanie zaczyna się, gdy usługa wyda poświadczenie. Jego stan jest sprawdzany przy kolejnym odczycie."</string>
     <string name="text_delete_5b87532" formatted="false">"Usuń"</string>
     <string name="text_delete_account_4899915" formatted="false">"Usuń konto"</string>
@@ -723,7 +715,6 @@
     <string name="text_file_mapping_access_3be2c7f" formatted="false">"Dostęp przez mapowanie plików"</string>
     <string name="text_file_notes_and_tags_d701552" formatted="false">"Notatki i tagi plików"</string>
     <string name="text_file_transfers_2b83297" formatted="false">"Przesyłanie plików"</string>
-    <string name="text_files_30b0a88" formatted="false">" Pliki"</string>
     <string name="text_files_app_copies_96ebae6" formatted="false">"Kopie aplikacji Pliki"</string>
     <string name="text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b" formatted="false">"Pliki są szyfrowane lokalnie. Kopia w chmurze to osobne, jawne działanie."</string>
     <string name="text_files_c79ddc2" formatted="false">"Pliki"</string>
@@ -744,7 +735,6 @@
     <string name="text_future_messages_wait_for_new_keys_this_does_not_erase_content_alr_4e7c4a7" formatted="false">"Przyszłe wiadomości czekają na nowe klucze. Nie usuwa to już dostarczonych treści."</string>
     <string name="text_generate_again_c8b3202" formatted="false">"Wygeneruj ponownie"</string>
     <string name="text_generate_password_4fe4cd0" formatted="false">"Wygeneruj hasło"</string>
-    <string name="text_get_started_64034d2" formatted="false">"Rozpocznij"</string>
     <string name="text_go_back_7741045" formatted="false">"Wróć"</string>
     <string name="text_google_play_50042fd" formatted="false">"Google Play"</string>
     <string name="text_google_play_is_unavailable_check_your_connection_and_retry_do_not_f17918b" formatted="false">"Google Play jest niedostępne. Sprawdź połączenie i spróbuj ponownie; nie rozpoczynaj kolejnej płatności za niezweryfikowany zakup."</string>
@@ -970,12 +960,10 @@
     <string name="text_message_withdrawn_c19a5e2" formatted="false">"Wiadomość wycofana"</string>
     <string name="text_messages_3a9ab2d" formatted="false">"Wiadomości"</string>
     <string name="text_messages_can_contain_up_to_16_000_utf_8_bytes_the_previous_text_i_dbc5f00" formatted="false">"Wiadomości mogą zawierać do 16 000 bajtów UTF-8. Poprzedni tekst zostaje zachowany."</string>
-    <string name="text_minutes_9c19706" formatted="false">" minut"</string>
     <string name="text_mobile_packages_are_limited_to_8_mib_preview_verifies_content_bef_7a4533d" formatted="false">"Pakiety mobilne mają limit 8 MiB. Podgląd weryfikuje treść, zanim wybierzesz elementy do importu."</string>
     <string name="text_month_350fe84" formatted="false">"Miesiąc"</string>
     <string name="text_monthly_execution_limit_096e8a4" formatted="false">"Miesięczny limit wykonań"</string>
     <string name="text_monthly_execution_units_9ebde11" formatted="false">"Miesięczne jednostki wykonania"</string>
-    <string name="text_months_be91b1b" formatted="false">"miesięcy"</string>
     <string name="text_more_file_actions_65e84ee" formatted="false">"Więcej działań na plikach"</string>
     <string name="text_move_207d5fe" formatted="false">"Przenieś"</string>
     <string name="text_move_assets_to_the_new_device_s_own_key_or_leave_them_for_l2_0ebeaeb" formatted="false">"Przenieś aktywa na własny klucz nowego urządzenia albo pozostaw je dla L2."</string>
@@ -1189,7 +1177,6 @@
     <string name="text_pinned_shortcuts_7185837" formatted="false">"Przypięte skróty"</string>
     <string name="text_plan_and_usage_acf1a9a" formatted="false">"Plan i wykorzystanie"</string>
     <string name="text_plan_benefits_4ba263e" formatted="false">"Korzyści planu"</string>
-    <string name="text_plan_benefits_and_usage_62c82de" formatted="false">"Plan, korzyści i wykorzystanie"</string>
     <string name="text_plan_default_023d514" formatted="false">"Domyślne ustawienie planu"</string>
     <string name="text_plan_fc68459" formatted="false">"Plan"</string>
     <string name="text_policy_changed_9d62739" formatted="false">"Polityka zmieniona"</string>
@@ -1543,7 +1530,6 @@
     <string name="text_scopes_one_per_line_20c88cb" formatted="false">"Zakresy, po jednym na linię"</string>
     <string name="text_screenshots_9699c0f" formatted="false">"Zrzuty ekranu"</string>
     <string name="text_search_05fdb9c" formatted="false">"Szukaj"</string>
-    <string name="text_search_conversations_554f767" formatted="false">"Szukaj rozmów"</string>
     <string name="text_search_files_notes_and_tags_9013c74" formatted="false">"Szukaj plików, notatek i tagów"</string>
     <string name="text_search_letters_1249ccd" formatted="false">"Szukaj listów"</string>
     <string name="text_search_messages_and_attachments_ff5cf7f" formatted="false">"Szukaj wiadomości i załączników"</string>
@@ -1587,7 +1573,6 @@
     <string name="text_send_file_library_44ec367" formatted="false">"Wyślij bibliotekę plików"</string>
     <string name="text_send_the_password_through_another_channel_1e76ba2" formatted="false">"Wyślij hasło innym kanałem."</string>
     <string name="text_send_this_report_589df5d" formatted="false">"Wysłać to zgłoszenie?"</string>
-    <string name="text_send_to_a_device_bc52c08" formatted="false">"Wyślij na urządzenie"</string>
     <string name="text_sender_account_e9f6961" formatted="false">"Konto nadawcy"</string>
     <string name="text_sender_names_and_notes_are_unverified_file_contents_download_only_01b7ba6" formatted="false">"Nazwy i notatki nadawców są niezweryfikowane. Treść plików jest pobierana tylko po wybraniu Zapisz w bibliotece."</string>
     <string name="text_sender_unverified_2d47891" formatted="false">"Nadawca (niezweryfikowany) · "</string>
@@ -2007,9 +1992,7 @@
     <string name="text_view_original_approval_ecd3b71" formatted="false">"Wyświetl pierwotne zatwierdzenie"</string>
     <string name="text_view_original_message_a5b610b" formatted="false">"Wyświetl pierwotną wiadomość"</string>
     <string name="text_view_proposal_a94973a" formatted="false">"Wyświetl propozycję"</string>
-    <string name="text_view_public_profile_7234699" formatted="false">"Wyświetl publiczny profil"</string>
     <string name="text_view_received_files_c1b45ae" formatted="false">"Wyświetl odebrane pliki"</string>
-    <string name="text_view_status_and_compare_plans_f11c1b4" formatted="false">"Wyświetl stan i porównaj plany"</string>
     <string name="text_view_the_current_version_86f22e5" formatted="false">"Wyświetl obecną wersję"</string>
     <string name="text_viewer_8a8ac26" formatted="false">"Obserwator"</string>
     <string name="text_wait_for_address_book_cooldown_2ccc5de" formatted="false">"Odczekaj okres karencji książki adresowej"</string>
@@ -2047,7 +2030,6 @@
     <string name="text_website_ad80f52" formatted="false">"Witryna"</string>
     <string name="text_website_bbb4521" formatted="false">"Witryna"</string>
     <string name="text_website_claimed_by_app_ae298e3" formatted="false">"Witryna deklarowana przez aplikację"</string>
-    <string name="text_weeks_9f99b0a" formatted="false">"tygodni"</string>
     <string name="text_welcome_back_70da839" formatted="false">"Witaj ponownie."</string>
     <string name="text_what_do_you_need_51c5d87" formatted="false">"Czego potrzebujesz?"</string>
     <string name="text_while_dmsg_is_open_and_unlocked_99d4594" formatted="false">"Gdy dMsg jest otwarte i odblokowane"</string>
@@ -2059,7 +2041,6 @@
     <string name="text_working_ef6a315" formatted="false">"W toku"</string>
     <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"Przestrzeń robocza zapisana na tym urządzeniu"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"Napisz list"</string>
-    <string name="text_years_f6a8ffc" formatted="false">"lat"</string>
     <string name="text_yes_4e00e01" formatted="false">"Tak"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"Masz już ten plan. Zarządzaj odnowieniem w Google Play."</string>
     <string name="text_you_are_viewing_an_immutable_historical_version_0b9544a" formatted="false">"Oglądasz niezmienną wersję historyczną."</string>

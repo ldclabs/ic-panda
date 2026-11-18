@@ -50,7 +50,6 @@ private val destinations = listOf(
 @Composable fun DMsgApp(client: ClientController, browser: (String) -> Unit, share: (File, String) -> Unit) {
     val state by client.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.unlocked, state.concealed, state.session?.account) { client.routePendingChannel(); client.routePendingConnect(); client.routePendingWorkspace(); client.routePendingNotice() }
-    val qr by client.qr.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val channelListing by client.messages.channels.state.collectAsStateWithLifecycle()
     val syncStatus by client.synchronization.status.collectAsStateWithLifecycle()
@@ -67,7 +66,6 @@ private val destinations = listOf(
     fun go(next: String) { client.navigation.open(next); client.refresh(next) }
     fun select(id: String) { client.navigation.select(id) }
     fun closeEditor() { if (client.vaultDrafts.dirty) discardEditor = true else client.vaultDrafts.discard() }
-    val qrImage = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { client.qr.image(context, it) }
     val passwordImport = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument(), client.vaultImport::result)
     LaunchedEffect(state.epoch) { discardEditor = false }
     LaunchedEffect(state.unlocked, state.concealed, state.session?.account) {
@@ -78,7 +76,7 @@ private val destinations = listOf(
         (state.error ?: state.notice)?.let { snackbar.showSnackbar(errorText(it)); client.clearNotice() }
     }
     BackHandler(enabled = showEditor) { closeEditor() }
-    PredictiveBackHandler(enabled = !showEditor && navigation.canGoBack) { progress ->
+    PredictiveBackHandler(enabled = state.unlocked && !state.concealed && !showEditor && navigation.canGoBack) { progress ->
         try { progress.collect { }; client.navigation.back() } catch (_: CancellationException) { }
     }
     val filePickers = rememberFilePickers(client)
@@ -255,11 +253,7 @@ private val destinations = listOf(
             }
             NoticeBanner(client)
             NoticeDestinationDialog(client)
-            qr.request?.takeIf { it.showing && !state.concealed }?.let { request ->
-                QrScanner(requestPermission = !request.permissionRequested, beforePermission = client.qr::permission,
-                    readImage = { client.qr.chooseImage(); qrImage.launch(arrayOf("image/*")) }, close = client.qr::clear,
-                    decoded = { client.qr.accept(it, request) })
-            }
+            QrScannerHost(client, state.concealed)
             if (showEditor && state.unlocked && !state.concealed) ModalBottomSheet(onDismissRequest = ::closeEditor, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = {
                 if (it == SheetValue.Hidden && client.vaultDrafts.dirty) { discardEditor = true; false } else true
             })) {

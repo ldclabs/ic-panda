@@ -39,14 +39,14 @@ class CipherTransferStoreTest {
         val root = temporary.newFolder()
         val store = CipherTransferStore(root, "installation")
         val plan = plan(2)
-        store.start(plan, System.currentTimeMillis().toULong())
-        val original = store.retry(System.currentTimeMillis().toULong())
+        val initial = store.start(plan, System.currentTimeMillis().toULong())
+        val original = store.retry(initial, System.currentTimeMillis().toULong())
         assertTrue(store.receive(id, original.attempt, "0", bytes))
-        store.pause()
+        assertTrue(store.pause(id, original.attempt))
         assertFalse(store.receive(id, original.attempt, "1", bytes))
         val reopened = CipherTransferStore(root, "installation")
         assertEquals(setOf("0"), reopened.snapshot()!!.completed)
-        val next = reopened.retry(System.currentTimeMillis().toULong())
+        val next = reopened.retry(reopened.snapshot()!!, System.currentTimeMillis().toULong())
         assertFalse(store.complete(id, original.attempt, "1"))
         assertTrue(reopened.receive(id, next.attempt, "1", bytes))
         assertTrue(store.snapshot()!!.ready)
@@ -58,24 +58,40 @@ class CipherTransferStoreTest {
         assertNull(store.snapshot())
     }
 
+    @Test fun aLatePauseCannotStopTheRetriedSystemJob() {
+        val now = System.currentTimeMillis().toULong()
+        val root = temporary.newFolder()
+        val store = CipherTransferStore(root, "installation")
+        val first = store.retry(store.start(plan(), now), now)
+        assertTrue(store.pause(id, first.attempt))
+        val next = store.retry(store.snapshot()!!, now)
+        assertFalse(store.pause(id, first.attempt, "TRANSFER_STOPPED") { fail("cancelled the replacement") })
+        assertTrue(runCatching { store.retry(first, now) }.isFailure)
+        assertEquals(next, CipherTransferStore(root, "installation").snapshot())
+        val index = File(root, "transfer.json")
+        assertTrue(index.readText().contains("\"phase\":\"transferring\""))
+        index.writeText(index.readText().replace("\"transferring\"", "\"unknown\""))
+        assertEquals("INTEGRITY_FAILED", runCatching { CipherTransferStore(root, "installation").snapshot() }.exceptionOrNull()?.message)
+    }
+
     @Test fun alteredBytesAndExpiredOrRepeatedFailureCannotBePromotedToSuccess() {
         val root = temporary.newFolder()
         val store = CipherTransferStore(root, "installation")
         val plan = plan()
         val now = System.currentTimeMillis().toULong()
-        store.start(plan, now)
-        val attempt = store.retry(now).attempt
+        val initial = store.start(plan, now)
+        val attempt = store.retry(initial, now).attempt
         assertTrue(runCatching { store.receive(id, attempt, "0", bytes + 0) }.isFailure)
         assertTrue(store.snapshot()!!.completed.isEmpty())
         assertTrue(store.receive(id, attempt, "0", bytes))
         File(root, "$id/0").writeBytes(ByteArray(bytes.size))
         assertTrue(runCatching { store.verifiedPart(plan, "0") }.isFailure)
         store.discard(plan)
-        store.start(plan, now)
-        val retry = store.retry(now)
+        val restarted = store.start(plan, now)
+        val retry = store.retry(restarted, now)
         repeat(3) { assertTrue(store.fail(id, retry.attempt, "offline", true)) }
         assertFalse(store.fail(id, retry.attempt, "offline", true))
-        assertEquals("failed", store.snapshot()!!.phase)
-        assertTrue(runCatching { store.retry(plan.expires) }.isFailure)
+        assertEquals(CipherPhase.FAILED, store.snapshot()!!.phase)
+        assertTrue(runCatching { store.retry(store.snapshot()!!, plan.expires) }.isFailure)
     }
 }

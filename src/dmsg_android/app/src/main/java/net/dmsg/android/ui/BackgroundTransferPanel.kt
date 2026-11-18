@@ -1,6 +1,7 @@
 package net.dmsg.android.ui
 
 import net.dmsg.android.R
+import net.dmsg.android.platform.CipherPhase
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -15,11 +16,15 @@ import net.dmsg.android.core.*
     val state by client.state.collectAsStateWithLifecycle()
     val job = current.valueOrNull()
     var confirming by remember { mutableStateOf(false) }
-    var now by remember { mutableStateOf(System.currentTimeMillis().toULong()) }
-    LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis().toULong(); kotlinx.coroutines.delay(1000) } }
     val busy = state.working("cipher:prepare") || state.working("cipher:finish") || state.working("cipher:cancel")
     if (current is ReadState.Failed || current is ReadState.Stale) ReadFeedback(current, client.backgroundFiles::load)
     if (job == null) return
+    val expiry = job.plan.expires.coerceAtMost(Long.MAX_VALUE.toULong()).toLong()
+    var expired by remember(expiry) { mutableStateOf(expiry <= System.currentTimeMillis()) }
+    LaunchedEffect(expiry) {
+        kotlinx.coroutines.delay((expiry - System.currentTimeMillis()).coerceAtLeast(0))
+        expired = true
+    }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(str(R.string.text_background_encrypted_transfer_d77c9cc), style = MaterialTheme.typography.titleMedium)
@@ -31,14 +36,16 @@ import net.dmsg.android.core.*
                 LinearProgressIndicator(progress = { if (job.plan.parts.isEmpty()) 1f else job.completed.size.toFloat() / job.plan.parts.size }, modifier = Modifier.fillMaxWidth())
                 Text(fileSize(job.bytes.toULong()) + " / " + fileSize(job.plan.size.toULong()))
                 Text(when(job.phase) {
-                    "verifying" -> str(R.string.text_bytes_transferred_unlock_this_account_to_verify_and_commit_891a98d)
-                    "paused" -> str(R.string.text_paused_cf54b60); "failed" -> str(R.string.text_needs_attention_f50f34d); else -> str(R.string.text_waiting_for_system_or_transferring_4fb8f12)
+                    CipherPhase.VERIFYING -> str(R.string.text_bytes_transferred_unlock_this_account_to_verify_and_commit_891a98d)
+                    CipherPhase.PAUSED -> str(R.string.text_paused_cf54b60)
+                    CipherPhase.FAILED -> str(R.string.text_needs_attention_f50f34d)
+                    CipherPhase.TRANSFERRING -> str(R.string.text_waiting_for_system_or_transferring_4fb8f12)
                 })
                 job.error?.let { if (it != "PREPARING_CIPHERTEXT") Notice(cipherError(it), true) }
                 LabelValue(str(R.string.text_authorization_expires_b43a709), displayTime(job.plan.expires))
                 if (job.ready) Button(onClick = client.backgroundFiles::finish, enabled = !busy) { Text(str(R.string.text_verify_and_finish_82a0fce)) }
-                else if (job.plan.expires <= now) Notice(str(R.string.text_the_transfer_authorization_expired_cancel_this_job_then_continue_8fb56dd))
-                else if (job.phase != "transferring") OutlinedButton(onClick = client.backgroundFiles::retry, enabled = !busy) { Text(str(R.string.text_retry_original_encrypted_blocks_8091317)) }
+                else if (expired) Notice(str(R.string.text_the_transfer_authorization_expired_cancel_this_job_then_continue_8fb56dd))
+                else if (job.phase != CipherPhase.TRANSFERRING) OutlinedButton(onClick = client.backgroundFiles::retry, enabled = !busy) { Text(str(R.string.text_retry_original_encrypted_blocks_8091317)) }
                 else OutlinedButton(onClick = client.backgroundFiles::pause, enabled = !busy) { Text(str(R.string.text_pause_background_transfer_1a5d000)) }
                 TextButton(onClick = { confirming = true }, enabled = !busy) { Text(str(R.string.text_cancel_background_transfer_606bbfe), color = MaterialTheme.colorScheme.error) }
             }

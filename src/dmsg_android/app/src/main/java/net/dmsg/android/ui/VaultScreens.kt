@@ -60,7 +60,7 @@ import net.dmsg.core.*
             if (current.id == null) Box {
                 OutlinedButton(onClick = { choosingType = true }, enabled = !working) { Text(vaultKindName(current.kind)); Icon(Icons.Outlined.ArrowDropDown, null) }
                 DropdownMenu(choosingType, { choosingType = false }) { vaultKinds().forEach { kind ->
-                    DropdownMenuItem(text = { Text(vaultKindName(kind)) }, onClick = { update { it.switchKind(kind, vaultTemplate(kind)) }; choosingType = false })
+                    DropdownMenuItem(text = { Text(vaultKindName(kind)) }, onClick = { update { it.switchKind(kind) }; choosingType = false })
                 } }
             }
             current.fields.forEachIndexed { index, field -> key(field.id) {

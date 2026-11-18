@@ -3,6 +3,7 @@ package net.dmsg.android.core
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.JsonElement
 
 data class DurableFileJob(val id: String, val kind: String, val name: String?, val file: String?, val version: String?,
@@ -34,7 +35,13 @@ class FileWorkCoordinator(private val client: ClientController, private val scop
         watch = scope.launch {
             while (isActive && client.accepts(stamp)) {
                 load(advance = !paused && !client.synchronization.constrained.value)
-                delay(if (client.synchronization.constrained.value) 15_000 else 1_000)
+                when {
+                    client.synchronization.constrained.value -> delay(15_000)
+                    jobs.value()?.all { it.stage == "done" } == true -> withTimeoutOrNull(15_000) {
+                        jobs.state.first { state -> state.valueOrNull()?.any { it.stage != "done" } == true }
+                    }
+                    else -> delay(1_000)
+                }
             }
         }
     }
@@ -47,7 +54,7 @@ class FileWorkCoordinator(private val client: ClientController, private val scop
             upload.await() + download.await()
         } }, key = "files:jobs", quiet = true, onError = { jobs.fail(request, it) }) { values ->
             jobs.accept(request, values)
-            if (advance) {
+            if (advance && !paused && !client.synchronization.constrained.value && !client.isWorking("cipher:prepare")) {
                 val now = System.currentTimeMillis().coerceAtLeast(0).toULong()
                 if (values.any { it.kind == "upload" && it.due(now) }) run("upload")
                 if (values.any { it.kind == "download" && it.due(now) }) run("download")
@@ -80,11 +87,10 @@ class FileWorkCoordinator(private val client: ClientController, private val scop
         client.cancelOperation("files:run:upload"); client.cancelOperation("files:run:download")
         load()
     }
-    fun resume(retryFailures: Boolean = true) {
+    fun resume() {
         paused = false
         failures.value = emptyMap(); attempts.clear()
-        if (retryFailures) client.perform({ it.retryFileTransfers() }, key = "files:retry") { load(true) }
-        else load(true)
+        client.perform({ it.retryFileTransfers() }, key = "files:retry") { load(true) }
     }
     fun networkChanged() {
         val stamp = owner ?: return

@@ -22,7 +22,10 @@ class ForegroundEnvironment(private val context: Context, private val networkCha
     private val network = object : ConnectivityManager.NetworkCallback() {
         override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
             val valid = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-            main.post { if (active && valid && validated != network) { validated = network; networkChanged() } }
+            main.post {
+                if (active && valid && validated != network) { validated = network; networkChanged() }
+                else if (!valid && validated == network) validated = null
+            }
         }
         override fun onLost(network: Network) { main.post { if (validated == network) validated = null } }
     }

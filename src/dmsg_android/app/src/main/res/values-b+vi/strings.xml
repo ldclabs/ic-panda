@@ -14,7 +14,6 @@
     <string name="backup_total_size" formatted="false">"Tổng dung lượng"</string>
     <string name="choose_permission" formatted="false">"Chọn quyền"</string>
     <string name="cipher_transfer_running" formatted="false">"Đang truyền các khối đã mã hóa"</string>
-    <string name="cipher_transfer_stop" formatted="false">"Dừng"</string>
     <string name="cipher_transfer_title" formatted="false">"Truyền dữ liệu mã hóa"</string>
     <string name="customize_fields" formatted="false">"Tùy chỉnh trường"</string>
     <string name="empty_folder" formatted="false">"Không có tệp trong thư mục này"</string>
@@ -22,7 +21,6 @@
     <string name="history_deleted" formatted="false">"Ngày xóa"</string>
     <string name="history_device" formatted="false">"Thiết bị"</string>
     <string name="history_fields" formatted="false">"Trường"</string>
-    <string name="language_changed" formatted="false">"Đã cập nhật ngôn ngữ"</string>
     <string name="language_search" formatted="false">"Tìm ngôn ngữ"</string>
     <string name="links_created_progress" formatted="true">"Đã tạo %1$s trên %2$s"</string>
     <string name="no_matches" formatted="false">"Không có kết quả phù hợp"</string>
@@ -75,7 +73,6 @@
     <string name="text_a_copy_was_saved_to_the_location_you_chose_3141816" formatted="false">"Một bản sao đã được lưu vào vị trí bạn chọn."</string>
     <string name="text_a_deletion_marker_will_sync_to_your_other_devices_version_history_18e2556" formatted="false">"Dấu xóa sẽ được đồng bộ tới các thiết bị khác. Lịch sử phiên bản được giữ lại."</string>
     <string name="text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376" formatted="false">"Phiên tải xuống là hạn mức lấy tệp, không phải số lần đọc tệp. Hết hạn và thu hồi không xóa được các bản sao đã lưu."</string>
-    <string name="text_a_draft_stays_only_in_this_unlocked_account_session_locking_or_sw_d3947fa" formatted="false">"Bản nháp chỉ nằm trong phiên tài khoản đang mở khóa này. Khóa hoặc đổi tài khoản sẽ xóa bản nháp."</string>
     <string name="text_a_field_allows_up_to_10_000_characters_da567ba" formatted="false">"Mỗi trường cho phép tối đa 10.000 ký tự."</string>
     <string name="text_a_full_link_and_required_password_grant_retrieval_within_these_li_323a1eb" formatted="false">"Liên kết đầy đủ và mật khẩu bắt buộc cho phép lấy tệp trong các giới hạn này. Thu hồi không xóa được bản sao đã lưu."</string>
     <string name="text_a_hardware_cosigner_key_stays_in_this_device_s_keystore_register_627a57d" formatted="false">"Khóa phần cứng của người đồng ký nằm trong Keystore của thiết bị này. Đăng ký khóa công khai qua đề xuất của ví."</string>
@@ -317,7 +314,6 @@
     <string name="text_cancel_transfer_23833f9" formatted="false">"Hủy truyền"</string>
     <string name="text_cancelled_02eb7d5" formatted="false">"Đã hủy."</string>
     <string name="text_cancelled_bf41d7d" formatted="false">"Đã hủy"</string>
-    <string name="text_capabilities_one_per_line_86f9e92" formatted="false">"Khả năng, một trên mỗi dòng"</string>
     <string name="text_chain_tip_c986d2d" formatted="false">"Đỉnh chuỗi"</string>
     <string name="text_change_access_grant_3607d07" formatted="false">"Thay đổi quyền truy cập"</string>
     <string name="text_change_account_settings_db4ca2f" formatted="false">"Thay đổi cài đặt tài khoản"</string>
@@ -490,7 +486,6 @@
     <string name="text_create_7570cfc" formatted="false">"Tạo"</string>
     <string name="text_create_a_new_address_7cdbf66" formatted="false">"Tạo địa chỉ mới"</string>
     <string name="text_create_a_new_credential_at_its_provider_and_save_it_in_the_vault_2c5b164" formatted="false">"Tạo thông tin xác thực mới tại nhà cung cấp và lưu nó vào vault"</string>
-    <string name="text_create_a_new_sign_in_11ef15b" formatted="false">"Tạo danh tính đăng nhập mới"</string>
     <string name="text_create_administrator_enrollment_request_42868af" formatted="false">"Tạo yêu cầu đăng ký quản trị viên"</string>
     <string name="text_create_agent_f6a5a91" formatted="false">"Tạo tác tử"</string>
     <string name="text_create_an_agent_identity_4207389" formatted="false">"Tạo danh tính tác tử"</string>
@@ -511,7 +506,6 @@
     <string name="text_create_this_wallet_proposal_08ed869" formatted="false">"Tạo đề xuất ví này?"</string>
     <string name="text_create_transfer_proposal_b198142" formatted="false">"Tạo đề xuất chuyển nhượng"</string>
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"Tạo không gian làm việc được mã hóa của bạn để bắt đầu lưu mật khẩu, ghi chú và tệp."</string>
-    <string name="text_create_your_sign_in_cfa2f8b" formatted="false">"Tạo danh tính đăng nhập"</string>
     <string name="text_created_36ba304" formatted="false">"Đã tạo"</string>
     <string name="text_created_ae8a09c" formatted="false">"Đã tạo · "</string>
     <string name="text_created_c1dc4dc" formatted="false">"Đã tạo "</string>
@@ -547,8 +541,6 @@
     <string name="text_dark_0bea023" formatted="false">"Tối"</string>
     <string name="text_database_7bc9ec0" formatted="false">"Cơ sở dữ liệu"</string>
     <string name="text_date_5da2748" formatted="false">"Ngày"</string>
-    <string name="text_days_1252a20" formatted="false">" ngày"</string>
-    <string name="text_days_f586104" formatted="false">"ngày"</string>
     <string name="text_delegation_starts_when_the_service_issues_the_credential_its_stat_1e20149" formatted="false">"Ủy quyền bắt đầu khi dịch vụ cấp thông tin xác thực. Trạng thái được kiểm tra ở lần đọc tiếp theo."</string>
     <string name="text_delete_5b87532" formatted="false">"Xóa"</string>
     <string name="text_delete_account_4899915" formatted="false">"Xóa tài khoản"</string>
@@ -723,7 +715,6 @@
     <string name="text_file_mapping_access_3be2c7f" formatted="false">"Truy cập ánh xạ tệp"</string>
     <string name="text_file_notes_and_tags_d701552" formatted="false">"Ghi chú và thẻ tệp"</string>
     <string name="text_file_transfers_2b83297" formatted="false">"Truyền tệp"</string>
-    <string name="text_files_30b0a88" formatted="false">" Tệp"</string>
     <string name="text_files_app_copies_96ebae6" formatted="false">"Bản sao ứng dụng tập tin"</string>
     <string name="text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b" formatted="false">"Tệp được mã hóa cục bộ. Sao lưu đám mây là thao tác riêng và chủ động."</string>
     <string name="text_files_c79ddc2" formatted="false">"Tệp"</string>
@@ -744,7 +735,6 @@
     <string name="text_future_messages_wait_for_new_keys_this_does_not_erase_content_alr_4e7c4a7" formatted="false">"Tin nhắn tương lai chờ khóa mới. Điều này không xóa nội dung đã gửi."</string>
     <string name="text_generate_again_c8b3202" formatted="false">"Tạo lại"</string>
     <string name="text_generate_password_4fe4cd0" formatted="false">"Tạo mật khẩu"</string>
-    <string name="text_get_started_64034d2" formatted="false">"Bắt đầu"</string>
     <string name="text_go_back_7741045" formatted="false">"Quay lại"</string>
     <string name="text_google_play_50042fd" formatted="false">"Google Play"</string>
     <string name="text_google_play_is_unavailable_check_your_connection_and_retry_do_not_f17918b" formatted="false">"Google Play không khả dụng. Kiểm tra kết nối rồi thử lại; không bắt đầu thanh toán khác cho giao dịch chưa xác minh."</string>
@@ -970,12 +960,10 @@
     <string name="text_message_withdrawn_c19a5e2" formatted="false">"Đã rút tin nhắn"</string>
     <string name="text_messages_3a9ab2d" formatted="false">"Tin nhắn"</string>
     <string name="text_messages_can_contain_up_to_16_000_utf_8_bytes_the_previous_text_i_dbc5f00" formatted="false">"Tin nhắn có thể chứa tối đa 16.000 byte UTF-8. Văn bản trước được giữ lại."</string>
-    <string name="text_minutes_9c19706" formatted="false">" phút"</string>
     <string name="text_mobile_packages_are_limited_to_8_mib_preview_verifies_content_bef_7a4533d" formatted="false">"Gói di động giới hạn 8 MiB. Xem trước xác minh nội dung trước khi bạn chọn mục cần nhập."</string>
     <string name="text_month_350fe84" formatted="false">"Tháng"</string>
     <string name="text_monthly_execution_limit_096e8a4" formatted="false">"Giới hạn thực thi hằng tháng"</string>
     <string name="text_monthly_execution_units_9ebde11" formatted="false">"Đơn vị thực thi hằng tháng"</string>
-    <string name="text_months_be91b1b" formatted="false">"tháng"</string>
     <string name="text_more_file_actions_65e84ee" formatted="false">"Thao tác tệp khác"</string>
     <string name="text_move_207d5fe" formatted="false">"Di chuyển"</string>
     <string name="text_move_assets_to_the_new_device_s_own_key_or_leave_them_for_l2_0ebeaeb" formatted="false">"Chuyển tài sản sang khóa riêng của thiết bị mới hoặc để lại cho L2."</string>
@@ -1189,7 +1177,6 @@
     <string name="text_pinned_shortcuts_7185837" formatted="false">"Lối tắt đã ghim"</string>
     <string name="text_plan_and_usage_acf1a9a" formatted="false">"Gói và mức sử dụng"</string>
     <string name="text_plan_benefits_4ba263e" formatted="false">"Quyền lợi gói"</string>
-    <string name="text_plan_benefits_and_usage_62c82de" formatted="false">"Gói, quyền lợi và mức sử dụng"</string>
     <string name="text_plan_default_023d514" formatted="false">"Mặc định của gói"</string>
     <string name="text_plan_fc68459" formatted="false">"Gói"</string>
     <string name="text_policy_changed_9d62739" formatted="false">"Chính sách đã thay đổi"</string>
@@ -1543,7 +1530,6 @@
     <string name="text_scopes_one_per_line_20c88cb" formatted="false">"Phạm vi, một phạm vi trên mỗi dòng"</string>
     <string name="text_screenshots_9699c0f" formatted="false">"Ảnh chụp màn hình"</string>
     <string name="text_search_05fdb9c" formatted="false">"Tìm kiếm"</string>
-    <string name="text_search_conversations_554f767" formatted="false">"Tìm cuộc trò chuyện"</string>
     <string name="text_search_files_notes_and_tags_9013c74" formatted="false">"Tìm tệp, ghi chú và thẻ"</string>
     <string name="text_search_letters_1249ccd" formatted="false">"Tìm thư"</string>
     <string name="text_search_messages_and_attachments_ff5cf7f" formatted="false">"Tìm tin nhắn và tệp đính kèm"</string>
@@ -1587,7 +1573,6 @@
     <string name="text_send_file_library_44ec367" formatted="false">"Gửi thư viện tệp"</string>
     <string name="text_send_the_password_through_another_channel_1e76ba2" formatted="false">"Gửi mật khẩu qua kênh khác."</string>
     <string name="text_send_this_report_589df5d" formatted="false">"Gửi báo cáo này?"</string>
-    <string name="text_send_to_a_device_bc52c08" formatted="false">"Gửi đến thiết bị"</string>
     <string name="text_sender_account_e9f6961" formatted="false">"Tài khoản người gửi"</string>
     <string name="text_sender_names_and_notes_are_unverified_file_contents_download_only_01b7ba6" formatted="false">"Tên và ghi chú người gửi chưa được xác minh. Nội dung tệp chỉ tải xuống khi bạn chọn Lưu vào thư viện."</string>
     <string name="text_sender_unverified_2d47891" formatted="false">"Người gửi (chưa xác minh) · "</string>
@@ -2007,9 +1992,7 @@
     <string name="text_view_original_approval_ecd3b71" formatted="false">"Xem phê duyệt gốc"</string>
     <string name="text_view_original_message_a5b610b" formatted="false">"Xem tin nhắn gốc"</string>
     <string name="text_view_proposal_a94973a" formatted="false">"Xem đề xuất"</string>
-    <string name="text_view_public_profile_7234699" formatted="false">"Xem hồ sơ công khai"</string>
     <string name="text_view_received_files_c1b45ae" formatted="false">"Xem tệp đã nhận"</string>
-    <string name="text_view_status_and_compare_plans_f11c1b4" formatted="false">"Xem trạng thái và so sánh gói"</string>
     <string name="text_view_the_current_version_86f22e5" formatted="false">"Xem phiên bản hiện tại"</string>
     <string name="text_viewer_8a8ac26" formatted="false">"Người xem"</string>
     <string name="text_wait_for_address_book_cooldown_2ccc5de" formatted="false">"Chờ hết thời gian chờ của sổ địa chỉ"</string>
@@ -2047,7 +2030,6 @@
     <string name="text_website_ad80f52" formatted="false">"Trang web"</string>
     <string name="text_website_bbb4521" formatted="false">"Trang web"</string>
     <string name="text_website_claimed_by_app_ae298e3" formatted="false">"Trang web do ứng dụng khai báo"</string>
-    <string name="text_weeks_9f99b0a" formatted="false">"tuần"</string>
     <string name="text_welcome_back_70da839" formatted="false">"Chào mừng trở lại."</string>
     <string name="text_what_do_you_need_51c5d87" formatted="false">"Bạn cần gì?"</string>
     <string name="text_while_dmsg_is_open_and_unlocked_99d4594" formatted="false">"Khi dMsg mở và đã mở khóa"</string>
@@ -2059,7 +2041,6 @@
     <string name="text_working_ef6a315" formatted="false">"Đang tiến hành"</string>
     <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"Không gian làm việc đã lưu trên thiết bị này"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"Viết một lá thư"</string>
-    <string name="text_years_f6a8ffc" formatted="false">"năm"</string>
     <string name="text_yes_4e00e01" formatted="false">"Có"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"Bạn đã có gói này. Quản lý gia hạn trong Google Play."</string>
     <string name="text_you_are_viewing_an_immutable_historical_version_0b9544a" formatted="false">"Bạn đang xem một phiên bản lịch sử bất biến."</string>

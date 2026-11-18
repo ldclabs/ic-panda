@@ -1,8 +1,10 @@
 # dMsg for Android
 
-Native Kotlin/Compose app using the same in-process Rust client as iOS. The Android implementation is being aligned with iOS 1.2.1 (32); see [validation](VALIDATION.md) for actual checks and outstanding work. There is no daemon or web wrapper.
+Native Kotlin/Compose app using the same in-process Rust client as iOS. The [validation log](VALIDATION.md) records the iOS versions used for comparison, completed checks and outstanding work.
 
 For the interaction fixes, emulator and local ledger results, and remaining acceptance checks, see the [Android UX review (Chinese)](docs/ux-review-2026-11-18.zh.md).
+
+For the owner, transitions, and regression tests for each user flow, see the [Android state machine index (Chinese)](docs/state-machines.zh.md).
 
 ## Local development
 
@@ -68,7 +70,7 @@ The qa build type is a separate test package, using the Rust ui-fixtures feature
 The default instrumentation build type remains debug. QA screenshots contain synthetic data only, and can be pulled from /sdcard/Download/dmsg-qa. Full release, network, physical-hardware and provider checks are separate gates in VALIDATION.md.
 
 
-QR scanning uses [CameraX1.6.2](https://developer.android.com/jetpack/androidx/releases/camera) with a lifecycle-bound preview and the shared Rust QR decoder. The scanner has no GMS dependency. Camera frames are bounded to4million luminance pixels; selected images are bounded to8MiB compressed/40million source pixels and decoded at reduced resolution. QR content only fills a reviewable field; pairing and OTP storage still require their own confirmation/save. Camera permission denial keeps image/paste alternatives available. Camera hardware and cross-device enrollment remain separate validation gates.
+QR scanning uses a lifecycle-bound CameraX 1.6.2 preview and the shared Rust QR decoder in both flavors. The scanner accepts up to 4 million luminance pixels per camera frame. Selected images can contain up to 8 MiB of compressed data and 40 million source pixels and are decoded at reduced resolution. Scanning fills a field for review. Pairing and OTP storage each require confirmation. Users can select an image or paste text if they decline camera access. Camera hardware and cross-device enrollment have separate validation gates. [CameraX releases](https://developer.android.com/jetpack/androidx/releases/camera)
 
 For standalone QA profiling with real input timing, install the QA variant and launch `net.dmsg.android.qa/net.dmsg.android.QaWorkspaceActivity` with the boolean `scale_probe` extra. It creates 1000 synthetic encrypted records in a fresh fixture workspace and preloads their pages; wait for the `dMsgScaleProbe` ready log before measuring. This Activity and seed path are absent from ordinary Debug/Release. Compose test-clock timings must not be presented as real user frame-rate measurements.
 

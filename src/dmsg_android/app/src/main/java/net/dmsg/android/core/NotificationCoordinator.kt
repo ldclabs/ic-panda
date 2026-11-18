@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import net.dmsg.core.ReminderScope
 import kotlinx.serialization.json.JsonNull
 
-class NotificationCoordinator(private val client: ClientController, private val scope: CoroutineScope) {
+class NotificationCoordinator(private val client: ClientController) {
     val preferences = ReadStore<NoticePreferences>()
     val status = ReadStore<NoticeStatus>()
     val reminders = ReadStore<ReminderPage> { it.items.isEmpty() }
@@ -18,7 +18,6 @@ class NotificationCoordinator(private val client: ClientController, private val 
     val recent = recentValue.asStateFlow()
     private var dirty = false
     private var saving = false
-    private var saveAgain: Job? = null
     private var saved: NoticePreferences? = null
     private val openedValue = MutableStateFlow<ReminderItem?>(null)
     val opened = openedValue.asStateFlow()
@@ -127,8 +126,7 @@ class NotificationCoordinator(private val client: ClientController, private val 
             if (draftValue.value == submitted) { dirty = false; draftValue.value = value }
             else {
                 draftValue.value = draftValue.value?.let { current -> current.copy(global = current.global.copy(revision = value.global.revision), account = current.account?.copy(revision = value.account!!.revision, remoteRevision = value.account.remoteRevision)) }
-                val stamp = client.currentStamp()
-                saveAgain = scope.launch { yield(); if (stamp != null && client.accepts(stamp)) save() }
+                save()
             }
             status(); client.notices.refresh(); client.push.reconcile(force = true)
         }
@@ -154,7 +152,7 @@ class NotificationCoordinator(private val client: ClientController, private val 
     }
     fun snooze(item: ReminderItem, until: ULong) = client.perform({ it.notificationSnooze(item.account, item.id, item.version.toString(), until) }, key = "notices:snooze:" + item.id) { list() }
     fun clear(retainDraft: Boolean = false) {
-        preferences.reset(); status.reset(); reminders.reset(); saving = false; saveAgain?.cancel(); saveAgain = null; observing.clear(); viewports.clear(); openedValue.value = null; openedTarget = null
+        preferences.reset(); status.reset(); reminders.reset(); saving = false; observing.clear(); viewports.clear(); openedValue.value = null; openedTarget = null
         if (!retainDraft) { draftValue.value = null; errorValue.value = null; dirty = false; saved = null; recentValue.value = false }
     }
 }

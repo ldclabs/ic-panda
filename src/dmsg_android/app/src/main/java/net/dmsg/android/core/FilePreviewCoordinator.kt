@@ -1,9 +1,10 @@
 package net.dmsg.android.core
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
+import net.dmsg.android.platform.BoundedImages
 import net.dmsg.android.platform.PrivateFiles
 
 data class VerifiedFilePreview(val file: LibraryFile, val kind: String, val text: String? = null, val truncated: Boolean = false, val bitmap: Bitmap? = null)
@@ -40,15 +41,8 @@ class FilePreviewCoordinator(private val client: ClientController, private val p
                         finally { bytes.fill(0) }
                     }
                     file.mime.startsWith("image/") && file.size <= 32uL * 1024u * 1024u -> {
-                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        BitmapFactory.decodeFile(source.path, bounds)
-                        if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || bounds.outWidth.toLong() * bounds.outHeight > 40_000_000) VerifiedFilePreview(file, "external")
-                        else {
-                            var sample = 1
-                            while (bounds.outWidth / sample > 1600 || bounds.outHeight / sample > 1600) sample *= 2
-                            val bitmap = BitmapFactory.decodeFile(source.path, BitmapFactory.Options().apply { inSampleSize = sample; inPreferredConfig = Bitmap.Config.ARGB_8888 })
-                            if (bitmap == null) VerifiedFilePreview(file, "external") else VerifiedFilePreview(file, "image", bitmap = bitmap)
-                        }
+                        val bitmap = BoundedImages.preview(ImageDecoder.createSource(source), 1600)
+                        if (bitmap == null) VerifiedFilePreview(file, "external") else VerifiedFilePreview(file, "image", bitmap = bitmap)
                     }
                     else -> VerifiedFilePreview(file, "external")
                 }

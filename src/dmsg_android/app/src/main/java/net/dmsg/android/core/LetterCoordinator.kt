@@ -60,7 +60,7 @@ class LetterCoordinator(private val client: ClientController) {
     fun create(): String = LetterDraft().also { mutable.value += it.id to it; revision++ }.id
     fun update(draft: LetterDraft) {
         client.activity()
-        if (client.isWorking("letter:queue:" + draft.id) || client.isWorking("letter:send:" + draft.id)) return
+        if (client.isWorking("letter:queue:" + draft.id) || client.isWorking("letter:send:" + draft.id) || client.isWorking("letter:discard:" + draft.id)) return
         mutable.value += draft.id to draft; dirty += draft.id; revision++
         client.perform({ it.saveLetterDraft(draft.id, draft.recipient, draft.text, draft.invitation?.takeIf(String::isNotBlank)) },
             key = "letter:save:" + draft.id, replace = true, serial = turns.getOrPut(draft.id) { Mutex() }) {
@@ -83,9 +83,8 @@ class LetterCoordinator(private val client: ClientController) {
     fun edit(id: String, ready: () -> Unit) = client.perform({ it.editUnsentLetter(id) },
         key = "letter:edit:" + id) { refresh(false); ready() }
     fun discard(id: String) {
-        dirty -= id; revision++
         client.perform({ it.discardLetterDraft(id) }, key = "letter:discard:" + id,
-            serial = turns.getOrPut(id) { Mutex() }, onError = { refresh(false) }) { mutable.value -= id; revision++; refresh(false) }
+            serial = turns.getOrPut(id) { Mutex() }, onError = { refresh(false) }) { mutable.value -= id; dirty -= id; revision++; refresh(false) }
     }
     fun mark(letter: Letter, read: Boolean = letter.read, archived: Boolean = letter.archived, reopen: Boolean = false) =
         client.perform({ core -> if (reopen) core.reopenLetterContact(letter.id, read, archived) else core.markLetter(letter.id, read, archived) },

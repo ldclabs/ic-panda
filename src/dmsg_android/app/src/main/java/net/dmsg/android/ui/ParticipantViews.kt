@@ -28,7 +28,7 @@ import net.dmsg.android.core.*
     val people by client.participants.people.collectAsStateWithLifecycle()
     val person = people[account]
     var inspecting by remember(account) { mutableStateOf(false) }
-    DisposableEffect(account) { client.participants.observe(account); onDispose { client.participants.release(account) } }
+    DisposableEffect(client, account, avatar) { client.participants.observe(account, avatar); onDispose { client.participants.release(account, avatar) } }
     Row(Modifier.clickable { inspecting = true }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (avatar) person?.avatar?.let { Image(it.asImageBitmap(), null, Modifier.size(32.dp).clip(CircleShape), contentScale = ContentScale.Crop) }
             ?: Icon(Icons.Outlined.Person, null, Modifier.size(28.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)

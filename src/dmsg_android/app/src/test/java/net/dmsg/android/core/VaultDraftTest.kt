@@ -22,10 +22,9 @@ class VaultDraftTest {
         assertEquals("new", original.copy(changed = true, value = "new").edit().value)
     }
     @Test fun switchingTemplatesKeepsAuthoredFieldsAndReorderingKeepsStableIds() {
-        val draft = VaultDraft(null, null, "title", "login", "", false, "", listOf(
-            DraftField("username", "text", "", "", "alice", true, false),
-            DraftField("password", "concealed", "", "", "", false, true)), emptyList())
-        val changed = draft.switchKind("api", listOf(VaultField("token", "concealed", "", "", "", true)))
+        val login = listOf(VaultField("username", "text", "", "", "", false), VaultField("password", "concealed", "", "", "", true))
+        val draft = VaultDraft.from(null, login).field("username") { it.copy(value = "alice", changed = true) }
+        val changed = draft.switchKind("api") { kind -> if (kind == "login") login else listOf(VaultField("token", "concealed", "", "", "", true)) }
         assertEquals(listOf("username", "token"), changed.fields.map { it.id })
         assertEquals("alice", changed.fields.first().value)
         assertEquals(listOf("token", "username"), changed.move("token", -1).fields.map { it.id })

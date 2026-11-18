@@ -11,13 +11,7 @@ import java.io.File
 object ProfileImages {
     fun prepare(file: File): ByteArray {
         check(file.length() in 1..32L * 1024 * 1024) { "FILE_LIMIT" }
-        val decoded = ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
-            val width = info.size.width; val height = info.size.height
-            check(width > 0 && height > 0 && width.toLong() * height <= 40_000_000) { "FILE_LIMIT" }
-            val scale = maxOf(width, height).toFloat() / 512f
-            if (scale > 1) decoder.setTargetSize((width / scale).toInt().coerceAtLeast(1), (height / scale).toInt().coerceAtLeast(1))
-            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-        }
+        val decoded = BoundedImages.decode(ImageDecoder.createSource(file), 512)
         try {
             val opaque = Bitmap.createBitmap(decoded.width, decoded.height, Bitmap.Config.ARGB_8888)
             try {

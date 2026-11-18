@@ -10,7 +10,6 @@ import net.dmsg.android.platform.SystemExportStore
 import net.dmsg.android.platform.SystemNotices
 import net.dmsg.core.AndroidIntegrityProof
 import net.dmsg.core.AndroidPushRegistration
-import java.security.SecureRandom
 import java.util.Locale
 
 /** Main-owner registration only. The FCM service never instantiates this coordinator. */
@@ -82,8 +81,7 @@ class PushCoordinator(private val client: ClientController, context: Context, pr
             check(expires > now.toULong() && expires <= (now + 310_000).toULong()) { "INTEGRITY_FAILED" }
             val integrity = platform.integrity(requestHash)
             check(System.currentTimeMillis().toULong() < expires) { "RESULT_EXPIRED" }
-            val requestId = ByteArray(32).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
-            val registered = core.androidRegisterPush(details, AndroidIntegrityProof(challengeId, integrity), requestId).decode().objectValue()
+            val registered = core.androidRegisterPush(details, AndroidIntegrityProof(challengeId, integrity), requestId()).decode().objectValue()
             check(registered.required("installation") == installation) { "INTEGRITY_FAILED" }
             val providerRevision = registered.requiredUnsigned("revision")
             val providerExpiry = registered.requiredUnsigned("expires_at")

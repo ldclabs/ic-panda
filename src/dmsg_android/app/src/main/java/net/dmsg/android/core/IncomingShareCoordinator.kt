@@ -154,7 +154,7 @@ class IncomingShareCoordinator(private val client: ClientController, private val
     }
     fun previewImage(item: IncomingShare) = client.perform({
         val bytes = storage.image(item)
-        try { IncomingImages.decode(bytes) } finally { bytes.fill(0) }
+        try { BoundedImages.decode(bytes, 640) } finally { bytes.fill(0) }
     }, key = "incoming:image:" + item.id) { bitmap -> imageValue.value += item.id to bitmap }
     fun import(item: IncomingShare, folder: String) {
         val stamp = client.currentStamp()?.takeIf(client::accepts) ?: return

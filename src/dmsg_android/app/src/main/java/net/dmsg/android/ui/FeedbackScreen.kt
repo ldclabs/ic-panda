@@ -25,14 +25,15 @@ import net.dmsg.android.core.*
     LaunchedEffect(state.epoch) { client.feedback.load() }
     val value = report.valueOrNull()
     val form = draft
-    val editable = value == null || value.state == "draft"
+    val busy = state.working("feedback:send") || state.working("feedback:discard")
+    val editable = !busy && (value == null || value.state == "draft")
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(report, client.feedback::load)
         Text(str(R.string.text_tell_us_what_happened_3978a58), style = MaterialTheme.typography.headlineSmall)
         Notice(str(R.string.text_review_the_report_before_sending_no_vault_entries_messages_or_log_299c6b0))
         if (form != null) {
             val bytes = form.text.toByteArray().size
-            OutlinedTextField(form.text, { client.feedback.update(form.copy(text = it)) }, Modifier.fillMaxWidth(), minLines = 6, enabled = editable && !state.working("feedback:send"), label = { Text(str(R.string.text_description_a993ca6)) }, isError = bytes > 4500,
+            OutlinedTextField(form.text, { client.feedback.update(form.copy(text = it)) }, Modifier.fillMaxWidth(), minLines = 6, enabled = editable, label = { Text(str(R.string.text_description_a993ca6)) }, isError = bytes > 4500,
                 supportingText = { Text(localizedNumber(bytes) + " / " + localizedNumber(4500) + " " + str(R.string.text_utf_8_bytes_121f5ad)) })
             SectionTitle(str(R.string.text_included_context_3b2a6df))
             Text(form.context, style = MaterialTheme.typography.bodySmall)
@@ -47,9 +48,9 @@ import net.dmsg.android.core.*
             }
             if (editable) OutlinedButton(onClick = { client.library.browse("root", search = "", discarded = false); attaching = true }, enabled = form.files.size < 3) { Text(str(R.string.text_add_screenshot_8363406)) }
             value?.let { Text(when (it.state) { "sent" -> str(R.string.text_sent_a16d792); "pending" -> str(R.string.text_waiting_for_confirmation_9c87aad); else -> str(R.string.text_encrypted_draft_on_this_device_52e89e4) }, style = MaterialTheme.typography.labelLarge); it.error?.let { code -> Notice(errorText(code), true) } }
-            if (value?.state != "sent") Button(onClick = { confirming = true }, enabled = form.text.isNotBlank() && bytes <= 4500 && !state.working("feedback:send"), modifier = Modifier.fillMaxWidth()) { Text(if (value?.state == "pending") str(R.string.text_retry_original_report_4bb9eaa) else str(R.string.text_review_and_send_1d7f384)) }
-            if (value?.state == "pending" && value.editable) TextButton(onClick = client.feedback::edit) { Text(str(R.string.text_return_to_editing_190592d)) }
-            if (value != null && value.state != "pending") TextButton(onClick = { discard = true }) { Text(if (value.state == "sent") str(R.string.text_new_feedback_c97ee75) else str(R.string.text_discard_draft_6008f2b)) }
+            if (value?.state != "sent") Button(onClick = { confirming = true }, enabled = form.text.isNotBlank() && bytes <= 4500 && !busy, modifier = Modifier.fillMaxWidth()) { Text(if (value?.state == "pending") str(R.string.text_retry_original_report_4bb9eaa) else str(R.string.text_review_and_send_1d7f384)) }
+            if (value?.state == "pending" && value.editable) TextButton(onClick = client.feedback::edit, enabled = !busy) { Text(str(R.string.text_return_to_editing_190592d)) }
+            if (value != null && value.state != "pending") TextButton(onClick = { discard = true }, enabled = !busy) { Text(if (value.state == "sent") str(R.string.text_new_feedback_c97ee75) else str(R.string.text_discard_draft_6008f2b)) }
         }
     }
     if (attaching && form != null) AlertDialog(onDismissRequest = { attaching = false }, title = { Text(str(R.string.text_choose_a_screenshot_bf4fbfd)) }, text = {

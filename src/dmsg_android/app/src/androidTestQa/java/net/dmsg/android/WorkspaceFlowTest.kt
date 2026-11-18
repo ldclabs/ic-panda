@@ -12,6 +12,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
+import net.dmsg.android.core.QrRequest
+import net.dmsg.android.core.QrState
+import net.dmsg.android.core.QrStep
 import net.dmsg.android.core.ClientController
 import net.dmsg.android.core.ReadState
 import net.dmsg.android.core.valueOrNull
@@ -320,7 +323,7 @@ class WorkspaceFlowTest {
         val app = instrumentation.targetContext
         val nodes = StringBuilder("flags=" + instrumentation.uiAutomation.serviceInfo.flags +
             " unlocked=" + client.state.value.unlocked + " concealed=" + client.state.value.concealed +
-            " qrRequest=" + (client.qr.state.value.request != null) + " qrShowing=" + client.qr.state.value.request?.showing + "\n")
+            " qrStep=" + (client.qr.state.value as? QrRequest)?.step + "\n")
         fun inspect(node: android.view.accessibility.AccessibilityNodeInfo?, depth: Int = 0) {
             if (node == null || depth > 20) return
             val bounds = android.graphics.Rect().also(node::getBoundsInScreen)
@@ -617,6 +620,36 @@ class WorkspaceFlowTest {
         } finally { storage.list().forEach { storage.remove(it.id) } }
     }
 
+    @Test fun anOldNotificationPauseCannotCancelTheRetriedTransfer() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val store = checkNotNull(net.dmsg.android.platform.cipherStore(app))
+        val account = client.state.value.session!!.account!!
+        val id = "3c".repeat(32)
+        val now = System.currentTimeMillis().toULong()
+        val part = net.dmsg.android.platform.CipherPart("0", 1, "ab".repeat(32),
+            "https://relay.example.test/mobile-transfer/v1/$account/$id/0?token=" + "bc".repeat(32))
+        val plan = net.dmsg.android.platform.CipherPlan(id, account, client.state.value.session!!.deviceId!!,
+            "GET", "ef".repeat(32), now + 60_000u, listOf(part))
+        fun deliver(action: android.app.PendingIntent) {
+            val finished = java.util.concurrent.CountDownLatch(1)
+            action.send(app, 0, null, { _, _, _, _, _ -> finished.countDown() }, null)
+            assertTrue(finished.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        }
+        val initial = store.start(plan, now)
+        try {
+            val first = store.retry(initial, now)
+            val old = net.dmsg.android.platform.CipherTransferService.pauseIntent(app, id, first.attempt)
+            assertTrue(store.pause(id, first.attempt))
+            val next = store.retry(store.snapshot()!!, now)
+            val current = net.dmsg.android.platform.CipherTransferService.pauseIntent(app, id, next.attempt)
+            assertNotEquals(old, current)
+            deliver(old)
+            assertEquals(next, store.snapshot())
+            deliver(current)
+            compose.waitUntil(5_000) { store.snapshot()?.phase == net.dmsg.android.platform.CipherPhase.PAUSED }
+        } finally { store.discard(plan) }
+    }
+
     @Test fun expiredCipherGrantStopsInTheRealSystemJobWithoutOpeningOrFinishingAFile() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext
         val store = checkNotNull(net.dmsg.android.platform.cipherStore(app))
@@ -630,11 +663,11 @@ class WorkspaceFlowTest {
         val scheduler = net.dmsg.android.platform.CipherScheduler(app)
         val filesBefore = runBlocking { native.files("root").json }
         try {
-            store.start(plan, now - 2000u)
-            val active = store.retry(now - 1500u)
+            val initial = store.start(plan, now - 2000u)
+            val active = store.retry(initial, now - 1500u)
             compose.runOnIdle { scheduler.schedule(active) }
             compose.waitUntil(15_000) { store.snapshot()?.error == "TRANSFER_EXPIRED" }
-            assertEquals("failed", store.snapshot()!!.phase)
+            assertEquals(net.dmsg.android.platform.CipherPhase.FAILED, store.snapshot()!!.phase)
             assertTrue(store.snapshot()!!.completed.isEmpty())
             assertEquals(filesBefore, runBlocking { native.files("root").json })
             compose.runOnIdle { client.navigation.open("file-transfers"); client.backgroundFiles.load() }
@@ -944,9 +977,63 @@ class WorkspaceFlowTest {
         var read = false
         compose.runOnIdle { client.perform({ it.accounts() }, key = "test:automatic-read", quiet = true) { read = true } }
         compose.waitUntil(10_000) { read }
-        compose.runOnIdle { uptime += 30_001; client.checkInactivity() }
+        val clipboard = InstrumentationRegistry.getInstrumentation().targetContext.getSystemService(android.content.ClipboardManager::class.java)
+        compose.runOnIdle {
+            client.clipboard.copy("fixture-only clipboard")
+            assertEquals("fixture-only clipboard", clipboard.primaryClip?.getItemAt(0)?.text)
+            uptime += 30_001
+            client.checkInactivity()
+            assertFalse(clipboard.hasPrimaryClip())
+        }
         compose.waitUntil(10_000) { !client.state.value.unlocked && !client.state.value.busy }
         assertEquals("locked", runBlocking { native.sessionState() }.state)
+    }
+
+    @Test fun operationTimeoutAllowsAnImmediateRetryWithTheSameKey() {
+        var result: String? = null
+        var error: String? = null
+        compose.runOnIdle {
+            client.perform({ kotlinx.coroutines.withTimeout(10) { kotlinx.coroutines.delay(500) } }, key = "test:retry", quiet = true, onError = { code ->
+                error = code
+                client.perform({ "second" }, key = "test:retry") { result = it }
+            })
+        }
+        compose.waitUntil(10_000) { result == "second" }
+        assertEquals("TIMEOUT", error)
+    }
+
+    @Test fun openingAWorkspaceLinkAtColdStartKeepsTheSavedLockAndAppearanceSettings() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as DMsgApplication
+        val preferences = File(net.dmsg.android.platform.PrivateFiles(app).root, "preferences.json")
+        fun saved() = org.json.JSONObject(preferences.readText())
+        compose.runOnIdle { client.immediateLock(true); client.dark(true) }
+        compose.waitUntil(10_000) { preferences.isFile && saved().optString("appearance") == "dark" && saved().optBoolean("immediate_lock") }
+        runBlocking { withContext(Dispatchers.Main.immediate) { client.shutdown() } }
+        compose.runOnUiThread {
+            client = ClientController(app) { paths, platform ->
+                MobileEngine.reopenUiFixture(directory.path, paths.staging.path, platform).also { native = it; it.lockNow() }
+            }
+            client.requestWorkspace(net.dmsg.android.core.WorkspaceLink("files"))
+            uiVersion++
+            client.start()
+        }
+        compose.waitUntil(15_000) { client.state.value.session?.state == "locked" && saved().optString("pending_workspace") == "dmsg://open/files" }
+        val persisted = saved()
+        assertEquals("dark", persisted.getString("appearance"))
+        assertTrue(persisted.getBoolean("immediate_lock"))
+    }
+
+    @Test fun feedbackCannotSendAReportThatReplacedTheReviewedDraft() {
+        compose.runOnIdle { client.feedback.load() }
+        compose.waitUntil(10_000) { client.feedback.draft.value != null }
+        compose.runOnIdle { client.feedback.update(client.feedback.draft.value!!.copy(text = "Reviewed report")) }
+        compose.waitUntil(10_000) { client.feedback.report.value()?.text == "Reviewed report" }
+        val reviewed = client.feedback.report.value()!!
+        val other = net.dmsg.core.FeedbackDraftInput(net.dmsg.android.core.requestId(), 0u, "Different report", "", emptyList())
+        runBlocking { native.clearFeedback(reviewed.id, reviewed.revision); native.saveFeedback(other) }
+        compose.runOnIdle { client.feedback.send() }
+        compose.waitUntil(10_000) { client.feedback.report.value()?.id == other.id }
+        assertEquals("draft", client.feedback.report.value()?.state)
     }
 
     @Test fun cloudInventoryAndVerificationProgressRemainDistinctFromCompletedTransfers() {
@@ -1188,16 +1275,20 @@ class WorkspaceFlowTest {
         assertNull(client.filePreview.preview.value())
     }
 
-    @Test fun verifiedImagePreviewBoundsItsBitmap() {
+    @Test fun verifiedImagePreviewRespectsOrientationAndBoundsItsBitmap() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext
-        val source = File(app.cacheDir, "dmsg-shared/preview-${UUID.randomUUID()}/Reference image.png")
+        val source = File(app.cacheDir, "dmsg-shared/preview-${UUID.randomUUID()}/Reference image.jpg")
         source.parentFile!!.mkdirs()
         val image = Bitmap.createBitmap(2400, 1200, Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(image)
         canvas.drawColor(android.graphics.Color.rgb(245, 247, 239))
         val paint = android.graphics.Paint().apply { color = android.graphics.Color.rgb(49, 91, 64) }
         canvas.drawRoundRect(220f, 220f, 2180f, 980f, 100f, 100f, paint)
-        source.outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }; image.recycle()
+        source.outputStream().use { image.compress(Bitmap.CompressFormat.JPEG, 90, it) }; image.recycle()
+        android.media.ExifInterface(source).apply {
+            setAttribute(android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_ROTATE_90.toString())
+            saveAttributes()
+        }
         val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", source)
         compose.runOnIdle { assertTrue(client.transfers.beginImport("root")); client.transfers.importResult(uri) }
         compose.waitUntil(15_000) { client.transfers.tasks.value.values.any { it.kind == "import" && it.phase == "done" } }
@@ -1205,7 +1296,7 @@ class WorkspaceFlowTest {
         compose.runOnIdle { client.clearNotice(); client.navigation.open("files"); client.navigation.push(net.dmsg.android.core.Route("file-preview", id = file.id, revision = file.version)) }
         compose.waitUntil(10_000) { client.filePreview.preview.state.value is ReadState.Ready }
         val bitmap = checkNotNull(client.filePreview.preview.value()?.bitmap)
-        assertTrue(bitmap.width <= 1600 && bitmap.height <= 1600)
+        assertTrue(bitmap.width < bitmap.height && bitmap.height <= 1600)
         capture("qa-file-verified-image")
         source.delete()
     }
@@ -1320,7 +1411,9 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Recipient account ID").performTextReplacement("040g2081040g2081040g")
         val text = "Last authored line · 中文 🧪"
         compose.onNodeWithText("Message", substring = false).performTextInput(text)
-        compose.onNodeWithText("Keep draft").performScrollTo().performClick()
+        compose.onNodeWithText("Keep draft").performScrollTo().assertIsDisplayed()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        compose.waitUntil(10_000) { compose.onAllNodes(hasSetTextAction() and hasText(text)).fetchSemanticsNodes().isEmpty() }
         compose.onNodeWithText("Drafts").performClick()
         compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("letter:save:") } }
         compose.onNodeWithText(text).assertExists()
@@ -1331,9 +1424,61 @@ class WorkspaceFlowTest {
         directory.walkTopDown().filter { it.isFile && (it.name.endsWith("sqlite") || it.name.endsWith("-wal")) }.forEach {
             assertFalse(it.readBytes().toString(Charsets.ISO_8859_1).contains("Last authored line"))
         }
-        compose.runOnIdle { client.navigation.open("vault"); client.navigation.open("messages"); client.navigation.open("inbox") }
+        compose.runOnIdle { client.navigation.open("vault") }
+        compose.onNodeWithContentDescription("New item").assertExists()
+        compose.runOnIdle { client.navigation.open("messages") }
         compose.onNodeWithText("Drafts").performClick()
         compose.onNodeWithText(text).assertExists()
+    }
+
+    @Test fun qrAcceptsOnlyTheChosenSourceAndDeliversItsResultOnce() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = File(app.cacheDir, "dmsg-shared/qr-fixture/" + UUID.randomUUID() + ".png")
+        file.parentFile!!.mkdirs()
+        val text = "Offline QR fixture"
+        file.writeBytes(android.util.Base64.decode(net.dmsg.core.qrPng(text).substringAfter(','), android.util.Base64.DEFAULT))
+        val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", file)
+        val qr = client.qr
+        try {
+            compose.runOnIdle {
+                qr.open("old")
+                val old = (qr.state.value as QrRequest).id
+                assertTrue(qr.chooseImage(old))
+                qr.open("current")
+                val current = (qr.state.value as QrRequest).id
+                assertTrue(qr.chooseImage(current))
+                qr.image(app, old, null)
+                qr.cameraResult(current, "late frame")
+                assertEquals(QrStep.PICKING_IMAGE, (qr.state.value as QrRequest).step)
+                qr.image(app, current, uri)
+                qr.cameraResult(old, "old scan")
+                qr.image(app, current, null)
+            }
+            compose.waitUntil(10_000) { qr.state.value.result?.text == text }
+            compose.runOnIdle {
+                assertNull(qr.consume("old"))
+                assertEquals(text, qr.consume("current"))
+                assertNull(qr.consume("current"))
+                qr.open("camera")
+                val current = (qr.state.value as QrRequest).id
+                qr.permission(current)
+                qr.cameraResult(current, "camera frame")
+                assertEquals("camera frame", qr.consume("camera"))
+                qr.open("cancel")
+                val cancelled = (qr.state.value as QrRequest).id
+                assertTrue(qr.chooseImage(cancelled))
+                qr.image(app, cancelled, null)
+                assertEquals(QrState.Idle, qr.state.value)
+            }
+            java.io.RandomAccessFile(file, "rw").use { it.setLength(8L * 1024 * 1024 + 1) }
+            compose.runOnIdle {
+                qr.open("large")
+                val current = (qr.state.value as QrRequest).id
+                assertTrue(qr.chooseImage(current))
+                qr.image(app, current, uri)
+            }
+            compose.waitUntil(10_000) { qr.state.value == QrState.Idle && client.state.value.error == "FILE_LIMIT" }
+        } finally { file.delete() }
     }
 
     @Test fun deniedCameraRetainsPasteAndDoesNotCreateAnApproval() {
@@ -1354,32 +1499,24 @@ class WorkspaceFlowTest {
         instrumentation.uiAutomation.waitForIdle(200, 5000)
         val deadline = android.os.SystemClock.elapsedRealtime() + 8000
         var deniedBySystem = false
-        var tapSent = false
-        var lastTap = 0L
+        var denyRequested = false
         while (android.os.SystemClock.elapsedRealtime() < deadline) {
             fun denied(node: android.view.accessibility.AccessibilityNodeInfo?): Boolean {
                 node ?: return false
-                if (node.viewIdResourceName?.let { it.endsWith(":id/permission_deny_button") || it.endsWith(":id/permission_deny_and_dont_ask_again_button") } == true) {
-                    val bounds = android.graphics.Rect().also(node::getBoundsInScreen)
-                    val time = android.os.SystemClock.elapsedRealtime()
-                    if (!node.isEnabled || bounds.isEmpty || time - lastTap < 500) return false
-                    lastTap = time
-                    // Use the system node's reported bounds for a real touch.
-                    android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
-                        "input tap " + bounds.centerX() + " " + bounds.centerY()
-                    )).use { it.readBytes() }
-                    return true
-                }
+                val id = node.viewIdResourceName?.substringAfter(":id/")
+                if (id == "permission_deny_button" || id == "permission_deny_and_dont_ask_again_button")
+                    return node.isEnabled && node.isVisibleToUser && node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)
                 for (i in 0 until node.childCount) if (denied(node.getChild(i))) return true
                 return false
             }
             val root = instrumentation.uiAutomation.rootInActiveWindow
-            if (tapSent && root?.packageName == app.packageName) { deniedBySystem = true; break }
-            if (denied(root)) tapSent = true
-            // Wait for the system window to close; a touch during its opening animation
-            // may be ignored. Retry only while the same system deny button is present.
-            // The app's fallback exists underneath the permission window even before
-            // that window appears. Its semantics do not prove the system replied.
+            val owner = root?.packageName?.toString()
+            if (denyRequested && owner == app.packageName &&
+                app.checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_DENIED) {
+                deniedBySystem = true
+                break
+            }
+            if (owner != null && owner != app.packageName && owner != instrumentation.context.packageName && denied(root)) denyRequested = true
             Thread.sleep(50)
         }
         if (!deniedBySystem) capturePermissionFailure("qa-camera-permission-not-denied")

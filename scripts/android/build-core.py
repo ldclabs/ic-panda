@@ -18,6 +18,18 @@ TARGETS = {"arm64-v8a": ("aarch64-linux-android", "aarch64-linux-android31"),
            "x86_64": ("x86_64-linux-android", "x86_64-linux-android31")}
 
 
+def file_hash(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def library_name(abi):
+    return f"jniLibs/{abi}/libdmsg_mobile.so"
+
+
 def run(args, env=None):
     subprocess.run(args, cwd=ROOT, env=env, check=True)
 
@@ -80,26 +92,36 @@ def main():
     build_id = fingerprint(inputs, args.fixtures)
     manifest = GENERATED / "manifest.json"
     state = json.loads(manifest.read_text()) if manifest.exists() else {}
-    def valid_outputs(prefix=None):
-        outputs = {n: h for n, h in state.get("outputs", {}).items() if prefix is None or n.startswith(prefix)}
-        return bool(outputs) and all((GENERATED / n).is_file()
-            and hashlib.sha256((GENERATED / n).read_bytes()).hexdigest() == h for n, h in outputs.items())
-    if args.verify:
-        if state.get("source") != build_id:
-            raise SystemExit("Stale native/Kotlin build: source fingerprint changed")
-        for name, digest in state["outputs"].items():
-            if not (GENERATED / name).is_file() or hashlib.sha256((GENERATED / name).read_bytes()).hexdigest() != digest:
-                raise SystemExit("Stale native/Kotlin build: " + name)
-        if any(abi not in state["abis"] for abi in abis):
-            raise SystemExit("Missing requested native ABI")
-        print("Verified dMsg core " + build_id)
-        return
+    recorded = state.get("outputs", {})
     matching = state.get("source") == build_id
-    if matching and valid_outputs("kotlin/") and (args.bindings_only or
-            (all(a in state.get("abis", []) for a in abis) and valid_outputs("jniLibs/"))):
+    def valid(name):
+        path = GENERATED / name
+        return name in recorded and path.is_file() and file_hash(path) == recorded[name]
+
+    bindings = {str(p.relative_to(GENERATED)) for p in (GENERATED / "kotlin").rglob("*") if p.is_file()}
+    required = {"kotlin/net/dmsg/core/BuildIdentity.kt", "kotlin/net/dmsg/core/dmsg_mobile.kt"}
+    bindings_valid = (matching and required <= bindings
+                      and bindings == {name for name in recorded if name.startswith("kotlin/")}
+                      and all(valid(name) for name in bindings))
+    if args.bindings_only and not args.verify and bindings_valid:
         print("Reusing verified dMsg core " + build_id)
         return
-    if args.native_only and not (matching and valid_outputs("kotlin/")):
+    built = [abi for abi in TARGETS if matching and abi in state.get("abis", []) and valid(library_name(abi))]
+    requested_valid = set(abis).issubset(built)
+    recorded_valid = set(state.get("abis", [])) == set(built)
+    if args.verify:
+        if not matching:
+            raise SystemExit("Stale native/Kotlin build: source fingerprint changed")
+        if not bindings_valid:
+            raise SystemExit("Missing or stale Kotlin bindings")
+        if not requested_valid or not recorded_valid:
+            raise SystemExit("Missing or stale native ABI")
+        print("Verified dMsg core " + build_id)
+        return
+    if bindings_valid and requested_valid and recorded_valid:
+        print("Reusing verified dMsg core " + build_id)
+        return
+    if args.native_only and not bindings_valid:
         raise SystemExit("Generate current Kotlin bindings before native slices")
     target = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target/android")).resolve()
     if args.fixtures:
@@ -108,7 +130,7 @@ def main():
     # Fingerprinted per-target settings below are authoritative, including CI.
     env.pop("RUSTFLAGS", None)
     env.pop("CARGO_ENCODED_RUSTFLAGS", None)
-    if not args.native_only:
+    if not bindings_valid:
         run(["cargo", "build", "--locked", "-p", "dmsg_mobile", "--features", "bindgen,ui-fixtures" if args.fixtures else "bindgen"], env)
         suffix = "dylib" if platform.system() == "Darwin" else "so"
         GENERATED.mkdir(parents=True, exist_ok=True)
@@ -123,7 +145,6 @@ def main():
         package = GENERATED / "kotlin/net/dmsg/core"
         (package / "BuildIdentity.kt").write_text(
             'package net.dmsg.core\n\ninternal object BuildIdentity { const val HASH = "' + build_id + '" }\n')
-    built = list(state.get("abis", [])) if matching else []
     if not args.bindings_only:
         sdk = os.environ.get("ANDROID_HOME", os.environ.get("ANDROID_SDK_ROOT"))
         if not sdk:
@@ -132,6 +153,8 @@ def main():
         host = "darwin-x86_64" if platform.system() == "Darwin" else "linux-x86_64"
         toolchain = ndk / "toolchains/llvm/prebuilt" / host / "bin"
         for abi in abis:
+            if abi in built:
+                continue
             triple, compiler = TARGETS[abi]
             name = triple.replace("-", "_")
             native_env = dict(env)
@@ -144,13 +167,16 @@ def main():
             output = GENERATED / "jniLibs" / abi
             output.mkdir(parents=True, exist_ok=True)
             shutil.copy2(target / triple / "mobile/libdmsg_mobile.so", output / "libdmsg_mobile.so")
-            if abi not in built:
-                built.append(abi)
+            recorded[library_name(abi)] = file_hash(output / "libdmsg_mobile.so")
+            built.append(abi)
     if fingerprint(sources(), args.fixtures) != build_id:
         raise SystemExit("Sources changed during build; rerun before packaging")
-    outputs = {str(p.relative_to(GENERATED)): hashlib.sha256(p.read_bytes()).hexdigest()
-               for group in ["kotlin", "jniLibs"] for p in (GENERATED / group).rglob("*") if p.is_file()}
-    manifest.write_text(json.dumps({"source": build_id, "fixtures": args.fixtures, "abis": built, "outputs": outputs}, indent=2) + "\n")
+    outputs = {str(p.relative_to(GENERATED)): file_hash(p) for p in (GENERATED / "kotlin").rglob("*") if p.is_file()}
+    outputs.update({library_name(abi): recorded[library_name(abi)] for abi in built})
+    with tempfile.NamedTemporaryFile(mode="w", dir=GENERATED, delete=False) as draft:
+        json.dump({"source": build_id, "fixtures": args.fixtures, "abis": built, "outputs": outputs}, draft, indent=2)
+        draft.write("\n")
+    os.replace(draft.name, manifest)
     print("Built dMsg core " + build_id + " for " + ",".join(built))
 
 

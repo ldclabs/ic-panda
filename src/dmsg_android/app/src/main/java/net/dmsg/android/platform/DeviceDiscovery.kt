@@ -38,7 +38,7 @@ class DeviceDiscovery(context: Context) {
         lateinit var listener: NsdManager.RegistrationListener
         fun stop() { if (closed.compareAndSet(false, true) && registered) runCatching { nsd.unregisterService(listener) } }
         try {
-            withTimeout(15_000) {
+            withTimeoutOrNull(15_000) {
                 suspendCancellableCoroutine<Unit> { continuation ->
                     listener = object : NsdManager.RegistrationListener {
                         override fun onServiceRegistered(info: NsdServiceInfo) {
@@ -56,7 +56,7 @@ class DeviceDiscovery(context: Context) {
                     try { nsd.registerService(info, NsdManager.PROTOCOL_DNS_SD, listener) }
                     catch (error: Exception) { stop(); if (continuation.isActive) continuation.resumeWithException(error) }
                 }
-            }
+            } ?: error("DISCOVERY_UNAVAILABLE")
             return object : Advertisement { override fun close() = stop() }
         } catch (error: Throwable) { stop(); throw error }
     }
@@ -68,7 +68,7 @@ class DeviceDiscovery(context: Context) {
         val resolving = AtomicBoolean()
         return try {
             multicast.acquire()
-            withTimeout(15_000) {
+            withTimeoutOrNull(15_000) {
                 suspendCancellableCoroutine { continuation ->
                     val discovered = object : NsdManager.DiscoveryListener {
                         override fun onDiscoveryStarted(type: String) = Unit
@@ -97,7 +97,7 @@ class DeviceDiscovery(context: Context) {
                     try { nsd.discoverServices(TYPE, NsdManager.PROTOCOL_DNS_SD, discovered) }
                     catch (error: Exception) { if (continuation.isActive) continuation.resumeWithException(error) }
                 }
-            }
+            } ?: error("DISCOVERY_UNAVAILABLE")
         } finally {
             listener?.let { runCatching { nsd.stopServiceDiscovery(it) } }
             if (multicast.isHeld) multicast.release()

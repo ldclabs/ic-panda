@@ -14,7 +14,6 @@
     <string name="backup_total_size" formatted="false">"মোট আকার"</string>
     <string name="choose_permission" formatted="false">"একটি অনুমতি বেছে নিন"</string>
     <string name="cipher_transfer_running" formatted="false">"এনক্রিপ্ট করা ব্লক স্থানান্তর হচ্ছে"</string>
-    <string name="cipher_transfer_stop" formatted="false">"থামান"</string>
     <string name="cipher_transfer_title" formatted="false">"এনক্রিপ্ট করা স্থানান্তর"</string>
     <string name="customize_fields" formatted="false">"ফিল্ড সাজান"</string>
     <string name="empty_folder" formatted="false">"এই ফোল্ডারে কোনো ফাইল নেই"</string>
@@ -22,7 +21,6 @@
     <string name="history_deleted" formatted="false">"মুছে ফেলার তারিখ"</string>
     <string name="history_device" formatted="false">"ডিভাইস"</string>
     <string name="history_fields" formatted="false">"ক্ষেত্র"</string>
-    <string name="language_changed" formatted="false">"ভাষা আপডেট হয়েছে"</string>
     <string name="language_search" formatted="false">"ভাষা খুঁজুন"</string>
     <string name="links_created_progress" formatted="true">"%2$sটির মধ্যে %1$sটি তৈরি হয়েছে"</string>
     <string name="no_matches" formatted="false">"মিলে যাওয়া ফলাফল নেই"</string>
@@ -75,7 +73,6 @@
     <string name="text_a_copy_was_saved_to_the_location_you_chose_3141816" formatted="false">"আপনার নির্বাচিত স্থানে একটি কপি সংরক্ষিত হয়েছে।"</string>
     <string name="text_a_deletion_marker_will_sync_to_your_other_devices_version_history_18e2556" formatted="false">"মুছে ফেলার চিহ্ন অন্য ডিভাইসে সিঙ্ক হবে। সংস্করণের ইতিহাস থাকবে।"</string>
     <string name="text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376" formatted="false">"ডাউনলোড সেশন হলো সংগ্রহের সীমা, ফাইল পড়ার সংখ্যা নয়। মেয়াদ শেষ বা অনুমতি প্রত্যাহার সংরক্ষিত কপি মুছতে পারে না।"</string>
-    <string name="text_a_draft_stays_only_in_this_unlocked_account_session_locking_or_sw_d3947fa" formatted="false">"খসড়া শুধু এই আনলক করা অ্যাকাউন্ট সেশনে থাকে। লক করলে বা অ্যাকাউন্ট বদলালে তা মুছে যায়।"</string>
     <string name="text_a_field_allows_up_to_10_000_characters_da567ba" formatted="false">"একটি ফিল্ডে সর্বোচ্চ 10,000টি অক্ষর থাকতে পারে।"</string>
     <string name="text_a_full_link_and_required_password_grant_retrieval_within_these_li_323a1eb" formatted="false">"সম্পূর্ণ লিংক ও প্রয়োজনীয় পাসওয়ার্ড এই সীমার মধ্যে সংগ্রহের অনুমতি দেয়। অনুমতি প্রত্যাহারে সংরক্ষিত কপি মুছে যায় না।"</string>
     <string name="text_a_hardware_cosigner_key_stays_in_this_device_s_keystore_register_627a57d" formatted="false">"সহস্বাক্ষরকারীর হার্ডওয়্যার কী এই ডিভাইসের Keystore-এ থাকে। ওয়ালেট প্রস্তাবের মাধ্যমে এর পাবলিক কী নিবন্ধন করুন।"</string>
@@ -317,7 +314,6 @@
     <string name="text_cancel_transfer_23833f9" formatted="false">"স্থানান্তর বাতিল করুন"</string>
     <string name="text_cancelled_02eb7d5" formatted="false">"বাতিল হয়েছে।"</string>
     <string name="text_cancelled_bf41d7d" formatted="false">"বাতিল"</string>
-    <string name="text_capabilities_one_per_line_86f9e92" formatted="false">"ক্ষমতা, প্রতি লাইনে একটি"</string>
     <string name="text_chain_tip_c986d2d" formatted="false">"চেইনের শীর্ষ"</string>
     <string name="text_change_access_grant_3607d07" formatted="false">"প্রদত্ত প্রবেশাধিকার বদলান"</string>
     <string name="text_change_account_settings_db4ca2f" formatted="false">"অ্যাকাউন্ট সেটিংস বদলান"</string>
@@ -490,7 +486,6 @@
     <string name="text_create_7570cfc" formatted="false">"তৈরি করুন"</string>
     <string name="text_create_a_new_address_7cdbf66" formatted="false">"নতুন ঠিকানা তৈরি করুন"</string>
     <string name="text_create_a_new_credential_at_its_provider_and_save_it_in_the_vault_2c5b164" formatted="false">"এর প্রদানকারীতে একটি নতুন শংসাপত্র তৈরি করুন এবং এটি ভল্টে সংরক্ষণ করুন৷"</string>
-    <string name="text_create_a_new_sign_in_11ef15b" formatted="false">"নতুন লগইন পরিচয় তৈরি করুন"</string>
     <string name="text_create_administrator_enrollment_request_42868af" formatted="false">"একটি প্রশাসক তালিকাভুক্তির অনুরোধ তৈরি করুন"</string>
     <string name="text_create_agent_f6a5a91" formatted="false">"এজেন্ট তৈরি করুন"</string>
     <string name="text_create_an_agent_identity_4207389" formatted="false">"একটি এজেন্ট পরিচয় তৈরি করুন"</string>
@@ -511,7 +506,6 @@
     <string name="text_create_this_wallet_proposal_08ed869" formatted="false">"এই ওয়ালেট প্রস্তাব তৈরি করুন?"</string>
     <string name="text_create_transfer_proposal_b198142" formatted="false">"স্থানান্তর প্রস্তাব তৈরি করুন"</string>
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"পাসওয়ার্ড, নোট এবং ফাইল সংরক্ষণ শুরু করতে আপনার এনক্রিপ্ট করা ওয়ার্কস্পেস তৈরি করুন৷"</string>
-    <string name="text_create_your_sign_in_cfa2f8b" formatted="false">"আপনার লগইন পরিচয় তৈরি করুন"</string>
     <string name="text_created_36ba304" formatted="false">"তৈরি হয়েছে"</string>
     <string name="text_created_ae8a09c" formatted="false">"তৈরি হয়েছে · "</string>
     <string name="text_created_c1dc4dc" formatted="false">"তৈরি হয়েছে "</string>
@@ -547,8 +541,6 @@
     <string name="text_dark_0bea023" formatted="false">"গাঢ়"</string>
     <string name="text_database_7bc9ec0" formatted="false">"ডাটাবেস"</string>
     <string name="text_date_5da2748" formatted="false">"তারিখ"</string>
-    <string name="text_days_1252a20" formatted="false">" দিন"</string>
-    <string name="text_days_f586104" formatted="false">"দিন"</string>
     <string name="text_delegation_starts_when_the_service_issues_the_credential_its_stat_1e20149" formatted="false">"পরিষেবা শংসাপত্র দিলে ক্ষমতা অর্পণ শুরু হয়। পরের পাঠে এর অবস্থা যাচাই হয়।"</string>
     <string name="text_delete_5b87532" formatted="false">"মুছুন"</string>
     <string name="text_delete_account_4899915" formatted="false">"অ্যাকাউন্ট মুছুন"</string>
@@ -723,7 +715,6 @@
     <string name="text_file_mapping_access_3be2c7f" formatted="false">"ফাইল ম্যাপিং প্রবেশাধিকার"</string>
     <string name="text_file_notes_and_tags_d701552" formatted="false">"ফাইলের নোট ও ট্যাগ"</string>
     <string name="text_file_transfers_2b83297" formatted="false">"ফাইল স্থানান্তর"</string>
-    <string name="text_files_30b0a88" formatted="false">" ফাইল"</string>
     <string name="text_files_app_copies_96ebae6" formatted="false">"ফাইল অ্যাপের অনুলিপি"</string>
     <string name="text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b" formatted="false">"ফাইল স্থানীয়ভাবে এনক্রিপ্ট হয়। ক্লাউড ব্যাকআপ আলাদা ও স্পষ্ট কাজ।"</string>
     <string name="text_files_c79ddc2" formatted="false">"ফাইল"</string>
@@ -744,7 +735,6 @@
     <string name="text_future_messages_wait_for_new_keys_this_does_not_erase_content_alr_4e7c4a7" formatted="false">"পরের বার্তা নতুন কীর অপেক্ষা করে। এতে আগেই সরবরাহ করা বিষয়বস্তু মুছে যায় না।"</string>
     <string name="text_generate_again_c8b3202" formatted="false">"আবার তৈরি করুন"</string>
     <string name="text_generate_password_4fe4cd0" formatted="false">"পাসওয়ার্ড তৈরি করুন"</string>
-    <string name="text_get_started_64034d2" formatted="false">"শুরু করুন"</string>
     <string name="text_go_back_7741045" formatted="false">"ফিরে যান"</string>
     <string name="text_google_play_50042fd" formatted="false">"Google Play"</string>
     <string name="text_google_play_is_unavailable_check_your_connection_and_retry_do_not_f17918b" formatted="false">"Google Play পাওয়া যাচ্ছে না। সংযোগ দেখে আবার চেষ্টা করুন; অযাচাইকৃত কেনাকাটার জন্য নতুন অর্থপ্রদান শুরু করবেন না।"</string>
@@ -970,12 +960,10 @@
     <string name="text_message_withdrawn_c19a5e2" formatted="false">"বার্তা প্রত্যাহার করা হয়েছে"</string>
     <string name="text_messages_3a9ab2d" formatted="false">"বার্তা"</string>
     <string name="text_messages_can_contain_up_to_16_000_utf_8_bytes_the_previous_text_i_dbc5f00" formatted="false">"বার্তায় সর্বোচ্চ 16,000 UTF-8 বাইট থাকতে পারে। আগের লেখা রাখা হয়।"</string>
-    <string name="text_minutes_9c19706" formatted="false">" মিনিট"</string>
     <string name="text_mobile_packages_are_limited_to_8_mib_preview_verifies_content_bef_7a4533d" formatted="false">"মোবাইল প্যাকেজের সীমা 8 MiB। কী আমদানি করবেন বাছার আগে প্রাকদর্শন বিষয়বস্তু যাচাই করে।"</string>
     <string name="text_month_350fe84" formatted="false">"মাস"</string>
     <string name="text_monthly_execution_limit_096e8a4" formatted="false">"মাসিক নির্বাহের সীমা"</string>
     <string name="text_monthly_execution_units_9ebde11" formatted="false">"মাসিক এক্সিকিউশন ইউনিট"</string>
-    <string name="text_months_be91b1b" formatted="false">"মাস"</string>
     <string name="text_more_file_actions_65e84ee" formatted="false">"ফাইলের আরও কাজ"</string>
     <string name="text_move_207d5fe" formatted="false">"সরান"</string>
     <string name="text_move_assets_to_the_new_device_s_own_key_or_leave_them_for_l2_0ebeaeb" formatted="false">"সম্পদ নতুন ডিভাইসের নিজস্ব কীতে সরান অথবা L2-এর জন্য রেখে দিন।"</string>
@@ -1189,7 +1177,6 @@
     <string name="text_pinned_shortcuts_7185837" formatted="false">"পিন করা শর্টকাট"</string>
     <string name="text_plan_and_usage_acf1a9a" formatted="false">"পরিকল্পনা এবং ব্যবহার"</string>
     <string name="text_plan_benefits_4ba263e" formatted="false">"পরিকল্পনার সুবিধা"</string>
-    <string name="text_plan_benefits_and_usage_62c82de" formatted="false">"পরিকল্পনা, সুবিধা ও ব্যবহার"</string>
     <string name="text_plan_default_023d514" formatted="false">"পরিকল্পনার সাধারণ মান"</string>
     <string name="text_plan_fc68459" formatted="false">"পরিকল্পনা"</string>
     <string name="text_policy_changed_9d62739" formatted="false">"নীতি বদলেছে"</string>
@@ -1543,7 +1530,6 @@
     <string name="text_scopes_one_per_line_20c88cb" formatted="false">"স্কোপ, প্রতি লাইনে একটি"</string>
     <string name="text_screenshots_9699c0f" formatted="false">"স্ক্রিনশট"</string>
     <string name="text_search_05fdb9c" formatted="false">"খুঁজুন"</string>
-    <string name="text_search_conversations_554f767" formatted="false">"কথোপকথন খুঁজুন"</string>
     <string name="text_search_files_notes_and_tags_9013c74" formatted="false">"ফাইল, নোট ও ট্যাগ খুঁজুন"</string>
     <string name="text_search_letters_1249ccd" formatted="false">"চিঠি খুঁজুন"</string>
     <string name="text_search_messages_and_attachments_ff5cf7f" formatted="false">"বার্তা ও সংযুক্তি খুঁজুন"</string>
@@ -1587,7 +1573,6 @@
     <string name="text_send_file_library_44ec367" formatted="false">"ফাইল লাইব্রেরি পাঠান"</string>
     <string name="text_send_the_password_through_another_channel_1e76ba2" formatted="false">"অন্য মাধ্যমে পাসওয়ার্ড পাঠান।"</string>
     <string name="text_send_this_report_589df5d" formatted="false">"এই রিপোর্ট পাঠাবেন?"</string>
-    <string name="text_send_to_a_device_bc52c08" formatted="false">"কোনো ডিভাইসে পাঠান"</string>
     <string name="text_sender_account_e9f6961" formatted="false">"প্রেরকের অ্যাকাউন্ট"</string>
     <string name="text_sender_names_and_notes_are_unverified_file_contents_download_only_01b7ba6" formatted="false">"প্রেরকের নাম ও নোট যাচাই করা নয়। লাইব্রেরিতে সংরক্ষণ বাছলেই শুধু ফাইলের বিষয়বস্তু নামানো হয়।"</string>
     <string name="text_sender_unverified_2d47891" formatted="false">"প্রেরক (অযাচাইকৃত) · "</string>
@@ -2007,9 +1992,7 @@
     <string name="text_view_original_approval_ecd3b71" formatted="false">"মূল অনুমোদন দেখুন"</string>
     <string name="text_view_original_message_a5b610b" formatted="false">"মূল বার্তা দেখুন"</string>
     <string name="text_view_proposal_a94973a" formatted="false">"প্রস্তাব দেখুন"</string>
-    <string name="text_view_public_profile_7234699" formatted="false">"সর্বজনীন প্রোফাইল দেখুন"</string>
     <string name="text_view_received_files_c1b45ae" formatted="false">"প্রাপ্ত ফাইল দেখুন"</string>
-    <string name="text_view_status_and_compare_plans_f11c1b4" formatted="false">"অবস্থা দেখুন ও পরিকল্পনা তুলনা করুন"</string>
     <string name="text_view_the_current_version_86f22e5" formatted="false">"বর্তমান সংস্করণ দেখুন"</string>
     <string name="text_viewer_8a8ac26" formatted="false">"দর্শক"</string>
     <string name="text_wait_for_address_book_cooldown_2ccc5de" formatted="false">"ঠিকানা বইয়ের অপেক্ষার সময় শেষ হতে দিন"</string>
@@ -2047,7 +2030,6 @@
     <string name="text_website_ad80f52" formatted="false">"ওয়েবসাইট"</string>
     <string name="text_website_bbb4521" formatted="false">"ওয়েবসাইট"</string>
     <string name="text_website_claimed_by_app_ae298e3" formatted="false">"অ্যাপের দাবি করা ওয়েবসাইট"</string>
-    <string name="text_weeks_9f99b0a" formatted="false">"সপ্তাহ"</string>
     <string name="text_welcome_back_70da839" formatted="false">"আবার স্বাগতম।"</string>
     <string name="text_what_do_you_need_51c5d87" formatted="false">"আপনার কী দরকার?"</string>
     <string name="text_while_dmsg_is_open_and_unlocked_99d4594" formatted="false">"dMsg খোলা ও আনলক থাকা অবস্থায়"</string>
@@ -2059,7 +2041,6 @@
     <string name="text_working_ef6a315" formatted="false">"চলছে"</string>
     <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"কর্মক্ষেত্র এই ডিভাইসে সংরক্ষিত"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"একটি চিঠি লিখুন"</string>
-    <string name="text_years_f6a8ffc" formatted="false">"বছর"</string>
     <string name="text_yes_4e00e01" formatted="false">"হ্যাঁ"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"আপনার এই পরিকল্পনা আগেই আছে। Google Play-এ নবায়ন পরিচালনা করুন।"</string>
     <string name="text_you_are_viewing_an_immutable_historical_version_0b9544a" formatted="false">"আপনি একটি অপরিবর্তনীয় ঐতিহাসিক সংস্করণ দেখছেন।"</string>

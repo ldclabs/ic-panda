@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,7 +19,7 @@ class MainActivity : ComponentActivity() {
     private val client get() = (application as DMsgApplication).client
     private var callback: String? = null
     private val screenOff = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) { if (intent.action == Intent.ACTION_SCREEN_OFF) client.lock(false, true) }
+        override fun onReceive(context: Context, intent: Intent) { if (intent.action == Intent.ACTION_SCREEN_OFF) client.lock() }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +28,7 @@ class MainActivity : ComponentActivity() {
         client.navigation.restore(savedInstanceState?.getString("workspace-navigation"))
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
-        receive(intent)
+        if (savedInstanceState == null) receive(intent)
         ContextCompat.registerReceiver(this, screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), ContextCompat.RECEIVER_NOT_EXPORTED)
         setContent {
             DMsgApp(client,
@@ -46,7 +45,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) { consumeCallback(); client.tryAutomaticUnlock() } }
+    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) { client.clipboard.clearExpired(); consumeCallback(); client.tryAutomaticUnlock() } }
 
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); receive(intent); if (hasWindowFocus()) consumeCallback() }
     override fun onSaveInstanceState(outState: Bundle) { outState.putString("workspace-navigation", client.navigation.save()); super.onSaveInstanceState(outState) }
@@ -75,5 +74,4 @@ class MainActivity : ComponentActivity() {
     override fun onStop() { client.prompts.detach(this); (application as DMsgApplication).mainStopped(); super.onStop() }
     override fun onDestroy() { unregisterReceiver(screenOff); client.prompts.detach(this); client.passkeys.detach(this); super.onDestroy() }
     override fun onUserInteraction() { super.onUserInteraction(); client.activity() }
-    override fun dispatchTouchEvent(event: MotionEvent): Boolean { if (event.action == MotionEvent.ACTION_DOWN) client.activity(); return super.dispatchTouchEvent(event) }
 }

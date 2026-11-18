@@ -27,10 +27,6 @@
     "en": "Transferring encrypted blocks",
     "zh-Hans": "正在传输加密分块"
   },
-  "cipher_transfer_stop": {
-    "en": "Stop",
-    "zh-Hans": "停止"
-  },
   "cipher_transfer_title": {
     "en": "Encrypted transfers",
     "zh-Hans": "加密传输"
@@ -48,10 +44,6 @@
   "follow_system_language": {
     "en": "Follow system language",
     "zh-Hans": "跟随系统语言"
-  },
-  "language_changed": {
-    "en": "Language updated",
-    "zh-Hans": "语言已更新"
   },
   "language_search": {
     "en": "Find a language",
@@ -287,10 +279,6 @@
   "text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376": {
     "en": "A download session is a retrieval allowance, not a count of file reads. Expiry and revocation cannot erase saved copies.",
     "zh-Hans": "下载会话是一次取回额度，不是文件阅读次数。到期或撤销无法抹除已保存的副本。"
-  },
-  "text_a_draft_stays_only_in_this_unlocked_account_session_locking_or_sw_d3947fa": {
-    "en": "A draft stays only in this unlocked account session. Locking or switching accounts clears it.",
-    "zh-Hans": "草稿仅保留在本次解锁的账号会话中，锁定或切换账号后清除。"
   },
   "text_a_field_allows_up_to_10_000_characters_da567ba": {
     "en": "A field allows up to 10,000 characters.",
@@ -1360,11 +1348,6 @@
     "zh-Hans": "已取消",
     "ios": "Cancelled"
   },
-  "text_capabilities_one_per_line_86f9e92": {
-    "en": "Capabilities, one per line",
-    "zh-Hans": "权限能力，每行一个",
-    "ios": "Capabilities, one per line"
-  },
   "text_chain_tip_c986d2d": {
     "en": "Chain tip",
     "zh-Hans": "链尖区块"
@@ -2122,10 +2105,6 @@
     "zh-Hans": "在服务提供方创建新凭据，并保存到保险库",
     "ios": "Create a new credential at its provider and save it in the vault"
   },
-  "text_create_a_new_sign_in_11ef15b": {
-    "en": "Create a new sign-in",
-    "zh-Hans": "创建新的登录身份"
-  },
   "text_create_administrator_enrollment_request_42868af": {
     "en": "Create administrator enrollment request",
     "zh-Hans": "创建管理员登记请求",
@@ -2220,10 +2199,6 @@
     "en": "Create your encrypted workspace to start saving passwords, notes and files.",
     "zh-Hans": "创建加密工作区，开始保存密码、笔记和文件。",
     "ios": "Create your encrypted workspace to start saving passwords, notes and files."
-  },
-  "text_create_your_sign_in_cfa2f8b": {
-    "en": "Create your sign-in",
-    "zh-Hans": "创建登录身份"
   },
   "text_created_36ba304": {
     "en": "Created",
@@ -2388,14 +2363,6 @@
     "en": "Date",
     "zh-Hans": "日期",
     "ios": "Date"
-  },
-  "text_days_1252a20": {
-    "en": " days",
-    "zh-Hans": " 天"
-  },
-  "text_days_f586104": {
-    "en": "days",
-    "zh-Hans": "天"
   },
   "text_delegation_starts_when_the_service_issues_the_credential_its_stat_1e20149": {
     "en": "Delegation starts when the service issues the credential. Its status is checked when read again.",
@@ -3178,12 +3145,6 @@
     "zh-Hans": "文件传输",
     "ios": "File transfers"
   },
-  "text_files_30b0a88": {
-    "en": " files",
-    "zh-Hans": " 个文件",
-    "ios": "Files",
-    "ios_prefix": " "
-  },
   "text_files_app_copies_96ebae6": {
     "en": "Files app copies",
     "zh-Hans": "系统文件副本",
@@ -3272,11 +3233,6 @@
     "en": "Generate password",
     "zh-Hans": "生成密码",
     "ios": "Generate password"
-  },
-  "text_get_started_64034d2": {
-    "en": "Get started",
-    "zh-Hans": "开始使用",
-    "ios": "Get started"
   },
   "text_go_back_7741045": {
     "en": "Go back",
@@ -4274,10 +4230,6 @@
     "en": "Messages can contain up to 16,000 UTF-8 bytes. The previous text is kept.",
     "zh-Hans": "消息文字最多 16,000 UTF-8 字节，已保留此前文字。"
   },
-  "text_minutes_9c19706": {
-    "en": " minutes",
-    "zh-Hans": " 分钟"
-  },
   "text_mobile_packages_are_limited_to_8_mib_preview_verifies_content_bef_7a4533d": {
     "en": "Mobile packages are limited to 8 MiB. Preview verifies content before you choose what to import.",
     "zh-Hans": "移动端包上限为 8 MiB。预览会先验证内容，再由你选择要导入的部分。"
@@ -4296,10 +4248,6 @@
     "en": "Monthly execution units",
     "zh-Hans": "本月执行用量",
     "ios": "Monthly execution units"
-  },
-  "text_months_be91b1b": {
-    "en": "months",
-    "zh-Hans": "个月"
   },
   "text_more_file_actions_65e84ee": {
     "en": "More file actions",
@@ -5243,10 +5191,6 @@
   "text_plan_benefits_4ba263e": {
     "en": "Plan benefits",
     "zh-Hans": "套餐权益"
-  },
-  "text_plan_benefits_and_usage_62c82de": {
-    "en": "Plan, benefits and usage",
-    "zh-Hans": "套餐、权益与用量"
   },
   "text_plan_default_023d514": {
     "en": "Plan default",
@@ -6826,10 +6770,6 @@
     "zh-Hans": "搜索",
     "ios": "Search"
   },
-  "text_search_conversations_554f767": {
-    "en": "Search conversations",
-    "zh-Hans": "搜索会话"
-  },
   "text_search_files_notes_and_tags_9013c74": {
     "en": "Search files, notes and tags",
     "zh-Hans": "搜索文件、备注与标签"
@@ -7019,11 +6959,6 @@
   "text_send_this_report_589df5d": {
     "en": "Send this report?",
     "zh-Hans": "发送这份报告？"
-  },
-  "text_send_to_a_device_bc52c08": {
-    "en": "Send to a device",
-    "zh-Hans": "发送到另一台设备",
-    "ios": "Send to a device"
   },
   "text_sender_account_e9f6961": {
     "en": "Sender account",
@@ -8827,17 +8762,9 @@
     "en": "View proposal",
     "zh-Hans": "查看提案"
   },
-  "text_view_public_profile_7234699": {
-    "en": "View public profile",
-    "zh-Hans": "查看公开资料"
-  },
   "text_view_received_files_c1b45ae": {
     "en": "View received files",
     "zh-Hans": "查看收到的文件"
-  },
-  "text_view_status_and_compare_plans_f11c1b4": {
-    "en": "View status and compare plans",
-    "zh-Hans": "查看状态与套餐比较"
   },
   "text_view_the_current_version_86f22e5": {
     "en": "View the current version",
@@ -9010,10 +8937,6 @@
     "en": "Website claimed by app",
     "zh-Hans": "应用声明的网站"
   },
-  "text_weeks_9f99b0a": {
-    "en": "weeks",
-    "zh-Hans": "周"
-  },
   "text_welcome_back_70da839": {
     "en": "Welcome back.",
     "zh-Hans": "欢迎回来。",
@@ -9064,10 +8987,6 @@
     "en": "Write a letter",
     "zh-Hans": "写信",
     "ios": "Write a letter"
-  },
-  "text_years_f6a8ffc": {
-    "en": "years",
-    "zh-Hans": "年"
   },
   "text_yes_4e00e01": {
     "en": "Yes",

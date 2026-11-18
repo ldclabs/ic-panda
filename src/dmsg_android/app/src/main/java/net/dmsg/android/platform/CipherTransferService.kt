@@ -21,19 +21,24 @@ import javax.net.ssl.HttpsURLConnection
 /** This executor only sees scoped URLs and ciphertext. It never opens MobileEngine. */
 class CipherTransferService : JobService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private var work: Job? = null
-    private val connection = AtomicReference<HttpsURLConnection?>()
-    private var stopped = false
+    private class Run(val id: String, val attempt: Int) {
+        val connection = AtomicReference<HttpsURLConnection?>()
+        var work: Job? = null
+        fun stop() { work?.cancel(); connection.getAndSet(null)?.disconnect() }
+    }
+    private var active: Run? = null
     override fun onStartJob(params: JobParameters): Boolean {
-        stopped = false
-        if (Build.VERSION.SDK_INT >= 34 && params.isUserInitiatedJob) setNotification(params, NOTIFICATION_ID, notification(this, params), JOB_END_NOTIFICATION_POLICY_REMOVE)
-        work = scope.launch {
+        val id = params.extras.getString("id") ?: return false
+        val attempt = params.extras.getInt("attempt", -1)
+        if (Build.VERSION.SDK_INT >= 34 && params.isUserInitiatedJob) setNotification(params, NOTIFICATION_ID, notification(this, id, attempt), JOB_END_NOTIFICATION_POLICY_REMOVE)
+        active?.stop()
+        val run = Run(id, attempt)
+        active = run
+        run.work = scope.launch {
             var retry = false
             try {
                 retry = withContext(Dispatchers.IO) {
                     val store = cipherStore(this@CipherTransferService) ?: return@withContext false
-                    val id = params.extras.getString("id") ?: return@withContext false
-                    val attempt = params.extras.getInt("attempt", -1)
                     val snapshot = store.snapshot()?.takeIf { it.accepts(id, attempt) } ?: return@withContext false
                     try {
                         var lastNotification = 0L
@@ -45,8 +50,9 @@ class CipherTransferService : JobService() {
                             val url = URL(part.url)
                             val network = params.network ?: throw CipherHttpFailure("TRANSFER_FAILED", true)
                             val socket = network.openConnection(url) as? HttpsURLConnection ?: throw CipherHttpFailure("INTEGRITY_FAILED", false)
-                            connection.set(socket)
+                            run.connection.set(socket)
                             try {
+                                ensureActive()
                                 socket.instanceFollowRedirects = false
                                 socket.connectTimeout = 15_000; socket.readTimeout = 20_000
                                 socket.useCaches = false; socket.requestMethod = current.plan.method
@@ -87,10 +93,13 @@ class CipherTransferService : JobService() {
                                         try { store.receive(id, attempt, part.slot, bytes) } finally { bytes.fill(0) }
                                     } finally { buffer.fill(0); output.close() }
                                 } else store.complete(id, attempt, part.slot)
-                            } finally { connection.compareAndSet(socket, null); socket.disconnect() }
+                            } finally { run.connection.compareAndSet(socket, null); socket.disconnect() }
                             if (Build.VERSION.SDK_INT >= 34 && params.isUserInitiatedJob && android.os.SystemClock.elapsedRealtime() - lastNotification >= 1000) withContext(Dispatchers.Main.immediate) {
                                 lastNotification = android.os.SystemClock.elapsedRealtime()
-                                if (!stopped) setNotification(params, NOTIFICATION_ID, notification(this@CipherTransferService, params, store.snapshot()), JOB_END_NOTIFICATION_POLICY_REMOVE)
+                                val latest = store.snapshot()
+                                if (active === run && latest?.plan?.id == id && latest.attempt == attempt) {
+                                    setNotification(params, NOTIFICATION_ID, notification(this@CipherTransferService, id, attempt, latest), JOB_END_NOTIFICATION_POLICY_REMOVE)
+                                }
                             }
                         }
                         false
@@ -101,21 +110,31 @@ class CipherTransferService : JobService() {
                 }
             } catch (_: CancellationException) { }
             catch (_: Throwable) { /* No token, URL or private file path is logged. UI retains the journal. */ }
-            finally { if (!stopped) jobFinished(params, retry) }
+            finally {
+                if (active === run) {
+                    active = null
+                    if (isActive) jobFinished(params, retry)
+                }
+            }
         }
         return true
     }
 
     override fun onStopJob(params: JobParameters): Boolean {
-        stopped = true; work?.cancel(); connection.getAndSet(null)?.disconnect()
-        val store = runCatching { cipherStore(this) }.getOrNull()
-        val current = runCatching { store?.snapshot() }.getOrNull()
-        val matches = current?.accepts(params.extras.getString("id").orEmpty(), params.extras.getInt("attempt", -1)) == true
-        val userStopped = params.stopReason == JobParameters.STOP_REASON_USER || params.stopReason == JobParameters.STOP_REASON_CANCELLED_BY_APP
-        if (matches && userStopped) runCatching { store?.pause("TRANSFER_STOPPED") }
-        return matches && !userStopped && current.plan.expires > System.currentTimeMillis().coerceAtLeast(0).toULong()
+        val id = params.extras.getString("id") ?: return false
+        val attempt = params.extras.getInt("attempt", -1)
+        val run = active?.takeIf { it.id == id && it.attempt == attempt } ?: return false
+        active = null
+        run.stop()
+        val store = runCatching { cipherStore(this) }.getOrNull() ?: return false
+        if (params.stopReason == JobParameters.STOP_REASON_USER || params.stopReason == JobParameters.STOP_REASON_CANCELLED_BY_APP) {
+            runCatching { store.pause(id, attempt, "TRANSFER_STOPPED") }
+            return false
+        }
+        val current = runCatching { store.snapshot() }.getOrNull() ?: return false
+        return current.accepts(id, attempt) && current.plan.expires > System.currentTimeMillis().coerceAtLeast(0).toULong()
     }
-    override fun onDestroy() { stopped = true; scope.cancel(); connection.getAndSet(null)?.disconnect(); super.onDestroy() }
+    override fun onDestroy() { active?.stop(); active = null; scope.cancel(); super.onDestroy() }
 
     private class CipherHttpFailure(val code: String, val retry: Boolean) : IOException()
     companion object {
@@ -123,15 +142,22 @@ class CipherTransferService : JobService() {
         const val NOTIFICATION_ID = 0x444d5302
         const val CHANNEL = "dmsg.transfers.v1"
         const val OPEN = "net.dmsg.android.OPEN_TRANSFERS"
-        fun notification(context: Context, params: JobParameters, state: CipherJob? = null): Notification {
+        private fun notification(context: Context, id: String, attempt: Int, state: CipherJob? = null): Notification {
             val manager = context.getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(NotificationChannel(CHANNEL, str(R.string.cipher_transfer_title), NotificationManager.IMPORTANCE_LOW).apply { setSound(null, null); lockscreenVisibility = Notification.VISIBILITY_PRIVATE })
             val open = PendingIntent.getActivity(context, 10, Intent(context, MainActivity::class.java).setAction(OPEN), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            val stop = PendingIntent.getBroadcast(context, 11, Intent(context, CipherTransferStopReceiver::class.java).putExtra("id", params.extras.getString("id")).putExtra("attempt", params.extras.getInt("attempt", -1)), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            return NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.dmsg_mark).setContentTitle("dMsg")
+            val stop = pauseIntent(context, id, attempt)
+            return NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.dmsg_notification).setContentTitle("dMsg")
                 .setContentText(str(R.string.cipher_transfer_running)).setContentIntent(open).setOngoing(true).setOnlyAlertOnce(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setProgress(state?.plan?.parts?.size ?: 0, state?.completed?.size ?: 0, state == null)
                 .addAction(0, str(R.string.text_pause_c65f066), stop).build()
+        }
+        internal fun pauseIntent(context: Context, id: String, attempt: Int): PendingIntent {
+            // Android ignores extras when determining PendingIntent identity.
+            val intent = Intent(context, CipherTransferStopReceiver::class.java)
+                .setData(android.net.Uri.Builder().scheme("dmsg-internal").authority("cipher-pause").appendPath(id).appendPath(attempt.toString()).build())
+                .putExtra("id", id).putExtra("attempt", attempt)
+            return PendingIntent.getBroadcast(context, 11, intent, PendingIntent.FLAG_IMMUTABLE)
         }
     }
 }
@@ -142,9 +168,8 @@ class CipherTransferStopReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val store = cipherStore(context) ?: return@launch
-                val value = store.snapshot() ?: return@launch
-                if (value.accepts(intent.getStringExtra("id").orEmpty(), intent.getIntExtra("attempt", -1))) {
-                    store.pause(); context.getSystemService(JobScheduler::class.java).cancel(CipherTransferService.JOB_ID)
+                store.pause(intent.getStringExtra("id").orEmpty(), intent.getIntExtra("attempt", -1)) {
+                    context.getSystemService(JobScheduler::class.java).cancel(CipherTransferService.JOB_ID)
                 }
             } finally { pending.finish() }
         }
@@ -162,7 +187,7 @@ fun cipherStore(context: Context): CipherTransferStore? {
 class CipherScheduler(private val context: Context) {
     private val scheduler = context.getSystemService(JobScheduler::class.java)
     fun schedule(state: CipherJob) {
-        check(!state.ready && state.phase == "transferring") { "TRANSFER_PENDING" }
+        check(state.phase == CipherPhase.TRANSFERRING) { "TRANSFER_PENDING" }
         val extras = PersistableBundle().apply { putString("id", state.plan.id); putInt("attempt", state.attempt) }
         val builder = JobInfo.Builder(CipherTransferService.JOB_ID, ComponentName(context, CipherTransferService::class.java))
             .setExtras(extras).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true)

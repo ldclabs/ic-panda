@@ -14,7 +14,6 @@
     <string name="backup_total_size" formatted="false">"总量上限"</string>
     <string name="choose_permission" formatted="false">"选择一项权限"</string>
     <string name="cipher_transfer_running" formatted="false">"正在传输加密分块"</string>
-    <string name="cipher_transfer_stop" formatted="false">"停止"</string>
     <string name="cipher_transfer_title" formatted="false">"加密传输"</string>
     <string name="customize_fields" formatted="false">"自定义字段"</string>
     <string name="empty_folder" formatted="false">"此文件夹中没有文件"</string>
@@ -22,7 +21,6 @@
     <string name="history_deleted" formatted="false">"删除时间"</string>
     <string name="history_device" formatted="false">"设备"</string>
     <string name="history_fields" formatted="false">"字段"</string>
-    <string name="language_changed" formatted="false">"语言已更新"</string>
     <string name="language_search" formatted="false">"查找语言"</string>
     <string name="links_created_progress" formatted="true">"已创建 %1$s / %2$s"</string>
     <string name="no_matches" formatted="false">"无匹配结果"</string>
@@ -75,7 +73,6 @@
     <string name="text_a_copy_was_saved_to_the_location_you_chose_3141816" formatted="false">"副本已保存到你选择的位置。"</string>
     <string name="text_a_deletion_marker_will_sync_to_your_other_devices_version_history_18e2556" formatted="false">"删除标记会同步到其他设备，版本历史仍保留。"</string>
     <string name="text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376" formatted="false">"下载会话是一次取回额度，不是文件阅读次数。到期或撤销无法抹除已保存的副本。"</string>
-    <string name="text_a_draft_stays_only_in_this_unlocked_account_session_locking_or_sw_d3947fa" formatted="false">"草稿仅保留在本次解锁的账号会话中，锁定或切换账号后清除。"</string>
     <string name="text_a_field_allows_up_to_10_000_characters_da567ba" formatted="false">"字段值最多 10,000 个字符。"</string>
     <string name="text_a_full_link_and_required_password_grant_retrieval_within_these_li_323a1eb" formatted="false">"完整链接及所需口令授予这些限制内的取回权限。撤销无法抹除已保存的副本。"</string>
     <string name="text_a_hardware_cosigner_key_stays_in_this_device_s_keystore_register_627a57d" formatted="false">"硬件协签私钥留在本机 Keystore 中，通过钱包提案登记公钥。"</string>
@@ -317,7 +314,6 @@
     <string name="text_cancel_transfer_23833f9" formatted="false">"取消传输"</string>
     <string name="text_cancelled_02eb7d5" formatted="false">"已取消。"</string>
     <string name="text_cancelled_bf41d7d" formatted="false">"已取消"</string>
-    <string name="text_capabilities_one_per_line_86f9e92" formatted="false">"权限能力，每行一个"</string>
     <string name="text_chain_tip_c986d2d" formatted="false">"链尖区块"</string>
     <string name="text_change_access_grant_3607d07" formatted="false">"修改访问授权"</string>
     <string name="text_change_account_settings_db4ca2f" formatted="false">"修改账号设置"</string>
@@ -490,7 +486,6 @@
     <string name="text_create_7570cfc" formatted="false">"创建"</string>
     <string name="text_create_a_new_address_7cdbf66" formatted="false">"创建新地址"</string>
     <string name="text_create_a_new_credential_at_its_provider_and_save_it_in_the_vault_2c5b164" formatted="false">"在服务提供方创建新凭据，并保存到保险库"</string>
-    <string name="text_create_a_new_sign_in_11ef15b" formatted="false">"创建新的登录身份"</string>
     <string name="text_create_administrator_enrollment_request_42868af" formatted="false">"创建管理员登记请求"</string>
     <string name="text_create_agent_f6a5a91" formatted="false">"创建 Agent"</string>
     <string name="text_create_an_agent_identity_4207389" formatted="false">"创建 Agent 身份"</string>
@@ -511,7 +506,6 @@
     <string name="text_create_this_wallet_proposal_08ed869" formatted="false">"创建此钱包提案？"</string>
     <string name="text_create_transfer_proposal_b198142" formatted="false">"创建转账提案"</string>
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"创建加密工作区，开始保存密码、笔记和文件。"</string>
-    <string name="text_create_your_sign_in_cfa2f8b" formatted="false">"创建登录身份"</string>
     <string name="text_created_36ba304" formatted="false">"已创建"</string>
     <string name="text_created_ae8a09c" formatted="false">"创建时间 · "</string>
     <string name="text_created_c1dc4dc" formatted="false">"创建于 "</string>
@@ -547,8 +541,6 @@
     <string name="text_dark_0bea023" formatted="false">"深色"</string>
     <string name="text_database_7bc9ec0" formatted="false">"数据库"</string>
     <string name="text_date_5da2748" formatted="false">"日期"</string>
-    <string name="text_days_1252a20" formatted="false">" 天"</string>
-    <string name="text_days_f586104" formatted="false">"天"</string>
     <string name="text_delegation_starts_when_the_service_issues_the_credential_its_stat_1e20149" formatted="false">"委托从服务签发凭证时生效，重新读取时核查其当前状态。"</string>
     <string name="text_delete_5b87532" formatted="false">"删除"</string>
     <string name="text_delete_account_4899915" formatted="false">"删除账号"</string>
@@ -723,7 +715,6 @@
     <string name="text_file_mapping_access_3be2c7f" formatted="false">"文件映射访问"</string>
     <string name="text_file_notes_and_tags_d701552" formatted="false">"文件备注与标签"</string>
     <string name="text_file_transfers_2b83297" formatted="false">"文件传输"</string>
-    <string name="text_files_30b0a88" formatted="false">" 个文件"</string>
     <string name="text_files_app_copies_96ebae6" formatted="false">"系统文件副本"</string>
     <string name="text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b" formatted="false">"文件先加密保存在本机，云备份需要你主动选择。"</string>
     <string name="text_files_c79ddc2" formatted="false">"文件"</string>
@@ -744,7 +735,6 @@
     <string name="text_future_messages_wait_for_new_keys_this_does_not_erase_content_alr_4e7c4a7" formatted="false">"未来消息将等待新密钥启用，不会删除已经交付的内容。"</string>
     <string name="text_generate_again_c8b3202" formatted="false">"重新生成"</string>
     <string name="text_generate_password_4fe4cd0" formatted="false">"生成密码"</string>
-    <string name="text_get_started_64034d2" formatted="false">"开始使用"</string>
     <string name="text_go_back_7741045" formatted="false">"返回"</string>
     <string name="text_google_play_50042fd" formatted="false">"Google Play"</string>
     <string name="text_google_play_is_unavailable_check_your_connection_and_retry_do_not_f17918b" formatted="false">"Google Play 暂不可用，请检查连接后重试；尚未核验的购买应先恢复。"</string>
@@ -970,12 +960,10 @@
     <string name="text_message_withdrawn_c19a5e2" formatted="false">"消息已撤回"</string>
     <string name="text_messages_3a9ab2d" formatted="false">"消息"</string>
     <string name="text_messages_can_contain_up_to_16_000_utf_8_bytes_the_previous_text_i_dbc5f00" formatted="false">"消息文字最多 16,000 UTF-8 字节，已保留此前文字。"</string>
-    <string name="text_minutes_9c19706" formatted="false">" 分钟"</string>
     <string name="text_mobile_packages_are_limited_to_8_mib_preview_verifies_content_bef_7a4533d" formatted="false">"移动端包上限为 8 MiB。预览会先验证内容，再由你选择要导入的部分。"</string>
     <string name="text_month_350fe84" formatted="false">"年月"</string>
     <string name="text_monthly_execution_limit_096e8a4" formatted="false">"每月执行额度"</string>
     <string name="text_monthly_execution_units_9ebde11" formatted="false">"本月执行用量"</string>
-    <string name="text_months_be91b1b" formatted="false">"个月"</string>
     <string name="text_more_file_actions_65e84ee" formatted="false">"更多文件操作"</string>
     <string name="text_move_207d5fe" formatted="false">"移动"</string>
     <string name="text_move_assets_to_the_new_device_s_own_key_or_leave_them_for_l2_0ebeaeb" formatted="false">"将资产迁至新设备自己的钥匙，或保留以便后续 L2 归集。"</string>
@@ -1189,7 +1177,6 @@
     <string name="text_pinned_shortcuts_7185837" formatted="false">"固定快捷方式"</string>
     <string name="text_plan_and_usage_acf1a9a" formatted="false">"套餐与用量"</string>
     <string name="text_plan_benefits_4ba263e" formatted="false">"套餐权益"</string>
-    <string name="text_plan_benefits_and_usage_62c82de" formatted="false">"套餐、权益与用量"</string>
     <string name="text_plan_default_023d514" formatted="false">"套餐默认"</string>
     <string name="text_plan_fc68459" formatted="false">"套餐"</string>
     <string name="text_policy_changed_9d62739" formatted="false">"策略已变更"</string>
@@ -1543,7 +1530,6 @@
     <string name="text_scopes_one_per_line_20c88cb" formatted="false">"范围，每行一个"</string>
     <string name="text_screenshots_9699c0f" formatted="false">"截图"</string>
     <string name="text_search_05fdb9c" formatted="false">"搜索"</string>
-    <string name="text_search_conversations_554f767" formatted="false">"搜索会话"</string>
     <string name="text_search_files_notes_and_tags_9013c74" formatted="false">"搜索文件、备注与标签"</string>
     <string name="text_search_letters_1249ccd" formatted="false">"搜索信件"</string>
     <string name="text_search_messages_and_attachments_ff5cf7f" formatted="false">"搜索消息与附件"</string>
@@ -1587,7 +1573,6 @@
     <string name="text_send_file_library_44ec367" formatted="false">"发送文件库"</string>
     <string name="text_send_the_password_through_another_channel_1e76ba2" formatted="false">"请通过其他渠道发送密码。"</string>
     <string name="text_send_this_report_589df5d" formatted="false">"发送这份报告？"</string>
-    <string name="text_send_to_a_device_bc52c08" formatted="false">"发送到另一台设备"</string>
     <string name="text_sender_account_e9f6961" formatted="false">"发送者账号"</string>
     <string name="text_sender_names_and_notes_are_unverified_file_contents_download_only_01b7ba6" formatted="false">"发送者的名字和留言未经核验。只有选择“保存到文件库”后才下载文件正文。"</string>
     <string name="text_sender_unverified_2d47891" formatted="false">"发送者（未核验） · "</string>
@@ -2007,9 +1992,7 @@
     <string name="text_view_original_approval_ecd3b71" formatted="false">"查看原审批"</string>
     <string name="text_view_original_message_a5b610b" formatted="false">"查看原消息"</string>
     <string name="text_view_proposal_a94973a" formatted="false">"查看提案"</string>
-    <string name="text_view_public_profile_7234699" formatted="false">"查看公开资料"</string>
     <string name="text_view_received_files_c1b45ae" formatted="false">"查看收到的文件"</string>
-    <string name="text_view_status_and_compare_plans_f11c1b4" formatted="false">"查看状态与套餐比较"</string>
     <string name="text_view_the_current_version_86f22e5" formatted="false">"查看当前版本"</string>
     <string name="text_viewer_8a8ac26" formatted="false">"查看者"</string>
     <string name="text_wait_for_address_book_cooldown_2ccc5de" formatted="false">"等待地址簿冷却期"</string>
@@ -2047,7 +2030,6 @@
     <string name="text_website_ad80f52" formatted="false">"官方网站"</string>
     <string name="text_website_bbb4521" formatted="false">"网站"</string>
     <string name="text_website_claimed_by_app_ae298e3" formatted="false">"应用声明的网站"</string>
-    <string name="text_weeks_9f99b0a" formatted="false">"周"</string>
     <string name="text_welcome_back_70da839" formatted="false">"欢迎回来。"</string>
     <string name="text_what_do_you_need_51c5d87" formatted="false">"你需要什么文件？"</string>
     <string name="text_while_dmsg_is_open_and_unlocked_99d4594" formatted="false">"dMsg 在前台且已解锁时运行"</string>
@@ -2059,7 +2041,6 @@
     <string name="text_working_ef6a315" formatted="false">"进行中"</string>
     <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"本机已有工作区"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"写信"</string>
-    <string name="text_years_f6a8ffc" formatted="false">"年"</string>
     <string name="text_yes_4e00e01" formatted="false">"是"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"你已拥有此套餐，请在 Google Play 中管理续订。"</string>
     <string name="text_you_are_viewing_an_immutable_historical_version_0b9544a" formatted="false">"正在查看不可变的历史版本。"</string>

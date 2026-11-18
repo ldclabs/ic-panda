@@ -12,7 +12,6 @@ import kotlinx.serialization.json.*
 import net.dmsg.android.DMsgApplication
 import net.dmsg.android.platform.*
 import net.dmsg.core.*
-import java.security.SecureRandom
 
 enum class PurchasePhase { IDLE, LOADING, PREPARING, CONFIRMING, VERIFYING, PENDING, DELIVERED, UNAVAILABLE, FAILED }
 data class PurchaseView(val phase: PurchasePhase = PurchasePhase.IDLE, val offers: List<PlayOffer> = emptyList(), val unavailable: Int = 0, val receipts: List<PlayReceipt> = emptyList(), val pending: Int = 0, val canBuy: Boolean = false, val selected: PlayOffer? = null, val error: String? = null, val beneficiary: String? = null, val cancelled: Boolean = false)
@@ -222,6 +221,5 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
         val url = Uri.Builder().scheme("https").authority("play.google.com").path("/store/account/subscriptions").apply { catalogue?.packageName?.let { appendQueryParameter("package", it) } }.build()
         runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW,url)) }.onFailure { failed("GOOGLE_UNAVAILABLE") }
     }
-    private fun requestId() = ByteArray(32).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
     companion object { private const val SYNC = "play:sync"; private const val CHECKOUT = "play:checkout" }
 }

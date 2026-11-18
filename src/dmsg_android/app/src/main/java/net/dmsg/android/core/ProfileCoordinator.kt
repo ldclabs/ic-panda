@@ -2,7 +2,6 @@ package net.dmsg.android.core
 
 import android.graphics.Bitmap
 import android.net.Uri
-import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,7 +62,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
     fun load(force: Boolean = false, rebase: Boolean = false) {
         val request = saved.begin()
         fun apply(value: PublicProfile, fresh: Boolean = false) {
-            saved.accept(request, value)
+            if (!saved.accept(request, value)) return
             if (!edited) { formValue.value = value.draft(); expected = value.updatedAt; loadAvatar(value.avatar) }
             else if (rebase && fresh) { expected = value.updatedAt; conflictValue.value = false }
             client.state.value.session?.account?.let { client.rememberAccountName(it, value.name) }
@@ -73,7 +72,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
             client.perform({ core -> parseProfileSnapshot(client.operation { core.refreshDisplay("profile-editor", "", force, it) }.decode()) ?: error("INTEGRITY_FAILED") }, key = "profile:read", replace = true, quiet = true, onError = { saved.fail(request, it) }) { apply(it, true) }
         }
         val selectedPhoto = photo?.copyOf()
-        if (selectedPhoto != null) client.perform({ try { BoundedImages.thumbnail(Base64.encodeToString(selectedPhoto, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING), 512) } finally { selectedPhoto.fill(0) } }, key = "profile:selected-preview", replace = true, quiet = true) { bitmapValue.value = it }
+        if (selectedPhoto != null) client.perform({ try { BoundedImages.thumbnail(selectedPhoto, 512) } finally { selectedPhoto.fill(0) } }, key = "profile:selected-preview", replace = true, quiet = true) { bitmapValue.value = it }
         else if (edited && !formValue.value.avatarChanged) loadAvatar(formValue.value.avatar)
         client.account.devices()
         status()
@@ -90,7 +89,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
         if (url == null) { bitmapValue.value = null; return }
         client.perform({ core ->
             val bytes = core.cachedProfileAvatar(url) ?: core.profileAvatar(url)
-            bytes?.let { try { BoundedImages.thumbnail(Base64.encodeToString(it, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING), 512) } finally { it.fill(0) } }
+            bytes?.let { try { BoundedImages.thumbnail(it, 512) } finally { it.fill(0) } }
         }, key = "profile:avatar", replace = true, quiet = true) { if (!formValue.value.avatarChanged && formValue.value.avatar == url) bitmapValue.value = it }
     }
     fun beginPhoto(): Boolean {
@@ -108,16 +107,22 @@ class ProfileCoordinator(private val client: ClientController, private val paths
                 val handle = paths.stage(uri, account, 32L * 1024 * 1024) { client.sessionCurrent(stamp) }
                 try {
                     val bytes = ProfileImages.prepare(File(paths.staging, handle))
-                    val image = BoundedImages.thumbnail(Base64.encodeToString(bytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING), 512)
+                    val image = BoundedImages.thumbnail(bytes, 512)
                     bytes to image
                 } finally { paths.finishImport(handle) }
             }, key = "profile:prepare-photo", replace = true, quiet = true, onError = { errorValue.value = it }) { (bytes, image) ->
+                client.cancelOperation("profile:selected-preview")
                 photo?.fill(0); photo = bytes; uploaded = null; bitmapValue.value = image
                 edit(formValue.value.copy(avatarChanged = true))
             }
         }
     }
-    fun removePhoto() { photo?.fill(0); photo = null; uploaded = null; bitmapValue.value = null; edit(formValue.value.copy(avatar = null, avatarChanged = true)) }
+    fun removePhoto() {
+        client.cancelOperation("profile:prepare-photo")
+        client.cancelOperation("profile:selected-preview")
+        photo?.fill(0); photo = null; uploaded = null; bitmapValue.value = null
+        edit(formValue.value.copy(avatar = null, avatarChanged = true))
+    }
     fun publish() {
         val version = expected ?: return
         if (!ready()) return

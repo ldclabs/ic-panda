@@ -57,7 +57,7 @@ import java.security.MessageDigest
         token = it; refreshAt = android.os.SystemClock.elapsedRealtime() + 270_000; failure = null
     }
     fun check(manual: Boolean = false) {
-        if (state.busy || needsLogin || client.qr.state.value.request != null || (!manual && !polling)) return
+        if (state.busy || needsLogin || client.qr.state.value is QrRequest || (!manual && !polling)) return
         if (manual) polling = true
         client.perform({ it.refreshAccount() }, transition = true, onError = { code ->
             failure = code; needsLogin = code in setOf("AUTH_REQUIRED", "LOGIN_EXPIRED")

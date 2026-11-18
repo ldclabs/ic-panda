@@ -96,14 +96,14 @@ fun coreTasks(qa: Boolean): Pair<TaskProvider<GenerateDmsgBindings>, TaskProvide
         kotlinDirectory.set(layout.buildDirectory.dir("generated/$generated/kotlin"))
         workingDir(repoRoot)
         commandLine(listOf("bash", "scripts/android/build-core.sh", "--bindings-only") + flags)
-        outputs.upToDateWhen { false }
+        doNotTrackState("build-core.py verifies the generated Kotlin bindings")
     }
     val native = tasks.register<BuildDmsgNative>("build${suffix}Rust") {
         dependsOn(bindings)
         nativeDirectory.set(layout.buildDirectory.dir("generated/$generated/jniLibs"))
         workingDir(repoRoot)
         commandLine(listOf("bash", "scripts/android/build-core.sh", "--native-only", "--abis", requestedAbis.joinToString(",")) + flags)
-        outputs.upToDateWhen { false }
+        doNotTrackState("build-core.py verifies the requested native libraries")
     }
     val verify = tasks.register<Exec>("verify${suffix}Rust") {
         dependsOn(native)

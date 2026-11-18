@@ -1,6 +1,7 @@
 package net.dmsg.android.ui
 
 import net.dmsg.android.R
+import net.dmsg.android.platform.CipherPhase
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,7 +20,11 @@ import net.dmsg.android.core.*
     val attachments by client.messageAttachments.states.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
     val background by client.backgroundFiles.current.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.epoch) { client.fileWork.load() }
+    LaunchedEffect(state.epoch) { client.fileWork.load(); client.backgroundFiles.load() }
+    val transferring = background.valueOrNull()?.phase == CipherPhase.TRANSFERRING
+    LaunchedEffect(transferring) {
+        if (transferring) while (true) { kotlinx.coroutines.delay(1000); client.backgroundFiles.load() }
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
             BackgroundTransferPanel(client)

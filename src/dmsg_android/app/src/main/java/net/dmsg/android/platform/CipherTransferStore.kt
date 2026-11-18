@@ -27,10 +27,18 @@ data class CipherPlan(val id: String, val account: String, val device: String, v
     }
     companion object { const val MAX_PART = 1024L * 1024L + 64L }
 }
-data class CipherJob(val plan: CipherPlan, val phase: String = "transferring", val attempt: Int = 0, val completed: Set<String> = emptySet(), val error: String? = null, val retries: Int = 0) {
-    val ready get() = phase == "verifying"
+enum class CipherPhase(val wire: String) {
+    TRANSFERRING("transferring"), PAUSED("paused"), FAILED("failed"), VERIFYING("verifying");
+
+    companion object {
+        fun parse(value: String) = entries.firstOrNull { it.wire == value } ?: error("INTEGRITY_FAILED")
+    }
+}
+
+data class CipherJob(val plan: CipherPlan, val phase: CipherPhase, val attempt: Int = 0, val completed: Set<String> = emptySet(), val error: String? = null, val retries: Int = 0) {
+    val ready get() = phase == CipherPhase.VERIFYING
     val bytes get() = plan.parts.filter { it.slot in completed }.sumOf { it.size }
-    fun accepts(id: String, attempt: Int) = plan.id == id && this.attempt == attempt && phase == "transferring"
+    fun accepts(id: String, attempt: Int) = plan.id == id && this.attempt == attempt && phase == CipherPhase.TRANSFERRING
 }
 fun parseCipherPlan(value: JsonElement): CipherPlan = value.objectValue().let { row ->
     CipherPlan(row.required("id"), row.required("account"), row.required("device"), row.required("method"), row.required("upload_id"), row.requiredUnsigned("expires_at"), row.rows("parts").map {
@@ -57,18 +65,18 @@ class CipherTransferStore(val root: File, private val installation: String) {
         val row = Json.parseToJsonElement(index.readText()).objectValue()
         check(row.required("installation") == installation) { "INSTALLATION_MISMATCH" }
         val plan = parseCipherPlan(row["transfer"]!!)
-        val phase = row.required("phase")
+        val phase = CipherPhase.parse(row.required("phase"))
         val attempt = row.requiredUnsigned("attempt")
         val retries = row.requiredUnsigned("retries")
         val completed = row.strings("completed").toSet()
-        check(phase in setOf("transferring", "paused", "failed", "verifying") && attempt <= Int.MAX_VALUE.toULong() && retries <= 4uL && completed.all { slot -> plan.parts.any { it.slot == slot } } && (phase != "verifying" || completed.size == plan.parts.size)) { "INTEGRITY_FAILED" }
+        check(attempt <= Int.MAX_VALUE.toULong() && retries <= 4uL && completed.all { slot -> plan.parts.any { it.slot == slot } } && (phase != CipherPhase.VERIFYING || completed.size == plan.parts.size)) { "INTEGRITY_FAILED" }
         return CipherJob(plan, phase, attempt.toInt(), completed, row.text("error"), retries.toInt()).also { cached = stamp to it }
     }
     private fun save(value: CipherJob) {
         val bytes = buildJsonObject {
             put("installation", installation)
             put("transfer", planJson(value.plan))
-            put("phase", value.phase); put("attempt", value.attempt); put("retries", value.retries)
+            put("phase", value.phase.wire); put("attempt", value.attempt); put("retries", value.retries)
             putJsonArray("completed") { value.completed.forEach { add(it) } }
             put("error", value.error?.let(::JsonPrimitive) ?: JsonNull)
         }.toString().toByteArray()
@@ -76,10 +84,11 @@ class CipherTransferStore(val root: File, private val installation: String) {
         revisions[identity] = (revisions[identity] ?: 0) + 1
         cached = stamp() to value
     }
-    fun start(plan: CipherPlan, now: ULong) = synchronized(lock) {
+    fun start(plan: CipherPlan, now: ULong): CipherJob = synchronized(lock) {
         check(read() == null) { "TRANSFER_PENDING" }; plan.valid(now)
         check(root.usableSpace >= plan.size + 8 * 1024 * 1024) { "DISK_FULL" }
-        save(CipherJob(plan, phase = if (plan.parts.isEmpty()) "verifying" else "paused", error = if (plan.parts.isEmpty()) null else "PREPARING_CIPHERTEXT"))
+        CipherJob(plan, phase = if (plan.parts.isEmpty()) CipherPhase.VERIFYING else CipherPhase.PAUSED,
+            error = if (plan.parts.isEmpty()) null else "PREPARING_CIPHERTEXT").also(::save)
     }
     fun stage(plan: CipherPlan, slot: String, bytes: ByteArray) = synchronized(lock) {
         check(read()?.plan?.id == plan.id) { "NOT_FOUND" }
@@ -100,16 +109,20 @@ class CipherTransferStore(val root: File, private val installation: String) {
         val current = read()?.takeIf { it.accepts(id, attempt) } ?: return false
         check(current.plan.parts.any { it.slot == slot }) { "INTEGRITY_FAILED" }
         val completed = current.completed + slot
-        save(current.copy(completed = completed, phase = if (completed.size == current.plan.parts.size) "verifying" else "transferring", error = null, retries = 0)); true
+        save(current.copy(completed = completed, phase = if (completed.size == current.plan.parts.size) CipherPhase.VERIFYING else CipherPhase.TRANSFERRING, error = null, retries = 0)); true
     }
-    fun pause(error: String? = null): Unit = synchronized(lock) {
-        val current = read() ?: return
-        if (!current.ready) save(current.copy(phase = "paused", attempt = Math.addExact(current.attempt, 1), error = error))
+    /** Invalidate the observed attempt before stopping its system job. A retry takes the same lock. */
+    fun pause(id: String, attempt: Int, error: String? = null, stop: () -> Unit = {}): Boolean = synchronized(lock) {
+        val current = read()?.takeIf { it.accepts(id, attempt) } ?: return false
+        save(current.copy(phase = CipherPhase.PAUSED, attempt = Math.addExact(current.attempt, 1), error = error))
+        stop()
+        true
     }
-    fun retry(now: ULong): CipherJob = synchronized(lock) {
+    fun retry(expected: CipherJob, now: ULong): CipherJob = synchronized(lock) {
         val current = read() ?: error("NOT_FOUND")
+        check(current.plan.id == expected.plan.id && current.attempt == expected.attempt) { "TRANSFER_STOPPED" }
         check(current.plan.expires > now) { "TRANSFER_EXPIRED" }
-        val next = current.copy(attempt = Math.addExact(current.attempt, 1), phase = if (current.completed.size == current.plan.parts.size) "verifying" else "transferring", error = null, retries = 0)
+        val next = current.copy(attempt = Math.addExact(current.attempt, 1), phase = if (current.completed.size == current.plan.parts.size) CipherPhase.VERIFYING else CipherPhase.TRANSFERRING, error = null, retries = 0)
         save(next); next
     }
     /** Return true only for a bounded retry of the same authorization. */
@@ -117,7 +130,7 @@ class CipherTransferStore(val root: File, private val installation: String) {
         val current = read()?.takeIf { it.accepts(id, attempt) } ?: return false
         val count = (current.retries + 1).coerceAtMost(4)
         val retry = transient && count <= 3 && current.plan.expires > System.currentTimeMillis().coerceAtLeast(0).toULong()
-        save(current.copy(phase = if (retry) "transferring" else "failed", error = reason, retries = count)); retry
+        save(current.copy(phase = if (retry) CipherPhase.TRANSFERRING else CipherPhase.FAILED, error = reason, retries = count)); retry
     }
     fun discard(plan: CipherPlan) = synchronized(lock) {
         plan.valid()

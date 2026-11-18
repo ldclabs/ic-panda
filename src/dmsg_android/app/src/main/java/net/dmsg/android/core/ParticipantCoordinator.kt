@@ -1,7 +1,6 @@
 package net.dmsg.android.core
 
 import android.graphics.Bitmap
-import android.util.Base64
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,13 +18,16 @@ class ParticipantCoordinator(private val client: ClientController, private val s
     private val value = MutableStateFlow<Map<String, Participant>>(emptyMap())
     val people = value.asStateFlow()
     val accounts = ReadStore<List<String>> { it.isEmpty() }
-    private val visible = mutableMapOf<String, Int>()
+    private class Observers(var count: Int = 0, var avatars: Int = 0)
+    private val visible = mutableMapOf<String, Observers>()
     private val pending = mutableSetOf<String>()
     private val attempted = mutableSetOf<String>()
     private var batch: Job? = null
-    fun observe(account: String) {
+    fun observe(account: String, showAvatar: Boolean) {
         if (!validAccount(account)) return
-        visible[account] = (visible[account] ?: 0) + 1
+        val observers = visible.getOrPut(account) { Observers() }
+        observers.count++
+        if (showAvatar) observers.avatars++
         if (account in attempted) { avatar(account, false); return }
         pending += account
         if (batch?.isActive != true) batch = scope.launch {
@@ -36,10 +38,11 @@ class ParticipantCoordinator(private val client: ClientController, private val s
             }
         }
     }
-    fun release(account: String) {
-        val remaining = (visible[account] ?: 1) - 1
-        if (remaining > 0) visible[account] = remaining else {
-            visible.remove(account); client.cancelOperation("participant:avatar:$account")
+    fun release(account: String, showAvatar: Boolean) {
+        val observers = visible[account] ?: return
+        if (--observers.count == 0) visible.remove(account)
+        if (showAvatar && --observers.avatars == 0) {
+            client.cancelOperation("participant:avatar:$account")
             value.value[account]?.let { value.value += account to it.copy(avatar = null) }
         }
         trim()
@@ -62,9 +65,9 @@ class ParticipantCoordinator(private val client: ClientController, private val s
         }
     }
     private fun avatar(account: String, refresh: Boolean) {
-        if (account !in visible || value.value[account]?.avatar != null || client.isWorking("participant:avatar:$account")) return
+        if ((visible[account]?.avatars ?: 0) == 0 || value.value[account]?.avatar != null || client.isWorking("participant:avatar:$account")) return
         client.perform({ core -> core.channelAvatar(account, refresh)?.let { bytes ->
-            try { if (bytes.size <= 8 * 1024 * 1024) BoundedImages.thumbnail(Base64.encodeToString(bytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING), 96) else null }
+            try { BoundedImages.thumbnail(bytes, 96) }
             finally { bytes.fill(0) }
         } }, key = "participant:avatar:$account", quiet = true) { bitmap -> if (account in visible) value.value[account]?.let { value.value += account to it.copy(avatar = bitmap) } }
     }

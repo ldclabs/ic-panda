@@ -14,7 +14,6 @@
     <string name="backup_total_size" formatted="false">"ขนาดรวม"</string>
     <string name="choose_permission" formatted="false">"เลือกสิทธิ์"</string>
     <string name="cipher_transfer_running" formatted="false">"กำลังโอนบล็อกที่เข้ารหัส"</string>
-    <string name="cipher_transfer_stop" formatted="false">"หยุด"</string>
     <string name="cipher_transfer_title" formatted="false">"การโอนข้อมูลที่เข้ารหัส"</string>
     <string name="customize_fields" formatted="false">"ปรับแต่งช่องข้อมูล"</string>
     <string name="empty_folder" formatted="false">"ไม่มีไฟล์ในโฟลเดอร์นี้"</string>
@@ -22,7 +21,6 @@
     <string name="history_deleted" formatted="false">"วันที่ลบ"</string>
     <string name="history_device" formatted="false">"อุปกรณ์"</string>
     <string name="history_fields" formatted="false">"เขตข้อมูล"</string>
-    <string name="language_changed" formatted="false">"อัปเดตภาษาแล้ว"</string>
     <string name="language_search" formatted="false">"ค้นหาภาษา"</string>
     <string name="links_created_progress" formatted="true">"สร้างแล้ว %1$s จาก %2$s"</string>
     <string name="no_matches" formatted="false">"ไม่พบผลลัพธ์ที่ตรงกัน"</string>
@@ -75,7 +73,6 @@
     <string name="text_a_copy_was_saved_to_the_location_you_chose_3141816" formatted="false">"บันทึกสำเนาไปยังตำแหน่งที่เลือกแล้ว"</string>
     <string name="text_a_deletion_marker_will_sync_to_your_other_devices_version_history_18e2556" formatted="false">"เครื่องหมายการลบจะซิงค์ไปยังอุปกรณ์อื่น ประวัติเวอร์ชันยังคงอยู่"</string>
     <string name="text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376" formatted="false">"เซสชันดาวน์โหลดคือโควตาการรับไฟล์ ไม่ใช่จำนวนครั้งที่อ่านไฟล์ การหมดอายุหรือเพิกถอนไม่สามารถลบสำเนาที่บันทึกแล้วได้"</string>
-    <string name="text_a_draft_stays_only_in_this_unlocked_account_session_locking_or_sw_d3947fa" formatted="false">"ฉบับร่างอยู่เฉพาะในเซสชันบัญชีที่ปลดล็อกนี้ การล็อกหรือสลับบัญชีจะล้างฉบับร่าง"</string>
     <string name="text_a_field_allows_up_to_10_000_characters_da567ba" formatted="false">"หนึ่งช่องมีได้สูงสุด 10,000 อักขระ"</string>
     <string name="text_a_full_link_and_required_password_grant_retrieval_within_these_li_323a1eb" formatted="false">"ลิงก์เต็มและรหัสผ่านที่กำหนดอนุญาตให้รับไฟล์ภายในขีดจำกัดนี้ การเพิกถอนไม่สามารถลบสำเนาที่บันทึกแล้วได้"</string>
     <string name="text_a_hardware_cosigner_key_stays_in_this_device_s_keystore_register_627a57d" formatted="false">"คีย์ฮาร์ดแวร์ของผู้ร่วมลงนามจะอยู่ใน Keystore ของอุปกรณ์นี้ ลงทะเบียนคีย์สาธารณะผ่านข้อเสนอของกระเป๋าเงิน"</string>
@@ -317,7 +314,6 @@
     <string name="text_cancel_transfer_23833f9" formatted="false">"ยกเลิกการโอน"</string>
     <string name="text_cancelled_02eb7d5" formatted="false">"ยกเลิกแล้ว"</string>
     <string name="text_cancelled_bf41d7d" formatted="false">"ยกเลิกแล้ว"</string>
-    <string name="text_capabilities_one_per_line_86f9e92" formatted="false">"ความสามารถ หนึ่งรายการต่อบรรทัด"</string>
     <string name="text_chain_tip_c986d2d" formatted="false">"ปลายเชน"</string>
     <string name="text_change_access_grant_3607d07" formatted="false">"เปลี่ยนสิทธิ์การเข้าถึง"</string>
     <string name="text_change_account_settings_db4ca2f" formatted="false">"เปลี่ยนการตั้งค่าบัญชี"</string>
@@ -490,7 +486,6 @@
     <string name="text_create_7570cfc" formatted="false">"สร้าง"</string>
     <string name="text_create_a_new_address_7cdbf66" formatted="false">"สร้างที่อยู่ใหม่"</string>
     <string name="text_create_a_new_credential_at_its_provider_and_save_it_in_the_vault_2c5b164" formatted="false">"สร้างข้อมูลประจำตัวใหม่ที่ผู้ให้บริการและบันทึกไว้ในห้องนิรภัย"</string>
-    <string name="text_create_a_new_sign_in_11ef15b" formatted="false">"สร้างการลงชื่อเข้าใช้ใหม่"</string>
     <string name="text_create_administrator_enrollment_request_42868af" formatted="false">"สร้างคำขอลงทะเบียนผู้ดูแลระบบ"</string>
     <string name="text_create_agent_f6a5a91" formatted="false">"สร้างเอเจนต์"</string>
     <string name="text_create_an_agent_identity_4207389" formatted="false">"สร้างตัวตนของเอเจนต์"</string>
@@ -511,7 +506,6 @@
     <string name="text_create_this_wallet_proposal_08ed869" formatted="false">"สร้างข้อเสนอกระเป๋าสตางค์นี้หรือไม่?"</string>
     <string name="text_create_transfer_proposal_b198142" formatted="false">"สร้างข้อเสนอการโอน"</string>
     <string name="text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122" formatted="false">"สร้างพื้นที่ทำงานที่เข้ารหัสของคุณเพื่อเริ่มบันทึกรหัสผ่าน บันทึกย่อ และไฟล์"</string>
-    <string name="text_create_your_sign_in_cfa2f8b" formatted="false">"สร้างการลงชื่อเข้าใช้ของคุณ"</string>
     <string name="text_created_36ba304" formatted="false">"สร้างเมื่อ"</string>
     <string name="text_created_ae8a09c" formatted="false">"สร้างเมื่อ · "</string>
     <string name="text_created_c1dc4dc" formatted="false">"สร้างเมื่อ "</string>
@@ -547,8 +541,6 @@
     <string name="text_dark_0bea023" formatted="false">"มืด"</string>
     <string name="text_database_7bc9ec0" formatted="false">"ฐานข้อมูล"</string>
     <string name="text_date_5da2748" formatted="false">"วันที่"</string>
-    <string name="text_days_1252a20" formatted="false">" วัน"</string>
-    <string name="text_days_f586104" formatted="false">"วัน"</string>
     <string name="text_delegation_starts_when_the_service_issues_the_credential_its_stat_1e20149" formatted="false">"การมอบสิทธิ์เริ่มเมื่อบริการออกข้อมูลรับรอง สถานะจะถูกตรวจสอบเมื่ออ่านอีกครั้ง"</string>
     <string name="text_delete_5b87532" formatted="false">"ลบ"</string>
     <string name="text_delete_account_4899915" formatted="false">"ลบบัญชี"</string>
@@ -723,7 +715,6 @@
     <string name="text_file_mapping_access_3be2c7f" formatted="false">"สิทธิ์เข้าถึงการแมปไฟล์"</string>
     <string name="text_file_notes_and_tags_d701552" formatted="false">"บันทึกและแท็กไฟล์"</string>
     <string name="text_file_transfers_2b83297" formatted="false">"การโอนไฟล์"</string>
-    <string name="text_files_30b0a88" formatted="false">" ไฟล์"</string>
     <string name="text_files_app_copies_96ebae6" formatted="false">"สำเนาในแอปไฟล์"</string>
     <string name="text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b" formatted="false">"ไฟล์เข้ารหัสในอุปกรณ์ การสำรองบนคลาวด์เป็นการดำเนินการแยกที่ต้องเลือกอย่างชัดเจน"</string>
     <string name="text_files_c79ddc2" formatted="false">"ไฟล์"</string>
@@ -744,7 +735,6 @@
     <string name="text_future_messages_wait_for_new_keys_this_does_not_erase_content_alr_4e7c4a7" formatted="false">"ข้อความในอนาคตจะรอคีย์ใหม่ การดำเนินการนี้ไม่ลบเนื้อหาที่ส่งถึงแล้ว"</string>
     <string name="text_generate_again_c8b3202" formatted="false">"สร้างอีกครั้ง"</string>
     <string name="text_generate_password_4fe4cd0" formatted="false">"สร้างรหัสผ่าน"</string>
-    <string name="text_get_started_64034d2" formatted="false">"เริ่มต้นใช้งาน"</string>
     <string name="text_go_back_7741045" formatted="false">"ย้อนกลับ"</string>
     <string name="text_google_play_50042fd" formatted="false">"Google Play"</string>
     <string name="text_google_play_is_unavailable_check_your_connection_and_retry_do_not_f17918b" formatted="false">"Google Play ไม่พร้อมใช้งาน ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง อย่าเริ่มชำระเงินใหม่สำหรับการซื้อที่ยังไม่ตรวจสอบ"</string>
@@ -970,12 +960,10 @@
     <string name="text_message_withdrawn_c19a5e2" formatted="false">"ถอนข้อความแล้ว"</string>
     <string name="text_messages_3a9ab2d" formatted="false">"ข้อความ"</string>
     <string name="text_messages_can_contain_up_to_16_000_utf_8_bytes_the_previous_text_i_dbc5f00" formatted="false">"ข้อความมีขนาดได้ไม่เกิน 16,000 ไบต์ UTF-8 ข้อความก่อนหน้าจะคงอยู่"</string>
-    <string name="text_minutes_9c19706" formatted="false">" นาที"</string>
     <string name="text_mobile_packages_are_limited_to_8_mib_preview_verifies_content_bef_7a4533d" formatted="false">"แพ็กเกจบนมือถือจำกัดที่ 8 MiB การแสดงตัวอย่างจะตรวจสอบเนื้อหาก่อนให้คุณเลือกสิ่งที่จะนำเข้า"</string>
     <string name="text_month_350fe84" formatted="false">"เดือน"</string>
     <string name="text_monthly_execution_limit_096e8a4" formatted="false">"ขีดจำกัดการดำเนินการรายเดือน"</string>
     <string name="text_monthly_execution_units_9ebde11" formatted="false">"หน่วยการดำเนินการรายเดือน"</string>
-    <string name="text_months_be91b1b" formatted="false">"เดือน"</string>
     <string name="text_more_file_actions_65e84ee" formatted="false">"การทำงานกับไฟล์เพิ่มเติม"</string>
     <string name="text_move_207d5fe" formatted="false">"ย้าย"</string>
     <string name="text_move_assets_to_the_new_device_s_own_key_or_leave_them_for_l2_0ebeaeb" formatted="false">"ย้ายทรัพย์สินไปยังคีย์ของอุปกรณ์ใหม่ หรือเก็บไว้สำหรับ L2"</string>
@@ -1189,7 +1177,6 @@
     <string name="text_pinned_shortcuts_7185837" formatted="false">"ทางลัดที่ปักหมุด"</string>
     <string name="text_plan_and_usage_acf1a9a" formatted="false">"การวางแผนและการใช้งาน"</string>
     <string name="text_plan_benefits_4ba263e" formatted="false">"สิทธิประโยชน์แพ็กเกจ"</string>
-    <string name="text_plan_benefits_and_usage_62c82de" formatted="false">"แพ็กเกจ สิทธิประโยชน์ และการใช้งาน"</string>
     <string name="text_plan_default_023d514" formatted="false">"ค่าเริ่มต้นของแพ็กเกจ"</string>
     <string name="text_plan_fc68459" formatted="false">"แผน"</string>
     <string name="text_policy_changed_9d62739" formatted="false">"นโยบายเปลี่ยนแล้ว"</string>
@@ -1543,7 +1530,6 @@
     <string name="text_scopes_one_per_line_20c88cb" formatted="false">"ขอบเขต หนึ่งรายการต่อบรรทัด"</string>
     <string name="text_screenshots_9699c0f" formatted="false">"ภาพหน้าจอ"</string>
     <string name="text_search_05fdb9c" formatted="false">"ค้นหา"</string>
-    <string name="text_search_conversations_554f767" formatted="false">"ค้นหาการสนทนา"</string>
     <string name="text_search_files_notes_and_tags_9013c74" formatted="false">"ค้นหาไฟล์ บันทึก และแท็ก"</string>
     <string name="text_search_letters_1249ccd" formatted="false">"ค้นหาจดหมาย"</string>
     <string name="text_search_messages_and_attachments_ff5cf7f" formatted="false">"ค้นหาข้อความและไฟล์แนบ"</string>
@@ -1587,7 +1573,6 @@
     <string name="text_send_file_library_44ec367" formatted="false">"ส่งคลังไฟล์"</string>
     <string name="text_send_the_password_through_another_channel_1e76ba2" formatted="false">"ส่งรหัสผ่านผ่านช่องทางอื่น"</string>
     <string name="text_send_this_report_589df5d" formatted="false">"ส่งรายงานนี้หรือไม่?"</string>
-    <string name="text_send_to_a_device_bc52c08" formatted="false">"ส่งไปยังอุปกรณ์"</string>
     <string name="text_sender_account_e9f6961" formatted="false">"บัญชีผู้ส่ง"</string>
     <string name="text_sender_names_and_notes_are_unverified_file_contents_download_only_01b7ba6" formatted="false">"ชื่อและบันทึกของผู้ส่งยังไม่ได้ตรวจสอบ เนื้อหาไฟล์จะดาวน์โหลดเมื่อคุณเลือกบันทึกลงคลังเท่านั้น"</string>
     <string name="text_sender_unverified_2d47891" formatted="false">"ผู้ส่ง (ยังไม่ตรวจสอบ) · "</string>
@@ -2007,9 +1992,7 @@
     <string name="text_view_original_approval_ecd3b71" formatted="false">"ดูการอนุมัติเดิม"</string>
     <string name="text_view_original_message_a5b610b" formatted="false">"ดูข้อความต้นฉบับ"</string>
     <string name="text_view_proposal_a94973a" formatted="false">"ดูข้อเสนอ"</string>
-    <string name="text_view_public_profile_7234699" formatted="false">"ดูโปรไฟล์สาธารณะ"</string>
     <string name="text_view_received_files_c1b45ae" formatted="false">"ดูไฟล์ที่ได้รับ"</string>
-    <string name="text_view_status_and_compare_plans_f11c1b4" formatted="false">"ดูสถานะและเปรียบเทียบแพ็กเกจ"</string>
     <string name="text_view_the_current_version_86f22e5" formatted="false">"ดูเวอร์ชันปัจจุบัน"</string>
     <string name="text_viewer_8a8ac26" formatted="false">"ผู้ดู"</string>
     <string name="text_wait_for_address_book_cooldown_2ccc5de" formatted="false">"รอระยะรอของสมุดที่อยู่"</string>
@@ -2047,7 +2030,6 @@
     <string name="text_website_ad80f52" formatted="false">"เว็บไซต์"</string>
     <string name="text_website_bbb4521" formatted="false">"เว็บไซต์"</string>
     <string name="text_website_claimed_by_app_ae298e3" formatted="false">"เว็บไซต์ที่แอปอ้างสิทธิ์"</string>
-    <string name="text_weeks_9f99b0a" formatted="false">"สัปดาห์"</string>
     <string name="text_welcome_back_70da839" formatted="false">"ยินดีต้อนรับกลับ"</string>
     <string name="text_what_do_you_need_51c5d87" formatted="false">"คุณต้องการอะไร?"</string>
     <string name="text_while_dmsg_is_open_and_unlocked_99d4594" formatted="false">"ขณะที่เปิดและปลดล็อก dMsg"</string>
@@ -2059,7 +2041,6 @@
     <string name="text_working_ef6a315" formatted="false">"อยู่ระหว่างดำเนินการ"</string>
     <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"บันทึกพื้นที่ทำงานบนอุปกรณ์นี้แล้ว"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"เขียนจดหมาย"</string>
-    <string name="text_years_f6a8ffc" formatted="false">"ปี"</string>
     <string name="text_yes_4e00e01" formatted="false">"ใช่"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"คุณมีแพ็กเกจนี้แล้ว จัดการการต่ออายุใน Google Play"</string>
     <string name="text_you_are_viewing_an_immutable_historical_version_0b9544a" formatted="false">"คุณกำลังดูเวอร์ชันทางประวัติศาสตร์ที่ไม่เปลี่ยนรูป"</string>
