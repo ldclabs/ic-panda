@@ -269,6 +269,54 @@ class WorkspaceFlowTest {
         assertFalse(File(directory, "accounts/${client.state.value.session?.account}/mobile-lock-drafts.v1").exists())
     }
 
+    @Test fun unreadableDraftCheckpointLeavesTheUnlockedWorkspaceUsable() {
+        val account = requireNotNull(client.state.value.session?.account)
+        compose.runOnIdle {
+            client.letters.update(net.dmsg.android.core.LetterDraft(text = "Latest unsaved input"))
+            client.lock()
+        }
+        compose.waitUntil(10_000) { client.state.value.session?.state == "locked" && !client.state.value.busy }
+        val checkpoint = File(directory, "accounts/$account/mobile-lock-drafts.v1")
+        assertTrue(checkpoint.isFile)
+        checkpoint.writeText("unreadable checkpoint fixture")
+        compose.runOnIdle { client.perform({ it.unlockUiFixture() }, transition = true) }
+        compose.waitUntil(10_000) { client.state.value.unlocked && client.vault.listing.state.value is ReadState.Ready }
+        compose.onNodeWithText("Studio account").assertIsDisplayed()
+        assertEquals("unreadable checkpoint fixture", checkpoint.readText())
+    }
+
+    @Test fun lockContinuationWaitsForAReadyForeground() {
+        var resumed = 0
+        compose.runOnIdle {
+            client.lock { resumed++ }
+            client.background()
+        }
+        compose.waitUntil(10_000) { !client.state.value.busy && client.state.value.concealed }
+        assertEquals(0, resumed)
+        compose.runOnIdle { client.foreground() }
+        compose.waitUntil(10_000) { resumed == 1 }
+        assertEquals("locked", client.state.value.session?.state)
+    }
+
+    @Test fun lockingAfterACommittedDiscardDoesNotRestoreTheDraft() {
+        val draft = net.dmsg.android.core.LetterDraft(text = "a".repeat(33 * 1024))
+        val committed = kotlinx.coroutines.CompletableDeferred<Unit>()
+        compose.runOnIdle {
+            client.letters.update(draft)
+            client.perform({ core ->
+                core.discardLetterDraft(draft.id)
+                committed.complete(Unit)
+                kotlinx.coroutines.awaitCancellation()
+            }, key = "letter:discard:" + draft.id)
+        }
+        runBlocking { kotlinx.coroutines.withTimeout(10_000) { committed.await() } }
+        compose.runOnIdle { client.lock() }
+        compose.waitUntil(10_000) { client.state.value.session?.state == "locked" && !client.state.value.busy }
+        compose.runOnIdle { client.perform({ it.unlockUiFixture() }, transition = true) }
+        compose.waitUntil(10_000) { client.state.value.unlocked }
+        assertFalse(draft.id in client.letters.drafts.value)
+    }
+
     @Test fun existingVaultDraftSurvivesTimeoutAndNativeControllerRestart() {
         val summary = runBlocking { native.vaultPage("", null, false, 0u, 100u) }.items.first { it.title == "Studio account" }
         val item = runBlocking { native.vaultItem(summary.id, null) }.item

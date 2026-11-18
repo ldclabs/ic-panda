@@ -8,7 +8,7 @@
     <string name="add_permission" formatted="false">"Ajouter une autorisation"</string>
     <string name="android_purchase_privacy" formatted="false">"Lorsqu’ils sont configurés, les achats Google Play utilisent les services Google de compte, de facturation et de vérification de l’appareil. Les jetons d’achat sont conservés chiffrés jusqu’à ce que le service vérifie la livraison. Le contenu dMsg n’est pas envoyé à Google. La politique du service ci-dessous décrit aussi les services propres à Apple utilisés par d’autres applications dMsg."</string>
     <string name="app_language" formatted="false">"Langue"</string>
-    <string name="backup_all_caught_up" formatted="false">"Tout est à jour"</string>
+    <string name="backup_all_caught_up" formatted="false">"Aucune version de fichier sans sauvegarde."</string>
     <string name="backup_already_saved" formatted="false">"Cette version est déjà sauvegardée."</string>
     <string name="backup_selected_help" formatted="false">"Les fichiers sont sauvegardés uniquement lorsque vous le choisissez explicitement."</string>
     <string name="backup_total_size" formatted="false">"Taille totale"</string>
@@ -18,7 +18,6 @@
     <string name="customize_fields" formatted="false">"Personnaliser les champs"</string>
     <string name="empty_folder" formatted="false">"Aucun fichier dans ce dossier"</string>
     <string name="follow_system_language" formatted="false">"Suivre la langue du système"</string>
-    <string name="history_deleted" formatted="false">"Supprimé le"</string>
     <string name="history_device" formatted="false">"Appareil"</string>
     <string name="history_fields" formatted="false">"Champs"</string>
     <string name="language_search" formatted="false">"Rechercher une langue"</string>

@@ -549,6 +549,23 @@ fn attachment_search_pages_preserve_all_matches_and_reply_targets() {
         client.queue_attachment_reply(&channel, &file.file.id, "reply", Some(wrong)),
         Err(Error::VersionConflict)
     ));
+    client
+        .workspace
+        .put_private(
+            client.keys().unwrap(),
+            &format!("channel-deleted:{channel}:{}", "a".repeat(64)),
+            &serde_json::json!({}),
+        )
+        .unwrap();
+    assert!(
+        client
+            .channel_search(&channel, "plan.pdf", 1)
+            .unwrap()
+            .is_empty()
+    );
+    let body_matches = client.channel_search(&channel, "keyword", 1).unwrap();
+    assert_eq!(body_matches[0].seq, 105);
+    assert!(body_matches[0].file_deleted);
 }
 
 #[test]

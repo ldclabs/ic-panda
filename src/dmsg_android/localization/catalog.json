@@ -14,9 +14,29 @@
     "ios": "Language"
   },
   "backup_all_caught_up": {
-    "en": "All caught up",
-    "zh-Hans": "暂时没有待处理请求",
-    "ios": "All caught up"
+    "en": "No unbacked file versions.",
+    "zh-Hans": "没有未备份的文件版本。",
+    "zh-Hant": "沒有尚未備份的檔案版本。",
+    "ar": "لا توجد إصدارات ملفات بلا نسخة احتياطية.",
+    "bn": "ব্যাকআপ ছাড়া কোনো ফাইল সংস্করণ নেই।",
+    "de": "Keine ungesicherten Dateiversionen.",
+    "es": "No hay versiones de archivos sin copia de seguridad.",
+    "fil": "Walang bersyon ng file na walang backup.",
+    "fr": "Aucune version de fichier sans sauvegarde.",
+    "hi": "बैकअप के बिना कोई फ़ाइल संस्करण नहीं है।",
+    "id": "Tidak ada versi file yang belum dicadangkan.",
+    "it": "Nessuna versione dei file senza backup.",
+    "ja": "未バックアップのファイルバージョンはありません。",
+    "ko": "백업되지 않은 파일 버전이 없습니다.",
+    "ms": "Tiada versi fail yang belum disandarkan.",
+    "nl": "Geen bestandsversies zonder back-up.",
+    "pl": "Nie ma wersji plików bez kopii zapasowej.",
+    "pt-BR": "Não há versões de arquivos sem backup.",
+    "ru": "Нет версий файлов без резервной копии.",
+    "th": "ไม่มีเวอร์ชันไฟล์ที่ยังไม่ได้สำรองข้อมูล",
+    "tr": "Yedeklenmemiş dosya sürümü yok.",
+    "ur": "بیک اپ کے بغیر کوئی فائل ورژن نہیں ہے۔",
+    "vi": "Không có phiên bản tệp nào chưa được sao lưu."
   },
   "choose_permission": {
     "en": "Choose a permission",
@@ -9239,14 +9259,10 @@
     "zh-Hans": "字段",
     "ios": "Fields"
   },
-  "history_deleted": {
-    "en": "Deleted",
-    "zh-Hans": "删除时间",
-    "ios": "Deleted"
-  },
   "backup_total_size": {
     "en": "Total size",
-    "zh-Hans": "总量上限",
+    "zh-Hans": "总大小",
+    "zh-Hant": "總大小",
     "ios": "Total size"
   },
   "backup_already_saved": {

@@ -32,7 +32,7 @@ import net.dmsg.android.core.*
                     if (version.deleted) Text(str(R.string.text_in_trash_3b5e1bf))
                     if (version.conflict) Text(str(R.string.text_conflicting_version_ffce550))
                     if (!version.synced) Text(str(R.string.text_waiting_to_sync_9a0891e))
-                    if (version.changes.isNotEmpty()) Text(version.changes.joinToString(" · ") { historyChange(it) })
+                    if (!version.deleted && version.changes.isNotEmpty()) Text(version.changes.joinToString(" · ") { historyChange(it) })
                     val deviceName = version.alias ?: if (version.device == state.session?.deviceId) str(R.string.text_this_device_ce825c6)
                         else str(R.string.history_device) + " · " + version.device.take(8)
                     TextButton(onClick = { naming = version }, modifier = Modifier.testTag("vault-version-device:" + version.revision)) { Text(deviceName) }
@@ -68,7 +68,6 @@ import net.dmsg.android.core.*
 
 private fun historyChange(code: String) = str(when (code) {
     "created" -> R.string.text_created_36ba304
-    "deleted" -> R.string.history_deleted
     "restored" -> R.string.text_restore_b04c493
     "title" -> R.string.text_title_4c18fa6
     "type" -> R.string.text_type_6172196

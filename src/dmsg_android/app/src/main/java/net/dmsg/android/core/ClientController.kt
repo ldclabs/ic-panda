@@ -217,7 +217,8 @@ class ClientController internal constructor(private val application: Application
                 restoreEditors(restored.pending)
                 navigation.activate(session.account)
                 mutable.value = UiState(starting = false, concealed = !appForeground, session = session, epoch = epoch,
-                    dark = when (saved?.optString("appearance")) { "dark" -> true; "light" -> false; else -> null }, immediateLock = policy.immediateBackgroundLock)
+                    dark = when (saved?.optString("appearance")) { "dark" -> true; "light" -> false; else -> null },
+                    immediateLock = policy.immediateBackgroundLock, error = restored.draftError)
                 if (navigationIntent != 0L) this@ClientController.preferences()
                 incoming.checkPending()
                 if (appForeground) startForegroundWork()
@@ -283,7 +284,6 @@ class ClientController internal constructor(private val application: Application
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { false }
             finally { checkpoint?.destroy() }
-            var ready = false
             try {
                 if (appForeground) {
                     val generation = root.controlGeneration()
@@ -291,18 +291,26 @@ class ClientController internal constructor(private val application: Application
                     if (appForeground && root.controlGeneration() == generation) {
                         adopt(result)
                         mutable.update { it.copy(concealed = false) }
-                        ready = true
+                        startForegroundWork()
                     }
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (error: Exception) { if (appForeground) showError(errorCode(error)) }
             finally { controlBusy = false; updateOperations() }
-            val continuation = afterLock
-            afterLock = null
-            if (!saved) showError("DRAFT_SAVE_FAILED")
-            else if (ready) continuation?.invoke()
+            if (saved) continueAfterLock()
+            else {
+                afterLock = null
+                showError("DRAFT_SAVE_FAILED")
+            }
         }
         scope.launch(Dispatchers.IO) { cleanupFiles?.invoke() }
+    }
+
+    private fun continueAfterLock() {
+        if (controlBusy || !appForeground || state.value.concealed || state.value.session == null) return
+        val continuation = afterLock ?: return
+        afterLock = null
+        continuation()
     }
 
     fun background() {
@@ -321,13 +329,13 @@ class ClientController internal constructor(private val application: Application
                 return
             }
             sessions.fence.invalidate()
-            operations.cancelAll()
-            prompts.cancel()
             val owner = sessions.snapshot?.account
             val pending = owner?.let(messages::pending).orEmpty()
             val letterDrafts = letters.pending()
             val feedbackDraft = feedback.pending()
             val vaultInputs = vaultDrafts.pending()
+            operations.cancelAll()
+            prompts.cancel()
             val handle = runCatching { sessions.handle() }.getOrNull()
             messages.suspend(); transfers.suspend()
             val backgroundEpoch = epoch
@@ -390,6 +398,7 @@ class ClientController internal constructor(private val application: Application
                         mutable.update { it.copy(concealed = false) }
                         startForegroundWork()
                         deviceTransfers.foreground()
+                        continueAfterLock()
                         tryAutomaticUnlock()
                     }
                 }
@@ -397,16 +406,19 @@ class ClientController internal constructor(private val application: Application
         }
     }
 
-    private data class EditorSession(val session: SessionSnapshot, val pending: EditorDrafts?)
+    private data class EditorSession(val session: SessionSnapshot, val pending: EditorDrafts? = null, val draftError: String? = null)
 
     private suspend fun readSession(root: MobileEngine, known: SessionSnapshot? = null): EditorSession {
         val next = known ?: root.sessionState()
         val previous = state.value.session
         if (next.state != "unlocked" || previous?.state == "unlocked" && previous.generation == next.generation) {
-            return EditorSession(next, null)
+            return EditorSession(next)
         }
         val handle = root.scoped(next.generation)
-        return try { EditorSession(next, handle.restoreEditorDrafts()) } finally { handle.destroy() }
+        return try { EditorSession(next, handle.restoreEditorDrafts()) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (error: Exception) { EditorSession(next, draftError = errorCode(error)) }
+        finally { handle.destroy() }
     }
 
     private fun restoreEditors(pending: EditorDrafts?) {
@@ -417,9 +429,9 @@ class ClientController internal constructor(private val application: Application
         pending.drafts.forEach { messages.restore(requireNotNull(sessions.snapshot?.account), it) }
     }
 
-    private fun adopt(restored: EditorSession) = adopt(restored.session, restored.pending)
+    private fun adopt(restored: EditorSession) = adopt(restored.session, restored.pending, restored.draftError)
 
-    private fun adopt(next: SessionSnapshot, pending: EditorDrafts? = null) {
+    private fun adopt(next: SessionSnapshot, pending: EditorDrafts? = null, draftError: String? = null) {
         val before = state.value.session
         if (!sessions.adopt(next)) return
         navigation.activate(next.account)
@@ -445,8 +457,8 @@ class ClientController internal constructor(private val application: Application
         restoreEditors(pending)
         mutable.update {
             if (changed) UiState(starting = false, concealed = it.concealed, session = next, epoch = epoch,
-                dark = it.dark, immediateLock = it.immediateLock)
-            else it.copy(session = next, epoch = epoch)
+                dark = it.dark, immediateLock = it.immediateLock, error = draftError)
+            else it.copy(starting = false, session = next, epoch = epoch, error = draftError ?: it.error)
         }
         if (appForeground && !state.value.concealed) startForegroundWork()
         if (next.state != "unlocked") { synchronization.stop(clear = true); fileWork.stop(clear = true); backgroundFiles.clear() }

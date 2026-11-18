@@ -4901,39 +4901,45 @@ impl Client {
         limit: usize,
     ) -> Result<Vec<Message>> {
         base(channel)?;
-        let query = query.trim().to_lowercase();
+        let query = query.trim();
         ensure_valid(!query.is_empty() && query.chars().count() <= 200, "query")?;
+        let query = query.to_lowercase();
+        let keys = self.keys()?;
         let prefix = format!("{INBOX}{channel}:");
         let mut found = vec![];
-        let mut from = 0;
-        loop {
-            let page: Vec<Message> = self.workspace.private_after(
-                self.keys()?,
+        let mut cursor = before;
+        while found.len() < limit {
+            let page: Vec<Message> = self.workspace.private_before(
+                keys,
                 &prefix,
-                &format!("{prefix}{from:020}"),
+                &format!("{prefix}{cursor:020}"),
                 500,
             )?;
-            let Some(last) = page.last() else {
+            let Some(first) = page.first() else {
                 break;
             };
-            from = last.seq;
-            found.extend(page.into_iter().filter(|m| {
-                m.seq < before
-                    && !m.amends()
-                    && !m.retracted
-                    && !m.hidden
-                    && (m.text.to_lowercase().contains(&query)
-                        || m.file
-                            .as_ref()
-                            .is_some_and(|f| f.name.to_lowercase().contains(&query)))
-            }));
+            cursor = first.seq;
+            for message in page.iter().rev() {
+                if message.amends() || message.retracted || message.hidden || message.unreadable {
+                    continue;
+                }
+                let text_matches = message.text.to_lowercase().contains(&query);
+                let file_matches = message
+                    .file
+                    .as_ref()
+                    .is_some_and(|f| f.name.to_lowercase().contains(&query));
+                if text_matches || file_matches {
+                    let result = self.public_message(channel, message)?;
+                    if text_matches || !result.file_deleted {
+                        found.push(result);
+                        if found.len() == limit {
+                            break;
+                        }
+                    }
+                }
+            }
         }
-        found.reverse();
-        found.truncate(limit);
-        found
-            .iter()
-            .map(|m| self.public_message(channel, m))
-            .collect()
+        Ok(found)
     }
 
     /// Mark the messages through `through` read; the unread count follows.

@@ -37,10 +37,14 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
         if (!platform.available || !billing.available) { mutable.value = PurchaseView(PurchasePhase.UNAVAILABLE); return }
         observing = scope.launch {
             billing.status.drop(1).collect { status ->
-                if (!eligible || status.ownerBinding != null && status.ownerBinding != catalogue?.account?.binding) return@collect
+                if (!eligible) return@collect
+                if (status.ownerBinding != null && status.ownerBinding != catalogue?.account?.binding) {
+                    if (!status.launching && mutable.value.phase == PurchasePhase.CONFIRMING) refresh()
+                    return@collect
+                }
                 when (status.event) {
                     "received", "pending", "cancelled" -> {
-                        mutable.value = mutable.value.copy(cancelled = status.event == "cancelled", canBuy = false)
+                        mutable.value = mutable.value.copy(canBuy = false)
                         refresh()
                     }
                     "PLAY_ALREADY_OWNED" -> refresh(queryStore = true)
@@ -120,7 +124,7 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
         if (pending.isNotEmpty()) { receipts = readReceipts(core); store.reconcile(owner, receipts) }
         val retained = store.pending(owner, recoverUnknown).size
         val outstanding = receipts.count { it.pending && it.error != "account_mismatch" || it.confirmationPending }
-        return Reconciliation(receipts, maxOf(retained, outstanding), store.canLaunch(owner) && outstanding == 0 && !billing.status.value.launching, before > retained)
+        return Reconciliation(receipts, maxOf(retained, outstanding), store.canLaunch(owner) && outstanding == 0, before > retained)
     }
     private suspend fun checkConfiguration(core: MobileEngine, catalogue: PlayCatalog) {
         val config = platform.configuration ?: error("GOOGLE_UNAVAILABLE")

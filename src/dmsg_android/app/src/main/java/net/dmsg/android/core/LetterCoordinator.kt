@@ -95,7 +95,9 @@ class LetterCoordinator(private val client: ClientController) {
         dirty += input.id
         revision++
     }
-    fun pending(): List<LetterDraftInput> = mutable.value.filterKeys { it in dirty }.values.map { it.input() }
+    fun pending(): List<LetterDraftInput> = mutable.value.values.filter {
+        it.id in dirty && !client.isWorking("letter:discard:" + it.id)
+    }.map { it.input() }
     fun acknowledge(inputs: List<LetterDraftInput>) { inputs.forEach { input -> if (mutable.value[input.id]?.input() == input) dirty -= input.id } }
     fun clear(retainDrafts: Boolean = false) { incoming.reset(); saved.reset(); history.reset(); if (!retainDrafts) { location = LetterLocation(); mutable.value = emptyMap(); dirty.clear(); revision++ } }
 }

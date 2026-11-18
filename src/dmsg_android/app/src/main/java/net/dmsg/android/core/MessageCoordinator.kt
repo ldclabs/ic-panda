@@ -56,6 +56,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
     private val deliveryTurns = mutableMapOf<String, Mutex>()
     private data class PendingQueue(val value: MessageComposer, val authored: DraftLedger.Draft)
     private val pendingQueues = mutableMapOf<String, PendingQueue>()
+    private val pendingReads = mutableMapOf<String, ULong>()
     private var selected: String? = null
     private var refreshAgain = false
     var query = ""
@@ -118,10 +119,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
         var cursor = before
         while (true) {
             val page = core.searchMessagesPage(channel, query, cursor)
-            val hits = page.items.asReversed().filter { item ->
-                !item.hidden && !item.retracted && !item.unreadable && item.account !in blocked &&
-                    (item.text.contains(query, true) || !item.attachmentDeleted && item.attachmentName?.contains(query, true) == true)
-            }
+            val hits = page.items.asReversed().filterNot { it.account in blocked }
             val next = page.nextBefore.takeIf { page.hasMore && it != cursor }
             if (hits.isNotEmpty() || next == null) return ChannelMatches(channel, hits, next)
             cursor = next
@@ -223,7 +221,14 @@ class MessageCoordinator(private val client: ClientController, private val scope
     fun reload() { invalidateDirectory(); browse(); selected?.let { load(it, false) } }
     fun search(text: String) { selected?.let { load(it, false, text) } }
     fun older() { selected?.let { load(it, false, more = true) } }
-    fun markVisible(channel: String, through: ULong) = client.perform({ it.markRead(channel, through) }, key = "message:read:" + channel, replace = true) { browse() }
+    fun markVisible(channel: String, through: ULong) {
+        val key = "message:read:$channel"
+        if (client.isWorking(key) && through <= (pendingReads[channel] ?: 0uL)) return
+        pendingReads[channel] = through
+        fun finished() { if (pendingReads[channel] == through) pendingReads.remove(channel) }
+        client.perform({ it.markRead(channel, through) }, key = key, replace = true,
+            onError = { finished() }) { finished(); browse() }
+    }
 
     fun send(channel: String) {
         val key = "message:queue:" + channel
@@ -263,7 +268,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
 
     fun pending(account: String) = ledger.pending(account)
     fun saved(draft: DraftLedger.Draft) = ledger.saved(draft)
-    fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); refreshAgain = false }
+    fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); pendingReads.clear(); refreshAgain = false }
     fun clear(account: String?, retainDrafts: Boolean = false) {
         suspend(); matches.reset(); directoryText.value = ""; channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
         if (!retainDrafts) { account?.let(ledger::clear); mutableComposers.value = emptyMap(); readyValue.value = false; pendingQueues.clear(); selected = null; query = "" }

@@ -25,7 +25,7 @@ class GooglePlayBilling(private val context: Context, private val store: PlayPur
     @Volatile private var owned = emptyList<PlayPurchase>()
     private var launchOwner: PlayAccount? = null
     private var launchSelection: PlaySelection? = null
-    private var cancelledBinding: String? = null
+    private val cancelledBindings = mutableSetOf<String>()
     private val billing by lazy {
         BillingClient.newBuilder(context.applicationContext).setListener { result, purchases ->
             val originalOwner = launchOwner
@@ -51,17 +51,15 @@ class GooglePlayBilling(private val context: Context, private val store: PlayPur
         }.enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()).enableAutoServiceReconnection().build()
     }
     private fun publish(launching: Boolean, event: String?, binding: String? = null) {
-        if (event == "cancelled") cancelledBinding = binding
-        if (event == "confirming") cancelledBinding = null
+        if (binding != null) {
+            if (event == "cancelled") cancelledBindings.add(binding)
+            if (event == "confirming") cancelledBindings.remove(binding)
+        }
         mutable.value = PlayBillingStatus(mutable.value.revision + 1, launching, event, binding)
     }
 
-    // Play may return while the activity is stopped. Keep only the opaque owner until it resumes.
-    override fun takeCancellation(ownerBinding: String): Boolean {
-        if (cancelledBinding != ownerBinding) return false
-        cancelledBinding = null
-        return true
-    }
+    // Play may return while another account is active. Retain each opaque owner until it resumes.
+    override fun takeCancellation(ownerBinding: String): Boolean = cancelledBindings.remove(ownerBinding)
     private fun billingEvent(code: Int): String = when (code) {
         BillingClient.BillingResponseCode.OK -> "ready"
         BillingClient.BillingResponseCode.USER_CANCELED -> "cancelled"

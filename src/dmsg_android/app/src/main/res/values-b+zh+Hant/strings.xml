@@ -8,17 +8,16 @@
     <string name="add_permission" formatted="false">"新增權限"</string>
     <string name="android_purchase_privacy" formatted="false">"啟用 Google Play 購買後，會使用 Google 賬號、結算和裝置驗證服務。購買憑證將加密保留，直到服務核驗交付。dMsg 內容不會傳送給 Google。下方服務政策還說明其他 dMsg 應用使用的 Apple 專屬服務。"</string>
     <string name="app_language" formatted="false">"語言"</string>
-    <string name="backup_all_caught_up" formatted="false">"暫時沒有待處理請求"</string>
+    <string name="backup_all_caught_up" formatted="false">"沒有尚未備份的檔案版本。"</string>
     <string name="backup_already_saved" formatted="false">"此版本已備份。"</string>
     <string name="backup_selected_help" formatted="false">"只有你明確選擇時，才會備份檔案。"</string>
-    <string name="backup_total_size" formatted="false">"總量上限"</string>
+    <string name="backup_total_size" formatted="false">"總大小"</string>
     <string name="choose_permission" formatted="false">"選擇一項權限"</string>
     <string name="cipher_transfer_running" formatted="false">"正在傳輸加密分塊"</string>
     <string name="cipher_transfer_title" formatted="false">"加密傳輸"</string>
     <string name="customize_fields" formatted="false">"自訂欄位"</string>
     <string name="empty_folder" formatted="false">"此資料夾中沒有檔案"</string>
     <string name="follow_system_language" formatted="false">"跟隨系統語言"</string>
-    <string name="history_deleted" formatted="false">"刪除時間"</string>
     <string name="history_device" formatted="false">"裝置"</string>
     <string name="history_fields" formatted="false">"欄位"</string>
     <string name="language_search" formatted="false">"查詢語言"</string>

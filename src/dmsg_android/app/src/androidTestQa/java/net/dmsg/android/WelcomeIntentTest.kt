@@ -37,6 +37,12 @@ class WelcomeIntentTest {
         compose.runOnIdle { sample.value = initial.copy(session = session.copy(passkeyAvailable = false)) }
         compose.onNodeWithText("Sign in with Internet Identity").assertIsDisplayed()
         compose.onNodeWithText("Create passkey").assertDoesNotExist()
+        compose.runOnIdle {
+            sample.value = initial.copy(session = session.copy(state = "locked", account = initial.session?.account, fastUnlock = true))
+        }
+        compose.onNodeWithText("Unlock workspace").assertIsDisplayed()
+        compose.onNodeWithText("Set up a new workspace").performScrollTo().performClick()
+        compose.onNodeWithText("Create passkey").assertIsDisplayed()
         compose.runOnIdle { assertEquals(requestsBefore, client.state.value.session!!.approvalsWaiting) }
     }
 }

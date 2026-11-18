@@ -66,7 +66,7 @@ class FeedbackCoordinator(private val client: ClientController) {
     internal fun restore(input: FeedbackDraftInput) {
         if (!dirty) { mutable.value = input; dirty = true }
     }
-    fun pending() = mutable.value?.takeIf { dirty }
+    fun pending() = mutable.value?.takeIf { dirty && !client.isWorking("feedback:discard") }
     fun acknowledge(value: FeedbackDraftInput?) { if (value != null && value == mutable.value) dirty = false }
     fun clear(retainDrafts: Boolean = false) { report.reset(); if (!retainDrafts) { mutable.value = null; dirty = false } }
 }

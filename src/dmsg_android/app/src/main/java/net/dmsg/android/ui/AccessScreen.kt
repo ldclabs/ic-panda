@@ -113,6 +113,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                                 OutlinedButton(onClick = { intent = PasskeyIntent.EXISTING_ACCOUNT }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_existing_account)) }
                             } else {
                                 OutlinedButton(onClick = { client.passkey() }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_passkey_0c861d7)) }
+                                TextButton(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy) { Text(str(R.string.access_new_workspace)) }
                             }
                         }
                         if (state.session?.passkeyAvailable == true || state.session?.fastUnlock == true) OutlinedButton(onClick = { client.login(open = browser) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
