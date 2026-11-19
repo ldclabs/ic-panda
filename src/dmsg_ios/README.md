@@ -485,6 +485,12 @@ space-constrained Mac. macOS swap can fill the system disk while build outputs
 are on another volume. Compare `df -h`, `du -sh` for the outputs and
 `sysctl vm.swapusage` when diagnosing a disk warning.
 
+XcodeBuildMCP also stores a separate `.xctestproducts` bundle for each test run.
+Use `build_sim` with `buildForTesting` and an external `testProductsPath`, then
+pass the same path to `test_sim`. Set `-resultBundlePath` for the `.xcresult`
+separately. The default test-products directory under
+`~/Library/Developer/XcodeBuildMCP/workspaces/` can retain gigabyte-sized bundles.
+
 Business icons use the desktop's Remix Icon paths, including navigation,
 account destinations and all eleven vault item types. `Features/AppGlyph.swift`
 selects the shipped template assets; system actions keep SF Symbols.
