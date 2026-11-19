@@ -1,4 +1,9 @@
 <script lang="ts">
+  import Collapsible from '../../components/Collapsible.svelte'
+  import TextField from '../../components/TextField.svelte'
+  import Dialog from '../../components/Dialog.svelte'
+  import { powers } from '../channels/channels'
+  import { snapshotFieldName } from '../vault/vault'
   import Progress from '../../components/Progress.svelte'
   import { onDestroy } from 'svelte'
   import Panel from './Panel.svelte'
@@ -19,13 +24,13 @@
     type SourceItem
   } from './model'
   import { openVault } from './navigation.svelte'
-  import { call, when, size } from '../../rpc'
-  import { toast } from '../../components/toast.svelte'
+  import { call, when } from '../../rpc'
+  import { copyShareLink } from '../../components/clipboard'
   import { buttonClass } from '../../components/ui'
-  import { t } from '../../i18n/index.svelte'
+  import { locale, t } from '../../i18n/index.svelte'
   import { workflowText as w } from './workflow-text'
   import { ux, term } from './experience-text'
-  let { open }: { open: (id: string) => void } = $props()
+  let { open, sourceId, showLinks, account }: { account: string; open: (id: string) => void; sourceId: string; showLinks: (id: string) => void } = $props()
   let shares = $state<any[]>([]),
     items = $state<SourceItem[]>([]),
     channels = $state<any[]>([]),
@@ -36,12 +41,18 @@
     mode = $state('link'),
     channelId = $state(''),
     hours = $state(24),
-    sessions = $state(1),
+    sessions = $state('1'),
     password = $state(''),
     details = $state<Record<string, any>>({}),
-    preview = $state<any>(null)
+    revokeTarget = $state<any>(null)
+  let prepared: { id: string; shape: string; at: number } | null = null
+  let selectedRevision: string | undefined
   const chosen = $derived(items.find((i) => i.id === itemId)),
+    shareFields = $derived(chosen?.fields.filter((f) => f.populated) ?? []),
     draft = new DraftVersion()
+  const hourLabel = $derived(new Intl.NumberFormat(locale(), { style: 'unit', unit: 'hour', unitDisplay: 'long' }).format(1))
+  const canReview = $derived(chosen && !chosen.blocked && (fields.length || notes || attachments.length) &&
+    (mode === 'channel' ? !!channelId : /^(?:[1-9]\d?|100)$/.test(sessions)))
   const model = panel(
     async () =>
       Promise.all([
@@ -49,29 +60,34 @@
           'shares',
           'secrets/shares/list',
           {},
-          (r: any) => (shares = r.shares)
+          (r: any) => (shares = r.shares.filter((s: any) => !sourceId || s.plan.item_id === sourceId))
         ),
         model.request(
           'vault',
           'vault/list',
           {},
-          (r: any[]) => (items = sourceItems(r))
+          (r: any[]) => {
+            items = sourceItems(r)
+            if (sourceId) itemId = sourceId
+            if (selectedRevision !== chosen?.revision) void select()
+          }
         ),
-        model.request(
-          'channels',
-          'channel/list',
-          {},
-          (r: any[]) => (channels = r)
-        )
+        mode === 'channel' && loadChannels()
       ]),
     () =>
       shares.some((s) =>
         ['encrypting', 'uploading', 'publishing'].includes(s.state)
       )
   )
+  function loadChannels() {
+    return model.request('channels', 'channel/list', {}, (rows: any[]) => {
+      channels = rows.filter((c) => !c.left && powers(c.ledger, account).writes)
+      if (channelId && !channels.some((c) => c.id === channelId)) { channelId = ''; changed() }
+    })
+  }
   function changed() {
     draft.change()
-    preview = null
+    prepared = null
   }
   function shape() {
     return JSON.stringify([
@@ -86,9 +102,6 @@
       sessions
     ])
   }
-  const previewCurrent = $derived(
-    preview && preview.shape === shape() && draft.current(preview.at)
-  )
   async function select() {
     changed()
     fields = []
@@ -96,6 +109,7 @@
     notes = false
     details = {}
     const selected = chosen
+    selectedRevision = selected?.revision
     if (!selected) return
     await Promise.all(
       selected.files.map((id) =>
@@ -103,7 +117,7 @@
           `attachment-${id}`,
           () => call('files/show', { id }),
           (r: any) => {
-            if (itemId === selected.id) details = { ...details, [id]: r }
+            if (chosen?.id === selected.id && chosen.revision === selected.revision) details = { ...details, [id]: r }
           }
         )
       )
@@ -111,59 +125,55 @@
   }
   async function prepare(event: SubmitEvent) {
     event.preventDefault()
-    if (!chosen) return
-    const at = draft.capture(),
-      saved = shape(),
-      secret = password
-    await model.act(
-      () =>
-        call(
-          mode === 'channel'
-            ? 'secrets/shares/channel_prepare'
-            : 'secrets/shares/prepare',
+    const source = chosen
+    if (!source || !canReview) return
+    const at = draft.capture(), saved = shape()
+    const current = () => model.state.alive && draft.current(at) && shape() === saved && !chosen?.blocked
+    await model.act(async () => {
+      if (!prepared || prepared.at !== at || prepared.shape !== saved) {
+        const result = await call<{ id: string }>(
+          mode === 'channel' ? 'secrets/shares/channel_prepare' : 'secrets/shares/prepare',
           {
             ...(mode === 'channel' ? { channel_id: channelId } : {}),
             input: {
-              item_id: chosen!.id,
-              revision: chosen!.revision,
-              field_ids: fields,
+              item_id: source.id, revision: source.revision,
+              field_ids: shareFields.filter((f) => fields.includes(f.id)).map((f) => f.id),
               include_notes: notes,
-              attachments: attachments.map((id) => ({
-                file_id: id,
-                version_id: details[id]?.file?.current
-              })),
-              ...(mode === 'channel'
-                ? {}
-                : {
-                    expires_in_ms: hours * 3600000,
-                    max_download_sessions: sessions
-                  })
+              attachments: attachments.map((id) => ({ file_id: id, version_id: details[id].file.current })),
+              ...(mode === 'link' ? { expires_in_ms: hours * 3600000, max_download_sessions: Number(sessions) } : {})
             },
-            ...(mode === 'link' && secret ? { password: secret } : {})
+            ...(mode === 'link' && password ? { password } : {})
           }
-        ),
-      (r: any) => {
-        if (draft.current(at) && shape() === saved) {
-          password = ''
-          preview = { ...r, at, shape: saved }
-        }
-      },
-      false
-    )
+        )
+        if (!current()) return
+        prepared = { id: result.id, at, shape: saved }
+      }
+      const request = await call<{ id: string }>('secrets/shares/request', { id: prepared.id })
+      if (current()) {
+        fields = []; notes = false; attachments = []; password = ''
+        changed()
+        open(request.id)
+      }
+    })
   }
   onDestroy(() => {
     draft.change()
     password = ''
-    preview = null
+    prepared = null
   })
 </script>
 
-<Panel {model} title={w('sharing')} description={ux('reviewSelection')}>
+<Panel {model} title={sourceId && chosen ? chosen.title : w('sharing')} description={ux('reviewSelection')}>
+  {#snippet actions()}
+    {#if sourceId}<button class={buttonClass('ghost')} onclick={() => openVault(sourceId)}>{t('back')}</button>{/if}
+    <button class={buttonClass('secondary')} onclick={() => showLinks(itemId)} data-testid="snapshot-links">{t('shareLinks')}</button>
+  {/snippet}
   <Segmented
     bind:value={
       () => mode,
       (next) => {
         mode = next
+        if (next === 'channel') void loadChannels()
         changed()
         password = ''
       }
@@ -173,52 +183,58 @@
       { value: 'channel', label: ux('channelMode') }
     ]}
     label={ux('destination')}
+    disabled={model.state.busy}
     testid="snapshot-mode"
   />
   <Notice tone="warn"
     >{mode === 'channel' ? w('channelWarning') : w('shareWarning')}</Notice
   >
   <form class={card} onsubmit={prepare} oninput={changed} onchange={changed}>
-    <SourcePicker
+    {#if !sourceId}<SourcePicker
       {items}
       bind:itemId
       fields={false}
       sharing
+      disabled={model.state.busy}
       onChange={select}
       testid="snapshot-source"
-    />
-    {#if chosen}<fieldset class="space-y-2">
+    />{:else if model.state.loaded && !chosen}<Notice tone="warn">{ux('noSources')}</Notice>{/if}
+    {#if chosen}<fieldset class="space-y-2" disabled={model.state.busy || chosen.blocked}>
         <legend class="mb-2 text-xs font-medium text-muted"
-          >{ux('selected')}</legend
-        >{#each chosen.fields as field}<Checkbox
+          >{t('content')}</legend
+        >{#each shareFields as field}<div><Checkbox
             checked={fields.includes(field.id)}
             onCheckedChange={(checked) => {
               changed()
               fields = toggle(fields, field.id, checked)
-            }}>{field.label || field.id} · {term(field.type)}</Checkbox
-          >{/each}
-        <div>
+            }}>{snapshotFieldName(field, t)}</Checkbox></div>{/each}
+        {#if chosen.hasNotes}<div>
           <Checkbox bind:checked={notes} onCheckedChange={changed}
             >{w('notes')}</Checkbox
           >
-        </div>
-        {#each chosen.files as id}<div>
+        </div>{/if}
+        {#if !shareFields.length && !chosen.hasNotes && !chosen.files.length}<p class="text-sm text-muted">{t('noItems')}</p>{/if}
+        {#each chosen.files as id}
+          {@const file = details[id]?.file}
+          {@const available = file?.current && file.local && file.trashed_at == null}
+          <div>
             <Checkbox
               checked={attachments.includes(id)}
               onCheckedChange={(checked) => {
                 changed()
                 attachments = toggle(attachments, id, checked)
               }}
-              disabled={!details[id]?.file?.current}
-              >{details[id]?.file?.name ?? ux('file')}</Checkbox
-            >{#if !details[id]?.file?.current}<p class="text-xs text-warn">
-                {ux('unknown')}
+              disabled={!available}
+              >{file?.name ?? ux('file')}</Checkbox
+            >{#if !available}<p class="text-xs text-warn">
+                {file?.trashed_at ? t('fileMissing') : file ? ux('notLocal') : ux('unknown')}
               </p>{/if}
           </div>{/each}
       </fieldset>{/if}
     {#if mode === 'channel'}<Field label={t('channels')}
         ><SearchSelect
           bind:value={channelId}
+          disabled={model.state.busy}
           options={channels.map((c) => ({
             value: c.id,
             label: c.name,
@@ -230,33 +246,17 @@
           testid="snapshot-channel"
         /></Field
       >
-    {:else}<div class="grid gap-3 sm:grid-cols-2">
-        <Field label={w('hours')}
-          ><Select
-            value={String(hours)}
-            onChange={(v) => {
-              hours = Number(v)
-              changed()
-            }}
-            options={[1, 24, 168].map((h) => ({
-              value: String(h),
-              label: `${h} ${w('hours')}`
-            }))}
-            label={w('hours')}
-            class="w-full"
-          /></Field
-        ><Field label={w('sessions')}
-          ><input
-            type="number"
-            min="1"
-            max="100"
-            step="1"
-            required
-            bind:value={sessions}
-          /></Field
-        >
-      </div>
-      <SecretInput label={w('password')} bind:value={password} />
+    {:else}<Collapsible testid="snapshot-limits">
+        {#snippet title()}{t('linkDays')} · {hours === 24 ? t('days1') : hours === 168 ? t('days7') : hourLabel} · {w('sessions')} {sessions}{/snippet}
+        <div class="grid gap-3 py-2 sm:grid-cols-2">
+          <Field label={t('linkDays')}><Select
+            value={String(hours)} onChange={(v) => { hours = Number(v); changed() }}
+            options={[{ value: '1', label: hourLabel }, { value: '24', label: t('days1') }, { value: '168', label: t('days7') }]}
+            disabled={model.state.busy} label={t('linkDays')} class="w-full" /></Field>
+          <TextField label={w('sessions')} bind:value={sessions} hint="1–100" inputmode="numeric" pattern="[1-9][0-9]?|100" maxlength={3} required disabled={model.state.busy} />
+          <SecretInput label={w('password')} bind:value={password} disabled={model.state.busy} />
+        </div>
+      </Collapsible>
     {/if}
     {#if chosen?.fields.some((f) => fields.includes(f.id) && f.type === 'otp')}<Notice
         tone="warn">{w('otpSeedWarning')}</Notice
@@ -267,46 +267,14 @@
       >{/if}
     <button
       class={buttonClass('primary')}
-      disabled={model.state.busy ||
-        !chosen ||
-        chosen.blocked ||
-        (mode === 'channel' && !channelId) ||
-        (!fields.length && !notes && !attachments.length)}
-      >{w('prepareSnapshot')}</button
-    >
+      disabled={model.state.busy || !canReview}
+      data-testid="snapshot-review">{w('review')}</button>
     {#if !chosen}<button
         type="button"
         class={buttonClass('ghost')}
         onclick={() => openVault()}>{ux('openVault')}</button
       >{/if}
   </form>
-  {#if previewCurrent}<div class={card} data-testid="snapshot-preview">
-      <h3 class="font-semibold">{chosen?.title}</h3>
-      <p class="text-sm">
-        {fields
-          .map((id) => chosen?.fields.find((f) => f.id === id)?.label || id)
-          .join(', ')}{notes ? ` · ${w('notes')}` : ''}
-      </p>
-      {#each attachments as id}<p class="text-sm">
-          {details[id]?.file?.name}
-        </p>{/each}
-      <p class="text-xs text-muted">
-        {size(preview.plan.plain_bytes)} · {mode === 'channel'
-          ? preview.plan.channel?.name
-          : when(preview.plan.expires_at)}
-      </p>
-      <button
-        class={buttonClass('primary')}
-        disabled={model.state.busy}
-        onclick={() => {
-          if (previewCurrent)
-            void model.act(
-              () => call('secrets/shares/request', { id: preview.id }),
-              (r: any) => open(r.id)
-            )
-        }}>{w('review')}</button
-      >
-    </div>{/if}
   {#each shares as share}<article class={card}>
       <div class="flex flex-wrap justify-between gap-2">
         <h3 class="font-semibold">{share.plan.title}</h3>
@@ -341,8 +309,7 @@
                   })
                   if (!model.state.alive) return
                   if (!r.link?.url) throw new InputError(w('linkUnavailable'))
-                  await navigator.clipboard.writeText(r.link.url)
-                  toast(() => t('copiedText'))
+                  await copyShareLink(r.link.url)
                 },
                 undefined,
                 false
@@ -360,10 +327,21 @@
             ['cancelled', 'revoked'].includes(share.state) ||
             (!!share.plan.channel &&
               ['publishing', 'unknown', 'published'].includes(share.state))}
-          onclick={() =>
-            model.act(() => call('secrets/shares/revoke', { id: share.id }))}
+          onclick={() => (revokeTarget = share)}
           >{share.plan.channel ? t('cancel') : w('revokeShare')}</button
         >
       </div>
     </article>{/each}
 </Panel>
+
+<Dialog bind:open={() => !!revokeTarget, (next) => !next && (revokeTarget = null)} title={revokeTarget?.plan.channel ? t('cancel') : w('revokeShare')} tone="danger">
+  <p class="break-words">{revokeTarget?.plan.title}</p>
+  {#if !revokeTarget?.plan.channel}<p class="mt-2 text-sm text-muted">{t('linkRevokeHint')}</p>{/if}
+  {#if model.state.errors.action}<Notice tone="danger">{model.state.errors.action}</Notice>{/if}
+  {#snippet footer()}
+    <button class={buttonClass('ghost')} onclick={() => (revokeTarget = null)}>{t('back')}</button>
+    <button class={buttonClass('danger')} disabled={model.state.busy} onclick={() => model.act(
+      () => call('secrets/shares/revoke', { id: revokeTarget.id }), () => (revokeTarget = null)
+    )}>{revokeTarget?.plan.channel ? t('cancel') : w('revokeShare')}</button>
+  {/snippet}
+</Dialog>

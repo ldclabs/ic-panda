@@ -340,7 +340,29 @@ func approvalSummary(type: String, detail: DisplayValue) -> String? {
             recipient = String(localized: protected ? "Anyone with the link and password" : "Anyone with the link")
         }
         else { return nil }
-        return String(localized: "Share \(title) with \(recipient).")
+        var lines = [String(localized: "Share \(title) with \(recipient).")]
+        if case .array(let selected)? = fields["fields"] {
+            for case .object(let field) in selected {
+                guard case .string(let id)? = field["id"], case .string(let label)? = field["label"] else { continue }
+                let name = label.isEmpty ? vaultFieldName(id) : label
+                if case .string(let section)? = field["section"], !section.isEmpty { lines.append(section + " · " + name) }
+                else { lines.append(name) }
+            }
+        }
+        if case .object(let input)? = fields["input"], case .boolean(true)? = input["include_notes"] {
+            lines.append(String(localized: "Notes"))
+        }
+        if case .array(let attachments)? = fields["attachments"] {
+            lines += attachments.compactMap { file in
+                guard case .object(let metadata) = file, case .string(let name)? = metadata["name"] else { return nil }
+                return name
+            }
+        }
+        if case .number(let expiry)? = fields["expires_at"], case .number(let sessions)? = fields["max_download_sessions"] {
+            lines.append(String(localized: "Expires") + " · " + Date(timeIntervalSince1970: NSDecimalNumber(decimal: expiry).doubleValue / 1000).formatted())
+            lines.append(String(localized: "Download sessions") + " · " + sessions.formatted())
+        }
+        return lines.joined(separator: "\n")
     case "grant":
         guard let grantee = string("grantee"), case .array(let capabilities)? = fields["capabilities"] else { return nil }
         var parts = [grantee] + capabilities.map { AgentPermissionName.describe($0.text) }

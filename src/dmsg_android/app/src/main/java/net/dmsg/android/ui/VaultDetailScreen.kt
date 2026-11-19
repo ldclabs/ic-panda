@@ -77,7 +77,10 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
             Text(str(R.string.text_updated_7676bd2) + displayTime(item.updatedAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(str(R.string.text_created_c1dc4dc) + displayTime(item.createdAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (!historical) TextButton(onClick = { client.navigation.push(Route("vault-history", id)) }) { Text(str(R.string.text_version_history_8a6bf11)) }
-            if (item.saveState != "local_only" && !historical && !item.reserved && !item.deleted) OutlinedButton(onClick = { client.navigation.push(Route("secret-compose", id)) }) { Text(str(R.string.text_share_secret_snapshot_d4484d8)) }
+            if (item.saveState != "local_only" && !historical && !item.reserved && !item.deleted) {
+                OutlinedButton(onClick = { client.navigation.push(Route("secret-compose", id)) }, enabled = !item.conflict) { Text(str(R.string.text_share_secret_snapshot_d4484d8)) }
+                TextButton(onClick = { client.navigation.push(Route("vault-links", id)) }) { Text(str(R.string.text_share_links_fe69aa5)) }
+            }
             if (item.reserved) Notice(str(R.string.text_this_key_is_managed_by_dmsg_its_private_fields_cannot_be_revealed_4a768a2))
             else if (!historical && item.deleted) Button(onClick = { client.perform({ it.restoreItem(id) }, key = "vault:edit:" + id) { client.vault.changed(); client.vault.select(id) } }) { Text(str(R.string.text_restore_item_1f6ceaa)) }
             else if (!historical) TextButton(onClick = { deleting = true }) { Text(str(R.string.text_move_to_trash_c4056f9), color = MaterialTheme.colorScheme.error) }

@@ -25,7 +25,9 @@ export type Templates = Record<string, { fields: { id: string; type: FieldType }
 
 /** The types in the order the filters and the new-item dialog offer them. */
 /** The parts of what stored secrets are used for, each a route under /vault. */
-export const workflows = ['policies', 'mounts', 'ssh', 'sharing', 'receive', 'health', 'activity']
+export function vaultWorkflows(local: boolean): string[] {
+  return local ? ['mounts', 'health'] : ['policies', 'mounts', 'ssh', 'sharing', 'receive', 'health', 'activity']
+}
 export const workflowIcon: Record<string, Glyph> = {
   policies: 'security',
   mounts: 'folder',
@@ -140,6 +142,13 @@ export function fieldName(field: Field, t: (label: Label) => string): string {
   if (field.label.trim()) return field.label
   const label = fieldLabel[field.id]
   return label ? t(label) : field.id
+}
+
+/** Package IDs identify selections. Only template roles and field types are display names. */
+export function snapshotFieldName(field: { id: string; label: string; role?: string | null; type: string }, t: (label: Label) => string): string {
+  if (field.label.trim()) return field.label
+  const role = field.role ?? field.id
+  return t(Object.hasOwn(fieldLabel, role) ? fieldLabel[role] : fieldTypeLabel[field.type as FieldType] ?? 'fieldTypeText')
 }
 
 /** The fields under each section heading, in order; the unnamed section first. */

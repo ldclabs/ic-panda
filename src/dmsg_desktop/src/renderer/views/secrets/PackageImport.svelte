@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { snapshotFieldName } from '../vault/vault'
   import FolderPicker from '../files/FolderPicker.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Notice from '../../components/page/Notice.svelte'
@@ -6,7 +7,7 @@
   import { call, size } from '../../rpc'
   import { stateLabel, t } from '../../i18n/index.svelte'
   import { workflowText as w } from './workflow-text'
-  import { ux, term } from './experience-text'
+  import { ux } from './experience-text'
   import { panel } from './workflow-state.svelte'
   import { toggle, card } from './model'
   import { openVault, openFile } from './navigation.svelte'
@@ -93,7 +94,7 @@
             checked={fields.includes(field.id)}
             onCheckedChange={(checked) =>
               (fields = toggle(fields, field.id, checked))}
-            >{field.label || field.id} · {term(field.type)}</Checkbox
+            >{snapshotFieldName(field, t)}</Checkbox
           >
         </div>{/each}{#if received.preview.notes}<Checkbox bind:checked={notes}
           >{w('notes')}</Checkbox

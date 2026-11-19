@@ -60,32 +60,38 @@ import net.dmsg.android.core.*
     }
 }
 
-@Composable fun FileLinksScreen(client: ClientController, selected: String) {
+@Composable fun FileLinksScreen(client: ClientController, selected: String, snapshots: Boolean = false, vaultItem: String? = null) {
     val state by client.state.collectAsStateWithLifecycle()
     val links by client.fileLinks.links.state.collectAsStateWithLifecycle()
     val intents by client.fileLinks.intents.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.epoch) { client.fileLinks.browse(false, refreshAfter = true) }
+    val rows = links.valueOrNull().orEmpty().filter {
+        if (snapshots) it.source == "vault_snapshot" && (vaultItem == null || it.vaultItem == vaultItem) else it.source != "vault_snapshot"
+    }
     val current = links.valueOrNull()?.find { it.id == selected }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(if (selected.isEmpty()) str(R.string.text_shared_files_b3cfe3a) else str(R.string.text_share_link_b335ffa), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                Text(if (snapshots) str(R.string.text_share_links_fe69aa5) else if (selected.isEmpty()) str(R.string.text_shared_files_b3cfe3a) else str(R.string.text_share_link_b335ffa), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
                 IconButton(onClick = { client.fileLinks.browse() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_links_5941c71)) }
             }
             ReadFeedback(links, { client.fileLinks.browse() })
         }
         if (selected.isEmpty()) {
-            item { ReadFeedback(intents, client.fileLinks::loadIntents) }
-            items(intents.valueOrNull().orEmpty().filter { it.stage != "complete" }, key = { "intent:" + it.id }) { job ->
+            if (!snapshots) item { ReadFeedback(intents, client.fileLinks::loadIntents) }
+            items(intents.valueOrNull().orEmpty().filter { !snapshots && it.stage != "complete" }, key = { "intent:" + it.id }) { job ->
                 ListItem(modifier = Modifier.clickable { client.navigation.push(Route("file-link-job", id = job.id)) }, headlineContent = { Text(job.name) },
                     leadingContent = { Icon(Icons.Outlined.PendingActions, null) }, supportingContent = { Text(str(R.string.text_unfinished_creation_continue_the_original_link_059e094)) })
             }
-            items(links.valueOrNull().orEmpty(), key = { "link:" + it.id }) { link ->
-                ListItem(modifier = Modifier.clickable { client.navigation.select(link.id) }, headlineContent = { Text(link.name ?: str(R.string.text_encrypted_share_34c22e9)) },
+            items(rows, key = { "link:" + it.id }) { link ->
+                ListItem(modifier = Modifier.clickable {
+                    if (snapshots) client.navigation.push(Route("file-links", link.id)) else client.navigation.select(link.id)
+                }, headlineContent = { Text(link.name ?: str(R.string.text_encrypted_share_34c22e9)) },
                     leadingContent = { Icon(if (link.password) Icons.Outlined.Lock else Icons.Outlined.Link, null) },
                     supportingContent = { Text(fileLinkState(link.state) + " · " + str(R.string.text_downloads_35a65b7) + localizedNumber(link.downloads)) })
             }
-            if (links is ReadState.Empty && intents.valueOrNull().orEmpty().none { it.stage != "complete" }) item { Notice(str(R.string.text_choose_share_by_link_on_a_file_or_cloud_backup_secret_snapshots_a_e246762)) }
+            if (snapshots && links.valueOrNull() != null && rows.isEmpty()) item { EmptyPanel(str(R.string.no_matches)) }
+            if (!snapshots && links.valueOrNull() != null && rows.isEmpty() && intents.valueOrNull().orEmpty().none { it.stage != "complete" }) item { Notice(str(R.string.text_choose_share_by_link_on_a_file_or_cloud_backup_secret_snapshots_a_e246762)) }
         } else if (current != null) item { FileLinkDetails(client, current) }
         else if (links !is ReadState.Loading) item { Notice(str(R.string.text_this_link_is_not_available_in_the_current_account_s_saved_list_fab3a8d)) }
     }

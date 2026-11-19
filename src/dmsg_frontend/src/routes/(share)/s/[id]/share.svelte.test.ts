@@ -10,6 +10,7 @@ import {
   type ShareFile
 } from '$lib/share/decrypt'
 import SharePage from './+page.svelte'
+import { PACKAGE_MIME } from '$lib/share/package'
 import { readProfile, type ProfilePage } from '$lib/public-profile'
 
 vi.mock('$lib/public-profile', () => ({ readProfile: vi.fn() }))
@@ -446,4 +447,54 @@ it('ignores arbitrary profile targets and never resolves anonymous links', async
   await shown('[data-testid="share-preview"]')
   expect(readProfile).not.toHaveBeenCalled()
   expect(target.querySelector('[data-testid="share-author"]')).toBeNull()
+})
+
+it('opens a legacy vault snapshot once, labels its one populated field, and copies it while masked', async () => {
+  await setLocale('zh', false)
+  const value = 'synthetic value for local tests'
+  const payload = new TextEncoder().encode(JSON.stringify({
+    format: 'dmsg-secret-package/1', snapshot_id: '9'.repeat(64), created_at: 1,
+    item: { type: 'api', title: 'Team API', notes: '', fields: [
+      { id: 'f0_credential', type: 'concealed', label: '', section: '', value },
+      { id: 'f1_expires', type: 'date', label: '', section: '', value: '' },
+      { id: 'f2_url', type: 'url', label: '', section: '', value: '' },
+    ] }, attachments: []
+  }))
+  const bytes = new Uint8Array(4 + payload.length)
+  new DataView(bytes.buffer).setUint32(0, payload.length)
+  bytes.set(payload, 4)
+  Object.assign(file, { name: 'secret.dmsg-package', mime: PACKAGE_MIME, size: bytes.length })
+  vi.mocked(assemble).mockResolvedValue(bytes)
+  const writeText = vi.fn().mockRejectedValueOnce(new Error('denied')).mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  try {
+    start()
+    await shown('[data-testid="snapshot-receive-choice"]')
+    expect(target.textContent).not.toContain(PACKAGE_MIME)
+    expect(target.textContent).not.toContain(file.name)
+    expect(target.querySelector('[data-testid="share-download"]')).toBeNull()
+    expect(network.bytes).not.toHaveBeenCalled()
+    click('[data-testid="snapshot-open"]')
+    await shown('.snapshot-field')
+    expect(target.querySelector('h1')).toHaveTextContent('Team API')
+    expect(target.querySelectorAll('.snapshot-field')).toHaveLength(1)
+    expect(target.querySelector('.snapshot-field strong')?.textContent).toBe('凭据')
+    expect(target.textContent).not.toContain(value)
+    expect(target.textContent).not.toMatch(/f0_|f1_|f2_/)
+    click('.field-actions button:last-child')
+    await shown('.snapshot-field [role=status]')
+    expect(target.querySelector('.snapshot-field [role=status]')).toHaveTextContent('复制失败')
+    click('.field-actions button:last-child')
+    await vi.waitFor(() => expect(target.querySelector('.snapshot-field [role=status]')).toHaveTextContent('已复制'))
+    expect(writeText).toHaveBeenLastCalledWith(value)
+    expect(target.textContent).not.toContain(value)
+    click('.field-actions button:first-child')
+    expect(target.querySelector('pre')).toHaveTextContent(value)
+    click('.field-actions button:first-child')
+    expect(target.querySelector('pre')).toBeNull()
+    expect(network.bytes).toHaveBeenCalledTimes(1)
+    expect(save).not.toHaveBeenCalled()
+  } finally {
+    Reflect.deleteProperty(navigator, 'clipboard')
+  }
 })

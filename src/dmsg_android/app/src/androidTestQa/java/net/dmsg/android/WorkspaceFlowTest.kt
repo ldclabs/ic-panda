@@ -1896,15 +1896,14 @@ class WorkspaceFlowTest {
         assertEquals(setOf("password"), client.secretSharing.draft.value!!.fields)
         assertFalse(client.secretSharing.draft.value!!.notes)
         capture("qa-secret-compose")
-        compose.onNodeWithText("Prepare selected snapshot").performScrollTo().performClick()
-        compose.waitUntil(15_000) { client.secretSharing.job.state.value is ReadState.Ready }
-        val job = client.secretSharing.job.value()!!
-        assertEquals("prepared", job.state)
-        assertNull(job.request)
-        assertNull(client.secretSharing.link.value)
-        compose.onNodeWithText("Review publication or resume").performScrollTo().performClick()
-        compose.waitUntil(10_000) { client.approvals.detail.state.value is ReadState.Ready }
+        compose.onNodeWithText("Review request").performScrollTo().performClick()
+        compose.waitUntil(15_000) { client.approvals.detail.state.value is ReadState.Ready }
         val approval = client.approvals.detail.value()!!
+        val jobId = requireNotNull(client.secretSharing.draft.value?.prepared)
+        val job = net.dmsg.android.core.parseSecretShare(kotlinx.serialization.json.Json.parseToJsonElement(runBlocking { native.secretShare(jobId, false).json }))
+        assertEquals("awaiting_user", job.state)
+        assertEquals(approval.id, job.request)
+        assertNull(client.secretSharing.link.value)
         assertEquals("awaiting_user", approval.state)
         assertEquals(listOf("password"), approval.secret!!.fields.map { it.id })
         assertFalse(approval.secret!!.notes)

@@ -146,6 +146,7 @@ export interface DesktopBridge {
    * window only.
    */
   copySecret(id: string, field?: string | null, revision?: string | null): Promise<{ clear_after_ms: number }>
+  copyShareLink(url: string): Promise<{ clear_after_ms: number }>
   /** Read a password manager's export the person picks, without hidden values; null when cancelled. */
   secretScanDirectory(): Promise<any>
   secretMountPrepare(input: any, windowMs: number): Promise<any>

@@ -28,6 +28,7 @@
    */
   let {
     entry,
+    canShare,
     conflict,
     trash,
     unlocked,
@@ -41,6 +42,7 @@
     onDuplicated
   }: {
     entry: any
+    canShare: boolean
     conflict: boolean
     trash: boolean
     unlocked: boolean
@@ -212,12 +214,15 @@
       </div>
     </div>
     {#if unlocked && !editing}
-      <div class="ms-auto flex shrink-0 items-center gap-1">
+      <div class="ms-auto flex max-w-full flex-wrap items-center gap-1">
         {#if trash}
           <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={discard} data-testid="vault-restore">
             <Icon name="restore" />{t('restore')}
           </button>
         {:else if !managed}
+          {#if canShare}<button class={buttonClass('secondary', 'md')} disabled={busy || conflict} onclick={() => go(`/vault/sharing?item=${entry.id}`)} data-testid="vault-share">
+            <Icon name="send" />{t('share')}
+          </button>{/if}
           <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={startEdit} data-testid="vault-edit-open">
             <Icon name="edit" />{t('edit')}
           </button>
@@ -234,6 +239,9 @@
             <DropdownMenu.Portal>
               <DropdownMenu.Content align="end" sideOffset={6} class={cn(menuContentClass, 'min-w-48')} data-testid="vault-more-menu">
                 {#if !managed}
+                  {#if canShare}<DropdownMenu.Item class={menuItemClass} onSelect={() => go(`/vault/sharing?item=${entry.id}&links=1`)} data-testid="vault-share-links">
+                    <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareLinks')}</span>
+                  </DropdownMenu.Item>{/if}
                   <DropdownMenu.Item class={menuItemClass} disabled={busy} onSelect={star} data-testid="vault-star">
                     <span class="flex items-center gap-2"><Icon name={item.favorite ? 'starred' : 'star'} class="text-faint" />{item.favorite ? t('unstar') : t('star')}</span>
                   </DropdownMenu.Item>

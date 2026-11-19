@@ -170,7 +170,7 @@ struct FileDetailView: View {
                     .disabled(file.size > FileLinkTarget.maxBytes || !(available || file.backup != nil)).accessibilityIdentifier("file.link")
                 if file.size > FileLinkTarget.maxBytes { Text("Files over 100 MiB cannot be shared by link.").font(.footnote).foregroundStyle(.secondary) }
                 if !links.isEmpty {
-                    NavigationLink { FileLinksView(file: file.id) } label: { LabeledContent("Share links", value: links.count.formatted()) }
+                    NavigationLink { FileLinksView(scope: .file(file.id)) } label: { LabeledContent("Share links", value: links.count.formatted()) }
                         .accessibilityIdentifier("file.links")
                 }
                 }

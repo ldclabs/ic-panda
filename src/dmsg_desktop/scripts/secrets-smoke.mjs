@@ -22,6 +22,7 @@ let policies = [],
   uses = [],
   sequence = 1,
   channelPrepared = false
+const revokedLinks = new Set()
 const status = () => ({
   state: 'unlocked',
   account,
@@ -70,12 +71,22 @@ const methods = {
   'app/activity': () => null,
   'daemon/status': status,
   'session/status': status,
+  'session/accounts': () => [{ account, account_kind: 'cloud', current: true, bound: true }],
   'profile/show': () => null,
   'profile/pending': () => null,
-  'channel/list': () => [{ id: 'c1'.repeat(32), name: 'Snapshot destination' }],
+  'channel/list': () => [{ id: 'c1'.repeat(32), name: 'Snapshot destination', ledger: { status: 'active', type: 'group', members: { [account]: { role: 'owner' } } } }],
   'attest/history': () => [],
   'grants/list': () => [],
   'files/search': () => [],
+  'files/share_links': () => [item, 'other-vault-item', 'library-file'].map((source, i) => ({
+    share_id: 'link-' + i, name: 'GitHub credential', state: revokedLinks.has('link-' + i) ? 'revoked' : 'active',
+    url: 'https://example.test/s/' + i + '#synthetic', expires_at: Date.now() + 60000,
+    source: i === 2 ? { type: 'file_version', file: source } : { type: 'vault_snapshot', item_id: source }
+  })),
+  'files/share_revoke': ({ share_id }) => {
+    revokedLinks.add(share_id)
+    return methods['files/share_links']().find(link => link.share_id === share_id)
+  },
   'vault/health': () => [],
   'vault/conflicts': () => [],
   'legacy/pairs': () => [],
@@ -102,7 +113,8 @@ const methods = {
             label: 'Token',
             section: '',
             value: '********'
-          }
+          },
+          { id: 'expires', label: '', type: 'date', section: '', value: '' }
         ]
       }
     }
@@ -656,16 +668,11 @@ try {
   await main.screenshot({ path: join(shots, 'controls-upload-progress.png'), animations: 'disabled' })
   await pick(main, 'snapshot-source-item', item)
   assert.equal(
-    await workflows.getByLabel('Token · Hidden value').isChecked(),
+    await workflows.getByRole('checkbox', { name: 'Token', exact: true }).isChecked(),
     false
   )
-  await workflows.getByLabel('Token · Hidden value').check()
-  await workflows
-    .getByRole('button', { name: 'Preview snapshot', exact: true })
-    .click()
-  await workflows
-    .getByRole('button', { name: 'Review request', exact: true })
-    .click()
+  await workflows.getByRole('checkbox', { name: 'Token', exact: true }).check()
+  await main.getByTestId('snapshot-review').click()
   await approval.waitForFunction(() =>
     document
       .querySelector('[data-testid="secret-review"]')
@@ -687,12 +694,8 @@ try {
     .locator('[data-value="channel"]')
     .click()
   await pick(main, 'snapshot-channel', 'c1'.repeat(32))
-  await workflows
-    .getByRole('button', { name: 'Preview snapshot', exact: true })
-    .click()
-  await workflows
-    .getByRole('button', { name: 'Review request', exact: true })
-    .click()
+  await workflows.getByRole('checkbox', { name: 'Token', exact: true }).check()
+  await main.getByTestId('snapshot-review').click()
   await approval.waitForFunction(() =>
     document
       .querySelector('[data-testid="secret-review"]')
@@ -725,10 +728,10 @@ try {
     .fill('https://dmsg.test/s/' + 'a2'.repeat(32) + '#synthetic-test-key')
   await workflows.getByRole('button', { name: 'Receive and verify' }).click()
   assert.equal(
-    await workflows.getByLabel('Imported token · Hidden value').isChecked(),
+    await workflows.getByRole('checkbox', { name: 'Imported token', exact: true }).isChecked(),
     false
   )
-  await workflows.getByLabel('Imported token · Hidden value').check()
+  await workflows.getByRole('checkbox', { name: 'Imported token', exact: true }).check()
   await workflows.getByRole('button', { name: 'Request import' }).click()
   await approval.waitForFunction(() =>
     document
@@ -774,10 +777,10 @@ try {
   const receiving = main.getByTestId('channel-snapshot-import')
   await receiving.waitFor()
   assert.equal(
-    await receiving.getByLabel('Imported token · Hidden value').isChecked(),
+    await receiving.getByRole('checkbox', { name: 'Imported token', exact: true }).isChecked(),
     false
   )
-  await receiving.getByLabel('Imported token · Hidden value').check()
+  await receiving.getByRole('checkbox', { name: 'Imported token', exact: true }).check()
   await receiving
     .getByRole('button', { name: 'Request import', exact: true })
     .click()
@@ -906,42 +909,44 @@ try {
     0
   )
 
-  // Delayed preview after a selection edit must never regain approval controls.
-  await main.getByTestId('workflow-tab-sharing').click()
-  await pick(main, 'snapshot-source-item', item)
-  await workflows.getByLabel('Token · Hidden value').check()
+  // Opening an item pins its identity and does not offer empty template slots or notes.
+  await main.evaluate(() => { location.hash = '/vault' })
+  await main.locator(`[data-id="${item}"]`).first().click()
+  await main.getByTestId('vault-share').press('Enter')
+  const review = main.getByTestId('snapshot-review')
+  await review.waitFor()
+  assert.equal(await main.getByTestId('snapshot-source-item').count(), 0)
+  assert.equal(await review.isEnabled(), false)
+  assert.equal(await workflows.getByRole('checkbox').count(), 1)
+  await workflows.getByRole('checkbox', { name: 'Token', exact: true }).press('Space')
   const prepare = methods['secrets/shares/prepare']
   let releasePreview
   methods['secrets/shares/prepare'] = async (p) => {
     await new Promise((resolve) => (releasePreview = resolve))
     return prepare(p)
   }
-  await workflows
-    .getByRole('button', { name: 'Preview snapshot', exact: true })
-    .click()
+  const requestCount = () => calls.filter(c => c.method === 'secrets/shares/request').length
+  const before = requestCount()
+  await review.click()
   await waitForFixture(() => releasePreview)
-  await workflows.getByLabel('Include notes', { exact: true }).check()
+  await main.getByTestId('snapshot-links').click()
+  await main.locator('[data-share="link-0"]').waitFor()
+  assert.equal(await main.locator('[data-share]').count(), 1)
   releasePreview()
-  await workflows
-    .getByRole('button', { name: 'Preview snapshot', exact: true })
-    .waitFor()
-  await main.waitForFunction(() =>
-    Array.from(document.querySelectorAll('button')).some(
-      (b) => b.textContent.trim() === 'Preview snapshot' && !b.disabled
-    )
-  )
-  assert.equal(await main.getByTestId('snapshot-preview').count(), 0)
   methods['secrets/shares/prepare'] = prepare
-  await workflows
-    .getByRole('button', { name: 'Preview snapshot', exact: true })
-    .click()
-  await main.getByTestId('snapshot-preview').waitFor()
-  await main
-    .getByTestId('snapshot-mode')
-    .locator('[data-value="channel"]')
-    .click()
-  await main.getByTestId('snapshot-mode').locator('[data-value="link"]').click()
-  assert.equal(await main.getByTestId('snapshot-preview').count(), 0)
+  await main.getByRole('button', { name: 'Back', exact: true }).last().click()
+  await main.getByTestId('vault-share').click()
+  assert.equal(requestCount(), before)
+  await workflows.getByRole('checkbox', { name: 'Token', exact: true }).check()
+  const request = methods['secrets/shares/request']
+  methods['secrets/shares/request'] = () => { throw new Error('fixture request failure') }
+  await review.click()
+  await main.getByTestId('workflow-error-action').waitFor()
+  const prepares = calls.filter(c => c.method === 'secrets/shares/prepare').length
+  methods['secrets/shares/request'] = request
+  await review.click()
+  await approve(approval)
+  assert.equal(calls.filter(c => c.method === 'secrets/shares/prepare').length, prepares)
 
   // A failed health read does not hide discovery or rotation, and retries locally.
   const health = methods['secrets/health']
@@ -990,7 +995,7 @@ try {
   )
   methods['secrets/packages/import_preview'] = receive
   await workflows.getByRole('button', { name: 'Receive and verify' }).click()
-  await workflows.getByLabel('Imported token · Hidden value').waitFor()
+  await workflows.getByRole('checkbox', { name: 'Imported token', exact: true }).waitFor()
   assert.equal(await linkInput.inputValue(), '')
   assert.equal(await main.getByTestId('workflow-error-action').count(), 0)
 
@@ -1088,6 +1093,51 @@ try {
     await workflows.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
     true
   )
+  // Check the same form at the minimum window size with translated controls and keyboard focus.
+  await app.evaluate(({ BrowserWindow }) => {
+    for (const win of BrowserWindow.getAllWindows()) if (win.webContents.getURL().includes('#/vault')) win.setSize(760, 540)
+  })
+  for (const [language, theme] of [['zh', 'light'], ['zh', 'dark'], ['de', 'light'], ['ar', 'dark']]) {
+    await main.evaluate(async ({ language, theme, item }) => {
+      await window.dmsg.setLocale(language)
+      await window.dmsg.setAppearance(theme)
+      location.hash = '/vault/sharing?item=' + item
+    }, { language, theme, item })
+    await main.emulateMedia({ colorScheme: theme })
+    await main.waitForFunction((lang) => document.documentElement.lang === lang, language === 'zh' ? 'zh-Hans' : language)
+    await workflows.getByRole('checkbox', { name: 'Token', exact: true }).waitFor()
+    await workflows.getByRole('checkbox', { name: 'Token', exact: true }).focus()
+    await main.screenshot({ path: join(shots, `snapshot-${language}-${theme}-760.png`), animations: 'disabled' })
+    assert.equal(await workflows.evaluate(el => el.scrollWidth <= el.clientWidth + 1), true)
+    if (language === 'zh' && theme === 'light') {
+      await main.getByTestId('snapshot-links').click()
+      await main.locator('[data-share="link-0"]').waitFor()
+      await main.screenshot({ path: join(shots, 'snapshot-vault-links-zh.png'), animations: 'disabled' })
+      await app.evaluate(({ clipboard }) => {
+        globalThis.snapshotClipboard = ''
+        clipboard.write = async ([item]) => {
+          globalThis.snapshotClipboard = await (await item.getType('text/plain')).text()
+          globalThis.snapshotClipboardTypes = item.types
+        }
+        clipboard.readText = async () => globalThis.snapshotClipboard
+        clipboard.writeText = async (text) => { globalThis.snapshotClipboard = text }
+        clipboard.clear = () => { globalThis.snapshotClipboard = '' }
+      })
+      await main.getByTestId('links-copy').press('Enter')
+      await main.getByText('已复制', { exact: true }).last().waitFor()
+      assert.equal(await app.evaluate(() => globalThis.snapshotClipboard), 'https://example.test/s/0#synthetic')
+      assert.ok(await app.evaluate(() => globalThis.snapshotClipboardTypes.length > 1))
+      await main.getByTestId('links-revoke').press('Enter')
+      await main.getByTestId('links-confirm-revoke').click()
+      await main.getByTestId('links-confirm').waitFor({ state: 'hidden' })
+      assert.equal(await main.getByTestId('links-copy').count(), 0)
+      assert.deepEqual([...revokedLinks], ['link-0'])
+
+      await main.getByRole('button', { name: '后退', exact: true }).last().click()
+      await main.getByTestId('vault-share').waitFor()
+      await main.screenshot({ path: join(shots, 'snapshot-vault-detail-zh.png'), animations: 'disabled' })
+    }
+  }
   assert.equal(pageErrors.length, 0)
   console.log(
     'secrets Electron smoke passed: approval boundaries, searchable controls, stable history, stale mount/snapshot previews, independent retries, import recovery, late-response isolation, keyboard selection, Chinese dark/narrow layout'

@@ -1,4 +1,5 @@
 /** Secret-package/1: complete validation before any field or attachment is exposed. */
+import type { MessageKey } from '../i18n/messages/en'
 import { ShareError, sha256Hex } from './decrypt'
 export const PACKAGE_MIME = 'application/vnd.dmsg.secret-package'
 export type PackageField = { id: string; type: string; label: string; section: string; value: string }
@@ -85,4 +86,56 @@ export function isSecretPackage(bytes:Uint8Array):boolean {
   const length=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength).getUint32(0)
   if(length>256*1024||length+4>bytes.length)return false
   try{return strictJson(new TextDecoder('utf-8',{fatal:true}).decode(bytes.subarray(4,4+length)))?.format==='dmsg-secret-package/1'}catch{return false}
+}
+
+const templateRoles: Record<string, { type: string; items: string[]; label: MessageKey }> = {
+  username: { type: 'text', items: ['login', 'api', 'server', 'database'], label: 'User name' },
+  password: { type: 'concealed', items: ['login', 'wallet', 'server', 'database'], label: 'Password' },
+  url: { type: 'url', items: ['login', 'api', 'server'], label: 'Website' },
+  credential: { type: 'concealed', items: ['api'], label: 'Credential' },
+  expires: { type: 'date', items: ['api', 'license'], label: 'Expires' },
+  key: { type: 'concealed', items: ['key'], label: 'Key' },
+  private_key: { type: 'concealed', items: ['ssh', 'wallet'], label: 'Private key' },
+  public_key: { type: 'text', items: ['ssh'], label: 'Public key' },
+  fingerprint: { type: 'text', items: ['ssh'], label: 'Fingerprint' },
+  phrase: { type: 'concealed', items: ['wallet'], label: 'Recovery phrase' },
+  address: { type: 'text', items: ['wallet', 'identity'], label: 'Address' },
+  network: { type: 'text', items: ['wallet'], label: 'Network' },
+  cardholder: { type: 'text', items: ['card'], label: 'Cardholder' },
+  number: { type: 'concealed', items: ['card'], label: 'Card number' },
+  expiry: { type: 'month', items: ['card'], label: 'Expiry' },
+  cvv: { type: 'concealed', items: ['card'], label: 'Security code' },
+  pin: { type: 'concealed', items: ['card'], label: 'PIN' },
+  name: { type: 'text', items: ['identity'], label: 'Full name' },
+  email: { type: 'email', items: ['identity', 'license'], label: 'Email' },
+  phone: { type: 'phone', items: ['identity'], label: 'Phone' },
+  birthday: { type: 'date', items: ['identity'], label: 'Date of birth' },
+  id_number: { type: 'concealed', items: ['identity'], label: 'ID number' },
+  engine: { type: 'text', items: ['database'], label: 'Type' },
+  host: { type: 'text', items: ['database'], label: 'Host' },
+  port: { type: 'text', items: ['database'], label: 'Port' },
+  database: { type: 'text', items: ['database'], label: 'Database' },
+  license_key: { type: 'concealed', items: ['license'], label: 'License key' },
+  licensed_to: { type: 'text', items: ['license'], label: 'Licensed to' },
+  purchased: { type: 'date', items: ['license'], label: 'Purchased' },
+}
+
+const typeNames: Record<string, MessageKey> = {
+  text: 'Text',
+  concealed: 'Hidden',
+  url: 'Web address',
+  email: 'Email',
+  phone: 'Phone',
+  date: 'Date',
+  month: 'Month',
+  otp: 'One-time password',
+}
+
+/** Look up only the same template roles that a vault import accepts. */
+export function packageFieldName(itemType: string, field: PackageField, translate: (key: MessageKey) => string): string {
+  if (field.label.trim()) return field.label
+  const suffix = /^f[0-9]+_([a-z_]+)$/.exec(field.id)?.[1]
+  const role = suffix && Object.hasOwn(templateRoles, suffix) ? templateRoles[suffix] : undefined
+  const name = role?.type === field.type && role.items.includes(itemType) ? role.label : typeNames[field.type] ?? 'Secret'
+  return translate(name)
 }

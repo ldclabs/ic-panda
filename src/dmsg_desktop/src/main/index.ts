@@ -662,6 +662,12 @@ handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | nu
     secret = otp.code
     expiresAt = otp.expiresAt
   }
+  return copyConcealed(secret, expiresAt)
+})
+
+handle('dmsg:copy-share-link', 'main', (_event, url: string) => copyConcealed(url))
+
+async function copyConcealed(secret: string, expiresAt = Infinity) {
   if (!secret) throw new DaemonError('NOT_FOUND', 'No value to copy')
   await forgetCopied()
   if (expiresAt <= Date.now()) throw new DaemonError('UNAVAILABLE', 'Code expired; copy the current code')
@@ -678,7 +684,7 @@ handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | nu
     throw new DaemonError('UNAVAILABLE', 'Code expired; copy the current code')
   }
   return { clear_after_ms: clearAfter }
-})
+}
 /** The export last previewed, by the path the person picked; the window never names a path. */
 const importing = new PreparedOperation<{ path: string; digest: string }>()
 const preparedSecretMount = new PreparedOperation<any>()

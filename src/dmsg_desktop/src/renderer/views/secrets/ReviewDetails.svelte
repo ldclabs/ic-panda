@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { snapshotFieldName } from '../vault/vault'
   import Id from '../../components/page/Id.svelte'
+  import { t } from '../../i18n/index.svelte'
   import { size, when } from '../../rpc'
   import { workflowText as w } from './workflow-text'
   import { ux, term } from './experience-text'
@@ -93,7 +95,7 @@
       <dt class="text-xs text-muted">{ux('selected')}</dt>
       <dd class="mt-1 space-y-1">
         {#each selectedFields as field}<p>
-            {field.label || field.id} · {term(field.type)}
+            {snapshotFieldName(field, t)}
           </p>{/each}{#if d.input?.include_notes || d.selection?.include_notes}<p
           >
             {w('notes')}

@@ -123,9 +123,38 @@ impl Manifest {
         Ok(bytes)
     }
 
-    /// Metadata only, before any field reveal or save action.
+    fn field_role(&self, field: &Field) -> Option<&'static str> {
+        let (prefix, role) = field.id.split_once('_')?;
+        let number = prefix.strip_prefix('f')?;
+        if number.is_empty() || !number.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        crate::vault::template(&self.item.kind)
+            .iter()
+            .find(|(id, kind)| *id == role && *kind == field.kind)
+            .map(|(id, _)| *id)
+    }
+
+    /// Metadata only. Empty template slots in older packages carry no content to import.
     pub fn preview(&self) -> Value {
-        json!({"snapshot_id":self.snapshot_id,"created_at":self.created_at,"type":self.item.kind,"title":self.item.title,"fields":self.item.fields.iter().map(|f|json!({"id":f.id,"type":f.kind,"label":f.label,"section":f.section})).collect::<Vec<_>>(),"notes":self.item.notes.is_some(),"attachments":self.attachments})
+        let fields: Vec<_> = self
+            .item
+            .fields
+            .iter()
+            .filter(|f| !f.value.is_empty())
+            .map(|f| {
+                json!({
+                    "id": f.id, "type": f.kind, "label": f.label,
+                    "section": f.section, "role": self.field_role(f),
+                })
+            })
+            .collect();
+        json!({
+            "snapshot_id": self.snapshot_id, "created_at": self.created_at,
+            "type": self.item.kind, "title": self.item.title, "fields": fields,
+            "notes": self.item.notes.as_ref().is_some_and(|notes| !notes.is_empty()),
+            "attachments": self.attachments,
+        })
     }
 
     /// A new local item; remote IDs never overwrite local identities or grant access.
@@ -149,21 +178,9 @@ impl Manifest {
             .enumerate()
             .map(|(i, f)| {
                 let mut field = f.clone();
-                let role =
-                    f.id.split_once('_')
-                        .filter(|(prefix, _)| {
-                            prefix.strip_prefix('f').is_some_and(|n| {
-                                !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit())
-                            })
-                        })
-                        .map(|(_, role)| role);
-                field.id = role
-                    .filter(|role| {
-                        crate::vault::template(&self.item.kind)
-                            .iter()
-                            .any(|(id, kind)| id == role && *kind == f.kind)
-                            && roles.insert((*role).to_owned())
-                    })
+                field.id = self
+                    .field_role(f)
+                    .filter(|role| roles.insert(*role))
                     .map(str::to_owned)
                     .unwrap_or_else(|| format!("f{i}"));
                 field

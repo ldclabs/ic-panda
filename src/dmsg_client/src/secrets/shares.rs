@@ -271,17 +271,14 @@ impl Client {
     }
 
     /// Validate a local snapshot and allocate stable identities; no network or ciphertext upload.
-    pub fn secret_share_prepare(&mut self, input: ShareInput) -> Result<Preparation> {
+    pub fn secret_share_prepare(&mut self, mut input: ShareInput) -> Result<Preparation> {
         self.keys()?;
         let now = now_ms();
         ensure_valid(
             hex_id(&input.item_id, 64)
                 && hex_id(&input.revision, 64)
                 && input.field_ids.len() <= 64
-                && input.attachments.len() <= 20
-                && (!input.field_ids.is_empty()
-                    || input.include_notes
-                    || !input.attachments.is_empty()),
+                && input.attachments.len() <= 20,
             "snapshot selection",
         )?;
         ensure_valid(
@@ -302,6 +299,15 @@ impl Client {
         let title = entry.item.title.clone();
         let item_type = entry.item.kind.clone();
         let files = entry.item.files.clone();
+        // Older senders can select unused template slots. Keep unknown IDs for validation.
+        input.field_ids.retain(|id| {
+            !entry
+                .item
+                .fields
+                .iter()
+                .any(|f| &f.id == id && f.value.is_empty())
+        });
+        input.include_notes &= !entry.item.notes.is_empty();
         let metadata = input
             .field_ids
             .iter()
@@ -320,6 +326,10 @@ impl Client {
         }
         entry.item.notes.zeroize();
         let metadata = metadata?;
+        ensure_valid(
+            !metadata.is_empty() || input.include_notes || !input.attachments.is_empty(),
+            "snapshot selection is empty",
+        )?;
         let mut selected = BTreeSet::new();
         let mut attachments = Vec::new();
         for a in &input.attachments {
@@ -567,7 +577,7 @@ impl Client {
         for key in self.workspace.store.sealed_keys(PREFIX)? {
             if let Some(job) = self.workspace.private::<Job>(self.keys()?, &key)? {
                 let mut view = self.share_job_view(&job, false)?;
-                view["plan"] = json!({"title":job.plan.title,"share_id":job.plan.share_id,"expires_at":if job.plan.channel.is_none(){Some(job.plan.expires_at)}else{None},"plain_bytes":job.plan.plain_bytes,"channel":job.plan.channel});
+                view["plan"] = json!({"title":job.plan.title,"item_id":job.plan.input.item_id,"share_id":job.plan.share_id,"expires_at":if job.plan.channel.is_none(){Some(job.plan.expires_at)}else{None},"plain_bytes":job.plan.plain_bytes,"channel":job.plan.channel});
                 jobs.push(view);
             }
         }

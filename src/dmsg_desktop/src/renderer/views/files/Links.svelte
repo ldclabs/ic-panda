@@ -6,11 +6,11 @@
   import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import { buttonClass } from '../../components/ui'
-  import { copyText } from '../../components/clipboard'
+  import { copyShareLink, copyText } from '../../components/clipboard'
   import { t, type Label } from '../../i18n/index.svelte'
   import { call, errorText, onChange, size, when } from '../../rpc'
 
-  let { unlocked }: { unlocked: boolean } = $props()
+  let { unlocked, vaultOnly = false, itemId = '' }: { unlocked: boolean; vaultOnly?: boolean; itemId?: string } = $props()
   let links = $state<any[]>([])
   let loaded = $state(false)
   let busy = $state(false)
@@ -22,7 +22,9 @@
   let alive = true
   const current = (at: number) => alive && unlocked && at === revision
   const states: Record<string, Label> = { active: 'linkStateActive', revoked: 'linkStateRevoked', expired: 'linkStateExpired', exhausted: 'linkStateExhausted' }
-  const rows = $derived(links.filter(link => `${link.name ?? ''} ${link.share_id}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())))
+  const rows = $derived(links.filter(link =>
+    (!vaultOnly || (link.source?.type === 'vault_snapshot' && (!itemId || link.source.item_id === itemId))) &&
+    `${link.name ?? ''} ${link.share_id}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())))
   const shown = $derived(rows.slice(0, limit))
 
   $effect(() => { query; limit = 300 })
@@ -92,7 +94,7 @@
               <p class="mt-0.5 text-[11.5px] text-faint">{t('linkExpires', { time: when(link.expires_at) })}</p>
             </div>
             <div class="flex flex-wrap gap-1">
-              {#if link.url && link.state === 'active'}<button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} data-testid="links-copy">{t('linkCopy')}</button>{/if}
+              {#if link.url && link.state === 'active'}<button class={buttonClass('ghost', 'xs')} onclick={() => link.source?.type === 'vault_snapshot' ? copyShareLink(link.url) : copyText(link.url)} data-testid="links-copy">{t('linkCopy')}</button>{/if}
               {#if link.state !== 'revoked'}<button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy || !unlocked} onclick={() => { error = ''; confirmation = link }} data-testid="links-revoke">{t('linkRevoke')}</button>{/if}
             </div>
           </li>

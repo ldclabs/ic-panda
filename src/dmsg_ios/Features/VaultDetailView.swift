@@ -120,7 +120,9 @@ struct VaultDetailView: View {
                 }
                 if !model.localAccount {
                     NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
-                        .accessibilityIdentifier("vault.share")
+                        .accessibilityIdentifier("vault.share").disabled(item.conflict)
+                    NavigationLink { FileLinksView(scope: .snapshots(item: item.id)) } label: { Label("Share links", systemImage: "link") }
+                        .accessibilityIdentifier("vault.share.links")
                 }
                 Button("Move to Trash", systemImage: "trash", role: .destructive) { deleting = true }
                     .accessibilityIdentifier("vault.detail.trash")

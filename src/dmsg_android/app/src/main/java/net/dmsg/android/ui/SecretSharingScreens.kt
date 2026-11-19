@@ -24,6 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 
+private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank {
+    field.role?.let(::vaultFieldName) ?: fieldKindName(field.kind)
+}
+
 @Composable fun SecretSnapshotComposer(client: ClientController, id: String, initialChannel: String?) {
     val source by client.secretSharing.source.state.collectAsStateWithLifecycle()
     val current by client.secretSharing.draft.collectAsStateWithLifecycle()
@@ -32,6 +36,7 @@ import net.dmsg.android.core.*
     val draft = current?.takeIf { it.source.item.id == id }
     var destination by remember { mutableStateOf(false) }
     var discard by remember { mutableStateOf(false) }
+    var limitsOpen by remember(id) { mutableStateOf(false) }
     LaunchedEffect(id) { client.secretSharing.composer(id, initialChannel) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (draft == null) ReadFeedback(source) { client.secretSharing.composer(id, initialChannel) }
@@ -51,7 +56,7 @@ import net.dmsg.android.core.*
                 }
             }
             SectionTitle(str(R.string.text_select_fields_to_share_290fe99))
-            item.fields.forEach { field -> SelectionRow(vaultFieldTitle(field.id, field.kind, field.label), field.id in value.fields, enabled, field.section.takeIf(String::isNotEmpty)) { checked ->
+            item.fields.filter { it.value.isNotEmpty() }.forEach { field -> SelectionRow(vaultFieldTitle(field.id, field.kind, field.label), field.id in value.fields, enabled, field.section.takeIf(String::isNotEmpty)) { checked ->
                 client.secretSharing.edit { it.copy(fields = if (checked) it.fields + field.id else it.fields - field.id) }
             } }
             if (item.notes.isNotEmpty()) SelectionRow(str(R.string.text_include_notes_bab8a75), value.notes, enabled) { checked -> client.secretSharing.edit { it.copy(notes = checked) } }
@@ -64,23 +69,29 @@ import net.dmsg.android.core.*
                 }
             }
             if (value.channel == null) {
-                SectionTitle(str(R.string.text_link_limits_653a1af))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(3_600_000uL to str(R.string.text_1_hour_0ac0bd6), 86_400_000uL to str(R.string.text_1_day_2c85bc8), 604_800_000uL to str(R.string.text_7_days_bd55de3)).forEach { (duration, title) ->
-                        FilterChip(value.lifetime == duration, { client.secretSharing.edit { it.copy(lifetime = duration) } }, { Text(title) }, enabled = enabled)
-                    }
+                val durations = listOf(3_600_000uL to str(R.string.text_1_hour_0ac0bd6), 86_400_000uL to str(R.string.text_1_day_2c85bc8), 604_800_000uL to str(R.string.text_7_days_bd55de3))
+                TextButton(onClick = { limitsOpen = !limitsOpen }) {
+                    Text(str(R.string.text_link_limits_653a1af) + " · " + durations.first { it.first == value.lifetime }.second + " · " + str(R.string.text_downloads_35a65b7) + " " + value.sessions)
+                    Icon(if (limitsOpen) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null)
                 }
-                OutlinedTextField(value.sessions, { input -> client.secretSharing.edit { it.copy(sessions = input.take(3)) } }, Modifier.fillMaxWidth(), enabled = enabled,
-                    label = { Text(str(R.string.text_download_sessions_1_100_1169f0a)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
-                    isError = value.sessions.toIntOrNull() !in 1..100)
-                OutlinedTextField(value.password, { password -> client.secretSharing.edit { it.copy(password = password) } }, Modifier.fillMaxWidth(), enabled = enabled,
-                    label = { Text(str(R.string.text_optional_password_cc1611b)) }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Password))
-                Text(str(R.string.text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376), style = MaterialTheme.typography.bodySmall)
+                if (limitsOpen) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        durations.forEach { (duration, title) ->
+                            FilterChip(value.lifetime == duration, { client.secretSharing.edit { it.copy(lifetime = duration) } }, { Text(title) }, enabled = enabled)
+                        }
+                    }
+                    OutlinedTextField(value.sessions, { input -> client.secretSharing.edit { it.copy(sessions = input.take(3)) } }, Modifier.fillMaxWidth(), enabled = enabled,
+                        label = { Text(str(R.string.text_download_sessions_1_100_1169f0a)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
+                        isError = value.sessions.toIntOrNull() !in 1..100)
+                    OutlinedTextField(value.password, { password -> client.secretSharing.edit { it.copy(password = password) } }, Modifier.fillMaxWidth(), enabled = enabled,
+                        label = { Text(str(R.string.text_optional_password_cc1611b)) }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Password))
+                    Text(str(R.string.text_a_download_session_is_a_retrieval_allowance_not_a_count_of_file_r_2ef4376), style = MaterialTheme.typography.bodySmall)
+                }
             } else ChannelSnapshotNotice()
             Notice(str(R.string.text_a_mobile_package_is_limited_to_8_mib_including_attachments_prepar_74b5ba7))
             if (value.uncertain) Notice(str(R.string.text_preparation_did_not_return_a_confirmed_result_check_the_saved_sna_01a2b53), true)
             Button(onClick = client.secretSharing::prepare, enabled = !working && (value.prepared != null || value.uncertain || value.selected && (value.channel != null || value.sessions.toIntOrNull() in 1..100)), modifier = Modifier.fillMaxWidth()) {
-                Text(when { value.prepared != null -> str(R.string.text_open_prepared_snapshot_4dea4bc); value.uncertain -> str(R.string.text_check_saved_snapshots_b7fef78); else -> str(R.string.text_prepare_selected_snapshot_0238ec6) })
+                Text(when { value.prepared != null -> str(R.string.text_open_prepared_snapshot_4dea4bc); value.uncertain -> str(R.string.text_check_saved_snapshots_b7fef78); else -> str(R.string.text_review_request_cb6fb73) })
             }
             if (working) { LinearProgressIndicator(Modifier.fillMaxWidth()); TextButton(onClick = { client.cancelOperation("secret:prepare:" + value.id) }) { Text(str(R.string.text_cancel_preparation_d0c1253)) } }
             TextButton(onClick = { discard = true }, enabled = !working) { Text(str(R.string.text_discard_form_9141552)) }
@@ -96,6 +107,7 @@ import net.dmsg.android.core.*
     val read by client.secretSharing.jobs.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { client.secretSharing.list() }
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { TextButton(onClick = { client.navigation.push(Route("vault-links")) }) { Text(str(R.string.text_share_links_fe69aa5)) } }
         item { Notice(str(R.string.text_snapshot_jobs_created_on_this_device_each_snapshot_retains_its_ow_5ffff05)); ReadFeedback(read, client.secretSharing::list) }
         items(read.valueOrNull().orEmpty(), key = { it.id }) { job ->
             ListItem(modifier = Modifier.clickable { client.navigation.push(Route("secret-share", job.id)) }, headlineContent = { Text(job.title) },
@@ -132,7 +144,7 @@ import net.dmsg.android.core.*
             }
             value.error?.let { Notice(errorText(it), true) }
             value.request?.let { request -> OutlinedButton(onClick = { client.approvals.open(request) }) { Text(str(R.string.text_open_original_approval_2607721)) } }
-            if (value.state in setOf("prepared", "awaiting_user", "interrupted", "failed", "cancelled") && !value.cancelRequested) Button(onClick = { client.secretSharing.request(id) }, enabled = !working && read is ReadState.Ready) { Text(str(R.string.text_review_publication_or_resume_c40fa98)) }
+            if (value.state in setOf("prepared", "needs_approval", "awaiting_user", "interrupted", "failed", "cancelled") && !value.cancelRequested) Button(onClick = { client.secretSharing.request(id) }, enabled = !working && read is ReadState.Ready) { Text(str(R.string.text_review_publication_or_resume_c40fa98)) }
             if (value.state in setOf("unknown", "publishing", "uploading", "encrypting", "revoke_pending")) {
                 Notice(str(R.string.text_the_outcome_is_uncertain_check_this_original_snapshot_before_retr_83e738c))
                 Button(onClick = { client.secretSharing.reconcile(id) }, enabled = !working) { Text(str(R.string.text_reconcile_original_snapshot_88bff05)) }
@@ -195,7 +207,7 @@ import net.dmsg.android.core.*
             }
             if (value.imported.isNotEmpty()) Notice(str(R.string.text_this_package_was_already_imported_here_existing_copies_remain_ind_54592ed))
             SectionTitle(str(R.string.text_select_fields_to_import_97581a6))
-            value.fields.forEach { field -> SelectionRow(vaultFieldTitle(field.id, field.kind, field.label), field.id in current.fields, editable, field.section) { checked -> client.secretSharing.editIncoming { it.copy(fields = if (checked) it.fields + field.id else it.fields - field.id) } } }
+            value.fields.forEach { field -> SelectionRow(packageFieldTitle(field), field.id in current.fields, editable, field.section) { checked -> client.secretSharing.editIncoming { it.copy(fields = if (checked) it.fields + field.id else it.fields - field.id) } } }
             if (value.notes) SelectionRow(str(R.string.text_notes_f7df47b), current.notes, editable) { checked -> client.secretSharing.editIncoming { it.copy(notes = checked) } }
             if (value.fields.any { it.id in current.fields && it.kind == "otp" }) OtpSnapshotNotice()
             if (value.attachments.isNotEmpty()) {
@@ -243,7 +255,7 @@ import net.dmsg.android.core.*
     LazyColumn(contentPadding = PaddingValues(20.dp)) {
         item { OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text(str(R.string.text_search_vault_f6e42b2)) }); ReadFeedback(read) { client.vault.browse(VaultQuery(text = query)) } }
         items(read.valueOrNull()?.items.orEmpty(), key = { it.id }) { item ->
-            ListItem(modifier = Modifier.clickable(enabled = !item.reserved && !item.deleted) { client.navigation.push(Route("secret-compose", item.id, channel = channel)) },
+            ListItem(modifier = Modifier.clickable(enabled = !item.reserved && !item.deleted && !item.conflict) { client.navigation.push(Route("secret-compose", item.id, channel = channel)) },
                 headlineContent = { Text(item.title) }, supportingContent = { Text(vaultKindName(item.kind)) }, leadingContent = { SecretIcon(item.kind) })
         }
         if (read.valueOrNull()?.hasMore == true) item { TextButton(onClick = { client.vault.browse(VaultQuery(text = query), more = true) }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
@@ -258,7 +270,7 @@ import net.dmsg.android.core.*
     Text(if (review.importing) str(R.string.text_create_an_independent_copy_of_this_exact_selection_a20b10b) else str(R.string.text_deliver_an_independent_snapshot_of_this_exact_selection_9c08d03))
     SectionTitle(str(R.string.text_selected_fields_cf5d199))
     if (review.fields.isEmpty()) Text(str(R.string.text_no_fields_selected_6b0570a))
-    review.fields.forEach { Text(vaultFieldTitle(it.id, it.kind, it.label) + " · " + fieldKindName(it.kind)) }
+    review.fields.forEach { Text(if (review.importing) packageFieldTitle(it) else vaultFieldTitle(it.id, it.kind, it.label)) }
     Text(if (review.notes) str(R.string.text_notes_included_0a3f128) else str(R.string.text_notes_excluded_cfd2b9b))
     if (review.fields.any { it.kind == "otp" }) OtpSnapshotNotice()
     SectionTitle(str(R.string.text_selected_attachments_4c5e318))

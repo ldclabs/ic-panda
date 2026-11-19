@@ -2572,7 +2572,7 @@ export default {
     "workflow.dismiss": "忽略此版本",
     "workflow.notes": "包含备注",
     "workflow.hours": "有效小时数",
-    "workflow.sessions": "下载会话数",
+    "workflow.sessions": "领取次数",
     "workflow.password": "可选密码",
     "workflow.copy": "复制链接",
     "workflow.reconcile": "核对原结果",

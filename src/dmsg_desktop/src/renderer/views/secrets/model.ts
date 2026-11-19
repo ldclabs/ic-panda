@@ -4,7 +4,8 @@ export interface SourceItem {
   title: string
   type: string
   blocked: boolean
-  fields: { id: string; label: string; type: string }[]
+  fields: { id: string; label: string; type: string; populated: boolean }[]
+  hasNotes: boolean
   files: string[]
 }
 /** Keep only metadata in the UI; hidden values never enter search or drafts. */
@@ -21,8 +22,10 @@ export function sourceItems(entries: any[]): SourceItem[] {
     fields: e.item.fields.map((f: any) => ({
       id: f.id,
       label: f.label,
-      type: f.type
+      type: f.type,
+      populated: !!f.value
     })),
+    hasNotes: !!e.item.notes,
     files: e.item.files ?? []
   }))
 }

@@ -16,17 +16,17 @@ data class SnapshotDraft(val id: String = UUID.randomUUID().toString(), val sour
     val prepared: String? = null, val uncertain: Boolean = false) {
     val selected: Boolean get() = fields.isNotEmpty() || notes || attachments.isNotEmpty()
     fun input(): SecretSnapshotInput {
-        check(selected && !source.item.reserved && !source.item.deleted) { "INVALID_SELECTION" }
+        check(selected && !source.item.reserved && !source.item.deleted && !source.item.conflict) { "INVALID_SELECTION" }
         val chosen = attachments.map { id ->
             val entry = source.attachments.files.singleOrNull { it.id == id } ?: error("NOT_FOUND")
             check(entry.selectable) { "RECOVERY_INCOMPLETE" }
             SecretAttachmentSelection(id, entry.details!!.file.version)
         }
         val count = if (channel == null) sessions.toULongOrNull()?.takeIf { it in 1uL..100uL } ?: error("INVALID_SESSIONS") else null
-        return SecretSnapshotInput(source.item.id, source.item.revision, fields.sorted(), notes, chosen, if (channel == null) lifetime else null, count)
+        return SecretSnapshotInput(source.item.id, source.item.revision, source.item.fields.map { it.id }.filter(fields::contains), notes, chosen, if (channel == null) lifetime else null, count)
     }
 }
-data class PackageField(val id: String, val kind: String, val label: String, val section: String?)
+data class PackageField(val id: String, val kind: String, val label: String, val section: String?, val role: String? = null)
 data class PackageAttachment(val name: String, val mime: String, val size: ULong, val sha256: String)
 data class PackageChannel(val id: String, val sequence: ULong, val sender: String, val digest: String)
 data class SecretPackage(val id: String, val digest: String, val snapshot: String, val createdAt: ULong, val kind: String, val title: String,
@@ -56,7 +56,7 @@ fun parseSecretPackage(value: JsonElement): SecretPackage {
         PackageChannel(it.required("channel_id"), it.requiredUnsigned("seq"), it.required("sender_account"), it.required("message_digest"))
     }
     return SecretPackage(row.required("package_id"), row.required("digest"), preview.required("snapshot_id"), preview.requiredUnsigned("created_at"), preview.required("type"), preview.required("title"),
-        preview.rows("fields").map { PackageField(it.required("id"), it.required("type"), it.required("label"), it.text("section")) }, preview.requiredFlag("notes"),
+        preview.rows("fields").map { PackageField(it.required("id"), it.required("type"), it.required("label"), it.text("section"), it.text("role")) }, preview.requiredFlag("notes"),
         preview.rows("attachments").map { PackageAttachment(it.required("name"), it.required("mime"), it.requiredUnsigned("size"), it.required("sha256")) },
         if (row["already_imported"] == null || row["already_imported"] == JsonNull) emptyList() else row.strings("already_imported"), channel)
 }
@@ -83,7 +83,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
             val value = core.vaultItem(item, null).item
             val attachments = parseSecretAttachments(core.secretItemAttachments(item).decode())
             check(value.revision == attachments.revision) { "VERSION_CONFLICT" }
-            check(!value.reserved && !value.deleted) { "FORBIDDEN" }
+            check(!value.reserved && !value.deleted && !value.conflict) { "FORBIDDEN" }
             SnapshotSource(value, attachments)
         }, key = "secret:compose", replace = true, onError = { source.fail(request, it) }) {
             source.accept(request, it); mutableDraft.value = SnapshotDraft(source = it, channel = channel)
@@ -117,7 +117,11 @@ class SecretSharingCoordinator(private val client: ClientController) {
             if (mutableDraft.value?.id == current.id) mutableDraft.value = current.copy(uncertain = code in setOf("EXECUTION_UNKNOWN", "CANCELLED"))
         }) { value ->
             if (mutableDraft.value?.id == current.id) mutableDraft.value = current.copy(password = "", prepared = value.id)
-            client.navigation.push(Route("secret-share", value.id)); list()
+            if (client.navigation.state.value.current.let { it.page == "secret-compose" && it.id == current.source.item.id }) {
+                client.navigation.push(Route("secret-share", value.id))
+                request(value.id)
+            }
+            list()
         }
     }
 
@@ -138,7 +142,8 @@ class SecretSharingCoordinator(private val client: ClientController) {
         mutableLink.value = null
         client.perform({ core ->
             val row = core.secretShare(id, reveal).decode().objectValue()
-            parseSecretShare(row) to if (reveal) row["link"]?.takeIf { it != JsonNull }?.objectValue()?.required("url") else null
+            val url = if (reveal) row["link"]?.takeIf { it != JsonNull }?.objectValue()?.required("url") ?: error("NOT_FOUND") else null
+            parseSecretShare(row) to url
         }, key = "secret:share", replace = true, onError = { job.fail(request, it) }) { (value, url) ->
             job.accept(request, value)
             mutableLink.value = url?.let { id to it }

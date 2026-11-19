@@ -183,6 +183,8 @@ extension SessionModel {
         if refresh, ProcessInfo.processInfo.arguments.contains("--ui-files-links-failure"), fixtureFileLinkRefreshes == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
         if fixtureFileLinks.isEmpty, ProcessInfo.processInfo.arguments.contains("--ui-files-links") {
             fixtureFileLinks = [
+                FileLink(shareId: "fixture-snapshot", source: .init(type: "vault_snapshot", itemId: "fixture-api"), name: "API key", expiresAt: 1_794_000_000_000, maxDownloads: 1, password: false, state: "active", downloads: 0),
+                FileLink(shareId: "fixture-other-snapshot", source: .init(type: "vault_snapshot", itemId: "fixture-mail"), name: "API key", expiresAt: 1_794_000_000_000, maxDownloads: 1, password: false, state: "active", downloads: 0),
                 FileLink(shareId: "fixture-link-active", source: .init(type: "file_version"), file: "fixture-local", name: "Local image.png", size: 2048,
                          url: "https://dmsg.net/s/fixture-link-active#fixture-key", expiresAt: 1_794_000_000_000, maxDownloads: 5, password: false, state: "active", downloads: 2),
                 FileLink(shareId: "fixture-link-guarded", source: .init(type: "file_version"), name: "研究笔记与产品设计 — A very long research document with a visible extension.md", size: 8192,

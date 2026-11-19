@@ -96,12 +96,19 @@ struct FileLinkComposer: View {
 
 /// The account's file links, the saved list first and then the relay's counts.
 struct FileLinksView: View {
-    var file: String? = nil
+    enum Scope { case files, file(String), snapshots(item: String?) }
+    var scope: Scope = .files
     @Environment(SessionModel.self) private var model
     @State private var links: [FileLink] = []
     @State private var loading = true
     @State private var failure: String?
-    private var shown: [FileLink] { file.map { id in links.filter { $0.file == id } } ?? links }
+    private var shown: [FileLink] {
+        switch scope {
+        case .files: links.filter { !$0.isSecretSnapshot }
+        case .file(let id): links.filter { $0.file == id }
+        case .snapshots(let id): links.filter { $0.isSecretSnapshot && (id == nil || $0.source?.itemId == id) }
+        }
+    }
 
     var body: some View {
         List {
@@ -117,8 +124,11 @@ struct FileLinksView: View {
             }
             if loading && shown.isEmpty { ProgressView("Loading…") }
             else if !loading && failure == nil && shown.isEmpty {
-                ContentUnavailableView("No share links yet", systemImage: "link",
-                    description: Text("Choose Share by link on a file to send it to anyone. They need no dMsg account or app."))
+                if case .snapshots = scope { ContentUnavailableView("No share links yet", systemImage: "link") }
+                else {
+                    ContentUnavailableView("No share links yet", systemImage: "link",
+                        description: Text("Choose Share by link on a file to send it to anyone. They need no dMsg account or app."))
+                }
             }
         }.privateScreen().navigationTitle("Share links").navigationBarTitleDisplayMode(.inline)
             .task { await load() }.refreshable { await load() }

@@ -210,7 +210,7 @@ import net.dmsg.android.core.*
 }
 
 fun secretStateName(state: String): String = when (state) {
-    "awaiting_user" -> str(R.string.text_waiting_for_approval_45d78c0); "prepared" -> str(R.string.text_prepared_on_this_device_e536d43)
+    "awaiting_user", "needs_approval" -> str(R.string.text_waiting_for_approval_45d78c0); "prepared" -> str(R.string.text_prepared_on_this_device_e536d43)
     "encrypting" -> str(R.string.text_encrypting_df1a40f); "uploading" -> str(R.string.text_uploading_8d14635); "publishing" -> str(R.string.text_publication_pending_5e47cdc)
     "unknown" -> str(R.string.text_result_unconfirmed_4f84f4c); "revoke_pending" -> str(R.string.text_revocation_pending_7c3d33f)
     "published" -> str(R.string.text_published_e9a862a); "revoked" -> str(R.string.text_revoked_c4fbad3); "executing" -> str(R.string.text_in_progress_6906b67)

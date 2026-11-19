@@ -6,6 +6,14 @@ import org.junit.Test
 
 class FileLinksTest {
     private val link = """{"share_id":"share","source":{"type":"file_version","file":"file","version":"v1"},"file":"file","version":"v1","name":"Report","size":9007199254740993,"url":"https://dmsg.net/s/share#fixture","expires_at":18446744073709551615,"max_downloads":5,"password":false,"show_profile":false,"state":"active","downloads":3,"last_checked_at":null}"""
+    @Test fun vaultLinkManagementKeepsTheSourceItemAcrossRevisions() {
+        val row = Json.parseToJsonElement(link).objectValue().toMutableMap()
+        row["source"] = Json.parseToJsonElement("""{"type":"vault_snapshot","item_id":"original","item_revision":"previous"}""")
+        val parsed = parseFileLink(kotlinx.serialization.json.JsonObject(row))
+        assertEquals("vault_snapshot", parsed.source)
+        assertEquals("original", parsed.vaultItem)
+    }
+
     @Test fun disclosureIsOffByDefaultAndMissingContractFieldsAreNotInvented() {
         assertFalse(FileLinkDraft().showProfile)
         val parsed = parseFileLink(Json.parseToJsonElement(link))

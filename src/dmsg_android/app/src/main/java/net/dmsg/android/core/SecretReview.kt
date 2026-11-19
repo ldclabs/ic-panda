@@ -8,7 +8,7 @@ data class SecretReview(val importing: Boolean, val title: String, val fields: L
 /** Only a complete, exact selection may enable approval; private values are never parsed. */
 fun parseSecretReview(kind: String, value: JsonElement): SecretReview {
     val row = value.objectValue()
-    fun fields(root: JsonObject) = root.rows("fields").map { PackageField(it.required("id"), it.required("type"), it.required("label"), it.text("section")) }
+    fun fields(root: JsonObject) = root.rows("fields").map { PackageField(it.required("id"), it.required("type"), it.required("label"), it.text("section"), it.text("role")) }
     fun files(root: JsonObject) = root.rows("attachments").map { PackageAttachment(it.required("name"), it.required("mime"), it.requiredUnsigned("size"), it.required("sha256")) }
     if (kind == "secret_share") {
         val input = row["input"]?.objectValue() ?: error("INTEGRITY_FAILED")

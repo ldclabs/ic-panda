@@ -2,6 +2,29 @@ import XCTest
 
 @MainActor
 final class VaultUITests: XCTestCase {
+    func testSnapshotStartsFromTheItemAndOnlyListsItsLinksAndPopulatedFields() {
+        let app = launch(["--ui-vault-detail", "--ui-files-links"])
+        app.buttons["vault.item.fixture-api"].tap()
+        app.buttons["vault.detail.more"].tap()
+        app.buttons["vault.share.links"].tap()
+        XCTAssertTrue(app.buttons["file.link.item.fixture-snapshot"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["file.link.item.fixture-other-snapshot"].exists)
+        XCTAssertFalse(app.buttons["file.link.item.fixture-link-active"].exists)
+        capture(app, "Links for the selected vault item")
+        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["vault.detail.more"].tap()
+        app.buttons["vault.share"].tap()
+        let credential = app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.credential").firstMatch
+        XCTAssertTrue(credential.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.username").firstMatch.exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "secret.snapshot.field.expires").firstMatch.exists)
+        let review = app.buttons["secret.snapshot.prepare"]
+        XCTAssertFalse(review.isEnabled)
+        credential.tap()
+        XCTAssertTrue(review.isEnabled)
+        capture(app, "Selected fields for snapshot approval")
+    }
+
     func testBackupAndRestoreIsReachableFromVaultTools() {
         let app = launch()
         app.buttons["vault.tools"].tap()

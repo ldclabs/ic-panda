@@ -40,7 +40,7 @@
     typeLabel,
     types,
     valueOf,
-    workflows,
+    vaultWorkflows,
     type Scope,
     type Sort,
     type Templates
@@ -114,9 +114,10 @@
   )
   const listed = $derived(shown.slice(0, limit))
   const current = $derived(shown.find((entry) => entry.id === selected) ?? null)
+  const workflows = $derived(vaultWorkflows(status?.account_kind === 'local'))
   const workflow = $derived.by(() => {
     const part = route.split('?')[0].split('/')[2]
-    return workflows.includes(part) && (status?.account_kind !== 'local' || ['mounts', 'health'].includes(part)) ? part : null
+    return workflows.includes(part) ? part : null
   })
   /** What the actions on many reach: dMsg's own items stay out of them. */
   const picked = $derived(entries.filter((e) => chosen.has(e.id) && !isManaged(e.item)).map((e) => e.id))
@@ -557,7 +558,7 @@
     <Locked {status} testid="vault-locked" />
   {:else}
     <aside class="hidden w-[184px] shrink-0 flex-col border-e border-line @min-[860px]:flex">
-      <Filters local={status?.account_kind === 'local'} {scope} {workflow} onScope={pickScope} onWorkflow={(name) => go(`/vault/${name}`)} {facets} flagged={flagged.size} onAccess={status?.account_kind === 'local' ? undefined : (tag) => (accessTag = tag)} />
+      <Filters {workflows} {scope} {workflow} onScope={pickScope} onWorkflow={(name) => go(`/vault/${name}`)} {facets} flagged={flagged.size} onAccess={status?.account_kind === 'local' ? undefined : (tag) => (accessTag = tag)} />
     </aside>
 
     {#if workflow}
@@ -566,7 +567,9 @@
           <Select bind:value={() => `workflow:${workflow}`, pickScope} options={scopes} label={t('vaultFilters')} testid="vault-scope" />
         </div>
         <div class="min-h-0 flex-1">
-          <Page><Workflows open={openApproval} tab={workflow} {go} /></Page>
+          {#if unlocked}
+            {#key sessionKey}<Page><Workflows open={openApproval} tab={workflow} {route} {go} account={status.account} /></Page>{/key}
+          {:else}<Locked {status} testid="vault-locked" />{/if}
         </div>
       </div>
     {:else}
@@ -694,6 +697,7 @@
         {#key current.id}
           <Inspector
             entry={current}
+            canShare={workflows.includes('sharing')}
             conflict={conflicted.has(current.id)}
             {trash}
             {unlocked}

@@ -1,11 +1,19 @@
 import XCTest
-import DMsgCore
+import Observation
+@preconcurrency import DMsgCore
 @testable import dMsg
 
 @MainActor
 final class FileLibraryTests: XCTestCase {
-    func testFileFailuresPreserveSessionRevocationAndIgnoreCancellation() {
+    func testFileFailuresPreserveSessionRevocationAndIgnoreCancellation() async throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let engine = try await MobileEngine.open(directory: base.appending(path: "account").path,
+            staging: base.appending(path: "imports").path, platform: CoreBridgeTests.NoHardware())
         let model = SessionModel()
+        try await model.installEngineFixture(engine)
+        // Model a view still showing its old account when the native session has ended.
         model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked", account: "test-account", deviceId: "test-device",
             pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, loginExpiresAtMs: nil, loginRenewable: false, passkeyAvailable: false, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
         XCTAssertNil(model.fileFailureMessage(CocoaError(.userCancelled)))
@@ -14,7 +22,11 @@ final class FileLibraryTests: XCTestCase {
         XCTAssertNotNil(model.fileFailureMessage(MobileError.Failure(code: "UNAVAILABLE")))
         let epoch = model.epoch
         model.fileOperations.insert("restore:test")
+        let adopted = expectation(description: "Adopt the current native session")
+        withObservationTracking { _ = model.epoch } onChange: { adopted.fulfill() }
         XCTAssertNil(model.fileFailureMessage(MobileError.Failure(code: "DEVICE_NOT_APPROVED")))
+        XCTAssertTrue(model.unlocked)
+        await fulfillment(of: [adopted], timeout: 5)
         XCTAssertFalse(model.unlocked)
         XCTAssertGreaterThan(model.epoch, epoch)
         XCTAssertTrue(model.cloudBackups.isEmpty)
@@ -123,6 +135,18 @@ final class FileLibraryTests: XCTestCase {
         XCTAssertEqual(fileLimit(2048 * 1024 * 1024), "2 GiB")
         XCTAssertEqual(fileLimit(1), "1 B")
         XCTAssertEqual(fileLimit(512 * 1024), "512 KiB")
+    }
+
+    func testSnapshotImportDisplaysRolesAndCustomNamesButKeepsTheSelectionID() throws {
+        typealias Field = SecretPackagePreview.Preview.Field
+        let decoder = JSONDecoder()
+        let fields = try decoder.decode([Field].self, from: Data(#"""
+        [{"id":"f0_credential","type":"concealed","label":"","role":"credential"},
+         {"id":"f1","type":"text","label":"Region"},
+         {"id":"f2","type":"concealed","label":""}]
+        """#.utf8))
+        XCTAssertEqual(fields.map(\.title), [vaultFieldName("credential"), "Region", vaultFieldKindTitle("concealed")])
+        XCTAssertEqual(fields.first?.id, "f0_credential")
     }
 
     func testFileLinksDecodeAsTheCoreWritesThemAndExplainTheirState() throws {

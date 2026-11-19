@@ -77,6 +77,7 @@ const api: DesktopBridge = {
   avatar: () => unwrap(ipcRenderer.invoke('dmsg:avatar')),
   payerPem: (login) => unwrap(ipcRenderer.invoke('dmsg:payer-pem', login === true)),
   copySecret: (id, field, revision) => unwrap(ipcRenderer.invoke('dmsg:copy-secret', id, field ?? null, revision ?? null)),
+  copyShareLink: (url) => unwrap(ipcRenderer.invoke('dmsg:copy-share-link', url)),
   secretScanDirectory: () => unwrap(ipcRenderer.invoke('dmsg:secret-scan')),
   secretMountPrepare: (input, windowMs) => unwrap(ipcRenderer.invoke('dmsg:secret-mount-prepare', input, windowMs)),
   secretMountSave: (session) => unwrap(ipcRenderer.invoke('dmsg:secret-mount-save', session)),

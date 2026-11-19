@@ -51,7 +51,7 @@ struct SecretPackageImportView: View {
                 }
                 Section("Select fields to import") {
                     ForEach(preview.preview.fields) { field in
-                        Toggle(field.label.isEmpty ? vaultFieldName(field.id) : field.label,
+                        Toggle(field.title,
                                isOn: Binding(get: { fields.contains(field.id) }, set: { if $0 { fields.insert(field.id) } else { fields.remove(field.id) } }))
                     }
                     if preview.preview.notes { Toggle("Notes", isOn: $notes) }

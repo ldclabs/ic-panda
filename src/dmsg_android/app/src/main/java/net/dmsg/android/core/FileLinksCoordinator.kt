@@ -7,7 +7,7 @@ import kotlinx.serialization.json.*
 
 data class FileLink(val id: String, val source: String?, val file: String?, val version: String?, val name: String?, val size: ULong?,
     val url: String?, val expiresAt: ULong, val maxDownloads: ULong, val password: Boolean, val showProfile: Boolean,
-    val state: String, val downloads: ULong, val observedAt: ULong?) {
+    val state: String, val downloads: ULong, val observedAt: ULong?, val vaultItem: String? = null) {
     val active get() = state == "active" && expiresAt > System.currentTimeMillis().coerceAtLeast(0).toULong()
 }
 data class FileLinkIntent(val id: String, val file: String, val version: String, val name: String, val mime: String, val size: ULong,
@@ -18,10 +18,11 @@ data class FileLinkDraft(val duration: ULong = 604_800_000u, val maxDownloads: U
 data class FileLinkProgress(val owner: Long, val completed: ULong = 0u, val total: ULong = 0u)
 
 fun parseFileLink(value: JsonElement): FileLink = value.objectValue().let { row ->
-    FileLink(row.required("share_id"), row["source"]?.takeIf { it != JsonNull }?.objectValue()?.required("type"),
+    val source = row["source"]?.takeIf { it != JsonNull }?.objectValue()
+    FileLink(row.required("share_id"), source?.required("type"),
         row.text("file"), row.text("version"), row.text("name"), row.unsigned("size"), row.text("url"),
         row.requiredUnsigned("expires_at"), row.requiredUnsigned("max_downloads"), row.requiredFlag("password"), row.requiredFlag("show_profile"),
-        row.required("state"), row.requiredUnsigned("downloads"), row.unsigned("last_checked_at"))
+        row.required("state"), row.requiredUnsigned("downloads"), row.unsigned("last_checked_at"), source?.text("item_id"))
 }
 fun parseFileLinkIntent(value: JsonElement): FileLinkIntent = value.objectValue().let { row ->
     val link = row["link"]?.takeIf { it != JsonNull }?.let(::parseFileLink)
@@ -72,7 +73,7 @@ class FileLinksCoordinator(private val client: ClientController) {
     }
     fun browse(refresh: Boolean = true, refreshAfter: Boolean = false) {
         val request = links.begin()
-        client.perform({ core -> client.operation { core.fileLinks(refresh, it) }.decode().arrayRows().map(::parseFileLink).filter { it.source != "vault_snapshot" } },
+        client.perform({ core -> client.operation { core.fileLinks(refresh, it) }.decode().arrayRows().map(::parseFileLink) },
             key = "links:list:$refresh", replace = true, quiet = true, onError = { links.fail(request, it) }) {
             links.accept(request, it); if (refreshAfter) browse(true)
         }

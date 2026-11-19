@@ -16,6 +16,7 @@
   let counted = false
   let alive = true
   import { page } from '$app/state'
+  import SecretSnapshot from '$lib/components/site/SecretSnapshot.svelte'
   import FileInvite from '$lib/components/site/FileInvite.svelte'
   import ShareAuthor from '$lib/components/site/ShareAuthor.svelte'
   import { fileType, readText, renderMarkdown } from '$lib/share/preview'
@@ -57,8 +58,7 @@
   let file = $state<ShareFile | null>(null)
   let blob = $state<Blob | null>(null)
   let secretPackage = $state<SecretPackage | null>(null)
-  let visible = $state<Set<string>>(new Set())
-  let showNotes = $state(false)
+  const isSnapshot = $derived(file?.mime === PACKAGE_MIME || !!secretPackage)
   let progress = $state({ done: 0, total: 0 })
   let reason = $state('')
   let error = $state('')
@@ -338,14 +338,13 @@
     blob = null
     file = null
     pendingMetadata = undefined
-    visible = new Set()
     for (const a of secretPackage?.attachments ?? []) a.bytes.fill(0)
     secretPackage = null
   })
 </script>
 
 <svelte:head>
-  <title>{$t('A file shared with you')}</title>
+  <title>{$t(isSnapshot ? 'Shared vault item' : 'A file shared with you')}</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
 
@@ -419,16 +418,14 @@
   {/snippet}
 
   <div
-    aria-live="polite"
     aria-busy={phase === 'working' || phase === 'loading'}
   >
-    <div class="utility-icon" aria-hidden="true"><IconFile /></div>
-    <h1>{$t('A file shared with you')}</h1>
-    <p class="utility-lead">
-      {$t(
-        'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.'
-      )}
-    </p>
+    <div class="utility-icon" aria-hidden="true">{#if isSnapshot}<Glyph name="lock" size={22} />{:else}<IconFile />{/if}</div>
+    <h1 dir="auto">{secretPackage?.item.title ?? $t(isSnapshot ? 'Shared vault item' : 'A file shared with you')}</h1>
+    {#if secretPackage}<p class="utility-lead">{$t('Secret snapshot fully verified.')}</p>
+    {:else if !isSnapshot}<p class="utility-lead">
+      {$t('Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.')}
+    </p>{/if}
     <ul class="assurances">
       <li><Glyph name="check" size={14} />{$t('No account needed')}</li>
       <li><Glyph name="check" size={14} />{$t('Nothing to install')}</li>
@@ -445,7 +442,7 @@
 
     {#if descriptor && phase !== 'gone'}
       <dl class="facts">
-        {#if file}
+        {#if file && !isSnapshot}
           <div><dt>{$t('File')}</dt><dd><bdi>{file.name}</bdi></dd></div>
           <div
             ><dt>{$t('File type')}</dt><dd
@@ -461,7 +458,7 @@
             ></div
           >
           <div><dt>{$t('Size')}</dt><dd>{size(file.size)}</dd></div>
-        {:else}
+        {:else if !file}
           <div><dt>{$t('Size')}</dt><dd>{size(ciphertextSize)}</dd></div>
         {/if}
         <div>
@@ -470,7 +467,7 @@
         </div>
         {#if descriptor.max_downloads}
           <div>
-            <dt>{$t('Downloads')}</dt>
+            <dt>{$t(isSnapshot ? 'Download sessions' : 'Downloads')}</dt>
             <dd>{descriptor.downloads} / {descriptor.max_downloads}</dd>
           </div>
         {/if}
@@ -509,19 +506,23 @@
           >
         </form>
       {:else if phase === 'ready'}
-        {#if descriptor?.max_downloads}<p class="utility-status"
+        {#if isSnapshot}<p class="utility-status" data-testid="snapshot-receive-choice">
+            {$t('View the item here or paste this link into dMsg to import it. Each uses one download session.')}
+          </p>
+        {:else if descriptor?.max_downloads}<p class="utility-status"
             >{$t(
               'Reading or downloading uses one download session. Saving after reading does not use another.'
             )}</p
           >{/if}
         {#if error}<p class="utility-status error" role="alert">{error}</p>{/if}
-        {#if type?.kind && !type.previewable}<p class="utility-status"
+        {#if !isSnapshot && type?.kind && !type.previewable}<p class="utility-status"
             >{$t(
               'This file is too large to preview here. You can download it instead.'
             )}</p
           >{/if}
         <div class="file-actions">
-          {#if type?.previewable}<button
+          {#if isSnapshot}<button class="button primary" onclick={() => download()} data-testid="snapshot-open">{$t('Open')}</button>
+          {:else}{#if type?.previewable}<button
               class="button primary"
               onclick={() => download(true)}
               data-testid="share-preview"
@@ -534,10 +535,10 @@
             onclick={() => download()}
             data-testid="share-download"
             ><Glyph name="download" size={18} />{$t('Download')}</button
-          >
+          >{/if}
         </div>
       {:else if phase === 'working'}
-        <p class="utility-status">
+        <p class="utility-status" role="status">
           {progress.total
             ? $t('Decrypting… {done} of {total}', {
                 done: progress.done,
@@ -546,51 +547,19 @@
             : $t('Working…')}
         </p>
       {:else if phase === 'done' && secretPackage}
-        <h2>{secretPackage.item.title}</h2>
-        <p>{$t('Secret snapshot fully verified.')}</p>
-        {#each secretPackage.item.fields as field (field.id)}
-          <div class="facts">
-            <strong>{field.section} · {field.label || field.id}</strong>
-            <button
-              class="button secondary"
-              onclick={() => {
-                const next = new Set(visible)
-                next.has(field.id) ? next.delete(field.id) : next.add(field.id)
-                visible = next
-              }}>{visible.has(field.id) ? $t('Hide') : $t('Reveal')}</button
-            >
-            {#if visible.has(field.id)}<pre
-                style="white-space: pre-wrap; overflow-wrap: anywhere"
-                >{field.value}</pre
-              ><button
-                class="button secondary"
-                onclick={() => navigator.clipboard.writeText(field.value)}
-                >{$t('Copy')}</button
-              >{/if}
+        <SecretSnapshot item={secretPackage.item} />
+        {#each secretPackage.attachments as attachment, index}
+          <div class="attachment">
+            <span><bdi>{attachment.name}</bdi> · {size(attachment.size)}</span>
+            <button class="button secondary" onclick={() => saveAttachment(index)}>{$t('Save attachment')}</button>
           </div>
         {/each}
-        {#if secretPackage.item.notes !== undefined}<button
-            class="button secondary"
-            onclick={() => (showNotes = !showNotes)}>{$t('Notes')}</button
-          >{#if showNotes}<pre
-              style="white-space: pre-wrap; overflow-wrap: anywhere"
-              >{secretPackage.item.notes}</pre
-            >{/if}{/if}
-        {#each secretPackage.attachments as attachment, index}
-          <p
-            >{attachment.name} · {size(attachment.size)}
-            <button
-              class="button secondary"
-              onclick={() => saveAttachment(index)}
-              >{$t('Save attachment')}</button
-            ></p
-          >
-        {/each}
-        <p
-          >{$t(
-            'Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.'
-          )}</p
-        >
+        {#if !secretPackage.item.fields.some((f) => f.value) && !secretPackage.item.notes && !secretPackage.attachments.length}
+          <p class="utility-status">{$t('No fields or notes')}</p>
+        {/if}
+        <p class="utility-status">{$t(descriptor && (!descriptor.max_downloads || descriptor.downloads < descriptor.max_downloads)
+          ? 'Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.'
+          : 'Revoking stops future downloads. Saved copies remain.')}</p>
       {:else if phase === 'done'}
         {#if !fullScreen}{@render previewContent(false)}{/if}
         <dialog
@@ -662,6 +631,7 @@
     font-weight: 550;
     list-style: none;
   }
+  h1 + .assurances { margin-top: 12px; }
   .assurances li {
     display: inline-flex;
     align-items: center;
@@ -671,6 +641,8 @@
     flex: none;
     color: var(--action);
   }
+  h1, .attachment { overflow-wrap: anywhere; }
+  .attachment { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-block: 12px; }
   .file-actions {
     display: flex;
     flex-wrap: wrap;

@@ -2562,7 +2562,7 @@ export default {
     "workflow.dismiss": "Verwerfen Sie diese Revision",
     "workflow.notes": "Fügen Sie Notizen hinzu",
     "workflow.hours": "Läuft in Stunden ab",
-    "workflow.sessions": "Laden Sie Sitzungen herunter",
+    "workflow.sessions": "Download-Sitzungen",
     "workflow.password": "Optionales Passwort",
     "workflow.copy": "Link kopieren",
     "workflow.reconcile": "Überprüfen Sie das Originalergebnis",

@@ -49,8 +49,21 @@ try {
   const created = await rpc('daemon/status')
   assert.equal(created.account, '00000000000000000000')
   assert.equal(created.account_kind, 'local')
-  const item = await rpc('vault/create', { type: 'note', changes: { title: 'Offline test note' } })
+  const item = await rpc('vault/create', { type: 'note', changes: { title: 'Offline test note', notes: 'Local fixture only' } })
   assert.equal(item.save_state, 'local_only'); assert.equal(item.synced, false)
+  await page.locator(`[data-id="${item.id}"]`).first().click()
+  await page.getByTestId('vault-inspector').waitFor()
+  assert.equal(await page.getByTestId('vault-share').count(), 0)
+  await page.getByTestId('vault-more').click()
+  await page.getByTestId('vault-more-menu').waitFor()
+  assert.equal(await page.getByTestId('vault-share-links').count(), 0)
+  await page.keyboard.press('Escape')
+  await page.evaluate(() => { location.hash = '/vault/sharing' })
+  await page.getByTestId('vault-inspector').waitFor()
+  assert.equal(await page.getByTestId('snapshot-review').count(), 0)
+  await assert.rejects(rpc('secrets/shares/prepare', { input: {
+    item_id: item.id, revision: item.revision, field_ids: [], include_notes: true, attachments: []
+  } }), /LOCAL_ACCOUNT_ONLY/)
   const contents = 'Offline file fixture\n'
   const backup = (action, input) => page.evaluate(([a, p]) => window.dmsg.vaultBackup(a, p), [action, input])
   const exportId = await backup('begin', { import: false })

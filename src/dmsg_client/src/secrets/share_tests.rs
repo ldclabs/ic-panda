@@ -42,6 +42,37 @@ fn fixture() -> (TempDir, Client, String) {
 }
 
 #[test]
+fn unused_template_fields_are_omitted_from_new_and_legacy_snapshots() {
+    let (_dir, mut c, id) = fixture();
+    let mut input = c.share_job(&id).unwrap().plan.input.clone();
+    input.include_notes = true;
+    input.field_ids = vec!["username".into(), "credential".into(), "expires".into()];
+    let prepared = c.secret_share_prepare(input.clone()).unwrap();
+    let plan = &prepared.job.plan;
+    assert_eq!(plan.input.field_ids, ["credential"]);
+    assert!(!plan.input.include_notes);
+    let mut manifest = c.snapshot(plan).unwrap();
+    manifest
+        .item
+        .fields
+        .push(crate::vault::Field::new("f1_expires", "date", ""));
+    manifest.item.notes = Some(String::new());
+    let preview = manifest.preview();
+    assert_eq!(preview["fields"].as_array().unwrap().len(), 1);
+    assert_eq!(preview["fields"][0]["id"], "f0_credential");
+    assert_eq!(preview["fields"][0]["role"], "credential");
+    assert_eq!(preview["notes"], false);
+    assert!(!preview.to_string().contains("SECRET_SNAPSHOT_ONLY"));
+    input.field_ids = vec!["expires".into()];
+    assert!(c.secret_share_prepare(input.clone()).is_err());
+    input.field_ids.push("missing".into());
+    assert!(matches!(
+        c.secret_share_prepare(input),
+        Err(Error::NotFound)
+    ));
+}
+
+#[test]
 fn preparation_budget_rejects_before_persisting_an_oversized_job() {
     let (_dir, mut c, id) = fixture();
     let job = c.share_job(&id).unwrap();

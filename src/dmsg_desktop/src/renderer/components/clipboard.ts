@@ -12,3 +12,12 @@ export async function copyText(text: string, notice: () => string = () => t('cop
     return false
   }
 }
+
+export async function copyShareLink(url: string) {
+  try {
+    await window.dmsg.copyShareLink(url)
+    toast(() => t('copiedText'))
+  } catch {
+    toast(() => t('copyFailed'))
+  }
+}

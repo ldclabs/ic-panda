@@ -57,7 +57,7 @@ struct CloudBackup: Decodable, Identifiable {
 /// A share link as the core reports it. Name, size, URL and source are absent
 /// when this device cannot open the link's encrypted management record.
 struct FileLink: Decodable, Identifiable {
-    struct Source: Decodable { let type: String }
+    struct Source: Decodable { let type: String; var itemId: String? = nil }
     let shareId: String
     var source: Source? = nil
     var file: String? = nil

@@ -4,7 +4,7 @@
   import { cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { workflowText } from '../secrets/workflow-text'
-  import { typeIcon, typeLabel, types, workflowIcon, workflows, type Facets, type Scope } from './vault'
+  import { typeIcon, typeLabel, types, workflowIcon, type Facets, type Scope } from './vault'
 
   /**
    * The vault's filters: everything, starred, what the security check
@@ -14,7 +14,7 @@
    */
   let {
     scope,
-    local = false,
+    workflows,
     workflow,
     onScope,
     onWorkflow,
@@ -23,7 +23,7 @@
     onAccess
   }: {
     scope: Scope
-    local?: boolean
+    workflows: string[]
     workflow: string | null
     onScope: (next: Scope) => void
     onWorkflow: (next: string) => void
@@ -79,7 +79,7 @@
     {/each}
   {/if}
   <div class="px-2 pt-3 pb-1 text-[11px] font-medium text-faint">{t('secretUses')}</div>
-  {#each workflows.filter(name => !local || ['mounts', 'health'].includes(name)) as name (name)}
+  {#each workflows as name (name)}
     {@render row(workflow === name, () => onWorkflow(name), `workflow-tab-${name}`, workflowIcon[name], workflowText(name))}
   {/each}
   <div class="mt-auto pt-3">

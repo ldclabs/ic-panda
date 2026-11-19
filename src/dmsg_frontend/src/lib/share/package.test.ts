@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { attachmentName, parseSecretPackage } from './package'
+import { attachmentName, parseSecretPackage, packageFieldName } from './package'
 import { unbase64url } from './decrypt'
 const vector = JSON.parse(readFileSync(resolve('../../tests/vectors/client/secret-package-v1.json'), 'utf8'))
 const bytes = unbase64url(vector.bytes_base64url)
@@ -27,4 +27,14 @@ describe('secret package', () => {
     await expect(parseSecretPackage(encode({ ...vector.manifest, source_account: 'not-allowed' }))).rejects.toThrow()
     await expect(parseSecretPackage(encode({ ...vector.manifest, attachments: [{ ...vector.manifest.attachments[0], size: Number.MAX_SAFE_INTEGER }] }))).rejects.toThrow()
   })
+})
+
+it('preserves authored field names and only infers roles for matching vault templates and types', () => {
+  const field = { id: 'f4_private_key', label: '', type: 'concealed', section: '', value: 'x' }
+  const name = (f: typeof field, item = 'ssh') => packageFieldName(item, f, key => key)
+  expect(name(field)).toBe('Private key')
+  expect(name({ ...field, label: 'Deploy key' })).toBe('Deploy key')
+  expect(name(field, 'login')).toBe('Hidden')
+  expect(name({ ...field, type: 'text' })).toBe('Text')
+  expect(name({ ...field, id: 'f2' })).toBe('Hidden')
 })

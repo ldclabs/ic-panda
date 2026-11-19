@@ -11,7 +11,7 @@ struct SecretAttachmentListing: Decodable {
         let details: Details?
         let error: String?
         var canShare: Bool {
-            guard available, let details else { return false }
+            guard available, let details, details.file.trashedAt == nil else { return false }
             return details.versions.first(where: { $0.id == details.file.current })?.local == true
         }
     }
@@ -23,7 +23,11 @@ struct SecretAttachmentListing: Decodable {
 
 struct SecretPackagePreview: Decodable {
     struct Preview: Decodable {
-        struct Field: Decodable, Identifiable { let id: String; let type: String; let label: String; let section: String? }
+        struct Field: Decodable, Identifiable {
+            let id, type, label: String
+            let section, role: String?
+            var title: String { label.isEmpty ? (role.map(vaultFieldName) ?? vaultFieldKindTitle(type)) : label }
+        }
         struct Attachment: Decodable { let name: String; let mime: String; let size: UInt64; let sha256: String }
         let snapshotId: String
         let createdAt: UInt64
@@ -121,7 +125,7 @@ struct SecretActivityPage: Decodable { let items: [ApprovalView]; let next: Stri
 
 func secretStateTitle(_ state: String) -> String {
     switch state {
-    case "awaiting_user": String(localized: "Waiting for approval")
+    case "awaiting_user", "needs_approval": String(localized: "Waiting for approval")
     case "prepared": String(localized: "Prepared on this device")
     case "encrypting": String(localized: "Encrypting")
     case "uploading": String(localized: "Uploading")

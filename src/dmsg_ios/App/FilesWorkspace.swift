@@ -170,14 +170,13 @@ extension SessionModel {
         return try decode(result)
     }
 
-    /// The account's file links; secret snapshots stay under Shared snapshots.
+    /// Saved account links include their decrypted source when available.
     func fileLinks(refresh: Bool) async throws -> [FileLink] {
         #if DEBUG
         if uiTesting { return try fileLinksFixture(refresh: refresh) }
         #endif
         guard let engine else { throw CancellationError() }
-        let links: [FileLink] = try decode(try await coreOperation { try await engine.fileLinks(refresh: refresh, operation: $0) })
-        return links.filter { !$0.isSecretSnapshot }
+        return try decode(try await coreOperation { try await engine.fileLinks(refresh: refresh, operation: $0) })
     }
 
     func revokeFileLink(_ id: String) async throws -> FileLink {
