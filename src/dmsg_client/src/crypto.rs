@@ -127,6 +127,15 @@ pub fn open<A: Serialize>(key: &Key, sealed: &str, aad: &A) -> Result<Zeroizing<
 /// `UnsupportedProtocol`; anything malformed, a wrong key or AAD or a
 /// modified ciphertext returns `IntegrityFailed`.
 pub fn open_bytes<A: Serialize>(key: &Key, sealed: &[u8], aad: &A) -> Result<Zeroizing<Vec<u8>>> {
+    open_authenticated(key, sealed, aad, Error::IntegrityFailed)
+}
+
+pub(crate) fn open_authenticated<A: Serialize>(
+    key: &Key,
+    sealed: &[u8],
+    aad: &A,
+    auth_error: Error,
+) -> Result<Zeroizing<Vec<u8>>> {
     ensure(
         sealed.len() <= MAX_SEALED && sealed.first() == Some(&HEAD[0]),
         Error::IntegrityFailed,
@@ -149,7 +158,7 @@ pub fn open_bytes<A: Serialize>(key: &Key, sealed: &[u8], aad: &A) -> Result<Zer
             plain.as_mut_slice().into(),
             &tag,
         )
-        .map_err(|_| Error::IntegrityFailed)?;
+        .map_err(|_| auth_error)?;
     Ok(plain)
 }
 

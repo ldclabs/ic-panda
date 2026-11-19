@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  useOnDevice: "仅在本机使用",
+  offlineAccount: "本地账户",
+  savedOnDevice: "已保存在本机",
+  localPassword: "本地解锁口令",
+  importLocalAccount: "从本地账户导入",
+  localPasswordLength: "请至少输入 12 个字符。",
+  repeatLocalPassword: "确认本地口令",
   "vaultBackupUnlockError": "无法解开备份。请核对口令或重新选择完整文件。",
   "vaultBackupUncommitted": "本机没有这次导入的提交记录，请重新选择备份。",
   "vaultBackupSync": "保险库条目按正常流程同步。附件保存在本机文件库。",

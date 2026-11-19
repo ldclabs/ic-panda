@@ -3512,5 +3512,17 @@
 	<string>Импорт не сохранён. Выберите копию снова.</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Записи синхронизируются как обычно. Вложения сохранены в файлах на этом устройстве.</string>
+	<key>Use only on this device</key>
+	<string>Использовать только на этом устройстве</string>
+	<key>Local account</key>
+	<string>Локальная учётная запись</string>
+	<key>Local password</key>
+	<string>Локальный пароль</string>
+	<key>Import from local account</key>
+	<string>Импортировать из локальной учётной записи</string>
+	<key>Use at least 12 characters.</key>
+	<string>Используйте не менее 12 символов.</string>
+	<key>Confirm local password</key>
+	<string>Подтвердите локальный пароль</string>
 </dict>
 </plist>

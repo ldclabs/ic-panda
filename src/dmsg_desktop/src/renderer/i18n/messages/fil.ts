@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "Gamitin lang sa device na ito",
+  offlineAccount: "Lokal na account",
+  savedOnDevice: "Naka-save sa device na ito",
+  localPassword: "Lokal na password",
+  importLocalAccount: "Mag-import mula sa lokal na account",
+  localPasswordLength: "Gumamit ng hindi bababa sa 12 character.",
+  repeatLocalPassword: "Kumpirmahin ang lokal na password",
   "vaultBackupUnlockError": "Hindi mabuksan ang backup. Suriin ang password o pumili ng kumpletong file.",
   "vaultBackupUncommitted": "Walang na-import. Piliin muli ang backup.",
   "vaultBackupSync": "Gaya ng dati ang pag-sync ng mga entry. Nasa Files ng device ang mga attachment.",

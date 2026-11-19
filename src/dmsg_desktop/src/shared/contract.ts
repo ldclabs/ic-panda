@@ -88,7 +88,7 @@ export interface DesktopBridge {
   /** A daemon method the desktop allows a window to call. */
   call(method: string, params?: unknown): Promise<unknown>
   /** Approve or reject a request after the person saw it; the approval window only. */
-  decide(id: string, digest: string, approve: boolean): Promise<unknown>
+  decide(id: string, digest: string, approve: boolean, password?: string): Promise<unknown>
   /** Connect a browser whose label the person confirmed; the main window only. */
   grant(invite: string, pairing: string): Promise<unknown>
   /**

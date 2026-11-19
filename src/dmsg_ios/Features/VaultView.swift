@@ -5,6 +5,7 @@ struct VaultView: View {
     @Environment(SessionModel.self) private var model
     @State private var trash = false
     @State private var filtering = false
+    @State private var hasLocalSource = false
 
     var body: some View {
         @Bindable var model = model
@@ -49,14 +50,23 @@ struct VaultView: View {
                             Section {
                                 NavigationLink { VaultImportView() } label: { Label("Import passwords", systemImage: "square.and.arrow.down") }
                                 NavigationLink { VaultBackupView() } label: { Label("Backup and restore", systemImage: "externaldrive") }
-                                NavigationLink { SecretPackageImportView() } label: { Label("Import secret package", systemImage: "shippingbox") }
-                                NavigationLink { SecretSharesView() } label: { Label("Shared snapshots", systemImage: "link") }
+                                if model.cloudAccount && hasLocalSource { NavigationLink { LocalImportView() } label: { Label("Import from local account", systemImage: "square.and.arrow.down") } }
+                                if !model.localAccount { NavigationLink { SecretPackageImportView() } label: { Label("Import secret package", systemImage: "shippingbox") } }
+                                if !model.localAccount { NavigationLink { SecretSharesView() } label: { Label("Shared snapshots", systemImage: "link") } }
                             }
                             Section {
                                 NavigationLink { SecretActivityView() } label: { Label("Activity on this device", glyph: .audit) }
                                 Button("Trash", systemImage: "trash") { trash = true }
                             }
                         }.accessibilityIdentifier("vault.tools")
+                    }
+                }
+                .task(id: model.session?.generation) {
+                    hasLocalSource = false
+                    guard model.cloudAccount, let engine = model.engine else { return }
+                    if let snapshot = try? await engine.accounts(),
+                       let accounts: [AccountsView.LocalAccount] = try? model.decode(snapshot) {
+                        hasLocalSource = accounts.contains { $0.accountKind == "local" }
                     }
                 }
                 .task(id: model.vaultQueryKey) {
@@ -196,7 +206,7 @@ struct VaultRow: View {
             }.frame(maxWidth: .infinity, alignment: .leading)
             if item.favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(Theme.forest).accessibilityLabel("Favorite") }
             if item.conflict { Image(systemName: "arrow.triangle.branch").accessibilityLabel("Sync conflicts") }
-            else if !item.synced { Image(systemName: "arrow.triangle.2.circlepath").font(.caption).foregroundStyle(.secondary).accessibilityLabel("Waiting to sync") }
+            else if !item.synced && item.saveState != "local_only" { Image(systemName: "arrow.triangle.2.circlepath").font(.caption).foregroundStyle(.secondary).accessibilityLabel("Waiting to sync") }
         }
     }
 }

@@ -31,7 +31,7 @@ const api: DesktopBridge = {
   appearance: isAppearance(appearance) ? appearance : 'system',
   setAppearance: (next) => unwrap(ipcRenderer.invoke('dmsg:set-appearance', next)),
   call: (method, params) => unwrap(ipcRenderer.invoke('dmsg:call', method, params ?? null)),
-  decide: (id, digest, approve) => unwrap(ipcRenderer.invoke('dmsg:decide', id, digest, approve)),
+  decide: (id, digest, approve, password) => unwrap(ipcRenderer.invoke('dmsg:decide', id, digest, approve, password)),
   grant: (invite, pairing) => unwrap(ipcRenderer.invoke('dmsg:grant', invite, pairing)),
   login: (origin, bind, options) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true, options)),
   openLogin: (url) => unwrap(ipcRenderer.invoke('dmsg:open-login', url)),

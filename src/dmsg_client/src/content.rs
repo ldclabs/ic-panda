@@ -431,7 +431,7 @@ impl Client {
         file: Option<&FileManifest>,
     ) -> Result<(EncryptedObject, bool)> {
         ensure(payload.len() <= MAX_OBJECT, Error::QuotaExceeded)?;
-        let account = self.account()?.id.to_string();
+        let account = self.content_id()?.to_string();
         let roots = self.roots()?;
         let generation = roots.generation;
         let root = roots.key(generation).ok_or(Error::RecoveryIncomplete)?;
@@ -458,7 +458,32 @@ impl Client {
         file: Option<&FileManifest>,
         finish: impl FnOnce() -> Result<()>,
     ) -> Result<bool> {
-        let job = self.prepare_job(record, file, record.created_at)?;
+        self.workspace.store.atomic(|_| {
+            let conflict = self.store_content_version(record, file)?;
+            finish()?;
+            Ok(conflict)
+        })
+    }
+
+    pub(crate) fn new_object_state(&self) -> &'static str {
+        if self.is_local() {
+            crate::store::LOCAL_ONLY
+        } else {
+            LOCAL
+        }
+    }
+
+    /// Insert a version inside the caller's transaction.
+    pub(crate) fn store_content_version(
+        &self,
+        record: &EncryptedObject,
+        file: Option<&FileManifest>,
+    ) -> Result<bool> {
+        let store = &self.workspace.store;
+        ensure(
+            !self.is_local() || (record.kind == VAULT && file.is_none()),
+            crate::local::only(),
+        )?;
         let head = self.workspace.store.head(&record.id)?;
         let conflict = head != record.parent;
         let row = ObjectRow {
@@ -467,19 +492,21 @@ impl Client {
             revision: record.revision.clone(),
             kind: record.kind.clone(),
             frame: canonical(record),
-            state: LOCAL.into(),
+            state: self.new_object_state().into(),
             conflict,
             resolved: false,
             created_at: record.created_at,
         };
-        self.workspace.store.atomic(|store| {
-            store.put_object(&row)?;
-            store.set_job(&row.key, &job)?;
-            if !conflict {
-                store.set_head(&row.item, &row.revision, &record.kind)?;
-            }
-            finish()
-        })?;
+        store.put_object(&row)?;
+        if !self.is_local() {
+            store.set_job(
+                &row.key,
+                &self.prepare_job(record, file, record.created_at)?,
+            )?;
+        }
+        if !conflict {
+            store.set_head(&row.item, &row.revision, &record.kind)?;
+        }
         Ok(conflict)
     }
 }

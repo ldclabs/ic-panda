@@ -9409,5 +9409,40 @@
     "en": "The two backup passwords do not match.",
     "zh-Hans": "两次输入的备份口令不一致。",
     "ios": "The two backup passwords do not match."
+  },
+  "import_local_account": {
+    "en": "Import from local account",
+    "zh-Hans": "从本地账户导入",
+    "ios": "Import from local account"
+  },
+  "local_password": {
+    "en": "Local password",
+    "zh-Hans": "本地解锁口令",
+    "ios": "Local password"
+  },
+  "local_password_length": {
+    "en": "Use at least 12 characters.",
+    "zh-Hans": "请至少输入 12 个字符。",
+    "ios": "Use at least 12 characters."
+  },
+  "offline_account": {
+    "en": "Local account",
+    "zh-Hans": "本地账户",
+    "ios": "Local account"
+  },
+  "repeat_local_password": {
+    "en": "Confirm local password",
+    "zh-Hans": "确认本地口令",
+    "ios": "Confirm local password"
+  },
+  "saved_on_device": {
+    "en": "Saved on this device",
+    "zh-Hans": "已保存到本机",
+    "ios": "Saved on this device"
+  },
+  "use_on_device": {
+    "en": "Use only on this device",
+    "zh-Hans": "仅在本机使用",
+    "ios": "Use only on this device"
   }
 }

@@ -428,25 +428,54 @@ pub type History = BTreeMap<u64, Zeroizing<Key>>;
 pub struct RootKeys {
     /// Current generation.
     pub generation: u64,
-    /// Committed `bundle_digest`.
-    pub digest: Hash,
-    /// SHA-256 of the bundle bytes, hex: the next bundle's `previous.digest`.
-    pub sha256: String,
-    /// The upload holding the bundle.
-    pub upload_id: String,
+    committed: Option<Commitment>,
     root: Zeroizing<Key>,
     history: History,
 }
 
+struct Commitment {
+    digest: Hash,
+    sha256: String,
+    upload_id: String,
+}
+
 impl RootKeys {
+    pub(crate) fn local(generation: u64, mut roots: History) -> Result<Self> {
+        ensure(
+            generation > 0
+                && roots
+                    .last_key_value()
+                    .is_some_and(|(g, _)| *g == generation)
+                && !roots.contains_key(&0),
+            Error::IntegrityFailed,
+        )?;
+        let root = roots.remove(&generation).ok_or(Error::IntegrityFailed)?;
+        Ok(Self {
+            generation,
+            committed: None,
+            root,
+            history: roots,
+        })
+    }
+
+    fn commitment(&self) -> Result<&Commitment> {
+        self.committed.as_ref().ok_or_else(crate::local::only)
+    }
+
+    pub(crate) fn committed_digest(&self) -> Option<Hash> {
+        self.committed.as_ref().map(|c| c.digest)
+    }
+
     /// One generation, for tests.
     #[cfg(any(test, feature = "testing"))]
     pub(crate) fn single(generation: u64, root: Key) -> Self {
         Self {
             generation,
-            digest: Hash::new([0; 32]),
-            sha256: String::new(),
-            upload_id: String::new(),
+            committed: Some(Commitment {
+                digest: Hash::new([0; 32]),
+                sha256: String::new(),
+                upload_id: String::new(),
+            }),
             root: Zeroizing::new(root),
             history: BTreeMap::new(),
         }
@@ -757,9 +786,9 @@ impl Client {
     pub(crate) fn save_root(&self, keys: &RootKeys) -> Result<()> {
         let record = RootRecord {
             generation: keys.generation,
-            digest: keys.digest,
-            sha256: keys.sha256.clone(),
-            upload_id: keys.upload_id.clone(),
+            digest: keys.commitment()?.digest,
+            sha256: keys.commitment()?.sha256.clone(),
+            upload_id: keys.commitment()?.upload_id.clone(),
             root: ByteArray::new(*keys.root),
             history: keys
                 .history
@@ -780,9 +809,11 @@ impl Client {
         if let Some(record) = self.workspace.private::<RootRecord>(self.keys()?, ROOT)? {
             self.root = Some(RootKeys {
                 generation: record.generation,
-                digest: record.digest,
-                sha256: record.sha256,
-                upload_id: record.upload_id,
+                committed: Some(Commitment {
+                    digest: record.digest,
+                    sha256: record.sha256,
+                    upload_id: record.upload_id,
+                }),
                 root: Zeroizing::new(*record.root),
                 history: record
                     .history
@@ -798,7 +829,7 @@ impl Client {
             && self.security.as_ref().is_none_or(|state| {
                 state.snapshot.content_root_digest.is_none()
                     || (state.snapshot.content_root_generation == root.generation
-                        && state.snapshot.content_root_digest == Some(root.digest))
+                        && state.snapshot.content_root_digest == root.committed_digest())
             })
         {
             return Ok(());
@@ -807,7 +838,10 @@ impl Client {
         let snapshot = &state.snapshot;
         match snapshot.content_root_digest {
             Some(digest)
-                if self.root.as_ref().map(|r| (r.generation, r.digest))
+                if self
+                    .root
+                    .as_ref()
+                    .and_then(|r| Some((r.generation, r.committed_digest()?)))
                     != Some((snapshot.content_root_generation, digest)) =>
             {
                 self.open_current().await
@@ -888,9 +922,11 @@ impl Client {
     ) -> Result<()> {
         let keys = RootKeys {
             generation,
-            digest,
-            sha256: hex::encode(*sha256(bundle)),
-            upload_id,
+            committed: Some(Commitment {
+                digest,
+                sha256: hex::encode(*sha256(bundle)),
+                upload_id,
+            }),
             root,
             history,
         };
@@ -968,7 +1004,10 @@ impl Client {
             None => {
                 ensure(
                     current.as_ref().map(|c| (c.generation, c.bundle_digest))
-                        == self.root.as_ref().map(|r| (r.generation, r.digest)),
+                        == self
+                            .root
+                            .as_ref()
+                            .and_then(|r| Some((r.generation, r.committed_digest()?))),
                     Error::RecoveryIncomplete,
                 )?;
                 RootJob {
@@ -1089,12 +1128,19 @@ impl Client {
                 .candidate
                 .get_or_insert_with(|| ByteArray::new(random_key()));
             save(self, &job)?;
-            let previous = self.root.as_ref().map(|r| PreviousLink {
-                digest: &r.sha256,
-                upload_id: &r.upload_id,
-                generation: r.generation,
-                root: &r.root,
-            });
+            let previous = self
+                .root
+                .as_ref()
+                .map(|r| -> Result<_> {
+                    let proof = r.commitment()?;
+                    Ok(PreviousLink {
+                        digest: &proof.sha256,
+                        upload_id: &proof.upload_id,
+                        generation: r.generation,
+                        root: &r.root,
+                    })
+                })
+                .transpose()?;
             // A missing certified recovery policy is the legacy contract:
             // recovery stays enabled and both the bytes and commitment use v2.
             // Only an explicit policy proves support for the v3 root contract.
@@ -1206,9 +1252,11 @@ impl Client {
         }
         let keys = RootKeys {
             generation: current.generation,
-            digest: current.bundle_digest,
-            sha256: hex::encode(*sha256(&bytes)),
-            upload_id: job.plan.ok_or(Error::IntegrityFailed)?.upload_id,
+            committed: Some(Commitment {
+                digest: current.bundle_digest,
+                sha256: hex::encode(*sha256(&bytes)),
+                upload_id: job.plan.ok_or(Error::IntegrityFailed)?.upload_id,
+            }),
             root: Zeroizing::new(*job.candidate.ok_or(Error::IntegrityFailed)?),
             history,
         };

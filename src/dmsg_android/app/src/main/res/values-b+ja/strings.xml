@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"システムの言語に合わせる"</string>
     <string name="history_device" formatted="false">"デバイス"</string>
     <string name="history_fields" formatted="false">"フィールド"</string>
+    <string name="import_local_account" formatted="false">"ローカルアカウントから読み込む"</string>
     <string name="language_search" formatted="false">"言語を検索"</string>
     <string name="links_created_progress" formatted="true">"%2$s 件中 %1$s 件を作成"</string>
+    <string name="local_password" formatted="false">"ローカルパスワード"</string>
+    <string name="local_password_length" formatted="false">"12 文字以上入力してください。"</string>
     <string name="no_matches" formatted="false">"一致する結果がありません"</string>
+    <string name="offline_account" formatted="false">"ローカルアカウント"</string>
     <string name="operation_failed_code" formatted="true">"操作を完了できませんでした。コード：%1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"ワンタイムコード。フィールドの操作からコピーするか、大きく表示できます。"</string>
     <string name="permission_account_information" formatted="false">"アカウント情報"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"受信を閉じている間は、誰からも新しい手紙を受け取りません。"</string>
     <string name="receive_free" formatted="false">"ブロックしていない人は誰でも無料で手紙を送れます。"</string>
     <string name="receive_selected" formatted="false">"選択したアカウントと、有効な招待を持つ人だけが手紙を送れます。"</string>
+    <string name="repeat_local_password" formatted="false">"ローカルパスワードを確認"</string>
     <string name="review_anyone_with_the_link" formatted="false">"リンクを知っている人"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"リンクとパスワードを知っている人"</string>
     <string name="review_receiving" formatted="false">"受信"</string>
+    <string name="saved_on_device" formatted="false">"このデバイスに保存されました"</string>
     <string name="search_local_messages" formatted="false">"このデバイスに保存されたメッセージを検索します。"</string>
     <string name="search_query_limit" formatted="false">"検索語は200文字以内で入力してください。"</string>
     <string name="security_confirm" formatted="false">"dMsg で確認"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"自分の役割"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"上の選択内容は、最後に読み込んだリビジョンを基準に保存されます。続行する前に確認してください。"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"定期購入の期間が変更されました。会員状態を更新し、再確認してください。"</string>
+    <string name="use_on_device" formatted="false">"この端末のみで使う"</string>
     <string name="vault_backup_changed" formatted="false">"内容が異なります・コピーを保存"</string>
     <string name="vault_backup_deleted" formatted="false">"この端末で削除済み・コピーを保存"</string>
     <string name="vault_backup_export" formatted="false">"暗号化バックアップを書き出す"</string>

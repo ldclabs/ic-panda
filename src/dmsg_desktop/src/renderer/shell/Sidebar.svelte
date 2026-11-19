@@ -120,6 +120,9 @@
     </div>
   {/if}
   <nav class={cn('-mx-2.5 mt-1 flex min-h-0 flex-col gap-0.5 self-stretch overflow-x-hidden overflow-y-auto px-2.5', collapsed && 'items-center')} aria-label={t('views')}>
+    {#if status?.account_kind === 'local'}
+      {@render item(views.vault)}{@render item(views.files)}
+    {:else}
     {#each groups as group (group.label)}
       {#if collapsed}
         <div class="mx-auto my-2 h-px w-6 bg-line"></div>
@@ -128,10 +131,12 @@
       {/if}
       {#each group.views as view (view.path)}{@render item(view)}{/each}
     {/each}
+    {/if}
     <div class="h-3"></div>
     {@render item(views.settings)}
   </nav>
   <div class={cn('mt-auto shrink-0 pt-3', collapsed ? 'w-full' : '')}>
-    <GateRail {status} {collapsed} {mod} />
+    {#if status?.account_kind !== 'local'}<GateRail {status} {collapsed} {mod} />
+    {:else if !collapsed}<span class="px-2 text-xs text-muted">{t('savedOnDevice')}</span>{/if}
   </div>
 </aside>

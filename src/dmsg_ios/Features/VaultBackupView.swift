@@ -6,6 +6,7 @@ private struct BackupRow: Decodable, Identifiable {
     let id, title, kind: String
     let files: [String]
     let synced: Bool
+    var saveState: String? = nil
 }
 private struct BackupInventory: Decodable {
     struct Inventory: Decodable {
@@ -196,7 +197,7 @@ struct VaultBackupView: View {
                 LabeledContent("Conflicts", value: list.conflicts.formatted())
                 LabeledContent("Managed by dMsg", value: list.managed.formatted())
                 LabeledContent(
-                    "Waiting to sync", value: rows.filter { !$0.synced }.count.formatted())
+                    "Waiting to sync", value: rows.filter { $0.saveState == "pending" || ($0.saveState == nil && !$0.synced) }.count.formatted())
                 Button("Select all") { selected = Set(list.items.map(\.id)) }
                 Button("Clear selection") { selected.removeAll() }
                 ForEach(list.items) { row in

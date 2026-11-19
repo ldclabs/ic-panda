@@ -3512,5 +3512,17 @@
 	<string>No import was committed. Choose the backup again.</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Vault entries follow normal sync. Attachments are saved in Files on this device.</string>
+	<key>Use only on this device</key>
+	<string>Use only on this device</string>
+	<key>Local account</key>
+	<string>Local account</string>
+	<key>Local password</key>
+	<string>Local password</string>
+	<key>Import from local account</key>
+	<string>Import from local account</string>
+	<key>Use at least 12 characters.</key>
+	<string>Use at least 12 characters.</string>
+	<key>Confirm local password</key>
+	<string>Confirm local password</string>
 </dict>
 </plist>

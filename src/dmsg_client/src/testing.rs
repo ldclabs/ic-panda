@@ -21,6 +21,11 @@ use std::sync::Arc;
 
 pub use crate::passkey::test_session as passkey_session;
 
+/// KDF-using fixtures represent independent applications. Run those fixtures in turn so
+/// their unrelated imports are not interpreted as simultaneous requests to the same host.
+#[cfg(test)]
+pub(crate) static PASSWORD_FIXTURE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 /// The test account's unlock secret.
 pub const SECRET: [u8; 32] = [9; 32];
 

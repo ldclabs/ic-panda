@@ -18,6 +18,10 @@ pub struct SessionSnapshot {
     pub setup_pending: bool,
     pub last_sync_at_ms: Option<u64>,
     pub sync_error: Option<String>,
+    #[uniffi(default = "cloud")]
+    pub account_kind: String,
+    #[uniffi(default = "unavailable")]
+    pub local_unlock_method: String,
 }
 
 impl SessionSnapshot {
@@ -26,6 +30,8 @@ impl SessionSnapshot {
             generation,
             sequence,
             state: value.state.into(),
+            account_kind: value.account_kind.into(),
+            local_unlock_method: value.local_unlock_method.into(),
             account: value.account,
             device_id: value.device_id,
             pending_sync: value.pending_sync,
@@ -106,6 +112,8 @@ pub struct VaultItem {
     pub deleted: bool,
     pub created_at: u64,
     pub updated_at: u64,
+    #[uniffi(default = "")]
+    pub save_state: String,
 }
 
 impl VaultItem {
@@ -133,6 +141,7 @@ impl From<VaultEntry> for VaultItem {
             favorite: entry.item.favorite,
             tags: entry.item.tags,
             synced: entry.synced,
+            save_state: entry.save_state,
             conflict: entry.conflict,
             reserved,
             deleted: entry.deleted,

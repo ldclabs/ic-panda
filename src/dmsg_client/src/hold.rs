@@ -187,7 +187,10 @@ pub trait Hold: Sync {
     fn anonymous(&self) -> impl Future<Output = Result<Ic>> + Send {
         async move {
             let (made, config) = self
-                .with(|c| Ok((c.anonymous.clone(), c.config.clone())))
+                .with(|c| {
+                    c.require_online()?;
+                    Ok((c.anonymous.clone(), c.config.clone()))
+                })
                 .await?;
             if let Some(ic) = made {
                 return Ok(ic);

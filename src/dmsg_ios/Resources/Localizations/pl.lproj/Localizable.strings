@@ -3512,5 +3512,17 @@
 	<string>Nie zapisano importu. Wybierz kopię ponownie.</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Wpisy synchronizują się jak zwykle. Załączniki są w Plikach na tym urządzeniu.</string>
+	<key>Use only on this device</key>
+	<string>Używaj tylko na tym urządzeniu</string>
+	<key>Local account</key>
+	<string>Konto lokalne</string>
+	<key>Local password</key>
+	<string>Hasło lokalne</string>
+	<key>Import from local account</key>
+	<string>Importuj z konta lokalnego</string>
+	<key>Use at least 12 characters.</key>
+	<string>Użyj co najmniej 12 znaków.</string>
+	<key>Confirm local password</key>
+	<string>Potwierdź hasło lokalne</string>
 </dict>
 </plist>

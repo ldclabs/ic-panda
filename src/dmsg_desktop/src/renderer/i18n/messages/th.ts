@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "ใช้เฉพาะบนอุปกรณ์นี้",
+  offlineAccount: "บัญชีในเครื่อง",
+  savedOnDevice: "บันทึกบนอุปกรณ์นี้แล้ว",
+  localPassword: "รหัสผ่านในเครื่อง",
+  importLocalAccount: "นำเข้าจากบัญชีในเครื่อง",
+  localPasswordLength: "ใช้อย่างน้อย 12 ตัวอักษร",
+  repeatLocalPassword: "ยืนยันรหัสผ่านในเครื่อง",
   "vaultBackupUnlockError": "เปิดข้อมูลสำรองไม่ได้ ตรวจสอบรหัสผ่านหรือเลือกไฟล์ที่สมบูรณ์",
   "vaultBackupUncommitted": "ยังไม่ได้บันทึกการนำเข้า โปรดเลือกข้อมูลสำรองอีกครั้ง",
   "vaultBackupSync": "รายการจะซิงค์ตามปกติ ไฟล์แนบอยู่ในคลังไฟล์ของอุปกรณ์นี้",

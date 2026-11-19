@@ -7,14 +7,14 @@ data class VaultQuery(val text: String = "", val kind: String? = null, val favor
     val tag: String? = null, val sort: String = "title", val trash: Boolean = false)
 data class VaultSummary(val id: String, val revision: String, val kind: String, val title: String, val subtitle: String,
     val favorite: Boolean, val tags: List<String>, val synced: Boolean, val conflict: Boolean, val reserved: Boolean,
-    val deleted: Boolean, val createdAt: ULong, val updatedAt: ULong)
+    val deleted: Boolean, val createdAt: ULong, val updatedAt: ULong, val saveState: String? = null)
 data class VaultListing(val items: List<VaultSummary>, val total: ULong, val all: ULong, val favorites: ULong,
     val kinds: Map<String, ULong>, val tags: List<String>, val hasMore: Boolean)
 
 fun parseVaultListing(value: JsonElement): VaultListing {
     val root = value.objectValue()
     val items = root.rows("items").map { row -> VaultSummary(row.required("id"), row.required("revision"), row.required("kind"), row.required("title"), row.required("subtitle"),
-        row.requiredFlag("favorite"), row.strings("tags"), row.requiredFlag("synced"), row.requiredFlag("conflict"), row.requiredFlag("reserved"), row.requiredFlag("deleted"), row.requiredUnsigned("createdAt"), row.requiredUnsigned("updatedAt")) }
+        row.requiredFlag("favorite"), row.strings("tags"), row.requiredFlag("synced"), row.requiredFlag("conflict"), row.requiredFlag("reserved"), row.requiredFlag("deleted"), row.requiredUnsigned("createdAt"), row.requiredUnsigned("updatedAt"), row.text("saveState")) }
     val kinds = root["kinds"]?.objectValue() ?: error("INTEGRITY_FAILED")
     return VaultListing(items, root.requiredUnsigned("total"), root.requiredUnsigned("all"), root.requiredUnsigned("favorites"),
         kinds.keys.associateWith { kinds.requiredUnsigned(it) }, root.strings("tags"), root.requiredFlag("hasMore"))

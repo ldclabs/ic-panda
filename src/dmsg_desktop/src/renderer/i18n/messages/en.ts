@@ -5,6 +5,13 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  useOnDevice: "Use only on this device",
+  offlineAccount: "Local account",
+  savedOnDevice: "Saved on this device",
+  localPassword: "Local password",
+  importLocalAccount: "Import from local account",
+  localPasswordLength: "Use at least 12 characters.",
+  repeatLocalPassword: "Confirm local password",
   "vaultBackupUnlockError": "Cannot unlock this backup. Check the password or choose a complete backup file.",
   "vaultBackupUncommitted": "No import was committed. Choose the backup again.",
   "vaultBackupSync": "Vault entries follow normal sync. Attachments are saved in Files on this device.",

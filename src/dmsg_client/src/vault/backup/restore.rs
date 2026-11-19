@@ -29,8 +29,8 @@ pub(super) struct Reviewed {
 }
 
 #[derive(Serialize, PartialEq, Eq)]
-struct Decision {
-    status: &'static str,
+pub(super) struct Decision {
+    pub(super) status: &'static str,
     target: Option<(String, String)>,
 }
 
@@ -65,7 +65,7 @@ fn source_key(c: &Client, body: &Body, source: &str) -> Result<String> {
     ))
 }
 
-fn classify(c: &mut Client, body: &Body) -> Result<Vec<Decision>> {
+pub(super) fn classify(c: &mut Client, body: &Body) -> Result<Vec<Decision>> {
     let mut existing = BTreeMap::new();
     let mut titles = BTreeMap::new();
     let mut fingerprints: BTreeMap<[u8; 32], Vec<String>> = BTreeMap::new();
@@ -121,8 +121,20 @@ fn classify(c: &mut Client, body: &Body) -> Result<Vec<Decision>> {
             },
         );
     }
-    let same_account = body.meta.environment == c.workspace.meta.environment
-        && body.meta.account == c.account()?.id.to_string();
+    let local_aliases: BTreeMap<_, _> = if c.is_local()
+        && body.meta.account == dmsg_types::LOCAL_ACCOUNT_ID.to_string()
+        && body.meta.environment == c.workspace.meta.environment
+    {
+        existing
+            .keys()
+            .map(|id| Ok((super::local_entry_id(c, id)?, id.clone())))
+            .collect::<Result<_>>()?
+    } else {
+        BTreeMap::new()
+    };
+    let same_account = !c.is_local()
+        && body.meta.environment == c.workspace.meta.environment
+        && body.meta.account == c.content_id()?.to_string();
     let mut used = BTreeSet::new();
     let mut origins = Vec::with_capacity(body.entries.len());
     for e in &body.entries {
@@ -132,6 +144,7 @@ fn classify(c: &mut Client, body: &Body) -> Result<Vec<Decision>> {
         let id = saved
             .as_ref()
             .map(|s| s.id.clone())
+            .or_else(|| local_aliases.get(&e.id).cloned())
             .or_else(|| (same_account && existing.contains_key(&e.id)).then(|| e.id.clone()));
         if let Some(id) = &id {
             used.insert(id.clone());
@@ -267,19 +280,19 @@ pub async fn inspect<H: Hold>(h: &H, id: &str, path: &Path, password: &str) -> R
         let decisions=classify(c,&body)?;
         let rows:Vec<_>=body.entries.iter().zip(&decisions).enumerate().map(|(index,(e,d))|
             json!({"index":index,"title":e.title,"kind":e.kind,"files":e.attachment_refs,"status":d.status})).collect();
-        let result=json!({"id":id,"digest":digest,"source":body.meta.account,"account":c.account()?.id.to_string(),"at":body.meta.created_at,"items":rows,"files":body.files.len(),"omitted":body.meta.omitted_refs});
+        let result=json!({"id":id,"digest":digest,"source":body.meta.account,"account":c.content_id()?.to_string(),"at":body.meta.created_at,"items":rows,"files":body.files.len(),"omitted":body.meta.omitted_refs});
         active(c,id,true)?.state=Stage::Reviewed(Reviewed{body,files:staged,digest,decisions});
         Ok(result)
     }).await
 }
 
 #[derive(Serialize, Deserialize)]
-struct Receipt {
-    inputs: String,
-    result: Value,
+pub(super) struct Receipt {
+    pub(super) inputs: String,
+    pub(super) result: Value,
 }
 
-fn receipt_key(c: &Client, id: &str) -> Result<String> {
+pub(super) fn receipt_key(c: &Client, id: &str) -> Result<String> {
     hex_id(id)?;
     Ok(format!(
         "{RECEIPT_PREFIX}{}",
@@ -327,84 +340,18 @@ pub fn commit(
     };
     let apply = |c: &mut Client| -> Result<Value> {
         ensure(review.digest == digest, Error::VersionConflict)?;
-        let latest = classify(c, &review.body)?;
-        let mut files = BTreeSet::new();
-        let mut omitted = 0;
-        let mut items = Vec::new();
-        let mut keys = Vec::new();
-        for i in &unique {
-            let d = latest
-                .get(*i)
-                .ok_or_else(|| dmsg_types::invalid("backup selection"))?;
-            ensure(*d == review.decisions[*i], Error::VersionConflict)?;
-            ensure(d.status != "same", Error::VersionConflict)?;
-            let e = &review.body.entries[*i];
-            let mut refs = Vec::new();
-            for f in &e.attachment_refs {
-                if let Some(f) = f {
-                    refs.push(review.files[*f].id().to_owned());
-                    files.insert(*f);
-                } else {
-                    omitted += 1;
-                }
-            }
-            let source_files = e
-                .attachment_refs
-                .iter()
-                .map(|f| f.map(|i| &review.body.files[i]))
-                .collect::<Vec<_>>();
-            let imported_files = e
-                .attachment_refs
-                .iter()
-                .flatten()
-                .map(|i| {
-                    let f = &review.files[*i];
-                    (f.id().to_owned(), f.version().to_owned())
-                })
-                .collect::<Vec<_>>();
-            keys.push((
-                source_key(c, &review.body, &e.id)?,
-                e.fingerprint(&source_files),
-                imported_files,
-            ));
-            items.push(e.item(refs));
-        }
-        let staged: Vec<_> = files.iter().map(|i| review.files[*i].clone()).collect();
-        let result = json!({"items":items.len(),"files":staged.len(),"omitted":omitted,"skipped":review.body.entries.len()-items.len()});
-        c.publish_import(
-            items,
-            staged,
+        let staged = review.files.iter().cloned().enumerate().collect();
+        publish_selection(
+            c,
+            &review.body,
+            &review.decisions,
+            &unique,
+            &BTreeSet::new(),
+            &staged,
             folder,
-            Client::vault_write_exact_items,
-            |c, ids| {
-                for ((k, fingerprint, files), target) in keys.into_iter().zip(ids) {
-                    let revision = c
-                        .workspace
-                        .store
-                        .head(target)?
-                        .ok_or(Error::IntegrityFailed)?;
-                    c.workspace.put_private(
-                        c.keys()?,
-                        &k,
-                        &Origin {
-                            id: target.clone(),
-                            revision,
-                            fingerprint,
-                            files,
-                        },
-                    )?;
-                }
-                c.workspace.put_private(
-                    c.keys()?,
-                    &key,
-                    &Receipt {
-                        inputs,
-                        result: result.clone(),
-                    },
-                )
-            },
-        )?;
-        Ok(result)
+            &key,
+            &inputs,
+        )
     };
     let result = apply(c);
     if result.is_ok() {
@@ -413,4 +360,99 @@ pub fn commit(
         active(c, id, true)?.state = Stage::Reviewed(review);
     }
     result
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn publish_selection(
+    c: &mut Client,
+    body: &Body,
+    decisions: &[Decision],
+    unique: &BTreeSet<usize>,
+    extra: &BTreeSet<usize>,
+    staged: &BTreeMap<usize, StagedFile>,
+    folder: &str,
+    key: &str,
+    inputs: &str,
+) -> Result<Value> {
+    let latest = classify(c, body)?;
+    let mut files = extra.clone();
+    let mut omitted = 0;
+    let mut items = Vec::new();
+    let mut keys = Vec::new();
+    for i in unique {
+        let d = latest
+            .get(*i)
+            .ok_or_else(|| dmsg_types::invalid("backup selection"))?;
+        ensure(*d == decisions[*i], Error::VersionConflict)?;
+        ensure(d.status != "same", Error::VersionConflict)?;
+        let e = &body.entries[*i];
+        let mut refs = Vec::new();
+        for f in &e.attachment_refs {
+            if let Some(f) = f {
+                refs.push(staged.get(f).ok_or(Error::IntegrityFailed)?.id().to_owned());
+                files.insert(*f);
+            } else {
+                omitted += 1;
+            }
+        }
+        let source_files = e
+            .attachment_refs
+            .iter()
+            .map(|f| f.map(|i| &body.files[i]))
+            .collect::<Vec<_>>();
+        let imported_files = e
+            .attachment_refs
+            .iter()
+            .flatten()
+            .map(|i| {
+                let f = &staged[i];
+                (f.id().to_owned(), f.version().to_owned())
+            })
+            .collect::<Vec<_>>();
+        keys.push((
+            source_key(c, body, &e.id)?,
+            e.fingerprint(&source_files),
+            imported_files,
+        ));
+        items.push(e.item(refs));
+    }
+    let staged: Vec<_> = files
+        .iter()
+        .map(|i| staged.get(i).cloned().ok_or(Error::IntegrityFailed))
+        .collect::<Result<_>>()?;
+    let result = json!({"items":items.len(),"files":staged.len(),"omitted":omitted,"skipped":body.entries.len()-items.len()});
+    c.publish_staged(
+        items,
+        staged,
+        folder,
+        Client::vault_write_exact_items,
+        |c, ids| {
+            for ((k, fingerprint, files), target) in keys.into_iter().zip(ids) {
+                let revision = c
+                    .workspace
+                    .store
+                    .head(target)?
+                    .ok_or(Error::IntegrityFailed)?;
+                c.workspace.put_private(
+                    c.keys()?,
+                    &k,
+                    &Origin {
+                        id: target.clone(),
+                        revision,
+                        fingerprint,
+                        files,
+                    },
+                )?;
+            }
+            c.workspace.put_private(
+                c.keys()?,
+                key,
+                &Receipt {
+                    inputs: inputs.to_owned(),
+                    result: result.clone(),
+                },
+            )
+        },
+    )?;
+    Ok(result)
 }

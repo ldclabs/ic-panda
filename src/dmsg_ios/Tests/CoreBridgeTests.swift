@@ -1,8 +1,9 @@
 import XCTest
+import CryptoKit
 @preconcurrency import DMsgCore
 
 final class CoreBridgeTests: XCTestCase {
-    final class NoHardware: Platform, @unchecked Sendable {
+    class NoHardware: Platform, @unchecked Sendable {
         func get(name: String) throws -> Data? { nil }
         func set(name: String, secret: Data) throws { throw MobileError.Failure(code: "UNAVAILABLE") }
         func delete(name: String) throws {}
@@ -26,16 +27,82 @@ final class CoreBridgeTests: XCTestCase {
         func cancelPresence() {}
     }
 
+    /// The simulator fixture supplies only the platform callbacks. Rust owns real keys, storage and session transitions.
+    final class FixtureHardware: NoHardware, @unchecked Sendable {
+        private let lock = NSLock()
+        private var slots: [String: Data] = [:]
+        private let anchor = P256.Signing.PrivateKey()
+        private let secret = SymmetricKey(size: .bits256).withUnsafeBytes { Data($0) }
+        override func presence() -> UInt8 { 1 }
+        override func get(name: String) throws -> Data? { lock.withLock { slots[name] } }
+        override func set(name: String, secret: Data) throws { lock.withLock { slots[name] = secret } }
+        override func delete(name: String) throws { _ = lock.withLock { slots.removeValue(forKey: name) } }
+        override func createSecret(biometryOnly: Bool) throws -> HardwareSecret {
+            HardwareSecret(handle: Data([1]), context: Data([2]), secret: secret)
+        }
+        override func openSecret(handle: Data, context: Data, biometryOnly: Bool) throws -> Data {
+            guard handle == Data([1]), context == Data([2]) else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+            return secret
+        }
+        override func createAnchor() throws -> SigningKey { SigningKey(publicKey: anchor.publicKey.x963Representation, handle: Data([3])) }
+        override func signAnchor(handle: Data, message: Data) throws -> Data {
+            guard handle == Data([3]) else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+            return try anchor.signature(for: message).rawRepresentation
+        }
+    }
+
+    func testOfflineAccountRestartsWithItsOwnVault() async throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let hardware = FixtureHardware()
+        let directory = base.appending(path: "account").path, staging = base.appending(path: "staging").path
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        let itemID: String
+        do {
+            let root = try await MobileEngine.open(directory: directory, staging: staging, platform: hardware)
+            let created = try await root.createLocalAccount()
+            XCTAssertEqual(created.accountKind, "local"); XCTAssertEqual(created.account, "00000000000000000000")
+            let engine = try root.scoped(generation: created.generation)
+            let detail = try await engine.saveItem(id: nil, revision: nil, edit: VaultEdit(title: "Local fixture", kind: "note", notes: "Device only", favorite: false, tags: [], fields: [], files: nil))
+            let name = "00000000000000000000/dmsg-import-fixture/sample.txt"
+            let file = URL(fileURLWithPath: staging).appending(path: name)
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("offline file".utf8).write(to: file)
+            _ = try await engine.importFile(name: name, folder: "root", sharedId: nil, operation: OperationToken())
+            itemID = detail.item.id
+            XCTAssertEqual(detail.item.saveState, "local_only"); XCTAssertFalse(detail.item.synced)
+            _ = try await engine.lock()
+        }
+        let root = try await MobileEngine.open(directory: directory, staging: staging, platform: hardware)
+        let locked = try await root.sessionState()
+        XCTAssertEqual(locked.state, "locked")
+        let reopened = try await root.unlockFast()
+        let engine = try root.scoped(generation: reopened.generation)
+        let item = try await engine.vaultItem(id: itemID, revision: nil)
+        XCTAssertEqual(item.item.notes, "Device only"); XCTAssertEqual(reopened.pendingSync, 0)
+        let listing = try await engine.files(folder: "root")
+        let result = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(listing.json.utf8)) as? [String: Any])
+        let files = try XCTUnwrap(result["files"] as? [[String: Any]])
+        XCTAssertEqual(files.first?["name"] as? String, "sample.txt")
+        XCTAssertEqual(files.first?["size"] as? Int, 12)
+    }
+
     func testRealRustBridgeStartsLockedAndRejectsContentAndForeignCallbacks() async throws {
         let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: base) }
-        let engine = try await MobileEngine.open(directory: base.appending(path: "account").path,
+        var engine = try await MobileEngine.open(directory: base.appending(path: "account").path,
             staging: base.appending(path: "imports").path, platform: NoHardware())
         let initial = try await engine.sessionState()
         XCTAssertNotEqual(initial.state, "unlocked")
         XCTAssertFalse(initial.passkeyAvailable)
         XCTAssertFalse(initial.loginRenewable)
+        XCTAssertEqual(initial.accountKind, "none")
+        do { _ = try await engine.createLocalAccount(); XCTFail("Created a hardware workspace without hardware") }
+        catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCAL_HARDWARE_UNAVAILABLE") }
+        let denied = try await engine.sessionState()
+        XCTAssertEqual(denied.state, "logged_out"); XCTAssertNil(denied.account)
+        engine = try engine.scoped(generation: denied.generation)
         do { _ = try await engine.beginPasskey(operation: .login, credentialId: nil); XCTFail("Passkey without hardware/configuration") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "UNSUPPORTED_PROTOCOL") }
         do { _ = try await engine.beginPasskey(operation: .resetSessions, credentialId: nil); XCTFail("A capacity reset needs its failed credential") }

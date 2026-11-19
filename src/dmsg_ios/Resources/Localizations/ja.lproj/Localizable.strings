@@ -3512,5 +3512,17 @@
 	<string>読み込みは確定していません。バックアップを選び直してください。</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>項目は通常どおり同期されます。添付ファイルはこの端末のファイル庫に保存されます。</string>
+	<key>Use only on this device</key>
+	<string>この端末のみで使う</string>
+	<key>Local account</key>
+	<string>ローカルアカウント</string>
+	<key>Local password</key>
+	<string>ローカルパスワード</string>
+	<key>Import from local account</key>
+	<string>ローカルアカウントから読み込む</string>
+	<key>Use at least 12 characters.</key>
+	<string>12 文字以上入力してください。</string>
+	<key>Confirm local password</key>
+	<string>ローカルパスワードを確認</string>
 </dict>
 </plist>

@@ -95,21 +95,27 @@ impl MobileEngine {
         operation
             .run(self.held(move |h| {
                 Box::pin(async move {
-                    let mut backoff = 1;
-                    loop {
-                        let result = listen(h, &origin, &redial, &signal, observer.as_ref()).await;
-                        backoff = match result {
-                            Ok(()) => 1,
-                            Err(error) => {
-                                error.emit();
-                                (backoff * 2).min(60)
+                    let relay = h.with(|c| Ok(c.relay())).await?;
+                    relay
+                        .while_online(async {
+                            let mut backoff = 1;
+                            loop {
+                                let result =
+                                    listen(h, &origin, &redial, &signal, observer.as_ref()).await;
+                                backoff = match result {
+                                    Ok(()) => 1,
+                                    Err(error) => {
+                                        error.emit();
+                                        (backoff * 2).min(60)
+                                    }
+                                };
+                                tokio::select! {
+                                    _ = tokio::time::sleep(Duration::from_secs(backoff)) => {},
+                                    _ = redial.notified() => {},
+                                }
                             }
-                        };
-                        tokio::select! {
-                            _ = tokio::time::sleep(Duration::from_secs(backoff)) => {},
-                            _ = redial.notified() => {},
-                        }
-                    }
+                        })
+                        .await
                 })
             }))
             .await

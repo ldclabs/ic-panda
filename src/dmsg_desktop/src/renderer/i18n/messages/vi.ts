@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "Chỉ dùng trên thiết bị này",
+  offlineAccount: "Tài khoản cục bộ",
+  savedOnDevice: "Đã lưu trên thiết bị này",
+  localPassword: "Mật khẩu cục bộ",
+  importLocalAccount: "Nhập từ tài khoản cục bộ",
+  localPasswordLength: "Dùng ít nhất 12 ký tự.",
+  repeatLocalPassword: "Xác nhận mật khẩu cục bộ",
   "vaultBackupUnlockError": "Không thể mở bản sao lưu. Hãy kiểm tra mật khẩu hoặc chọn tệp đầy đủ.",
   "vaultBackupUncommitted": "Chưa ghi dữ liệu nhập. Hãy chọn lại bản sao lưu.",
   "vaultBackupSync": "Các mục đồng bộ như thường lệ. Tệp đính kèm được lưu trong Tệp trên thiết bị này.",

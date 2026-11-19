@@ -14,6 +14,7 @@
    */
   let {
     scope,
+    local = false,
     workflow,
     onScope,
     onWorkflow,
@@ -22,6 +23,7 @@
     onAccess
   }: {
     scope: Scope
+    local?: boolean
     workflow: string | null
     onScope: (next: Scope) => void
     onWorkflow: (next: string) => void
@@ -77,7 +79,7 @@
     {/each}
   {/if}
   <div class="px-2 pt-3 pb-1 text-[11px] font-medium text-faint">{t('secretUses')}</div>
-  {#each workflows as name (name)}
+  {#each workflows.filter(name => !local || ['mounts', 'health'].includes(name)) as name (name)}
     {@render row(workflow === name, () => onWorkflow(name), `workflow-tab-${name}`, workflowIcon[name], workflowText(name))}
   {/each}
   <div class="mt-auto pt-3">

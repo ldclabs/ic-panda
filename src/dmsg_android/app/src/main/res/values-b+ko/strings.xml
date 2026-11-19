@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"시스템 언어 따르기"</string>
     <string name="history_device" formatted="false">"장치"</string>
     <string name="history_fields" formatted="false">"필드"</string>
+    <string name="import_local_account" formatted="false">"로컬 계정에서 가져오기"</string>
     <string name="language_search" formatted="false">"언어 찾기"</string>
     <string name="links_created_progress" formatted="true">"%2$s개 중 %1$s개 생성됨"</string>
+    <string name="local_password" formatted="false">"로컬 비밀번호"</string>
+    <string name="local_password_length" formatted="false">"12자 이상 입력하세요."</string>
     <string name="no_matches" formatted="false">"일치하는 결과 없음"</string>
+    <string name="offline_account" formatted="false">"로컬 계정"</string>
     <string name="operation_failed_code" formatted="true">"이 작업을 완료하지 못했습니다. 코드: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"일회용 코드입니다. 필드 동작으로 복사하거나 큰 글자로 표시하세요."</string>
     <string name="permission_account_information" formatted="false">"계정 정보"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"수신을 닫으면 아무도 새 편지를 보낼 수 없습니다."</string>
     <string name="receive_free" formatted="false">"차단하지 않은 사람은 누구나 무료로 편지를 보낼 수 있습니다."</string>
     <string name="receive_selected" formatted="false">"선택한 계정이나 유효한 초대를 받은 사람만 편지를 보낼 수 있습니다."</string>
+    <string name="repeat_local_password" formatted="false">"로컬 비밀번호 확인"</string>
     <string name="review_anyone_with_the_link" formatted="false">"링크가 있는 모든 사람"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"링크와 암호가 있는 모든 사람"</string>
     <string name="review_receiving" formatted="false">"받는 중"</string>
+    <string name="saved_on_device" formatted="false">"이 기기에 저장되었습니다"</string>
     <string name="search_local_messages" formatted="false">"이 기기에 저장된 메시지를 검색합니다."</string>
     <string name="search_query_limit" formatted="false">"검색어는 200자 이내로 입력하세요."</string>
     <string name="security_confirm" formatted="false">"dMsg에서 확인"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"내 역할"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"위 선택 사항은 마지막으로 불러온 리비전을 기준으로 저장됩니다. 계속하기 전에 검토하세요."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"구독 기간이 변경되었습니다. 멤버십을 새로고침하고 다시 검토하세요."</string>
+    <string name="use_on_device" formatted="false">"이 기기에서만 사용"</string>
     <string name="vault_backup_changed" formatted="false">"내용이 다름 · 사본 저장"</string>
     <string name="vault_backup_deleted" formatted="false">"이 기기에서 삭제됨 · 사본 저장"</string>
     <string name="vault_backup_export" formatted="false">"암호화된 백업 내보내기"</string>

@@ -93,13 +93,22 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 67] = [
+const METHODS: [&str; 76] = [
     "session/status",
     "session/login",
     "session/login_result",
     "session/accounts",
     "session/switch",
     "session/unlock",
+    "session/local_counts",
+    "session/local_create",
+    "session/local_unlock",
+    "session/local_password",
+    "session/local_delete",
+    "local_import/preview",
+    "local_import/commit",
+    "local_import/status",
+    "local_import/cancel",
     "session/lock",
     "session/logout",
     "session/fast_unlock",
@@ -338,6 +347,103 @@ struct RpcRequest {
     params: Value,
 }
 
+async fn local_auth(
+    daemon: &Daemon,
+    request: dmsg_client::local::Challenge,
+    params: &Value,
+) -> Result<dmsg_client::local::Access> {
+    let password = params["password"]
+        .as_str()
+        .map(|v| zeroize::Zeroizing::new(v.to_owned()));
+    let instance = request.instance();
+    let creating = request.opening_new();
+    let result = tokio::task::spawn_blocking(move || {
+        request.authenticate(password.as_ref().map(|v| v.as_str()))
+    })
+    .await
+    .map_err(|_| Error::Unavailable("local authentication".into()))?;
+    if let Err(error) = &result {
+        daemon
+            .hold()
+            .with(|c| {
+                if creating {
+                    c.local_creation_failed(instance.1);
+                }
+                c.local_key_failure(instance, error)
+            })
+            .await?;
+    }
+    result
+}
+
+/// The same owner RPC serves desktop and CLI. Check before dispatching work or preparing approvals.
+fn local_method(method: &str) -> bool {
+    method.starts_with("vault/")
+        || method.starts_with("secrets/mounts/")
+        || method.starts_with("secrets/discovery/")
+        || method.starts_with("mount/")
+        || matches!(
+            method,
+            "app/initialize"
+                | "app/activity"
+                | "app/network"
+                | "events/poll"
+                | "daemon/status"
+                | "daemon/stop"
+                | "session/status"
+                | "session/accounts"
+                | "session/switch"
+                | "session/lock"
+                | "session/logout"
+                | "session/unlock"
+                | "session/local_counts"
+                | "session/local_unlock"
+                | "session/local_password"
+                | "session/local_delete"
+                | "device/moved_list"
+                | "device/moved_set_aside"
+                | "device/moved_discard"
+                | "approval/list"
+                | "approval/show"
+                | "approval/respond"
+                | "approval/cancel"
+                | "files/mount_status"
+                | "files/mount"
+                | "files/unmount"
+                | "files/list"
+                | "files/tree"
+                | "files/show"
+                | "files/search"
+                | "files/tags"
+                | "files/mkdir"
+                | "files/rename"
+                | "files/move"
+                | "files/update"
+                | "files/import"
+                | "files/import_cancel"
+                | "files/export"
+                | "files/preview"
+                | "files/open"
+                | "files/open_list"
+                | "files/open_cleanup"
+                | "files/versions"
+                | "files/version_use"
+                | "files/version_delete"
+                | "files/trash"
+                | "files/restore"
+                | "files/purge"
+                | "files/verify"
+                | "files/usage"
+                | "files/local_only"
+                | "secrets/health"
+                | "secrets/health/dismiss"
+                | "secrets/ref"
+                | "secrets/references"
+                | "cache/status"
+                | "cache/clear"
+        )
+}
+
 /// Run the daemon in the foreground until stopped.
 ///
 /// # Errors
@@ -506,6 +612,9 @@ async fn background(daemon: Arc<Daemon>) {
         };
         daemon.check_mount().await;
         daemon.check_secret_mounts().await;
+        if daemon.local_mode().await {
+            continue;
+        }
         let unlocked = session.state == "unlocked";
         let ready = unlocked || session.resident;
         let every = if daemon.hints_connected() {
@@ -781,6 +890,10 @@ impl Daemon {
     }
 
     /// Whether a stop is deciding or decided.
+    pub(crate) async fn local_mode(&self) -> bool {
+        self.client.lock().await.offline_mode()
+    }
+
     pub(crate) fn stopping(&self) -> bool {
         self.stopping.load(Ordering::SeqCst)
     }
@@ -1251,6 +1364,9 @@ impl Daemon {
 
     /// Run one of the owner's methods.
     async fn call(&self, module: Module, method: &str, params: &Value) -> Result<Value> {
+        if self.local_mode().await && !local_method(method) {
+            return Err(dmsg_client::local::only());
+        }
         if crate::snapshots::supports(method) && params.get("mode").is_some() {
             return self.snapshot(method, params).await;
         }
@@ -1407,9 +1523,123 @@ impl Daemon {
                 *self.last_connect.lock().expect("connect report") = None;
                 Ok(to_json(&status))
             }
+            "local_import/preview" => {
+                let request = self.hold().with(|c| c.prepare_local_import()).await?;
+                let access = local_auth(self, request, params).await?;
+                self.hold()
+                    .with(|c| dmsg_client::vault::backup::direct::preview(c, access))
+                    .await
+            }
+            "local_import/commit" => {
+                let items = parse(params, "items")?;
+                let files = parse(params, "files")?;
+                dmsg_client::vault::backup::direct::commit(
+                    &self.hold(),
+                    &text(params, "id")?,
+                    items,
+                    files,
+                    params["folder"].as_str().unwrap_or("root"),
+                )
+                .await
+            }
+            "local_import/status" => {
+                self.hold()
+                    .with(|c| dmsg_client::vault::backup::direct::status(c, &text(params, "id")?))
+                    .await
+            }
+            "local_import/cancel" => {
+                self.hold()
+                    .with(|c| {
+                        dmsg_client::vault::backup::direct::cancel(c, &text(params, "id")?);
+                        Ok(Value::Null)
+                    })
+                    .await
+            }
+            "session/local_counts" => self.hold().with(|c| c.local_counts()).await,
+            "session/local_delete" => {
+                let request = self
+                    .hold()
+                    .with(|c| {
+                        ensure(c.status()?.state == "unlocked", Error::Locked)?;
+                        c.prepare_local_unlock()
+                    })
+                    .await?;
+                let access = local_auth(self, request, params).await?;
+                self.stop_secret_mounts().await;
+                self.unmount_library().await?;
+                self.hold()
+                    .with(|c| Ok(to_json(&c.delete_local(access)?)))
+                    .await
+            }
+            "session/local_create" | "session/local_unlock" | "session/local_password" => {
+                let create = method == "session/local_create";
+                let change = method == "session/local_password";
+                let next = params["new_password"]
+                    .as_str()
+                    .map(|v| zeroize::Zeroizing::new(v.to_owned()));
+                if create {
+                    self.stop_secret_mounts().await;
+                    self.unmount_library().await?;
+                }
+                self.activity.store(now_ms(), Ordering::Relaxed);
+                let request = self
+                    .hold()
+                    .with(|c| {
+                        if create {
+                            c.prepare_local_create()
+                        } else {
+                            c.prepare_local_unlock()
+                        }
+                    })
+                    .await?;
+                let access = local_auth(self, request, params).await?;
+                let status = if change {
+                    let changed = tokio::task::spawn_blocking(move || {
+                        access.change_password(
+                            next.as_deref().map(String::as_str).unwrap_or_default(),
+                        )
+                    })
+                    .await
+                    .map_err(|_| Error::Unavailable("local password".into()))??;
+                    self.hold()
+                        .with(|c| c.complete_password_change(changed))
+                        .await?
+                } else {
+                    self.hold()
+                        .with(|c| {
+                            if create {
+                                c.complete_local_create(access)
+                            } else {
+                                c.complete_local_unlock(access)
+                            }
+                        })
+                        .await?
+                };
+                Ok(to_json(&status))
+            }
             "session/unlock" => {
                 let selected = optional(params, "account", account)?;
                 let fast = params["fast"].as_bool().unwrap_or(false);
+                let local = self
+                    .hold()
+                    .with(|c| {
+                        if selected.is_some_and(|a| a.is_empty()) {
+                            c.switch_account(&dmsg_types::LOCAL_ACCOUNT_ID)?;
+                        }
+                        Ok(
+                            (selected.is_none() || selected.is_some_and(|a| a.is_empty()))
+                                && c.is_local(),
+                        )
+                    })
+                    .await?;
+                if local {
+                    let request = self.hold().with(|c| c.prepare_local_unlock()).await?;
+                    let access = local_auth(self, request, params).await?;
+                    return self
+                        .hold()
+                        .with(|c| Ok(to_json(&c.complete_local_unlock(access)?)))
+                        .await;
+                }
                 let queued = self.client.lock().await.session_generation();
                 let _turn = self.turn("session/unlock").await;
                 // Starting an unlock is activity too: an expired idle deadline
@@ -1501,7 +1731,20 @@ impl Daemon {
                         ..LoginState::default()
                     };
                 }
-                dmsg_client::passkey::logout(&self.hold()).await?;
+                let local = self
+                    .hold()
+                    .with(|c| {
+                        if c.is_local() {
+                            c.leave_local()?;
+                            Ok(true)
+                        } else {
+                            Ok(false)
+                        }
+                    })
+                    .await?;
+                if !local {
+                    dmsg_client::passkey::logout(&self.hold()).await?;
+                }
                 self.signed_out().await;
                 self.status().await
             }
@@ -1791,6 +2034,24 @@ impl Daemon {
                 let id = text(params, "id")?;
                 let digest = text(params, "digest")?;
                 let via = source(params)?;
+                if approve {
+                    let request = self
+                        .hold()
+                        .with(|c| {
+                            if c.is_local()
+                                && c.status()?.local_unlock_method == "password"
+                                && c.approval(&id)?["type"] == "vault_backup"
+                            {
+                                return c.prepare_local_unlock().map(Some);
+                            }
+                            Ok(None)
+                        })
+                        .await?;
+                    if let Some(request) = request {
+                        let access = local_auth(self, request, params).await?;
+                        self.hold().with(|c| c.verify_local(&access)).await?;
+                    }
+                }
                 let outcome = self.respond(&id, &digest, approve, via).await;
                 // Who decided, through which way in, on whose request.
                 let mut client = self.client.lock().await;
@@ -1980,6 +2241,10 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::Daemon => match method {
             "session/logout" => &["session/changed", "approval/changed", "login/changed"],
             "session/switch"
+            | "session/local_delete"
+            | "session/local_create"
+            | "session/local_unlock"
+            | "session/local_password"
             | "session/unlock"
             | "session/lock"
             | "workspace/reset"

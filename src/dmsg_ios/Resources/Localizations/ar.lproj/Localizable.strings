@@ -3512,5 +3512,17 @@
 	<string>لم تُحفظ عملية الاستيراد. اختر النسخة مجددًا.</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>تتم مزامنة العناصر كالمعتاد، وتُحفظ المرفقات في الملفات على هذا الجهاز.</string>
+	<key>Use only on this device</key>
+	<string>الاستخدام على هذا الجهاز فقط</string>
+	<key>Local account</key>
+	<string>حساب محلي</string>
+	<key>Local password</key>
+	<string>كلمة المرور المحلية</string>
+	<key>Import from local account</key>
+	<string>استيراد من الحساب المحلي</string>
+	<key>Use at least 12 characters.</key>
+	<string>استخدم 12 حرفًا على الأقل.</string>
+	<key>Confirm local password</key>
+	<string>تأكيد كلمة المرور المحلية</string>
 </dict>
 </plist>

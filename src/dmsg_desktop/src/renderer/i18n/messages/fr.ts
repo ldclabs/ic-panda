@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  useOnDevice: "Utiliser uniquement sur cet appareil",
+  offlineAccount: "Compte local",
+  savedOnDevice: "Enregistré sur cet appareil",
+  localPassword: "Mot de passe local",
+  importLocalAccount: "Importer depuis le compte local",
+  localPasswordLength: "Utilisez au moins 12 caractères.",
+  repeatLocalPassword: "Confirmer le mot de passe local",
   "vaultBackupUnlockError": "Impossible d’ouvrir la sauvegarde. Vérifiez le mot de passe ou choisissez un fichier complet.",
   "vaultBackupUncommitted": "Aucune importation enregistrée. Choisissez à nouveau la sauvegarde.",
   "vaultBackupSync": "Les entrées suivent la synchronisation habituelle. Les pièces jointes sont dans Fichiers sur cet appareil.",

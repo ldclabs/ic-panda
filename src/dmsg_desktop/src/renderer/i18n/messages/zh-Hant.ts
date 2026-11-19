@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "僅在本機使用",
+  offlineAccount: "本機帳戶",
+  savedOnDevice: "已儲存在本機",
+  localPassword: "本機解鎖密碼",
+  importLocalAccount: "從本機帳戶匯入",
+  localPasswordLength: "請至少輸入 12 個字元。",
+  repeatLocalPassword: "確認本機密碼",
   "vaultBackupUnlockError": "無法解開備份。請核對密碼或重新選擇完整檔案。",
   "vaultBackupUncommitted": "這次匯入尚未寫入，請重新選擇備份。",
   "vaultBackupSync": "保險庫項目依一般流程同步。附件儲存在本機檔案庫。",

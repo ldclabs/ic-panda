@@ -94,7 +94,70 @@ async fn archive(c: &mut Client, path: &Path, password: &str, include: bool) -> 
 }
 
 #[tokio::test]
+async fn standalone_archives_distinguish_source_instances_and_keep_restored_rows_local() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.lock().await;
+    let source_home = TempDir::new();
+    let target_home = TempDir::new();
+    let make = |home: &TempDir| {
+        let mut c = Client::open(crate::testing::config(false), &home.0, None).unwrap();
+        let request = c.prepare_local_create().unwrap();
+        c.complete_local_create(
+            request
+                .authenticate(Some("local fixture password"))
+                .unwrap(),
+        )
+        .unwrap();
+        c
+    };
+    let mut source = make(&source_home);
+    let mut target = make(&target_home);
+    let entry = source
+        .vault_create(
+            "note",
+            &Changes {
+                title: Some("offline-origin".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert_ne!(
+        local_entry_id(&source, &entry.id).unwrap(),
+        local_entry_id(&target, &entry.id).unwrap()
+    );
+    let path = source_home.path("standalone.dmsgvault");
+    archive(&mut source, &path, "backup fixture password", false).await;
+    let token = begin(&mut target, true).unwrap();
+    let preview = inspect(&target.hold(), &token, &path, "backup fixture password")
+        .await
+        .unwrap();
+    assert_eq!(preview["source"], dmsg_types::LOCAL_ACCOUNT_ID.to_string());
+    assert_eq!(preview["items"][0]["status"], "new");
+    commit(
+        &mut target,
+        &token,
+        preview["digest"].as_str().unwrap(),
+        vec![0],
+        "root",
+    )
+    .unwrap();
+    let rows = target.vault_list(&Filter::default()).unwrap();
+    assert!(
+        rows.len() == 1
+            && rows[0].id != entry.id
+            && rows[0].save_state == "local_only"
+            && !rows[0].synced
+    );
+    let token = begin(&mut target, true).unwrap();
+    let repeated = inspect(&target.hold(), &token, &path, "backup fixture password")
+        .await
+        .unwrap();
+    assert_eq!(repeated["items"][0]["status"], "same");
+    assert_eq!(target.status().unwrap().pending_sync, 0);
+}
+
+#[tokio::test]
 async fn portable_restore_preserves_secrets_shared_attachments_and_retry_receipts() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.lock().await;
     let from = TempDir::new();
     let to = TempDir::new();
     let mut source = unlocked(&from.0, false, None);
@@ -200,6 +263,7 @@ async fn portable_restore_preserves_secrets_shared_attachments_and_retry_receipt
 
 #[tokio::test]
 async fn corrections_and_uncommitted_receipts_never_overwrite_a_head() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.lock().await;
     let dir = TempDir::new();
     let mut c = unlocked(&dir.0, false, None);
     assert_eq!(begin(&mut c, true).unwrap_err(), Error::PolicyStale);
@@ -249,6 +313,7 @@ async fn corrections_and_uncommitted_receipts_never_overwrite_a_head() {
 #[tokio::test]
 #[ignore = "requires archives exchanged between three target runtimes"]
 async fn exchange_platform_backups() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.lock().await;
     let folder = std::path::PathBuf::from(
         std::env::var_os("DMSG_VAULT_INTEROP_DIR").expect("fixture directory"),
     );
@@ -266,8 +331,22 @@ async fn exchange_platform_backups() {
     };
     for name in inputs {
         let home = TempDir::new();
-        let mut c = unlocked(&home.0, false, None);
-        crate::testing::allow_vault_backup(&mut c);
+        let mut c = if std::env::var_os("DMSG_VAULT_INTEROP_LOCAL").is_some() {
+            let mut local = Client::open(crate::testing::config(false), &home.0, None).unwrap();
+            let request = local.prepare_local_create().unwrap();
+            local
+                .complete_local_create(
+                    request
+                        .authenticate(Some("standalone fixture password"))
+                        .unwrap(),
+                )
+                .unwrap();
+            local
+        } else {
+            let mut cloud = unlocked(&home.0, false, None);
+            crate::testing::allow_vault_backup(&mut cloud);
+            cloud
+        };
         let input = if name == "reference" {
             let path = home.0.join("reference.dmsgvault");
             std::fs::write(&path, data).unwrap();

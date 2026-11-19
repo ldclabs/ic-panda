@@ -186,7 +186,10 @@ class AndroidSecurity(
         SigningKey(publicBytes(pair.public, true), encoded(handle))
     }
     override fun deleteSigning(handle: ByteArray) = guarded {
-        val key = decode(handle, "approval-p256-v1")
+        require(handle.size in 1..1024)
+        val kind = JSONObject(handle.toString(Charsets.UTF_8)).getString("kind")
+        require(kind in setOf("approval-p256-v1", "rsa-oaep-v1", "anchor-p256-v1"))
+        val key = decode(handle, kind)
         synchronized(store) { store.deleteEntry(key.alias) }
     }
     override fun createAnchor(): SigningKey = guarded {

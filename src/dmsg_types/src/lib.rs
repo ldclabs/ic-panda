@@ -3,13 +3,13 @@
 pub mod account;
 pub mod agent;
 pub mod app_store;
-pub mod google_play;
 /// Passkey login and renewable device sessions.
 pub mod auth;
 pub mod billing;
 /// dmsg-connect/1 messages between the bridge page, the relay and devices.
 pub mod connect;
 pub mod cose;
+pub mod google_play;
 pub mod handle;
 /// dmsg-login/1 messages between local clients and the login page.
 pub mod login;
@@ -27,7 +27,7 @@ pub use signing::*;
 pub mod profiles;
 
 pub mod account_id;
-pub use account_id::AccountId;
+pub use account_id::{AccountId, LOCAL_ACCOUNT_ID};
 
 /// Third-party authentication, signing and subscription contracts.
 pub mod integration;

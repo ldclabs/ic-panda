@@ -182,6 +182,10 @@ fn directory_config_and_allocator_routing() {
 
 #[test]
 fn user_homes_route_each_account_to_its_allocator() {
+    assert!(!allocated_by(
+        &dmsg_types::LOCAL_ACCOUNT_ID,
+        &dmsg_types::Hash::new([0; 32])
+    ));
     let (env, ns) = (Environment::Local, "https://dmsg.test/u/");
     let homes: Vec<Principal> = (1..=3).map(|n| Principal::from_slice(&[n])).collect();
     validate_user_homes(&env, ns, &homes).unwrap();

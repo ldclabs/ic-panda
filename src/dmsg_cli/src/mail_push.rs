@@ -26,6 +26,10 @@ pub(crate) async fn run(daemon: Arc<Daemon>) {
     let mut tick = tokio::time::interval(CHECK_INTERVAL);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
+        if daemon.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         tokio::select! { _=tick.tick()=>{}, _=daemon.mail_push().maintain.notified()=>{} }
         if daemon.stopping() {
             continue;

@@ -39,7 +39,7 @@ import java.io.File
 import kotlinx.coroutines.CancellationException
 
 private data class Destination(val id: String, val label: Int, val icon: ImageVector)
-private val destinations = listOf(
+private val allDestinations = listOf(
     Destination("vault", R.string.text_vault_ede2a06, Icons.Outlined.Lock),
     Destination("messages", R.string.text_messages_3a9ab2d, Icons.AutoMirrored.Outlined.Chat),
     Destination("files", R.string.text_files_c79ddc2, Icons.Outlined.Folder),
@@ -49,12 +49,14 @@ private val destinations = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun DMsgApp(client: ClientController, browser: (String) -> Unit, share: (File, String) -> Unit) {
     val state by client.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.unlocked, state.concealed, state.session?.account) { client.routePendingChannel(); client.routePendingConnect(); client.routePendingWorkspace(); client.routePendingNotice() }
+    val local = state.session?.accountKind == "local"
+    val destinations = if (local) allDestinations.filter { it.id != "messages" } else allDestinations
+    LaunchedEffect(state.unlocked, state.concealed, state.session?.account) { if (local) return@LaunchedEffect; client.routePendingChannel(); client.routePendingConnect(); client.routePendingWorkspace(); client.routePendingNotice() }
     val context = LocalContext.current
     val channelListing by client.messages.channels.state.collectAsStateWithLifecycle()
     val syncStatus by client.synchronization.status.collectAsStateWithLifecycle()
     val noticeStatus by client.notifications.status.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.unlocked, state.concealed, state.epoch) { if (state.unlocked && !state.concealed) while (true) { client.notifications.status(); kotlinx.coroutines.delay(30_000) } }
+    LaunchedEffect(state.unlocked, state.concealed, state.epoch) { if (state.unlocked && !local && !state.concealed) while (true) { client.notifications.status(); kotlinx.coroutines.delay(30_000) } }
     val navigation by client.navigation.state.collectAsStateWithLifecycle()
     val fold = rememberWorkspaceFold()
     val route = navigation.current.page
@@ -108,7 +110,7 @@ private val destinations = listOf(
                                 if (navigation.canGoBack) IconButton(onClick = { client.navigation.back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
                             }, actions = {
                                 if (route == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
-                                Box {
+                                if (!local) Box {
                                     IconButton(onClick = { activityMenu = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
                                     DropdownMenu(activityMenu, { activityMenu = false }) {
                                         val reminders = noticeStatus.valueOrNull()?.counts?.total
@@ -167,7 +169,7 @@ private val destinations = listOf(
                                     "system-files" -> SystemExportsScreen(client, net.dmsg.android.platform.ExportPurpose.files)
                                     "file-trash" -> FilesScreen(client, state, selected, ::select, share, trash = true)
                                     "approvals" -> ApprovalsScreen(client, state, selected, ::select)
-                                    "account" -> AccountScreen(client, state, ::go, browser)
+                                    "account" -> if (local) LocalSettings(client, ::go) else AccountScreen(client, state, ::go, browser)
                                     "system-integrations" -> SystemIntegrationsScreen(client)
                                     "advanced" -> AdvancedAccountScreen(client)
                                     "about" -> AboutScreen(browser) { client.navigation.push(Route("privacy")) }
@@ -240,10 +242,11 @@ private val destinations = listOf(
                                     "secret-import" -> SecretPackageScreen(client, navigation.current.channel, navigation.current.sequence)
                                     "secret-picker" -> SecretSnapshotPicker(client, navigation.current.channel.orEmpty())
                                     "vault-import" -> VaultImportScreen(client) { passwordImport.launch(arrayOf("*/*")) }
+                                    "local-import" -> LocalImportScreen(client)
                                     "vault-backup" -> VaultBackupScreen(client)
                                     else -> EmptyPanel(str(R.string.text_choose_a_destination_f70f6ae))
                                 } }
-                                if (wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
+                                if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
                                     list = { AccountScreen(client, state, ::go, browser) },
                                     detail = { if (route == "account") EmptyPanel(str(R.string.text_choose_a_destination_f70f6ae)) else pageContent() })
                                 else pageContent()
@@ -323,6 +326,7 @@ private fun title(route: String) = when (route) {
     "secret-compose" -> str(R.string.text_share_secret_snapshot_d4484d8); "secret-shares" -> str(R.string.text_shared_snapshots_08679a9)
     "secret-share" -> str(R.string.text_snapshot_853fcbe); "secret-import" -> str(R.string.text_import_secret_package_51433fa); "secret-picker" -> str(R.string.text_choose_a_secret_2ceded8)
     "vault-import" -> str(R.string.text_import_passwords_16088a6)
+    "local-import" -> str(R.string.import_local_account)
     "vault-backup" -> str(R.string.vault_backup_title)
     "vault-history" -> str(R.string.text_version_history_8a6bf11); "vault-version" -> str(R.string.text_historical_version_119b50c); "vault-compare" -> str(R.string.text_compare_versions_9f9b2e0)
     "inbox" -> str(R.string.text_letters_cfbff5c)

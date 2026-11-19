@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"Theo ngôn ngữ hệ thống"</string>
     <string name="history_device" formatted="false">"Thiết bị"</string>
     <string name="history_fields" formatted="false">"Trường"</string>
+    <string name="import_local_account" formatted="false">"Nhập từ tài khoản cục bộ"</string>
     <string name="language_search" formatted="false">"Tìm ngôn ngữ"</string>
     <string name="links_created_progress" formatted="true">"Đã tạo %1$s trên %2$s"</string>
+    <string name="local_password" formatted="false">"Mật khẩu cục bộ"</string>
+    <string name="local_password_length" formatted="false">"Dùng ít nhất 12 ký tự."</string>
     <string name="no_matches" formatted="false">"Không có kết quả phù hợp"</string>
+    <string name="offline_account" formatted="false">"Tài khoản cục bộ"</string>
     <string name="operation_failed_code" formatted="true">"Không thể hoàn tất thao tác này. Mã: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"Mã dùng một lần. Dùng thao tác của trường để sao chép hoặc hiển thị bằng chữ lớn."</string>
     <string name="permission_account_information" formatted="false">"Thông tin tài khoản"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"Không ai có thể gửi thư mới khi bạn đóng nhận thư."</string>
     <string name="receive_free" formatted="false">"Bất kỳ ai bạn chưa chặn đều có thể gửi thư miễn phí."</string>
     <string name="receive_selected" formatted="false">"Chỉ tài khoản đã chọn hoặc người có lời mời hợp lệ mới có thể gửi thư."</string>
+    <string name="repeat_local_password" formatted="false">"Xác nhận mật khẩu cục bộ"</string>
     <string name="review_anyone_with_the_link" formatted="false">"Bất kỳ ai có liên kết"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Bất kỳ ai có liên kết và mật khẩu"</string>
     <string name="review_receiving" formatted="false">"Đang nhận"</string>
+    <string name="saved_on_device" formatted="false">"Đã lưu trên thiết bị này"</string>
     <string name="search_local_messages" formatted="false">"Tìm trong tin nhắn được lưu trên thiết bị này."</string>
     <string name="search_query_limit" formatted="false">"Nhập tối đa 200 ký tự để tìm kiếm."</string>
     <string name="security_confirm" formatted="false">"Xác nhận trong dMsg"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Vai trò của bạn"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Lựa chọn bên trên sẽ được lưu theo bản sửa đổi tải gần nhất. Kiểm tra trước khi tiếp tục."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Kỳ đăng ký thay đổi. Làm mới tư cách thành viên rồi kiểm tra lại."</string>
+    <string name="use_on_device" formatted="false">"Chỉ dùng trên thiết bị này"</string>
     <string name="vault_backup_changed" formatted="false">"Nội dung khác · lưu bản sao"</string>
     <string name="vault_backup_deleted" formatted="false">"Đã xóa tại đây · lưu bản sao"</string>
     <string name="vault_backup_export" formatted="false">"Xuất bản sao lưu mã hóa"</string>

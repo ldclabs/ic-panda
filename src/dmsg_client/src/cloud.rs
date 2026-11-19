@@ -542,6 +542,7 @@ pub fn found(reply: Result<Json>) -> Result<Option<Json>> {
 /// HTTP client of one relay origin; a clone shares its connections.
 #[derive(Clone)]
 pub struct Cloud {
+    enabled: tokio::sync::watch::Sender<bool>,
     http: reqwest::Client,
     origin: Url,
     local: bool,
@@ -565,21 +566,61 @@ impl Cloud {
         Ok(Self {
             http,
             origin: url,
+            enabled: tokio::sync::watch::channel(true).0,
             local,
         })
     }
 
     /// Anonymous HTTP transport for relay services and public images: no
     /// default credentials or cookies, no redirects, and a request timeout.
-    pub(crate) fn http(&self) -> reqwest::Client {
-        self.http.clone()
+    pub(crate) fn http(&self) -> Result<reqwest::Client> {
+        ensure(*self.enabled.borrow(), crate::local::only())?;
+        Ok(self.http.clone())
+    }
+
+    /// Completes when this workspace's outgoing requests must stop, including handles already in flight.
+    pub async fn when_offline(&self) {
+        let mut enabled = self.enabled.subscribe();
+        let _ = enabled.wait_for(|online| !*online).await;
+    }
+
+    /// Bind direct platform transports to the same workspace boundary as relay requests.
+    pub async fn while_online<T>(
+        &self,
+        work: impl std::future::Future<Output = Result<T>>,
+    ) -> Result<T> {
+        tokio::select! {
+            biased;
+            _ = self.when_offline() => Err(crate::local::only()),
+            result = work => result,
+        }
+    }
+
+    pub(crate) fn network_enabled(&self) -> bool {
+        *self.enabled.borrow()
+    }
+
+    pub(crate) fn network(&mut self, enabled: bool) {
+        self.enabled.send_replace(false);
+        self.enabled = tokio::sync::watch::channel(enabled).0;
     }
 
     fn url(&self, path: &str) -> Result<Url> {
+        ensure(*self.enabled.borrow(), crate::local::only())?;
         ensure(
             path.starts_with("/v1/") && !path.contains("//") && !path.contains('\\'),
             dmsg_types::invalid("path"),
         )?;
+        let target = path.split('?').next().unwrap_or(path);
+        let local = dmsg_types::LOCAL_ACCOUNT_ID.to_string();
+        let mut segments = target.split('/');
+        while let Some(kind) = segments.next() {
+            if matches!(kind, "accounts" | "users" | "profiles")
+                && segments.clone().next() == Some(&local)
+            {
+                return Err(crate::local::only());
+            }
+        }
         let url = self
             .origin
             .join(path)
@@ -648,23 +689,26 @@ impl Cloud {
         } else {
             crate::transport::READ
         };
-        let response = crate::transport::send(&self.http, request, "relay", policy, limit)
-            .await
-            .map_err(|e| match e {
-                crate::transport::Failure::TooLarge => {
-                    Error::InvalidInput("RESPONSE_TOO_LARGE".into())
-                }
-                crate::transport::Failure::Request(_) if mutation => Error::ExecutionUnknown,
-                crate::transport::Failure::Request(e) if crate::transport::transient(&e) => {
-                    crate::transport::unavailable(
-                        "relay",
-                        crate::diagnostic::Diagnostic::request("relay", &e).reason,
-                    )
-                }
-                crate::transport::Failure::Request(_) => {
-                    Error::Unavailable("relay: transport rejected".into())
-                }
-            })?;
+        let mut permission = self.enabled.subscribe();
+        ensure(*permission.borrow_and_update(), crate::local::only())?;
+        let response = tokio::select! {
+            biased;
+            _ = permission.changed() => return Err(crate::local::only()),
+            result = crate::transport::send(&self.http, request, "relay", policy, limit) => result,
+        }
+        .map_err(|e| match e {
+            crate::transport::Failure::TooLarge => Error::InvalidInput("RESPONSE_TOO_LARGE".into()),
+            crate::transport::Failure::Request(_) if mutation => Error::ExecutionUnknown,
+            crate::transport::Failure::Request(e) if crate::transport::transient(&e) => {
+                crate::transport::unavailable(
+                    "relay",
+                    crate::diagnostic::Diagnostic::request("relay", &e).reason,
+                )
+            }
+            crate::transport::Failure::Request(_) => {
+                Error::Unavailable("relay: transport rejected".into())
+            }
+        })?;
         let status = response.status();
         let retry_after = response
             .headers()

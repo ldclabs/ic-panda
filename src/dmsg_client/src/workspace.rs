@@ -63,6 +63,9 @@ pub struct Meta {
     pub created_at: u64,
     /// The account once the device belongs to it.
     pub account: Option<AccountRef>,
+    /// Present only in a standalone workspace, never in a provisional or cloud workspace.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub local: Option<crate::local::Protection>,
     /// The latest unlock through a login, in Unix milliseconds.
     pub login_unlocked_at: Option<u64>,
     /// When fast unlock was enabled, if it is.
@@ -120,7 +123,7 @@ pub struct AccountRef {
 
 /// Unlocked key material; dropping it zeroes every key.
 pub struct Keys {
-    ldk: Zeroizing<Key>,
+    pub(crate) ldk: Zeroizing<Key>,
     /// Device Ed25519 seed.
     pub signing: Zeroizing<Key>,
     /// Device HPKE seed.
@@ -171,27 +174,14 @@ impl Workspace {
             store.checkpoint()?;
             return Ok(Self { store, meta });
         }
-        let ldk = Zeroizing::new(random_key());
-        let signing = Zeroizing::new(random_key());
-        let hpke = Zeroizing::new(random_key());
+        let (workspace, keys) = Self::fresh(
+            store,
+            environment,
+            now,
+            Hash::new(crate::crypto::random_id()),
+            None,
+        );
         let provisional = Zeroizing::new(random_key());
-        let meta = Meta {
-            environment: name.into(),
-            device_id: Hash::new(crate::crypto::random_id()),
-            signing_pub: Hash::new(signing_public(&signing)),
-            hpke_pub: Hash::new(hpke_public(&hpke)),
-            created_at: now,
-            account: None,
-            login_unlocked_at: None,
-            fast_unlock: None,
-            fast_presence: false,
-            fast_declined: false,
-            bound_declined: false,
-            anchor: None,
-            platform: None,
-        };
-        let workspace = Self { store, meta };
-        let keys = Keys { ldk, signing, hpke };
         workspace.store.atomic(|store| {
             store.set_meta(PROVISIONAL, &ByteArray::new(*provisional))?;
             store.set_sealed(
@@ -208,6 +198,37 @@ impl Workspace {
         Ok(workspace)
     }
 
+    pub(crate) fn fresh(
+        store: Store,
+        environment: &Environment,
+        now: u64,
+        device_id: Hash,
+        local: Option<crate::local::Protection>,
+    ) -> (Self, Keys) {
+        let ldk = Zeroizing::new(random_key());
+        let signing = Zeroizing::new(random_key());
+        let hpke = Zeroizing::new(random_key());
+        let meta = Meta {
+            environment: environment_name(environment).into(),
+            device_id,
+            signing_pub: Hash::new(signing_public(&signing)),
+            hpke_pub: Hash::new(hpke_public(&hpke)),
+            created_at: now,
+            account: None,
+            local,
+            login_unlocked_at: None,
+            fast_unlock: None,
+            fast_presence: false,
+            fast_declined: false,
+            bound_declined: false,
+            anchor: None,
+            platform: None,
+        };
+        let workspace = Self { store, meta };
+        let keys = Keys { ldk, signing, hpke };
+        (workspace, keys)
+    }
+
     fn provisional_context(&self) -> (&'static str, String) {
         (
             "dmsg/local-key/2",
@@ -215,7 +236,7 @@ impl Workspace {
         )
     }
 
-    fn seal_device(&self, keys: &Keys) -> Result<()> {
+    pub(crate) fn seal_device(&self, keys: &Keys) -> Result<()> {
         let secrets = DeviceSecrets {
             signing: ByteArray::new(*keys.signing),
             hpke: ByteArray::new(*keys.hpke),
@@ -234,7 +255,7 @@ impl Workspace {
 
     /// Whether the workspace still waits for its account.
     pub fn provisional(&self) -> bool {
-        self.meta.account.is_none()
+        self.meta.account.is_none() && self.meta.local.is_none()
     }
 
     /// Unlock a workspace that has no account yet.
@@ -487,8 +508,12 @@ impl Workspace {
             .as_slice()
             .try_into()
             .map_err(|_| Error::IntegrityFailed)?;
+        self.device_keys(Zeroizing::new(ldk))
+    }
+
+    pub(crate) fn device_keys(&self, ldk: Zeroizing<Key>) -> Result<Keys> {
         let mut keys = Keys {
-            ldk: Zeroizing::new(ldk),
+            ldk,
             signing: Zeroizing::new([0; 32]),
             hpke: Zeroizing::new([0; 32]),
         };

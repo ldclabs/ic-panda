@@ -166,21 +166,22 @@ struct FileDetailView: View {
                         .disabled(!available)
                     SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
                 }
-                SettingsAction("Share by link", systemImage: "link") { linking = true }
+                if !model.localAccount { SettingsAction("Share by link", systemImage: "link") { linking = true }
                     .disabled(file.size > FileLinkTarget.maxBytes || !(available || file.backup != nil)).accessibilityIdentifier("file.link")
                 if file.size > FileLinkTarget.maxBytes { Text("Files over 100 MiB cannot be shared by link.").font(.footnote).foregroundStyle(.secondary) }
                 if !links.isEmpty {
                     NavigationLink { FileLinksView(file: file.id) } label: { LabeledContent("Share links", value: links.count.formatted()) }
                         .accessibilityIdentifier("file.links")
                 }
-                if !available {
+                }
+                if !model.localAccount && !available {
                     SettingsAction("Restore to this device", glyph: .cloudDown, prominent: true) { actionTask = Task { await restore() } }
                         .disabled(download != nil).accessibilityIdentifier("file.restore")
                 }
                 if !historical {
                     if file.backup?.verified == true {
                         Label("Backed up", systemImage: "checkmark.circle").foregroundStyle(.secondary)
-                    } else {
+                    } else if !model.localAccount {
                         SettingsAction("Back up to cloud", glyph: .cloudUp) { confirmBackup = true }
                             .disabled(!available)
                     }

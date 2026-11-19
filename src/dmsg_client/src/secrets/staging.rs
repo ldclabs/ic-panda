@@ -78,8 +78,18 @@ impl Client {
 
     /// Start staging; no catalog or Vault writes yet.
     pub fn secret_stage_start(&mut self, name: &str, mime: &str, size: u64) -> Result<StagedFile> {
-        catalog::validate_name(name)?;
         ensure(size <= files::MAX_FILE, Error::QuotaExceeded)?;
+        self.stage_library_file(name, mime, size)
+    }
+
+    pub(crate) fn stage_library_file(
+        &mut self,
+        name: &str,
+        mime: &str,
+        size: u64,
+    ) -> Result<StagedFile> {
+        catalog::validate_name(name)?;
+        ensure(size <= self.config.files_max_bytes, Error::QuotaExceeded)?;
         let session = Session::start(self)?;
         Ok(StagedFile {
             session,
@@ -177,14 +187,25 @@ impl Client {
         write: fn(&Self, Vec<Item>, u64) -> Result<Vec<String>>,
         finish: impl FnOnce(&Self, &[String]) -> Result<()>,
     ) -> Result<Vec<String>> {
-        self.catalog()?.live_folder(folder)?;
-        let mut names = std::collections::BTreeSet::new();
-        let now = crate::now_ms();
-        let mut records = Vec::new();
         ensure(
             files.iter().map(|f| f.manifest.size).sum::<u64>() <= 256 * 1024 * 1024,
             Error::QuotaExceeded,
         )?;
+        self.publish_staged(items, files, folder, write, finish)
+    }
+
+    pub(crate) fn publish_staged(
+        &mut self,
+        items: Vec<Item>,
+        files: Vec<StagedFile>,
+        folder: &str,
+        write: fn(&Self, Vec<Item>, u64) -> Result<Vec<String>>,
+        finish: impl FnOnce(&Self, &[String]) -> Result<()>,
+    ) -> Result<Vec<String>> {
+        self.catalog()?.live_folder(folder)?;
+        let mut names = std::collections::BTreeSet::new();
+        let now = crate::now_ms();
+        let mut records = Vec::new();
         for f in &files {
             f.session.check(self)?;
             ensure(f.finished, Error::IntegrityFailed)?;

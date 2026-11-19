@@ -768,7 +768,7 @@ impl Client {
     }
 
     async fn delegation_submit(&mut self, mut job: DelegationJob) -> Result<DelegationJob> {
-        let service = DelegationClient::with_client(self.config.relay_origin(), self.cloud.http());
+        let service = DelegationClient::with_client(self.config.relay_origin(), self.cloud.http()?);
         loop {
             let envelope = job.envelope.clone().ok_or(Error::IntegrityFailed)?;
             let response = service.submit_delegation_event(&envelope).await;
@@ -1066,7 +1066,7 @@ async fn delegation_credential<H: Hold>(
         .with(|c| {
             Ok(DelegationClient::with_client(
                 c.config.relay_origin(),
-                c.cloud.http(),
+                c.cloud.http()?,
             ))
         })
         .await?;

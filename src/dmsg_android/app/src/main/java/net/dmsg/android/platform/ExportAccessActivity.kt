@@ -133,7 +133,7 @@ class ExportAccessActivity : ComponentActivity() {
             // Ask for a site's credential-sharing statement only for an explicit
             // selection or a previous grant to this particular signed webview.
             val previouslyUsed = opened?.let { store.recentLogins(it.header.account, scopedSite).isNotEmpty() } == true
-            if ((previouslyUsed || selected?.let { AutofillTrust.host(it.origin) == value.host } == true) &&
+            if (opened?.header?.account?.let { it != SystemExportStore.digest(net.dmsg.android.core.LOCAL_ACCOUNT.toByteArray()) } == true && (previouslyUsed || selected?.let { AutofillTrust.host(it.origin) == value.host } == true) &&
                 runCatching { AutofillTrust.associated(value.host, value.packageName, fingerprints) }.getOrDefault(false)) return scopedSite
         }
         if (value.web || trustedBrowser || AutofillTrust.isBrowser(this, value.packageName)) return null

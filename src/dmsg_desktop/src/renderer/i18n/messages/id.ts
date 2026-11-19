@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "Gunakan hanya di perangkat ini",
+  offlineAccount: "Akun lokal",
+  savedOnDevice: "Tersimpan di perangkat ini",
+  localPassword: "Kata sandi lokal",
+  importLocalAccount: "Impor dari akun lokal",
+  localPasswordLength: "Gunakan setidaknya 12 karakter.",
+  repeatLocalPassword: "Konfirmasi kata sandi lokal",
   "vaultBackupUnlockError": "Cadangan tidak dapat dibuka. Periksa kata sandi atau pilih berkas lengkap.",
   "vaultBackupUncommitted": "Impor belum tersimpan. Pilih kembali cadangan.",
   "vaultBackupSync": "Entri disinkronkan seperti biasa. Lampiran disimpan di Berkas pada perangkat ini.",

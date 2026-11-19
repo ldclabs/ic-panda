@@ -28,9 +28,9 @@ struct RootView: View {
                 } else if model.unlocked {
                     TabView(selection: $model.selectedTab) {
                         VaultView().tabItem { Label(AppTab.vault.title, glyph: AppTab.vault.icon) }.tag(AppTab.vault)
-                        MessagesView().tabItem { Label(AppTab.messages.title, glyph: AppTab.messages.icon) }.tag(AppTab.messages).badge(unreadMessages)
+                        if !model.localAccount { MessagesView().tabItem { Label(AppTab.messages.title, glyph: AppTab.messages.icon) }.tag(AppTab.messages).badge(unreadMessages) }
                         FilesView().tabItem { Label(AppTab.files.title, glyph: AppTab.files.icon) }.tag(AppTab.files)
-                        AccountWorkspace().tabItem { Label(AppTab.account.title, glyph: AppTab.account.icon) }.tag(AppTab.account)
+                        Group { if model.localAccount { LocalAccountSettings() } else { AccountWorkspace() } }.tabItem { Label(AppTab.account.title, glyph: AppTab.account.icon) }.tag(AppTab.account)
                     }
                     .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refreshSelectedTab() } }
                     .environment(\.openApprovals, { showApprovals = true })
@@ -116,6 +116,20 @@ private struct WorkspaceOverlays: ViewModifier {
 }
 
 /// On a wide screen the account's pages open beside its list.
+private struct LocalAccountSettings: View {
+    @Environment(SessionModel.self) private var model
+    var body: some View {
+        NavigationStack {
+            List {
+                Text("Saved on this device")
+                NavigationLink("Accounts") { AccountsView() }
+                NavigationLink("Remove local data") { LocalAccountRemovalView() }
+                Button("Lock workspace") { Task { await model.lock() } }
+            }.navigationTitle("Local account")
+        }
+    }
+}
+
 private struct AccountWorkspace: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -151,17 +165,17 @@ struct ActivityButton: View {
             let reminders = model.notifications.status?.counts
             let reminderCount = reminders?.actionable ?? 0
             let decisions = approvals > 0 || reminderCount > 0 || reminders?.unverified == true
-            let syncFirst = status != nil && (status?.urgent == true || !decisions)
+            let syncFirst = !model.localAccount && status != nil && (status?.urgent == true || !decisions)
             Menu {
                 if syncFirst { syncEntry(status) }
                 if approvals > 0 || reminderCount == 0 { approvalEntry(approvals) }
-                Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: {
+                if !model.localAccount { Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: {
                     Text(NoticeCopy.text("noticeTitle"))
                     if reminderCount > 0 { Text(reminderCount.formatted()) }
                     Image(systemName: "clock")
-                }.accessibilityIdentifier("reminders.open")
+                }.accessibilityIdentifier("reminders.open") }
                 if approvals == 0 && reminderCount > 0 { approvalEntry(approvals) }
-                if !syncFirst { syncEntry(status) }
+                if !syncFirst && !model.localAccount { syncEntry(status) }
             } label: {
                 Image(systemName: syncFirst ? status?.symbol ?? "bell" : "bell")
                     .foregroundStyle(status?.urgent == true ? .orange : Theme.forest)
@@ -283,7 +297,13 @@ struct AccessView: View {
                             }.modifier(AccessActionStyle(prominent: false)).accessibilityIdentifier("login.succession")
                         }
                     }
-                    if !needsSetup { signInActions }
+                    if model.session?.state == "logged_out" {
+                        Button { Task { await model.openLocalAccount() } } label: { AccessActionLabel("Use only on this device", symbol: "lock") }
+                            .modifier(AccessActionStyle(prominent: false)).accessibilityIdentifier("login.local")
+                    }
+                    if model.localAccount {
+                        NavigationLink("Accounts") { AccountsView() }
+                    } else if !needsSetup { signInActions }
                 }.disabled(model.busy)
                 if !needsSetup { NoticeBar(text: guidance) }
                 MovedCopiesSection(copies: copies) { await loadCopies() }

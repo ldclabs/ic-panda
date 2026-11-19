@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"跟随系统语言"</string>
     <string name="history_device" formatted="false">"设备"</string>
     <string name="history_fields" formatted="false">"字段"</string>
+    <string name="import_local_account" formatted="false">"从本地账户导入"</string>
     <string name="language_search" formatted="false">"查找语言"</string>
     <string name="links_created_progress" formatted="true">"已创建 %1$s / %2$s"</string>
+    <string name="local_password" formatted="false">"本地解锁口令"</string>
+    <string name="local_password_length" formatted="false">"请至少输入 12 个字符。"</string>
     <string name="no_matches" formatted="false">"无匹配结果"</string>
+    <string name="offline_account" formatted="false">"本地账户"</string>
     <string name="operation_failed_code" formatted="true">"操作未完成，错误码：%1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"一次性验证码。使用字段操作可复制或以大字显示。"</string>
     <string name="permission_account_information" formatted="false">"账号信息"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"关闭收信后，任何人都无法发来新信。"</string>
     <string name="receive_free" formatted="false">"所有未被你屏蔽的人都可以免费来信。"</string>
     <string name="receive_selected" formatted="false">"只有选定账号或持有效邀请的人可以来信。"</string>
+    <string name="repeat_local_password" formatted="false">"确认本地口令"</string>
     <string name="review_anyone_with_the_link" formatted="false">"持有链接的任何人"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"同时持有链接和密码的任何人"</string>
     <string name="review_receiving" formatted="false">"接收"</string>
+    <string name="saved_on_device" formatted="false">"已保存到本机"</string>
     <string name="search_local_messages" formatted="false">"搜索此设备已保存的消息。"</string>
     <string name="search_query_limit" formatted="false">"搜索词最多可输入 200 个字符。"</string>
     <string name="security_confirm" formatted="false">"在 dMsg 中确认"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"你的角色"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"上方选择将基于最新读取的版本保存，请核对后继续。"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"订阅期限已变化，请刷新会员后重新核对。"</string>
+    <string name="use_on_device" formatted="false">"仅在本机使用"</string>
     <string name="vault_backup_changed" formatted="false">"内容不同，可另存副本"</string>
     <string name="vault_backup_deleted" formatted="false">"本机已删除，可另存副本"</string>
     <string name="vault_backup_export" formatted="false">"导出加密备份"</string>

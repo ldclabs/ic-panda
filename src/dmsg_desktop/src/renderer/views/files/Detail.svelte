@@ -25,6 +25,7 @@
    * back through the daemon's `files/changed`.
    */
   let {
+    standalone = false,
     file,
     versions,
     trash,
@@ -44,6 +45,7 @@
     onDiscard,
     onDeleteCloud
   }: {
+    standalone?: boolean
     file: any
     versions: any[]
     trash: boolean
@@ -128,7 +130,7 @@
   }
 
   const loadStatements = async () => {
-    statements = unlocked ? await call<any[]>('attest/history').catch(() => []) : []
+    statements = unlocked && !standalone ? await call<any[]>('attest/history').catch(() => []) : []
   }
 
   const star = () => attempt(() => call('files/update', { id: file.id, starred: !file.starred }))
@@ -242,9 +244,9 @@
               </button>
             {/snippet}
           </Tooltip>
-          <button class={buttonClass(status === 'local' || status === 'failed' ? 'primary' : 'secondary', 'md')} disabled={busy || status === 'backed_up' || status === 'backing_up' || status === 'cloud_only' || status === 'too_large'} onclick={() => onBackup(false)} data-testid="files-backup">
+          {#if !standalone}<button class={buttonClass(status === 'local' || status === 'failed' ? 'primary' : 'secondary', 'md')} disabled={busy || status === 'backed_up' || status === 'backing_up' || status === 'cloud_only' || status === 'too_large'} onclick={() => onBackup(false)} data-testid="files-backup">
             <Icon name="cloud-up" />{t('backUp')}
-          </button>
+          </button>{/if}
           <DropdownMenu.Root dir={localeDir(locale())}>
             <Tooltip content={t('moreActions')}>
               {#snippet children(props)}
@@ -258,18 +260,18 @@
                 <DropdownMenu.Item class={menuItemClass} disabled={!canRead} onSelect={() => onExport(null)}>
                   <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item class={menuItemClass} disabled={!canRead || file.size > 100 * 1024 * 1024} onSelect={() => onShare(null)}>
+                {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!canRead || file.size > 100 * 1024 * 1024} onSelect={() => onShare(null)}>
                   <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item class={menuItemClass} disabled={!canLink} onSelect={() => onLink(null, status === 'cloud_only')} data-testid="files-link">
+                </DropdownMenu.Item>{/if}
+                {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!canLink} onSelect={() => onLink(null, status === 'cloud_only')} data-testid="files-link">
                   <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item class={menuItemClass} disabled={!current} onSelect={() => (stating = { version: current, text: '' })} data-testid="files-state">
+                </DropdownMenu.Item>{/if}
+                {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!current} onSelect={() => (stating = { version: current, text: '' })} data-testid="files-state">
                   <span class="flex items-center gap-2"><Icon name="signature" class="text-faint" />{t('fileStatement')}</span>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item class={menuItemClass} disabled={!versions.some((v) => v.status === 'local')} onSelect={() => onBackup(true)}>
+                </DropdownMenu.Item>{/if}
+                {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!versions.some((v) => v.status === 'local')} onSelect={() => onBackup(true)}>
                   <span class="flex items-center gap-2"><Icon name="cloud-up" class="text-faint" />{t('backUpAll')}</span>
-                </DropdownMenu.Item>
+                </DropdownMenu.Item>{/if}
                 <DropdownMenu.Item class={menuItemClass} disabled={!canRead} onSelect={verify}>
                   <span class="flex items-center gap-2"><Icon name="verified" class="text-faint" />{t('verifyFile')}</span>
                 </DropdownMenu.Item>
@@ -373,10 +375,10 @@
       {/if}
     </dl>
 
-    {#if links.length}
+    {#if !standalone && links.length}
       <div class="mt-5 mb-2 flex items-center justify-between">
         <h3 class="text-[12px] font-medium text-faint">{t('shareLinks')} · {links.length}</h3>
-        <button class="text-[11.5px] text-forest hover:underline" disabled={busy || !unlocked} onclick={onRefreshLinks}>{t('refreshLinks')}</button>
+        {#if !standalone}<button class="text-[11.5px] text-forest hover:underline" disabled={busy || !unlocked} onclick={onRefreshLinks}>{t('refreshLinks')}</button>{/if}
       </div>
       <ul class="grid gap-1.5" data-testid="files-links">
         {#each links as link (link.share_id)}
@@ -390,7 +392,7 @@
               <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} aria-label={t('linkCopy')}><Icon name="copy" /></button>
             {/if}
             {#if link.state === 'active'}
-              <button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy || !unlocked} onclick={() => onRevokeLink(link.share_id)} data-testid="files-link-revoke">{t('linkRevoke')}</button>
+              {#if !standalone}<button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy || !unlocked} onclick={() => onRevokeLink(link.share_id)} data-testid="files-link-revoke">{t('linkRevoke')}</button>{/if}
             {/if}
           </li>
         {/each}
@@ -464,25 +466,25 @@
                   <DropdownMenu.Item class={menuItemClass} disabled={!version.local} onSelect={() => onExport(version.id)}>
                     <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
                   </DropdownMenu.Item>
-                  <DropdownMenu.Item class={menuItemClass} disabled={!version.local || version.size > 100 * 1024 * 1024} onSelect={() => onShare(version.id)}>
+                  {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={!version.local || version.size > 100 * 1024 * 1024} onSelect={() => onShare(version.id)}>
                     <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item class={menuItemClass} disabled={version.size > LINK_MAX_BYTES || (!version.local && !version.backup)} onSelect={() => onLink(version.id, !version.local)} data-testid="files-version-link">
+                  </DropdownMenu.Item>{/if}
+                  {#if !standalone}<DropdownMenu.Item class={menuItemClass} disabled={version.size > LINK_MAX_BYTES || (!version.local && !version.backup)} onSelect={() => onLink(version.id, !version.local)} data-testid="files-version-link">
                     <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item class={menuItemClass} onSelect={() => (stating = { version, text: '' })}>
+                  </DropdownMenu.Item>{/if}
+                  {#if !standalone}<DropdownMenu.Item class={menuItemClass} onSelect={() => (stating = { version, text: '' })}>
                     <span class="flex items-center gap-2"><Icon name="signature" class="text-faint" />{t('fileStatement')}</span>
-                  </DropdownMenu.Item>
+                  </DropdownMenu.Item>{/if}
                   <DropdownMenu.Separator class="my-1 h-px bg-line" />
                   {#if version.backup?.verified && version.local}
-                    <DropdownMenu.Item class={menuItemClass} onSelect={() => (confirming = { kind: 'evict', version })} data-testid="files-version-evict">
+                    {#if !standalone}<DropdownMenu.Item class={menuItemClass} onSelect={() => (confirming = { kind: 'evict', version })} data-testid="files-version-evict">
                       <span class="flex items-center gap-2"><Icon name="cloud-down" class="text-faint" />{t('releaseLocal')}</span>
-                    </DropdownMenu.Item>
+                    </DropdownMenu.Item>{/if}
                   {/if}
                   {#if version.backup}
-                    <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} disabled={!version.local} onSelect={() => onDeleteCloud([version.backup.upload_id])}>
+                    {#if !standalone}<DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} disabled={!version.local} onSelect={() => onDeleteCloud([version.backup.upload_id])}>
                       <span class="flex items-center gap-2"><Icon name="cloud-off" />{t('deleteCloudCopy')}</span>
-                    </DropdownMenu.Item>
+                    </DropdownMenu.Item>{/if}
                   {/if}
                   {#if versions.length > 1}
                     <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={() => (confirming = { kind: 'delete', version })} data-testid="files-version-delete">
@@ -559,7 +561,7 @@
   {/if}
   {#snippet footer()}
     <span class="flex-1"></span>
-    <button class={buttonClass('ghost')} onclick={() => (stating = null)}>{t('cancel')}</button>
+    {#if !standalone}<button class={buttonClass('ghost')} onclick={() => (stating = null)}>{t('cancel')}</button>{/if}
     <button class={buttonClass('primary')} disabled={busy || !stating?.text.trim()} onclick={signStatement} data-testid="files-statement-sign"><Icon name="signature" />{t('fileStatement')}</button>
   {/snippet}
 </Dialog>

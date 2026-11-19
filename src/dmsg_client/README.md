@@ -11,6 +11,22 @@ device keys, under `accounts/<account>/`; a login without an account uses
 workspace, so accounts sharing a computer never see each other's data. The
 daemon in `src/dmsg_cli` owns one instance.
 
+A standalone workspace uses the reserved 12-byte zero account ID
+(`00000000000000000000`). Each installation creates independent device, vault
+and file keys under `local-account/` in its environment directory. Desktop,
+iOS and Android can create and unlock it from the welcome screen. It stores
+ordinary vault entries and files on the device. Local vault versions report
+`save_state = "local_only"` and `synced = false`. Hardware-backed workspaces
+require system authentication. Desktops without a usable hardware credential
+store use a separate local password. Losing the only unlock credential makes
+a previously exported password-encrypted backup the recovery path.
+
+In an unlocked service account, **Import from local account** copies selected
+items and file versions after authentication of the source. The target issues
+new file IDs and keys. Vault entries then follow the target account’s sync
+settings. Independent files stay on the destination device until explicitly
+backed up.
+
 | Module | Role |
 | --- | --- |
 | [`codec`] | Canonical CBOR (RFC 8949 core deterministic) through `dmsg_protocol::canonical`; a bounded decoder for incoming records (24 levels, 50,000 items, 25,000 entries per container, strictly ascending map keys, no floats or foreign tags) whose type keeps every entry, refusing unknown fields while filling by default the fields an older record lacks; strict base64url |

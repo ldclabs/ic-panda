@@ -14,7 +14,7 @@
   interface Inventory {
     at: number
     inventory: {
-      items: { id: string; title: string; kind: string; files: string[]; synced: boolean }[]
+      items: { id: string; title: string; kind: string; files: string[]; synced: boolean; save_state?: string }[]
       files: Record<string, { available: boolean; meta: { size: number } } | null>
       trash: number
       managed: number
@@ -195,7 +195,7 @@
       <div class="flex flex-wrap gap-2"><button class={buttonClass('secondary','xs')} disabled={busy} onclick={()=>selected=list?.inventory.items.map(r=>r.id) ?? []}>{t('selectAll')}</button><button class={buttonClass('ghost','xs')} disabled={busy} onclick={()=>selected=[]}>{t('clearSelection')}</button></div>
       <div class="grid max-h-48 gap-1 overflow-y-auto">
         {#each list.inventory.items as row (row.id)}
-          <Checkbox checked={selected.includes(row.id)} disabled={busy} onCheckedChange={yes=>selected=yes?[...selected,row.id]:selected.filter(v=>v!==row.id)}><span class="break-all">{row.title}</span> · {t(typeLabel[typeOf({type:row.kind})])}{row.synced?'':' · '+t('pendingSync',{n:1})}</Checkbox>
+          <Checkbox checked={selected.includes(row.id)} disabled={busy} onCheckedChange={yes=>selected=yes?[...selected,row.id]:selected.filter(v=>v!==row.id)}><span class="break-all">{row.title}</span> · {t(typeLabel[typeOf({type:row.kind})])}{row.save_state === 'local_only' ? ' · '+t('savedOnDevice') : (row.save_state === 'pending' || (!row.save_state && !row.synced)) ? ' · '+t('pendingSync',{n:1}) : ''}</Checkbox>
         {/each}
       </div>
       {#if fileIds.length}<Checkbox bind:checked={attachments} disabled={busy}>{t('vaultBackupFiles')} ({fileIds.length}, {size(bytes)})</Checkbox>{/if}

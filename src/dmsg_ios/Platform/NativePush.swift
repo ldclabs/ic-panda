@@ -163,6 +163,7 @@ final class NativePush {
         } catch { model.report(error) }
     }
     func refresh(_ model: SessionModel, retryRegistration: Bool = false) async {
+        guard model.cloudAccount else { return }
         #if DEBUG
         if model.uiTesting { await refreshFixture(model, retryRegistration: retryRegistration); return }
         #endif

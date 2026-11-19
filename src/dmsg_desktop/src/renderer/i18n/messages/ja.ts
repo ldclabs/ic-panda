@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "この端末のみで使う",
+  offlineAccount: "ローカルアカウント",
+  savedOnDevice: "この端末に保存済み",
+  localPassword: "ローカルパスワード",
+  importLocalAccount: "ローカルアカウントから読み込む",
+  localPasswordLength: "12 文字以上入力してください。",
+  repeatLocalPassword: "ローカルパスワードを確認",
   "vaultBackupUnlockError": "バックアップを開けません。パスワードを確認するか、完全なファイルを選んでください。",
   "vaultBackupUncommitted": "読み込みは確定していません。バックアップを選び直してください。",
   "vaultBackupSync": "項目は通常どおり同期されます。添付ファイルはこの端末のファイル庫に保存されます。",

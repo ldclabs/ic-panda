@@ -2,13 +2,16 @@
   import { onMount, untrack, type Component } from 'svelte'
   import LinkConfirm from '../components/LinkConfirm.svelte'
   import Toaster from '../components/Toaster.svelte'
-  import { modalOpen } from '../components/ui'
+  import { t } from '../i18n/index.svelte'
+  import { buttonClass, modalOpen } from '../components/ui'
   import { MessageDeliveries, type Delivery } from '../message-delivery'
   import { call, onChange, single } from '../rpc'
   import { lastRoute, noteRoute, visitRoute } from '../view-memory'
   import { namesChanged } from '../views/channels/names.svelte'
   import type { NoticeStatus } from '../../shared/notifications'
   import CommandPalette from './CommandPalette.svelte'
+  import Moved from '../views/Moved.svelte'
+  import LocalAccount from './LocalAccount.svelte'
   import Header from './Header.svelte'
   import LoginDialog from './LoginDialog.svelte'
   import { setupStates } from './login.svelte'
@@ -96,7 +99,8 @@
   let finishing = $state(false)
   let welcomed = false
 
-  const view = $derived(viewOf(route))
+  const local = $derived(status?.account_kind === 'local')
+  const view = $derived(local && ![views.files, views.settings, views.vault].some(v => v === viewOf(route)) ? views.vault : viewOf(route))
   const page = $derived(view === views.legacy ? views.settings.path : view.path)
   const unlocked = $derived(status?.state === 'unlocked')
   const legacyNotice = $derived(offers.some((nonce) => !dismissed.includes(nonce)))
@@ -128,7 +132,7 @@
     if (setup || fresh) welcomed = true
     else if (welcomed && unlocked) {
       welcomed = false
-      finishing = true
+      finishing = !local
     }
   })
 
@@ -154,7 +158,7 @@
 
   const loadReminders = single(async () => {
     const session = viewSession, account = status?.account
-    if (!session || !account) return
+    if (!session || !account || local) return
     try {
       const next = await call<NoticeStatus>('notifications/status')
       if (session !== viewSession || account !== status?.account) return
@@ -172,7 +176,7 @@
   // The offers change on unlock and with legacy state, never on a status refresh.
   async function loadOffers() {
     const session = viewSession
-    const pairs = unlocked ? await call<any[]>('legacy/pairs').catch(() => []) : []
+    const pairs = unlocked && !local ? await call<any[]>('legacy/pairs').catch(() => []) : []
     if (session === viewSession) offers = pairs.map((p) => p.nonce)
   }
 
@@ -244,7 +248,7 @@
     if (palette && key === 'k') { palette = false; return }
     if (helping && key === '/') { helping = false; return }
     if (modalOpen()) return
-    if (key === 'k') palette = true
+    if (key === 'k') palette = !local
     else if (key === '/') helping = true
     else if (target) enter(target.path)
   }
@@ -319,11 +323,21 @@
       {#key viewSession}
         <Header {view} {mod} {collapsed} {windowNav} {go} {reminders} {status} onPalette={() => (palette = true)} />
       {/key}
-      {#key viewSession}<RecoveryBanner />{/key}
+      {#if !local}{#key viewSession}<RecoveryBanner />{/key}{/if}
       <main class="min-h-0 flex-1 overflow-hidden" aria-busy={!Page}>
         {#key viewSession}
           <!-- A session change ended every view; the next status opens one. -->
-          {#if viewSession && Page}
+          {#if local && status?.state === 'moved'}
+            <section class="mx-auto max-w-xl p-6"><Moved {status} {refresh} /></section>
+          {:else if local && status?.state === 'locked'}
+            <div class="grid h-full place-content-center justify-items-center gap-4"><h1>{t('offlineAccount')}</h1><LocalAccount action="unlock" {status} {refresh} /></div>
+          {:else if local && unlocked && view === views.settings}
+            <section class="grid max-w-xl justify-items-start gap-4 p-6"><h1 class="text-xl font-semibold">{t('offlineAccount')}</h1><p>{t('savedOnDevice')}</p>
+              <button class={buttonClass('secondary')} onclick={lock}>{t('lock')}</button>
+              {#if status.local_unlock_method === 'password'}<LocalAccount action="password" {status} />{/if}
+              <LocalAccount action="delete" {status} {refresh} />
+            </section>
+          {:else if viewSession && Page}
             <Page {status} {mod} {route} {go} {refresh} {deliveries} {messageDeliveries} />
           {/if}
         {/key}

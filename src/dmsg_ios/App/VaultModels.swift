@@ -10,6 +10,7 @@ struct VaultSummary: Decodable {
     let favorite: Bool
     let tags: [String]
     let synced: Bool
+    var saveState: String? = nil
     let conflict: Bool
     let reserved: Bool
     let deleted: Bool
@@ -19,7 +20,7 @@ struct VaultSummary: Decodable {
     var item: VaultItem {
         VaultItem(id: id, revision: revision, kind: kind, title: title, subtitle: subtitle,
             notes: "", favorite: favorite, tags: tags, synced: synced, conflict: conflict,
-            reserved: reserved, files: [], fields: [], deleted: deleted, createdAt: createdAt, updatedAt: updatedAt)
+            reserved: reserved, files: [], fields: [], deleted: deleted, createdAt: createdAt, updatedAt: updatedAt, saveState: saveState ?? "")
     }
 }
 
@@ -61,7 +62,7 @@ extension VaultItem {
     func replacing(favorite: Bool? = nil, deleted: Bool? = nil, revision: String? = nil, fields: [VaultField]? = nil, title: String? = nil, synced: Bool? = nil) -> VaultItem {
         VaultItem(id: id, revision: revision ?? self.revision, kind: kind, title: title ?? self.title, subtitle: subtitle,
             notes: notes, favorite: favorite ?? self.favorite, tags: tags, synced: synced ?? self.synced, conflict: conflict,
-            reserved: reserved, files: files, fields: fields ?? self.fields, deleted: deleted ?? self.deleted, createdAt: createdAt, updatedAt: updatedAt)
+            reserved: reserved, files: files, fields: fields ?? self.fields, deleted: deleted ?? self.deleted, createdAt: createdAt, updatedAt: updatedAt, saveState: saveState)
     }
 }
 

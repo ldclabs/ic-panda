@@ -16,6 +16,7 @@
    * shows where it lies.
    */
   let {
+    standalone = false,
     entry,
     folder = false,
     selected,
@@ -37,6 +38,7 @@
     onDropFiles,
     dragIds
   }: {
+    standalone?: boolean
     entry: any
     folder?: boolean
     selected: boolean
@@ -156,9 +158,9 @@
             <ContextMenu.Item class={menuItemClass} onSelect={onNewFolder}>
               <span class="flex items-center gap-2"><Icon name="folder-add" class="text-faint" />{t('newSubfolder')}</span>
             </ContextMenu.Item>
-            <ContextMenu.Item class={menuItemClass} onSelect={onGrant} data-testid="files-grant">
+            {#if !standalone}<ContextMenu.Item class={menuItemClass} onSelect={onGrant} data-testid="files-grant">
               <span class="flex items-center gap-2"><Icon name="agents" class="text-faint" />{t('grantAgent')}</span>
-            </ContextMenu.Item>
+            </ContextMenu.Item>{/if}
           {:else}
             <ContextMenu.Item class={menuItemClass} onSelect={onOpen} disabled={status === 'cloud_only'}>
               <span class="flex items-center gap-2"><Icon name="external" class="text-faint" />{t('openFile')}</span>
@@ -166,16 +168,16 @@
             <ContextMenu.Item class={menuItemClass} onSelect={onExport} disabled={status === 'cloud_only'}>
               <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
             </ContextMenu.Item>
-            <ContextMenu.Item class={menuItemClass} onSelect={onShare} disabled={status === 'cloud_only' || entry.size > 100 * 1024 * 1024}>
+            {#if !standalone}<ContextMenu.Item class={menuItemClass} onSelect={onShare} disabled={status === 'cloud_only' || entry.size > 100 * 1024 * 1024}>
               <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
-            </ContextMenu.Item>
+            </ContextMenu.Item>{/if}
             <ContextMenu.Item class={menuItemClass} onSelect={onStar}>
               <span class="flex items-center gap-2"><Icon name={entry.starred ? 'starred' : 'star'} class="text-faint" />{entry.starred ? t('unstar') : t('star')}</span>
             </ContextMenu.Item>
           {/if}
-          <ContextMenu.Item class={menuItemClass} onSelect={onBackup} disabled={!folder && (status === 'backed_up' || status === 'backing_up' || status === 'cloud_only' || status === 'too_large')}>
+          {#if !standalone}<ContextMenu.Item class={menuItemClass} onSelect={onBackup} disabled={!folder && (status === 'backed_up' || status === 'backing_up' || status === 'cloud_only' || status === 'too_large')}>
             <span class="flex items-center gap-2"><Icon name="cloud-up" class="text-faint" />{t('backUp')}</span>
-          </ContextMenu.Item>
+          </ContextMenu.Item>{/if}
           <ContextMenu.Separator class="my-1 h-px bg-line" />
           <ContextMenu.Item class={menuItemClass} onSelect={onRename}>
             <span class="flex items-center gap-2"><Icon name="edit" class="text-faint" />{t('renameFile')}</span>

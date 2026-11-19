@@ -1,6 +1,7 @@
 //! Portable password-encrypted vault backups. Only the foreground owner hosts
 //! these operations. Export requires a separate, single-use high-risk approval.
 mod content;
+pub mod direct;
 mod restore;
 #[cfg(test)]
 mod tests;
@@ -133,8 +134,11 @@ pub(crate) fn remember_permissions(c: &Client, security: &Security) -> Result<()
     Ok(())
 }
 
-fn access(c: &Client, write: bool) -> Result<()> {
+pub(crate) fn access(c: &Client, write: bool) -> Result<()> {
     let roots = c.roots()?;
+    if c.is_local() {
+        return Ok(());
+    }
     let account = c.account()?;
     let access = if let Some(state) = &c.security {
         ensure(
@@ -183,7 +187,7 @@ pub fn begin(c: &mut Client, write: bool) -> Result<String> {
     clear(c);
     c.vault_backup = Some(Operation {
         id: id.clone(),
-        account: c.account()?.id.to_string(),
+        account: c.content_id()?.to_string(),
         session,
         guard,
         state: Stage::Working,
@@ -206,7 +210,7 @@ fn active<'a>(c: &'a mut Client, id: &str, write: bool) -> Result<&'a mut Operat
         .filter(|op| op.id == id)
         .ok_or(Error::Expired)?;
     op.session.check(c)?;
-    ensure(op.account == c.account()?.id.to_string(), Error::Expired)?;
+    ensure(op.account == c.content_id()?.to_string(), Error::Expired)?;
     op.guard.check()?;
     Ok(c.vault_backup.as_mut().unwrap())
 }
@@ -292,6 +296,7 @@ struct Row {
     kind: String,
     files: Vec<String>,
     synced: bool,
+    save_state: String,
 }
 
 #[derive(Default, Serialize)]
@@ -320,7 +325,7 @@ pub async fn inventory<H: Hold>(h: &H, id: &str) -> Result<Value> {
                 guard,
                 c.workspace.store.heads(VAULT)?,
                 super::reading::conflict_ids(c)?,
-                c.account()?.id.to_string(),
+                c.content_id()?.to_string(),
                 now_ms(),
             ))
         })
@@ -357,6 +362,7 @@ pub async fn inventory<H: Hold>(h: &H, id: &str) -> Result<Value> {
                     kind: e.item.kind,
                     files: e.item.files,
                     synced: e.synced,
+                    save_state: e.save_state,
                 });
             }
             Ok(())
@@ -477,6 +483,18 @@ pub(crate) fn check_request(c: &mut Client, id: &str, approval: &str) -> Result<
     )
 }
 
+fn local_entry_id(c: &Client, id: &str) -> Result<String> {
+    let item = crate::upload::hex_id(id)?;
+    Ok(hex::encode(*crate::codec::digest(
+        "dmsg/vault-backup/local-entry/1",
+        &(
+            &c.workspace.meta.environment,
+            c.workspace.meta.device_id,
+            item,
+        ),
+    )))
+}
+
 /// Consume a completed approval, encrypt and independently read back the archive.
 pub async fn export<H: Hold>(h: &H, id: &str, approval: &str) -> Result<Value> {
     let (selection, password, guard, environment, account, temp) = h
@@ -509,7 +527,7 @@ pub async fn export<H: Hold>(h: &H, id: &str, approval: &str) -> Result<Value> {
                 password,
                 op.guard.clone(),
                 c.workspace.meta.environment.clone(),
-                c.account()?.id.to_string(),
+                c.content_id()?.to_string(),
                 temp,
             ))
         })
@@ -537,7 +555,11 @@ pub async fn export<H: Hold>(h: &H, id: &str, approval: &str) -> Result<Value> {
                     .iter()
                     .map(|f| mapping.get(f).copied())
                     .collect();
-                Ok(Entry::new(e, refs))
+                let mut entry = Entry::new(e, refs);
+                if c.is_local() {
+                    entry.id = local_entry_id(c, &entry.id)?;
+                }
+                Ok(entry)
             })
             .await?;
         metadata += Zeroizing::new(crate::codec::canonical(&entry)).len();

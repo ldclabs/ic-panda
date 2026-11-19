@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SecretInput from '../components/SecretInput.svelte'
   import { deviceCapabilityName, deviceRoleName } from './security'
   import Notice from '../components/page/Notice.svelte'
   import { onMount, tick, untrack } from 'svelte'
@@ -48,6 +49,9 @@
   const valid = (at: number, target = id) => alive && at === revision && target === id && status?.state === 'unlocked'
   let request = $state<any>(null)
   let status = $state<any>(null)
+  let ownerPassword = $state('')
+  const needsPassword = $derived(request?.type === 'vault_backup' && status?.account_kind === 'local' && status?.local_unlock_method === 'password')
+  $effect(() => { void status?.session; void request?.id; ownerPassword = '' })
   let error = $state('')
   const busy = $derived(work.kind !== 'idle')
   const approving = $derived(work.kind === 'approve')
@@ -216,7 +220,7 @@
     stopHold()
     error = ''
     try {
-      const next = await bridge(() => window.dmsg.decide(shown.id, shown.digest, approve))
+      const next = await bridge(() => window.dmsg.decide(shown.id, shown.digest, approve, approve && needsPassword ? ownerPassword : undefined))
       if (!valid(at)) return
       revision += 1
       request = next
@@ -415,7 +419,7 @@
   const lifetime = $derived(Math.max(1, (request?.expires_at ?? 0) - (request?.created_at ?? (request?.expires_at ?? 0) - 600_000)))
   const hold = $derived(holdToApprove(request))
   const blockers = $derived<string[]>([...(readiness?.blockers ?? []), ...(request?.type === 'wallet' && request?.detail?.action !== 'cosign' ? (walletReadiness?.blockers ?? ['WALLET_REGISTRATION_UNAVAILABLE']) : []), ...(request?.type === 'wallet' && request?.detail?.proposal && !knownIntent(request.detail.proposal.intent) ? ['WALLET_UNSUPPORTED_INTENT'] : [])])
-  const canApprove = $derived(waiting && ready && !busy && !unquoted && !expired && !blockers.length)
+  const canApprove = $derived((!needsPassword || !!ownerPassword) && waiting && ready && !busy && !unquoted && !expired && !blockers.length)
   const trail = $derived(trailOf(request, agents))
   const kind = $derived(kindOf(request))
   const steps = $derived(stepsOf(request, approving))
@@ -964,6 +968,7 @@
     <!-- The review and its fixed decision controls keep one clear boundary. -->
     <div class="h-px shrink-0 bg-line" aria-hidden="true"></div>
     <div class="shrink-0 px-5 pt-3.5 pb-4">
+      {#if needsPassword && waiting}<SecretInput label={t('localPassword')} bind:value={ownerPassword} disabled={busy} />{/if}
       {#if waiting && !approving}
         {#if left !== null}
           <div class="h-[3px] overflow-hidden rounded-full bg-line" aria-hidden="true">

@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "Nur auf diesem Gerät verwenden",
+  offlineAccount: "Lokales Konto",
+  savedOnDevice: "Auf diesem Gerät gespeichert",
+  localPassword: "Lokales Passwort",
+  importLocalAccount: "Aus lokalem Konto importieren",
+  localPasswordLength: "Mindestens 12 Zeichen verwenden.",
+  repeatLocalPassword: "Lokales Passwort bestätigen",
   "vaultBackupUnlockError": "Sicherung nicht lesbar. Prüfe das Passwort oder wähle eine vollständige Datei.",
   "vaultBackupUncommitted": "Es wurde nichts importiert. Wähle die Sicherung erneut.",
   "vaultBackupSync": "Tresoreinträge werden wie üblich synchronisiert. Anhänge liegen in Dateien auf diesem Gerät.",

@@ -54,7 +54,7 @@
       <span class="flex items-center gap-1">
         {#if conflict}
           <span class="rounded bg-warn-pale px-1 text-[10.5px] font-medium text-warn">{t('conflict')}</span>
-        {:else if !entry.synced}
+        {:else if !entry.synced && entry.save_state !== 'local_only'}
           <span class="size-1.5 rounded-full bg-warn" title={t('notSynced')}></span>
         {/if}
         {#if flagged}<Icon name="warning" class="size-3 text-warn" label={t('healthFlagged')} />{/if}

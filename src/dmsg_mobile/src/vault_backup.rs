@@ -22,6 +22,56 @@ pub(super) fn discard_previous_outputs(staging: &std::path::Path) {
 
 #[uniffi::export]
 impl MobileEngine {
+    pub async fn local_import_preview(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| {
+            Box::pin(async move {
+                let request = h.with(|c| c.prepare_local_import()).await?;
+                let access = tokio::task::spawn_blocking(move || request.authenticate(None))
+                    .await
+                    .map_err(|_| Error::Unavailable("source authentication".into()))??;
+                h.with(|c| backup::direct::preview(c, access)).await
+            })
+        })
+        .await
+    }
+
+    pub async fn local_import_commit(
+        &self,
+        id: String,
+        items: Vec<u32>,
+        files: Vec<u32>,
+        folder: String,
+    ) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move {
+                backup::direct::commit(
+                    h,
+                    &id,
+                    items.into_iter().map(|v| v as usize).collect(),
+                    files.into_iter().map(|v| v as usize).collect(),
+                    &folder,
+                )
+                .await
+            })
+        })
+        .await
+    }
+
+    pub async fn local_import_status(&self, id: String) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| Box::pin(h.with(move |c| backup::direct::status(c, &id))))
+            .await
+    }
+
+    pub async fn local_import_cancel(&self, id: String) -> Result<()> {
+        self.held(move |h| {
+            Box::pin(h.with(move |c| {
+                backup::direct::cancel(c, &id);
+                Ok(())
+            }))
+        })
+        .await
+    }
+
     pub async fn vault_backup_begin(&self, importing: bool) -> Result<String> {
         self.held(move |h| Box::pin(h.with(move |c| backup::begin(c, importing))))
             .await

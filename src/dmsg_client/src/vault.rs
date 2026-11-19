@@ -32,7 +32,7 @@ use crate::client::Client;
 use crate::codec::{canonical, decode, decode_value};
 use crate::content::{EncryptedObject, MAX_OBJECT, VAULT, record};
 use crate::crypto::random_key;
-use crate::store::{LOCAL, ObjectRow, REPLACED, SYNCED};
+use crate::store::{ObjectRow, REPLACED, SYNCED};
 use crate::upload::random_hex;
 use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
@@ -647,6 +647,8 @@ pub struct VaultEntry {
     pub item: Item,
     /// The relay holds this version.
     pub synced: bool,
+    /// Durable storage/delivery state, independent of conflict selection.
+    pub save_state: String,
     /// A conflict copy beside the item's head.
     pub conflict: bool,
     /// The item is in the trash.
@@ -656,13 +658,22 @@ pub struct VaultEntry {
     pub at: u64,
 }
 
+fn save_state(state: &str) -> &str {
+    if state == crate::store::LOCAL {
+        "pending"
+    } else {
+        state
+    }
+}
+
 impl VaultEntry {
-    pub(crate) fn new(record: &EncryptedObject, item: Item, synced: bool, conflict: bool) -> Self {
+    pub(crate) fn new(record: &EncryptedObject, item: Item, state: &str, conflict: bool) -> Self {
         Self {
             id: record.id.clone(),
             revision: record.revision.clone(),
             item,
-            synced,
+            synced: state == SYNCED,
+            save_state: save_state(state).into(),
             conflict,
             deleted: record.tombstone,
             at: record.created_at,
@@ -700,6 +711,8 @@ pub struct Version {
     pub conflict: bool,
     /// The relay holds it.
     pub synced: bool,
+    /// Durable storage/delivery state, independent of conflict selection.
+    pub save_state: String,
     /// The item's current version.
     pub current: bool,
 }
@@ -817,12 +830,7 @@ impl Client {
 
     fn entry(&self, row: &ObjectRow) -> Result<VaultEntry> {
         let (record, item) = self.open_row(row)?;
-        Ok(VaultEntry::new(
-            &record,
-            item,
-            row.state == SYNCED,
-            row.conflict,
-        ))
+        Ok(VaultEntry::new(&record, item, &row.state, row.conflict))
     }
 
     fn version_row(&self, id: &str, revision: &str) -> Result<ObjectRow> {
@@ -842,7 +850,12 @@ impl Client {
     ) -> Result<VaultEntry> {
         let payload = Zeroizing::new(canonical(item));
         let (record, conflict) = self.write(VAULT, id, parent, tombstone, &payload, None)?;
-        Ok(VaultEntry::new(&record, item.clone(), false, conflict))
+        Ok(VaultEntry::new(
+            &record,
+            item.clone(),
+            self.new_object_state(),
+            conflict,
+        ))
     }
 
     /// Add an item of `kind`: its template's fields with `changes` applied.
@@ -892,12 +905,7 @@ impl Client {
         ensure(!item.reserved(), Error::Forbidden)?;
         item.validate()?;
         if item.same(&old) {
-            return Ok(VaultEntry::new(
-                &record,
-                old,
-                row.state == SYNCED,
-                row.conflict,
-            ));
+            return Ok(VaultEntry::new(&record, old, &row.state, row.conflict));
         }
         item.updated_at = crate::now_ms();
         self.put_item(id.into(), Some(base), false, &item)
@@ -987,12 +995,11 @@ impl Client {
         items: Vec<Item>,
         now: u64,
     ) -> Result<Vec<String>> {
-        let account = self.account()?.id.to_string();
+        let account = self.content_id()?.to_string();
         let roots = self.roots()?;
         let generation = roots.generation;
         let root = roots.key(generation).ok_or(Error::RecoveryIncomplete)?;
         let device = hex::encode(*self.workspace.meta.device_id);
-        let store = &self.workspace.store;
         let mut ids = Vec::with_capacity(items.len());
         for item in items {
             ensure(
@@ -1014,21 +1021,7 @@ impl Client {
                 &payload,
                 now,
             );
-            let job = self.prepare_job(&record, None, now)?;
-            let row = ObjectRow {
-                key: record.key.clone(),
-                item: record.id.clone(),
-                revision: record.revision.clone(),
-                kind: VAULT.into(),
-                frame: canonical(&record),
-                state: LOCAL.into(),
-                conflict: false,
-                resolved: false,
-                created_at: now,
-            };
-            store.put_object(&row)?;
-            store.set_job(&row.key, &job)?;
-            store.set_head(&row.item, &row.revision, VAULT)?;
+            self.store_content_version(&record, None)?;
             ids.push(record.id);
         }
         Ok(ids)
@@ -1098,7 +1091,7 @@ impl Client {
             .query
             .as_deref()
             .is_none_or(|q| item.matches(q))
-            .then(|| VaultEntry::new(&record, item, row.state == SYNCED, row.conflict)))
+            .then(|| VaultEntry::new(&record, item, &row.state, row.conflict)))
     }
 
     /// The current version of one item, deleted or not.
@@ -1145,6 +1138,7 @@ impl Client {
                 deleted: record.tombstone,
                 conflict: row.conflict,
                 synced: row.state == SYNCED,
+                save_state: save_state(&row.state).into(),
             });
         }
         versions.reverse();
@@ -1267,7 +1261,7 @@ impl Client {
         let entry = if tombstone && head.tombstone {
             // A tombstone cannot follow a tombstone; the copy is only
             // dismissed on this device.
-            VaultEntry::new(&head, current, head_row.state == SYNCED, false)
+            VaultEntry::new(&head, current, &head_row.state, false)
         } else {
             item.resolved_conflicts = Some(resolved.into_iter().collect());
             self.put_item(copy.id.clone(), Some(head.revision), tombstone, &item)?

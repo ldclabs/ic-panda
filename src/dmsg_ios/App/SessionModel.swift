@@ -217,6 +217,8 @@ final class SessionModel {
         contentSync?.error == "SYNC_BUSY" && (contentSync?.retryAtMs ?? 0) > UInt64(syncClock.timeIntervalSince1970 * 1000)
     }
 
+    var localAccount: Bool { session?.accountKind == "local" }
+    var cloudAccount: Bool { session?.accountKind == "cloud" || (session?.accountKind == "" && session?.account != nil) }
     var unlocked: Bool { session?.state == "unlocked" }
     var needsAccountSetup: Bool { session?.state == "no_account" || session?.setupPending == true }
     // A renewable passkey login alone does not provide a workspace to unlock.
@@ -224,7 +226,7 @@ final class SessionModel {
         guard !signingIntoAnotherAccount, let session, session.account != nil, !needsAccountSetup else { return false }
         return (session.state == "locked" || session.state == "root_required") && (session.fastUnlock || session.loginRenewable)
     }
-    var automaticSyncEnabled: Bool { session?.account.map { !manualSyncAccounts.contains($0) } ?? false }
+    var automaticSyncEnabled: Bool { cloudAccount && (session?.account.map { !manualSyncAccounts.contains($0) } ?? false) }
 
     #if DEBUG
     func selectReminderAccountFixture(_ account: String) {
@@ -622,6 +624,7 @@ final class SessionModel {
     }
 
     func openPushRoute(_ route: String) async {
+        if localAccount { DMsgAppDelegate.pendingRoute = nil; return }
         automaticUnlock.suppress()
         guard let files, let engine else { DMsgAppDelegate.pendingRoute = route; return }
         let current = epoch
@@ -687,6 +690,7 @@ final class SessionModel {
             return header.accountHash != IncomingShares.accountHash(account)
         }) { invalidateSystemExports() }
         self.engine = handle; session = state; lastSessionSequence = state.sequence
+        if localAccount { if selectedTab == .messages { selectedTab = .vault }; filesScope = .local }
         uncoverIfActive()
     }
 
@@ -821,6 +825,7 @@ final class SessionModel {
     }
 
     func watchHints() async {
+        guard cloudAccount else { return }
         guard let engine else { return }
         let current = epoch
         let (events, continuation) = AsyncStream.makeStream(of: HintBridge.Event.self)
@@ -938,6 +943,7 @@ final class SessionModel {
 
     /// A waiting retry starts now; the automatic pass picks it up.
     private func networkReturned(redial: Bool = true) async {
+        guard cloudAccount else { return }
         guard let engine, unlocked, !concealed else { return }
         async let receipts: Void = purchases.networkReturned(self)
         if redial { engine.reconnectHints() }
@@ -1365,6 +1371,35 @@ final class SessionModel {
         } catch { if current == epoch { await updateSession(); report(error) } }
     }
 
+    func openLocalAccount() async {
+        guard !busy, let engine else { return }
+        automaticUnlock.suppress()
+        let operation = beginBusyOperation(.unlocking), current = epoch
+        defer { finishBusyOperation(operation) }
+        do {
+            await BackgroundTransfers.shared.pause()
+            let accounts: [AccountsView.LocalAccount] = try decode(try await engine.accounts())
+            guard current == epoch else { return }
+            let state: SessionSnapshot
+            if let saved = accounts.first(where: { $0.accountKind == "local" }) {
+                state = try await engine.switchAccount(account: saved.id)
+            } else {
+                state = try await engine.createLocalAccount()
+            }
+            signingIntoAnotherAccount = false
+            try adopt(state)
+            selectedTab = .vault
+            await refresh()
+        } catch { if current == epoch { await updateSession(); report(error) } }
+    }
+
+    func leaveLocalAccount() async {
+        guard localAccount else { return }
+        await lock()
+        do { _ = try await self.engine?.logout(); await updateSession(); signingIntoAnotherAccount = true }
+        catch { report(error) }
+    }
+
     func initializeAccount() async {
         guard !busy, engine != nil || uiTesting else { return }
         automaticUnlock.suppress()
@@ -1432,6 +1467,11 @@ final class SessionModel {
         do {
             let state = try await engine.sessionState()
             guard current == epoch else { return }; try adopt(state)
+            if localAccount {
+                if selectedTab == .vault { await loadVault() }
+                if selectedTab == .files { await loadFiles(quiet: true) }
+                return
+            }
             // The list is local to read, and the Messages tab's badge counts it.
             let result = try await engine.channels()
             guard current == epoch else { return }; if channels != result.items { channels = result.items }
@@ -1579,6 +1619,7 @@ final class SessionModel {
     /// Public certified metadata only. It does not unlock content, upload it,
     /// or depend on the account's automatic-content-sync preference.
     func refreshRecoveryWarning(refresh: Bool = true) async {
+        guard cloudAccount else { return }
         guard let engine, let account = session?.account else { return }
         let current = epoch, request = UUID(), operation = OperationToken()
         recoveryOperation?.cancel()

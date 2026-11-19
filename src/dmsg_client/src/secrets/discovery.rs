@@ -452,6 +452,7 @@ impl Client {
             items.len() == work.plan.candidate_ids.len() && references.len() == items.len(),
             Error::IntegrityFailed,
         )?;
+        let account_id = self.content_id()?.to_string();
         self.secret_import_commit_with(items, vec![], "root", |c, ids| {
             let files = ids
                 .iter()
@@ -464,11 +465,7 @@ impl Client {
                                 "{name}={}\n",
                                 SecretRef {
                                     schema_version: 1,
-                                    account_id: c
-                                        .account()
-                                        .expect("account checked")
-                                        .id
-                                        .to_string(),
+                                    account_id: account_id.clone(),
                                     item_id: id.clone(),
                                     field_id: field.clone()
                                 }

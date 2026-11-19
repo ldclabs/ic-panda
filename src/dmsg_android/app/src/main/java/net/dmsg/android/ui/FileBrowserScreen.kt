@@ -92,7 +92,7 @@ import net.dmsg.android.core.*
                 if (!trash) {
                     FilterChip(true, { if (folder != "root") client.navigation.folder("root") }, { Text(str(R.string.text_on_this_device_6032118)) },
                         leadingIcon = { Icon(Icons.Outlined.PhoneAndroid, null, Modifier.size(18.dp)) })
-                    FilterChip(false, { client.navigation.push(Route("cloud-files")) }, { Text(str(R.string.text_cloud_backups_ab4daf1)) },
+                    if (state.session?.accountKind != "local") FilterChip(false, { client.navigation.push(Route("cloud-files")) }, { Text(str(R.string.text_cloud_backups_ab4daf1)) },
                         leadingIcon = { Icon(Icons.Outlined.Cloud, null, Modifier.size(18.dp)) })
                 }
                 if (!trash) IconButton(onClick = { client.navigation.push(Route("file-transfers")) }) {
@@ -101,13 +101,13 @@ import net.dmsg.android.core.*
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_more_file_actions_65e84ee)) }
                     DropdownMenu(menu, { menu = false }) {
-                        if (!trash && (!root || unbacked == 0uL)) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
+                        if (state.session?.accountKind != "local" && !trash && (!root || unbacked == 0uL)) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
                             onClick = { menu = false; client.navigation.push(Route("file-unbacked")) })
                         if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_new_folder_3b1862d)) }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
                             onClick = { menu = false; name = ""; creating = true })
                         DropdownMenuItem(text = { Text(str(R.string.text_select_visible_items_5b34cd2)) }, onClick = { menu = false; all.take(preferences.limit).filterNot { it.id in selection }.forEach { client.library.choose(it.id) } })
-                        DropdownMenuItem(text = { Text(str(R.string.text_share_links_fe69aa5)) }, onClick = { menu = false; client.navigation.push(Route("file-links")) })
-                        DropdownMenuItem(text = { Text(str(R.string.text_collect_files_3ad17e5)) }, onClick = { menu = false; client.navigation.push(Route("file-requests")) })
+                        if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_share_links_fe69aa5)) }, onClick = { menu = false; client.navigation.push(Route("file-links")) })
+                        if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_collect_files_3ad17e5)) }, onClick = { menu = false; client.navigation.push(Route("file-requests")) })
                         if (trash) DropdownMenuItem(text = { Text(str(R.string.text_transfers_6fdfd95)) }, onClick = { menu = false; client.navigation.push(Route("file-transfers")) })
                         if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_trash_8af1079)) }, onClick = { menu = false; client.navigation.push(Route("file-trash")) })
                     }
@@ -155,7 +155,7 @@ import net.dmsg.android.core.*
             else -> str(R.string.empty_folder)
         }) }
         item {
-            if (!trash) Notice(str(R.string.text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b))
+            if (!trash) Notice(str(if (state.session?.accountKind == "local") R.string.saved_on_device else R.string.text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b))
             if (state.working("files:batch")) { LinearProgressIndicator(Modifier.fillMaxWidth()); TextButton(onClick = client.library::cancelBatch) { Text(str(R.string.text_stop_after_completed_items_d0aee2e)) } }
             if (results.isNotEmpty()) TextButton(onClick = { showingResults = true }) { Text(str(R.string.text_review_operation_results_f79dc63)) }
         }

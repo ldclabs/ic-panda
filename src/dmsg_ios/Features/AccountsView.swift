@@ -8,7 +8,7 @@ struct AccountsView: View {
     @State private var failed = false
     @State private var working = false
     struct LocalAccount: Decodable, Identifiable {
-        let account: String; let current: Bool
+        let account: String; let current: Bool; var accountKind: String? = nil
         var fastUnlock: Bool? = nil; var moved: Bool? = nil; var loginUnlockedAt: UInt64? = nil
         var id: String { account }
     }
@@ -27,12 +27,15 @@ struct AccountsView: View {
                 }
             }
             if !loading && !failed && accounts.isEmpty { ContentUnavailableView("No accounts", systemImage: "person.crop.circle") }
+            if !loading && !failed && !accounts.contains(where: { $0.accountKind == "local" }) {
+                SettingsAction("Use only on this device") { Task { await model.openLocalAccount(); onSelected?() } }
+            }
             SettingsAction("Sign in to another account") { Task {
                 guard !working else { return }; working = true; defer { working = false }
-                await model.lock(); model.signingIntoAnotherAccount = true; onSelected?()
+                if model.localAccount { await model.leaveLocalAccount() } else { await model.lock(); model.signingIntoAnotherAccount = true }; onSelected?()
             } }.disabled(working).accessibilityIdentifier("accounts.sign-in")
             if working { ProgressView() }
-        }.privateScreen().navigationTitle("Accounts").task { await load(); await model.notifications.refresh(model) }.refreshable { await load(); await model.notifications.refresh(model) }
+        }.privateScreen().navigationTitle("Accounts").task { await load(); if model.cloudAccount { await model.notifications.refresh(model) } }.refreshable { await load(); if model.cloudAccount { await model.notifications.refresh(model) } }
     }
 
     private func load() async {
@@ -53,7 +56,8 @@ struct AccountsView: View {
             let value = try await engine.accounts()
             guard epoch == model.epoch, !Task.isCancelled else { return }
             accounts = try model.decode(value)
-            let ids = accounts.map(\.id)
+            guard model.cloudAccount else { return }
+            let ids = accounts.filter { $0.accountKind != "local" }.map(\.id)
             for refresh in [false, true] {
                 for start in stride(from: 0, to: ids.count, by: 100) {
                     let batch = Array(ids[start..<min(start + 100, ids.count)])
@@ -82,6 +86,7 @@ struct AccountsView: View {
             return
         }
         #endif
+        if account.accountKind == "local" { await BackgroundTransfers.shared.pause() }
         model.invalidateSystemExports()
         await model.lock()
         do { _ = try await model.engine?.switchAccount(account: account.account); await model.updateSession(); if model.session?.account == account.account { onSelected?() } }
@@ -104,7 +109,7 @@ private struct LocalAccountRow: View {
                 if let name = identity?.name {
                     Text(name).font(.headline).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)
                 }
-                Text(account.account).font(identity?.name == nil ? .body.monospaced() : .caption.monospaced())
+                Text(verbatim: account.accountKind == "local" ? String(localized: "Local account") : account.account).font(identity?.name == nil ? .body.monospaced() : .caption.monospaced())
                     .foregroundStyle(identity?.name == nil ? .primary : .secondary).environment(\.layoutDirection, .leftToRight)
                     .lineLimit(1).truncationMode(.middle)
                 if account.moved == true { Text("Workspace copied from another iPhone").font(.caption) }

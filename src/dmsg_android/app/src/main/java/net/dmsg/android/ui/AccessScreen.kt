@@ -107,6 +107,12 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                         if (state.session?.fastUnlock == true) Button(onClick = client::unlock, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                             Icon(Icons.Outlined.LockOpen, null); Spacer(Modifier.width(10.dp)); Text(str(R.string.text_unlock_workspace_ec9cb2a))
                         }
+                        if (state.session?.state == "logged_out") {
+                            OutlinedButton(onClick = client::openLocal, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("access.local")) { Text(str(R.string.use_on_device)) }
+                        }
+                        if (state.session?.accountKind == "local") {
+                            TextButton(onClick = client::logout, enabled = !state.busy) { Text(str(R.string.text_saved_accounts_e314a1f)) }
+                        } else {
                         if (state.session?.passkeyAvailable == true) {
                             if (state.session?.account == null && state.session?.fastUnlock != true) {
                                 Button(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_new_workspace)) }
@@ -121,6 +127,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                         Text(if (state.session?.fastUnlock == true) str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d)
                             else if (state.session?.passkeyAvailable == true) str(R.string.signin_saved_passkey)
                             else str(R.string.text_sign_in_opens_your_system_browser_content_access_still_requires_a_6a9bef5), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
                 if (authentication.canContinue) {

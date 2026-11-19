@@ -60,7 +60,7 @@ class ClientController internal constructor(private val application: Application
         return navigationIntent
     }
     fun requestNotice(route: NoticeRoute) { beginNavigationIntent(); automaticUnlock.suppress(); pendingNotice = route; preferences(); routePendingNotice() }
-    fun routePendingNotice() { if (!state.value.starting && !state.value.concealed) pendingNotice?.let(noticeNavigation::resolve) ?: noticeNavigation.continueIfReady() }
+    fun routePendingNotice() { if (state.value.session?.accountKind == "local") return; if (!state.value.starting && !state.value.concealed) pendingNotice?.let(noticeNavigation::resolve) ?: noticeNavigation.continueIfReady() }
     internal fun finishNoticeRoute() { pendingNotice = null; preferences() }
     internal fun persistNavigation() = preferences()
     fun requestWorkspace(link: WorkspaceLink) { beginNavigationIntent(); pendingWorkspace = link; preferences(); routePendingWorkspace() }
@@ -480,6 +480,12 @@ class ClientController internal constructor(private val application: Application
     }
 
     private fun startForegroundWork() {
+        val session = state.value.session ?: return
+        if (session.accountKind == "local" || session.account == null) {
+            notices.stop(); push.stop(); purchases.stop(); synchronization.stop(clear = true); fileWork.stop(clear = true)
+            if (session.accountKind == "local" && state.value.unlocked) { systemExports.start(); incoming.checkPending() }
+            return
+        }
         notices.start(); push.start(); purchases.start()
         if (!state.value.unlocked) return
         synchronization.setAutomatic(syncPreferences[state.value.session?.account] ?: true)
@@ -629,6 +635,7 @@ class ClientController internal constructor(private val application: Application
     }
 
     fun routePendingConnect() {
+        if (state.value.session?.accountKind == "local") return
         val link = incomingConnect ?: return
         if (!state.value.unlocked || state.value.concealed) return
         val account = state.value.session?.account ?: return
@@ -639,6 +646,7 @@ class ClientController internal constructor(private val application: Application
     fun dismissConnectLink() { incomingConnect = null; incomingConnectPresented = null; preferences() }
 
     fun routePendingChannel() {
+        if (state.value.session?.accountKind == "local") return
         val link = incomingChannel ?: return
         if (!state.value.unlocked || state.value.concealed) return
         val account = state.value.session?.account ?: return
@@ -662,10 +670,22 @@ class ClientController internal constructor(private val application: Application
     }
 
     fun unlock() { automaticUnlock.suppress(); perform({ it.unlockFast() }, transition = true) { refresh("vault") } }
+    fun openLocal() {
+        automaticUnlock.suppress()
+        perform({ engine ->
+            backgroundFiles.pauseForLocalAccount()
+            val saved = parseSavedAccounts(engine.accounts().decode()).firstOrNull { it.id == LOCAL_ACCOUNT }
+            if (saved == null) engine.createLocalAccount() else engine.switchAccount(saved.id)
+        }, transition = true) { refresh("vault") }
+    }
+
     fun initialize() { automaticUnlock.suppress(); perform({ it.initializeAccount() }, transition = true) { refresh("vault") } }
     fun refreshAccount() = perform({ it.refreshAccount() }, transition = true) { refresh("vault") }
     fun logout() { val account = state.value.session?.account; account?.let(push::forget); lock { perform({ systemExports.invalidate(); account?.let { owner -> backgroundFiles.forget(owner); incoming.forget(owner) }; it.logout() }, transition = true) } }
-    fun switchAccount(account: String) { lock { perform({ systemExports.invalidate(); it.switchAccount(account) }, transition = true) } }
+    fun switchAccount(account: String) { lock { perform({
+        if (account == LOCAL_ACCOUNT) backgroundFiles.pauseForLocalAccount()
+        systemExports.invalidate(); it.switchAccount(account)
+    }, transition = true) } }
     fun removeLocalAccount(account: String) {
         if (!state.value.unlocked || state.value.session?.account != account) return
         push.forget(account)

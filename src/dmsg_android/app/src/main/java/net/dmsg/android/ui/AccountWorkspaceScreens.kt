@@ -83,13 +83,18 @@ import net.dmsg.android.core.*
         items(entries.valueOrNull().orEmpty(), key = { it.id }) { account ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(names[account.id] ?: str(R.string.text_saved_account_872291d), style = MaterialTheme.typography.titleMedium)
-                    SelectionContainer { Text(account.id) }
+                    Text(if (account.id == LOCAL_ACCOUNT) str(R.string.offline_account) else names[account.id] ?: str(R.string.text_saved_account_872291d), style = MaterialTheme.typography.titleMedium)
+                    if (account.id == LOCAL_ACCOUNT) Text(str(R.string.use_on_device)) else SelectionContainer { Text(account.id) }
                     Text(when { account.current -> str(R.string.text_current_account_59c0362); account.moved -> str(R.string.text_copied_workspace_device_authorization_required_b552490); account.bound -> str(R.string.text_workspace_saved_on_this_device_dc64e7f); else -> str(R.string.text_waiting_for_device_authorization_9b74008) }, style = MaterialTheme.typography.bodySmall)
                     if (account.quickUnlock) Text(str(R.string.text_local_unlock_is_configured_4c7291c), style = MaterialTheme.typography.bodySmall)
                     if (!account.current) OutlinedButton(onClick = { client.switchAccount(account.id) }, enabled = !state.busy) { Text(str(R.string.text_switch_to_this_account_d82d52a)) }
                 }
             }
+        }
+        if (entries.valueOrNull()?.any { it.id == LOCAL_ACCOUNT } == true && state.session?.accountKind == "cloud") item {
+            OutlinedButton(onClick = { client.navigation.push(Route("local-import")) }) { Text(str(R.string.import_local_account)) }
+        } else if (entries.valueOrNull()?.none { it.id == LOCAL_ACCOUNT } == true) item {
+            OutlinedButton(onClick = client::openLocal) { Text(str(R.string.use_on_device)) }
         }
         if (entries is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_saved_accounts_f8486b6)) }
     }
@@ -112,13 +117,20 @@ import net.dmsg.android.core.*
     val state by client.state.collectAsStateWithLifecycle()
     var confirming by remember { mutableStateOf(false) }
     val account = state.session?.account.orEmpty()
-    LaunchedEffect(state.epoch) { client.accountWorkspace.local() }
+    var counts by remember(account) { mutableStateOf<Pair<ULong,ULong>?>(null) }
+    LaunchedEffect(state.epoch) {
+        client.accountWorkspace.local()
+        if (account == LOCAL_ACCOUNT) client.perform({ it.localAccountCounts().decode().objectValue() }, key = "local:counts") { counts = it.requiredUnsigned("vault") to it.requiredUnsigned("files") }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SelectionContainer { Text(account) }
+        if (account == LOCAL_ACCOUNT) {
+            Text(str(R.string.offline_account))
+            counts?.let { LabelValue(str(R.string.text_vault_ede2a06), localizedNumber(it.first)); LabelValue(str(R.string.text_files_c79ddc2), localizedNumber(it.second)) }
+        } else SelectionContainer { Text(account) }
         Notice(str(R.string.text_this_removes_this_account_s_encrypted_workspace_and_saved_login_f_74b5e96))
         ReadFeedback(local, client.accountWorkspace::local)
         local.valueOrNull()?.let { LocalContentPanel(it) { client.navigation.push(Route("file-unbacked")) } }
-        Button(onClick = { confirming = true }, enabled = local is ReadState.Ready && !state.busy, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(str(R.string.text_remove_this_account_s_local_data_a2189f8)) }
+        Button(onClick = { confirming = true }, enabled = local is ReadState.Ready && !state.busy && (account != LOCAL_ACCOUNT || counts != null), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(str(R.string.text_remove_this_account_s_local_data_a2189f8)) }
     }
     if (confirming) AlertDialog(onDismissRequest = { confirming = false }, title = { Text(str(R.string.text_remove_local_data_permanently_46fc877)) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { SelectionContainer { Text(account) }; Text(str(R.string.text_anything_that_exists_only_in_this_copy_cannot_be_recovered_from_t_838c951)) }

@@ -120,14 +120,13 @@ pub fn share_key_aad(share_id: &str) -> (&'static str, &str) {
 pub fn password_key(password: &str, share_id: &str) -> Result<Zeroizing<Key>> {
     ensure_valid(!password.is_empty(), "password")?;
     let salt = hex_id(share_id)?;
-    let params = argon2::Params::new(PASSWORD_M_KIB, PASSWORD_T, PASSWORD_P, Some(32))
-        .map_err(|e| Error::Unavailable(format!("argon2: {e}")))?;
-    let argon = argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
-    let mut key = Zeroizing::new([0u8; 32]);
-    argon
-        .hash_password_into(password.as_bytes(), &salt[..], &mut key[..])
-        .map_err(|e| Error::Unavailable(format!("argon2: {e}")))?;
-    Ok(key)
+    crate::kdf::derive(
+        password.as_bytes(),
+        &salt[..],
+        PASSWORD_M_KIB,
+        PASSWORD_T,
+        PASSWORD_P,
+    )
 }
 
 /// The share key sealed under the password key, base64url.
@@ -513,6 +512,7 @@ pub async fn share_link<H: Hold>(
     terms.lifetime()?;
     let (manifest, backup) = h
         .with(|c| {
+            c.require_online()?;
             let (_, record, manifest) = c.library_manifest(id, version)?;
             ensure(manifest.size <= MAX_FILE, Error::QuotaExceeded)?;
             let backup = match record.local {

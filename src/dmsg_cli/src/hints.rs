@@ -62,7 +62,12 @@ pub async fn run(daemon: Arc<Daemon>) {
             let task = tokio::spawn(async move {
                 let mut backoff = 1;
                 loop {
-                    let result = connect_account(&d, &url, &token, &original).await;
+                    let relay = d.client().lock().await.relay();
+                    let result = tokio::select! {
+                        biased;
+                        _ = relay.when_offline() => break,
+                        result = connect_account(&d, &url, &token, &original) => result,
+                    };
                     if let Err(error) = &result {
                         error.emit();
                     }

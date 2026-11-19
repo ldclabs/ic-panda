@@ -122,6 +122,7 @@
 
   $effect(() => scopeJobs(status?.account ?? null))
 
+  const standalone = $derived(status?.account_kind === 'local')
   const unlocked = $derived(status?.state === 'unlocked')
   const tag = $derived(scope.startsWith('tag:') ? scope.slice(4) : null)
   const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'links' && scope !== 'requests' && !tag)
@@ -200,6 +201,7 @@
   // The route names the place; the place changes the route.
   $effect(() => {
     const next = route.startsWith('/files/links') ? 'links' : route.startsWith('/files/requests') ? 'requests' : route.startsWith('/files/cloud') ? 'cloud' : route.startsWith('/files/trash') ? 'trash' : null
+    if (standalone && ['cloud', 'links', 'requests'].includes(next ?? scope)) { scope = ROOT; return }
     if (next && next !== scope) scope = next
     if (!next && ['cloud', 'trash', 'links', 'requests'].includes(scope)) scope = ROOT
   })
@@ -253,10 +255,10 @@
     const [local, disk, shares, running, tagList, fetchingJobs] = await Promise.all([
       call('files/usage').catch(() => null),
       call('files/mount_status').catch(() => null),
-      call('files/share_links').catch(() => []),
-      call<any[]>('files/backup_status').catch(() => null),
+      standalone ? [] : call('files/share_links').catch(() => []),
+      standalone ? null : call<any[]>('files/backup_status').catch(() => null),
       call('files/tags').catch(() => []),
-      call<any[]>('files/download_status').catch(() => null)
+      standalone ? null : call<any[]>('files/download_status').catch(() => null)
     ])
     if (!unlocked || status?.account !== account) return
     usage = local
@@ -768,7 +770,7 @@
 {/snippet}
 
 {#snippet places()}
-      <Tree {folders} {tags} {scope} {unlocked} onPick={(next) => { placesOpen = false; pick(next) }} onDropMove={move} onDropFiles={dropFiles} onNewFolder={newFolderIn} onFolderAction={folderAction} />
+      <Tree {standalone} {folders} {tags} {scope} {unlocked} onPick={(next) => { placesOpen = false; pick(next) }} onDropMove={move} onDropFiles={dropFiles} onNewFolder={newFolderIn} onFolderAction={folderAction} />
       {#if usage}
         <div class="border-t border-line px-3.5 py-2 text-[11px] text-faint">
           <p>{t('localUsage', { files: usage.files, versions: usage.versions, bytes: size(usage.blob_bytes) })}</p>
@@ -859,7 +861,7 @@
       {#if trashOpened && trashDetails?.file?.id === trashOpened}
         <div class="w-[380px] shrink-0 border-s border-line">
           {#key trashOpened}
-            <Detail
+            <Detail {standalone}
               file={trashDetails.file}
               versions={trashDetails.versions}
               trash={true}
@@ -940,11 +942,11 @@
         {#if selected.length > 1 && unlocked}
           <div class="mx-3 mb-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-2.5 py-1.5 text-[12px] text-ink-2" data-testid="files-selection">
             <span class="min-w-0 flex-1">{t('selectedCount', { n: selected.length })}</span>
-            <Tooltip content={t('backUp')}>
+            {#if !standalone}<Tooltip content={t('backUp')}>
               {#snippet children(props)}
                 <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('backUp')} onclick={() => askBackup(selected, false)}><Icon name="cloud-up" /></button>
               {/snippet}
-            </Tooltip>
+            </Tooltip>{/if}
             <Tooltip content={t('moveTo')}>
               {#snippet children(props)}
                 <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('moveTo')} onclick={() => (moving = selected)}><Icon name="folder" /></button>
@@ -976,7 +978,7 @@
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <ul bind:this={list} class="min-h-0 flex-1 overflow-y-auto px-2 pb-24" aria-label={t('files')} onkeydown={onListKey} data-testid="files-list">
           {#each shown as row (row.id)}
-            <Row
+            <Row {standalone}
               entry={row}
               folder={row.kind === 'folder'}
               selected={chosen.has(row.id)}
@@ -1027,7 +1029,7 @@
       <div class="min-w-0 flex-1">
         {#if current && details?.file?.id === current.id}
           {#key current.id}
-            <Detail
+            <Detail {standalone}
               file={details.file}
               versions={details.versions}
               trash={false}
@@ -1052,7 +1054,7 @@
             />
           {/key}
         {:else if currentFolder}
-          <FolderDetail
+          <FolderDetail {standalone}
             folder={currentFolder}
             {folders}
             {unlocked}

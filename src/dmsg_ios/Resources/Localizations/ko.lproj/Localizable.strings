@@ -3512,5 +3512,17 @@
 	<string>가져온 항목이 없습니다. 백업을 다시 선택하세요.</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>항목은 평소처럼 동기화됩니다. 첨부 파일은 이 기기의 파일 보관함에 저장됩니다.</string>
+	<key>Use only on this device</key>
+	<string>이 기기에서만 사용</string>
+	<key>Local account</key>
+	<string>로컬 계정</string>
+	<key>Local password</key>
+	<string>로컬 비밀번호</string>
+	<key>Import from local account</key>
+	<string>로컬 계정에서 가져오기</string>
+	<key>Use at least 12 characters.</key>
+	<string>12자 이상 입력하세요.</string>
+	<key>Confirm local password</key>
+	<string>로컬 비밀번호 확인</string>
 </dict>
 </plist>

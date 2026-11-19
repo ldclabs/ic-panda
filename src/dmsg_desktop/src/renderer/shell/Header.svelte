@@ -43,6 +43,7 @@
       <h1 class="truncate" data-testid="view-title">{t(view.label)}</h1>
     </div>
   </div>
+  {#if status?.account_kind !== 'local'}
   {#key `${status?.session ?? ''}:${status?.account ?? ''}:${status?.state ?? ''}`}
     <RemindersPopover {status} count={reminders} {go} />
   {/key}
@@ -55,4 +56,5 @@
     <span class="min-w-0 flex-1 truncate text-start">{t('searchOrCommand')}</span>
     <kbd class="rounded border border-line bg-surface px-1.5 font-mono text-[10.5px] leading-[18px] text-faint">{mod}K</kbd>
   </button>
+  {/if}
 </header>

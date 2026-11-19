@@ -222,13 +222,31 @@ impl MobileEngine {
         .await
     }
 
+    pub async fn local_account_counts(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| Box::pin(h.with(|c| c.local_counts())))
+            .await
+    }
+
     pub async fn remove_local_account(&self, account: String) -> Result<SessionSnapshot> {
         let transition = self.host.begin_transition()?;
         self.platform.cancel_presence();
         self.cancel_login();
-        transition
-            .run(move |c| Box::pin(async move { c.remove_local_account(&account).map(|_| ()) }))
-            .await?;
+        if account == dmsg_types::LOCAL_ACCOUNT_ID.to_string() {
+            let request = transition
+                .run(|c| Box::pin(async { c.prepare_local_unlock() }))
+                .await?;
+            let access = runtime()
+                .spawn_blocking(move || request.authenticate(None))
+                .await
+                .map_err(|_| Error::Unavailable("local owner confirmation".into()))??;
+            transition
+                .run(move |c| Box::pin(async move { c.delete_local(access).map(drop) }))
+                .await?;
+        } else {
+            transition
+                .run(move |c| Box::pin(async move { c.remove_local_account(&account).map(drop) }))
+                .await?;
+        }
         transition.finish()?;
         self.session_state().await
     }

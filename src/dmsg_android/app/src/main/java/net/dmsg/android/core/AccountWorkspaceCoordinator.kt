@@ -2,6 +2,8 @@ package net.dmsg.android.core
 
 import kotlinx.serialization.json.*
 
+const val LOCAL_ACCOUNT = "00000000000000000000"
+
 data class SavedAccount(val id: String, val device: String, val current: Boolean, val bound: Boolean, val quickUnlock: Boolean, val moved: Boolean, val lastLogin: ULong?)
 data class LocalContent(val versions: ULong, val bytes: ULong, val unbacked: ULong, val unbackedBytes: ULong, val pending: ULong, val lastSync: ULong?)
 data class DisplayCacheUsage(val bytes: ULong, val domains: Int)
@@ -21,7 +23,8 @@ class AccountWorkspaceCoordinator(private val client: ClientController) {
         val request = accounts.begin()
         client.perform({ parseSavedAccounts(it.accounts().decode()) }, key = "account:local-list", replace = true, quiet = true, onError = { accounts.fail(request, it) }) { values ->
             accounts.accept(request, values)
-            if (values.isNotEmpty()) client.perform({ core -> parseParticipants(client.operation { core.channelNames(values.map { it.id }.take(100), true, it) }.decode()) }, key = "account:local-names", replace = true, quiet = true) { names ->
+            val online = values.filter { it.id != LOCAL_ACCOUNT }
+            if (client.state.value.session?.accountKind == "cloud" && online.isNotEmpty()) client.perform({ core -> parseParticipants(client.operation { core.channelNames(online.map { it.id }.take(100), true, it) }.decode()) }, key = "account:local-names", replace = true, quiet = true) { names ->
                 client.rememberAccountNames(names.filterKeys { it != client.state.value.session?.account || client.profile.saved.value() == null }.mapValues { it.value.name })
             }
         }

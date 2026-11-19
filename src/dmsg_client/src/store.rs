@@ -138,6 +138,8 @@ pub struct McpEventRow {
 
 /// A local version the relay has not accepted yet.
 pub const LOCAL: &str = "local";
+/// Durably saved in a standalone workspace, with no relay job.
+pub const LOCAL_ONLY: &str = "local_only";
 /// The relay accepted the version, as head or as a conflict copy.
 pub const SYNCED: &str = "synced";
 /// A local version the relay refused against its head; it stays a conflict

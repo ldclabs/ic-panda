@@ -215,7 +215,7 @@ impl Client {
                 generation,
                 roots.key(generation).ok_or(Error::RecoveryIncomplete)?,
             ),
-            &self.account()?.id.to_string(),
+            &self.content_id()?.to_string(),
             &hex::encode(*self.workspace.meta.device_id),
             VAULT,
             id,
@@ -227,7 +227,12 @@ impl Client {
         let conflict = self.write_record(&record, None, || {
             self.consume_vault_draft(draft, digest, &record.id, &record.revision)
         })?;
-        Ok(VaultEntry::new(&record, item, false, conflict))
+        Ok(VaultEntry::new(
+            &record,
+            item,
+            self.new_object_state(),
+            conflict,
+        ))
     }
 
     fn consume_vault_draft(

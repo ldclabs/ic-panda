@@ -16,6 +16,7 @@
    * Counts come from the daemon's search within the folder.
    */
   let {
+    standalone = false,
     folder,
     folders,
     unlocked,
@@ -26,6 +27,7 @@
     onMove,
     onDiscard
   }: {
+    standalone?: boolean
     folder: any
     folders: any[]
     unlocked: boolean
@@ -60,7 +62,7 @@
     <div class="ms-auto flex shrink-0 flex-wrap items-center gap-1">
       <button class={buttonClass('secondary', 'md')} onclick={onOpen} data-testid="files-folder-open"><Icon name="folder-open" />{t('open')}</button>
       {#if unlocked}
-        <button class={buttonClass('secondary', 'md')} disabled={!files?.length} onclick={onBackup}><Icon name="cloud-up" />{t('backUp')}</button>
+        {#if !standalone}<button class={buttonClass('secondary', 'md')} disabled={!files?.length} onclick={onBackup}><Icon name="cloud-up" />{t('backUp')}</button>{/if}
       {/if}
     </div>
   </header>
@@ -87,7 +89,7 @@
     </dl>
     {#if unlocked}
       <div class="mt-4 flex flex-wrap gap-2">
-        <button class={buttonClass('secondary', 'sm')} onclick={onGrant} data-testid="files-folder-grant"><Icon name="agents" />{t('grantAgent')}</button>
+        {#if !standalone}<button class={buttonClass('secondary', 'sm')} onclick={onGrant} data-testid="files-folder-grant"><Icon name="agents" />{t('grantAgent')}</button>{/if}
         <button class={buttonClass('secondary', 'sm')} onclick={onRename}><Icon name="edit" />{t('renameFile')}</button>
         <button class={buttonClass('secondary', 'sm')} onclick={onMove}><Icon name="folder" />{t('moveTo')}</button>
         <button class={buttonClass('danger', 'sm')} onclick={onDiscard}><Icon name="trash" />{t('moveToTrash')}</button>

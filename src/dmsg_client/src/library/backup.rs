@@ -514,6 +514,7 @@ async fn backup_checked<H: Hold>(
 ) -> Result<BackupRequest> {
     let (_, security) = h
         .signed(|c| {
+            c.require_online()?;
             c.roots()?;
             c.fresh()
         })

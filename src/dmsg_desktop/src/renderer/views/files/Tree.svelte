@@ -13,6 +13,7 @@
    * opens its actions.
    */
   let {
+    standalone = false,
     folders,
     tags,
     scope,
@@ -23,6 +24,7 @@
     onNewFolder,
     onFolderAction
   }: {
+    standalone?: boolean
     folders: any[]
     tags: { tag: string; files: number }[]
     scope: string
@@ -131,12 +133,12 @@
             <ContextMenu.Item class={menuItemClass} onSelect={() => onNewFolder(folder.id)}>
               <span class="flex items-center gap-2"><Icon name="folder-add" class="text-faint" />{t('newSubfolder')}</span>
             </ContextMenu.Item>
-            <ContextMenu.Item class={menuItemClass} onSelect={() => onFolderAction('backup', folder)}>
+            {#if !standalone}<ContextMenu.Item class={menuItemClass} onSelect={() => onFolderAction('backup', folder)}>
               <span class="flex items-center gap-2"><Icon name="cloud-up" class="text-faint" />{t('backUp')}</span>
-            </ContextMenu.Item>
-            <ContextMenu.Item class={menuItemClass} onSelect={() => onFolderAction('grant', folder)}>
+            </ContextMenu.Item>{/if}
+            {#if !standalone}<ContextMenu.Item class={menuItemClass} onSelect={() => onFolderAction('grant', folder)}>
               <span class="flex items-center gap-2"><Icon name="agents" class="text-faint" />{t('grantAgent')}</span>
-            </ContextMenu.Item>
+            </ContextMenu.Item>{/if}
             <ContextMenu.Separator class="my-1 h-px bg-line" />
             <ContextMenu.Item class={menuItemClass} onSelect={() => onFolderAction('rename', folder)}>
               <span class="flex items-center gap-2"><Icon name="edit" class="text-faint" />{t('renameFile')}</span>
@@ -188,9 +190,9 @@
     {/each}
   {/if}
   <div class="mt-auto grid gap-px pt-3">
-    {@render place('requests', 'inbox', t('fileRequests'), 'files-scope-requests')}
+    {#if !standalone}{@render place('requests', 'inbox', t('fileRequests'), 'files-scope-requests')}
     {@render place('links', 'link', t('shareLinks'), 'files-scope-links')}
-    {@render place('cloud', 'cloud-down', t('cloudBackups'), 'files-scope-cloud')}
+    {@render place('cloud', 'cloud-down', t('cloudBackups'), 'files-scope-cloud')}{/if}
     {@render place('trash', 'trash', t('trash'), 'files-scope-trash')}
   </div>
 </nav>

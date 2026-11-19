@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  useOnDevice: "الاستخدام على هذا الجهاز فقط",
+  offlineAccount: "حساب محلي",
+  savedOnDevice: "محفوظ على هذا الجهاز",
+  localPassword: "كلمة المرور المحلية",
+  importLocalAccount: "استيراد من الحساب المحلي",
+  localPasswordLength: "استخدم 12 حرفًا على الأقل.",
+  repeatLocalPassword: "تأكيد كلمة المرور المحلية",
   "vaultBackupUnlockError": "تعذر فتح النسخة. تحقّق من كلمة المرور أو اختر ملفًا كاملًا.",
   "vaultBackupUncommitted": "لم تُحفظ عملية الاستيراد. اختر النسخة مجددًا.",
   "vaultBackupSync": "تتم مزامنة العناصر كالمعتاد، وتُحفظ المرفقات في الملفات على هذا الجهاز.",

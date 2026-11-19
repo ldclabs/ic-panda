@@ -52,6 +52,10 @@ pub(crate) struct Notifications {
 /// Never consumes a plan. A headless daemon only keeps state and emits invalidations.
 pub(crate) async fn run(d: Arc<Daemon>) {
     loop {
+        if d.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         let at = d.notifications.deadline.load(Ordering::Relaxed);
         let wait = if at == 0 {
             Duration::from_secs(86_400)
@@ -82,6 +86,10 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut seen = None;
     loop {
+        if d.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         tokio::select! { _ = tick.tick() => {}, _ = d.notifications.inbox.notified() => {} }
         if d.stopping() {
             continue;
@@ -139,6 +147,10 @@ pub(crate) async fn services_run(d: Arc<Daemon>) {
     let mut account = None;
     let mut plan_at = 0;
     loop {
+        if d.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         tick.tick().await;
         if d.stopping() {
             continue;
@@ -174,6 +186,10 @@ pub(crate) async fn receive_run(d: Arc<Daemon>) {
     let mut tick = tokio::time::interval(FALLBACK);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
+        if d.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         tokio::select! {_ = tick.tick() => {}, _ = d.notifications.receive.notified() => {}}
         if d.stopping() {
             continue;
@@ -300,7 +316,7 @@ impl Daemon {
                         // The previous desktop alerted its selected account by
                         // default. An upgrade keeps that; a fresh install has no
                         // bound account yet and stays opt-in.
-                        let upgraded = c.accounts()?.into_iter().find(|a| a.bound && selected.as_deref() == Some(a.account.as_str()));
+                        let upgraded = c.accounts()?.into_iter().find(|a| a.bound && a.account_kind == "cloud" && selected.as_deref() == Some(a.account.as_str()));
                         if let Some(local) = upgraded && runtime.settings.revision == 0 {
                             let mut settings = runtime.settings.clone();
                             settings.enabled = true;
@@ -319,7 +335,7 @@ impl Daemon {
                         runtime.save(&path)?;
                     }
                     let mut claimed = std::collections::BTreeSet::new();
-                    for local in c.accounts()?.into_iter().filter(|a| a.bound) {
+                    for local in c.accounts()?.into_iter().filter(|a| a.bound && a.account_kind == "cloud") {
                         let account = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
                         c.with_notification_store(&account, |store| {
                             for mut item in store.notification_items()? {
@@ -358,7 +374,7 @@ impl Daemon {
                     context.now = now;
                     let mut all = core::Batch { remove: std::mem::take(&mut runtime.removals), ..Default::default() };
                     if !all.remove.is_empty() { runtime.save(&path)?; }
-                    for local in c.accounts()?.into_iter().filter(|a| a.bound) {
+                    for local in c.accounts()?.into_iter().filter(|a| a.bound && a.account_kind == "cloud") {
                         let id: AccountId = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
                         let batch = c.with_notification_store(&id, |store| {
                             if params["restore"] == true {

@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"Follow system language"</string>
     <string name="history_device" formatted="false">"Device"</string>
     <string name="history_fields" formatted="false">"Fields"</string>
+    <string name="import_local_account" formatted="false">"Import from local account"</string>
     <string name="language_search" formatted="false">"Find a language"</string>
     <string name="links_created_progress" formatted="true">"Created %1$s of %2$s"</string>
+    <string name="local_password" formatted="false">"Local password"</string>
+    <string name="local_password_length" formatted="false">"Use at least 12 characters."</string>
     <string name="no_matches" formatted="false">"No matching results"</string>
+    <string name="offline_account" formatted="false">"Local account"</string>
     <string name="operation_failed_code" formatted="true">"This operation could not finish. Code: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"One-time code. Use field actions to copy it or show it in large type."</string>
     <string name="permission_account_information" formatted="false">"Account information"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"No one can send a new letter while receiving is closed."</string>
     <string name="receive_free" formatted="false">"Anyone you haven’t blocked can write for free."</string>
     <string name="receive_selected" formatted="false">"Only selected accounts or people with a valid invitation can write."</string>
+    <string name="repeat_local_password" formatted="false">"Confirm local password"</string>
     <string name="review_anyone_with_the_link" formatted="false">"Anyone with the link"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Anyone with the link and password"</string>
     <string name="review_receiving" formatted="false">"Receiving"</string>
+    <string name="saved_on_device" formatted="false">"Saved on this device"</string>
     <string name="search_local_messages" formatted="false">"Searches messages saved on this device."</string>
     <string name="search_query_limit" formatted="false">"Use up to 200 characters to search."</string>
     <string name="security_confirm" formatted="false">"Confirm in dMsg"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Your role"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Your selections above will be saved against the latest loaded revision. Review them before continuing."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Your subscription term changed. Refresh membership and review it again."</string>
+    <string name="use_on_device" formatted="false">"Use only on this device"</string>
     <string name="vault_backup_changed" formatted="false">"Different content · save a copy"</string>
     <string name="vault_backup_deleted" formatted="false">"Deleted here · save a copy"</string>
     <string name="vault_backup_export" formatted="false">"Export encrypted backup"</string>

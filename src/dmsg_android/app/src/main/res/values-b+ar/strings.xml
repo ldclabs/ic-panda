@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"اتباع لغة النظام"</string>
     <string name="history_device" formatted="false">"الجهاز"</string>
     <string name="history_fields" formatted="false">"الحقول"</string>
+    <string name="import_local_account" formatted="false">"استيراد من الحساب المحلي"</string>
     <string name="language_search" formatted="false">"البحث عن لغة"</string>
     <string name="links_created_progress" formatted="true">"تم إنشاء %1$s من %2$s"</string>
+    <string name="local_password" formatted="false">"كلمة المرور المحلية"</string>
+    <string name="local_password_length" formatted="false">"استخدم 12 حرفًا على الأقل."</string>
     <string name="no_matches" formatted="false">"لا توجد نتائج مطابقة"</string>
+    <string name="offline_account" formatted="false">"حساب محلي"</string>
     <string name="operation_failed_code" formatted="true">"تعذر إكمال هذه العملية. الرمز: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"رمز للاستخدام مرة واحدة. استخدم إجراءات الحقل لنسخه أو عرضه بخط كبير."</string>
     <string name="permission_account_information" formatted="false">"معلومات الحساب"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"لا يمكن لأحد إرسال رسائل جديدة إليك ما دام الاستقبال مغلقًا."</string>
     <string name="receive_free" formatted="false">"يمكن لأي شخص لم تحظره مراسلتك مجانًا."</string>
     <string name="receive_selected" formatted="false">"يمكن للحسابات المحددة أو لمن لديهم دعوة صالحة فقط مراسلتك."</string>
+    <string name="repeat_local_password" formatted="false">"تأكيد كلمة المرور المحلية"</string>
     <string name="review_anyone_with_the_link" formatted="false">"أي شخص لديه الرابط"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"أي شخص لديه الرابط وكلمة المرور"</string>
     <string name="review_receiving" formatted="false">"استلام"</string>
+    <string name="saved_on_device" formatted="false">"محفوظ على هذا الجهاز"</string>
     <string name="search_local_messages" formatted="false">"يبحث في الرسائل المحفوظة على هذا الجهاز."</string>
     <string name="search_query_limit" formatted="false">"استخدم حتى 200 حرف للبحث."</string>
     <string name="security_confirm" formatted="false">"التأكيد في dMsg"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"دورك"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"ستُحفظ اختياراتك أعلاه بناءً على أحدث مراجعة محمّلة. راجعها قبل المتابعة."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"تغيّرت فترة اشتراكك. حدّث العضوية وراجعها مجددًا."</string>
+    <string name="use_on_device" formatted="false">"الاستخدام على هذا الجهاز فقط"</string>
     <string name="vault_backup_changed" formatted="false">"محتوى مختلف · حفظ نسخة"</string>
     <string name="vault_backup_deleted" formatted="false">"محذوف هنا · حفظ نسخة"</string>
     <string name="vault_backup_export" formatted="false">"تصدير نسخة احتياطية مشفّرة"</string>

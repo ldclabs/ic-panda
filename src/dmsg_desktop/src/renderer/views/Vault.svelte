@@ -116,7 +116,7 @@
   const current = $derived(shown.find((entry) => entry.id === selected) ?? null)
   const workflow = $derived.by(() => {
     const part = route.split('?')[0].split('/')[2]
-    return workflows.includes(part) ? part : null
+    return workflows.includes(part) && (status?.account_kind !== 'local' || ['mounts', 'health'].includes(part)) ? part : null
   })
   /** What the actions on many reach: dMsg's own items stay out of them. */
   const picked = $derived(entries.filter((e) => chosen.has(e.id) && !isManaged(e.item)).map((e) => e.id))
@@ -557,7 +557,7 @@
     <Locked {status} testid="vault-locked" />
   {:else}
     <aside class="hidden w-[184px] shrink-0 flex-col border-e border-line @min-[860px]:flex">
-      <Filters {scope} {workflow} onScope={pickScope} onWorkflow={(name) => go(`/vault/${name}`)} {facets} flagged={flagged.size} onAccess={(tag) => (accessTag = tag)} />
+      <Filters local={status?.account_kind === 'local'} {scope} {workflow} onScope={pickScope} onWorkflow={(name) => go(`/vault/${name}`)} {facets} flagged={flagged.size} onAccess={status?.account_kind === 'local' ? undefined : (tag) => (accessTag = tag)} />
     </aside>
 
     {#if workflow}

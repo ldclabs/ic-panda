@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"سسٹم کی زبان استعمال کریں"</string>
     <string name="history_device" formatted="false">"آلہ"</string>
     <string name="history_fields" formatted="false">"فیلڈز"</string>
+    <string name="import_local_account" formatted="false">"مقامی اکاؤنٹ سے درآمد کریں"</string>
     <string name="language_search" formatted="false">"زبان تلاش کریں"</string>
     <string name="links_created_progress" formatted="true">"%2$s میں سے %1$s بن گئے"</string>
+    <string name="local_password" formatted="false">"مقامی پاس ورڈ"</string>
+    <string name="local_password_length" formatted="false">"کم از کم 12 حروف استعمال کریں۔"</string>
     <string name="no_matches" formatted="false">"کوئی مماثل نتیجہ نہیں"</string>
+    <string name="offline_account" formatted="false">"مقامی اکاؤنٹ"</string>
     <string name="operation_failed_code" formatted="true">"یہ عمل مکمل نہیں ہو سکا۔ کوڈ: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"ایک بار استعمال ہونے والا کوڈ۔ نقل کرنے یا بڑے حروف میں دکھانے کے لیے فیلڈ کے اعمال استعمال کریں۔"</string>
     <string name="permission_account_information" formatted="false">"اکاؤنٹ کی معلومات"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"وصولی بند ہو تو کوئی نیا خط نہیں بھیج سکتا۔"</string>
     <string name="receive_free" formatted="false">"جنہیں آپ نے بلاک نہیں کیا وہ سب مفت لکھ سکتے ہیں۔"</string>
     <string name="receive_selected" formatted="false">"صرف منتخب اکاؤنٹس یا درست دعوت نامہ رکھنے والے لوگ لکھ سکتے ہیں۔"</string>
+    <string name="repeat_local_password" formatted="false">"مقامی پاس ورڈ کی تصدیق کریں"</string>
     <string name="review_anyone_with_the_link" formatted="false">"ہر وہ شخص جس کے پاس لنک ہے"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"ہر وہ شخص جس کے پاس لنک اور پاس ورڈ ہے"</string>
     <string name="review_receiving" formatted="false">"وصولی"</string>
+    <string name="saved_on_device" formatted="false">"اس ڈیوائس پر محفوظ کیا گیا"</string>
     <string name="search_local_messages" formatted="false">"اس آلے پر محفوظ پیغامات تلاش کرتا ہے۔"</string>
     <string name="search_query_limit" formatted="false">"تلاش کے لیے زیادہ سے زیادہ 200 حروف لکھیں۔"</string>
     <string name="security_confirm" formatted="false">"dMsg میں تصدیق کریں"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"آپ کا کردار"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"اوپر کے انتخاب آخری لوڈ شدہ ترمیم کے مطابق محفوظ ہوں گے۔ جاری رکھنے سے پہلے جائزہ لیں۔"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"سبسکرپشن کی مدت بدل گئی۔ رکنیت تازہ کر کے پھر دیکھیں۔"</string>
+    <string name="use_on_device" formatted="false">"صرف اس ڈیوائس پر استعمال کریں"</string>
     <string name="vault_backup_changed" formatted="false">"مختلف مواد · نقل محفوظ کریں"</string>
     <string name="vault_backup_deleted" formatted="false">"یہاں حذف شدہ · نقل محفوظ کریں"</string>
     <string name="vault_backup_export" formatted="false">"رمز شدہ بیک اپ برآمد کریں"</string>

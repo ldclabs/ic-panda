@@ -2,3 +2,6 @@
 /// Stable account identity: 12 binary bytes, canonical 20-character Xid text.
 /// Allocated by the user canister; never truncate a Hash or Principal to create one.
 pub use ic_auth_types::Xid as AccountId;
+
+/// Reserved for the device-local workspace. Never a routable account.
+pub const LOCAL_ACCOUNT_ID: AccountId = ic_auth_types::EMPTY_XID;

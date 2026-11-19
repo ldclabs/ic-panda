@@ -460,7 +460,7 @@ async fn a_matching_local_root_opens_without_publishing_security_to_the_relay() 
     let root = client.root.as_ref().unwrap();
     let state = client.security.as_mut().unwrap();
     state.snapshot.content_root_generation = root.generation;
-    state.snapshot.content_root_digest = Some(root.digest);
+    state.snapshot.content_root_digest = root.committed_digest();
     client.root = None;
     client.published = None;
     // Both endpoints are unreachable. Local data still opens, without

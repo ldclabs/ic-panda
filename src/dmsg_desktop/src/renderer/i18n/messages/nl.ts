@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "Alleen op dit apparaat gebruiken",
+  offlineAccount: "Lokaal account",
+  savedOnDevice: "Op dit apparaat opgeslagen",
+  localPassword: "Lokaal wachtwoord",
+  importLocalAccount: "Importeren uit lokaal account",
+  localPasswordLength: "Gebruik minstens 12 tekens.",
+  repeatLocalPassword: "Lokaal wachtwoord bevestigen",
   "vaultBackupUnlockError": "Back-up kan niet worden geopend. Controleer het wachtwoord of kies een volledig bestand.",
   "vaultBackupUncommitted": "Er is niets geïmporteerd. Kies de back-up opnieuw.",
   "vaultBackupSync": "Items worden zoals gewoonlijk gesynchroniseerd. Bijlagen staan in Bestanden op dit apparaat.",

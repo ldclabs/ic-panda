@@ -15,36 +15,37 @@ struct DMsgApp: App {
                 #endif
                 .task { await model.start() }
                 .onOpenURL { url in
+                    if model.localAccount, url.host != "open" { return }
                     if let invitation = ChannelInvitationLink(url) { ChannelNavigation.shared.pending = invitation }
                     if let link = ConnectLink(url) { ConnectNavigation.shared.pending = link }
                     if url.scheme == "dmsg", url.host == "open", let destination = WorkspaceDestination(rawValue: url.lastPathComponent), url.query == nil, url.fragment == nil { IntentNavigation.shared.destination = destination }
                 }
                 .task(id: "push:\(model.session?.account ?? ""):\(model.session?.generation ?? 0)") {
-                    if model.unlocked { await model.push.refresh(model) }
+                    if model.cloudAccount, model.unlocked { await model.push.refresh(model) }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .dmsgPushToken)) { _ in Task { await model.push.refresh(model) } }
+                .onReceive(NotificationCenter.default.publisher(for: .dmsgPushToken)) { _ in Task { if model.cloudAccount { await model.push.refresh(model) } } }
                 .onReceive(NotificationCenter.default.publisher(for: .dmsgPushRegistrationFailed)) { _ in model.push.registrationFailed() }
                 .onReceive(NotificationCenter.default.publisher(for: .dmsgPushOpen)) { notification in
                     if let route = notification.object as? String { Task { await model.openPushRoute(route) } }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .dmsgPushReceived)) { _ in
-                    Task { await model.notifications.refresh(model, receive: true) }
+                    Task { if model.cloudAccount { await model.notifications.refresh(model, receive: true) } }
                 }
                 .task(id: "notifications:\(scenePhase == .active):\(model.session?.generation ?? 0)") {
-                    guard scenePhase == .active else { return }
+                    guard model.cloudAccount, scenePhase == .active else { return }
                     while !Task.isCancelled {
                         await model.notifications.refresh(model, receive: true)
                         do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }
                     }
                 }
-                .onChange(of: model.contentRevision) { _, _ in Task { await model.notifications.refresh(model) } }
+                .onChange(of: model.contentRevision) { _, _ in Task { if model.cloudAccount { await model.notifications.refresh(model) } } }
                 .onChange(of: model.epoch) { _, _ in model.notifications.clearVisibility() }
-                .task { await model.purchases.listen(model) }
+                .task(id: model.cloudAccount) { if model.cloudAccount { await model.purchases.listen(model) } }
                 .task(id: "store:\(model.concealed):\(model.epoch):\(model.unlocked):\(model.purchases.working)") {
-                    if !model.concealed, model.unlocked, !model.purchases.working { await model.purchases.refresh(model) }
+                    if model.cloudAccount, !model.concealed, model.unlocked, !model.purchases.working { await model.purchases.refresh(model) }
                 }
                 .task(id: "\(scenePhase == .active):\(model.session?.account ?? ""):\(model.session?.generation ?? 0)") {
-                    guard scenePhase == .active, model.session?.account != nil else { return }
+                    guard model.cloudAccount, scenePhase == .active, model.session?.account != nil else { return }
                     while !Task.isCancelled {
                         await model.refreshRecoveryWarning()
                         do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }
@@ -52,7 +53,7 @@ struct DMsgApp: App {
                 }
                 // Only leaving the foreground ends the driver, not a passing control center.
                 .task(id: "content-sync:\(scenePhase != .background):\(model.session?.generation ?? 0):\(model.unlocked):\(model.automaticSyncEnabled)") {
-                    guard scenePhase != .background, model.unlocked else { return }
+                    guard model.cloudAccount, scenePhase != .background, model.unlocked else { return }
                     await model.watchContentSync()
                 }
                 .task(id: "autofill:\(scenePhase == .active):\(model.epoch):\(model.unlocked):\(model.concealed):\(model.contentRevision)") {
@@ -63,19 +64,19 @@ struct DMsgApp: App {
                     }
                 }
                 .task(id: "hints:\(scenePhase == .active):\(model.session?.generation ?? 0):\(model.unlocked)") {
-                    guard scenePhase == .active, model.unlocked else { return }
+                    guard model.cloudAccount, scenePhase == .active, model.unlocked else { return }
                     await model.watchHints()
                 }
                 .task(id: "network:\(scenePhase == .active):\(model.unlocked)") {
-                    guard scenePhase == .active, model.unlocked else { return }
+                    guard model.cloudAccount, scenePhase == .active, model.unlocked else { return }
                     await model.watchNetwork()
                 }
                 .task(id: "file-transfers:\(scenePhase == .active):\(model.session?.generation ?? 0):\(model.unlocked)") {
-                    guard scenePhase == .active, model.unlocked else { return }
+                    guard model.cloudAccount, scenePhase == .active, model.unlocked else { return }
                     await model.fileTransfers.watch(model)
                 }
                 .task(id: "maintenance:\(scenePhase == .active):\(model.session?.generation ?? 0)") {
-                    guard scenePhase == .active, model.unlocked else { return }
+                    guard model.cloudAccount, scenePhase == .active, model.unlocked else { return }
                     while !Task.isCancelled {
                         await model.maintenancePass()
                         do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }

@@ -3512,5 +3512,17 @@
 	<string>本机没有这次导入的提交记录，请重新选择备份。</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>保险库条目按正常流程同步。附件保存在本机文件库。</string>
+	<key>Use only on this device</key>
+	<string>仅在本机使用</string>
+	<key>Local account</key>
+	<string>本地账户</string>
+	<key>Local password</key>
+	<string>本地解锁口令</string>
+	<key>Import from local account</key>
+	<string>从本地账户导入</string>
+	<key>Use at least 12 characters.</key>
+	<string>请至少输入 12 个字符。</string>
+	<key>Confirm local password</key>
+	<string>确认本地口令</string>
 </dict>
 </plist>

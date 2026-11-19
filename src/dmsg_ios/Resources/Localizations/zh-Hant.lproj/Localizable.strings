@@ -3512,5 +3512,17 @@
 	<string>這次匯入尚未寫入，請重新選擇備份。</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>保險庫項目依一般流程同步。附件儲存在本機檔案庫。</string>
+	<key>Use only on this device</key>
+	<string>僅在本機使用</string>
+	<key>Local account</key>
+	<string>本機帳戶</string>
+	<key>Local password</key>
+	<string>本機解鎖密碼</string>
+	<key>Import from local account</key>
+	<string>從本機帳戶匯入</string>
+	<key>Use at least 12 characters.</key>
+	<string>請至少輸入 12 個字元。</string>
+	<key>Confirm local password</key>
+	<string>確認本機密碼</string>
 </dict>
 </plist>

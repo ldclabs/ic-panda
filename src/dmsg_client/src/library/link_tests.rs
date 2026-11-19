@@ -7,6 +7,7 @@ use crate::vectors::{bytes, key, load, text};
 
 #[test]
 fn password_keys_wrap_and_unwrap_the_share_key() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.blocking_lock();
     let share_id = "6a".repeat(32);
     let key: Key = [7; 32];
     let a = password_key("correct horse", &share_id).unwrap();
@@ -330,6 +331,7 @@ async fn links_from_the_cloud_refuse_what_they_cannot_read_before_anything_moves
 /// the same manifest, key wrap and chunk.
 #[test]
 fn opens_the_share_vector() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.blocking_lock();
     let v = load("content-v1.json");
     for case in v["shares"].as_array().unwrap() {
         let share_id = text(&case["share_id"]);
@@ -386,6 +388,7 @@ fn opens_the_share_vector() {
 #[test]
 #[ignore]
 fn print_share_vector() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.blocking_lock();
     use crate::files::FileManifest;
     let share_id = "6c".repeat(32);
     let version_id = "6d".repeat(32);

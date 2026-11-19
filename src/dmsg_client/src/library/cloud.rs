@@ -593,6 +593,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::InvalidInput` for a version without a verified backup.
     pub fn files_evict(&mut self, id: &str, version: Option<&str>) -> Result<FileView> {
+        self.require_online()?;
         let (_, version_id, mut record) = self.pick_version(id, version)?;
         ensure_valid(
             record.backup.as_ref().is_some_and(|b| b.verified),

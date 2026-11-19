@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"Użyj języka systemu"</string>
     <string name="history_device" formatted="false">"Urządzenie"</string>
     <string name="history_fields" formatted="false">"Pola"</string>
+    <string name="import_local_account" formatted="false">"Importuj z konta lokalnego"</string>
     <string name="language_search" formatted="false">"Znajdź język"</string>
     <string name="links_created_progress" formatted="true">"Utworzono %1$s z %2$s"</string>
+    <string name="local_password" formatted="false">"Hasło lokalne"</string>
+    <string name="local_password_length" formatted="false">"Użyj co najmniej 12 znaków."</string>
     <string name="no_matches" formatted="false">"Brak pasujących wyników"</string>
+    <string name="offline_account" formatted="false">"Konto lokalne"</string>
     <string name="operation_failed_code" formatted="true">"Nie udało się ukończyć operacji. Kod: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"Kod jednorazowy. Użyj działań pola, aby go skopiować lub wyświetlić dużą czcionką."</string>
     <string name="permission_account_information" formatted="false">"Informacje o koncie"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"Gdy odbiór jest wyłączony, nikt nie może wysyłać nowych listów."</string>
     <string name="receive_free" formatted="false">"Każda niezablokowana osoba może pisać bezpłatnie."</string>
     <string name="receive_selected" formatted="false">"Mogą pisać tylko wybrane konta i osoby z ważnym zaproszeniem."</string>
+    <string name="repeat_local_password" formatted="false">"Potwierdź hasło lokalne"</string>
     <string name="review_anyone_with_the_link" formatted="false">"Każdy, kto ma link"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Każdy, kto ma link i hasło"</string>
     <string name="review_receiving" formatted="false">"Odbieranie"</string>
+    <string name="saved_on_device" formatted="false">"Zapisano na tym urządzeniu"</string>
     <string name="search_local_messages" formatted="false">"Przeszukuje wiadomości zapisane na tym urządzeniu."</string>
     <string name="search_query_limit" formatted="false">"Wpisz maksymalnie 200 znaków."</string>
     <string name="security_confirm" formatted="false">"Potwierdź w dMsg"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Twoja rola"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Powyższy wybór zostanie zapisany względem ostatniej wczytanej rewizji. Sprawdź go przed kontynuowaniem."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Okres subskrypcji się zmienił. Odśwież członkostwo i sprawdź je ponownie."</string>
+    <string name="use_on_device" formatted="false">"Używaj tylko na tym urządzeniu"</string>
     <string name="vault_backup_changed" formatted="false">"Inna treść · zapisz kopię"</string>
     <string name="vault_backup_deleted" formatted="false">"Tutaj usunięto · zapisz kopię"</string>
     <string name="vault_backup_export" formatted="false">"Eksportuj zaszyfrowaną kopię"</string>

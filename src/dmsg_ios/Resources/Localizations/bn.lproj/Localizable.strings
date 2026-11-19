@@ -3512,5 +3512,17 @@
 	<string>আমদানি সংরক্ষিত হয়নি। আবার ব্যাকআপ বেছে নিন।</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>এন্ট্রি স্বাভাবিকভাবে সিঙ্ক হয়। সংযুক্তিগুলো এই ডিভাইসের ফাইলে থাকে।</string>
+	<key>Use only on this device</key>
+	<string>শুধু এই ডিভাইসে ব্যবহার করুন</string>
+	<key>Local account</key>
+	<string>স্থানীয় অ্যাকাউন্ট</string>
+	<key>Local password</key>
+	<string>স্থানীয় পাসওয়ার্ড</string>
+	<key>Import from local account</key>
+	<string>স্থানীয় অ্যাকাউন্ট থেকে আমদানি করুন</string>
+	<key>Use at least 12 characters.</key>
+	<string>অন্তত ১২টি অক্ষর ব্যবহার করুন।</string>
+	<key>Confirm local password</key>
+	<string>স্থানীয় পাসওয়ার্ড নিশ্চিত করুন</string>
 </dict>
 </plist>

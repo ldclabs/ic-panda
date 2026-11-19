@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"跟隨系統語言"</string>
     <string name="history_device" formatted="false">"裝置"</string>
     <string name="history_fields" formatted="false">"欄位"</string>
+    <string name="import_local_account" formatted="false">"從本機帳戶匯入"</string>
     <string name="language_search" formatted="false">"查詢語言"</string>
     <string name="links_created_progress" formatted="true">"已建立 %1$s / %2$s"</string>
+    <string name="local_password" formatted="false">"本機解鎖密碼"</string>
+    <string name="local_password_length" formatted="false">"請至少輸入 12 個字元。"</string>
     <string name="no_matches" formatted="false">"沒有符合的結果"</string>
+    <string name="offline_account" formatted="false">"本機帳戶"</string>
     <string name="operation_failed_code" formatted="true">"操作未完成，錯誤碼：%1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"一次性驗證碼。使用欄位操作可複製或以大字顯示。"</string>
     <string name="permission_account_information" formatted="false">"帳號資訊"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"關閉收信後，任何人都無法寄來新信。"</string>
     <string name="receive_free" formatted="false">"所有未被你封鎖的人都可以免費來信。"</string>
     <string name="receive_selected" formatted="false">"只有選定的帳號或持有效邀請的人可以來信。"</string>
+    <string name="repeat_local_password" formatted="false">"確認本機密碼"</string>
     <string name="review_anyone_with_the_link" formatted="false">"持有連結的任何人"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"同時持有連結和密碼的任何人"</string>
     <string name="review_receiving" formatted="false">"接收"</string>
+    <string name="saved_on_device" formatted="false">"已儲存到本機"</string>
     <string name="search_local_messages" formatted="false">"搜尋此裝置已儲存的訊息。"</string>
     <string name="search_query_limit" formatted="false">"搜尋詞最多可輸入 200 個字元。"</string>
     <string name="security_confirm" formatted="false">"在 dMsg 中確認"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"你的角色"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"上方選擇將基於最新讀取的版本儲存，請核對後繼續。"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"訂閱期限已變化，請重新整理會員後重新核對。"</string>
+    <string name="use_on_device" formatted="false">"僅在本機使用"</string>
     <string name="vault_backup_changed" formatted="false">"內容不同，可另存副本"</string>
     <string name="vault_backup_deleted" formatted="false">"本機已刪除，可另存副本"</string>
     <string name="vault_backup_export" formatted="false">"匯出加密備份"</string>

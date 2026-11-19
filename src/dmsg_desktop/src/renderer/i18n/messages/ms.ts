@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "Gunakan pada peranti ini sahaja",
+  offlineAccount: "Akaun setempat",
+  savedOnDevice: "Disimpan pada peranti ini",
+  localPassword: "Kata laluan setempat",
+  importLocalAccount: "Import daripada akaun setempat",
+  localPasswordLength: "Gunakan sekurang-kurangnya 12 aksara.",
+  repeatLocalPassword: "Sahkan kata laluan setempat",
   "vaultBackupUnlockError": "Sandaran tidak dapat dibuka. Semak kata laluan atau pilih fail lengkap.",
   "vaultBackupUncommitted": "Import belum disimpan. Pilih sandaran semula.",
   "vaultBackupSync": "Entri disegerakkan seperti biasa. Lampiran disimpan dalam Fail pada peranti ini.",

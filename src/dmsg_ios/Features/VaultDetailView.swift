@@ -118,8 +118,10 @@ struct VaultDetailView: View {
                 NavigationLink { SecretItemAttachmentsView(itemID: item.id) } label: {
                     Label { Text("Item attachments") + Text(verbatim: " · \(item.files.count)") } icon: { Image(systemName: "paperclip") }
                 }
-                NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
-                    .accessibilityIdentifier("vault.share")
+                if !model.localAccount {
+                    NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
+                        .accessibilityIdentifier("vault.share")
+                }
                 Button("Move to Trash", systemImage: "trash", role: .destructive) { deleting = true }
                     .accessibilityIdentifier("vault.detail.trash")
             }
@@ -176,7 +178,7 @@ struct VaultDetailView: View {
                     }
                     HStack(spacing: 8) {
                         Text(vaultKindName(item.kind))
-                        Label(item.deleted ? "In Trash" : item.conflict ? "Sync conflicts" : item.synced ? "Synced" : "Waiting to sync",
+                        Label(item.deleted ? "In Trash" : item.conflict ? "Sync conflicts" : item.saveState == "local_only" ? "Saved on this device" : item.synced ? "Synced" : "Waiting to sync",
                             systemImage: item.deleted ? "trash" : item.conflict ? "arrow.triangle.branch" : item.synced ? "checkmark.circle" : "arrow.triangle.2.circlepath")
                     }.font(.footnote).foregroundStyle(.secondary)
                 }

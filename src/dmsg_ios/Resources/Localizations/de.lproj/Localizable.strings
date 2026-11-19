@@ -3512,5 +3512,17 @@
 	<string>Es wurde nichts importiert. Wähle die Sicherung erneut.</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>Tresoreinträge werden wie üblich synchronisiert. Anhänge liegen in Dateien auf diesem Gerät.</string>
+	<key>Use only on this device</key>
+	<string>Nur auf diesem Gerät verwenden</string>
+	<key>Local account</key>
+	<string>Lokales Konto</string>
+	<key>Local password</key>
+	<string>Lokales Passwort</string>
+	<key>Import from local account</key>
+	<string>Aus lokalem Konto importieren</string>
+	<key>Use at least 12 characters.</key>
+	<string>Mindestens 12 Zeichen verwenden.</string>
+	<key>Confirm local password</key>
+	<string>Lokales Passwort bestätigen</string>
 </dict>
 </plist>

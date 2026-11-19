@@ -48,6 +48,11 @@ pub enum Presence {
 
 /// Hardware that keeps a key and uses it only with the person present.
 pub trait PresenceKey: Send + Sync {
+    /// Release a platform-owned presence key once its standalone workspace no longer references it.
+    fn discard_local_key(&self, _handle: &[u8]) -> Result<()> {
+        Ok(())
+    }
+
     /// How this device checks the person; `None` without usable hardware.
     fn presence(&self) -> Option<Presence>;
 
@@ -200,6 +205,11 @@ impl Drop for SigningCancellation {
 /// has not been copied to other hardware, such as by a system migration or
 /// a restored backup.
 pub trait HardwareAnchor: Send + Sync {
+    /// Release a platform-owned anchor key once its standalone workspace no longer references it.
+    fn discard_local_key(&self, _handle: &[u8]) -> Result<()> {
+        Ok(())
+    }
+
     /// Sign a bounded IC request or delegation message with an independent
     /// login key, using P-256 ECDSA over SHA-256. Never asks for presence.
     /// # Errors

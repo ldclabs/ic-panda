@@ -31,7 +31,7 @@ import net.dmsg.android.core.*
                     if (version.current) Text(str(R.string.text_current_version_b3f03bb))
                     if (version.deleted) Text(str(R.string.text_in_trash_3b5e1bf))
                     if (version.conflict) Text(str(R.string.text_conflicting_version_ffce550))
-                    if (!version.synced) Text(str(R.string.text_waiting_to_sync_9a0891e))
+                    if (!version.synced && version.saveState != "local_only") Text(str(R.string.text_waiting_to_sync_9a0891e))
                     if (!version.deleted && version.changes.isNotEmpty()) Text(version.changes.joinToString(" · ") { historyChange(it) })
                     val deviceName = version.alias ?: if (version.device == state.session?.deviceId) str(R.string.text_this_device_ce825c6)
                         else str(R.string.history_device) + " · " + version.device.take(8)

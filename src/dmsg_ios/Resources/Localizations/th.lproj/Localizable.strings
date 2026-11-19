@@ -3512,5 +3512,17 @@
 	<string>ยังไม่ได้บันทึกการนำเข้า โปรดเลือกข้อมูลสำรองอีกครั้ง</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>รายการจะซิงค์ตามปกติ ไฟล์แนบอยู่ในคลังไฟล์ของอุปกรณ์นี้</string>
+	<key>Use only on this device</key>
+	<string>ใช้เฉพาะบนอุปกรณ์นี้</string>
+	<key>Local account</key>
+	<string>บัญชีในเครื่อง</string>
+	<key>Local password</key>
+	<string>รหัสผ่านในเครื่อง</string>
+	<key>Import from local account</key>
+	<string>นำเข้าจากบัญชีในเครื่อง</string>
+	<key>Use at least 12 characters.</key>
+	<string>ใช้อย่างน้อย 12 ตัวอักษร</string>
+	<key>Confirm local password</key>
+	<string>ยืนยันรหัสผ่านในเครื่อง</string>
 </dict>
 </plist>

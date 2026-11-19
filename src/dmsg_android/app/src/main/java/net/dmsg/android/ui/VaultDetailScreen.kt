@@ -50,6 +50,7 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(read, reload)
         if (item != null) {
+            if (item.saveState == "local_only") Text(str(R.string.saved_on_device), style = MaterialTheme.typography.labelMedium)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 SecretIcon(item.kind)
                 Column(Modifier.weight(1f)) { Text(item.title, style = MaterialTheme.typography.headlineSmall); Text(vaultKindName(item.kind), color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -76,7 +77,7 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
             Text(str(R.string.text_updated_7676bd2) + displayTime(item.updatedAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(str(R.string.text_created_c1dc4dc) + displayTime(item.createdAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (!historical) TextButton(onClick = { client.navigation.push(Route("vault-history", id)) }) { Text(str(R.string.text_version_history_8a6bf11)) }
-            if (!historical && !item.reserved && !item.deleted) OutlinedButton(onClick = { client.navigation.push(Route("secret-compose", id)) }) { Text(str(R.string.text_share_secret_snapshot_d4484d8)) }
+            if (item.saveState != "local_only" && !historical && !item.reserved && !item.deleted) OutlinedButton(onClick = { client.navigation.push(Route("secret-compose", id)) }) { Text(str(R.string.text_share_secret_snapshot_d4484d8)) }
             if (item.reserved) Notice(str(R.string.text_this_key_is_managed_by_dmsg_its_private_fields_cannot_be_revealed_4a768a2))
             else if (!historical && item.deleted) Button(onClick = { client.perform({ it.restoreItem(id) }, key = "vault:edit:" + id) { client.vault.changed(); client.vault.select(id) } }) { Text(str(R.string.text_restore_item_1f6ceaa)) }
             else if (!historical) TextButton(onClick = { deleting = true }) { Text(str(R.string.text_move_to_trash_c4056f9), color = MaterialTheme.colorScheme.error) }

@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"Suivre la langue du système"</string>
     <string name="history_device" formatted="false">"Appareil"</string>
     <string name="history_fields" formatted="false">"Champs"</string>
+    <string name="import_local_account" formatted="false">"Importer depuis le compte local"</string>
     <string name="language_search" formatted="false">"Rechercher une langue"</string>
     <string name="links_created_progress" formatted="true">"%1$s sur %2$s créés"</string>
+    <string name="local_password" formatted="false">"Mot de passe local"</string>
+    <string name="local_password_length" formatted="false">"Utilisez au moins 12 caractères."</string>
     <string name="no_matches" formatted="false">"Aucun résultat correspondant"</string>
+    <string name="offline_account" formatted="false">"Compte local"</string>
     <string name="operation_failed_code" formatted="true">"Cette opération n’a pas pu aboutir. Code : %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"Code à usage unique. Utilisez les actions du champ pour le copier ou l’afficher en grand."</string>
     <string name="permission_account_information" formatted="false">"Informations du compte"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"Personne ne peut vous écrire tant que la réception est désactivée."</string>
     <string name="receive_free" formatted="false">"Toute personne que vous n’avez pas bloquée peut vous écrire gratuitement."</string>
     <string name="receive_selected" formatted="false">"Seuls les comptes sélectionnés ou les personnes ayant une invitation valide peuvent vous écrire."</string>
+    <string name="repeat_local_password" formatted="false">"Confirmer le mot de passe local"</string>
     <string name="review_anyone_with_the_link" formatted="false">"Toute personne disposant du lien"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Toute personne disposant du lien et du mot de passe"</string>
     <string name="review_receiving" formatted="false">"Réception"</string>
+    <string name="saved_on_device" formatted="false">"Enregistré sur cet appareil"</string>
     <string name="search_local_messages" formatted="false">"Recherche dans les messages enregistrés sur cet appareil."</string>
     <string name="search_query_limit" formatted="false">"La recherche est limitée à 200 caractères."</string>
     <string name="security_confirm" formatted="false">"Confirmer dans dMsg"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Votre rôle"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Les sélections ci-dessus seront enregistrées par rapport à la dernière révision chargée. Vérifiez-les avant de continuer."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Votre période d’abonnement a changé. Actualisez l’abonnement et vérifiez-la à nouveau."</string>
+    <string name="use_on_device" formatted="false">"Utiliser uniquement sur cet appareil"</string>
     <string name="vault_backup_changed" formatted="false">"Contenu différent · enregistrer une copie"</string>
     <string name="vault_backup_deleted" formatted="false">"Supprimé ici · enregistrer une copie"</string>
     <string name="vault_backup_export" formatted="false">"Exporter une sauvegarde chiffrée"</string>

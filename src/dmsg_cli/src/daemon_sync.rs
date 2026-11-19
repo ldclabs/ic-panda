@@ -44,6 +44,10 @@ pub(super) async fn run(daemon: Arc<Daemon>) {
     let mut schedule = Schedule::new(now_ms());
     let mut flushed = 0;
     loop {
+        if daemon.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         tokio::select! {
             _ = tokio::time::sleep(Duration::from_secs(1)) => {},
             _ = daemon.sync_wake.notified() => {},

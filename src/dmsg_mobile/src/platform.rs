@@ -41,7 +41,7 @@ pub trait Platform: Send + Sync {
         biometry_only: bool,
     ) -> std::result::Result<Vec<u8>, MobileError>;
     fn create_signing(&self, biometry_only: bool) -> std::result::Result<SigningKey, MobileError>;
-    /// Delete a named signing key whose handle is no longer referenced. Wrapped
+    /// Delete a named hardware key whose handle is no longer referenced. Wrapped
     /// key providers have no separate persistent object and may return success.
     fn delete_signing(&self, handle: Vec<u8>) -> std::result::Result<(), MobileError>;
     /// Register final bytes and an operation identity before user interaction.
@@ -179,6 +179,12 @@ impl SecureStorage for Adapter {
 }
 
 impl PresenceKey for Adapter {
+    fn discard_local_key(&self, handle: &[u8]) -> Result<()> {
+        self.0
+            .delete_signing(handle.to_vec())
+            .map_err(platform_error)
+    }
+
     fn presence(&self) -> Option<Presence> {
         match self.0.presence() {
             1 => Some(Presence::Password),
@@ -355,6 +361,12 @@ impl Drop for PreparedAnswer {
 }
 
 impl HardwareAnchor for Adapter {
+    fn discard_local_key(&self, handle: &[u8]) -> Result<()> {
+        self.0
+            .delete_signing(handle.to_vec())
+            .map_err(platform_error)
+    }
+
     fn sign_message(&self, handle: &[u8], message: &[u8]) -> Result<[u8; 64]> {
         ensure(
             !message.is_empty() && message.len() <= 512,

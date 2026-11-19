@@ -67,6 +67,12 @@ class BackgroundFileCoordinator(private val client: ClientController, private va
         }
         load()
     }
+    /** Stop OS-owned HTTP work before entering an offline workspace; keep its resumable plan. */
+    fun pauseForLocalAccount() {
+        val store = cipherStore(context) ?: return
+        store.snapshot()?.let { job -> store.pause(job.plan.id, job.attempt, stop = scheduler::cancel) }
+    }
+
     fun pause() {
         val value = current.value() ?: return
         if (value.plan.account != client.state.value.session?.account) return

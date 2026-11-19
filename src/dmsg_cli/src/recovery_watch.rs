@@ -28,6 +28,10 @@ pub(crate) async fn run(d: Arc<Daemon>) {
     let mut ticks = tokio::time::interval(Duration::from_secs(10));
     ticks.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
+        if d.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         ticks.tick().await;
         let h = d.hold();
         // Announce security read by any foreground/background operation too.

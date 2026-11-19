@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"Ikuti bahasa sistem"</string>
     <string name="history_device" formatted="false">"Perangkat"</string>
     <string name="history_fields" formatted="false">"Bidang"</string>
+    <string name="import_local_account" formatted="false">"Impor dari akun lokal"</string>
     <string name="language_search" formatted="false">"Cari bahasa"</string>
     <string name="links_created_progress" formatted="true">"%1$s dari %2$s dibuat"</string>
+    <string name="local_password" formatted="false">"Kata sandi lokal"</string>
+    <string name="local_password_length" formatted="false">"Gunakan setidaknya 12 karakter."</string>
     <string name="no_matches" formatted="false">"Tidak ada hasil yang cocok"</string>
+    <string name="offline_account" formatted="false">"Akun lokal"</string>
     <string name="operation_failed_code" formatted="true">"Operasi ini tidak dapat diselesaikan. Kode: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"Kode sekali pakai. Gunakan tindakan kolom untuk menyalin atau menampilkannya dalam ukuran besar."</string>
     <string name="permission_account_information" formatted="false">"Informasi akun"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"Tidak ada yang dapat mengirim surat baru saat penerimaan ditutup."</string>
     <string name="receive_free" formatted="false">"Siapa pun yang tidak Anda blokir dapat menulis secara gratis."</string>
     <string name="receive_selected" formatted="false">"Hanya akun terpilih atau orang dengan undangan yang valid yang dapat menulis."</string>
+    <string name="repeat_local_password" formatted="false">"Konfirmasi kata sandi lokal"</string>
     <string name="review_anyone_with_the_link" formatted="false">"Siapa pun yang memiliki tautan"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Siapa pun yang memiliki tautan dan kata sandi"</string>
     <string name="review_receiving" formatted="false">"Menerima"</string>
+    <string name="saved_on_device" formatted="false">"Disimpan di perangkat ini"</string>
     <string name="search_local_messages" formatted="false">"Mencari pesan yang tersimpan di perangkat ini."</string>
     <string name="search_query_limit" formatted="false">"Gunakan hingga 200 karakter untuk mencari."</string>
     <string name="security_confirm" formatted="false">"Konfirmasi di dMsg"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Peran Anda"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Pilihan di atas akan disimpan terhadap revisi terbaru yang dimuat. Tinjau sebelum melanjutkan."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Periode langganan berubah. Muat ulang keanggotaan dan tinjau lagi."</string>
+    <string name="use_on_device" formatted="false">"Gunakan hanya di perangkat ini"</string>
     <string name="vault_backup_changed" formatted="false">"Isi berbeda · simpan salinan"</string>
     <string name="vault_backup_deleted" formatted="false">"Dihapus di sini · simpan salinan"</string>
     <string name="vault_backup_export" formatted="false">"Ekspor cadangan terenkripsi"</string>

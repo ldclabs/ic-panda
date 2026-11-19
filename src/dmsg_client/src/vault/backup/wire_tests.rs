@@ -7,6 +7,7 @@ const FIXTURE: &[u8] =
 
 #[test]
 fn independent_full_archive_matches_the_writer_and_existing_encrypt0_codec() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.blocking_lock();
     let (body, digest) = content::read(FIXTURE, "123456", |_| Ok(()), || Ok(())).unwrap();
     assert_eq!(
         digest,
@@ -46,6 +47,7 @@ fn independent_full_archive_matches_the_writer_and_existing_encrypt0_codec() {
 
 #[test]
 fn block_order_and_the_authenticated_end_are_mandatory() {
+    let _fixture = crate::testing::PASSWORD_FIXTURE.blocking_lock();
     let input = vec![0x73; 2 * CHUNK];
     let mut writer = Writer::new(Vec::new(), input.len(), "123456").unwrap();
     writer.push(&input).unwrap();

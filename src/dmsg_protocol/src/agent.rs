@@ -422,7 +422,7 @@ pub fn account_allocator_digest(
 
 /// Whether an account ID was allocated by the home with this allocator digest.
 pub fn allocated_by(account_id: &AccountId, allocator_digest: &Hash) -> bool {
-    account_id.as_slice()[4..9] == allocator_digest[..5]
+    !account_id.is_empty() && account_id.as_slice()[4..9] == allocator_digest[..5]
 }
 
 /// Maximum user homes one service routes accounts to (64).

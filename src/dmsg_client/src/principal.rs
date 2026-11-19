@@ -207,6 +207,7 @@ fn parse_document(
 /// # Errors
 /// Rejects stale, forged or misbound certificates and noncanonical documents.
 pub async fn resolve(config: &Config, account: &AccountId) -> Result<Option<PrincipalDocument>> {
+    ensure(!account.is_empty(), crate::local::only())?;
     let mut resolver = Resolver::new(config).await?;
     let home = resolver.home(account)?;
     resolver.prepare([home]).await;
@@ -218,35 +219,46 @@ pub async fn resolve_account<H: Hold>(
     h: &H,
     account: &AccountId,
 ) -> Result<Option<PrincipalDocument>> {
-    let config = h.with(|c| Ok(c.config.clone())).await?;
-    resolve(&config, account).await
+    let (config, cloud) = h
+        .with(|c| {
+            c.require_online()?;
+            Ok((c.config.clone(), c.relay()))
+        })
+        .await?;
+    cloud.while_online(resolve(&config, account)).await
 }
 
 /// Own document, or an unpublished empty document for a first edit.
 pub async fn show<H: Hold>(h: &H) -> Result<PrincipalDocument> {
-    let (config, account) = h.with(|c| Ok((c.config.clone(), c.account()?.id))).await?;
-    let mut resolver = Resolver::new(&config).await?;
-    let home = resolver.home(&account)?;
-    resolver.prepare([home]).await;
-    if let Some(document) = resolver.document(&account).await? {
-        return Ok(document);
-    }
-    let (_, user, directory) = resolver.context(&account)?;
-    Ok(PrincipalDocument {
-        id: dmsg_protocol::agent::principal_id(&user.principal_origin, &account),
-        kind: Some("person".into()),
-        name: None,
-        description: None,
-        avatar_url: None,
-        aliases: vec![format!("{}{account}", directory.profile_url_prefix)],
-        links: vec![],
-        protocol: "agent-delegation/1.0".into(),
-        controllers: vec![],
-        retired_controllers: vec![],
-        delegation_service: Some(directory.delegation_service.clone()),
-        updated_at: 0,
-        extra: Default::default(),
-    })
+    let (config, account, cloud) = h
+        .with(|c| Ok((c.config.clone(), c.account()?.id, c.relay())))
+        .await?;
+    cloud
+        .while_online(async {
+            let mut resolver = Resolver::new(&config).await?;
+            let home = resolver.home(&account)?;
+            resolver.prepare([home]).await;
+            if let Some(document) = resolver.document(&account).await? {
+                return Ok(document);
+            }
+            let (_, user, directory) = resolver.context(&account)?;
+            Ok(PrincipalDocument {
+                id: dmsg_protocol::agent::principal_id(&user.principal_origin, &account),
+                kind: Some("person".into()),
+                name: None,
+                description: None,
+                avatar_url: None,
+                aliases: vec![format!("{}{account}", directory.profile_url_prefix)],
+                links: vec![],
+                protocol: "agent-delegation/1.0".into(),
+                controllers: vec![],
+                retired_controllers: vec![],
+                delegation_service: Some(directory.delegation_service.clone()),
+                updated_at: 0,
+                extra: Default::default(),
+            })
+        })
+        .await
 }
 
 /// Render editable state from the user home, including an unpublished update.
@@ -258,14 +270,21 @@ pub async fn editable<H: Hold>(h: &H) -> Result<PrincipalDocument> {
     let Some(info) = crate::agent::principal(&h).await? else {
         return show(&h).await;
     };
-    let (config, account) = h.with(|c| Ok((c.config.clone(), c.account()?.id))).await?;
-    let mut resolver = Resolver::new(&config).await?;
-    let home = resolver.home(&account)?;
-    resolver.prepare([home]).await;
-    let (_, user, directory) = resolver.context(&account)?;
-    let bytes = dmsg_protocol::agent::render_principal_document(directory, &account, &info.state)?;
-    let document = parse_document(&bytes, &account, &user.principal_origin)?;
-    h.with(|_| Ok(document)).await
+    let (config, account, cloud) = h
+        .with(|c| Ok((c.config.clone(), c.account()?.id, c.relay())))
+        .await?;
+    cloud
+        .while_online(async {
+            let mut resolver = Resolver::new(&config).await?;
+            let home = resolver.home(&account)?;
+            resolver.prepare([home]).await;
+            let (_, user, directory) = resolver.context(&account)?;
+            let bytes =
+                dmsg_protocol::agent::render_principal_document(directory, &account, &info.state)?;
+            let document = parse_document(&bytes, &account, &user.principal_origin)?;
+            h.with(|_| Ok(document)).await
+        })
+        .await
 }
 
 /// Public names, fetched concurrently from the same documents as profile pages.
@@ -277,41 +296,59 @@ pub async fn names<H: Hold>(
     h: &H,
     accounts: &[AccountId],
 ) -> Result<Vec<(AccountId, Result<crate::display::Name>)>> {
-    let config = h.with(|c| Ok(c.config.clone())).await?;
-    let mut resolver = Resolver::new(&config).await?;
-    let unique: BTreeSet<AccountId> = accounts.iter().copied().collect();
-    let mut located = BTreeMap::new();
-    for account in &unique {
-        match resolver.home(account) {
-            Ok(home) => {
-                located.insert(*account, home);
+    let (config, cloud) = h
+        .with(|c| {
+            c.require_online()?;
+            Ok((c.config.clone(), c.relay()))
+        })
+        .await?;
+    cloud
+        .while_online(async {
+            ensure(
+                accounts.iter().all(|account| !account.is_empty()),
+                crate::local::only(),
+            )?;
+            if accounts.is_empty() {
+                return Ok(Vec::new());
             }
-            Err(Error::NotFound) => {}
-            Err(error) => return Err(error),
-        }
-    }
-    resolver.prepare(located.values().copied()).await;
-    let results: BTreeMap<AccountId, Result<Option<PrincipalDocument>>> =
-        futures_util::stream::iter(located.keys().copied())
-            .map(|account| {
-                let resolver = resolver.clone();
-                async move { (account, resolver.document(&account).await) }
-            })
-            .buffer_unordered(QUERY_CONCURRENCY)
-            .collect::<Vec<_>>()
-            .await
-            .into_iter()
-            .collect();
-    let mut found = Vec::with_capacity(accounts.len());
-    for account in accounts {
-        let name = match results.get(account) {
-            Some(Ok(document)) => Ok(crate::display::Name::from_document(document.as_ref(), 0)),
-            None => Ok(crate::display::Name::from_document(None, 0)),
-            Some(Err(error)) => Err(error.clone()),
-        };
-        found.push((*account, name));
-    }
-    Ok(found)
+            let mut resolver = Resolver::new(&config).await?;
+            let unique: BTreeSet<AccountId> = accounts.iter().copied().collect();
+            let mut located = BTreeMap::new();
+            for account in &unique {
+                match resolver.home(account) {
+                    Ok(home) => {
+                        located.insert(*account, home);
+                    }
+                    Err(Error::NotFound) => {}
+                    Err(error) => return Err(error),
+                }
+            }
+            resolver.prepare(located.values().copied()).await;
+            let results: BTreeMap<AccountId, Result<Option<PrincipalDocument>>> =
+                futures_util::stream::iter(located.keys().copied())
+                    .map(|account| {
+                        let resolver = resolver.clone();
+                        async move { (account, resolver.document(&account).await) }
+                    })
+                    .buffer_unordered(QUERY_CONCURRENCY)
+                    .collect::<Vec<_>>()
+                    .await
+                    .into_iter()
+                    .collect();
+            let mut found = Vec::with_capacity(accounts.len());
+            for account in accounts {
+                let name = match results.get(account) {
+                    Some(Ok(document)) => {
+                        Ok(crate::display::Name::from_document(document.as_ref(), 0))
+                    }
+                    None => Ok(crate::display::Name::from_document(None, 0)),
+                    Some(Err(error)) => Err(error.clone()),
+                };
+                found.push((*account, name));
+            }
+            Ok(found)
+        })
+        .await
 }
 
 impl Client {
@@ -536,31 +573,37 @@ pub fn avatar_type(bytes: &[u8]) -> Result<&'static str> {
 /// # Errors
 /// Rejects invalid URLs, oversized responses and unsupported image bytes.
 pub async fn avatar<H: Hold>(h: &H, avatar_url: &str) -> Result<Option<(&'static str, Vec<u8>)>> {
-    let (config, http) = h.with(|c| Ok((c.config.clone(), c.relay().http()))).await?;
-    let local = config.environment == dmsg_types::Environment::Local;
-    let mut url = image_url(avatar_url, local.then_some(config.relay.as_str()))?;
-    // Local fixtures publish HTTPS identities but serve their relay on loopback.
-    // Only rewrite this directory's own avatar route, never a legacy/external URL.
-    if local && url.scheme() == "https" {
-        let parts: Vec<_> = url.path().split('/').collect();
-        if let ["", "avatars", account, upload] = parts.as_slice()
-            && let Ok(account) = account.parse::<AccountId>()
-            && crate::upload::hex_id(upload).is_ok()
-        {
-            let mut resolver = Resolver::new(&config).await?;
-            resolver.prepare([resolver.home(&account)?]).await;
-            let (_, _, directory) = resolver.context(&account)?;
-            if url.origin().ascii_serialization() == directory.delegation_service {
-                url = url::Url::parse(&format!(
-                    "{}{}",
-                    config.relay_origin(),
-                    &url[url::Position::BeforePath..]
-                ))
-                .map_err(|_| dmsg_types::invalid("avatar_url"))?;
+    let (config, http, cloud) = h
+        .with(|c| Ok((c.config.clone(), c.relay().http()?, c.relay())))
+        .await?;
+    cloud
+        .while_online(async {
+            let local = config.environment == dmsg_types::Environment::Local;
+            let mut url = image_url(avatar_url, local.then_some(config.relay.as_str()))?;
+            // Local fixtures publish HTTPS identities but serve their relay on loopback.
+            // Only rewrite this directory's own avatar route, never a legacy/external URL.
+            if local && url.scheme() == "https" {
+                let parts: Vec<_> = url.path().split('/').collect();
+                if let ["", "avatars", account, upload] = parts.as_slice()
+                    && let Ok(account) = account.parse::<AccountId>()
+                    && crate::upload::hex_id(upload).is_ok()
+                {
+                    let mut resolver = Resolver::new(&config).await?;
+                    resolver.prepare([resolver.home(&account)?]).await;
+                    let (_, _, directory) = resolver.context(&account)?;
+                    if url.origin().ascii_serialization() == directory.delegation_service {
+                        url = url::Url::parse(&format!(
+                            "{}{}",
+                            config.relay_origin(),
+                            &url[url::Position::BeforePath..]
+                        ))
+                        .map_err(|_| dmsg_types::invalid("avatar_url"))?;
+                    }
+                }
             }
-        }
-    }
-    download_avatar(&http, url).await
+            download_avatar(&http, url).await
+        })
+        .await
 }
 
 fn image_url(value: &str, local_relay: Option<&str>) -> Result<url::Url> {
@@ -703,7 +746,8 @@ mod tests {
         let (url, request) = image_server(response).await;
         let http = crate::cloud::Cloud::new("https://api.dmsg.test", false)
             .unwrap()
-            .http();
+            .http()
+            .unwrap();
         assert_eq!(
             download_avatar(&http, url).await.unwrap(),
             Some(("image/webp", image.to_vec()))
@@ -719,7 +763,8 @@ mod tests {
     async fn missing_redirected_and_invalid_avatars_do_not_become_images() {
         let http = crate::cloud::Cloud::new("https://api.dmsg.test", false)
             .unwrap()
-            .http();
+            .http()
+            .unwrap();
         for status in [404, 410] {
             let (url, server) =
                 image_server(format!("HTTP/1.1 {status} Gone\r\nContent-Length: 0\r\n\r\n").into())

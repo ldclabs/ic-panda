@@ -512,7 +512,21 @@ impl MobileEngine {
         self.cancel_login();
         runtime()
             .spawn(async move {
-                dmsg_client::passkey::logout(&transition).await?;
+                let local = transition
+                    .run(|c| {
+                        Box::pin(async {
+                            if c.is_local() {
+                                c.leave_local()?;
+                                Ok(true)
+                            } else {
+                                Ok(false)
+                            }
+                        })
+                    })
+                    .await?;
+                if !local {
+                    dmsg_client::passkey::logout(&transition).await?;
+                }
                 transition.finish()
             })
             .await
@@ -759,9 +773,69 @@ impl MobileEngine {
         self.session_state().await
     }
 
+    pub async fn create_local_account(&self) -> Result<SessionSnapshot> {
+        let transition = self.host.begin_transition()?;
+        self.platform.cancel_presence();
+        self.cancel_login();
+        let request = transition
+            .run(|c| Box::pin(async { c.prepare_local_create() }))
+            .await?;
+        let generation = request.instance().1;
+        let result = runtime()
+            .spawn_blocking(move || request.authenticate(None))
+            .await
+            .map_err(|_| Error::Unavailable("local unlock worker".into()))?;
+        let access = match result {
+            Ok(access) => access,
+            Err(e) => {
+                transition
+                    .run(move |c| {
+                        Box::pin(async move {
+                            c.local_creation_failed(generation);
+                            Ok(())
+                        })
+                    })
+                    .await?;
+                return Err(e.into());
+            }
+        };
+        transition
+            .run(move |c| Box::pin(async move { c.complete_local_create(access) }))
+            .await?;
+        transition.finish()?;
+        self.session_state().await
+    }
+
     pub async fn unlock_fast(&self) -> Result<SessionSnapshot> {
         let transition = self.host.begin_transition()?;
         self.platform.cancel_presence();
+        if let Some(request) = transition
+            .run(|c| Box::pin(async { c.is_local().then(|| c.prepare_local_unlock()).transpose() }))
+            .await?
+        {
+            let instance = request.instance();
+            let result = runtime()
+                .spawn_blocking(move || request.authenticate(None))
+                .await
+                .map_err(|_| Error::Unavailable("local unlock worker".into()))?;
+            let access = match result {
+                Ok(access) => access,
+                Err(e) => {
+                    let reason = e.clone();
+                    transition
+                        .run(move |c| {
+                            Box::pin(async move { c.local_key_failure(instance, &reason) })
+                        })
+                        .await?;
+                    return Err(e.into());
+                }
+            };
+            transition
+                .run(move |c| Box::pin(async move { c.complete_local_unlock(access) }))
+                .await?;
+            transition.finish()?;
+            return self.session_state().await;
+        }
         let prepared = transition
             .run(|c| Box::pin(async { c.prepare_fast_unlock() }))
             .await?;

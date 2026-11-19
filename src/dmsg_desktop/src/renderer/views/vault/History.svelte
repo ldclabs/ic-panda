@@ -80,7 +80,7 @@
           {#if version.current}<span class="rounded bg-pale px-1.5 py-px text-[11px] text-forest">{t('currentVersion')}</span>{/if}
           {#if version.deleted}<span class="rounded bg-wash px-1.5 py-px text-[11px] text-muted">{t('deletedVersion')}</span>{/if}
           {#if version.conflict}<span class="rounded bg-warn-pale px-1.5 py-px text-[11px] text-warn">{t('conflict')}</span>{/if}
-          {#if !version.synced}<span class="size-1.5 rounded-full bg-warn" title={t('notSynced')}></span>{/if}
+          {#if !version.synced && version.save_state !== 'local_only'}<span class="size-1.5 rounded-full bg-warn" title={t('notSynced')}></span>{/if}
         </button>
         {#if open === version.revision && shown}
           <div class="grid gap-2 bg-surface-2 px-4 py-3 text-[12.5px]" data-testid="vault-version-detail">

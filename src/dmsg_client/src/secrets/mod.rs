@@ -272,7 +272,7 @@ impl Client {
         reference.validate()?;
         self.keys()?;
         ensure(
-            self.account()?.id.to_string() == reference.account_id,
+            self.content_id()?.to_string() == reference.account_id,
             failure("SECRET_REFERENCE_INVALID"),
         )?;
         let mut entry = self.vault_show(&reference.item_id).map_err(|e| match e {

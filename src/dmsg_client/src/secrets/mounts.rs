@@ -449,7 +449,7 @@ impl Client {
         let config = Config {
             id,
             version,
-            account_id: self.account()?.id.to_string(),
+            account_id: self.content_id()?.to_string(),
             device_id: self.secret_device(),
             input,
             mode,
@@ -482,7 +482,7 @@ impl Client {
 
     pub(crate) fn secret_mount_apply(&mut self, config: &Config, request_id: &str) -> Result<()> {
         ensure(
-            config.account_id == self.account()?.id.to_string()
+            config.account_id == self.content_id()?.to_string()
                 && config.device_id == self.secret_device(),
             Error::Forbidden,
         )?;
@@ -516,7 +516,7 @@ impl Client {
             .find(|c| c.id == id)
             .ok_or(Error::NotFound)?;
         ensure(
-            config.account_id == self.account()?.id.to_string()
+            config.account_id == self.content_id()?.to_string()
                 && config.device_id == self.secret_device(),
             Error::Forbidden,
         )?;

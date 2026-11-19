@@ -9,6 +9,7 @@
   import { call, errorText } from '../rpc'
   import Moved from '../views/Moved.svelte'
   import Onboarding from '../views/Onboarding.svelte'
+  import LocalAccount from './LocalAccount.svelte'
   import Brand from './Brand.svelte'
   import { login, startLogin } from './login.svelte'
   import { logout } from './session'
@@ -101,6 +102,7 @@
           <button class={buttonClass('primary', 'lg')} disabled={login.phase === 'starting'} aria-busy={login.phase === 'starting'} onclick={() => startLogin()} data-testid="welcome-login">
             <Icon name="login" />{t(status?.passkey_available ? 'loginWithPasskey' : 'login')}
           </button>
+          <LocalAccount action="create" {status} {refresh} />
           {#if status?.passkey_available}
             <button class={buttonClass('ghost', 'sm')} disabled={login.phase === 'starting'} onclick={() => startLogin(false, 'https://dmsg.net', 'ii')} data-testid="welcome-login-ii">{t('loginWithIi')}</button>
           {/if}

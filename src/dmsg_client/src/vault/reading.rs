@@ -40,6 +40,8 @@ pub struct Summary {
     pub tags: Vec<String>,
     /// This version has a relay acknowledgement.
     pub synced: bool,
+    /// Local persistence or relay delivery state.
+    pub save_state: String,
     /// This version conflicts with another head.
     pub conflict: bool,
     /// Managed by dMsg and read-only.
@@ -99,6 +101,7 @@ impl From<VaultEntry> for Summary {
             favorite: entry.item.favorite,
             tags: entry.item.tags,
             synced: entry.synced,
+            save_state: entry.save_state,
             conflict: entry.conflict,
             deleted: entry.deleted,
             created_at: entry.item.created_at,

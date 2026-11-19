@@ -47,6 +47,10 @@ pub(crate) async fn run_mail(daemon: Arc<Daemon>) {
     let mut interval = tokio::time::interval(Duration::from_secs(30));
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
+        if daemon.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         tokio::select! {
             _ = interval.tick() => {},
             _ = daemon.mail_push().receive.notified() => {},

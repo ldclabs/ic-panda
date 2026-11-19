@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"সিস্টেমের ভাষা অনুসরণ করুন"</string>
     <string name="history_device" formatted="false">"ডিভাইস"</string>
     <string name="history_fields" formatted="false">"ক্ষেত্র"</string>
+    <string name="import_local_account" formatted="false">"স্থানীয় অ্যাকাউন্ট থেকে আমদানি করুন"</string>
     <string name="language_search" formatted="false">"ভাষা খুঁজুন"</string>
     <string name="links_created_progress" formatted="true">"%2$sটির মধ্যে %1$sটি তৈরি হয়েছে"</string>
+    <string name="local_password" formatted="false">"স্থানীয় পাসওয়ার্ড"</string>
+    <string name="local_password_length" formatted="false">"অন্তত ১২টি অক্ষর ব্যবহার করুন।"</string>
     <string name="no_matches" formatted="false">"মিলে যাওয়া ফলাফল নেই"</string>
+    <string name="offline_account" formatted="false">"স্থানীয় অ্যাকাউন্ট"</string>
     <string name="operation_failed_code" formatted="true">"এই কাজটি শেষ করা যায়নি। কোড: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"একবার ব্যবহারযোগ্য কোড। কপি করতে বা বড় অক্ষরে দেখতে ফিল্ডের কাজগুলো ব্যবহার করুন।"</string>
     <string name="permission_account_information" formatted="false">"অ্যাকাউন্টের তথ্য"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"চিঠি গ্রহণ বন্ধ থাকলে কেউ নতুন চিঠি পাঠাতে পারবেন না।"</string>
     <string name="receive_free" formatted="false">"আপনি যাঁদের অবরুদ্ধ করেননি তাঁরা বিনামূল্যে লিখতে পারেন।"</string>
     <string name="receive_selected" formatted="false">"কেবল নির্বাচিত অ্যাকাউন্ট বা বৈধ আমন্ত্রণধারীরা চিঠি লিখতে পারেন।"</string>
+    <string name="repeat_local_password" formatted="false">"স্থানীয় পাসওয়ার্ড নিশ্চিত করুন"</string>
     <string name="review_anyone_with_the_link" formatted="false">"লিঙ্ক আছে এমন যে কেউ"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"লিঙ্ক ও পাসওয়ার্ড আছে এমন যে কেউ"</string>
     <string name="review_receiving" formatted="false">"গ্রহণ"</string>
+    <string name="saved_on_device" formatted="false">"এই ডিভাইসে সংরক্ষিত"</string>
     <string name="search_local_messages" formatted="false">"এই ডিভাইসে সংরক্ষিত বার্তা খোঁজে।"</string>
     <string name="search_query_limit" formatted="false">"খোঁজার জন্য সর্বোচ্চ ২০০টি অক্ষর লিখুন।"</string>
     <string name="security_confirm" formatted="false">"dMsg-এ নিশ্চিত করুন"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"আপনার ভূমিকা"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"উপরের নির্বাচন শেষ লোড হওয়া সংশোধন অনুযায়ী সংরক্ষিত হবে। এগোনোর আগে দেখুন।"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"সাবস্ক্রিপশনের মেয়াদ বদলেছে। সদস্য তথ্য রিফ্রেশ করে আবার দেখুন।"</string>
+    <string name="use_on_device" formatted="false">"শুধু এই ডিভাইসে ব্যবহার করুন"</string>
     <string name="vault_backup_changed" formatted="false">"বিষয়বস্তু আলাদা · কপি রাখুন"</string>
     <string name="vault_backup_deleted" formatted="false">"এখানে মুছে ফেলা · কপি রাখুন"</string>
     <string name="vault_backup_export" formatted="false">"এনক্রিপ্ট করা ব্যাকআপ রপ্তানি করুন"</string>

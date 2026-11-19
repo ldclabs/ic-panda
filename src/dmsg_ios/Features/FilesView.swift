@@ -59,6 +59,7 @@ struct FilesView: View {
             await model.loadFiles(quiet: true)
         }
         .task {
+            guard !model.localAccount else { return }
             // Coming back to Files often should not reach the network each time.
             let recent = model.cloudBackupsObservedAt.map { Date.now.timeIntervalSince1970 * 1000 - Double($0) < 300_000 } ?? false
             await model.loadCloudBackups(refresh: !recent)
@@ -180,13 +181,13 @@ struct FilesView: View {
                     .compactObjectRow().accessibilityIdentifier("file.item.\(file.id)")
                     .swipeActions {
                         Button("Move to Trash", systemImage: "trash") { removing = [LibraryItemTarget(id: file.id, name: file.name, folder: false)] }.tint(.red)
-                        Button("Share by link", systemImage: "link") { sheet = .link(FileLinkTarget(file: file, remote: !file.canOpen)) }
-                            .disabled(file.size > FileLinkTarget.maxBytes)
+                        if !model.localAccount { Button("Share by link", systemImage: "link") { sheet = .link(FileLinkTarget(file: file, remote: !file.canOpen)) }
+                            .disabled(file.size > FileLinkTarget.maxBytes) }
                     }
                     .contextMenu {
-                        Button("Back up to cloud", glyph: .cloudUp) { sheet = .backup([file]) }
-                        Button("Share by link", systemImage: "link") { sheet = .link(FileLinkTarget(file: file, remote: !file.canOpen)) }
-                            .disabled(file.size > FileLinkTarget.maxBytes)
+                        if !model.localAccount { Button("Back up to cloud", glyph: .cloudUp) { sheet = .backup([file]) } }
+                        if !model.localAccount { Button("Share by link", systemImage: "link") { sheet = .link(FileLinkTarget(file: file, remote: !file.canOpen)) }
+                            .disabled(file.size > FileLinkTarget.maxBytes) }
                         itemMenu(LibraryItemTarget(id: file.id, name: file.name, folder: false))
                     }
             }
@@ -203,7 +204,7 @@ struct FilesView: View {
                     ContentUnavailableView("No files in this folder", image: AppGlyph.folder.assetName,
                         description: Text("Import a document to encrypt it on this device. Cloud backup is a separate action."))
                     SettingsAction("Import file", systemImage: "plus") { importing = true }
-                    if !model.cloudBackups.isEmpty && id == "root" {
+                    if !model.localAccount && !model.cloudBackups.isEmpty && id == "root" {
                         SettingsAction("Cloud backups", glyph: .sync) { model.filesScope = .cloud }
                     }
                 }
@@ -293,12 +294,12 @@ struct FilesView: View {
                     }
                 }
                 Section {
-                    NavigationLink { FileRequestsView() } label: { Label("Collect files", systemImage: "tray.and.arrow.down") }
-                    NavigationLink { FileLinksView() } label: { Label("Share links", systemImage: "link") }
+                    if !model.localAccount { NavigationLink { FileRequestsView() } label: { Label("Collect files", systemImage: "tray.and.arrow.down") } }
+                    if !model.localAccount { NavigationLink { FileLinksView() } label: { Label("Share links", systemImage: "link") } }
                 }
                 Section {
                     Button("Trash", systemImage: "trash") { sheet = .trash }
-                    Button("Without a cloud backup", glyph: .cloudOff) { model.route.filesPath.append(.unbacked) }
+                    if !model.localAccount { Button("Without a cloud backup", glyph: .cloudOff) { model.route.filesPath.append(.unbacked) } }
                     Button("About files and backups", systemImage: "info.circle") { sheet = .help }
                 }
             }.accessibilityIdentifier("files.tools")
@@ -310,9 +311,9 @@ struct FilesView: View {
             Text(selection.count.formatted()).font(.subheadline.monospacedDigit()).accessibilityLabel("Selected files")
             Spacer()
             Menu("Actions", systemImage: "ellipsis.circle") {
-                Button("Back up to cloud", glyph: .cloudUp) {
+                if !model.localAccount { Button("Back up to cloud", glyph: .cloudUp) {
                     sheet = .backup(files(current).filter { selection.contains($0.id) })
-                }.disabled(chosen.contains { $0.folder })
+                }.disabled(chosen.contains { $0.folder }) }
                 Button("Move to another folder", systemImage: "folder") { sheet = .move(chosen) }
                 Button("Move to Trash", systemImage: "trash", role: .destructive) { removing = chosen }
             }.disabled(selection.isEmpty || working).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("files.selection.actions")

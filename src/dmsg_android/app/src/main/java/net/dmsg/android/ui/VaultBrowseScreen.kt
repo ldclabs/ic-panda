@@ -46,6 +46,7 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
 }
 
 @Composable fun VaultScreen(client: ClientController, select: (String) -> Unit) {
+    val localMode = client.state.collectAsStateWithLifecycle().value.session?.accountKind == "local"
     val read by client.vault.listing.state.collectAsStateWithLifecycle()
     val page = read.valueOrNull()
     var query by remember { mutableStateOf(client.vault.query) }
@@ -87,10 +88,10 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
                     DropdownMenu(tools, { tools = false }) {
                         DropdownMenuItem(text = { Text(str(R.string.vault_backup_title)) }, onClick = { tools = false; client.navigation.open("vault-backup") })
                         DropdownMenuItem(text = { Text(str(R.string.text_local_security_review_b7f4013)) }, onClick = { tools = false; client.navigation.open("secret-health") })
-                        DropdownMenuItem(text = { Text(str(R.string.text_version_conflicts_0df1b3c)) }, onClick = { tools = false; client.navigation.open("conflicts") })
-                        DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { tools = false; client.navigation.open("secret-activity") })
-                        DropdownMenuItem(text = { Text(str(R.string.text_shared_snapshots_08679a9)) }, onClick = { tools = false; client.navigation.open("secret-shares") })
-                        DropdownMenuItem(text = { Text(str(R.string.text_import_secret_package_51433fa)) }, onClick = { tools = false; client.navigation.open("secret-import") })
+                        if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_version_conflicts_0df1b3c)) }, onClick = { tools = false; client.navigation.open("conflicts") })
+                        if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { tools = false; client.navigation.open("secret-activity") })
+                        if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_shared_snapshots_08679a9)) }, onClick = { tools = false; client.navigation.open("secret-shares") })
+                        if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_import_secret_package_51433fa)) }, onClick = { tools = false; client.navigation.open("secret-import") })
                         DropdownMenuItem(text = { Text(str(R.string.text_import_passwords_16088a6)) }, onClick = { tools = false; client.navigation.open("vault-import") })
                     }
                 }
@@ -105,7 +106,7 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             if (item.reserved) Icon(Icons.Outlined.VerifiedUser, str(R.string.text_managed_by_dmsg_35b3681), Modifier.size(18.dp))
                             if (item.conflict) Icon(Icons.Outlined.WarningAmber, str(R.string.text_version_conflict_f71b5e8), Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
-                            if (!item.synced) Icon(Icons.Outlined.CloudUpload, str(R.string.text_waiting_to_sync_865c0a0), Modifier.size(18.dp))
+                            if (!item.synced && item.saveState != "local_only") Icon(Icons.Outlined.CloudUpload, str(R.string.text_waiting_to_sync_865c0a0), Modifier.size(18.dp))
                             if (item.favorite) Icon(Icons.Outlined.Star, str(R.string.text_favorite_1fd85c7), Modifier.size(18.dp))
                         }
                     })

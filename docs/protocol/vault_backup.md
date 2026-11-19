@@ -2,7 +2,14 @@
 
 Desktop, iOS and Android expose **Backup and restore** in Vault tools. Choose **Export encrypted backup**, select the items and linked files, set a password and approve the export on this device. Save the verified file with the system document picker. The local workspace can be offline. Only saved current entries are included. Trash, historical revisions, conflict branches, drafts, dMsg-managed keys and system permissions stay outside the file.
 
-Choose **Import from backup** in an unlocked destination workspace. Enter the original password and review the source, destination and proposed additions. Equal entries are skipped. Changed or deleted entries require explicit selection to create independent copies. Import preserves user-entered wallet phrases and private keys, ordered fields, OTP configuration, timestamps and shared attachment references. Files receive new local keys and IDs. Entries follow normal synchronization after local commit. Deleting a device or changing an account recovery policy cannot revoke copies already saved.
+Choose **Import from backup** in an unlocked destination workspace. Enter the original password and review the source, destination and proposed additions. Equal entries are skipped. Changed or deleted entries require explicit selection to create independent copies. Import preserves user-entered wallet phrases and private keys, ordered fields, OTP configuration, timestamps and shared attachment references. Files receive new local keys and IDs. Entries imported into a service account follow its sync policy. Entries imported into the standalone workspace stay on the device. Deleting a device or changing an account recovery policy cannot revoke copies already saved.
+
+A standalone source uses account ID `00000000000000000000`. Its exported
+entry identifiers are stable per installation and original entry. Restoring
+a backup uses their source mappings and fingerprints to detect duplicates
+or deletions. Two independently created standalone workspaces have independent
+entry namespaces. Standalone files without a selected attachment reference can
+be saved separately through Files.
 
 ## Encoding
 

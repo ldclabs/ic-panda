@@ -47,7 +47,7 @@ impl Client {
         self.keys()?;
         reference.validate()?;
         ensure(
-            reference.account_id == self.account()?.id.to_string(),
+            reference.account_id == self.content_id()?.to_string(),
             Error::Forbidden,
         )?;
         let revision = self.workspace.store.head(&reference.item_id)?;

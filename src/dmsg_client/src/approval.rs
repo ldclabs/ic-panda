@@ -761,6 +761,18 @@ impl Client {
         now: u64,
         expires_at: u64,
     ) -> Result<Request> {
+        if self.is_local() {
+            ensure(
+                matches!(
+                    action,
+                    Action::VaultBackup { .. }
+                        | Action::SecretDiscoveryImport { .. }
+                        | Action::SecretMountConfig { .. }
+                        | Action::SecretMountRead { .. }
+                ),
+                crate::local::only(),
+            )?;
+        }
         validate_source(source)?;
         self.expire_approvals(now)?;
         let waiting: Vec<Request> = self
@@ -975,6 +987,18 @@ impl Client {
     pub fn approval_presence(&mut self, id: &str) -> Result<Option<(Ask, String)>> {
         let request = self.approval_record(id)?;
         let view = self.approval_view(&request)?;
+        if self.is_local() && matches!(request.action, Action::VaultBackup { .. }) {
+            return if self.local_unlock_method() == "hardware" {
+                let key = self
+                    .presence
+                    .clone()
+                    .filter(|k| k.presence().is_some())
+                    .ok_or_else(|| dmsg_types::invalid("LOCAL_HARDWARE_UNAVAILABLE"))?;
+                Ok(Some((Ask::Presence(key), "vault_backup".into())))
+            } else {
+                Ok(None)
+            };
+        }
         let high = view["risk"] == "high";
         let what = view["type"].as_str().unwrap_or_default().to_string();
         let purpose = request_purpose(&request, &view["detail"]);

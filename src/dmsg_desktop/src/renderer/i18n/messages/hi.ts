@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "केवल इस डिवाइस पर उपयोग करें",
+  offlineAccount: "स्थानीय खाता",
+  savedOnDevice: "इस डिवाइस पर सहेजा गया",
+  localPassword: "स्थानीय पासवर्ड",
+  importLocalAccount: "स्थानीय खाते से आयात करें",
+  localPasswordLength: "कम से कम 12 वर्ण इस्तेमाल करें।",
+  repeatLocalPassword: "स्थानीय पासवर्ड की पुष्टि करें",
   "vaultBackupUnlockError": "बैकअप नहीं खुला। पासवर्ड जाँचें या पूरी फ़ाइल चुनें।",
   "vaultBackupUncommitted": "आयात सहेजा नहीं गया। बैकअप फिर से चुनें।",
   "vaultBackupSync": "प्रविष्टियाँ सामान्य रूप से सिंक होंगी। अटैचमेंट इस डिवाइस की फ़ाइलों में हैं।",

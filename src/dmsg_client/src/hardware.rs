@@ -59,7 +59,11 @@ pub struct MovedCopy {
 
 /// Check a workspace's anchor on this hardware; one without an anchor gets
 /// it now, unless the hardware makes none.
-fn verdict(anchor: &dyn HardwareAnchor, store: &Store, meta: &mut Meta) -> Result<Verdict> {
+pub(crate) fn verdict(
+    anchor: &dyn HardwareAnchor,
+    store: &Store,
+    meta: &mut Meta,
+) -> Result<Verdict> {
     let Some(held) = &meta.anchor else {
         let platform = anchor
             .platform()
@@ -133,6 +137,22 @@ impl Client {
         self.anchor = Some(anchor.clone());
         self.moved.clear();
         self.hardware_pending.clear();
+        let local = self.slot_dir(&Slot::Local);
+        if !self.is_local() && local.join(crate::client::WORKSPACE).exists() {
+            let mut ws = crate::local::workspace(&local, &self.config.environment, false)?;
+            if matches!(ws.meta.local, Some(crate::local::Protection::HardwareV1)) {
+                ensure(ws.meta.anchor.is_some(), Error::IntegrityFailed)?;
+                match verdict(anchor.as_ref(), &ws.store, &mut ws.meta)? {
+                    Verdict::Moved => {
+                        self.moved.insert(dmsg_types::LOCAL_ACCOUNT_ID);
+                    }
+                    Verdict::Pending => {
+                        self.hardware_pending.insert(dmsg_types::LOCAL_ACCOUNT_ID);
+                    }
+                    Verdict::Native => {}
+                }
+            }
+        }
         let entries = match std::fs::read_dir(self.dir.join("accounts")) {
             Ok(entries) => entries,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return self.check_hardware(),
@@ -166,6 +186,22 @@ impl Client {
 
     /// Check the selected workspace's anchor.
     pub(crate) fn check_hardware(&mut self) -> Result<()> {
+        if self.is_local() {
+            match self.workspace.meta.local {
+                Some(crate::local::Protection::PasswordV1(_)) => {
+                    self.hardware = Verdict::Native;
+                    return Ok(());
+                }
+                Some(crate::local::Protection::HardwareV1) => {
+                    ensure(self.workspace.meta.anchor.is_some(), Error::IntegrityFailed)?;
+                    if self.anchor.is_none() {
+                        self.hardware = Verdict::Pending;
+                        return Ok(());
+                    }
+                }
+                None => return Err(Error::IntegrityFailed),
+            }
+        }
         self.hardware = match (&self.anchor, &self.slot) {
             (None, _) | (_, Slot::Idle) => Verdict::Native,
             (Some(anchor), _) => {
@@ -175,7 +211,7 @@ impl Client {
                 verdict
             }
         };
-        if let Slot::Account(account) = &self.slot {
+        if let Some(account) = self.slot.account_id().as_ref() {
             if self.hardware == Verdict::Pending {
                 self.hardware_pending.insert(*account);
             } else {
@@ -262,7 +298,10 @@ impl Client {
         }
         let record = MovedCopy {
             id: id.clone(),
-            account: meta.account.as_ref().map(|a| a.id.to_string()),
+            account: slot
+                .account_id()
+                .map(|a| a.to_string())
+                .or_else(|| meta.account.as_ref().map(|a| a.id.to_string())),
             device_id: device,
             moved_at: now,
             reason: match meta.anchor.as_ref().is_some_and(|a| a.foreign) {
@@ -285,7 +324,15 @@ impl Client {
         if let Slot::Account(account) = &slot {
             self.moved.remove(account);
         }
-        self.select(slot)?;
+        if slot == Slot::Local {
+            self.moved.remove(&dmsg_types::LOCAL_ACCOUNT_ID);
+            self.hardware_pending.remove(&dmsg_types::LOCAL_ACCOUNT_ID);
+            self.blobs = None;
+            self.hardware = Verdict::Native;
+            std::fs::remove_file(self.dir.join(crate::client::CURRENT)).map_err(storage)?;
+        } else {
+            self.select(slot)?;
+        }
         self.status()
     }
 
@@ -334,6 +381,9 @@ impl Client {
                 crate::config::environment_name(&self.config.environment),
                 copy.device_id
             );
+            if account == &dmsg_types::LOCAL_ACCOUNT_ID.to_string() {
+                secure.delete(&format!("{name}:local-account-v1"))?;
+            }
             secure.delete(&format!("{name}:fast-unlock"))?;
             secure.delete(&format!("{name}:device-bound"))?;
         }

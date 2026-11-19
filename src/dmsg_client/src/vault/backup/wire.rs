@@ -9,7 +9,6 @@ use serde::{Serialize, de::DeserializeOwned};
 use serde_bytes::{ByteArray, Bytes};
 use sha2::{Digest, Sha256};
 use std::io::{self, Read, Write};
-use std::sync::Mutex;
 use unicode_segmentation::UnicodeSegmentation;
 use zeroize::{Zeroize, Zeroizing};
 
@@ -42,16 +41,7 @@ pub(super) fn password(value: &str, create: bool) -> Result<Zeroizing<String>> {
 }
 
 fn derive(password: &str, salt: &[u8]) -> Result<Zeroizing<Key>> {
-    static TURN: Mutex<()> = Mutex::new(());
-    let _turn = TURN
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
-    let params = argon2::Params::new(65536, 3, 4, Some(32)).expect("fixed backup KDF");
-    let mut key = Zeroizing::new([0; 32]);
-    argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
-        .hash_password_into(password.as_bytes(), salt, &mut *key)
-        .map_err(|_| Error::IntegrityFailed)?;
-    Ok(key)
+    crate::kdf::derive(password.as_bytes(), salt, 65536, 3, 4)
 }
 
 fn cipher(key: &Key) -> AesGcmEncryptor {

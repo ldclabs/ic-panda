@@ -59,6 +59,10 @@ function openOnce(work: () => Promise<unknown>): Promise<void> {
  */
 export function unlock(status: any) {
   if (status?.state === 'unlocked') return
+  if (status?.account_kind === 'local') {
+    if (status.local_unlock_method === 'hardware') return openOnce(() => attempt(() => call('session/local_unlock')))
+    return
+  }
   if (!status?.fast_unlock && !status?.login_renewable) return startLogin()
   // The system's question takes the focus; the window it returns to does not ask again.
   offered = true
@@ -78,7 +82,7 @@ export function unlock(status: any) {
  * it in front of the window, and not again once it asked.
  */
 export function offerUnlock(status: any) {
-  if (opening || offered || login.phase !== 'idle' || status?.state !== 'locked' || !status.fast_presence) return
+  if (status?.account_kind === 'local' || opening || offered || login.phase !== 'idle' || status?.state !== 'locked' || !status.fast_presence) return
   void unlock(status)
 }
 

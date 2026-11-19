@@ -16,7 +16,7 @@ export class Updates {
   private homebrew = false
   private resumeInstallation?: () => Promise<void>
 
-  constructor(private changed: () => void) {}
+  constructor(private changed: () => void, private online: () => Promise<boolean>) {}
 
   get state(): UpdateState {
     return this.session?.state ?? { kind: 'off' }
@@ -63,7 +63,10 @@ export class Updates {
         void resume()
       }
     })
-    const feed = new ReleaseFeed((url, options) => net.fetch(url, options))
+    const feed = new ReleaseFeed(async (url, options) => {
+      if (!await this.online().catch(() => false)) throw new Error('LOCAL_ACCOUNT_ONLY')
+      return net.fetch(url, options)
+    })
     this.session = new UpdateSession({
       enabled: app.isPackaged,
       channel,
@@ -78,6 +81,7 @@ export class Updates {
   }
 
   private async download(release: DesktopRelease, signal: AbortSignal) {
+    if (!await this.online().catch(() => false)) throw new Error('LOCAL_ACCOUNT_ONLY')
     signal.throwIfAborted()
     const channel = release.channel === 'beta' ? 'beta' : 'latest'
     autoUpdater.setFeedURL({ provider: 'generic', url: `${RELEASES}/download/${release.version}/`, channel, useMultipleRangeRequest: false })
@@ -102,7 +106,12 @@ export class Updates {
     }
   }
 
-  check(): Promise<UpdateState> {
+  async sessionChanged() {
+    if (!await this.online().catch(() => false)) this.session?.pause()
+  }
+
+  async check(): Promise<UpdateState> {
+    if (!await this.online().catch(() => false)) return this.state
     return this.session?.check() ?? Promise.resolve(this.state)
   }
 

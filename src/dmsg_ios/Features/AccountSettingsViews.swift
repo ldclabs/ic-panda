@@ -71,19 +71,31 @@ struct AboutDMsgView: View {
 struct LocalAccountRemovalView: View {
     @Environment(SessionModel.self) private var model
     @State private var local: LocalOnly?
+    @State private var counts: [String: Int]?
     @State private var working = false
     @State private var confirming = false
 
     var body: some View {
         Form {
-            Text("Remove this device's encrypted workspace and saved login. Your service account and other devices remain available. Unsynced changes and files without a backup will be lost.")
+            if model.localAccount {
+                Text("Saved on this device")
+                if let counts {
+                    LabeledContent("Vault", value: (counts["vault"] ?? 0).formatted())
+                    LabeledContent("Files", value: (counts["files"] ?? 0).formatted())
+                }
+            } else { Text("Remove this device's encrypted workspace and saved login. Your service account and other devices remain available. Unsynced changes and files without a backup will be lost.") }
             LocalOnlySection(value: local, always: true)
             if local == nil { SettingsAction("Retry") { Task { local = await LocalOnly.load(model) } } }
             SettingsAction("Remove this account's local data", role: .destructive) { confirming = true }
-                .disabled(working || local == nil).accessibilityIdentifier("account.remove-local")
+                .disabled(working || local == nil || (model.localAccount && counts == nil)).accessibilityIdentifier("account.remove-local")
             if working { ProgressView() }
         }.privateScreen().navigationTitle("Remove local data")
-            .task { local = await LocalOnly.load(model) }
+            .task {
+                local = await LocalOnly.load(model)
+                if model.localAccount, let engine = model.engine {
+                    do { counts = try model.decode(try await engine.localAccountCounts()) } catch { model.report(error) }
+                }
+            }
             .confirmationDialog("Remove this account's data from this device?", isPresented: $confirming) {
                 Button("Remove local data", role: .destructive) { Task {
                     guard !working else { return }; working = true

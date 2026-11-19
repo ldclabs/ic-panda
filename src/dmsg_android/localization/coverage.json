@@ -1,163 +1,163 @@
 {
   "en": {
-    "strings": 2113,
+    "strings": 2120,
     "ios_reused": 0,
     "android_translations": 0,
     "missing": [],
-    "ios_sha256": "158c0232cc07257c7d933b9570cce911eebf2eb38f00903b62775a5897e09299"
+    "ios_sha256": "7bf42ab523202e47a51acbb1c6f8840ff44a4f1c6b9fe3f70794d13ddd9f9122"
   },
   "zh-Hans": {
-    "strings": 2113,
+    "strings": 2120,
     "ios_reused": 0,
     "android_translations": 0,
     "missing": [],
-    "ios_sha256": "680f961e45af4668593dc0a816faf2bc05a47c00095a761e2254969570522d71"
+    "ios_sha256": "9b60693b8978ca40013dddee54b0854b079207a410b6bb452645822452bdcd84"
   },
   "zh-Hant": {
-    "strings": 2113,
-    "ios_reused": 890,
+    "strings": 2120,
+    "ios_reused": 897,
     "android_translations": 1219,
     "missing": [],
-    "ios_sha256": "1bba60e740526f5c6d6d0266bfa8f7aa979f281c742f9243a604c1702fceab5c"
+    "ios_sha256": "ff0e1331185997537740904b0fbbad10ff9a5f718b4ace79425283de3b4295ed"
   },
   "ar": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "2f6b927a42eefde70856df1ea009f430da5e4dcccf0812905ced1fc577e549a9"
+    "ios_sha256": "fc220181ff6a79c6d324d15dc7b26e0c1f1ac1f97fd1442d3822a40f5e6c652e"
   },
   "bn": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "3a1a7a9612cc70b4e4401fedf0c01316fc245e75a9b027a26bd4bc78f956086f"
+    "ios_sha256": "1455e72f463a7974d9da14381cd4399004c677233cbfa0fd4de40ce5c51c8b2b"
   },
   "de": {
-    "strings": 2113,
-    "ios_reused": 889,
+    "strings": 2120,
+    "ios_reused": 896,
     "android_translations": 1221,
     "missing": [],
-    "ios_sha256": "5f6b8d7a3b476763b976a7ab76e9c59ee0aab0cf417c3b5ff6b0a5bceca62411"
+    "ios_sha256": "1cb652f8f3a080de950cc6efc207f635ca831aa0f03e916a769c5536f431d1db"
   },
   "es": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "fbff82011885d7187a281db2620d5df12d4ed0b9002aac4eaf6afa28ca4b986c"
+    "ios_sha256": "be62e7b512954c683f61e26cadf664d778ef437f50683751bfc1c6d4bfa4b253"
   },
   "fil": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "136cb5765ec9e951ae60332139182053f0b8ec2f9ac0af525430bf473a3e00c3"
+    "ios_sha256": "553839d07276c50b947b0dd98907bec86a72e019ea75f6e176f2bc54dac0c93c"
   },
   "fr": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "a3c8aa3e605d674caf5a8d9ccf20b46bdcbb905c2ee732cdf51927b8593bbd61"
+    "ios_sha256": "a5527d9e089dd66233fa102eaaa2ac898765e1f835e91cc99d58a6bc68d55850"
   },
   "hi": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "44573e2f294baf2533fe283ef0c633d4eff5ce91d7a874cca23350e36d6b035a"
+    "ios_sha256": "a919f7250ce6c4ca45245e8e5741b3bec730294ab879a80a561e34a4c723d818"
   },
   "id": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "321061264ba3b383baefec1ebbf3018031716179934893196365649a16082b0a"
+    "ios_sha256": "a6e4ef878964ce28eea5e7e145ee5396e06653e3ffef40b7f1be827b0bc24bbe"
   },
   "it": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "7d9cfd3b128add283338f1d81ee12156c37c016ee40aceeda5d96aa575c24580"
+    "ios_sha256": "e573a7d35d8671e291dafcd13d9dfd74756b911bb9dc5f0d1a21ef5d0ada87a5"
   },
   "ja": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "727805ac4a785d14c17fee54f25759844e39b7bfe4f873747d54b696872e0759"
+    "ios_sha256": "c96af74020cdc14e7eebfb082899c9d81955cb4278e3e1b127fd95efac070dcc"
   },
   "ko": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "f4b15a5f17c3f3f6281d7683a4b22249f3e76b976de959ecce6e0ddb07499658"
+    "ios_sha256": "43e50efad46575f96802d2574f841a7e154b05ff787e2932e7b0c0b73c688672"
   },
   "ms": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "578ca951ae81e879e8f2cc91b216641d8b56a0b3ec2d3a7641f3bd507273f6a4"
+    "ios_sha256": "a462cc8ac6451bd91d17b4fe92626392b5156f038caea3f2c7d55249a3a423f2"
   },
   "nl": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "73fca206e256ada697e3a5b102191f0819f966ef5c79e5a34e523848f2fa144b"
+    "ios_sha256": "d52ae21c3b08b04d99803fd7a444e32cd75edcabd84e9a0169e6d0051d1150db"
   },
   "pl": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "09e59cc03813fa95ac7c6bc68a655296727d5ee090b060f9f8d568ca7340aa14"
+    "ios_sha256": "d887796fe63217790fdb69dc323a7075a937126b4c76bd19b16d70df60b6679c"
   },
   "pt-BR": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "e736d426615c3d82facb0a663124acede232855e71bec1d8ab8caf1c1b1809c3"
+    "ios_sha256": "4d31c5acbf12fe4e5ba36d73a10fdca3606dad1cf8d50ad97b9e8c2dc9aee683"
   },
   "ru": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "e8d27b076e3d4be3c6af5e2f2b29ea49c7701e33afa5693df8692884fe9b64ef"
+    "ios_sha256": "ee23473d88dfcc37392e09acc292143b70784c9ae400b8084fcdb56a780f1f18"
   },
   "th": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "34048419de94af7f99adba0eb569f267ac7e36d2a30d4c3a4c14703f965d9374"
+    "ios_sha256": "f204ae994fe55556290b056079f2ec82ffb7f1fb29dda0dd9626d1ede6b93b73"
   },
   "tr": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "a20427628cb95d56ecc783d2020b4b3467d8655366030fbda4c96b7cfb0cfe21"
+    "ios_sha256": "2dcc34362aa4b0ed4bc0298ea17139b19fd4b49cbd920f2ad40eedc26acc93ce"
   },
   "ur": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "252f7fb3c6bfcead0b3b0b8fa7d50609bcf85100021d0eb695b22e7ead5495e5"
+    "ios_sha256": "2b2eedd3070ecfeb35d57c94d5b0087063d03ec8557dbd2bb4c5ff5de14958e7"
   },
   "vi": {
-    "strings": 2113,
-    "ios_reused": 892,
+    "strings": 2120,
+    "ios_reused": 899,
     "android_translations": 1218,
     "missing": [],
-    "ios_sha256": "6edef86ef5a43528526cde68c50d9875c80109ee8bed23181672a4d90adfe40a"
+    "ios_sha256": "f4ea360ab03214372f2c71ed99b023e56b9c5432e12265a3cfea2e586bd7ce22"
   }
 }

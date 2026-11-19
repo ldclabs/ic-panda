@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  useOnDevice: "Использовать только на этом устройстве",
+  offlineAccount: "Локальная учётная запись",
+  savedOnDevice: "Сохранено на этом устройстве",
+  localPassword: "Локальный пароль",
+  importLocalAccount: "Импортировать из локальной учётной записи",
+  localPasswordLength: "Используйте не менее 12 символов.",
+  repeatLocalPassword: "Подтвердите локальный пароль",
   "vaultBackupUnlockError": "Не удалось открыть копию. Проверьте пароль или выберите полный файл.",
   "vaultBackupUncommitted": "Импорт не сохранён. Выберите копию снова.",
   "vaultBackupSync": "Записи синхронизируются как обычно. Вложения сохранены в файлах на этом устройстве.",

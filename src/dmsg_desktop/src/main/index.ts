@@ -130,7 +130,7 @@ const updates = new Updates(() => {
   updateTray(trayState)
   updateMenu()
   broadcast('dmsg:event', { type: 'updates/changed' })
-})
+}, async () => (await daemon.call('daemon/status', {}) as { account_kind?: string }).account_kind === 'cloud')
 /** A copied secret leaves the clipboard after this long, unless something replaced it; locking or quitting clears it sooner. */
 const CLEAR_MS = 30_000
 /** A person's input in a window is the idle lock's activity, reported at most this often. */
@@ -431,8 +431,8 @@ handle('dmsg:call', 'any', (event, method: string, params: unknown) => {
   if (['notifications/settings_set', 'notifications/snooze', 'channel/settings'].includes(method)) noticeEpoch++
   return daemon.call(method, windowParams(method, params))
 })
-handle('dmsg:decide', 'approval', (_event, id: string, digest: string, approve: boolean) =>
-  daemon.call('approval/respond', { id, digest, approve: approve === true, human: true, source: 'gui' })
+handle('dmsg:decide', 'approval', (_event, id: string, digest: string, approve: boolean, password?: string) =>
+  daemon.call('approval/respond', { id, digest, password, approve: approve === true, human: true, source: 'gui' })
 )
 handle('dmsg:grant', 'main', (_event, invite: string, pairing: string) => daemon.call('connect/grant', { invite, pairing, human: true }))
 handle('dmsg:login', 'main', async (_event, origin: string, bind: boolean, options?: { provider?: string; action?: string; credentialId?: string }) => {
@@ -1440,7 +1440,7 @@ function updateMenu() {
 daemon.on('event', (event: DaemonEvent) => {
   if (event.type === 'session/changed') closeBackup()
   if (event.type === 'session/changed' || event.type === 'resync') cancelImport()
-  if (event.type === 'session/changed') dropSystemCopies()
+  if (event.type === 'session/changed') { dropSystemCopies(); void updates.sessionChanged() }
   broadcast('dmsg:event', event)
   if (['notifications/changed', 'session/changed', 'resync', 'sync/changed', 'sync/finished'].includes(event.type)) {
     noticeEpoch++

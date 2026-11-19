@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"सिस्टम की भाषा अपनाएँ"</string>
     <string name="history_device" formatted="false">"युक्ति"</string>
     <string name="history_fields" formatted="false">"खेत"</string>
+    <string name="import_local_account" formatted="false">"स्थानीय खाते से आयात करें"</string>
     <string name="language_search" formatted="false">"भाषा खोजें"</string>
     <string name="links_created_progress" formatted="true">"%2$s में से %1$s बनाए गए"</string>
+    <string name="local_password" formatted="false">"स्थानीय पासवर्ड"</string>
+    <string name="local_password_length" formatted="false">"कम से कम 12 वर्ण इस्तेमाल करें।"</string>
     <string name="no_matches" formatted="false">"कोई मिलान नहीं मिला"</string>
+    <string name="offline_account" formatted="false">"स्थानीय खाता"</string>
     <string name="operation_failed_code" formatted="true">"यह कार्रवाई पूरी नहीं हो सकी। कोड: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"एक बार इस्तेमाल होने वाला कोड। इसे कॉपी करने या बड़े अक्षरों में देखने के लिए फ़ील्ड की कार्रवाइयाँ इस्तेमाल करें।"</string>
     <string name="permission_account_information" formatted="false">"खाते की जानकारी"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"पत्र पाना बंद होने पर कोई भी नया पत्र नहीं भेज सकता।"</string>
     <string name="receive_free" formatted="false">"जिन लोगों को आपने ब्लॉक नहीं किया है वे मुफ़्त में लिख सकते हैं।"</string>
     <string name="receive_selected" formatted="false">"केवल चुने हुए खाते या मान्य आमंत्रण वाले लोग लिख सकते हैं।"</string>
+    <string name="repeat_local_password" formatted="false">"स्थानीय पासवर्ड की पुष्टि करें"</string>
     <string name="review_anyone_with_the_link" formatted="false">"लिंक वाला कोई भी व्यक्ति"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"लिंक और पासवर्ड वाला कोई भी व्यक्ति"</string>
     <string name="review_receiving" formatted="false">"प्राप्ति"</string>
+    <string name="saved_on_device" formatted="false">"इस डिवाइस पर सहेजा गया"</string>
     <string name="search_local_messages" formatted="false">"इस डिवाइस पर सहेजे गए संदेश खोजता है।"</string>
     <string name="search_query_limit" formatted="false">"खोज के लिए अधिकतम 200 अक्षर लिखें।"</string>
     <string name="security_confirm" formatted="false">"dMsg में पुष्टि करें"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"आपकी भूमिका"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"ऊपर के चयन आखिरी लोड संशोधन के आधार पर सहेजे जाएँगे। जारी रखने से पहले समीक्षा करें।"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"सदस्यता अवधि बदली है। सदस्य जानकारी रीफ़्रेश करके फिर जाँचें।"</string>
+    <string name="use_on_device" formatted="false">"केवल इस डिवाइस पर उपयोग करें"</string>
     <string name="vault_backup_changed" formatted="false">"अलग सामग्री · प्रति सहेजें"</string>
     <string name="vault_backup_deleted" formatted="false">"यहाँ हटाया गया · प्रति सहेजें"</string>
     <string name="vault_backup_export" formatted="false">"एन्क्रिप्टेड बैकअप निर्यात करें"</string>

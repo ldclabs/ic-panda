@@ -14,6 +14,7 @@ struct VaultHistoryView: View {
         let revision: String; let at: UInt64; let current: Bool; let deleted: Bool; let conflict: Bool
         let device: String
         let synced: Bool
+        var saveState: String? = nil
         var id: String { revision }
     }
     var body: some View {
@@ -26,7 +27,7 @@ struct VaultHistoryView: View {
                         if version.current { Text("Current version").font(.caption).foregroundStyle(.secondary) }
                         if version.deleted { Label("In Trash", systemImage: "trash").font(.caption) }
                         if version.conflict { Label("Sync conflicts", systemImage: "arrow.triangle.branch").font(.caption) }
-                        if !version.synced { Text("Waiting to sync").font(.caption) }
+                        if !version.synced && version.saveState != "local_only" { Text("Waiting to sync").font(.caption) }
                         Text(model.deviceLabel(version.device) ?? version.device).font(.caption.monospaced()).foregroundStyle(.secondary)
                     }
                 }.accessibilityIdentifier("vault.version.\(version.revision)")

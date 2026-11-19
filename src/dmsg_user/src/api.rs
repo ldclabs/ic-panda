@@ -302,6 +302,7 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
         !ACCOUNTS.with_borrow(|t| t.contains(id.as_slice())),
         Error::IdGeneratorStateConflict,
     )?;
+    ensure(!id.is_empty(), Error::IdGeneratorStateConflict)?;
     let account = account::create(canister_id, cfg.init.home_cose, id, who, &input, now)?;
     cfg.created_today = cfg
         .created_today

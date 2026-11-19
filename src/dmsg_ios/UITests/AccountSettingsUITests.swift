@@ -29,6 +29,7 @@ import XCTest
             app.launch()
             let login = app.buttons["login.start"]
             XCTAssertTrue(login.waitForExistence(timeout: 8))
+            XCTAssertTrue(app.buttons["login.local"].exists)
             XCTAssertEqual(login.label, label)
             XCTAssertTrue(login.isEnabled)
             XCTAssertTrue(app.buttons["login.ii"].exists)

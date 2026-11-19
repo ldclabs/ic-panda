@@ -215,15 +215,12 @@ async fn profiles(d: &Daemon) {
 async fn refresh_profile(d: &Daemon, session: Session) -> Result<()> {
     let shared = d.hold();
     let h = Unlocked::new(&shared).await?;
-    let (config, due) = h
+    let due = h
         .with(|c| {
             c.check_display_session(session)?;
             let now = now_ms();
-            Ok((
-                c.config().clone(),
-                c.profile_display()?
-                    .is_none_or(|p| display::stale(p.observed_at_ms, display::PROFILE_TTL, now)),
-            ))
+            Ok(c.profile_display()?
+                .is_none_or(|p| display::stale(p.observed_at_ms, display::PROFILE_TTL, now)))
         })
         .await?;
     let allowed = {
@@ -233,7 +230,7 @@ async fn refresh_profile(d: &Daemon, session: Session) -> Result<()> {
     // Avatar refresh still runs when the directory is temporarily unavailable.
     let mut failure = None;
     if due && allowed {
-        match principal::resolve(&config, &session.account).await {
+        match principal::resolve_account(&h, &session.account).await {
             Ok(document) => {
                 h.with(|c| {
                     c.check_display_session(session)?;

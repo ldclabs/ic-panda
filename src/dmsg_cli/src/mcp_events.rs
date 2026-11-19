@@ -136,6 +136,10 @@ impl McpEvents {
 /// Fetch for as long as the daemon runs.
 pub(crate) async fn run(daemon: Arc<Daemon>) {
     loop {
+        if daemon.local_mode().await {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            continue;
+        }
         let every = if daemon.hints_connected() {
             FETCH_HINTED_MS
         } else {

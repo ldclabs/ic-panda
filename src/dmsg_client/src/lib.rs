@@ -38,10 +38,12 @@ pub mod hold;
 pub mod host;
 pub mod ic;
 pub mod inbox;
+mod kdf;
 pub mod legacy;
 pub mod legacy_proof;
 pub mod letters;
 pub mod library;
+pub mod local;
 pub mod login;
 pub mod mail_push;
 pub mod mcp_events;
@@ -109,7 +111,17 @@ pub fn error_code(error: &Error) -> String {
         return "SYNC_BUSY".into();
     }
     if let Error::InvalidInput(code) = error
-        && matches!(code.as_str(), "RESPONSE_TOO_LARGE" | "REQUEST_TOO_LARGE")
+        && matches!(
+            code.as_str(),
+            "RESPONSE_TOO_LARGE"
+                | "REQUEST_TOO_LARGE"
+                | "LOCAL_ACCOUNT_ONLY"
+                | "LOCAL_UNLOCK_FAILED"
+                | "KDF_BUSY"
+                | "LOCAL_PASSWORD_LENGTH"
+                | "LOCAL_HARDWARE_UNAVAILABLE"
+                | "LOCAL_HARDWARE_LOST"
+        )
     {
         return code.clone();
     }

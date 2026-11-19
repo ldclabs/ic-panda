@@ -27,9 +27,13 @@
     <string name="follow_system_language" formatted="false">"Sistem dilini izle"</string>
     <string name="history_device" formatted="false">"Cihaz"</string>
     <string name="history_fields" formatted="false">"Alanlar"</string>
+    <string name="import_local_account" formatted="false">"Yerel hesaptan içe aktar"</string>
     <string name="language_search" formatted="false">"Dil ara"</string>
     <string name="links_created_progress" formatted="true">"%2$s öğeden %1$s tanesi oluşturuldu"</string>
+    <string name="local_password" formatted="false">"Yerel parola"</string>
+    <string name="local_password_length" formatted="false">"En az 12 karakter kullanın."</string>
     <string name="no_matches" formatted="false">"Eşleşen sonuç yok"</string>
+    <string name="offline_account" formatted="false">"Yerel hesap"</string>
     <string name="operation_failed_code" formatted="true">"Bu işlem tamamlanamadı. Kod: %1$s"</string>
     <string name="otp_accessibility_hint" formatted="false">"Tek kullanımlık kod. Kopyalamak veya büyük yazıyla göstermek için alan eylemlerini kullanın."</string>
     <string name="permission_account_information" formatted="false">"Hesap bilgileri"</string>
@@ -45,9 +49,11 @@
     <string name="receive_closed" formatted="false">"Mektup alımı kapalıyken kimse yeni mektup gönderemez."</string>
     <string name="receive_free" formatted="false">"Engellemediğiniz herkes ücretsiz yazabilir."</string>
     <string name="receive_selected" formatted="false">"Yalnızca seçili hesaplar veya geçerli daveti olan kişiler yazabilir."</string>
+    <string name="repeat_local_password" formatted="false">"Yerel parolayı doğrula"</string>
     <string name="review_anyone_with_the_link" formatted="false">"Bağlantıya sahip herkes"</string>
     <string name="review_anyone_with_the_link_and_password" formatted="false">"Bağlantı ve parolaya sahip herkes"</string>
     <string name="review_receiving" formatted="false">"Alma"</string>
+    <string name="saved_on_device" formatted="false">"Bu cihaza kaydedildi"</string>
     <string name="search_local_messages" formatted="false">"Bu cihazda saklanan mesajları arar."</string>
     <string name="search_query_limit" formatted="false">"Arama için en fazla 200 karakter kullanın."</string>
     <string name="security_confirm" formatted="false">"dMsg\'de onayla"</string>
@@ -2070,6 +2076,7 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Rolünüz"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Yukarıdaki seçimler son yüklenen revizyona göre kaydedilir. Devam etmeden inceleyin."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Abonelik döneminiz değişti. Üyeliği yenileyip yeniden inceleyin."</string>
+    <string name="use_on_device" formatted="false">"Yalnızca bu cihazda kullan"</string>
     <string name="vault_backup_changed" formatted="false">"İçerik farklı · kopya kaydet"</string>
     <string name="vault_backup_deleted" formatted="false">"Burada silindi · kopya kaydet"</string>
     <string name="vault_backup_export" formatted="false">"Şifreli yedeği dışa aktar"</string>

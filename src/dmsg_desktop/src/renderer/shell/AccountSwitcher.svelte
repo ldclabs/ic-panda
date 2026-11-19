@@ -5,6 +5,7 @@
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../shared/locales'
   import Icon from '../components/Icon.svelte'
+  import LocalAccount from './LocalAccount.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import Notice from '../components/page/Notice.svelte'
   import { cn, menuContentClass, menuItemClass } from '../components/ui'
@@ -24,10 +25,13 @@
   let open = $state(false)
   let content = $state<HTMLElement | null>(null)
   let accounts = $state<any[]>([])
+  let accountsLoaded = $state(false)
+  let localAction: { begin: () => Promise<void> } | undefined = $state()
+  const hasLocal = $derived(accounts.some(a => a.account_kind === 'local'))
   let name = $state('')
   let avatar = $state<string | null>(null)
   // Read on unlock and publication, without polling on each status refresh.
-  const unlockedAccount = $derived(status?.state === 'unlocked' ? (status.account as string) : null)
+  const unlockedAccount = $derived(status?.account_kind !== 'local' && status?.state === 'unlocked' ? (status.account as string) : null)
   // The II login can expire while the account stays unlocked, which changes no
   // session state; check its expiry as the menu opens.
   let openedAt = $state(0)
@@ -79,10 +83,12 @@
   })
 
   $effect(() => {
-    if (!open) return
+    void open; void status?.session
+    let current = true
     call<any[]>('session/accounts')
-      .then((list) => (accounts = list))
-      .catch(() => (accounts = []))
+      .then(list => { if (current) { accounts = list; accountsLoaded = true } })
+      .catch(() => { if (current) accountsLoaded = false })
+    return () => { current = false }
   })
 
   const initial = $derived((name || 'd').slice(0, 1).toUpperCase())
@@ -108,9 +114,9 @@
         {/if}
         {#if !collapsed}
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[13.5px] font-semibold">{name || t('account')}</span>
+            <span class="block truncate text-[13.5px] font-semibold">{status?.account_kind === 'local' ? t('offlineAccount') : name || t('account')}</span>
             <span class="block truncate font-mono text-[11px] text-faint"
-              >{#if account}<bdi dir="ltr">{shortId(account)}</bdi>{:else}{sessionLabel(status?.state ?? '')}{/if}</span
+              >{#if status?.account_kind === 'local'}{t('useOnDevice')}{:else if account}<bdi dir="ltr">{shortId(account)}</bdi>{:else}{sessionLabel(status?.state ?? '')}{/if}</span
             >
           </span>
           <Icon name="chevron-down" class="text-faint" />
@@ -123,18 +129,18 @@
       <DropdownMenu.Group>
         <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('localAccounts')}</DropdownMenu.GroupHeading>
         {#each accounts as a (a.account)}
-          {@const accountName = (a.account === unlockedAccount && name) || (unlockedAccount ? nameOf(a.account, false) : null)}
+          {@const accountName = a.account_kind === 'local' ? t('offlineAccount') : (a.account === unlockedAccount && name) || (unlockedAccount ? nameOf(a.account, false) : null)}
           {@const counts = reminderAccounts.find((entry) => entry.account === a.account)?.counts}
           {@const reminders = counts ? counts.actionable + counts.unread : 0}
           <DropdownMenu.Item
             class={cn(menuItemClass, 'data-disabled:cursor-default data-disabled:opacity-100')}
             disabled={a.current}
-            onSelect={() => switchAccount(a.account, a.fast_unlock)}
+            onSelect={() => switchAccount(a.account, a.account_kind !== 'local' && a.fast_unlock)}
             data-value={a.account}
           >
-            <span class="min-w-0 flex-1" {@attach visibleName(unlockedAccount && !(a.account === unlockedAccount && name) ? a.account : undefined)}>
+            <span class="min-w-0 flex-1" {@attach visibleName(a.account_kind !== 'local' && unlockedAccount && !(a.account === unlockedAccount && name) ? a.account : undefined)}>
               {#if accountName}<span class="block truncate text-[13px] font-medium" title={accountName}>{accountName}</span>{/if}
-              <span class={cn('block truncate font-mono text-xs', accountName && 'text-faint')} title={a.account}><bdi dir="ltr">{shortId(a.account)}</bdi></span>
+              <span class={cn('block truncate font-mono text-xs', accountName && 'text-faint')} title={a.account}><bdi dir="ltr">{a.account_kind === 'local' ? t('useOnDevice') : shortId(a.account)}</bdi></span>
               {#if !a.bound}<span class="block text-[11.5px] text-faint">{t('waitingDevice')}</span>{/if}
             </span>
             {#if reminders > 0}
@@ -148,12 +154,17 @@
         {/each}
       </DropdownMenu.Group>
       <DropdownMenu.Separator class="my-1 h-px bg-line" />
+      {#if accountsLoaded && status?.account_kind === 'cloud' && status.state === 'unlocked'}
+        <DropdownMenu.Item class={menuItemClass} onSelect={() => requestAnimationFrame(() => void localAction?.begin())}>
+          {t(hasLocal ? 'importLocalAccount' : 'useOnDevice')}
+        </DropdownMenu.Item>
+      {/if}
       {#if loginMissing}
         <Notice id="account-login-hint" testid="account-login-hint">{t('localAccessWithoutLogin')}</Notice>
       {/if}
       <DropdownMenu.Item
         class={menuItemClass}
-        onSelect={() => startLogin()}
+        onSelect={async () => { if (status?.account_kind === 'local') await call('session/logout'); startLogin() }}
         aria-describedby={loginMissing ? 'account-login-hint' : undefined}
         data-testid="account-login"
       >
@@ -167,3 +178,6 @@
     </DropdownMenu.Content>
   </DropdownMenu.Portal>
 </DropdownMenu.Root>
+{#if accountsLoaded && status?.state === 'unlocked' && status.account_kind === 'cloud'}
+  <LocalAccount bind:this={localAction} action={hasLocal ? 'import' : 'create'} {status} showTrigger={false} />
+{/if}

@@ -3512,5 +3512,17 @@
 	<string>درآمد محفوظ نہیں ہوئی۔ بیک اپ دوبارہ منتخب کریں۔</string>
 	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
 	<string>اندراجات معمول کے مطابق ہم وقت ہوں گے۔ منسلکات اس آلے کی فائلوں میں محفوظ ہیں۔</string>
+	<key>Use only on this device</key>
+	<string>صرف اس ڈیوائس پر استعمال کریں</string>
+	<key>Local account</key>
+	<string>مقامی اکاؤنٹ</string>
+	<key>Local password</key>
+	<string>مقامی پاس ورڈ</string>
+	<key>Import from local account</key>
+	<string>مقامی اکاؤنٹ سے درآمد کریں</string>
+	<key>Use at least 12 characters.</key>
+	<string>کم از کم 12 حروف استعمال کریں۔</string>
+	<key>Confirm local password</key>
+	<string>مقامی پاس ورڈ کی تصدیق کریں</string>
 </dict>
 </plist>

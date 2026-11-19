@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  useOnDevice: "Yalnızca bu cihazda kullan",
+  offlineAccount: "Yerel hesap",
+  savedOnDevice: "Bu cihaza kaydedildi",
+  localPassword: "Yerel parola",
+  importLocalAccount: "Yerel hesaptan içe aktar",
+  localPasswordLength: "En az 12 karakter kullanın.",
+  repeatLocalPassword: "Yerel parolayı doğrula",
   "vaultBackupUnlockError": "Yedek açılamadı. Parolayı kontrol edin veya eksiksiz bir dosya seçin.",
   "vaultBackupUncommitted": "İçe aktarma kaydedilmedi. Yedeği tekrar seçin.",
   "vaultBackupSync": "Kayıtlar normal şekilde eşitlenir. Ekler bu cihazdaki Dosyalar’a kaydedilir.",

@@ -119,7 +119,7 @@ private fun validBackupPassword(value: String, repeat: String): Boolean {
                     Text(DateFormat.getDateTimeInstance().format(Date(form.view.requiredUnsigned("at").toLong())))
                     Text(str(R.string.text_trash_8af1079)+" "+inventory?.get("trash")+" · "+str(R.string.text_managed_by_dmsg_35b3681)+" "+inventory?.get("managed"))
                     Text(str(R.string.text_version_conflicts_0df1b3c)+" "+inventory?.get("conflicts"))
-                    Text(str(R.string.text_pending_upload_3dce896) + chosen.count { !it.requiredFlag("synced") })
+                    Text(str(R.string.text_pending_upload_3dce896) + chosen.count { it.text("save_state") == "pending" || (it.text("save_state") == null && !it.requiredFlag("synced")) })
                     Row {
                         TextButton({selection=rows.map { it.required("id") }.toSet()},enabled=!working){Text(str(R.string.text_all_eae0ae1))}
                         TextButton({selection=emptySet()},enabled=!working){Text(str(R.string.text_clear_selection_66ecd44))}

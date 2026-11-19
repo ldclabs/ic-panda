@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import net.dmsg.core.*
 
-data class VaultVersion(val revision: String, val at: ULong, val device: String, val current: Boolean, val deleted: Boolean, val conflict: Boolean, val synced: Boolean, val changes: List<String>, val alias: String?)
+data class VaultVersion(val revision: String, val at: ULong, val device: String, val current: Boolean, val deleted: Boolean, val conflict: Boolean, val synced: Boolean, val changes: List<String>, val alias: String?, val saveState: String? = null)
 data class VaultHistory(val current: VaultItem, val versions: List<VaultVersion>, val more: Boolean)
 data class ConflictField(val id: String, val kind: String, val label: String, val section: String, val value: String) {
     val hidden: Boolean get() = kind in setOf("concealed", "otp")
@@ -14,7 +14,7 @@ data class ConflictItem(val id: String, val revision: String, val title: String,
 data class VaultConflict(val copy: ConflictItem, val current: ConflictItem, val hidden: List<String>) { val key: String get() = copy.id + ":" + copy.revision }
 data class ConflictChoice(val expected: String, val picks: Set<String> = emptySet(), val merging: Boolean = false)
 data class ConflictPart(val id: String, val current: String, val other: String, val hidden: Boolean = false)
-fun parseVaultVersions(value: JsonElement) = value.arrayRows().map { VaultVersion(it.required("revision"), it.requiredUnsigned("at"), it.required("device"), it.requiredFlag("current"), it.requiredFlag("deleted"), it.requiredFlag("conflict"), it.requiredFlag("synced"), it.strings("changes"), it.text("device_alias")) }
+fun parseVaultVersions(value: JsonElement) = value.arrayRows().map { VaultVersion(it.required("revision"), it.requiredUnsigned("at"), it.required("device"), it.requiredFlag("current"), it.requiredFlag("deleted"), it.requiredFlag("conflict"), it.requiredFlag("synced"), it.strings("changes"), it.text("device_alias"), it.text("save_state")) }
 private fun parseConflictItem(value: JsonElement): ConflictItem {
     val entry = value.objectValue(); val item = entry["item"]!!.objectValue()
     return ConflictItem(entry.required("id"), entry.required("revision"), item.required("title"), item.required("notes"), item.strings("tags"), item.strings("files"), item.requiredFlag("favorite"), entry.requiredFlag("deleted"), item.rows("fields").map {

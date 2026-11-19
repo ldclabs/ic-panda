@@ -32,11 +32,15 @@ export class UpdateSession {
     if (this.applying) throw new Error('An update is being installed.')
     if (channel === this.channel) return
     this.channel = channel
+    this.pause()
+    void this.check()
+  }
+
+  pause() {
     this.generation++
     this.abort?.abort()
     this.candidate = null
     this.set({ kind: this.options.enabled ? 'idle' : 'off' })
-    void this.check()
   }
 
   check(): Promise<UpdateState> {
