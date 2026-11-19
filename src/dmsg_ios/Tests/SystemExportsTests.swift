@@ -7,6 +7,8 @@ import XCTest
 
 final class SystemExportsTests: XCTestCase {
     func testLegacyCredentialAuthenticationFailureKeepsTheSnapshotRetryable() throws {
+        try XCTSkipUnless(try KeychainMigration.signingPrefix() == KeychainMigration.originalPrefix,
+                          "Requires the LDC team Keychain entitlement")
         let store = try SystemExports(.credentials, root: root())
         let prepared = try store.prepareCredentials([
             CredentialInput(title: "Example", username: "alice", password: "saved-secret", origin: "https://example.com")
@@ -51,6 +53,8 @@ final class SystemExportsTests: XCTestCase {
     }
 
     func testLegacyFileSessionMovesOnceAndLockCannotResurrectIt() throws {
+        try XCTSkipUnless(try KeychainMigration.signingPrefix() == KeychainMigration.originalPrefix,
+                          "Requires the LDC team Keychain entitlement")
         let directory = try root(), source = directory.appending(path: "sample.bin")
         try Data([1]).write(to: source)
         let store = try SystemExports(.files, root: directory)

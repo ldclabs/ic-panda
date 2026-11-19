@@ -26,7 +26,7 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     private var prepared: [UInt64: PreparedSigning] = [:]
 
     init(installation: String, environment: String = "production", notificationWorkspace: URL? = nil,
-         signingPrefix: String? = nil) throws {
+         preparationMarker: URL? = nil, signingPrefix: String? = nil) throws {
         service = "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").\(environment).\(installation)"
         self.notificationWorkspace = notificationWorkspace
         let prefix = try signingPrefix ?? KeychainMigration.signingPrefix()
@@ -46,12 +46,20 @@ final class AppleSecurity: Platform, @unchecked Sendable {
             if let saved, saved != expected { throw KeychainMigration.Failure.preparationMissing }
             if prefix != KeychainMigration.originalPrefix, let notificationWorkspace,
                try !FileManager.default.contentsOfDirectory(atPath: notificationWorkspace.path).isEmpty {
-                throw KeychainMigration.Failure.preparationMissing
+                // Workspaces already prepared in the App Group can move to
+                // another iPhone without ThisDeviceOnly Keychain items. Let the
+                // core's hardware anchor route them to MovedView instead of
+                // mistaking them for an unmigrated legacy installation.
+                let marked = preparationMarker.flatMap { try? Data(contentsOf: $0) } == expected
+                if !marked { throw KeychainMigration.Failure.preparationMissing }
             }
             // The receipt is not a secret or an unlock factor. Do not require
             // a device passcode merely to open a fresh app's welcome screen.
             do { try write(receipt, secret: expected, accessibility: kSecAttrAccessibleWhenUnlockedThisDeviceOnly) }
             catch { throw KeychainMigration.Failure.unavailable(errSecNotAvailable) }
+        }
+        if let preparationMarker, (try? Data(contentsOf: preparationMarker)) != expected {
+            try? expected.write(to: preparationMarker, options: [.atomic, .completeFileProtection])
         }
     }
 

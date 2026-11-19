@@ -81,17 +81,24 @@ class TestFlightTests(unittest.TestCase):
         }}
         self.output = self.project.parent / ".build/TestFlight-0.1.0-5"
 
-    def write_ipa(self, directory, extension_build="5", include_extension=True):
+    def write_ipa(self, directory, extension_build="5", include_extension=True,
+                  keychain_prefix="S9Z2WAMAV8.", include_autofill=False, autofill_prefix="S9Z2WAMAV8."):
         directory.mkdir(parents=True, exist_ok=True)
         ipa = directory / "dMsg.ipa"
         with zipfile.ZipFile(ipa, "w") as package:
-            bundles = [("Payload/dMsg.app/Info.plist", "net.dmsg.ios", "5")]
+            bundles = [("Payload/dMsg.app/Info.plist", "net.dmsg.ios", "5", keychain_prefix)]
             if include_extension:
                 bundles.append(("Payload/dMsg.app/PlugIns/Share.appex/Info.plist",
-                                "net.dmsg.ios.share", extension_build))
-            for path, bundle, build in bundles:
-                package.writestr(path, plistlib.dumps({"CFBundleIdentifier": bundle,
-                    "CFBundleVersion": build, "CFBundleShortVersionString": "0.1.0"}))
+                                "net.dmsg.ios.share", extension_build, None))
+            if include_autofill:
+                bundles.append(("Payload/dMsg.app/PlugIns/Credentials.appex/Info.plist",
+                                "net.dmsg.ios.autofill", "5", autofill_prefix))
+            for path, bundle, build, prefix in bundles:
+                info = {"CFBundleIdentifier": bundle,
+                        "CFBundleVersion": build, "CFBundleShortVersionString": "0.1.0"}
+                if prefix is not None:
+                    info["DMsgKeychainPrefix"] = prefix
+                package.writestr(path, plistlib.dumps(info))
         return ipa
 
     def write_archive(self):
@@ -304,6 +311,22 @@ class TestFlightTests(unittest.TestCase):
                 ipa = self.write_ipa(self.output, **kwargs)
                 with self.assertRaises(ValueError):
                     testflight.verify_ipa(ipa, "0.1.0", "5", {"net.dmsg.ios", "net.dmsg.ios.share"})
+
+    def test_missing_unexpanded_or_mismatched_keychain_prefix_is_rejected(self):
+        bundles = {"net.dmsg.ios", "net.dmsg.ios.share"}
+        for prefix in (None, "", "$(AppIdentifierPrefix)", "63G8VNQPXB", "63G8VNQPXB."):
+            with self.subTest(prefix=prefix):
+                ipa = self.write_ipa(self.output, keychain_prefix=prefix)
+                with self.assertRaises(ValueError):
+                    testflight.verify_ipa(ipa, "0.1.0", "5", bundles, team="S9Z2WAMAV8")
+        # Migrating extensions also require an expanded prefix matching the export team.
+        ipa = self.write_ipa(self.output, keychain_prefix="63G8VNQPXB.",
+                             include_autofill=True, autofill_prefix=None)
+        with self.assertRaises(ValueError):
+            testflight.verify_ipa(ipa, "0.1.0", "5", bundles | {"net.dmsg.ios.autofill"}, team="63G8VNQPXB")
+        valid = self.write_ipa(self.output, keychain_prefix="63G8VNQPXB.",
+                               include_autofill=True, autofill_prefix="63G8VNQPXB.")
+        testflight.verify_ipa(valid, "0.1.0", "5", bundles | {"net.dmsg.ios.autofill"}, team="63G8VNQPXB")
 
 
 if __name__ == "__main__":

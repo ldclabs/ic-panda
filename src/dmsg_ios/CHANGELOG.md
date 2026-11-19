@@ -14,8 +14,13 @@ tracked separately. Build and device-test evidence is recorded in
   Fix catalog creation when the shared container uses the `/private/var` path.
 
 - Stop Keychain preparation if an existing installation's identifier is missing,
-  damaged or unreadable. Retrying with the original identifier can resume the
-  migration using the original saved keys.
+  damaged or unreadable, while treating temporary lock-screen read denials as
+  retryable rather than permanent preparation failures. Retrying with the
+  original identifier can resume the migration using the original saved keys.
+- Record a workspace preparation marker after Keychain preparation succeeds so
+  already-prepared workspaces moved to another device under the receiving team
+  still reach the normal moved-device flow instead of being blocked as
+  unmigrated legacy installs.
 - Keep the existing team's App Attest registration. A build signed by the
   receiving team enrolls its own key for push registration and purchases.
 

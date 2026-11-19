@@ -48,6 +48,13 @@ impl Remote {
         Self::with_token(Some(origin(&discovery)), None, token)
     }
 
+    /// Connect to the home's daemon using an already-read owner credential,
+    /// avoiding repeated credential-store lookups during startup polling.
+    pub fn connect_with_token(home: &Home, token: String) -> Result<Self, Failure> {
+        let discovery = Self::discover(home)?;
+        Self::with_token(Some(origin(&discovery)), None, token)
+    }
+
     /// The home's daemon for a hosted agent's long-lived session, with that
     /// agent's credential instead of the owner's. It is found at the first
     /// call, so the session starts while no daemon runs, and found again
@@ -264,6 +271,23 @@ mod tests {
         assert_eq!(
             session.call("mcp/tools", Value::Null).await.unwrap(),
             "second"
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_with_token_uses_cached_credential_without_reloading_storage() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        std::fs::create_dir_all(&home.dir).unwrap();
+        let (port, _task) = answering("ok").await;
+        publish(&home, port);
+        // No owner.token or system credential is present; the supplied token suffices.
+        let remote = Remote::connect_with_token(&home, "cached-token".into()).unwrap();
+        assert_eq!(
+            remote.call("daemon/status", Value::Null).await.unwrap(),
+            "ok"
         );
     }
 }

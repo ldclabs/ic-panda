@@ -65,7 +65,15 @@ def run_logged(command, log_path, *, env=None):
                 raise RuntimeError(f"Command failed. See {log_path}")
 
 
-def verify_ipa(ipa, version, build, bundle_ids):
+KEYCHAIN_PREFIX_BUNDLES = {
+    "net.dmsg.ios",
+    "net.dmsg.ios.autofill",
+    "net.dmsg.ios.files",
+    "net.dmsg.ios.files-ui",
+}
+
+
+def verify_ipa(ipa, version, build, bundle_ids, team=None):
     with zipfile.ZipFile(ipa) as package:
         info_paths = [name for name in package.namelist() if re.fullmatch(
             r"Payload/[^/]+\.app/(?:PlugIns/[^/]+\.appex/)?Info\.plist", name
@@ -75,7 +83,15 @@ def verify_ipa(ipa, version, build, bundle_ids):
             info = plistlib.loads(package.read(name))
             if (info.get("CFBundleShortVersionString"), info.get("CFBundleVersion")) != (version, build):
                 raise ValueError(f"IPA version/build mismatch: {name}")
-            actual_ids.append(info.get("CFBundleIdentifier"))
+            bundle_id = info.get("CFBundleIdentifier")
+            actual_ids.append(bundle_id)
+            prefix = info.get("DMsgKeychainPrefix")
+            requires_prefix = "/PlugIns/" not in name or bundle_id in KEYCHAIN_PREFIX_BUNDLES
+            if requires_prefix or prefix is not None:
+                if not isinstance(prefix, str) or not re.fullmatch(r"[A-Z0-9]{10}\.", prefix):
+                    raise ValueError(f"IPA has missing or unexpanded DMsgKeychainPrefix: {name}")
+                if team is not None and prefix != f"{team}.":
+                    raise ValueError(f"IPA DMsgKeychainPrefix mismatch for team {team}: {name}")
         if Counter(actual_ids) != Counter(bundle_ids):
             raise ValueError("IPA is missing an expected app/extension or contains an unexpected bundle")
 
@@ -204,7 +220,7 @@ def export_archive(archive, output, version, build, team, bundle_ids, auth_args=
     if len(ipas) != 1:
         raise RuntimeError("Export did not produce exactly one IPA")
     ipa = ipas[0]
-    verify_ipa(ipa, version, build, bundle_ids)
+    verify_ipa(ipa, version, build, bundle_ids, team=team)
     digest = hashlib.sha256()
     with ipa.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):

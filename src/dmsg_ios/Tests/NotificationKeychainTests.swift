@@ -22,6 +22,8 @@ final class NotificationKeychainTests: XCTestCase {
     }
 
     func testUpgradeRecoversTheRegisteredKeyDespiteLaterFailedRetries() throws {
+        let isOriginalTeam = (try? KeychainMigration.signingPrefix()) == KeychainMigration.originalPrefix
+        let group = isOriginalTeam ? nil : KeychainMigration.mainGroup
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let old = try PrivateFiles(base: directory.appending(path: "old-container"))
@@ -38,10 +40,13 @@ final class NotificationKeychainTests: XCTestCase {
         let otherAccount = "080g2081040g2081040g"
         let receiver = Data("registered receiver".utf8)
         let revocation = "revoke:" + String(repeating: "3", count: 64) + ":4"
-        try insertLegacy(installation, name: originalPrefix + "installation", data: seed)
-        try insertLegacy(installation, name: originalPrefix + account, data: receiver)
-        try insertLegacy(installation, name: originalPrefix + otherAccount, data: Data("other receiver".utf8))
-        try insertLegacy(installation, name: originalPrefix + revocation, data: Data("retired receiver".utf8))
+        if !isOriginalTeam {
+            try insertLegacy(installation, name: "dmsg:keychain:app-group:v1", data: Data(installation.utf8), group: group)
+        }
+        try insertLegacy(installation, name: originalPrefix + "installation", data: seed, group: group)
+        try insertLegacy(installation, name: originalPrefix + account, data: receiver, group: group)
+        try insertLegacy(installation, name: originalPrefix + otherAccount, data: Data("other receiver".utf8), group: group)
+        try insertLegacy(installation, name: originalPrefix + revocation, data: Data("retired receiver".utf8), group: group)
 
         // TestFlight moves the container, preserving files and the Keychain.
         let updated = directory.appending(path: "updated-container")
@@ -52,7 +57,7 @@ final class NotificationKeychainTests: XCTestCase {
         XCTAssertNotEqual(currentPrefix, originalPrefix)
         // The broken retry already generated a new key, but that key was never
         // accepted as the existing APNs registration's notification owner.
-        try insertLegacy(installation, name: currentPrefix + "installation", data: Data(repeating: 8, count: 32))
+        try insertLegacy(installation, name: currentPrefix + "installation", data: Data(repeating: 8, count: 32), group: group)
         let security = try AppleSecurity(installation: installation, notificationWorkspace: files.workspace)
         // Receiver reads can happen before an installation-key read.
         XCTAssertEqual(try security.get(name: currentPrefix + account), receiver)
@@ -99,14 +104,16 @@ final class NotificationKeychainTests: XCTestCase {
         return "dmsg:notifications:" + SHA256.hash(data: Data(path.utf8)).map { String(format: "%02x", $0) }.joined() + ":"
     }
 
-    private func query(_ installation: String, environment: String = "production") -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").\(environment).\(installation)",
-         kSecAttrSynchronizable as String: false]
+    private func query(_ installation: String, environment: String = "production", group: String? = nil) -> [String: Any] {
+        var result: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").\(environment).\(installation)",
+            kSecAttrSynchronizable as String: false]
+        if let group { result[kSecAttrAccessGroup as String] = group }
+        return result
     }
 
-    private func insertLegacy(_ installation: String, name: String, data: Data) throws {
-        var item = query(installation)
+    private func insertLegacy(_ installation: String, name: String, data: Data, group: String? = nil) throws {
+        var item = query(installation, group: group)
         item[kSecAttrAccount as String] = name
         item[kSecValueData as String] = data
         item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly
@@ -117,5 +124,6 @@ final class NotificationKeychainTests: XCTestCase {
 
     private func removeService(_ installation: String, environment: String = "production") {
         SecItemDelete(query(installation, environment: environment) as CFDictionary)
+        SecItemDelete(query(installation, environment: environment, group: KeychainMigration.mainGroup) as CFDictionary)
     }
 }

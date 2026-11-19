@@ -42,10 +42,16 @@ final class KeychainMigrationTests: XCTestCase {
     }
 
     private func remove(_ service: String) {
-        for group in [source, destination] { SecItemDelete(query(service, group: group) as CFDictionary) }
+        var groups: Set<String> = [source, destination]
+        if let prefix = try? KeychainMigration.signingPrefix() {
+            groups.insert(prefix + "net.dmsg.ios")
+        }
+        for group in groups { SecItemDelete(query(service, group: group) as CFDictionary) }
     }
 
     func testUpgradeMovesAllAccountsWithoutChangingBytesOrProtection() throws {
+        try XCTSkipUnless(try KeychainMigration.signingPrefix() == KeychainMigration.originalPrefix,
+                          "Requires the LDC team Keychain entitlement")
         let installation = UUID().uuidString, another = UUID().uuidString
         let current = service(installation), staging = service(installation, environment: "staging"), other = service(another)
         defer { [current, staging, other].forEach(remove) }
@@ -78,6 +84,8 @@ final class KeychainMigrationTests: XCTestCase {
     }
 
     func testDuplicateStopsMigrationWithoutDeletingEitherKeyAndCanBeRetried() throws {
+        try XCTSkipUnless(try KeychainMigration.signingPrefix() == KeychainMigration.originalPrefix,
+                          "Requires the LDC team Keychain entitlement")
         let installation = UUID().uuidString, name = service(installation)
         defer { remove(name) }
         try insert(name, group: source, account: "binding", data: Data([1]))
@@ -95,6 +103,8 @@ final class KeychainMigrationTests: XCTestCase {
     }
 
     func testExistingWorkspaceNeverChangesKeychainNamespaceOnMarkerFailure() throws {
+        let currentPrefix = try KeychainMigration.signingPrefix()
+        let isOriginalTeam = currentPrefix == KeychainMigration.originalPrefix
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
         let old = try PrivateFiles(base: root)
@@ -102,18 +112,24 @@ final class KeychainMigrationTests: XCTestCase {
         defer { remove(name) }
         let key = Data([7, 2]), workspace = old.workspace.appending(path: "fixture.db")
         try key.write(to: workspace)
-        try insert(name, group: source, account: "binding", data: key)
+        let initialGroup = isOriginalTeam ? source : destination
+        try insert(name, group: initialGroup, account: "binding", data: key)
+        if !isOriginalTeam {
+            try insert(name, group: destination, account: "dmsg:keychain:app-group:v1", data: Data(old.installation.utf8))
+        }
         func open() throws -> AppleSecurity {
             let files = try PrivateFiles(base: root)
             return try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
-                                     signingPrefix: KeychainMigration.originalPrefix)
+                                     signingPrefix: currentPrefix)
         }
         func checkBlocked() throws {
             XCTAssertThrowsError(try open()) {
                 XCTAssertEqual($0 as? KeychainMigration.Failure, .preparationMissing)
             }
-            XCTAssertNotNil(try item(name, group: source, account: "binding"))
-            XCTAssertNil(try item(name, group: destination, account: "dmsg:keychain:app-group:v1"))
+            XCTAssertNotNil(try item(name, group: initialGroup, account: "binding"))
+            if isOriginalTeam {
+                XCTAssertNil(try item(name, group: destination, account: "dmsg:keychain:app-group:v1"))
+            }
             XCTAssertEqual(try Data(contentsOf: workspace), key)
         }
         for damaged in [Data("damaged-installation-id".utf8), Data([0xff])] {
@@ -129,28 +145,77 @@ final class KeychainMigrationTests: XCTestCase {
         try checkBlocked()
         try FileManager.default.removeItem(at: marker)
         try Data(old.installation.utf8).write(to: marker)
+        // Complete file protection blocks reads while locked; surface that as
+        // retryable unavailable rather than permanent preparationMissing.
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: marker.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: marker.path) }
+        XCTAssertThrowsError(try open()) {
+            XCTAssertEqual($0 as? KeychainMigration.Failure, .unavailable(errSecInteractionNotAllowed))
+        }
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: marker.path)
         XCTAssertEqual(try open().get(name: "binding"), key)
-        XCTAssertNil(try item(name, group: source, account: "binding"))
+        if isOriginalTeam {
+            XCTAssertNil(try item(name, group: source, account: "binding"))
+        }
     }
 
     func testSkippedPreparationLeavesExistingWorkspaceAndOldKeysUntouched() throws {
+        let isOriginalTeam = try KeychainMigration.signingPrefix() == KeychainMigration.originalPrefix
         let installation = UUID().uuidString, name = service(installation)
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { remove(name); try? FileManager.default.removeItem(at: directory) }
         let workspace = directory.appending(path: "workspace.db"), bytes = Data("existing encrypted workspace".utf8)
         try bytes.write(to: workspace)
-        try insert(name, group: source, account: "binding", data: Data([1]))
+        if isOriginalTeam {
+            try insert(name, group: source, account: "binding", data: Data([1]))
+        }
         XCTAssertThrowsError(try AppleSecurity(installation: installation, notificationWorkspace: directory, signingPrefix: "NEWTEAM1234.")) {
             XCTAssertEqual($0 as? KeychainMigration.Failure, .preparationMissing)
         }
         XCTAssertEqual(try Data(contentsOf: workspace), bytes)
-        XCTAssertNotNil(try item(name, group: source, account: "binding"))
         XCTAssertNil(try item(name, group: destination, account: "dmsg:keychain:app-group:v1"))
-        _ = try AppleSecurity(installation: installation, notificationWorkspace: directory, signingPrefix: KeychainMigration.originalPrefix)
-        let prepared = try AppleSecurity(installation: installation, notificationWorkspace: directory, signingPrefix: "NEWTEAM1234.")
-        XCTAssertEqual(try prepared.get(name: "binding"), Data([1]))
-        XCTAssertEqual(try Data(contentsOf: workspace), bytes)
+        if isOriginalTeam {
+            XCTAssertNotNil(try item(name, group: source, account: "binding"))
+            _ = try AppleSecurity(installation: installation, notificationWorkspace: directory, signingPrefix: KeychainMigration.originalPrefix)
+            let prepared = try AppleSecurity(installation: installation, notificationWorkspace: directory, signingPrefix: "NEWTEAM1234.")
+            XCTAssertEqual(try prepared.get(name: "binding"), Data([1]))
+            XCTAssertEqual(try Data(contentsOf: workspace), bytes)
+        }
+    }
+
+    func testMovedWorkspaceWithPreparationMarkerAllowsHardwareCheckUnderRecipientTeam() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = try PrivateFiles(base: root)
+        let name = service(files.installation), marker = files.root.appending(path: "keychain-app-group")
+        defer { remove(name) }
+        _ = try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
+                              preparationMarker: marker, signingPrefix: "63G8VNQPXB.")
+        XCTAssertEqual(try Data(contentsOf: marker), Data(files.installation.utf8))
+
+        let workspace = files.workspace.appending(path: "workspace.db")
+        try Data("existing encrypted workspace".utf8).write(to: workspace)
+        // Simulate moving the workspace to another device: files survive, ThisDeviceOnly Keychain does not.
+        remove(name)
+        try Data(UUID().uuidString.utf8).write(to: marker)
+        XCTAssertThrowsError(try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
+                                               preparationMarker: marker, signingPrefix: "63G8VNQPXB.")) {
+            XCTAssertEqual($0 as? KeychainMigration.Failure, .preparationMissing)
+        }
+        XCTAssertNil(try item(name, group: destination, account: "dmsg:keychain:app-group:v1"))
+
+        try Data(files.installation.utf8).write(to: marker)
+        _ = try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
+                              preparationMarker: marker, signingPrefix: "63G8VNQPXB.")
+        XCTAssertEqual(try item(name, group: destination, account: "dmsg:keychain:app-group:v1")?[kSecValueData as String] as? Data,
+                       Data(files.installation.utf8))
+
+        // Existing installations with a receipt backfill the preparation marker on launch.
+        try FileManager.default.removeItem(at: marker)
+        _ = try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
+                              preparationMarker: marker, signingPrefix: "63G8VNQPXB.")
+        XCTAssertEqual(try Data(contentsOf: marker), Data(files.installation.utf8))
     }
 
     func testFreshRecipientInstallCanPrepareAnEmptyWorkspace() throws {
@@ -176,15 +241,16 @@ final class KeychainMigrationTests: XCTestCase {
     }
 
     func testExportMigrationMovesOnlyTheRequestedSnapshot() throws {
+        let from = try KeychainMigration.signingPrefix() + "net.dmsg.ios"
         let name = "net.dmsg.export.test." + UUID().uuidString
         defer { remove(name) }
         for account in ["selected", "expired", "file-session"] {
-            try insert(name, group: source, account: account, data: Data(account.utf8))
+            try insert(name, group: from, account: account, data: Data(account.utf8))
         }
-        try KeychainMigration.move(service: name, from: source, to: destination, account: "selected", context: LAContext())
+        try KeychainMigration.move(service: name, from: from, to: destination, account: "selected", context: LAContext())
         XCTAssertNotNil(try item(name, group: destination, account: "selected"))
         for account in ["expired", "file-session"] {
-            XCTAssertNotNil(try item(name, group: source, account: account))
+            XCTAssertNotNil(try item(name, group: from, account: account))
             XCTAssertNil(try item(name, group: destination, account: account))
         }
     }

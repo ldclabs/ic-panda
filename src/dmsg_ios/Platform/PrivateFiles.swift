@@ -54,6 +54,10 @@ struct PrivateFiles: Sendable {
             installation = UUID().uuidString
             // The main app serializes startup. Publish the entire UUID in one rename.
             try Data(installation.utf8).write(to: marker, options: [.atomic, .completeFileProtection])
+        } catch let error as CocoaError where error.code == .fileReadNoPermission {
+            // Complete file protection blocks reads if the device locks
+            // mid-startup; retrying after unlock reads the original identifier.
+            throw KeychainMigration.Failure.unavailable(errSecInteractionNotAllowed)
         } catch {
             throw KeychainMigration.Failure.preparationMissing
         }

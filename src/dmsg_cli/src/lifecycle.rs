@@ -13,7 +13,7 @@
 //! checksum (and, on macOS, its signer) checked, and only once the daemon
 //! stopped; it then starts the new daemon and checks its version.
 
-use crate::home::Home;
+use crate::home::{Home, Settings};
 use crate::locale::tr;
 use crate::release::{self, VERSION};
 use crate::remote::{Failure, Remote};
@@ -22,13 +22,35 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+/// How long `dmsg start` waits for the daemon to listen. Allows time for a
+/// macOS Keychain permission dialog after a signing-team change.
+const START_TIMEOUT: Duration = Duration::from_secs(120);
+
 fn unavailable(error: impl std::fmt::Display) -> Failure {
     Failure::new("UNAVAILABLE", error.to_string())
 }
 
-/// The running daemon's status, if one answers.
-async fn running(home: &Home) -> Option<Value> {
-    Remote::connect(home).ok()?.status().await.ok()
+/// Read the home's owner credential at most once and cache it for this command.
+fn cached_owner_token(
+    home: &Home,
+    settings: &Settings,
+    cache: &mut Option<String>,
+) -> Result<String, Failure> {
+    if let Some(token) = cache {
+        return Ok(token.clone());
+    }
+    let token = home
+        .owner_token(settings, false)
+        .map_err(|e| Failure::new("AUTH_REQUIRED", e.to_string()))?;
+    *cache = Some(token.clone());
+    Ok(token)
+}
+
+/// The running daemon's connection and status, if one answers.
+async fn running_remote(home: &Home) -> Option<(Remote, Value)> {
+    let remote = Remote::connect(home).ok()?;
+    let status = remote.status().await.ok()?;
+    Some((remote, status))
 }
 
 /// Start the daemon in the background unless one runs; returns its status.
@@ -36,17 +58,27 @@ async fn running(home: &Home) -> Option<Value> {
 /// its binary was upgraded, gives way once nothing is in flight; a busy one
 /// keeps running until a later start.
 pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
-    if let Some(status) = running(home).await {
+    // Report a bad configuration here, not in the log.
+    let settings = home
+        .settings()
+        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+    let mut owner_token = None;
+    if home.discovery().is_some()
+        && let Ok(token) = cached_owner_token(home, &settings, &mut owner_token)
+        && let Ok(remote) = Remote::connect_with_token(home, token)
+        && let Ok(status) = remote.status().await
+    {
         let older = status["version"]
             .as_str()
             .is_some_and(|version| release::newer(VERSION, version));
-        if !older || drain(home, false, Duration::ZERO).await.is_err() {
+        if !older
+            || drain_with_remote(home, remote, false, Duration::ZERO)
+                .await
+                .is_err()
+        {
             return Ok(status);
         }
     }
-    // Report a bad configuration here, not in the log.
-    home.settings()
-        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
     let dir = std::path::absolute(&home.dir).map_err(unavailable)?;
     // A discovery file left by a daemon that died names nothing now.
     if home.lock().is_ok() {
@@ -72,13 +104,18 @@ pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
         std::os::windows::process::CommandExt::creation_flags(&mut command, 0x0800_0000 | 0x200);
     }
     let mut child = command.spawn().map_err(unavailable)?;
-    let deadline = Instant::now() + Duration::from_secs(30);
+    let deadline = Instant::now() + START_TIMEOUT;
     loop {
         // The credential is read once the daemon has said where it listens.
-        if home.discovery().is_some()
-            && let Some(status) = running(home).await
-        {
-            return Ok(status);
+        // Cache it across retries and propagate credential-store denial instead
+        // of triggering another Keychain prompt every 200 ms.
+        if home.discovery().is_some() {
+            let token = cached_owner_token(home, &settings, &mut owner_token)?;
+            if let Ok(remote) = Remote::connect_with_token(home, token)
+                && let Ok(status) = remote.status().await
+            {
+                return Ok(status);
+            }
         }
         if child.try_wait().map_err(unavailable)?.is_some() {
             let text = std::fs::read_to_string(&log_path).unwrap_or_default();
@@ -120,6 +157,17 @@ fn describe(in_flight: &Value) -> String {
 /// `interrupt`, after the running operation. Returns when it has exited.
 pub async fn drain(home: &Home, interrupt: bool, wait: Duration) -> Result<(), Failure> {
     let remote = Remote::connect(home)?;
+    drain_with_remote(home, remote, interrupt, wait).await
+}
+
+/// Stop the already-connected daemon once nothing is in flight, waiting up to
+/// `wait`; with `interrupt`, after the running operation.
+async fn drain_with_remote(
+    home: &Home,
+    remote: Remote,
+    interrupt: bool,
+    wait: Duration,
+) -> Result<(), Failure> {
     let deadline = Instant::now() + wait;
     let mut told = false;
     loop {
@@ -157,8 +205,8 @@ pub async fn drain(home: &Home, interrupt: bool, wait: Duration) -> Result<(), F
 
 /// `dmsg restart`.
 pub async fn restart(home: &Home, interrupt: bool, wait: Duration) -> Result<Value, Failure> {
-    if running(home).await.is_some() {
-        drain(home, interrupt, wait).await?;
+    if let Some((remote, _)) = running_remote(home).await {
+        drain_with_remote(home, remote, interrupt, wait).await?;
     }
     let exe = std::env::current_exe().map_err(unavailable)?;
     start(home, &exe).await
@@ -198,9 +246,10 @@ pub async fn update(
         return Ok(json!({"updated": false, "current": VERSION, "latest": latest}));
     }
     let bytes = release::download(&http, &latest).await?;
-    let restart = running(home).await.is_some();
-    if restart {
-        drain(home, interrupt, wait).await?;
+    let existing = running_remote(home).await;
+    let restart = existing.is_some();
+    if let Some((remote, _)) = existing {
+        drain_with_remote(home, remote, interrupt, wait).await?;
     }
     // A failed replacement leaves the old binary, which starts again.
     let placed = release::place(&bytes, &target);
@@ -220,4 +269,39 @@ pub async fn update(
         reply["status"] = status;
     }
     Ok(reply)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cached_owner_token_reads_storage_at_most_once() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        std::fs::create_dir_all(&home.dir).unwrap();
+        let mut settings = home.settings().unwrap();
+        settings.storage = crate::home::Storage::File;
+
+        // Missing credential fails immediately with AUTH_REQUIRED.
+        let mut cache = None;
+        let missing = cached_owner_token(&home, &settings, &mut cache).unwrap_err();
+        assert_eq!(missing.code, "AUTH_REQUIRED");
+        assert!(cache.is_none());
+
+        let token_path = home.dir.join("owner.token");
+        std::fs::write(&token_path, "secret-owner-token\n").unwrap();
+        assert_eq!(
+            cached_owner_token(&home, &settings, &mut cache).unwrap(),
+            "secret-owner-token"
+        );
+        // Removing the backing file proves subsequent calls reuse the cached token.
+        std::fs::remove_file(&token_path).unwrap();
+        assert_eq!(
+            cached_owner_token(&home, &settings, &mut cache).unwrap(),
+            "secret-owner-token"
+        );
+    }
 }

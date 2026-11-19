@@ -104,13 +104,14 @@ export class Daemon extends EventEmitter {
   private async credential(): Promise<{ url: string; token: string }> {
     if (this.options.fixed) return this.options.fixed
     const home = ['--home', this.options.home]
-    // Returns once the daemon answers; a bad config.toml fails here.
-    const started = await run(this.options.binary, [...home, '--json', 'start'], { timeout: 45_000 })
+    // Returns once the daemon answers; a bad config.toml fails here. Allow
+    // time for macOS Keychain permission prompts after a signing-team change.
+    const started = await run(this.options.binary, [...home, '--json', 'start'], { timeout: 135_000 })
     if (this.options.minimumVersion) {
       const status = JSON.parse(started.stdout.trim().split('\n').pop()!) as { version?: string }
       requireRuntimeVersion(status.version, this.options.minimumVersion)
     }
-    const { stdout } = await run(this.options.binary, [...home, 'app-token'], { timeout: 15_000 })
+    const { stdout } = await run(this.options.binary, [...home, 'app-token'], { timeout: 120_000 })
     return JSON.parse(stdout.trim().split('\n').pop()!) as { url: string; token: string }
   }
 
