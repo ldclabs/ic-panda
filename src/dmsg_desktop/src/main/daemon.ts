@@ -48,7 +48,10 @@ type Connection =
  * written out, the whole library checked. It has no time limit; a daemon
  * that goes away still fails it.
  */
-const UNTIMED = new Set(['files/import', 'files/export', 'files/open', 'files/verify', 'files/cloud_fetch', 'files/cloud_verify', 'files/backup_run'])
+const UNTIMED = new Set([
+  'files/import', 'files/export', 'files/open', 'files/verify', 'files/cloud_fetch', 'files/cloud_verify', 'files/backup_run',
+  'vault/backup_export', 'vault/backup_inspect', 'vault/backup_save'
+])
 
 export interface DaemonOptions {
   /** The `dmsg` binary; `runtime.ts` sets the installed one. */

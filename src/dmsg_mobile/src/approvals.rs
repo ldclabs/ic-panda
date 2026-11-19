@@ -183,7 +183,7 @@ impl MobileEngine {
                             Ok(approve
                                 && !matches!(
                                     view["type"].as_str(),
-                                    Some("secret_share" | "secret_package_import")
+                                    Some("secret_share" | "secret_package_import" | "vault_backup")
                                 ))
                         })
                         .await?;

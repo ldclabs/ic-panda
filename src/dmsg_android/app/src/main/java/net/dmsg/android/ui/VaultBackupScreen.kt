@@ -153,7 +153,9 @@ private fun validBackupPassword(value: String, repeat: String): Boolean {
             }
             "ready" -> item {
                 Text(str(R.string.text_items_802a927)+" "+form.view["items"]+" · "+str(R.string.text_attachments_be5733e)+" "+form.view["files"])
-                Button({if(controller.external())save.launch("dmsg-vault-"+java.time.LocalDate.now()+".dmsgvault")},enabled=!working){Text(str(R.string.text_save_ec8e6d5))}
+                Button({
+                    controller.prepareSave { save.launch("dmsg-vault-" + java.time.LocalDate.now() + ".dmsgvault") }
+                }, enabled = !working) { Text(str(R.string.text_save_ec8e6d5)) }
             }
             "pick" -> item {
                 Button({if(controller.external())pick.launch(arrayOf("*/*"))},enabled=!working){Text(str(R.string.text_choose_a_file_2916860))}

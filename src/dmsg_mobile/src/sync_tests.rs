@@ -177,6 +177,69 @@ async fn local_password_reads_do_not_require_an_ii_session() {
 }
 
 #[tokio::test]
+async fn portable_backup_can_be_approved_and_saved_without_a_login() {
+    let fixture = Fixture::new(None).await;
+    let engine = &fixture.engine;
+    let item = engine
+        .host
+        .with(|c| {
+            testing::allow_vault_backup(c);
+            c.vault_create(
+                "note",
+                &dmsg_client::vault::Changes {
+                    title: Some("Offline backup fixture".into()),
+                    ..Default::default()
+                },
+            )
+        })
+        .await
+        .unwrap();
+    assert!(
+        engine
+            .session_state()
+            .await
+            .unwrap()
+            .login_expires_at_ms
+            .is_none()
+    );
+    let id = engine.vault_backup_begin(false).await.unwrap();
+    engine.vault_backup_inventory(id.clone()).await.unwrap();
+    let request = engine
+        .vault_backup_request(
+            id.clone(),
+            vec![item.id],
+            false,
+            "123456".into(),
+            "123456".into(),
+        )
+        .await
+        .unwrap();
+    let view: Value = serde_json::from_str(&request.json).unwrap();
+    let approval = view["id"].as_str().unwrap().to_owned();
+    let decision = engine
+        .decide(
+            approval.clone(),
+            view["digest"].as_str().unwrap().into(),
+            true,
+            OperationToken::new(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<Value>(&decision.json).unwrap()["state"],
+        "done"
+    );
+    engine
+        .vault_backup_export(id.clone(), approval)
+        .await
+        .unwrap();
+    let path = engine.vault_backup_output(id.clone()).await.unwrap();
+    assert!(std::path::Path::new(&path).is_file());
+    engine.vault_backup_cancel(id).await.unwrap();
+    assert!(!std::path::Path::new(&path).exists());
+}
+
+#[tokio::test]
 async fn background_completion_never_starts_a_content_download_for_pending_edits() {
     let fixture = Fixture::new(None).await;
     let engine = &fixture.engine;

@@ -73,6 +73,16 @@ export async function vaultBackupFlow({ app, main, methods, requests, request, a
   await start('import')
   await answer('__open',target)
   await main.getByTestId('backup-pick').click()
+  await modal.getByText('portable.dmsgvault').waitFor()
+  await main.evaluate(() => {
+    const off = window.dmsg.onEvent(event => {
+      if (event.type !== 'resync') return
+      document.documentElement.dataset.backupResynced = 'true'
+      off()
+    })
+  })
+  emit('resync')
+  await main.waitForFunction(() => document.documentElement.dataset.backupResynced === 'true')
   await main.getByTestId('backup-import-password').fill('临时2026')
   await main.getByTestId('backup-inspect').click()
   await main.getByTestId('backup-commit').waitFor()

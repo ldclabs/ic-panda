@@ -17,6 +17,55 @@ fn password_rules_count_user_visible_characters_only_when_creating() {
     );
 }
 
+#[test]
+fn offline_backup_does_not_reuse_permissions_from_before_a_locked_observation() {
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    crate::testing::allow_vault_backup(&mut c);
+    c.lock();
+    crate::testing::unlock_fixture(&mut c);
+    assert!(begin(&mut c, true).is_ok());
+
+    c.lock();
+    let mut latest = crate::testing::account_state(&c).security;
+    latest.snapshot.account_version += 1;
+    latest.snapshot.security_epoch += 1;
+    crate::testing::observe_security(&mut c, &latest).unwrap();
+    c.lock();
+    crate::testing::unlock_fixture(&mut c);
+
+    assert_eq!(begin(&mut c, true).unwrap_err(), Error::PolicyStale);
+    crate::testing::observe_security(&mut c, &latest).unwrap();
+    assert_eq!(begin(&mut c, true).unwrap_err(), Error::Forbidden);
+    c.lock();
+    crate::testing::unlock_fixture(&mut c);
+    assert!(begin(&mut c, false).is_ok());
+    assert_eq!(begin(&mut c, true).unwrap_err(), Error::Forbidden);
+}
+
+#[tokio::test]
+async fn cancelling_or_locking_withdraws_the_pending_backup_approval() {
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    let items = c
+        .vault_add_all(vec![Item::new("note", "Backup fixture", 1)])
+        .unwrap();
+    for locking in [false, true] {
+        let id = begin(&mut c, false).unwrap();
+        inventory(&c.hold(), &id).await.unwrap();
+        let approval = request(&mut c, &id, &items, false, "123456", "123456").unwrap();
+        let request_id = approval["id"].as_str().unwrap();
+        if locking {
+            c.lock();
+            crate::testing::unlock_fixture(&mut c);
+        } else {
+            cancel(&mut c, &id);
+        }
+        assert_eq!(c.approval(request_id).unwrap()["state"], "cancelled");
+        assert_eq!(c.approvals_waiting().unwrap(), 0);
+    }
+}
+
 async fn archive(c: &mut Client, path: &Path, password: &str, include: bool) -> Value {
     let id = begin(c, false).unwrap();
     let view = inventory(&c.hold(), &id).await.unwrap();

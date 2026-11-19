@@ -141,20 +141,36 @@ class VaultBackupCoordinator(
         }
     }
 
+    fun prepareSave(launchPicker: () -> Unit) {
+        val current = mutable.value
+        run({ current.output ?: it.vaultBackupOutput(current.id) }) { path ->
+            mutable.value = current.copy(output = path)
+            if (external()) launchPicker()
+        }
+    }
+
     fun destination(uri: Uri?) {
-        val stamp = picker ?: return
+        val stamp = picker
         picker = null
         if (uri == null) return
-        val files=paths() ?: return
-        val current=mutable.value
-        client.deliverExternalResult(key+":save",stamp,discard={ files.removeIncompleteExport(uri) }) {
+        val files = paths() ?: return
+        val current = mutable.value
+        val path = current.output
+        val discard = { files.removeIncompleteExport(uri) }
+        if (stamp == null || path == null) {
+            discard()
+            return
+        }
+        client.deliverExternalResult("$key:save", stamp, discard = discard) {
             run({ core ->
-                val path = current.output ?: core.vaultBackupOutput(current.id)
-                withContext(Dispatchers.Main.immediate) { if (mutable.value.id==current.id) mutable.value=current.copy(output=path) }
+                var written = false
                 try {
                     files.exportBackup(current.id,path,uri) { client.sessionCurrent(stamp) }
-                } catch (e: Exception) { files.removeIncompleteExport(uri); throw e }
-                core.vaultBackupCancel(current.id)
+                    written = true
+                } finally {
+                    if (!written) discard()
+                }
+                withContext(NonCancellable) { runCatching { core.vaultBackupCancel(current.id) } }
             }) { mutable.value = current.copy(step="done",output=null) }
         }
     }
@@ -165,6 +181,7 @@ class VaultBackupCoordinator(
         val current=mutable.value
         mutable.value=BackupForm()
         client.cancelOperation(key)
+        client.cancelOperation("external-result:$key:save")
         val core=native()
         val files=paths()
         scope.launch(Dispatchers.IO) {

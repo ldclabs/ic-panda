@@ -143,16 +143,7 @@ pub fn allow_vault_backup(client: &mut Client) {
         .input
         .capabilities
         .push(Capability::ContentSign);
-    let permissions =
-        crate::vault::backup::Permissions::observed(&state, &client.workspace.meta.device_id);
-    client
-        .workspace
-        .put_private(
-            client.keys().unwrap(),
-            crate::vault::backup::PERMISSIONS,
-            &permissions,
-        )
-        .unwrap();
+    observe_security(client, &state).unwrap();
 }
 
 /// Synthetic complete state of the offline account; no certificate verification.

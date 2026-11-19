@@ -1,5 +1,6 @@
 package net.dmsg.android
 
+import net.dmsg.android.core.decode
 import net.dmsg.android.core.objectValue
 import net.dmsg.android.core.rows
 import net.dmsg.android.core.required
@@ -34,6 +35,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 
 /** Isolated QA variant only. Reads and writes use the real offline Rust database. */
 @RunWith(AndroidJUnit4::class)
@@ -1947,6 +1949,34 @@ class WorkspaceFlowTest {
         compose.runOnIdle { client.deliverExternalResult("late-picker", stamp) { deliveries += 1 } }
         compose.waitUntil(10_000) { !client.state.value.operations.contains("external-result:late-picker") }
         assertEquals(1, deliveries)
+    }
+
+    @Test fun portableBackupPreparesCiphertextBeforeOpeningTheSavePicker() {
+        val backup = client.vaultBackup
+        compose.runOnIdle { client.navigation.open("vault-backup") }
+        compose.onNodeWithText("Export encrypted backup").performClick()
+        compose.waitUntil(15_000) { backup.form.value.step == "export" }
+        val form = backup.form.value
+        val picks = form.view["inventory"]!!.objectValue().rows("items").map { it.required("id") }
+        compose.runOnIdle { backup.request(picks, false, "123456", "123456") }
+        compose.waitUntil(15_000) { client.navigation.state.value.current.page == "approvals" }
+        val approval = backup.form.value.approval!!
+        runBlocking {
+            val digest = native.approval(approval).decode().objectValue().required("digest")
+            net.dmsg.core.OperationToken().use { native.decide(approval, digest, true, it) }
+        }
+        compose.runOnIdle { client.navigation.back() }
+        compose.waitUntil(60_000) { backup.form.value.step == "ready" }
+        val produced = AtomicReference<File>()
+        compose.runOnIdle {
+            backup.prepareSave {
+                produced.set(File(backup.form.value.output!!).also { assertTrue(it.length() > 0) })
+            }
+        }
+        compose.waitUntil(15_000) { produced.get() != null }
+        val staged = produced.get()
+        compose.runOnIdle { backup.destination(null); backup.clear() }
+        compose.waitUntil(15_000) { !staged.exists() }
     }
 
     @Test fun portableBackupAuthenticatesBeforePreviewAndRestoresTheSelectedFiles() {

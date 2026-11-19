@@ -617,8 +617,7 @@ pub fn request_purpose(request: &Request, detail: &Json) -> Option<HardwarePurpo
         Action::DeviceCapabilities { .. }
         | Action::DeviceRevoke { .. }
         | Action::DevicePair { .. } => Some(HardwarePurpose::DeviceControl),
-        Action::VaultBackup { .. }
-        | Action::ApprovalKey { .. }
+        Action::ApprovalKey { .. }
         | Action::ApprovalKeyRetire { .. }
         | Action::HardwarePolicy { .. } => Some(HardwarePurpose::AccountControl),
         Action::Account { change } => (!matches!(change, AccountChange::DisputeRecovery { .. }))
@@ -1331,7 +1330,10 @@ impl Client {
     /// in steps ([`crate::attest::AttestRun`]).
     async fn execute_approval(&mut self, request: &mut Request) -> Result<()> {
         match request.action.clone() {
-            Action::DeviceTransfer { .. } | Action::VaultBackup { .. } => Ok(()),
+            Action::VaultBackup { plan, .. } => {
+                crate::vault::backup::check_request(self, &plan, &request.id)
+            }
+            Action::DeviceTransfer { .. } => Ok(()),
             Action::SecretShare { .. }
             | Action::SecretPackageImport { .. }
             | Action::SecretDiscoveryImport { .. } => Err(Error::Forbidden),

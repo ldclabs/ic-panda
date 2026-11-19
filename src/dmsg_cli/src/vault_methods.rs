@@ -54,7 +54,7 @@ pub(crate) const METHODS: [&str; 30] = [
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
         "vault/backup_commit" => &["vault/changed", "files/changed"],
-        "vault/backup_request" => &["approval/changed"],
+        "vault/backup_request" | "vault/backup_cancel" => &["approval/changed"],
         "vault/create" | "vault/edit" | "vault/duplicate" | "vault/delete" | "vault/restore"
         | "vault/tags" | "vault/revert" | "vault/resolve" | "vault/import" => &["vault/changed"],
         _ => &[],

@@ -8,6 +8,7 @@ mod wire;
 
 use crate::{
     Client,
+    account::{Security, observed_security_key},
     approval::{Action, HIGH_RISK_TTL_MS, State},
     content::VAULT,
     crypto::random_key,
@@ -91,26 +92,46 @@ impl Drop for Operation {
 }
 
 #[derive(Serialize, serde::Deserialize, PartialEq, Eq)]
-pub(crate) struct Permissions {
+struct Permissions {
     read: bool,
     sign: bool,
     ready: bool,
     generation: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    observed: Option<(u64, u64, u64)>,
 }
 
 impl Permissions {
-    pub(crate) fn observed(state: &crate::account::Security, device: &dmsg_types::Hash) -> Self {
+    fn observed(state: &Security, device: &dmsg_types::Hash) -> Self {
         let live = state.device(device).filter(|d| d.revoked_at.is_none());
         Self {
             read: live.is_some_and(|d| d.input.capabilities.contains(&Capability::VaultUnlock)),
             sign: live.is_some_and(|d| d.input.capabilities.contains(&Capability::ContentSign)),
             ready: state.snapshot.vault_write_state == VaultWriteState::Ready,
             generation: state.snapshot.content_root_generation,
+            observed: Some(state.version()),
         }
     }
 }
 
-pub(crate) const PERMISSIONS: &str = "vault-backup-permissions";
+const PERMISSIONS: &str = "vault-backup-permissions";
+
+pub(crate) fn remember_permissions(c: &Client, security: &Security) -> Result<()> {
+    if let (Some(keys), Some(account)) = (&c.keys, &c.workspace.meta.account)
+        && account.id == security.snapshot.account_id
+        && account.home == security.snapshot.home_user
+    {
+        let permissions = Permissions::observed(security, &c.workspace.meta.device_id);
+        if c.workspace
+            .private::<Permissions>(keys, PERMISSIONS)?
+            .as_ref()
+            != Some(&permissions)
+        {
+            c.workspace.put_private(keys, PERMISSIONS, &permissions)?;
+        }
+    }
+    Ok(())
+}
 
 fn access(c: &Client, write: bool) -> Result<()> {
     let roots = c.roots()?;
@@ -122,7 +143,19 @@ fn access(c: &Client, write: bool) -> Result<()> {
         )?;
         Some(Permissions::observed(state, &c.workspace.meta.device_id))
     } else {
-        c.workspace.private(c.keys()?, PERMISSIONS)?
+        let cached: Option<Permissions> = c.workspace.private(c.keys()?, PERMISSIONS)?;
+        if let Some(permissions) = &cached {
+            // The recovery watch can observe a newer policy with the LDK locked.
+            let latest = c
+                .workspace
+                .store
+                .meta(&observed_security_key(&account.id))?;
+            match permissions.observed {
+                Some(version) => ensure(latest == Some(version), Error::PolicyStale)?,
+                None => ensure(!write, Error::PolicyStale)?,
+            }
+        }
+        cached
     };
     if let Some(access) = access {
         ensure(access.read, Error::DeviceNotApproved)?;
@@ -146,11 +179,13 @@ pub fn begin(c: &mut Client, write: bool) -> Result<String> {
     access(c, write)?;
     let id = random_hex();
     let guard = Guard::new(now_ms() + TTL);
+    let session = Session::start(c)?;
+    clear(c);
     c.vault_backup = Some(Operation {
         id: id.clone(),
         account: c.account()?.id.to_string(),
-        session: Session::start(c)?,
-        guard: guard.clone(),
+        session,
+        guard,
         state: Stage::Working,
     });
     Ok(id)
@@ -161,7 +196,7 @@ fn active<'a>(c: &'a mut Client, id: &str, write: bool) -> Result<&'a mut Operat
         .as_ref()
         .is_some_and(|op| op.id == id && now_ms() >= op.guard.until)
     {
-        c.vault_backup = None;
+        clear(c);
         return Err(Error::Expired);
     }
     access(c, write)?;
@@ -181,14 +216,28 @@ fn prepare(c: &mut Client, id: &str, write: bool) -> Result<Guard> {
     let op = active(c, id, write)?;
     op.guard.live.store(false, Ordering::Release);
     op.guard = Guard::new(now_ms() + TTL);
-    op.state = Stage::Working;
-    Ok(op.guard.clone())
+    let guard = op.guard.clone();
+    let previous = std::mem::replace(&mut op.state, Stage::Working);
+    withdraw_request(c, &previous);
+    Ok(guard)
+}
+
+pub(crate) fn clear(c: &mut Client) {
+    if let Some(op) = c.vault_backup.take() {
+        withdraw_request(c, &op.state);
+    }
+}
+
+fn withdraw_request(c: &mut Client, stage: &Stage) {
+    if let Stage::Requested { request, .. } = stage {
+        let _ = c.approval_cancel(request);
+    }
 }
 
 /// Cancel exactly this operation, including any in-flight worker.
 pub fn cancel(c: &mut Client, id: &str) {
     if c.vault_backup.as_ref().is_some_and(|op| op.id == id) {
-        c.vault_backup = None;
+        clear(c);
     }
 }
 
@@ -420,15 +469,19 @@ fn same_file(c: &mut Client, id: &str, expected: &LocalFile) -> Result<()> {
     )
 }
 
+pub(crate) fn check_request(c: &mut Client, id: &str, approval: &str) -> Result<()> {
+    let op = active(c, id, false)?;
+    ensure(
+        matches!(&op.state, Stage::Requested { request, .. } if request == approval),
+        Error::Expired,
+    )
+}
+
 /// Consume a completed approval, encrypt and independently read back the archive.
 pub async fn export<H: Hold>(h: &H, id: &str, approval: &str) -> Result<Value> {
     let (selection, password, guard, environment, account, temp) = h
         .with(|c| {
-            let op = active(c, id, false)?;
-            ensure(
-                matches!(&op.state,Stage::Requested{request,..} if request==approval),
-                Error::Forbidden,
-            )?;
+            check_request(c, id, approval)?;
             let mut r = c.approval_record(approval)?;
             ensure(
                 matches!(&r.action,Action::VaultBackup{plan,..} if plan==id)

@@ -1438,7 +1438,7 @@ function updateMenu() {
 }
 
 daemon.on('event', (event: DaemonEvent) => {
-  if (event.type === 'session/changed' || event.type === 'resync') closeBackup()
+  if (event.type === 'session/changed') closeBackup()
   if (event.type === 'session/changed' || event.type === 'resync') cancelImport()
   if (event.type === 'session/changed') dropSystemCopies()
   broadcast('dmsg:event', event)
@@ -1451,7 +1451,10 @@ daemon.on('event', (event: DaemonEvent) => {
 })
 // The tray follows the connection: the daemon's state once connected, else connecting again.
 daemon.on('state', () => {
-  if (!daemon.connected) cancelImport()
+  if (!daemon.connected) {
+    closeBackup()
+    cancelImport()
+  }
   broadcast('dmsg:event', { type: 'connection/changed' })
   if (daemon.connected) {
     noticeHistoryLoaded = false

@@ -1904,6 +1904,9 @@ impl Client {
 
     /// Load the root, fetching a newer committed one when needed.
     pub(crate) async fn open_root(&mut self) -> Result<()> {
+        if let Some(security) = &self.security {
+            crate::vault::backup::remember_permissions(self, security)?;
+        }
         match self.load_root().await {
             // Approved, but no root is wrapped to this device yet.
             Err(Error::DeviceNotApproved) => {}
@@ -2016,7 +2019,7 @@ impl Client {
     /// device signing key stays, so presigned and sealed versions still go
     /// out; nothing can be read or decided.
     pub fn lock(&mut self) {
-        self.vault_backup = None;
+        crate::vault::backup::clear(self);
         self.secret_abort(None, None);
         self.ssh_connections.clear();
         self.secret_mount_runtime.clear();

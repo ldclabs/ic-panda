@@ -65,6 +65,14 @@ impl Security {
         self.certified_at + 60_000
     }
 
+    pub(crate) fn version(&self) -> (u64, u64, u64) {
+        (
+            self.snapshot.account_version,
+            self.snapshot.security_epoch,
+            self.snapshot.content_root_generation,
+        )
+    }
+
     /// A device of the account, revoked or not.
     pub fn device(&self, id: &Hash) -> Option<&Device> {
         self.devices.get(id)
@@ -79,6 +87,10 @@ impl Security {
             .filter(|d| d.revoked_at.is_none())
             .ok_or(Error::DeviceNotApproved)
     }
+}
+
+pub(crate) fn observed_security_key(account: &AccountId) -> String {
+    format!("observed:{account}")
 }
 
 /// Account state proven by an IC certificate: the owner's `get_account`
@@ -544,13 +556,8 @@ impl Client {
                 Error::IntegrityFailed,
             )?;
         }
-        let snapshot = &security.snapshot;
-        let seen = (
-            snapshot.account_version,
-            snapshot.security_epoch,
-            snapshot.content_root_generation,
-        );
-        let key = format!("observed:{account}");
+        let seen = security.version();
+        let key = observed_security_key(account);
         if let Some(previous) = self.workspace.store.meta::<(u64, u64, u64)>(&key)? {
             ensure(
                 seen.0 >= previous.0 && seen.1 >= previous.1 && seen.2 >= previous.2,
@@ -559,26 +566,7 @@ impl Client {
         }
         self.workspace.store.set_meta(&key, &seen)?;
         self.observe_recovery(security)?;
-        if self
-            .workspace
-            .meta
-            .account
-            .as_ref()
-            .is_some_and(|own| &own.id == account)
-            && let Some(keys) = self.keys.as_ref()
-        {
-            use crate::vault::backup::{PERMISSIONS, Permissions};
-            let permissions = Permissions::observed(security, &self.workspace.meta.device_id);
-            if self
-                .workspace
-                .private::<Permissions>(keys, PERMISSIONS)?
-                .as_ref()
-                != Some(&permissions)
-            {
-                self.workspace
-                    .put_private(keys, PERMISSIONS, &permissions)?;
-            }
-        }
+        crate::vault::backup::remember_permissions(self, security)?;
         self.security = Some(security.clone());
         Ok(())
     }
