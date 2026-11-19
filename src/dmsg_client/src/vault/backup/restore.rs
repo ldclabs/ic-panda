@@ -268,7 +268,7 @@ pub async fn inspect<H: Hold>(h: &H, id: &str, path: &Path, password: &str) -> R
         let rows:Vec<_>=body.entries.iter().zip(&decisions).enumerate().map(|(index,(e,d))|
             json!({"index":index,"title":e.title,"kind":e.kind,"files":e.attachment_refs,"status":d.status})).collect();
         let result=json!({"id":id,"digest":digest,"source":body.meta.account,"account":c.account()?.id.to_string(),"at":body.meta.created_at,"items":rows,"files":body.files.len(),"omitted":body.meta.omitted_refs});
-        active(c,&id,true)?.state=Stage::Reviewed(Reviewed{body,files:staged,digest,decisions});
+        active(c,id,true)?.state=Stage::Reviewed(Reviewed{body,files:staged,digest,decisions});
         Ok(result)
     }).await
 }
