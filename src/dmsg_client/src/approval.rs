@@ -259,6 +259,19 @@ pub enum Action {
         /// The device.
         device_id: Hash,
     },
+    /// Authorize one password-encrypted vault backup on this device.
+    VaultBackup {
+        /// One-use binding to the scope and password held in this session.
+        plan: String,
+        /// Number of ordinary items.
+        items: usize,
+        /// Number of distinct attached files.
+        files: usize,
+        /// Number of omitted attachment references.
+        omitted: usize,
+        /// The selection includes user-authored wallet entries.
+        wallet: bool,
+    },
     /// Authorize one local-library export, without changing the user home.
     DeviceTransfer {
         /// The receiver's one-time session code.
@@ -405,6 +418,7 @@ impl Action {
             | Action::SecretUse { .. } => "secret",
             Action::Attest { .. } | Action::AttestAction { .. } => "attest",
             Action::DeviceCapabilities { .. }
+            | Action::VaultBackup { .. }
             | Action::DeviceTransfer { .. }
             | Action::DeviceRevoke { .. }
             | Action::DevicePair { .. }
@@ -565,6 +579,7 @@ pub fn high_risk(request: &Request, detail: &Json) -> bool {
         Action::Checkout { .. }
         | Action::Letter { .. }
         | Action::DeviceTransfer { .. }
+        | Action::VaultBackup { .. }
         | Action::DeviceRevoke { .. }
         | Action::DevicePair { .. }
         | Action::DeviceCapabilities { .. }
@@ -602,7 +617,8 @@ pub fn request_purpose(request: &Request, detail: &Json) -> Option<HardwarePurpo
         Action::DeviceCapabilities { .. }
         | Action::DeviceRevoke { .. }
         | Action::DevicePair { .. } => Some(HardwarePurpose::DeviceControl),
-        Action::ApprovalKey { .. }
+        Action::VaultBackup { .. }
+        | Action::ApprovalKey { .. }
         | Action::ApprovalKeyRetire { .. }
         | Action::HardwarePolicy { .. } => Some(HardwarePurpose::AccountControl),
         Action::Account { change } => (!matches!(change, AccountChange::DisputeRecovery { .. }))
@@ -1315,7 +1331,7 @@ impl Client {
     /// in steps ([`crate::attest::AttestRun`]).
     async fn execute_approval(&mut self, request: &mut Request) -> Result<()> {
         match request.action.clone() {
-            Action::DeviceTransfer { .. } => Ok(()),
+            Action::DeviceTransfer { .. } | Action::VaultBackup { .. } => Ok(()),
             Action::SecretShare { .. }
             | Action::SecretPackageImport { .. }
             | Action::SecretDiscoveryImport { .. } => Err(Error::Forbidden),
@@ -1618,7 +1634,7 @@ impl Client {
             }
             let outcome = match request.action.clone() {
                 // An interrupted local permission is not replayed on restart.
-                Action::DeviceTransfer { .. } => Err(Error::Forbidden),
+                Action::DeviceTransfer { .. } | Action::VaultBackup { .. } => Err(Error::Forbidden),
                 Action::SecretPackageImport { .. } | Action::SecretDiscoveryImport { .. } => {
                     self.secret_reconcile(&mut request)?;
                     continue;
@@ -1760,6 +1776,15 @@ impl Client {
     /// Read the operation behind a request for display.
     fn approval_detail(&self, action: &Action, check_files: bool) -> Result<Json> {
         Ok(match action {
+            Action::VaultBackup {
+                plan,
+                items,
+                files,
+                omitted,
+                wallet,
+            } => json!({
+                "plan": plan, "items": items, "files": files, "omitted": omitted, "wallet": wallet,
+            }),
             Action::DeviceTransfer {
                 session,
                 to_device,
@@ -1918,6 +1943,7 @@ impl Client {
                 Action::DeviceRevoke { .. } => "device_revoke",
                 Action::DevicePair { .. } => "device_pair",
                 Action::DeviceTransfer { .. } => "device_transfer",
+                Action::VaultBackup { .. } => "vault_backup",
                 Action::Connect { .. } => "connect",
                 Action::Checkout { .. } => "checkout",
                 Action::Letter { .. } => "letter",

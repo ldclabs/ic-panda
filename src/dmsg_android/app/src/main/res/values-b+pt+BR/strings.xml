@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Sua função"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Suas seleções acima serão salvas com base na última revisão carregada. Revise antes de continuar."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"O período da assinatura mudou. Atualize a assinatura e revise novamente."</string>
+    <string name="vault_backup_changed" formatted="false">"Conteúdo diferente · salvar cópia"</string>
+    <string name="vault_backup_deleted" formatted="false">"Excluído aqui · salvar cópia"</string>
+    <string name="vault_backup_export" formatted="false">"Exportar backup criptografado"</string>
+    <string name="vault_backup_files" formatted="false">"Incluir arquivos vinculados"</string>
+    <string name="vault_backup_hint" formatted="false">"Pelo menos 6 caracteres. Guarde a senha separadamente. O dMsg não pode recuperá-la."</string>
+    <string name="vault_backup_import" formatted="false">"Importar de um backup"</string>
+    <string name="vault_backup_mismatch" formatted="false">"As duas senhas do backup não coincidem."</string>
+    <string name="vault_backup_new" formatted="false">"Adicionar como novo"</string>
+    <string name="vault_backup_omitted" formatted="false">"Anexos omitidos"</string>
+    <string name="vault_backup_password" formatted="false">"Senha do backup"</string>
+    <string name="vault_backup_repeat" formatted="false">"Confirmar senha do backup"</string>
+    <string name="vault_backup_same" formatted="false">"Já presente"</string>
+    <string name="vault_backup_saved" formatted="false">"Salvo no dispositivo"</string>
+    <string name="vault_backup_scope" formatted="false">"Apenas itens atuais. Histórico, lixeira, rascunhos, cópias em conflito e chaves gerenciadas pelo dMsg ficam de fora."</string>
+    <string name="vault_backup_sync" formatted="false">"Os itens seguem a sincronização normal. Os anexos ficam em Arquivos neste dispositivo."</string>
+    <string name="vault_backup_title" formatted="false">"Backup e restauração"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Alguns arquivos estão indisponíveis. Baixe-os ou exporte apenas os itens."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Nenhuma importação foi salva. Escolha o backup novamente."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Não foi possível abrir o backup. Confira a senha ou escolha um arquivo completo."</string>
+    <string name="vault_backup_wallet" formatted="false">"Inclui segredos salvos em itens de carteira."</string>
     <string name="vault_field_birthday" formatted="false">"Aniversário"</string>
     <string name="vault_field_cardholder" formatted="false">"Titular do cartão"</string>
     <string name="vault_field_credential" formatted="false">"Credencial"</string>

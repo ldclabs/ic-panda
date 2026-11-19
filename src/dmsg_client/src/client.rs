@@ -417,6 +417,7 @@ impl InFlight {
 
 /// A device's client.
 pub struct Client {
+    pub(crate) vault_backup: Option<crate::vault::backup::Operation>,
     pub(crate) lock_drafts: crate::draft_checkpoint::LockDraftCheckpoint,
     /// Mobile policy: hardware presence is required for every fast unlock.
     require_fast_presence: bool,
@@ -807,6 +808,7 @@ impl Client {
         )?;
         let workspace = idle(&config.environment)?;
         let mut client = Self {
+            vault_backup: None,
             lock_drafts: Default::default(),
             require_fast_presence: false,
             session_generation: 0,
@@ -2014,6 +2016,7 @@ impl Client {
     /// device signing key stays, so presigned and sealed versions still go
     /// out; nothing can be read or decided.
     pub fn lock(&mut self) {
+        self.vault_backup = None;
         self.secret_abort(None, None);
         self.ssh_connections.clear();
         self.secret_mount_runtime.clear();

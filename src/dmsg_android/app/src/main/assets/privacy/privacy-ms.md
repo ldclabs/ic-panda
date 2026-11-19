@@ -10,6 +10,8 @@ Kami tidak menjual data peribadi atau menggunakan kandungan anda untuk tujuan pe
 
 Item peti besi (Vault), mesej peribadi dan fail disulitkan sebelum dimuat naik. Kunci kandungan kekal pada peranti yang dibenarkan atau di dalam sampul pemulihan/peranti yang tidak dapat dibuka oleh perkhidmatan. Penerima boleh membaca dan menyimpan salinan yang dikongsi. Profil awam, avatar, handle (nama pengguna awam), dokumen direktori dan maklumat yang anda sengaja terbitkan adalah bersifat awam. Laporan penyalahgunaan ialah pendedahan berasingan: moderator hanya menerima sebab, nota, pengecam akaun/sumber dan teks mesej yang anda pilih secara eksplisit untuk disertakan. Membuat laporan tidak memberikan kunci akaun anda kepada moderator.
 
+Apabila peti besi dieksport, aplikasi mencipta fail disulitkan pada peranti menggunakan kata laluan sandaran berasingan. dMsg tidak menerima sandaran atau kata laluannya. Penyedia storan pilihan anda mungkin menyimpan fail disulitkan itu.
+
 ## 2. Metadata perkhidmatan
 
 Perkhidmatan ini memproses pengecam akaun dan log masuk, kunci awam peranti, keahlian saluran, peraturan kenalan dan sekatan, saiz objek, masa permintaan, alamat IP dan maklumat permintaan operasi. Status akaun diperakui, resit tandatangan dan kelayakan (entitlement) membolehkan aplikasi klien dan perkhidmatan mengesahkan kebenaran. Transaksi lejar serta rekod dalam rantaian (on-chain) yang awam atau diperakui secara amnya tidak boleh dipadamkan.

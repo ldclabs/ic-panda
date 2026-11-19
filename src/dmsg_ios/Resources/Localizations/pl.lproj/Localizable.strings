@@ -3474,5 +3474,43 @@
 	<string>Otwórz i odblokuj dMsg, aby wczytać dane logowania.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Nie udało się zaktualizować autouzupełniania haseł.</string>
+	<key>Backup and restore</key>
+	<string>Kopia zapasowa i przywracanie</string>
+	<key>Export encrypted backup</key>
+	<string>Eksportuj zaszyfrowaną kopię</string>
+	<key>Import from backup</key>
+	<string>Importuj z kopii zapasowej</string>
+	<key>Backup password</key>
+	<string>Hasło kopii zapasowej</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Hasła kopii zapasowej nie są zgodne.</string>
+	<key>Confirm backup password</key>
+	<string>Potwierdź hasło kopii</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Co najmniej 6 znaków. Przechowuj hasło oddzielnie. dMsg nie może go odzyskać.</string>
+	<key>Include linked files</key>
+	<string>Dołącz powiązane pliki</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Niektóre pliki są niedostępne. Pobierz je lub eksportuj tylko wpisy.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Obejmuje sekrety zapisane we wpisach portfela.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Tylko bieżące wpisy. Bez historii, kosza, szkiców, kopii konfliktowych i kluczy zarządzanych przez dMsg.</string>
+	<key>Add as new</key>
+	<string>Dodaj jako nowy</string>
+	<key>Different content · save a copy</key>
+	<string>Inna treść · zapisz kopię</string>
+	<key>Deleted here · save a copy</key>
+	<string>Tutaj usunięto · zapisz kopię</string>
+	<key>Saved locally</key>
+	<string>Zapisano na urządzeniu</string>
+	<key>Omitted attachments</key>
+	<string>Pominięte załączniki</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Nie można otworzyć kopii. Sprawdź hasło lub wybierz kompletny plik.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Nie zapisano importu. Wybierz kopię ponownie.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Wpisy synchronizują się jak zwykle. Załączniki są w Plikach na tym urządzeniu.</string>
 </dict>
 </plist>

@@ -48,6 +48,7 @@ dependencies = [
  "cipher 0.5.2",
  "cpubits",
  "cpufeatures 0.3.1",
+ "zeroize",
 ]
 
 [[package]]
@@ -76,6 +77,7 @@ dependencies = [
  "ctr 0.10.1",
  "ctutils",
  "ghash 0.6.0",
+ "zeroize",
 ]
 
 [[package]]
@@ -1971,10 +1973,12 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2596a039b8e0b68603f8fde8809b375e967b8e288e680fa7da89d959f07d3855"
 dependencies = [
+ "aes-gcm 0.11.1",
  "cbor2",
  "ed25519-dalek 3.0.0",
  "serde",
  "serde_bytes",
+ "zeroize",
 ]
 
 [[package]]
@@ -2542,6 +2546,7 @@ dependencies = [
  "bytes",
  "candid",
  "cbor2",
+ "cose2",
  "dmsg_protocol",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
@@ -2562,6 +2567,7 @@ dependencies = [
  "ic-vetkeys",
  "ic_auth_verifier",
  "icrc-ledger-types",
+ "icu_normalizer",
  "image",
  "infer",
  "k256 0.14.0",
@@ -2580,9 +2586,11 @@ dependencies = [
  "sha3 0.12.0",
  "signature 2.2.0",
  "ssh-key",
+ "tempfile",
  "tokio",
  "tokio-tungstenite 0.30.0",
  "toml 0.9.12+spec-1.1.0",
+ "unicode-segmentation",
  "url",
  "zeroize",
  "zip",
@@ -3699,6 +3707,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eecf2d5dc9b66b732b97707a0210906b1d30523eb773193ab777c0c84b3e8d5"
 dependencies = [
  "polyval 0.7.3",
+ "zeroize",
 ]
 
 [[package]]
@@ -6269,6 +6278,7 @@ dependencies = [
  "cpubits",
  "cpufeatures 0.3.1",
  "universal-hash 0.6.1",
+ "zeroize",
 ]
 
 [[package]]

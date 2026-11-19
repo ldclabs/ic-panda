@@ -10,6 +10,8 @@ Nie sprzedajemy danych osobowych ani nie wykorzystujemy Twoich treści do celów
 
 Elementy sejfu (Vault), prywatne wiadomości oraz pliki są szyfrowane przed przesłaniem. Klucze do treści pozostają na autoryzowanych urządzeniach lub w kopertach odzyskiwania/urządzenia, których usługa nie jest w stanie otworzyć. Odbiorcy mogą odczytywać i zachowywać udostępnione im kopie. Profile publiczne, awatary, nazwy użytkownika (handle), dokumenty katalogowe oraz informacje, które celowo publikujesz, mają charakter publiczny. Zgłoszenie nadużycia stanowi odrębne ujawnienie danych: moderatorzy otrzymują podany powód, notatkę, identyfikatory konta/zasobu oraz wyłącznie tę treść wiadomości, którą wyraźnie zdecydujesz się załączyć. Zgłoszenie nie przekazuje moderatorom kluczy do Twojego konta.
 
+Podczas eksportu sejfu aplikacja tworzy na urządzeniu zaszyfrowany plik z osobnym hasłem. dMsg nie otrzymuje kopii ani hasła. Wybrany dostawca pamięci może zachować zaszyfrowany plik.
+
 ## 2. Metadane usługi
 
 Usługa przetwarza identyfikatory kont i logowania, klucze publiczne urządzeń, przynależność do kanałów, reguły kontaktów i blokowania, rozmiary obiektów, czas zapytań, adresy IP oraz informacje operacyjne dotyczące żądań. Certyfikowany stan konta, potwierdzenia podpisów i uprawnienia (entitlements) pozwalają aplikacjom klienckim oraz usługom weryfikować autoryzację. Transakcje w księgach (ledgerach) oraz publiczne lub certyfikowane wpisy on-chain z reguły nie mogą zostać usunięte.

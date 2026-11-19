@@ -3474,5 +3474,43 @@
 	<string>打开并解锁 dMsg 以载入登录项。</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>密码自动填充更新失败。</string>
+	<key>Backup and restore</key>
+	<string>备份与恢复</string>
+	<key>Export encrypted backup</key>
+	<string>导出加密备份</string>
+	<key>Import from backup</key>
+	<string>从备份导入</string>
+	<key>Backup password</key>
+	<string>备份口令</string>
+	<key>The two backup passwords do not match.</key>
+	<string>两次输入的备份口令不一致。</string>
+	<key>Confirm backup password</key>
+	<string>再次输入备份口令</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>至少 6 个字符。请单独保管口令，dMsg 无法找回。</string>
+	<key>Include linked files</key>
+	<string>包含关联附件</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>部分附件不可用。请先取回附件，或仅导出条目。</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>包含你保存在钱包条目中的秘密字段。</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>仅备份当前条目。历史、回收站、草稿、冲突副本及 dMsg 管理的密钥不包含在内。</string>
+	<key>Add as new</key>
+	<string>新增条目</string>
+	<key>Different content · save a copy</key>
+	<string>内容不同，可另存副本</string>
+	<key>Deleted here · save a copy</key>
+	<string>本机已删除，可另存副本</string>
+	<key>Saved locally</key>
+	<string>已保存到本机</string>
+	<key>Omitted attachments</key>
+	<string>已省略附件</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>无法解开备份。请核对口令或重新选择完整文件。</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>本机没有这次导入的提交记录，请重新选择备份。</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>保险库条目按正常流程同步。附件保存在本机文件库。</string>
 </dict>
 </plist>

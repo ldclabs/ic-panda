@@ -3474,5 +3474,43 @@
 	<string>Buksan at i-unlock ang dMsg para ma-load ang iyong mga login.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Hindi ma-update ang awtomatikong pagpuno ng password.</string>
+	<key>Backup and restore</key>
+	<string>Pag-backup at pagpapanumbalik</string>
+	<key>Export encrypted backup</key>
+	<string>I-export ang naka-encrypt na backup</string>
+	<key>Import from backup</key>
+	<string>Mag-import mula sa backup</string>
+	<key>Backup password</key>
+	<string>Password ng backup</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Hindi magkatugma ang dalawang password ng backup.</string>
+	<key>Confirm backup password</key>
+	<string>Kumpirmahin ang password</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Hindi bababa sa 6 na character. Itago nang hiwalay ang password. Hindi ito mababawi ng dMsg.</string>
+	<key>Include linked files</key>
+	<string>Isama ang mga naka-link na file</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>May mga file na hindi available. I-download ang mga ito o mga entry lamang ang i-export.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Kasama ang mga lihim na naka-save sa mga entry ng wallet.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Mga kasalukuyang entry lang. Hindi kasama ang history, trash, draft, magkasalungat na kopya at mga key na pinamamahalaan ng dMsg.</string>
+	<key>Add as new</key>
+	<string>Idagdag bilang bago</string>
+	<key>Different content · save a copy</key>
+	<string>Magkaibang nilalaman · mag-save ng kopya</string>
+	<key>Deleted here · save a copy</key>
+	<string>Tinanggal dito · mag-save ng kopya</string>
+	<key>Saved locally</key>
+	<string>Na-save sa device</string>
+	<key>Omitted attachments</key>
+	<string>Nilaktawang attachment</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Hindi mabuksan ang backup. Suriin ang password o pumili ng kumpletong file.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Walang na-import. Piliin muli ang backup.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Gaya ng dati ang pag-sync ng mga entry. Nasa Files ng device ang mga attachment.</string>
 </dict>
 </plist>

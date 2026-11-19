@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"自分の役割"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"上の選択内容は、最後に読み込んだリビジョンを基準に保存されます。続行する前に確認してください。"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"定期購入の期間が変更されました。会員状態を更新し、再確認してください。"</string>
+    <string name="vault_backup_changed" formatted="false">"内容が異なります・コピーを保存"</string>
+    <string name="vault_backup_deleted" formatted="false">"この端末で削除済み・コピーを保存"</string>
+    <string name="vault_backup_export" formatted="false">"暗号化バックアップを書き出す"</string>
+    <string name="vault_backup_files" formatted="false">"関連ファイルを含める"</string>
+    <string name="vault_backup_hint" formatted="false">"6 文字以上。パスワードは別に保管してください。dMsg では復元できません。"</string>
+    <string name="vault_backup_import" formatted="false">"バックアップから読み込む"</string>
+    <string name="vault_backup_mismatch" formatted="false">"入力したバックアップ用パスワードが一致しません。"</string>
+    <string name="vault_backup_new" formatted="false">"新規追加"</string>
+    <string name="vault_backup_omitted" formatted="false">"除外した添付ファイル"</string>
+    <string name="vault_backup_password" formatted="false">"バックアップのパスワード"</string>
+    <string name="vault_backup_repeat" formatted="false">"パスワードを再入力"</string>
+    <string name="vault_backup_same" formatted="false">"すでに存在します"</string>
+    <string name="vault_backup_saved" formatted="false">"この端末に保存済み"</string>
+    <string name="vault_backup_scope" formatted="false">"現在の項目のみが対象です。履歴、ゴミ箱、下書き、競合コピー、dMsg 管理の鍵は含まれません。"</string>
+    <string name="vault_backup_sync" formatted="false">"項目は通常どおり同期されます。添付ファイルはこの端末のファイル庫に保存されます。"</string>
+    <string name="vault_backup_title" formatted="false">"バックアップと復元"</string>
+    <string name="vault_backup_unavailable" formatted="false">"利用できないファイルがあります。ダウンロードするか、項目のみ書き出してください。"</string>
+    <string name="vault_backup_uncommitted" formatted="false">"読み込みは確定していません。バックアップを選び直してください。"</string>
+    <string name="vault_backup_unlockerror" formatted="false">"バックアップを開けません。パスワードを確認するか、完全なファイルを選んでください。"</string>
+    <string name="vault_backup_wallet" formatted="false">"ウォレット項目に保存した秘密情報が含まれます。"</string>
     <string name="vault_field_birthday" formatted="false">"誕生日"</string>
     <string name="vault_field_cardholder" formatted="false">"カード所有者"</string>
     <string name="vault_field_credential" formatted="false">"資格情報"</string>

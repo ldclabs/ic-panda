@@ -3474,5 +3474,43 @@
 	<string>اپنے لاگ ان لوڈ کرنے کے لیے dMsg کھول کر اَن لاک کریں۔</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>پاس ورڈ آٹو فل کو اپ ڈیٹ نہیں کیا جا سکا۔</string>
+	<key>Backup and restore</key>
+	<string>بیک اپ اور بحالی</string>
+	<key>Export encrypted backup</key>
+	<string>رمز شدہ بیک اپ برآمد کریں</string>
+	<key>Import from backup</key>
+	<string>بیک اپ سے درآمد کریں</string>
+	<key>Backup password</key>
+	<string>بیک اپ کا پاس ورڈ</string>
+	<key>The two backup passwords do not match.</key>
+	<string>بیک اپ کے دونوں پاس ورڈ مماثل نہیں ہیں۔</string>
+	<key>Confirm backup password</key>
+	<string>پاس ورڈ کی تصدیق کریں</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>کم از کم ۶ حروف۔ پاس ورڈ الگ رکھیں۔ dMsg اسے بحال نہیں کر سکتا۔</string>
+	<key>Include linked files</key>
+	<string>منسلک فائلیں شامل کریں</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>کچھ فائلیں دستیاب نہیں۔ انہیں ڈاؤن لوڈ کریں یا صرف اندراجات برآمد کریں۔</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>والٹ اندراجات میں محفوظ راز شامل ہیں۔</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>صرف موجودہ اندراجات شامل ہیں۔ سابقہ ریکارڈ، کوڑا دان، مسودے، متصادم نقول اور dMsg کی کلیدیں شامل نہیں۔</string>
+	<key>Add as new</key>
+	<string>نیا اندراج شامل کریں</string>
+	<key>Different content · save a copy</key>
+	<string>مختلف مواد · نقل محفوظ کریں</string>
+	<key>Deleted here · save a copy</key>
+	<string>یہاں حذف شدہ · نقل محفوظ کریں</string>
+	<key>Saved locally</key>
+	<string>آلے پر محفوظ ہو گیا</string>
+	<key>Omitted attachments</key>
+	<string>چھوڑے گئے منسلکات</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>بیک اپ نہیں کھل سکا۔ پاس ورڈ جانچیں یا مکمل فائل منتخب کریں۔</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>درآمد محفوظ نہیں ہوئی۔ بیک اپ دوبارہ منتخب کریں۔</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>اندراجات معمول کے مطابق ہم وقت ہوں گے۔ منسلکات اس آلے کی فائلوں میں محفوظ ہیں۔</string>
 </dict>
 </plist>

@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"আপনার ভূমিকা"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"উপরের নির্বাচন শেষ লোড হওয়া সংশোধন অনুযায়ী সংরক্ষিত হবে। এগোনোর আগে দেখুন।"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"সাবস্ক্রিপশনের মেয়াদ বদলেছে। সদস্য তথ্য রিফ্রেশ করে আবার দেখুন।"</string>
+    <string name="vault_backup_changed" formatted="false">"বিষয়বস্তু আলাদা · কপি রাখুন"</string>
+    <string name="vault_backup_deleted" formatted="false">"এখানে মুছে ফেলা · কপি রাখুন"</string>
+    <string name="vault_backup_export" formatted="false">"এনক্রিপ্ট করা ব্যাকআপ রপ্তানি করুন"</string>
+    <string name="vault_backup_files" formatted="false">"সংযুক্ত ফাইল অন্তর্ভুক্ত করুন"</string>
+    <string name="vault_backup_hint" formatted="false">"কমপক্ষে ৬টি অক্ষর। পাসওয়ার্ড আলাদা করে রাখুন। dMsg এটি পুনরুদ্ধার করতে পারে না।"</string>
+    <string name="vault_backup_import" formatted="false">"ব্যাকআপ থেকে আমদানি করুন"</string>
+    <string name="vault_backup_mismatch" formatted="false">"ব্যাকআপের পাসওয়ার্ড দুটি মিলছে না।"</string>
+    <string name="vault_backup_new" formatted="false">"নতুন হিসেবে যোগ করুন"</string>
+    <string name="vault_backup_omitted" formatted="false">"বাদ দেওয়া সংযুক্তি"</string>
+    <string name="vault_backup_password" formatted="false">"ব্যাকআপের পাসওয়ার্ড"</string>
+    <string name="vault_backup_repeat" formatted="false">"ব্যাকআপের পাসওয়ার্ড নিশ্চিত করুন"</string>
+    <string name="vault_backup_same" formatted="false">"ইতিমধ্যে উপস্থিত"</string>
+    <string name="vault_backup_saved" formatted="false">"ডিভাইসে সংরক্ষিত"</string>
+    <string name="vault_backup_scope" formatted="false">"শুধু বর্তমান এন্ট্রি। ইতিহাস, ট্র্যাশ, খসড়া, বিরোধপূর্ণ কপি ও dMsg পরিচালিত কী বাদ থাকে।"</string>
+    <string name="vault_backup_sync" formatted="false">"এন্ট্রি স্বাভাবিকভাবে সিঙ্ক হয়। সংযুক্তিগুলো এই ডিভাইসের ফাইলে থাকে।"</string>
+    <string name="vault_backup_title" formatted="false">"ব্যাকআপ ও পুনরুদ্ধার"</string>
+    <string name="vault_backup_unavailable" formatted="false">"কিছু ফাইল পাওয়া যাচ্ছে না। সেগুলো ডাউনলোড করুন অথবা শুধু এন্ট্রি রপ্তানি করুন।"</string>
+    <string name="vault_backup_uncommitted" formatted="false">"আমদানি সংরক্ষিত হয়নি। আবার ব্যাকআপ বেছে নিন।"</string>
+    <string name="vault_backup_unlockerror" formatted="false">"ব্যাকআপ খোলা গেল না। পাসওয়ার্ড যাচাই করুন বা সম্পূর্ণ ফাইল বেছে নিন।"</string>
+    <string name="vault_backup_wallet" formatted="false">"ওয়ালেট এন্ট্রিতে রাখা গোপন তথ্য অন্তর্ভুক্ত।"</string>
     <string name="vault_field_birthday" formatted="false">"জন্মদিন"</string>
     <string name="vault_field_cardholder" formatted="false">"কার্ডধারী"</string>
     <string name="vault_field_credential" formatted="false">"শংসাপত্র"</string>

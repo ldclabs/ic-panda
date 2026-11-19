@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Votre rôle"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Les sélections ci-dessus seront enregistrées par rapport à la dernière révision chargée. Vérifiez-les avant de continuer."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Votre période d’abonnement a changé. Actualisez l’abonnement et vérifiez-la à nouveau."</string>
+    <string name="vault_backup_changed" formatted="false">"Contenu différent · enregistrer une copie"</string>
+    <string name="vault_backup_deleted" formatted="false">"Supprimé ici · enregistrer une copie"</string>
+    <string name="vault_backup_export" formatted="false">"Exporter une sauvegarde chiffrée"</string>
+    <string name="vault_backup_files" formatted="false">"Inclure les fichiers liés"</string>
+    <string name="vault_backup_hint" formatted="false">"Au moins 6 caractères. Conservez ce mot de passe séparément. dMsg ne peut pas le récupérer."</string>
+    <string name="vault_backup_import" formatted="false">"Importer une sauvegarde"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Les deux mots de passe de sauvegarde ne correspondent pas."</string>
+    <string name="vault_backup_new" formatted="false">"Ajouter une entrée"</string>
+    <string name="vault_backup_omitted" formatted="false">"Pièces jointes omises"</string>
+    <string name="vault_backup_password" formatted="false">"Mot de passe de sauvegarde"</string>
+    <string name="vault_backup_repeat" formatted="false">"Confirmer le mot de passe"</string>
+    <string name="vault_backup_same" formatted="false">"Déjà présent"</string>
+    <string name="vault_backup_saved" formatted="false">"Enregistré sur cet appareil"</string>
+    <string name="vault_backup_scope" formatted="false">"Seules les entrées actuelles sont incluses. Historique, corbeille, brouillons, copies en conflit et clés gérées par dMsg sont exclus."</string>
+    <string name="vault_backup_sync" formatted="false">"Les entrées suivent la synchronisation habituelle. Les pièces jointes sont dans Fichiers sur cet appareil."</string>
+    <string name="vault_backup_title" formatted="false">"Sauvegarde et restauration"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Des fichiers sont indisponibles. Téléchargez-les ou exportez uniquement les entrées."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Aucune importation enregistrée. Choisissez à nouveau la sauvegarde."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Impossible d’ouvrir la sauvegarde. Vérifiez le mot de passe ou choisissez un fichier complet."</string>
+    <string name="vault_backup_wallet" formatted="false">"Inclut les secrets enregistrés dans les entrées de portefeuille."</string>
     <string name="vault_field_birthday" formatted="false">"Date de naissance"</string>
     <string name="vault_field_cardholder" formatted="false">"Titulaire"</string>
     <string name="vault_field_credential" formatted="false">"Identifiant"</string>

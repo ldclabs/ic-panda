@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Vai trò của bạn"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Lựa chọn bên trên sẽ được lưu theo bản sửa đổi tải gần nhất. Kiểm tra trước khi tiếp tục."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Kỳ đăng ký thay đổi. Làm mới tư cách thành viên rồi kiểm tra lại."</string>
+    <string name="vault_backup_changed" formatted="false">"Nội dung khác · lưu bản sao"</string>
+    <string name="vault_backup_deleted" formatted="false">"Đã xóa tại đây · lưu bản sao"</string>
+    <string name="vault_backup_export" formatted="false">"Xuất bản sao lưu mã hóa"</string>
+    <string name="vault_backup_files" formatted="false">"Kèm tệp liên kết"</string>
+    <string name="vault_backup_hint" formatted="false">"Ít nhất 6 ký tự. Hãy lưu mật khẩu riêng. dMsg không thể khôi phục mật khẩu."</string>
+    <string name="vault_backup_import" formatted="false">"Nhập từ bản sao lưu"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Hai mật khẩu sao lưu không khớp."</string>
+    <string name="vault_backup_new" formatted="false">"Thêm mục mới"</string>
+    <string name="vault_backup_omitted" formatted="false">"Tệp đính kèm đã bỏ qua"</string>
+    <string name="vault_backup_password" formatted="false">"Mật khẩu bản sao lưu"</string>
+    <string name="vault_backup_repeat" formatted="false">"Xác nhận mật khẩu"</string>
+    <string name="vault_backup_same" formatted="false">"Đã có mặt"</string>
+    <string name="vault_backup_saved" formatted="false">"Đã lưu trên thiết bị"</string>
+    <string name="vault_backup_scope" formatted="false">"Chỉ sao lưu mục hiện tại. Loại trừ lịch sử, thùng rác, bản nháp, bản xung đột và khóa do dMsg quản lý."</string>
+    <string name="vault_backup_sync" formatted="false">"Các mục đồng bộ như thường lệ. Tệp đính kèm được lưu trong Tệp trên thiết bị này."</string>
+    <string name="vault_backup_title" formatted="false">"Sao lưu và khôi phục"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Một số tệp chưa có. Hãy tải xuống hoặc chỉ xuất các mục."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Chưa ghi dữ liệu nhập. Hãy chọn lại bản sao lưu."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Không thể mở bản sao lưu. Hãy kiểm tra mật khẩu hoặc chọn tệp đầy đủ."</string>
+    <string name="vault_backup_wallet" formatted="false">"Bao gồm bí mật đã lưu trong mục ví."</string>
     <string name="vault_field_birthday" formatted="false">"Sinh nhật"</string>
     <string name="vault_field_cardholder" formatted="false">"Chủ thẻ"</string>
     <string name="vault_field_credential" formatted="false">"Thông tin xác thực"</string>

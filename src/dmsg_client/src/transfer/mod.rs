@@ -155,6 +155,8 @@ pub const PREFIXES: &[(&str, Class)] = &[
     ("letter-intent:", Class::Stays),
     ("letter-draft:", Class::Stays),
     ("vault-draft:", Class::Stays),
+    ("vault-backup-source:", Class::Stays),
+    ("vault-backup-receipt:", Class::Stays),
     ("letter-status:", Class::Stays),
     ("send-intent:", Class::Stays),
     ("composer-checkpoint:", Class::Stays),

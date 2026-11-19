@@ -10,6 +10,8 @@ No vendemos datos personales ni usamos tu contenido para publicidad. El sitio no
 
 Los elementos de la bóveda, mensajes privados y archivos se cifran antes de subirlos. Las claves permanecen en dispositivos autorizados o en sobres de recuperación que el servicio no puede abrir. Los destinatarios pueden conservar copias compartidas. Los perfiles, avatares, nombres y documentos de directorio que publicas son públicos. Una denuncia revela a los moderadores el motivo, tu nota, identificadores de cuenta y recurso, y solo el texto que eliges adjuntar expresamente. No proporciona las claves de tu cuenta.
 
+Al exportar la bóveda, la aplicación crea un archivo cifrado en tu dispositivo con una contraseña independiente. dMsg no recibe la copia ni su contraseña. El proveedor de almacenamiento que elijas puede conservar el archivo cifrado.
+
 ## 2. Metadatos del servicio
 
 Tratamos identificadores de cuenta y acceso, claves públicas de dispositivos, miembros de canales, reglas de contacto y bloqueo, tamaños, horarios, direcciones IP e información operativa. Los estados certificados, recibos de firma y derechos permiten verificar la autoridad. Las transacciones y otros registros públicos o certificados en la cadena generalmente no se pueden borrar.

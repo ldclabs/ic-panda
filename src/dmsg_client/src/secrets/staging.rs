@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
 /// An invisible candidate. Only random-key ciphertext reaches the blob directory.
+#[derive(Clone)]
 pub struct StagedFile {
     session: Session,
     pub(crate) manifest: FileManifest,
@@ -165,6 +166,17 @@ impl Client {
         folder: &str,
         finish: impl FnOnce(&Self, &[String]) -> Result<()>,
     ) -> Result<Vec<String>> {
+        self.publish_import(items, files, folder, Self::vault_write_items, finish)
+    }
+
+    pub(crate) fn publish_import(
+        &mut self,
+        items: Vec<Item>,
+        files: Vec<StagedFile>,
+        folder: &str,
+        write: fn(&Self, Vec<Item>, u64) -> Result<Vec<String>>,
+        finish: impl FnOnce(&Self, &[String]) -> Result<()>,
+    ) -> Result<Vec<String>> {
         self.catalog()?.live_folder(folder)?;
         let mut names = std::collections::BTreeSet::new();
         let now = crate::now_ms();
@@ -242,7 +254,7 @@ impl Client {
                     file,
                 )?;
             }
-            let ids = self.vault_write_items(items, now)?;
+            let ids = write(self, items, now)?;
             finish(self, &ids)?;
             Ok(ids)
         })?;

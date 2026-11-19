@@ -112,7 +112,11 @@ struct PrivateFiles: Sendable {
                 let attributes = try FileManager.default.attributesOfItem(atPath: source.path)
                 guard attributes[.type] as? FileAttributeType == .typeRegular else { throw CocoaError(.fileReadUnknown) }
                 guard let size = (attributes[.size] as? NSNumber)?.intValue else { throw CocoaError(.fileReadUnknown) }
-                try (purpose == "file" ? use : .attachment).validate(source, size: size)
+                if purpose == "vault-backup" {
+                    guard size >= 0, size <= 320 * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
+                } else {
+                    try (purpose == "file" ? use : .attachment).validate(source, size: size)
+                }
                 let available = try staging.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage
                 if let available, available < Int64(size) * 3 + 8 * 1024 * 1024 { throw CocoaError(.fileWriteOutOfSpace) }
                 try FileManager.default.copyItem(at: source, to: destination)

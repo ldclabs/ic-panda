@@ -77,6 +77,8 @@ the language-independent vectors in
 
 ## Vault imports
 
+Local owners can export and import password-encrypted `.dmsgvault` files through the desktop, iOS and Android apps. The shared core handles the high-risk export approval, authenticated streaming, preview, deduplication, atomic attachment import and retry receipts. [Wire format and limits](../../docs/protocol/vault_backup.md)
+
 Vault imports parse 1Password (`.1pux`, CSV), Bitwarden (unencrypted JSON,
 CSV), and browser password CSV exports locally. Source files and the
 decompressed `export.data` are limited to 64 MiB. Previews never include

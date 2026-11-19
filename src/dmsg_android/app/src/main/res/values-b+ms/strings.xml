@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Peranan anda"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Pilihan di atas akan disimpan terhadap semakan terbaru yang dimuat. Semak sebelum meneruskan."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Tempoh langganan berubah. Muat semula keahlian dan semak lagi."</string>
+    <string name="vault_backup_changed" formatted="false">"Kandungan berlainan · simpan salinan"</string>
+    <string name="vault_backup_deleted" formatted="false">"Dipadam di sini · simpan salinan"</string>
+    <string name="vault_backup_export" formatted="false">"Eksport sandaran disulitkan"</string>
+    <string name="vault_backup_files" formatted="false">"Sertakan fail terpaut"</string>
+    <string name="vault_backup_hint" formatted="false">"Sekurang-kurangnya 6 aksara. Simpan kata laluan berasingan. dMsg tidak boleh memulihkannya."</string>
+    <string name="vault_backup_import" formatted="false">"Import daripada sandaran"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Kedua-dua kata laluan sandaran tidak sepadan."</string>
+    <string name="vault_backup_new" formatted="false">"Tambah sebagai baharu"</string>
+    <string name="vault_backup_omitted" formatted="false">"Lampiran dilangkau"</string>
+    <string name="vault_backup_password" formatted="false">"Kata laluan sandaran"</string>
+    <string name="vault_backup_repeat" formatted="false">"Sahkan kata laluan sandaran"</string>
+    <string name="vault_backup_same" formatted="false">"Sudah hadir"</string>
+    <string name="vault_backup_saved" formatted="false">"Disimpan pada peranti"</string>
+    <string name="vault_backup_scope" formatted="false">"Entri semasa sahaja. Sejarah, sampah, draf, salinan bercanggah dan kunci yang diurus oleh dMsg dikecualikan."</string>
+    <string name="vault_backup_sync" formatted="false">"Entri disegerakkan seperti biasa. Lampiran disimpan dalam Fail pada peranti ini."</string>
+    <string name="vault_backup_title" formatted="false">"Sandaran dan pemulihan"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Sesetengah fail tidak tersedia. Muat turun atau eksport entri sahaja."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Import belum disimpan. Pilih sandaran semula."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Sandaran tidak dapat dibuka. Semak kata laluan atau pilih fail lengkap."</string>
+    <string name="vault_backup_wallet" formatted="false">"Termasuk rahsia yang disimpan dalam entri dompet."</string>
     <string name="vault_field_birthday" formatted="false">"Hari jadi"</string>
     <string name="vault_field_cardholder" formatted="false">"Pemegang kad"</string>
     <string name="vault_field_credential" formatted="false">"Tauliah"</string>

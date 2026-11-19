@@ -58,6 +58,7 @@ private val destinations = listOf(
     val navigation by client.navigation.state.collectAsStateWithLifecycle()
     val fold = rememberWorkspaceFold()
     val route = navigation.current.page
+    LaunchedEffect(route) { if (route !in setOf("vault-backup", "approvals")) client.vaultBackup.clear() }
     val selected = navigation.current.id.orEmpty()
     val showEditor by client.vaultDrafts.presented.collectAsStateWithLifecycle()
     var discardEditor by remember { mutableStateOf(false) }
@@ -239,6 +240,7 @@ private val destinations = listOf(
                                     "secret-import" -> SecretPackageScreen(client, navigation.current.channel, navigation.current.sequence)
                                     "secret-picker" -> SecretSnapshotPicker(client, navigation.current.channel.orEmpty())
                                     "vault-import" -> VaultImportScreen(client) { passwordImport.launch(arrayOf("*/*")) }
+                                    "vault-backup" -> VaultBackupScreen(client)
                                     else -> EmptyPanel(str(R.string.text_choose_a_destination_f70f6ae))
                                 } }
                                 if (wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
@@ -321,6 +323,7 @@ private fun title(route: String) = when (route) {
     "secret-compose" -> str(R.string.text_share_secret_snapshot_d4484d8); "secret-shares" -> str(R.string.text_shared_snapshots_08679a9)
     "secret-share" -> str(R.string.text_snapshot_853fcbe); "secret-import" -> str(R.string.text_import_secret_package_51433fa); "secret-picker" -> str(R.string.text_choose_a_secret_2ceded8)
     "vault-import" -> str(R.string.text_import_passwords_16088a6)
+    "vault-backup" -> str(R.string.vault_backup_title)
     "vault-history" -> str(R.string.text_version_history_8a6bf11); "vault-version" -> str(R.string.text_historical_version_119b50c); "vault-compare" -> str(R.string.text_compare_versions_9f9b2e0)
     "inbox" -> str(R.string.text_letters_cfbff5c)
     "hardware" -> str(R.string.text_hardware_security_04e42f4); "recovery-policy" -> str(R.string.text_on_chain_recovery_dcf7d3f)

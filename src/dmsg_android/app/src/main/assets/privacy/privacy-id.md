@@ -10,6 +10,8 @@ Kami tidak menjual data pribadi atau menggunakan konten Anda untuk iklan. Situs 
 
 Item brankas (Vault), pesan pribadi, dan file dienkripsi sebelum diunggah. Kunci konten tetap berada di perangkat resmi Anda atau di dalam amplop pemulihan/perangkat yang tidak dapat dibuka oleh layanan. Penerima dapat membaca dan menyimpan salinan yang dibagikan. Profil publik, avatar, handle (nama pengguna publik), dokumen direktori, dan informasi yang sengaja Anda terbitkan bersifat publik. Laporan penyalahgunaan merupakan pengungkapan terpisah: moderator hanya menerima alasan, catatan, pengidentifikasi akun/sumber daya, serta teks pesan yang secara eksplisit Anda pilih untuk disertakan. Melaporkan sesuatu tidak memberikan kunci akun Anda kepada moderator.
 
+Saat brankas diekspor, aplikasi membuat berkas terenkripsi di perangkat dengan kata sandi cadangan terpisah. dMsg tidak menerima cadangan atau kata sandinya. Penyedia penyimpanan pilihan Anda dapat menyimpan berkas terenkripsi.
+
 ## 2. Metadata layanan
 
 Layanan memproses pengidentifikasi akun dan login, kunci publik perangkat, keanggotaan saluran, aturan kontak dan pemblokiran, ukuran objek, waktu permintaan, alamat IP, serta informasi permintaan operasional. Status akun tersertifikasi, tanda terima tanda tangan, dan hak akses (entitlement) memungkinkan aplikasi klien dan layanan memverifikasi otoritas. Transaksi buku besar (ledger) serta catatan on-chain yang bersifat publik atau tersertifikasi umumnya tidak dapat dihapus.

@@ -127,6 +127,7 @@ impl MobileEngine {
         let client = runtime()
             .spawn_blocking(move || {
                 let mut c = testing::unlocked(&directory, false, None);
+                testing::allow_vault_backup(&mut c);
                 c.use_read_only_previews();
                 c.require_prepared_approval();
                 for (kind, title, notes, favorite) in [

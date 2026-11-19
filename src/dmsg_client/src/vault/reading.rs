@@ -243,6 +243,7 @@ pub async fn browse<H: Hold>(h: &H, query: &BrowseQuery) -> Result<BrowsePage> {
 }
 
 /// The unlocked session and root in which a local vault operation began.
+#[derive(Clone, Copy)]
 pub struct Session {
     generation: u64,
     root: u64,

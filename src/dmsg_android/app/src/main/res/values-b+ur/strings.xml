@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"آپ کا کردار"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"اوپر کے انتخاب آخری لوڈ شدہ ترمیم کے مطابق محفوظ ہوں گے۔ جاری رکھنے سے پہلے جائزہ لیں۔"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"سبسکرپشن کی مدت بدل گئی۔ رکنیت تازہ کر کے پھر دیکھیں۔"</string>
+    <string name="vault_backup_changed" formatted="false">"مختلف مواد · نقل محفوظ کریں"</string>
+    <string name="vault_backup_deleted" formatted="false">"یہاں حذف شدہ · نقل محفوظ کریں"</string>
+    <string name="vault_backup_export" formatted="false">"رمز شدہ بیک اپ برآمد کریں"</string>
+    <string name="vault_backup_files" formatted="false">"منسلک فائلیں شامل کریں"</string>
+    <string name="vault_backup_hint" formatted="false">"کم از کم ۶ حروف۔ پاس ورڈ الگ رکھیں۔ dMsg اسے بحال نہیں کر سکتا۔"</string>
+    <string name="vault_backup_import" formatted="false">"بیک اپ سے درآمد کریں"</string>
+    <string name="vault_backup_mismatch" formatted="false">"بیک اپ کے دونوں پاس ورڈ مماثل نہیں ہیں۔"</string>
+    <string name="vault_backup_new" formatted="false">"نیا اندراج شامل کریں"</string>
+    <string name="vault_backup_omitted" formatted="false">"چھوڑے گئے منسلکات"</string>
+    <string name="vault_backup_password" formatted="false">"بیک اپ کا پاس ورڈ"</string>
+    <string name="vault_backup_repeat" formatted="false">"پاس ورڈ کی تصدیق کریں"</string>
+    <string name="vault_backup_same" formatted="false">"پہلے سے موجود"</string>
+    <string name="vault_backup_saved" formatted="false">"آلے پر محفوظ ہو گیا"</string>
+    <string name="vault_backup_scope" formatted="false">"صرف موجودہ اندراجات شامل ہیں۔ سابقہ ریکارڈ، کوڑا دان، مسودے، متصادم نقول اور dMsg کی کلیدیں شامل نہیں۔"</string>
+    <string name="vault_backup_sync" formatted="false">"اندراجات معمول کے مطابق ہم وقت ہوں گے۔ منسلکات اس آلے کی فائلوں میں محفوظ ہیں۔"</string>
+    <string name="vault_backup_title" formatted="false">"بیک اپ اور بحالی"</string>
+    <string name="vault_backup_unavailable" formatted="false">"کچھ فائلیں دستیاب نہیں۔ انہیں ڈاؤن لوڈ کریں یا صرف اندراجات برآمد کریں۔"</string>
+    <string name="vault_backup_uncommitted" formatted="false">"درآمد محفوظ نہیں ہوئی۔ بیک اپ دوبارہ منتخب کریں۔"</string>
+    <string name="vault_backup_unlockerror" formatted="false">"بیک اپ نہیں کھل سکا۔ پاس ورڈ جانچیں یا مکمل فائل منتخب کریں۔"</string>
+    <string name="vault_backup_wallet" formatted="false">"والٹ اندراجات میں محفوظ راز شامل ہیں۔"</string>
     <string name="vault_field_birthday" formatted="false">"سالگرہ"</string>
     <string name="vault_field_cardholder" formatted="false">"کارڈ ہولڈر"</string>
     <string name="vault_field_credential" formatted="false">"اسناد"</string>

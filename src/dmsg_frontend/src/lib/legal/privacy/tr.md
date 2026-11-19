@@ -10,6 +10,8 @@ Kişisel verileri satmıyoruz ve içeriğinizi reklam amacıyla kullanmıyoruz. 
 
 Kasa (Vault) öğeleri, özel mesajlar ve dosyalar yüklenmeden önce şifrelenir. İçerik anahtarları yalnızca yetkili cihazlarda veya hizmetin açamadığı kurtarma/cihaz zarflarında kalır. Alıcılar paylaşılan kopyaları okuyabilir ve saklayabilir. Herkese açık profiller, avatarlar, kullanıcı adları (handle), dizin belgeleri ve bilerek yayınladığınız bilgiler herkese açıktır. Kötüye kullanım bildirimi (raporlama) ayrı bir açıklamadır: moderatörler yalnızca bildirim nedeninizi, notunuzu, hesap/kaynak tanımlayıcılarınızı ve açıkça eklemeyi seçtiğiniz mesaj metnini alır. Bildirimde bulunmak, moderatörlere hesabınızın anahtarlarını vermez.
 
+Kasayı dışa aktardığınızda uygulama, cihazda ayrı bir yedek parolasıyla şifrelenmiş dosya oluşturur. dMsg yedeği veya parolayı almaz. Seçtiğiniz depolama sağlayıcısı şifreli dosyayı saklayabilir.
+
 ## 2. Hizmet meta verileri
 
 Hizmet; hesap ve giriş tanımlayıcılarını, cihaz açık anahtarlarını, kanal üyeliklerini, iletişim ve engelleme kurallarını, nesne boyutlarını, istek zamanlamalarını, IP adreslerini ve operasyonel istek bilgilerini işler. Sertifikalı hesap durumu, imza makbuzları ve kullanım hakları (entitlement), istemci uygulamaların ve hizmetlerin yetki doğrulaması yapmasına olanak tanır. Defter (ledger) işlemleri ile herkese açık veya sertifikalı zincir üstü (on-chain) kayıtlar genel olarak silinemez.

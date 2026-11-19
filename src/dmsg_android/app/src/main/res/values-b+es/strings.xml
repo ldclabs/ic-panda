@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Tu rol"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Las selecciones anteriores se guardarán con respecto a la última revisión cargada. Revísalas antes de continuar."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"El período de tu suscripción ha cambiado. Actualiza la membresía y revísalo de nuevo."</string>
+    <string name="vault_backup_changed" formatted="false">"Contenido distinto · guardar copia"</string>
+    <string name="vault_backup_deleted" formatted="false">"Eliminada aquí · guardar copia"</string>
+    <string name="vault_backup_export" formatted="false">"Exportar copia cifrada"</string>
+    <string name="vault_backup_files" formatted="false">"Incluir archivos vinculados"</string>
+    <string name="vault_backup_hint" formatted="false">"Al menos 6 caracteres. Guarda la contraseña por separado. dMsg no puede recuperarla."</string>
+    <string name="vault_backup_import" formatted="false">"Importar una copia"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Las dos contraseñas de la copia de seguridad no coinciden."</string>
+    <string name="vault_backup_new" formatted="false">"Añadir como nueva"</string>
+    <string name="vault_backup_omitted" formatted="false">"Adjuntos omitidos"</string>
+    <string name="vault_backup_password" formatted="false">"Contraseña de la copia"</string>
+    <string name="vault_backup_repeat" formatted="false">"Confirmar contraseña de la copia"</string>
+    <string name="vault_backup_same" formatted="false">"Ya existe"</string>
+    <string name="vault_backup_saved" formatted="false">"Guardado en el dispositivo"</string>
+    <string name="vault_backup_scope" formatted="false">"Solo entradas actuales. Se excluyen historial, papelera, borradores, copias en conflicto y claves gestionadas por dMsg."</string>
+    <string name="vault_backup_sync" formatted="false">"Las entradas se sincronizan como siempre. Los adjuntos se guardan en Archivos en este dispositivo."</string>
+    <string name="vault_backup_title" formatted="false">"Copia y restauración"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Faltan archivos. Descárgalos o exporta solo las entradas."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"No se importó nada. Vuelve a elegir la copia."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"No se puede abrir la copia. Comprueba la contraseña o elige un archivo completo."</string>
+    <string name="vault_backup_wallet" formatted="false">"Incluye secretos guardados en entradas de cartera."</string>
     <string name="vault_field_birthday" formatted="false">"Fecha de nacimiento"</string>
     <string name="vault_field_cardholder" formatted="false">"Titular"</string>
     <string name="vault_field_credential" formatted="false">"Credencial"</string>

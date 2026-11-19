@@ -10,6 +10,8 @@ Wir verkaufen keine personenbezogenen Daten und nutzen Ihre Inhalte nicht für W
 
 Tresor-Einträge (Vault), private Nachrichten und Dateien werden vor dem Hochladen verschlüsselt. Inhaltsschlüssel verbleiben auf autorisierten Geräten oder in Wiederherstellungs- bzw. Geräte-Umschlägen, die der Dienst nicht öffnen kann. Empfänger können geteilte Kopien lesen und speichern. Öffentliche Profile, Avatare, Handles (Benutzernamen), Verzeichnisdokumente und Informationen, die Sie bewusst veröffentlichen, sind öffentlich. Eine Meldung wegen Missbrauchs ist eine gesonderte Offenlegung: Moderatoren erhalten den Meldegrund, Ihre Notiz, Konto- und Ressourcenkennungen sowie ausschließlich den Nachrichtentext, den Sie ausdrücklich beifügen. Durch eine Meldung erhalten Moderatoren niemals die Schlüssel zu Ihrem Konto.
 
+Beim Export des Tresors erstellt die App auf deinem Gerät eine verschlüsselte Datei mit einem eigenen Sicherungspasswort. dMsg erhält weder die Sicherung noch ihr Passwort. Dein Speicheranbieter kann die verschlüsselte Datei aufbewahren.
+
 ## 2. Dienst-Metadaten
 
 Der Dienst verarbeitet Konto- und Anmeldekennungen, öffentliche Geräteschlüssel, Kanalmitgliedschaften, Kontakt- und Blockierregeln, Objektgrößen, Anfragezeitpunkte, IP-Adressen sowie betriebliche Anfrageinformationen. Zertifizierte Kontozustände, Signaturbelege und Berechtigungen (Entitlements) ermöglichen es Client-Apps und Diensten, Berechtigungen zu prüfen. Ledger-Transaktionen sowie öffentliche oder zertifizierte On-Chain-Einträge können grundsätzlich nicht gelöscht werden.

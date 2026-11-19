@@ -3474,5 +3474,43 @@
 	<string>Buka dMsg dan buka kuncinya untuk memuat akun Anda.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Isi otomatis kata sandi gagal diperbarui.</string>
+	<key>Backup and restore</key>
+	<string>Pencadangan dan pemulihan</string>
+	<key>Export encrypted backup</key>
+	<string>Ekspor cadangan terenkripsi</string>
+	<key>Import from backup</key>
+	<string>Impor dari cadangan</string>
+	<key>Backup password</key>
+	<string>Kata sandi cadangan</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Kedua kata sandi cadangan tidak cocok.</string>
+	<key>Confirm backup password</key>
+	<string>Konfirmasi kata sandi cadangan</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Minimal 6 karakter. Simpan kata sandi secara terpisah. dMsg tidak dapat memulihkannya.</string>
+	<key>Include linked files</key>
+	<string>Sertakan berkas tertaut</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Beberapa berkas tidak tersedia. Unduh berkas atau ekspor entri saja.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Mencakup rahasia yang disimpan dalam entri dompet.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Hanya entri saat ini. Riwayat, sampah, draf, salinan konflik, dan kunci yang dikelola dMsg tidak disertakan.</string>
+	<key>Add as new</key>
+	<string>Tambahkan sebagai baru</string>
+	<key>Different content · save a copy</key>
+	<string>Isi berbeda · simpan salinan</string>
+	<key>Deleted here · save a copy</key>
+	<string>Dihapus di sini · simpan salinan</string>
+	<key>Saved locally</key>
+	<string>Disimpan di perangkat</string>
+	<key>Omitted attachments</key>
+	<string>Lampiran yang dilewati</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Cadangan tidak dapat dibuka. Periksa kata sandi atau pilih berkas lengkap.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Impor belum tersimpan. Pilih kembali cadangan.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Entri disinkronkan seperti biasa. Lampiran disimpan di Berkas pada perangkat ini.</string>
 </dict>
 </plist>

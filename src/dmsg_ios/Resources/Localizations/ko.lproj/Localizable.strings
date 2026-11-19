@@ -3474,5 +3474,43 @@
 	<string>dMsg를 열고 잠금을 해제하여 로그인 항목을 불러오세요.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>암호 자동 완성을 업데이트할 수 없습니다.</string>
+	<key>Backup and restore</key>
+	<string>백업 및 복원</string>
+	<key>Export encrypted backup</key>
+	<string>암호화된 백업 내보내기</string>
+	<key>Import from backup</key>
+	<string>백업에서 가져오기</string>
+	<key>Backup password</key>
+	<string>백업 암호</string>
+	<key>The two backup passwords do not match.</key>
+	<string>두 백업 비밀번호가 일치하지 않습니다.</string>
+	<key>Confirm backup password</key>
+	<string>백업 암호 확인</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>6자 이상 입력하세요. 암호는 따로 보관하세요. dMsg는 암호를 복구할 수 없습니다.</string>
+	<key>Include linked files</key>
+	<string>연결된 파일 포함</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>일부 파일을 사용할 수 없습니다. 먼저 다운로드하거나 항목만 내보내세요.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>지갑 항목에 저장한 비밀 정보가 포함됩니다.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>현재 항목만 포함됩니다. 기록, 휴지통, 초안, 충돌 사본 및 dMsg 관리 키는 제외됩니다.</string>
+	<key>Add as new</key>
+	<string>새 항목으로 추가</string>
+	<key>Different content · save a copy</key>
+	<string>내용이 다름 · 사본 저장</string>
+	<key>Deleted here · save a copy</key>
+	<string>이 기기에서 삭제됨 · 사본 저장</string>
+	<key>Saved locally</key>
+	<string>기기에 저장됨</string>
+	<key>Omitted attachments</key>
+	<string>제외된 첨부 파일</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>백업을 열 수 없습니다. 암호를 확인하거나 완전한 파일을 선택하세요.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>가져온 항목이 없습니다. 백업을 다시 선택하세요.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>항목은 평소처럼 동기화됩니다. 첨부 파일은 이 기기의 파일 보관함에 저장됩니다.</string>
 </dict>
 </plist>

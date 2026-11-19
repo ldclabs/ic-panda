@@ -10,6 +10,8 @@ Wij verkopen geen persoonsgegevens en gebruiken je inhoud niet voor advertenties
 
 Kluisitems (Vault), privéberichten en bestanden worden versleuteld voordat ze worden geüpload. Inhoudssleutels blijven op geautoriseerde apparaten of in herstel- en apparaatenveloppen die de dienst niet kan openen. Ontvangers kunnen gedeelde kopieën lezen en bewaren. Openbare profielen, avatars, handles (gebruikersnamen), directorydocumenten en informatie die je bewust publiceert, zijn openbaar. Een melding van misbruik is een afzonderlijke bekendmaking: moderators ontvangen je opgegeven reden, toelichting, account- of resource-identificaties en uitsluitend de berichttekst die je expliciet kiest mee te sturen. Door een melding te doen krijgen moderators nooit de sleutels van je account.
 
+Bij het exporteren van de kluis maakt de app op je apparaat een versleuteld bestand met een apart wachtwoord. dMsg ontvangt de back-up of het wachtwoord niet. Je opslagprovider kan het versleutelde bestand bewaren.
+
 ## 2. Metagegevens van de dienst
 
 De dienst verwerkt account- en inlog-identificaties, openbare apparaatsleutels, kanaallidmaatschappen, contact- en blokkeringsregels, objectgroottes, tijdstippen van verzoeken, IP-adressen en operationele verzoekgegevens. Gecertificeerde accountstatussen, handtekeningbewijzen en gebruiksrechten (entitlements) stellen client-apps en diensten in staat om bevoegdheden te verifiëren. Ledgertransacties en openbare of gecertificeerde on-chain gegevens kunnen over het algemeen niet worden gewist.

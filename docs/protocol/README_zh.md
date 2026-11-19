@@ -12,7 +12,7 @@
 | 网页应用接入 | [dmsg-connect/1](connect-v1_zh.md) |
 | 认证与类型化动作 | [集成](integration_zh.md) · [应用动作](app-action_zh.md) · [生成的 CDDL](integration.cddl) |
 | 订阅结账与 PANDA 会员 | [Commerce 2](commerce_zh.md) · [资源 CDDL](commerce.cddl) · [Google Play](google_play_zh.md) |
-| 加密内容与文件 | [云端](cloud_zh.md) · [频道](channel_migration_zh.md) |
+| 加密内容与文件 | [云端](cloud_zh.md) · [频道](channel_migration_zh.md) · [保险库备份格式](vault_backup.md) |
 | Agent 身份与事件 | [Agent Delegation](agent_zh.md) · [Mail 事件](mail_events_zh.md) |
 | 无内容系统通知 | [dmsg-notifications/1](notifications_zh.md) |
 | 凭据受控使用 | [Secrets](secrets_zh.md) |

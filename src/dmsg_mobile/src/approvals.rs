@@ -64,6 +64,7 @@ fn supported(view: &Value) -> bool {
         Some(
             "device_pair"
             | "device_transfer"
+            | "vault_backup"
             | "device_revoke"
             | "device_capabilities"
             | "attest"

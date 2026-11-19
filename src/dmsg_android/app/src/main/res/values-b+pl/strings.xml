@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Twoja rola"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Powyższy wybór zostanie zapisany względem ostatniej wczytanej rewizji. Sprawdź go przed kontynuowaniem."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Okres subskrypcji się zmienił. Odśwież członkostwo i sprawdź je ponownie."</string>
+    <string name="vault_backup_changed" formatted="false">"Inna treść · zapisz kopię"</string>
+    <string name="vault_backup_deleted" formatted="false">"Tutaj usunięto · zapisz kopię"</string>
+    <string name="vault_backup_export" formatted="false">"Eksportuj zaszyfrowaną kopię"</string>
+    <string name="vault_backup_files" formatted="false">"Dołącz powiązane pliki"</string>
+    <string name="vault_backup_hint" formatted="false">"Co najmniej 6 znaków. Przechowuj hasło oddzielnie. dMsg nie może go odzyskać."</string>
+    <string name="vault_backup_import" formatted="false">"Importuj z kopii zapasowej"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Hasła kopii zapasowej nie są zgodne."</string>
+    <string name="vault_backup_new" formatted="false">"Dodaj jako nowy"</string>
+    <string name="vault_backup_omitted" formatted="false">"Pominięte załączniki"</string>
+    <string name="vault_backup_password" formatted="false">"Hasło kopii zapasowej"</string>
+    <string name="vault_backup_repeat" formatted="false">"Potwierdź hasło kopii"</string>
+    <string name="vault_backup_same" formatted="false">"Już obecny"</string>
+    <string name="vault_backup_saved" formatted="false">"Zapisano na urządzeniu"</string>
+    <string name="vault_backup_scope" formatted="false">"Tylko bieżące wpisy. Bez historii, kosza, szkiców, kopii konfliktowych i kluczy zarządzanych przez dMsg."</string>
+    <string name="vault_backup_sync" formatted="false">"Wpisy synchronizują się jak zwykle. Załączniki są w Plikach na tym urządzeniu."</string>
+    <string name="vault_backup_title" formatted="false">"Kopia zapasowa i przywracanie"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Niektóre pliki są niedostępne. Pobierz je lub eksportuj tylko wpisy."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Nie zapisano importu. Wybierz kopię ponownie."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Nie można otworzyć kopii. Sprawdź hasło lub wybierz kompletny plik."</string>
+    <string name="vault_backup_wallet" formatted="false">"Obejmuje sekrety zapisane we wpisach portfela."</string>
     <string name="vault_field_birthday" formatted="false">"Urodziny"</string>
     <string name="vault_field_cardholder" formatted="false">"Posiadacz karty"</string>
     <string name="vault_field_credential" formatted="false">"Poświadczenie"</string>

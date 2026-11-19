@@ -10,6 +10,8 @@ Chúng tôi không bán dữ liệu cá nhân cũng như không sử dụng nộ
 
 Các mục trong Kho lưu trữ (Vault), tin nhắn riêng tư và tệp tin đều được mã hóa trước khi tải lên. Khóa nội dung luôn nằm trên các thiết bị được ủy quyền hoặc trong các gói phong bì khôi phục/thiết bị mà dịch vụ không thể mở. Người nhận có thể đọc và lưu giữ các bản sao được chia sẻ. Hồ sơ công khai, ảnh đại diện, định danh công khai (handle), tài liệu danh bạ và những thông tin bạn chủ đích đăng tải đều mang tính công khai. Báo cáo vi phạm là một thông tin tiết lộ riêng biệt: kiểm duyệt viên chỉ nhận được lý do, ghi chú, mã định danh tài khoản/tài nguyên và phần văn bản tin nhắn mà bạn chủ động chọn đính kèm. Việc gửi báo cáo không cung cấp khóa tài khoản của bạn cho kiểm duyệt viên.
 
+Khi xuất kho, ứng dụng tạo tệp mã hóa trên thiết bị bằng mật khẩu sao lưu riêng. dMsg không nhận bản sao lưu hoặc mật khẩu. Nhà cung cấp lưu trữ bạn chọn có thể giữ tệp mã hóa.
+
 ## 2. Siêu dữ liệu dịch vụ
 
 Dịch vụ xử lý mã định danh tài khoản và đăng nhập, khóa công khai của thiết bị, tư cách thành viên kênh, quy tắc liên hệ và chặn, kích thước đối tượng, thời điểm gửi yêu cầu, địa chỉ IP và thông tin yêu cầu vận hành. Trạng thái tài khoản đã chứng thực, biên nhận chữ ký và quyền sử dụng (entitlement) cho phép các ứng dụng khách (client) và dịch vụ xác minh thẩm quyền. Các giao dịch trên sổ cái (ledger) cùng các bản ghi công khai hoặc đã chứng thực trên chuỗi (on-chain) nhìn chung không thể xóa bỏ.

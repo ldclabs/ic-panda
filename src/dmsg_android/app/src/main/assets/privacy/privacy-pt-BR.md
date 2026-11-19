@@ -10,6 +10,8 @@ Não vendemos dados pessoais nem utilizamos o seu conteúdo para publicidade. O 
 
 Itens do cofre (Vault), mensagens privadas e arquivos são criptografados antes do envio. As chaves de conteúdo permanecem nos dispositivos autorizados ou em envelopes de recuperação/dispositivo que o serviço não consegue abrir. Os destinatários podem ler e manter cópias compartilhadas. Perfis públicos, avatares, handles (nomes de usuário), documentos de diretório e informações que você publica intencionalmente são públicos. Uma denúncia é uma divulgação separada: os moderadores recebem o motivo, a observação, os identificadores de conta/recurso e apenas o texto da mensagem que você escolher incluir explicitamente. Fazer uma denúncia não concede aos moderadores as chaves da sua conta.
 
+Ao exportar o cofre, o aplicativo cria no dispositivo um arquivo criptografado com uma senha de backup separada. O dMsg não recebe o backup nem a senha. O provedor de armazenamento escolhido pode manter o arquivo criptografado.
+
 ## 2. Metadados do serviço
 
 O serviço processa identificadores de conta e de login, chaves públicas de dispositivos, participação em canais, regras de contato e bloqueio, tamanhos de objetos, horários das solicitações, endereços IP e informações operacionais das requisições. O estado certificado da conta, os recibos de assinatura e os direitos de uso (entitlements) permitem que aplicativos clientes e serviços verifiquem a autoridade. Transações de ledger e registros on-chain públicos ou certificados geralmente não podem ser apagados.

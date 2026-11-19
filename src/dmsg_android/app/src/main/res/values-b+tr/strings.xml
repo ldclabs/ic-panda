@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Rolünüz"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Yukarıdaki seçimler son yüklenen revizyona göre kaydedilir. Devam etmeden inceleyin."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Abonelik döneminiz değişti. Üyeliği yenileyip yeniden inceleyin."</string>
+    <string name="vault_backup_changed" formatted="false">"İçerik farklı · kopya kaydet"</string>
+    <string name="vault_backup_deleted" formatted="false">"Burada silindi · kopya kaydet"</string>
+    <string name="vault_backup_export" formatted="false">"Şifreli yedeği dışa aktar"</string>
+    <string name="vault_backup_files" formatted="false">"Bağlı dosyaları ekle"</string>
+    <string name="vault_backup_hint" formatted="false">"En az 6 karakter. Parolayı ayrı saklayın. dMsg parolayı kurtaramaz."</string>
+    <string name="vault_backup_import" formatted="false">"Yedekten içe aktar"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Girilen iki yedekleme parolası eşleşmiyor."</string>
+    <string name="vault_backup_new" formatted="false">"Yeni olarak ekle"</string>
+    <string name="vault_backup_omitted" formatted="false">"Atlanan ekler"</string>
+    <string name="vault_backup_password" formatted="false">"Yedek parolası"</string>
+    <string name="vault_backup_repeat" formatted="false">"Yedek parolasını doğrula"</string>
+    <string name="vault_backup_same" formatted="false">"Zaten mevcut"</string>
+    <string name="vault_backup_saved" formatted="false">"Cihaza kaydedildi"</string>
+    <string name="vault_backup_scope" formatted="false">"Yalnızca güncel kayıtlar dahil edilir. Geçmiş, çöp kutusu, taslaklar, çakışan kopyalar ve dMsg anahtarları hariç tutulur."</string>
+    <string name="vault_backup_sync" formatted="false">"Kayıtlar normal şekilde eşitlenir. Ekler bu cihazdaki Dosyalar’a kaydedilir."</string>
+    <string name="vault_backup_title" formatted="false">"Yedekleme ve geri yükleme"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Bazı dosyalar kullanılamıyor. Bunları indirin veya yalnızca kayıtları dışa aktarın."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"İçe aktarma kaydedilmedi. Yedeği tekrar seçin."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Yedek açılamadı. Parolayı kontrol edin veya eksiksiz bir dosya seçin."</string>
+    <string name="vault_backup_wallet" formatted="false">"Cüzdan kayıtlarında saklanan gizli bilgileri içerir."</string>
     <string name="vault_field_birthday" formatted="false">"Doğum günü"</string>
     <string name="vault_field_cardholder" formatted="false">"Kart sahibi"</string>
     <string name="vault_field_credential" formatted="false">"Kimlik bilgisi"</string>

@@ -10,6 +10,8 @@ Hindi kami nagbebenta ng personal na data at hindi namin ginagamit ang iyong con
 
 Ine-encrypt muna ang mga item sa Vault, pribadong mensahe, at file bago i-upload. Mananatili ang mga content key sa mga awtorisadong device o sa mga recovery/device envelope na hindi kayang buksan ng serbisyo. Maaaring basahin at itabi ng mga tatanggap ang mga ibinahaging kopya. Pampubliko ang mga pampublikong profile, avatar, handle (pampublikong username), dokumento sa direktoryo, at impormasyong sadya mong inilalathala. Ang pag-uulat ng pang-aabuso ay isang hiwalay na pagsisiwalat: matatanggap lamang ng mga moderator ang iyong dahilan, tala, identifier ng account/resource, at ang partikular na text ng mensaheng tahasan mong piniling isama. Hindi ibinibigay ng pag-uulat sa mga moderator ang mga key sa iyong account.
 
+Kapag ine-export ang vault, gumagawa ang app ng naka-encrypt na file sa device gamit ang hiwalay na password. Hindi natatanggap ng dMsg ang backup o password. Maaaring magtago ng kopya ng naka-encrypt na file ang napili mong storage provider.
+
 ## 2. Metadata ng serbisyo
 
 Pinoproseso ng serbisyo ang mga identifier ng account at pag-log in, public key ng device, membership sa channel, panuntunan sa pakikipag-ugnayan at pag-block, laki ng mga object, oras ng kahilingan, IP address, at impormasyon sa pagpapatakbo ng mga kahilingan. Nagbibigay-daan sa mga client app at serbisyo ang sertipikadong estado ng account, mga resibo ng paglagda, at mga karapatan sa paggamit (entitlement) upang ma-verify ang awtoridad. Sa pangkalahatan, hindi na mabubura ang mga transaksyon sa ledger at ang mga pampubliko o sertipikadong on-chain na talaan.

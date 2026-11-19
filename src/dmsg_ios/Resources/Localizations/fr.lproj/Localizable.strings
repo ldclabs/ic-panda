@@ -3474,5 +3474,43 @@
 	<string>Ouvrez et déverrouillez dMsg pour charger vos identifiants.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Impossible de mettre à jour le remplissage automatique des mots de passe.</string>
+	<key>Backup and restore</key>
+	<string>Sauvegarde et restauration</string>
+	<key>Export encrypted backup</key>
+	<string>Exporter une sauvegarde chiffrée</string>
+	<key>Import from backup</key>
+	<string>Importer une sauvegarde</string>
+	<key>Backup password</key>
+	<string>Mot de passe de sauvegarde</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Les deux mots de passe de sauvegarde ne correspondent pas.</string>
+	<key>Confirm backup password</key>
+	<string>Confirmer le mot de passe</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Au moins 6 caractères. Conservez ce mot de passe séparément. dMsg ne peut pas le récupérer.</string>
+	<key>Include linked files</key>
+	<string>Inclure les fichiers liés</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Des fichiers sont indisponibles. Téléchargez-les ou exportez uniquement les entrées.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Inclut les secrets enregistrés dans les entrées de portefeuille.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Seules les entrées actuelles sont incluses. Historique, corbeille, brouillons, copies en conflit et clés gérées par dMsg sont exclus.</string>
+	<key>Add as new</key>
+	<string>Ajouter une entrée</string>
+	<key>Different content · save a copy</key>
+	<string>Contenu différent · enregistrer une copie</string>
+	<key>Deleted here · save a copy</key>
+	<string>Supprimé ici · enregistrer une copie</string>
+	<key>Saved locally</key>
+	<string>Enregistré sur cet appareil</string>
+	<key>Omitted attachments</key>
+	<string>Pièces jointes omises</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Impossible d’ouvrir la sauvegarde. Vérifiez le mot de passe ou choisissez un fichier complet.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Aucune importation enregistrée. Choisissez à nouveau la sauvegarde.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Les entrées suivent la synchronisation habituelle. Les pièces jointes sont dans Fichiers sur cet appareil.</string>
 </dict>
 </plist>

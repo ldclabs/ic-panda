@@ -3474,5 +3474,43 @@
 	<string>Mở và mở khóa dMsg để tải các mục đăng nhập.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Không thể cập nhật tính năng tự động điền mật khẩu.</string>
+	<key>Backup and restore</key>
+	<string>Sao lưu và khôi phục</string>
+	<key>Export encrypted backup</key>
+	<string>Xuất bản sao lưu mã hóa</string>
+	<key>Import from backup</key>
+	<string>Nhập từ bản sao lưu</string>
+	<key>Backup password</key>
+	<string>Mật khẩu bản sao lưu</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Hai mật khẩu sao lưu không khớp.</string>
+	<key>Confirm backup password</key>
+	<string>Xác nhận mật khẩu</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Ít nhất 6 ký tự. Hãy lưu mật khẩu riêng. dMsg không thể khôi phục mật khẩu.</string>
+	<key>Include linked files</key>
+	<string>Kèm tệp liên kết</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Một số tệp chưa có. Hãy tải xuống hoặc chỉ xuất các mục.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Bao gồm bí mật đã lưu trong mục ví.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Chỉ sao lưu mục hiện tại. Loại trừ lịch sử, thùng rác, bản nháp, bản xung đột và khóa do dMsg quản lý.</string>
+	<key>Add as new</key>
+	<string>Thêm mục mới</string>
+	<key>Different content · save a copy</key>
+	<string>Nội dung khác · lưu bản sao</string>
+	<key>Deleted here · save a copy</key>
+	<string>Đã xóa tại đây · lưu bản sao</string>
+	<key>Saved locally</key>
+	<string>Đã lưu trên thiết bị</string>
+	<key>Omitted attachments</key>
+	<string>Tệp đính kèm đã bỏ qua</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Không thể mở bản sao lưu. Hãy kiểm tra mật khẩu hoặc chọn tệp đầy đủ.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Chưa ghi dữ liệu nhập. Hãy chọn lại bản sao lưu.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Các mục đồng bộ như thường lệ. Tệp đính kèm được lưu trong Tệp trên thiết bị này.</string>
 </dict>
 </plist>

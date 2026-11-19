@@ -3474,5 +3474,43 @@
 	<string>เปิดและปลดล็อก dMsg เพื่อโหลดรายการเข้าสู่ระบบ</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>อัปเดตการกรอกรหัสผ่านอัตโนมัติไม่สำเร็จ</string>
+	<key>Backup and restore</key>
+	<string>สำรองและกู้คืน</string>
+	<key>Export encrypted backup</key>
+	<string>ส่งออกข้อมูลสำรองที่เข้ารหัส</string>
+	<key>Import from backup</key>
+	<string>นำเข้าจากข้อมูลสำรอง</string>
+	<key>Backup password</key>
+	<string>รหัสผ่านข้อมูลสำรอง</string>
+	<key>The two backup passwords do not match.</key>
+	<string>รหัสผ่านสำรองข้อมูลทั้งสองครั้งไม่ตรงกัน</string>
+	<key>Confirm backup password</key>
+	<string>ยืนยันรหัสผ่านข้อมูลสำรอง</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>อย่างน้อย 6 ตัวอักษร เก็บรหัสผ่านแยกไว้ dMsg ไม่สามารถกู้คืนรหัสผ่านได้</string>
+	<key>Include linked files</key>
+	<string>รวมไฟล์ที่เชื่อมโยง</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>บางไฟล์ไม่พร้อมใช้ โปรดดาวน์โหลดไฟล์หรือส่งออกเฉพาะรายการ</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>รวมข้อมูลลับที่บันทึกในรายการกระเป๋าเงิน</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>รวมเฉพาะรายการปัจจุบัน ไม่รวมประวัติ ถังขยะ ฉบับร่าง สำเนาที่ขัดแย้ง และคีย์ที่ dMsg จัดการ</string>
+	<key>Add as new</key>
+	<string>เพิ่มเป็นรายการใหม่</string>
+	<key>Different content · save a copy</key>
+	<string>เนื้อหาต่างกัน · บันทึกสำเนา</string>
+	<key>Deleted here · save a copy</key>
+	<string>ลบในเครื่องแล้ว · บันทึกสำเนา</string>
+	<key>Saved locally</key>
+	<string>บันทึกในอุปกรณ์แล้ว</string>
+	<key>Omitted attachments</key>
+	<string>ไฟล์แนบที่ข้าม</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>เปิดข้อมูลสำรองไม่ได้ ตรวจสอบรหัสผ่านหรือเลือกไฟล์ที่สมบูรณ์</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>ยังไม่ได้บันทึกการนำเข้า โปรดเลือกข้อมูลสำรองอีกครั้ง</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>รายการจะซิงค์ตามปกติ ไฟล์แนบอยู่ในคลังไฟล์ของอุปกรณ์นี้</string>
 </dict>
 </plist>

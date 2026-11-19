@@ -3474,5 +3474,43 @@
 	<string>Open and unlock dMsg to load your logins.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Could not update Password AutoFill.</string>
+	<key>Backup and restore</key>
+	<string>Backup and restore</string>
+	<key>Export encrypted backup</key>
+	<string>Export encrypted backup</string>
+	<key>Import from backup</key>
+	<string>Import from backup</string>
+	<key>Backup password</key>
+	<string>Backup password</string>
+	<key>The two backup passwords do not match.</key>
+	<string>The two backup passwords do not match.</string>
+	<key>Confirm backup password</key>
+	<string>Confirm backup password</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>At least 6 characters. Keep this password separately. dMsg cannot recover it.</string>
+	<key>Include linked files</key>
+	<string>Include linked files</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Some linked files are unavailable. Download them or export items only.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Includes secrets saved in wallet items.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</string>
+	<key>Add as new</key>
+	<string>Add as new</string>
+	<key>Different content · save a copy</key>
+	<string>Different content · save a copy</string>
+	<key>Deleted here · save a copy</key>
+	<string>Deleted here · save a copy</string>
+	<key>Saved locally</key>
+	<string>Saved locally</string>
+	<key>Omitted attachments</key>
+	<string>Omitted attachments</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Cannot unlock this backup. Check the password or choose a complete backup file.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>No import was committed. Choose the backup again.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Vault entries follow normal sync. Attachments are saved in Files on this device.</string>
 </dict>
 </plist>

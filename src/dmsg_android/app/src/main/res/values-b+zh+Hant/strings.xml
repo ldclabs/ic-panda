@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"你的角色"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"上方選擇將基於最新讀取的版本儲存，請核對後繼續。"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"訂閱期限已變化，請重新整理會員後重新核對。"</string>
+    <string name="vault_backup_changed" formatted="false">"內容不同，可另存副本"</string>
+    <string name="vault_backup_deleted" formatted="false">"本機已刪除，可另存副本"</string>
+    <string name="vault_backup_export" formatted="false">"匯出加密備份"</string>
+    <string name="vault_backup_files" formatted="false">"包含關聯附件"</string>
+    <string name="vault_backup_hint" formatted="false">"至少 6 個字元。請另外保管密碼，dMsg 無法找回。"</string>
+    <string name="vault_backup_import" formatted="false">"從備份匯入"</string>
+    <string name="vault_backup_mismatch" formatted="false">"兩次輸入的備份密碼不一致。"</string>
+    <string name="vault_backup_new" formatted="false">"新增項目"</string>
+    <string name="vault_backup_omitted" formatted="false">"已略過的附件"</string>
+    <string name="vault_backup_password" formatted="false">"備份密碼"</string>
+    <string name="vault_backup_repeat" formatted="false">"再次輸入備份密碼"</string>
+    <string name="vault_backup_same" formatted="false">"已存在"</string>
+    <string name="vault_backup_saved" formatted="false">"已儲存至本機"</string>
+    <string name="vault_backup_scope" formatted="false">"只備份目前的項目。不包含歷史記錄、垃圾桶、草稿、衝突副本與 dMsg 管理的金鑰。"</string>
+    <string name="vault_backup_sync" formatted="false">"保險庫項目依一般流程同步。附件儲存在本機檔案庫。"</string>
+    <string name="vault_backup_title" formatted="false">"備份與還原"</string>
+    <string name="vault_backup_unavailable" formatted="false">"部分附件無法使用。請先取回附件，或只匯出項目。"</string>
+    <string name="vault_backup_uncommitted" formatted="false">"這次匯入尚未寫入，請重新選擇備份。"</string>
+    <string name="vault_backup_unlockerror" formatted="false">"無法解開備份。請核對密碼或重新選擇完整檔案。"</string>
+    <string name="vault_backup_wallet" formatted="false">"包含你儲存在錢包項目中的機密欄位。"</string>
     <string name="vault_field_birthday" formatted="false">"生日"</string>
     <string name="vault_field_cardholder" formatted="false">"持卡人"</string>
     <string name="vault_field_credential" formatted="false">"憑據"</string>

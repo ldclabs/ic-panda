@@ -48,6 +48,7 @@ struct VaultView: View {
                             }
                             Section {
                                 NavigationLink { VaultImportView() } label: { Label("Import passwords", systemImage: "square.and.arrow.down") }
+                                NavigationLink { VaultBackupView() } label: { Label("Backup and restore", systemImage: "externaldrive") }
                                 NavigationLink { SecretPackageImportView() } label: { Label("Import secret package", systemImage: "shippingbox") }
                                 NavigationLink { SecretSharesView() } label: { Label("Shared snapshots", systemImage: "link") }
                             }
@@ -85,6 +86,9 @@ struct VaultView: View {
             Button("Clear filters") { clear() }
         } else {
             ContentUnavailableView(model.vaultFilter == "favorites" ? "No favorites" : "No items", image: AppGlyph.vault.assetName)
+            if model.vaultFilter == "all" {
+                NavigationLink("Import from backup") { VaultBackupView() }
+            }
             Button("Add item", systemImage: "plus") { add() }
             if model.vaultFilter == "all" && model.vaultTag.isEmpty {
                 NavigationLink("Import passwords") { VaultImportView() }

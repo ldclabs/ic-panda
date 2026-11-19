@@ -23,6 +23,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class PrivateFiles(private val context: Context) {
+    val backupReceipts = context.getSharedPreferences("vault-backup-receipts", Context.MODE_PRIVATE)
     val root = File(context.noBackupFilesDir, "dmsg/" + if (BuildConfig.IS_STAGING) "staging" else "production")
     val workspace = File(root, "workspace")
     val staging = File(root, "staging")
@@ -154,8 +155,19 @@ class PrivateFiles(private val context: Context) {
 
     @OptIn(InternalCoroutinesApi::class)
     suspend fun exportCopy(path: String, destination: Uri, current: () -> Boolean) {
+        copyToDocument(workspaceFile(path), destination, current)
+    }
+
+    suspend fun exportBackup(id: String, path: String, destination: Uri, current: () -> Boolean) {
+        require(id.matches(Regex("[0-9a-f]{64}")))
+        val source = File(staging, "vault-backups/$id/dmsg-vault.dmsgvault")
+        require(source.canonicalFile == source.absoluteFile && File(path).absoluteFile == source.absoluteFile && source.isFile)
+        copyToDocument(source, destination, current)
+    }
+
+    @OptIn(InternalCoroutinesApi::class)
+    private suspend fun copyToDocument(source: File, destination: Uri, current: () -> Boolean) {
         require(destination.scheme == "content") { "FILE_UNAVAILABLE" }
-        val source = workspaceFile(path)
         val at = epoch.get()
         val job = UUID.randomUUID().toString()
         val signal = CancellationSignal().also { signals[job] = it }

@@ -12,7 +12,7 @@ The current contract has three document profiles v1, 12-byte Xid accounts and de
 | Web application connection | [dmsg-connect/1](connect-v1.md) |
 | Authentication and typed actions | [Integration](integration.md) · [App actions](app-action.md) · [Generated CDDL](integration.cddl) |
 | Subscription checkout and PANDA membership | [Commerce 2](commerce.md) · [Resource CDDL](commerce.cddl) · [Google Play](google_play_zh.md) |
-| Encrypted content and files | [Cloud](cloud.md) · [Channels](channel_migration.md) |
+| Encrypted content and files | [Cloud](cloud.md) · [Channels](channel_migration.md) · [Portable vault backups](vault_backup.md) |
 | Agent identity and events | [Agent Delegation](agent.md) · [Mail events](mail_events.md) |
 | Content-free system notifications | [dmsg-notifications/1 (中文)](notifications_zh.md) |
 | Approved credential use | [Secrets](secrets.md) |

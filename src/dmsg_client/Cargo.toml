@@ -19,6 +19,10 @@ agent-protocols = { workspace = true, features = ["http-client"] }
 base64.workspace = true
 candid = { workspace = true, features = ["value"] }
 cbor2.workspace = true
+cose2 = { workspace = true, features = ["crypto-aes-gcm"] }
+icu_normalizer = { version = "2", default-features = false, features = ["compiled_data"] }
+unicode-segmentation = "1"
+tempfile = "3"
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_types = { path = "../dmsg_types" }
 ed25519-dalek.workspace = true

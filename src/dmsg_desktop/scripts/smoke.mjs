@@ -1651,6 +1651,13 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'vault-backup') {
+    const { vaultBackupFlow } = await import('./vault-backup-smoke.mjs')
+    await vaultBackupFlow({ app, main, methods, requests, request, account, emit, formMatrix, shots, answer, picks, latest })
+    assert.deepEqual(pageErrors, [])
+    console.log('vault backup export and import smoke passed')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'windows') {
     const native = await windowLifecycle(app, main, shots)
     assert.deepEqual(pageErrors, [])
@@ -4476,6 +4483,7 @@ smoke: try {
   await main.click('[data-testid="vault-new-discard"]')
   await main.waitForSelector('[data-testid="vault-new-dialog"]', { state: 'detached' })
   // Closing while a file is being read must not revive its preview later.
+  await main.click('[data-testid="vault-tools-menu"]')
   await main.click('[data-testid="vault-import-open"]')
   const finishPreview = hold('vault/import_preview')
   await answer('__open', join(picks, 'abandoned.csv'))
@@ -4484,6 +4492,7 @@ smoke: try {
   await main.keyboard.press('Escape')
   await main.waitForSelector('[data-testid="vault-import"]', { state: 'detached' })
   await finishPreview()
+  await main.click('[data-testid="vault-tools-menu"]')
   await main.click('[data-testid="vault-import-open"]')
   await main.waitForSelector('[data-testid="vault-import-choose"]:enabled')
   assert.equal(await main.locator('[data-testid="vault-import-items"]').count(), 0)

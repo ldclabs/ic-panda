@@ -2,6 +2,19 @@ import XCTest
 
 @MainActor
 final class VaultUITests: XCTestCase {
+    func testBackupAndRestoreIsReachableFromVaultTools() {
+        let app = launch()
+        app.buttons["vault.tools"].tap()
+        let tools = app.buttons["Backup and restore"]
+        XCTAssertTrue(tools.waitForExistence(timeout: 5))
+        tools.tap()
+        XCTAssertTrue(app.buttons["Export encrypted backup"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Import from backup"].isHittable)
+        capture(app, "Vault backup and restore")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["vault.tools"].waitForExistence(timeout: 5))
+    }
+
     func testUnchangedEditorSwipeDoesNotReopenAfterBackground() {
         let app = launch()
         app.buttons["vault.add"].tap()

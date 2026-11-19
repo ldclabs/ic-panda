@@ -1949,6 +1949,47 @@ class WorkspaceFlowTest {
         assertEquals(1, deliveries)
     }
 
+    @Test fun portableBackupAuthenticatesBeforePreviewAndRestoresTheSelectedFiles() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val app = instrumentation.targetContext
+        val source = File(app.cacheDir, "dmsg-shared/import-fixture/" + UUID.randomUUID() + ".dmsgvault")
+        source.parentFile!!.mkdirs()
+        try {
+            instrumentation.context.assets.open("cross-account-vault.dmsgvault").use { input ->
+                source.outputStream().use { input.copyTo(it) }
+            }
+            val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", source)
+            val backup = client.vaultBackup
+            compose.runOnIdle { client.navigation.open("vault-backup") }
+            compose.onNodeWithText("Import from backup").performClick()
+            compose.waitUntil(15_000) { backup.form.value.step == "pick" }
+            compose.runOnIdle { assertTrue(backup.external()); backup.picked(uri) }
+            compose.waitUntil(15_000) { backup.form.value.input != null }
+            val password = compose.onNode(hasSetTextAction())
+            password.performTextReplacement("wrong")
+            compose.onNodeWithText("Review").performScrollTo().performClick()
+            compose.waitUntil(60_000) { backup.form.value.failure == "INTEGRITY_FAILED" }
+            assertEquals("pick", backup.form.value.step)
+            password.performTextReplacement("123456")
+            compose.onNodeWithText("Review").performScrollTo().performClick()
+            compose.waitUntil(60_000) { backup.form.value.step == "preview" }
+            assertNull(backup.form.value.failure)
+            compose.onNodeWithText("Cannot unlock this backup.", substring = true).assertDoesNotExist()
+            assertNotEquals(backup.form.value.view.required("source"), backup.form.value.view.required("account"))
+            val titles = backup.form.value.view.rows("items").map { it.required("title") }
+            assertEquals(2, titles.size)
+            compose.onNodeWithText("synthetic non-wallet test words", substring = true).assertDoesNotExist()
+            capture("qa-vault-backup-preview")
+            compose.onNodeWithText("Import from backup (", substring = true).performScrollTo().performClick()
+            compose.waitUntil(60_000) { backup.form.value.step == "done" }
+            val entries = runBlocking { native.vaultPage("", null, false, 0u, 100u) }.items.filter { it.title in titles }
+            assertEquals(2, entries.size)
+            val files = runBlocking { entries.map { native.vaultItem(it.id, null).item.files } }
+            assertEquals(1, files.first().size)
+            assertEquals(files.first(), files.last())
+        } finally { source.delete() }
+    }
+
     @Test fun passwordImportChecksTheStagedDigestAndWritesOnlySelectedRecords() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext
         val source = File(app.cacheDir, "dmsg-shared/import-fixture/" + UUID.randomUUID() + ".csv")

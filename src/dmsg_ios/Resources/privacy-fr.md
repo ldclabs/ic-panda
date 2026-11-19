@@ -10,6 +10,8 @@ Nous ne vendons pas vos données et n’utilisons pas vos contenus à des fins p
 
 Les éléments du coffre, messages privés et fichiers sont chiffrés avant leur envoi. Les clés restent sur les appareils autorisés ou dans des enveloppes de récupération que le service ne peut pas ouvrir. Les destinataires peuvent conserver les copies partagées. Les profils, avatars, noms et documents d’annuaire que vous publiez sont publics. Un signalement communique aux modérateurs son motif, votre note, les identifiants du compte et de la ressource, et seulement le texte que vous choisissez explicitement de joindre. Il ne leur donne pas les clés du compte.
 
+Lors de l’exportation du coffre, l’application crée sur votre appareil un fichier chiffré avec un mot de passe distinct. dMsg ne reçoit ni la sauvegarde ni son mot de passe. Le service de stockage choisi peut conserver le fichier chiffré.
+
 ## 2. Métadonnées du service
 
 Le service traite les identifiants de compte et de connexion, clés publiques des appareils, membres des canaux, règles de contact et de blocage, tailles des objets, horaires, adresses IP et informations opérationnelles. Les états certifiés, reçus de signature et droits servent à vérifier les autorisations. Les transactions et autres données publiques ou certifiées inscrites sur la blockchain ne peuvent généralement pas être effacées.

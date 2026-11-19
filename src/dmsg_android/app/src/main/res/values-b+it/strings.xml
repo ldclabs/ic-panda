@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Il tuo ruolo"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Le selezioni qui sopra saranno salvate rispetto all\'ultima revisione caricata. Esaminale prima di continuare."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Il periodo dell\'abbonamento è cambiato. Aggiorna l\'abbonamento ed esaminalo di nuovo."</string>
+    <string name="vault_backup_changed" formatted="false">"Contenuto diverso · salva copia"</string>
+    <string name="vault_backup_deleted" formatted="false">"Eliminata qui · salva copia"</string>
+    <string name="vault_backup_export" formatted="false">"Esporta backup cifrato"</string>
+    <string name="vault_backup_files" formatted="false">"Includi i file collegati"</string>
+    <string name="vault_backup_hint" formatted="false">"Almeno 6 caratteri. Conserva la password separatamente. dMsg non può recuperarla."</string>
+    <string name="vault_backup_import" formatted="false">"Importa da backup"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Le due password del backup non corrispondono."</string>
+    <string name="vault_backup_new" formatted="false">"Aggiungi come nuova"</string>
+    <string name="vault_backup_omitted" formatted="false">"Allegati omessi"</string>
+    <string name="vault_backup_password" formatted="false">"Password del backup"</string>
+    <string name="vault_backup_repeat" formatted="false">"Conferma password del backup"</string>
+    <string name="vault_backup_same" formatted="false">"Già presente"</string>
+    <string name="vault_backup_saved" formatted="false">"Salvato sul dispositivo"</string>
+    <string name="vault_backup_scope" formatted="false">"Solo voci attuali. Cronologia, cestino, bozze, copie in conflitto e chiavi gestite da dMsg sono esclusi."</string>
+    <string name="vault_backup_sync" formatted="false">"Le voci si sincronizzano normalmente. Gli allegati sono in File sul dispositivo."</string>
+    <string name="vault_backup_title" formatted="false">"Backup e ripristino"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Alcuni file non sono disponibili. Scaricali o esporta solo le voci."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Nessuna importazione salvata. Scegli nuovamente il backup."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Impossibile aprire il backup. Verifica la password o scegli un file completo."</string>
+    <string name="vault_backup_wallet" formatted="false">"Include i segreti salvati nelle voci del portafoglio."</string>
     <string name="vault_field_birthday" formatted="false">"Compleanno"</string>
     <string name="vault_field_cardholder" formatted="false">"Titolare della carta"</string>
     <string name="vault_field_credential" formatted="false">"Credenziale"</string>

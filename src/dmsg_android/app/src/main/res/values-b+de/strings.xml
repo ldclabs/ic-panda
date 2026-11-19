@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Deine Rolle"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Deine Auswahl oben wird auf Grundlage der zuletzt geladenen Revision gespeichert. Prüfe sie, bevor du fortfährst."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Deine Abonnementlaufzeit hat sich geändert. Aktualisiere die Mitgliedschaft und prüfe sie erneut."</string>
+    <string name="vault_backup_changed" formatted="false">"Abweichender Inhalt · Kopie speichern"</string>
+    <string name="vault_backup_deleted" formatted="false">"Hier gelöscht · Kopie speichern"</string>
+    <string name="vault_backup_export" formatted="false">"Verschlüsselte Sicherung exportieren"</string>
+    <string name="vault_backup_files" formatted="false">"Verknüpfte Dateien einschließen"</string>
+    <string name="vault_backup_hint" formatted="false">"Mindestens 6 Zeichen. Passwort getrennt aufbewahren. dMsg kann es nicht wiederherstellen."</string>
+    <string name="vault_backup_import" formatted="false">"Aus Sicherung importieren"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Die beiden Backup-Passwörter stimmen nicht überein."</string>
+    <string name="vault_backup_new" formatted="false">"Neu hinzufügen"</string>
+    <string name="vault_backup_omitted" formatted="false">"Ausgelassene Anhänge"</string>
+    <string name="vault_backup_password" formatted="false">"Sicherungspasswort"</string>
+    <string name="vault_backup_repeat" formatted="false">"Sicherungspasswort bestätigen"</string>
+    <string name="vault_backup_same" formatted="false">"Bereits vorhanden"</string>
+    <string name="vault_backup_saved" formatted="false">"Lokal gespeichert"</string>
+    <string name="vault_backup_scope" formatted="false">"Nur aktuelle Einträge. Verlauf, Papierkorb, Entwürfe, Konfliktkopien und von dMsg verwaltete Schlüssel sind ausgeschlossen."</string>
+    <string name="vault_backup_sync" formatted="false">"Tresoreinträge werden wie üblich synchronisiert. Anhänge liegen in Dateien auf diesem Gerät."</string>
+    <string name="vault_backup_title" formatted="false">"Sichern und wiederherstellen"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Einige Dateien fehlen. Lade sie herunter oder exportiere nur die Einträge."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Es wurde nichts importiert. Wähle die Sicherung erneut."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Sicherung nicht lesbar. Prüfe das Passwort oder wähle eine vollständige Datei."</string>
+    <string name="vault_backup_wallet" formatted="false">"Enthält Geheimnisse aus Wallet-Einträgen."</string>
     <string name="vault_field_birthday" formatted="false">"Geburtstag"</string>
     <string name="vault_field_cardholder" formatted="false">"Karteninhaber"</string>
     <string name="vault_field_credential" formatted="false">"Ausweis"</string>

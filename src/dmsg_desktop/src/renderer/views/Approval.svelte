@@ -452,7 +452,7 @@
   /** A web page asks this device to vouch that the account approved the page's session. */
   const authenticating = $derived(request?.type === 'connect' && d.method === 'authenticate')
 
-  const section = $derived<Label>(String(request?.type).startsWith('secret_') ? 'secretUses' : s || authenticating ? 'youSign' : kind === 'kindPayment' ? 'youPay' : 'youChange')
+  const section = $derived<Label>(request?.type === 'vault_backup' ? 'review' : String(request?.type).startsWith('secret_') ? 'secretUses' : s || authenticating ? 'youSign' : kind === 'kindPayment' ? 'youPay' : 'youChange')
 
   /** What approving does, in plain words; the last lines say what cannot be undone. */
   const after = $derived.by((): [string, boolean][] => {
@@ -841,6 +841,11 @@
               {@render row(t('device'), d.device_id, { mono: true, testid: 'approval-device' })}
               {@render row(t('role'), deviceRoleName(d.role, t))}
               {@render row(t('capabilities'), d.capabilities?.map((c: string) => deviceCapabilityName(c, t)).join('\n') ?? '', { multiline: true })}
+            {:else if request.type === 'vault_backup'}
+              {@render row(t('vaultBackupItems'), String(d.items))}
+              {@render row(t('attachments'), String(d.files))}
+              {@render row(t('vaultBackupOmitted'), String(d.omitted))}
+              {#if d.wallet}<Notice tone="warn">{t('vaultBackupWallet')}</Notice>{/if}
             {:else if request.type === 'device_transfer'}
               {@render row(t('deviceTransferTo'), d.to_device, { mono: true, testid: 'approval-transfer-device' })}
               {@render row(t('deviceTransferSession'), d.session, { mono: true })}

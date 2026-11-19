@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"دورك"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"ستُحفظ اختياراتك أعلاه بناءً على أحدث مراجعة محمّلة. راجعها قبل المتابعة."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"تغيّرت فترة اشتراكك. حدّث العضوية وراجعها مجددًا."</string>
+    <string name="vault_backup_changed" formatted="false">"محتوى مختلف · حفظ نسخة"</string>
+    <string name="vault_backup_deleted" formatted="false">"محذوف هنا · حفظ نسخة"</string>
+    <string name="vault_backup_export" formatted="false">"تصدير نسخة احتياطية مشفّرة"</string>
+    <string name="vault_backup_files" formatted="false">"تضمين الملفات المرتبطة"</string>
+    <string name="vault_backup_hint" formatted="false">"ستة أحرف على الأقل. احفظ كلمة المرور منفصلة، فلا يستطيع dMsg استعادتها."</string>
+    <string name="vault_backup_import" formatted="false">"الاستيراد من نسخة احتياطية"</string>
+    <string name="vault_backup_mismatch" formatted="false">"كلمتا مرور النسخة الاحتياطية غير متطابقتين."</string>
+    <string name="vault_backup_new" formatted="false">"إضافة عنصر جديد"</string>
+    <string name="vault_backup_omitted" formatted="false">"المرفقات المستثناة"</string>
+    <string name="vault_backup_password" formatted="false">"كلمة مرور النسخة الاحتياطية"</string>
+    <string name="vault_backup_repeat" formatted="false">"تأكيد كلمة مرور النسخة"</string>
+    <string name="vault_backup_same" formatted="false">"موجود بالفعل"</string>
+    <string name="vault_backup_saved" formatted="false">"حُفظ على الجهاز"</string>
+    <string name="vault_backup_scope" formatted="false">"تشمل النسخة العناصر الحالية فقط. يُستثنى السجل والمهملات والمسودات والنسخ المتعارضة والمفاتيح التي يديرها dMsg."</string>
+    <string name="vault_backup_sync" formatted="false">"تتم مزامنة العناصر كالمعتاد، وتُحفظ المرفقات في الملفات على هذا الجهاز."</string>
+    <string name="vault_backup_title" formatted="false">"النسخ الاحتياطي والاستعادة"</string>
+    <string name="vault_backup_unavailable" formatted="false">"بعض الملفات غير متاح. نزّلها أو صدّر العناصر فقط."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"لم تُحفظ عملية الاستيراد. اختر النسخة مجددًا."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"تعذر فتح النسخة. تحقّق من كلمة المرور أو اختر ملفًا كاملًا."</string>
+    <string name="vault_backup_wallet" formatted="false">"يتضمن الأسرار المحفوظة في عناصر المحفظة."</string>
     <string name="vault_field_birthday" formatted="false">"تاريخ الميلاد"</string>
     <string name="vault_field_cardholder" formatted="false">"حامل البطاقة"</string>
     <string name="vault_field_credential" formatted="false">"بيانات الاعتماد"</string>

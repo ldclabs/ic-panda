@@ -48,6 +48,7 @@ pub use sync::ContentSyncStatus;
 mod succession;
 mod transfer;
 mod vault;
+mod vault_backup;
 pub use vault::VaultBrowseRequest;
 
 #[cfg(test)]
@@ -277,6 +278,7 @@ impl MobileEngine {
             "sandbox paths",
         )?;
         let opened_config = config.clone();
+        vault_backup::discard_previous_outputs(&staging);
         let client = runtime()
             .spawn_blocking(move || {
                 let mut client = Client::open(opened_config, &directory, Some(adapter.clone()))?;

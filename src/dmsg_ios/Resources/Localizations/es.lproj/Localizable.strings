@@ -3474,5 +3474,43 @@
 	<string>Abre y desbloquea dMsg para cargar tus cuentas.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>No se pudo actualizar el autorrelleno de contraseñas.</string>
+	<key>Backup and restore</key>
+	<string>Copia y restauración</string>
+	<key>Export encrypted backup</key>
+	<string>Exportar copia cifrada</string>
+	<key>Import from backup</key>
+	<string>Importar una copia</string>
+	<key>Backup password</key>
+	<string>Contraseña de la copia</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Las dos contraseñas de la copia de seguridad no coinciden.</string>
+	<key>Confirm backup password</key>
+	<string>Confirmar contraseña de la copia</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Al menos 6 caracteres. Guarda la contraseña por separado. dMsg no puede recuperarla.</string>
+	<key>Include linked files</key>
+	<string>Incluir archivos vinculados</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Faltan archivos. Descárgalos o exporta solo las entradas.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Incluye secretos guardados en entradas de cartera.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Solo entradas actuales. Se excluyen historial, papelera, borradores, copias en conflicto y claves gestionadas por dMsg.</string>
+	<key>Add as new</key>
+	<string>Añadir como nueva</string>
+	<key>Different content · save a copy</key>
+	<string>Contenido distinto · guardar copia</string>
+	<key>Deleted here · save a copy</key>
+	<string>Eliminada aquí · guardar copia</string>
+	<key>Saved locally</key>
+	<string>Guardado en el dispositivo</string>
+	<key>Omitted attachments</key>
+	<string>Adjuntos omitidos</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>No se puede abrir la copia. Comprueba la contraseña o elige un archivo completo.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>No se importó nada. Vuelve a elegir la copia.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Las entradas se sincronizan como siempre. Los adjuntos se guardan en Archivos en este dispositivo.</string>
 </dict>
 </plist>

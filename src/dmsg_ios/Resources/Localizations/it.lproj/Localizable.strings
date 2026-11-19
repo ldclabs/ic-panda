@@ -3474,5 +3474,43 @@
 	<string>Apri e sblocca dMsg per caricare i tuoi account.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Impossibile aggiornare l’inserimento automatico delle password.</string>
+	<key>Backup and restore</key>
+	<string>Backup e ripristino</string>
+	<key>Export encrypted backup</key>
+	<string>Esporta backup cifrato</string>
+	<key>Import from backup</key>
+	<string>Importa da backup</string>
+	<key>Backup password</key>
+	<string>Password del backup</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Le due password del backup non corrispondono.</string>
+	<key>Confirm backup password</key>
+	<string>Conferma password del backup</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Almeno 6 caratteri. Conserva la password separatamente. dMsg non può recuperarla.</string>
+	<key>Include linked files</key>
+	<string>Includi i file collegati</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Alcuni file non sono disponibili. Scaricali o esporta solo le voci.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Include i segreti salvati nelle voci del portafoglio.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Solo voci attuali. Cronologia, cestino, bozze, copie in conflitto e chiavi gestite da dMsg sono esclusi.</string>
+	<key>Add as new</key>
+	<string>Aggiungi come nuova</string>
+	<key>Different content · save a copy</key>
+	<string>Contenuto diverso · salva copia</string>
+	<key>Deleted here · save a copy</key>
+	<string>Eliminata qui · salva copia</string>
+	<key>Saved locally</key>
+	<string>Salvato sul dispositivo</string>
+	<key>Omitted attachments</key>
+	<string>Allegati omessi</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Impossibile aprire il backup. Verifica la password o scegli un file completo.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Nessuna importazione salvata. Scegli nuovamente il backup.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Le voci si sincronizzano normalmente. Gli allegati sono in File sul dispositivo.</string>
 </dict>
 </plist>

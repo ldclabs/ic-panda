@@ -85,6 +85,7 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
                 Box {
                     IconButton(onClick = { tools = true }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_vault_tools_14fe2cc)) }
                     DropdownMenu(tools, { tools = false }) {
+                        DropdownMenuItem(text = { Text(str(R.string.vault_backup_title)) }, onClick = { tools = false; client.navigation.open("vault-backup") })
                         DropdownMenuItem(text = { Text(str(R.string.text_local_security_review_b7f4013)) }, onClick = { tools = false; client.navigation.open("secret-health") })
                         DropdownMenuItem(text = { Text(str(R.string.text_version_conflicts_0df1b3c)) }, onClick = { tools = false; client.navigation.open("conflicts") })
                         DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { tools = false; client.navigation.open("secret-activity") })
@@ -114,6 +115,7 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
                 Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(if (query.trash) Icons.Outlined.DeleteOutline else Icons.Outlined.Search, null, Modifier.size(40.dp))
                     Spacer(Modifier.height(12.dp)); Text(if (query.trash) str(R.string.text_trash_is_empty_c562cd3) else str(R.string.text_no_matching_items_b35c7c3))
+                    if (!query.trash) TextButton(onClick = { client.navigation.open("vault-backup") }) { Text(str(R.string.vault_backup_import)) }
                     if (query != VaultQuery()) TextButton(onClick = { query = VaultQuery() }) { Text(str(R.string.text_clear_filters_5ea61be)) }
                 }
             }

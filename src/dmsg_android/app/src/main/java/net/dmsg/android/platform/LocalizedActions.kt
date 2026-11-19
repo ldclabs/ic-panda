@@ -3,6 +3,7 @@ package net.dmsg.android.platform
 import net.dmsg.android.R
 
 fun approvalTitle(kind: String): String = when (kind) {
+    "vault_backup" -> str(R.string.vault_backup_export)
     "device_pair" -> str(R.string.text_add_a_device_6dc4f7f); "device_transfer" -> str(R.string.text_replace_a_device_fbe5457)
     "device_revoke" -> str(R.string.text_revoke_a_device_1a089dd); "device_capabilities", "device_control" -> str(R.string.text_change_device_permissions_cb50071)
     "attest", "attestation" -> str(R.string.text_sign_a_document_or_action_6db21d5); "account", "account_control" -> str(R.string.text_change_account_settings_db4ca2f)

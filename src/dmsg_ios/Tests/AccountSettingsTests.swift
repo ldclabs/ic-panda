@@ -8,6 +8,12 @@ final class AccountSettingsTests: XCTestCase {
             approvalSummary(type: type, detail: try JSONDecoder().decode(DisplayValue.self, from: Data(json.utf8)))
         }
         let device = try XCTUnwrap(summary("device_pair", #"{"device_id":"test-new-device","role":"Member","capabilities":["VaultUnlock"]}"#))
+        let backup = try XCTUnwrap(summary("vault_backup", #"{"items":7,"files":2,"omitted":1,"wallet":true,"plan":"opaque-test-plan"}"#))
+        XCTAssertTrue(backup.contains(String(localized: "Items") + " · 7"))
+        XCTAssertTrue(backup.contains(String(localized: "Attachments") + " · 2"))
+        XCTAssertTrue(backup.contains(String(localized: "Omitted attachments") + " · 1"))
+        XCTAssertTrue(backup.contains(String(localized: "Includes secrets saved in wallet items.")))
+        XCTAssertFalse(backup.contains("opaque-test-plan"))
         XCTAssertTrue(device.contains("test-new-device")); XCTAssertTrue(device.contains(deviceRoleTitle("Member")))
         let share = try XCTUnwrap(summary("secret_share", #"{"title":"Test item","channel":{"channel_id":"studio","name":"Studio"},"password":false}"#))
         XCTAssertTrue(share.contains("Studio · studio")); XCTAssertTrue(share.contains("Test item"))

@@ -3474,5 +3474,43 @@
 	<string>Öffne und entsperre dMsg, um deine Zugänge zu laden.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Das automatische Ausfüllen von Passwörtern konnte nicht aktualisiert werden.</string>
+	<key>Backup and restore</key>
+	<string>Sichern und wiederherstellen</string>
+	<key>Export encrypted backup</key>
+	<string>Verschlüsselte Sicherung exportieren</string>
+	<key>Import from backup</key>
+	<string>Aus Sicherung importieren</string>
+	<key>Backup password</key>
+	<string>Sicherungspasswort</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Die beiden Backup-Passwörter stimmen nicht überein.</string>
+	<key>Confirm backup password</key>
+	<string>Sicherungspasswort bestätigen</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Mindestens 6 Zeichen. Passwort getrennt aufbewahren. dMsg kann es nicht wiederherstellen.</string>
+	<key>Include linked files</key>
+	<string>Verknüpfte Dateien einschließen</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Einige Dateien fehlen. Lade sie herunter oder exportiere nur die Einträge.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Enthält Geheimnisse aus Wallet-Einträgen.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Nur aktuelle Einträge. Verlauf, Papierkorb, Entwürfe, Konfliktkopien und von dMsg verwaltete Schlüssel sind ausgeschlossen.</string>
+	<key>Add as new</key>
+	<string>Neu hinzufügen</string>
+	<key>Different content · save a copy</key>
+	<string>Abweichender Inhalt · Kopie speichern</string>
+	<key>Deleted here · save a copy</key>
+	<string>Hier gelöscht · Kopie speichern</string>
+	<key>Saved locally</key>
+	<string>Lokal gespeichert</string>
+	<key>Omitted attachments</key>
+	<string>Ausgelassene Anhänge</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Sicherung nicht lesbar. Prüfe das Passwort oder wähle eine vollständige Datei.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Es wurde nichts importiert. Wähle die Sicherung erneut.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Tresoreinträge werden wie üblich synchronisiert. Anhänge liegen in Dateien auf diesem Gerät.</string>
 </dict>
 </plist>

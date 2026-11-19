@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Your role"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Your selections above will be saved against the latest loaded revision. Review them before continuing."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Your subscription term changed. Refresh membership and review it again."</string>
+    <string name="vault_backup_changed" formatted="false">"Different content · save a copy"</string>
+    <string name="vault_backup_deleted" formatted="false">"Deleted here · save a copy"</string>
+    <string name="vault_backup_export" formatted="false">"Export encrypted backup"</string>
+    <string name="vault_backup_files" formatted="false">"Include linked files"</string>
+    <string name="vault_backup_hint" formatted="false">"At least 6 characters. Keep this password separately. dMsg cannot recover it."</string>
+    <string name="vault_backup_import" formatted="false">"Import from backup"</string>
+    <string name="vault_backup_mismatch" formatted="false">"The two backup passwords do not match."</string>
+    <string name="vault_backup_new" formatted="false">"Add as new"</string>
+    <string name="vault_backup_omitted" formatted="false">"Omitted attachments"</string>
+    <string name="vault_backup_password" formatted="false">"Backup password"</string>
+    <string name="vault_backup_repeat" formatted="false">"Confirm backup password"</string>
+    <string name="vault_backup_same" formatted="false">"Already present"</string>
+    <string name="vault_backup_saved" formatted="false">"Saved locally"</string>
+    <string name="vault_backup_scope" formatted="false">"Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded."</string>
+    <string name="vault_backup_sync" formatted="false">"Vault entries follow normal sync. Attachments are saved in Files on this device."</string>
+    <string name="vault_backup_title" formatted="false">"Backup and restore"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Some linked files are unavailable. Download them or export items only."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"No import was committed. Choose the backup again."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Cannot unlock this backup. Check the password or choose a complete backup file."</string>
+    <string name="vault_backup_wallet" formatted="false">"Includes secrets saved in wallet items."</string>
     <string name="vault_field_birthday" formatted="false">"Birthday"</string>
     <string name="vault_field_cardholder" formatted="false">"Cardholder"</string>
     <string name="vault_field_credential" formatted="false">"Credential"</string>

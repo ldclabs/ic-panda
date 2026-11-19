@@ -10,6 +10,8 @@ We do not sell personal data or use your content for advertising. The website co
 
 Vault items, private messages and files are encrypted before upload. Content keys remain on authorized devices or in recovery/device envelopes that the service cannot open. Recipients can read and retain shared copies. Public profiles, avatars, handles, directory documents and information you intentionally publish are public. A report is a separate disclosure: moderators receive your reason, note, account/resource identifiers and only the message text you explicitly choose to include. Reporting does not give moderators the keys to your account.
 
+When you export your vault, the app creates an encrypted file on your device using a separate backup password. dMsg does not receive the backup or its password. The storage provider you choose may retain a copy of the encrypted file.
+
 ## 2. Service metadata
 
 The service processes account and login identifiers, device public keys, channel membership, contact and blocking rules, object sizes, request timing, IP addresses and operational request information. Certified account state, signature receipts and entitlements allow clients and services to verify authority. Ledger transactions and public or certified on-chain records generally cannot be erased.

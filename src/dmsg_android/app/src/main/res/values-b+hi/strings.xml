@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"आपकी भूमिका"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"ऊपर के चयन आखिरी लोड संशोधन के आधार पर सहेजे जाएँगे। जारी रखने से पहले समीक्षा करें।"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"सदस्यता अवधि बदली है। सदस्य जानकारी रीफ़्रेश करके फिर जाँचें।"</string>
+    <string name="vault_backup_changed" formatted="false">"अलग सामग्री · प्रति सहेजें"</string>
+    <string name="vault_backup_deleted" formatted="false">"यहाँ हटाया गया · प्रति सहेजें"</string>
+    <string name="vault_backup_export" formatted="false">"एन्क्रिप्टेड बैकअप निर्यात करें"</string>
+    <string name="vault_backup_files" formatted="false">"जुड़ी फ़ाइलें शामिल करें"</string>
+    <string name="vault_backup_hint" formatted="false">"कम से कम 6 अक्षर। पासवर्ड अलग रखें। dMsg इसे वापस नहीं ला सकता।"</string>
+    <string name="vault_backup_import" formatted="false">"बैकअप से आयात करें"</string>
+    <string name="vault_backup_mismatch" formatted="false">"बैकअप के दोनों पासवर्ड मेल नहीं खाते।"</string>
+    <string name="vault_backup_new" formatted="false">"नई प्रविष्टि जोड़ें"</string>
+    <string name="vault_backup_omitted" formatted="false">"छोड़े गए अटैचमेंट"</string>
+    <string name="vault_backup_password" formatted="false">"बैकअप पासवर्ड"</string>
+    <string name="vault_backup_repeat" formatted="false">"बैकअप पासवर्ड की पुष्टि करें"</string>
+    <string name="vault_backup_same" formatted="false">"पहले से ही मौजूद है"</string>
+    <string name="vault_backup_saved" formatted="false">"डिवाइस पर सहेजा गया"</string>
+    <string name="vault_backup_scope" formatted="false">"केवल वर्तमान प्रविष्टियाँ। इतिहास, ट्रैश, ड्राफ़्ट, परस्पर विरोधी प्रतियाँ और dMsg की प्रबंधित कुंजियाँ शामिल नहीं हैं।"</string>
+    <string name="vault_backup_sync" formatted="false">"प्रविष्टियाँ सामान्य रूप से सिंक होंगी। अटैचमेंट इस डिवाइस की फ़ाइलों में हैं।"</string>
+    <string name="vault_backup_title" formatted="false">"बैकअप और बहाली"</string>
+    <string name="vault_backup_unavailable" formatted="false">"कुछ फ़ाइलें उपलब्ध नहीं हैं। उन्हें डाउनलोड करें या केवल प्रविष्टियाँ निर्यात करें।"</string>
+    <string name="vault_backup_uncommitted" formatted="false">"आयात सहेजा नहीं गया। बैकअप फिर से चुनें।"</string>
+    <string name="vault_backup_unlockerror" formatted="false">"बैकअप नहीं खुला। पासवर्ड जाँचें या पूरी फ़ाइल चुनें।"</string>
+    <string name="vault_backup_wallet" formatted="false">"वॉलेट प्रविष्टियों में सहेजे गोपनीय मान शामिल हैं।"</string>
     <string name="vault_field_birthday" formatted="false">"जन्मदिन"</string>
     <string name="vault_field_cardholder" formatted="false">"कार्डधारक"</string>
     <string name="vault_field_credential" formatted="false">"साख"</string>

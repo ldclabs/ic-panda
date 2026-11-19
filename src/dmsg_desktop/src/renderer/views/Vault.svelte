@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick, untrack } from 'svelte'
-  import { ContextMenu } from 'bits-ui'
+  import { ContextMenu, DropdownMenu } from 'bits-ui'
   import { copyText } from '../components/clipboard'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
@@ -12,7 +12,7 @@
   import TargetMenu from '../components/TargetMenu.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
-  import { iconButtonClass, buttonClass, cn, menuItemClass, modalOpen } from '../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass, modalOpen } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, closed, errorText, onChange, single } from '../rpc'
   import { remember, remembered, rememberedPlain, rememberPlain } from '../view-memory'
@@ -23,6 +23,7 @@
   import Filters from './vault/Filters.svelte'
   import { focus } from './vault/focus.svelte'
   import Import from './vault/Import.svelte'
+  import Backup from './vault/Backup.svelte'
   import Inspector from './vault/Inspector.svelte'
   import NewItem from './vault/NewItem.svelte'
   import Row from './vault/Row.svelte'
@@ -78,6 +79,7 @@
   let healthStatus = $state<'loading' | 'ready' | 'error'>('loading')
   let creating = $state(false)
   let importing = $state(false)
+  let backingUp = $state(false)
   let comparing = $state(false)
   let compareFrom = $state(0)
   let chosen = $state<Set<string>>(new Set())
@@ -224,7 +226,7 @@
       generation += 1
       entries = trashed = conflicts = findings = []
       contentKey = checkedKey = ''
-      editing = dirty = creating = importing = comparing = false
+      editing = dirty = creating = importing = backingUp = comparing = false
       chosen = new Set()
       leaving = tagging = accessTag = null
       loaded = false
@@ -606,13 +608,13 @@
             />
           {/if}
           {#if unlocked && !trash}
-            <Tooltip content={t('importTitle')}>
-              {#snippet children(props)}
-                <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('importTitle')} onclick={() => (importing = true)} data-testid="vault-import-open">
-                  <Icon name="import" />
-                </button>
-              {/snippet}
-            </Tooltip>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger class={iconButtonClass('ghost','md')} aria-label={t('vaultBackupTitle')} data-testid="vault-tools-menu"><Icon name="import"/></DropdownMenu.Trigger>
+              <DropdownMenu.Portal><DropdownMenu.Content class={menuContentClass} align="end">
+                <DropdownMenu.Item class={menuItemClass} onSelect={()=>backingUp=true} data-testid="vault-backup-open">{t('vaultBackupTitle')}</DropdownMenu.Item>
+                <DropdownMenu.Item class={menuItemClass} onSelect={()=>importing=true} data-testid="vault-import-open">{t('importTitle')}</DropdownMenu.Item>
+              </DropdownMenu.Content></DropdownMenu.Portal>
+            </DropdownMenu.Root>
           {/if}
         </div>
       </div>
@@ -657,6 +659,7 @@
                 <b class="text-[13.5px] font-semibold">{t('emptyVault')}</b>
                 <p class="text-[12.5px] text-muted">{t('emptyVaultHint')}</p>
                 {#if unlocked}
+                  <button class={buttonClass('secondary', 'sm')} onclick={() => (backingUp = true)}>{t('vaultBackupImport')}</button>
                   <button class={buttonClass('secondary', 'sm')} onclick={() => (importing = true)}><Icon name="import" />{t('importTitle')}</button>
                 {/if}
               {:else}
@@ -716,6 +719,7 @@
 
 <NewItem bind:open={creating} {mod} {templates} onSaved={saved} />
 <Import bind:open={importing} />
+<Backup bind:open={backingUp} account={status?.account ?? ''}/>
 <Conflict bind:open={comparing} {conflicts} start={compareFrom} />
 
 <Dialog bind:open={() => leaving !== null, (next) => !next && (leaving = null)} title={t('unsavedTitle')} description={t('unsavedHint')} icon="edit" tone="warn" testid="vault-unsaved">

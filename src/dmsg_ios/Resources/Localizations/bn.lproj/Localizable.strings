@@ -3474,5 +3474,43 @@
 	<string>আপনার লগইনগুলো লোড করতে dMsg খুলে আনলক করুন।</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>পাসওয়ার্ড অটোফিল আপডেট করা যায়নি।</string>
+	<key>Backup and restore</key>
+	<string>ব্যাকআপ ও পুনরুদ্ধার</string>
+	<key>Export encrypted backup</key>
+	<string>এনক্রিপ্ট করা ব্যাকআপ রপ্তানি করুন</string>
+	<key>Import from backup</key>
+	<string>ব্যাকআপ থেকে আমদানি করুন</string>
+	<key>Backup password</key>
+	<string>ব্যাকআপের পাসওয়ার্ড</string>
+	<key>The two backup passwords do not match.</key>
+	<string>ব্যাকআপের পাসওয়ার্ড দুটি মিলছে না।</string>
+	<key>Confirm backup password</key>
+	<string>ব্যাকআপের পাসওয়ার্ড নিশ্চিত করুন</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>কমপক্ষে ৬টি অক্ষর। পাসওয়ার্ড আলাদা করে রাখুন। dMsg এটি পুনরুদ্ধার করতে পারে না।</string>
+	<key>Include linked files</key>
+	<string>সংযুক্ত ফাইল অন্তর্ভুক্ত করুন</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>কিছু ফাইল পাওয়া যাচ্ছে না। সেগুলো ডাউনলোড করুন অথবা শুধু এন্ট্রি রপ্তানি করুন।</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>ওয়ালেট এন্ট্রিতে রাখা গোপন তথ্য অন্তর্ভুক্ত।</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>শুধু বর্তমান এন্ট্রি। ইতিহাস, ট্র্যাশ, খসড়া, বিরোধপূর্ণ কপি ও dMsg পরিচালিত কী বাদ থাকে।</string>
+	<key>Add as new</key>
+	<string>নতুন হিসেবে যোগ করুন</string>
+	<key>Different content · save a copy</key>
+	<string>বিষয়বস্তু আলাদা · কপি রাখুন</string>
+	<key>Deleted here · save a copy</key>
+	<string>এখানে মুছে ফেলা · কপি রাখুন</string>
+	<key>Saved locally</key>
+	<string>ডিভাইসে সংরক্ষিত</string>
+	<key>Omitted attachments</key>
+	<string>বাদ দেওয়া সংযুক্তি</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>ব্যাকআপ খোলা গেল না। পাসওয়ার্ড যাচাই করুন বা সম্পূর্ণ ফাইল বেছে নিন।</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>আমদানি সংরক্ষিত হয়নি। আবার ব্যাকআপ বেছে নিন।</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>এন্ট্রি স্বাভাবিকভাবে সিঙ্ক হয়। সংযুক্তিগুলো এই ডিভাইসের ফাইলে থাকে।</string>
 </dict>
 </plist>

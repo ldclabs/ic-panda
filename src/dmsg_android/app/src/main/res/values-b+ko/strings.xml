@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"내 역할"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"위 선택 사항은 마지막으로 불러온 리비전을 기준으로 저장됩니다. 계속하기 전에 검토하세요."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"구독 기간이 변경되었습니다. 멤버십을 새로고침하고 다시 검토하세요."</string>
+    <string name="vault_backup_changed" formatted="false">"내용이 다름 · 사본 저장"</string>
+    <string name="vault_backup_deleted" formatted="false">"이 기기에서 삭제됨 · 사본 저장"</string>
+    <string name="vault_backup_export" formatted="false">"암호화된 백업 내보내기"</string>
+    <string name="vault_backup_files" formatted="false">"연결된 파일 포함"</string>
+    <string name="vault_backup_hint" formatted="false">"6자 이상 입력하세요. 암호는 따로 보관하세요. dMsg는 암호를 복구할 수 없습니다."</string>
+    <string name="vault_backup_import" formatted="false">"백업에서 가져오기"</string>
+    <string name="vault_backup_mismatch" formatted="false">"두 백업 비밀번호가 일치하지 않습니다."</string>
+    <string name="vault_backup_new" formatted="false">"새 항목으로 추가"</string>
+    <string name="vault_backup_omitted" formatted="false">"제외된 첨부 파일"</string>
+    <string name="vault_backup_password" formatted="false">"백업 암호"</string>
+    <string name="vault_backup_repeat" formatted="false">"백업 암호 확인"</string>
+    <string name="vault_backup_same" formatted="false">"이미 존재함"</string>
+    <string name="vault_backup_saved" formatted="false">"기기에 저장됨"</string>
+    <string name="vault_backup_scope" formatted="false">"현재 항목만 포함됩니다. 기록, 휴지통, 초안, 충돌 사본 및 dMsg 관리 키는 제외됩니다."</string>
+    <string name="vault_backup_sync" formatted="false">"항목은 평소처럼 동기화됩니다. 첨부 파일은 이 기기의 파일 보관함에 저장됩니다."</string>
+    <string name="vault_backup_title" formatted="false">"백업 및 복원"</string>
+    <string name="vault_backup_unavailable" formatted="false">"일부 파일을 사용할 수 없습니다. 먼저 다운로드하거나 항목만 내보내세요."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"가져온 항목이 없습니다. 백업을 다시 선택하세요."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"백업을 열 수 없습니다. 암호를 확인하거나 완전한 파일을 선택하세요."</string>
+    <string name="vault_backup_wallet" formatted="false">"지갑 항목에 저장한 비밀 정보가 포함됩니다."</string>
     <string name="vault_field_birthday" formatted="false">"생일"</string>
     <string name="vault_field_cardholder" formatted="false">"카드홀더"</string>
     <string name="vault_field_credential" formatted="false">"자격 증명"</string>

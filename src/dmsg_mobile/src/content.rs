@@ -14,7 +14,7 @@ pub struct ChannelMemberChange {
 }
 
 impl MobileEngine {
-    fn staged_file(&self, name: &str) -> Result<(PathBuf, String)> {
+    pub(super) fn staged_file(&self, name: &str) -> Result<(PathBuf, String)> {
         let handle = PathBuf::from(name);
         let parts: Vec<_> = handle.components().collect();
         ensure_valid(

@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"你的角色"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"上方选择将基于最新读取的版本保存，请核对后继续。"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"订阅期限已变化，请刷新会员后重新核对。"</string>
+    <string name="vault_backup_changed" formatted="false">"内容不同，可另存副本"</string>
+    <string name="vault_backup_deleted" formatted="false">"本机已删除，可另存副本"</string>
+    <string name="vault_backup_export" formatted="false">"导出加密备份"</string>
+    <string name="vault_backup_files" formatted="false">"包含关联附件"</string>
+    <string name="vault_backup_hint" formatted="false">"至少 6 个字符。请单独保管口令，dMsg 无法找回。"</string>
+    <string name="vault_backup_import" formatted="false">"从备份导入"</string>
+    <string name="vault_backup_mismatch" formatted="false">"两次输入的备份口令不一致。"</string>
+    <string name="vault_backup_new" formatted="false">"新增条目"</string>
+    <string name="vault_backup_omitted" formatted="false">"已省略附件"</string>
+    <string name="vault_backup_password" formatted="false">"备份口令"</string>
+    <string name="vault_backup_repeat" formatted="false">"再次输入备份口令"</string>
+    <string name="vault_backup_same" formatted="false">"已存在"</string>
+    <string name="vault_backup_saved" formatted="false">"已保存到本机"</string>
+    <string name="vault_backup_scope" formatted="false">"仅备份当前条目。历史、回收站、草稿、冲突副本及 dMsg 管理的密钥不包含在内。"</string>
+    <string name="vault_backup_sync" formatted="false">"保险库条目按正常流程同步。附件保存在本机文件库。"</string>
+    <string name="vault_backup_title" formatted="false">"备份与恢复"</string>
+    <string name="vault_backup_unavailable" formatted="false">"部分附件不可用。请先取回附件，或仅导出条目。"</string>
+    <string name="vault_backup_uncommitted" formatted="false">"本机没有这次导入的提交记录，请重新选择备份。"</string>
+    <string name="vault_backup_unlockerror" formatted="false">"无法解开备份。请核对口令或重新选择完整文件。"</string>
+    <string name="vault_backup_wallet" formatted="false">"包含你保存在钱包条目中的秘密字段。"</string>
     <string name="vault_field_birthday" formatted="false">"生日"</string>
     <string name="vault_field_cardholder" formatted="false">"持卡人"</string>
     <string name="vault_field_credential" formatted="false">"凭据"</string>

@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"บทบาทของคุณ"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"ตัวเลือกด้านบนจะบันทึกกับรุ่นล่าสุดที่โหลด ตรวจทานก่อนดำเนินการต่อ"</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"ระยะเวลาสมัครสมาชิกของคุณเปลี่ยนแล้ว รีเฟรชสมาชิกและตรวจทานอีกครั้ง"</string>
+    <string name="vault_backup_changed" formatted="false">"เนื้อหาต่างกัน · บันทึกสำเนา"</string>
+    <string name="vault_backup_deleted" formatted="false">"ลบในเครื่องแล้ว · บันทึกสำเนา"</string>
+    <string name="vault_backup_export" formatted="false">"ส่งออกข้อมูลสำรองที่เข้ารหัส"</string>
+    <string name="vault_backup_files" formatted="false">"รวมไฟล์ที่เชื่อมโยง"</string>
+    <string name="vault_backup_hint" formatted="false">"อย่างน้อย 6 ตัวอักษร เก็บรหัสผ่านแยกไว้ dMsg ไม่สามารถกู้คืนรหัสผ่านได้"</string>
+    <string name="vault_backup_import" formatted="false">"นำเข้าจากข้อมูลสำรอง"</string>
+    <string name="vault_backup_mismatch" formatted="false">"รหัสผ่านสำรองข้อมูลทั้งสองครั้งไม่ตรงกัน"</string>
+    <string name="vault_backup_new" formatted="false">"เพิ่มเป็นรายการใหม่"</string>
+    <string name="vault_backup_omitted" formatted="false">"ไฟล์แนบที่ข้าม"</string>
+    <string name="vault_backup_password" formatted="false">"รหัสผ่านข้อมูลสำรอง"</string>
+    <string name="vault_backup_repeat" formatted="false">"ยืนยันรหัสผ่านข้อมูลสำรอง"</string>
+    <string name="vault_backup_same" formatted="false">"อยู่แล้ว"</string>
+    <string name="vault_backup_saved" formatted="false">"บันทึกในอุปกรณ์แล้ว"</string>
+    <string name="vault_backup_scope" formatted="false">"รวมเฉพาะรายการปัจจุบัน ไม่รวมประวัติ ถังขยะ ฉบับร่าง สำเนาที่ขัดแย้ง และคีย์ที่ dMsg จัดการ"</string>
+    <string name="vault_backup_sync" formatted="false">"รายการจะซิงค์ตามปกติ ไฟล์แนบอยู่ในคลังไฟล์ของอุปกรณ์นี้"</string>
+    <string name="vault_backup_title" formatted="false">"สำรองและกู้คืน"</string>
+    <string name="vault_backup_unavailable" formatted="false">"บางไฟล์ไม่พร้อมใช้ โปรดดาวน์โหลดไฟล์หรือส่งออกเฉพาะรายการ"</string>
+    <string name="vault_backup_uncommitted" formatted="false">"ยังไม่ได้บันทึกการนำเข้า โปรดเลือกข้อมูลสำรองอีกครั้ง"</string>
+    <string name="vault_backup_unlockerror" formatted="false">"เปิดข้อมูลสำรองไม่ได้ ตรวจสอบรหัสผ่านหรือเลือกไฟล์ที่สมบูรณ์"</string>
+    <string name="vault_backup_wallet" formatted="false">"รวมข้อมูลลับที่บันทึกในรายการกระเป๋าเงิน"</string>
     <string name="vault_field_birthday" formatted="false">"วันเกิด"</string>
     <string name="vault_field_cardholder" formatted="false">"ผู้ถือบัตร"</string>
     <string name="vault_field_credential" formatted="false">"หนังสือรับรอง"</string>

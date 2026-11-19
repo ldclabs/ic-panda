@@ -683,6 +683,57 @@ handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | nu
 const importing = new PreparedOperation<{ path: string; digest: string }>()
 const preparedSecretMount = new PreparedOperation<any>()
 let importSession = 0
+let backupSession: { id: string; path?: string } | null = null
+let backupEpoch = 0
+function closeBackup() {
+  backupEpoch++
+  const old = backupSession
+  backupSession = null
+  if (old) void daemon.call('vault/backup_cancel', { id: old.id }).catch(() => {})
+}
+handle('dmsg:vault-backup', 'main', async (_event, action: string, input: Record<string, unknown>) => {
+  if (action === 'password') return daemon.call('vault/backup_password', {})
+  if (action === 'begin') {
+    closeBackup()
+    const epoch = backupEpoch
+    const id = String(await daemon.call('vault/backup_begin', { import: input.import === true }))
+    if (epoch !== backupEpoch) {
+      await daemon.call('vault/backup_cancel', { id }).catch(() => {})
+      return null
+    }
+    backupSession = { id }
+    return id
+  }
+  const id = String(input.id)
+  if (action === 'status') return daemon.call('vault/backup_status', { id })
+  const session = backupSession
+  if (!session || session.id !== id) throw new DaemonError('EXPIRED', 'Backup session expired')
+  const filters = [{ name: 'dMsg', extensions: ['dmsgvault'] }]
+  switch (action) {
+    case 'cancel': closeBackup(); return null
+    case 'inventory': return daemon.call('vault/backup_inventory', { id })
+    case 'request': return daemon.call('vault/backup_request', { id, items: input.items, attachments: input.attachments, password: input.password, confirmation: input.confirmation })
+    case 'export': return daemon.call('vault/backup_export', { id, approval: input.approval })
+    case 'pick': {
+      delete session.path
+      const path = await pickFile({ filters: [...filters, { name: text.allFiles, extensions: ['*'] }] })
+      if (!path || session !== backupSession) return null
+      session.path = path
+      return basename(path)
+    }
+    case 'inspect':
+      if (!session.path) throw new DaemonError('INVALID_INPUT', 'Choose a file')
+      return daemon.call('vault/backup_inspect', { id, path: session.path, password: input.password })
+    case 'commit': return daemon.call('vault/backup_commit', { id, digest: input.digest, items: input.items, folder: input.folder })
+    case 'save': {
+      const path = await pickSave({ filters, defaultPath: `dmsg-vault-${new Date().toLocaleDateString('sv-SE')}.dmsgvault` })
+      if (!path || session !== backupSession) return null
+      const result = await daemon.call('vault/backup_save', { id, path })
+      return { ...result as object, name: basename(path) }
+    }
+    default: throw new DaemonError('INVALID_INPUT', 'Backup action')
+  }
+})
 function cancelImport() {
   importSession += 1
   importing.cancel()
@@ -1387,6 +1438,7 @@ function updateMenu() {
 }
 
 daemon.on('event', (event: DaemonEvent) => {
+  if (event.type === 'session/changed' || event.type === 'resync') closeBackup()
   if (event.type === 'session/changed' || event.type === 'resync') cancelImport()
   if (event.type === 'session/changed') dropSystemCopies()
   broadcast('dmsg:event', event)

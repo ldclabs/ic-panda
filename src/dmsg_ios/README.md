@@ -477,6 +477,14 @@ Deployment target: iOS / iPadOS 18. The SDK version does not raise that minimum.
 The current XCFramework and project support ARM64 devices and Apple Silicon
 simulators; an Intel Mac simulator slice is not included.
 
+For external builds, set Cargo's `build.build-dir` for intermediate objects and
+`CARGO_TARGET_DIR` for the final libraries. The bridge script reads the resolved
+`target_directory` from `cargo metadata`. Put Xcode DerivedData and `TMPDIR` on
+the build disk as well. Run iOS and Android simulator checks in sequence on a
+space-constrained Mac. macOS swap can fill the system disk while build outputs
+are on another volume. Compare `df -h`, `du -sh` for the outputs and
+`sysctl vm.swapusage` when diagnosing a disk warning.
+
 Business icons use the desktop's Remix Icon paths, including navigation,
 account destinations and all eleven vault item types. `Features/AppGlyph.swift`
 selects the shipped template assets; system actions keep SF Symbols.

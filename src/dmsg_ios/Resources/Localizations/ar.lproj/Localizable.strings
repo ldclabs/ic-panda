@@ -3474,5 +3474,43 @@
 	<string>افتح dMsg وألغِ قفله لتحميل حساباتك.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>تعذّر تحديث التعبئة التلقائية لكلمات المرور.</string>
+	<key>Backup and restore</key>
+	<string>النسخ الاحتياطي والاستعادة</string>
+	<key>Export encrypted backup</key>
+	<string>تصدير نسخة احتياطية مشفّرة</string>
+	<key>Import from backup</key>
+	<string>الاستيراد من نسخة احتياطية</string>
+	<key>Backup password</key>
+	<string>كلمة مرور النسخة الاحتياطية</string>
+	<key>The two backup passwords do not match.</key>
+	<string>كلمتا مرور النسخة الاحتياطية غير متطابقتين.</string>
+	<key>Confirm backup password</key>
+	<string>تأكيد كلمة مرور النسخة</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>ستة أحرف على الأقل. احفظ كلمة المرور منفصلة، فلا يستطيع dMsg استعادتها.</string>
+	<key>Include linked files</key>
+	<string>تضمين الملفات المرتبطة</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>بعض الملفات غير متاح. نزّلها أو صدّر العناصر فقط.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>يتضمن الأسرار المحفوظة في عناصر المحفظة.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>تشمل النسخة العناصر الحالية فقط. يُستثنى السجل والمهملات والمسودات والنسخ المتعارضة والمفاتيح التي يديرها dMsg.</string>
+	<key>Add as new</key>
+	<string>إضافة عنصر جديد</string>
+	<key>Different content · save a copy</key>
+	<string>محتوى مختلف · حفظ نسخة</string>
+	<key>Deleted here · save a copy</key>
+	<string>محذوف هنا · حفظ نسخة</string>
+	<key>Saved locally</key>
+	<string>حُفظ على الجهاز</string>
+	<key>Omitted attachments</key>
+	<string>المرفقات المستثناة</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>تعذر فتح النسخة. تحقّق من كلمة المرور أو اختر ملفًا كاملًا.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>لم تُحفظ عملية الاستيراد. اختر النسخة مجددًا.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>تتم مزامنة العناصر كالمعتاد، وتُحفظ المرفقات في الملفات على هذا الجهاز.</string>
 </dict>
 </plist>

@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Peran Anda"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Pilihan di atas akan disimpan terhadap revisi terbaru yang dimuat. Tinjau sebelum melanjutkan."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Periode langganan berubah. Muat ulang keanggotaan dan tinjau lagi."</string>
+    <string name="vault_backup_changed" formatted="false">"Isi berbeda · simpan salinan"</string>
+    <string name="vault_backup_deleted" formatted="false">"Dihapus di sini · simpan salinan"</string>
+    <string name="vault_backup_export" formatted="false">"Ekspor cadangan terenkripsi"</string>
+    <string name="vault_backup_files" formatted="false">"Sertakan berkas tertaut"</string>
+    <string name="vault_backup_hint" formatted="false">"Minimal 6 karakter. Simpan kata sandi secara terpisah. dMsg tidak dapat memulihkannya."</string>
+    <string name="vault_backup_import" formatted="false">"Impor dari cadangan"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Kedua kata sandi cadangan tidak cocok."</string>
+    <string name="vault_backup_new" formatted="false">"Tambahkan sebagai baru"</string>
+    <string name="vault_backup_omitted" formatted="false">"Lampiran yang dilewati"</string>
+    <string name="vault_backup_password" formatted="false">"Kata sandi cadangan"</string>
+    <string name="vault_backup_repeat" formatted="false">"Konfirmasi kata sandi cadangan"</string>
+    <string name="vault_backup_same" formatted="false">"Sudah hadir"</string>
+    <string name="vault_backup_saved" formatted="false">"Disimpan di perangkat"</string>
+    <string name="vault_backup_scope" formatted="false">"Hanya entri saat ini. Riwayat, sampah, draf, salinan konflik, dan kunci yang dikelola dMsg tidak disertakan."</string>
+    <string name="vault_backup_sync" formatted="false">"Entri disinkronkan seperti biasa. Lampiran disimpan di Berkas pada perangkat ini."</string>
+    <string name="vault_backup_title" formatted="false">"Pencadangan dan pemulihan"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Beberapa berkas tidak tersedia. Unduh berkas atau ekspor entri saja."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Impor belum tersimpan. Pilih kembali cadangan."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Cadangan tidak dapat dibuka. Periksa kata sandi atau pilih berkas lengkap."</string>
+    <string name="vault_backup_wallet" formatted="false">"Mencakup rahasia yang disimpan dalam entri dompet."</string>
     <string name="vault_field_birthday" formatted="false">"Ulang tahun"</string>
     <string name="vault_field_cardholder" formatted="false">"Pemegang Kartu"</string>
     <string name="vault_field_credential" formatted="false">"Kredensial"</string>

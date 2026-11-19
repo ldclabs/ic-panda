@@ -9309,5 +9309,105 @@
     "en": "Files are backed up only when you explicitly choose to do so.",
     "zh-Hans": "只有你明确选择时，才会备份文件。",
     "ios": "Files are backed up only when you explicitly choose to do so."
+  },
+  "vault_backup_changed": {
+    "en": "Different content · save a copy",
+    "zh-Hans": "内容不同，可另存副本",
+    "ios": "Different content · save a copy"
+  },
+  "vault_backup_deleted": {
+    "en": "Deleted here · save a copy",
+    "zh-Hans": "本机已删除，可另存副本",
+    "ios": "Deleted here · save a copy"
+  },
+  "vault_backup_export": {
+    "en": "Export encrypted backup",
+    "zh-Hans": "导出加密备份",
+    "ios": "Export encrypted backup"
+  },
+  "vault_backup_files": {
+    "en": "Include linked files",
+    "zh-Hans": "包含关联附件",
+    "ios": "Include linked files"
+  },
+  "vault_backup_hint": {
+    "en": "At least 6 characters. Keep this password separately. dMsg cannot recover it.",
+    "zh-Hans": "至少 6 个字符。请单独保管口令，dMsg 无法找回。",
+    "ios": "At least 6 characters. Keep this password separately. dMsg cannot recover it."
+  },
+  "vault_backup_import": {
+    "en": "Import from backup",
+    "zh-Hans": "从备份导入",
+    "ios": "Import from backup"
+  },
+  "vault_backup_new": {
+    "en": "Add as new",
+    "zh-Hans": "新增条目",
+    "ios": "Add as new"
+  },
+  "vault_backup_omitted": {
+    "en": "Omitted attachments",
+    "zh-Hans": "已省略附件",
+    "ios": "Omitted attachments"
+  },
+  "vault_backup_password": {
+    "en": "Backup password",
+    "zh-Hans": "备份口令",
+    "ios": "Backup password"
+  },
+  "vault_backup_repeat": {
+    "en": "Confirm backup password",
+    "zh-Hans": "再次输入备份口令",
+    "ios": "Confirm backup password"
+  },
+  "vault_backup_same": {
+    "en": "Already present",
+    "zh-Hans": "已存在",
+    "ios": "Already present"
+  },
+  "vault_backup_saved": {
+    "en": "Saved locally",
+    "zh-Hans": "已保存到本机",
+    "ios": "Saved locally"
+  },
+  "vault_backup_scope": {
+    "en": "Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.",
+    "zh-Hans": "仅备份当前条目。历史、回收站、草稿、冲突副本及 dMsg 管理的密钥不包含在内。",
+    "ios": "Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded."
+  },
+  "vault_backup_title": {
+    "en": "Backup and restore",
+    "zh-Hans": "备份与恢复",
+    "ios": "Backup and restore"
+  },
+  "vault_backup_unavailable": {
+    "en": "Some linked files are unavailable. Download them or export items only.",
+    "zh-Hans": "部分附件不可用。请先取回附件，或仅导出条目。",
+    "ios": "Some linked files are unavailable. Download them or export items only."
+  },
+  "vault_backup_wallet": {
+    "en": "Includes secrets saved in wallet items.",
+    "zh-Hans": "包含你保存在钱包条目中的秘密字段。",
+    "ios": "Includes secrets saved in wallet items."
+  },
+  "vault_backup_unlockerror": {
+    "en": "Cannot unlock this backup. Check the password or choose a complete backup file.",
+    "zh-Hans": "无法解开备份。请核对口令或重新选择完整文件。",
+    "ios": "Cannot unlock this backup. Check the password or choose a complete backup file."
+  },
+  "vault_backup_uncommitted": {
+    "en": "No import was committed. Choose the backup again.",
+    "zh-Hans": "本机没有这次导入的提交记录，请重新选择备份。",
+    "ios": "No import was committed. Choose the backup again."
+  },
+  "vault_backup_sync": {
+    "en": "Vault entries follow normal sync. Attachments are saved in Files on this device.",
+    "zh-Hans": "保险库条目按正常流程同步。附件保存在本机文件库。",
+    "ios": "Vault entries follow normal sync. Attachments are saved in Files on this device."
+  },
+  "vault_backup_mismatch": {
+    "en": "The two backup passwords do not match.",
+    "zh-Hans": "两次输入的备份口令不一致。",
+    "ios": "The two backup passwords do not match."
   }
 }

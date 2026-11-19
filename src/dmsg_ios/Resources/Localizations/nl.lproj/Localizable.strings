@@ -3474,5 +3474,43 @@
 	<string>Open en ontgrendel dMsg om je accounts te laden.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Automatisch invullen van wachtwoorden kon niet worden bijgewerkt.</string>
+	<key>Backup and restore</key>
+	<string>Back-up en herstel</string>
+	<key>Export encrypted backup</key>
+	<string>Versleutelde back-up exporteren</string>
+	<key>Import from backup</key>
+	<string>Uit back-up importeren</string>
+	<key>Backup password</key>
+	<string>Back-upwachtwoord</string>
+	<key>The two backup passwords do not match.</key>
+	<string>De twee back-upwachtwoorden komen niet overeen.</string>
+	<key>Confirm backup password</key>
+	<string>Back-upwachtwoord bevestigen</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Minstens 6 tekens. Bewaar het wachtwoord apart. dMsg kan het niet herstellen.</string>
+	<key>Include linked files</key>
+	<string>Gekoppelde bestanden meenemen</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Sommige bestanden ontbreken. Download ze of exporteer alleen de items.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Bevat geheimen uit portemonnee-items.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Alleen huidige items. Geschiedenis, prullenbak, concepten, conflictkopieën en door dMsg beheerde sleutels worden overgeslagen.</string>
+	<key>Add as new</key>
+	<string>Als nieuw toevoegen</string>
+	<key>Different content · save a copy</key>
+	<string>Andere inhoud · kopie opslaan</string>
+	<key>Deleted here · save a copy</key>
+	<string>Hier verwijderd · kopie opslaan</string>
+	<key>Saved locally</key>
+	<string>Lokaal opgeslagen</string>
+	<key>Omitted attachments</key>
+	<string>Overgeslagen bijlagen</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Back-up kan niet worden geopend. Controleer het wachtwoord of kies een volledig bestand.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Er is niets geïmporteerd. Kies de back-up opnieuw.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Items worden zoals gewoonlijk gesynchroniseerd. Bijlagen staan in Bestanden op dit apparaat.</string>
 </dict>
 </plist>

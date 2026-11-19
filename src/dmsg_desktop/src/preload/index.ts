@@ -82,6 +82,7 @@ const api: DesktopBridge = {
   secretMountSave: (session) => unwrap(ipcRenderer.invoke('dmsg:secret-mount-save', session)),
   openExtensionSettings: () => unwrap(ipcRenderer.invoke('dmsg:open-extension-settings')),
   vaultImportPreview: () => unwrap(ipcRenderer.invoke('dmsg:vault-import-preview')),
+  vaultBackup: (action, params = {}) => unwrap(ipcRenderer.invoke('dmsg:vault-backup', action, params)),
   vaultImport: (session, picks, attachments = [], folder = 'root') => unwrap(ipcRenderer.invoke('dmsg:vault-import', session, picks, attachments, folder)),
   vaultImportCancel: () => unwrap(ipcRenderer.invoke('dmsg:vault-import-cancel')),
   vaultOtpScan: (source) => unwrap(ipcRenderer.invoke('dmsg:vault-otp-scan', source)),

@@ -133,6 +133,28 @@ pub fn unlocked(
     client
 }
 
+/// Give a synthetic offline device its last verified vault read/write grant.
+pub fn allow_vault_backup(client: &mut Client) {
+    let mut state = account_state(client).security;
+    state
+        .devices
+        .get_mut(&client.workspace.meta.device_id)
+        .unwrap()
+        .input
+        .capabilities
+        .push(Capability::ContentSign);
+    let permissions =
+        crate::vault::backup::Permissions::observed(&state, &client.workspace.meta.device_id);
+    client
+        .workspace
+        .put_private(
+            client.keys().unwrap(),
+            crate::vault::backup::PERMISSIONS,
+            &permissions,
+        )
+        .unwrap();
+}
+
 /// Synthetic complete state of the offline account; no certificate verification.
 pub fn account_state(client: &Client) -> crate::account::AccountState {
     use dmsg_types::user::{

@@ -3474,5 +3474,43 @@
 	<string>Buka dMsg dan buka kuncinya untuk memuatkan akaun anda.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Autoisi kata laluan gagal dikemas kini.</string>
+	<key>Backup and restore</key>
+	<string>Sandaran dan pemulihan</string>
+	<key>Export encrypted backup</key>
+	<string>Eksport sandaran disulitkan</string>
+	<key>Import from backup</key>
+	<string>Import daripada sandaran</string>
+	<key>Backup password</key>
+	<string>Kata laluan sandaran</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Kedua-dua kata laluan sandaran tidak sepadan.</string>
+	<key>Confirm backup password</key>
+	<string>Sahkan kata laluan sandaran</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Sekurang-kurangnya 6 aksara. Simpan kata laluan berasingan. dMsg tidak boleh memulihkannya.</string>
+	<key>Include linked files</key>
+	<string>Sertakan fail terpaut</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Sesetengah fail tidak tersedia. Muat turun atau eksport entri sahaja.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Termasuk rahsia yang disimpan dalam entri dompet.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Entri semasa sahaja. Sejarah, sampah, draf, salinan bercanggah dan kunci yang diurus oleh dMsg dikecualikan.</string>
+	<key>Add as new</key>
+	<string>Tambah sebagai baharu</string>
+	<key>Different content · save a copy</key>
+	<string>Kandungan berlainan · simpan salinan</string>
+	<key>Deleted here · save a copy</key>
+	<string>Dipadam di sini · simpan salinan</string>
+	<key>Saved locally</key>
+	<string>Disimpan pada peranti</string>
+	<key>Omitted attachments</key>
+	<string>Lampiran dilangkau</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Sandaran tidak dapat dibuka. Semak kata laluan atau pilih fail lengkap.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Import belum disimpan. Pilih sandaran semula.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Entri disegerakkan seperti biasa. Lampiran disimpan dalam Fail pada peranti ini.</string>
 </dict>
 </plist>

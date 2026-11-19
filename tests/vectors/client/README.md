@@ -9,6 +9,7 @@ test-only.
 
 | File | Content | Rust test |
 | --- | --- | --- |
+| `vault-backup-v1.dmsgvault` | Independent deterministic-CBOR / COSE_Encrypt0 password backup, two synthetic items sharing one file, password `123456` | `vault::backup::wire::tests::independent_full_archive_matches_the_writer_and_existing_encrypt0_codec` |
 | `primitives-v1.json` | Canonical CBOR encodings and rejections, base64url, Xid, `D(K, C)`, the local unlock key, COSE_Encrypt0 seals and rejections, HPKE with a fixed ephemeral key, Ed25519 | `codec::tests`, `crypto::tests` |
 | `content-v1.json` | Encrypted objects (new, edited, tombstone, and the file entries of the former vault file type, kept as object and chunk vectors), the cloud object container, file chunks and the chunk nonce rule, upload manifests; `backups` (added 2026-10-16 by `dmsg_client`, the file library's `kind=backup` manifest around the file entry) | `content::tests::opens_exported_objects`, `opens_exported_manifests`, `opens_backup_manifests`; `files::tests::reproduces_file_chunks`, `reads_exported_files` |
 | `root-v2.json` | RootBundle v2 for two generations: device envelopes, signature, the three on-chain digests, commitment and previous-root link | `root::tests::opens_exported_bundles` |

@@ -39,6 +39,7 @@ export function kindOf(request: any): Label {
     case 'device_capabilities':
     case 'device_pair':
     case 'device_transfer':
+    case 'vault_backup':
     case 'device_revoke':
     case 'approval_key':
     case 'approval_key_retire':
@@ -156,6 +157,8 @@ export function titleOf(request: any): Title {
       return { label: 'approveDevice' }
     case 'device_transfer':
       return { label: 'deviceTransferSend' }
+    case 'vault_backup':
+      return { label: 'vaultBackupExport' }
     case 'device_revoke':
       return { label: 'revokeDevice' }
     case 'approval_key':

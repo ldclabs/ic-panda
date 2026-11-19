@@ -19,6 +19,7 @@
 //! merge or copy reaches them, and no other item takes such a tag.
 
 pub mod autofill;
+pub mod backup;
 pub mod drafts;
 pub mod health;
 pub mod history;
@@ -966,15 +967,8 @@ impl Client {
     }
 
     /// Write inside an existing workspace transaction, including attachment catalog writes.
-    pub(crate) fn vault_write_items(&self, items: Vec<Item>, now: u64) -> Result<Vec<String>> {
-        let account = self.account()?.id.to_string();
-        let roots = self.roots()?;
-        let generation = roots.generation;
-        let root = roots.key(generation).ok_or(Error::RecoveryIncomplete)?;
-        let device = hex::encode(*self.workspace.meta.device_id);
-        let store = &self.workspace.store;
-        let mut ids = Vec::with_capacity(items.len());
-        for mut item in items {
+    pub(crate) fn vault_write_items(&self, mut items: Vec<Item>, now: u64) -> Result<Vec<String>> {
+        for item in &mut items {
             item.resolved_conflicts = None;
             if item.created_at == 0 {
                 item.created_at = now;
@@ -983,7 +977,28 @@ impl Client {
                 item.updated_at = item.created_at;
             }
             item.normalize();
-            ensure(!item.reserved(), Error::Forbidden)?;
+        }
+        self.vault_write_exact_items(items, now)
+    }
+
+    /// Publish validated portable values without synthesizing fields or timestamps.
+    pub(crate) fn vault_write_exact_items(
+        &self,
+        items: Vec<Item>,
+        now: u64,
+    ) -> Result<Vec<String>> {
+        let account = self.account()?.id.to_string();
+        let roots = self.roots()?;
+        let generation = roots.generation;
+        let root = roots.key(generation).ok_or(Error::RecoveryIncomplete)?;
+        let device = hex::encode(*self.workspace.meta.device_id);
+        let store = &self.workspace.store;
+        let mut ids = Vec::with_capacity(items.len());
+        for item in items {
+            ensure(
+                !item.reserved() && item.resolved_conflicts.is_none(),
+                Error::Forbidden,
+            )?;
             item.validate()?;
             let payload = Zeroizing::new(canonical(&item));
             ensure(payload.len() <= MAX_OBJECT, Error::QuotaExceeded)?;

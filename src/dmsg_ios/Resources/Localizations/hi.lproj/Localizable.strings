@@ -3474,5 +3474,43 @@
 	<string>अपने लॉगिन लोड करने के लिए dMsg खोलें और अनलॉक करें।</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>पासवर्ड ऑटोफ़िल अपडेट नहीं हो सका।</string>
+	<key>Backup and restore</key>
+	<string>बैकअप और बहाली</string>
+	<key>Export encrypted backup</key>
+	<string>एन्क्रिप्टेड बैकअप निर्यात करें</string>
+	<key>Import from backup</key>
+	<string>बैकअप से आयात करें</string>
+	<key>Backup password</key>
+	<string>बैकअप पासवर्ड</string>
+	<key>The two backup passwords do not match.</key>
+	<string>बैकअप के दोनों पासवर्ड मेल नहीं खाते।</string>
+	<key>Confirm backup password</key>
+	<string>बैकअप पासवर्ड की पुष्टि करें</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>कम से कम 6 अक्षर। पासवर्ड अलग रखें। dMsg इसे वापस नहीं ला सकता।</string>
+	<key>Include linked files</key>
+	<string>जुड़ी फ़ाइलें शामिल करें</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>कुछ फ़ाइलें उपलब्ध नहीं हैं। उन्हें डाउनलोड करें या केवल प्रविष्टियाँ निर्यात करें।</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>वॉलेट प्रविष्टियों में सहेजे गोपनीय मान शामिल हैं।</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>केवल वर्तमान प्रविष्टियाँ। इतिहास, ट्रैश, ड्राफ़्ट, परस्पर विरोधी प्रतियाँ और dMsg की प्रबंधित कुंजियाँ शामिल नहीं हैं।</string>
+	<key>Add as new</key>
+	<string>नई प्रविष्टि जोड़ें</string>
+	<key>Different content · save a copy</key>
+	<string>अलग सामग्री · प्रति सहेजें</string>
+	<key>Deleted here · save a copy</key>
+	<string>यहाँ हटाया गया · प्रति सहेजें</string>
+	<key>Saved locally</key>
+	<string>डिवाइस पर सहेजा गया</string>
+	<key>Omitted attachments</key>
+	<string>छोड़े गए अटैचमेंट</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>बैकअप नहीं खुला। पासवर्ड जाँचें या पूरी फ़ाइल चुनें।</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>आयात सहेजा नहीं गया। बैकअप फिर से चुनें।</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>प्रविष्टियाँ सामान्य रूप से सिंक होंगी। अटैचमेंट इस डिवाइस की फ़ाइलों में हैं।</string>
 </dict>
 </plist>

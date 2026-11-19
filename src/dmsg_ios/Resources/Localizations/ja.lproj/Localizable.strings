@@ -3474,5 +3474,43 @@
 	<string>dMsg を開いてロックを解除し、ログイン項目を読み込んでください。</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>パスワードの自動入力を更新できませんでした。</string>
+	<key>Backup and restore</key>
+	<string>バックアップと復元</string>
+	<key>Export encrypted backup</key>
+	<string>暗号化バックアップを書き出す</string>
+	<key>Import from backup</key>
+	<string>バックアップから読み込む</string>
+	<key>Backup password</key>
+	<string>バックアップのパスワード</string>
+	<key>The two backup passwords do not match.</key>
+	<string>入力したバックアップ用パスワードが一致しません。</string>
+	<key>Confirm backup password</key>
+	<string>パスワードを再入力</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>6 文字以上。パスワードは別に保管してください。dMsg では復元できません。</string>
+	<key>Include linked files</key>
+	<string>関連ファイルを含める</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>利用できないファイルがあります。ダウンロードするか、項目のみ書き出してください。</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>ウォレット項目に保存した秘密情報が含まれます。</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>現在の項目のみが対象です。履歴、ゴミ箱、下書き、競合コピー、dMsg 管理の鍵は含まれません。</string>
+	<key>Add as new</key>
+	<string>新規追加</string>
+	<key>Different content · save a copy</key>
+	<string>内容が異なります・コピーを保存</string>
+	<key>Deleted here · save a copy</key>
+	<string>この端末で削除済み・コピーを保存</string>
+	<key>Saved locally</key>
+	<string>この端末に保存済み</string>
+	<key>Omitted attachments</key>
+	<string>除外した添付ファイル</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>バックアップを開けません。パスワードを確認するか、完全なファイルを選んでください。</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>読み込みは確定していません。バックアップを選び直してください。</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>項目は通常どおり同期されます。添付ファイルはこの端末のファイル庫に保存されます。</string>
 </dict>
 </plist>

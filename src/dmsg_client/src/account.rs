@@ -559,6 +559,26 @@ impl Client {
         }
         self.workspace.store.set_meta(&key, &seen)?;
         self.observe_recovery(security)?;
+        if self
+            .workspace
+            .meta
+            .account
+            .as_ref()
+            .is_some_and(|own| &own.id == account)
+            && let Some(keys) = self.keys.as_ref()
+        {
+            use crate::vault::backup::{PERMISSIONS, Permissions};
+            let permissions = Permissions::observed(security, &self.workspace.meta.device_id);
+            if self
+                .workspace
+                .private::<Permissions>(keys, PERMISSIONS)?
+                .as_ref()
+                != Some(&permissions)
+            {
+                self.workspace
+                    .put_private(keys, PERMISSIONS, &permissions)?;
+            }
+        }
         self.security = Some(security.clone());
         Ok(())
     }

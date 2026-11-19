@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Iyong tungkulin"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Ise-save ang mga pinili sa itaas batay sa pinakahuling na-load na rebisyon. Suriin bago magpatuloy."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Nagbago ang panahon ng subscription. I-refresh ang membership at suriin muli."</string>
+    <string name="vault_backup_changed" formatted="false">"Magkaibang nilalaman · mag-save ng kopya"</string>
+    <string name="vault_backup_deleted" formatted="false">"Tinanggal dito · mag-save ng kopya"</string>
+    <string name="vault_backup_export" formatted="false">"I-export ang naka-encrypt na backup"</string>
+    <string name="vault_backup_files" formatted="false">"Isama ang mga naka-link na file"</string>
+    <string name="vault_backup_hint" formatted="false">"Hindi bababa sa 6 na character. Itago nang hiwalay ang password. Hindi ito mababawi ng dMsg."</string>
+    <string name="vault_backup_import" formatted="false">"Mag-import mula sa backup"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Hindi magkatugma ang dalawang password ng backup."</string>
+    <string name="vault_backup_new" formatted="false">"Idagdag bilang bago"</string>
+    <string name="vault_backup_omitted" formatted="false">"Nilaktawang attachment"</string>
+    <string name="vault_backup_password" formatted="false">"Password ng backup"</string>
+    <string name="vault_backup_repeat" formatted="false">"Kumpirmahin ang password"</string>
+    <string name="vault_backup_same" formatted="false">"Naroroon na"</string>
+    <string name="vault_backup_saved" formatted="false">"Na-save sa device"</string>
+    <string name="vault_backup_scope" formatted="false">"Mga kasalukuyang entry lang. Hindi kasama ang history, trash, draft, magkasalungat na kopya at mga key na pinamamahalaan ng dMsg."</string>
+    <string name="vault_backup_sync" formatted="false">"Gaya ng dati ang pag-sync ng mga entry. Nasa Files ng device ang mga attachment."</string>
+    <string name="vault_backup_title" formatted="false">"Pag-backup at pagpapanumbalik"</string>
+    <string name="vault_backup_unavailable" formatted="false">"May mga file na hindi available. I-download ang mga ito o mga entry lamang ang i-export."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Walang na-import. Piliin muli ang backup."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Hindi mabuksan ang backup. Suriin ang password o pumili ng kumpletong file."</string>
+    <string name="vault_backup_wallet" formatted="false">"Kasama ang mga lihim na naka-save sa mga entry ng wallet."</string>
     <string name="vault_field_birthday" formatted="false">"Birthday"</string>
     <string name="vault_field_cardholder" formatted="false">"Cardholder"</string>
     <string name="vault_field_credential" formatted="false">"Kredensyal"</string>

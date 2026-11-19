@@ -9,7 +9,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use dmsg_client::hold::Hold;
 use dmsg_client::vault::{
-    Changes, Conflict, FIELD_TYPES, Filter, Keep, Side, TYPES, VaultEntry, import, otp,
+    Changes, Conflict, FIELD_TYPES, Filter, Keep, Side, TYPES, VaultEntry, backup, import, otp,
     primary_secret, reading, ssh, template,
 };
 use dmsg_types::{Error, Result};
@@ -17,7 +17,17 @@ use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 20] = [
+pub(crate) const METHODS: [&str; 30] = [
+    "vault/backup_begin",
+    "vault/backup_inventory",
+    "vault/backup_request",
+    "vault/backup_export",
+    "vault/backup_save",
+    "vault/backup_inspect",
+    "vault/backup_commit",
+    "vault/backup_cancel",
+    "vault/backup_status",
+    "vault/backup_password",
     "vault/templates",
     "vault/create",
     "vault/edit",
@@ -43,6 +53,8 @@ pub(crate) const METHODS: [&str; 20] = [
 /// The events a method's success announces.
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
+        "vault/backup_commit" => &["vault/changed", "files/changed"],
+        "vault/backup_request" => &["approval/changed"],
         "vault/create" | "vault/edit" | "vault/duplicate" | "vault/delete" | "vault/restore"
         | "vault/tags" | "vault/revert" | "vault/resolve" | "vault/import" => &["vault/changed"],
         _ => &[],
@@ -98,6 +110,69 @@ fn otp_field(entry: &VaultEntry, params: &Value) -> Result<String> {
 impl Daemon {
     /// Run one of [`METHODS`].
     pub(crate) async fn call_vault(&self, method: &str, params: &Value) -> Result<Value> {
+        if method.starts_with("vault/backup_") {
+            let h = self.hold();
+            let field = |name: &str| {
+                params[name]
+                    .as_str()
+                    .ok_or_else(|| dmsg_types::invalid(name))
+            };
+            return match method {
+                "vault/backup_begin" => {
+                    h.with(|c| Ok(json!(backup::begin(c, params["import"] == true)?)))
+                        .await
+                }
+                "vault/backup_password" => Ok(json!(backup::generate_password())),
+                "vault/backup_inventory" => backup::inventory(&h, field("id")?).await,
+                "vault/backup_request" => {
+                    h.with(|c| {
+                        backup::request(
+                            c,
+                            field("id")?,
+                            &parse::<Vec<String>>(params, "items")?,
+                            parse(params, "attachments")?,
+                            field("password")?,
+                            field("confirmation")?,
+                        )
+                    })
+                    .await
+                }
+                "vault/backup_export" => backup::export(&h, field("id")?, field("approval")?).await,
+                "vault/backup_save" => {
+                    backup::save(&h, field("id")?, &absolute(params, "path")?).await
+                }
+                "vault/backup_inspect" => {
+                    backup::inspect(
+                        &h,
+                        field("id")?,
+                        &absolute(params, "path")?,
+                        field("password")?,
+                    )
+                    .await
+                }
+                "vault/backup_commit" => {
+                    h.with(|c| {
+                        backup::commit(
+                            c,
+                            field("id")?,
+                            field("digest")?,
+                            parse(params, "items")?,
+                            field("folder")?,
+                        )
+                    })
+                    .await
+                }
+                "vault/backup_cancel" => {
+                    h.with(|c| {
+                        backup::cancel(c, field("id")?);
+                        Ok(Value::Null)
+                    })
+                    .await
+                }
+                "vault/backup_status" => h.with(|c| backup::progress(c, field("id")?)).await,
+                _ => Err(Error::UnsupportedProtocol),
+            };
+        }
         if method == "vault/templates" {
             let mut templates = Map::new();
             for kind in TYPES {
@@ -366,6 +441,127 @@ mod tests {
             dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
             crate::mcp_events::McpEvents::new(&[]).unwrap(),
         ))
+    }
+
+    #[tokio::test]
+    async fn backups_round_trip_every_item_and_field_kind_through_owner_methods() {
+        use dmsg_client::vault::{Field, Item};
+        let source_home = TempDir::new();
+        let target_home = TempDir::new();
+        let source = daemon(&source_home);
+        let target = daemon(&target_home);
+        let entries = |c: &mut dmsg_client::Client| {
+            Ok(c.vault_list(&Filter::default())?
+                .into_iter()
+                .map(|e| (e.item.kind.clone(), e.item))
+                .collect::<BTreeMap<_, _>>())
+        };
+        let expected = source
+            .hold()
+            .with(|c| {
+                dmsg_client::testing::allow_vault_backup(c);
+                let mut items = Vec::new();
+                for kind in TYPES {
+                    let mut item = Item::new(kind, &format!("Fixture {kind}"), 42);
+                    item.notes = "第一行\nSecond line".into();
+                    item.favorite = true;
+                    item.tags = vec!["仅测试".into()];
+                    for (i, field_kind) in FIELD_TYPES.iter().enumerate() {
+                        let value = match *field_kind {
+                            "otp" => "JBSWY3DPEHPK3PXP",
+                            "month" => "2026-11",
+                            "date" => "2026-11-19",
+                            "url" => "https://example.test",
+                            "email" => "fixture@example.test",
+                            _ => "合成字段\nSecond line",
+                        };
+                        let mut field = Field::new(&format!("custom_{i}"), field_kind, value);
+                        field.label = format!("Label {i}");
+                        field.section = "测试".into();
+                        item.fields.push(field);
+                    }
+                    items.push(item);
+                }
+                c.vault_add_all(items)?;
+                entries(c)
+            })
+            .await
+            .unwrap();
+        let id = source
+            .call_vault("vault/backup_begin", &json!({}))
+            .await
+            .unwrap();
+        let list = source
+            .call_vault("vault/backup_inventory", &json!({"id": id}))
+            .await
+            .unwrap();
+        let items: Vec<_> = list["inventory"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| &e["id"])
+            .collect();
+        let request = source.call_vault("vault/backup_request", &json!({
+            "id": id, "items": items, "attachments": false, "password": "123456", "confirmation": "123456"
+        })).await.unwrap();
+        // The synthetic device confirms this local action without a system prompt.
+        source
+            .under_lock(async |c| {
+                c.approval_respond(
+                    request["id"].as_str().unwrap(),
+                    request["digest"].as_str().unwrap(),
+                    true,
+                    "gui",
+                    true,
+                )
+                .await
+            })
+            .await
+            .unwrap();
+        let file = source_home.0.join("fixture.dmsgvault");
+        source
+            .call_vault(
+                "vault/backup_export",
+                &json!({"id":id,"approval":request["id"]}),
+            )
+            .await
+            .unwrap();
+        source
+            .call_vault("vault/backup_save", &json!({"id":id,"path":file}))
+            .await
+            .unwrap();
+
+        target
+            .hold()
+            .with(|c| {
+                dmsg_client::testing::allow_vault_backup(c);
+                Ok(())
+            })
+            .await
+            .unwrap();
+        let id = target
+            .call_vault("vault/backup_begin", &json!({"import":true}))
+            .await
+            .unwrap();
+        let preview = target
+            .call_vault(
+                "vault/backup_inspect",
+                &json!({"id":id,"path":file,"password":"123456"}),
+            )
+            .await
+            .unwrap();
+        assert!(!preview.to_string().contains("合成字段"));
+        let picks: Vec<_> = (0..TYPES.len()).collect();
+        let result = target
+            .call_vault(
+                "vault/backup_commit",
+                &json!({"id":id,"digest":preview["digest"],"items":picks,"folder":"root"}),
+            )
+            .await
+            .unwrap();
+        assert_eq!(result["items"], TYPES.len());
+        let restored = target.hold().with(entries).await.unwrap();
+        assert_eq!(restored, expected);
     }
 
     #[tokio::test]

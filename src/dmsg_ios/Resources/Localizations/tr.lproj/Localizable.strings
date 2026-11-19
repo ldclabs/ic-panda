@@ -3474,5 +3474,43 @@
 	<string>Hesaplarınızı yüklemek için dMsg’yi açıp kilidini kaldırın.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Otomatik parola doldurma güncellenemedi.</string>
+	<key>Backup and restore</key>
+	<string>Yedekleme ve geri yükleme</string>
+	<key>Export encrypted backup</key>
+	<string>Şifreli yedeği dışa aktar</string>
+	<key>Import from backup</key>
+	<string>Yedekten içe aktar</string>
+	<key>Backup password</key>
+	<string>Yedek parolası</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Girilen iki yedekleme parolası eşleşmiyor.</string>
+	<key>Confirm backup password</key>
+	<string>Yedek parolasını doğrula</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>En az 6 karakter. Parolayı ayrı saklayın. dMsg parolayı kurtaramaz.</string>
+	<key>Include linked files</key>
+	<string>Bağlı dosyaları ekle</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Bazı dosyalar kullanılamıyor. Bunları indirin veya yalnızca kayıtları dışa aktarın.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Cüzdan kayıtlarında saklanan gizli bilgileri içerir.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Yalnızca güncel kayıtlar dahil edilir. Geçmiş, çöp kutusu, taslaklar, çakışan kopyalar ve dMsg anahtarları hariç tutulur.</string>
+	<key>Add as new</key>
+	<string>Yeni olarak ekle</string>
+	<key>Different content · save a copy</key>
+	<string>İçerik farklı · kopya kaydet</string>
+	<key>Deleted here · save a copy</key>
+	<string>Burada silindi · kopya kaydet</string>
+	<key>Saved locally</key>
+	<string>Cihaza kaydedildi</string>
+	<key>Omitted attachments</key>
+	<string>Atlanan ekler</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Yedek açılamadı. Parolayı kontrol edin veya eksiksiz bir dosya seçin.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>İçe aktarma kaydedilmedi. Yedeği tekrar seçin.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Kayıtlar normal şekilde eşitlenir. Ekler bu cihazdaki Dosyalar’a kaydedilir.</string>
 </dict>
 </plist>

@@ -10,6 +10,8 @@ Non vendiamo dati personali né utilizziamo i tuoi contenuti a fini pubblicitari
 
 Gli elementi della cassaforte (Vault), i messaggi privati e i file vengono crittografati prima del caricamento. Le chiavi dei contenuti rimangono sui dispositivi autorizzati o in buste crittografiche di recupero/dispositivo che il servizio non è in grado di aprire. I destinatari possono leggere e conservare le copie condivise. I profili pubblici, gli avatar, gli handle (nomi utente), i documenti di directory e le informazioni che pubblichi intenzionalmente sono pubblici. Una segnalazione costituisce una comunicazione separata: i moderatori ricevono il motivo, la nota, gli identificatori dell'account o della risorsa e solo il testo del messaggio che scegli esplicitamente di allegare. L'invio di una segnalazione non fornisce ai moderatori le chiavi del tuo account.
 
+Quando esporti la cassaforte, l’app crea sul dispositivo un file cifrato con una password separata. dMsg non riceve il backup o la password. Il servizio di archiviazione scelto può conservare il file cifrato.
+
 ## 2. Metadati del servizio
 
 Il servizio elabora gli identificatori di account e di accesso, le chiavi pubbliche dei dispositivi, l'appartenenza ai canali, le regole di contatto e di blocco, le dimensioni degli oggetti, la tempistica delle richieste, gli indirizzi IP e le informazioni operative relative alle richieste. Lo stato certificato dell'account, le ricevute di firma e i diritti di utilizzo (entitlement) consentono alle app client e ai servizi di verificare le autorizzazioni. Le transazioni sul ledger e i record on-chain pubblici o certificati generalmente non possono essere cancellati.

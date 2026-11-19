@@ -3474,5 +3474,43 @@
 	<string>Откройте и разблокируйте dMsg, чтобы загрузить данные для входа.</string>
 	<key>Could not update Password AutoFill.</key>
 	<string>Не удалось обновить автозаполнение паролей.</string>
+	<key>Backup and restore</key>
+	<string>Резервное копирование и восстановление</string>
+	<key>Export encrypted backup</key>
+	<string>Экспортировать зашифрованную копию</string>
+	<key>Import from backup</key>
+	<string>Импортировать из копии</string>
+	<key>Backup password</key>
+	<string>Пароль резервной копии</string>
+	<key>The two backup passwords do not match.</key>
+	<string>Введённые пароли резервной копии не совпадают.</string>
+	<key>Confirm backup password</key>
+	<string>Подтвердить пароль копии</string>
+	<key>At least 6 characters. Keep this password separately. dMsg cannot recover it.</key>
+	<string>Не менее 6 символов. Храните пароль отдельно. dMsg не сможет его восстановить.</string>
+	<key>Include linked files</key>
+	<string>Включить связанные файлы</string>
+	<key>Some linked files are unavailable. Download them or export items only.</key>
+	<string>Некоторые файлы недоступны. Скачайте их или экспортируйте только записи.</string>
+	<key>Includes secrets saved in wallet items.</key>
+	<string>Включены секреты, сохранённые в записях кошельков.</string>
+	<key>Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.</key>
+	<string>Только текущие записи. История, корзина, черновики, конфликтующие копии и ключи dMsg исключены.</string>
+	<key>Add as new</key>
+	<string>Добавить как новую</string>
+	<key>Different content · save a copy</key>
+	<string>Содержимое отличается · сохранить копию</string>
+	<key>Deleted here · save a copy</key>
+	<string>Удалено здесь · сохранить копию</string>
+	<key>Saved locally</key>
+	<string>Сохранено на устройстве</string>
+	<key>Omitted attachments</key>
+	<string>Пропущенные вложения</string>
+	<key>Cannot unlock this backup. Check the password or choose a complete backup file.</key>
+	<string>Не удалось открыть копию. Проверьте пароль или выберите полный файл.</string>
+	<key>No import was committed. Choose the backup again.</key>
+	<string>Импорт не сохранён. Выберите копию снова.</string>
+	<key>Vault entries follow normal sync. Attachments are saved in Files on this device.</key>
+	<string>Записи синхронизируются как обычно. Вложения сохранены в файлах на этом устройстве.</string>
 </dict>
 </plist>

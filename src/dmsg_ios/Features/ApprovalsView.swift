@@ -61,6 +61,7 @@ func approvalTitle(_ type: String) -> String {
     case "grant": String(localized: "Review agent permissions")
     case "device_pair": String(localized: "Authorize a new device")
     case "device_transfer": String(localized: "Send to a device")
+    case "vault_backup": String(localized: "Export encrypted backup")
     case "device_revoke": String(localized: "Revoke a device")
     case "device_capabilities": String(localized: "Change device permissions")
     case "attest": String(localized: "Sign a statement")
@@ -312,6 +313,14 @@ func approvalSummary(type: String, detail: DisplayValue) -> String? {
         return value
     }
     switch type {
+    case "vault_backup":
+        let items = fields["items"]?.text ?? ""
+        let files = fields["files"]?.text ?? ""
+        let omitted = fields["omitted"]?.text ?? ""
+        var lines = [String(localized: "Items") + " · " + items, String(localized: "Attachments") + " · " + files,
+                     String(localized: "Omitted attachments") + " · " + omitted]
+        if case .boolean(true)? = fields["wallet"] { lines.append(String(localized: "Includes secrets saved in wallet items.")) }
+        return lines.joined(separator: "\n")
     case "device_pair":
         guard let device = string("device_id"), let role = string("role") else { return nil }
         let fingerprint = device.count > 20 ? String(device.prefix(8)) + "…" + String(device.suffix(8)) : device

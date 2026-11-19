@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Ваша роль"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Выбор выше будет сохранён относительно последней загруженной ревизии. Проверьте его перед продолжением."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Период подписки изменился. Обновите членство и проверьте ещё раз."</string>
+    <string name="vault_backup_changed" formatted="false">"Содержимое отличается · сохранить копию"</string>
+    <string name="vault_backup_deleted" formatted="false">"Удалено здесь · сохранить копию"</string>
+    <string name="vault_backup_export" formatted="false">"Экспортировать зашифрованную копию"</string>
+    <string name="vault_backup_files" formatted="false">"Включить связанные файлы"</string>
+    <string name="vault_backup_hint" formatted="false">"Не менее 6 символов. Храните пароль отдельно. dMsg не сможет его восстановить."</string>
+    <string name="vault_backup_import" formatted="false">"Импортировать из копии"</string>
+    <string name="vault_backup_mismatch" formatted="false">"Введённые пароли резервной копии не совпадают."</string>
+    <string name="vault_backup_new" formatted="false">"Добавить как новую"</string>
+    <string name="vault_backup_omitted" formatted="false">"Пропущенные вложения"</string>
+    <string name="vault_backup_password" formatted="false">"Пароль резервной копии"</string>
+    <string name="vault_backup_repeat" formatted="false">"Подтвердить пароль копии"</string>
+    <string name="vault_backup_same" formatted="false">"Уже существует"</string>
+    <string name="vault_backup_saved" formatted="false">"Сохранено на устройстве"</string>
+    <string name="vault_backup_scope" formatted="false">"Только текущие записи. История, корзина, черновики, конфликтующие копии и ключи dMsg исключены."</string>
+    <string name="vault_backup_sync" formatted="false">"Записи синхронизируются как обычно. Вложения сохранены в файлах на этом устройстве."</string>
+    <string name="vault_backup_title" formatted="false">"Резервное копирование и восстановление"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Некоторые файлы недоступны. Скачайте их или экспортируйте только записи."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Импорт не сохранён. Выберите копию снова."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Не удалось открыть копию. Проверьте пароль или выберите полный файл."</string>
+    <string name="vault_backup_wallet" formatted="false">"Включены секреты, сохранённые в записях кошельков."</string>
     <string name="vault_field_birthday" formatted="false">"Дата рождения"</string>
     <string name="vault_field_cardholder" formatted="false">"Владелец карты"</string>
     <string name="vault_field_credential" formatted="false">"Учётные данные"</string>

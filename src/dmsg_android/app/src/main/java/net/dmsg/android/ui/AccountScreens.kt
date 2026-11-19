@@ -143,7 +143,8 @@ import net.dmsg.core.*
                     val document = value.kind == "attest" || value.kind == "connect" && body?.text("method") == "signDocument"
                     if (document) Notice(if (body?.optionalFlag("file_checked") == true) str(R.string.text_the_original_file_was_checked_against_this_digest_c5ffd5d) else str(R.string.text_only_the_digest_is_being_reviewed_the_original_file_has_not_been_241cfe0))
                     if (value.kind == "account" && body?.text("change") == "recovery_policy") Notice(if (body.flag("enabled")) str(R.string.text_a_bound_login_can_recover_uploaded_content_after_the_waiting_peri_31381f9) else str(R.string.text_keep_an_authorized_device_you_can_unlock_recovering_a_login_alone_11b8c07))
-                    if (value.secret != null) SecretApprovalContent(value.secret) else HumanRecord(value.detail)
+                    if (value.kind == "vault_backup" && body != null) BackupApprovalContent(body)
+                    else if (value.secret != null) SecretApprovalContent(value.secret) else HumanRecord(value.detail)
                     SectionTitle(str(R.string.text_request_state_e7453d3))
                     Text(secretStateName(value.state))
                     value.error?.let { Notice(errorText(it), true) }
@@ -200,7 +201,8 @@ import net.dmsg.core.*
                             if (formatted != null) LabelValue(str(label), formatted + " ICP")
                         }
                     }
-                    HumanRecord(value.detail)
+                    if (value.kind == "vault_backup" && body != null) BackupApprovalContent(body)
+                    else HumanRecord(value.detail)
                 }
                 HorizontalDivider()
                 SelectionContainer { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

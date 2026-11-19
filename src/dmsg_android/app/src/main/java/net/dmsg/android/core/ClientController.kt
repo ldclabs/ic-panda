@@ -96,6 +96,7 @@ class ClientController internal constructor(private val application: Application
     val transfers = FileTransferCoordinator(this) { files }
     val filePreview = FilePreviewCoordinator(this) { files }
     val vaultImport = VaultImportCoordinator(this, scope) { files }
+    val vaultBackup = VaultBackupCoordinator(this, scope, { files }, { engine })
     val qr = QrCoordinator(this)
     val vaultDrafts = VaultDrafts(this)
     val navigation = WorkspaceNavigation()
@@ -238,6 +239,7 @@ class ClientController internal constructor(private val application: Application
         secretTools.clear()
         secretSharing.clear()
         vaultImport.clear()
+        vaultBackup.clear()
         qr.clear()
         messages.clear(sessions.snapshot?.account)
         channels.clear(); participants.clear()
@@ -458,6 +460,7 @@ class ClientController internal constructor(private val application: Application
             secretTools.clear()
             secretSharing.clear(retainForms = retain)
             vaultImport.clear(retain)
+            vaultBackup.clear()
             qr.clear()
             messages.clear(before?.account, retainDrafts = retain)
             channels.clear(retainForms = retain); participants.clear()

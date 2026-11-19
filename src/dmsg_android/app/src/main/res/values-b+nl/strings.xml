@@ -2070,6 +2070,26 @@
     <string name="text_your_role_2f39a6c" formatted="false">"Je rol"</string>
     <string name="text_your_selections_above_will_be_saved_against_the_latest_loaded_rev_b1c5c6b" formatted="false">"Je selecties hierboven worden opgeslagen tegen de laatst geladen revisie. Controleer ze voordat je doorgaat."</string>
     <string name="text_your_subscription_term_changed_refresh_membership_and_review_it_a_a24389d" formatted="false">"Je abonnementsperiode is gewijzigd. Vernieuw je lidmaatschap en controleer het opnieuw."</string>
+    <string name="vault_backup_changed" formatted="false">"Andere inhoud · kopie opslaan"</string>
+    <string name="vault_backup_deleted" formatted="false">"Hier verwijderd · kopie opslaan"</string>
+    <string name="vault_backup_export" formatted="false">"Versleutelde back-up exporteren"</string>
+    <string name="vault_backup_files" formatted="false">"Gekoppelde bestanden meenemen"</string>
+    <string name="vault_backup_hint" formatted="false">"Minstens 6 tekens. Bewaar het wachtwoord apart. dMsg kan het niet herstellen."</string>
+    <string name="vault_backup_import" formatted="false">"Uit back-up importeren"</string>
+    <string name="vault_backup_mismatch" formatted="false">"De twee back-upwachtwoorden komen niet overeen."</string>
+    <string name="vault_backup_new" formatted="false">"Als nieuw toevoegen"</string>
+    <string name="vault_backup_omitted" formatted="false">"Overgeslagen bijlagen"</string>
+    <string name="vault_backup_password" formatted="false">"Back-upwachtwoord"</string>
+    <string name="vault_backup_repeat" formatted="false">"Back-upwachtwoord bevestigen"</string>
+    <string name="vault_backup_same" formatted="false">"Reeds aanwezig"</string>
+    <string name="vault_backup_saved" formatted="false">"Lokaal opgeslagen"</string>
+    <string name="vault_backup_scope" formatted="false">"Alleen huidige items. Geschiedenis, prullenbak, concepten, conflictkopieën en door dMsg beheerde sleutels worden overgeslagen."</string>
+    <string name="vault_backup_sync" formatted="false">"Items worden zoals gewoonlijk gesynchroniseerd. Bijlagen staan in Bestanden op dit apparaat."</string>
+    <string name="vault_backup_title" formatted="false">"Back-up en herstel"</string>
+    <string name="vault_backup_unavailable" formatted="false">"Sommige bestanden ontbreken. Download ze of exporteer alleen de items."</string>
+    <string name="vault_backup_uncommitted" formatted="false">"Er is niets geïmporteerd. Kies de back-up opnieuw."</string>
+    <string name="vault_backup_unlockerror" formatted="false">"Back-up kan niet worden geopend. Controleer het wachtwoord of kies een volledig bestand."</string>
+    <string name="vault_backup_wallet" formatted="false">"Bevat geheimen uit portemonnee-items."</string>
     <string name="vault_field_birthday" formatted="false">"Verjaardag"</string>
     <string name="vault_field_cardholder" formatted="false">"Kaarthouder"</string>
     <string name="vault_field_credential" formatted="false">"Referentie"</string>
