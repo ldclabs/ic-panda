@@ -6,7 +6,7 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
-## [1.5.10-beta.1] - 2026-11-19
+## [1.5.10] - 2026-11-19
 
 - Export selected vault entries and attachments to a password-protected backup
   after approving on the device. Preview an import from desktop, iOS or Android
