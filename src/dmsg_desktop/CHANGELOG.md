@@ -6,6 +6,19 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.5.10-beta.1] - 2026-11-19
+
+- Export selected vault entries and attachments to a password-protected backup
+  after approving on the device. Preview an import from desktop, iOS or Android
+  and choose which changed entries to restore as separate copies.
+- Protect unsaved vault edits when opening Settings. Keep name invitations
+  through unlock and show quotes for the current name search.
+- Show session status in compact navigation and identify the device permissions
+  requested during pairing and approval.
+- Cache the owner credential during `dmsg start` and allow more time for
+  macOS Keychain prompts after a signing-team change. If credential access
+  fails for a running daemon, the command returns the error immediately.
+
 ## [1.5.9] - 2026-11-18
 
 - Keep unsent channel drafts when switching conversations. Retry a direct
@@ -19,9 +32,6 @@ where the client depends on them.
   keystrokes in the input when using an input method.
 - Update the macOS secret-files volume and cache probe to the current FSKit
   handlers.
-- Cache the owner credential during `dmsg start` and allow more time for
-  macOS Keychain prompts after a signing-team change. If credential access
-  fails for a running daemon, the command returns the error immediately.
 
 ## [1.5.8] - 2026-11-18
 
@@ -930,6 +940,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.5.10-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.5.9...1.5.10-beta.1
 [1.5.7]: https://github.com/ldclabs/ic-panda/compare/1.5.6...1.5.7
 [1.5.6]: https://github.com/ldclabs/ic-panda/compare/1.5.5...1.5.6
 [1.5.5]: https://github.com/ldclabs/ic-panda/compare/1.5.4...1.5.5

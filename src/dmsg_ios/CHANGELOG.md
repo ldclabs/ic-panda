@@ -7,12 +7,19 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## 1.2.3
 
-### Changes since build 34
+### Build 35 — 2026-11-19
 
+- Export selected vault entries and attachments to a password-protected backup
+  after approving on the device. Preview backups from iOS, desktop or Android
+  before importing and choose which changed entries to restore as copies.
+- Refresh message search results after messages change and return to the
+  latest message even when an earlier timeline request is still loading.
+- Show the wallet ID on approvals and distinguish cosigning from executing a
+  transaction. Keep edited vault fields and unfinished agent permission
+  targets visible.
 - Search vault logins directly from Password AutoFill. Fill once or remember
   multiple accounts for a known app or site, with the last used account first.
   Fix catalog creation when the shared container uses the `/private/var` path.
-
 - Stop Keychain preparation if an existing installation's identifier is missing,
   damaged or unreadable, while treating temporary lock-screen read denials as
   retryable rather than permanent preparation failures. Retrying with the

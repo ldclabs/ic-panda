@@ -44,7 +44,7 @@ def source_hash():
                 pending.append(candidate)
     roots = [str(p.relative_to(ROOT)) for p in sorted(selected)]
     roots += ["Cargo.toml", "Cargo.lock", ".cargo", "rust-toolchain.toml",
-              "scripts/ios/build-core.sh", "scripts/ios/artifacts.py"]
+              "scripts/ios/build-core.sh", "scripts/ios/artifacts.py", "scripts/mobile/cargo-bindgen.py"]
     paths = set(command("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", *roots).splitlines())
     h = hashlib.sha256()
     for name in sorted(paths):

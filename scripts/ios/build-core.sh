@@ -4,22 +4,22 @@ cd "$(dirname "$0")/../.."
 export IPHONEOS_DEPLOYMENT_TARGET=18.0
 profile="${DMSG_IOS_PROFILE:-debug}"
 case "$profile" in debug|release) ;; *) echo "DMSG_IOS_PROFILE must be debug or release" >&2; exit 2;; esac
-flags=()
+flags=(--locked -p dmsg_mobile)
 if [[ "$profile" == release ]]; then flags+=(--release); fi
 bridge="$PWD/src/dmsg_ios/CoreBridge"
 target_dir="$(cargo metadata --locked --no-deps --format-version 1 | python3 -c 'import json, sys; print(json.load(sys.stdin)["target_directory"])')"
 mkdir -p "$bridge/Generated" "$bridge/Headers" "$bridge/Artifacts"
 build_source_sha256="$(python3 scripts/ios/artifacts.py fingerprint)"
-cargo build --locked -p dmsg_mobile "${flags[@]}"
+cargo build "${flags[@]}"
 # cargo run also builds the package library; keep it in the selected profile
 # instead of linking an unoptimized host library during release builds.
-cargo run --locked -p dmsg_mobile "${flags[@]}" --features bindgen --bin dmsg-mobile-bindgen -- generate \
+python3 scripts/mobile/cargo-bindgen.py run "${flags[@]}" --features bindgen --bin dmsg-mobile-bindgen -- generate \
   --library "$target_dir/$profile/libdmsg_mobile.dylib" --language swift \
   --out-dir "$bridge/Generated"
 cp "$bridge/Generated/DMsgCoreFFI.h" "$bridge/Headers/"
 cp "$bridge/Generated/DMsgCoreFFI.modulemap" "$bridge/Headers/module.modulemap"
 for target in aarch64-apple-ios aarch64-apple-ios-sim; do
-  cargo build --locked -p dmsg_mobile --target "$target" "${flags[@]}"
+  cargo build "${flags[@]}" --target "$target"
 done
 # xcodebuild refuses an existing output. Remove only this generated artifact.
 rm -rf "$bridge/Artifacts/DMsgCoreFFI.xcframework"

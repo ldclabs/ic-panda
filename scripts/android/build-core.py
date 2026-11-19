@@ -8,11 +8,13 @@ from pathlib import Path
 import platform
 import shutil
 import subprocess
+import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT / "src/dmsg_android/app"
 GENERATED = APP / "build/generated/dmsg"
+BINDGEN_CARGO = ROOT / "scripts/mobile/cargo-bindgen.py"
 NDK_VERSION = "28.2.13676358"
 TARGETS = {"arm64-v8a": ("aarch64-linux-android", "aarch64-linux-android31"),
            "x86_64": ("x86_64-linux-android", "x86_64-linux-android31")}
@@ -55,6 +57,7 @@ def sources():
     # Only producers affect native bytes. Test runners/package inspectors consume
     # artifacts and must not invalidate every ABI when their checks change.
     files.update(ROOT / "scripts/android" / name for name in ("build-core.py", "build-core.sh"))
+    files.add(BINDGEN_CARGO)
     files.update(p for p in (ROOT / "tests/vectors").rglob("*") if p.is_file())
     return sorted(files)
 
@@ -131,7 +134,9 @@ def main():
     env.pop("RUSTFLAGS", None)
     env.pop("CARGO_ENCODED_RUSTFLAGS", None)
     if not bindings_valid:
-        run(["cargo", "build", "--locked", "-p", "dmsg_mobile", "--features", "bindgen,ui-fixtures" if args.fixtures else "bindgen"], env)
+        features = "bindgen,ui-fixtures" if args.fixtures else "bindgen"
+        run([sys.executable, str(BINDGEN_CARGO), "build", "--locked", "-p", "dmsg_mobile",
+             "--features", features], env)
         suffix = "dylib" if platform.system() == "Darwin" else "so"
         GENERATED.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="bindings-", dir=GENERATED) as temp:

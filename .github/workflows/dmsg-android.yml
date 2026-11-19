@@ -11,6 +11,7 @@ on:
       - src/dmsg_types/**
       - src/dmsg_ios/Resources/Localizations/**
       - scripts/android/**
+      - scripts/mobile/**
       - tests/vectors/**
       - Cargo.toml
       - Cargo.lock
