@@ -38,6 +38,25 @@ struct PrivateFiles: Sendable {
             var values = URLResourceValues(); values.isExcludedFromBackup = true
             try directory.setResourceValues(values)
         }
+        let marker = root.appending(path: "installation")
+        do {
+            let saved = try String(contentsOf: marker, encoding: .utf8)
+            guard UUID(uuidString: saved) != nil else { throw KeychainMigration.Failure.preparationMissing }
+            installation = saved
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            // An installation UUID selects the Keychain service. Only the two
+            // empty directories created above are evidence of a fresh install.
+            guard try Set(manager.contentsOfDirectory(atPath: root.path)) == [workspace.lastPathComponent, staging.lastPathComponent],
+                  try manager.contentsOfDirectory(atPath: workspace.path).isEmpty,
+                  try manager.contentsOfDirectory(atPath: staging.path).isEmpty else {
+                throw KeychainMigration.Failure.preparationMissing
+            }
+            installation = UUID().uuidString
+            // The main app serializes startup. Publish the entire UUID in one rename.
+            try Data(installation.utf8).write(to: marker, options: [.atomic, .completeFileProtection])
+        } catch {
+            throw KeychainMigration.Failure.preparationMissing
+        }
         // Previews are read-only app-owned copies; never preserve them across
         // a process restart. Import staging is managed separately below.
         for namespace in ["accounts", "logins"] {
@@ -49,13 +68,6 @@ struct PrivateFiles: Sendable {
             }
         }
         PhotoImport.removeAbandoned()
-        let marker = root.appending(path: "installation")
-        if let value = try? String(contentsOf: marker, encoding: .utf8), UUID(uuidString: value) != nil {
-            installation = value
-        } else {
-            installation = UUID().uuidString
-            try Data(installation.utf8).write(to: marker, options: [.atomic, .completeFileProtection])
-        }
     }
 
     /// Only the caller that completed an import may remove its exact temporary

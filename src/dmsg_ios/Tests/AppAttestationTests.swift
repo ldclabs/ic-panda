@@ -23,6 +23,35 @@ final class AppAttestationTests: XCTestCase {
               generate: { "key" }, attest: { _, _ in Data("attestation".utf8) })
     }
 
+    func testSigningTeamChangeEnrollsOnceWithoutReusingAnOldProof() async throws {
+        let root = try file().deletingLastPathComponent()
+        let directory = root.appending(path: "apple")
+        let old = directory.appending(path: "account.production.json")
+        XCTAssertEqual(AppAttestation.recordURL(root: root, account: "account", environment: "production",
+                                                signingPrefix: KeychainMigration.originalPrefix), old)
+        let next = AppAttestation.recordURL(root: root, account: "account", environment: "production",
+                                            signingPrefix: "63G8VNQPXB.")
+        try FileManager.default.createDirectory(at: next.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let saved = Data(#"{"id":"ldc","device":"device","object":"old-proof"}"#.utf8)
+        try saved.write(to: old)
+        var service = service(), registered = false, generated = 0
+        service.status = { id in XCTAssertEqual(id, "yiwen"); return registered }
+        service.generate = { generated += 1; return "yiwen" }
+        service.register = { id, _, _ in XCTAssertEqual(id, "yiwen"); registered = true }
+        for _ in 0..<2 {
+            let key = try await AppAttestation.key(device: "device", path: next, service: service)
+            XCTAssertEqual(key, "yiwen")
+        }
+        XCTAssertEqual(generated, 1)
+        XCTAssertEqual(try Data(contentsOf: old), saved)
+        let other = directory.appending(path: "another.production.json")
+        try saved.write(to: other)
+        try AppAttestation.removeRecords(root: root, account: "account")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: old.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: next.path))
+        XCTAssertEqual(try Data(contentsOf: other), saved)
+    }
+
     func testAppleOutageAndRestartReuseTheKeyAndOriginalChallenge() async throws {
         let path = try file()
         var service = service(), keys = 0, challenges = 0, hashes: [Data] = []

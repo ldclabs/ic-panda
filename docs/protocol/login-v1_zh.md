@@ -99,7 +99,7 @@ Android 核心在编译时固定回调地址，登录绑定和原生 Passkey 响
 
 移动端发起的登录与登录绑定固定使用 `https://dmsg.net` 派生域，不再提供 `panda.fans` 选项。旧域认证与旧数据迁移继续通过桌面端的既有流程进行；这项入口限制不改变协议对桌面迁移请求的支持，也不自动合并两个派生身份的账户。
 
-iOS 使用 `ASWebAuthenticationSession.Callback.https(host:path:)`，App 的 Associated Domains 须含 `webcredentials:dmsg.net`，dmsg.net 的 AASA 须列出实际签名的 App。生产 App 为 LDC Labs Limited 团队（`S9Z2WAMAV8`）的 `net.dmsg.ios`：`src/dmsg_ios/project.yml` 固定该团队，`src/dmsg_frontend/static/.well-known/apple-app-site-association` 由 `scripts/ios/aasa.mjs S9Z2WAMAV8 net.dmsg.ios` 生成，随前端部署，必须直接返回 200 JSON 而不跳转。团队或 Bundle ID 变化时两处同时更新。前端发布含该文件和回调页之前，登录不可用。系统会话外打开该回调页时，只清除 fragment 并显示重新从 App 登录的说明，不转发或加载第三方脚本。回调消费一次，进程终止后旧请求失效。
+iOS 使用 `ASWebAuthenticationSession.Callback.https(host:path:)`，App 的 Associated Domains 须含 `webcredentials:dmsg.net`。团队转让期间，dmsg.net 的 AASA 将登录回调和共享网页凭据关联到 `net.dmsg.ios` 的两个签名团队（LDC `S9Z2WAMAV8`、Yiwen `63G8VNQPXB`）。用 `node scripts/ios/aasa.mjs S9Z2WAMAV8 net.dmsg.ios` 生成 `src/dmsg_frontend/static/.well-known/apple-app-site-association`，随回调页部署，直接返回 200 JSON。connect.dmsg.net 构建时使用同一组 App ID 关联配对与请求链接。系统会话外打开回调页时，只清除 fragment 并显示重新从 App 登录的说明，不转发或加载第三方脚本。回调消费一次，进程终止后旧请求失效。
 
 ## 6. 页面要求
 

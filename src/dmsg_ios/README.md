@@ -963,7 +963,9 @@ This tree is development code, not an App Store release assertion. In particular
 1. The app is signed by LDC Labs Limited (`S9Z2WAMAV8`) as `net.dmsg.ios`;
    `project.yml` pins the team. The frontend ships the matching
    `static/.well-known/apple-app-site-association`, generated with
-   `node scripts/ios/aasa.mjs S9Z2WAMAV8 net.dmsg.ios`; change both together.
+   `node scripts/ios/aasa.mjs S9Z2WAMAV8 net.dmsg.ios`. Both that file and
+   the connect site's pairing links use the LDC and Yiwen app identifiers in
+   `scripts/ios/associated-apps.json` during the transfer.
    Release the frontend with the login page, fixed callback page and AASA, check
    that `https://dmsg.net/.well-known/apple-app-site-association` answers 200
    JSON without redirects, then verify association, the II popup/passkey and

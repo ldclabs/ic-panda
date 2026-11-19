@@ -10,19 +10,13 @@ final class NativeApple {
     private var working = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
 
-    private func keyPath(files: PrivateFiles, account: String) -> URL {
-        let environment = Bundle.main.object(forInfoDictionaryKey: "DMsgAttestEnvironment") as? String ?? "production"
-        return files.root.appending(path: "apple").appending(path: account + "." + environment + ".json")
-    }
-
-    private func key(engine: MobileEngine, files: PrivateFiles, account: String) async throws -> String {
+    private func key(engine: MobileEngine, files: PrivateFiles, account: String, path: URL) async throws -> String {
         guard DCAppAttestService.shared.isSupported else { throw MobileError.Failure(code: "APP_INTEGRITY_UNAVAILABLE") }
         let session = try await engine.sessionState()
         guard session.account == account, session.state == "unlocked", let device = session.deviceId else { throw MobileError.Failure(code: "LOCKED") }
-        let directory = files.root.appending(path: "apple")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.protectionKey: FileProtectionType.complete])
+        try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: [.protectionKey: FileProtectionType.complete])
         struct Status: Decodable { let registered: Bool }
-        return try await AppAttestation.key(device: device, path: keyPath(files: files, account: account), service: .init(
+        return try await AppAttestation.key(device: device, path: path, service: .init(
             status: { key in
                 let status: Status = try self.decode(try await engine.attestationStatus(keyId: key))
                 return status.registered
@@ -66,16 +60,19 @@ final class NativeApple {
         working = true; defer {
             working = false; let waiting = idleWaiters; idleWaiters.removeAll(); for waiter in waiting { waiter.resume() }
         }
+        let environment = Bundle.main.object(forInfoDictionaryKey: "DMsgAttestEnvironment") as? String ?? "production"
+        let path = AppAttestation.recordURL(root: files.root, account: account, environment: environment,
+                                            signingPrefix: try KeychainMigration.signingPrefix())
         for attempt in 0..<2 {
             var selected: String?
             do {
-                let key = try await key(engine: engine, files: files, account: account)
+                let key = try await key(engine: engine, files: files, account: account, path: path)
                 selected = key
                 try Task.checkCancellation()
                 return try await operation(key)
             } catch {
                 if let selected {
-                    try AppAttestation.discardInvalidKey(error, id: selected, path: keyPath(files: files, account: account))
+                    try AppAttestation.discardInvalidKey(error, id: selected, path: path)
                 }
                 // A restored installation can retain a registered key ID whose
                 // private key no longer exists. Recover once within this action.

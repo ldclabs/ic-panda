@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
+import iosAppIDs from '../../scripts/ios/associated-apps.json' with { type: 'json' }
 
 interface ConnectConfig {
   environment: 'Local' | 'Staging' | 'Production'
@@ -86,7 +87,7 @@ function assets(config: ConnectConfig): Plugin {
   return {
     name: 'dmsg-connect-assets',
     generateBundle() {
-      this.emitFile({ type: 'asset', fileName: '.well-known/apple-app-site-association', source: JSON.stringify({ applinks: { details: [{ appIDs: ['S9Z2WAMAV8.net.dmsg.ios'], components: [{ '/': '/app/pair' }, { '/': '/app/request' }] }] } }) })
+      this.emitFile({ type: 'asset', fileName: '.well-known/apple-app-site-association', source: JSON.stringify({ applinks: { details: [{ appIDs: iosAppIDs, components: [{ '/': '/app/pair' }, { '/': '/app/request' }] }] } }) })
       this.emitFile({ type: 'asset', fileName: '.ic-assets.json5', source: JSON.stringify(rules, null, 2) + '\n' })
       this.emitFile({ type: 'asset', fileName: '.well-known/ic-domains', source: (config.domains ?? []).join('\n') + '\n' })
     }

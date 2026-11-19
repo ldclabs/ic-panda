@@ -512,10 +512,7 @@ final class SessionModel {
             try writePreferences(at: files.root)
             let staging = files.staging.appending(path: account)
             if FileManager.default.fileExists(atPath: staging.path) { try FileManager.default.removeItem(at: staging) }
-            for suffix in [".json", ".development.json", ".production.json"] {
-                let native = files.root.appending(path: "apple").appending(path: account + suffix)
-                if FileManager.default.fileExists(atPath: native.path) { try FileManager.default.removeItem(at: native) }
-            }
+            try AppAttestation.removeRecords(root: files.root, account: account)
             clearContent(clearClipboard: true); await updateSession()
         } catch { report(error) }
     }

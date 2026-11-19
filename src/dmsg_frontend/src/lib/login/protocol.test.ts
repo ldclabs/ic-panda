@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
@@ -106,12 +107,20 @@ describe('dmsg-login/1 vectors', () => {
         'utf8'
       )
     )
-    const app = 'S9Z2WAMAV8.net.dmsg.ios'
+    const appIDs = ['S9Z2WAMAV8.net.dmsg.ios', '63G8VNQPXB.net.dmsg.ios']
     expect(new URL(IOS_CALLBACK).host).toBe('dmsg.net')
-    expect(aasa.webcredentials.apps).toEqual([app])
+    expect(aasa.webcredentials.apps).toEqual(appIDs)
     expect(aasa.applinks.details).toEqual([
-      { appIDs: [app], components: [{ '/': new URL(IOS_CALLBACK).pathname }] }
+      { appIDs, components: [{ '/': new URL(IOS_CALLBACK).pathname }] }
     ])
+    for (const team of ['S9Z2WAMAV8', '63G8VNQPXB']) {
+      const generated = execFileSync(
+        process.execPath,
+        [resolve('../../scripts/ios/aasa.mjs'), team, 'net.dmsg.ios'],
+        { encoding: 'utf8' }
+      )
+      expect(JSON.parse(generated)).toEqual(aasa)
+    }
   })
 })
 

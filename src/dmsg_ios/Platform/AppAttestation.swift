@@ -6,6 +6,24 @@ import Foundation
 /// saved before contacting Apple; a retry must use the same key and nonce.
 @MainActor
 enum AppAttestation {
+    /// Keep existing LDC enrollments. A successor must enroll under its own App ID,
+    /// including when the old enrollment still has a pending one-time proof.
+    static func recordURL(root: URL, account: String, environment: String, signingPrefix: String) -> URL {
+        let directory = root.appending(path: "apple")
+        if signingPrefix == KeychainMigration.originalPrefix {
+            return directory.appending(path: "\(account).\(environment).json")
+        }
+        return directory.appending(path: account).appending(path: signingPrefix + environment + ".json")
+    }
+
+    static func removeRecords(root: URL, account: String) throws {
+        let directory = root.appending(path: "apple")
+        for name in [account, account + ".json", account + ".development.json", account + ".production.json"] {
+            let item = directory.appending(path: name)
+            if FileManager.default.fileExists(atPath: item.path) { try FileManager.default.removeItem(at: item) }
+        }
+    }
+
     private struct KeyRecord: Codable {
         let id: String
         let device: String

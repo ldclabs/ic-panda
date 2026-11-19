@@ -94,6 +94,45 @@ final class KeychainMigrationTests: XCTestCase {
         XCTAssertEqual(try retry.get(name: "binding"), Data([1]))
     }
 
+    func testExistingWorkspaceNeverChangesKeychainNamespaceOnMarkerFailure() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let old = try PrivateFiles(base: root)
+        let name = service(old.installation), marker = root.appending(path: "installation")
+        defer { remove(name) }
+        let key = Data([7, 2]), workspace = old.workspace.appending(path: "fixture.db")
+        try key.write(to: workspace)
+        try insert(name, group: source, account: "binding", data: key)
+        func open() throws -> AppleSecurity {
+            let files = try PrivateFiles(base: root)
+            return try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
+                                     signingPrefix: KeychainMigration.originalPrefix)
+        }
+        func checkBlocked() throws {
+            XCTAssertThrowsError(try open()) {
+                XCTAssertEqual($0 as? KeychainMigration.Failure, .preparationMissing)
+            }
+            XCTAssertNotNil(try item(name, group: source, account: "binding"))
+            XCTAssertNil(try item(name, group: destination, account: "dmsg:keychain:app-group:v1"))
+            XCTAssertEqual(try Data(contentsOf: workspace), key)
+        }
+        for damaged in [Data("damaged-installation-id".utf8), Data([0xff])] {
+            try damaged.write(to: marker)
+            try checkBlocked()
+            XCTAssertEqual(try Data(contentsOf: marker), damaged)
+        }
+        try FileManager.default.removeItem(at: marker)
+        try checkBlocked()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: marker.path))
+        // An existing but unreadable-as-a-file marker must never be replaced either.
+        try FileManager.default.createDirectory(at: marker, withIntermediateDirectories: false)
+        try checkBlocked()
+        try FileManager.default.removeItem(at: marker)
+        try Data(old.installation.utf8).write(to: marker)
+        XCTAssertEqual(try open().get(name: "binding"), key)
+        XCTAssertNil(try item(name, group: source, account: "binding"))
+    }
+
     func testSkippedPreparationLeavesExistingWorkspaceAndOldKeysUntouched() throws {
         let installation = UUID().uuidString, name = service(installation)
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)

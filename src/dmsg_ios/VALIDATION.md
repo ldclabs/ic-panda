@@ -4041,3 +4041,11 @@ Squirrel 安装、Electron 交互回归、完整 iOS UI 套件、全量 Rust 测
 - 信件列表和收件人选择器会预读候选账号的名称及头像，以便按名称搜索尚未显示的联系人。大收件箱需要权衡首次查看的读取量和首次搜索的等待时间，同时可以评估只为可见行请求头像。[信件列表](Features/MessagesView.swift) · [收件人选择器](Features/MessagePeople.swift)
 - 后台下载在每次进度回调读取、解析并校验传输清单。是否值得缓存分块元数据，需要真实后台传输的耗时和能耗数据，同时保留暂停、取消和重启后的检查。[下载回调](Platform/BackgroundTransfers.swift)
 - iOS 27.0 模拟器的全量结果在 3 项反馈表单和 13 项保险库编辑用例中记录了同一条 `Invalid frame dimension (negative or non-finite)`。这两个表单都使用键盘工具栏。将反馈页工具栏简化为单个按钮后，警告仍出现，完成键和保存结果均正常，因此保留了原有布局。XCTest 未给出业务代码行，需要其他系统版本或真机对照。[反馈表单](Features/FeedbackView.swift) · [保险库编辑器](Features/VaultEditor.swift)
+
+## 2026-11-19 签名团队迁移复测
+
+以 `acad0e88` 为修改前基线，在 iOS 18.4 和 iOS 27.0 模拟器上分别运行完整的 `dMsgTests` 和两项 Keychain 迁移界面测试。两轮各通过 251 项，失败 1 项。安装标识缺失、损坏或无法读取时，回归用例核实原工作区与旧密钥都保留，且没有生成迁移收据。恢复原标识后成功读取了同一凭据。App Attest 用例覆盖 LDC 待提交的登记证明、Yiwen 的独立登记、重试和删除账号。
+
+两轮均未完成本地 StoreKit 首购用例 `testFirstPurchaseReachesLocalStoreKitWithoutAnAppDownload`。iOS 18.4 在读取订阅状态时超时（`NSURLErrorDomain -1001`）。单独运行时先复现超时，随后重用同一份测试包成功生成 Xcode 本地交易。iOS 27.0 在购买时弹出 Apple 账户登录框，取消后没有生成测试交易，单独复测成功。修改前的基线在两个模拟器上单独运行也均通过。
+
+通用 iOS 设备的未签名 Release 构建通过。iOS 构建与本地化脚本测试 23 项通过，TestFlight 脚本预检显示下一包为 LDC 的 `1.2.3 (35)`。前端和连接站的生产构建产物均包含两个团队的 App ID，登录回调、Passkey 和配对／请求链接的范围符合各自配置。11 月 19 日部署前检查时，两个生产域名和 Apple CDN 均只返回 LDC 的 App ID。跨团队原机升级、App Attest、推送与沙盒购买仍需用实际 Yiwen 签名的候选包验收。步骤见[迁移说明](docs/app-transfer_zh.md)。

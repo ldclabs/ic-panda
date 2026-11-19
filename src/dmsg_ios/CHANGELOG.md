@@ -7,6 +7,14 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## 1.2.3
 
+### Changes since build 34
+
+- Stop Keychain preparation if an existing installation's identifier is missing,
+  damaged or unreadable. Retrying with the original identifier can resume the
+  migration using the original saved keys.
+- Keep the existing team's App Attest registration. A build signed by the
+  receiving team enrolls its own key for push registration and purchases.
+
 ### Build 34 — 2026-11-18
 
 - Keep selected attachments and replies while moving between conversations in
