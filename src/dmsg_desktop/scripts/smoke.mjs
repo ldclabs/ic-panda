@@ -1664,7 +1664,7 @@ smoke: try {
     assert.deepEqual(pageErrors, [])
     break smoke
   }
-  const checkNavigation = () => navigationRegressions({ app, main, shots, profile, formMatrix, methods, hold, waitFor, channel, peer, file: libraryFile })
+  const checkNavigation = () => navigationRegressions({ app, main, shots, profile, formMatrix, methods, hold, waitFor, channel, peer, wallets, file: libraryFile })
   if (process.env.DMSG_DESKTOP_SMOKE === 'navigation') {
     await checkNavigation()
     assert.deepEqual(pageErrors, [])
@@ -4412,11 +4412,13 @@ smoke: try {
   await main.locator('[data-testid="field-expires-popover"] [data-date]:not([data-disabled])').first().click()
   assert.equal(await main.getByTestId('field-expires').getAttribute('aria-invalid'), 'false')
   await main.getByTestId('vault-type-card').click()
+  await main.getByTestId('vault-new-discard').click()
   await main.getByTestId('field-expiry').fill('2027-05')
   await main.getByTestId('field-expiry-calendar').click()
   await main.locator('[data-month="2027-06"]').click()
   assert.equal(await main.getByTestId('field-expiry').inputValue(), '2027-06')
   await main.getByTestId('vault-type-login').click()
+  await main.getByTestId('vault-new-discard').click()
 
   await main.fill('[data-testid="vault-new-dialog"] [data-testid="vault-title"]', 'New login')
   await main.fill('[data-testid="field-password"]', 'new-secret')
@@ -4426,6 +4428,11 @@ smoke: try {
   const release = hold('vault/create')
   await main.click('[data-testid="vault-add"]')
   await main.waitForSelector('[data-testid="vault-add"][data-pending]')
+  assert.ok(await main.getByTestId('vault-title').isDisabled())
+  assert.ok(await main.getByTestId('vault-type-api').isDisabled())
+  await main.keyboard.press('Escape')
+  await main.keyboard.press(`${mod}+2`)
+  assert.ok(await main.getByTestId('vault-new-dialog').isVisible())
   await main.locator('[data-testid="vault-new-dialog"]').screenshot({ path: join(shots, 'vault-new-pending.png') })
   await release()
   await waitFor(() => latest('vault/create'))
@@ -4959,7 +4966,7 @@ smoke: try {
   // The capabilities picked go to the daemon as plain values, though the
   // window keeps them as state, and the change is an approval request.
   await main.locator('[data-testid="device-capabilities"]').nth(1).click()
-  await main.getByTestId('device-editor').getByRole('checkbox', { name: 'FormalApprove', exact: true }).click()
+  await main.getByTestId('device-editor').getByRole('checkbox', { name: 'Formal approval', exact: true }).click()
   await main.click('[data-testid="capabilities-submit"]')
   await waitFor(() => latest('device/capabilities'))
   assert.deepEqual(latest('device/capabilities').params, { device: '12'.repeat(32), capabilities: ['ContentSign', 'VaultUnlock', 'FormalApprove'], source: 'gui' })

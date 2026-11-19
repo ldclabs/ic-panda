@@ -1,3 +1,20 @@
+import type { Label } from '../i18n/messages/en'
+
+export const deviceCapabilities = new Map<string, Label>([
+  ['ContentSign', 'deviceContentSigning'], ['VaultUnlock', 'deviceUnlockWorkspace'],
+  ['RootManage', 'security'], ['FormalApprove', 'formal'],
+  ['PaymentOffer', 'payments'], ['WalletApprove', 'twNav']
+])
+
+export function deviceCapabilityName(value: string, t: (key: Label) => string): string {
+  const label = deviceCapabilities.get(value)
+  return label ? t(label) : value
+}
+
+export function deviceRoleName(value: string, t: (key: Label) => string): string {
+  return value === 'Administrator' ? t('roleAdmin') : value === 'Member' ? t('roleMember') : value
+}
+
 export interface SigningPolicy {
   frozen: boolean
   daily_executions: number

@@ -256,8 +256,8 @@
           /></Field
         >
       </div>
-      <Field label={w('password')}><SecretInput bind:value={password} /></Field
-      >{/if}
+      <SecretInput label={w('password')} bind:value={password} />
+    {/if}
     {#if chosen?.fields.some((f) => fields.includes(f.id) && f.type === 'otp')}<Notice
         tone="warn">{w('otpSeedWarning')}</Notice
       >{/if}{#if chosen?.type === 'ssh' && chosen.fields.some((f) => fields.includes(f.id) && f.type === 'concealed')}<Notice

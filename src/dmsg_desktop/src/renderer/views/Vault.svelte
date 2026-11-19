@@ -426,7 +426,7 @@
    * secret, ⌘⇧U its user name and ⌘⇧O its one-time code (Ctrl elsewhere).
    */
   function onKey(event: KeyboardEvent) {
-    if (event.isComposing) return
+    if (event.isComposing || event.defaultPrevented || document.querySelector('[aria-modal="true"]:not([data-state="closed"])')) return
     const held = mod === '⌘' ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
     if (!held || event.altKey || creating || comparing || importing) return
     const key = event.key.toLowerCase()

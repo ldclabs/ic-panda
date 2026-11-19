@@ -3,7 +3,7 @@
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
   import Dialog from '../components/Dialog.svelte'
-  import { sameSelection } from './security'
+  import { deviceCapabilities, deviceCapabilityName, deviceRoleName, sameSelection } from './security'
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
@@ -38,7 +38,6 @@
   const changed = $derived(!!target && !sameSelection(chosen, target.capabilities))
   const canSubmit = $derived(changed && !busy && !loadError && !target?.revoked_at && !pending[editing ?? ''])
 
-  const CAPABILITIES = ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove', 'PaymentOffer', 'WalletApprove']
 
   const reload = single(async (mode: Mode = 'swr') => {
     if (!alive) return
@@ -134,11 +133,11 @@
               <div class="flex flex-wrap items-center gap-1.5">
                 <Id id={device.device_id} />
                 {#if device.current}<Pill tone="forest">{t('thisDevice')}</Pill>{/if}
-                <Pill>{device.role}</Pill>
+                <Pill>{deviceRoleName(device.role, t)}</Pill>
                 {#if device.revoked_at}<Pill tone="danger">{t('revokedAt')} {when(device.revoked_at)}</Pill>{/if}
               </div>
               <div class="mt-1.5 flex flex-wrap gap-1">
-                {#each device.capabilities as capability (capability)}<Pill tone="ok" class="font-normal">{capability}</Pill>{:else}<span class="text-[12px] text-faint">-</span>{/each}
+                {#each device.capabilities as capability (capability)}<Pill tone="ok" class="font-normal">{deviceCapabilityName(capability, t)}</Pill>{:else}<span class="text-[12px] text-faint">-</span>{/each}
               </div>
               <p class="mt-1 text-[11.5px] text-faint">
                 {t('addedAt')} {when(device.added_at)}{device.added_by ? ` · ${t('addedBy')} ${device.added_by.slice(0, 12)}` : ''}
@@ -177,8 +176,10 @@
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     {#if target?.revoked_at}<Notice tone="warn">{t('revokedAt')} {when(target.revoked_at)}</Notice>{/if}
     {#if editing}<Id id={editing} />{/if}
-    {#each CAPABILITIES as capability (capability)}
-      <Checkbox checked={chosen.includes(capability)} disabled={busy || !!pending[editing ?? ''] || !!target?.revoked_at} onCheckedChange={(on) => (chosen = on ? [...chosen, capability] : chosen.filter(c => c !== capability))}>{capability}</Checkbox>
+    {#each deviceCapabilities as [capability, label] (capability)}
+      <Checkbox checked={chosen.includes(capability)} disabled={busy || !!pending[editing ?? ''] || !!target?.revoked_at} onCheckedChange={(on) => (chosen = on ? [...chosen, capability] : chosen.filter(c => c !== capability))}>
+        <span title={capability}>{t(label)}</span>
+      </Checkbox>
     {/each}
   </div>
   {#snippet footer()}

@@ -893,6 +893,10 @@ The follow-up review covers channel navigation, keyboard input, file browsing,
 local preferences, confirmation outcomes and macOS package and FSKit checks.
 [Desktop review (中文)](docs/desktop-review.zh.md)
 
+The November 19 desktop UX audit covers the main views, settings, first use and
+approval flows. It records the fixes and the remaining usability tests.
+[Desktop UX audit and task list (中文)](docs/desktop-ux-audit.zh.md)
+
 The [desktop state machine inventory (中文)](docs/implicit-state-machines.zh.md)
 maps the transitions in the 1.5.8 baseline to their source and records six
 fixes verified in Electron. Run `DMSG_DESKTOP_SMOKE=state-transitions pnpm test:e2e`

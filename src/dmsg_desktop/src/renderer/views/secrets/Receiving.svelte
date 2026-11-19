@@ -3,7 +3,6 @@
   import Panel from './Panel.svelte'
   import PackageImport from './PackageImport.svelte'
   import SecretInput from '../../components/SecretInput.svelte'
-  import Field from '../../components/page/Field.svelte'
   import { panel } from './workflow-state.svelte'
   import { card, DraftVersion } from './model'
   import { call } from '../../rpc'
@@ -50,9 +49,8 @@
 
 <Panel {model} title={w('receive')} description={w('sessionNotice')}>
   <form class={card} onsubmit={preview} oninput={changed}>
-    <Field label={w('link')}><SecretInput bind:value={link} /></Field><Field
-      label={w('password')}><SecretInput bind:value={password} /></Field
-    >
+    <SecretInput label={w('link')} bind:value={link} />
+    <SecretInput label={w('password')} bind:value={password} />
     <button class={buttonClass('primary')} disabled={model.state.busy || !link}
       >{w('preview')}</button
     >

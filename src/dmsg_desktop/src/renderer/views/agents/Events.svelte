@@ -108,13 +108,13 @@
 </script>
 
 <Section title={t('mcpEvents')} description={t('mcpEventsHint')} icon="webhook" flush testid="agent-events">
-  {#snippet actions()}
-    {#if relay}
+  {#if relay}
+    <div class="px-5 pb-3">
       <Pill tone={relay.fetching ? 'ok' : 'neutral'} testid="events-status">
         <span class="size-1.5 rounded-full bg-current"></span>{relay.fetching ? t('eventsFetching') : t('eventsPaused')}
       </Pill>
-    {/if}
-  {/snippet}
+    </div>
+  {/if}
   {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
   {#if relay?.last_fetch || relay?.rejected || error}
     <div class="grid gap-2 px-5 pb-3">

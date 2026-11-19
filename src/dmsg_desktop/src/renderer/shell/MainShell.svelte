@@ -4,7 +4,7 @@
   import Toaster from '../components/Toaster.svelte'
   import { MessageDeliveries, type Delivery } from '../message-delivery'
   import { call, onChange, single } from '../rpc'
-  import { lastRoute, noteRoute } from '../view-memory'
+  import { lastRoute, noteRoute, visitRoute } from '../view-memory'
   import { namesChanged } from '../views/channels/names.svelte'
   import type { NoticeStatus } from '../../shared/notifications'
   import CommandPalette from './CommandPalette.svelte'
@@ -194,12 +194,12 @@
   }
 
   /** Back and forward walk the views this window showed, as in anda-bot. */
-  let visits = $state(untrack(() => [route]))
+  let visits = $state(untrack(() => [visitRoute(route)]))
   let visit = $state(0)
   let traveling = false
 
   $effect(() => {
-    const next = route
+    const next = visitRoute(route)
     noteRoute(entryOf(next).path, next)
     untrack(() => {
       if (traveling) traveling = false
@@ -224,29 +224,28 @@
 
   /** ⌘K opens the palette, ⌘1–⌘8 and ⌘, go to a view, ⌘L locks, ⌘/ lists the shortcuts (Ctrl elsewhere); ⌘[ and ⌘] go back and forward (Alt+arrows elsewhere). */
   function onKey(event: KeyboardEvent) {
-    if (event.isComposing) return
-    if (welcoming) return
+    if (event.isComposing || event.defaultPrevented || welcoming) return
     const step = travelCodes[event.code]
     const travelHeld = inset ? event.metaKey && !event.ctrlKey && !event.altKey : event.altKey && !event.ctrlKey && !event.metaKey
     if (step && travelHeld && !event.shiftKey) {
-      palette = false
-      travel(step)
       event.preventDefault()
+      if (!document.querySelector('[aria-modal="true"]:not([data-state="closed"])')) travel(step)
       return
     }
     const held = inset ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
     if (!held || event.altKey || event.shiftKey) return
     const key = event.key.toLowerCase()
-    if (key === 'k') palette = !palette
-    else if (key === '/') helping = !helping
-    else if (key === 'l' && unlocked) void lock()
-    else {
-      const target = shortcuts.find((v) => v.key === key)
-      if (!target) return
-      palette = false
-      enter(target.path)
-    }
+    const target = shortcuts.find(v => v.key === key)
+    if (!target && !['k', '/', 'l'].includes(key)) return
     event.preventDefault()
+    // Keep editing and pending decisions in their dialog. Lock is always available.
+    if (key === 'l') { if (unlocked) void lock(); return }
+    if (palette && key === 'k') { palette = false; return }
+    if (helping && key === '/') { helping = false; return }
+    if (document.querySelector('[aria-modal="true"]:not([data-state="closed"])')) return
+    if (key === 'k') palette = true
+    else if (key === '/') helping = true
+    else if (target) enter(target.path)
   }
 
   onMount(() => {

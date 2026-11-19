@@ -5,6 +5,8 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  "deviceContentSigning": "Content signing",
+  "deviceUnlockWorkspace": "Unlock workspace",
   "feedbackTitle": "Report a problem",
   "feedbackHint": "Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.",
   "feedbackScreenshots": "Screenshots",

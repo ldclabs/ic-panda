@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Command, Dialog } from 'bits-ui'
   import { appearances } from '../../shared/appearance'
-  import { localeNames, locales } from '../../shared/locales'
+  import { localeDir, localeNames, locales } from '../../shared/locales'
   import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import type { Glyph } from '../components/glyphs'
   import Icon from '../components/Icon.svelte'
@@ -236,15 +236,17 @@
 
   function onInputKey(event: KeyboardEvent) {
     if (event.isComposing) return
-    const atEnd = input?.selectionStart === search.length
-    if (event.key === 'ArrowRight' && !detail && current?.more && atEnd) {
+    const atEnd = input?.selectionStart === search.length && input.selectionEnd === search.length
+    if (event.key === (rtl ? 'ArrowLeft' : 'ArrowRight') && !detail && current?.more && atEnd) {
       event.preventDefault()
       enter(current)
-    } else if (event.key === 'ArrowLeft' && detail && !search) {
+    } else if (event.key === (rtl ? 'ArrowRight' : 'ArrowLeft') && detail && !search) {
       event.preventDefault()
       leave()
     }
   }
+
+  const rtl = $derived(localeDir(locale()) === 'rtl')
 </script>
 
 <Dialog.Root bind:open>
@@ -327,7 +329,7 @@
       <div class="flex gap-4 border-t border-line bg-surface-2 px-4 py-2 text-[11.5px] text-faint">
         <span class="inline-flex items-center gap-1.5"><Icon name="arrows" class="size-3.5" />{t('paletteMove')}</span>
         <span class="inline-flex items-center gap-1.5"><Icon name="enter" class="size-3.5" />{t('paletteRun')}</span>
-        {#if current?.more}<span class="inline-flex items-center gap-1.5"><kbd class="font-mono text-[11px]">→</kbd>{t('paletteMore')}</span>{/if}
+        {#if current?.more}<span class="inline-flex items-center gap-1.5"><kbd class="font-mono text-[11px]">{rtl ? '←' : '→'}</kbd>{t('paletteMore')}</span>{/if}
       </div>
     </Dialog.Content>
   </Dialog.Portal>

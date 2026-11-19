@@ -395,10 +395,9 @@
    * selection; typing in a field or a dialog keeps its keys.
    */
   function onKey(event: KeyboardEvent) {
-    if (event.isComposing) return
+    if (event.isComposing || event.defaultPrevented || document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return
     const target = event.target instanceof HTMLElement ? event.target : null
     const typing = !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
-    const overlay = !!document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')
     const inList = !target || target === document.body || !!target.closest('[data-testid="files-list"]')
     const held = mod === '⌘' ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
     const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
@@ -407,22 +406,22 @@
         event.preventDefault()
         search?.focus()
         search?.select()
-      } else if (key === 'n' && unlocked && folderScope && !overlay) {
+      } else if (key === 'n' && unlocked && folderScope) {
         event.preventDefault()
         newFolderIn(scope)
-      } else if (key === 'a' && inList && !typing && !overlay && rows.length) {
+      } else if (key === 'a' && inList && !typing && rows.length) {
         event.preventDefault()
         selected = rows.map((r) => r.id)
-      } else if (key === 'ArrowUp' && folderScope && scope !== ROOT && !typing && !overlay) {
+      } else if (key === 'ArrowUp' && folderScope && scope !== ROOT && !typing) {
         event.preventDefault()
         pick(parentOf(scope))
-      } else if (key === 'Backspace' && inList && !typing && !overlay && selected.length && unlocked && scope !== 'trash' && scope !== 'cloud') {
+      } else if (key === 'Backspace' && inList && !typing && selected.length && unlocked && scope !== 'trash' && scope !== 'cloud') {
         event.preventDefault()
         trash(selected)
       }
       return
     }
-    if (typing || overlay || held || event.altKey || !inList || !unlocked || scope === 'cloud' || scope === 'trash') return
+    if (typing || held || event.altKey || !inList || !unlocked || scope === 'cloud' || scope === 'trash') return
     if (key === 'Delete' && selected.length) {
       event.preventDefault()
       trash(selected)

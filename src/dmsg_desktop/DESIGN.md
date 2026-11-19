@@ -217,6 +217,8 @@ literal hex values.
 - **Gem** amber means "waiting for you": the waiting count, the request's
   kind chip, the diamond. It is not decoration.
 - **Pale** marks the selected row and filter; **Wash** is hover.
+- On light tinted surfaces, tertiary text uses the existing Muted ink. On
+  Pale this gives small metadata a 5.63:1 contrast ratio; Faint on Paper is 4.50:1.
 - State colors come with text and an icon. **Ok** means a named step
   completed (verified, held by the relay), **Warn** an unresolved condition
   (waiting to sync, conflict, rotation needed), **Danger** a failure or a
@@ -259,13 +261,15 @@ monospace face: Arabic loses its letter joining there, so only the value
   room as one page. Container queries narrow them: the vault's filter rail turns
   into a menu below 860px; the file library’s places move into a dialog below
   800px, leaving room for its list and detail; the members drawer floats over the timeline below
-  860px, the settings section list turns into a row of buttons below 720px.
+  860px. Below 720px, Settings shows the current section in a Select that
+  opens the full section list.
   The channel, vault and file lists take their width from `PaneHandle`: drag it,
   move it with the arrows, Home and End, or double-click for the default.
   The members drawer starts closed and stays as it was left.
 - **Page views** (agents, signatures, plan, settings) scroll as one column of
   sections, 860px wide (1040px for the capability matrix), with tab bars or
-  a section list for their parts.
+  a section list for their parts. Tab bars wrap when longer labels no longer
+  fit on one line. An empty inbox uses the whole narrow pane for its status.
 - Spacing has a 4px base: 8–12px inside controls, 16–24px inside panels,
   32px between page sections. Text-button heights are 28, 32 and 40px. Icon tools are 32px squares; panel close buttons are 36px squares.
 

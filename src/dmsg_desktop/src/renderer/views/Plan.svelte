@@ -2,6 +2,7 @@
   import Locked from '../components/page/Locked.svelte'
   import TabBar from '../components/page/TabBar.svelte'
   import { t } from '../i18n/index.svelte'
+  import { visitRoute } from '../view-memory'
   import Membership from './plan/Membership.svelte'
   import Names from './plan/Names.svelte'
   import Payments from './plan/Payments.svelte'
@@ -17,25 +18,31 @@
    */
   let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
 
-  let tab = $state<Tab>('membership')
+  const params = $derived(new URLSearchParams(route.split('?')[1]))
+  const tab = $derived.by((): Tab => {
+    if (params.get('accept') || params.get('names')) return 'names'
+    const part = params.get('tab')
+    return isTab(part) ? part : 'membership'
+  })
   /** A link's request for the names part: a transfer token to accept, or a name to look up. */
   let ask = $state<{ accept?: string; name?: string } | null>(null)
 
   const unlocked = $derived(status?.state === 'unlocked')
 
-  // Links and other views arrive as the route's query: a transfer to accept, a name, a part.
+  function showTab(next: string) {
+    go(next === 'membership' ? '/plan' : `/plan?tab=${next}`)
+  }
+
+  // Hand off a one-time lookup or invitation. The lasting route only names the tab.
   $effect(() => {
-    const at = route.indexOf('?')
-    if (at < 0) return
-    const params = new URLSearchParams(route.slice(at + 1))
+    if (!unlocked) return
     const accept = params.get('accept') ?? undefined
     const name = params.get('names') ?? undefined
-    const part = params.get('tab')
     if (accept || name) {
-      tab = 'names'
       ask = { accept, name }
-    } else if (isTab(part)) tab = part
-    if (!params.has('reminder')) go('/plan')
+      const next = visitRoute(route)
+      if (next !== route) go(next)
+    }
   })
 
   const tabs = $derived([
@@ -46,14 +53,14 @@
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-  <TabBar bind:value={() => tab, (next) => (tab = next as Tab)} items={tabs} label={t('planAndNames')} testid="plan-tab" />
+  <TabBar bind:value={() => tab, showTab} items={tabs} label={t('planAndNames')} testid="plan-tab" />
   <div class="flex min-h-0 flex-1 flex-col">
     {#if !unlocked}
       <Locked {status} testid="plan-locked" />
     {:else}
       {#key status?.account}
         {#if tab === 'membership'}
-          <Membership {status} onReviewPayments={() => { tab = 'payments' }} />
+          <Membership {status} onReviewPayments={() => showTab('payments')} />
         {:else if tab === 'names'}
           <Names {status} {go} bind:ask />
         {:else}

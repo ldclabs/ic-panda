@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { deviceCapabilityName, deviceRoleName } from './security'
   import Notice from '../components/page/Notice.svelte'
   import { onMount, tick, untrack } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
@@ -835,11 +836,11 @@
               {#if d.invalid_from}{@render row(t('deadline'), when(d.invalid_from))}{/if}
             {:else if request.type === 'device_capabilities'}
               {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true })}
-              {@render row(t('capabilities'), d.capabilities?.join(', ') ?? '')}
+              {@render row(t('capabilities'), d.capabilities?.map((c: string) => deviceCapabilityName(c, t)).join('\n') ?? '', { multiline: true })}
             {:else if request.type === 'device_pair'}
               {@render row(t('device'), d.device_id, { mono: true, testid: 'approval-device' })}
-              {@render row(t('role'), d.role)}
-              {@render row(t('capabilities'), d.capabilities?.join(', ') ?? '')}
+              {@render row(t('role'), deviceRoleName(d.role, t))}
+              {@render row(t('capabilities'), d.capabilities?.map((c: string) => deviceCapabilityName(c, t)).join('\n') ?? '', { multiline: true })}
             {:else if request.type === 'device_transfer'}
               {@render row(t('deviceTransferTo'), d.to_device, { mono: true, testid: 'approval-transfer-device' })}
               {@render row(t('deviceTransferSession'), d.session, { mono: true })}
@@ -916,6 +917,10 @@
           {@render row(t('requestId'), request.id, { mono: true })}
           {@render row(t('digest'), request.digest, { mono: true })}
           {@render row(t('from'), request.source, { mono: true, testid: 'approval-source' })}
+          {#if request.type === 'device_pair' || request.type === 'device_capabilities'}
+            {#if d.role}{@render row(t('role'), d.role, { mono: true })}{/if}
+            {@render row(t('capabilities'), d.capabilities?.join('\n') ?? '', { mono: true, multiline: true })}
+          {/if}
           {#if request.type === 'connect' && request.detail !== null}
             {@render row(t('method'), `${d.method} · v${d.app_version}`, { mono: true })}
             {@render row(t('operation'), d.operation_id ?? '', { mono: true })}

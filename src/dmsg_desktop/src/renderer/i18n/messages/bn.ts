@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "deviceContentSigning": "বিষয়বস্তু স্বাক্ষর",
+  "deviceUnlockWorkspace": "কর্মক্ষেত্র আনলক করুন",
   "feedbackTitle": "সমস্যা জানান",
   "feedbackHint": "dMsg সহায়তায় বিনামূল্যে ব্যক্তিগত চিঠি পাঠান। পাঠানোর আগে বিবরণ, স্ক্রিনশট ও অ্যাপের তথ্য যাচাই করুন।",
   "feedbackScreenshots": "স্ক্রিনশট",

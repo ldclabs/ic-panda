@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "deviceContentSigning": "콘텐츠 서명",
+  "deviceUnlockWorkspace": "작업 공간 잠금 해제",
   "feedbackTitle": "문제 신고",
   "feedbackHint": "dMsg 지원팀에 무료 비공개 편지를 보냅니다. 보내기 전에 설명, 스크린샷과 앱 정보를 확인하세요.",
   "feedbackScreenshots": "스크린샷",

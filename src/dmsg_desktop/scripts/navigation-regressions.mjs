@@ -10,6 +10,22 @@ const settle = page => page.evaluate(async () => {
 })
 
 async function palette({ main, methods, file, hold, waitFor, capture, profile }) {
+  const vaultTitle = methods['vault/list']({}).find(entry => entry.item.title)?.item.title
+  await main.evaluate(() => window.dmsg.setLocale('ar'))
+  await main.waitForSelector('html[dir="rtl"]')
+  await main.getByTestId('palette-open').click()
+  const search = main.getByTestId('palette-input')
+  await search.fill(vaultTitle)
+  await main.getByTestId('palette-more').first().waitFor()
+  await search.press('End')
+  await search.press('ArrowLeft')
+  await main.getByTestId('palette-back').waitFor()
+  await search.press('ArrowRight')
+  await main.getByTestId('palette-back').waitFor({ state: 'detached' })
+  await search.press('Escape')
+  await main.evaluate(() => window.dmsg.setLocale('en'))
+  await main.waitForSelector('html[lang="en"]')
+
   const hit = file('17'.repeat(32), 'Already found.txt', 20)
   let pending = 0, fail = true
   methods['files/search'] = ({ query }) => {
@@ -205,6 +221,24 @@ async function libraryForms({ main, methods, file, waitFor, capture }) {
   await go(main, '/vault')
   await main.getByTestId('vault-new').click()
   const form = main.getByTestId('vault-form')
+  const title = form.getByTestId('vault-title')
+  await main.waitForFunction(() => document.activeElement?.dataset.testid === 'vault-title')
+  await title.fill('Unsaved login')
+  assert.equal(await form.getByRole('textbox', { name: 'Password', exact: true }).count(), 1)
+  const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+  for (const key of [mod + '+2', mod + '+k', mod + '+/', process.platform === 'darwin' ? 'Meta+[' : 'Alt+ArrowLeft']) {
+    await title.press(key)
+    assert.equal(await main.evaluate(() => location.hash), '#/vault')
+    assert.equal(await main.locator('[aria-modal="true"][data-state="open"]').count(), 1)
+  }
+  await main.getByTestId('vault-type-api').click()
+  const keep = main.getByRole('button', { name: 'Keep editing', exact: true })
+  await keep.waitFor()
+  assert.equal(await keep.evaluate(el => el === document.activeElement), true)
+  await capture('vault-discard-type', '[data-testid="vault-new-leave"]')
+  await keep.press('Enter')
+  assert.equal(await title.inputValue(), 'Unsaved login')
+  assert.equal(await main.getByTestId('vault-type-login').getAttribute('aria-checked'), 'true')
   const tags = form.getByRole('textbox', { name: 'Tags', exact: true })
   await tags.fill('工作')
   await composingEnter(tags)
@@ -219,12 +253,125 @@ async function libraryForms({ main, methods, file, waitFor, capture }) {
   await go(main, '/channels')
 }
 
+async function planNavigation({ main, methods, hold, waitFor, capture }) {
+  const tab = value => main.getByTestId('plan-tab-' + value)
+  const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+  await go(main, '/plan')
+  await tab('names').click()
+  await tab('payments').click()
+  await main.getByTestId('nav-back').click()
+  await main.getByTestId('handle-name').waitFor()
+  await main.getByTestId('nav-forward').click()
+  await main.getByTestId('plan-orders').waitFor()
+  await main.keyboard.press(mod + '+2')
+  await main.getByTestId('files-list').waitFor()
+  await main.keyboard.press(mod + '+7')
+  await main.getByTestId('plan-orders').waitFor()
+
+  const read = methods['handle/price']
+  let delayed = 0, failing = true
+  methods['handle/price'] = params => {
+    if (params.name === 'secondname') delayed++
+    if (params.name === 'thirdname' && failing) throw { code: 'UNAVAILABLE' }
+    return read(params)
+  }
+  try {
+    await go(main, '/plan?names=firstname')
+    const input = main.getByTestId('handle-name'), result = main.getByTestId('handle-state')
+    await result.waitFor()
+    assert.equal(await main.evaluate(() => location.hash), '#/plan?tab=names')
+    assert.equal(await input.inputValue(), 'firstname')
+    await input.fill('secondname')
+    assert.equal(await result.count(), 0)
+    const release = hold('handle/price', p => p.name === 'secondname')
+    await input.press('Enter')
+    await waitFor(() => delayed === 1)
+    await input.fill('thirdname')
+    await input.press('Enter')
+    const error = main.getByTestId('handle-lookup-error')
+    await error.waitFor()
+    await release()
+    await settle(main)
+    assert.equal(await result.count(), 0)
+    assert.ok(await error.isVisible())
+    await capture('name-lookup-retry', '[data-testid="handle-lookup-error"]')
+    failing = false
+    await main.getByTestId('handle-lookup').click()
+    await result.filter({ hasText: 'thirdname' }).waitFor()
+    await main.getByTestId('nav-back').click()
+    await main.getByTestId('plan-orders').waitFor()
+  } finally { methods['handle/price'] = read }
+}
+
+async function compactNavigation({ app, main, wallets, capture }) {
+  const window = await app.browserWindow(main)
+  const menu = main.getByTestId('settings-section')
+  await window.evaluate(w => w.setContentSize(760, 540))
+  await go(main, '/settings/appearance')
+  await menu.press('Enter')
+  const choices = main.getByTestId('settings-section-menu')
+  assert.equal(await choices.getByRole('menuitemradio').count(), 13)
+  await main.keyboard.press('End')
+  await main.waitForFunction(() => document.activeElement?.dataset.value === 'feedback')
+  await main.keyboard.press('Enter')
+  await main.waitForFunction(() => location.hash === '#/settings/feedback')
+  assert.ok(await menu.isVisible())
+  await go(main, '/agents/audit')
+  await main.evaluate(() => window.dmsg.setLocale('fr'))
+  await main.waitForSelector('html[lang="fr"]')
+  const nav = main.getByTestId('agents-tab-audit').locator('..')
+  assert.ok(await nav.evaluate(n => [...n.querySelectorAll('button')].every(b => {
+    const rect = b.getBoundingClientRect(), bounds = n.getBoundingClientRect()
+    return rect.left >= bounds.left && rect.right <= bounds.right
+  })))
+  await capture('agents-all-tabs', '[data-testid="agent-audit"]')
+
+  const enabled = wallets.state.enabled
+  wallets.state.enabled = false // A direct link can resolve before the local wallet list is populated.
+  try {
+    await go(main, '/wallet/' + wallets.a)
+    await main.getByTestId('wallet-identity').waitFor()
+    assert.ok((await main.getByTestId('wallet-select').innerText()).includes(wallets.view(wallets.a).name))
+    const page = main.locator('main .h-full.overflow-y-auto')
+    assert.ok(await page.evaluate(el => { el.scrollTop = el.scrollHeight; return el.scrollTop > 0 }))
+    await main.getByTestId('wallet-tab-team').click()
+    await main.waitForFunction(() => location.hash.endsWith('?tab=team'))
+    assert.equal(await page.evaluate(el => el.scrollTop), 0)
+  } finally { wallets.state.enabled = enabled }
+}
+
+async function inboxFeedback({ app, main, methods, capture }) {
+  const outgoing = methods['inbox/outgoing']
+  let fail = true
+  methods['inbox/outgoing'] = () => {
+    if (fail) throw { code: 'UNAVAILABLE' }
+    return []
+  }
+  try {
+    await go(main, '/inbox')
+    await main.getByTestId('inbox-sent').click()
+    const failure = main.getByTestId('inbox-error')
+    await failure.waitFor()
+    assert.equal(await main.getByTestId('letters-empty').count(), 0)
+    fail = false
+    await failure.getByRole('button').press('Enter')
+    const empty = main.getByTestId('letters-empty')
+    await empty.waitFor()
+    await capture('inbox-empty', '[data-testid="inbox"]')
+    const window = await app.browserWindow(main)
+    await window.evaluate(w => w.setContentSize(760, 540))
+    await main.waitForFunction(() => innerWidth === 760)
+    assert.ok(await empty.evaluate(el => el.getBoundingClientRect().bottom <= el.closest('ul').getBoundingClientRect().bottom))
+    await window.evaluate(w => w.setContentSize(1180, 760))
+  } finally { methods['inbox/outgoing'] = outgoing }
+}
+
 export async function navigationRegressions({ app, main, formMatrix, shots, ...fixture }) {
   await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
   await main.waitForSelector('html[lang="en"]')
   const capture = (name, selector) => formMatrix(app, main, shots, name, selector)
-  for (const run of [palette, channelNavigation, libraryForms]) {
-    await run({ main, capture, ...fixture })
+  for (const run of [palette, channelNavigation, libraryForms, planNavigation, compactNavigation, inboxFeedback]) {
+    await run({ app, main, capture, ...fixture })
     console.log('Desktop navigation regression passed:', run.name)
   }
 }

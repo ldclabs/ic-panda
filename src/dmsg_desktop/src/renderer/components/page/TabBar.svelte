@@ -12,7 +12,7 @@
   }: { value?: string; items: { value: string; label: string; icon?: Glyph; count?: number }[]; label: string; testid?: string } = $props()
 </script>
 
-<nav class="flex shrink-0 gap-1 overflow-x-auto border-b border-line px-6 [scrollbar-width:none]" aria-label={label}>
+<nav class="flex shrink-0 flex-wrap gap-x-1 border-b border-line px-6" aria-label={label}>
   {#each items as item (item.value)}
     <button
       class={cn(
@@ -26,7 +26,7 @@
       {#if item.icon}<Icon name={item.icon} class={value === item.value ? 'text-forest' : 'text-faint'} />{/if}
       {item.label}
       {#if item.count}<span class="rounded-full bg-wash px-1.5 text-[10.5px] leading-4 text-ink-2 tabular-nums">{item.count}</span>{/if}
-      {#if value === item.value}<span class="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-forest"></span>{/if}
+      {#if value === item.value}<span class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-forest"></span>{/if}
     </button>
   {/each}
 </nav>

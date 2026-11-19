@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "deviceContentSigning": "Penandatanganan konten",
+  "deviceUnlockWorkspace": "Buka ruang kerja",
   "feedbackTitle": "Laporkan masalah",
   "feedbackHint": "Kirim surat pribadi gratis ke dukungan dMsg. Periksa deskripsi, tangkapan layar dan informasi aplikasi sebelum mengirim.",
   "feedbackScreenshots": "Tangkapan layar",

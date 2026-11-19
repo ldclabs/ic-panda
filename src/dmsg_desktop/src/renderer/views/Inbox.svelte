@@ -34,6 +34,8 @@
   let letters = $state<any[]>([])
   let outgoing = $state<any[]>([])
   let outgoingLoaded = $state(false)
+  let outgoingError = $state('')
+  let readingOutgoing = $state(false)
   let policy = $state<any>(null)
   let box = $state<Box>(remembered('inbox.box') ?? 'inbox')
   let selected = $state<string | null>(remembered('inbox.selected') ?? null)
@@ -64,6 +66,8 @@
   const asked = $derived(query.trim().toLowerCase())
   const list = $derived(asked ? boxed.filter(matches) : boxed)
   const ready = $derived(box === 'sent' ? outgoingLoaded : loaded)
+  const boxError = $derived(box === 'sent' ? outgoingError : error)
+  const onlyList = $derived(list.length === 0 && !missingNotice)
   const letter = $derived(box === 'sent' ? null : list.find((l) => l.order_id === selected) ?? null)
   const order = $derived(box === 'sent' ? (outgoing.find((o) => o.order_id === selected) ?? null) : null)
   const wanted = $derived(new URLSearchParams(route.split('?')[1] ?? '').get('open'))
@@ -111,11 +115,14 @@
   const loadOutgoing = single(async () => {
     const at = generation
     if (!valid(at)) return
+    readingOutgoing = true
     try {
       const next = await call('inbox/outgoing')
-      if (valid(at)) { outgoing = next; outgoingLoaded = true }
+      if (valid(at)) { outgoing = next; outgoingLoaded = true; outgoingError = '' }
     } catch (e) {
-      if (valid(at) && code(e) !== 'CACHE_MISSING' && !closed(e, status)) toast(() => errorText(e))
+      if (valid(at) && !closed(e, status)) outgoingError = errorText(e)
+    } finally {
+      if (valid(at)) readingOutgoing = false
     }
   })
 
@@ -175,6 +182,8 @@
       orders = escrows = orderFailed = {}
       policy = null
       loaded = outgoingLoaded = refreshing = policyReady = busy = writing = ruling = false
+      outgoingError = ''
+      readingOutgoing = false
       error = unlocked ? '' : 'LOCKED'
       if (unlocked) { void reload().then(() => refreshLetters()); void loadPolicy() }
     })
@@ -258,7 +267,7 @@
   {#if error === 'LOCKED'}
     <Locked {status} testid="inbox-locked" />
   {:else}
-    <section class="flex h-[38%] min-h-0 w-full shrink-0 flex-col border-b border-line @min-[760px]:h-full @min-[760px]:w-[var(--pane,280px)] @min-[760px]:border-b-0 @min-[760px]:border-e @min-[1000px]:w-[var(--pane,320px)]">
+    <section class={cn('flex min-h-0 w-full shrink-0 flex-col border-line @min-[760px]:h-full @min-[760px]:w-[var(--pane,280px)] @min-[760px]:border-b-0 @min-[760px]:border-e @min-[1000px]:w-[var(--pane,320px)]', onlyList ? 'h-full' : 'h-[38%] border-b')}>
       <div class="grid gap-2 p-3 pb-2">
         <div class="flex items-center gap-1.5">
           {#if unlocked}
@@ -282,7 +291,7 @@
           </Tooltip>
         </div>
         <Tabs.Root bind:value={() => box, (next) => (box = next as Box)}>
-          <Tabs.List class="flex gap-0.5 rounded-[10px] bg-wash p-0.5">
+          <Tabs.List aria-label={t('inbox')} class="flex gap-0.5 rounded-[10px] bg-wash p-0.5">
             <Tabs.Trigger value="inbox" class={tabClass} data-testid="inbox-received">
               {t('inbox')}{#if unread}<span class="rounded-full bg-forest px-1.5 text-[10.5px] leading-4 font-semibold text-on-forest">{unread}</span>{/if}
             </Tabs.Trigger>
@@ -295,7 +304,12 @@
           <input bind:value={query} class="ps-8" placeholder={t('searchLetters')} aria-label={t('searchLetters')} data-testid="letter-search" />
         </label>
       </div>
-      {#if error}<Notice failure={error} tone="danger" testid="inbox-error">{error === 'RECOVERY_INCOMPLETE' ? t('syncInboxKeyMissing') : error}{#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={refreshing} onclick={() => refreshLetters()}>{t('retry')}</button>{/snippet}</Notice>{/if}
+      {#if boxError}
+        <Notice failure={boxError} tone="danger" testid="inbox-error">
+          {boxError === 'RECOVERY_INCOMPLETE' ? t('syncInboxKeyMissing') : boxError}
+          {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={box === 'sent' ? readingOutgoing : refreshing} onclick={() => box === 'sent' ? loadOutgoing() : refreshLetters()}>{t('retry')}</button>{/snippet}
+        </Notice>
+      {/if}
       <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="letters">
         {#each list as item (item.order_id)}
           {@const account = box === 'sent' ? item.recipient : item.sender}
@@ -332,16 +346,16 @@
             </button>
           </li>
         {:else}
-          <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
+          {#if !boxError}<li class="grid justify-items-center gap-2 px-4 py-10 text-center">
             <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="inbox" /></span>
-            <p class="text-[13px] text-muted">{asked ? t('noResults') : !loaded && error ? t('serviceUnavailable') : !loaded || (refreshing && box !== 'sent') ? t('loading') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
-          </li>
+            <p class="text-[13px] text-muted" role="status" data-testid="letters-empty">{!ready || (refreshing && box !== 'sent') ? t('loading') : asked ? t('noResults') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
+          </li>{/if}
         {/each}
       </ul>
     </section>
     <PaneHandle name="inbox" class="hidden @min-[760px]:block" />
 
-    <section class="h-[62%] min-w-0 w-full overflow-y-auto @min-[760px]:h-full @min-[760px]:w-auto @min-[760px]:flex-1">
+    <section class={cn('h-[62%] min-w-0 w-full overflow-y-auto @min-[760px]:h-full @min-[760px]:w-auto @min-[760px]:flex-1', onlyList && 'hidden @min-[760px]:block')}>
       {#if missingNotice}<div class="p-5"><Notice>{t('noticeEnded')}</Notice></div>{/if}
       {#if letter}
         <article class="mx-auto max-w-2xl px-4 py-5 @min-[900px]:px-8" data-testid="letter">

@@ -5,6 +5,7 @@
   import Collapsible from '../../components/Collapsible.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
+  import TextField from '../../components/TextField.svelte'
   import Fact from '../../components/page/Fact.svelte'
   import Field from '../../components/page/Field.svelte'
   import Id from '../../components/page/Id.svelte'
@@ -38,6 +39,7 @@
   let busy = $state(false)
   let now = $state(Date.now())
   let name = $state('')
+  let looking = $state(false)
   let alive = true
   let lookupVersion = 0
   /** The registry's answer for the name looked up. */
@@ -100,13 +102,10 @@
     const next = await call('account/security')
     if (alive) security = next
   }))
-  const refreshLookup = single(() => part('lookup', async () => {
+  const refreshLookup = single(async () => {
     const queried = found?.display_handle ?? found?.name
-    const at = lookupVersion
-    if (!queried || !alive) return
-    const next = await call('handle/price', { name: queried })
-    if (alive && at === lookupVersion && (found?.display_handle ?? found?.name) === queried) found = next
-  }))
+    if (queried && alive) await readPrice(queried)
+  })
 
   function reload() {
     void readPayer()
@@ -130,14 +129,37 @@
   /** Taking, accepting and completing are decided in the approval window. */
   const approve = (request: any) => alive ? bridge(() => window.dmsg.openApproval(request.id)) : Promise.resolve()
 
-  const lookup = () =>
-    attempt(async () => {
-      found = null
+  function editName(next: string) {
+    name = next
+    lookupVersion++
+    found = null
+    looking = false
+    errors.lookup = ''
+  }
+
+  async function readPrice(query: string) {
+    const at = ++lookupVersion
+    try {
+      const next = await call('handle/price', { name: query })
+      if (!alive || at !== lookupVersion) return
+      found = next
       errors.lookup = ''
-      const at = ++lookupVersion
-      const next = await call('handle/price', { name: name.trim().replace(/^@/, '') })
-      if (alive && at === lookupVersion) found = next
-    })
+    } catch (e) {
+      if (!alive || at !== lookupVersion) return
+      found = null
+      errors.lookup = errorText(e)
+    } finally {
+      if (alive && at === lookupVersion) looking = false
+    }
+  }
+
+  async function lookup() {
+    if (busy || looking || !wanted || problem) return
+    found = null
+    errors.lookup = ''
+    looking = true
+    await readPrice(name.trim().replace(/^@/, ''))
+  }
 
   const register = () => attempt(async () => approve(await call('handle/register', { name: found.display_handle ?? found.name })))
   const claim = () => attempt(async () => approve(await call('handle/claim', { name: found.name })))
@@ -194,7 +216,7 @@
       ask = null
       if (next.accept) incoming = next.accept
       if (next.name) {
-        name = next.name
+        editName(next.name)
         if (!nameProblem(name) && canonicalName(name)) void lookup()
       }
     })
@@ -246,25 +268,18 @@
 
   <Section title={t('lookUpName')} description={t('namesHint')} icon="search" testid="name-lookup">
     <div class="grid gap-3">
-      <div class="flex gap-2">
-        <label class="relative min-w-0 flex-1">
-          <span class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint">@</span>
-          <input
-            bind:value={name}
-            class="ps-7"
-            placeholder={t('name')}
-            aria-invalid={problem ? 'true' : undefined}
-            data-testid="handle-name"
-            onkeydown={(e) => !e.isComposing && e.key === 'Enter' && wanted && !problem && lookup()}
-          />
-        </label>
-        <button class={buttonClass('secondary')} disabled={busy || !wanted || !!problem} onclick={lookup} data-testid="handle-lookup"><Icon name="search" />{t('lookUp')}</button>
+      <div class="flex items-end gap-2">
+        <TextField class="min-w-0 flex-1" label={t('name')} value={name} placeholder="@…" dir="ltr"
+          oninput={e => editName(e.currentTarget.value)} onkeydown={e => !e.isComposing && e.key === 'Enter' && lookup()}
+          aria-invalid={!!problem} aria-describedby={problem ? 'handle-problem' : wanted ? 'handle-tier' : undefined} data-testid="handle-name" />
+        <button class={buttonClass('secondary')} disabled={busy || looking || !wanted || !!problem} aria-busy={looking} onclick={lookup} data-testid="handle-lookup"><Icon name={looking ? 'pending' : 'search'} class={looking ? 'motion-safe:animate-spin' : ''} />{t('lookUp')}</button>
       </div>
       {#if problem}
-        <p class="text-[12px] text-danger" data-testid="handle-problem">{t(problem)}</p>
+        <p id="handle-problem" class="text-[12px] text-danger" role="alert" data-testid="handle-problem">{t(problem)}</p>
       {:else if wanted}
-        <p class="text-[12px] text-faint" data-testid="handle-tier">{t('namePriceHint', { n: wanted.length, price: panda(namePrice(wanted.length)) })}</p>
+        <p id="handle-tier" class="text-[12px] text-faint" data-testid="handle-tier">{t('namePriceHint', { n: wanted.length, price: panda(namePrice(wanted.length)) })}</p>
       {/if}
+      {#if errors.lookup}<Notice failure={errors.lookup} tone="danger" testid="handle-lookup-error">{errors.lookup}</Notice>{/if}
       <Collapsible testid="name-prices">
         {#snippet title()}<span class="text-[12px] text-muted">{t('namePrices')}</span>{/snippet}
         <dl>
@@ -329,7 +344,6 @@
             </Notice>
           {/if}
           {#if errors.security}<Notice failure={errors.security} tone="danger">{errors.security}</Notice>{/if}
-          {#if errors.lookup}<Notice failure={errors.lookup} tone="danger">{errors.lookup}</Notice>{/if}
         </div>
       {/if}
     </div>

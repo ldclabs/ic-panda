@@ -52,6 +52,34 @@ export async function uxFlow({ app, main, shots, methods, requests, request, emi
   await main.keyboard.press('Escape')
   await main.getByTestId('shortcuts').waitFor({ state: 'detached' })
 
+  // Lock remains available inside an editor. The wallet offers the same unlock as other protected views.
+  await go('/vault')
+  await main.getByTestId('vault-new').click()
+  await main.getByTestId('vault-title').fill('Temporary locked draft')
+  methods['session/fast_unlock']({ enable: true })
+  methods['session/lock'] = () => { setSession('locked'); emit('session/changed', { state: 'locked' }); return null }
+  await main.keyboard.press(`${mod}+l`)
+  await main.getByTestId('vault-locked').waitFor()
+  await go('/wallet')
+  const walletGate = main.getByTestId('wallet-locked')
+  await walletGate.waitFor()
+  await formMatrix(app, main, shots, 'wallet-locked', '[data-testid="wallet-locked"]')
+  await walletGate.getByTestId('locked-step').press('Enter')
+  await walletGate.waitFor({ state: 'detached' })
+  assert.equal(await main.evaluate(() => location.hash), '#/wallet')
+  await main.keyboard.press(`${mod}+l`)
+  await walletGate.waitFor()
+  const token = '73'.repeat(32)
+  await go('/plan?accept=' + token)
+  await main.getByTestId('plan-locked').getByTestId('locked-step').press('Enter')
+  const invitation = main.getByTestId('accept')
+  await invitation.waitFor()
+  assert.equal(await invitation.getByTestId('accept-token').inputValue(), token)
+  assert.equal(await main.evaluate(() => location.hash), '#/plan?tab=names')
+  await main.keyboard.press('Escape')
+  await invitation.waitFor({ state: 'detached' })
+  methods['session/fast_unlock']({ enable: false })
+
   // The screen locking or the Mac sleeping closes the account unless turned off.
   methods['session/lock'] = () => null
   const signal = (event) => app.evaluate(({ powerMonitor }, event) => powerMonitor.emit(event), event)

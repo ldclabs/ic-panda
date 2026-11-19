@@ -37,6 +37,12 @@
   --warn-pale: #fcf4e4;
   --pop-shadow: 0 14px 34px -10px rgb(16 37 31 / 25%), 0 0 0 1px rgb(16 37 31 / 5%);
 }
+@media (prefers-color-scheme: light) {
+  /* Small secondary text on tinted surfaces needs the stronger existing ink. */
+  :where(.bg-pale, .bg-paper-dim, .bg-paper-dim\/55, .bg-surface-2, .bg-wash) {
+    --faint: var(--muted);
+  }
+}
 @media (prefers-color-scheme: dark) {
   :root {
     --paper: #0e1512;

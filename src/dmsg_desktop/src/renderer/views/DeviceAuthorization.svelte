@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { deviceCapabilityName, deviceRoleName } from './security'
   import { onDestroy } from 'svelte'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
   import SecretInput from '../components/SecretInput.svelte'
   import QrCamera from '../components/QrCamera.svelte'
   import Fact from '../components/page/Fact.svelte'
+  import Pill from '../components/page/Pill.svelte'
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
   import { buttonClass } from '../components/ui'
@@ -193,7 +195,11 @@
     {#if candidate}
       <div class="grid min-w-0 gap-3" data-testid="device-pair-preview">
         <div class="grid min-w-0 gap-1.5"><p class="text-[12px] text-muted">{t('deviceShown')}</p><Id id={candidate.device_id} full wrap /></div>
-        <dl><Fact label={t('role')}>{candidate.role}</Fact><Fact label={t('capabilities')}>{candidate.capabilities.join(', ')}</Fact><Fact label={t('expires')}>{when(candidate.expires_at)}</Fact></dl>
+        <dl>
+          <Fact label={t('role')}>{deviceRoleName(candidate.role, t)}</Fact>
+          <Fact label={t('capabilities')}>{#each candidate.capabilities as capability (capability)}<Pill>{deviceCapabilityName(capability, t)}</Pill>{/each}</Fact>
+          <Fact label={t('expires')}>{when(candidate.expires_at)}</Fact>
+        </dl>
         <Notice tone={expired ? 'warn' : 'info'}>{expired ? t('reasonExpired') : t('securityApprovalHint')}</Notice>
         {#if expired && !manual}<button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={!!busy} onclick={invite}>{t('retry')}</button>{/if}
       </div>

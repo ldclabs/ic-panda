@@ -5,6 +5,7 @@
   import Icon from '../components/Icon.svelte'
   import Dialog from '../components/Dialog.svelte'
   import Page from '../components/page/Page.svelte'
+  import Locked from '../components/page/Locked.svelte'
   import Section from '../components/page/Section.svelte'
   import Field from '../components/page/Field.svelte'
   import Notice from '../components/page/Notice.svelte'
@@ -644,6 +645,7 @@
       <div class="min-w-[min(100%,15rem)] flex-1" data-testid="wallet-list"
         ><Select
           value={selected}
+          placeholder={wallet.name}
           disabled={busy}
           onChange={select}
           options={wallets.map((a) => ({ value: a.wallet, label: `${a.name} · ${a.wallet.slice(0, 5)}` }))}
@@ -688,10 +690,11 @@
       testid="wallet-tab"
     />
   {/if}
-  <div class="min-h-0 flex-1">
-    <Page wide>
-      {#if !unlocked}<Notice>{t('locked')}</Notice>
-      {:else}
+  {#if !unlocked}
+    <Locked {status} testid="wallet-locked" />
+  {:else}
+    <div class="min-h-0 flex-1">
+      {#key `${selected}:${tab}`}<Page wide>
         {#if error}<Notice failure={error} tone="danger" testid="wallet-error"
             >{error}<button class={buttonClass('ghost', 'sm')} onclick={refresh}>{w('retry')}</button></Notice
           >{/if}
@@ -1071,9 +1074,9 @@
               >{/each}
           </Section>
         {/if}
-      {/if}
-    </Page>
-  </div>
+      </Page>{/key}
+    </div>
+  {/if}
 </div>
 {#if unlocked}
   <Dialog bind:open={() => !!abortQuote, (open) => { if (!open && !abortBusy) abort = { kind: 'closed' } }}

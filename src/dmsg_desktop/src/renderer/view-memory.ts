@@ -36,6 +36,13 @@ export const remember = (key: string, value: unknown) => {
 /** Whether a route can be gone back to: not one that asks for something once, as `?open=` does. */
 const lasting = (route: string) => !/\?(?!tab=\w+$)/.test(route)
 
+/** Back can return to Names without replaying a transfer invitation or lookup. */
+export function visitRoute(route: string): string {
+  if (!route.startsWith('/plan?')) return route
+  const params = new URLSearchParams(route.slice(6))
+  return !params.has('reminder') && (params.get('accept') || params.get('names')) ? '/plan?tab=names' : route
+}
+
 /** Where a view was left, for its sidebar entry and shortcut to come back to. */
 export const noteRoute = (view: string, route: string) => {
   if (lasting(route)) places.set(`route:${view}`, route)

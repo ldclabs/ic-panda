@@ -3,6 +3,8 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "deviceContentSigning": "İçerik imzalama",
+  "deviceUnlockWorkspace": "Çalışma alanının kilidini aç",
   "feedbackTitle": "Sorun bildir",
   "feedbackHint": "dMsg desteğine ücretsiz özel bir mektup gönderin. Göndermeden önce açıklamayı, ekran görüntülerini ve uygulama bilgilerini inceleyin.",
   "feedbackScreenshots": "Ekran görüntüleri",

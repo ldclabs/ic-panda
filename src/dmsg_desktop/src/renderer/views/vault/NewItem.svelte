@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy, tick } from 'svelte'
   import Notice from '../../components/page/Notice.svelte'
   import { RadioGroup } from 'bits-ui'
   import Dialog from '../../components/Dialog.svelte'
@@ -27,8 +28,11 @@
   let error = $state('')
   let dirty = $state(false)
   let valid = $state(false)
-  let leaving = $state(false)
+  let discardTo = $state<ItemType | 'close' | null>(null)
+  let keepButton = $state<HTMLButtonElement | null>(null)
   let form = $state<ItemForm | null>(null)
+  let alive = true
+  onDestroy(() => { alive = false })
 
   const initial = $derived({
     title: '',
@@ -41,38 +45,63 @@
   $effect(() => {
     if (!open) {
       error = ''
-      leaving = false
+      discardTo = null
       dirty = false
     }
   })
 
-  /** Closing asks first when something was typed; only Discard then closes. */
+  function apply(next: ItemType | 'close') {
+    discardTo = null
+    dirty = false
+    error = ''
+    if (next === 'close') open = false
+    else type = next
+  }
+
+  async function change(next: ItemType | 'close') {
+    if (busy || next === type) return
+    if (!dirty) return apply(next)
+    discardTo = next
+    await tick()
+    keepButton?.focus()
+  }
+
+  async function finishDiscard(discard: boolean) {
+    if (discard && discardTo) apply(discardTo)
+    else discardTo = null
+    await tick()
+    if (open) form?.focusTitle()
+  }
+
   function close(next: boolean) {
     if (next) open = true
-    else if (dirty) leaving = true
-    else open = false
+    else if (discardTo) void finishDiscard(false)
+    else void change('close')
   }
 
   async function save(changes: Record<string, unknown>) {
+    if (busy || discardTo) return
     busy = true
     error = ''
     try {
       const entry: any = await call('vault/create', { type, changes })
+      if (!alive) return
       dirty = false
       open = false
       toast(() => t('saved'))
       onSaved(entry.id)
     } catch (e) {
-      error = errorText(e)
+      if (alive) error = errorText(e)
     } finally {
       busy = false
     }
   }
 </script>
 
-<Dialog bind:open={() => open, close} title={t('add')} description={t('newItemHint')} icon="add" wide testid="vault-new-dialog">
-  <div class="grid gap-4">
-    <RadioGroup.Root bind:value={() => type, (next) => (type = next as ItemType)} class="grid grid-cols-4 gap-1.5 sm:grid-cols-6" aria-label={t('type')}>
+<Dialog bind:open={() => open, close} title={t('add')} description={t('newItemHint')} icon="add" wide testid="vault-new-dialog"
+  dismissible={!busy} onOpenAutoFocus={(event) => { if (form) { event.preventDefault(); form.focusTitle() } }}>
+  <fieldset class="grid min-w-0 gap-4" disabled={busy || !!discardTo} aria-busy={busy}>
+    <RadioGroup.Root bind:value={() => type, (next) => void change(next as ItemType)} class="grid grid-cols-4 gap-1.5 sm:grid-cols-6" aria-label={t('type')}>
       {#each types as option (option)}
         <RadioGroup.Item
           value={option}
@@ -92,15 +121,15 @@
       <p class="shimmer text-[13px]">{t('loading')}</p>
     {/if}
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
-  </div>
+  </fieldset>
   {#snippet footer()}
-    {#if leaving}
-      <span class="min-w-0 flex-1 text-[12.5px] text-warn" data-testid="vault-new-leave">{t('discardNew')}</span>
-      <button class={buttonClass('ghost')} onclick={() => (leaving = false)}>{t('keepEditing')}</button>
-      <button class={buttonClass('danger')} onclick={() => ((dirty = false), (open = false))} data-testid="vault-new-discard">{t('discard')}</button>
+    {#if discardTo}
+      <span class="min-w-0 flex-1 text-[12.5px] text-warn" role="status" data-testid="vault-new-leave">{t('discardNew')}{#if discardTo !== 'close'} · {t(typeLabel[type])} <Icon name="chevron-end" class="inline size-3" /> {t(typeLabel[discardTo])}{/if}</span>
+      <button bind:this={keepButton} class={buttonClass('secondary')} onclick={() => finishDiscard(false)}>{t('keepEditing')}</button>
+      <button class={buttonClass('danger')} onclick={() => finishDiscard(true)} data-testid="vault-new-discard">{t('discard')}</button>
     {:else}
       <span class="min-w-0 flex-1"></span>
-      <button class={buttonClass('ghost')} onclick={() => close(false)}>{t('cancel')}</button>
+      <button class={buttonClass('ghost')} disabled={busy} onclick={() => close(false)}>{t('cancel')}</button>
       <button class={buttonClass('primary')} disabled={busy || !templates || !valid} onclick={() => form?.submit()} data-testid="vault-add">
         {t('save')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
       </button>

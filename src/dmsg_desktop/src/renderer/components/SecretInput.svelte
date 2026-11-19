@@ -15,6 +15,7 @@
    */
   let {
     label,
+    hideLabel = false,
     hint,
     disabled = false,
     value = $bindable(''),
@@ -23,7 +24,7 @@
     pin = false,
     multiline = false,
     testid
-  }: { label?: string; hint?: string; disabled?: boolean; value?: string; placeholder?: string; generate?: boolean; pin?: boolean; multiline?: boolean; testid?: string } = $props()
+  }: { label: string; hideLabel?: boolean; hint?: string; disabled?: boolean; value?: string; placeholder?: string; generate?: boolean; pin?: boolean; multiline?: boolean; testid?: string } = $props()
 
   const id = $props.id()
   let shown = $state(false)
@@ -36,7 +37,7 @@
 </script>
 
 <div class="grid min-w-0 gap-1.5">
-{#if label}<label for={id} class="text-[12px] text-muted">{label}</label>{/if}
+<label for={id} class={hideLabel ? 'sr-only' : 'text-[12px] text-muted'}>{label}</label>
 <div class="relative flex items-start">
   <textarea
     {id}

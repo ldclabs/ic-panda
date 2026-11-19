@@ -72,6 +72,11 @@
   let names = $state<Record<string, string>>({})
   let picking = $state(false)
   let list = $state<HTMLElement | null>(null)
+  let titleInput: HTMLInputElement
+
+  export function focusTitle() {
+    titleInput?.focus()
+  }
 
   const snapshot = (value: unknown) => JSON.stringify(value)
   const first = snapshot({ title: start.title, tags: start.tags, notes: start.notes, files: start.files, fields: start.edit ? toDrafts(start.fields) : start.fields })
@@ -165,6 +170,7 @@
 </script>
 
 {#snippet value(field: Draft, i: number)}
+  {@const name = fieldName(field, t) || t(fieldTypeLabel[field.type])}
   {#if isHidden(field) && field.hiddenState === 'keep'}
     <div class="flex items-center gap-1.5 rounded-lg border border-dashed border-edge-soft px-2.5 py-1">
       <span class="min-w-0 flex-1 font-mono text-[12.5px] tracking-[0.18em] text-faint">••••••••</span>
@@ -179,7 +185,7 @@
     </div>
   {:else if field.type === 'otp'}
     <div class="grid gap-1.5">
-      <SecretInput bind:value={() => field.value, (next) => set(i, { value: next })} placeholder={t('otpHint')} testid={`field-${field.id || i}`} />
+      <SecretInput label={name} hideLabel bind:value={() => field.value, (next) => set(i, { value: next })} placeholder={t('otpHint')} testid={`field-${field.id || i}`} />
       <div class="flex flex-wrap gap-1">
         <button type="button" class={buttonClass('ghost', 'xs')} onclick={() => scan(i, 'file')} data-testid="otp-scan-file"><Icon name="scan" />{t('scanQrImage')}</button>
         <button type="button" class={buttonClass('ghost', 'xs')} onclick={() => scan(i, 'clipboard')} data-testid="otp-scan-clipboard"><Icon name="paste" />{t('scanQrClipboard')}</button>
@@ -187,6 +193,8 @@
     </div>
   {:else if field.type === 'concealed'}
     <SecretInput
+      label={name}
+      hideLabel
       bind:value={() => field.value, (next) => set(i, { value: next })}
       placeholder={field.hiddenState === 'change' ? t('newSecretValue') : ''}
       generate={generates(field)}
@@ -196,6 +204,7 @@
     />
   {:else if field.type === 'text' && isMultiline(field)}
     <textarea
+      aria-label={name}
       value={field.value}
       oninput={(e) => set(i, { value: e.currentTarget.value })}
       rows={Math.min(10, Math.max(2, field.value.split('\n').length))}
@@ -204,9 +213,9 @@
       data-testid={`field-${field.id || i}`}
     ></textarea>
   {:else if field.type === 'date' || field.type === 'month'}
-    <DateInput label={fieldName(field, t)} mode={field.type} value={field.value} onChange={(value) => set(i, { value })} hideLabel testid={`field-${field.id || i}`} />
+    <DateInput label={name} mode={field.type} value={field.value} onChange={(value) => set(i, { value })} hideLabel testid={`field-${field.id || i}`} />
   {:else}
-    <TextField hideLabel mono={['fingerprint', 'port'].includes(field.id)} label={fieldName(field, t)} type={inputType[field.type] ?? 'text'} value={field.value}
+    <TextField hideLabel mono={['fingerprint', 'port'].includes(field.id)} label={name} type={inputType[field.type] ?? 'text'} value={field.value}
       oninput={(e) => set(i, { value: e.currentTarget.value })} spellcheck="false"
       dir={field.type === 'url' || field.type === 'email' ? 'ltr' : undefined}
       placeholder={field.type === 'url' ? 'https://' : ''} data-testid={`field-${field.id || i}`} />
@@ -217,7 +226,7 @@
 <div class="grid gap-3" onkeydown={onKey} data-testid="vault-form">
   <label class="grid gap-1 text-[12px] text-faint">
     {t('title')}
-    <input bind:value={title} class="text-[13.5px] text-ink" data-testid="vault-title" />
+    <input bind:this={titleInput} bind:value={title} class="text-[13.5px] text-ink" data-testid="vault-title" />
   </label>
 
   {#if kind === 'ssh'}

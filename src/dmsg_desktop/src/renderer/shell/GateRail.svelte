@@ -39,11 +39,13 @@
   const unlocked = $derived(session === 'unlocked')
   /** A login, an unlock or the setup: what opens the device from here. */
   const step = $derived(nextStep(status))
+  const sessionAction = $derived(unlocked ? t('lock') : step ? t(step.label) : sessionLabel(session))
   const presentation = $derived(syncState({ ...status, syncing }, now))
   const pending = $derived(presentation.pending)
   const failed = $derived(presentation.failed)
   const transient = $derived(presentation.transient)
   const syncText = $derived(t(presentation.label, { n: pending }))
+  const syncLabel = $derived(`${t('sync')} · ${syncText}`)
   const showPending = $derived(pending > 0 && presentation.label !== 'syncPending')
   const lastSuccess = $derived(presentation.okAt ? t('syncLastSuccess', { time: when(presentation.okAt) }) : t('localOnlyNever'))
   const retryText = $derived(presentation.retryAt ? t('syncRetryAt', { time: when(presentation.retryAt) }) : '')
@@ -59,14 +61,14 @@
 {#if collapsed}
   <div class="flex flex-col items-center gap-1 pb-1" data-testid="gate-rail">
     <Tooltip
-      content={step ? `${sessionLabel(session)} · ${t(step.label)}` : sessionLabel(session)}
+      content={sessionAction}
       side="right"
     >
       {#snippet children(props)}
         <button
           {...props}
           class={iconButtonClass('ghost', 'md', 'relative')}
-          aria-label={sessionLabel(session)}
+          aria-label={sessionAction}
           disabled={$unlocking}
           aria-busy={$unlocking}
           onclick={() => (unlocked ? lock() : step?.run())}
@@ -79,7 +81,7 @@
     {#if status?.account}
       <Tooltip content={syncHint} side="right">
         {#snippet children(props)}
-          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking || presentation.paused || presentation.coolingDown} onclick={syncNow} data-testid="gate-sync">
+          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncLabel} disabled={syncing || $unlocking || presentation.paused || presentation.coolingDown} onclick={syncNow} data-testid="gate-sync">
             <Icon name={syncing ? 'pending' : 'sync'} class={cn(syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
             {#if pending}<span class="absolute top-1.5 end-1.5 size-1.5 rounded-full bg-gem"></span>{/if}
           </button>
@@ -122,6 +124,7 @@
             {...props}
             class={buttonClass('ghost', 'xs', '-my-0.5 h-auto min-h-6 justify-start gap-2 px-0 text-start whitespace-normal')}
             onclick={syncNow}
+            aria-label={syncLabel}
             disabled={syncing || $unlocking || presentation.paused || presentation.coolingDown}
             data-testid="gate-sync"
           >

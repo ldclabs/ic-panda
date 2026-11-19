@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { deviceCapabilityName, deviceRoleName } from './security'
   import { onDestroy, onMount } from 'svelte'
   import Confirm from '../components/Confirm.svelte'
   import Dialog from '../components/Dialog.svelte'
@@ -291,8 +292,8 @@
     {#if review}
       <dl data-testid="succession-reviewed">
         <Fact label={t('device')}><Id id={review.device_id} full wrap /></Fact>
-        <Fact label={t('role')}>{review.role}</Fact>
-        <Fact label={t('capabilities')}>{#each review.capabilities as capability (capability)}<Pill tone="ok" class="font-normal">{capability}</Pill>{/each}</Fact>
+        <Fact label={t('role')}>{deviceRoleName(review.role, t)}</Fact>
+        <Fact label={t('capabilities')}>{#each review.capabilities as capability (capability)}<Pill tone="ok" class="font-normal">{deviceCapabilityName(capability, t)}</Pill>{/each}</Fact>
         <Fact label={t('successionKeys')}>
           <Pill tone={review.approval_key ? 'ok' : 'neutral'}>{t('successionApprovalKey')}: {review.approval_key ? t('successionMade') : t('successionNotMade')}</Pill>
           <Pill tone={review.cosigner ? 'ok' : 'neutral'}>{t('successionCosigner')}: {review.cosigner ? t('successionMade') : t('successionNotMade')}</Pill>

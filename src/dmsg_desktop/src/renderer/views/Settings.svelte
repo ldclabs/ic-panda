@@ -46,7 +46,8 @@
    */
   let { status, refresh, route, go }: { status: any; refresh: () => Promise<void>; route: string; go: (path: string) => void } = $props()
 
-  const part = $derived<SettingsPage>(settingsPages.find((p) => route.split('?')[0] === `/settings/${p.value}`)?.value ?? 'session')
+  const currentPage = $derived(settingsPages.find(p => route.split('?')[0] === `/settings/${p.value}`) ?? settingsPages[0])
+  const part = $derived(currentPage.value)
 
   let account = $state<any>(null)
   /** Null while the device cannot sign for them: locked without a resident key. */
@@ -236,17 +237,15 @@
     {/each}
   </nav>
   <div class="flex min-w-0 flex-1 flex-col">
-    <div class="flex gap-1 overflow-x-auto border-b border-line px-4 py-2 @min-[720px]:hidden">
-      {#each settingsPages as item (item.value)}
-        <button
-          class={buttonClass(part === item.value ? 'secondary' : 'ghost', 'sm')}
-          aria-current={part === item.value ? 'page' : undefined}
-          onclick={() => go(`/settings/${item.value}`)}
-        >
-          <Icon name={item.icon} />{t(item.label)}
-        </button>
-      {/each}
-    </div>
+    <nav class="border-b border-line px-4 py-2 @min-[720px]:hidden" aria-label={t('settings')}>
+      <Select
+        value={part}
+        options={settingsPages.map(item => ({ value: item.value, label: t(item.label) }))}
+        label={t(currentPage.label)}
+        onChange={next => go(`/settings/${next}`)}
+        testid="settings-section"
+      />
+    </nav>
     <div class="min-h-0 flex-1">
       <Page>
         {#key sessionKey}
