@@ -35,6 +35,7 @@ use dmsg_types::{
     agent::{DelegationAuthority, PrincipalType},
     ensure,
 };
+use jiff::Timestamp;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use std::time::Duration;
@@ -613,10 +614,9 @@ impl Daemon {
                     let at = event["received_at"]
                         .as_i64()
                         .ok_or(Error::IntegrityFailed)?;
-                    event["timestamp"] = chrono::DateTime::from_timestamp_millis(at)
-                        .ok_or(Error::IntegrityFailed)?
-                        .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
-                        .into();
+                    let timestamp =
+                        Timestamp::from_millisecond(at).map_err(|_| Error::IntegrityFailed)?;
+                    event["timestamp"] = format!("{timestamp:.3}").into();
                     event.as_object_mut().expect("event").remove("received_at");
                 }
             }

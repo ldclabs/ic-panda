@@ -2,7 +2,7 @@
 
 [English](agent.md) | 简体中文
 
-本文只描述公开 canister 接口与字节规则。协议正文以 [agent-protocols](https://github.com/ldclabs/agent-protocols) 固定版本为准：本次采用 `v0.12.6`（规范来源提交 `13257c1`），Rust 与 TypeScript SDK `agent-protocols 0.12.6`。
+本文只描述公开 canister 接口与字节规则。协议规范来源提交为 `965d3a1`，Rust 和 TypeScript SDK 与规范统一采用 [agent-protocols v0.13.0](https://github.com/ldclabs/agent-protocols/tree/v0.13.0)。
 
 ## 角色
 

@@ -17,6 +17,6 @@ tokio = { workspace = true }
 ic-agent = { workspace = true }
 cbor2 = { workspace = true }
 num-traits = { workspace = true }
-chrono = { workspace = true }
+jiff.workspace = true
 clap = { workspace = true }
 icrc-ledger-types = { workspace = true }

@@ -228,12 +228,34 @@
       "next_after": 1501
     },
     {
+      "name": "advance past a decimal header with HTTP whitespace",
+      "next_nonce": 10,
+      "now_ms": 1000,
+      "header": " \t1500\t ",
+      "accepted": true,
+      "next_after": 1501
+    },
+    {
       "name": "ignore a header below the local sequence",
       "next_nonce": 10,
       "now_ms": 1000,
       "header": "5",
       "accepted": true,
       "next_after": 10
+    },
+    {
+      "name": "reject a non-decimal header",
+      "next_nonce": 10,
+      "now_ms": 1000,
+      "header": "0x20",
+      "accepted": false
+    },
+    {
+      "name": "reject digit separators in a header",
+      "next_nonce": 10,
+      "now_ms": 1000,
+      "header": "1_500",
+      "accepted": false
     },
     {
       "name": "accept the largest allowed jump",

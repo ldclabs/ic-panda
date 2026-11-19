@@ -83,7 +83,7 @@ alloy-consensus = "2"
 alloy-eips = "2"
 alloy-primitives = "1"
 argon2 = { version = "0.6", default-features = false, features = ["alloc"] }
-agent-protocols = { version = "0.12.6", default-features = false }
+agent-protocols = { version = "0.13.0", default-features = false }
 async-trait = "0.1"
 axum = { version = "0.8", default-features = false }
 bytes = "1"
@@ -96,7 +96,7 @@ cap-fs-ext = "4.0.3"
 cbor2 = { version = "1", features = ["derive"] }
 core-foundation = "0.10"
 dav-server = { version = "0.12", default-features = false }
-cose2 = "0.5"
+cose2 = "0.6"
 finl_unicode = "1.3"
 flate2 = "1"
 fuse3 = { version = "0.10.0", default-features = false }
@@ -111,7 +111,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 serde_jcs = "0.2"
 structured-logger = "1"
 tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = { version = "0.29", default-features = false }
+tokio-tungstenite = { version = "0.30", default-features = false }
 reqwest = { version = "0.13", default-features = false }
 rustls = { version = "0.23", default-features = false }
 ed25519-dalek = "3"
@@ -147,12 +147,12 @@ icrc-ledger-types = "0.2"
 ic_auth_types = "0.10"
 ic_auth_verifier = { version = "0.10" }
 ic_bls12_381 = "0.10"
-ic_cose_types = "0.11"
-ic_cose_chain_key = { version = "0.11" }
+ic_cose_types = "0.12"
+ic_cose_chain_key = { version = "0.12" }
 ic-certification = "4"
 # ic_auth_verifier 0.10 and ic-agent 0.49 certificates use version 3.
 ic-certification-v3 = { package = "ic-certification", version = "3" }
-ic-oss-types = "1.3"
+ic-oss-types = "1.4"
 ic-canister-sig-creation = "1.3"
 ic-ed25519 = "0.6"
 ic-secp256k1 = "0.3"
@@ -167,7 +167,7 @@ lazy_static = "1.5"
 libc = "0.2"
 once_cell = "1.21"
 pocket-ic = "=16"
-chrono = { version = "0.4", default-features = false, features = ["std"] }
+jiff = { version = "0.2", default-features = false, features = ["std"] }
 clap = { version = "4.6", features = ["derive"] }
 ic-dummy-getrandom-for-wasm = "0.1"
 getrandom = "0.4"
@@ -177,13 +177,14 @@ keyring = "=4.2.0"
 qrcode = { version = "0.14", default-features = false }
 rpassword = "7"
 rqrr = { version = "0.11", default-features = false }
+# rusqlite 0.42+ pulls in a Wasm VFS that requires a newer thiserror than PocketIC 16 allows.
 rusqlite = "0.41"
 scopeguard = "1.2"
 thiserror = "2"
 toml = "1"
 # Preserve the client's existing parser version.
 toml09 = { package = "toml", version = "0.9" }
-tungstenite = { version = "0.29", default-features = false }
+tungstenite = { version = "0.30", default-features = false }
 uniffi = "=0.32.2"
 url = "2.5"
 urlencoding = "2.1"

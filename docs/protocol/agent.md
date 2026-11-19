@@ -2,7 +2,7 @@
 
 English | [简体中文](agent_zh.md)
 
-This document describes only public canister interfaces and byte rules. The normative protocol is the pinned [agent-protocols](https://github.com/ldclabs/agent-protocols) version: `v0.12.6`, specification source commit `13257c1`, with Rust and TypeScript SDK `agent-protocols 0.12.6`.
+This document describes only public canister interfaces and byte rules. The specification at commit `965d3a1` and the Rust and TypeScript SDKs use [agent-protocols v0.13.0](https://github.com/ldclabs/agent-protocols/tree/v0.13.0).
 
 ## Roles
 

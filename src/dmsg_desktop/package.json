@@ -19,7 +19,7 @@
     "package:dir": "pnpm build && node scripts/prepare-runtime.mjs && electron-builder --dir --publish never"
   },
   "dependencies": {
-    "agent-protocols": "0.12.6",
+    "agent-protocols": "0.13.0",
     "electron-updater": "6.8.11",
     "semver": "7.8.6",
     "ws": "8.22.2"

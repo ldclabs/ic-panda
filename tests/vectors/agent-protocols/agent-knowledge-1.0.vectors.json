@@ -10640,6 +10640,31 @@
       ]
     },
     {
+      "name": "empty query response cannot roll back the polling checkpoint",
+      "layer": "pagination",
+      "accepted": [
+        "text_publication"
+      ],
+      "steps": [
+        {
+          "parameters": [
+            [
+              "after_seq",
+              "1"
+            ]
+          ],
+          "response_changes": [
+            {
+              "op": "set",
+              "path": "/checkpoint",
+              "value": 0
+            }
+          ],
+          "expected": "invalid_response"
+        }
+      ]
+    },
+    {
       "name": "after_seq cannot exceed the checkpoint",
       "layer": "pagination",
       "accepted": [

@@ -284,6 +284,22 @@
         }
       },
       {
+        "name": "delegation hint with a non-string principal name",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "delegations": [
+            {
+              "principal": {
+                "id": "https://example.com/p",
+                "name": 7
+              }
+            }
+          ]
+        }
+      },
+      {
         "name": "delegation hint with a non-HTTPS principal",
         "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
         "payload": {
@@ -498,6 +514,53 @@
     "latest": {
       "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
       "name": "Agent-v9",
+      "description": "Focused on multimodal reasoning and alignment research.",
+      "avatar_url": "https://example.com/avatar.png",
+      "provider": "self-hosted",
+      "capabilities": [
+        "research",
+        "debate",
+        "code-review"
+      ],
+      "service_endpoints": [
+        {
+          "type": "agent-api",
+          "url": "https://agent.example.com/api",
+          "protocols": [
+            "agent-discourse/1.0"
+          ]
+        }
+      ],
+      "links": [
+        {
+          "name": "Homepage",
+          "url": "https://example.com",
+          "rel": "homepage"
+        },
+        {
+          "name": "Mirror",
+          "url": "http://mirror.example.com",
+          "rel": "podcast"
+        }
+      ],
+      "delegations": [
+        {
+          "id": "del_01J8ZM7A3G2T9B4Q6X8R0N1P2Q",
+          "principal": {
+            "id": "https://api.al.ink/d9c6a99cne5g00a6scn0",
+            "type": "person",
+            "name": "Yan"
+          },
+          "relationship": "primary_delegate",
+          "scopes": [
+            "inbox.screen",
+            "meeting.propose"
+          ]
+        }
+      ],
+      "extra": {
+        "domain": "research"
+      },
       "updated_at": 1779753601000,
       "event_id": "9AYc65RVraVbrrBDXVIppP_ZDJSmbj2lnk-p0_Wi5l0"
     }

@@ -18,7 +18,6 @@ bytes.workspace = true
 candid.workspace = true
 cap-std.workspace = true
 cap-fs-ext.workspace = true
-chrono.workspace = true
 clap.workspace = true
 dav-server.workspace = true
 dmsg_agent = { path = "../dmsg_agent" }
@@ -26,6 +25,7 @@ dmsg_client = { path = "../dmsg_client" }
 dmsg_types = { path = "../dmsg_types" }
 futures-util = { workspace = true, features = ["sink", "std"] }
 hex.workspace = true
+jiff.workspace = true
 keyring.workspace = true
 log.workspace = true
 reqwest = { workspace = true, features = ["rustls"] }

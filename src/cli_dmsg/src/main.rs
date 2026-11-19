@@ -1,11 +1,11 @@
 use candid::{pretty::candid::value::pp_value, CandidType, IDLValue, Nat, Principal};
 use cbor2::{from_slice, to_vec};
-use chrono::prelude::*;
 use clap::{Parser, Subcommand};
 use ic_agent::{
     identity::{AnonymousIdentity, BasicIdentity},
     Identity,
 };
+use jiff::{tz::Offset, Timestamp};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
@@ -106,14 +106,12 @@ async fn main() -> Result<(), String> {
                     }
                     Ok(user) => {
                         if let Some(info) = sr.0.get(username) {
-                            let utc: DateTime<Utc> =
-                                Utc.timestamp_millis_opt(info.2 as i64).unwrap();
                             println!(
                                 "{} already sent: {}, amount: {}, time: {}",
                                 username,
                                 info.0.to_text(),
                                 pretty_amount(info.1),
-                                utc.to_rfc3339()
+                                format_timestamp(info.2)?
                             );
                             continue;
                         }
@@ -122,17 +120,17 @@ async fn main() -> Result<(), String> {
                         let start_at = SystemTime::now();
                         let now = start_at.duration_since(UNIX_EPOCH).map_err(format_error)?;
                         let now = now.as_millis() as u64;
+                        let timestamp = format_timestamp(now)?;
                         let _ = agent
                             .send_token_to(&TOKEN_CANISTER, user.id, amount_e8s)
                             .await?;
                         sr.0.insert(username.clone(), (user.id, amount_e8s, now));
-                        let utc: DateTime<Utc> = Utc.timestamp_millis_opt(now as i64).unwrap();
                         println!(
                             "{} sent: {}, amount: {}, time: {}",
                             username,
                             user.id.to_text(),
                             pretty_amount(amount_e8s),
-                            utc.to_rfc3339()
+                            timestamp
                         );
                         std::fs::write(record_file, to_cbor_bytes(&sr)).map_err(format_error)?;
                     }
@@ -176,6 +174,14 @@ async fn main() -> Result<(), String> {
         None => {}
     }
     Ok(())
+}
+
+fn format_timestamp(ms: u64) -> Result<String, String> {
+    let ms = i64::try_from(ms).map_err(format_error)?;
+    let time = Timestamp::from_millisecond(ms).map_err(format_error)?;
+    let precision = if time.subsec_millisecond() == 0 { 0 } else { 3 };
+    let utc = time.display_with_offset(Offset::UTC);
+    Ok(format!("{utc:.precision$}"))
 }
 
 fn load_identity(path: &str) -> Result<Box<dyn Identity>, String> {

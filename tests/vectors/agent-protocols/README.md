@@ -1,7 +1,7 @@
 # Agent Protocols vectors
 
 Normative vectors and schemas of [agent-protocols](https://github.com/ldclabs/agent-protocols)
-(MIT), adopted from SDK **0.12.6**, source commit `13257c1`.
+(MIT), adopted from SDK **0.13.0**, source commit `965d3a1`.
 The eight normative JSON files are byte-for-byte copies; `source.json` records
 the adopted version, commit and SHA-256 digests, and `LICENSE` retains the MIT
 notice. The Rust and TypeScript dependency declarations and Rust lockfile must

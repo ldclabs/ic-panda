@@ -14,6 +14,7 @@ use dmsg_client::agents::AgentEntry;
 use dmsg_client::mcp_events::{Filter, jwks_keys};
 use dmsg_client::now_ms;
 use dmsg_types::{Error, Hash, Result};
+use jiff::{SignedDuration, Timestamp};
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -282,11 +283,48 @@ fn instant(value: &Value) -> Result<Option<u64>> {
     }
 }
 
-/// RFC 3339 timestamps, including numeric offsets; reject pre-epoch values.
-fn parse_rfc3339(text: &str) -> Option<u64> {
-    chrono::DateTime::parse_from_rfc3339(text)
-        .ok()
-        .and_then(|time| u64::try_from(time.timestamp_millis()).ok())
+/// Parse an RFC 3339 timestamp at or after the Unix epoch into milliseconds.
+pub(crate) fn parse_rfc3339(text: &str) -> Option<u64> {
+    // Jiff also accepts Temporal forms with omitted seconds or abbreviated offsets.
+    let (date, rest) = text.split_at_checked(10)?;
+    let (clock, suffix) = rest.split_at_checked(9)?;
+    if !matches!(date.as_bytes(), [_, _, _, _, b'-', _, _, b'-', _, _])
+        || !matches!(
+            clock.as_bytes(),
+            [b'T' | b't' | b' ', _, _, b':', _, _, b':', _, _]
+        )
+    {
+        return None;
+    }
+    let fraction = match suffix.as_bytes() {
+        [fraction @ .., b'Z' | b'z'] => fraction,
+        [fraction @ .., b'+' | b'-', h1, h2, b':', _, _] if [*h1, *h2] <= *b"23" => fraction,
+        _ => return None,
+    };
+    match fraction {
+        [] => {}
+        [b'.', first, rest @ ..]
+            if first.is_ascii_digit() && rest.iter().all(u8::is_ascii_digit) => {}
+        _ => return None,
+    }
+
+    // RFC 3339 allows extra fractional digits beyond Jiff's nanosecond precision.
+    let mut time: Timestamp = if fraction.len() > 10 {
+        format!(
+            "{date}{clock}{}{}",
+            &suffix[..10],
+            &suffix[fraction.len()..]
+        )
+        .parse()
+    } else {
+        text.parse()
+    }
+    .ok()?;
+    if clock.ends_with(":60") {
+        // Jiff clamps leap seconds to 59. Preserve their Unix millisecond mapping.
+        time = time.checked_add(SignedDuration::from_secs(1)).ok()?;
+    }
+    (time >= Timestamp::UNIX_EPOCH).then(|| time.as_millisecond() as u64)
 }
 
 /// The endpoints an input names: `endpoint_id`, `endpoint_ids` or
@@ -738,7 +776,13 @@ mod tests {
             "2026-01-01T00:60:00Z",
             "2026-01-01T00:00:00+24:00",
             "2026-01-01T00:00:00",
+            "2026-01-01T00:00Z",
+            "2026-01-01T00:00:00+01",
+            "2026-01-01T00:00:00+0100",
+            "2026-01-01T00:00:00Z[UTC]",
+            "2026-01-01T00:00:00,1Z",
             "1969-12-31T23:59:59Z",
+            "1969-12-31T23:59:59.9999Z",
         ] {
             assert_eq!(parse_rfc3339(text), None, "{text}");
         }
@@ -746,6 +790,9 @@ mod tests {
             "1970-01-01T00:00:00Z",
             "1970-01-01T01:00:00+01:00",
             "1969-12-31T23:00:00-01:00",
+            "1969-12-31T23:59:60Z",
+            "1970-01-01t00:00:00z",
+            "1970-01-01 00:00:00Z",
         ] {
             assert_eq!(parse_rfc3339(text), Some(0), "{text}");
         }
@@ -754,17 +801,16 @@ mod tests {
     #[test]
     fn reads_refresh_before_and_cursors() {
         assert_eq!(parse_rfc3339("1970-01-01T00:00:00Z"), Some(0));
-        assert_eq!(
-            parse_rfc3339("2026-09-21T14:13:20.123Z"),
-            Some(1_790_000_000_123)
-        );
+        for text in [
+            "2026-09-21T14:13:20.123Z",
+            "2026-09-21T14:13:20.123456789123Z",
+            "2026-09-21T22:13:20.123+08:00",
+        ] {
+            assert_eq!(parse_rfc3339(text), Some(1_790_000_000_123), "{text}");
+        }
         assert_eq!(
             parse_rfc3339("2000-02-29T00:00:00.5Z"),
             Some(951_782_400_500)
-        );
-        assert_eq!(
-            parse_rfc3339("2026-09-21T22:13:20.123+08:00"),
-            Some(1_790_000_000_123)
         );
         assert_eq!(parse_rfc3339("2026-13-01T00:00:00Z"), None);
         assert_eq!(instant(&json!(42)).unwrap(), Some(42));

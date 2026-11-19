@@ -2,6 +2,7 @@
 //! relay and hint channel carry notifications; mail itself stays on its relay.
 
 use crate::daemon::Daemon;
+use crate::mcp_events::parse_rfc3339;
 use dmsg_client::{
     hold::Hold,
     mail_push::{Callback, Subscription, Watch},
@@ -338,8 +339,7 @@ impl Daemon {
                     .to_owned();
                 let refresh = response["refreshBefore"]
                     .as_str()
-                    .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-                    .and_then(|d| u64::try_from(d.timestamp_millis()).ok())
+                    .and_then(parse_rfc3339)
                     .ok_or(Error::IntegrityFailed)?;
                 ensure(refresh > now_ms(), Error::IntegrityFailed)?;
                 Ok((id, refresh, response["cursor"].as_str().map(str::to_owned)))

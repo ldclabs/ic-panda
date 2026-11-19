@@ -1,4 +1,4 @@
-// Adapted from agent-protocols v0.12.6 (MIT, LDC Labs); vectors are vendored unchanged.
+// Adapted from agent-protocols v0.13.0 (MIT, LDC Labs).
 //! Agent Profile conformance vectors shared by every SDK.
 
 use agent_protocols::identity::Envelope;
@@ -45,9 +45,7 @@ fn history_materializes_the_greatest_nonce() {
     }
     let latest = latest_profile_update(&envelopes).unwrap();
     let document = serde_json::to_value(materialize_profile(latest).unwrap()).unwrap();
-    for (field, expected) in vectors["history"]["latest"].as_object().unwrap() {
-        assert_eq!(&document[field], expected, "{field}");
-    }
+    assert_eq!(document, vectors["history"]["latest"]);
 }
 
 #[test]

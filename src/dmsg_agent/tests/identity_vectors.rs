@@ -1,4 +1,4 @@
-// Adapted from agent-protocols v0.12.6 (MIT, LDC Labs); vectors are vendored unchanged.
+// Adapted from agent-protocols v0.13.0 (MIT, LDC Labs).
 //! Agent Identity conformance vectors shared by every SDK.
 
 use agent_protocols::identity::*;
@@ -186,7 +186,7 @@ fn max_seen_nonce_jumps_are_bounded() {
                 "{name}"
             );
         } else {
-            assert!(result.is_err(), "{name}");
+            assert_eq!(result.unwrap_err().code(), Some("invalid_nonce"), "{name}");
             assert_eq!(manager.peek(), next, "{name}");
         }
     }
@@ -200,6 +200,8 @@ fn clock_derived_nonces_stay_monotonic() {
     assert_eq!(manager.next_nonce_at(900).unwrap(), 1_002);
     assert_eq!(manager.next_nonce().unwrap(), 1_003);
     assert_eq!(manager.next_nonce_at(5_000).unwrap(), 5_000);
+    assert!(manager.next_nonce_at(i64::MAX).is_err());
+    assert_eq!(manager.next_nonce().unwrap(), 5_001);
 }
 
 #[test]

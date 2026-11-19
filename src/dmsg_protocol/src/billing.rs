@@ -1,7 +1,11 @@
 //! dmsg-commerce/1 arithmetic, calendar boundaries and authenticated leaf keys.
 use crate::{digest, membership::mul_div};
-use chrono::{Datelike, TimeZone, Utc};
 use dmsg_types::{billing::*, membership::*, *};
+use jiff::{
+    Timestamp, ToSpan,
+    civil::{Date, DateTime},
+    tz::Offset,
+};
 
 /// Construct the dMsg product/schema binding without authenticating its home.
 pub fn beneficiary(home: candid::Principal, account: &AccountId) -> Beneficiary {
@@ -38,53 +42,43 @@ pub fn catalog_key() -> Hash {
     digest("dmsg/commerce/catalog-key/v1", &"dmsg")
 }
 
-fn datetime(ms: u64) -> Result<chrono::DateTime<Utc>> {
+fn datetime(ms: u64) -> Result<DateTime> {
     let n = i64::try_from(ms).map_err(|_| invalid("timestamp"))?;
-    chrono::DateTime::from_timestamp_millis(n).ok_or_else(|| invalid("timestamp"))
+    let timestamp = Timestamp::from_millisecond(n).map_err(|_| invalid("timestamp"))?;
+    Ok(Offset::UTC.to_datetime(timestamp))
 }
 
 /// Same UTC instant one calendar year later, clamping February 29 to February 28.
 /// Input/output are Unix milliseconds; invalid timestamps return InvalidInput.
 pub fn next_year(ms: u64) -> Result<u64> {
-    let t = datetime(ms)?;
-    let year = t.year().checked_add(1).ok_or(Error::QuotaExceeded)?;
-    let next = t
-        .with_year(year)
-        .or_else(|| t.with_day(28).and_then(|d| d.with_year(year)))
-        .ok_or_else(|| invalid("calendar year"))?;
-    u64::try_from(next.timestamp_millis()).map_err(|_| invalid("timestamp"))
+    let next = datetime(ms)?
+        .checked_add(1.year())
+        .and_then(|date| Offset::UTC.to_timestamp(date))
+        .map_err(|_| invalid("calendar year"))?;
+    Ok(next.as_millisecond() as u64)
 }
 
 /// Convert Unix milliseconds to UTC YYYYMM; rejects unsupported timestamps.
 pub fn month_utc(ms: u64) -> Result<u32> {
     let t = datetime(ms)?;
-    u32::try_from(t.year())
-        .ok()
-        .and_then(|v| v.checked_mul(100))
-        .and_then(|v| v.checked_add(t.month()))
-        .ok_or_else(|| invalid("UTC month"))
+    Ok(t.year() as u32 * 100 + t.month() as u32)
 }
 
 /// Half-open UTC month interval in Unix milliseconds for YYYYMM.
 /// Invalid months or dates before the Unix epoch return InvalidInput.
 pub fn month_bounds(month: u32) -> Result<(u64, u64)> {
-    let year = i32::try_from(month / 100).map_err(|_| invalid("year"))?;
-    let m = month % 100;
-    let start = Utc
-        .with_ymd_and_hms(year, m, 1, 0, 0, 0)
-        .single()
-        .ok_or_else(|| invalid("UTC month"))?;
-    let end = if m == 12 {
-        Utc.with_ymd_and_hms(year + 1, 1, 1, 0, 0, 0)
-    } else {
-        Utc.with_ymd_and_hms(year, m + 1, 1, 0, 0, 0)
-    }
-    .single()
-    .ok_or_else(|| invalid("UTC month"))?;
-    Ok((
-        u64::try_from(start.timestamp_millis()).map_err(|_| invalid("UTC month"))?,
-        u64::try_from(end.timestamp_millis()).map_err(|_| invalid("UTC month"))?,
-    ))
+    let year = i16::try_from(month / 100).map_err(|_| invalid("UTC month"))?;
+    let start = Date::new(year, (month % 100) as i8, 1).map_err(|_| invalid("UTC month"))?;
+    let end = start
+        .checked_add(1.month())
+        .map_err(|_| invalid("UTC month"))?;
+    let month_start_ms = |date: Date| {
+        let time = Offset::UTC
+            .to_timestamp(date.at(0, 0, 0, 0))
+            .map_err(|_| invalid("UTC month"))?;
+        u64::try_from(time.as_millisecond()).map_err(|_| invalid("UTC month"))
+    };
+    Ok((month_start_ms(start)?, month_start_ms(end)?))
 }
 
 /// Sum exact weighted milliseconds, then round once for the entire month.

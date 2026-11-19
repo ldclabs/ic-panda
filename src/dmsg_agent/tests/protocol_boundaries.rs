@@ -1,5 +1,5 @@
 #![allow(clippy::result_large_err)]
-// Adapted from agent-protocols v0.12.6 (MIT, LDC Labs); vectors are vendored unchanged.
+// Adapted from agent-protocols v0.13.0 (MIT, LDC Labs).
 use agent_protocols::{delegation, discourse, identity, profile};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, path::PathBuf};
@@ -27,6 +27,26 @@ fn shared_replay_boundary_covers_the_last_live_millisecond() {
         options.now_ms = step["now"].as_i64().unwrap();
         let error = identity::verify_submission(&e, &options, &mut store, |_| false).unwrap_err();
         assert_eq!(error.code(), step["error"].as_str());
+    }
+    options.now_ms = c["accepted_at"].as_i64().unwrap();
+    options.nonce_ttl_ms = 1;
+    let mut store = identity::MemoryNonceStore::new();
+    identity::verify_live_envelope(&e, &options, &mut store).unwrap();
+    assert_eq!(
+        identity::NonceStore::max_nonce(
+            &store,
+            &e.event.actor,
+            options.now_ms + 2 * options.window_ms
+        ),
+        Some(e.event.nonce)
+    );
+    for invalid_time in [-1, identity::MAX_SAFE_NONCE as i64 + 1] {
+        let mut event = e.event.clone();
+        event.created_at = invalid_time;
+        assert_eq!(
+            identity::event_hash_bytes(&event).unwrap_err().code(),
+            Some("invalid_event")
+        );
     }
 }
 
