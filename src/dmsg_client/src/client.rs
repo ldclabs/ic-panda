@@ -784,6 +784,7 @@ impl Client {
         account: &AccountId,
         f: impl FnOnce(&crate::store::Store) -> Result<T>,
     ) -> Result<T> {
+        ensure(!account.is_empty(), Error::NotFound)?;
         if self
             .workspace
             .meta
@@ -794,14 +795,21 @@ impl Client {
             return f(&self.workspace.store);
         }
         ensure(
-            self.accounts()?
-                .iter()
-                .any(|a| a.account == account.to_string() && a.bound),
+            self.notification_accounts()?
+                .any(|a| a.account == account.to_string()),
             Error::NotFound,
         )?;
         let path = self.slot_dir(&Slot::Account(*account)).join(WORKSPACE);
         let store = crate::store::Store::open(&path)?;
         f(&store)
+    }
+
+    /// Bound service workspaces eligible for installation-wide notifications.
+    pub fn notification_accounts(&self) -> Result<impl Iterator<Item = LocalAccount>> {
+        Ok(self
+            .accounts()?
+            .into_iter()
+            .filter(|a| a.bound && a.account_kind == "cloud"))
     }
 
     /// Open the client of `config` with its workspaces under `dir`, on the
@@ -1099,9 +1107,6 @@ impl Client {
         if slot == self.slot {
             return Ok(());
         }
-        if self.is_local() || slot == Slot::Local {
-            self.cloud.network(slot != Slot::Local);
-        }
         self.library_lock();
         self.keys = None;
         self.resident = None;
@@ -1116,6 +1121,9 @@ impl Client {
         self.bound_logins.clear();
         // Close the database before its directory moves or another opens.
         self.workspace = idle(&self.config.environment)?;
+        if self.is_local() {
+            self.cloud.network(true);
+        }
         self.slot = Slot::Idle;
         let dir = self.slot_dir(&slot);
         if let (Slot::Account(account), Some(login)) = (&slot, &self.login) {
@@ -1124,7 +1132,7 @@ impl Client {
                 self.move_workspace(&from, account)?;
             }
         }
-        self.workspace = if slot == Slot::Local {
+        let workspace = if slot == Slot::Local {
             crate::local::workspace(&dir, &self.config.environment, false)?
         } else {
             std::fs::create_dir_all(&dir).map_err(storage)?;
@@ -1139,6 +1147,10 @@ impl Client {
         if let Some(account) = slot.account_id() {
             self.write_current(account)?;
         }
+        if slot == Slot::Local {
+            self.cloud.network(false);
+        }
+        self.workspace = workspace;
         self.blobs = (slot != Slot::Idle).then(|| Blobs::new(dir.join(BLOBS)));
         self.slot = slot;
         self.check_hardware()
@@ -2078,6 +2090,9 @@ impl Client {
     /// device signing key stays, so presigned and sealed versions still go
     /// out; nothing can be read or decided.
     pub fn lock(&mut self) {
+        if !self.is_local() && !self.cloud.network_enabled() {
+            self.cloud.network(true);
+        }
         self.local_import = None;
         crate::vault::backup::clear(self);
         self.secret_abort(None, None);
@@ -2116,7 +2131,6 @@ impl Client {
     /// so work that runs while locked (the recovery watch, a resident key's
     /// reads) is not invalidated by every idle pass.
     pub fn lock_idle(&mut self) {
-        crate::vault::backup::direct::expire(self);
         if self.keys.is_some() || self.login.is_some() {
             self.lock();
         }

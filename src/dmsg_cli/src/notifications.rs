@@ -316,7 +316,7 @@ impl Daemon {
                         // The previous desktop alerted its selected account by
                         // default. An upgrade keeps that; a fresh install has no
                         // bound account yet and stays opt-in.
-                        let upgraded = c.accounts()?.into_iter().find(|a| a.bound && a.account_kind == "cloud" && selected.as_deref() == Some(a.account.as_str()));
+                        let upgraded = c.notification_accounts()?.find(|a| selected.as_deref() == Some(a.account.as_str()));
                         if let Some(local) = upgraded && runtime.settings.revision == 0 {
                             let mut settings = runtime.settings.clone();
                             settings.enabled = true;
@@ -335,7 +335,7 @@ impl Daemon {
                         runtime.save(&path)?;
                     }
                     let mut claimed = std::collections::BTreeSet::new();
-                    for local in c.accounts()?.into_iter().filter(|a| a.bound && a.account_kind == "cloud") {
+                    for local in c.notification_accounts()? {
                         let account = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
                         c.with_notification_store(&account, |store| {
                             for mut item in store.notification_items()? {
@@ -374,7 +374,7 @@ impl Daemon {
                     context.now = now;
                     let mut all = core::Batch { remove: std::mem::take(&mut runtime.removals), ..Default::default() };
                     if !all.remove.is_empty() { runtime.save(&path)?; }
-                    for local in c.accounts()?.into_iter().filter(|a| a.bound && a.account_kind == "cloud") {
+                    for local in c.notification_accounts()? {
                         let id: AccountId = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
                         let batch = c.with_notification_store(&id, |store| {
                             if params["restore"] == true {

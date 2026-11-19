@@ -72,6 +72,10 @@ use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+// Independent daemon fixtures run in one test process and share its KDF limit.
+#[cfg(test)]
+static PASSWORD_FIXTURE: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
+
 /// dMsg command line client.
 #[derive(Parser)]
 #[command(name = "dmsg", version, about)]
@@ -682,7 +686,11 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
         }
         Command::Unlock { fast, account } => {
             let params = json!({"fast": fast, "account": account});
-            session(remote, json, "session/unlock", params).await
+            let status =
+                call_with_local_password(remote, "session/unlock", params, interactive(json))
+                    .await?;
+            print(json, &status, summary);
+            Ok(())
         }
         Command::Accounts => account_commands::accounts(remote, json).await,
         Command::Switch { account } => {
@@ -791,6 +799,27 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
         } => agent_commands::ap(remote, json, agent, session, tool, input).await,
         Command::Events(command) => event_commands::events(remote, json, command).await,
         _ => unreachable!("served without the daemon"),
+    }
+}
+
+/// Prompt on the controlling terminal only when this operation needs the standalone password.
+async fn call_with_local_password(
+    remote: &Remote,
+    method: &str,
+    mut params: Value,
+    prompt: bool,
+) -> Result<Value, Failure> {
+    match remote.call(method, params.clone()).await {
+        Err(e) if e.code == "LOCAL_PASSWORD_REQUIRED" && prompt => {
+            let password = rpassword::prompt_password(tr!("Local password: ", "本地密码："))
+                .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+            params["password"] = password.into();
+            if method == "session/unlock" {
+                params["account"] = dmsg_types::LOCAL_ACCOUNT_ID.to_string().into();
+            }
+            remote.call(method, params).await
+        }
+        result => result,
     }
 }
 

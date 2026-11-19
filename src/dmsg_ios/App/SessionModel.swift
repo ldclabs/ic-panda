@@ -1013,12 +1013,13 @@ final class SessionModel {
     func maintenancePass() async {
         guard unlocked, !concealed, let engine else { return }
         let current = epoch
+        _ = try? await engine.maintainFiles()
+        guard current == epoch, !Task.isCancelled, cloudAccount else { return }
         do { _ = try await coreOperation { try await engine.reconcile(operation: $0) } } catch { }
         guard current == epoch, !Task.isCancelled else { return }
         do { _ = try await coreOperation { try await engine.syncConnect(operation: $0) } } catch { }
         guard current == epoch, !Task.isCancelled else { return }
         _ = try? await engine.syncBlockedAccounts()
-        _ = try? await engine.maintainFiles()
         await loadBlockedAccounts(); await loadApprovals()
     }
 
@@ -1372,6 +1373,8 @@ final class SessionModel {
     }
 
     func openLocalAccount() async {
+        guard !busy else { return }
+        if unlocked { await lock() }
         guard !busy, let engine else { return }
         automaticUnlock.suppress()
         let operation = beginBusyOperation(.unlocking), current = epoch

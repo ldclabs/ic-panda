@@ -5,6 +5,27 @@ use crate::{
 };
 
 #[test]
+fn ending_a_creation_resumes_only_the_current_service_transport() {
+    let dir = TempDir::new();
+    let mut c = Client::open(config(false), &dir.0, None).unwrap();
+    let old_transport = c.relay();
+    let first = c.prepare_local_create().unwrap();
+    assert!(c.offline_mode());
+    drop(first);
+    assert!(!c.offline_mode());
+    assert!(!old_transport.network_enabled());
+
+    let interrupted = c.prepare_local_create().unwrap();
+    c.lock();
+    assert!(!c.offline_mode());
+    let retry = c.prepare_local_create().unwrap();
+    drop(interrupted);
+    assert!(c.offline_mode());
+    assert!(retry.authenticate(Some("short")).is_err());
+    assert!(!c.offline_mode());
+}
+
+#[test]
 fn standalone_workspace_survives_restart_without_identity_or_outbox() {
     let _fixture = crate::testing::PASSWORD_FIXTURE.blocking_lock();
     let dir = TempDir::new();
@@ -112,19 +133,40 @@ fn standalone_workspace_survives_restart_without_identity_or_outbox() {
             },
         )
         .unwrap();
+    let discarded_input = dir.path("discarded.txt");
+    std::fs::write(&discarded_input, b"discarded").unwrap();
+    let discarded = c
+        .files_import(&discarded_input, "root", true, &mut |_, _| {})
+        .unwrap()
+        .file
+        .id;
     c.vault_edit(
         &entry.id,
         Some(&entry.revision),
         &Changes {
-            files: Some(vec![file.file.id.clone()]),
+            files: Some(vec![file.file.id.clone(), discarded.clone()]),
             ..Default::default()
         },
     )
     .unwrap();
+    c.files_trash(&[discarded]).unwrap();
     let device = c.device_id().unwrap();
     drop(c);
     let mut target = crate::testing::unlocked(&dir.0, false, None);
     crate::testing::allow_vault_backup(&mut target);
+    let notifications = target
+        .notification_status(&Default::default(), now_ms())
+        .unwrap();
+    assert_eq!(notifications["accounts"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        notifications["accounts"][0]["account"],
+        crate::testing::account().id.to_string()
+    );
+    target.mark_all_notifications_read().unwrap();
+    assert_eq!(
+        target.with_notification_store(&LOCAL_ACCOUNT_ID, |_| Ok(())),
+        Err(Error::NotFound)
+    );
     let request = target.prepare_local_import().unwrap();
     let preview = crate::vault::backup::direct::preview(
         &mut target,
@@ -135,6 +177,13 @@ fn standalone_workspace_survives_restart_without_identity_or_outbox() {
     .unwrap();
     let id = preview["id"].as_str().unwrap();
     assert_eq!(preview["items"].as_array().unwrap().len(), 2);
+    assert!(
+        preview["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["attachments"] == serde_json::json!([0, null]))
+    );
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -149,6 +198,7 @@ fn standalone_workspace_survives_restart_without_identity_or_outbox() {
     let result = copy(&mut target);
     assert_eq!(result["items"], 2);
     assert_eq!(result["files"], 1);
+    assert_eq!(result["omitted"], 1);
     assert_eq!(copy(&mut target), result);
     let imported = target.vault_list(&Default::default()).unwrap();
     assert_eq!(imported.len(), 2);

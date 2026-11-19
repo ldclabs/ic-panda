@@ -743,12 +743,11 @@ async fn decide(remote: &Remote, request: &Value, reject: bool) -> Result<Value,
             }
         },
     };
-    remote
-        .call(
-            "approval/respond",
-            json!({"id": request["id"], "digest": request["digest"], "approve": approve, "human": true}),
-        )
-        .await
+    crate::call_with_local_password(
+        remote, "approval/respond",
+        json!({"id": request["id"], "digest": request["digest"], "approve": approve, "human": true}),
+        approve,
+    ).await
 }
 
 /// A request just created: decided here at an interactive terminal, else

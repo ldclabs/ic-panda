@@ -313,6 +313,9 @@ impl Client {
         self.lock();
         // Close the database before its directory moves.
         self.workspace = crate::client::idle(&self.config.environment)?;
+        if slot == Slot::Local {
+            self.cloud.network(true);
+        }
         self.slot = Slot::Idle;
         std::fs::write(
             from.join(MOVED_RECORD),

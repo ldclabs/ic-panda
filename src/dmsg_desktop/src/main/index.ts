@@ -130,7 +130,10 @@ const updates = new Updates(() => {
   updateTray(trayState)
   updateMenu()
   broadcast('dmsg:event', { type: 'updates/changed' })
-}, async () => (await daemon.call('daemon/status', {}) as { account_kind?: string }).account_kind === 'cloud')
+}, async () => {
+  const status = await daemon.call('daemon/status', {}) as { account_kind?: string; offline_mode?: boolean }
+  return status.account_kind !== 'local' && !status.offline_mode
+})
 /** A copied secret leaves the clipboard after this long, unless something replaced it; locking or quitting clears it sooner. */
 const CLEAR_MS = 30_000
 /** A person's input in a window is the idle lock's activity, reported at most this often. */

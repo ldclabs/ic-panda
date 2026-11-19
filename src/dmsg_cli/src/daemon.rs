@@ -356,7 +356,6 @@ async fn local_auth(
         .as_str()
         .map(|v| zeroize::Zeroizing::new(v.to_owned()));
     let instance = request.instance();
-    let creating = request.opening_new();
     let result = tokio::task::spawn_blocking(move || {
         request.authenticate(password.as_ref().map(|v| v.as_str()))
     })
@@ -365,12 +364,7 @@ async fn local_auth(
     if let Err(error) = &result {
         daemon
             .hold()
-            .with(|c| {
-                if creating {
-                    c.local_creation_failed(instance.1);
-                }
-                c.local_key_failure(instance, error)
-            })
+            .with(|c| c.local_key_failure(instance, error))
             .await?;
     }
     result
@@ -596,6 +590,7 @@ async fn background(daemon: Arc<Daemon>) {
         let now = now_ms();
         let session = {
             let mut client = daemon.client.lock().await;
+            dmsg_client::vault::backup::direct::expire(&mut client, now);
             let before = client.session_state().state;
             if now
                 > daemon.activity.load(Ordering::Relaxed)
@@ -612,9 +607,6 @@ async fn background(daemon: Arc<Daemon>) {
         };
         daemon.check_mount().await;
         daemon.check_secret_mounts().await;
-        if daemon.local_mode().await {
-            continue;
-        }
         let unlocked = session.state == "unlocked";
         let ready = unlocked || session.resident;
         let every = if daemon.hints_connected() {
@@ -622,7 +614,7 @@ async fn background(daemon: Arc<Daemon>) {
         } else {
             CONNECT_POLL_MS
         };
-        if ready && now >= polled + every {
+        if ready && now >= polled + every && !daemon.local_mode().await {
             polled = now;
             let report = daemon.connect_pass().await;
             daemon.note_result("connect", &report);
@@ -889,11 +881,12 @@ impl Daemon {
         format!("{}:{generation}", self.instance)
     }
 
-    /// Whether a stop is deciding or decided.
+    /// Whether service traffic is suspended for a standalone workspace.
     pub(crate) async fn local_mode(&self) -> bool {
         self.client.lock().await.offline_mode()
     }
 
+    /// Whether a stop is deciding or decided.
     pub(crate) fn stopping(&self) -> bool {
         self.stopping.load(Ordering::SeqCst)
     }
@@ -1233,6 +1226,7 @@ impl Daemon {
     async fn status(&self) -> Result<Value> {
         let client = self.client.lock().await;
         let status = client.status()?;
+        let offline = client.offline_mode();
         let recovery = client.recovery_warning()?;
         let generation = client.session_generation();
         let initialized = dmsg_client::sync::initialized(&client)?;
@@ -1240,6 +1234,7 @@ impl Daemon {
         let session = format!("{}:{}", self.instance, generation);
         drop(client);
         let mut value = serde_json::to_value(status).expect("status serializes");
+        value["offline_mode"] = offline.into();
         value["recovery"] = recovery;
         value["session"] = session.into();
         value["version"] = env!("CARGO_PKG_VERSION").into();
@@ -1620,25 +1615,11 @@ impl Daemon {
             "session/unlock" => {
                 let selected = optional(params, "account", account)?;
                 let fast = params["fast"].as_bool().unwrap_or(false);
-                let local = self
-                    .hold()
-                    .with(|c| {
-                        if selected.is_some_and(|a| a.is_empty()) {
-                            c.switch_account(&dmsg_types::LOCAL_ACCOUNT_ID)?;
-                        }
-                        Ok(
-                            (selected.is_none() || selected.is_some_and(|a| a.is_empty()))
-                                && c.is_local(),
-                        )
-                    })
-                    .await?;
-                if local {
-                    let request = self.hold().with(|c| c.prepare_local_unlock()).await?;
-                    let access = local_auth(self, request, params).await?;
-                    return self
-                        .hold()
-                        .with(|c| Ok(to_json(&c.complete_local_unlock(access)?)))
-                        .await;
+                enum Unlock {
+                    Ready(Value),
+                    Local(dmsg_client::local::Challenge),
+                    Fast(dmsg_client::client::FastUnlock),
+                    Login(u64),
                 }
                 let queued = self.client.lock().await.session_generation();
                 let _turn = self.turn("session/unlock").await;
@@ -1648,7 +1629,7 @@ impl Daemon {
                 // Preparation can switch/lock the workspace before failing.
                 // Shared emits the session change even when no unlock follows,
                 // so owner windows and display schedulers discard old content.
-                let (ready, prepared, selected_generation) = self
+                let unlock = self
                     .hold()
                     .with(|client| {
                         let session = client.session_state();
@@ -1657,54 +1638,56 @@ impl Daemon {
                                 session.account.as_deref() == Some(account.to_string().as_str())
                             })
                         {
-                            Ok((Some(client.status()?), None, client.session_generation()))
+                            return Ok(Unlock::Ready(to_json(&client.status()?)));
+                        }
+                        ensure(client.session_generation() == queued, Error::Locked)?;
+                        if let Some(account) = &selected {
+                            client.switch_account(account)?;
+                            *self.last_connect.lock().expect("connect report") = None;
+                        }
+                        if client.is_local() {
+                            client.prepare_local_unlock().map(Unlock::Local)
+                        } else if fast {
+                            client.prepare_fast_unlock().map(Unlock::Fast)
                         } else {
-                            if client.session_generation() != queued {
-                                return Err(Error::Locked);
-                            }
-                            if let Some(account) = &selected {
-                                client.switch_account(account)?;
-                                *self.last_connect.lock().expect("connect report") = None;
-                            }
-                            let prepared = if fast {
-                                Some(client.prepare_fast_unlock()?)
-                            } else {
-                                None
-                            };
-                            Ok((None, prepared, client.session_generation()))
+                            Ok(Unlock::Login(client.session_generation()))
                         }
                     })
                     .await?;
-                let (status, opened) = if let Some(status) = ready {
-                    (status, false)
-                } else if let Some(prepared) = prepared {
-                    // The OS prompt waits outside Client ownership. Lock and
-                    // account switch can invalidate it while the person decides.
-                    let (prepared, key) = blocking(move || {
-                        let key = prepared.open();
-                        Ok((prepared, key))
-                    })
-                    .await?;
-                    let status = self
-                        .under_lock(async |client| client.complete_fast_unlock(prepared, key).await)
-                        .await?;
-                    (status, true)
-                } else {
-                    self.hold().ensure_login().await?;
-                    let prepared = self
-                        .under_lock(async |client| {
-                            if client.session_generation() != selected_generation {
-                                return Err(Error::Locked);
-                            }
-                            client.prepare_unlock().await
+                let status = match unlock {
+                    Unlock::Ready(status) => return Ok(status),
+                    Unlock::Local(request) => {
+                        let access = local_auth(self, request, params).await?;
+                        self.hold()
+                            .with(|c| c.complete_local_unlock(access))
+                            .await?
+                    }
+                    Unlock::Fast(prepared) => {
+                        let (prepared, key) = blocking(move || {
+                            let key = prepared.open();
+                            Ok((prepared, key))
                         })
                         .await?;
-                    (self.finish_login_unlock(prepared).await?, true)
+                        self.under_lock(async |client| {
+                            client.complete_fast_unlock(prepared, key).await
+                        })
+                        .await?
+                    }
+                    Unlock::Login(generation) => {
+                        self.hold().ensure_login().await?;
+                        let prepared = self
+                            .under_lock(async |client| {
+                                ensure(client.session_generation() == generation, Error::Locked)?;
+                                client.prepare_unlock().await
+                            })
+                            .await?;
+                        self.finish_login_unlock(prepared).await?
+                    }
                 };
                 // Unlocking is the person's activity: a window that asks for
                 // Touch ID as it comes to the front has no input to report.
                 self.activity.store(now_ms(), Ordering::Relaxed);
-                if opened && status.state == "unlocked" {
+                if status.account_kind == "cloud" && status.state == "unlocked" {
                     self.request_sync();
                 }
                 Ok(to_json(&status))
@@ -2265,6 +2248,7 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
             | "device/moved_approve_successor"
             | "connect/sync" => &["approval/changed"],
             "device/moved_import" => &["files/changed"],
+            "local_import/commit" => &["vault/changed", "files/changed"],
             "connect/grant" | "connect/revoke" => &["connect/changed"],
             "session/fast_unlock" | "session/device_bound" => &["session/changed"],
             _ => &[],
@@ -4299,6 +4283,65 @@ mod tests {
             method: method.into(),
             params,
         }
+    }
+
+    #[tokio::test]
+    async fn standalone_maintenance_detects_edits_without_contacting_services() {
+        let _fixture = crate::PASSWORD_FIXTURE.acquire().await.unwrap();
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, relay, ic) = stalled(&dir).await;
+        let created = daemon
+            .call_daemon(
+                "session/local_create",
+                &json!({"password":"local maintenance fixture"}),
+            )
+            .await
+            .unwrap();
+        let generation = daemon.client.lock().await.session_generation();
+        let ready = daemon
+            .call_daemon("session/unlock", &Value::Null)
+            .await
+            .unwrap();
+        assert_eq!(ready["account"], created["account"]);
+        assert_eq!(daemon.client.lock().await.session_generation(), generation);
+        let input = dir.path("sample.txt");
+        std::fs::write(&input, b"original").unwrap();
+        let copy = {
+            let mut client = daemon.client.lock().await;
+            let file = client
+                .files_import(&input, "root", true, &mut |_, _| {})
+                .unwrap();
+            client.files_open(&file.file.id, None).unwrap()
+        };
+        std::fs::write(&copy.path, b"edited").unwrap();
+        let mut events = daemon.events.subscribe();
+        let worker = tokio::spawn(background(daemon.clone()));
+        daemon.wake();
+        let change = tokio::time::timeout(Duration::from_secs(3), async {
+            loop {
+                let event = events.recv().await.unwrap();
+                if event["type"] == "files/open_changed" {
+                    return event;
+                }
+            }
+        })
+        .await;
+        worker.abort();
+        assert_eq!(change.unwrap()["data"]["nonce"], copy.nonce);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(30), relay.accept())
+                .await
+                .is_err()
+        );
+        assert!(
+            tokio::time::timeout(Duration::from_millis(30), ic.accept())
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            events_of(Module::Daemon, "local_import/commit"),
+            ["vault/changed", "files/changed"]
+        );
     }
 
     #[test]

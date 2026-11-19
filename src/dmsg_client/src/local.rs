@@ -164,7 +164,7 @@ pub struct Challenge {
     environment: String,
     device: Hash,
     protection: Protection,
-    create: bool,
+    creation: Option<crate::cloud::NetworkPause>,
     hardware: Option<Arc<dyn PresenceKey>>,
     anchor: Option<Arc<dyn HardwareAnchor>>,
     secure: Option<Arc<dyn SecureStorage>>,
@@ -195,24 +195,22 @@ impl Challenge {
         (self.device, self.generation)
     }
 
-    /// Whether this request belongs to an unpublished workspace.
-    pub fn opening_new(&self) -> bool {
-        self.create
-    }
     /// Perform the system prompt or password derivation outside the shared client.
     pub fn authenticate(self, password: Option<&str>) -> Result<Access> {
         let mut created_handle = None;
         let mut created_anchor = None;
         let secret = match &self.protection {
             Protection::PasswordV1(salt) => {
-                password_key(password.unwrap_or_default(), salt, self.create)?
+                let password =
+                    password.ok_or_else(|| dmsg_types::invalid("LOCAL_PASSWORD_REQUIRED"))?;
+                password_key(password, salt, self.creation.is_some())?
             }
             Protection::HardwareV1 => {
                 ensure(password.is_none(), Error::Forbidden)?;
                 let hw = self.hardware.as_ref().ok_or_else(unavailable)?;
                 let secure = self.secure.as_ref().ok_or_else(unavailable)?;
                 let name = slot_name(&self.environment, self.device);
-                if self.create {
+                if self.creation.is_some() {
                     let anchor = self.anchor.as_ref().ok_or_else(unavailable)?;
                     let (handle, context, expected) = hw.create(false)?;
                     let (secret, anchor_handle, public) = (|| {
@@ -414,13 +412,18 @@ impl Client {
         Ok(())
     }
 
-    fn local_challenge(&self, device: Hash, protection: Protection, create: bool) -> Challenge {
+    fn local_challenge(
+        &self,
+        device: Hash,
+        protection: Protection,
+        creation: Option<crate::cloud::NetworkPause>,
+    ) -> Challenge {
         Challenge {
             generation: self.session_generation,
             environment: environment_name(&self.config.environment).into(),
             device,
             protection,
-            create,
+            creation,
             hardware: self.presence.clone(),
             secure: self.secure(),
             anchor: self.anchor.clone(),
@@ -440,15 +443,8 @@ impl Client {
             _ => return Err(unavailable()),
         };
         self.shutdown();
-        self.cloud.network(false);
-        Ok(self.local_challenge(Hash::new(random_id()), protection, true))
-    }
-
-    /// Release the temporary network gate when an unpublished creation was cancelled.
-    pub fn local_creation_failed(&mut self, generation: u64) {
-        if !self.is_local() && self.session_generation == generation {
-            self.cloud.network(true);
-        }
+        let pause = self.cloud.pause_network();
+        Ok(self.local_challenge(Hash::new(random_id()), protection, Some(pause)))
     }
 
     /// Remember confirmed permanent loss on the instance that asked. Cancellations remain retryable.
@@ -477,7 +473,7 @@ impl Client {
                 .local
                 .clone()
                 .ok_or(Error::IntegrityFailed)?,
-            false,
+            None,
         ))
     }
 
@@ -496,12 +492,13 @@ impl Client {
                 Error::Forbidden,
             )?;
         }
-        Ok(self.local_challenge(ws.meta.device_id, protection, false))
+        Ok(self.local_challenge(ws.meta.device_id, protection, None))
     }
 
     pub(crate) fn local_source(&self, access: Access) -> Result<Self> {
         ensure(
-            !access.request.create && access.request.generation == self.session_generation,
+            access.request.creation.is_none()
+                && access.request.generation == self.session_generation,
             Error::Locked,
         )?;
         let dir = self.slot_dir(&Slot::Local);
@@ -522,7 +519,7 @@ impl Client {
     pub fn complete_local_create(&mut self, mut access: Access) -> Result<Status> {
         let r = &access.request;
         ensure(
-            r.create && r.generation == self.session_generation,
+            r.creation.is_some() && r.generation == self.session_generation,
             Error::Locked,
         )?;
         let dir = self.slot_dir(&Slot::Local);
@@ -595,7 +592,7 @@ impl Client {
     fn verified_keys(&mut self, access: &Access) -> Result<Keys> {
         ensure(
             self.is_local()
-                && !access.request.create
+                && access.request.creation.is_none()
                 && access.request.generation == self.session_generation,
             Error::Locked,
         )?;

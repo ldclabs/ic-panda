@@ -290,11 +290,7 @@ impl Client {
             return Ok(Vec::new());
         }
         let mut result = Vec::new();
-        for local in self
-            .accounts()?
-            .into_iter()
-            .filter(|a| a.account_kind == "cloud" && a.bound && !a.moved)
-        {
+        for local in self.notification_accounts()?.filter(|a| !a.moved) {
             let id = account_id(&local.account)?;
             if self.hardware_pending.contains(&id) {
                 continue;

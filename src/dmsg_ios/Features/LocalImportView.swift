@@ -31,6 +31,8 @@ struct LocalImportView: View {
                             Text(entry.title)
                             Text(verbatim: entry.state == "same" ? String(localized: "Already here") : entry.state == "deleted" ? String(localized: "Deleted here · save a copy") : entry.state == "changed" ? String(localized: "Different content · save a copy") : String(localized: "New items"))
                                 .font(.caption).foregroundStyle(.secondary)
+                            let omitted = entry.attachments.filter { $0 == nil }.count
+                            if omitted > 0 { LabeledContent("Omitted attachments", value: omitted.formatted()).font(.footnote) }
                         }.disabled(entry.state == "same")
                     }
                 }
@@ -77,7 +79,7 @@ struct LocalImportView: View {
         do {
             let received: Plan = try model.decode(try await engine.localImportPreview())
             guard visible else { try? await engine.localImportCancel(id: received.id); return }
-            plan = received; items = Set(received.items.filter { $0.state == "new" }.map(\.index))
+            plan = received; items = Set(received.items.filter { $0.state == "new" && !$0.attachments.contains(nil) }.map(\.index))
         } catch { if visible { model.report(error) } }
     }
 
@@ -87,6 +89,12 @@ struct LocalImportView: View {
         do {
             _ = try await engine.localImportCommit(id: reviewed.id, items: items.sorted(), files: files.sorted(), folder: "root")
             plan = nil; await model.refresh(); if visible { dismiss() }
-        } catch { if visible { model.report(error) } }
+        } catch {
+            if case MobileError.Failure(let code) = error, ["EXPIRED", "VERSION_CONFLICT"].contains(code) {
+                try? await engine.localImportCancel(id: reviewed.id)
+                plan = nil; files = []; copied = 0
+            }
+            if visible { model.report(error) }
+        }
     }
 }

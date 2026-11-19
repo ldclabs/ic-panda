@@ -352,6 +352,7 @@ impl MobileEngine {
             .inner
             .run_at(generation, |c| {
                 Box::pin(async {
+                    dmsg_client::vault::backup::direct::expire(c, dmsg_client::now_ms());
                     Ok((
                         c.status()?,
                         SNAPSHOT_SEQUENCE.fetch_add(1, Ordering::Relaxed),
@@ -780,25 +781,10 @@ impl MobileEngine {
         let request = transition
             .run(|c| Box::pin(async { c.prepare_local_create() }))
             .await?;
-        let generation = request.instance().1;
-        let result = runtime()
+        let access = runtime()
             .spawn_blocking(move || request.authenticate(None))
             .await
-            .map_err(|_| Error::Unavailable("local unlock worker".into()))?;
-        let access = match result {
-            Ok(access) => access,
-            Err(e) => {
-                transition
-                    .run(move |c| {
-                        Box::pin(async move {
-                            c.local_creation_failed(generation);
-                            Ok(())
-                        })
-                    })
-                    .await?;
-                return Err(e.into());
-            }
-        };
+            .map_err(|_| Error::Unavailable("local unlock worker".into()))??;
         transition
             .run(move |c| Box::pin(async move { c.complete_local_create(access) }))
             .await?;

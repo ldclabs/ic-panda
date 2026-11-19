@@ -445,6 +445,7 @@ mod tests {
 
     #[tokio::test]
     async fn backups_round_trip_every_item_and_field_kind_through_owner_methods() {
+        let _fixture = crate::PASSWORD_FIXTURE.acquire().await.unwrap();
         use dmsg_client::vault::{Field, Item};
         let source_home = TempDir::new();
         let target_home = TempDir::new();

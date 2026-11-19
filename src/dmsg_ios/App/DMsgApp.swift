@@ -76,7 +76,7 @@ struct DMsgApp: App {
                     await model.fileTransfers.watch(model)
                 }
                 .task(id: "maintenance:\(scenePhase == .active):\(model.session?.generation ?? 0)") {
-                    guard model.cloudAccount, scenePhase == .active, model.unlocked else { return }
+                    guard scenePhase == .active, model.unlocked else { return }
                     while !Task.isCancelled {
                         await model.maintenancePass()
                         do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }

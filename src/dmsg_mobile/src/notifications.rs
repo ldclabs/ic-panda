@@ -430,7 +430,7 @@ impl MobileEngine {
                 if !all.remove.is_empty() {
                     runtime.save(&path)?;
                 }
-                for local in c.accounts()?.into_iter().filter(|a| a.bound) {
+                for local in c.notification_accounts()? {
                     let batch = c.with_notification_store(&account(&local.account)?, |s| {
                         notice::next(s, &mut runtime, &context, |r| r.save(&path))
                     })?;
@@ -479,7 +479,7 @@ impl MobileEngine {
                 if let Some(local) = route.strip_prefix("local:") {
                     ensure(dmsg_client::channel_log::is_hash(local), Error::InvalidInput("notification route".into()))?;
                     return h.with(|c| {
-                        for account_ref in c.accounts()?.into_iter().filter(|a| a.bound) {
+                        for account_ref in c.notification_accounts()? {
                             let plan = c.with_notification_store(&account(&account_ref.account)?, |s| {
                                 Ok(s.notification_deliveries()?.into_iter().find(|p| p.system_id == local))
                             })?;

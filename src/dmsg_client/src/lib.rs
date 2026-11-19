@@ -119,6 +119,7 @@ pub fn error_code(error: &Error) -> String {
                 | "LOCAL_UNLOCK_FAILED"
                 | "KDF_BUSY"
                 | "LOCAL_PASSWORD_LENGTH"
+                | "LOCAL_PASSWORD_REQUIRED"
                 | "LOCAL_HARDWARE_UNAVAILABLE"
                 | "LOCAL_HARDWARE_LOST"
         )

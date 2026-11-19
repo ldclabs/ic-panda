@@ -51,7 +51,7 @@ private val allDestinations = listOf(
     val state by client.state.collectAsStateWithLifecycle()
     val local = state.session?.accountKind == "local"
     val destinations = if (local) allDestinations.filter { it.id != "messages" } else allDestinations
-    LaunchedEffect(state.unlocked, state.concealed, state.session?.account) { if (local) return@LaunchedEffect; client.routePendingChannel(); client.routePendingConnect(); client.routePendingWorkspace(); client.routePendingNotice() }
+    LaunchedEffect(state.unlocked, state.concealed, state.session?.account) { client.routePendingChannel(); client.routePendingConnect(); client.routePendingWorkspace(); client.routePendingNotice() }
     val context = LocalContext.current
     val channelListing by client.messages.channels.state.collectAsStateWithLifecycle()
     val syncStatus by client.synchronization.status.collectAsStateWithLifecycle()

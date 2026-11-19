@@ -603,7 +603,7 @@ impl crate::Client {
     /// Clear this installation's reminder counters across its local accounts.
     /// No account switch, decryption, business acknowledgement or network call.
     pub fn mark_all_notifications_read(&self) -> Result<()> {
-        for local in self.accounts()?.into_iter().filter(|a| a.bound) {
+        for local in self.notification_accounts()? {
             let account = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
             self.with_notification_store(&account, mark_all_read)?;
         }
@@ -671,7 +671,7 @@ impl crate::Client {
         let selected = self.session_state().account;
         let mut total = Counts::default();
         let mut accounts = Vec::new();
-        for local in self.accounts()?.into_iter().filter(|a| a.bound) {
+        for local in self.notification_accounts()? {
             let id = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
             self.with_notification_store(&id, |store| {
                 let settings = settings(store)?;

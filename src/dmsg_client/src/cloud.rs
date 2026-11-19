@@ -539,10 +539,32 @@ pub fn found(reply: Result<Json>) -> Result<Option<Json>> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum Network {
+    Online,
+    Paused,
+    Offline,
+}
+
+/// Resume the original workspace if creation ends before a new transport is selected.
+pub(crate) struct NetworkPause(tokio::sync::watch::Sender<Network>);
+
+impl Drop for NetworkPause {
+    fn drop(&mut self) {
+        self.0.send_if_modified(|state| {
+            if *state == Network::Paused {
+                *state = Network::Online;
+                return true;
+            }
+            false
+        });
+    }
+}
+
 /// HTTP client of one relay origin; a clone shares its connections.
 #[derive(Clone)]
 pub struct Cloud {
-    enabled: tokio::sync::watch::Sender<bool>,
+    enabled: tokio::sync::watch::Sender<Network>,
     http: reqwest::Client,
     origin: Url,
     local: bool,
@@ -566,7 +588,7 @@ impl Cloud {
         Ok(Self {
             http,
             origin: url,
-            enabled: tokio::sync::watch::channel(true).0,
+            enabled: tokio::sync::watch::channel(Network::Online).0,
             local,
         })
     }
@@ -574,14 +596,14 @@ impl Cloud {
     /// Anonymous HTTP transport for relay services and public images: no
     /// default credentials or cookies, no redirects, and a request timeout.
     pub(crate) fn http(&self) -> Result<reqwest::Client> {
-        ensure(*self.enabled.borrow(), crate::local::only())?;
+        ensure(self.network_enabled(), crate::local::only())?;
         Ok(self.http.clone())
     }
 
     /// Completes when this workspace's outgoing requests must stop, including handles already in flight.
     pub async fn when_offline(&self) {
         let mut enabled = self.enabled.subscribe();
-        let _ = enabled.wait_for(|online| !*online).await;
+        let _ = enabled.wait_for(|state| *state != Network::Online).await;
     }
 
     /// Bind direct platform transports to the same workspace boundary as relay requests.
@@ -597,16 +619,29 @@ impl Cloud {
     }
 
     pub(crate) fn network_enabled(&self) -> bool {
-        *self.enabled.borrow()
+        *self.enabled.borrow() == Network::Online
     }
 
     pub(crate) fn network(&mut self, enabled: bool) {
-        self.enabled.send_replace(false);
-        self.enabled = tokio::sync::watch::channel(enabled).0;
+        self.replace_network(if enabled {
+            Network::Online
+        } else {
+            Network::Offline
+        });
+    }
+
+    pub(crate) fn pause_network(&mut self) -> NetworkPause {
+        self.replace_network(Network::Paused);
+        NetworkPause(self.enabled.clone())
+    }
+
+    fn replace_network(&mut self, state: Network) {
+        self.enabled.send_replace(Network::Offline);
+        self.enabled = tokio::sync::watch::channel(state).0;
     }
 
     fn url(&self, path: &str) -> Result<Url> {
-        ensure(*self.enabled.borrow(), crate::local::only())?;
+        ensure(self.network_enabled(), crate::local::only())?;
         ensure(
             path.starts_with("/v1/") && !path.contains("//") && !path.contains('\\'),
             dmsg_types::invalid("path"),
@@ -690,10 +725,13 @@ impl Cloud {
             crate::transport::READ
         };
         let mut permission = self.enabled.subscribe();
-        ensure(*permission.borrow_and_update(), crate::local::only())?;
+        ensure(
+            *permission.borrow_and_update() == Network::Online,
+            crate::local::only(),
+        )?;
         let response = tokio::select! {
             biased;
-            _ = permission.changed() => return Err(crate::local::only()),
+            _ = permission.changed() => return Err(if mutation { Error::ExecutionUnknown } else { crate::local::only() }),
             result = crate::transport::send(&self.http, request, "relay", policy, limit) => result,
         }
         .map_err(|e| match e {

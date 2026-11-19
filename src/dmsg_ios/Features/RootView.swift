@@ -65,7 +65,7 @@ struct RootView: View {
         IntentNavigation.shared.destination = nil
         switch destination {
         case .vault: model.selectedTab = .vault
-        case .messages: model.selectedTab = .messages
+        case .messages: if !model.localAccount { model.selectedTab = .messages }
         case .files: model.selectedTab = .files
         case .approvals: model.selectedTab = .account; showApprovals = true
         case .imports: model.selectedTab = .files; showIncoming = true

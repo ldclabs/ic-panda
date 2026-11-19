@@ -87,7 +87,11 @@ pub fn preview(c: &mut Client, access: Access) -> Result<Value> {
             with_attachments: true,
             item_count: entries.len(),
             file_count: media.len(),
-            omitted_refs: 0,
+            omitted_refs: entries
+                .iter()
+                .flat_map(|e| &e.attachment_refs)
+                .filter(|f| f.is_none())
+                .count(),
         },
         entries,
         files: media,
@@ -135,8 +139,8 @@ pub fn cancel(c: &mut Client, id: &str) {
 }
 
 /// Release expired source keys even when the preview is no longer polled.
-pub(crate) fn expire(c: &mut Client) {
-    if c.local_import.as_ref().is_some_and(|p| p.until <= now_ms()) {
+pub fn expire(c: &mut Client, now: u64) {
+    if c.local_import.as_ref().is_some_and(|p| p.until <= now) {
         c.local_import = None;
     }
 }
@@ -192,9 +196,7 @@ pub async fn commit<H: Hold>(
                     .get(*i)
                     .ok_or_else(|| dmsg_types::invalid("item"))?;
                 ensure(p.decisions[*i].status != "same", Error::VersionConflict)?;
-                for index in &e.attachment_refs {
-                    required.insert(index.ok_or(Error::NotFound)?);
-                }
+                required.extend(e.attachment_refs.iter().flatten().copied());
             }
             ensure(
                 required.iter().all(|i| *i < p.versions.len()),
@@ -248,24 +250,30 @@ pub async fn commit<H: Hold>(
             let key = restore::receipt_key(c, id)?;
             check(c, id)?;
             let p = c.local_import.take().ok_or(Error::Expired)?;
-            for i in &picks {
-                let (item, rev) = &p.heads[*i];
-                ensure(
-                    p.source.workspace.store.head(item)?.as_ref() == Some(rev),
-                    Error::VersionConflict,
-                )?;
+            let result = (|| {
+                for i in &picks {
+                    let (item, rev) = &p.heads[*i];
+                    ensure(
+                        p.source.workspace.store.head(item)?.as_ref() == Some(rev),
+                        Error::VersionConflict,
+                    )?;
+                }
+                restore::publish_selection(
+                    c,
+                    &p.body,
+                    &p.decisions,
+                    &picks,
+                    &extra,
+                    &staged,
+                    folder,
+                    &key,
+                    &inputs,
+                )
+            })();
+            if result.is_err() {
+                c.local_import = Some(p);
             }
-            restore::publish_selection(
-                c,
-                &p.body,
-                &p.decisions,
-                &picks,
-                &extra,
-                &staged,
-                folder,
-                &key,
-                &inputs,
-            )
+            result
         })
         .await
     }
@@ -273,7 +281,10 @@ pub async fn commit<H: Hold>(
     if result.is_err() {
         let _ = h
             .with(|c| {
-                cancel(c, id);
+                if let Some(plan) = c.local_import.as_mut().filter(|p| p.id == id) {
+                    plan.busy = false;
+                    plan.done_bytes = 0;
+                }
                 Ok(())
             })
             .await;

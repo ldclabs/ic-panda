@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.serialization.json.*
 import net.dmsg.android.R
 import net.dmsg.android.core.*
+import net.dmsg.android.platform.localizedNumber
 import net.dmsg.android.platform.str
 
 @Composable
@@ -55,7 +56,7 @@ fun LocalImportScreen(client: ClientController) {
                     working = false
                     if (alive) {
                         plan = value
-                        selected = value.rows("items").filter { it.text("state") == "new" }.map { it.requiredUInt("index") }.toSet()
+                        selected = value.rows("items").filter { it.text("state") == "new" && JsonNull !in it.getValue("attachments").jsonArray }.map { it.requiredUInt("index") }.toSet()
                     } else client.perform({ it.localImportCancel(value.required("id")) }, key = "local-import:cancel", quiet = true) {}
                 }
             }) { Text(str(R.string.import_local_account)) } }
@@ -73,7 +74,10 @@ fun LocalImportScreen(client: ClientController) {
                     "deleted" -> R.string.vault_backup_deleted
                     else -> R.string.vault_backup_new
                 }
-                ListItem(headlineContent = { Text(row.required("title")) }, supportingContent = { Text(str(reason)) }, leadingContent = {
+                val omitted = row.getValue("attachments").jsonArray.count { it == JsonNull }
+                ListItem(headlineContent = { Text(row.required("title")) }, supportingContent = {
+                    Text(if (omitted > 0) str(reason) + " · " + str(R.string.vault_backup_omitted) + " · " + localizedNumber(omitted) else str(reason))
+                }, leadingContent = {
                     Checkbox(index in selected, { on -> selected = if (on) selected + index else selected - index }, enabled = !working && row.text("state") != "same")
                 })
             }
@@ -86,7 +90,13 @@ fun LocalImportScreen(client: ClientController) {
             }
             item { Button(enabled = !working && (selected.isNotEmpty() || files.isNotEmpty()), onClick = {
                 working = true
-                client.perform({ it.localImportCommit(reviewed.required("id"), selected.sorted(), files.sorted(), "root") }, key = "local-import:commit", userInitiated = true, onError = { working = false }) {
+                client.perform({ it.localImportCommit(reviewed.required("id"), selected.sorted(), files.sorted(), "root") }, key = "local-import:commit", userInitiated = true, onError = { code ->
+                    working = false
+                    if (code == "EXPIRED" || code == "VERSION_CONFLICT") {
+                        client.perform({ it.localImportCancel(reviewed.required("id")) }, key = "local-import:cancel", quiet = true) {}
+                        plan = null; files = emptySet(); copied = 0
+                    }
+                }) {
                     plan = null; working = false; client.navigation.back()
                 }
             }) { Text(str(R.string.text_import_1a200b3)) } }

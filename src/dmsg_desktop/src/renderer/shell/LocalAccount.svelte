@@ -6,7 +6,7 @@
   import Notice from '../components/page/Notice.svelte'
   import { buttonClass } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
-  import { call, errorText, size } from '../rpc'
+  import { call, code, errorText, size } from '../rpc'
   import { feedback } from '../feedback.svelte'
 
   type Action = 'create' | 'unlock' | 'password' | 'delete' | 'import'
@@ -56,7 +56,7 @@
       if (action === 'import' && !plan) {
         const value = await call<Plan>('local_import/preview', method === 'password' ? { password } : {})
         if (!alive) { await call('local_import/cancel', { id: value.id }); return }
-        plan = value; password = ''; items = value.items.filter(i => i.state === 'new').map(i => i.index)
+        plan = value; password = ''; items = value.items.filter(i => i.state === 'new' && !i.attachments.includes(null)).map(i => i.index)
         return
       }
       if (plan) await call('local_import/commit', { id: plan.id, items, files, folder: 'root' })
@@ -65,23 +65,37 @@
         await call('session/local_' + action, method === 'password' ? { password: action === 'create' ? next : password, ...(action === 'password' ? { new_password: next } : {}) } : {})
       }
       close(); await refresh()
-    } catch (e) { if (alive) error = errorText(e) } finally { busy = false }
+    } catch (e) {
+      if (alive) {
+        error = errorText(e)
+        if (plan && ['EXPIRED', 'VERSION_CONFLICT'].includes(code(e))) {
+          void call('local_import/cancel', { id: plan.id }).catch(() => {})
+          plan = null; items = []; files = []; bytes = 0
+        }
+      }
+    } finally { busy = false }
   }
   function toggle(list: number[], index: number, yes: boolean) { return yes ? [...list, index] : list.filter(i => i !== index) }
 </script>
 
 {#if showTrigger}<button class={buttonClass(action === 'delete' ? 'danger' : 'secondary', 'sm')} disabled={busy} onclick={begin} data-testid={'local-' + action}>{t(labels[action])}</button>{/if}
 <Dialog bind:open={() => open, v => { if (!v) close() }} title={t(labels[action])} description={t(action === 'import' ? 'vaultBackupSync' : 'offlineAccount')} dismissible={!busy || !!plan} testid="local-account-dialog">
-  <div class="grid gap-3">
+  <div class="grid min-w-0 gap-3 [overflow-wrap:anywhere]">
     {#if error}<Notice tone="danger" failure={error}>{error}</Notice>{/if}
     {#if count}<p>{t('vault')} · {count.vault}　{t('files')} · {count.files}</p>{/if}
     {#if plan}
       {#if busy}<output class="text-sm text-muted">{size(bytes)}</output>{/if}
-      <p class="break-all text-sm">{t('account')} · {plan.target}</p>
+      <p class="text-sm">{t('account')} · <bdi dir="ltr">{plan.target}</bdi></p>
       <h3>{t('vault')}</h3>
-      {#each plan.items as row (row.index)}<Checkbox checked={items.includes(row.index)} disabled={busy || row.state === 'same'} onCheckedChange={v => items = toggle(items, row.index, v)}>{row.title} · {t(row.state === 'same' ? 'vaultBackupSame' : row.state === 'changed' ? 'vaultBackupChanged' : row.state === 'deleted' ? 'vaultBackupDeleted' : 'vaultBackupNew')}</Checkbox>{/each}
+      {#each plan.items as row (row.index)}
+        {@const omitted = row.attachments.filter(index => index === null).length}
+        <Checkbox checked={items.includes(row.index)} disabled={busy || row.state === 'same'} onCheckedChange={v => items = toggle(items, row.index, v)}>
+          <bdi>{row.title}</bdi> · {t(row.state === 'same' ? 'vaultBackupSame' : row.state === 'changed' ? 'vaultBackupChanged' : row.state === 'deleted' ? 'vaultBackupDeleted' : 'vaultBackupNew')}
+          {#if omitted} · {t('vaultBackupOmitted')} · {omitted}{/if}
+        </Checkbox>
+      {/each}
       <h3>{t('files')} · {size(selectedBytes)}</h3>
-      {#each plan.files as row (row.index)}<Checkbox checked={files.includes(row.index) || requiredFiles.has(row.index)} disabled={busy || !row.local || requiredFiles.has(row.index)} onCheckedChange={v => files = toggle(files, row.index, v)}>{[...row.path, row.name].join('/')} · {size(row.size)} · {row.version.slice(0, 8)}</Checkbox>{/each}
+      {#each plan.files as row (row.index)}<Checkbox checked={files.includes(row.index) || requiredFiles.has(row.index)} disabled={busy || !row.local || requiredFiles.has(row.index)} onCheckedChange={v => files = toggle(files, row.index, v)}><bdi>{[...row.path, row.name].join('/')}</bdi> · {size(row.size)} · <bdi dir="ltr">{row.version.slice(0, 8)}</bdi></Checkbox>{/each}
     {:else}
       {#if method === 'password' && action !== 'create'}<SecretInput bind:value={password} disabled={busy} label={t('localPassword')} testid="local-current-password" />{/if}
       {#if setting}

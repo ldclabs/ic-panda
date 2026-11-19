@@ -68,7 +68,10 @@ class ClientController internal constructor(private val application: Application
         val target = pendingWorkspace ?: return
         if (!state.value.unlocked || state.value.concealed) return
         pendingWorkspace = null
-        navigation.open(target.page); preferences()
+        if (state.value.session?.accountKind != "local" || target.destination !in setOf("messages", "transfers", "notifications")) {
+            navigation.open(target.page)
+        }
+        preferences()
     }
     val approvals = ApprovalCoordinator(this)
     val account = AccountCoordinator(this)
@@ -483,7 +486,7 @@ class ClientController internal constructor(private val application: Application
         val session = state.value.session ?: return
         if (session.accountKind == "local" || session.account == null) {
             notices.stop(); push.stop(); purchases.stop(); synchronization.stop(clear = true); fileWork.stop(clear = true)
-            if (session.accountKind == "local" && state.value.unlocked) { systemExports.start(); incoming.checkPending() }
+            if (session.accountKind == "local" && state.value.unlocked) { systemExports.start(); incoming.checkPending(); routePendingWorkspace() }
             return
         }
         notices.start(); push.start(); purchases.start()
@@ -671,12 +674,14 @@ class ClientController internal constructor(private val application: Application
 
     fun unlock() { automaticUnlock.suppress(); perform({ it.unlockFast() }, transition = true) { refresh("vault") } }
     fun openLocal() {
-        automaticUnlock.suppress()
-        perform({ engine ->
-            backgroundFiles.pauseForLocalAccount()
-            val saved = parseSavedAccounts(engine.accounts().decode()).firstOrNull { it.id == LOCAL_ACCOUNT }
-            if (saved == null) engine.createLocalAccount() else engine.switchAccount(saved.id)
-        }, transition = true) { refresh("vault") }
+        lock {
+            perform({ engine ->
+                backgroundFiles.pauseForLocalAccount()
+                systemExports.invalidate()
+                val saved = parseSavedAccounts(engine.accounts().decode()).firstOrNull { it.id == LOCAL_ACCOUNT }
+                if (saved == null) engine.createLocalAccount() else engine.switchAccount(saved.id)
+            }, transition = true) { refresh("vault") }
+        }
     }
 
     fun initialize() { automaticUnlock.suppress(); perform({ it.initializeAccount() }, transition = true) { refresh("vault") } }
