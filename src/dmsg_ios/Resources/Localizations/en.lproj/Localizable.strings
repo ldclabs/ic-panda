@@ -3458,5 +3458,21 @@
 	<string>Notifications are delivered quietly.</string>
 	<key>Veto proposal</key>
 	<string>Veto proposal</string>
+	<key>Fill once</key>
+	<string>Fill once</string>
+	<key>Fill and remember</key>
+	<string>Fill and remember</string>
+	<key>Previously used</key>
+	<string>Previously used</string>
+	<key>Fill this login?</key>
+	<string>Fill this login?</string>
+	<key>Unidentified app or website</key>
+	<string>Unidentified app or website</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Choose a login when an app or website asks for a password.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Open and unlock dMsg to load your logins.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Could not update Password AutoFill.</string>
 </dict>
 </plist>

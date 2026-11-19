@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Tambah kebenaran"</string>
     <string name="android_purchase_privacy" formatted="false">"Jika dikonfigurasikan, pembelian Google Play menggunakan perkhidmatan akaun Google, pengebilan, dan pengesahan peranti. Token pembelian disimpan disulitkan sehingga perkhidmatan mengesahkan penyerahan hak. Kandungan dMsg tidak dihantar ke Google. Dasar perkhidmatan di bawah juga menjelaskan perkhidmatan khusus Apple yang digunakan aplikasi dMsg lain."</string>
     <string name="app_language" formatted="false">"Bahasa"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Pilih akaun apabila aplikasi atau laman web meminta kata laluan."</string>
+    <string name="autofill_confirm" formatted="false">"Isi dengan akaun ini?"</string>
+    <string name="autofill_no_items" formatted="false">"Tiada rekod lagi"</string>
+    <string name="autofill_once" formatted="false">"Isi sekali"</string>
+    <string name="autofill_open" formatted="false">"Buka dMsg dan buka kuncinya untuk memuatkan akaun anda."</string>
+    <string name="autofill_remember" formatted="false">"Isi dan ingat"</string>
+    <string name="autofill_used" formatted="false">"Pernah digunakan"</string>
     <string name="backup_all_caught_up" formatted="false">"Tiada versi fail yang belum disandarkan."</string>
     <string name="backup_already_saved" formatted="false">"Versi ini sudah disandarkan."</string>
     <string name="backup_selected_help" formatted="false">"Fail disandarkan hanya apabila anda secara eksplisit memilih untuk berbuat demikian."</string>

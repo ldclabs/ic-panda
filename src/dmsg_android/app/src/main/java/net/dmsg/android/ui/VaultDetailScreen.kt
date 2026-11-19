@@ -78,13 +78,13 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
             if (!historical) TextButton(onClick = { client.navigation.push(Route("vault-history", id)) }) { Text(str(R.string.text_version_history_8a6bf11)) }
             if (!historical && !item.reserved && !item.deleted) OutlinedButton(onClick = { client.navigation.push(Route("secret-compose", id)) }) { Text(str(R.string.text_share_secret_snapshot_d4484d8)) }
             if (item.reserved) Notice(str(R.string.text_this_key_is_managed_by_dmsg_its_private_fields_cannot_be_revealed_4a768a2))
-            else if (!historical && item.deleted) Button(onClick = { client.perform({ it.restoreItem(id) }, key = "vault:edit:" + id) { client.vault.browse(); client.vault.select(id) } }) { Text(str(R.string.text_restore_item_1f6ceaa)) }
+            else if (!historical && item.deleted) Button(onClick = { client.perform({ it.restoreItem(id) }, key = "vault:edit:" + id) { client.vault.changed(); client.vault.select(id) } }) { Text(str(R.string.text_restore_item_1f6ceaa)) }
             else if (!historical) TextButton(onClick = { deleting = true }) { Text(str(R.string.text_move_to_trash_c4056f9), color = MaterialTheme.colorScheme.error) }
         }
     }
     if (deleting) AlertDialog(onDismissRequest = { deleting = false }, title = { Text(str(R.string.text_move_this_item_to_trash_2a04c82)) },
         text = { Text(str(R.string.text_a_deletion_marker_will_sync_to_your_other_devices_version_history_18e2556)) },
-        confirmButton = { TextButton(onClick = { client.perform({ it.deleteItem(id) }, key = "vault:edit:" + id) { deleting = false; client.vault.browse(); client.vault.select(id) } }) { Text(str(R.string.text_move_to_trash_c4056f9)) } },
+        confirmButton = { TextButton(onClick = { client.perform({ it.deleteItem(id) }, key = "vault:edit:" + id) { deleting = false; client.vault.changed(); client.vault.select(id) } }) { Text(str(R.string.text_move_to_trash_c4056f9)) } },
         dismissButton = { TextButton(onClick = { deleting = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 

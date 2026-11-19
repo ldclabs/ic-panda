@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Ajouter une autorisation"</string>
     <string name="android_purchase_privacy" formatted="false">"Lorsqu’ils sont configurés, les achats Google Play utilisent les services Google de compte, de facturation et de vérification de l’appareil. Les jetons d’achat sont conservés chiffrés jusqu’à ce que le service vérifie la livraison. Le contenu dMsg n’est pas envoyé à Google. La politique du service ci-dessous décrit aussi les services propres à Apple utilisés par d’autres applications dMsg."</string>
     <string name="app_language" formatted="false">"Langue"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Choisissez un compte quand une app ou un site web demande un mot de passe."</string>
+    <string name="autofill_confirm" formatted="false">"Remplir avec ce compte ?"</string>
+    <string name="autofill_no_items" formatted="false">"Aucun enregistrement"</string>
+    <string name="autofill_once" formatted="false">"Remplir une fois"</string>
+    <string name="autofill_open" formatted="false">"Ouvrez et déverrouillez dMsg pour charger vos identifiants."</string>
+    <string name="autofill_remember" formatted="false">"Remplir et mémoriser"</string>
+    <string name="autofill_used" formatted="false">"Comptes déjà utilisés"</string>
     <string name="backup_all_caught_up" formatted="false">"Aucune version de fichier sans sauvegarde."</string>
     <string name="backup_already_saved" formatted="false">"Cette version est déjà sauvegardée."</string>
     <string name="backup_selected_help" formatted="false">"Les fichiers sont sauvegardés uniquement lorsque vous le choisissez explicitement."</string>

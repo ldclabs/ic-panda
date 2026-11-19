@@ -3458,5 +3458,21 @@
 	<string>通知将静默送达。</string>
 	<key>Veto proposal</key>
 	<string>否决提案</string>
+	<key>Fill once</key>
+	<string>仅填充这一次</string>
+	<key>Fill and remember</key>
+	<string>填充并记住</string>
+	<key>Previously used</key>
+	<string>以前用过的账号</string>
+	<key>Fill this login?</key>
+	<string>填入这个账号？</string>
+	<key>Unidentified app or website</key>
+	<string>无法识别的 App 或网站</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>在 App 或网站需要密码时，选择要填入的账号。</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>打开并解锁 dMsg 以载入登录项。</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>密码自动填充更新失败。</string>
 </dict>
 </plist>

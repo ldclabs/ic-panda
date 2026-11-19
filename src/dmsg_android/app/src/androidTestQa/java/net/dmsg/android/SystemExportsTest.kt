@@ -168,7 +168,6 @@ class SystemExportsTest {
             shell("settings put secure autofill_service " + app.packageName + "/net.dmsg.android.platform.DMsgAutofillService")
             shell("am start -W -n " + instrumentation.context.packageName + "/net.dmsg.android.AutofillFixtureActivity")
             click("Unlock dMsg passwords")
-            click("Authenticate", appWindow = true)
             waitFor("These copies are no longer available. Unlock dMsg and update them.")
             assertEquals(initialized, app.hasMainClient)
             app.contentResolver.query(Uri.parse("content://" + authority + "/autofill-state"), null, null, null, null)!!.use { cursor ->

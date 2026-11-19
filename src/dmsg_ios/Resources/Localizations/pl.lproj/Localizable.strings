@@ -3458,5 +3458,21 @@
 	<string>Powiadomienia są dostarczane po cichu.</string>
 	<key>Veto proposal</key>
 	<string>Zawetuj propozycję</string>
+	<key>Fill once</key>
+	<string>Wypełnij jednorazowo</string>
+	<key>Fill and remember</key>
+	<string>Wypełnij i zapamiętaj</string>
+	<key>Previously used</key>
+	<string>Wcześniej używane konta</string>
+	<key>Fill this login?</key>
+	<string>Wypełnić danymi tego konta?</string>
+	<key>Unidentified app or website</key>
+	<string>Nierozpoznana aplikacja lub witryna</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Wybierz konto, gdy aplikacja lub witryna poprosi o hasło.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Otwórz i odblokuj dMsg, aby wczytać dane logowania.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Nie udało się zaktualizować autouzupełniania haseł.</string>
 </dict>
 </plist>

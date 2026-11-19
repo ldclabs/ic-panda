@@ -59,6 +59,11 @@ class VaultCoordinator(private val client: ClientController) {
         }, key = "vault:detail", replace = true, quiet = true, onError = { detail.fail(request, it) }) { detail.accept(request, it) }
     }
 
+    fun changed() {
+        client.systemExports.refreshCredentials()
+        browse()
+    }
+
     fun favorite(item: VaultItem) {
         client.perform({ it.favoriteVaultItem(item.id, item.revision, !item.favorite) }, key = "vault:edit:" + item.id) { browse(); select(item.id) }
     }

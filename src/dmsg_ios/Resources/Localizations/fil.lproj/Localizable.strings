@@ -3458,5 +3458,21 @@
 	<string>Tahimik na inihahatid ang mga notification.</string>
 	<key>Veto proposal</key>
 	<string>I-veto ang panukala</string>
+	<key>Fill once</key>
+	<string>Punan nang isang beses</string>
+	<key>Fill and remember</key>
+	<string>Punan at tandaan</string>
+	<key>Previously used</key>
+	<string>Mga dating ginamit</string>
+	<key>Fill this login?</key>
+	<string>Punan gamit ang account na ito?</string>
+	<key>Unidentified app or website</key>
+	<string>Hindi kilalang app o website</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Pumili ng account kapag humingi ng password ang isang app o website.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Buksan at i-unlock ang dMsg para ma-load ang iyong mga login.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Hindi ma-update ang awtomatikong pagpuno ng password.</string>
 </dict>
 </plist>

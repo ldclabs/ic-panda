@@ -1,6 +1,6 @@
 # Política de privacidad de dMsg
 
-Última actualización: 2026-10-29.
+Última actualización: 2026-11-19.
 
 dMsg cifra el contenido privado en tus dispositivos autorizados. Esta política cubre dmsg.net, la aplicación web anterior de solo lectura, las aplicaciones de escritorio e iOS, connect.dmsg.net, el servicio en la nube y los canisters de Internet Computer (ICP). «Nosotros» es el equipo que opera dMsg bajo la gobernanza de ICPanda DAO. Las funciones disponibles dependen de la versión y configuración.
 
@@ -30,7 +30,7 @@ Los canisters de cartera procesan las reglas y propuestas de los monederos multi
 
 Las aplicaciones nativas guardan un espacio cifrado, claves protegidas por el sistema cuando es posible, borradores, operaciones pendientes y preferencias. Al desbloquear, el contenido seleccionado queda disponible en memoria. Las aplicaciones destinatarias pueden conservar archivos exportados y texto copiado.
 
-La extensión Compartir de iOS prepara únicamente los elementos elegidos para importarlos después. Autorrelleno y Archivos reciben solo instantáneas seleccionadas y cifradas por separado, que caducan a las 24 horas. Autorrelleno exige autenticación independiente del sistema. Las sesiones de Archivos duran como máximo cinco minutos y terminan al bloquear dMsg, pero las copias descargadas pueden permanecer fuera de la aplicación. Cambiar el original no actualiza automáticamente una instantánea.
+La extensión Compartir de iOS prepara únicamente los elementos elegidos para importarlos después. El autorrelleno guarda en este dispositivo una copia cifrada por separado de los inicios de sesión de la bóveda y la actualiza cuando dMsg está desbloqueado. Tras autenticarte en el sistema, eliges la cuenta que quieres rellenar. Puedes recordar varias cuentas para una app o un sitio identificado. En iOS, los nombres de usuario y servicios recordados pueden aparecer en las sugerencias del sistema. Las copias de archivos seleccionadas caducan a las 24 horas y deben exportarse de nuevo tras los cambios. El acceso a los archivos dura hasta cinco minutos y termina al bloquear dMsg. Los destinatarios pueden conservar los archivos descargados.
 
 Las transferencias en segundo plano iniciadas expresamente guardan solo contenido cifrado y autorización limitada en un directorio separado, accesible después del primer desbloqueo del dispositivo. No contienen claves de firma ni de contenido. Debes desbloquear la cuenta original para verificar y finalizar. iOS puede retrasar o detener la transferencia.
 

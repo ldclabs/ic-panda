@@ -1,6 +1,6 @@
 # Politique de confidentialité de dMsg
 
-Dernière mise à jour : 2026-10-29.
+Dernière mise à jour : 2026-11-19.
 
 dMsg chiffre les contenus privés sur vos appareils autorisés. Cette politique couvre dmsg.net, l’ancienne application web en lecture seule, les applications de bureau et iOS, connect.dmsg.net, le service cloud et les canisters Internet Computer (ICP). « Nous » désigne l’équipe qui exploite dMsg sous la gouvernance d’ICPanda DAO. Les fonctionnalités disponibles dépendent de la version et de la configuration du service.
 
@@ -30,7 +30,7 @@ Les canisters de portefeuille traitent les règles et propositions des portefeui
 
 Les applications natives conservent un espace chiffré, des clés protégées par le système lorsque disponible, brouillons, opérations en attente et préférences. Le déverrouillage rend le contenu sélectionné accessible en mémoire. Les applications destinataires peuvent conserver les fichiers exportés et textes copiés.
 
-L’extension de partage iOS prépare uniquement les éléments choisis pour une importation ultérieure. AutoFill et Fichiers reçoivent uniquement des instantanés sélectionnés et chiffrés séparément, valables 24 heures. AutoFill exige une authentification système indépendante. Une session Fichiers dure au maximum cinq minutes et se termine au verrouillage de dMsg ; les copies déjà téléchargées peuvent rester ailleurs. Les modifications de la source ne mettent pas automatiquement ces instantanés à jour.
+L’extension de partage iOS prépare uniquement les éléments choisis pour une importation ultérieure. Le remplissage automatique conserve sur cet appareil une copie chiffrée séparément des identifiants du coffre et la met à jour lorsque dMsg est déverrouillé. Après authentification système, vous choisissez le compte à utiliser. Vous pouvez mémoriser plusieurs comptes par app ou site identifié. Sur iOS, les noms d’utilisateur et services mémorisés peuvent apparaître dans les suggestions du système. Les copies de fichiers sélectionnées expirent après 24 heures et doivent être exportées à nouveau après modification. L’accès aux fichiers dure au plus cinq minutes et prend fin au verrouillage de dMsg. Les destinataires peuvent conserver les fichiers téléchargés.
 
 Un transfert en arrière-plan explicitement lancé conserve uniquement du contenu chiffré et une autorisation limitée dans un répertoire séparé, accessible après le premier déverrouillage de l’appareil. Aucune clé de signature ou de contenu n’y figure. Il faut déverrouiller le compte d’origine pour vérifier et terminer le transfert. iOS peut le retarder ou l’arrêter.
 

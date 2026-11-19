@@ -1,6 +1,6 @@
 # Kebijakan Privasi dMsg
 
-Terakhir diperbarui: 2026-10-29.
+Terakhir diperbarui: 2026-11-19.
 
 dMsg mengenkripsi konten pribadi pada perangkat resmi Anda. Kebijakan ini mencakup dmsg.net, aplikasi web versi lama (legacy) yang bersifat hanya-baca, aplikasi desktop dan iOS, connect.dmsg.net, layanan cloud, serta canister pada Internet Computer (ICP). “Kami” berarti tim yang mengoperasikan dMsg di bawah tata kelola ICPanda DAO. Ketersediaan masing-masing fitur bergantung pada versi aplikasi dan konfigurasi layanan.
 
@@ -30,7 +30,7 @@ Kebijakan dan proposal dompet multitanda tangan (multisig) diproses oleh caniste
 
 Aplikasi native menyimpan ruang kerja lokal terenkripsi, kunci yang dilindungi oleh sistem operasi (jika didukung), draf, operasi yang tertunda, dan preferensi. Membuka kunci aplikasi akan menyediakan konten terpilih di dalam memori aplikasi. File yang diekspor dan teks yang disalin dapat disimpan oleh aplikasi tujuan.
 
-Ekstensi Bagikan (Share) iOS hanya menyiapkan sementara item yang Anda pilih untuk diimpor ke akun nantinya. Integrasi Isi Otomatis Kata Sandi (AutoFill) dan aplikasi File hanya berisi snapshot yang dipilih secara eksplisit dan dienkripsi secara terpisah. Isi Otomatis memerlukan autentikasi sistem tersendiri; snapshot kedaluwarsa setelah 24 jam. Sesi akses aplikasi File berlangsung paling lama lima menit dan berakhir saat dMsg terkunci, namun aplikasi File dan penerima lain mungkin tetap menyimpan salinan yang sudah diunduh. Mengubah item sumber tidak secara otomatis memperbarui snapshot yang telah diekspor.
+Ekstensi Bagikan (Share) iOS hanya menyiapkan sementara item yang Anda pilih untuk diimpor ke akun nantinya. Isi otomatis menyimpan salinan login brankas yang dienkripsi terpisah pada perangkat ini dan memperbaruinya saat dMsg tidak terkunci. Setelah autentikasi sistem, Anda memilih akun yang akan diisi. Beberapa akun dapat diingat untuk setiap aplikasi atau situs yang dikenali. Di iOS, nama pengguna dan layanan yang diingat dapat muncul dalam saran sistem. Salinan berkas yang dipilih kedaluwarsa setelah 24 jam dan perlu diekspor lagi jika sumbernya berubah. Akses berkas berlangsung paling lama lima menit dan berakhir saat dMsg dikunci. Penerima dapat menyimpan berkas yang telah diunduh.
 
 Transfer latar belakang yang dimulai secara eksplisit hanya menyimpan teks tersandi terbatas dan otoritas transfer di dalam direktori perangkat terpisah yang dapat diakses setelah kunci perangkat dibuka pertama kali. Direktori tersebut tidak menyimpan kunci penandatanganan akun maupun kunci konten. Akun asli harus dibuka kuncinya untuk memverifikasi dan menyelesaikan transfer. Sistem operasi dapat menunda atau menghentikan pengiriman.
 

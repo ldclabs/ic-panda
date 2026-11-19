@@ -51,7 +51,7 @@ class ExportKeyVault(private val context: Context, private val prompts: Presence
     override fun open(header: ExportHeader, valid: () -> Boolean): ByteArray {
         check(!context.getSystemService(KeyguardManager::class.java).isDeviceLocked) { "DEVICE_LOCKED" }
         val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding").apply { init(Cipher.DECRYPT_MODE, privateKey(header), oaep) }
-        val authorized = checkNotNull(prompts).cipher(str(R.string.text_open_dmsg_copies_206a0b9),
+        val authorized = checkNotNull(prompts).cipher(if (header.purpose == ExportPurpose.credentials) str(R.string.text_password_autofill_872af78) else str(R.string.text_open_dmsg_copies_206a0b9),
             if (header.purpose == ExportPurpose.credentials) str(R.string.text_authorize_this_password_selection_48c60bf) else str(R.string.text_allow_file_access_for_five_minutes_1287878), cipher, header.biometryOnly, valid)
         val plain = authorized.doFinal(header.wrapped)
         try {

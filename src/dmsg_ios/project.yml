@@ -97,6 +97,7 @@ targets:
     platform: iOS
     sources:
       - Extensions/Credentials
+      - Shared/CredentialPicker.swift
       - Shared/SystemExports.swift
       - Shared/KeychainMigration.swift
       - Shared/IncomingShare.swift

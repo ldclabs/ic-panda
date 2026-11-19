@@ -550,46 +550,13 @@ import XCTest
         capture(app, "Login IDs can be copied while account management stays read-only")
     }
 
-    func testAutoFillSelectionSurvivesSearchAndReopening() {
+    func testAutoFillSettingsExplainPickingAtLogin() {
         let app = open()
         tap("System integrations", in: app)
         tap("system.autofill", in: app)
-        tap("Select login items", in: app)
-        let github = app.switches["GitHub"].firstMatch
-        XCTAssertTrue(github.waitForExistence(timeout: 5))
-        app.tapSwitch("GitHub")
-        XCTAssertEqual(github.value as? String, "1")
-        let search = app.searchFields.firstMatch
-        search.tap(); search.typeText("Work")
-        let mail = app.switches["Work email"].firstMatch
-        XCTAssertTrue(mail.waitForExistence(timeout: 5))
-        app.tapSwitch("Work email")
-        XCTAssertEqual(mail.value as? String, "1")
-        tap("autofill.done", in: app)
-        tap("Select login items", in: app)
-        XCTAssertTrue(github.waitForExistence(timeout: 5))
-        XCTAssertEqual(github.value as? String, "1")
-        XCTAssertEqual(mail.value as? String, "1")
-        capture(app, "AutoFill retains selection across search and reopening")
-    }
-
-    func testFailedAutoFillSearchHidesPreviousResultsAndPreservesSelection() {
-        let app = open(["--ui-autofill-search-offline"])
-        tap("System integrations", in: app)
-        tap("system.autofill", in: app)
-        tap("Select login items", in: app)
-        let github = app.switches["GitHub"].firstMatch
-        XCTAssertTrue(github.waitForExistence(timeout: 5))
-        app.tapSwitch("GitHub")
-        let search = app.searchFields.firstMatch
-        search.tap(); search.typeText("Work")
-        XCTAssertTrue(app.buttons["Retry"].firstMatch.waitForExistence(timeout: 5))
-        XCTAssertFalse(github.exists)
-        capture(app, "Failed AutoFill query keeps the selection and hides old rows")
-        tap("autofill.done", in: app)
-        tap("Select login items", in: app)
-        XCTAssertTrue(github.waitForExistence(timeout: 5))
-        XCTAssertEqual(github.value as? String, "1")
+        XCTAssertTrue(app.staticTexts["Choose a login when an app or website asks for a password."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Select login items"].exists)
+        XCTAssertFalse(app.buttons["Update AutoFill"].exists)
     }
 
     func testSystemExportBiometryChoiceSurvivesReturningToTheForeground() {

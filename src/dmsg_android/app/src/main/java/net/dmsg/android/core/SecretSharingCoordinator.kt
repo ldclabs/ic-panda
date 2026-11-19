@@ -194,7 +194,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
             if (code !in setOf("EXECUTION_UNKNOWN", "CANCELLED", "PLATFORM_UNAVAILABLE", "UNAVAILABLE")) mutableIncoming.value = current.copy(pending = null)
         }) { value ->
             if (value.required("state") == "done") {
-                mutableIncoming.value = current.copy(password = "", completed = value.strings("ids")); client.vault.browse(); client.library.browse()
+                mutableIncoming.value = current.copy(password = "", completed = value.strings("ids")); client.vault.changed(); client.library.browse()
             } else {
                 val id = value.required("id")
                 mutableIncoming.value = current.copy(password = "", request = id, pending = selection); client.approvals.open(id)
@@ -211,7 +211,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
             state to if (state == "done") core.secretPackageImportRequest(selection).decode().objectValue().strings("ids") else null
         }, key = "secret:import:receipt", replace = true) { (state, ids) ->
             if (mutableIncoming.value.request == id) {
-                if (ids != null) { mutableIncoming.value = current.copy(completed = ids, pending = null); client.vault.browse(); client.library.browse() }
+                if (ids != null) { mutableIncoming.value = current.copy(completed = ids, pending = null); client.vault.changed(); client.library.browse() }
                 else if (state in setOf("rejected", "cancelled", "expired", "failed")) mutableIncoming.value = current.copy(pending = null, request = null)
             }
         }

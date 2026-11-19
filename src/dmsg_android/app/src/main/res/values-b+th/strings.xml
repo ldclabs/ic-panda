@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"เพิ่มสิทธิ์"</string>
     <string name="android_purchase_privacy" formatted="false">"เมื่อกำหนดค่าแล้ว การซื้อผ่าน Google Play จะใช้บริการบัญชี Google การเรียกเก็บเงิน และการตรวจสอบอุปกรณ์ โทเค็นการซื้อจะถูกเก็บแบบเข้ารหัสจนกว่าบริการจะยืนยันการมอบสิทธิ์ เนื้อหา dMsg จะไม่ถูกส่งให้ Google นโยบายบริการด้านล่างยังอธิบายบริการเฉพาะของ Apple ที่แอป dMsg อื่นใช้ด้วย"</string>
     <string name="app_language" formatted="false">"ภาษา"</string>
+    <string name="autofill_choose_at_login" formatted="false">"เลือกบัญชีเมื่อแอปหรือเว็บไซต์ขอรหัสผ่าน"</string>
+    <string name="autofill_confirm" formatted="false">"กรอกด้วยบัญชีนี้หรือไม่"</string>
+    <string name="autofill_no_items" formatted="false">"ยังไม่มีบันทึก"</string>
+    <string name="autofill_once" formatted="false">"กรอกครั้งนี้เท่านั้น"</string>
+    <string name="autofill_open" formatted="false">"เปิดและปลดล็อก dMsg เพื่อโหลดรายการเข้าสู่ระบบ"</string>
+    <string name="autofill_remember" formatted="false">"กรอกและจดจำ"</string>
+    <string name="autofill_used" formatted="false">"บัญชีที่เคยใช้"</string>
     <string name="backup_all_caught_up" formatted="false">"ไม่มีเวอร์ชันไฟล์ที่ยังไม่ได้สำรองข้อมูล"</string>
     <string name="backup_already_saved" formatted="false">"เวอร์ชันนี้สำรองข้อมูลไว้แล้ว"</string>
     <string name="backup_selected_help" formatted="false">"ไฟล์ต่างๆ จะได้รับการสำรองข้อมูลเฉพาะเมื่อคุณเลือกที่จะดำเนินการดังกล่าวอย่างชัดเจนเท่านั้น"</string>

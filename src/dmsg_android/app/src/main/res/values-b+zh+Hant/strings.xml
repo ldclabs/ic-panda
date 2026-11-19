@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"新增權限"</string>
     <string name="android_purchase_privacy" formatted="false">"啟用 Google Play 購買後，會使用 Google 賬號、結算和裝置驗證服務。購買憑證將加密保留，直到服務核驗交付。dMsg 內容不會傳送給 Google。下方服務政策還說明其他 dMsg 應用使用的 Apple 專屬服務。"</string>
     <string name="app_language" formatted="false">"語言"</string>
+    <string name="autofill_choose_at_login" formatted="false">"當 App 或網站要求密碼時，選擇要填入的帳號。"</string>
+    <string name="autofill_confirm" formatted="false">"填入這個帳號？"</string>
+    <string name="autofill_no_items" formatted="false">"暫無記錄"</string>
+    <string name="autofill_once" formatted="false">"僅填寫這一次"</string>
+    <string name="autofill_open" formatted="false">"打開並解鎖 dMsg 以載入登入項目。"</string>
+    <string name="autofill_remember" formatted="false">"填寫並記住"</string>
+    <string name="autofill_used" formatted="false">"曾用帳號"</string>
     <string name="backup_all_caught_up" formatted="false">"沒有尚未備份的檔案版本。"</string>
     <string name="backup_already_saved" formatted="false">"此版本已備份。"</string>
     <string name="backup_selected_help" formatted="false">"只有你明確選擇時，才會備份檔案。"</string>

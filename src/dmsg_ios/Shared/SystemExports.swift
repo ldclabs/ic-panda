@@ -15,15 +15,18 @@ struct ExportHeader: Codable, Sendable {
     let expires: UInt64
     var createdAt: UInt64? = nil
     var count: Int? = nil
+    var digest: String? = nil
 }
-struct CredentialExport: Codable, Identifiable, Sendable { let id: String; let title: String; let username: String; let origin: String }
+struct CredentialExport: Codable, Identifiable, Sendable { let id: String; let title: String; let username: String; let origin: String; var itemID: String? = nil }
 extension CredentialExport {
     /// System suggestions can outlive a snapshot refresh. Only an exact current
     /// reference may fill immediately; otherwise the person chooses from the list.
     static func requested(_ identifier: String?, in header: ExportHeader, entries: [CredentialExport]) -> CredentialExport? {
         guard let identifier else { return nil }
         let parts = identifier.split(separator: ":", omittingEmptySubsequences: false)
-        guard parts.count == 2, parts[0] == header.id else { return nil }
+        guard parts.count == 2 else { return nil }
+        if parts[0] == header.accountHash { return entries.first { $0.itemID == String(parts[1]) } }
+        guard parts[0] == header.id else { return nil }
         return entries.first { $0.id == parts[1] }
     }
 
@@ -45,7 +48,7 @@ extension CredentialExport {
 }
 
 struct FileExport: Codable, Identifiable, Sendable { let id: String; let name: String; let size: UInt64; let sha256: String; let parts: Int; let modified: UInt64 }
-struct CredentialInput: Sendable { let title: String; let username: String; let password: String; let origin: String }
+struct CredentialInput: Sendable { let title: String; let username: String; let password: String; let origin: String; var itemID: String? = nil }
 struct FileExportInput: Sendable { let url: URL; let name: String; let sha256: String; let size: UInt64 }
 struct PreparedExport: Sendable { let header: ExportHeader; let key: SymmetricKey; let directory: URL }
 struct OpenExport: Sendable { let header: ExportHeader; let key: SymmetricKey }
@@ -54,7 +57,7 @@ enum ExportAccessError: Error, Equatable {
     case notConfigured, expired, authenticationCancelled, authenticationFailed
 }
 
-/// Only explicitly exported copies live in these groups. This store never knows
+/// Only login fields or explicitly exported files live in these groups. This store never knows
 /// a Client workspace, device signing key or content root.
 struct SystemExports: Sendable {
     let purpose: ExportPurpose
@@ -65,7 +68,7 @@ struct SystemExports: Sendable {
     init(_ purpose: ExportPurpose, root: URL? = nil, keyGroup: String? = nil) throws {
         self.purpose = purpose
         guard let directory = root ?? FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: purpose.group) else { throw CocoaError(.fileReadNoPermission) }
-        self.root = directory.appending(path: "exports")
+        self.root = directory.resolvingSymlinksInPath().appending(path: "exports", directoryHint: .isDirectory)
         self.keyGroup = keyGroup ?? purpose.group
         if keyGroup == nil, try KeychainMigration.signingPrefix() == KeychainMigration.originalPrefix {
             legacyKeyGroup = KeychainMigration.originalPrefix + purpose.keyGroupSuffix
@@ -85,8 +88,8 @@ struct SystemExports: Sendable {
     }
     private func directory(_ header: ExportHeader) throws -> URL {
         guard header.purpose == purpose, UUID(uuidString: header.id) != nil else { throw CocoaError(.fileReadCorruptFile) }
-        let directory = root.appending(path: header.id)
-        guard directory.resolvingSymlinksInPath().standardizedFileURL.path == root.resolvingSymlinksInPath().appending(path: header.id).standardizedFileURL.path else { throw CocoaError(.fileReadNoPermission) }
+        let directory = root.resolvingSymlinksInPath().appending(path: header.id, directoryHint: .isDirectory)
+        guard directory.resolvingSymlinksInPath().standardizedFileURL.path == directory.standardizedFileURL.path else { throw CocoaError(.fileReadNoPermission) }
         return directory
     }
     func header(checkExpiry: Bool = true) throws -> ExportHeader {
@@ -95,37 +98,19 @@ struct SystemExports: Sendable {
         guard (try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 4096 else { throw CocoaError(.fileReadTooLarge) }
         let header = try JSONDecoder().decode(ExportHeader.self, from: Data(contentsOf: file))
         _ = try directory(header)
-        guard !checkExpiry || Double(header.expires) > Date.now.timeIntervalSince1970 * 1000 else { throw ExportAccessError.expired }
+        guard !checkExpiry || (purpose == .credentials && header.digest != nil && header.expires == 0) || Double(header.expires) > Date.now.timeIntervalSince1970 * 1000 else { throw ExportAccessError.expired }
         return header
     }
 
-    struct CredentialRefresh: Equatable {
-        let snapshot: String?
-        let force: Bool
-    }
-
-    /// The encrypted core selection is the authority for recovery. A missing
-    /// published copy must request it again even when its digest was acknowledged.
-    func credentialRefresh(account: String, now: UInt64) throws -> CredentialRefresh? {
+    func prepareCredentials(_ entries: [CredentialInput], account: String, expires: UInt64 = 0, digest: String? = nil) throws -> PreparedExport {
         guard purpose == .credentials else { throw CocoaError(.coderInvalidValue) }
-        do {
-            let header = try header(checkExpiry: false)
-            guard header.accountHash == IncomingShares.accountHash(account) else { return nil }
-            return CredentialRefresh(snapshot: header.id, force: header.expires <= now + 12 * 3_600_000)
-        } catch ExportAccessError.notConfigured {
-            return CredentialRefresh(snapshot: nil, force: true)
-        }
-    }
-
-    func prepareCredentials(_ entries: [CredentialInput], account: String, expires: UInt64) throws -> PreparedExport {
-        guard purpose == .credentials, !entries.isEmpty, entries.count <= 50 else { throw CocoaError(.coderInvalidValue) }
-        let prepared = try prepare(account: account, expires: expires, count: entries.count)
+        let prepared = try prepare(account: account, expires: expires, count: entries.count, digest: digest)
         var committed = false; defer { if !committed { discard(prepared) } }
         var metadata: [CredentialExport] = []
         for entry in entries {
-            guard entry.password.utf8.count <= 4096, entry.username.utf8.count <= 1024 else { throw CocoaError(.fileReadTooLarge) }
+            guard entry.password.utf8.count <= 65_536, entry.username.utf8.count <= 65_536 else { throw CocoaError(.fileReadTooLarge) }
             let id = UUID().uuidString
-            metadata.append(CredentialExport(id: id, title: entry.title, username: entry.username, origin: entry.origin))
+            metadata.append(CredentialExport(id: id, title: entry.title, username: entry.username, origin: entry.origin, itemID: entry.itemID))
             try seal(Data(entry.password.utf8), name: id, prepared: prepared)
         }
         try seal(encode(metadata), name: "manifest", prepared: prepared); committed = true; return prepared
@@ -151,10 +136,10 @@ struct SystemExports: Sendable {
         }
         try seal(encode(metadata), name: "manifest", prepared: prepared); committed = true; return prepared
     }
-    private func prepare(account: String, expires: UInt64, count: Int) throws -> PreparedExport {
+    private func prepare(account: String, expires: UInt64, count: Int, digest: String? = nil) throws -> PreparedExport {
         let now = UInt64(Date.now.timeIntervalSince1970 * 1000)
-        guard expires > now, expires - now <= 86_400_000 else { throw CocoaError(.coderInvalidValue) }
-        let header = ExportHeader(id: UUID().uuidString, purpose: purpose, accountHash: IncomingShares.accountHash(account), expires: expires, createdAt: now, count: count)
+        guard (purpose == .credentials && digest != nil && expires == 0) || (expires > now && expires - now <= 86_400_000) else { throw CocoaError(.coderInvalidValue) }
+        let header = ExportHeader(id: UUID().uuidString, purpose: purpose, accountHash: IncomingShares.accountHash(account), expires: expires, createdAt: now, count: count, digest: digest)
         let directory = try directory(header)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.protectionKey: FileProtectionType.complete])
         return PreparedExport(header: header, key: SymmetricKey(size: .bits256), directory: directory)
@@ -174,20 +159,32 @@ struct SystemExports: Sendable {
         var attributes = query(prepared.header.id)
         attributes[kSecValueData as String] = prepared.key.withUnsafeBytes { Data($0) }
         attributes[kSecAttrAccessControl as String] = acl
-        guard SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess else { throw CocoaError(.fileWriteNoPermission) }
+        let status = SecItemAdd(attributes as CFDictionary, nil)
+        guard status == errSecSuccess else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
         do { try encode(prepared.header).write(to: root.appending(path: "current.json"), options: [.atomic, .completeFileProtection]) }
         catch { SecItemDelete(query(prepared.header.id) as CFDictionary); throw error }
         published = true
         lockFiles()
-        if let previous, previous.id != prepared.header.id {
-            SecItemDelete(query(previous.id) as CFDictionary)
-            if let legacyKeyGroup { SecItemDelete(query(previous.id, group: legacyKeyGroup) as CFDictionary) }
-            if let directory = try? directory(previous) { try? FileManager.default.removeItem(at: directory) }
-        }
+        if let previous, previous.id != prepared.header.id { retire(previous) }
     }
+
+    private func retire(_ header: ExportHeader) {
+        SecItemDelete(query(header.id) as CFDictionary)
+        if let legacyKeyGroup { SecItemDelete(query(header.id, group: legacyKeyGroup) as CFDictionary) }
+        if let directory = try? directory(header) { try? FileManager.default.removeItem(at: directory) }
+    }
+
+    /// A newer vault or stricter policy was observed but could not be published.
+    /// Keep remembered choices while preventing access to the superseded passwords.
+    func withdrawCredentials(ifCurrent old: ExportHeader) throws {
+        guard purpose == .credentials, try header(checkExpiry: false).id == old.id else { return }
+        try FileManager.default.removeItem(at: root.appending(path: "current.json"))
+        retire(old)
+    }
+
     func authenticate(migrateItem: (CFDictionary, CFDictionary) -> OSStatus = SecItemUpdate) throws -> OpenExport {
         let header = try header()
-        let context = LAContext(); context.localizedReason = String(localized: "Access the copies you explicitly exported from dMsg")
+        let context = LAContext(); context.localizedReason = purpose == .credentials ? String(localized: "Password AutoFill") : String(localized: "Access the copies you explicitly exported from dMsg")
         defer { context.invalidate() }
         if let legacyKeyGroup {
             do {
@@ -215,6 +212,25 @@ struct SystemExports: Sendable {
         guard purpose == .credentials, UUID(uuidString: id) != nil, try credentialMetadata(opened).contains(where: { $0.id == id }) else { throw CocoaError(.fileReadNoSuchFile) }
         guard let value = String(data: try plain(id, opened: opened), encoding: .utf8) else { throw CocoaError(.fileReadCorruptFile) }; return value
     }
+    // Only opaque identifiers are persisted. The order survives catalog replacement.
+    private func usageFile(account: String, service: String) -> URL {
+        root.appending(path: "used-" + IncomingShares.accountHash(account + ":" + service))
+    }
+
+    func recentLogins(account: String, service: String?) throws -> [String] {
+        guard let service else { return [] }
+        let url = usageFile(account: account, service: service)
+        do { return try JSONDecoder().decode([String].self, from: Data(contentsOf: url)) }
+        catch let error as CocoaError where error.code == .fileReadNoSuchFile { return [] }
+    }
+
+    func remember(_ item: String, service: String, opened: OpenExport) throws {
+        guard try header().id == opened.header.id else { throw ExportAccessError.expired }
+        let account = opened.header.accountHash
+        let recent = try recentLogins(account: account, service: service)
+        try encode([item] + recent.filter { $0 != item }).write(to: usageFile(account: account, service: service), options: [.atomic, .completeFileProtection])
+    }
+
     func fileMetadata(_ opened: OpenExport) throws -> [FileExport] { try JSONDecoder().decode([FileExport].self, from: plain("manifest", opened: opened)) }
     func materialize(_ file: FileExport, opened: OpenExport, output: URL, cancelled: () -> Bool) throws {
         guard purpose == .files, UUID(uuidString: file.id) != nil, file.parts >= 0, file.parts <= 100, file.size <= 100 * 1024 * 1024 else { throw CocoaError(.fileReadCorruptFile) }
@@ -234,8 +250,8 @@ struct SystemExports: Sendable {
     private func plain(_ name: String, opened: OpenExport) throws -> Data {
         guard try header().id == opened.header.id else { throw CocoaError(.userCancelled) }
         let directory = try directory(opened.header), path = directory.appending(path: name)
-        guard path.resolvingSymlinksInPath().deletingLastPathComponent() == directory.resolvingSymlinksInPath(),
-              (try path.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 1024 * 1024 + 64 else { throw CocoaError(.fileReadCorruptFile) }
+        guard path.resolvingSymlinksInPath().deletingLastPathComponent().path == directory.resolvingSymlinksInPath().path,
+              (try path.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= (purpose == .credentials && name == "manifest" ? 64 * 1024 * 1024 : 1024 * 1024 + 64) else { throw CocoaError(.fileReadCorruptFile) }
         return try AES.GCM.open(AES.GCM.SealedBox(combined: Data(contentsOf: path)), using: opened.key, authenticating: aad(opened.header, name))
     }
     struct FileSession: Codable { let snapshot: String; let key: Data; let expires: UInt64 }

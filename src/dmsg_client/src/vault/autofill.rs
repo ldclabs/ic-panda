@@ -1,163 +1,122 @@
-//! The login items a person chose for the system's password AutoFill, kept
-//! sealed on this device so the exported snapshot can follow them. Only the
-//! choice itself goes through system authentication.
+//! The authenticated device-local password picker reads only current login fields.
 
 use super::VaultEntry;
-use crate::client::Client;
-use dmsg_types::{Error, Result, ensure, ensure_valid};
+use crate::{Client, content::VAULT};
+use dmsg_types::Result;
 use serde::{Deserialize, Serialize};
 
+// Older devices also stored a list of selected IDs here. Preserve their
+// authentication preference when upgrading to the searchable login catalog.
 const KEY: &str = "autofill-selection";
 
-/// What the person last confirmed.
-#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Default, Deserialize, Serialize)]
 #[serde(default)]
-pub struct Selection {
-    /// Item IDs, at most what a snapshot holds.
-    pub items: Vec<String>,
-    /// Exported copies open only with biometrics.
-    pub biometry_only: bool,
-    /// Of the values last handed out.
+struct LegacySelection {
+    items: Vec<String>,
+    biometry_only: bool,
     digest: String,
 }
 
-/// A login as the snapshot holds it.
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+/// Fields available to the native password picker after device authentication.
+#[derive(Serialize, Debug)]
 pub struct Entry {
-    /// The item's title.
+    /// Stable vault item ID.
+    pub id: String,
+    /// Login title.
     pub title: String,
-    /// The `username` field.
+    /// Account name.
     pub username: String,
-    /// The `password` field, never empty.
+    /// Password to fill.
     pub password: String,
-    /// The `url` field.
+    /// Login website, if supplied.
     pub url: String,
 }
 
 impl Entry {
-    /// Only a current login with a password may leave for AutoFill.
-    ///
-    /// # Errors
-    /// `Forbidden` for anything else, `InvalidInput` for a missing password.
-    pub fn of(entry: &VaultEntry) -> Result<Self> {
-        ensure(
-            !entry.deleted && !entry.item.reserved() && entry.item.kind == "login",
-            Error::Forbidden,
-        )?;
-        let field = |id| entry.item.field(id).map_or("", |f| f.value.as_str());
-        ensure_valid(!field("password").is_empty(), "password")?;
-        Ok(Self {
-            title: entry.item.title.clone(),
-            username: field("username").into(),
-            password: field("password").into(),
-            url: field("url").into(),
+    fn from_login(entry: VaultEntry) -> Option<Self> {
+        if entry.deleted || entry.item.reserved() || entry.item.kind != "login" {
+            return None;
+        }
+        let field = |id| {
+            entry
+                .item
+                .field(id)
+                .map_or("", |f| f.value.as_str())
+                .to_owned()
+        };
+        let password = field("password");
+        if password.is_empty() {
+            return None;
+        }
+        Some(Self {
+            id: entry.id,
+            username: field("username"),
+            url: field("url"),
+            password,
+            title: entry.item.title,
         })
     }
 }
 
-/// The chosen logins' current values.
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
-pub struct Refresh {
-    /// They moved since they last left, or a refresh was forced.
+/// A versioned view of this device’s available logins.
+#[derive(Serialize)]
+pub struct Catalog {
+    /// Whether the native copy needs replacement.
     pub changed: bool,
-    /// The logins that are still there; none when not `changed`.
-    pub entries: Vec<Entry>,
-    /// Exported copies open only with biometrics.
-    pub biometry_only: bool,
-    /// Acknowledge this value only after the system snapshot was published.
+    /// Version of the vault heads and authentication policy.
     pub digest: String,
-}
-
-fn digest(selection: &Selection, entries: &[Entry]) -> String {
-    hex::encode(*dmsg_protocol::digest(
-        "dmsg/autofill-export/2",
-        &(&selection.items, selection.biometry_only, entries),
-    ))
+    /// Effective authentication policy.
+    pub biometry_only: bool,
+    /// Current logins, populated only on change.
+    pub entries: Vec<Entry>,
 }
 
 impl Client {
-    /// Remember what the person confirmed. Publication is acknowledged separately.
-    ///
-    /// # Errors
-    /// Refuses a locked workspace.
-    pub fn autofill_choose(
-        &self,
-        items: Vec<String>,
-        biometry_only: bool,
-        entries: &[Entry],
-    ) -> Result<Refresh> {
-        let selection = Selection {
-            items,
-            biometry_only,
-            digest: String::new(),
-        };
-        self.workspace.put_private(self.keys()?, KEY, &selection)?;
-        Ok(Refresh {
-            changed: true,
-            digest: digest(&selection, entries),
-            entries: entries.to_vec(),
-            biometry_only,
-        })
+    /// Read the device preference, including a selection made before catalog support.
+    pub fn autofill_biometry_only(&self) -> Result<bool> {
+        let keys = self.keys()?;
+        if let Some(only) = self.workspace.private(keys, "autofill-biometry")? {
+            return Ok(only);
+        }
+        Ok(self
+            .workspace
+            .private::<LegacySelection>(keys, KEY)?
+            .unwrap_or_default()
+            .biometry_only)
     }
 
-    /// What the person last confirmed, if anything.
-    ///
-    /// # Errors
-    /// Refuses a locked workspace or a corrupt record.
-    pub fn autofill_chosen(&self) -> Result<Option<Selection>> {
-        self.workspace.private(self.keys()?, KEY)
-    }
-
-    /// The person removed the snapshot.
-    ///
-    /// # Errors
-    /// Refuses a locked workspace.
-    pub fn autofill_forget(&self) -> Result<()> {
-        self.keys()?;
+    /// Save the user's independently confirmed preference for this device.
+    pub fn set_autofill_biometry(&self, biometry_only: bool) -> Result<()> {
+        self.workspace
+            .put_private(self.keys()?, "autofill-biometry", &biometry_only)?;
         self.workspace.delete_private(KEY)
     }
 
-    /// The chosen logins' current values when they moved since they last
-    /// left, or always with `force`; nothing was chosen when `None`. A chosen
-    /// item that is gone or no longer a login drops out.
-    ///
-    /// # Errors
-    /// Refuses a locked workspace or a corrupt record.
-    pub fn autofill_refresh(&self, force: bool) -> Result<Option<Refresh>> {
-        let Some(selection) = self.autofill_chosen()? else {
-            return Ok(None);
-        };
-        let entries: Vec<Entry> = selection
-            .items
-            .iter()
-            .filter_map(|id| Entry::of(&self.vault_show(id).ok()?).ok())
-            .collect();
-        let current = digest(&selection, &entries);
-        let changed = force || current != selection.digest;
-        Ok(Some(Refresh {
-            changed,
-            entries: if changed { entries } else { vec![] },
-            biometry_only: selection.biometry_only,
-            digest: current,
-        }))
-    }
-
-    /// Record a successful system publication, only if its selection and values
-    /// are still current. Failed or superseded publications stay due for retry.
-    ///
-    /// # Errors
-    /// Refuses a locked workspace or a corrupt record.
-    pub fn autofill_published(&self, published: &str) -> Result<()> {
-        let Some(current) = self.autofill_refresh(false)? else {
-            return Ok(());
-        };
-        if current.digest == published
-            && let Some(mut selection) = self.autofill_chosen()?
-        {
-            selection.digest = current.digest;
-            self.workspace.put_private(self.keys()?, KEY, &selection)?;
+    /// The published header holds the last successful digest. An unchanged
+    /// catalog only reads revision IDs; failed publications are naturally retried.
+    pub fn autofill_catalog(&self, known: &str, requires_biometry: bool) -> Result<Catalog> {
+        self.roots()?;
+        let biometry_only = requires_biometry || self.autofill_biometry_only()?;
+        let heads = self.workspace.store.heads(VAULT)?;
+        let digest = hex::encode(*dmsg_protocol::digest(
+            "dmsg/autofill-catalog/1",
+            &(&heads, biometry_only),
+        ));
+        let changed = digest != known;
+        let mut entries = Vec::new();
+        if changed {
+            for (id, _) in heads {
+                if let Some(login) = Entry::from_login(self.vault_show(&id)?) {
+                    entries.push(login);
+                }
+            }
         }
-        Ok(())
+        Ok(Catalog {
+            changed,
+            digest,
+            biometry_only,
+            entries,
+        })
     }
 }
 
@@ -167,74 +126,70 @@ mod tests {
     use crate::testing::{TempDir, unlocked};
     use crate::vault::{Changes, FieldChange};
 
-    fn login(title: &str, password: &str) -> Changes {
-        Changes {
-            title: Some(title.into()),
+    #[test]
+    fn catalog_follows_all_logins_and_keeps_stable_ids_and_authentication_policy() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        let changes = |password: &str| Changes {
+            title: Some("Same site".into()),
             set: Some(vec![FieldChange {
                 id: Some("password".into()),
                 value: Some(password.into()),
-                ..FieldChange::default()
+                ..Default::default()
             }]),
-            ..Changes::default()
+            ..Default::default()
+        };
+        let mut ids = Vec::new();
+        for _ in 0..51 {
+            ids.push(client.vault_create("login", &changes("old")).unwrap().id);
         }
-    }
-
-    #[test]
-    fn a_refresh_follows_only_what_was_chosen_and_only_when_it_moved() {
-        let dir = TempDir::new();
-        let mut client = unlocked(&dir.0, false, None);
-        assert_eq!(client.autofill_refresh(true).unwrap(), None);
-
-        let first = client.vault_create("login", &login("one", "a")).unwrap().id;
-        let second = client.vault_create("login", &login("two", "b")).unwrap().id;
-        let other = client.vault_create("login", &login("no", "c")).unwrap().id;
-        let chosen = vec![first.clone(), second.clone()];
-        let entries: Vec<Entry> = chosen
-            .iter()
-            .map(|id| Entry::of(&client.vault_show(id).unwrap()).unwrap())
-            .collect();
-        let published = client.autofill_choose(chosen, true, &entries).unwrap();
-        client.autofill_published(&published.digest).unwrap();
-
-        let quiet = client.autofill_refresh(false).unwrap().unwrap();
-        assert!(!quiet.changed && quiet.entries.is_empty() && quiet.biometry_only);
-        assert_eq!(
-            client.autofill_refresh(true).unwrap().unwrap().entries,
-            entries
-        );
-
-        client.vault_edit(&other, None, &login("no", "d")).unwrap();
-        assert!(!client.autofill_refresh(false).unwrap().unwrap().changed);
-
-        client.vault_edit(&first, None, &login("one", "e")).unwrap();
-        let moved = client.autofill_refresh(false).unwrap().unwrap();
-        assert!(moved.changed);
-        assert_eq!(moved.entries[0].password, "e");
-        // A failed platform publication must not consume the change.
-        assert!(client.autofill_refresh(false).unwrap().unwrap().changed);
-        client.autofill_published(&moved.digest).unwrap();
-        assert!(!client.autofill_refresh(false).unwrap().unwrap().changed);
-
-        client.vault_delete(&second).unwrap();
-        let shrunk = client.autofill_refresh(false).unwrap().unwrap();
-        assert!(shrunk.changed);
-        assert_eq!(shrunk.entries.len(), 1);
-
-        // A later edit must survive an acknowledgement for the older snapshot.
-        client.vault_edit(&first, None, &login("one", "f")).unwrap();
-        client.autofill_published(&shrunk.digest).unwrap();
-        assert!(client.autofill_refresh(false).unwrap().unwrap().changed);
-
-        // The same values selected with a different authentication policy also
-        // cannot be acknowledged by a publication of the previous choice.
-        let current = client.autofill_refresh(true).unwrap().unwrap();
         client
-            .autofill_choose(vec![first], false, &current.entries)
+            .vault_create(
+                "note",
+                &Changes {
+                    title: Some("Note".into()),
+                    ..Default::default()
+                },
+            )
             .unwrap();
-        client.autofill_published(&current.digest).unwrap();
-        assert!(client.autofill_refresh(false).unwrap().unwrap().changed);
-
-        client.autofill_forget().unwrap();
-        assert_eq!(client.autofill_refresh(true).unwrap(), None);
+        let legacy = LegacySelection {
+            items: vec![ids[0].clone()],
+            biometry_only: true,
+            digest: "legacy".into(),
+        };
+        client
+            .workspace
+            .put_private(client.keys().unwrap(), KEY, &legacy)
+            .unwrap();
+        let first = client.autofill_catalog("", false).unwrap();
+        assert!(first.biometry_only);
+        assert_eq!(first.entries.len(), 51);
+        assert!(
+            !client
+                .autofill_catalog(&first.digest, false)
+                .unwrap()
+                .changed
+        );
+        client.vault_edit(&ids[0], None, &changes("new")).unwrap();
+        client.vault_delete(&ids[1]).unwrap();
+        let next = client.autofill_catalog(&first.digest, false).unwrap();
+        assert!(next.changed);
+        assert_eq!(next.entries.len(), 50);
+        assert_eq!(
+            next.entries
+                .iter()
+                .find(|e| e.id == ids[0])
+                .unwrap()
+                .password,
+            "new"
+        );
+        client.set_autofill_biometry(false).unwrap();
+        assert!(
+            client
+                .autofill_catalog(&next.digest, false)
+                .unwrap()
+                .changed
+        );
+        assert!(!client.autofill_catalog(&next.digest, true).unwrap().changed);
     }
 }

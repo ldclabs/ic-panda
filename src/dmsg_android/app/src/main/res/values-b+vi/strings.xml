@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Thêm quyền"</string>
     <string name="android_purchase_privacy" formatted="false">"Khi được cấu hình, giao dịch Google Play sử dụng dịch vụ tài khoản Google, thanh toán và xác minh thiết bị. Mã thông báo mua hàng được lưu mã hóa cho đến khi dịch vụ xác minh việc cấp quyền lợi. Nội dung dMsg không được gửi tới Google. Chính sách dịch vụ bên dưới cũng mô tả các dịch vụ riêng của Apple được những ứng dụng dMsg khác sử dụng."</string>
     <string name="app_language" formatted="false">"Ngôn ngữ"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Chọn tài khoản khi ứng dụng hoặc trang web yêu cầu mật khẩu."</string>
+    <string name="autofill_confirm" formatted="false">"Điền bằng tài khoản này?"</string>
+    <string name="autofill_no_items" formatted="false">"Chưa có hồ sơ nào"</string>
+    <string name="autofill_once" formatted="false">"Chỉ điền lần này"</string>
+    <string name="autofill_open" formatted="false">"Mở và mở khóa dMsg để tải các mục đăng nhập."</string>
+    <string name="autofill_remember" formatted="false">"Điền và ghi nhớ"</string>
+    <string name="autofill_used" formatted="false">"Tài khoản đã dùng"</string>
     <string name="backup_all_caught_up" formatted="false">"Không có phiên bản tệp nào chưa được sao lưu."</string>
     <string name="backup_already_saved" formatted="false">"Phiên bản này đã được sao lưu."</string>
     <string name="backup_selected_help" formatted="false">"Các tập tin chỉ được sao lưu khi bạn chọn làm như vậy một cách rõ ràng."</string>

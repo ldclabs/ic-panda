@@ -3458,5 +3458,21 @@
 	<string>Bildirimler sessizce iletilir.</string>
 	<key>Veto proposal</key>
 	<string>Teklifi veto et</string>
+	<key>Fill once</key>
+	<string>Bir kez doldur</string>
+	<key>Fill and remember</key>
+	<string>Doldur ve hatırla</string>
+	<key>Previously used</key>
+	<string>Daha önce kullanılan hesaplar</string>
+	<key>Fill this login?</key>
+	<string>Bu hesapla doldurulsun mu?</string>
+	<key>Unidentified app or website</key>
+	<string>Tanımlanamayan uygulama veya site</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Bir uygulama veya site parola istediğinde bir hesap seçin.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Hesaplarınızı yüklemek için dMsg’yi açıp kilidini kaldırın.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Otomatik parola doldurma güncellenemedi.</string>
 </dict>
 </plist>

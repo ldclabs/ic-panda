@@ -3458,5 +3458,21 @@
 	<string>알림이 조용히 전달됩니다.</string>
 	<key>Veto proposal</key>
 	<string>제안에 거부권 행사</string>
+	<key>Fill once</key>
+	<string>이번만 입력</string>
+	<key>Fill and remember</key>
+	<string>입력하고 기억하기</string>
+	<key>Previously used</key>
+	<string>이전에 사용한 계정</string>
+	<key>Fill this login?</key>
+	<string>이 계정으로 입력할까요?</string>
+	<key>Unidentified app or website</key>
+	<string>확인할 수 없는 앱 또는 웹사이트</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>앱이나 웹사이트에서 암호를 요청하면 사용할 계정을 선택하세요.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>dMsg를 열고 잠금을 해제하여 로그인 항목을 불러오세요.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>암호 자동 완성을 업데이트할 수 없습니다.</string>
 </dict>
 </plist>

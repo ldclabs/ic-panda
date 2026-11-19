@@ -14,6 +14,7 @@ import java.lang.ref.WeakReference;
 /** Test APK only, a different UID claiming a website without an association. */
 public final class AutofillFixtureActivity extends Activity {
     static WeakReference<AutofillFixtureActivity> current = new WeakReference<>(null);
+    EditText username;
     EditText password;
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -21,14 +22,16 @@ public final class AutofillFixtureActivity extends Activity {
         LinearLayout layout = new LinearLayout(this) {
             @Override public void onProvideAutofillStructure(ViewStructure structure, int flags) {
                 super.onProvideAutofillStructure(structure, flags);
-                structure.setClassName("android.webkit.WebView");
-                structure.setWebDomain("example.com");
+                if (!getIntent().getBooleanExtra("nativeLogin", false)) {
+                    structure.setClassName("android.webkit.WebView");
+                    structure.setWebDomain("example.com");
+                }
             }
         };
         layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(40, 80, 40, 40);
         layout.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
-        TextView title = new TextView(this); title.setText("Synthetic untrusted web form"); layout.addView(title);
-        EditText username = new EditText(this); username.setId(View.generateViewId()); username.setHint("Username");
+        TextView title = new TextView(this); title.setText("Synthetic login form"); layout.addView(title);
+        username = new EditText(this); username.setId(View.generateViewId()); username.setHint("Username");
         username.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS); username.setAutofillHints(View.AUTOFILL_HINT_USERNAME);
         layout.addView(username, new LinearLayout.LayoutParams(-1, -2));
         password = new EditText(this); password.setId(View.generateViewId()); password.setHint("Password");

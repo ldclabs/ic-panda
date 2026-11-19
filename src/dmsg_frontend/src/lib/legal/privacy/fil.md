@@ -1,6 +1,6 @@
 # Patakaran sa Privacy ng dMsg
 
-Huling na-update: 2026-10-29.
+Huling na-update: 2026-11-19.
 
 Ine-encrypt ng dMsg ang pribadong content sa iyong mga awtorisadong device. Sinasaklaw ng patakarang ito ang dmsg.net, ang read-only na legacy web app, ang mga desktop at iOS app, ang connect.dmsg.net, ang cloud service, at ang mga canister sa Internet Computer (ICP). Ang ibig sabihin ng “kami” ay ang team na nagpapatakbo ng dMsg sa ilalim ng pamamahala ng ICPanda DAO. Nakadepende sa bersyon ng app at sa configuration ng serbisyo ang pagiging available ng bawat feature.
 
@@ -30,7 +30,7 @@ Pinoproseso ng mga wallet canister ang mga patakaran at panukala ng multisig wal
 
 Nagpapanatili ang mga native na app ng lokal na naka-encrypt na workspace, mga key na pinoprotektahan ng operating system (kung saan sinusuportahan), mga draft, mga nakabinbing operasyon, at mga kagustuhan. Ginagawang available ng pag-unlock ang napiling content sa memorya ng app. Maaaring mapanatili ng mga patutunguhang app ang mga na-export na file at kinopyang text.
 
-Inihahanda lamang ng Share extension ng iOS ang mga item na pinili mo para sa pag-import sa account sa ibang pagkakataon. Naglalaman lamang ang mga integrasyon ng Password AutoFill at Files app ng mga tahasang pinili at hiwalay na naka-encrypt na snapshot. Nangangailangan ang AutoFill ng hiwalay na pagpapatunay ng system; nag-e-expire ang mga snapshot pagkalipas ng 24 na oras. Tumatagal nang hanggang limang minuto lamang ang mga session ng pag-access sa Files app at nagtatapos kapag nag-lock ang dMsg, ngunit maaaring mapanatili ng Files app at ng iba pang tatanggap ang mga kopyang na-download na. Hindi awtomatikong ina-update ng pagbabago sa mga orihinal na item ang na-export nang snapshot.
+Inihahanda lamang ng Share extension ng iOS ang mga item na pinili mo para sa pag-import sa account sa ibang pagkakataon. Nag-iimbak ang autofill sa device na ito ng hiwalay na naka-encrypt na kopya ng mga login sa vault at ina-update ito kapag naka-unlock ang dMsg. Pagkatapos ng pagpapatunay ng system, pipiliin mo ang account na ipupuno. Maaaring tandaan ang ilang account para sa isang natukoy na app o website. Sa iOS, maaaring lumitaw ang mga naalalang username at serbisyo sa mga mungkahi ng system. Mapapaso ang mga piniling kopya ng file pagkalipas ng 24 oras at kailangang i-export muli kapag nagbago ang orihinal. Hanggang limang minuto ang pag-access sa mga file at matatapos ito kapag ni-lock ang dMsg. Maaaring itago ng mga tumanggap ang na-download nilang mga file.
 
 Nag-iimbak lamang ang mga tahasang sinimulang paglilipat sa background ng limitadong ciphertext at awtoridad sa paglilipat sa isang hiwalay na direktoryo ng device na maa-access pagkatapos ng unang pag-unlock sa device. Wala itong hawak na mga key sa paglagda ng account o content key. Dapat i-unlock ang orihinal na account upang ma-verify at makumpleto ang paglilipat. Maaaring maantala o ihinto ng operating system ang paghahatid.
 

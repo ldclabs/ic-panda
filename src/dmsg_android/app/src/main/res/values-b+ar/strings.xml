@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"إضافة إذن"</string>
     <string name="android_purchase_privacy" formatted="false">"تستخدم مشتريات Google Play خدمات حساب Google والفوترة والتحقق من الجهاز عند إعدادها. تُحفظ رموز الشراء مشفّرة حتى تتحقق الخدمة من التسليم. لا يُرسل محتوى dMsg إلى Google. تصف سياسة الخدمة أدناه أيضًا الخدمات الخاصة بـ Apple التي تستخدمها تطبيقات dMsg الأخرى."</string>
     <string name="app_language" formatted="false">"اللغة"</string>
+    <string name="autofill_choose_at_login" formatted="false">"اختر حسابًا عندما يطلب تطبيق أو موقع كلمة مرور."</string>
+    <string name="autofill_confirm" formatted="false">"هل تريد تعبئة بيانات هذا الحساب؟"</string>
+    <string name="autofill_no_items" formatted="false">"لا سجلات بعد"</string>
+    <string name="autofill_once" formatted="false">"تعبئة هذه المرة فقط"</string>
+    <string name="autofill_open" formatted="false">"افتح dMsg وألغِ قفله لتحميل حساباتك."</string>
+    <string name="autofill_remember" formatted="false">"تعبئة وتذكّر"</string>
+    <string name="autofill_used" formatted="false">"حسابات استُخدمت سابقًا"</string>
     <string name="backup_all_caught_up" formatted="false">"لا توجد إصدارات ملفات بلا نسخة احتياطية."</string>
     <string name="backup_already_saved" formatted="false">"تم نسخ هذا الإصدار احتياطياً بالفعل."</string>
     <string name="backup_selected_help" formatted="false">"لا تُنسخ الملفات احتياطيًا إلا عندما تختار ذلك صراحةً."</string>

@@ -4049,3 +4049,9 @@ Squirrel 安装、Electron 交互回归、完整 iOS UI 套件、全量 Rust 测
 两轮均未完成本地 StoreKit 首购用例 `testFirstPurchaseReachesLocalStoreKitWithoutAnAppDownload`。iOS 18.4 在读取订阅状态时超时（`NSURLErrorDomain -1001`）。单独运行时先复现超时，随后重用同一份测试包成功生成 Xcode 本地交易。iOS 27.0 在购买时弹出 Apple 账户登录框，取消后没有生成测试交易，单独复测成功。修改前的基线在两个模拟器上单独运行也均通过。
 
 通用 iOS 设备的未签名 Release 构建通过。iOS 构建与本地化脚本测试 23 项通过，TestFlight 脚本预检显示下一包为 LDC 的 `1.2.3 (35)`。前端和连接站的生产构建产物均包含两个团队的 App ID，登录回调、Passkey 和配对／请求链接的范围符合各自配置。11 月 19 日部署前检查时，两个生产域名和 Apple CDN 均只返回 LDC 的 App ID。跨团队原机升级、App Attest、推送与沙盒购买仍需用实际 Yiwen 签名的候选包验收。步骤见[迁移说明](docs/app-transfer_zh.md)。
+
+## 2026-11-19 — 系统面板内选择密码
+
+iPhone 17e / iOS 27.0 模拟器通过全部 252 个单元测试和两个自动填充设置界面测试。覆盖两个账号的记忆顺序、无服务标识时搜索、旧版副本失效、不同账号与目标隔离、撤下过时目录，以及路径别名和越界符号链接。共享 Rust 回归另用 51 个登录项验证无需预选、密码修改与条目删除。另在 macOS 上直接调用项目的快照实现，同一目录用 `/var` 和 `/private/var` 均能准备登录项。23 种语言的资源检查通过。
+
+完整的 Face ID / 设备密码认证、宿主 App 中的真实字段回填，以及键盘上的系统建议仍需已启用 dMsg 的 iPhone 验收。

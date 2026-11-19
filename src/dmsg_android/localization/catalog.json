@@ -13,6 +13,41 @@
     "zh-Hans": "应用语言",
     "ios": "Language"
   },
+  "autofill_choose_at_login": {
+    "en": "Choose a login when an app or website asks for a password.",
+    "zh-Hans": "在 App 或网站需要密码时，选择要填入的账号。",
+    "ios": "Choose a login when an app or website asks for a password."
+  },
+  "autofill_confirm": {
+    "en": "Fill this login?",
+    "zh-Hans": "填入这个账号？",
+    "ios": "Fill this login?"
+  },
+  "autofill_no_items": {
+    "en": "No items",
+    "zh-Hans": "暂无项目",
+    "ios": "No items"
+  },
+  "autofill_once": {
+    "en": "Fill once",
+    "zh-Hans": "仅填充这一次",
+    "ios": "Fill once"
+  },
+  "autofill_open": {
+    "en": "Open and unlock dMsg to load your logins.",
+    "zh-Hans": "打开并解锁 dMsg 以载入登录项。",
+    "ios": "Open and unlock dMsg to load your logins."
+  },
+  "autofill_remember": {
+    "en": "Fill and remember",
+    "zh-Hans": "填充并记住",
+    "ios": "Fill and remember"
+  },
+  "autofill_used": {
+    "en": "Previously used",
+    "zh-Hans": "以前用过的账号",
+    "ios": "Previously used"
+  },
   "backup_all_caught_up": {
     "en": "No unbacked file versions.",
     "zh-Hans": "没有未备份的文件版本。",

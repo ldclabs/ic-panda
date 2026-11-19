@@ -120,7 +120,6 @@ struct VaultDetailView: View {
                 }
                 NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
                     .accessibilityIdentifier("vault.share")
-                if item.kind == "login" { NavigationLink("Password AutoFill") { SystemExportsView(section: .autoFill, initialCredential: item) } }
                 Button("Move to Trash", systemImage: "trash", role: .destructive) { deleting = true }
                     .accessibilityIdentifier("vault.detail.trash")
             }

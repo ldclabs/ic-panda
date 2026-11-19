@@ -129,7 +129,7 @@ struct SecretPackageImportView: View {
             guard epoch == model.epoch else { return }
             let done: Completion? = try? model.decode(result)
             if let done, done.state == "done" {
-                completed = done.ids ?? []; await model.refresh()
+                completed = done.ids ?? []; await model.updateSession()
             } else { request = try model.decode(result) }
         } catch { if epoch == model.epoch { model.report(error) } }
     }

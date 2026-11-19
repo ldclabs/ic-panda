@@ -70,9 +70,6 @@ extension SessionModel {
         #if DEBUG
         if uiTesting {
             let args = ProcessInfo.processInfo.arguments
-            if kind == "login", !query.isEmpty, args.contains("--ui-autofill-search-offline") {
-                throw MobileError.Failure(code: "UNAVAILABLE")
-            }
             if kind == nil, query == "x", args.contains("--ui-snapshot-search-offline") {
                 try await Task.sleep(for: .seconds(2))
                 throw MobileError.Failure(code: "UNAVAILABLE")

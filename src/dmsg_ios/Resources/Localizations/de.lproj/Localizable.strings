@@ -3458,5 +3458,21 @@
 	<string>Mitteilungen werden still zugestellt.</string>
 	<key>Veto proposal</key>
 	<string>Veto gegen Vorschlag einlegen</string>
+	<key>Fill once</key>
+	<string>Einmal ausfüllen</string>
+	<key>Fill and remember</key>
+	<string>Ausfüllen und merken</string>
+	<key>Previously used</key>
+	<string>Bereits verwendet</string>
+	<key>Fill this login?</key>
+	<string>Diesen Zugang ausfüllen?</string>
+	<key>Unidentified app or website</key>
+	<string>Unbekannte App oder Website</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Wähle einen Zugang, wenn eine App oder Website nach einem Passwort fragt.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Öffne und entsperre dMsg, um deine Zugänge zu laden.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Das automatische Ausfüllen von Passwörtern konnte nicht aktualisiert werden.</string>
 </dict>
 </plist>

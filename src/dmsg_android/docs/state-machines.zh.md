@@ -72,7 +72,7 @@
 | 文件外链 | 混合 | 固定本机版本或备份来源 → 填选项 → 得到可持久恢复的发布意图 → 执行、暂停、续传 → 已发布、丢弃或撤销。 | 表单身份决定是否跳页，进度按意图 ID 和本轮 owner。离开表单不抹掉已准备的原生意图。[FileLinksCoordinator]、[FileLinkScreens] |
 | 文件请求与收件 | 混合 | 固定收件人或批次 → 准备并逐份发布 → 暂停或重试原批次。收到的文件先展示状态，再显式保存到选定目录，也可取消保存、删除或关闭请求。 | 发布用 batch，保存用收到的文件 ID。`received` 和 `saved` 有不同动作。[FileRequestsCoordinator]、[FileRequestScreens] |
 | 设备间的收发会话 | 混合 | 选择收或发 → 准备计划，发现对端或使用手动地址 → 等待、运行、结束、失败或取消。后台停止 socket 和广播。接收可重开原会话，发送须再次核对授权。 | `plan/owner/sequence/suspended/pending` 配合原生传输状态。NSD 注册、发现、解析和释放有独立回调。[DeviceTransferCoordinator]、[DeviceDiscovery]、[DeviceTransferScreen] |
-| 系统导出快照 | 隐式 | 选择凭据或文件 → 显式发布 → 准备加密副本、核对代号后替换当前清单 → 刷新、删除或过期。两类导出独立。 | 只有已发布的选择集可供系统访问。数据、密钥和当前指针的清理由 store 管，设置页只显示已发布的状态。[SystemExportsCoordinator]、[SystemExportStore]、[ExportKeyVault]、[SystemExportsScreen] |
+| 系统导出快照 | 隐式 | 工作区解锁或登录项变化时更新本机登录项目录；用户选择文件后另行发布限时文件副本。两者在发布前核对会话和当前版本。 | 自动填充通过独立身份验证后显示可搜索的登录项。数据、密钥和当前指针的清理由 store 管，设置页只显示已发布的状态。[SystemExportsCoordinator]、[SystemExportStore]、[ExportKeyVault]、[SystemExportsScreen] |
 | 自动填充与系统文件访问 | 隐式 | 自动填充请求在期限内关联应用、字段和来源 → 系统身份验证 → 选择并填入。文件入口另授权短时文件会话，每次读都核对快照、设备锁和期限，关闭描述符后不可继续。 | Autofill 请求、硬件提示、文件授权和描述符有不同寿命。Provider 和 Activity 均可先于主界面启动。[DMsgAutofillService]、[AutofillTrust]、[ExportAccessActivity]、[ExportFileAccess]、[ExportDocumentsProvider] |
 
 ## 账户资料、交接、Agent、钱包与购买

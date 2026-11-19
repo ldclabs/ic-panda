@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"İzin ekle"</string>
     <string name="android_purchase_privacy" formatted="false">"Yapılandırıldığında Google Play satın alımları, Google hesabı, faturalandırma ve cihaz doğrulama hizmetlerini kullanır. Satın alma jetonları, hizmet hakların teslimini doğrulayana kadar şifreli saklanır. dMsg içeriği Google\'a gönderilmez. Aşağıdaki hizmet politikası, diğer dMsg uygulamalarının kullandığı Apple\'a özgü hizmetleri de açıklar."</string>
     <string name="app_language" formatted="false">"Dil"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Bir uygulama veya site parola istediğinde bir hesap seçin."</string>
+    <string name="autofill_confirm" formatted="false">"Bu hesapla doldurulsun mu?"</string>
+    <string name="autofill_no_items" formatted="false">"Henüz kayıt yok"</string>
+    <string name="autofill_once" formatted="false">"Bir kez doldur"</string>
+    <string name="autofill_open" formatted="false">"Hesaplarınızı yüklemek için dMsg’yi açıp kilidini kaldırın."</string>
+    <string name="autofill_remember" formatted="false">"Doldur ve hatırla"</string>
+    <string name="autofill_used" formatted="false">"Daha önce kullanılan hesaplar"</string>
     <string name="backup_all_caught_up" formatted="false">"Yedeklenmemiş dosya sürümü yok."</string>
     <string name="backup_already_saved" formatted="false">"Bu sürüm zaten yedeklendi."</string>
     <string name="backup_selected_help" formatted="false">"Dosyalar yalnızca açıkça bunu yapmayı seçtiğinizde yedeklenir."</string>

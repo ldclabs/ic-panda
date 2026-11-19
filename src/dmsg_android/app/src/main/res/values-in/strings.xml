@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Tambahkan izin"</string>
     <string name="android_purchase_privacy" formatted="false">"Jika dikonfigurasi, pembelian Google Play menggunakan layanan akun Google, penagihan, dan verifikasi perangkat. Token pembelian disimpan terenkripsi sampai layanan memverifikasi penyerahan hak. Konten dMsg tidak dikirim ke Google. Kebijakan layanan di bawah juga menjelaskan layanan khusus Apple yang digunakan aplikasi dMsg lainnya."</string>
     <string name="app_language" formatted="false">"Bahasa"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Pilih akun saat aplikasi atau situs meminta kata sandi."</string>
+    <string name="autofill_confirm" formatted="false">"Isi dengan akun ini?"</string>
+    <string name="autofill_no_items" formatted="false">"Belum ada catatan"</string>
+    <string name="autofill_once" formatted="false">"Isi sekali"</string>
+    <string name="autofill_open" formatted="false">"Buka dMsg dan buka kuncinya untuk memuat akun Anda."</string>
+    <string name="autofill_remember" formatted="false">"Isi dan ingat"</string>
+    <string name="autofill_used" formatted="false">"Pernah digunakan"</string>
     <string name="backup_all_caught_up" formatted="false">"Tidak ada versi file yang belum dicadangkan."</string>
     <string name="backup_already_saved" formatted="false">"Versi ini sudah dicadangkan."</string>
     <string name="backup_selected_help" formatted="false">"File dicadangkan hanya jika Anda secara eksplisit memilih untuk melakukannya."</string>

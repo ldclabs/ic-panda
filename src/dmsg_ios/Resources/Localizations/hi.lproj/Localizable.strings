@@ -3458,5 +3458,21 @@
 	<string>सूचनाएँ चुपचाप भेजी जाती हैं।</string>
 	<key>Veto proposal</key>
 	<string>प्रस्ताव पर वीटो करें</string>
+	<key>Fill once</key>
+	<string>केवल एक बार भरें</string>
+	<key>Fill and remember</key>
+	<string>भरें और याद रखें</string>
+	<key>Previously used</key>
+	<string>पहले इस्तेमाल किए गए खाते</string>
+	<key>Fill this login?</key>
+	<string>इस खाते का विवरण भरें?</string>
+	<key>Unidentified app or website</key>
+	<string>अज्ञात ऐप या वेबसाइट</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>जब कोई ऐप या वेबसाइट पासवर्ड माँगे, तो खाता चुनें।</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>अपने लॉगिन लोड करने के लिए dMsg खोलें और अनलॉक करें।</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>पासवर्ड ऑटोफ़िल अपडेट नहीं हो सका।</string>
 </dict>
 </plist>

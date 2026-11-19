@@ -1,6 +1,6 @@
 # dMsg Privacy Policy
 
-Last updated: 2026-10-29.
+Last updated: 2026-11-19.
 
 dMsg encrypts private content on your authorized devices. This policy covers dmsg.net, the read-only legacy web app, the desktop and iOS apps, connect.dmsg.net, the cloud service and the Internet Computer (ICP) canisters. “We” means the team operating dMsg under ICPanda DAO governance. Availability of individual features depends on the app version and service configuration.
 
@@ -30,7 +30,7 @@ Multisig wallet policies and proposals are processed by the wallet canisters; th
 
 The native apps keep a local encrypted workspace, keys protected by the operating system where supported, drafts, pending operations and preferences. Unlocking makes selected content available in app memory. Exported files and copied text may be retained by their destination apps.
 
-The iOS Share extension stages only the items you select for a later account import. Password AutoFill and Files integrations contain only explicitly selected, separately encrypted snapshots. AutoFill requires independent system authentication; snapshots expire after 24 hours. Files access sessions last at most five minutes and end when dMsg locks, but the Files app and other recipients may retain copies already downloaded. Changing source items does not update an exported snapshot automatically.
+The iOS Share extension stages only the items you select for a later account import. Password AutoFill keeps a separately encrypted copy of vault logins on this device, updated when dMsg is unlocked. After system authentication, you choose which login to fill. You can remember several accounts for an identified app or website. On iOS, remembered usernames and services may appear in system suggestions. Selected Files copies expire after 24 hours and need to be exported again after edits. Files access lasts up to five minutes and ends when dMsg locks. Recipients may retain downloaded files.
 
 Explicit background transfers store only bounded ciphertext and transfer authority in a separate device directory accessible after the first device unlock. They do not hold account signing or content keys. The original account must be unlocked to verify and finish a transfer. The system may delay or stop delivery.
 

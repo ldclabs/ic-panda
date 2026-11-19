@@ -18,17 +18,12 @@ enum SystemExportSection { case autoFill, files }
 
 struct SystemExportsView: View {
     var section: SystemExportSection
-    var initialCredential: VaultItem? = nil
-    @State private var initialized = false
     @Environment(SessionModel.self) private var model
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selectingCredentials = false
     @State private var selectingFile = false
-    @State private var credentials: [VaultItem] = []
     @State private var files: [LibraryFile] = []
     @State private var biometryOnly = false
     @State private var requiresBiometry = false
-    @State private var credentialSnapshot: ExportHeader?
     @State private var fileSnapshot: ExportHeader?
     @State private var snapshotFailed = false
     @State private var autoFillEnabled = false
@@ -42,18 +37,13 @@ struct SystemExportsView: View {
             case .autoFill: autoFill
             case .files: filesApp
             }
-            Toggle("Biometrics only for exported copies", isOn: $biometryOnly).disabled(requiresBiometry)
-            Text("These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.").font(.footnote).foregroundStyle(.secondary)
+            Toggle("Biometrics only for exported copies", isOn: Binding(get: { biometryOnly }, set: { value in
+                if section == .files || model.uiTesting { biometryOnly = value }
+                else { work = Task { await setAutoFillBiometry(value) } }
+            })).disabled(requiresBiometry)
+            if section == .files { Text("These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.").font(.footnote).foregroundStyle(.secondary) }
             if working { ProgressView() }
         }.disabled(working).privateScreen().navigationTitle(section == .autoFill ? "Password AutoFill" : "Files app copies").navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $selectingCredentials) { NavigationStack { AutoFillSelectionView(initial: credentials) { values in
-                credentials = values
-                // Choosing the items is the whole step: AutoFill follows the selection.
-                work = Task {
-                    if values.isEmpty { await removeSnapshot(.credentials) }
-                    else { await exportCredentials() }
-                }
-            } } }
             .sheet(isPresented: $selectingFile) { NavigationStack { AttachmentPicker(folder: "root") { file in
                 if !files.contains(where: { $0.id == file.id }) { files.append(file) }; selectingFile = false
             } } }
@@ -62,30 +52,24 @@ struct SystemExportsView: View {
                 guard scenePhase == .active else { return }
                 let epoch = model.epoch
                 refreshSnapshots()
-                if !initialized {
-                    initialized = true
-                    if let chosen = try? await model.engine?.autofillSelection() {
-                        guard epoch == model.epoch, !Task.isCancelled else { return }
-                        credentials = chosen.items; biometryOnly = chosen.biometryOnly
-                    }
-                    if let initialCredential, !credentials.contains(where: { $0.id == initialCredential.id }) { credentials.append(initialCredential) }
-                }
                 let state = await ASCredentialIdentityStore.shared.state()
                 guard epoch == model.epoch, !Task.isCancelled else { return }
                 autoFillEnabled = state.isEnabled
                 do {
-                    let required = try await exportRequiresBiometry()
+                    let policy = try await exportPolicy()
+                    let required = policy.biometryOnly
                     guard epoch == model.epoch, !Task.isCancelled else { return }
                     requiresBiometry = required
                     // A policy refresh can strengthen the user's choice but
                     // cannot relax it after Settings or system authentication.
                     if required { biometryOnly = true }
+                    else if section == .autoFill, !model.uiTesting { biometryOnly = policy.autofillBiometryOnly }
                 }
                 catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
             }
     }
 
-    /// Turn it on, choose what it may use, and see what it has.
+    /// System permission and the automatically maintained login catalog.
     @ViewBuilder private var autoFill: some View {
         Section {
             if autoFillEnabled { LabeledContent("System permission", value: String(localized: "Allowed")) }
@@ -95,16 +79,24 @@ struct SystemExportsView: View {
             }
         }
         Section {
-            ForEach(credentials, id: \.id) { item in HStack { Text(item.title); Spacer(); Button("Remove", role: .destructive) { credentials.removeAll { $0.id == item.id } }.buttonStyle(.borderless) } }
-            SettingsAction("Select login items", prominent: autoFillEnabled && credentials.isEmpty) { selectingCredentials = true }
-        } footer: {
-            Text("AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.")
+            Text("Choose a login when an app or website asks for a password.")
+            if let header = model.autoFillHeader, let count = header.count { LabeledContent("Items", value: count.formatted()) }
+            if let issue = model.autoFillIssue {
+                Text(issue).foregroundStyle(.secondary)
+                SettingsAction("Retry") { work = Task { await model.refreshAutoFill() } }
+            }
         }
-        Section {
-            ExportSnapshotStatus(header: credentialSnapshot)
-            SettingsAction("Update AutoFill") { work = Task { await exportCredentials() } }.disabled(credentials.isEmpty)
-            SettingsAction("Remove AutoFill snapshot", role: .destructive) { work = Task { await removeSnapshot(.credentials) } }.disabled(credentialSnapshot == nil)
-        }
+    }
+
+    private func setAutoFillBiometry(_ value: Bool) async {
+        guard let engine = model.engine else { return }
+        working = true
+        defer { working = false }
+        do {
+            try await engine.setAutofillBiometry(biometryOnly: value)
+            biometryOnly = value
+            await model.refreshAutoFill()
+        } catch { model.report(error) }
     }
 
     @ViewBuilder private var filesApp: some View {
@@ -117,22 +109,22 @@ struct SystemExportsView: View {
         Section {
             ExportSnapshotStatus(header: fileSnapshot)
             SettingsAction("Update Files app copies", prominent: !files.isEmpty) { work = Task { await exportFiles() } }.disabled(files.isEmpty)
-            SettingsAction("Remove Files app snapshot", role: .destructive) { work = Task { await removeSnapshot(.files) } }.disabled(fileSnapshot == nil)
+            SettingsAction("Remove Files app snapshot", role: .destructive) { work = Task { await removeFileSnapshot() } }.disabled(fileSnapshot == nil)
         }
     }
 
-    private func exportRequiresBiometry() async throws -> Bool {
+    private struct ExportPolicy: Decodable { let biometryOnly: Bool; let autofillBiometryOnly: Bool }
+
+    private func exportPolicy() async throws -> ExportPolicy {
         #if DEBUG
-        if model.uiTesting { return false }
+        if model.uiTesting { return ExportPolicy(biometryOnly: false, autofillBiometryOnly: false) }
         #endif
         guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-        struct ExportPolicy: Decodable { let biometryOnly: Bool }
-        let state: ExportPolicy = try model.decode(try await engine.systemExportPolicy())
-        return state.biometryOnly
+        return try model.decode(try await engine.systemExportPolicy())
     }
 
     private func refreshSnapshots() {
-        if model.uiTesting { return }
+        if model.uiTesting || section != .files { return }
         snapshotFailed = false
         func read(_ purpose: ExportPurpose) -> ExportHeader? {
             do {
@@ -142,42 +134,20 @@ struct SystemExportsView: View {
             catch let error as CocoaError where error.code == .fileReadNoSuchFile { return nil }
             catch { snapshotFailed = true; model.report(error); return nil }
         }
-        credentialSnapshot = read(.credentials); fileSnapshot = read(.files)
+        fileSnapshot = read(.files)
     }
 
-    private func removeSnapshot(_ purpose: ExportPurpose) async {
+    private func removeFileSnapshot() async {
         guard !working else { return }; let epoch = model.epoch
         working = true; defer { working = false }
-        if purpose == .credentials { model.autoFillGeneration &+= 1; model.autoFillChanging = true }
-        defer { if purpose == .credentials { model.autoFillChanging = false } }
         do {
-            // The saved selection rebuilds missing copies, so it goes first.
-            if purpose == .credentials { try await model.engine?.forgetAutofill() }
-            try SystemExports(purpose).invalidate()
-            if purpose == .credentials { try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities() }
-            else { try await NSFileProviderManager.remove(domain) }
+            try SystemExports(.files).invalidate()
+            try await NSFileProviderManager.remove(domain)
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            if purpose == .credentials { credentials = [] }
             refreshSnapshots(); model.notice = String(localized: "Saved")
         } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
     }
 
-    private func exportCredentials() async {
-        guard let engine = model.engine, let account = model.session?.account, !working else { return }
-        let epoch = model.epoch; working = true; model.activity(); defer { working = false }
-        model.autoFillGeneration &+= 1; let generation = model.autoFillGeneration
-        model.autoFillChanging = true; defer { model.autoFillChanging = false }
-        do {
-            await model.integrationReset?.value
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            let snapshot = try await engine.exportAutofill(items: credentials.map { CredentialSelection(id: $0.id, revision: $0.revision) }, biometryOnly: biometryOnly)
-            let refresh: AutoFillRefresh = try model.decode(snapshot)
-            guard try await model.publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly, account: account, epoch: epoch, generation: generation), !Task.isCancelled else { return }
-            try await engine.autofillPublished(digest: refresh.digest)
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            refreshSnapshots(); model.notice = String(localized: "AutoFill snapshot updated")
-        } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
-    }
     private func exportFiles() async {
         struct Opened: Decodable { let path: String; let nonce: String }
         guard let engine = model.engine, let account = model.session?.account, !working else { return }
@@ -213,37 +183,6 @@ struct SystemExportsView: View {
         try? await NSFileProviderManager(for: domain)?.signalEnumerator(for: .rootContainer)
         try? await NSFileProviderManager(for: domain)?.signalEnumerator(for: .workingSet)
     }
-}
-
-struct AutoFillSelectionView: View {
-    let selected: ([VaultItem]) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var chosen: [String: VaultItem]
-    @State private var search = VaultPickerSearch()
-
-    init(initial: [VaultItem], selected: @escaping ([VaultItem]) -> Void) {
-        self.selected = selected
-        _chosen = State(initialValue: Dictionary(uniqueKeysWithValues: initial.map { ($0.id, $0) }))
-    }
-
-    var body: some View {
-        VaultItemPicker(search: search, kind: "login", limit: 60, placement: .navigationBarDrawer(displayMode: .always)) {
-            LabeledContent("Selected", value: chosen.count.formatted()).accessibilityIdentifier("autofill.selected")
-        } row: { item in
-            Toggle(item.title, isOn: Binding(get: { chosen[item.id] != nil }, set: {
-                if $0 { chosen[item.id] = item } else { chosen.removeValue(forKey: item.id) }
-            })).disabled(item.reserved || (chosen[item.id] == nil && chosen.count >= 50))
-        }.privateScreen().navigationTitle("Select login items")
-            .safeAreaInset(edge: .bottom) {
-                Button { selected(chosen.values.sorted { $0.title < $1.title }); dismiss() } label: { Text("Done").frame(maxWidth: .infinity) }
-                    .buttonStyle(.borderedProminent).controlSize(.large).frame(maxWidth: .infinity)
-                    .padding().background(Theme.paper).accessibilityIdentifier("autofill.done")
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-            }
-    }
-
 }
 
 private struct ExportSnapshotStatus: View {

@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Добавить разрешение"</string>
     <string name="android_purchase_privacy" formatted="false">"После настройки покупки Google Play используют сервисы аккаунта Google, оплаты и проверки устройства. Токены покупок хранятся в зашифрованном виде, пока сервис не проверит предоставление прав. Содержимое dMsg не передаётся Google. Политика сервиса ниже также описывает сервисы Apple, используемые другими приложениями dMsg."</string>
     <string name="app_language" formatted="false">"Язык"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Когда приложение или сайт запросит пароль, выберите аккаунт."</string>
+    <string name="autofill_confirm" formatted="false">"Заполнить данными этого аккаунта?"</string>
+    <string name="autofill_no_items" formatted="false">"Записей пока нет"</string>
+    <string name="autofill_once" formatted="false">"Заполнить один раз"</string>
+    <string name="autofill_open" formatted="false">"Откройте и разблокируйте dMsg, чтобы загрузить данные для входа."</string>
+    <string name="autofill_remember" formatted="false">"Заполнить и запомнить"</string>
+    <string name="autofill_used" formatted="false">"Ранее использованные аккаунты"</string>
     <string name="backup_all_caught_up" formatted="false">"Нет версий файлов без резервной копии."</string>
     <string name="backup_already_saved" formatted="false">"Эта версия уже сохранена в резервной копии."</string>
     <string name="backup_selected_help" formatted="false">"Файлы копируются в облако только по вашему явному выбору."</string>

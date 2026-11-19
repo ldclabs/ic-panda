@@ -3458,5 +3458,21 @@
 	<string>বিজ্ঞপ্তি নীরবে পৌঁছায়।</string>
 	<key>Veto proposal</key>
 	<string>প্রস্তাবে ভেটো দিন</string>
+	<key>Fill once</key>
+	<string>শুধু একবার পূরণ করুন</string>
+	<key>Fill and remember</key>
+	<string>পূরণ করে মনে রাখুন</string>
+	<key>Previously used</key>
+	<string>আগে ব্যবহৃত অ্যাকাউন্ট</string>
+	<key>Fill this login?</key>
+	<string>এই অ্যাকাউন্টের তথ্য পূরণ করবেন?</string>
+	<key>Unidentified app or website</key>
+	<string>অজ্ঞাত অ্যাপ বা ওয়েবসাইট</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>অ্যাপ বা ওয়েবসাইট পাসওয়ার্ড চাইলে একটি অ্যাকাউন্ট বেছে নিন।</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>আপনার লগইনগুলো লোড করতে dMsg খুলে আনলক করুন।</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>পাসওয়ার্ড অটোফিল আপডেট করা যায়নি।</string>
 </dict>
 </plist>

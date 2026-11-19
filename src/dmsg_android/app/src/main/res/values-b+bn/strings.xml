@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"অনুমতি যোগ করুন"</string>
     <string name="android_purchase_privacy" formatted="false">"কনফিগার করা থাকলে Google Play-এর কেনাকাটায় Google অ্যাকাউন্ট, বিলিং ও ডিভাইস যাচাই পরিষেবা ব্যবহৃত হয়। পরিষেবা অধিকার সরবরাহ যাচাই না করা পর্যন্ত ক্রয় টোকেন এনক্রিপ্ট করে রাখা হয়। dMsg-এর বিষয়বস্তু Google-এ পাঠানো হয় না। নিচের পরিষেবা নীতিতে অন্য dMsg অ্যাপে ব্যবহৃত Apple-নির্দিষ্ট পরিষেবাও বর্ণিত আছে।"</string>
     <string name="app_language" formatted="false">"ভাষা"</string>
+    <string name="autofill_choose_at_login" formatted="false">"অ্যাপ বা ওয়েবসাইট পাসওয়ার্ড চাইলে একটি অ্যাকাউন্ট বেছে নিন।"</string>
+    <string name="autofill_confirm" formatted="false">"এই অ্যাকাউন্টের তথ্য পূরণ করবেন?"</string>
+    <string name="autofill_no_items" formatted="false">"এখনও কোন রেকর্ড নেই"</string>
+    <string name="autofill_once" formatted="false">"শুধু একবার পূরণ করুন"</string>
+    <string name="autofill_open" formatted="false">"আপনার লগইনগুলো লোড করতে dMsg খুলে আনলক করুন।"</string>
+    <string name="autofill_remember" formatted="false">"পূরণ করে মনে রাখুন"</string>
+    <string name="autofill_used" formatted="false">"আগে ব্যবহৃত অ্যাকাউন্ট"</string>
     <string name="backup_all_caught_up" formatted="false">"ব্যাকআপ ছাড়া কোনো ফাইল সংস্করণ নেই।"</string>
     <string name="backup_already_saved" formatted="false">"এই সংস্করণের ব্যাকআপ ইতিমধ্যেই আছে।"</string>
     <string name="backup_selected_help" formatted="false">"ফাইলগুলি শুধুমাত্র তখনই ব্যাক আপ করা হয় যখন আপনি স্পষ্টভাবে এটি করতে চান৷"</string>

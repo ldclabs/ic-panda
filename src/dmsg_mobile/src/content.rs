@@ -3,18 +3,6 @@ use super::*;
 use dmsg_client::{channel, channel_log, library, vault};
 use serde_json::json;
 
-#[derive(Clone, serde::Serialize, uniffi::Record)]
-pub struct CredentialSelection {
-    pub id: String,
-    pub revision: String,
-}
-
-#[derive(uniffi::Record)]
-pub struct AutofillSelection {
-    pub items: Vec<VaultItem>,
-    pub biometry_only: bool,
-}
-
 #[derive(uniffi::Record)]
 pub struct ChannelMemberChange {
     pub channel: String,
@@ -75,99 +63,47 @@ impl MobileEngine {
         .await
     }
 
-    /// Export only reviewed login fields after independent system confirmation.
-    pub async fn export_autofill(
+    pub async fn autofill_catalog(
         &self,
-        items: Vec<CredentialSelection>,
-        biometry_only: bool,
+        known_digest: String,
+        requires_biometry: bool,
     ) -> Result<ObjectSnapshot> {
-        ensure_valid(!items.is_empty() && items.len() <= 50, "selection")?;
-        let platform = self.platform.clone();
         self.held_object(move |h| {
             Box::pin(async move {
+                h.with(|c| c.autofill_catalog(&known_digest, requires_biometry))
+                    .await
+            })
+        })
+        .await
+    }
+
+    pub async fn set_autofill_biometry(&self, biometry_only: bool) -> Result<()> {
+        let platform = self.platform.clone();
+        self.held(move |h| {
+            Box::pin(async move {
                 let session = h.with(|c| vault::reading::Session::start(c)).await?;
-                let digest = hex::encode(*dmsg_protocol::digest("dmsg/autofill-export/1", &items));
                 runtime()
                     .spawn_blocking(move || {
                         platform.confirm(
                             hex::encode(dmsg_client::crypto::random_id()),
-                            digest,
+                            hex::encode(*dmsg_protocol::digest(
+                                "dmsg/autofill-policy/1",
+                                &biometry_only,
+                            )),
                             "autofill_export".into(),
                         )
                     })
                     .await
                     .map_err(|_| Error::Locked)?
                     .map_err(platform::platform_error)?;
-                let chosen = items.iter().map(|i| i.id.clone()).collect();
-                let mut exported = Vec::with_capacity(items.len());
-                for selected in items {
-                    exported.push(
-                        h.with(|c| {
-                            session.check(c)?;
-                            let entry = c.vault_show(&selected.id)?;
-                            ensure(entry.revision == selected.revision, Error::VersionConflict)?;
-                            vault::autofill::Entry::of(&entry)
-                        })
-                        .await?,
-                    );
-                }
                 h.with(|c| {
                     session.check(c)?;
-                    c.autofill_choose(chosen, biometry_only, &exported)
+                    c.set_autofill_biometry(biometry_only)
                 })
                 .await
             })
         })
         .await
-    }
-
-    /// The chosen logins' current values when they moved since they last left,
-    /// or always with `force`, for a snapshot near its expiry; `null` when
-    /// nothing was chosen. The person confirmed this export, so nothing here
-    /// asks again, and nothing reaches the network.
-    pub async fn refresh_autofill(&self, force: bool) -> Result<ObjectSnapshot> {
-        self.held_object(move |h| {
-            Box::pin(async move { h.with(|c| c.autofill_refresh(force)).await })
-        })
-        .await
-    }
-
-    /// The platform published both the snapshot and its system suggestions.
-    pub async fn autofill_published(&self, digest: String) -> Result<()> {
-        self.host
-            .run(move |c| Box::pin(async move { c.autofill_published(&digest) }))
-            .await
-            .map_err(Into::into)
-    }
-
-    /// The login items the person last chose, those still there.
-    pub async fn autofill_selection(&self) -> Result<AutofillSelection> {
-        self.host
-            .run(|c| {
-                Box::pin(async {
-                    let chosen = c.autofill_chosen()?.unwrap_or_default();
-                    Ok(AutofillSelection {
-                        items: chosen
-                            .items
-                            .iter()
-                            .filter_map(|id| c.vault_show(id).ok())
-                            .filter(|e| vault::autofill::Entry::of(e).is_ok())
-                            .map(VaultItem::from)
-                            .collect(),
-                        biometry_only: chosen.biometry_only,
-                    })
-                })
-            })
-            .await
-            .map_err(Into::into)
-    }
-
-    /// The person removed the AutoFill snapshot: nothing follows anymore.
-    pub async fn forget_autofill(&self) -> Result<()> {
-        self.host
-            .run(|c| Box::pin(async { c.autofill_forget() }))
-            .await
-            .map_err(Into::into)
     }
 
     pub async fn vault_import_preview(

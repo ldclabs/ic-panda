@@ -3458,5 +3458,21 @@
 	<string>Pemberitahuan dihantar secara senyap.</string>
 	<key>Veto proposal</key>
 	<string>Veto cadangan</string>
+	<key>Fill once</key>
+	<string>Isi sekali</string>
+	<key>Fill and remember</key>
+	<string>Isi dan ingat</string>
+	<key>Previously used</key>
+	<string>Pernah digunakan</string>
+	<key>Fill this login?</key>
+	<string>Isi dengan akaun ini?</string>
+	<key>Unidentified app or website</key>
+	<string>Aplikasi atau laman web tidak dikenal pasti</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Pilih akaun apabila aplikasi atau laman web meminta kata laluan.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Buka dMsg dan buka kuncinya untuk memuatkan akaun anda.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Autoisi kata laluan gagal dikemas kini.</string>
 </dict>
 </plist>

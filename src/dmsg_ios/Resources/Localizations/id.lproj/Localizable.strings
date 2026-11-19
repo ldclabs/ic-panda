@@ -3458,5 +3458,21 @@
 	<string>Notifikasi dikirim tanpa suara.</string>
 	<key>Veto proposal</key>
 	<string>Veto usulan</string>
+	<key>Fill once</key>
+	<string>Isi sekali</string>
+	<key>Fill and remember</key>
+	<string>Isi dan ingat</string>
+	<key>Previously used</key>
+	<string>Pernah digunakan</string>
+	<key>Fill this login?</key>
+	<string>Isi dengan akun ini?</string>
+	<key>Unidentified app or website</key>
+	<string>Aplikasi atau situs tidak dikenal</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Pilih akun saat aplikasi atau situs meminta kata sandi.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Buka dMsg dan buka kuncinya untuk memuat akun Anda.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Isi otomatis kata sandi gagal diperbarui.</string>
 </dict>
 </plist>

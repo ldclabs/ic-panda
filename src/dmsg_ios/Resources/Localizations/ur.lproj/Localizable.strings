@@ -3458,5 +3458,21 @@
 	<string>اطلاعات خاموشی سے پہنچائی جاتی ہیں۔</string>
 	<key>Veto proposal</key>
 	<string>تجویز کو ویٹو کریں</string>
+	<key>Fill once</key>
+	<string>صرف ایک بار بھریں</string>
+	<key>Fill and remember</key>
+	<string>بھریں اور یاد رکھیں</string>
+	<key>Previously used</key>
+	<string>پہلے استعمال کیے گئے اکاؤنٹس</string>
+	<key>Fill this login?</key>
+	<string>اس اکاؤنٹ کی معلومات بھریں؟</string>
+	<key>Unidentified app or website</key>
+	<string>نامعلوم ایپ یا ویب سائٹ</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>جب کوئی ایپ یا ویب سائٹ پاس ورڈ مانگے تو ایک اکاؤنٹ منتخب کریں۔</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>اپنے لاگ ان لوڈ کرنے کے لیے dMsg کھول کر اَن لاک کریں۔</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>پاس ورڈ آٹو فل کو اپ ڈیٹ نہیں کیا جا سکا۔</string>
 </dict>
 </plist>

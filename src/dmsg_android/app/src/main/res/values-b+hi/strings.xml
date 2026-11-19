@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"अनुमति जोड़ें"</string>
     <string name="android_purchase_privacy" formatted="false">"कॉन्फ़िगर होने पर Google Play खरीद में Google खाते, बिलिंग और डिवाइस सत्यापन सेवाओं का उपयोग होता है। सेवा द्वारा अधिकार मिलने की पुष्टि होने तक खरीद टोकन एन्क्रिप्ट करके रखे जाते हैं। dMsg की सामग्री Google को नहीं भेजी जाती। नीचे दी गई सेवा नीति में दूसरे dMsg ऐप द्वारा उपयोग की जाने वाली Apple-विशिष्ट सेवाएँ भी बताई गई हैं।"</string>
     <string name="app_language" formatted="false">"भाषा"</string>
+    <string name="autofill_choose_at_login" formatted="false">"जब कोई ऐप या वेबसाइट पासवर्ड माँगे, तो खाता चुनें।"</string>
+    <string name="autofill_confirm" formatted="false">"इस खाते का विवरण भरें?"</string>
+    <string name="autofill_no_items" formatted="false">"अभी तक कोई रिकॉर्ड नहीं"</string>
+    <string name="autofill_once" formatted="false">"केवल एक बार भरें"</string>
+    <string name="autofill_open" formatted="false">"अपने लॉगिन लोड करने के लिए dMsg खोलें और अनलॉक करें।"</string>
+    <string name="autofill_remember" formatted="false">"भरें और याद रखें"</string>
+    <string name="autofill_used" formatted="false">"पहले इस्तेमाल किए गए खाते"</string>
     <string name="backup_all_caught_up" formatted="false">"बैकअप के बिना कोई फ़ाइल संस्करण नहीं है।"</string>
     <string name="backup_already_saved" formatted="false">"इस संस्करण का बैकअप पहले से मौजूद है।"</string>
     <string name="backup_selected_help" formatted="false">"फ़ाइलों का बैकअप तभी लिया जाता है जब आप स्पष्ट रूप से ऐसा करना चुनते हैं।"</string>

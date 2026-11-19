@@ -1,4 +1,5 @@
 import AppIntents
+import AuthenticationServices
 import CryptoKit
 import Security
 import XCTest
@@ -187,22 +188,59 @@ final class SystemExportsTests: XCTestCase {
         XCTAssertEqual(try store.header(checkExpiry: false).id, expired.id)
     }
 
-    func testAutoFillRebuildsMissingCopiesAndRenewsWithoutChangingAccounts() throws {
-        let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
-        let now = UInt64(Date.now.timeIntervalSince1970 * 1000)
-        let missing = try XCTUnwrap(store.credentialRefresh(account: "one", now: now))
-        XCTAssertNil(missing.snapshot)
-        XCTAssertTrue(missing.force, "A previously acknowledged core selection must be requested again")
-        let prepared = try store.prepareCredentials([
-            CredentialInput(title: "Example", username: "alice", password: "secret", origin: "https://example.com")
-        ], account: "one", expires: now + 86_400_000)
-        _ = try activate(prepared, in: store)
-        XCTAssertEqual(try store.credentialRefresh(account: "one", now: now), .init(snapshot: prepared.header.id, force: false))
-        XCTAssertTrue(try XCTUnwrap(store.credentialRefresh(account: "one", now: now + 12 * 3_600_000)).force)
-        XCTAssertTrue(try XCTUnwrap(store.credentialRefresh(account: "one", now: now + 86_400_001)).force)
-        XCTAssertNil(try store.credentialRefresh(account: "another", now: now), "Never republish another account's copy")
-        try store.invalidate()
-        XCTAssertTrue(try XCTUnwrap(store.credentialRefresh(account: "one", now: now)).force)
+    func testRememberedLoginsFollowStableItemsAndStayScopedToAccountAndService() throws {
+        let directory = try root()
+        let store = try SystemExports(.credentials, root: directory, keyGroup: "test")
+        let inputs = ["personal", "work"].map { CredentialInput(title: "Example", username: $0, password: "fixture", origin: "https://example.com", itemID: $0) }
+        let first = try activate(store.prepareCredentials(inputs, account: "one", digest: "first"), in: store)
+        for id in ["personal", "work", "personal"] { try store.remember(id, service: "app:example", opened: first) }
+        let next = try activate(store.prepareCredentials(inputs.reversed(), account: "one", digest: "second"), in: store)
+        let account = next.header.accountHash
+        XCTAssertEqual(try store.recentLogins(account: account, service: "app:example"), ["personal", "work"])
+        XCTAssertEqual(try store.recentLogins(account: account, service: "https://example.com"), [])
+        XCTAssertEqual(try store.recentLogins(account: "other", service: "app:example"), [])
+        XCTAssertEqual(try store.recentLogins(account: account, service: nil), [])
+        XCTAssertThrowsError(try store.remember("work", service: "app:example", opened: first))
+        let entries = try store.credentialMetadata(next)
+        XCTAssertEqual(CredentialExport.requested(account + ":work", in: next.header, entries: entries)?.username, "work")
+        XCTAssertNil(CredentialExport.requested("other:work", in: next.header, entries: entries))
+        try store.withdrawCredentials(ifCurrent: first.header)
+        XCTAssertEqual(try store.header().id, next.header.id)
+        try store.withdrawCredentials(ifCurrent: next.header)
+        XCTAssertThrowsError(try store.credentialMetadata(next))
+        XCTAssertEqual(try store.recentLogins(account: account, service: "app:example"), ["personal", "work"])
+    }
+
+    func testPickerShowsMultipleAccountsAndStillSearchesWithoutAService() throws {
+        let entries = ["work", "personal", "other"].map { CredentialExport(id: $0, title: "Login", username: $0, origin: "https://example.com", itemID: $0) }
+        let remembered = CredentialExport.sections(entries: entries, services: ["example.com"], recent: ["personal", "work"], query: "")
+        XCTAssertEqual(remembered.map { $0.entries.map(\.username) }, [["personal", "work"], ["other"]])
+        let unknown = CredentialExport.sections(entries: entries, services: [], recent: [], query: "WORK")
+        XCTAssertEqual(unknown.flatMap(\.entries).map(\.username), ["work"])
+        let site = ASCredentialServiceIdentifier(identifier: "example.com", type: .domain)
+        XCTAssertEqual(site.loginServiceKey, ASCredentialServiceIdentifier(identifier: "https://EXAMPLE.com:443/login", type: .URL).loginServiceKey)
+        XCTAssertNotEqual(site.loginServiceKey, ASCredentialServiceIdentifier(identifier: "https://unrelated.example.com", type: .URL).loginServiceKey)
+        XCTAssertNil(ASCredentialServiceIdentifier(identifier: "", type: .domain).loginServiceKey)
+        XCTAssertNil(ASCredentialServiceIdentifier(identifier: "http://example.com", type: .URL).loginServiceKey)
+        if #available(iOS 26.2, *) {
+            XCTAssertEqual(ASCredentialServiceIdentifier(identifier: "TEAM.sample", type: .app).loginServiceKey, "app:TEAM.sample")
+        }
+    }
+
+    func testPreparingCatalogThroughAnAliasedDirectory() throws {
+        let parent = try root(), target = parent.appending(path: "group", directoryHint: .isDirectory)
+        let alias = parent.appending(path: "alias", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: target, withIntermediateDirectories: false)
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: target)
+        let store = try SystemExports(.credentials, root: alias, keyGroup: "test")
+        let empty = try store.prepareCredentials([], account: "one", digest: "empty")
+        let opened = try activate(empty, in: store)
+        XCTAssertTrue(try store.credentialMetadata(opened).isEmpty)
+        XCTAssertEqual(try store.header().count, 0)
+        let escaped = ExportHeader(id: UUID().uuidString, purpose: .credentials, accountHash: "one", expires: UInt64.max)
+        try FileManager.default.createSymbolicLink(at: store.root.appending(path: escaped.id), withDestinationURL: parent)
+        try JSONEncoder().encode(escaped).write(to: store.root.appending(path: "current.json"))
+        XCTAssertThrowsError(try store.header())
     }
 
     func testAnOldSystemSuggestionFallsBackToCurrentCredentialsAfterRenewal() throws {

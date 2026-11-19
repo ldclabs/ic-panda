@@ -12,7 +12,7 @@ pub use google::{
 };
 mod connect;
 mod content;
-pub use content::{ChannelMemberChange, CredentialSelection};
+pub use content::ChannelMemberChange;
 mod diagnostics;
 mod draft_lock;
 pub use draft_lock::{DraftLock, EditorDrafts};

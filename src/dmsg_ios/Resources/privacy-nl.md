@@ -1,6 +1,6 @@
 # Privacybeleid van dMsg
 
-Laatst bijgewerkt: 2026-10-29.
+Laatst bijgewerkt: 2026-11-19.
 
 dMsg versleutelt privé-inhoud op je geautoriseerde apparaten. Dit beleid is van toepassing op dmsg.net, de verouderde alleen-lezen webapp, de desktop- en iOS-apps, connect.dmsg.net, de clouddienst en de canisters op het Internet Computer (ICP). Met “wij” bedoelen we het team dat dMsg beheert onder het bestuur van ICPanda DAO. De beschikbaarheid van afzonderlijke functies hangt af van de app-versie en de configuratie van de dienst.
 
@@ -30,7 +30,7 @@ Het beleid en de voorstellen van multisig-wallets worden verwerkt door de wallet
 
 De native apps bewaren een lokaal versleutelde werkruimte, door het besturingssysteem beschermde sleutels (waar ondersteund), concepten, wachtende bewerkingen en voorkeuren. Door te ontgrendelen wordt de geselecteerde inhoud beschikbaar in het werkgeheugen van de app. Geëxporteerde bestanden en gekopieerde tekst kunnen door de ontvangende apps worden bewaard.
 
-De Deel-extensie (Share) van iOS zet alleen de items klaar die je selecteert voor een latere import in een account. De integraties voor Automatisch invullen van wachtwoorden (AutoFill) en de Bestanden-app bevatten uitsluitend expliciet geselecteerde, afzonderlijk versleutelde momentopnamen (snapshots). Automatisch invullen vereist onafhankelijke systeemauthenticatie; momentopnamen verlopen na 24 uur. Toegangssessies voor de Bestanden-app duren maximaal vijf minuten en eindigen zodra dMsg wordt vergrendeld, maar de Bestanden-app en andere ontvangers kunnen reeds gedownloade kopieën behouden. Het wijzigen van bronitems werkt een eerder geëxporteerde momentopname niet automatisch bij.
+De Deel-extensie (Share) van iOS zet alleen de items klaar die je selecteert voor een latere import in een account. Automatisch invullen bewaart op dit apparaat een apart versleutelde kopie van de inloggegevens uit de kluis en werkt die bij wanneer dMsg ontgrendeld is. Na systeemverificatie kies je welk account je wilt invullen. Je kunt meerdere accounts onthouden voor een herkenbare app of website. Op iOS kunnen onthouden gebruikersnamen en diensten in systeemsuggesties verschijnen. Geselecteerde bestandskopieën verlopen na 24 uur en moeten na wijzigingen opnieuw worden geëxporteerd. Bestandstoegang duurt maximaal vijf minuten en eindigt wanneer dMsg wordt vergrendeld. Ontvangers kunnen gedownloade bestanden bewaren.
 
 Expliciet gestarte achtergrondoverdrachten slaan uitsluitend begrensde versleutelde gegevens (ciphertext) en een overdrachtsbevoegdheid op in een aparte apparaatmap die toegankelijk is na de eerste ontgrendeling van het apparaat. Ze bevatten geen sleutels voor accountondertekening of inhoud. Het oorspronkelijke account moet worden ontgrendeld om een overdracht te verifiëren en af te ronden. Het besturingssysteem kan de aflevering vertragen of stopzetten.
 

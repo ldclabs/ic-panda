@@ -39,6 +39,33 @@ class SystemExportStoreTest {
         time = 999
         assertTrue(runCatching { store.open() }.isFailure)
     }
+    @Test fun rememberedAccountsSurviveRefreshAndStayScopedToTheServiceAndVault() {
+        var now = 1000L
+        val store = SystemExportStore(temporary.newFolder(), ExportPurpose.credentials, TestKeys()) { now }
+        val items = (0..60).map { credential.copy(username = "user$it", itemId = "item$it") }
+        store.prepareCredentials(items, "A", false, "first").use { store.publish(it) }
+        store.open().use { opened ->
+            listOf("item1", "item2", "item1").forEach { store.remember(it, "app:one", opened) }
+        }
+        now += 2 * SystemExportStore.DAY
+        store.open().use { assertEquals(61, store.credentials(it).size) }
+        store.prepareCredentials(items.reversed(), "A", false, "second").use { store.publish(it) }
+        store.open().use { opened ->
+            assertEquals(listOf("item1", "item2"), store.recentLogins(opened.header.account, "app:one"))
+            assertTrue(store.recentLogins(opened.header.account, "app:two").isEmpty())
+            assertTrue(store.recentLogins("B", "app:one").isEmpty())
+            assertTrue(store.recentLogins(opened.header.account, null).isEmpty())
+            assertEquals("item60", store.credentials(opened).first().itemId)
+        }
+        store.open().use { opened ->
+            store.withdrawCredentials(opened.header)
+            assertFalse(store.current(opened.header))
+            assertEquals(2, store.recentLogins(opened.header.account, "app:one").size)
+        }
+        store.invalidate()
+        assertTrue(store.recentLogins(SystemExportStore.digest("A".toByteArray()), "app:one").isEmpty())
+    }
+
     @Test fun removingOrReplacingASelectionRejectsDelayedPublicationAndOldReferences() {
         val root = temporary.newFolder(); val keys = TestKeys()
         val store = SystemExportStore(root, ExportPurpose.credentials, keys)

@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Magdagdag ng pahintulot"</string>
     <string name="android_purchase_privacy" formatted="false">"Kapag naka-configure, ginagamit ng mga pagbili sa Google Play ang mga serbisyo ng Google account, pagsingil, at pag-verify ng device. Nananatiling naka-encrypt ang mga purchase token hanggang ma-verify ng serbisyo ang paghahatid ng mga karapatan. Hindi ipinapadala sa Google ang nilalaman ng dMsg. Inilalarawan din ng patakaran sa serbisyo sa ibaba ang mga serbisyong para sa Apple na ginagamit ng ibang dMsg app."</string>
     <string name="app_language" formatted="false">"Wika"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Pumili ng account kapag humingi ng password ang isang app o website."</string>
+    <string name="autofill_confirm" formatted="false">"Punan gamit ang account na ito?"</string>
+    <string name="autofill_no_items" formatted="false">"Wala pang record"</string>
+    <string name="autofill_once" formatted="false">"Punan nang isang beses"</string>
+    <string name="autofill_open" formatted="false">"Buksan at i-unlock ang dMsg para ma-load ang iyong mga login."</string>
+    <string name="autofill_remember" formatted="false">"Punan at tandaan"</string>
+    <string name="autofill_used" formatted="false">"Mga dating ginamit"</string>
     <string name="backup_all_caught_up" formatted="false">"Walang bersyon ng file na walang backup."</string>
     <string name="backup_already_saved" formatted="false">"May backup na ang bersyong ito."</string>
     <string name="backup_selected_help" formatted="false">"Bina-back up lang ang mga file kapag tahasan mong piniling gawin ito."</string>

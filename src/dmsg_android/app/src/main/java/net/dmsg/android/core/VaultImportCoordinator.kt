@@ -91,7 +91,7 @@ class VaultImportCoordinator(private val client: ClientController, private val s
             if (code in setOf("VERSION_CONFLICT", "INVALID_INPUT", "QUOTA_EXCEEDED", "FORBIDDEN", "NOT_FOUND")) mutable.value = current.copy(pending = null)
         }) { result ->
             mutable.value = current.copy(selected = emptySet(), pending = null, completed = result)
-            preview.reset(); cleanup(current.handle); client.vault.browse()
+            preview.reset(); cleanup(current.handle); client.vault.changed()
         }
     }
 

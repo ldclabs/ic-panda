@@ -3458,5 +3458,21 @@
 	<string>Meldingen worden stil afgeleverd.</string>
 	<key>Veto proposal</key>
 	<string>Veto uitspreken over voorstel</string>
+	<key>Fill once</key>
+	<string>Eenmalig invullen</string>
+	<key>Fill and remember</key>
+	<string>Invullen en onthouden</string>
+	<key>Previously used</key>
+	<string>Eerder gebruikte accounts</string>
+	<key>Fill this login?</key>
+	<string>Invullen met dit account?</string>
+	<key>Unidentified app or website</key>
+	<string>Onbekende app of website</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Kies een account wanneer een app of website om een wachtwoord vraagt.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Open en ontgrendel dMsg om je accounts te laden.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Automatisch invullen van wachtwoorden kon niet worden bijgewerkt.</string>
 </dict>
 </plist>

@@ -3458,5 +3458,21 @@
 	<string>تصل الإشعارات بهدوء.</string>
 	<key>Veto proposal</key>
 	<string>استخدام حق النقض ضد المقترح</string>
+	<key>Fill once</key>
+	<string>تعبئة هذه المرة فقط</string>
+	<key>Fill and remember</key>
+	<string>تعبئة وتذكّر</string>
+	<key>Previously used</key>
+	<string>حسابات استُخدمت سابقًا</string>
+	<key>Fill this login?</key>
+	<string>هل تريد تعبئة بيانات هذا الحساب؟</string>
+	<key>Unidentified app or website</key>
+	<string>تطبيق أو موقع غير معروف</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>اختر حسابًا عندما يطلب تطبيق أو موقع كلمة مرور.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>افتح dMsg وألغِ قفله لتحميل حساباتك.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>تعذّر تحديث التعبئة التلقائية لكلمات المرور.</string>
 </dict>
 </plist>

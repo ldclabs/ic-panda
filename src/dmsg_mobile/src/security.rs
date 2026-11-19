@@ -111,6 +111,7 @@ impl MobileEngine {
                     Ok(serde_json::json!({
                         "biometry_only": biometry_only,
                         "biometry_available": biometry_available,
+                        "autofill_biometry_only": c.autofill_biometry_only()?,
                     }))
                 })
                 .await

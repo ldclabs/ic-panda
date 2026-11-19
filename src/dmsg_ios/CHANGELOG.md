@@ -9,6 +9,10 @@ tracked separately. Build and device-test evidence is recorded in
 
 ### Changes since build 34
 
+- Search vault logins directly from Password AutoFill. Fill once or remember
+  multiple accounts for a known app or site, with the last used account first.
+  Fix catalog creation when the shared container uses the `/private/var` path.
+
 - Stop Keychain preparation if an existing installation's identifier is missing,
   damaged or unreadable. Retrying with the original identifier can resume the
   migration using the original saved keys.

@@ -10,6 +10,16 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
     private let progress = UIActivityIndicatorView(style: .medium)
     private let emptySpace = UIView()
     private var services: [String] = []
+    private var target: ASCredentialServiceIdentifier?
+    private var serviceKey: String? { target?.loginServiceKey }
+    private var destination: String {
+        guard let target, !target.identifier.isEmpty else { return String(localized: "Unidentified app or website") }
+        if #available(iOS 26.2, *), target.type == .app, let name = target.displayName, !name.isEmpty, name != target.identifier {
+            return name + " (" + target.identifier + ")"
+        }
+        return target.identifier
+    }
+    private var recent: [String] = []
     private var sections: [(title: String?, entries: [CredentialExport])] = []
     private var opened: OpenExport?
     private var entries: [CredentialExport] = []
@@ -49,15 +59,15 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
         unlockButton.isHidden = true
         do {
             _ = try SystemExports(.credentials).header()
-            message.text = String(localized: "Ready") + "\n\n" + String(localized: "AutoFill receives only the login items you select and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.")
+            message.text = String(localized: "Choose a login when an app or website asks for a password.")
         } catch { showFailure(error) }
     }
     override func prepareCredentialList(for serviceIdentifiers: [ASCredentialServiceIdentifier]) {
         loadViewIfNeeded()
         configuring = false; cancelButton.setTitle(String(localized: "Cancel"), for: .normal)
-        let sites = serviceIdentifiers.map(\.identifier).joined(separator: "\n")
-        message.text = String(localized: "Choose a credential for:") + "\n" + sites
         services = serviceIdentifiers.map(\.identifier)
+        target = serviceIdentifiers.first
+        message.text = String(localized: "Choose a credential for:") + "\n" + destination
         requested = nil; unlock()
     }
     override func provideCredentialWithoutUserInteraction(for credentialRequest: any ASCredentialRequest) {
@@ -68,6 +78,7 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
         configuring = false; cancelButton.setTitle(String(localized: "Cancel"), for: .normal)
         guard let identity = credentialRequest.credentialIdentity as? ASPasswordCredentialIdentity else { showFailure(CocoaError(.fileReadCorruptFile)); return }
         services = [identity.serviceIdentifier.identifier]
+        target = identity.serviceIdentifier
         requested = identity.recordIdentifier
         message.text = String(localized: "Use this password for:") + "\n" + identity.serviceIdentifier.identifier
         unlock()
@@ -86,11 +97,13 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
                 }.value
                 guard generation == self.generation else { return }
                 opened = result.0; entries = result.1; authenticatedAt = .now
-                if let entry = CredentialExport.requested(requested, in: result.0.header, entries: entries) {
-                    provide(entry)
+                recent = try SystemExports(.credentials).recentLogins(account: result.0.header.accountHash, service: serviceKey)
+                if let entry = CredentialExport.requested(requested, in: result.0.header, entries: entries),
+                   let id = entry.itemID, recent.contains(id) {
+                    provide(entry, remember: true)
                 } else {
                     requested = nil
-                    message.text = String(localized: "Choose a credential for:") + "\n" + services.joined(separator: "\n")
+                    message.text = services.isEmpty ? String(localized: "Password AutoFill") : String(localized: "Choose a credential for:") + "\n" + destination
                     unlockButton.isHidden = true; search.isHidden = false; table.isHidden = false; emptySpace.isHidden = true
                     arrange()
                 }
@@ -100,14 +113,8 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
     /// Logins for the asking site come first, under their own heading.
     private func arrange() {
         let query = search.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let shown = query.isEmpty ? entries : entries.filter { $0.contains(query) }
-        let matching = shown.filter { entry in services.contains { entry.matches(service: $0) } }
-        if matching.isEmpty { sections = shown.isEmpty ? [] : [(nil, shown)] }
-        else {
-            let others = shown.filter { entry in !matching.contains { $0.id == entry.id } }
-            sections = [(String(localized: "For this site"), matching)] + (others.isEmpty ? [] : [(String(localized: "Other logins"), others)])
-        }
-        if shown.isEmpty {
+        sections = CredentialExport.sections(entries: entries, services: services, recent: recent, query: query)
+        if sections.isEmpty {
             let empty = UILabel()
             empty.text = query.isEmpty ? String(localized: "No items") : String(localized: "No matching results")
             empty.font = .preferredFont(forTextStyle: .body)
@@ -121,7 +128,21 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
     }
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) { arrange() }
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) { searchBar.resignFirstResponder() }
-    private func provide(_ entry: CredentialExport) {
+    private func choose(_ entry: CredentialExport) {
+        if let id = entry.itemID, recent.contains(id) { provide(entry, remember: true); return }
+        let alert = UIAlertController(title: String(localized: "Fill this login?"), message: [entry.title, entry.username, entry.origin, String(localized: "Use this password for:") + " " + destination].filter { !$0.isEmpty }.joined(separator: "\n"), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { [weak self] _ in
+            guard let self else { return }
+            requested = nil; search.isHidden = false; table.isHidden = false; emptySpace.isHidden = true; arrange()
+        })
+        alert.addAction(UIAlertAction(title: String(localized: "Fill once"), style: .default) { [weak self] _ in self?.provide(entry, remember: false) })
+        if serviceKey != nil, entry.itemID != nil {
+            alert.addAction(UIAlertAction(title: String(localized: "Fill and remember"), style: .default) { [weak self] _ in self?.provide(entry, remember: true) })
+        }
+        present(alert, animated: true)
+    }
+
+    private func provide(_ entry: CredentialExport, remember: Bool) {
         guard let opened, Date.now.timeIntervalSince(authenticatedAt) < 60 else { self.opened = nil; unlockButton.isHidden = false; unlock(); return }
         do {
             let store = try SystemExports(.credentials)
@@ -132,41 +153,48 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
                 Task { unlock() }; return
             }
             let password = try store.credential(entry.id, opened: opened)
+            if remember, let target, let serviceKey, let id = entry.itemID {
+                try store.remember(id, service: serviceKey, opened: opened)
+                let identifier = target.type == .URL ? ASCredentialServiceIdentifier(identifier: serviceKey, type: .URL) : target
+                let identity = ASPasswordCredentialIdentity(serviceIdentifier: identifier, user: entry.username, recordIdentifier: opened.header.accountHash + ":" + id)
+                identity.rank = Int(Date.now.timeIntervalSince1970)
+                ASCredentialIdentityStore.shared.saveCredentialIdentities([identity]) { _, _ in }
+            }
             self.opened = nil
             extensionContext.completeRequest(withSelectedCredential: ASPasswordCredential(user: entry.username, password: password), completionHandler: nil)
         } catch { showFailure(error) }
     }
     private func showFailure(_ error: Error) {
         clearCredentials()
-        unlockButton.isHidden = true
+        unlockButton.isHidden = configuring
+        unlockButton.setTitle(String(localized: "Retry"), for: .normal)
         switch error {
         case ExportAccessError.notConfigured:
-            message.text = String(localized: "Open dMsg → Account → System integrations → Password AutoFill → Select login items.")
+            message.text = String(localized: "Open and unlock dMsg to load your logins.")
         case ExportAccessError.authenticationCancelled:
             message.text = String(localized: "Authenticate to continue")
-            unlockButton.isHidden = configuring
         case ExportAccessError.authenticationFailed:
             message.text = String(localized: "Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.")
-            unlockButton.isHidden = configuring
         case ExportAccessError.expired:
-            message.text = String(localized: "Credential expired") + "\n\n" + String(localized: "Open and unlock dMsg to update AutoFill, then try again.")
+            message.text = String(localized: "Credential expired") + "\n\n" + String(localized: "Open and unlock dMsg to load your logins.")
         default:
-            message.text = String(localized: "Open and unlock dMsg to update AutoFill, then try again.")
+            message.text = String(localized: "Open and unlock dMsg to load your logins.")
         }
     }
     private func clearCredentials() {
-        opened = nil; entries = []; sections = []; table.reloadData()
+        opened = nil; entries = []; sections = []; recent = []; table.reloadData()
         table.isHidden = true; search.isHidden = true; emptySpace.isHidden = false
     }
     func numberOfSections(in tableView: UITableView) -> Int { sections.count }
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { sections[section].title }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { sections[section].entries.count }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil), entry = sections[indexPath.section].entries[indexPath.row]
+        let cell = tableView.dequeueReusableCell(withIdentifier: "credential") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "credential")
+        let entry = sections[indexPath.section].entries[indexPath.row]
         var content = cell.defaultContentConfiguration(); content.text = entry.title; content.secondaryText = entry.username + "\n" + entry.origin
         content.textProperties.numberOfLines = 0; content.secondaryTextProperties.numberOfLines = 0; cell.contentConfiguration = content
         return cell
     }
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) { provide(sections[indexPath.section].entries[indexPath.row]) }
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) { choose(sections[indexPath.section].entries[indexPath.row]) }
     override func viewDidDisappear(_ animated: Bool) { super.viewDidDisappear(animated); generation += 1; clearCredentials() }
 }

@@ -1,6 +1,6 @@
 # dMsg Gizlilik Politikası
 
-Son güncelleme: 2026-10-29.
+Son güncelleme: 2026-11-19.
 
 dMsg, yetkili cihazlarınızdaki özel içerikleri şifreler. Bu politika; dmsg.net web sitesini, salt okunur eski web uygulamasını, masaüstü ve iOS uygulamalarını, connect.dmsg.net adresini, bulut hizmetini ve Internet Computer (ICP) üzerindeki canister'ları kapsar. “Biz”, ICPanda DAO yönetişimi altında dMsg'yi işleten ekibi ifade eder. Bireysel özelliklerin kullanılabilirliği, uygulama sürümüne ve hizmet yapılandırmasına bağlıdır.
 
@@ -30,7 +30,7 @@ StoreKit satın alımları Apple tarafından yürütülür. Doğrulayıcı hizme
 
 Yerel (native) uygulamalar; şifrelenmiş bir yerel çalışma alanını, desteklenen sistemlerde işletim sistemi tarafından korunan anahtarları, taslakları, bekleyen işlemleri ve tercihleri saklar. Kilidin açılması, seçilen içeriği uygulama belleğinde kullanılabilir hale getirir. Dışa aktarılan dosyalar ve kopyalanan metinler hedef uygulamalar tarafından saklanabilir.
 
-iOS Paylaş (Share) uzantısı, yalnızca daha sonra hesaba aktarmak üzere seçtiğiniz öğeleri geçici olarak hazırlar. Parola Otomatik Doldurma (AutoFill) ve Dosyalar (Files) entegrasyonları yalnızca açıkça seçilen ve ayrı olarak şifrelenen anlık görüntüleri (snapshot) içerir. Otomatik Doldurma bağımsız sistem kimlik doğrulaması gerektirir; anlık görüntülerin süresi 24 saat sonra dolar. Dosyalar erişim oturumları en fazla beş dakika sürer ve dMsg kilitlendiğinde sona erer; ancak Dosyalar uygulaması ve diğer alıcılar önceden indirilmiş kopyaları saklayabilir. Kaynak öğelerin değiştirilmesi, dışa aktarılmış bir anlık görüntüyü otomatik olarak güncellemez.
+iOS Paylaş (Share) uzantısı, yalnızca daha sonra hesaba aktarmak üzere seçtiğiniz öğeleri geçici olarak hazırlar. Otomatik doldurma, kasadaki giriş bilgilerinin ayrı olarak şifrelenmiş bir kopyasını bu cihazda tutar ve dMsg kilidi açıkken günceller. Sistem kimlik doğrulamasından sonra doldurulacak hesabı siz seçersiniz. Tanımlanabilen bir uygulama veya site için birkaç hesap hatırlanabilir. iOS sistem önerilerinde hatırlanan kullanıcı adları ve hizmetler görünebilir. Seçilen dosya kopyaları 24 saat sonra sona erer ve kaynak değiştiğinde yeniden dışa aktarılmalıdır. Dosya erişimi en çok beş dakika sürer ve dMsg kilitlendiğinde sona erer. Alıcılar indirdikleri dosyaları saklayabilir.
 
 Açıkça başlatılan arka plan aktarımları, cihazın ilk kilidi açıldıktan sonra erişilebilen ayrı bir cihaz dizininde yalnızca sınırlı şifreli metni ve aktarım yetkisini saklar. Hesap imzalama veya içerik anahtarlarını barındırmaz. Bir aktarımı doğrulamak ve tamamlamak için orijinal hesabın kilidinin açılması gerekir. İşletim sistemi iletimi geciktirebilir veya durdurabilir.
 

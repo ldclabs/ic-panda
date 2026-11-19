@@ -3458,5 +3458,21 @@
 	<string>通知は目立たない方法で配信されます。</string>
 	<key>Veto proposal</key>
 	<string>提案に拒否権を行使</string>
+	<key>Fill once</key>
+	<string>今回のみ入力</string>
+	<key>Fill and remember</key>
+	<string>入力して記憶</string>
+	<key>Previously used</key>
+	<string>以前使用したアカウント</string>
+	<key>Fill this login?</key>
+	<string>このアカウントで入力しますか？</string>
+	<key>Unidentified app or website</key>
+	<string>識別できないアプリまたはウェブサイト</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>アプリやサイトでパスワードを求められたら、使用するアカウントを選択します。</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>dMsg を開いてロックを解除し、ログイン項目を読み込んでください。</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>パスワードの自動入力を更新できませんでした。</string>
 </dict>
 </plist>

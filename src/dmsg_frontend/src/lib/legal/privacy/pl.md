@@ -1,6 +1,6 @@
 # Polityka prywatności dMsg
 
-Ostatnia aktualizacja: 2026-10-29.
+Ostatnia aktualizacja: 2026-11-19.
 
 dMsg szyfruje prywatne treści na Twoich autoryzowanych urządzeniach. Niniejsza polityka obejmuje witrynę dmsg.net, starszą aplikację internetową działającą w trybie tylko do odczytu, aplikacje na komputery oraz system iOS, stronę connect.dmsg.net, usługę chmurową oraz canistery w sieci Internet Computer (ICP). „My” oznacza zespół prowadzący dMsg w ramach zarządzania ICPanda DAO. Dostępność poszczególnych funkcji zależy od wersji aplikacji i konfiguracji usługi.
 
@@ -30,7 +30,7 @@ Polityki i propozycje portfeli wielopodpisowych (multisig) są przetwarzane prze
 
 Aplikacje natywne przechowują lokalną zaszyfrowaną przestrzeń roboczą, klucze chronione przez system operacyjny (tam, gdzie jest to obsługiwane), wersje robocze, oczekujące operacje oraz preferencje. Odblokowanie aplikacji udostępnia wybrane treści w jej pamięci operacyjnej. Wyeksportowane pliki i skopiowany tekst mogą zostać zachowane przez aplikacje docelowe.
 
-Rozszerzenie udostępniania (Share) w systemie iOS jedynie przygotowuje wybrane przez Ciebie elementy do późniejszego zaimportowania na konto. Integracje z funkcjami Autouzupełniania haseł (AutoFill) oraz aplikacją Pliki (Files) zawierają wyłącznie wyraźnie wybrane, osobno zaszyfrowane migawki (snapshots). Autouzupełnianie wymaga niezależnego uwierzytelnienia systemowego; migawki wygasają po 24 godzinach. Sesje dostępu do aplikacji Pliki trwają maksymalnie pięć minut i kończą się z chwilą zablokowania dMsg, jednak aplikacja Pliki oraz inni odbiorcy mogą zachować wcześniej pobrane kopie. Zmiana elementów źródłowych nie aktualizuje automatycznie wyeksportowanej migawki.
+Rozszerzenie udostępniania (Share) w systemie iOS jedynie przygotowuje wybrane przez Ciebie elementy do późniejszego zaimportowania na konto. Autouzupełnianie przechowuje na tym urządzeniu osobno zaszyfrowaną kopię danych logowania ze skarbca i aktualizuje ją po odblokowaniu dMsg. Po uwierzytelnieniu systemowym wybierasz konto. Możesz zapamiętać kilka kont dla rozpoznanej aplikacji lub witryny. W iOS zapamiętane nazwy użytkowników i usługi mogą pojawić się w podpowiedziach systemu. Kopie wybranych plików wygasają po 24 godzinach i wymagają ponownego eksportu po zmianie źródła. Dostęp do plików trwa do pięciu minut i kończy się po zablokowaniu dMsg. Odbiorcy mogą zachować pobrane pliki.
 
 Jawnie uruchomione transfery w tle zapisują wyłącznie ograniczony szyfrogram oraz upoważnienie do transferu w osobnym katalogu urządzenia, dostępnym po pierwszym odblokowaniu urządzenia. Nie przechowują one kluczy podpisu konta ani kluczy do treści. Aby zweryfikować i sfinalizować transfer, pierwotne konto musi zostać odblokowane. System operacyjny może opóźnić lub przerwać dostarczanie.
 

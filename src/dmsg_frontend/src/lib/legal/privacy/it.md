@@ -1,6 +1,6 @@
 # Informativa sulla privacy di dMsg
 
-Ultimo aggiornamento: 2026-10-29.
+Ultimo aggiornamento: 2026-11-19.
 
 dMsg crittografa i contenuti privati sui tuoi dispositivi autorizzati. La presente informativa riguarda dmsg.net, l'applicazione web legacy di sola lettura, le app per desktop e iOS, connect.dmsg.net, il servizio cloud e i canister su Internet Computer (ICP). Con "noi" si intende il team che gestisce dMsg sotto la governance di ICPanda DAO. La disponibilità delle singole funzionalità dipende dalla versione dell'app e dalla configurazione del servizio.
 
@@ -30,7 +30,7 @@ Le regole e le proposte dei wallet multifirma (multisig) vengono elaborate dai c
 
 Le app native mantengono uno spazio di lavoro locale crittografato, chiavi protette dal sistema operativo ove supportato, bozze, operazioni in sospeso e preferenze. Lo sblocco rende disponibili i contenuti selezionati nella memoria dell'app. I file esportati e il testo copiato possono essere conservati dalle app di destinazione.
 
-L'estensione Condividi (Share) di iOS prepara solo gli elementi da te selezionati per una successiva importazione nell'account. Le integrazioni con Inserimento automatico password (AutoFill) e con l'app File contengono esclusivamente snapshot selezionati esplicitamente e crittografati separatamente. L'inserimento automatico richiede un'autenticazione di sistema indipendente; gli snapshot scadono dopo 24 ore. Le sessioni di accesso all'app File durano al massimo cinque minuti e terminano quando dMsg viene bloccato, ma l'app File e altri destinatari possono conservare le copie già scaricate. La modifica degli elementi di origine non aggiorna automaticamente uno snapshot già esportato.
+L'estensione Condividi (Share) di iOS prepara solo gli elementi da te selezionati per una successiva importazione nell'account. Il riempimento automatico conserva sul dispositivo una copia cifrata separatamente delle credenziali della cassaforte e la aggiorna quando dMsg è sbloccato. Dopo l’autenticazione di sistema scegli quale account usare. Puoi ricordare più account per un’app o un sito identificato. Su iOS i nomi utente e i servizi ricordati possono apparire nei suggerimenti di sistema. Le copie dei file selezionati scadono dopo 24 ore e vanno esportate di nuovo dopo le modifiche. L’accesso ai file dura al massimo cinque minuti e termina al blocco di dMsg. I destinatari possono conservare i file scaricati.
 
 I trasferimenti espliciti in background archiviano solo testo cifrato limitato e un'autorizzazione di trasferimento in una directory separata del dispositivo, accessibile dopo il primo sblocco del dispositivo. Non contengono chiavi di firma dell'account né chiavi dei contenuti. L'account originale deve essere sbloccato per verificare e completare il trasferimento. Il sistema operativo può ritardare o interrompere il recapito.
 

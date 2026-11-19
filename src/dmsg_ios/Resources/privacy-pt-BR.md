@@ -1,6 +1,6 @@
 # Política de Privacidade do dMsg
 
-Última atualização: 2026-10-29.
+Última atualização: 2026-11-19.
 
 O dMsg criptografa conteúdos privados nos seus dispositivos autorizados. Esta política abrange o site dmsg.net, o aplicativo web legado somente leitura, os aplicativos para desktop e iOS, o connect.dmsg.net, o serviço em nuvem e os canisters no Internet Computer (ICP). “Nós” refere-se à equipe que opera o dMsg sob a governança da ICPanda DAO. A disponibilidade de cada recurso depende da versão do aplicativo e da configuração do serviço.
 
@@ -30,7 +30,7 @@ As políticas e propostas de carteiras multifirma (multisig) são processadas pe
 
 Os aplicativos nativos mantêm um espaço de trabalho local criptografado, chaves protegidas pelo sistema operacional (onde suportado), rascunhos, operações pendentes e preferências. O desbloqueio disponibiliza o conteúdo selecionado na memória do aplicativo. Arquivos exportados e textos copiados podem ser retidos pelos aplicativos de destino.
 
-A extensão Compartilhar (Share) do iOS apenas prepara os itens selecionados por você para uma importação posterior na conta. As integrações com o Preenchimento Automático de Senhas (AutoFill) e com o app Arquivos contêm apenas instantâneos (snapshots) selecionados explicitamente e criptografados separadamente. O Preenchimento Automático exige autenticação independente do sistema; os instantâneos expiram após 24 horas. As sessões de acesso ao app Arquivos duram no máximo cinco minutos e terminam quando o dMsg é bloqueado, mas o app Arquivos e outros destinatários podem manter cópias já baixadas. Alterar os itens de origem não atualiza automaticamente um instantâneo exportado.
+A extensão Compartilhar (Share) do iOS apenas prepara os itens selecionados por você para uma importação posterior na conta. O preenchimento automático guarda neste dispositivo uma cópia criptografada separadamente dos logins do cofre e a atualiza quando o dMsg está desbloqueado. Após a autenticação do sistema, você escolhe a conta a preencher. É possível lembrar várias contas para um app ou site identificado. No iOS, nomes de usuário e serviços lembrados podem aparecer nas sugestões do sistema. As cópias dos arquivos selecionados expiram após 24 horas e precisam ser exportadas novamente após alterações. O acesso aos arquivos dura até cinco minutos e termina ao bloquear o dMsg. Os destinatários podem manter os arquivos baixados.
 
 Transferências explícitas em segundo plano armazenam apenas texto cifrado limitado e autorização de transferência em um diretório separado do dispositivo, acessível após o primeiro desbloqueio do aparelho. Elas não guardam chaves de assinatura da conta nem chaves de conteúdo. A conta original precisa ser desbloqueada para verificar e concluir a transferência. O sistema operacional pode atrasar ou interromper a entrega.
 

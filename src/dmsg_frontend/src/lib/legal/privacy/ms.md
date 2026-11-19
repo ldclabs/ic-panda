@@ -1,6 +1,6 @@
 # Dasar Privasi dMsg
 
-Kemas kini terakhir: 2026-10-29.
+Kemas kini terakhir: 2026-11-19.
 
 dMsg menyulitkan kandungan peribadi pada peranti anda yang dibenarkan. Dasar ini meliputi dmsg.net, aplikasi web lama (legacy) baca sahaja, aplikasi desktop dan iOS, connect.dmsg.net, perkhidmatan awan serta canister pada Internet Computer (ICP). “Kami” bermaksud pasukan yang mengendalikan dMsg di bawah tadbir urus ICPanda DAO. Ketersediaan ciri individu bergantung pada versi aplikasi dan konfigurasi perkhidmatan.
 
@@ -30,7 +30,7 @@ Dasar dan cadangan dompet berbilang tandatangan (multisig) diproses oleh caniste
 
 Aplikasi asli (native) menyimpan ruang kerja tersulit setempat, kunci yang dilindungi oleh sistem pengendalian (jika disokong), draf, operasi yang belum selesai dan pilihan tetapan. Membuka kunci menjadikan kandungan terpilih tersedia dalam memori aplikasi. Fail yang dieksport dan teks yang disalin mungkin disimpan oleh aplikasi destinasi.
 
-Sambungan Kongsi (Share) iOS hanya menyediakan sementara item yang anda pilih untuk diimport ke dalam akaun kemudian. Penyepaduan Isi Auto Kata Laluan (AutoFill) dan aplikasi Fail hanya mengandungi syot kilat (snapshot) yang dipilih secara eksplisit dan disulitkan secara berasingan. Isi Auto memerlukan pengesahan sistem yang bebas; syot kilat tamat tempoh selepas 24 jam. Sesi akses aplikasi Fail berlangsung paling lama lima minit dan tamat apabila dMsg dikunci, tetapi aplikasi Fail dan penerima lain mungkin mengekalkan salinan yang telah dimuat turun. Menukar item sumber tidak mengemas kini syot kilat yang telah dieksport secara automatik.
+Sambungan Kongsi (Share) iOS hanya menyediakan sementara item yang anda pilih untuk diimport ke dalam akaun kemudian. Autoisi menyimpan salinan log masuk peti besi yang disulitkan secara berasingan pada peranti ini dan mengemas kininya apabila dMsg dibuka kunci. Selepas pengesahan sistem, anda memilih akaun yang hendak diisi. Beberapa akaun boleh diingati bagi setiap aplikasi atau laman yang dikenal pasti. Pada iOS, nama pengguna dan perkhidmatan yang diingati mungkin muncul dalam cadangan sistem. Salinan fail yang dipilih luput selepas 24 jam dan perlu dieksport semula selepas perubahan. Akses fail berlangsung sehingga lima minit dan tamat apabila dMsg dikunci. Penerima boleh menyimpan fail yang dimuat turun.
 
 Pemindahan latar belakang yang dimulakan secara eksplisit hanya menyimpan teks sifir terhad dan kuasa pemindahan di dalam direktori peranti berasingan yang boleh diakses selepas peranti dibuka kunci buat kali pertama. Ia tidak memegang kunci tandatangan akaun atau kunci kandungan. Akaun asal mesti dibuka kunci untuk mengesahkan dan melengkapkan pemindahan. Sistem pengendalian mungkin menangguhkan atau menghentikan penghantaran.
 

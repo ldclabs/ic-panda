@@ -83,15 +83,15 @@ class VaultHistoryCoordinator(private val client: ClientController) {
             onError = { comparison.fail(request, it) }) { comparison.accept(request, it) }
     }
     fun restore(id: String, revision: String, expected: String) = client.perform({ it.revertItem(id, revision, expected) }, key = "vault:restore:" + id,
-        onError = { load(id) }) { load(id); client.vault.browse(); client.vault.select(id) }
+        onError = { load(id) }) { load(id); client.vault.changed(); client.vault.select(id) }
     fun conflicts() {
         val request = conflicts.begin()
         client.perform({ parseVaultConflicts(it.conflicts().decode()) }, key = "vault:conflicts", replace = true,
             onError = { conflicts.fail(request, it) }) { conflicts.accept(request, it) }
     }
     fun resolve(value: VaultConflict, current: Boolean, done: () -> Unit) = client.perform({ it.resolveConflict(value.key, value.current.revision, current) }, key = "vault:resolve:" + value.key,
-        onError = { conflicts() }) { mutableChoices.value -= value.key; conflicts(); client.vault.browse(); done() }
+        onError = { conflicts() }) { mutableChoices.value -= value.key; conflicts(); client.vault.changed(); done() }
     fun merge(value: VaultConflict, theirs: Set<String>, done: () -> Unit) = client.perform({ it.mergeVaultConflict(value.key, value.current.revision, theirs.sorted()) }, key = "vault:resolve:" + value.key,
-        onError = { conflicts() }) { mutableChoices.value -= value.key; conflicts(); client.vault.browse(); done() }
+        onError = { conflicts() }) { mutableChoices.value -= value.key; conflicts(); client.vault.changed(); done() }
     fun clear() { history.reset(); historical.reset(); comparison.reset(); conflicts.reset(); mutableChoices.value = emptyMap(); item = null; version = null }
 }

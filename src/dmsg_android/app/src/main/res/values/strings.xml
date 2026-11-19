@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Add permission"</string>
     <string name="android_purchase_privacy" formatted="false">"Google Play purchases use Google account, billing and device verification services when configured. Purchase tokens are retained encrypted until the service verifies delivery. dMsg content is not sent to Google. The service policy below also describes Apple-specific services used by other dMsg apps."</string>
     <string name="app_language" formatted="false">"App language"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Choose a login when an app or website asks for a password."</string>
+    <string name="autofill_confirm" formatted="false">"Fill this login?"</string>
+    <string name="autofill_no_items" formatted="false">"No items"</string>
+    <string name="autofill_once" formatted="false">"Fill once"</string>
+    <string name="autofill_open" formatted="false">"Open and unlock dMsg to load your logins."</string>
+    <string name="autofill_remember" formatted="false">"Fill and remember"</string>
+    <string name="autofill_used" formatted="false">"Previously used"</string>
     <string name="backup_all_caught_up" formatted="false">"No unbacked file versions."</string>
     <string name="backup_already_saved" formatted="false">"This version is already backed up."</string>
     <string name="backup_selected_help" formatted="false">"Files are backed up only when you explicitly choose to do so."</string>

@@ -3458,5 +3458,21 @@
 	<string>通知將靜音送達。</string>
 	<key>Veto proposal</key>
 	<string>否決提案</string>
+	<key>Fill once</key>
+	<string>僅填寫這一次</string>
+	<key>Fill and remember</key>
+	<string>填寫並記住</string>
+	<key>Previously used</key>
+	<string>曾用帳號</string>
+	<key>Fill this login?</key>
+	<string>填入這個帳號？</string>
+	<key>Unidentified app or website</key>
+	<string>無法識別的 App 或網站</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>當 App 或網站要求密碼時，選擇要填入的帳號。</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>打開並解鎖 dMsg 以載入登入項目。</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>無法更新密碼自動填寫。</string>
 </dict>
 </plist>

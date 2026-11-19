@@ -13,11 +13,11 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 enum class ExportPurpose { credentials, files }
-data class ExportHeader(val id: String, val installation: String, val purpose: ExportPurpose, val account: String, val created: Long, val expires: Long, val count: Int, val biometryOnly: Boolean, val wrapped: ByteArray) {
-    fun binding() = "$installation:$purpose:$id:$account:$created:$expires:$count:$biometryOnly".toByteArray()
+data class ExportHeader(val id: String, val installation: String, val purpose: ExportPurpose, val account: String, val created: Long, val expires: Long, val count: Int, val biometryOnly: Boolean, val wrapped: ByteArray, val digest: String? = null) {
+    fun binding() = ("$installation:$purpose:$id:$account:$created:$expires:$count:$biometryOnly" + digest?.let { ":$it" }.orEmpty()).toByteArray()
 }
-data class ExportCredential(val id: String, val title: String, val username: String, val origin: String)
-data class ExportCredentialInput(val title: String, val username: String, val password: String, val origin: String)
+data class ExportCredential(val id: String, val title: String, val username: String, val origin: String, val itemId: String? = null)
+data class ExportCredentialInput(val title: String, val username: String, val password: String, val origin: String, val itemId: String? = null)
 data class ExportFile(val id: String, val name: String, val mime: String, val size: Long, val sha256: String, val parts: Int, val modified: Long)
 data class ExportFileInput(val path: File, val name: String, val mime: String, val size: Long, val sha256: String)
 data class ExportWrappedKey(val key: ByteArray, val wrapped: ByteArray)
@@ -60,12 +60,12 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
         check(file.length() in 1..4096) { "INTEGRITY_FAILED" }
         val row = Json.parseToJsonElement(file.readText()).objectValue()
         val result = ExportHeader(row.required("id").also(::uuid), row.required("installation"), ExportPurpose.valueOf(row.required("purpose")), row.required("account"),
-            row.requiredUnsigned("created").toLong(), row.requiredUnsigned("expires").toLong(), row.requiredUInt("count").toInt(), row.requiredFlag("biometry_only"), Base64.getDecoder().decode(row.required("wrapped")))
-        check(result.installation == installation && result.purpose == purpose && result.account.matches(Regex("[a-f0-9]{64}")) && result.count in 1..(if (purpose == ExportPurpose.credentials) 50 else 10) && result.wrapped.size in 1..1024 && result.created > 0 && result.expires > result.created && result.expires - result.created <= DAY) { "INTEGRITY_FAILED" }
+            row.requiredUnsigned("created").toLong(), row.requiredUnsigned("expires").toLong(), row.requiredUInt("count").toInt(), row.requiredFlag("biometry_only"), Base64.getDecoder().decode(row.required("wrapped")), row.text("digest"))
+        check(result.installation == installation && result.purpose == purpose && result.account.matches(Regex("[a-f0-9]{64}")) && (if (purpose == ExportPurpose.credentials) result.count >= 0 else result.count in 1..10) && result.wrapped.size in 1..1024 && result.created > 0 && (if (result.digest != null) purpose == ExportPurpose.credentials && result.expires == 0L else result.expires > result.created && result.expires - result.created <= DAY)) { "INTEGRITY_FAILED" }
         if (checkExpiry) checkFresh(result)
         result
     }
-    private fun checkFresh(header: ExportHeader) { check(now() in header.created until header.expires) { "EXPORT_EXPIRED" } }
+    private fun checkFresh(header: ExportHeader) { check(now() >= header.created && (header.digest != null || now() < header.expires)) { "EXPORT_EXPIRED" } }
     fun current(header: ExportHeader): Boolean = runCatching { this.header()?.id == header.id }.getOrDefault(false)
     fun open(valid: () -> Boolean = { true }): OpenExport {
         val header = header() ?: error("EXPORT_NOT_CONFIGURED")
@@ -73,9 +73,9 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
         try { check(key.size == 32 && valid() && current(header)) { "CANCELLED" }; return OpenExport(header, key) }
         catch (error: Throwable) { key.fill(0); throw error }
     }
-    private fun prepare(account: String, count: Int, only: Boolean): PreparedExport {
+    private fun prepare(account: String, count: Int, only: Boolean, digest: String? = null): PreparedExport {
         val time = now()
-        val header = ExportHeader(UUID.randomUUID().toString(), installation, purpose, digest(account.toByteArray()), time, time + DAY, count, only, byteArrayOf())
+        val header = ExportHeader(UUID.randomUUID().toString(), installation, purpose, digest(account.toByteArray()), time, if (digest == null) time + DAY else 0L, count, only, byteArrayOf(), digest)
         val (revision, previous) = synchronized(guard) { (guard.revision to header(false)?.id).also { guard.preparing += header.id } }
         try {
             val wrapped = keys.create(header)
@@ -88,18 +88,18 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
             throw error
         }
     }
-    fun prepareCredentials(entries: List<ExportCredentialInput>, account: String, only: Boolean, valid: () -> Boolean = { true }): PreparedExport {
-        check(purpose == ExportPurpose.credentials && entries.size in 1..50) { "INVALID_INPUT" }
-        val prepared = prepare(account, entries.size, only)
+    fun prepareCredentials(entries: List<ExportCredentialInput>, account: String, only: Boolean, digest: String? = null, valid: () -> Boolean = { true }): PreparedExport {
+        check(purpose == ExportPurpose.credentials) { "INVALID_INPUT" }
+        val prepared = prepare(account, entries.size, only, digest)
         try {
             val manifest = buildJsonArray {
                 entries.forEach { value ->
                     check(valid()) { "CANCELLED" }
-                    check(value.password.toByteArray().size in 1..4096 && value.username.toByteArray().size <= 1024 && value.title.toByteArray().size <= 4096 && value.origin.toByteArray().size <= 4096) { "FILE_LIMIT" }
+                    check(value.password.toByteArray().size in 1..65536 && value.username.toByteArray().size <= 65536) { "FILE_LIMIT" }
                     val id = UUID.randomUUID().toString()
                     val bytes = value.password.toByteArray()
                     try { seal(prepared.opened, id, bytes) } finally { bytes.fill(0) }
-                    add(buildJsonObject { put("id", id); put("title", value.title); put("username", value.username); put("origin", value.origin) })
+                    add(buildJsonObject { put("id", id); put("title", value.title); put("username", value.username); put("origin", value.origin); value.itemId?.let { put("item", it) } })
                 }
             }
             seal(prepared.opened, "manifest", manifest.toString().toByteArray()); return prepared
@@ -137,7 +137,7 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
         val previous = header(false)
         val encoded = buildJsonObject {
             put("id", value.id); put("installation", value.installation); put("purpose", purpose.name); put("account", value.account)
-            put("created", value.created); put("expires", value.expires); put("count", value.count); put("biometry_only", value.biometryOnly); put("wrapped", Base64.getEncoder().encodeToString(value.wrapped))
+            put("created", value.created); put("expires", value.expires); put("count", value.count); put("biometry_only", value.biometryOnly); put("wrapped", Base64.getEncoder().encodeToString(value.wrapped)); value.digest?.let { put("digest", it) }
         }
         PrivateFiles.atomicWrite(File(root, "current.json"), encoded.toString().toByteArray()); guard.revision++
         guard.preparing -= value.id
@@ -149,7 +149,17 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
         guard.revision++
         check(!File(root, "current.json").exists() || File(root, "current.json").delete()) { "STORAGE_UNAVAILABLE" }
         current?.let { remove(it) }
+        root.listFiles()?.filter { it.name.startsWith("used-") }?.forEach { check(it.delete()) { "STORAGE_UNAVAILABLE" } }
     }
+    /** Revoke a superseded catalog after a failed refresh, retaining remembered choices. */
+    fun withdrawCredentials(old: ExportHeader) = synchronized(guard) {
+        if (purpose == ExportPurpose.credentials && header(false)?.id == old.id) {
+            check(File(root, "current.json").delete()) { "STORAGE_UNAVAILABLE" }
+            guard.revision++
+            remove(old)
+        }
+    }
+
     fun discard(prepared: PreparedExport) {
         synchronized(guard) {
             guard.preparing -= prepared.opened.header.id
@@ -166,15 +176,32 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
         check(name == "manifest" || name.matches(Regex("[a-f0-9-]{36}(\\.[0-9]{1,3})?"))) { "INTEGRITY_FAILED" }
         check(it.canonicalFile.parentFile == directory(header).canonicalFile) { "INTEGRITY_FAILED" }
     }
+    private fun limit(name: String) = if (purpose == ExportPurpose.credentials && name == "manifest") 64 * PART else PART
+
+    private fun usageFile(account: String, service: String) = File(root, "used-" + digest("$account:$service".toByteArray()))
+
+    fun recentLogins(account: String, service: String?): List<String> = synchronized(guard) {
+        if (service == null) return@synchronized emptyList()
+        val file = usageFile(account, service)
+        if (file.exists()) Json.parseToJsonElement(file.readText()).jsonArray.map { it.jsonPrimitive.content } else emptyList()
+    }
+
+    fun remember(item: String, service: String, opened: OpenExport) = synchronized(guard) {
+        check(current(opened.header)) { "EXPORT_EXPIRED" }
+        val account = opened.header.account
+        val ids = listOf(item) + recentLogins(account, service).filterNot { it == item }
+        PrivateFiles.atomicWrite(usageFile(account, service), buildJsonArray { ids.forEach { add(it) } }.toString().toByteArray())
+    }
+
     private fun seal(opened: OpenExport, name: String, bytes: ByteArray) {
-        check(bytes.size <= PART)
+        check(bytes.size <= limit(name))
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, SecretKeySpec(opened.key, "AES")); updateAAD(opened.header.binding() + ":$name".toByteArray()) }
         PrivateFiles.atomicWrite(file(opened.header, name), cipher.iv + cipher.doFinal(bytes))
     }
     fun plain(opened: OpenExport, name: String): ByteArray {
         check(current(opened.header)) { "EXPORT_EXPIRED" }
         val source = file(opened.header, name)
-        check(source.length() in 28..PART + 28L) { "INTEGRITY_FAILED" }
+        check(source.length() in 28..limit(name) + 28L) { "INTEGRITY_FAILED" }
         val bytes = source.readBytes()
         return Cipher.getInstance("AES/GCM/NoPadding").run {
             init(Cipher.DECRYPT_MODE, SecretKeySpec(opened.key, "AES"), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
@@ -188,7 +215,7 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
     }
     fun credentials(opened: OpenExport): List<ExportCredential> {
         check(purpose == ExportPurpose.credentials)
-        return metadata(opened).map { ExportCredential(it.required("id").also(::uuid), it.required("title"), it.required("username"), it.required("origin")) }
+        return metadata(opened).map { ExportCredential(it.required("id").also(::uuid), it.required("title"), it.required("username"), it.required("origin"), it.text("item")) }
     }
     fun files(opened: OpenExport): List<ExportFile> {
         check(purpose == ExportPurpose.files)

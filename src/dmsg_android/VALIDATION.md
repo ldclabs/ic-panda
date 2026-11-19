@@ -510,3 +510,9 @@ The opt-in ordinary Debug hardware probe compiled, but its **one API31 case fail
 - GMS first and second runs each had **87 cases: 82 passed, one language-window assertion failed, four opt-in probes skipped**. NL/FR screenshots show the control fully visible with no IME. Waiting only for locale/focus, then also for replacement Activity identity, did not eliminate the transient assertion. Do not describe either attempt as a production locale fix.
 - The test now uses fixed expected localized text, waits for both Activity/application locale and replacement identity, and uses its existing accessibility/PixelCopy rendering barrier before final visibility assertions. The readiness bound stays 15 seconds. The original account/window/all-language sequence then passed **five cases**, system window/transition animations still 1.0. A complete GMS rerun remains in progress at this checkpoint.
 - Source records, XML, failure screenshots and targeted logs: `api36-current/{initial,diagnostic,drag-debug,drag-fixed,gms-recreation-failure,gms-recreated-failure,gms-window-sequence}`. Instrumentation-clock performance numbers are explicitly not real-clock frame-rate evidence.
+
+## 2026-11-19 — 登录时选账号与按目标记忆
+
+普通 Debug 和 QA 的 115 个 JVM 测试均通过，含目录重建后保留多个账号的使用顺序、目标与工作区隔离、撤下旧目录和旧版副本到期。Production GMS Debug 的 Kotlin 编译通过，23 种语言的资源检查通过。
+
+Android 16 / API 36 的只读 ARM64 模拟器通过四个定向设备测试：从真实 Rust 测试工作区直接取得登录项目录、外部应用调起系统选择器且缺少密钥时拒绝回填、认证后的多账号排序和搜索，以及按目标显示「仅填充这一次」和「填充并记住」。模拟器的 Keystore 返回软件安全级别，完整的硬件认证到跨应用回填测试跳过。可在设有测试 PIN 的专用硬件设备上通过 instrumentation 参数 `autofillTestPin` 运行 `AutofillPickerDeviceTest`，核对两个账号实际填入的用户名和密码。

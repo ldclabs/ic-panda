@@ -1,6 +1,6 @@
 # dMsg Datenschutzerklärung
 
-Letzte Aktualisierung: 2026-10-29.
+Letzte Aktualisierung: 2026-11-19.
 
 dMsg verschlüsselt private Inhalte auf Ihren autorisierten Geräten. Diese Erklärung gilt für dmsg.net, die schreibgeschützte bisherige Web-App, die Desktop- und iOS-Apps, connect.dmsg.net, den Cloud-Dienst und die Canister auf dem Internet Computer (ICP). „Wir“ bezeichnet das Team, das dMsg unter der Governance der ICPanda DAO betreibt. Die Verfügbarkeit einzelner Funktionen hängt von der App-Version und der Dienstkonfiguration ab.
 
@@ -30,7 +30,7 @@ Richtlinien und Vorschläge von Multisig-Wallets werden von den Wallet-Canistern
 
 Die nativen Apps speichern einen lokal verschlüsselten Arbeitsbereich, vom Betriebssystem geschützte Schlüssel (sofern unterstützt), Entwürfe, ausstehende Vorgänge und Einstellungen. Durch das Entsperren werden ausgewählte Inhalte im Arbeitsspeicher der App verfügbar. Exportierte Dateien und kopierte Texte können von den jeweiligen Ziel-Apps gespeichert werden.
 
-Die iOS-Teilen-Erweiterung (Share Extension) legt lediglich die von Ihnen ausgewählten Elemente für einen späteren Kontoimport bereit. Die Integrationen für das automatische Ausfüllen von Passwörtern (AutoFill) und die Dateien-App enthalten ausschließlich ausdrücklich ausgewählte, separat verschlüsselte Snapshots. AutoFill erfordert eine eigenständige Systemauthentifizierung; Snapshots laufen nach 24 Stunden ab. Zugriffssitzungen für die Dateien-App dauern höchstens fünf Minuten und enden, sobald dMsg gesperrt wird; die Dateien-App und andere Empfänger können bereits heruntergeladene Kopien jedoch behalten. Änderungen an den Quelleinträgen aktualisieren einen bereits exportierten Snapshot nicht automatisch.
+Die iOS-Teilen-Erweiterung (Share Extension) legt lediglich die von Ihnen ausgewählten Elemente für einen späteren Kontoimport bereit. Die Passwort-Autofüllfunktion speichert die Zugangsdaten des Tresors separat verschlüsselt auf diesem Gerät und aktualisiert sie bei entsperrtem dMsg. Nach der Systemauthentifizierung wählen Sie einen Zugang aus. Für eine identifizierte App oder Website können Sie mehrere Konten merken. Unter iOS können gemerkte Benutzernamen und Dienste in Systemvorschlägen erscheinen. Ausgewählte Dateikopien laufen nach 24 Stunden ab und müssen nach Änderungen erneut exportiert werden. Der Dateizugriff dauert höchstens fünf Minuten und endet beim Sperren von dMsg. Empfänger können heruntergeladene Dateien behalten.
 
 Ausdrücklich gestartete Hintergrundübertragungen speichern lediglich begrenzten Chiffretext und eine Übertragungsberechtigung in einem separaten Geräteverzeichnis, das nach dem ersten Entsperren des Geräts zugänglich ist. Sie enthalten weder Kontosignatur- noch Inhaltsschlüssel. Das ursprüngliche Konto muss entsperrt werden, um eine Übertragung zu prüfen und abzuschließen. Das Betriebssystem kann die Übertragung verzögern oder beenden.
 

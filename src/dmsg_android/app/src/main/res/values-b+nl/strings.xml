@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Bevoegdheid toevoegen"</string>
     <string name="android_purchase_privacy" formatted="false">"Indien ingesteld gebruiken Google Play-aankopen de Google-diensten voor accounts, facturering en apparaatverificatie. Aankooptokens blijven versleuteld bewaard totdat de dienst de levering van rechten verifieert. dMsg-inhoud wordt niet naar Google verzonden. Het onderstaande dienstbeleid beschrijft ook Apple-specifieke diensten die andere dMsg-apps gebruiken."</string>
     <string name="app_language" formatted="false">"Taal"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Kies een account wanneer een app of website om een wachtwoord vraagt."</string>
+    <string name="autofill_confirm" formatted="false">"Invullen met dit account?"</string>
+    <string name="autofill_no_items" formatted="false">"Nog geen gegevens"</string>
+    <string name="autofill_once" formatted="false">"Eenmalig invullen"</string>
+    <string name="autofill_open" formatted="false">"Open en ontgrendel dMsg om je accounts te laden."</string>
+    <string name="autofill_remember" formatted="false">"Invullen en onthouden"</string>
+    <string name="autofill_used" formatted="false">"Eerder gebruikte accounts"</string>
     <string name="backup_all_caught_up" formatted="false">"Geen bestandsversies zonder back-up."</string>
     <string name="backup_already_saved" formatted="false">"Van deze versie is al een back-up gemaakt."</string>
     <string name="backup_selected_help" formatted="false">"Er wordt alleen een back-up van bestanden gemaakt als je daar expliciet voor kiest."</string>

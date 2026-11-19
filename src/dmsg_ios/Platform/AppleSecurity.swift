@@ -326,7 +326,7 @@ final class AppleSecurity: Platform, @unchecked Sendable {
 
     private func explanation(_ reason: String) -> String {
         switch reason {
-        case "autofill_export": String(localized: "Export the selected login items to Password AutoFill")
+        case "autofill_export": String(localized: "Password AutoFill")
         case "account_deletion": String(localized: "Permanently delete the dMsg service account you reviewed")
         case "wallet": String(localized: "Approve the wallet transaction plan you reviewed")
         case "device_pair": String(localized: "Approve this device and distribute new content keys")

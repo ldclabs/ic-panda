@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"権限を追加"</string>
     <string name="android_purchase_privacy" formatted="false">"Google Play の購入機能が設定されている場合、Google アカウント、決済、デバイス検証のサービスを使用します。購入トークンは、サービスが提供を確認するまで暗号化して保存されます。dMsg のコンテンツが Google に送信されることはありません。以下のサービス方針には、ほかの dMsg アプリが使用する Apple 固有のサービスについても記載されています。"</string>
     <string name="app_language" formatted="false">"言語"</string>
+    <string name="autofill_choose_at_login" formatted="false">"アプリやサイトでパスワードを求められたら、使用するアカウントを選択します。"</string>
+    <string name="autofill_confirm" formatted="false">"このアカウントで入力しますか？"</string>
+    <string name="autofill_no_items" formatted="false">"まだ記録がありません"</string>
+    <string name="autofill_once" formatted="false">"今回のみ入力"</string>
+    <string name="autofill_open" formatted="false">"dMsg を開いてロックを解除し、ログイン項目を読み込んでください。"</string>
+    <string name="autofill_remember" formatted="false">"入力して記憶"</string>
+    <string name="autofill_used" formatted="false">"以前使用したアカウント"</string>
     <string name="backup_all_caught_up" formatted="false">"未バックアップのファイルバージョンはありません。"</string>
     <string name="backup_already_saved" formatted="false">"このバージョンはバックアップ済みです。"</string>
     <string name="backup_selected_help" formatted="false">"ファイルは、明示的に選択した場合にのみバックアップされます。"</string>

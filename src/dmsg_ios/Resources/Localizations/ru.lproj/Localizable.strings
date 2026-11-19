@@ -3458,5 +3458,21 @@
 	<string>Уведомления доставляются без звука.</string>
 	<key>Veto proposal</key>
 	<string>Наложить вето на предложение</string>
+	<key>Fill once</key>
+	<string>Заполнить один раз</string>
+	<key>Fill and remember</key>
+	<string>Заполнить и запомнить</string>
+	<key>Previously used</key>
+	<string>Ранее использованные аккаунты</string>
+	<key>Fill this login?</key>
+	<string>Заполнить данными этого аккаунта?</string>
+	<key>Unidentified app or website</key>
+	<string>Неизвестное приложение или сайт</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Когда приложение или сайт запросит пароль, выберите аккаунт.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Откройте и разблокируйте dMsg, чтобы загрузить данные для входа.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Не удалось обновить автозаполнение паролей.</string>
 </dict>
 </plist>

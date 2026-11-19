@@ -152,7 +152,7 @@ import net.dmsg.core.*
                     focus.clearFocus()
                     val input = client.vaultDrafts.input()
                     client.perform({ it.commitVaultDraft(input, edit) }, key = "vault:save:" + current.key, onError = { failure = it }) { saved ->
-                        client.vaultDrafts.finished(input.id); client.vault.browse(); client.vault.select(saved.item.id)
+                        client.vaultDrafts.finished(input.id); client.vault.changed(); client.vault.select(saved.item.id)
                     }
                 }
             }, enabled = !working, modifier = Modifier.testTag("vault-editor-save").fillMaxWidth().heightIn(min = 52.dp)) { if (working) CircularProgressIndicator(Modifier.size(20.dp)) else Text(str(R.string.text_save_on_this_device_dfe466d)) }

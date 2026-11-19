@@ -3458,5 +3458,21 @@
 	<string>Thông báo được gửi ở chế độ yên lặng.</string>
 	<key>Veto proposal</key>
 	<string>Phủ quyết đề xuất</string>
+	<key>Fill once</key>
+	<string>Chỉ điền lần này</string>
+	<key>Fill and remember</key>
+	<string>Điền và ghi nhớ</string>
+	<key>Previously used</key>
+	<string>Tài khoản đã dùng</string>
+	<key>Fill this login?</key>
+	<string>Điền bằng tài khoản này?</string>
+	<key>Unidentified app or website</key>
+	<string>Ứng dụng hoặc trang web chưa xác định</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Chọn tài khoản khi ứng dụng hoặc trang web yêu cầu mật khẩu.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Mở và mở khóa dMsg để tải các mục đăng nhập.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Không thể cập nhật tính năng tự động điền mật khẩu.</string>
 </dict>
 </plist>

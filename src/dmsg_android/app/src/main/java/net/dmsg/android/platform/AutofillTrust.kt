@@ -10,7 +10,7 @@ import java.net.IDN
 import java.net.URI
 import javax.net.ssl.HttpsURLConnection
 
-/** A WebView's domain is a claim. Only an explicitly trusted browser or a
+/** A WebView's domain is a claim. Only a trusted browser or a
  * site's credential-sharing statement can authorize its installed signer. */
 object AutofillTrust {
     fun host(value: String): String? = runCatching {
@@ -42,6 +42,11 @@ object AutofillTrust {
             return bytes.size <= 65536 && statement(bytes.toString(Charsets.UTF_8), packageName, fingerprints)
         } finally { connection.disconnect() }
     }
+    fun isBrowser(context: Context, packageName: String): Boolean {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://autofill.invalid")).addCategory(Intent.CATEGORY_BROWSABLE).setPackage(packageName)
+        return context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL).isNotEmpty()
+    }
+
     fun browserCandidates(context: Context): List<BrowserTrust> {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com")).addCategory(Intent.CATEGORY_BROWSABLE)
         return context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL).mapNotNull { row ->
@@ -52,9 +57,18 @@ object AutofillTrust {
 data class BrowserTrust(val packageName: String, val label: String, val fingerprints: Set<String>)
 class TrustedBrowsers(context: Context) {
     private val preferences = context.getSharedPreferences("system-autofill-browsers", Context.MODE_PRIVATE)
-    fun trusted(packageName: String, fingerprints: Set<String>) = fingerprints.isNotEmpty() && preferences.getStringSet(packageName, null) == fingerprints
+    private val defaultBrowser = context.packageManager.resolveActivity(
+        Intent(Intent.ACTION_VIEW, Uri.parse("https://autofill.invalid")).addCategory(Intent.CATEGORY_BROWSABLE),
+        PackageManager.MATCH_DEFAULT_ONLY or PackageManager.GET_RESOLVED_FILTER
+    )?.takeIf { it.filter?.countDataAuthorities() == 0 }?.activityInfo?.packageName
+
+    fun trusted(packageName: String, fingerprints: Set<String>): Boolean {
+        if (fingerprints.isEmpty()) return false
+        val configured = preferences.getStringSet(packageName, null)
+        return if (configured == null) packageName == defaultBrowser else configured == fingerprints
+    }
     fun set(browser: BrowserTrust, trusted: Boolean) {
         check(browser.packageName.matches(Regex("[A-Za-z0-9_.]{1,255}")) && browser.fingerprints.isNotEmpty())
-        check(preferences.edit().apply { if (trusted) putStringSet(browser.packageName, browser.fingerprints) else remove(browser.packageName) }.commit())
+        check(preferences.edit().putStringSet(browser.packageName, if (trusted) browser.fingerprints else emptySet()).commit())
     }
 }

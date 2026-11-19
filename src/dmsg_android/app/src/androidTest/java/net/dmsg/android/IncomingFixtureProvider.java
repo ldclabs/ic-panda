@@ -22,8 +22,8 @@ public class IncomingFixtureProvider extends ContentProvider {
     @Override public Cursor query(Uri uri, String[] projection, String selection, String[] args, String sort) {
         if ("/autofill-state".equals(uri.getPath()) || "/autofill-finish".equals(uri.getPath())) {
             AutofillFixtureActivity activity = AutofillFixtureActivity.current.get();
-            MatrixCursor result = new MatrixCursor(new String[] { "password", "uid" });
-            result.addRow(new Object[] { activity == null ? "missing" : activity.password.getText().toString(), android.os.Process.myUid() });
+            MatrixCursor result = new MatrixCursor(new String[] { "password", "uid", "username" });
+            result.addRow(new Object[] { activity == null ? "missing" : activity.password.getText().toString(), android.os.Process.myUid(), activity == null ? "" : activity.username.getText().toString() });
             if (activity != null && "/autofill-finish".equals(uri.getPath())) activity.runOnUiThread(activity::finish);
             return result;
         }

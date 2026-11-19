@@ -3458,5 +3458,21 @@
 	<string>ระบบจะส่งการแจ้งเตือนแบบเงียบ</string>
 	<key>Veto proposal</key>
 	<string>ใช้สิทธิยับยั้งข้อเสนอ</string>
+	<key>Fill once</key>
+	<string>กรอกครั้งนี้เท่านั้น</string>
+	<key>Fill and remember</key>
+	<string>กรอกและจดจำ</string>
+	<key>Previously used</key>
+	<string>บัญชีที่เคยใช้</string>
+	<key>Fill this login?</key>
+	<string>กรอกด้วยบัญชีนี้หรือไม่</string>
+	<key>Unidentified app or website</key>
+	<string>แอปหรือเว็บไซต์ที่ระบุไม่ได้</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>เลือกบัญชีเมื่อแอปหรือเว็บไซต์ขอรหัสผ่าน</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>เปิดและปลดล็อก dMsg เพื่อโหลดรายการเข้าสู่ระบบ</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>อัปเดตการกรอกรหัสผ่านอัตโนมัติไม่สำเร็จ</string>
 </dict>
 </plist>

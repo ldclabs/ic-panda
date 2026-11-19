@@ -123,13 +123,11 @@ with optional grouping below; adding a field focuses its name, and Next moves to
 its value. Validation appears after leaving an input or attempting to save. Date,
 month, email, website and OTP inputs have suitable input and validation.
 Password generation is local, and QR scanning only fills an OTP draft
-for review. AutoFill exports only an explicit selection: choosing it asks for
-system authentication, and while dMsg is open and unlocked the snapshot then
-follows those items without asking again. System authentication opens it, and
-left alone it expires after 24 hours. Missing copies are rebuilt from that saved
-selection after unlocking, and foreground refresh checks renewal every five
-minutes as well as after content changes. Removing AutoFill clears the selection
-and fences an older refresh from publishing it again. Import summaries expose selection,
+for review. While the workspace is unlocked, the main app maintains a separately
+encrypted device-local catalog of login fields. The AutoFill extension authenticates
+independently and lets the person search all logins. Fill once or remember multiple
+accounts for an identified service. Recently used accounts appear first, and only
+remembered usernames and services are registered for system suggestions. Import summaries expose selection,
 duplicates and incomplete records, then link to the imported items; trash and
 history lists distinguish an unavailable read from an empty result.
 
@@ -199,18 +197,12 @@ reviewing the preserved draft. Settings drafts stay only in the unlocked session
 and are cleared on lock or account transitions. Usage reads cloud and execution
 counts independently; unavailable values are never displayed as zero.
 
-AutoFill selection survives searches and reopening its picker. Changing a search
-hides previous results immediately, including when the next read fails. A published
-Files snapshot remains available for authentication if opening its short system
-session fails. Export status shows
-counts and expiry without opening secrets or bypassing system authentication.
-Enabling dMsg in the system AutoFill settings also shows the setup path when no
-logins have been selected. The credential extension distinguishes missing copies,
-expiry and authentication failure; cancelling authentication offers another try.
-A system suggestion from an older snapshot opens the current authenticated list
-instead of failing, and refreshing while that list is open requires a new
-authentication and selection. Expired copies still require opening and unlocking
-the main app to refresh; the extension never renews its own access.
+AutoFill remembers stable vault item IDs for each account and service, including
+after password changes. Unidentified callers support a one-time fill. A missing
+catalog is prepared when the main workspace is unlocked. A replaced catalog
+requires renewed authentication before releasing a password. Settings show
+the catalog count, authentication policy and a retry if preparation failed.
+
 Wallet transfer forms use existing asset metadata and fee preview, exact decimal
 conversion and the original proposal journal for uncertain outcomes. A preview
 creates no approval, transaction or automatic execution.
@@ -1030,7 +1022,7 @@ ciphertext grants. [The executable checklist](IMPLEMENTATION_CHECKLIST_zh.md)
 separates implemented code from external deployment and device acceptance.
 
 The main app is the only process holding a Client workspace. Share stages explicit
-inputs, while AutoFill and Files get separate selected encrypted snapshots that
+inputs. AutoFill reads the encrypted login catalog, while selected Files copies
 expire after 24 hours. File Provider is read-only; its independently authenticated
 access session lasts five minutes and ends on app lock. Recipients may retain
 already exported copies. No extension receives account roots or device signing keys.

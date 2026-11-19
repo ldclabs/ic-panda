@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"اجازت شامل کریں"</string>
     <string name="android_purchase_privacy" formatted="false">"ترتیب دیے جانے پر Google Play کی خریداری میں Google اکاؤنٹ، بلنگ اور آلے کی تصدیق کی خدمات استعمال ہوتی ہیں۔ خدمت کی طرف سے حقوق کی فراہمی کی تصدیق تک خریداری کے ٹوکن رمز شدہ حالت میں محفوظ رہتے ہیں۔ dMsg کا مواد Google کو نہیں بھیجا جاتا۔ نیچے دی گئی خدمت کی پالیسی میں دوسرے dMsg ایپس کی استعمال کردہ Apple کی مخصوص خدمات بھی بیان ہیں۔"</string>
     <string name="app_language" formatted="false">"زبان"</string>
+    <string name="autofill_choose_at_login" formatted="false">"جب کوئی ایپ یا ویب سائٹ پاس ورڈ مانگے تو ایک اکاؤنٹ منتخب کریں۔"</string>
+    <string name="autofill_confirm" formatted="false">"اس اکاؤنٹ کی معلومات بھریں؟"</string>
+    <string name="autofill_no_items" formatted="false">"ابھی تک کوئی ریکارڈ نہیں ہے"</string>
+    <string name="autofill_once" formatted="false">"صرف ایک بار بھریں"</string>
+    <string name="autofill_open" formatted="false">"اپنے لاگ ان لوڈ کرنے کے لیے dMsg کھول کر اَن لاک کریں۔"</string>
+    <string name="autofill_remember" formatted="false">"بھریں اور یاد رکھیں"</string>
+    <string name="autofill_used" formatted="false">"پہلے استعمال کیے گئے اکاؤنٹس"</string>
     <string name="backup_all_caught_up" formatted="false">"بیک اپ کے بغیر کوئی فائل ورژن نہیں ہے۔"</string>
     <string name="backup_already_saved" formatted="false">"اس ورژن کا بیک اپ پہلے ہی موجود ہے۔"</string>
     <string name="backup_selected_help" formatted="false">"فائلوں کا بیک اپ صرف اس وقت لیا جاتا ہے جب آپ واضح طور پر ایسا کرنے کا انتخاب کرتے ہیں۔"</string>

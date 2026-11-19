@@ -157,7 +157,7 @@ class ClientController internal constructor(private val application: Application
     internal fun contentChanged(changed: Boolean) {
         perform({ }, key = "session:read", replace = true) {
             if (changed) {
-                vault.browse()
+                vault.changed()
                 vault.selected?.let(vault::select)
                 if (navigation.state.value.workspace == Workspace.FILES) refresh("files")
                 messages.reload()
@@ -429,6 +429,14 @@ class ClientController internal constructor(private val application: Application
         pending.drafts.forEach { messages.restore(requireNotNull(sessions.snapshot?.account), it) }
     }
 
+    private fun clearAccountExports(account: String?) {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            try { systemExports.invalidate(account) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) { showError(errorCode(failure)) }
+        }
+    }
+
     private fun adopt(restored: EditorSession) = adopt(restored.session, restored.pending, restored.draftError)
 
     private fun adopt(next: SessionSnapshot, pending: EditorDrafts? = null, draftError: String? = null) {
@@ -436,6 +444,9 @@ class ClientController internal constructor(private val application: Application
         if (!sessions.adopt(next)) return
         navigation.activate(next.account)
         if (next.state == "unlocked") mutableAccess.value = AccessPage.WELCOME
+        if (before?.account != null && before.account != next.account) {
+            clearAccountExports(before.account)
+        }
         val changed = before != null && (before.account != next.account || before.generation != next.generation)
         if (changed) {
             bindingReturn = null
@@ -513,6 +524,11 @@ class ClientController internal constructor(private val application: Application
         fun canDeliver() = operations.owns(key, job) && at == epoch && appForeground && (!state.value.concealed || transition)
         fun report(error: Throwable) {
             val code = errorCode(error)
+            if (code == "DEVICE_NOT_APPROVED") {
+                val owner = state.value.session?.account
+                clearAccountExports(owner)
+                lock()
+            }
             onError(code)
             if (!quiet) showError(code)
         }

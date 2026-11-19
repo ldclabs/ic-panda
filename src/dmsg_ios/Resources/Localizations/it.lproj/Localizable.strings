@@ -3458,5 +3458,21 @@
 	<string>Le notifiche vengono recapitate in modo silenzioso.</string>
 	<key>Veto proposal</key>
 	<string>Porre il veto alla proposta</string>
+	<key>Fill once</key>
+	<string>Compila una volta</string>
+	<key>Fill and remember</key>
+	<string>Compila e ricorda</string>
+	<key>Previously used</key>
+	<string>Account già usati</string>
+	<key>Fill this login?</key>
+	<string>Compilare con questo account?</string>
+	<key>Unidentified app or website</key>
+	<string>App o sito web non identificato</string>
+	<key>Choose a login when an app or website asks for a password.</key>
+	<string>Scegli un account quando un’app o un sito web richiede una password.</string>
+	<key>Open and unlock dMsg to load your logins.</key>
+	<string>Apri e sblocca dMsg per caricare i tuoi account.</string>
+	<key>Could not update Password AutoFill.</key>
+	<string>Impossibile aggiornare l’inserimento automatico delle password.</string>
 </dict>
 </plist>

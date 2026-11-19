@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Dodaj uprawnienie"</string>
     <string name="android_purchase_privacy" formatted="false">"Po skonfigurowaniu zakupy w Google Play korzystają z usług konta Google, rozliczeń i weryfikacji urządzenia. Tokeny zakupów są przechowywane w postaci zaszyfrowanej, dopóki usługa nie zweryfikuje przyznania uprawnień. Treści dMsg nie są wysyłane do Google. Poniższa polityka usługi opisuje też usługi Apple używane przez inne aplikacje dMsg."</string>
     <string name="app_language" formatted="false">"Język"</string>
+    <string name="autofill_choose_at_login" formatted="false">"Wybierz konto, gdy aplikacja lub witryna poprosi o hasło."</string>
+    <string name="autofill_confirm" formatted="false">"Wypełnić danymi tego konta?"</string>
+    <string name="autofill_no_items" formatted="false">"Brak elementów"</string>
+    <string name="autofill_once" formatted="false">"Wypełnij jednorazowo"</string>
+    <string name="autofill_open" formatted="false">"Otwórz i odblokuj dMsg, aby wczytać dane logowania."</string>
+    <string name="autofill_remember" formatted="false">"Wypełnij i zapamiętaj"</string>
+    <string name="autofill_used" formatted="false">"Wcześniej używane konta"</string>
     <string name="backup_all_caught_up" formatted="false">"Nie ma wersji plików bez kopii zapasowej."</string>
     <string name="backup_already_saved" formatted="false">"Ta wersja ma już kopię zapasową."</string>
     <string name="backup_selected_help" formatted="false">"Kopie zapasowe plików są tworzone tylko wtedy, gdy wyraźnie tak zdecydujesz."</string>

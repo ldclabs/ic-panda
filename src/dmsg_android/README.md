@@ -43,6 +43,12 @@ An Android hardware-secret record has a versioned opaque handle and context. RSA
 Each prepared signing operation binds one eligible handle to its final, reviewed message and a bounded deadline. The Android Signature is authenticated outside Client, consumed once, and discarded on cancellation or scope release. Wallet batches prepare and consume one operation at a time. Strict-biometry policy is explicit; Android never fabricates an enrollment-set digest. TEE/StrongBox and actual authenticator combinations still require physical-device validation.
 
 Only the main application owns a Client. AutoFill, document copies, incoming sharing and background ciphertext tasks must use the bounded interfaces described in the architecture; no component may open a second workspace writer or receive account root keys.
+Password AutoFill maintains an encrypted local login catalog while the vault is unlocked.
+The authenticated system picker supports searching all logins, one-time filling and
+remembering several accounts for the same signed app or verified website. The
+selected dataset fills the requesting fields immediately. Retrieved file copies
+retain their separate expiry and authentication policy.
+
 
 Build dimensions are production/staging × none/gms. Pass -Pdmsg.stagingConfig=/path/to/local/deployment.json for staging; required fields are relay, handle, user_homes and connect_url, with optional auth/wallet_hub. These are build inputs, not deep-link parameters. Production continues to use the shared Rust production.toml.
 

@@ -1,6 +1,6 @@
 # Chính sách quyền riêng tư của dMsg
 
-Cập nhật lần cuối: 2026-10-29.
+Cập nhật lần cuối: 2026-11-19.
 
 dMsg mã hóa nội dung riêng tư trên các thiết bị được ủy quyền của bạn. Chính sách này áp dụng cho dmsg.net, ứng dụng web bản cũ chỉ đọc, các ứng dụng trên máy tính và iOS, connect.dmsg.net, dịch vụ đám mây và các canister trên Internet Computer (ICP). “Chúng tôi” là nhóm vận hành dMsg dưới sự quản trị của ICPanda DAO. Khả năng sử dụng từng tính năng phụ thuộc vào phiên bản ứng dụng và cấu hình dịch vụ.
 
@@ -30,7 +30,7 @@ Chính sách và đề xuất của ví đa chữ ký (multisig) được xử l
 
 Các ứng dụng gốc (native) lưu giữ không gian làm việc mã hóa cục bộ, các khóa được hệ điều hành bảo vệ (nếu thiết bị hỗ trợ), bản nháp, thao tác đang chờ xử lý và tùy chọn cài đặt. Khi mở khóa, nội dung được chọn sẽ khả dụng trong bộ nhớ ứng dụng. Các tệp đã xuất và văn bản đã sao chép có thể được lưu lại bởi các ứng dụng đích.
 
-Tiện ích mở rộng Chia sẻ (Share) trên iOS chỉ chuẩn bị tạm thời các mục bạn chọn để nhập vào tài khoản sau đó. Tính năng Tự động điền mật khẩu (AutoFill) và tích hợp với ứng dụng Tệp (Files) chỉ chứa các bản chụp nhanh (snapshot) được bạn chọn rõ ràng và mã hóa riêng biệt. Tự động điền yêu cầu xác thực hệ thống độc lập; các bản chụp nhanh sẽ hết hạn sau 24 giờ. Phiên truy cập ứng dụng Tệp kéo dài tối đa năm phút và kết thúc ngay khi dMsg khóa, nhưng ứng dụng Tệp và các bên nhận khác có thể vẫn giữ lại những bản sao đã tải xuống trước đó. Việc chỉnh sửa mục gốc không tự động cập nhật bản chụp nhanh đã xuất.
+Tiện ích mở rộng Chia sẻ (Share) trên iOS chỉ chuẩn bị tạm thời các mục bạn chọn để nhập vào tài khoản sau đó. Tính năng tự động điền lưu một bản sao được mã hóa riêng của các mục đăng nhập trên thiết bị này và cập nhật khi dMsg được mở khóa. Sau khi xác thực hệ thống, bạn chọn tài khoản cần điền. Bạn có thể ghi nhớ nhiều tài khoản cho mỗi ứng dụng hoặc trang web đã xác định. Trên iOS, tên người dùng và dịch vụ được ghi nhớ có thể xuất hiện trong gợi ý hệ thống. Bản sao tệp đã chọn hết hạn sau 24 giờ và cần được xuất lại khi tệp gốc thay đổi. Quyền truy cập tệp kéo dài tối đa năm phút và kết thúc khi dMsg bị khóa. Người nhận có thể giữ các tệp đã tải xuống.
 
 Các tác vụ truyền dữ liệu nền do bạn chủ động khởi tạo chỉ lưu trữ bản mã có giới hạn và quyền truyền dữ liệu trong một thư mục thiết bị riêng biệt, có thể truy cập sau lần mở khóa thiết bị đầu tiên. Chúng không lưu giữ khóa ký tài khoản hay khóa nội dung. Tài khoản gốc phải được mở khóa để xác minh và hoàn tất quá trình truyền. Hệ điều hành có thể trì hoãn hoặc dừng việc chuyển phát.
 

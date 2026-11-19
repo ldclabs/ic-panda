@@ -1,5 +1,8 @@
 package net.dmsg.android
 
+import net.dmsg.android.core.objectValue
+import net.dmsg.android.core.rows
+import net.dmsg.android.core.required
 import android.graphics.Bitmap
 import androidx.compose.ui.test.*
 import androidx.compose.runtime.*
@@ -482,29 +485,16 @@ class WorkspaceFlowTest {
         assertEquals(approvals, runBlocking { native.approvals().json })
     }
 
-    @Test fun systemExportSelectionNeedsExplicitPublicationAndClearsOnLock() {
+    @Test fun passwordPickerUsesTheUnlockedVaultWithoutManualPublication() {
         compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("system-autofill")) }
-        compose.waitUntil(10_000) { client.systemExports.status.value() != null }
-        compose.onNodeWithText("Select login items").performClick()
-        compose.waitUntil(10_000) { !client.systemExports.logins.value().isNullOrEmpty() }
-        val selected = client.systemExports.logins.value()!!.first { it.title == "Studio account" }
-        compose.runOnIdle { client.systemExports.toggle(selected) }
-        assertEquals(listOf(selected.id), client.systemExports.chosen.value.map { it.id })
-        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("Choose a login when an app or website asks for a password.").assertExists()
+        compose.onNodeWithText("Select login items").assertDoesNotExist()
+        val catalog = runBlocking { native.autofillCatalog("", false) }
+        val logins = kotlinx.serialization.json.Json.parseToJsonElement(catalog.json).objectValue().rows("entries")
+        assertTrue(logins.any { it.required("title") == "Studio account" && it.required("id").isNotEmpty() })
         compose.onNodeWithText("Sample-only password").assertDoesNotExist()
-        val nativeSelection = runBlocking { native.autofillSelection() }
-        assertTrue(nativeSelection.items.isEmpty())
-        capture("qa-system-autofill-selection")
-        compose.runOnIdle { client.systemExports.remove(net.dmsg.android.platform.ExportPurpose.credentials) }
-        compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("exports:") } }
-        assertTrue(client.systemExports.chosen.value.isEmpty())
-        assertTrue(runBlocking { native.autofillSelection() }.items.isEmpty())
-        compose.runOnIdle { client.navigation.push(net.dmsg.android.core.Route("system-files")) }
-        compose.waitUntil(10_000) { client.systemExports.status.value() != null }
-        capture("qa-system-file-copies")
         compose.runOnIdle { client.lock(false) }
         compose.waitUntil(10_000) { !client.state.value.unlocked }
-        assertTrue(client.systemExports.chosen.value.isEmpty())
         assertNull(client.systemExports.status.value())
     }
 
