@@ -332,8 +332,7 @@ final class SessionModel {
             selectedTab = preferences.lastTab.flatMap(AppTab.init(rawValue:)) ?? .vault
             let security = try await Task.detached {
                 try AppleSecurity(installation: files.installation, environment: deployment.name,
-                                  notificationWorkspace: files.workspace,
-                                  preparationMarker: files.root.appending(path: "keychain-app-group"))
+                                  notificationWorkspace: files.workspace)
             }.value
             guard UIApplication.shared.isProtectedDataAvailable, openingEpoch == epoch else { return }
             let engine: MobileEngine

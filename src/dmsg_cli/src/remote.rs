@@ -45,14 +45,13 @@ impl Remote {
         let token = home
             .owner_token(&settings, false)
             .map_err(|e| Failure::new("AUTH_REQUIRED", e.to_string()))?;
-        Self::with_token(Some(origin(&discovery)), None, token)
+        Self::connect_with_token(&discovery, token)
     }
 
     /// Connect to the home's daemon using an already-read owner credential,
     /// avoiding repeated credential-store lookups during startup polling.
-    pub fn connect_with_token(home: &Home, token: String) -> Result<Self, Failure> {
-        let discovery = Self::discover(home)?;
-        Self::with_token(Some(origin(&discovery)), None, token)
+    pub fn connect_with_token(discovery: &Discovery, token: String) -> Result<Self, Failure> {
+        Self::with_token(Some(origin(discovery)), None, token)
     }
 
     /// The home's daemon for a hosted agent's long-lived session, with that
@@ -284,7 +283,8 @@ mod tests {
         let (port, _task) = answering("ok").await;
         publish(&home, port);
         // No owner.token or system credential is present; the supplied token suffices.
-        let remote = Remote::connect_with_token(&home, "cached-token".into()).unwrap();
+        let remote =
+            Remote::connect_with_token(&home.discovery().unwrap(), "cached-token".into()).unwrap();
         assert_eq!(
             remote.call("daemon/status", Value::Null).await.unwrap(),
             "ok"

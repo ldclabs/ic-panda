@@ -19,9 +19,9 @@ where the client depends on them.
   keystrokes in the input when using an input method.
 - Update the macOS secret-files volume and cache probe to the current FSKit
   handlers.
-- Cache the owner credential once during `dmsg start` and allow more time for
-  macOS Keychain permission prompts during daemon startup after a signing-team
-  change.
+- Cache the owner credential during `dmsg start` and allow more time for
+  macOS Keychain prompts after a signing-team change. If credential access
+  fails for a running daemon, the command returns the error immediately.
 
 ## [1.5.8] - 2026-11-18
 

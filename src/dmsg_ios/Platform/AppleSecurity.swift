@@ -26,7 +26,7 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     private var prepared: [UInt64: PreparedSigning] = [:]
 
     init(installation: String, environment: String = "production", notificationWorkspace: URL? = nil,
-         preparationMarker: URL? = nil, signingPrefix: String? = nil) throws {
+         signingPrefix: String? = nil) throws {
         service = "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").\(environment).\(installation)"
         self.notificationWorkspace = notificationWorkspace
         let prefix = try signingPrefix ?? KeychainMigration.signingPrefix()
@@ -34,33 +34,24 @@ final class AppleSecurity: Platform, @unchecked Sendable {
             try KeychainMigration.move(service: service,
                 from: prefix + (Bundle.main.bundleIdentifier ?? "net.dmsg.ios"), to: KeychainMigration.mainGroup)
         }
-        // A receipt in the destination keychain, not a preference that survives
-        // without its keys. Check it before the Rust core can open or mutate an
-        // existing workspace under a new team. Fresh installs need no migration.
+        // On an in-place update the destination Keychain keeps the receipt
+        // written by the bridge. Check it before opening an existing workspace.
         let receipt = "dmsg:keychain:app-group:v1"
         let expected = Data(installation.utf8)
         let saved: Data?
         do { saved = try read(receipt) }
         catch { throw KeychainMigration.Failure.unavailable(errSecNotAvailable) }
-        if saved != expected {
-            if let saved, saved != expected { throw KeychainMigration.Failure.preparationMissing }
-            if prefix != KeychainMigration.originalPrefix, let notificationWorkspace,
-               try !FileManager.default.contentsOfDirectory(atPath: notificationWorkspace.path).isEmpty {
-                // Workspaces already prepared in the App Group can move to
-                // another iPhone without ThisDeviceOnly Keychain items. Let the
-                // core's hardware anchor route them to MovedView instead of
-                // mistaking them for an unmigrated legacy installation.
-                let marked = preparationMarker.flatMap { try? Data(contentsOf: $0) } == expected
-                if !marked { throw KeychainMigration.Failure.preparationMissing }
-            }
-            // The receipt is not a secret or an unlock factor. Do not require
-            // a device passcode merely to open a fresh app's welcome screen.
-            do { try write(receipt, secret: expected, accessibility: kSecAttrAccessibleWhenUnlockedThisDeviceOnly) }
-            catch { throw KeychainMigration.Failure.unavailable(errSecNotAvailable) }
+        if let saved {
+            guard saved == expected else { throw KeychainMigration.Failure.preparationMissing }
+            return
         }
-        if let preparationMarker, (try? Data(contentsOf: preparationMarker)) != expected {
-            try? expected.write(to: preparationMarker, options: [.atomic, .completeFileProtection])
+        if prefix != KeychainMigration.originalPrefix, let notificationWorkspace,
+           try !FileManager.default.contentsOfDirectory(atPath: notificationWorkspace.path).isEmpty {
+            throw KeychainMigration.Failure.preparationMissing
         }
+        // A fresh installation can show the welcome screen without a device passcode.
+        do { try write(receipt, secret: expected, accessibility: kSecAttrAccessibleWhenUnlockedThisDeviceOnly) }
+        catch { throw KeychainMigration.Failure.unavailable(errSecNotAvailable) }
     }
 
     private func query(_ name: String) -> [String: Any] {

@@ -184,38 +184,33 @@ final class KeychainMigrationTests: XCTestCase {
         }
     }
 
-    func testMovedWorkspaceWithPreparationMarkerAllowsHardwareCheckUnderRecipientTeam() throws {
+    func testRecipientRequiresTheSharedKeychainReceiptOnInPlaceUpdate() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
         let files = try PrivateFiles(base: root)
-        let name = service(files.installation), marker = files.root.appending(path: "keychain-app-group")
+        let name = service(files.installation), receipt = "dmsg:keychain:app-group:v1"
         defer { remove(name) }
-        _ = try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
-                              preparationMarker: marker, signingPrefix: "63G8VNQPXB.")
-        XCTAssertEqual(try Data(contentsOf: marker), Data(files.installation.utf8))
-
+        let identity = Data(files.installation.utf8), key = Data([7, 2])
         let workspace = files.workspace.appending(path: "workspace.db")
-        try Data("existing encrypted workspace".utf8).write(to: workspace)
-        // Simulate moving the workspace to another device: files survive, ThisDeviceOnly Keychain does not.
-        remove(name)
-        try Data(UUID().uuidString.utf8).write(to: marker)
-        XCTAssertThrowsError(try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
-                                               preparationMarker: marker, signingPrefix: "63G8VNQPXB.")) {
+        let bytes = Data("existing workspace".utf8)
+        try bytes.write(to: workspace)
+        try insert(name, group: destination, account: "binding", data: key)
+        let marker = files.root.appending(path: "keychain-app-group")
+        try identity.write(to: marker)
+        func open() throws -> AppleSecurity {
+            try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
+                              signingPrefix: "63G8VNQPXB.")
+        }
+        XCTAssertThrowsError(try open()) {
             XCTAssertEqual($0 as? KeychainMigration.Failure, .preparationMissing)
         }
-        XCTAssertNil(try item(name, group: destination, account: "dmsg:keychain:app-group:v1"))
-
-        try Data(files.installation.utf8).write(to: marker)
-        _ = try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
-                              preparationMarker: marker, signingPrefix: "63G8VNQPXB.")
-        XCTAssertEqual(try item(name, group: destination, account: "dmsg:keychain:app-group:v1")?[kSecValueData as String] as? Data,
-                       Data(files.installation.utf8))
-
-        // Existing installations with a receipt backfill the preparation marker on launch.
+        XCTAssertNil(try item(name, group: destination, account: receipt))
+        XCTAssertEqual(try Data(contentsOf: workspace), bytes)
+        // The released 1.2.2 bridge leaves its receipt in the shared Keychain.
         try FileManager.default.removeItem(at: marker)
-        _ = try AppleSecurity(installation: files.installation, notificationWorkspace: files.workspace,
-                              preparationMarker: marker, signingPrefix: "63G8VNQPXB.")
-        XCTAssertEqual(try Data(contentsOf: marker), Data(files.installation.utf8))
+        try insert(name, group: destination, account: receipt, data: identity)
+        XCTAssertEqual(try open().get(name: "binding"), key)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: marker.path))
     }
 
     func testFreshRecipientInstallCanPrepareAnEmptyWorkspace() throws {

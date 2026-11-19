@@ -13,7 +13,7 @@
 //! checksum (and, on macOS, its signer) checked, and only once the daemon
 //! stopped; it then starts the new daemon and checks its version.
 
-use crate::home::{Home, Settings};
+use crate::home::Home;
 use crate::locale::tr;
 use crate::release::{self, VERSION};
 use crate::remote::{Failure, Remote};
@@ -31,26 +31,48 @@ fn unavailable(error: impl std::fmt::Display) -> Failure {
 }
 
 /// Read the home's owner credential at most once and cache it for this command.
-fn cached_owner_token(
-    home: &Home,
-    settings: &Settings,
-    cache: &mut Option<String>,
-) -> Result<String, Failure> {
+fn cached_owner_token(home: &Home, cache: &mut Option<String>) -> Result<String, Failure> {
     if let Some(token) = cache {
         return Ok(token.clone());
     }
+    let settings = home
+        .settings()
+        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
     let token = home
-        .owner_token(settings, false)
-        .map_err(|e| Failure::new("AUTH_REQUIRED", e.to_string()))?;
+        .owner_token(&settings, false)
+        .map_err(|e| Failure::new(&dmsg_client::error_code(&e), e.to_string()))?;
     *cache = Some(token.clone());
     Ok(token)
 }
 
-/// The running daemon's connection and status, if one answers.
-async fn running_remote(home: &Home) -> Option<(Remote, Value)> {
-    let remote = Remote::connect(home).ok()?;
-    let status = remote.status().await.ok()?;
-    Some((remote, status))
+/// A stopped daemon needs no credential. Surface errors from a live one.
+async fn running_remote(
+    home: &Home,
+    owner_token: &mut Option<String>,
+) -> Result<Option<(Remote, Value)>, Failure> {
+    if home.discovery().is_none() {
+        return Ok(None);
+    }
+    match home.lock() {
+        Ok(_lock) => {
+            // A stopped daemon left this file. Remove it while we hold the lock.
+            home.unpublish();
+            return Ok(None);
+        }
+        Err(dmsg_types::Error::Locked) => {}
+        Err(error) => return Err(unavailable(error)),
+    }
+    let token = cached_owner_token(home, owner_token)?;
+    // A Keychain prompt can outlive the process that published the port.
+    let Some(discovery) = home.discovery() else {
+        return Ok(None);
+    };
+    let remote = Remote::connect_with_token(&discovery, token)?;
+    match remote.status().await {
+        Ok(status) => Ok(Some((remote, status))),
+        Err(error) if error.code == "DAEMON_STOPPED" => Ok(None),
+        Err(error) => Err(error),
+    }
 }
 
 /// Start the daemon in the background unless one runs; returns its status.
@@ -58,16 +80,8 @@ async fn running_remote(home: &Home) -> Option<(Remote, Value)> {
 /// its binary was upgraded, gives way once nothing is in flight; a busy one
 /// keeps running until a later start.
 pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
-    // Report a bad configuration here, not in the log.
-    let settings = home
-        .settings()
-        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
     let mut owner_token = None;
-    if home.discovery().is_some()
-        && let Ok(token) = cached_owner_token(home, &settings, &mut owner_token)
-        && let Ok(remote) = Remote::connect_with_token(home, token)
-        && let Ok(status) = remote.status().await
-    {
+    if let Some((remote, status)) = running_remote(home, &mut owner_token).await? {
         let older = status["version"]
             .as_str()
             .is_some_and(|version| release::newer(VERSION, version));
@@ -79,9 +93,12 @@ pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
             return Ok(status);
         }
     }
+    // Report a bad configuration before starting the child.
+    home.settings()
+        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
     let dir = std::path::absolute(&home.dir).map_err(unavailable)?;
-    // A discovery file left by a daemon that died names nothing now.
-    if home.lock().is_ok() {
+    // Prepare the owner's private home before opening the child's log.
+    if let Ok(_lock) = home.lock() {
         home.unpublish();
     }
     let logs = crate::logs::dir(&dir);
@@ -106,16 +123,8 @@ pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
     let mut child = command.spawn().map_err(unavailable)?;
     let deadline = Instant::now() + START_TIMEOUT;
     loop {
-        // The credential is read once the daemon has said where it listens.
-        // Cache it across retries and propagate credential-store denial instead
-        // of triggering another Keychain prompt every 200 ms.
-        if home.discovery().is_some() {
-            let token = cached_owner_token(home, &settings, &mut owner_token)?;
-            if let Ok(remote) = Remote::connect_with_token(home, token)
-                && let Ok(status) = remote.status().await
-            {
-                return Ok(status);
-            }
+        if let Some((_, status)) = running_remote(home, &mut owner_token).await? {
+            return Ok(status);
         }
         if child.try_wait().map_err(unavailable)?.is_some() {
             let text = std::fs::read_to_string(&log_path).unwrap_or_default();
@@ -205,7 +214,7 @@ async fn drain_with_remote(
 
 /// `dmsg restart`.
 pub async fn restart(home: &Home, interrupt: bool, wait: Duration) -> Result<Value, Failure> {
-    if let Some((remote, _)) = running_remote(home).await {
+    if let Some((remote, _)) = running_remote(home, &mut None).await? {
         drain_with_remote(home, remote, interrupt, wait).await?;
     }
     let exe = std::env::current_exe().map_err(unavailable)?;
@@ -246,7 +255,7 @@ pub async fn update(
         return Ok(json!({"updated": false, "current": VERSION, "latest": latest}));
     }
     let bytes = release::download(&http, &latest).await?;
-    let existing = running_remote(home).await;
+    let existing = running_remote(home, &mut None).await?;
     let restart = existing.is_some();
     if let Some((remote, _)) = existing {
         drain_with_remote(home, remote, interrupt, wait).await?;
@@ -274,33 +283,72 @@ pub async fn update(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dmsg_client::testing::TempDir;
+
+    fn file_home(dir: &TempDir) -> Home {
+        let production = dmsg_client::config::PRODUCTION;
+        std::fs::write(
+            dir.path("config.toml"),
+            format!("secure_storage = \"file\"\n{production}"),
+        )
+        .unwrap();
+        Home { dir: dir.0.clone() }
+    }
+
+    #[tokio::test]
+    async fn start_reports_owner_errors_without_launching_another_daemon() {
+        let dir = TempDir::new();
+        let home = file_home(&dir);
+        let held = home.lock().unwrap();
+        home.publish(&crate::home::Discovery {
+            port: 1,
+            pid: 0,
+            instance: "existing".into(),
+        })
+        .unwrap();
+        let log_dir = crate::logs::dir(&home.dir);
+        std::fs::create_dir_all(&log_dir).unwrap();
+        let log = log_dir.join("stderr.log");
+        std::fs::write(&log, "original daemon log").unwrap();
+        let exe = dir.0.join("no-executable");
+
+        assert_eq!(start(&home, &exe).await.unwrap_err().code, "AUTH_REQUIRED");
+        // A storage read error is distinct from an absent owner credential.
+        std::fs::create_dir(home.dir.join("owner.token")).unwrap();
+        assert_eq!(start(&home, &exe).await.unwrap_err().code, "UNAVAILABLE");
+        assert_eq!(
+            std::fs::read_to_string(&log).unwrap(),
+            "original daemon log"
+        );
+        assert!(home.discovery().is_some());
+
+        // After the daemon exits, its stale discovery must not require a credential.
+        drop(held);
+        let _ = start(&home, &exe).await.unwrap_err();
+        assert!(home.discovery().is_none());
+    }
 
     #[test]
     fn cached_owner_token_reads_storage_at_most_once() {
-        let dir = dmsg_client::testing::TempDir::new();
-        let home = Home {
-            dir: dir.0.join("home"),
-        };
-        std::fs::create_dir_all(&home.dir).unwrap();
-        let mut settings = home.settings().unwrap();
-        settings.storage = crate::home::Storage::File;
+        let dir = TempDir::new();
+        let home = file_home(&dir);
 
         // Missing credential fails immediately with AUTH_REQUIRED.
         let mut cache = None;
-        let missing = cached_owner_token(&home, &settings, &mut cache).unwrap_err();
+        let missing = cached_owner_token(&home, &mut cache).unwrap_err();
         assert_eq!(missing.code, "AUTH_REQUIRED");
         assert!(cache.is_none());
 
         let token_path = home.dir.join("owner.token");
         std::fs::write(&token_path, "secret-owner-token\n").unwrap();
         assert_eq!(
-            cached_owner_token(&home, &settings, &mut cache).unwrap(),
+            cached_owner_token(&home, &mut cache).unwrap(),
             "secret-owner-token"
         );
         // Removing the backing file proves subsequent calls reuse the cached token.
         std::fs::remove_file(&token_path).unwrap();
         assert_eq!(
-            cached_owner_token(&home, &settings, &mut cache).unwrap(),
+            cached_owner_token(&home, &mut cache).unwrap(),
             "secret-owner-token"
         );
     }

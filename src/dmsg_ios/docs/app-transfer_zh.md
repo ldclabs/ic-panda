@@ -24,7 +24,7 @@
 
 扩展导出密钥保留原在场认证：访问已有副本时迁移所选快照，后台文件访问只能迁移不需要弹窗的短会话。新副本直接写目标组。删除/锁定同时处理旧组，防止旧凭据再次生效；不延长快照和会话有效期。导出副本可在主 App 解锁后重新生成。
 
-新团队启动已有非空工作区时，若目标组没有对应收据，且工作区根目录下没有与当前 `installation` 匹配的准备标记 `keychain-app-group`，则停止打开核心并保留文件。此屏幕不提供自动清空、重建身份或绕过硬件校验的入口。它是保护措施，不是跳过过渡版用户的完整恢复工具。已完成准备的客户端会在读取或写入收据后自动回填 `keychain-app-group`（受 Complete File Protection 保护），使新团队下复制到新设备的工作区仍可交由硬件锚点进入正常的「已迁移设备（MovedView）」流程，而不被误判为未迁移的旧团队安装。
+在同一台 iPhone 上覆盖升级时，已发布的 LDC 过渡版 `1.2.2 (33)` 写入的共享 Keychain 收据可直接沿用。Yiwen 版打开非空工作区前会核对收据与原安装标识。收据缺失或不匹配时，App 保留工作区并显示保护提示。
 
 打包校验：`scripts/ios/testflight.py` 在导出 IPA 后额外核对主 App 及 Keychain 迁移扩展的 `DMsgKeychainPrefix` 已正确展开并与当前导出团队一致，避免空值、未展开占位符或错团队前缀进入 TestFlight。
 
@@ -41,7 +41,9 @@
 
 ## 3. 团队交接与首个新团队版本
 
-发起 App Transfer 前须确认无阻断条件：清除测试中的 TestFlight 外部测试组与待审版本（按 App Store Connect 转移前检查项执行），**不要**在 Yiwen 账号预先创建同名 Bundle ID 或 App Group，否则会触发标识符冲突。转移完成后核对主 App `net.dmsg.ios` 及全部 5 个扩展标识符（`net.dmsg.ios.share`、`net.dmsg.ios.widget`、`net.dmsg.ios.autofill`、`net.dmsg.ios.files`、`net.dmsg.ios.files-ui`）均已归入新团队，且各项 Capabilities（App Groups、Keychain Sharing、Associated Domains、Push Notifications、AutoFill Credential Provider、In-App Purchase 等）配置完整。
+完成 LDC 过渡版验证后，在发起 App Transfer 前停止所有 TestFlight 版本的内部和外部测试，移除全部测试构建和测试员，并清空各语言的 Test Information 字段。再按 App Store Connect 的转移条件检查版本状态。[Apple 的 App 转移说明](https://developer.apple.com/help/app-store-connect/transfer-an-app/overview-of-app-transfer/)
+
+为避免标识符冲突，不要在 Yiwen 账号预先创建同名 Bundle ID 或 App Group。转移完成后核对主 App `net.dmsg.ios` 及全部 5 个扩展标识符（`net.dmsg.ios.share`、`net.dmsg.ios.widget`、`net.dmsg.ios.autofill`、`net.dmsg.ios.files`、`net.dmsg.ios.files-ui`）均已归入新团队，且各项 Capabilities（App Groups、Keychain Sharing、Associated Domains、Push Notifications、AutoFill Credential Provider、In-App Purchase 等）配置完整。
 
 对于自动续订订阅与服务端集成：LDC 在发起转移前向 Yiwen 交接 App 专用共享密钥，Yiwen 在转移完成后重新生成；同时**立即**将后端使用的 App Store Server API 密钥（In-App Purchase API Key 与 Issuer ID）切换为 Yiwen 账号签发的密钥，并在 App Store Connect 复核 Production/Sandbox 的 App Store Server Notifications V2 回调地址与测试通知（避免旧团队密钥失效导致订阅查询、对账与续订通知中断）。切换 APNs 时，推送签名配置须与实际发送推送所用密钥的签发团队一致，并采用原子配置更新避免推送与购买凭证短时失配。[Apple 的 App 转移说明](https://developer.apple.com/help/app-store-connect/transfer-an-app/overview-of-app-transfer/)
 
@@ -66,7 +68,6 @@
 | 登录回调、Passkey、桌面配对与请求链接 | 两个签名版本均能唤起对应入口，原有 Passkey 可继续认证 |
 | 新团队 TestFlight 的推送与购买 | 原账号能登记并实际收到推送，沙盒账号可完成首购、恢复已有测试交易并验证 Server Notifications V2 回调 |
 | 跳过过渡版 → 新团队版 | 保留工作区，显示保护提示，不自动进入新账户初始化 |
-| 已迁移工作区复制到另一台设备（无本机 Keychain） | 进入正常的「已迁移设备（MovedView）」流程，不误触发未迁移阻塞界面 |
 | 新团队全新安装 | 正常初始化，与遗留工作区的失败处理区分 |
 
 Secure Enclave 的 `dataRepresentation` 是封装密钥而非可导出的明文私钥。

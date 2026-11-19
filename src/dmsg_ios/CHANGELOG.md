@@ -17,10 +17,8 @@ tracked separately. Build and device-test evidence is recorded in
   damaged or unreadable, while treating temporary lock-screen read denials as
   retryable rather than permanent preparation failures. Retrying with the
   original identifier can resume the migration using the original saved keys.
-- Record a workspace preparation marker after Keychain preparation succeeds so
-  already-prepared workspaces moved to another device under the receiving team
-  still reach the normal moved-device flow instead of being blocked as
-  unmigrated legacy installs.
+- On an in-place update signed by the receiving team, open an existing
+  workspace only with the installation's receipt from the shared Keychain.
 - Keep the existing team's App Attest registration. A build signed by the
   receiving team enrolls its own key for push registration and purchases.
 
