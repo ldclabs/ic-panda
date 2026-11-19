@@ -1,14 +1,18 @@
 package net.dmsg.android
 
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.system.Os
+import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import net.dmsg.android.platform.*
 import org.junit.Assert.*
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -193,5 +197,44 @@ class SystemExportsTest {
             }
         }
         assertEquals(before, app.hasMainClient)
+    }
+
+    @Test fun oneAutofillSuggestionCanReopenThePickerOnTheSameForm() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val app = instrumentation.targetContext
+        lateinit var request: String
+        instrumentation.runOnMainSync {
+            val target = AutofillTarget(app.packageName, emptySet(), View(app).autofillId, null, null, false, false, "Fixture")
+            request = AutofillRequests.put(target)
+        }
+        val intent = Intent(app, ExportAccessActivity::class.java).putExtra("request", request)
+        try {
+            repeat(2) {
+                ActivityScenario.launch<ExportAccessActivity>(intent).use { scenario ->
+                    scenario.onActivity { activity -> assertFalse(activity.isFinishing) }
+                }
+            }
+        } finally { AutofillRequests.remove(request) }
+    }
+
+    @Test fun theResolvedBrowserStillNeedsExplicitTrustForItsSigner() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://autofill.invalid")).addCategory(Intent.CATEGORY_BROWSABLE)
+        val resolved = app.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY or PackageManager.GET_RESOLVED_FILTER)
+        val browser = AutofillTrust.browserCandidates(app).firstOrNull { it.packageName == resolved?.activityInfo?.packageName }
+        assumeTrue("Requires an installed browser that handles web links", browser != null && resolved?.filter?.countDataAuthorities() == 0)
+        requireNotNull(browser)
+        val preferences = app.getSharedPreferences("system-autofill-browsers", Context.MODE_PRIVATE)
+        val saved = preferences.getStringSet(browser.packageName, null)?.toSet()
+        val trust = TrustedBrowsers(app)
+        try {
+            assertTrue(preferences.edit().remove(browser.packageName).commit())
+            assertFalse(trust.trusted(browser.packageName, browser.fingerprints))
+            trust.set(browser, true)
+            assertTrue(trust.trusted(browser.packageName, browser.fingerprints))
+            assertFalse(trust.trusted(browser.packageName, browser.fingerprints + "another-signer"))
+            trust.set(browser, false)
+            assertFalse(trust.trusted(browser.packageName, browser.fingerprints))
+        } finally { preferences.edit().putStringSet(browser.packageName, saved).commit() }
     }
 }

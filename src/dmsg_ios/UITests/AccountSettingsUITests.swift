@@ -556,7 +556,7 @@ import XCTest
         tap("system.autofill", in: app)
         XCTAssertTrue(app.staticTexts["Choose a login when an app or website asks for a password."].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Select login items"].exists)
-        XCTAssertFalse(app.buttons["Update AutoFill"].exists)
+        XCTAssertTrue(app.buttons["Update AutoFill"].exists)
     }
 
     func testSystemExportBiometryChoiceSurvivesReturningToTheForeground() {

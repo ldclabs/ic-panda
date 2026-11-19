@@ -19,6 +19,16 @@ class SystemExportStoreTest {
         override fun remove(header: ExportHeader) { keys.remove(header.id)?.fill(0) }
     }
     private val credential = ExportCredentialInput("Private title", "private-user", "private-password", "https://example.com")
+
+    @Test fun aLoginCanBeFoundByItsWebsiteWhenItIsIneligibleForSiteTrust() {
+        val http = AutofillTrust.displayOrigin("http://example.com/sign-in")
+        val alternatePort = AutofillTrust.displayOrigin("https://account@example.net:8443/sign-in?token=fixture")
+        assertEquals("http://example.com", http)
+        assertEquals("https://example.net:8443", alternatePort)
+        assertNull(AutofillTrust.host(http))
+        assertNull(AutofillTrust.host(alternatePort))
+    }
+
     @Test fun onlyAuthenticatedCurrentCopiesCanOpenAndTheirMetadataStaysEncrypted() {
         var time = 1000L; val keys = TestKeys(); val root = temporary.newFolder()
         val store = SystemExportStore(root, ExportPurpose.credentials, keys) { time }

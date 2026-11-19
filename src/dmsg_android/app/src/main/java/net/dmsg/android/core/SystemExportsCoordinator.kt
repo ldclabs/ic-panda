@@ -58,7 +58,7 @@ class SystemExportsCoordinator(private val client: ClientController, private val
         }
     }
 
-    fun refreshCredentials() {
+    fun refreshCredentials(force: Boolean = false) {
         val stamp = client.currentStamp() ?: return
         if (!client.accepts(stamp) || client.isWorking("exports:policy")) return
         val at = generation
@@ -74,22 +74,20 @@ class SystemExportsCoordinator(private val client: ClientController, private val
             val store = systemExports(context, ExportPurpose.credentials)
             val header = store.header(false)
             val required = core.systemExportPolicy().decode().objectValue().requiredFlag("biometry_only")
-            val row = core.autofillCatalog(header?.digest.orEmpty(), required).decode().objectValue()
+            val known = if (force) "" else header?.digest.orEmpty()
+            val row = core.autofillCatalog(known, required).decode().objectValue()
             if (!row.requiredFlag("changed")) return@perform header
             val job = currentCoroutineContext()[Job]
             fun valid() = at == generation && client.accepts(stamp) && job?.isActive != false
             check(valid()) { "CANCELLED" }
+            val digest = row.required("digest")
+            if (header != null && header.digest != digest) store.withdrawCredentials(header)
             val inputs = row.rows("entries").map {
                 ExportCredentialInput(it.required("title"), it.required("username"), it.required("password"),
-                    AutofillTrust.host(it.required("url")).orEmpty(), it.required("id"))
+                    AutofillTrust.displayOrigin(it.required("url")), it.required("id"))
             }
-            try {
-                val prepared = store.prepareCredentials(inputs, checkNotNull(stamp.account), row.requiredFlag("biometry_only"), row.required("digest"), ::valid)
-                try { store.publish(prepared, ::valid); prepared.opened.header } finally { store.discard(prepared) }
-            } catch (failure: Exception) {
-                if (valid() && header != null) store.withdrawCredentials(header)
-                throw failure
-            }
+            val prepared = store.prepareCredentials(inputs, checkNotNull(stamp.account), row.requiredFlag("biometry_only"), digest, ::valid)
+            try { store.publish(prepared, ::valid); prepared.opened.header } finally { store.discard(prepared) }
         }, key = "exports:refresh", replace = true, quiet = true, onError = { autoFillFailureValue.value = it }) { header ->
             autoFillFailureValue.value = null
             status.value()?.let { status.accept(status.begin(), it.copy(credentials = header)) }

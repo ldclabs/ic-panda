@@ -450,7 +450,8 @@ final class SessionModel {
     }
 
     /// Serializes catalog and system-index updates across foreground and vault changes.
-    func refreshAutoFill() async {
+    @discardableResult
+    func refreshAutoFill(force: Bool = false) -> Task<Void, Never> {
         let previous = autoFillTask
         let reset = integrationReset
         let current = epoch
@@ -474,43 +475,45 @@ final class SessionModel {
                 let indexedKey = "autofill-indexed-snapshot"
                 if !enabled { UserDefaults.standard.removeObject(forKey: indexedKey) }
                 let indexed = UserDefaults.standard.string(forKey: indexedKey)
-                let known = enabled && indexed != old?.id ? "" : old?.digest ?? ""
+                let known = force || (enabled && indexed != old?.id) ? "" : old?.digest ?? ""
                 struct Policy: Decodable { let biometryOnly: Bool }
                 stage = String(localized: "Vault")
                 let policy: Policy = try decode(try await engine.systemExportPolicy())
                 let catalog: AutoFillRefresh = try decode(try await engine.autofillCatalog(knownDigest: known, requiresBiometry: policy.biometryOnly))
-                guard current == epoch, generation == autoFillGeneration, !Task.isCancelled, unlocked else { return }
+                guard current == epoch, generation == autoFillGeneration, !Task.isCancelled, unlocked, !concealed else { return }
                 guard catalog.changed else { autoFillHeader = old; autoFillIssue = nil; return }
-                var published = false
-                defer {
-                    if !published, current == epoch, generation == autoFillGeneration, !Task.isCancelled,
-                       let old, old.digest != catalog.digest {
-                        try? store.withdrawCredentials(ifCurrent: old)
+                let header: ExportHeader
+                if !force, let old, old.digest == catalog.digest {
+                    header = old
+                } else {
+                    if let previous = old, previous.digest != catalog.digest {
+                        try store.withdrawCredentials(ifCurrent: previous)
                         autoFillHeader = nil
+                        old = nil
                     }
+                    stage = String(localized: "Encrypting on this device…")
+                    let prepared = try await Task.detached {
+                        let inputs = catalog.entries.map { CredentialInput(title: $0.title, username: $0.username, password: $0.password, origin: AutoFillEntry.origin($0.url), itemID: $0.id) }
+                        return try store.prepareCredentials(inputs, account: account, digest: catalog.digest)
+                    }.value
+                    guard current == epoch, generation == autoFillGeneration, !Task.isCancelled, unlocked, !concealed,
+                          (try? store.header(checkExpiry: false).id) == old?.id else { store.discard(prepared); return }
+                    try store.publish(prepared, biometryOnly: catalog.biometryOnly)
+                    header = prepared.header
                 }
-                stage = String(localized: "Encrypting on this device…")
-                let prepared = try await Task.detached {
-                    let inputs = catalog.entries.map { CredentialInput(title: $0.title, username: $0.username, password: $0.password, origin: AutoFillEntry.origin($0.url), itemID: $0.id) }
-                    return try store.prepareCredentials(inputs, account: account, digest: catalog.digest)
-                }.value
-                guard current == epoch, generation == autoFillGeneration, !Task.isCancelled, unlocked,
-                      (try? store.header(checkExpiry: false).id) == old?.id else { store.discard(prepared); return }
-                try store.publish(prepared, biometryOnly: catalog.biometryOnly)
-                published = true
-                autoFillHeader = prepared.header
-                if enabled {
+                autoFillHeader = header
+                if enabled, indexed != header.id {
                     stage = String(localized: "System permission")
                     // Only remembered accounts are advertised to the system. Remove
                     // suggestions from old selections, deleted items and renamed users.
-                    let names = Dictionary(uniqueKeysWithValues: catalog.entries.map { (prepared.header.accountHash + ":" + $0.id, $0.username) })
+                    let names = Dictionary(uniqueKeysWithValues: catalog.entries.map { (header.accountHash + ":" + $0.id, $0.username) })
                     let saved = await ASCredentialIdentityStore.shared.credentialIdentities()
                     let stale = saved.compactMap { $0 as? ASPasswordCredentialIdentity }.filter { id in
                         guard let reference = id.recordIdentifier else { return true }
                         return names[reference] != id.user
                     }
                     if !stale.isEmpty { try await ASCredentialIdentityStore.shared.removeCredentialIdentities(stale) }
-                    UserDefaults.standard.set(prepared.header.id, forKey: indexedKey)
+                    UserDefaults.standard.set(header.id, forKey: indexedKey)
                 }
                 autoFillIssue = nil
             } catch {
@@ -520,7 +523,7 @@ final class SessionModel {
             }
         }
         autoFillTask = task
-        await task.value
+        return task
     }
 
     func dismissBackupHint() {
@@ -676,7 +679,8 @@ final class SessionModel {
             clearCloudBackups()
         }
         if session?.state != "unlocked" && state.state == "unlocked" { unlockRetryDue = true }
-        if let old = session?.account, old != state.account { invalidateSystemExports() }
+        if let previous = session, previous.account != nil,
+           previous.account != state.account || previous.deviceId != state.deviceId { invalidateSystemExports() }
         if let account = state.account, [ExportPurpose.credentials, .files].contains(where: { purpose in
             guard let header = try? SystemExports(purpose).header(checkExpiry: false) else { return false }
             return header.accountHash != IncomingShares.accountHash(account)
@@ -1035,7 +1039,10 @@ final class SessionModel {
         do {
             let state = try await engine.sessionState()
             guard current == epoch else { return false }; try adopt(state)
-            if unlocked { await refreshAutoFill(); await refresh() }
+            if unlocked {
+                refreshAutoFill()
+                await refresh()
+            }
             return true
         } catch { report(error); return false }
     }
@@ -1656,11 +1663,9 @@ final class SessionModel {
                 // lifecycle already clears views when it requests a lock.
                 if code == "LOCKED" { return }
                 if code == "DEVICE_NOT_APPROVED" {
-                    invalidateSystemExports()
-                    epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []; vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
-                    clearCloudBackups()
-                    let engine = engine
-                    Task { _ = try? await engine?.lock() }
+                    // A peer can also be unapproved. Adopt the native session to
+                    // detect when the core actually replaced this workspace.
+                    Task { await readSession() }
                 }
                 if code == "TEST_DEPLOYMENT_UNAVAILABLE" { self.error = String(localized: "The test deployment is not configured.") }
                 else if code == "APP_INTEGRITY_UNAVAILABLE" { self.error = String(localized: "App verification is unavailable on this device. Your saved content remains available.") }

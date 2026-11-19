@@ -6,7 +6,6 @@ import android.app.assist.AssistStructure
 import android.content.Context
 import android.content.Intent
 import android.os.CancellationSignal
-import android.os.SystemClock
 import android.service.autofill.*
 import android.text.InputType
 import android.view.View
@@ -18,14 +17,13 @@ data class AutofillTarget(val packageName: String, val fingerprints: Set<String>
     val ids: Array<AutofillId> get() = listOfNotNull(password, username).distinct().toTypedArray()
 }
 object AutofillRequests {
-    private data class Request(val target: AutofillTarget, val expires: Long)
-    private val requests = linkedMapOf<String, Request>()
+    // Android can reuse the authenticated dataset's placeholder for this form.
+    private val requests = linkedMapOf<String, AutofillTarget>()
     @Synchronized fun put(target: AutofillTarget): String {
-        requests.entries.removeAll { it.value.expires <= SystemClock.elapsedRealtime() }
         while (requests.size >= 8) requests.remove(requests.keys.first())
-        return UUID.randomUUID().toString().also { requests[it] = Request(target, SystemClock.elapsedRealtime() + 120_000) }
+        return UUID.randomUUID().toString().also { requests[it] = target }
     }
-    @Synchronized fun get(id: String): AutofillTarget? = requests[id]?.takeIf { it.expires > SystemClock.elapsedRealtime() }?.target
+    @Synchronized fun get(id: String): AutofillTarget? = requests[id]
     @Synchronized fun remove(id: String) { requests.remove(id) }
     @Synchronized fun clear() { requests.clear() }
 }
@@ -55,9 +53,9 @@ class DMsgAutofillService : AutofillService() {
         internal fun target(context: Context, structure: AssistStructure): AutofillTarget? {
             val pkg = structure.activityComponent?.packageName ?: return null
             if (pkg == context.packageName) return null
-            data class Field(val id: AutofillId, val parent: AssistStructure.ViewNode?, val password: Boolean, val username: Boolean, val focused: Boolean, val domain: String?, val web: Boolean, val scheme: String?)
+            data class Field(val id: AutofillId, val window: Int, val parent: AssistStructure.ViewNode?, val password: Boolean, val username: Boolean, val focused: Boolean, val domain: String?, val web: Boolean, val scheme: String?)
             val fields = mutableListOf<Field>(); var visited = 0
-            fun walk(node: AssistStructure.ViewNode, parent: AssistStructure.ViewNode?, inheritedDomain: String?, inheritedScheme: String?, inWeb: Boolean, depth: Int) {
+            fun walk(node: AssistStructure.ViewNode, window: Int, parent: AssistStructure.ViewNode?, inheritedDomain: String?, inheritedScheme: String?, inWeb: Boolean, depth: Int) {
                 check(++visited <= 4096 && depth < 64)
                 val domain = node.webDomain?.also { check(it.length <= 512) } ?: inheritedDomain
                 val scheme = node.webScheme ?: inheritedScheme
@@ -67,14 +65,14 @@ class DMsgAutofillService : AutofillService() {
                 val isText = node.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_TEXT
                 val password = View.AUTOFILL_HINT_PASSWORD in hints || isText && variation in setOf(InputType.TYPE_TEXT_VARIATION_PASSWORD, InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD)
                 val username = View.AUTOFILL_HINT_USERNAME in hints || View.AUTOFILL_HINT_EMAIL_ADDRESS in hints || isText && variation in setOf(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS, InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS)
-                if (node.autofillType == View.AUTOFILL_TYPE_TEXT && node.autofillId != null && (password || username)) fields += Field(node.autofillId!!, parent, password, username, node.isFocused, domain, web, scheme)
-                for (i in 0 until node.childCount) walk(node.getChildAt(i), node, domain, scheme, web, depth + 1)
+                if (node.autofillType == View.AUTOFILL_TYPE_TEXT && node.autofillId != null && (password || username)) fields += Field(node.autofillId!!, window, parent, password, username, node.isFocused, domain, web, scheme)
+                for (i in 0 until node.childCount) walk(node.getChildAt(i), window, node, domain, scheme, web, depth + 1)
             }
-            for (i in 0 until structure.windowNodeCount) walk(structure.getWindowNodeAt(i).rootViewNode, null, null, null, false, 0)
+            for (i in 0 until structure.windowNodeCount) walk(structure.getWindowNodeAt(i).rootViewNode, i, null, null, null, false, 0)
             val passwords = fields.filter { it.password }
             val password = passwords.singleOrNull() ?: passwords.singleOrNull { it.focused } ?: return null
             val host = password.domain?.let(AutofillTrust::host)
-            val names = fields.filter { it.username && !it.password && it.domain == password.domain && it.web == password.web }
+            val names = fields.filter { it.username && !it.password && it.window == password.window && it.domain == password.domain && it.web == password.web }
             val username = names.singleOrNull { it.parent === password.parent } ?: names.singleOrNull()?.takeIf { !password.web && passwords.size == 1 }
             val label = runCatching { context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(pkg, 0)).toString() }.getOrDefault(pkg)
             return AutofillTarget(pkg, AutofillTrust.fingerprints(context, pkg), password.id, username?.id, host, password.web, password.scheme.equals("https", ignoreCase = true), if (label == pkg) pkg else "$label ($pkg)")

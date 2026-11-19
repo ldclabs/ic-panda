@@ -23,7 +23,7 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
     private var sections: [(title: String?, entries: [CredentialExport])] = []
     private var opened: OpenExport?
     private var entries: [CredentialExport] = []
-    private var requested: String?
+    private var requested: ASPasswordCredentialIdentity?
     private var authenticatedAt = Date.distantPast
     private var generation = 0
     private var working = false
@@ -45,7 +45,10 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
         cancelButton.addAction(UIAction { [weak self] _ in
             guard let self else { return }
             if configuring { extensionContext.completeExtensionConfigurationRequest() }
-            else { extensionContext.cancelRequest(withError: NSError(domain: ASExtensionErrorDomain, code: ASExtensionError.userCanceled.rawValue)) }
+            else {
+                generation += 1; clearCredentials()
+                extensionContext.cancelRequest(withError: NSError(domain: ASExtensionErrorDomain, code: ASExtensionError.userCanceled.rawValue))
+            }
         }, for: .touchUpInside)
         progress.hidesWhenStopped = true
         emptySpace.setContentHuggingPriority(.init(1), for: .vertical)
@@ -79,7 +82,7 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
         guard let identity = credentialRequest.credentialIdentity as? ASPasswordCredentialIdentity else { showFailure(CocoaError(.fileReadCorruptFile)); return }
         services = [identity.serviceIdentifier.identifier]
         target = identity.serviceIdentifier
-        requested = identity.recordIdentifier
+        requested = identity
         message.text = String(localized: "Use this password for:") + "\n" + identity.serviceIdentifier.identifier
         unlock()
     }
@@ -98,11 +101,12 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
                 guard generation == self.generation else { return }
                 opened = result.0; entries = result.1; authenticatedAt = .now
                 recent = try SystemExports(.credentials).recentLogins(account: result.0.header.accountHash, service: serviceKey)
-                if let entry = CredentialExport.requested(requested, in: result.0.header, entries: entries),
+                if let requested,
+                   let entry = CredentialExport.requested(requested.recordIdentifier, user: requested.user, in: result.0.header, entries: entries),
                    let id = entry.itemID, recent.contains(id) {
-                    provide(entry, remember: true)
+                    await provide(entry, remember: true)
                 } else {
-                    requested = nil
+                    self.requested = nil
                     message.text = services.isEmpty ? String(localized: "Password AutoFill") : String(localized: "Choose a credential for:") + "\n" + destination
                     unlockButton.isHidden = true; search.isHidden = false; table.isHidden = false; emptySpace.isHidden = true
                     arrange()
@@ -129,40 +133,56 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) { arrange() }
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) { searchBar.resignFirstResponder() }
     private func choose(_ entry: CredentialExport) {
-        if let id = entry.itemID, recent.contains(id) { provide(entry, remember: true); return }
+        guard !working else { return }
+        if let id = entry.itemID, recent.contains(id) { submit(entry, remember: true); return }
         let alert = UIAlertController(title: String(localized: "Fill this login?"), message: [entry.title, entry.username, entry.origin, String(localized: "Use this password for:") + " " + destination].filter { !$0.isEmpty }.joined(separator: "\n"), preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { [weak self] _ in
             guard let self else { return }
             requested = nil; search.isHidden = false; table.isHidden = false; emptySpace.isHidden = true; arrange()
         })
-        alert.addAction(UIAlertAction(title: String(localized: "Fill once"), style: .default) { [weak self] _ in self?.provide(entry, remember: false) })
+        alert.addAction(UIAlertAction(title: String(localized: "Fill once"), style: .default) { [weak self] _ in self?.submit(entry, remember: false) })
         if serviceKey != nil, entry.itemID != nil {
-            alert.addAction(UIAlertAction(title: String(localized: "Fill and remember"), style: .default) { [weak self] _ in self?.provide(entry, remember: true) })
+            alert.addAction(UIAlertAction(title: String(localized: "Fill and remember"), style: .default) { [weak self] _ in self?.submit(entry, remember: true) })
         }
         present(alert, animated: true)
     }
 
-    private func provide(_ entry: CredentialExport, remember: Bool) {
-        guard let opened, Date.now.timeIntervalSince(authenticatedAt) < 60 else { self.opened = nil; unlockButton.isHidden = false; unlock(); return }
+    private func submit(_ entry: CredentialExport, remember: Bool) {
+        guard !working else { return }
+        working = true
+        Task {
+            defer { working = false }
+            await provide(entry, remember: remember)
+        }
+    }
+
+    private func reopenPicker() {
+        clearCredentials()
+        requested = nil
+        Task { unlock() }
+    }
+
+    private func provide(_ entry: CredentialExport, remember: Bool) async {
+        guard let opened, Date.now.timeIntervalSince(authenticatedAt) < 60 else { reopenPicker(); return }
+        let generation = generation
         do {
             let store = try SystemExports(.credentials)
-            if try store.header().id != opened.header.id {
-                self.opened = nil; requested = nil
-                // A renewal while the picker is open needs the current key and
-                // another explicit selection, not an "expired" dead end.
-                Task { unlock() }; return
-            }
-            let password = try store.credential(entry.id, opened: opened)
+            guard try store.header().id == opened.header.id else { reopenPicker(); return }
             if remember, let target, let serviceKey, let id = entry.itemID {
                 try store.remember(id, service: serviceKey, opened: opened)
                 let identifier = target.type == .URL ? ASCredentialServiceIdentifier(identifier: serviceKey, type: .URL) : target
                 let identity = ASPasswordCredentialIdentity(serviceIdentifier: identifier, user: entry.username, recordIdentifier: opened.header.accountHash + ":" + id)
                 identity.rank = Int(Date.now.timeIntervalSince1970)
-                ASCredentialIdentityStore.shared.saveCredentialIdentities([identity]) { _, _ in }
+                try? await ASCredentialIdentityStore.shared.saveCredentialIdentities([identity] as [any ASCredentialIdentity])
+                guard generation == self.generation else { return }
+                guard try store.header().id == opened.header.id, Date.now.timeIntervalSince(authenticatedAt) < 60 else {
+                    reopenPicker(); return
+                }
             }
+            let password = try store.credential(entry.id, opened: opened)
             self.opened = nil
             extensionContext.completeRequest(withSelectedCredential: ASPasswordCredential(user: entry.username, password: password), completionHandler: nil)
-        } catch { showFailure(error) }
+        } catch { if generation == self.generation { showFailure(error) } }
     }
     private func showFailure(_ error: Error) {
         clearCredentials()
@@ -170,7 +190,7 @@ final class CredentialViewController: ASCredentialProviderViewController, UITabl
         unlockButton.setTitle(String(localized: "Retry"), for: .normal)
         switch error {
         case ExportAccessError.notConfigured:
-            message.text = String(localized: "Open and unlock dMsg to load your logins.")
+            message.text = String(localized: "Open and unlock dMsg to update AutoFill, then try again.")
         case ExportAccessError.authenticationCancelled:
             message.text = String(localized: "Authenticate to continue")
         case ExportAccessError.authenticationFailed:

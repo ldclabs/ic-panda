@@ -444,14 +444,15 @@ class ClientController internal constructor(private val application: Application
         if (!sessions.adopt(next)) return
         navigation.activate(next.account)
         if (next.state == "unlocked") mutableAccess.value = AccessPage.WELCOME
-        if (before?.account != null && before.account != next.account) {
+        val workspaceChanged = before != null && (before.account != next.account || before.deviceId != next.deviceId)
+        if (workspaceChanged && before?.account != null) {
             clearAccountExports(before.account)
         }
-        val changed = before != null && (before.account != next.account || before.generation != next.generation)
+        val changed = before != null && (workspaceChanged || before.generation != next.generation)
         if (changed) {
             bindingReturn = null
             systemExports.clear(); noticeNavigation.clear(); notices.stop(); push.stop(); purchases.stop()
-            val retain = before?.account == next.account && next.state == "unlocked"
+            val retain = !workspaceChanged && before?.account == next.account && next.state == "unlocked"
             vault.clear(retainQuery = retain)
             vaultHistory.clear()
             secretTools.clear()
@@ -524,11 +525,6 @@ class ClientController internal constructor(private val application: Application
         fun canDeliver() = operations.owns(key, job) && at == epoch && appForeground && (!state.value.concealed || transition)
         fun report(error: Throwable) {
             val code = errorCode(error)
-            if (code == "DEVICE_NOT_APPROVED") {
-                val owner = state.value.session?.account
-                clearAccountExports(owner)
-                lock()
-            }
             onError(code)
             if (!quiet) showError(code)
         }

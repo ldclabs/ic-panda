@@ -58,7 +58,7 @@ struct DMsgApp: App {
                 .task(id: "autofill:\(scenePhase == .active):\(model.epoch):\(model.unlocked):\(model.concealed):\(model.contentRevision)") {
                     guard scenePhase == .active, model.unlocked, !model.concealed else { return }
                     while !Task.isCancelled {
-                        await model.refreshAutoFill()
+                        await model.refreshAutoFill().value
                         do { try await Task.sleep(for: .seconds(300)) } catch { return }
                     }
                 }

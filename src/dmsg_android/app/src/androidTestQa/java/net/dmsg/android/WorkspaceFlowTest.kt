@@ -23,6 +23,7 @@ import net.dmsg.android.core.ReadState
 import net.dmsg.android.core.valueOrNull
 import net.dmsg.android.ui.DMsgApp
 import net.dmsg.core.MobileEngine
+import net.dmsg.core.MobileException
 import net.dmsg.core.VaultEdit
 import net.dmsg.core.FieldEdit
 import org.junit.After
@@ -496,6 +497,14 @@ class WorkspaceFlowTest {
         compose.runOnIdle { client.lock(false) }
         compose.waitUntil(10_000) { !client.state.value.unlocked }
         assertNull(client.systemExports.status.value())
+    }
+
+    @Test fun anUnapprovedPeerDoesNotLockThisWorkspace() {
+        compose.runOnIdle {
+            client.perform<Unit>({ throw MobileException.Failure("DEVICE_NOT_APPROVED") }, key = "qa:peer-transfer")
+        }
+        compose.waitUntil(10_000) { client.state.value.error == "DEVICE_NOT_APPROVED" }
+        assertTrue(client.state.value.unlocked)
     }
 
     @Test fun workspaceEntryWaitsForUnlockAndCannotApproveOrOverrideALaterIntent() {

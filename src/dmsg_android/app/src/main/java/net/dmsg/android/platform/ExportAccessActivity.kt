@@ -4,6 +4,7 @@ import net.dmsg.android.R
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.service.autofill.Dataset
 import android.view.WindowManager
 import android.view.autofill.AutofillManager
@@ -208,11 +209,15 @@ class ExportAccessActivity : ComponentActivity() {
     }
     override fun onStop() {
         active = false; prompts.cancel(); prompts.detach(this); work?.cancel(); closePicker()
-        if (!files) { request?.let(AutofillRequests::remove); finish() }
+        if (!files) finish()
         super.onStop()
     }
-    override fun onDestroy() { prompts.cancel(); opened?.close(); opened = null; request?.let(AutofillRequests::remove); super.onDestroy() }
-    private fun safeError(error: Throwable) = (error as? net.dmsg.core.MobileException.Failure)?.code ?: error.message?.takeIf { it in setOf("EXPORT_EXPIRED", "EXPORT_NOT_CONFIGURED", "EXPORT_KEY_UNAVAILABLE", "AUTOFILL_UNVERIFIED", "CANCELLED", "DEVICE_LOCKED", "HARDWARE_UNAVAILABLE") } ?: "OPERATION_FAILED"
+    override fun onDestroy() { prompts.cancel(); opened?.close(); opened = null; super.onDestroy() }
+    private fun safeError(error: Throwable) = when (error) {
+        is net.dmsg.core.MobileException.Failure -> error.code
+        is KeyPermanentlyInvalidatedException -> "EXPORT_KEY_UNAVAILABLE"
+        else -> error.message?.takeIf { it in setOf("EXPORT_EXPIRED", "EXPORT_NOT_CONFIGURED", "EXPORT_KEY_UNAVAILABLE", "AUTOFILL_UNVERIFIED", "CANCELLED", "DEVICE_LOCKED", "HARDWARE_UNAVAILABLE") } ?: "OPERATION_FAILED"
+    }
 }
 
 /** DocumentsUI may open only this harmless authentication entry, never a file. */

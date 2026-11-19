@@ -151,7 +151,7 @@ class SystemExportStore(val root: File, val purpose: ExportPurpose, private val 
         current?.let { remove(it) }
         root.listFiles()?.filter { it.name.startsWith("used-") }?.forEach { check(it.delete()) { "STORAGE_UNAVAILABLE" } }
     }
-    /** Revoke a superseded catalog after a failed refresh, retaining remembered choices. */
+    /** Revoke a superseded catalog while retaining remembered choices. */
     fun withdrawCredentials(old: ExportHeader) = synchronized(guard) {
         if (purpose == ExportPurpose.credentials && header(false)?.id == old.id) {
             check(File(root, "current.json").delete()) { "STORAGE_UNAVAILABLE" }

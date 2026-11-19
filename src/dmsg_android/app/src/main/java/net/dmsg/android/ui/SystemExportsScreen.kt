@@ -50,7 +50,7 @@ import net.dmsg.android.platform.*
                 OutlinedButton(onClick = { client.beginExternalInteraction(); context.startActivity(Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE, Uri.parse("package:" + context.packageName))) }, enabled = !busy) { Text(str(R.string.text_enable_dmsg_in_autofill_settings_68e4c0b)) }
                 TextButton(onClick = { browsers = true }) { Text(str(R.string.text_trusted_browsers_12e7452)) }
                 Text(str(R.string.autofill_choose_at_login))
-                header?.let { LabelValue(str(R.string.text_items_802a927), localizedNumber(it.count)) }
+                if (failure == null) header?.let { LabelValue(str(R.string.text_items_802a927), localizedNumber(it.count)) }
             } else {
                 Notice(str(R.string.text_choose_up_to_10_immutable_file_copies_100_mib_each_and_200_mib_to_b0b24f1))
                 chosenFiles.forEach { item -> Row(Modifier.fillMaxWidth()) { Column(Modifier.weight(1f)) { Text(item.name); Text(fileSize(item.size)) }; TextButton(onClick = { coordinator.toggle(item) }, enabled = !busy) { Text(str(R.string.text_remove_78190c6)) } } }
@@ -62,7 +62,11 @@ import net.dmsg.android.platform.*
             if (!credentials) Text(str(R.string.text_these_copies_have_separate_keys_and_never_include_account_roots_o_deb16b8), style = MaterialTheme.typography.bodySmall)
             failure?.let {
                 Notice(errorText(it), true)
-                if (credentials) TextButton(onClick = coordinator::refreshCredentials) { Text(str(R.string.text_retry_563171c)) }
+            }
+            if (credentials) {
+                TextButton(onClick = { coordinator.refreshCredentials(force = true) }, enabled = !busy && "exports:refresh" !in state.operations) {
+                    Text(str(if (failure == null) R.string.text_update_copies_47cb43d else R.string.text_retry_563171c))
+                }
             }
             if (!credentials) TextButton(onClick = { removing = true }, enabled = !busy && (header != null || chosenFiles.isNotEmpty())) { Text(str(R.string.text_remove_selected_copies_770ac24)) }
         }

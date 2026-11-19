@@ -83,9 +83,15 @@ struct SystemExportsView: View {
             if let header = model.autoFillHeader, let count = header.count { LabeledContent("Items", value: count.formatted()) }
             if let issue = model.autoFillIssue {
                 Text(issue).foregroundStyle(.secondary)
-                SettingsAction("Retry") { work = Task { await model.refreshAutoFill() } }
             }
+            SettingsAction(model.autoFillIssue == nil ? "Update AutoFill" : "Retry") { work = Task { await updateAutoFill() } }
         }
+    }
+
+    private func updateAutoFill() async {
+        working = true
+        defer { working = false }
+        await model.refreshAutoFill(force: true).value
     }
 
     private func setAutoFillBiometry(_ value: Bool) async {
@@ -95,7 +101,7 @@ struct SystemExportsView: View {
         do {
             try await engine.setAutofillBiometry(biometryOnly: value)
             biometryOnly = value
-            await model.refreshAutoFill()
+            await model.refreshAutoFill().value
         } catch { model.report(error) }
     }
 

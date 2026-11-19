@@ -21,13 +21,13 @@ struct CredentialExport: Codable, Identifiable, Sendable { let id: String; let t
 extension CredentialExport {
     /// System suggestions can outlive a snapshot refresh. Only an exact current
     /// reference may fill immediately; otherwise the person chooses from the list.
-    static func requested(_ identifier: String?, in header: ExportHeader, entries: [CredentialExport]) -> CredentialExport? {
+    static func requested(_ identifier: String?, user: String, in header: ExportHeader, entries: [CredentialExport]) -> CredentialExport? {
         guard let identifier else { return nil }
         let parts = identifier.split(separator: ":", omittingEmptySubsequences: false)
         guard parts.count == 2 else { return nil }
-        if parts[0] == header.accountHash { return entries.first { $0.itemID == String(parts[1]) } }
+        if parts[0] == header.accountHash { return entries.first { $0.itemID == String(parts[1]) && $0.username == user } }
         guard parts[0] == header.id else { return nil }
-        return entries.first { $0.id == parts[1] }
+        return entries.first { $0.id == parts[1] && $0.username == user }
     }
 
     /// Whether this login belongs to the site that is asking, ignoring `www.` and subdomains.
@@ -174,8 +174,7 @@ struct SystemExports: Sendable {
         if let directory = try? directory(header) { try? FileManager.default.removeItem(at: directory) }
     }
 
-    /// A newer vault or stricter policy was observed but could not be published.
-    /// Keep remembered choices while preventing access to the superseded passwords.
+    /// Stop access to superseded passwords while retaining remembered choices.
     func withdrawCredentials(ifCurrent old: ExportHeader) throws {
         guard purpose == .credentials, try header(checkExpiry: false).id == old.id else { return }
         try FileManager.default.removeItem(at: root.appending(path: "current.json"))
@@ -201,6 +200,7 @@ struct SystemExports: Sendable {
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecUserCanceled { throw ExportAccessError.authenticationCancelled }
+        if status == errSecItemNotFound { throw ExportAccessError.notConfigured }
         guard status == errSecSuccess else { throw ExportAccessError.authenticationFailed }
         guard let data = result as? Data, data.count == 32 else { throw CocoaError(.fileReadCorruptFile) }
         let opened = OpenExport(header: header, key: SymmetricKey(data: data))
