@@ -2500,7 +2500,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_cli"
-version = "1.5.10-beta.1"
+version = "1.5.10"
 dependencies = [
  "axum",
  "base64 0.23.1",
