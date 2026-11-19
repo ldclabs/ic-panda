@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "Assinatura de conteúdo",
   "deviceUnlockWorkspace": "Desbloquear espaço de trabalho",
+  "deviceManageSecurity": "Gerenciar a segurança da conta",
+  "deviceAuthorizeLetterOffers": "Autorizar ofertas de pagamento para cartas",
+  "deviceWalletProposals": "Criar e aprovar propostas da carteira",
   "feedbackTitle": "Relatar um problema",
   "feedbackHint": "Envie uma carta privada gratuita ao suporte do dMsg. Revise a descrição, capturas e informações do aplicativo antes de enviar.",
   "feedbackScreenshots": "Capturas de tela",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Identidade pagante",
     "wallet.readiness": "Verifique a prontidão para aprovação",
     "wallet.WALLET_ACCOUNT_FROZEN": "As aprovações da conta estão congeladas.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Ative o WalletApprove para este dispositivo em Configurações → Dispositivos.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Ative a permissão “{capability}” para este dispositivo em Configurações → Dispositivos.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "O registro do serviço de carteira está ausente.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Não é possível verificar o serviço de carteira. Tente novamente antes de pagar.",
     "wallet.FEE_TOO_LOW": "O teto da taxa está abaixo da estimativa.",

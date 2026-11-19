@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "Podpisywanie treści",
   "deviceUnlockWorkspace": "Odblokuj obszar roboczy",
+  "deviceManageSecurity": "Zarządzaj bezpieczeństwem konta",
+  "deviceAuthorizeLetterOffers": "Autoryzuj oferty płatności za listy",
+  "deviceWalletProposals": "Twórz i zatwierdzaj propozycje portfela",
   "feedbackTitle": "Zgłoś problem",
   "feedbackHint": "Wyślij bezpłatny prywatny list do pomocy dMsg. Przed wysłaniem sprawdź opis, zrzuty ekranu i informacje o aplikacji.",
   "feedbackScreenshots": "Zrzuty ekranu",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Tożsamość płatnicza",
     "wallet.readiness": "Sprawdź gotowość do zatwierdzenia",
     "wallet.WALLET_ACCOUNT_FROZEN": "Zatwierdzenia kont są zamrożone.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Włącz WalletApprove dla tego urządzenia w Ustawieniach → Urządzenia.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Włącz uprawnienie „{capability}” dla tego urządzenia w Ustawieniach → Urządzenia.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Brak rejestracji usługi portfela.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Nie można zweryfikować usługi portfela. Spróbuj ponownie przed zapłaceniem.",
     "wallet.FEE_TOO_LOW": "Pułap opłat jest niższy od szacunkowego.",

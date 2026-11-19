@@ -1664,13 +1664,29 @@ smoke: try {
     assert.deepEqual(pageErrors, [])
     break smoke
   }
-  const checkNavigation = () => navigationRegressions({ app, main, shots, profile, formMatrix, methods, hold, waitFor, channel, peer, wallets, file: libraryFile })
+  const checkNavigation = () => navigationRegressions({ app, main, shots, profile, formMatrix, methods, emit, hold, waitFor, channel, peer, wallets, file: libraryFile })
   if (process.env.DMSG_DESKTOP_SMOKE === 'navigation') {
     await checkNavigation()
     assert.deepEqual(pageErrors, [])
+    const savedRoute = async () => JSON.parse(await readFile(join(profile, 'desktop.json'), 'utf8')).route
     await main.evaluate(() => { location.hash = '/reminders' })
+    await main.getByTestId('reminders-page').waitFor()
+    await main.evaluate(() => { location.hash = '/plan?tab=payments' })
+    await main.getByTestId('plan-orders').waitFor()
+    await waitFor(async () => await savedRoute() === '/plan')
+    await main.evaluate(() => { location.hash = '/reminders' })
+    await main.getByTestId('reminders-page').waitFor()
+    await waitFor(async () => await savedRoute() === '/reminders')
+    // Open a fresh document on Payments, as when the main window starts from an approval.
+    await (await app.browserWindow(main)).evaluate(window => {
+      const url = new URL(window.webContents.getURL())
+      url.search = '?fresh'
+      url.hash = '/plan?tab=payments'
+      return window.loadURL(url.href)
+    })
+    await main.getByTestId('plan-orders').waitFor()
     await closeTest()
-    assert.equal(JSON.parse(await readFile(join(profile, 'desktop.json'), 'utf8')).route, '/reminders', 'quitting flushes the last view')
+    assert.equal(await savedRoute(), '/plan', 'quitting keeps the last view without its query')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'state-transitions') {
@@ -3336,7 +3352,7 @@ smoke: try {
   // Permission changes refresh readiness along with the request.
   wallets.state.blockers = ['WALLET_APPROVE_REQUIRED']
   emit('approval/changed')
-  await approval.waitForSelector('[data-testid="approval-blockers"] >> text=Enable WalletApprove')
+  await approval.getByTestId('approval-blockers').getByText('Enable “Create and approve wallet proposals” for this device in Settings → Devices.', { exact: true }).waitFor()
   assert.equal(await approval.isDisabled('[data-testid="approve"]'), true)
   wallets.state.blockers = []
   emit('approval/changed')

@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "Tandatangan kandungan",
   "deviceUnlockWorkspace": "Buka kunci ruang kerja",
+  "deviceManageSecurity": "Urus keselamatan akaun",
+  "deviceAuthorizeLetterOffers": "Benarkan tawaran bayaran untuk surat",
+  "deviceWalletProposals": "Cipta dan luluskan cadangan dompet",
   "feedbackTitle": "Laporkan masalah",
   "feedbackHint": "Hantar surat peribadi percuma kepada sokongan dMsg. Semak huraian, tangkapan skrin dan maklumat aplikasi sebelum menghantar.",
   "feedbackScreenshots": "Tangkapan skrin",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Membayar identiti",
     "wallet.readiness": "Semak kesediaan kelulusan",
     "wallet.WALLET_ACCOUNT_FROZEN": "Kelulusan akaun dibekukan.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Dayakan WalletApprove untuk peranti ini dalam Tetapan → Peranti.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Dayakan “{capability}” untuk peranti ini dalam Tetapan → Peranti.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Pendaftaran perkhidmatan dompet tiada.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Tidak dapat mengesahkan perkhidmatan dompet. Cuba semula sebelum membayar.",
     "wallet.FEE_TOO_LOW": "Siling yuran adalah di bawah anggaran.",

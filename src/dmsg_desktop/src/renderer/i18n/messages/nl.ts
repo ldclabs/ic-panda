@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "Inhoud ondertekenen",
   "deviceUnlockWorkspace": "Werkruimte ontgrendelen",
+  "deviceManageSecurity": "Accountbeveiliging beheren",
+  "deviceAuthorizeLetterOffers": "Betaalaanbiedingen voor brieven autoriseren",
+  "deviceWalletProposals": "Walletvoorstellen maken en goedkeuren",
   "feedbackTitle": "Een probleem melden",
   "feedbackHint": "Stuur een gratis privébrief naar dMsg-ondersteuning. Controleer de beschrijving, schermafbeeldingen en appgegevens vóór het verzenden.",
   "feedbackScreenshots": "Schermafbeeldingen",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Betalende identiteit",
     "wallet.readiness": "Controleer de gereedheid voor goedkeuring",
     "wallet.WALLET_ACCOUNT_FROZEN": "Accountgoedkeuringen zijn bevroren.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Schakel WalletApprove in voor dit apparaat via Instellingen → Apparaten.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Schakel “{capability}” in voor dit apparaat via Instellingen → Apparaten.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Registratie van de Wallet-service ontbreekt.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Kan de portefeuilleservice niet verifiëren. Probeer het opnieuw voordat je betaalt.",
     "wallet.FEE_TOO_LOW": "Het honorariumplafond ligt onder de schatting.",

@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "コンテンツの署名",
   "deviceUnlockWorkspace": "ワークスペースをロック解除",
+  "deviceManageSecurity": "アカウントのセキュリティを管理",
+  "deviceAuthorizeLetterOffers": "有料レターの支払いオファーを承認",
+  "deviceWalletProposals": "ウォレット提案の作成と承認",
   "feedbackTitle": "問題を報告",
   "feedbackHint": "dMsg サポートへ無料のプライベートな手紙を送ります。送信前に説明、スクリーンショット、アプリ情報を確認してください。",
   "feedbackScreenshots": "スクリーンショット",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "支払いID",
     "wallet.readiness": "承認の準備状況を確認する",
     "wallet.WALLET_ACCOUNT_FROZEN": "アカウントの承認は凍結されます。",
-    "wallet.WALLET_APPROVE_REQUIRED": "[設定] → [デバイス] で、このデバイスの WalletApprove を有効にします。",
+    "wallet.WALLET_APPROVE_REQUIRED": "[設定] → [デバイス] で、このデバイスの「{capability}」を有効にしてください。",
     "wallet.WALLET_REGISTRATION_REQUIRED": "ウォレットサービスの登録がありません。",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "ウォレットサービスを確認できません。支払う前に再試行してください。",
     "wallet.FEE_TOO_LOW": "料金の上限が見積もりを下回っています。",

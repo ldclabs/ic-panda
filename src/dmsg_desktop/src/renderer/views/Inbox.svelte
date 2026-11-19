@@ -304,13 +304,15 @@
           <input bind:value={query} class="ps-8" placeholder={t('searchLetters')} aria-label={t('searchLetters')} data-testid="letter-search" />
         </label>
       </div>
-      {#if boxError}
-        <Notice failure={boxError} tone="danger" testid="inbox-error">
-          {boxError === 'RECOVERY_INCOMPLETE' ? t('syncInboxKeyMissing') : boxError}
-          {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={box === 'sent' ? readingOutgoing : refreshing} onclick={() => box === 'sent' ? loadOutgoing() : refreshLetters()}>{t('retry')}</button>{/snippet}
-        </Notice>
-      {/if}
       <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="letters">
+        {#if boxError}
+          <li class="pb-2">
+            <Notice failure={boxError} tone="danger" testid="inbox-error">
+              {boxError === 'RECOVERY_INCOMPLETE' ? t('syncInboxKeyMissing') : boxError}
+              {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={box === 'sent' ? readingOutgoing : refreshing} onclick={() => box === 'sent' ? loadOutgoing() : refreshLetters()}>{t('retry')}</button>{/snippet}
+            </Notice>
+          </li>
+        {/if}
         {#each list as item (item.order_id)}
           {@const account = box === 'sent' ? item.recipient : item.sender}
           <li>

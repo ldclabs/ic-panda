@@ -5,6 +5,9 @@ export default {
   messages: {
   "deviceContentSigning": "توقيع المحتوى",
   "deviceUnlockWorkspace": "فتح مساحة العمل",
+  "deviceManageSecurity": "إدارة أمان الحساب",
+  "deviceAuthorizeLetterOffers": "اعتماد عروض الدفع للرسائل المدفوعة",
+  "deviceWalletProposals": "إنشاء مقترحات المحفظة والموافقة عليها",
   "feedbackTitle": "الإبلاغ عن مشكلة",
   "feedbackHint": "أرسل رسالة خاصة مجانية إلى دعم dMsg. راجع الوصف ولقطات الشاشة ومعلومات التطبيق قبل الإرسال.",
   "feedbackScreenshots": "لقطات الشاشة",
@@ -2260,7 +2263,7 @@ export default {
     "wallet.payer": "هوية الدفع",
     "wallet.readiness": "فحص أهلية الموافقة",
     "wallet.WALLET_ACCOUNT_FROZEN": "موافقات الحساب مجمدة.",
-    "wallet.WALLET_APPROVE_REQUIRED": "فعّل WalletApprove في إعدادات الأجهزة.",
+    "wallet.WALLET_APPROVE_REQUIRED": "فعّل إذن «{capability}» في إعدادات الأجهزة.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "خدمة المحفظة غير مسجلة.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "تعذر التحقق من الخدمة؛ أعد المحاولة قبل الدفع.",
     "wallet.FEE_TOO_LOW": "حد الرسوم أقل من التقدير.",

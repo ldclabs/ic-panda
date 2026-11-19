@@ -2,8 +2,8 @@ import type { Label } from '../i18n/messages/en'
 
 export const deviceCapabilities = new Map<string, Label>([
   ['ContentSign', 'deviceContentSigning'], ['VaultUnlock', 'deviceUnlockWorkspace'],
-  ['RootManage', 'security'], ['FormalApprove', 'formal'],
-  ['PaymentOffer', 'payments'], ['WalletApprove', 'twNav']
+  ['RootManage', 'deviceManageSecurity'], ['FormalApprove', 'formal'],
+  ['PaymentOffer', 'deviceAuthorizeLetterOffers'], ['WalletApprove', 'deviceWalletProposals']
 ])
 
 export function deviceCapabilityName(value: string, t: (key: Label) => string): string {

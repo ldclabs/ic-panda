@@ -7,6 +7,9 @@ import { notificationText } from '../../../shared/notification-text.ts'
 const messages = {
   "deviceContentSigning": "Content signing",
   "deviceUnlockWorkspace": "Unlock workspace",
+  "deviceManageSecurity": "Manage account security",
+  "deviceAuthorizeLetterOffers": "Authorize paid-letter offers",
+  "deviceWalletProposals": "Create and approve wallet proposals",
   "feedbackTitle": "Report a problem",
   "feedbackHint": "Send a private, free letter to dMsg support. Review your description, screenshots and app information before sending.",
   "feedbackScreenshots": "Screenshots",
@@ -2264,7 +2267,7 @@ const messages = {
     "wallet.payer": "Paying identity",
     "wallet.readiness": "Check approval readiness",
     "wallet.WALLET_ACCOUNT_FROZEN": "Account approvals are frozen.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Enable WalletApprove for this device in Settings → Devices.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Enable “{capability}” for this device in Settings → Devices.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Wallet service registration is missing.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Cannot verify the wallet service. Retry before paying.",
     "wallet.FEE_TOO_LOW": "Fee ceiling is below the estimate.",

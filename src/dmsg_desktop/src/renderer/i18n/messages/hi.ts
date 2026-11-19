@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "सामग्री पर हस्ताक्षर",
   "deviceUnlockWorkspace": "कार्यस्थान अनलॉक करें",
+  "deviceManageSecurity": "खाते की सुरक्षा प्रबंधित करें",
+  "deviceAuthorizeLetterOffers": "सशुल्क पत्रों के भुगतान प्रस्ताव अधिकृत करें",
+  "deviceWalletProposals": "वॉलेट प्रस्ताव बनाएं और मंज़ूर करें",
   "feedbackTitle": "समस्या की रिपोर्ट करें",
   "feedbackHint": "dMsg सहायता को मुफ़्त निजी पत्र भेजें। भेजने से पहले विवरण, स्क्रीनशॉट और ऐप की जानकारी जाँचें।",
   "feedbackScreenshots": "स्क्रीनशॉट",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "भुगतान पहचान",
     "wallet.readiness": "अनुमोदन की तैयारी की जाँच करें",
     "wallet.WALLET_ACCOUNT_FROZEN": "खाता अनुमोदन रोक दिए गए हैं.",
-    "wallet.WALLET_APPROVE_REQUIRED": "सेटिंग्स → डिवाइसेस में इस डिवाइस के लिए वॉलेटएप्रूव सक्षम करें।",
+    "wallet.WALLET_APPROVE_REQUIRED": "सेटिंग्स → डिवाइसेस में इस डिवाइस के लिए “{capability}” सक्षम करें।",
     "wallet.WALLET_REGISTRATION_REQUIRED": "वॉलेट सेवा पंजीकरण गुम है.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "वॉलेट सेवा सत्यापित नहीं कर सकता. भुगतान करने से पहले पुनः प्रयास करें.",
     "wallet.FEE_TOO_LOW": "शुल्क सीमा अनुमान से कम है.",

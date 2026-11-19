@@ -7,7 +7,7 @@
   import Toaster from './components/Toaster.svelte'
   import Collapsible from './components/Collapsible.svelte'
   import Icon from './components/Icon.svelte'
-  import { buttonClass } from './components/ui'
+  import { buttonClass, modalOpen } from './components/ui'
   import RecoveryBanner from './shell/RecoveryBanner.svelte'
   import { startLogin } from './shell/login.svelte'
   import { call, single } from './rpc'
@@ -112,7 +112,11 @@
   onMount(() => {
     // The route follows the hash only, so a view the hash still names opens again on a click.
     // `/login` is not a view: the approval window asks the main window to log in.
-    const offNavigate = window.dmsg.onNavigate((next) => (next === '/login' ? void startLogin() : go(next)))
+    const offNavigate = window.dmsg.onNavigate(next => {
+      if (next === '/login') void startLogin()
+      // The native Settings menu also handles ⌘, before the renderer sees it.
+      else if (next !== '/settings' || !modalOpen()) go(next)
+    })
     const onHash = () => (route = location.hash.slice(1) || '/channels')
     window.addEventListener('hashchange', onHash)
     const offs = [offNavigate, () => window.removeEventListener('hashchange', onHash)]

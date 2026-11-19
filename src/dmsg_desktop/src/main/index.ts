@@ -292,10 +292,12 @@ function showMain(route?: string) {
   }
   window.on('resize', rememberBounds)
   window.on('move', rememberBounds)
-  window.webContents.on('did-navigate-in-page', (_event, url) => {
-    const shown = new URL(url).hash.slice(1)
+  const rememberRoute = (_event: Electron.Event, url: string) => {
+    const shown = new URL(url).hash.slice(1).replace(/^\/plan\?tab=(?:membership|names|payments)$/, '/plan')
     if (isViewRoute(shown)) keepDesktop({ route: shown })
-  })
+  }
+  window.webContents.on('did-navigate', rememberRoute)
+  window.webContents.on('did-navigate-in-page', rememberRoute)
   load(window, route ?? (isViewRoute(desktop.route) ? desktop.route : '/channels'))
   let leavingFullScreen = false
   // Full screen hides the traffic lights; the title bar takes back their room.

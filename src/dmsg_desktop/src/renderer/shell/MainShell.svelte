@@ -2,6 +2,7 @@
   import { onMount, untrack, type Component } from 'svelte'
   import LinkConfirm from '../components/LinkConfirm.svelte'
   import Toaster from '../components/Toaster.svelte'
+  import { modalOpen } from '../components/ui'
   import { MessageDeliveries, type Delivery } from '../message-delivery'
   import { call, onChange, single } from '../rpc'
   import { lastRoute, noteRoute, visitRoute } from '../view-memory'
@@ -229,7 +230,7 @@
     const travelHeld = inset ? event.metaKey && !event.ctrlKey && !event.altKey : event.altKey && !event.ctrlKey && !event.metaKey
     if (step && travelHeld && !event.shiftKey) {
       event.preventDefault()
-      if (!document.querySelector('[aria-modal="true"]:not([data-state="closed"])')) travel(step)
+      if (!modalOpen()) travel(step)
       return
     }
     const held = inset ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
@@ -242,7 +243,7 @@
     if (key === 'l') { if (unlocked) void lock(); return }
     if (palette && key === 'k') { palette = false; return }
     if (helping && key === '/') { helping = false; return }
-    if (document.querySelector('[aria-modal="true"]:not([data-state="closed"])')) return
+    if (modalOpen()) return
     if (key === 'k') palette = true
     else if (key === '/') helping = true
     else if (target) enter(target.path)

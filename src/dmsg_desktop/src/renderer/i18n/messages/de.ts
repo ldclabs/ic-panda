@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "Inhalte signieren",
   "deviceUnlockWorkspace": "Arbeitsbereich entsperren",
+  "deviceManageSecurity": "Kontosicherheit verwalten",
+  "deviceAuthorizeLetterOffers": "Zahlungsangebote für Briefe autorisieren",
+  "deviceWalletProposals": "Wallet-Vorschläge erstellen und genehmigen",
   "feedbackTitle": "Problem melden",
   "feedbackHint": "Senden Sie dem dMsg-Support einen kostenlosen, privaten Brief. Prüfen Sie Beschreibung, Screenshots und App-Informationen vor dem Senden.",
   "feedbackScreenshots": "Screenshots",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Identität bezahlen",
     "wallet.readiness": "Genehmigungsbereitschaft prüfen",
     "wallet.WALLET_ACCOUNT_FROZEN": "Kontogenehmigungen sind eingefroren.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Aktivieren Sie WalletApprove für dieses Gerät unter Einstellungen → Geräte.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Aktivieren Sie „{capability}“ für dieses Gerät unter Einstellungen → Geräte.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Die Registrierung des Wallet-Dienstes fehlt.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Der Wallet-Dienst kann nicht überprüft werden. Versuchen Sie es erneut, bevor Sie bezahlen.",
     "wallet.FEE_TOO_LOW": "Die Gebührenobergrenze liegt unter der Schätzung.",

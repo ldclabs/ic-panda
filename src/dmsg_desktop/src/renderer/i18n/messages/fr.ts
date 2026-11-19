@@ -5,6 +5,9 @@ export default {
   messages: {
   "deviceContentSigning": "Signature de contenu",
   "deviceUnlockWorkspace": "Déverrouiller l’espace de travail",
+  "deviceManageSecurity": "Gérer la sécurité du compte",
+  "deviceAuthorizeLetterOffers": "Autoriser les offres de paiement pour les lettres",
+  "deviceWalletProposals": "Créer et approuver des propositions de portefeuille",
   "feedbackTitle": "Signaler un problème",
   "feedbackHint": "Envoyez gratuitement un courrier privé au support dMsg. Vérifiez la description, les captures et les informations de l’application avant l’envoi.",
   "feedbackScreenshots": "Captures d’écran",
@@ -2260,7 +2263,7 @@ export default {
     "wallet.payer": "Identité payeuse",
     "wallet.readiness": "Vérifier l’autorisation",
     "wallet.WALLET_ACCOUNT_FROZEN": "Les approbations du compte sont gelées.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Activez WalletApprove dans les paramètres des appareils.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Activez l’autorisation « {capability} » dans les paramètres des appareils.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Service de portefeuille non enregistré.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Vérification impossible. Réessayez avant de payer.",
     "wallet.FEE_TOO_LOW": "Plafond inférieur à l’estimation.",

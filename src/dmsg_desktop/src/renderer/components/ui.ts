@@ -7,6 +7,8 @@ import { twMerge } from 'tailwind-merge'
  */
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs))
 
+export const modalOpen = () => !!document.querySelector('[aria-modal="true"]:not([data-state="closed"])')
+
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 

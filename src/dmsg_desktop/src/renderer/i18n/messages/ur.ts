@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "مواد پر دستخط",
   "deviceUnlockWorkspace": "ورک اسپیس ان لاک کریں",
+  "deviceManageSecurity": "اکاؤنٹ کی سیکیورٹی کا انتظام",
+  "deviceAuthorizeLetterOffers": "خطوط کے لیے ادائیگی کی پیشکشوں کی منظوری",
+  "deviceWalletProposals": "والٹ کی تجاویز بنانا اور منظور کرنا",
   "feedbackTitle": "مسئلے کی اطلاع دیں",
   "feedbackHint": "dMsg معاونت کو مفت نجی خط بھیجیں۔ بھیجنے سے پہلے تفصیل، اسکرین شاٹس اور ایپ کی معلومات دیکھ لیں۔",
   "feedbackScreenshots": "اسکرین شاٹس",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "ادائیگی کی شناخت",
     "wallet.readiness": "منظوری کی تیاری کی جانچ کریں",
     "wallet.WALLET_ACCOUNT_FROZEN": "اکاؤنٹ کی منظوری منجمد کر دی گئی ہے۔",
-    "wallet.WALLET_APPROVE_REQUIRED": "سیٹنگز → ڈیوائسز میں اس ڈیوائس کے لیے WalletApprove کو فعال کریں۔",
+    "wallet.WALLET_APPROVE_REQUIRED": "سیٹنگز → ڈیوائسز میں اس ڈیوائس کے لیے “{capability}” کو فعال کریں۔",
     "wallet.WALLET_REGISTRATION_REQUIRED": "والیٹ سروس رجسٹریشن غائب ہے۔",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "والیٹ سروس کی تصدیق نہیں ہو سکتی۔ ادائیگی کرنے سے پہلے دوبارہ کوشش کریں۔",
     "wallet.FEE_TOO_LOW": "فیس کی حد تخمینہ سے کم ہے۔",

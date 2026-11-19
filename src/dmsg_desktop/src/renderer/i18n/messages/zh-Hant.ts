@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "內容簽署",
   "deviceUnlockWorkspace": "解鎖工作區",
+  "deviceManageSecurity": "管理帳戶安全",
+  "deviceAuthorizeLetterOffers": "授權付費來信報價",
+  "deviceWalletProposals": "建立及核准錢包提案",
   "feedbackTitle": "回報問題",
   "feedbackHint": "免費傳送私人來信給 dMsg 支援。傳送前請核對描述、截圖和應用程式資訊。",
   "feedbackScreenshots": "截圖",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "付款身份",
     "wallet.readiness": "檢查批准資格",
     "wallet.WALLET_ACCOUNT_FROZEN": "帳戶批准已凍結。",
-    "wallet.WALLET_APPROVE_REQUIRED": "請在設定 → 裝置中為本裝置開啟 WalletApprove。",
+    "wallet.WALLET_APPROVE_REQUIRED": "請在設定 → 裝置中為本裝置啟用「{capability}」權限。",
     "wallet.WALLET_REGISTRATION_REQUIRED": "錢包服務尚未登記。",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "無法核對錢包服務，請重試後再付款。",
     "wallet.FEE_TOO_LOW": "手續費上限低於估算值。",

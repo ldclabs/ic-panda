@@ -30,7 +30,7 @@
   const unlocked = $derived(status?.state === 'unlocked')
 
   function showTab(next: string) {
-    go(next === 'membership' ? '/plan' : `/plan?tab=${next}`)
+    if (next !== tab) go(next === 'membership' ? '/plan' : `/plan?tab=${next}`)
   }
 
   // Hand off a one-time lookup or invitation. The lasting route only names the tab.

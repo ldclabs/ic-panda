@@ -12,7 +12,7 @@
   import TargetMenu from '../components/TargetMenu.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
-  import { iconButtonClass, buttonClass, cn, menuItemClass } from '../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuItemClass, modalOpen } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, closed, errorText, onChange, single } from '../rpc'
   import { remember, remembered, rememberedPlain, rememberPlain } from '../view-memory'
@@ -426,7 +426,7 @@
    * secret, ⌘⇧U its user name and ⌘⇧O its one-time code (Ctrl elsewhere).
    */
   function onKey(event: KeyboardEvent) {
-    if (event.isComposing || event.defaultPrevented || document.querySelector('[aria-modal="true"]:not([data-state="closed"])')) return
+    if (event.isComposing || event.defaultPrevented || modalOpen()) return
     const held = mod === '⌘' ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
     if (!held || event.altKey || creating || comparing || importing) return
     const key = event.key.toLowerCase()

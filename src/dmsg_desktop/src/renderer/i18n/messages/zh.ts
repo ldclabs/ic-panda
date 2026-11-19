@@ -5,6 +5,9 @@ export default {
   messages: {
   "deviceContentSigning": "内容签名",
   "deviceUnlockWorkspace": "解锁工作区",
+  "deviceManageSecurity": "管理账户安全",
+  "deviceAuthorizeLetterOffers": "授权付费来信报价",
+  "deviceWalletProposals": "创建和批准钱包提案",
   "feedbackTitle": "反馈问题",
   "feedbackHint": "免费发送私密来信给 dMsg 支持。发送前请核对描述、截图和应用信息。",
   "feedbackScreenshots": "截图",
@@ -2260,7 +2263,7 @@ export default {
     "wallet.payer": "付款身份",
     "wallet.readiness": "检查批准资格",
     "wallet.WALLET_ACCOUNT_FROZEN": "账户批准已冻结。",
-    "wallet.WALLET_APPROVE_REQUIRED": "请在设置 → 设备中为本设备开启 WalletApprove。",
+    "wallet.WALLET_APPROVE_REQUIRED": "请在设置 → 设备中为本设备启用「{capability}」权限。",
     "wallet.WALLET_REGISTRATION_REQUIRED": "钱包服务尚未登记。",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "无法核对钱包服务，请重试后再付款。",
     "wallet.FEE_TOO_LOW": "手续费上限低于估算值。",

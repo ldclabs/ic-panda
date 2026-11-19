@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "İçerik imzalama",
   "deviceUnlockWorkspace": "Çalışma alanının kilidini aç",
+  "deviceManageSecurity": "Hesap güvenliğini yönet",
+  "deviceAuthorizeLetterOffers": "Mektuplar için ödeme tekliflerini yetkilendir",
+  "deviceWalletProposals": "Cüzdan teklifleri oluştur ve onayla",
   "feedbackTitle": "Sorun bildir",
   "feedbackHint": "dMsg desteğine ücretsiz özel bir mektup gönderin. Göndermeden önce açıklamayı, ekran görüntülerini ve uygulama bilgilerini inceleyin.",
   "feedbackScreenshots": "Ekran görüntüleri",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Ödeme kimliği",
     "wallet.readiness": "Onay hazırlığını kontrol edin",
     "wallet.WALLET_ACCOUNT_FROZEN": "Hesap onayları donduruldu.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Ayarlar → Cihazlar bölümünde bu cihaz için WalletApprove'u etkinleştirin.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Ayarlar → Cihazlar bölümünde bu cihaz için “{capability}” yetkisini etkinleştirin.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Cüzdan hizmeti kaydı eksik.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "M-cüzdan hizmeti doğrulanamıyor. Ödemeden önce tekrar deneyin.",
     "wallet.FEE_TOO_LOW": "Ücret tavanı tahminin altındadır.",

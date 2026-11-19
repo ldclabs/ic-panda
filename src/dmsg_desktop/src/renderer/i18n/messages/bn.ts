@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "বিষয়বস্তু স্বাক্ষর",
   "deviceUnlockWorkspace": "কর্মক্ষেত্র আনলক করুন",
+  "deviceManageSecurity": "অ্যাকাউন্টের নিরাপত্তা পরিচালনা",
+  "deviceAuthorizeLetterOffers": "সশুল্ক চিঠির পেমেন্ট প্রস্তাব অনুমোদন",
+  "deviceWalletProposals": "ওয়ালেটের প্রস্তাব তৈরি ও অনুমোদন",
   "feedbackTitle": "সমস্যা জানান",
   "feedbackHint": "dMsg সহায়তায় বিনামূল্যে ব্যক্তিগত চিঠি পাঠান। পাঠানোর আগে বিবরণ, স্ক্রিনশট ও অ্যাপের তথ্য যাচাই করুন।",
   "feedbackScreenshots": "স্ক্রিনশট",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "অর্থ প্রদানের পরিচয়",
     "wallet.readiness": "অনুমোদনের প্রস্তুতি পরীক্ষা করুন",
     "wallet.WALLET_ACCOUNT_FROZEN": "অ্যাকাউন্ট অনুমোদন হিমায়িত করা হয়.",
-    "wallet.WALLET_APPROVE_REQUIRED": "সেটিংস → ডিভাইসে এই ডিভাইসের জন্য WalletApprove সক্ষম করুন।",
+    "wallet.WALLET_APPROVE_REQUIRED": "সেটিংস → ডিভাইসে এই ডিভাইসের জন্য “{capability}” সক্ষম করুন।",
     "wallet.WALLET_REGISTRATION_REQUIRED": "ওয়ালেট পরিষেবা নিবন্ধন অনুপস্থিত.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "ওয়ালেট পরিষেবা যাচাই করা যাচ্ছে না। পেমেন্ট করার আগে আবার চেষ্টা করুন।",
     "wallet.FEE_TOO_LOW": "ফি সিলিং অনুমানের নিচে।",

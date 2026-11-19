@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "Ký nội dung",
   "deviceUnlockWorkspace": "Mở khóa không gian làm việc",
+  "deviceManageSecurity": "Quản lý bảo mật tài khoản",
+  "deviceAuthorizeLetterOffers": "Cho phép đề nghị thanh toán cho thư",
+  "deviceWalletProposals": "Tạo và phê duyệt đề xuất ví",
   "feedbackTitle": "Báo cáo sự cố",
   "feedbackHint": "Gửi thư riêng miễn phí đến hỗ trợ dMsg. Kiểm tra mô tả, ảnh chụp và thông tin ứng dụng trước khi gửi.",
   "feedbackScreenshots": "Ảnh chụp màn hình",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Nhận dạng thanh toán",
     "wallet.readiness": "Kiểm tra sự sẵn sàng phê duyệt",
     "wallet.WALLET_ACCOUNT_FROZEN": "Phê duyệt tài khoản bị đóng băng.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Bật WalletApprove cho thiết bị này trong Cài đặt → Thiết bị.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Bật “{capability}” cho thiết bị này trong Cài đặt → Thiết bị.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Đăng ký dịch vụ ví bị thiếu.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Không thể xác minh dịch vụ ví. Hãy thử lại trước khi thanh toán.",
     "wallet.FEE_TOO_LOW": "Mức phí trần thấp hơn mức ước tính.",

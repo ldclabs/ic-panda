@@ -39,7 +39,8 @@
   const unlocked = $derived(session === 'unlocked')
   /** A login, an unlock or the setup: what opens the device from here. */
   const step = $derived(nextStep(status))
-  const sessionAction = $derived(unlocked ? t('lock') : step ? t(step.label) : sessionLabel(session))
+  const sessionAction = $derived($unlocking ? t('unlocking') : unlocked ? t('lock') : step ? t(step.label) : '')
+  const sessionHint = $derived([sessionLabel(session), sessionAction].filter(Boolean).join(' · '))
   const presentation = $derived(syncState({ ...status, syncing }, now))
   const pending = $derived(presentation.pending)
   const failed = $derived(presentation.failed)
@@ -61,14 +62,14 @@
 {#if collapsed}
   <div class="flex flex-col items-center gap-1 pb-1" data-testid="gate-rail">
     <Tooltip
-      content={sessionAction}
+      content={sessionHint}
       side="right"
     >
       {#snippet children(props)}
         <button
           {...props}
           class={iconButtonClass('ghost', 'md', 'relative')}
-          aria-label={sessionAction}
+          aria-label={sessionHint}
           disabled={$unlocking}
           aria-busy={$unlocking}
           onclick={() => (unlocked ? lock() : step?.run())}

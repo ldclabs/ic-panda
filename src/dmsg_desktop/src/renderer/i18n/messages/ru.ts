@@ -5,6 +5,9 @@ export default {
   messages: {
   "deviceContentSigning": "Подпись содержимого",
   "deviceUnlockWorkspace": "Разблокировать рабочее пространство",
+  "deviceManageSecurity": "Управление безопасностью аккаунта",
+  "deviceAuthorizeLetterOffers": "Авторизация предложений об оплате писем",
+  "deviceWalletProposals": "Создание и одобрение предложений кошелька",
   "feedbackTitle": "Сообщить о проблеме",
   "feedbackHint": "Отправьте бесплатное личное письмо в поддержку dMsg. Перед отправкой проверьте описание, снимки экрана и сведения о приложении.",
   "feedbackScreenshots": "Снимки экрана",
@@ -2260,7 +2263,7 @@ export default {
     "wallet.payer": "Плательщик",
     "wallet.readiness": "Проверить готовность",
     "wallet.WALLET_ACCOUNT_FROZEN": "Одобрения аккаунта заморожены.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Включите WalletApprove в настройках устройства.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Включите разрешение «{capability}» в настройках устройства.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Сервис кошелька не зарегистрирован.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Не удалось проверить сервис. Повторите до оплаты.",
     "wallet.FEE_TOO_LOW": "Лимит ниже оценки.",

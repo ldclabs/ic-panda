@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "콘텐츠 서명",
   "deviceUnlockWorkspace": "작업 공간 잠금 해제",
+  "deviceManageSecurity": "계정 보안 관리",
+  "deviceAuthorizeLetterOffers": "유료 편지의 결제 제안 승인",
+  "deviceWalletProposals": "지갑 제안 생성 및 승인",
   "feedbackTitle": "문제 신고",
   "feedbackHint": "dMsg 지원팀에 무료 비공개 편지를 보냅니다. 보내기 전에 설명, 스크린샷과 앱 정보를 확인하세요.",
   "feedbackScreenshots": "스크린샷",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "신분증 결제",
     "wallet.readiness": "승인 준비 확인",
     "wallet.WALLET_ACCOUNT_FROZEN": "계정 승인이 동결되었습니다.",
-    "wallet.WALLET_APPROVE_REQUIRED": "설정 → 기기에서 이 기기에 대해 WalletApprove를 활성화하세요.",
+    "wallet.WALLET_APPROVE_REQUIRED": "설정 → 기기에서 이 기기에 대해 “{capability}”를 활성화하세요.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "지갑 서비스 등록이 누락되었습니다.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "지갑 서비스를 인증할 수 없습니다. 결제하기 전에 다시 시도하세요.",
     "wallet.FEE_TOO_LOW": "수수료 상한선은 예상 금액보다 낮습니다.",

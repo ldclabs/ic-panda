@@ -42,6 +42,7 @@
   let looking = $state(false)
   let alive = true
   let lookupVersion = 0
+  let lookupQuery = ''
   /** The registry's answer for the name looked up. */
   let found = $state<any>(null)
   /** The transfer dialog: the name, its target, and once offered the token. */
@@ -103,8 +104,7 @@
     if (alive) security = next
   }))
   const refreshLookup = single(async () => {
-    const queried = found?.display_handle ?? found?.name
-    if (queried && alive) await readPrice(queried)
+    if (alive && lookupQuery && !looking) await readPrice(lookupQuery)
   })
 
   function reload() {
@@ -131,6 +131,7 @@
 
   function editName(next: string) {
     name = next
+    lookupQuery = ''
     lookupVersion++
     found = null
     looking = false
@@ -158,7 +159,8 @@
     found = null
     errors.lookup = ''
     looking = true
-    await readPrice(name.trim().replace(/^@/, ''))
+    lookupQuery = name.trim().replace(/^@/, '')
+    await readPrice(lookupQuery)
   }
 
   const register = () => attempt(async () => approve(await call('handle/register', { name: found.display_handle ?? found.name })))

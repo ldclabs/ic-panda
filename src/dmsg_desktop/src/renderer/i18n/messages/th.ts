@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "การลงนามเนื้อหา",
   "deviceUnlockWorkspace": "ปลดล็อกพื้นที่ทำงาน",
+  "deviceManageSecurity": "จัดการความปลอดภัยของบัญชี",
+  "deviceAuthorizeLetterOffers": "อนุมัติข้อเสนอการชำระเงินสำหรับจดหมาย",
+  "deviceWalletProposals": "สร้างและอนุมัติข้อเสนอของกระเป๋าเงิน",
   "feedbackTitle": "รายงานปัญหา",
   "feedbackHint": "ส่งจดหมายส่วนตัวฟรีถึงฝ่ายสนับสนุน dMsg ตรวจสอบคำอธิบาย ภาพหน้าจอ และข้อมูลแอปก่อนส่ง",
   "feedbackScreenshots": "ภาพหน้าจอ",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "การจ่ายเงินประจำตัว",
     "wallet.readiness": "ตรวจสอบความพร้อมในการอนุมัติ",
     "wallet.WALLET_ACCOUNT_FROZEN": "การอนุมัติบัญชีถูกระงับ",
-    "wallet.WALLET_APPROVE_REQUIRED": "เปิดใช้งาน WalletApprove สำหรับอุปกรณ์นี้ในการตั้งค่า → อุปกรณ์",
+    "wallet.WALLET_APPROVE_REQUIRED": "เปิดใช้งาน “{capability}” สำหรับอุปกรณ์นี้ในการตั้งค่า → อุปกรณ์",
     "wallet.WALLET_REGISTRATION_REQUIRED": "การลงทะเบียนบริการ Wallet หายไป",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "ไม่สามารถตรวจสอบบริการกระเป๋าเงินได้ ลองอีกครั้งก่อนชำระเงิน",
     "wallet.FEE_TOO_LOW": "เพดานค่าธรรมเนียมต่ำกว่าประมาณการ",

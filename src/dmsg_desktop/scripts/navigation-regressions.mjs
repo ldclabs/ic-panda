@@ -171,7 +171,7 @@ async function channelNavigation({ main, methods, hold, waitFor, channel, peer, 
   await readError.locator('..').getByRole('button', { name: 'Dismiss', exact: true }).click()
 }
 
-async function libraryForms({ main, methods, file, waitFor, capture }) {
+async function libraryForms({ app, main, methods, file, waitFor, capture }) {
   let fail = true
   const folder = { id: '69'.repeat(32), parent: 'root', name: 'Project folder', path: [], created_at: 1, updated_at: 1 }
   const creations = [], renames = []
@@ -231,6 +231,15 @@ async function libraryForms({ main, methods, file, waitFor, capture }) {
     assert.equal(await main.evaluate(() => location.hash), '#/vault')
     assert.equal(await main.locator('[aria-modal="true"][data-state="open"]').count(), 1)
   }
+  if (process.platform === 'darwin') {
+    await app.evaluate(({ Menu, BrowserWindow }) => {
+      const settings = Menu.getApplicationMenu().items[0].submenu.items.find(item => item.accelerator === 'Cmd+,')
+      settings.click({}, BrowserWindow.getAllWindows()[0], null)
+    })
+    await settle(main)
+    assert.equal(await main.evaluate(() => location.hash), '#/vault', 'the native Settings menu keeps the editor open')
+    assert.equal(await title.inputValue(), 'Unsaved login')
+  }
   await main.getByTestId('vault-type-api').click()
   const keep = main.getByRole('button', { name: 'Keep editing', exact: true })
   await keep.waitFor()
@@ -253,7 +262,7 @@ async function libraryForms({ main, methods, file, waitFor, capture }) {
   await go(main, '/channels')
 }
 
-async function planNavigation({ main, methods, hold, waitFor, capture }) {
+async function planNavigation({ main, methods, emit, hold, waitFor, capture }) {
   const tab = value => main.getByTestId('plan-tab-' + value)
   const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
   await go(main, '/plan')
@@ -298,6 +307,14 @@ async function planNavigation({ main, methods, hold, waitFor, capture }) {
     failing = false
     await main.getByTestId('handle-lookup').click()
     await result.filter({ hasText: 'thirdname' }).waitFor()
+
+    // The approval-driven refresh can recover after failing for the same query.
+    failing = true
+    emit('approval/changed')
+    await error.waitFor()
+    failing = false
+    emit('approval/changed')
+    await result.filter({ hasText: 'thirdname' }).waitFor()
     await main.getByTestId('nav-back').click()
     await main.getByTestId('plan-orders').waitFor()
   } finally { methods['handle/price'] = read }
@@ -340,12 +357,13 @@ async function compactNavigation({ app, main, wallets, capture }) {
   } finally { wallets.state.enabled = enabled }
 }
 
-async function inboxFeedback({ app, main, methods, capture }) {
+async function inboxFeedback({ app, main, methods, emit, capture }) {
   const outgoing = methods['inbox/outgoing']
-  let fail = true
+  let failureCode = 'UNAVAILABLE'
+  let cached = []
   methods['inbox/outgoing'] = () => {
-    if (fail) throw { code: 'UNAVAILABLE' }
-    return []
+    if (failureCode) throw { code: failureCode }
+    return cached
   }
   try {
     await go(main, '/inbox')
@@ -353,7 +371,7 @@ async function inboxFeedback({ app, main, methods, capture }) {
     const failure = main.getByTestId('inbox-error')
     await failure.waitFor()
     assert.equal(await main.getByTestId('letters-empty').count(), 0)
-    fail = false
+    failureCode = ''
     await failure.getByRole('button').press('Enter')
     const empty = main.getByTestId('letters-empty')
     await empty.waitFor()
@@ -362,6 +380,28 @@ async function inboxFeedback({ app, main, methods, capture }) {
     await window.evaluate(w => w.setContentSize(760, 540))
     await main.waitForFunction(() => innerWidth === 760)
     assert.ok(await empty.evaluate(el => el.getBoundingClientRect().bottom <= el.closest('ul').getBoundingClientRect().bottom))
+
+    cached = outgoing()
+    emit('approval/changed')
+    await main.getByTestId('sent-letter').waitFor()
+    await main.evaluate(() => window.dmsg.setLocale('fr'))
+    await main.waitForSelector('html[lang="fr"]')
+    failureCode = 'LOCAL_STORAGE_UNAVAILABLE'
+    emit('approval/changed')
+    await failure.waitFor()
+    await capture('inbox-sent-read-failed', '[data-testid="inbox-error"]')
+    await window.evaluate(w => w.setContentSize(760, 540))
+    await main.waitForFunction(() => innerWidth === 760)
+    const row = main.getByTestId('letters').getByRole('button').filter({ hasText: 'A letter I sent' })
+    await row.focus()
+    assert.ok(await row.evaluate(el => {
+      const bounds = el.closest('ul').getBoundingClientRect()
+      const row = el.getBoundingClientRect()
+      return Math.min(bounds.bottom, row.bottom) - Math.max(bounds.top, row.top) >= 28
+    }), 'saved sent letters stay reachable after a read failure')
+    failureCode = ''
+    await failure.getByRole('button').press('Enter')
+    await failure.waitFor({ state: 'detached' })
     await window.evaluate(w => w.setContentSize(1180, 760))
   } finally { methods['inbox/outgoing'] = outgoing }
 }

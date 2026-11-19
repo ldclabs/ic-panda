@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "Penandatanganan konten",
   "deviceUnlockWorkspace": "Buka ruang kerja",
+  "deviceManageSecurity": "Kelola keamanan akun",
+  "deviceAuthorizeLetterOffers": "Otorisasi penawaran pembayaran surat",
+  "deviceWalletProposals": "Buat dan setujui proposal dompet",
   "feedbackTitle": "Laporkan masalah",
   "feedbackHint": "Kirim surat pribadi gratis ke dukungan dMsg. Periksa deskripsi, tangkapan layar dan informasi aplikasi sebelum mengirim.",
   "feedbackScreenshots": "Tangkapan layar",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Membayar identitas",
     "wallet.readiness": "Periksa kesiapan persetujuan",
     "wallet.WALLET_ACCOUNT_FROZEN": "Persetujuan akun dibekukan.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Aktifkan WalletApprove untuk perangkat ini di Pengaturan → Perangkat.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Aktifkan “{capability}” untuk perangkat ini di Pengaturan → Perangkat.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Pendaftaran layanan dompet tidak ada.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Tidak dapat memverifikasi layanan dompet. Coba lagi sebelum membayar.",
     "wallet.FEE_TOO_LOW": "Plafon biaya berada di bawah perkiraan.",

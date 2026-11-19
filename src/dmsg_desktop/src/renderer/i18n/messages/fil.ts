@@ -5,6 +5,9 @@ export default {
   "messages": {
   "deviceContentSigning": "Paglagda ng nilalaman",
   "deviceUnlockWorkspace": "I-unlock ang workspace",
+  "deviceManageSecurity": "Pamahalaan ang seguridad ng account",
+  "deviceAuthorizeLetterOffers": "Pahintulutan ang mga alok sa pagbabayad para sa liham",
+  "deviceWalletProposals": "Gumawa at mag-apruba ng mga panukala sa wallet",
   "feedbackTitle": "Mag-ulat ng problema",
   "feedbackHint": "Magpadala ng libreng pribadong liham sa suporta ng dMsg. Suriin ang paglalarawan, mga screenshot at impormasyon ng app bago ipadala.",
   "feedbackScreenshots": "Mga screenshot",
@@ -2250,7 +2253,7 @@ export default {
     "wallet.payer": "Nagbabayad ng pagkakakilanlan",
     "wallet.readiness": "Suriin ang kahandaan sa pag-apruba",
     "wallet.WALLET_ACCOUNT_FROZEN": "Naka-freeze ang mga pag-apruba sa account.",
-    "wallet.WALLET_APPROVE_REQUIRED": "Paganahin ang WalletApprove para sa device na ito sa Mga Setting → Mga Device.",
+    "wallet.WALLET_APPROVE_REQUIRED": "Paganahin ang “{capability}” para sa device na ito sa Mga Setting → Mga Device.",
     "wallet.WALLET_REGISTRATION_REQUIRED": "Nawawala ang pagpaparehistro ng serbisyo sa pitaka.",
     "wallet.WALLET_REGISTRATION_UNAVAILABLE": "Hindi ma-verify ang serbisyo ng wallet. Subukan muli bago magbayad.",
     "wallet.FEE_TOO_LOW": "Ang kisame ng bayad ay mas mababa sa tantiya.",

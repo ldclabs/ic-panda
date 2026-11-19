@@ -78,6 +78,7 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   assert.ok((await main.getByTestId('device-pair-preview').innerText()).includes('34'.repeat(32)))
   await main.getByTestId('device-pair-preview').getByText('Content signing', { exact: true }).waitFor()
   await main.getByTestId('device-pair-preview').getByText('Unlock workspace', { exact: true }).waitFor()
+  await main.getByTestId('device-pair-preview').getByText('Manage account security', { exact: true }).waitFor()
   failApprove = true
   await main.getByTestId('device-pair-review').click()
   await main.getByTestId('device-authorization-error').waitFor()

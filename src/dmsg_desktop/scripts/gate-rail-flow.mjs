@@ -97,7 +97,9 @@ export async function gateRailFlow({ app, main, methods, emit, hold, waitFor, sh
     // Collapsing keeps the action reachable from the keyboard in both directions.
     await main.getByTestId('sidebar-toggle').focus()
     await main.keyboard.press('Enter')
-    await main.getByTestId('gate-toggle').waitFor()
+    const toggle = main.getByTestId('gate-toggle')
+    await toggle.waitFor()
+    assert.equal(await toggle.getAttribute('aria-label'), `${catalog.sessionStates.locked} · ${catalog.messages.touchIdUnlock}`)
     await waitFor(async () => Math.abs((await main.getByTestId('sidebar').boundingBox()).width - 64) < 1)
     await layout(`${language} collapsed`)
   }
