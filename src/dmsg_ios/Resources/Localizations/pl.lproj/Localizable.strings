@@ -1986,6 +1986,8 @@
 	<string>Zarezerwowane na przesyłanie</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Przed usunięciem tego konta rozwiąż oczekującą operację na koncie.</string>
+	<key>Restored</key>
+	<string>Przywrócony</string>
 	<key>Restore</key>
 	<string>Przywróć</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Użyj co najmniej 12 znaków.</string>
 	<key>Confirm local password</key>
 	<string>Potwierdź hasło lokalne</string>
+	<key>File digest checked</key>
+	<string>Sprawdzono skrót pliku</string>
+	<key>The file changed or cannot be read</key>
+	<string>Plik został zmieniony lub nie można go odczytać</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Potwierdzony zostanie tylko skrót; plik nie został sprawdzony</string>
+	<key>Delivery report</key>
+	<string>Raport dostarczenia</string>
+	<key>Sign in</key>
+	<string>Zaloguj się</string>
+	<key>Link to an existing account</key>
+	<string>Połącz z istniejącym kontem</string>
+	<key>Confirm it is still you</key>
+	<string>Potwierdź, że to nadal Ty</string>
+	<key>Receiver</key>
+	<string>Odbiornik</string>
+	<key>Valid until</key>
+	<string>Ważne do</string>
+	<key>High risk</key>
+	<string>Wysokie ryzyko</string>
 </dict>
 </plist>

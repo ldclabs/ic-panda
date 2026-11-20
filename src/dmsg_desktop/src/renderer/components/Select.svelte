@@ -28,6 +28,7 @@
     label,
     id,
     'aria-describedby': describedBy,
+    'aria-invalid': invalid,
     disabled = false,
     onChange,
     testid,
@@ -39,6 +40,7 @@
     label?: string
     id?: string
     'aria-describedby'?: string
+    'aria-invalid'?: boolean
     disabled?: boolean
     onChange?: (value: string) => void
     testid?: string
@@ -70,6 +72,7 @@
     disabled={disabled || !options.length}
     aria-label={label}
     aria-describedby={describedBy}
+    aria-invalid={invalid}
     data-testid={testid}
   >
     <span class={cn('max-w-[260px] truncate', chosen?.mono && 'font-mono text-xs', !chosen && 'text-faint')}>{chosen?.label ?? placeholder}</span>

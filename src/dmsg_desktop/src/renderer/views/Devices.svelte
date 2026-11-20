@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte'
+  import { onDestroy, onMount, untrack } from 'svelte'
+  import { refreshSettingsApprovals, settingsApprovals } from './settings-approvals.svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
   import Dialog from '../components/Dialog.svelte'
@@ -33,7 +34,7 @@
   let error = $state('')
   let busy = $state(false)
   let loadError = $state('')
-  let pending = $state<Record<string, string>>({})
+  const pending = untrack(() => settingsApprovals<string>('devices', status))
   const target = $derived(view?.devices.find((device: any) => device.device_id === editing))
   const changed = $derived(!!target && !sameSelection(chosen, target.capabilities))
   const canSubmit = $derived(changed && !busy && !loadError && !target?.revoked_at && !pending[editing ?? ''])
@@ -50,11 +51,7 @@
       }
       view = next
       loadError = ''
-      for (const [device, id] of Object.entries(pending)) {
-        const result: any = await call('approval/show', { id }).catch(() => null)
-        if (!alive) return
-        if (['done', 'rejected', 'cancelled', 'expired', 'failed', 'elsewhere'].includes(result?.state)) delete pending[device]
-      }
+      await refreshSettingsApprovals(pending, () => alive)
     } catch (e) {
       if (!alive) return
       loadError = errorText(e)
@@ -69,8 +66,8 @@
     error = ''
     try {
       const id = pending[params.device] || (await call<any>(method, params)).id
-      if (!alive) return
       pending[params.device] = id
+      if (!alive) return
       await bridge(() => window.dmsg.openApproval(id))
       if (alive) { editing = null; void reload() }
     } catch (e) {
@@ -92,7 +89,10 @@
     const id = pending[device]
     if (busy || !id) return
     busy = true
-    try { await bridge(() => window.dmsg.openApproval(id)) }
+    try {
+      await bridge(() => window.dmsg.openApproval(id))
+      if (alive) { error = ''; if (editing === device) editing = null }
+    }
     catch (e) { if (alive) error = errorText(e) }
     finally { if (alive) busy = false }
   }
@@ -145,11 +145,11 @@
             </div>
             {#if !device.revoked_at && status?.state === 'unlocked'}
               <div class="flex shrink-0 gap-1.5">
-                <button class={buttonClass('secondary', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} aria-expanded={editing === device.device_id} onclick={() => edit(device)} data-testid="device-capabilities">
+                <button class={buttonClass('secondary', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} aria-label={`${t('capabilities')} · ${device.current ? t('thisDevice') : deviceRoleName(device.role, t)} · ${device.device_id.slice(0, 12)}`} aria-haspopup="dialog"  onclick={() => edit(device)} data-testid="device-capabilities">
                   {t('capabilities')}
                 </button>
                 {#if !device.current}
-                  <button class={buttonClass('danger', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} data-testid="revoke-device" onclick={() => ask('device/revoke', { device: device.device_id })}>
+                  <button class={buttonClass('danger', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} data-testid="revoke-device" aria-label={`${t('revoke')} · ${device.device_id.slice(0,12)}`} onclick={() => ask('device/revoke', { device: device.device_id })}>
                     {t('revoke')}
                   </button>
                 {/if}
@@ -175,7 +175,12 @@
   <div class="grid gap-3">
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     {#if target?.revoked_at}<Notice tone="warn">{t('revokedAt')} {when(target.revoked_at)}</Notice>{/if}
-    {#if editing}<Id id={editing} />{/if}
+    {#if editing && target}
+      <div class="flex flex-wrap items-center gap-2"><Pill>{deviceRoleName(target.role, t)}</Pill>
+        {#if target.current}<Pill tone="forest">{t('thisDevice')}</Pill>{/if}<Id id={editing} full wrap /></div>
+      {#if pending[editing]}<Notice>{t('securityApprovalPending')}
+        <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => showPending(editing!)}>{t('securityViewApproval')}</button></Notice>{/if}
+    {/if}
     {#each deviceCapabilities as [capability, label] (capability)}
       <Checkbox checked={chosen.includes(capability)} disabled={busy || !!pending[editing ?? ''] || !!target?.revoked_at} onCheckedChange={(on) => (chosen = on ? [...chosen, capability] : chosen.filter(c => c !== capability))}>
         <span title={capability}>{t(label)}</span>

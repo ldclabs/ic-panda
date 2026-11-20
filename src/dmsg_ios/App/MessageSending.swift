@@ -128,6 +128,7 @@ enum MessageFailure {
 /// A retry of the same reviewed input reuses its queue request.
 struct ComposerQueue {
     static let batchLimit = 10
+    static let maxTextBytes = 16_000
     private let writer = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
     private var revision: UInt64 = 0
     private var pending: [String: MessageDraft] = [:]

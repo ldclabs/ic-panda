@@ -29,7 +29,7 @@
   import Icon from '../components/Icon.svelte'
   import Select from '../components/Select.svelte'
   import { buttonClass, cn } from '../components/ui'
-  import { callerLabels, nameActionLabels, skuOf } from './plan/plan'
+  import { callerLabels, cashTotal, nameActionLabels, skuOf } from './plan/plan'
 
   /**
    * The approval window, laid out as a ticket: who asks and the way the
@@ -53,6 +53,7 @@
   const needsPassword = $derived(request?.type === 'vault_backup' && status?.account_kind === 'local' && status?.local_unlock_method === 'password')
   $effect(() => { void status?.session; void request?.id; ownerPassword = '' })
   let error = $state('')
+  let readError = $state('')
   const busy = $derived(work.kind !== 'idle')
   const approving = $derived(work.kind === 'approve')
   /** A decision made in this window, and whether the person went on using it since. */
@@ -110,10 +111,11 @@
     try {
       const next: any = await call('approval/show', { id: target })
       if (!valid(at, target)) return
-      const changed = next?.digest !== request?.digest
+      const changed = next?.digest !== request?.digest || !!readError
       const first = !request
       const before = request?.state
       request = next
+      readError = next ? '' : t('noResults')
       if (changed) arm()
       // A pending execution that settled no longer shows its old notice;
       // a failure's reason is rendered with the outcome below.
@@ -133,7 +135,8 @@
       if (!valid(at, target)) return
       // Locked: nothing of the request stays on screen.
       if (code(e) === 'LOCKED') request = null
-      error = errorText(e)
+      readError = errorText(e)
+      resetReview()
     }
   }
 
@@ -183,6 +186,7 @@
     offered = true
     if (status && status.state !== 'unlocked') {
       request = null
+      readError = ''
       readiness = null
       walletReadiness = null
       resetReview()
@@ -212,7 +216,7 @@
 
   /** Decide exactly what is shown: the digest of this view goes with the answer. */
   async function decide(approve: boolean) {
-    if (busy || !request) return
+    if (busy || !request || readError || request.state !== 'awaiting_user' || request.expires_at <= Date.now()) return
     const run: Work = { kind: approve ? 'approve' : 'reject' }
     work = run
     const at = ++revision
@@ -380,6 +384,7 @@
   const rendered = $derived(renderedAction(request))
   /** Terms of a checkout: a web checkout's quote, or this device's own. */
   const terms = $derived(request?.type === 'connect' ? d.checkout : request?.type === 'checkout' ? request.detail : null)
+  const checkoutTotal = $derived(terms?.terms?.method === 'Cash' ? cashTotal(terms.terms) : null)
   const unquoted = $derived(request?.type === 'connect' && d.method === 'checkout' && !d.checkout)
 
   /** The catalog names a storage pack's size; read once a checkout shows. */
@@ -419,7 +424,7 @@
   const lifetime = $derived(Math.max(1, (request?.expires_at ?? 0) - (request?.created_at ?? (request?.expires_at ?? 0) - 600_000)))
   const hold = $derived(holdToApprove(request))
   const blockers = $derived<string[]>([...(readiness?.blockers ?? []), ...(request?.type === 'wallet' && request?.detail?.action !== 'cosign' ? (walletReadiness?.blockers ?? ['WALLET_REGISTRATION_UNAVAILABLE']) : []), ...(request?.type === 'wallet' && request?.detail?.proposal && !knownIntent(request.detail.proposal.intent) ? ['WALLET_UNSUPPORTED_INTENT'] : [])])
-  const canApprove = $derived((!needsPassword || !!ownerPassword) && waiting && ready && !busy && !unquoted && !expired && !blockers.length)
+  const canApprove = $derived((!needsPassword || !!ownerPassword) && waiting && ready && !busy && !readError && !unquoted && !expired && !blockers.length)
   const trail = $derived(trailOf(request, agents))
   const kind = $derived(kindOf(request))
   const steps = $derived(stepsOf(request, approving))
@@ -554,6 +559,12 @@
   }
 </script>
 
+{#snippet failedRead()}
+  <Notice tone="danger" testid="approval-read-error">{readError}
+    {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={reload}>{t('retry')}</button>{/snippet}
+  </Notice>
+{/snippet}
+
 {#snippet row(label: string, value: string, options: { mono?: boolean; multiline?: boolean; testid?: string } = {})}
   <dt class="text-faint">{label}</dt>
   <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-xs leading-5', options.multiline && 'whitespace-pre-wrap')} data-testid={options.testid}>{value}</dd>
@@ -611,7 +622,7 @@
       </div>
     </div>
   {:else if !request}
-    <p class="p-5 text-muted">{error || '…'}</p>
+    <div class="p-5">{#if readError}{@render failedRead()}{:else}<p class="text-muted" role="status">{t('loading')}</p>{/if}</div>
   {:else}
     <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-5">
       <div class="flex flex-wrap items-center gap-2">
@@ -752,10 +763,10 @@
         {:else if terms || request.type === 'letter' || (request.type === 'handle' && d.total) || unquoted}
           <div class="rounded-xl border border-line bg-paper px-4 py-3.5">
             {#if terms?.terms?.method === 'Cash'}
-              <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">
-                {units(terms.terms.amount, terms.terms.decimals)} {terms.terms.asset}
+              <div class="text-[12px] text-muted">{t(checkoutTotal === null ? 'price' : 'planTotalDebit')}</div>
+              <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid={checkoutTotal === null ? 'approval-amount' : 'approval-total'}>
+                {units(checkoutTotal?.toString() ?? terms.terms.amount, terms.terms.decimals)} {terms.terms.asset}
               </div>
-              <div class="mt-0.5 text-xs text-faint tabular-nums">+ {t('fee')} {units(terms.terms.fee_reserve, terms.terms.decimals)} {terms.terms.asset}</div>
             {:else if terms?.terms}
               <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">
                 {units(terms.terms.required_stake_e8s, 8)} PANDA
@@ -774,7 +785,7 @@
           <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
             {#if request.type === 'checkout'}
               {@render row(t('plan'), `${bought(terms)} · ${terms.origin}`, { testid: 'approval-sku' })}
-              {@render row(t('price'), `$${units(terms.amount_usd_micros, 6)}`)}
+              {@render row(t('price') + ' (USD)', `$${units(terms.amount_usd_micros, 6)}`)}
               {@render row(t('serviceTerm'), `${when(terms.starts_at_ms)} – ${when(terms.expires_at_ms)}`, { testid: 'approval-period' })}
               {#if checkoutNotes(terms)}{@render row(t('note'), checkoutNotes(terms), { testid: 'approval-note' })}{/if}
             {:else if request.type === 'connect'}
@@ -789,6 +800,9 @@
               {@render nameRows()}
             {/if}
             {#if terms?.terms?.method === 'Cash'}
+              {#if checkoutTotal !== null}{@render row(t('price'), `${units(terms.terms.amount, terms.terms.decimals)} ${terms.terms.asset}`, {testid:'approval-amount'})}{/if}
+              {@render row(t('planFeeReserve'), terms.terms.fee_reserve != null ? `${units(terms.terms.fee_reserve, terms.terms.decimals)} ${terms.terms.asset}` : '—')}
+              {@render row(t('networkFee'), terms.terms.network_fee != null ? `${units(terms.terms.network_fee, terms.terms.decimals)} ${terms.terms.asset}` : '—', {testid:'approval-network-fee'})}
               {@render row(t('ledger'), terms.terms.ledger, { mono: true })}
               {@render row(t('deadline'), when(terms.terms.funding_deadline_ms))}
             {:else if terms?.terms}
@@ -968,6 +982,7 @@
     <!-- The review and its fixed decision controls keep one clear boundary. -->
     <div class="h-px shrink-0 bg-line" aria-hidden="true"></div>
     <div class="shrink-0 px-5 pt-3.5 pb-4">
+      {#if readError}{@render failedRead()}{/if}
       {#if needsPassword && waiting}<SecretInput label={t('localPassword')} bind:value={ownerPassword} disabled={busy} />{/if}
       {#if waiting && !approving}
         {#if left !== null}
@@ -979,7 +994,7 @@
           </div>
         {/if}
         <div class="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2.5">
-          <button bind:this={rejectButton} class={buttonClass('secondary', 'lg', 'h-auto min-h-10 min-w-0 whitespace-normal py-2 [overflow-wrap:anywhere]')} disabled={busy || expired} data-testid="reject" onclick={() => decide(false)}>
+          <button bind:this={rejectButton} class={buttonClass('secondary', 'lg', 'h-auto min-h-10 min-w-0 whitespace-normal py-2 [overflow-wrap:anywhere]')} disabled={busy || !!readError || expired} data-testid="reject" onclick={() => decide(false)}>
             {t('reject')}
           </button>
           <button

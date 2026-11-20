@@ -67,7 +67,10 @@ class VaultDrafts(private val client: ClientController) {
     fun open(item: VaultItem?) {
         if (!loaded) { load { open(item) }; return }
         val previous = drafts.values.firstOrNull { it.draft.id == item?.id }
-        val original = previous?.original ?: VaultDraft.from(item, if (item == null) vaultTemplate("login") else emptyList())
+        val context = client.vault.query
+        val kind = context.kind ?: "login"
+        val original = previous?.original ?: if (item == null) VaultDraft.from(null, vaultTemplate(kind))
+            .copy(kind = kind, favorite = context.favorites, tags = context.tag.orEmpty()) else VaultDraft.from(item, emptyList())
         val value = previous?.draft ?: original
         val input = previous?.input?.copy(revision = previous.input.revision + 1u, active = true)
             ?: VaultDraftInput(requestId(), value.id, value.revision, 1u, vaultDraftForm(value, original), true)

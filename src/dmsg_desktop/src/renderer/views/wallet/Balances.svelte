@@ -36,11 +36,11 @@
     >
   </div>
   <p class="text-[12px] text-muted" role="status"
-    >{balances ? `${w('readAt')}: ${when(balances.read_at)}` : w(busy ? 'loading' : 'noBalance')}{balances && busy
+    >{balances ? `${w('readAt')}: ${when(balances.read_at)}` : busy ? w('loading') : error ? '' : w('noBalance')}{balances && (busy || error)
       ? ` · ${w('cachedBalance')}`
       : ''}</p
   >
-  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+  {#if error}<Notice tone="danger" testid="wallet-balance-error">{error}</Notice>{/if}
   <div class="divide-line divide-y">
     {#each wallet.addresses as address (address.id)}
       {@const amounts =
@@ -64,13 +64,13 @@
             class={buttonClass('secondary', 'sm')}
             disabled={!address.verified}
             onclick={() => onReceive(address.id, asset.chain_id)}
-            aria-label={`${w('receive')} ${assetIdentity(asset)}`}>{w('receive')}</button
+            aria-label={`${w('receive')} ${assetIdentity(asset)} · ${address.label || address.chain} #${address.id}`}>{w('receive')}</button
           >
           {#if canSend && wallet.policy.spendable_assets.some((a: Asset) => assetKey(a) === assetKey(asset))}<button
               class={buttonClass('ghost', 'sm')}
               disabled={!address.verified}
               onclick={() => onSend(address.id, asset)}
-              aria-label={`${w('proposePayment')} ${assetIdentity(asset)}`}>{w('send')}</button
+              aria-label={`${w('proposePayment')} ${assetIdentity(asset)} · ${address.label || address.chain} #${address.id}`}>{w('proposePayment')}</button
             >{/if}
         </div>
       {/each}

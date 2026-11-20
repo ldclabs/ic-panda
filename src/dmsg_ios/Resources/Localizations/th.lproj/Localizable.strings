@@ -1986,6 +1986,8 @@
 	<string>สำรองสำหรับการอัปโหลด</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>แก้ไขการดำเนินการบัญชีที่รอดำเนินการก่อนที่จะลบบัญชีนี้</string>
+	<key>Restored</key>
+	<string>คืนค่า</string>
 	<key>Restore</key>
 	<string>กู้คืน</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>ใช้อย่างน้อย 12 ตัวอักษร</string>
 	<key>Confirm local password</key>
 	<string>ยืนยันรหัสผ่านในเครื่อง</string>
+	<key>File digest checked</key>
+	<string>ตรวจสอบแฮชของไฟล์แล้ว</string>
+	<key>The file changed or cannot be read</key>
+	<string>ไฟล์มีการเปลี่ยนแปลงหรือไม่สามารถอ่านได้</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>มีเพียงแฮชเท่านั้นที่ได้รับการยืนยัน ไม่ได้ตรวจสอบไฟล์</string>
+	<key>Delivery report</key>
+	<string>รายงานการส่งมอบ</string>
+	<key>Sign in</key>
+	<string>เข้าสู่ระบบ</string>
+	<key>Link to an existing account</key>
+	<string>เชื่อมโยงกับบัญชีที่มีอยู่</string>
+	<key>Confirm it is still you</key>
+	<string>ยืนยันว่ายังคงเป็นคุณ</string>
+	<key>Receiver</key>
+	<string>ผู้รับ</string>
+	<key>Valid until</key>
+	<string>ใช้ได้ถึงวันที่</string>
+	<key>High risk</key>
+	<string>มีความเสี่ยงสูง</string>
 </dict>
 </plist>

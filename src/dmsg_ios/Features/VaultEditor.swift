@@ -46,7 +46,7 @@ struct VaultDraft: Codable, Equatable {
             baseRevision = item.revision
             fields = item.fields.map { Field(id: $0.id, kind: $0.kind, label: $0.label, section: $0.section,
                 value: $0.concealed ? "" : $0.value, concealed: $0.concealed, changed: false) }
-        } else { kind = target.kind; favorite = target.favorite; addTemplate() }
+        } else { kind = target.kind; favorite = target.favorite; tags = target.tag; addTemplate() }
     }
 
     /// Preserve edits and custom fields; replace only untouched, empty defaults.
@@ -197,7 +197,7 @@ struct VaultEditor: View {
                     Text("Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-                Text("Saved locally first. Sync status is shown separately.").font(.footnote).foregroundStyle(.secondary)
+                if !model.localAccount { Text("Saved locally first. Sync status is shown separately.").font(.footnote).foregroundStyle(.secondary) }
             }.environment(\.editMode, $editMode).disabled(saving || !model.vaultEditing.ready)
                 .accessibilityIdentifier("vault.edit.form")
                 .safeAreaInset(edge: .top) {
@@ -214,7 +214,7 @@ struct VaultEditor: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if dirty { discard = true } else { Task { await discardDraft() } } }.disabled(saving).keyboardShortcut(.cancelAction) }
                     ToolbarItem(placement: .confirmationAction) {
                         Button { Task { await save() } } label: { if saving { ProgressView() } else { Text("Save") } }
-                            .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving || !model.vaultEditing.ready)
+                            .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || entry.itemID != nil && !dirty || saving || !model.vaultEditing.ready)
                             .accessibilityIdentifier("vault.edit.save")
                             .keyboardShortcut("s", modifiers: .command)
                     }
@@ -241,7 +241,7 @@ struct VaultEditor: View {
                 }
                 .task { await loadAttachments() }
                 .sheet(isPresented: $choosingAttachment) {
-                    NavigationStack { AttachmentPicker(folder: "root") { file in
+                    NavigationStack { AttachmentPicker(folder: "root", use: .library, attached: Set(draft.files), cancel: { choosingAttachment = false }) { file in
                         if !draft.files.contains(file.id) { draft.files.append(file.id) }
                         attachmentFiles[file.id] = file; choosingAttachment = false
                     } }
@@ -275,7 +275,7 @@ struct VaultEditor: View {
     }
 
     private func save() async {
-        guard !saving, model.vaultEditing.ready else { return }
+        guard !saving, model.vaultEditing.ready, entry.itemID == nil || dirty else { return }
         guard !draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { focus = .title; return }
         focus = nil
         editMode = .inactive
@@ -296,23 +296,27 @@ struct VaultEditor: View {
                     return FieldEdit(id: field.id, kind: field.kind, label: field.label, section: field.section, value: entry.itemID != nil && !field.changed ? nil : value)
                 },
                 files: entry.itemID == nil || draft.files != initial.files ? draft.files : nil)
-            let conflict: Bool
+            let saved: VaultItem
             #if DEBUG
             if model.uiTesting {
-                try model.saveVaultFixture(target: VaultEditorTarget(item: model.fixtureVaultItems.first { $0.id == entry.itemID }), edit: edit); conflict = false
+                saved = try model.saveVaultFixture(target: VaultEditorTarget(item: model.fixtureVaultItems.first { $0.id == entry.itemID }), edit: edit)
             }
             else {
                 guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-                conflict = try await engine.commitVaultDraft(draft: model.vaultEditing.input(id: entry.id), edit: edit).item.conflict
+                saved = try await engine.commitVaultDraft(draft: model.vaultEditing.input(id: entry.id), edit: edit).item
             }
             #else
             guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
-            conflict = try await engine.commitVaultDraft(draft: model.vaultEditing.input(id: entry.id), edit: edit).item.conflict
+            saved = try await engine.commitVaultDraft(draft: model.vaultEditing.input(id: entry.id), edit: edit).item
             #endif
             guard scope == model.viewGeneration else { return }
             model.vaultEditing.finished(entry.id); initial = draft
-            model.notice = String(localized: conflict ? "Saved as a separate version. Review sync conflicts." : "Saved on this device")
+            model.notice = String(localized: saved.conflict ? "Saved as a separate version. Review sync conflicts." : "Saved on this device")
             if model.uiTesting { await model.loadVault() } else { await model.updateSession() }
+            guard scope == model.viewGeneration else { return }
+            if entry.itemID == nil && model.selectedTab == .vault && (!model.search.isEmpty || model.vaultFilter != "all" || !model.vaultTag.isEmpty) && !model.vault.contains(where: { $0.id == saved.id }) {
+                model.route.vaultItem = saved.id
+            }
             dismiss()
         } catch { if scope == model.viewGeneration { failure = vaultReadError(error) } }
     }

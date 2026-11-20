@@ -89,14 +89,15 @@ struct VaultView: View {
     }
 
     @ViewBuilder private var empty: some View {
-        if model.contentSync?.initialized != true {
+        if !model.localAccount && model.contentSync?.initialized != true {
             ContentUnavailableView(ContentSyncStatusView.title(model.contentSync), systemImage: "arrow.triangle.2.circlepath")
         } else if !model.search.isEmpty {
             ContentUnavailableView.search(text: model.search)
-            Button("Clear filters") { clear() }
+            Button("Clear search") { model.search = "" }
+            Button("Add item", systemImage: "plus") { add() }.accessibilityIdentifier("vault.empty.add")
         } else {
             ContentUnavailableView(model.vaultFilter == "favorites" ? "No favorites" : "No items", image: AppGlyph.vault.assetName)
-            if model.vaultFilter == "all" {
+            if model.vaultFilter == "all" && model.vaultTag.isEmpty {
                 NavigationLink("Import from backup") { VaultBackupView() }
             }
             Button("Add item", systemImage: "plus") { add() }
@@ -109,7 +110,7 @@ struct VaultView: View {
     private func clear() { model.search = ""; model.vaultTag = ""; model.vaultFilter = "all" }
 
     private func add() {
-        let target = VaultEditorTarget(item: nil, kind: vaultKinds().contains(model.vaultFilter) ? model.vaultFilter : "login", favorite: model.vaultFilter == "favorites")
+        let target = VaultEditorTarget(item: nil, kind: vaultKinds().contains(model.vaultFilter) ? model.vaultFilter : "login", favorite: model.vaultFilter == "favorites", tag: model.vaultTag)
         Task { await model.vaultEditing.open(target, model: model) }
     }
 }
@@ -155,12 +156,16 @@ private struct VaultBrowseBar: View {
             }
             Button { filtering = true } label: {
                 Image(systemName: model.vaultTag.isEmpty ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill").frame(width: 44, height: 44)
-            }.accessibilityLabel("Filters").accessibilityIdentifier("vault.filters")
+                if !model.vaultTag.isEmpty { Text(model.vaultTag).lineLimit(1).frame(maxWidth: 92) }
+            }.accessibilityLabel("Filters").accessibilityValue(model.vaultTag).accessibilityIdentifier("vault.filters")
         }.font(.subheadline).padding(.bottom, 8).background(Theme.paper)
     }
 
     private func scope(_ value: String, title: LocalizedStringKey, symbol: String) -> some View {
-        BrowseTab(selected: model.vaultFilter == value) { model.vaultFilter = value } label: {
+        BrowseTab(selected: model.vaultFilter == value && (value != "all" || model.vaultTag.isEmpty)) {
+            model.vaultFilter = value
+            if value == "all" { model.vaultTag = "" }
+        } label: {
             if sizeClass == .regular {
                 if ["login", "note"].contains(value) {
                     AppGlyph.vaultItem(value).image.resizable().scaledToFit().frame(width: 17, height: 17).accessibilityHidden(true)
@@ -187,7 +192,7 @@ private struct VaultFiltersView: View {
                 ForEach(model.vaultCounts.tags, id: \.self) { Text($0).tag($0) }
                 if !model.vaultTag.isEmpty && !model.vaultCounts.tags.contains(model.vaultTag) { Text(model.vaultTag).tag(model.vaultTag) }
             }.pickerStyle(.inline)
-            Button("Clear filters") { model.vaultTag = ""; model.vaultFilter = "all"; model.search = "" }
+            Button("Clear filters") { model.vaultTag = ""; model.vaultFilter = "all" }
         }.privateScreen().navigationTitle("Filters")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
     }
@@ -215,4 +220,5 @@ struct VaultEditorTarget {
     let item: VaultItem?
     var kind = "login"
     var favorite = false
+    var tag = ""
 }

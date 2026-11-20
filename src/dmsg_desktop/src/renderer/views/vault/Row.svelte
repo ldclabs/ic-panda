@@ -9,6 +9,8 @@
   let {
     entry,
     selected,
+    focusable,
+    multi,
     conflict,
     flagged,
     trash,
@@ -17,6 +19,8 @@
   }: {
     entry: any
     selected: boolean
+    focusable: boolean
+    multi: boolean
     conflict: boolean
     flagged: boolean
     trash: boolean
@@ -39,7 +43,8 @@
     data-id={entry.id}
     data-chosen={chosen}
     aria-current={selected ? 'true' : undefined}
-    tabindex={selected ? 0 : -1}
+    aria-pressed={multi && !managed ? chosen : undefined}
+    tabindex={focusable ? 0 : -1}
     onclick={onClick}
   >
     <span class={cn('grid size-8 place-items-center [&_svg]:size-5', selected || chosen ? 'text-forest' : 'text-faint')}>
@@ -55,11 +60,11 @@
         {#if conflict}
           <span class="rounded bg-warn-pale px-1 text-[10.5px] font-medium text-warn">{t('conflict')}</span>
         {:else if !entry.synced && entry.save_state !== 'local_only'}
-          <span class="size-1.5 rounded-full bg-warn" title={t('notSynced')}></span>
+          <span class="size-1.5 rounded-full bg-warn" title={t('notSynced')}><span class="sr-only">{t('notSynced')}</span></span>
         {/if}
         {#if flagged}<Icon name="warning" class="size-3 text-warn" label={t('healthFlagged')} />{/if}
         {#if managed}<Icon name="lock" class="size-3" label={t('managedByDmsg')} />{/if}
-        {#if item.favorite}<Icon name="starred" class="size-3 text-gem" />{/if}
+        {#if item.favorite}<Icon name="starred" class="size-3 text-gem" label={t('starred')} />{/if}
       </span>
     </span>
   </button>

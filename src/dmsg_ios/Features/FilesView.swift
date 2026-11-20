@@ -67,7 +67,7 @@ struct FilesView: View {
         }
         .onChange(of: model.filesScope) { _, _ in model.route.file = nil; model.filesSearch = ""; selecting = false; selection = [] }
         .onChange(of: model.filesSearch) { _, _ in selection = [] }
-        .onChange(of: model.route.filesPath) { _, _ in model.activity(); model.filesSearch = ""; selecting = false; selection = [] }
+        .onChange(of: model.route.filesPath) { _, _ in model.activity(); selecting = false; selection = [] }
         .onChange(of: targets(current).map(\.id)) { _, ids in selection.formIntersection(ids) }
         .onChange(of: model.route.file) { _, value in if value != nil { model.activity() } }
         .sheet(item: $sheet) { value in
@@ -82,7 +82,7 @@ struct FilesView: View {
                 case .move(let targets): FileMoveView(items: targets)
                 case .results(let values): FileResultsView(results: values)
                 case .imports(let urls, let folder): FileImportView(urls: urls, folder: folder) { file in
-                    model.filesScope = .local; model.filesSearch = ""; show(file.id)
+                    model.revealLocalFileListing(in: folder); show(file.id)
                 }
                 }
             }
@@ -99,7 +99,7 @@ struct FilesView: View {
         .cameraImport(requested: $openingCamera) { await importCapture($0) }
         .confirmationDialog("Move to Trash", isPresented: Binding(get: { !removing.isEmpty }, set: { if !$0 { removing = [] } }), titleVisibility: .visible) {
             Button("Move to Trash", role: .destructive) { let values = removing; removing = []; Task { await trash(values) } }
-        } message: { Text("Cloud backups are kept. This only changes the copy on this device.") }
+        } message: { Text(fileTrashConfirmation(removing.map(\.name), localAccount: model.localAccount)) }
     }
 
     private var stackRoot: some View {
@@ -121,7 +121,6 @@ struct FilesView: View {
     }
 
     private func folderScreen(_ id: String) -> some View {
-        @Bindable var model = model
         let root = id == "root", shown = listing(id)
         // Large text scrolls the bar away on phones.
         let barInList = textSize.isAccessibilitySize && compact
@@ -151,26 +150,28 @@ struct FilesView: View {
                     return true
                 }
         }.privateScreen().navigationTitle(root ? String(localized: "Files") : model.filesListings[id]?.folder?.name ?? "")
-            .searchable(text: $model.filesSearch, placement: .navigationBarDrawer(displayMode: .always), prompt: root && model.filesScope == .cloud ? "Search cloud backups" : "Search files")
+            .searchable(text: Binding(get: { model.filesSearches[id] ?? "" }, set: { model.setFileSearch($0, in: id) }),
+                        placement: .navigationBarDrawer(displayMode: .always), prompt: root && model.filesScope == .cloud ? "Search cloud backups" : "Search files")
             .toolbar { toolbar(root: root) }
     }
 
     @ViewBuilder private func localContent(_ id: String, listing shown: LibraryListing?) -> some View {
         if let shown {
-            if id == "root" { backupHint }
+            if id == "root" && model.filesSearch.isEmpty && !model.localAccount { backupHint }
             ForEach(shown.folders) { folder in
                 let target = LibraryItemTarget(id: folder.id, name: folder.name, folder: true)
+                let subtitle = model.filesSearch.isEmpty ? String(localized: "Folder") : fileFolderPath(folder.path)
                 Group {
                     if selecting {
                         Button { toggle(folder.id) } label: {
                             HStack(spacing: 10) {
                                 selectionIcon(folder.id)
-                                FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: String(localized: "Folder"))
+                                FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: subtitle)
                             }.contentShape(Rectangle())
                         }.buttonStyle(.plain).accessibilityAddTraits(selection.contains(folder.id) ? .isSelected : [])
                     } else {
                         NavigationLink(value: FilesRoute.folder(folder.id)) {
-                            FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: String(localized: "Folder"))
+                            FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: subtitle)
                         }
                     }
                 }.compactObjectRow().accessibilityIdentifier("folder.item.\(folder.id)")
@@ -202,7 +203,7 @@ struct FilesView: View {
                     Button("Clear search") { model.filesSearch = "" }
                 } else {
                     ContentUnavailableView("No files in this folder", image: AppGlyph.folder.assetName,
-                        description: Text("Import a document to encrypt it on this device. Cloud backup is a separate action."))
+                        description: model.localAccount ? nil : Text("Import a document to encrypt it on this device. Cloud backup is a separate action."))
                     SettingsAction("Import file", systemImage: "plus") { importing = true }
                     if !model.localAccount && !model.cloudBackups.isEmpty && id == "root" {
                         SettingsAction("Cloud backups", glyph: .sync) { model.filesScope = .cloud }
@@ -244,13 +245,14 @@ struct FilesView: View {
     }
 
     @ViewBuilder private func fileRow(_ file: LibraryFile) -> some View {
+        let row = FileRow(file: file, showsLocation: !model.filesSearch.isEmpty)
         if selecting {
-            Button { toggle(file.id) } label: { HStack(spacing: 10) { selectionIcon(file.id); FileRow(file: file) } }
+            Button { toggle(file.id) } label: { HStack(spacing: 10) { selectionIcon(file.id); row } }
                 .buttonStyle(.plain).accessibilityAddTraits(selection.contains(file.id) ? .isSelected : [])
         } else if compact {
-            NavigationLink(value: FilesRoute.file(file.id)) { FileRow(file: file) }
+            NavigationLink(value: FilesRoute.file(file.id)) { row }
         } else {
-            Button { model.route.file = file.id } label: { FileRow(file: file).contentShape(Rectangle()) }
+            Button { model.route.file = file.id } label: { row.contentShape(Rectangle()) }
                 .buttonStyle(.plain)
                 .listRowBackground(model.route.file == file.id ? Theme.forest.opacity(0.1) : nil)
                 .accessibilityAddTraits(model.route.file == file.id ? .isSelected : [])
@@ -300,7 +302,7 @@ struct FilesView: View {
                 Section {
                     Button("Trash", systemImage: "trash") { sheet = .trash }
                     if !model.localAccount { Button("Without a cloud backup", glyph: .cloudOff) { model.route.filesPath.append(.unbacked) } }
-                    Button("About files and backups", systemImage: "info.circle") { sheet = .help }
+                    Button(model.localAccount ? "About" : "About files and backups", systemImage: "info.circle") { sheet = .help }
                 }
             }.accessibilityIdentifier("files.tools")
         }
@@ -308,7 +310,7 @@ struct FilesView: View {
 
     private var selectionBar: some View {
         HStack {
-            Text(selection.count.formatted()).font(.subheadline.monospacedDigit()).accessibilityLabel("Selected files")
+            Text(selection.count.formatted()).font(.subheadline.monospacedDigit()).accessibilityLabel("Selected files").accessibilityValue(selection.count.formatted())
             Spacer()
             Menu("Actions", systemImage: "ellipsis.circle") {
                 if !model.localAccount { Button("Back up to cloud", glyph: .cloudUp) {
@@ -337,6 +339,7 @@ struct FilesView: View {
         guard !working else { return }; let stamp = model.epoch
         working = true; defer { working = false }
         var results: [FileActionResult] = []
+        var failedIDs: Set<String> = []
         for target in values {
             guard stamp == model.epoch, !Task.isCancelled else { return }
             do {
@@ -344,11 +347,13 @@ struct FilesView: View {
                 results.append(FileActionResult(name: target.name, message: String(localized: "Moved to Trash")))
             } catch {
                 guard stamp == model.epoch, let message = model.fileFailureMessage(error) else { return }
+                failedIDs.insert(target.id)
                 results.append(FileActionResult(name: target.name, message: message, failed: true))
             }
         }
         guard stamp == model.epoch, !Task.isCancelled else { return }
-        await model.loadFiles(); selection = []; selecting = false
+        await model.loadFiles()
+        if selecting { selection = failedIDs; selecting = !failedIDs.isEmpty }
         report(results, success: String(localized: "Moved to Trash"))
     }
 
@@ -368,15 +373,16 @@ struct FilesView: View {
                 defer { copy.finish() }
                 guard stamp == model.epoch, !Task.isCancelled else { return }
                 let file = try await model.importLibraryDocument(copy.file, folder: folder)
-                results.append(FileActionResult(name: file.name, message: String(localized: "Imported to this device. Cloud backup is a separate action.")))
+                results.append(FileActionResult(name: file.name, message: model.fileImportNotice))
             } catch {
                 guard stamp == model.epoch, let message = model.fileFailureMessage(error) else { return }
                 results.append(FileActionResult(name: String(localized: "Photos and videos"), message: message, failed: true))
             }
         }
         guard stamp == model.epoch, !Task.isCancelled else { return }
+        if results.contains(where: { !$0.failed }) { model.revealLocalFileListing(in: folder) }
         await model.loadFiles()
-        report(results, success: String(localized: "Imported to this device. Cloud backup is a separate action."))
+        report(results, success: model.fileImportNotice)
     }
 
     private func importCapture(_ capture: Result<PhotoImport, Error>) async {
@@ -388,9 +394,9 @@ struct FilesView: View {
             _ = try await model.importLibraryDocument(copy.file, folder: folder)
             guard stamp == model.epoch else { return }
             // The new file is listed even if the camera was opened from cloud backups or a search.
-            model.filesScope = .local; model.filesSearch = ""
+            model.revealLocalFileListing(in: folder)
             await model.loadFiles()
-            model.notice = String(localized: "Imported to this device. Cloud backup is a separate action.")
+            model.notice = model.fileImportNotice
         } catch {
             if stamp == model.epoch { model.reportFileError(error) }
         }

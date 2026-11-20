@@ -63,6 +63,7 @@ fun parseSecretPackage(value: JsonElement): SecretPackage {
 
 /** Preparation stays local; publication and import always open their original approval. */
 class SecretSharingCoordinator(private val client: ClientController) {
+    val picker = VaultBrowser(client, "secret:picker")
     val source = ReadStore<SnapshotSource>()
     val jobs = ReadStore<List<SecretShareJob>> { it.isEmpty() }
     val job = ReadStore<SecretShareJob>()
@@ -222,6 +223,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
         }
     }
     fun clear(retainForms: Boolean = false) {
+        picker.reset()
         source.reset(); jobs.reset(); job.reset(); preview.reset(); mutableLink.value = null; selectedJob = null
         if (!retainForms) { mutableDraft.value = null; mutableIncoming.value = PackageDraft() }
         else { mutableDraft.value = mutableDraft.value?.copy(password = ""); mutableIncoming.value = mutableIncoming.value.copy(password = "", fields = emptySet(), notes = false, attachments = emptySet()) }

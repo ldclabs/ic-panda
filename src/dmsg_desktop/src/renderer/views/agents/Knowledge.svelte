@@ -9,7 +9,7 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t, type Label } from '../../i18n/index.svelte'
-  import { call, code, when } from '../../rpc'
+  import { CallError, call, code, errorText, when } from '../../rpc'
 
   /** Inspect public contributions at one service; authoring belongs to the Agent. */
   let {
@@ -33,7 +33,7 @@
   onDestroy(() => { alive = false; revision++ })
   const context = () => `${agent}:${service}:${mode}`
   const PAGE = 20
-  let agent = $state('')
+  const agent = $derived(active || agents[0]?.agent_id || '')
   let service = $state('')
   let mode = $state('knowledge.publish')
   let text = $state('')
@@ -45,6 +45,7 @@
   let lifecycle = $state<any>(null)
   let assessments = $state<any[]>([])
   let error = $state('')
+  let retry = $state<(() => unknown) | null>(null)
   let busy = $state(false)
   const kinds: Record<string, Label> = {
     question: 'knowledgeKindQuestion',
@@ -70,9 +71,6 @@
   const labelOf = (did: string) => agents.find((a) => a.agent_id === did)?.label ?? did
 
   $effect(() => {
-    if (!agent && agents.length) agent = active ?? agents[0].agent_id
-  })
-  $effect(() => {
     if (!service && hosts.length) service = (hosts.find((h) => /knowledge/i.test(`${h.label ?? ''} ${h.host}`)) ?? hosts[0]).host
   })
   $effect(() => {
@@ -85,14 +83,19 @@
         lifecycle = null
         scope = null
         lookup = ''
-        error = ''; assessments = []
+        error = ''; retry = null; assessments = []
         if (mode !== 'search') void look()
       })
   })
 
+  function editSearch() {
+    revision++; items = null; found = null; lifecycle = null; assessments = []; scope = null; cursor = null
+    busy = false; error = ''; retry = null
+  }
+
   async function tool(name: string, input: Record<string, unknown> = {}) {
     const answer: any = await call('ap/call', { agent, tool: `agent_protocols_${name}`, input })
-    if (answer.error) throw Object.assign(new Error(answer.error.message), { tool: answer.error.code })
+    if (answer.error) throw new CallError(String(answer.error.code).toUpperCase())
     return answer.result
   }
 
@@ -106,14 +109,15 @@
       await work(valid)
     } catch (e: any) {
       if (!valid()) return
-      error = `${t('error')}: ${e?.tool ?? (code(e) === 'LOCKED' ? t('locked') : code(e))}${e?.tool ? ` ${e.message}` : ''}`
+      error = code(e) === 'LOCKED' ? t('agentLocked') : errorText(e) || t('agentLoadFailed')
     } finally {
       if (valid()) busy = false
     }
   }
 
-  const look = (more = false) =>
+  const look = (more = false): Promise<void> =>
     attempt(async (valid) => {
+      retry = () => look(more)
       if (!more) {
         items = null
         cursor = null
@@ -132,8 +136,9 @@
       scope = result
     })
 
-  const get = (id: string) =>
+  const get = (id: string): Promise<void> =>
     attempt(async (valid) => {
+      retry = () => get(id)
       found = null
       lifecycle = null
       assessments = []
@@ -155,8 +160,7 @@
   <Section title={t('knowledge')} description={t('knowledgeHint')} icon="knowledge" testid="agent-knowledge">
     {#snippet actions()}
       <Select
-        bind:value={agent}
-        onChange={selectAgent}
+        bind:value={() => agent, selectAgent}
         label={t('tabAgentIds')}
         testid="knowledge-agent"
         options={agents.map((a) => ({ value: a.agent_id, label: a.label }))}
@@ -210,14 +214,16 @@
             aria-label={t('knowledgeSearchText')}
             placeholder={t('knowledgeSearchText')}
             bind:value={text}
-            disabled={busy}
+            oninput={editSearch}
             data-testid="knowledge-text"
           />
           <button class={buttonClass('secondary')} disabled={busy || !service || !text.trim()} data-testid="knowledge-look"><Icon name="search" />{t('knowledgeSearch')}</button>
         </form>
         <p class="text-[11.5px] text-faint">{t('rankingNote')}</p>
       {:else}<p class="text-[12px] text-muted">{t('knowledgeAgentScope', { agent: labelOf(agent) })}</p>{/if}
-      {#if error}<Notice failure={error} tone="danger" testid="knowledge-error">{error}</Notice>{/if}
+      {#if error}<Notice tone="danger" testid="knowledge-error">{error}
+        {#snippet action()}{#if retry}<button class={buttonClass('secondary', 'sm')} onclick={retry}>{t('retry')}</button>{/if}{/snippet}
+      </Notice>{/if}
       {#if items?.length || found}
         <div class="grid min-h-96 lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)]">
           <div class="min-w-0 border-b border-line lg:border-e lg:border-b-0">
@@ -340,13 +346,15 @@
               </div>{/if}
           </div>
         </div>
-      {:else}
+      {:else if !error}
         <div class="grid min-h-60 place-content-center justify-items-center gap-3 px-8 text-center" data-testid="knowledge-empty">
           <Icon name="knowledge" class="size-8 text-faint" />
           <h3 class="text-[14px] font-medium">
-            {busy ? t('loading') : error ? t('agentLoadFailed') : !service ? t('knowledgeNoService') : mode === 'search' && !items ? t('knowledgeSearchText') : t('knowledgeEmpty')}
+            {busy ? t('loading') : !service ? t('knowledgeNoService') : mode === 'search' ? (items ? t('noResults') : t('knowledgeSearchText')) : t('knowledgeEmpty')}
           </h3>
-          <p class="max-w-md text-[12.5px] leading-relaxed text-muted">{t('knowledgeEmptyHint')}</p>
+          {#if mode === 'search' && items}
+            <button class={buttonClass('ghost', 'sm')} onclick={() => { text = ''; editSearch(); document.querySelector<HTMLInputElement>('[data-testid="knowledge-text"]')?.focus() }}>{t('clearSearch')}</button>
+          {:else if items && !busy}<p class="max-w-md text-[12.5px] leading-relaxed text-muted">{t('knowledgeEmptyHint')}</p>{/if}
         </div>
       {/if}
       {#if scope}<p class="text-[11.5px] text-faint [overflow-wrap:anywhere]">

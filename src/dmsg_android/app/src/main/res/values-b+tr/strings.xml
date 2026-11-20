@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"İzin ekle"</string>
     <string name="android_purchase_privacy" formatted="false">"Yapılandırıldığında Google Play satın alımları, Google hesabı, faturalandırma ve cihaz doğrulama hizmetlerini kullanır. Satın alma jetonları, hizmet hakların teslimini doğrulayana kadar şifreli saklanır. dMsg içeriği Google\'a gönderilmez. Aşağıdaki hizmet politikası, diğer dMsg uygulamalarının kullandığı Apple\'a özgü hizmetleri de açıklar."</string>
     <string name="app_language" formatted="false">"Dil"</string>
+    <string name="approval_file_changed" formatted="false">"Dosya değişti veya okunamıyor"</string>
+    <string name="approval_link" formatted="false">"Mevcut bir hesaba bağlantı oluşturma"</string>
+    <string name="approval_login" formatted="false">"Oturum aç"</string>
+    <string name="approval_reauthenticate" formatted="false">"Hala sen olduğunu doğrula"</string>
+    <string name="approval_receiver" formatted="false">"Alıcı"</string>
+    <string name="approval_request_expires" formatted="false">"İsteğin süresi doluyor"</string>
+    <string name="approval_valid_until" formatted="false">"Şu tarihe kadar geçerlidir:"</string>
     <string name="autofill_choose_at_login" formatted="false">"Bir uygulama veya site parola istediğinde bir hesap seçin."</string>
     <string name="autofill_confirm" formatted="false">"Bu hesapla doldurulsun mu?"</string>
     <string name="autofill_no_items" formatted="false">"Henüz kayıt yok"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"Şifreli aktarımlar"</string>
     <string name="customize_fields" formatted="false">"Alanları özelleştir"</string>
     <string name="empty_folder" formatted="false">"Bu klasörde dosya yok"</string>
+    <string name="file_moved_to_trash" formatted="false">"Çöp kutusuna taşındı"</string>
+    <string name="file_name_rule" formatted="false">"Eğik çizgi veya kontrol karakteri içermeyen, 1–255 karakter uzunluğunda bir ad kullanın."</string>
+    <string name="file_name_taken" formatted="false">"Bu ada sahip bir dosya veya klasör zaten var."</string>
+    <string name="file_original_folder" formatted="false">"Asıl klasör"</string>
+    <string name="file_restored" formatted="false">"Geri yüklendi"</string>
     <string name="follow_system_language" formatted="false">"Sistem dilini izle"</string>
     <string name="history_device" formatted="false">"Cihaz"</string>
     <string name="history_fields" formatted="false">"Alanlar"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"%2$s öğeden %1$s tanesi oluşturuldu"</string>
     <string name="local_password" formatted="false">"Yerel parola"</string>
     <string name="local_password_length" formatted="false">"En az 12 karakter kullanın."</string>
+    <string name="message_actions" formatted="false">"İşlemler"</string>
+    <string name="message_sending" formatted="false">"Gönderme"</string>
     <string name="no_matches" formatted="false">"Eşleşen sonuç yok"</string>
     <string name="offline_account" formatted="false">"Yerel hesap"</string>
     <string name="operation_failed_code" formatted="true">"Bu işlem tamamlanamadı. Kod: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"İçe aktarma kaydedilmedi. Yedeği tekrar seçin."</string>
     <string name="vault_backup_unlockerror" formatted="false">"Yedek açılamadı. Parolayı kontrol edin veya eksiksiz bir dosya seçin."</string>
     <string name="vault_backup_wallet" formatted="false">"Cüzdan kayıtlarında saklanan gizli bilgileri içerir."</string>
+    <string name="vault_conflict_saved" formatted="false">"Ayrı bir sürüm olarak kaydedildi. Senkronizasyon çakışmalarını inceleyin."</string>
+    <string name="vault_copied" formatted="false">"Kopyalandı"</string>
     <string name="vault_field_birthday" formatted="false">"Doğum günü"</string>
     <string name="vault_field_cardholder" formatted="false">"Kart sahibi"</string>
     <string name="vault_field_credential" formatted="false">"Kimlik bilgisi"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"Genel Anahtar"</string>
     <string name="vault_field_purchased" formatted="false">"Satın alındı"</string>
     <string name="vault_field_username" formatted="false">"Kullanıcı adı"</string>
+    <string name="vault_loading" formatted="false">"Yükleniyor…"</string>
+    <string name="vault_search_files" formatted="false">"Dosyaları arayın"</string>
     <string name="widget_description" formatted="false">"Özel çalışma alanı açın. Burada hesap içeriği gösterilmez."</string>
     <string name="widget_open" formatted="false">"Özel çalışma alanını aç"</string>
     <string name="widget_title" formatted="false">"dMsg çalışma alanı"</string>

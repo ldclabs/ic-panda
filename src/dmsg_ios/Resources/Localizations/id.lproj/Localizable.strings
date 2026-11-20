@@ -1986,6 +1986,8 @@
 	<string>Dicadangkan untuk unggahan</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Selesaikan operasi akun yang tertunda sebelum menghapus akun ini.</string>
+	<key>Restored</key>
+	<string>Dipulihkan</string>
 	<key>Restore</key>
 	<string>Pulihkan</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Gunakan setidaknya 12 karakter.</string>
 	<key>Confirm local password</key>
 	<string>Konfirmasi kata sandi lokal</string>
+	<key>File digest checked</key>
+	<string>Intisari file diperiksa</string>
+	<key>The file changed or cannot be read</key>
+	<string>File berubah atau tidak dapat dibaca</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Hanya intisarinya yang dikonfirmasi; file tersebut tidak diperiksa</string>
+	<key>Delivery report</key>
+	<string>Laporan pengiriman</string>
+	<key>Sign in</key>
+	<string>Masuk</string>
+	<key>Link to an existing account</key>
+	<string>Tautan ke akun yang ada</string>
+	<key>Confirm it is still you</key>
+	<string>Konfirmasikan bahwa itu masih Anda</string>
+	<key>Receiver</key>
+	<string>Penerima</string>
+	<key>Valid until</key>
+	<string>Berlaku sampai</string>
+	<key>High risk</key>
+	<string>Risiko tinggi</string>
 </dict>
 </plist>

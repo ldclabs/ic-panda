@@ -467,6 +467,8 @@
 </div>
 
 {#key sessionKey}
-  <Compose bind:open={writing} to={replyTo} {mod} />
+  {#key replyTo}
+    <Compose bind:open={writing} to={replyTo} {mod} />
+  {/key}
   <Rules bind:open={ruling} {policy} onSaved={(next) => (policy = next)} />
 {/key}

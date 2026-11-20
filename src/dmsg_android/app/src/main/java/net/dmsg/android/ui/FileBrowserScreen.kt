@@ -34,7 +34,6 @@ import net.dmsg.android.core.*
     val selection by client.library.selection.collectAsStateWithLifecycle()
     val results by client.library.results.collectAsStateWithLifecycle()
     val usage by client.library.usage.state.collectAsStateWithLifecycle()
-    val destinations by client.library.destinations.state.collectAsStateWithLifecycle()
     val folder = navigation.current.folder
     val local by client.accountWorkspace.local.state.collectAsStateWithLifecycle()
     val root = folder == "root" && !trash
@@ -44,18 +43,16 @@ import net.dmsg.android.core.*
     }
     val unbacked = local.valueOrNull()?.unbacked ?: 0uL
     val owner = remember(state.epoch) { client.currentStamp() }
-    var preferences by remember(folder, trash) { mutableStateOf(client.library.preferences(folder, trash)) }
-    val latestPreferences by rememberUpdatedState(preferences)
+    val savedPreferences by client.library.preferences.collectAsStateWithLifecycle()
+    val preferences = savedPreferences["$trash:$folder"] ?: FileBrowsePreferences()
+    fun update(value: FileBrowsePreferences) { client.library.remember(folder, trash, value, owner) }
     val scroll = remember(folder, trash) { LazyListState(preferences.first, preferences.offset) }
     var menu by remember { mutableStateOf(false) }
     var target by remember { mutableStateOf<FileActionTarget?>(null) }
-    var renaming by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf<FileActionTarget?>(null) }
     var creating by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("") }
     var action by remember { mutableStateOf<String?>(null) }
     var reviewed by remember { mutableStateOf<List<FileActionTarget>>(emptyList()) }
-    var destination by remember { mutableStateOf("root") }
-    var parents by remember { mutableStateOf(listOf("root")) }
     var showingResults by remember { mutableStateOf(false) }
     val current = listing.valueOrNull()?.takeIf { it.folder == folder && it.query == preferences.query && it.trash == trash }
     val sortedFiles = current?.files.orEmpty().filter { !preferences.favorites || it.starred }.let { values -> when (preferences.sort) {
@@ -76,10 +73,21 @@ import net.dmsg.android.core.*
     }.reversed()
     fun start(actionName: String, targets: List<FileActionTarget>) {
         reviewed = targets; action = actionName
-        if (actionName == "move") { destination = "root"; parents = listOf("root"); client.library.destination(destination) }
+    }
+    fun finish(actionName: String) {
+        if (client.library.results.value.any { it.error != null }) showingResults = true
+        else client.notice(when (actionName) {
+            "move" -> "FILE_MOVED"
+            "trash" -> "FILE_TRASHED"
+            "restore" -> "FILE_RESTORED"
+            else -> "FILE_DELETED_LOCALLY"
+        })
     }
     LaunchedEffect(folder, trash, preferences.query, state.epoch) { client.library.browse(folder, preferences.query, trash); if (trash) client.library.loadUsage() }
-    DisposableEffect(folder, trash, owner) { onDispose { client.library.remember(folder, trash, latestPreferences.copy(first = scroll.firstVisibleItemIndex, offset = scroll.firstVisibleItemScrollOffset), owner) } }
+    DisposableEffect(folder, trash, owner) { onDispose {
+        val latest = client.library.preferences.value["$trash:$folder"] ?: FileBrowsePreferences()
+        client.library.remember(folder, trash, latest.copy(first = scroll.firstVisibleItemIndex, offset = scroll.firstVisibleItemScrollOffset), owner)
+    } }
     LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 110.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
             if (trash) Text(str(R.string.text_deleted_on_this_device_c40f3ba), style = MaterialTheme.typography.titleMedium)
@@ -87,7 +95,7 @@ import net.dmsg.android.core.*
                 TextButton(onClick = { client.navigation.folder("root") }, modifier = Modifier.semantics { contentDescription = str(R.string.text_all_files_5d4019a) }) { Text(str(R.string.text_files_c79ddc2)) }
                 crumbs.forEach { crumb -> Text("/"); TextButton(onClick = { client.navigation.folder(crumb.id) }, enabled = crumb.id != folder) { Text(crumb.name) } }
             }
-            WorkspaceSearchField(preferences.query, { preferences = preferences.copy(query = it, limit = 100, first = 0, offset = 0) }, str(R.string.text_search_files_notes_and_tags_9013c74))
+            WorkspaceSearchField(preferences.query, { client.library.clearSelection(); update(preferences.copy(query = it, limit = 100, first = 0, offset = 0)) }, str(R.string.text_search_files_notes_and_tags_9013c74))
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                 if (!trash) {
                     FilterChip(true, { if (folder != "root") client.navigation.folder("root") }, { Text(str(R.string.text_on_this_device_6032118)) },
@@ -104,8 +112,8 @@ import net.dmsg.android.core.*
                         if (state.session?.accountKind != "local" && !trash && (!root || unbacked == 0uL)) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
                             onClick = { menu = false; client.navigation.push(Route("file-unbacked")) })
                         if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_new_folder_3b1862d)) }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
-                            onClick = { menu = false; name = ""; creating = true })
-                        DropdownMenuItem(text = { Text(str(R.string.text_select_visible_items_5b34cd2)) }, onClick = { menu = false; all.take(preferences.limit).filterNot { it.id in selection }.forEach { client.library.choose(it.id) } })
+                            onClick = { menu = false; creating = true })
+                        DropdownMenuItem(text = { Text(str(R.string.text_select_visible_items_5b34cd2)) }, onClick = { menu = false; all.take(preferences.limit).filterNot { it.id in selection }.forEach { client.library.choose(it.id) } }, enabled = all.isNotEmpty())
                         if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_share_links_fe69aa5)) }, onClick = { menu = false; client.navigation.push(Route("file-links")) })
                         if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_collect_files_3ad17e5)) }, onClick = { menu = false; client.navigation.push(Route("file-requests")) })
                         if (trash) DropdownMenuItem(text = { Text(str(R.string.text_transfers_6fdfd95)) }, onClick = { menu = false; client.navigation.push(Route("file-transfers")) })
@@ -113,12 +121,12 @@ import net.dmsg.android.core.*
                     }
                 }
             }
-            if (root && unbacked > 0uL) {
+            if (root && state.session?.accountKind != "local" && preferences.query.isBlank() && !preferences.favorites && unbacked > 0uL) {
                 AccountRow(str(R.string.text_unbacked_file_versions_f59bc2a), value = localizedNumber(unbacked)) { client.navigation.push(Route("file-unbacked")) }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("name", "updated", "size").forEach { sort -> FilterChip(preferences.sort == sort, { preferences = preferences.copy(sort = sort) }, { Text(when (sort) { "updated" -> str(R.string.text_recent_723c894); "size" -> str(R.string.text_largest_4d2cb3c); else -> str(R.string.text_name_dd4dc4c) }) }) }
-                FilterChip(preferences.favorites, { preferences = preferences.copy(favorites = !preferences.favorites) }, { Text(str(R.string.text_favorites_960eb5d)) })
+                listOf("name", "updated", "size").forEach { sort -> FilterChip(preferences.sort == sort, { update(preferences.copy(sort = sort)) }, { Text(when (sort) { "updated" -> str(R.string.text_recent_723c894); "size" -> str(R.string.text_largest_4d2cb3c); else -> str(R.string.text_name_dd4dc4c) }) }) }
+                FilterChip(preferences.favorites, { client.library.clearSelection(); update(preferences.copy(favorites = !preferences.favorites)) }, { Text(str(R.string.text_favorites_960eb5d)) })
             }
             if (selection.isNotEmpty()) {
                 Text(str(R.string.text_selected_26244a5) + localizedNumber(selection.size), style = MaterialTheme.typography.labelLarge)
@@ -143,13 +151,21 @@ import net.dmsg.android.core.*
                 .combinedClickable(role = if (selection.isNotEmpty()) Role.Checkbox else Role.Button,
                     onClick = { if (selection.isNotEmpty()) client.library.choose(entry.id) else if (trash) target = entry else if (entry.folder) client.navigation.folder(entry.id) else select(entry.id) }, onLongClick = { client.library.choose(entry.id) }),
                 headlineContent = { Text(entry.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                supportingContent = { file?.let { Text(fileSize(it.size) + " · " + fileState(it)) } },
+                supportingContent = {
+                    if (preferences.query.isNotBlank() || file != null) Column {
+                        if (preferences.query.isNotBlank()) {
+                            val path = file?.path ?: folderMap[entry.id]?.path.orEmpty()
+                            Text((listOf(str(R.string.text_files_c79ddc2)) + path).joinToString(" / "), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                        file?.let { Text(fileSize(it.size) + " · " + fileState(it)) }
+                    }
+                },
                 leadingContent = { if (selection.isNotEmpty()) Checkbox(entry.id in selection, onCheckedChange = null) else if (file != null) FileThumbnail(client, file) else Icon(Icons.Outlined.Folder, null) },
                 trailingContent = { Row(verticalAlignment = Alignment.CenterVertically) { if (file?.starred == true) Icon(Icons.Outlined.Star, str(R.string.text_favorite_898f4c6)); IconButton(onClick = { target = entry }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_actions_for_342986f) + entry.name) } } })
             HorizontalDivider()
         }
-        if (all.size > preferences.limit) item { TextButton(onClick = { preferences = preferences.copy(limit = preferences.limit + 100) }) { Text(str(R.string.text_show_more_items_688023e)) } }
-        if (listing is ReadState.Empty || current != null && all.isEmpty()) item { EmptyPanel(when {
+        if (all.size > preferences.limit) item { TextButton(onClick = { update(preferences.copy(limit = preferences.limit + 100)) }) { Text(str(R.string.text_show_more_items_688023e)) } }
+        if (current != null && all.isEmpty() && (listing is ReadState.Ready || listing is ReadState.Empty)) item { EmptyPanel(when {
             preferences.query.isNotBlank() || preferences.favorites -> str(R.string.text_no_matching_files_2fc3030)
             trash -> str(R.string.text_trash_is_empty_c562cd3)
             else -> str(R.string.empty_folder)
@@ -163,29 +179,35 @@ import net.dmsg.android.core.*
     target?.let { item -> AlertDialog(onDismissRequest = { target = null }, title = { Text(item.name) }, text = {
         Column {
             if (!trash) {
-                TextButton(onClick = { name = item.name; renaming = true }) { Text(str(R.string.text_rename_dd3a2f7)) }
+                TextButton(onClick = { renaming = item; target = null }) { Text(str(R.string.text_rename_dd3a2f7)) }
                 TextButton(onClick = { start("move", listOf(item)); target = null }) { Text(str(R.string.text_move_207d5fe)) }
             }
             TextButton(onClick = { start(if (trash) "restore" else "trash", listOf(item)); target = null }) { Text(if (trash) str(R.string.text_restore_b04c493) else str(R.string.text_move_to_trash_c4056f9)) }
             if (trash) TextButton(onClick = { start("purge", listOf(item)); target = null }) { Text(str(R.string.text_delete_permanently_994ca5c), color = MaterialTheme.colorScheme.error) }
         }
     }, confirmButton = { TextButton(onClick = { target = null }) { Text(str(R.string.text_close_6cf4a77)) } }) }
-    if (creating || renaming) AlertDialog(onDismissRequest = { creating = false; renaming = false }, title = { Text(if (creating) str(R.string.text_new_folder_3b1862d) else str(R.string.text_rename_dd3a2f7)) }, text = { OutlinedTextField(name, { name = it }, label = { Text(str(R.string.text_name_dd4dc4c)) }) },
-        confirmButton = { TextButton(onClick = {
-            if (creating) client.perform({ it.createFolder(folder, name) }, key = "files:create-folder") { client.library.changed(); creating = false }
-            else target?.let { item -> client.library.rename(item.id, name) { renaming = false; target = null } }
-        }, enabled = name.isNotBlank() && !name.contains('/') && !name.contains('\\') && !state.working("files:create-folder")) { Text(str(R.string.text_save_ec8e6d5)) } }, dismissButton = { TextButton(onClick = { creating = false; renaming = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
-    action?.let { chosen -> AlertDialog(onDismissRequest = { action = null }, title = { Text(when (chosen) { "move" -> str(R.string.text_move_selected_items_6d7db23); "restore" -> str(R.string.text_restore_selected_items_26adad4); "purge" -> str(R.string.text_delete_permanently_37eaf8d); else -> str(R.string.text_move_to_local_trash_d27df84) }) }, text = {
-        Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            reviewed.forEach { Text(it.name + if (it.folder) str(R.string.text_includes_folder_contents_8e9a5e9) else "") }
-            if (chosen == "purge") Notice(str(R.string.text_all_local_versions_will_be_removed_unbacked_versions_cannot_be_re_0e233a3), true)
-            if (chosen == "move") {
-                ReadFeedback(destinations, { client.library.destination(destination) })
-                if (parents.size > 1) TextButton(onClick = { parents = parents.dropLast(1); destination = parents.last(); client.library.destination(destination) }) { Text(str(R.string.text_parent_folder_3af9479)) }
-                destinations.valueOrNull()?.takeIf { it.folder == destination }?.folders.orEmpty().filter { folder -> reviewed.none { it.id == folder.id } }.forEach { folder -> TextButton(onClick = { destination = folder.id; parents += destination; client.library.destination(destination) }) { Icon(Icons.Outlined.Folder, null); Text(folder.name) } }
-            }
+    if (creating || renaming != null) FileNameDialog(client, folder, renaming, { creating = false; renaming = null }) {
+        if (creating) { client.library.clearSelection(); update(preferences.copy(query = "", favorites = false)) }
+        creating = false; renaming = null
+    }
+    if (action == "move") {
+        val sources = reviewed.map { filesById[it.id]?.folder ?: folderMap[it.id]?.parent }.distinct()
+        FileFolderDialog(client, str(R.string.text_move_selected_items_6d7db23), { action = null },
+            action = str(R.string.text_move_here_2a2705e), unchanged = sources.singleOrNull(),
+            exclude = reviewed.filter { it.folder }.map { it.id }.toSet(), review = { reviewed.forEach { Text(it.name) } }) { path ->
+            client.library.batch("move", reviewed, path.folderId) { finish("move") }; action = null
         }
-    }, confirmButton = { TextButton(onClick = { client.library.batch(chosen, reviewed, destination.takeIf { chosen == "move" }) { showingResults = true }; action = null }, enabled = !state.working("files:batch")) { Text(str(R.string.text_confirm_563fd5a)) } }, dismissButton = { TextButton(onClick = { action = null }) { Text(str(R.string.text_cancel_998b9c4)) } }) }
+    } else action?.let { chosen ->
+        val label = when (chosen) { "purge" -> R.string.text_delete_permanently_994ca5c; "restore" -> R.string.text_restore_b04c493; else -> R.string.text_move_to_trash_c4056f9 }
+        AlertDialog(onDismissRequest = { action = null }, title = { Text(str(when (chosen) { "restore" -> R.string.text_restore_selected_items_26adad4; "purge" -> R.string.text_delete_permanently_37eaf8d; else -> R.string.text_move_to_local_trash_d27df84 })) }, text = {
+            Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                reviewed.forEach { Text(it.name + if (it.folder) str(R.string.text_includes_folder_contents_8e9a5e9) else "") }
+                if (chosen == "purge") Notice(str(R.string.text_all_local_versions_will_be_removed_unbacked_versions_cannot_be_re_0e233a3), true)
+            }
+        }, confirmButton = { TextButton(onClick = { client.library.batch(chosen, reviewed) { finish(chosen) }; action = null }, enabled = !state.working("files:batch")) {
+            Text(str(label), color = if (chosen == "purge") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+        } }, dismissButton = { TextButton(onClick = { action = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    }
     if (showingResults) AlertDialog(onDismissRequest = { showingResults = false }, title = { Text(str(R.string.text_operation_results_71f0b9e)) }, text = {
         Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) { results.forEach { result -> Text(result.name, style = MaterialTheme.typography.titleSmall); Text(result.error?.let(::errorText) ?: str(R.string.text_completed_6ff49bc), color = if (result.error == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) } }
     }, confirmButton = { TextButton(onClick = { showingResults = false }) { Text(str(R.string.text_done_9ffd599)) } })

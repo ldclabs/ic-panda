@@ -1986,6 +1986,8 @@
 	<string>Yüklemeler için ayrılan</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Bu hesabı silmeden önce bekleyen hesap işlemini çözümleyin.</string>
+	<key>Restored</key>
+	<string>Geri yüklendi</string>
 	<key>Restore</key>
 	<string>Geri yükle</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>En az 12 karakter kullanın.</string>
 	<key>Confirm local password</key>
 	<string>Yerel parolayı doğrula</string>
+	<key>File digest checked</key>
+	<string>Dosya özeti kontrol edildi</string>
+	<key>The file changed or cannot be read</key>
+	<string>Dosya değişti veya okunamıyor</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Yalnızca özet onaylanır; dosya kontrol edilmedi</string>
+	<key>Delivery report</key>
+	<string>Teslim raporu</string>
+	<key>Sign in</key>
+	<string>Oturum aç</string>
+	<key>Link to an existing account</key>
+	<string>Mevcut bir hesaba bağlantı oluşturma</string>
+	<key>Confirm it is still you</key>
+	<string>Hala sen olduğunu doğrula</string>
+	<key>Receiver</key>
+	<string>Alıcı</string>
+	<key>Valid until</key>
+	<string>Şu tarihe kadar geçerlidir:</string>
+	<key>High risk</key>
+	<string>Yüksek risk</string>
 </dict>
 </plist>

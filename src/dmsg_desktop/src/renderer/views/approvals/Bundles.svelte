@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
+  import { onDestroy, tick } from 'svelte'
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
   import Pill from '../../components/page/Pill.svelte'
+  import Notice from '../../components/page/Notice.svelte'
   import Section from '../../components/page/Section.svelte'
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
@@ -16,15 +17,19 @@
    * original file; and the account's signatures, this device's and its
    * other devices', each verified in place or exported as a bundle.
    */
-  let { history, known, unlocked, open }: { history: any[]; known: Set<string>; unlocked: boolean; open: (id: string) => unknown } = $props()
+  let { history, historyLoaded, historyError, retry, known, unlocked, open }: { history: any[]; historyLoaded: boolean; historyError: string; retry: () => unknown; known: Set<string>; unlocked: boolean; open: (id: string) => unknown } = $props()
 
   let alive = true
   onDestroy(() => { alive = false })
   let report = $state<any>(null)
+  let verifyError = $state('')
+  let verifying = $state(false)
+  let resultArea = $state<HTMLDivElement>()
   let busy = $state(false)
   let over = $state(false)
 
   async function attempt(work: () => Promise<unknown>) {
+    if (busy) return
     busy = true
     try {
       await work()
@@ -35,12 +40,24 @@
     }
   }
 
+  async function readReport(read: () => Promise<unknown>) {
+    if (busy) return
+    verifying = busy = true
+    let focusResult = false
+    try {
+      const next = await read()
+      if (next && alive) { report = next; verifyError = ''; focusResult = true }
+    } catch (e) {
+      if (alive) { report = null; verifyError = errorText(e); focusResult = true }
+    } finally {
+      verifying = busy = false
+    }
+    if (focusResult) { await tick(); resultArea?.focus() }
+  }
+
   /** Files are picked in the main process's dialogs; the window sees only the outcome. */
   const verify = (withFile: boolean) =>
-    attempt(async () => {
-      const next = await bridge(() => window.dmsg.verifyBundle(withFile))
-      if (alive) report = next ?? report
-    })
+    readReport(() => bridge(() => window.dmsg.verifyBundle(withFile)))
 
   /** A bundle dropped here, with the original file when two are dropped; the preload resolves their paths. */
   function drop(event: DragEvent) {
@@ -50,17 +67,11 @@
     const bundle = files.find((f) => f.name.toLowerCase().endsWith('.json')) ?? files[0]
     if (!bundle) return
     const original = files.find((f) => f !== bundle)
-    void attempt(async () => {
-      const next = await bridge(() => window.dmsg.verifyDropped(bundle, original))
-      if (alive) report = next
-    })
+    void readReport(() => bridge(() => window.dmsg.verifyDropped(bundle, original)))
   }
 
   const verifyEntry = (execution: string) =>
-    attempt(async () => {
-      const next = await bridge(() => window.dmsg.verifyEntry(execution))
-      if (alive) report = next
-    })
+    readReport(() => bridge(() => window.dmsg.verifyEntry(execution)))
 
   const exportBundle = (execution: string) =>
     attempt(async () => {
@@ -96,12 +107,21 @@
       <button class={buttonClass('secondary')} disabled={busy} onclick={() => verify(true)}><Icon name="file" />{t('verifyWithFile')}</button>
     </div>
   </div>
-  {#if report}<Report {report} {save} />{/if}
+  {#if verifying}
+    <p class="mt-3 text-[13px] text-muted" role="status">{t('loading')}</p>
+  {:else if verifyError || report}
+    <div bind:this={resultArea} tabindex="-1" role="region" aria-labelledby={verifyError ? 'bundle-failure' : 'bundle-verdict'} data-testid="bundle-result" class="mt-3 rounded-xl focus-visible:outline-2 focus-visible:outline-forest">
+      {#if verifyError}<Notice id="bundle-failure" tone="danger" testid="bundle-verify-error">{verifyError}</Notice>{:else}<Report {report} {save} />{/if}
+    </div>
+  {/if}
   <p class="mt-3 text-[12px] text-faint" data-testid="verify-online">{t('verifyOnline', { url: 'dmsg.net/_/verify' })}</p>
 </Section>
 
 {#if unlocked}
   <Section title={t('signed')} description={t('signedHint')} icon="signature" flush>
+    {#if historyError}<Notice tone="danger" testid="signed-error">{historyError}
+      {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={retry}>{t('retry')}</button>{/snippet}
+    </Notice>{/if}
     <ul class="divide-y divide-line" data-testid="signed-list">
       {#each history as entry (entry.execution)}
         <li class="flex items-start gap-3 px-5 py-3">
@@ -126,7 +146,7 @@
           {/if}
         </li>
       {:else}
-        <li class="px-5 py-3 text-[13px] text-faint">-</li>
+        {#if !historyError}<li class="px-5 py-3 text-[13px] text-faint"><span role="status">{historyLoaded ? t('noRecords') : t('loading')}</span></li>{/if}
       {/each}
     </ul>
   </Section>

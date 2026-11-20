@@ -6,6 +6,40 @@ import kotlinx.serialization.json.*
 import net.dmsg.core.*
 
 data class ApprovalDetail(val id: String, val digest: String, val kind: String, val state: String, val source: String, val risk: String, val expiresAt: ULong, val supported: Boolean, val detail: JsonElement, val error: String?, val secret: SecretReview? = null, val record: JsonObject = JsonObject(emptyMap()))
+
+/** The reviewed statement can be device-local or wrapped by a browser request. */
+internal fun ApprovalDetail.statement(): JsonObject? {
+    val body = detail as? JsonObject ?: return null
+    val content = body["content"] as? JsonObject
+    return when {
+        kind == "attest" -> body["statement"] as? JsonObject
+        kind == "connect" && body.text("method") == "signDocument" -> content?.get("statement") as? JsonObject
+        kind == "connect" && body.text("method") == "signAction" -> content
+        else -> null
+    }
+}
+internal fun ApprovalDetail.browserLogin(): JsonObject? {
+    val body = detail as? JsonObject ?: return null
+    val content = body["content"] as? JsonObject ?: return null
+    return body.takeIf {
+        kind == "connect" && body.text("method") == "authenticate" && !body.text("origin").isNullOrBlank() &&
+            !content.text("purpose").isNullOrBlank() && !content.text("receiver").isNullOrBlank() && content.unsigned("expires_at") != null
+    }
+}
+
+internal enum class ApprovalFileCheck { Checked, ChangedOrUnreadable, DigestOnly }
+
+internal fun ApprovalDetail.fileCheck(): ApprovalFileCheck? {
+    val content = statement()?.get("content") as? JsonObject ?: return null
+    if (content.text("sha256").isNullOrEmpty()) return null
+    val body = detail as JsonObject
+    return when {
+        body.optionalFlag("file_checked") == true -> ApprovalFileCheck.Checked
+        body["file"] is JsonObject -> ApprovalFileCheck.ChangedOrUnreadable
+        else -> ApprovalFileCheck.DigestOnly
+    }
+}
+
 fun parseApproval(value: JsonElement): ApprovalDetail {
     val row = value.objectValue()
     val kind = row.required("type")
@@ -22,29 +56,38 @@ class ApprovalCoordinator(private val client: ClientController) {
     private var selected: String? = null
     fun refresh() {
         val request = listing.begin()
-        client.perform({ parseApprovals(it.approvals().json) }, key = "approval:list", replace = true,
+        client.perform({ parseApprovals(it.approvals().json) }, key = "approval:list", replace = true, quiet = true,
             onError = { listing.fail(request, it) }) { listing.accept(request, it) }
+        selected?.let(::select)
         settle()
     }
     fun refreshRemote() {
-        refresh()
-        client.perform({ core -> client.operation { core.syncConnect(it) }; parseApprovals(core.approvals().json) }, key = "approval:remote", replace = true, quiet = true, onError = {
-            val request = listing.begin(); listing.fail(request, it)
-        }) { values -> val request = listing.begin(); listing.accept(request, values) }
+        if (client.state.value.session?.accountKind != "cloud") { refresh(); return }
+        val cached = listing.begin()
+        client.perform({ parseApprovals(it.approvals().json) }, key = "approval:list", replace = true, quiet = true,
+            onError = { listing.fail(cached, it) }) { values ->
+            if (listing.accept(cached, values)) {
+                val request = listing.begin()
+                client.perform({ core -> client.operation { core.syncConnect(it) }; parseApprovals(core.approvals().json) },
+                    key = "approval:remote", replace = true, quiet = true, onError = { listing.fail(request, it) }) { listing.accept(request, it) }
+            }
+        }
+        settle()
     }
     fun reconcile(value: ApprovalDetail) = client.perform({ core ->
         client.operation { core.reconcile(it) }
         parseApproval(core.approval(value.id).decode()).also { check(it.digest == value.digest) { "VERSION_CONFLICT" } }
-    }, key = "approval:reconcile:" + value.id, onError = { select(value.id) }) {
+    }, key = "approval:reconcile:" + value.id, onError = { if (selected == value.id) select(value.id) }) {
         if (selected == value.id) { val request = detail.begin(); detail.accept(request, it) }
         refresh()
     }
 
     fun select(id: String) {
         val request = detail.begin(keep = selected == id); selected = id
-        client.perform({ parseApproval(it.approval(id).decode()) }, key = "approval:detail", replace = true,
+        client.perform({ parseApproval(it.approval(id).decode()) }, key = "approval:detail", replace = true, quiet = true,
             onError = { detail.fail(request, it) }) { detail.accept(request, it) }
     }
+    fun leave(id: String) { if (selected == id) { selected = null; detail.reset() } }
     fun open(id: String) { client.navigation.push(Route("approvals", id)) }
     fun request(key: String, create: suspend (MobileEngine) -> ObjectSnapshot) {
         mutableReceipts.value[key]?.let { open(it); return }
@@ -54,7 +97,7 @@ class ApprovalCoordinator(private val client: ClientController) {
     }
     fun decide(value: ApprovalDetail, approved: Boolean) {
         client.perform({ core -> parseApproval(client.operation { core.decide(value.id, value.digest, approved, it) }.decode()) },
-            key = "approval:decide:" + value.id, onError = { select(value.id); refresh() }) { result ->
+            key = "approval:decide:" + value.id, onError = { refresh() }) { result ->
             if (selected == value.id) { val request = detail.begin(); detail.accept(request, result) }
             refresh()
         }

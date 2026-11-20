@@ -419,9 +419,9 @@ impl Daemon {
                     .await
             }
             "handle/reconcile" => {
-                client
-                    .handle_reconcile(&text(params, "id")?, number(params, "block")?)
-                    .await
+                let block = u64::try_from(amount(params, "block")?)
+                    .map_err(|_| Error::InvalidInput("block: out of range".into()))?;
+                client.handle_reconcile(&text(params, "id")?, block).await
             }
             "payment/transfers" => client.payment_transfers(&hash(params, "escrow")?).await,
             "approval/quote" => {

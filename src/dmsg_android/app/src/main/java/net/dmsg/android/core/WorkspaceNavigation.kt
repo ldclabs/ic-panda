@@ -23,7 +23,8 @@ class WorkspaceNavigation {
     private val mutable = MutableStateFlow(NavigationState())
     val state = mutable.asStateFlow()
     fun scrollOwner(): String? = account
-    fun scrollPosition(key: String): ScrollPosition = positions[account]?.get(key) ?: ScrollPosition()
+    fun savedScrollPosition(key: String): ScrollPosition? = positions[account]?.get(key)
+    fun scrollPosition(key: String): ScrollPosition = savedScrollPosition(key) ?: ScrollPosition()
     fun rememberScroll(owner: String?, key: String, position: ScrollPosition) {
         if (owner == null || owner != account && owner !in accounts || key.length > 160 || position.first < 0 || position.offset < 0) return
         val saved = positions.getOrPut(owner) { linkedMapOf() }

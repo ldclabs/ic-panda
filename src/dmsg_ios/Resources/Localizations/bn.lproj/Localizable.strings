@@ -1986,6 +1986,8 @@
 	<string>আপলোডের জন্য সংরক্ষিত</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>এই অ্যাকাউন্ট মুছে ফেলার আগে মুলতুবি অ্যাকাউন্ট অপারেশন সমাধান করুন.</string>
+	<key>Restored</key>
+	<string>পুনরুদ্ধার করা হয়েছে</string>
 	<key>Restore</key>
 	<string>পুনরুদ্ধার করুন</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>অন্তত ১২টি অক্ষর ব্যবহার করুন।</string>
 	<key>Confirm local password</key>
 	<string>স্থানীয় পাসওয়ার্ড নিশ্চিত করুন</string>
+	<key>File digest checked</key>
+	<string>ফাইল হ্যাশ চেক করা হয়েছে</string>
+	<key>The file changed or cannot be read</key>
+	<string>ফাইল পরিবর্তিত বা পড়া যাবে না</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>শুধুমাত্র হ্যাশ নিশ্চিত করা হয়; ফাইল চেক করা হয়নি</string>
+	<key>Delivery report</key>
+	<string>সরবরাহের রিপোর্ট</string>
+	<key>Sign in</key>
+	<string>সাইন ইন করুন</string>
+	<key>Link to an existing account</key>
+	<string>একটি বিদ্যমান অ্যাকাউন্ট লিঙ্ক</string>
+	<key>Confirm it is still you</key>
+	<string>এটা এখনও আপনি নিশ্চিত</string>
+	<key>Receiver</key>
+	<string>রিসিভার</string>
+	<key>Valid until</key>
+	<string>পর্যন্ত বৈধ</string>
+	<key>High risk</key>
+	<string>উচ্চ ঝুঁকি</string>
 </dict>
 </plist>

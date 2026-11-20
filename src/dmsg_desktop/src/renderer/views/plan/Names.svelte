@@ -1,13 +1,17 @@
 <script lang="ts">
   import { display, watchDisplays, type Mode } from '../../display.svelte'
-  import { onMount, untrack } from 'svelte'
+  import { onMount, tick, untrack } from 'svelte'
   import { copyText } from '../../components/clipboard'
+  import { rememberedPlain, rememberPlain } from '../../view-memory'
+  import { isNoticeAccount } from '../../../shared/notifications'
+  import { reviewApproval } from './approval'
+  import Confirm from '../../components/Confirm.svelte'
+  import TextArea from '../../components/TextArea.svelte'
   import Collapsible from '../../components/Collapsible.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import TextField from '../../components/TextField.svelte'
   import Fact from '../../components/page/Fact.svelte'
-  import Field from '../../components/page/Field.svelte'
   import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Page from '../../components/page/Page.svelte'
@@ -16,9 +20,9 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { ago, bridge, call, errorText, onChange, single, units, when } from '../../rpc'
+  import { ago, call, errorText, onChange, single, units, when } from '../../rpc'
   import { startLogin } from '../../shell/login.svelte'
-  import { acceptLink, callerLabels, canonicalName, covers, nameActionLabels, nameProblem, namePrice, nameState, nameStateLabels, PRICE_TIERS, tokenOf } from './plan'
+  import { acceptLink, callerLabels, canonicalName, covers, ledgerBlock, nameActionLabels, nameProblem, namePrice, nameState, nameStateLabels, PRICE_TIERS, tokenOf } from './plan'
 
   /**
    * Names: this account's own, a name looked up with what registering it
@@ -38,17 +42,28 @@
   let errors = $state<Record<string, string>>({})
   let busy = $state(false)
   let now = $state(Date.now())
-  let name = $state('')
+  const searchKey = untrack(() => `plan.name-search:${status.account}:${status.session ?? ''}`)
+  let searchForm: HTMLFormElement
+  const priorSearch = rememberedPlain<{ name: string; query: string }>(searchKey)
+  let name = $state(priorSearch?.name ?? '')
   let looking = $state(false)
   let alive = true
   let lookupVersion = 0
-  let lookupQuery = ''
+  let lookupQuery = priorSearch?.query ?? ''
   /** The registry's answer for the name looked up. */
   let found = $state<any>(null)
   /** The transfer dialog: the name, its target, and once offered the token. */
   let moving = $state<{ name: string; target: string; token?: string } | null>(null)
   /** The accept dialog's token or link. */
   let incoming = $state<string | null>(null)
+  let forgetting = $state<any>(null)
+  let transferTried = $state(false), acceptTried = $state(false)
+  let targetForm = $state<HTMLFormElement>(), acceptForm = $state<HTMLFormElement>()
+  let composeButton = $state<HTMLButtonElement>()
+  let transferError = $state(''), acceptError = $state(''), lookupActionError = $state('')
+  let payerLoading = $state(true)
+  const recipient = $derived(moving?.target.trim().toLowerCase() ?? '')
+  const targetProblem = $derived(!isNoticeAccount(recipient) ? t('planTargetError') : recipient === status?.account ? t('planOwnTarget') : '')
   let blocks = $state<Record<string, string>>({})
 
   const problem = $derived(nameProblem(name))
@@ -93,11 +108,12 @@
     const next = await display('handle/mine', {}, mode)
     if (alive) mine = next
   }))
-  const readPayer = single(() => part('payer', async () => {
+  const readPayer = single(async () => {
     if (!alive) return
-    const next = await call('payer/status')
-    if (alive) payer = next
-  }))
+    payerLoading = true
+    await part('payer', async () => { const next = await call('payer/status'); if (alive) payer = next })
+    if (alive) payerLoading = false
+  })
   const readSecurity = single(() => part('security', async () => {
     if (!alive) return
     const next = await call('account/security')
@@ -108,26 +124,20 @@
   })
 
   function reload() {
-    void readPayer()
-    void readSecurity()
-    void refreshLookup()
-    void readOperations()
-    return readMine()
+    return Promise.all([readPayer(), readSecurity(), refreshLookup(), readOperations(), readMine()])
   }
 
-  async function attempt(work: () => Promise<unknown>) {
+  async function attempt(work: () => Promise<unknown>, fail: (message: string) => void = message => toast(() => message)) {
+    if (busy) return
     busy = true
     try {
       await work()
     } catch (e) {
-      toast(() => errorText(e))
+      if (alive) fail(errorText(e))
     } finally {
-      busy = false
+      if (alive) busy = false
     }
   }
-
-  /** Taking, accepting and completing are decided in the approval window. */
-  const approve = (request: any) => alive ? bridge(() => window.dmsg.openApproval(request.id)) : Promise.resolve()
 
   function editName(next: string) {
     name = next
@@ -135,7 +145,7 @@
     lookupVersion++
     found = null
     looking = false
-    errors.lookup = ''
+    errors.lookup = lookupActionError = ''
   }
 
   async function readPrice(query: string) {
@@ -163,31 +173,54 @@
     await readPrice(lookupQuery)
   }
 
-  const register = () => attempt(async () => approve(await call('handle/register', { name: found.display_handle ?? found.name })))
-  const claim = () => attempt(async () => approve(await call('handle/claim', { name: found.name })))
+  function takeName(claim: boolean) {
+    if (!found || busy || (!claim && (payerLoading || enough !== true || errors.payer))) return
+    const query = lookupQuery, handle = claim ? found.name : found.display_handle ?? found.name
+    const method = claim ? 'handle/claim' : 'handle/register'
+    lookupActionError = ''
+    return attempt(() => reviewApproval(`${method}:${handle}:${claim ? '' : found.most}`,
+      () => call(method, { name: handle }), () => alive && lookupQuery === query),
+      message => { if (lookupQuery === query) lookupActionError = message })
+  }
 
-  /** Offering prepares the transfer and its token; nothing moves until the owner completes it. */
-  const offer = () =>
-    attempt(async () => {
-      const opened = moving
-      if (!opened) return
-      const target = opened.target.trim()
-      const done: any = await call('handle/transfer', { name: opened.name, target })
-      if (!alive || moving !== opened || moving.target.trim() !== target) return
-      moving = { ...opened, token: done.token }
-      await readOperations()
-    })
-
-  const accept = () =>
-    attempt(async () => {
-      const token = incoming
-      const request = await call('handle/accept', { token: tokenOf(token ?? '') })
-      if (!alive || incoming !== token) return
-      incoming = null
-      await approve(request)
-    })
-
-  const complete = (op: any) => attempt(async () => approve(await call('handle/transfer_commit', { id: op.id })))
+  function openPayer() {
+    rememberPlain(searchKey + '.focus', true)
+    go('/plan?tab=payments&section=wallet')
+  }
+  function startTransfer(handle: string) {
+    transferError = ''; transferTried = false
+    moving = { name: handle, target: '' }
+  }
+  function startAccept(token = '') {
+    acceptError = ''; acceptTried = false; incoming = token
+  }
+  function offer() {
+    if (!moving || moving.token || busy) return
+    transferTried = true
+    if (targetProblem) { targetForm?.querySelector('input')?.focus(); return }
+    const opened = moving, target = recipient
+    transferError = ''
+    return attempt(async () => {
+      const done = await call<{ token: string }>('handle/transfer', { name: opened.name, target })
+      if (!alive || moving !== opened) return
+      moving = { ...opened, target, token: done.token }
+      void readOperations()
+      await tick()
+      if (alive && moving?.token === done.token) composeButton?.focus()
+    }, message => transferError = message)
+  }
+  function accept() {
+    if (busy || incoming === null) return
+    acceptTried = true
+    const token = tokenOf(incoming)
+    if (!token) { acceptForm?.querySelector('textarea')?.focus(); return }
+    acceptError = ''
+    return attempt(async () => {
+      if (await reviewApproval('accept:' + token, () => call('handle/accept', { token }), () => alive && incoming !== null)) incoming = null
+    }, message => acceptError = message)
+  }
+  const complete = (op: any) => attempt(() => reviewApproval('name-commit:' + op.id,
+    () => call('handle/transfer_commit', { id: op.id }), () => alive), message => errors[op.id] = message)
 
   const forget = (op: any) =>
     attempt(async () => {
@@ -197,18 +230,24 @@
 
   const settle = (op: any) =>
     attempt(async () => {
-      await call('handle/reconcile', { id: op.id, block: Number(blocks[op.id]) })
+      const block = ledgerBlock(blocks[op.id])
+      if (block === null) return
+      errors[op.id] = ''
+      await call('handle/reconcile', { id: op.id, block })
       await reload()
-    })
+    }, message => errors[op.id] = message)
 
-  /** The link goes to the target in a conversation: copied here, pasted there. */
-  async function send(target: string, token: string) {
-    await copyText(acceptLink(token))
+  function composeTransfer(target: string, token: string) {
+    rememberPlain('plan.transfer-draft', { target, text: acceptLink(token) })
     moving = null
-    go(`/channels?direct=${encodeURIComponent(target)}`)
+    go(`/channels?direct=${encodeURIComponent(target)}&compose=transfer`)
   }
 
-  const message = (owner: string, handle: string) => go(`/channels?direct=${encodeURIComponent(owner)}&name=${encodeURIComponent(`@${handle}`)}`)
+  function message(owner: string, handle?: string) {
+    const params = new URLSearchParams({ direct: owner, compose: 'message' })
+    if (handle) params.set('name', `@${handle}`)
+    go('/channels?' + params.toString())
+  }
 
   // A link's token opens the accept dialog; a name from another view is looked up.
   $effect(() => {
@@ -216,7 +255,7 @@
     if (!next) return
     untrack(() => {
       ask = null
-      if (next.accept) incoming = next.accept
+      if (next.accept) startAccept(next.accept)
       if (next.name) {
         editName(next.name)
         if (!nameProblem(name) && canonicalName(name)) void lookup()
@@ -225,6 +264,10 @@
   })
 
   onMount(() => {
+    if (rememberedPlain(searchKey + '.focus') && !ask) {
+      rememberPlain(searchKey + '.focus', null)
+      searchForm?.querySelector('input')?.focus()
+    }
     const stop = watchDisplays(['handles'], (mode) => readMine(mode))
     void reload()
     const off = onChange(['approval/changed', 'session/changed'], reload)
@@ -233,6 +276,7 @@
       if (pending) void readOperations()
     }, 10_000)
     return () => {
+      rememberPlain(searchKey, { name, query: lookupQuery })
       alive = false
       off()
       stop()
@@ -247,19 +291,20 @@
 <Page>
   <Section title={t('myNames')} description={t('myNamesHint')} icon="user" testid="my-names">
     {#snippet actions()}
-      <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => (incoming = '')} data-testid="name-accept"><Icon name="transfer" />{t('acceptName')}</button>
+      <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => startAccept()} data-testid="name-accept"><Icon name="transfer" />{t('acceptName')}</button>
     {/snippet}
     {#if errors.mine}
-      <Notice failure={errors.mine} tone="danger">{errors.mine}</Notice>
+      <Notice failure={errors.mine} tone="danger">{errors.mine} <button class={buttonClass('ghost', 'xs')} onclick={() => readMine('fresh')}>{t('retry')}</button></Notice>
     {/if}
-    {#if mine && !mine.length}
+    {#if !mine && !errors.mine}<p class="text-xs text-muted" role="status">{t('loading')}</p>
+    {:else if mine && !mine.length && !errors.mine}
       <p class="text-[12.5px] text-faint" data-testid="no-names">{t('noNames')}</p>
     {:else if mine}
       <ul class="divide-y divide-line">
         {#each mine as owned (owned.name)}
           <li class="flex items-center gap-3 px-4 py-2.5" data-testid="my-name">
             <b class="min-w-0 flex-1 truncate text-[14px] font-semibold">@{owned.display_handle ?? owned.name}</b>
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => (moving = { name: owned.display_handle ?? owned.name, target: '' })} data-testid="name-transfer">
+            <button class={buttonClass('secondary', 'xs')} disabled={busy} aria-label={`${t('moveName')} @${owned.display_handle ?? owned.name}`} onclick={() => startTransfer(owned.display_handle ?? owned.name)} data-testid="name-transfer">
               <Icon name="transfer" />{t('moveName')}
             </button>
           </li>
@@ -270,12 +315,12 @@
 
   <Section title={t('lookUpName')} description={t('namesHint')} icon="search" testid="name-lookup">
     <div class="grid gap-3">
-      <div class="flex items-end gap-2">
+      <form bind:this={searchForm} class="flex items-end gap-2" onsubmit={(event) => { event.preventDefault(); void lookup() }}>
         <TextField class="min-w-0 flex-1" label={t('name')} value={name} placeholder="@…" dir="ltr"
-          oninput={e => editName(e.currentTarget.value)} onkeydown={e => !e.isComposing && e.key === 'Enter' && lookup()}
+          oninput={e => editName(e.currentTarget.value)}
           aria-invalid={!!problem} aria-describedby={problem ? 'handle-problem' : wanted ? 'handle-tier' : undefined} data-testid="handle-name" />
-        <button class={buttonClass('secondary')} disabled={busy || looking || !wanted || !!problem} aria-busy={looking} onclick={lookup} data-testid="handle-lookup"><Icon name={looking ? 'pending' : 'search'} class={looking ? 'motion-safe:animate-spin' : ''} />{t('lookUp')}</button>
-      </div>
+        <button class={buttonClass('secondary')} disabled={busy || looking || !wanted || !!problem} aria-busy={looking} type="submit" data-testid="handle-lookup"><Icon name={looking ? 'pending' : 'search'} class={looking ? 'motion-safe:animate-spin' : ''} />{t('lookUp')}</button>
+      </form>
       {#if problem}
         <p id="handle-problem" class="text-[12px] text-danger" role="alert" data-testid="handle-problem">{t(problem)}</p>
       {:else if wanted}
@@ -309,12 +354,12 @@
               <button class={buttonClass('secondary', 'sm')} onclick={() => message(found.owner, found.display_handle ?? found.name)} data-testid="handle-message"><Icon name="channels" />{t('sendMessage')}</button>
             {:else if !found.owner && found.reserved && !found.claim?.quarantined}
               {#if found.claim?.claimable}
-                <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={claim} data-testid="handle-claim">{t('claim')}</button>
+                <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => takeName(true)} data-testid="handle-claim">{t('claim')}</button>
               {:else if holderBound}
                 <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => startLogin(false, 'https://panda.fans')} data-testid="handle-login-claim"><Icon name="login" />{t('loginToClaim')}</button>
               {/if}
             {:else if !found.owner && !found.reserved}
-              <button class={buttonClass('primary', 'sm')} disabled={busy || enough !== true} onclick={register} data-testid="handle-register">{t('register')}</button>
+              <button class={buttonClass('primary', 'sm')} disabled={busy || payerLoading || !!errors.payer || enough !== true} onclick={() => takeName(false)} data-testid="handle-register">{t('register')}</button>
             {/if}
           </div>
           {#if !found.owner && !found.reserved}
@@ -323,10 +368,15 @@
               <Fact label={t('networkFee')}>{units(found.fee, 8)} PANDA</Fact>
               <Fact label={t('atMost')}>{units(found.most, 8)} PANDA</Fact>
             </dl>
-            {#if enough === false}
+            {#if payerLoading || enough === null || errors.payer}
+              <Notice tone={payerLoading ? 'info' : 'warn'} testid="handle-balance-status">
+                {payerLoading ? t('loading') : errors.payer || t('planBalanceUnknown')}
+                {#if !payerLoading}<button class={buttonClass('secondary','xs')} onclick={readPayer}>{t('retry')}</button>{/if}
+              </Notice>
+            {:else if enough === false}
               <Notice tone="warn" icon="warning" testid="handle-short">
                 {t('pandaShort')}
-                {#snippet action()}<button class={buttonClass('secondary', 'xs')} onclick={() => go('/plan?tab=payments')}>{t('openWallet')}</button>{/snippet}
+                {#snippet action()}<button class={buttonClass('secondary', 'xs')} onclick={openPayer}>{t('openWallet')}</button>{/snippet}
               </Notice>
             {/if}
           {:else if !found.owner && found.claim?.quarantined}
@@ -345,7 +395,8 @@
               {/if}
             </Notice>
           {/if}
-          {#if errors.security}<Notice failure={errors.security} tone="danger">{errors.security}</Notice>{/if}
+          {#if lookupActionError}<Notice tone="danger" testid="name-action-error">{lookupActionError}</Notice>{/if}
+          {#if found.reserved && errors.security}<Notice failure={errors.security} tone="danger">{errors.security}</Notice>{/if}
         </div>
       {/if}
     </div>
@@ -353,9 +404,13 @@
 
   <Section title={t('nameOperations')} icon="history" flush testid="name-operations-section">
     {#if errors.operations}
-      <div class="px-5 pb-4"><Notice failure={errors.operations} tone="danger">{errors.operations}</Notice></div>
+      <div class="px-5 pb-4"><Notice tone="warn">{errors.operations}
+        <button class={buttonClass('ghost', 'xs')} onclick={readOperations}>{t('retry')}</button>
+      </Notice></div>
     {/if}
-    {#if operations && !operations.length}
+    {#if !operations && !errors.operations}
+      <p class="px-5 pb-4 text-xs text-muted" role="status">{t('loading')}</p>
+    {:else if operations && !operations.length && !errors.operations}
       <p class="px-5 pb-4 text-[12.5px] text-faint">{t('noNameOperations')}</p>
     {:else if operations}
       <ul class="divide-y divide-line" data-testid="name-operations">
@@ -371,12 +426,13 @@
                 <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => complete(op)} data-testid="name-complete">{t('commit')}</button>
               {/if}
               {#if op.token && (state === 'offered' || state === 'committable')}
+                {#if op.to && state === 'offered'}<button class={buttonClass('secondary', 'xs')} onclick={() => composeTransfer(op.to, op.token)} data-testid="name-compose"><Icon name="channels" />{t('planComposeTransfer')}</button>{/if}
                 <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(op.token)} data-testid="name-copy-token"><Icon name="copy" />{t('copyToken')}</button>
                 <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(acceptLink(op.token))} data-testid="name-copy-link"><Icon name="link" />{t('copyLink')}</button>
               {/if}
               {#if op.phase === 'prepared' || op.phase === 'rejected' || state === 'expired'}
-                <button class={buttonClass(op.token ? 'danger' : 'ghost', 'xs')} disabled={busy} onclick={() => forget(op)} data-testid="name-forget">
-                  {op.token ? t('cancelTransfer') : t('removeEntry')}
+                <button class={buttonClass(op.token ? 'danger' : 'ghost', 'xs')} disabled={busy} onclick={() => op.token ? (forgetting = op) : forget(op)} data-testid="name-forget">
+                  {op.token ? t('planRemoveTransfer') : t('removeEntry')}
                 </button>
               {/if}
             </div>
@@ -386,6 +442,7 @@
               <span>{label(callerLabels, op.caller_role)}</span>
               <span class="text-faint">{ago(op.created_at_ms, now)}</span>
             </div>
+            {#if errors[op.id]}<Notice tone="danger">{errors[op.id]}</Notice>{/if}
             {#if state === 'offered'}
               <p class="text-[12px] text-faint">{t('offeredHint')}</p>
             {:else if state === 'committable'}
@@ -395,14 +452,15 @@
                 <p class="text-[12px] text-faint" data-testid="name-waiting">{t('waitingOwner', { time: when(op.until_ms) })}</p>
                 {#if op.from}
                   <!-- The owner learns of the acceptance in a conversation, not only on this page. -->
-                  <button class={buttonClass('ghost', 'xs')} onclick={() => go(`/channels?direct=${encodeURIComponent(op.from)}`)} data-testid="name-tell-owner"><Icon name="channels" />{t('sendMessage')}</button>
+                  <button class={buttonClass('ghost', 'xs')} onclick={() => message(op.from)} data-testid="name-tell-owner"><Icon name="channels" />{t('sendMessage')}</button>
                 {/if}
               </div>
             {:else if state === 'unknown' && op.action === 'Register'}
-              <div class="flex items-center gap-1.5">
-                <input class="h-7 w-36 text-[12px]" placeholder={t('block')} bind:value={blocks[op.id]} data-testid="name-block" />
-                <button class={buttonClass('secondary', 'xs')} disabled={busy || !/^\d+$/.test(blocks[op.id] ?? '')} onclick={() => settle(op)}>{t('reconcile')}</button>
-              </div>
+              <form class="flex flex-wrap items-end gap-2" onsubmit={event => { event.preventDefault(); void settle(op) }}>
+                <TextField class="w-44" inputmode="numeric" label={t('block')} bind:value={() => blocks[op.id] ?? '', value => blocks[op.id] = value}
+                  error={blocks[op.id] && ledgerBlock(blocks[op.id]) === null ? t('wholeNumber') : undefined} data-testid="name-block" />
+                <button type="submit" class={buttonClass('secondary', 'xs')} disabled={busy || ledgerBlock(blocks[op.id]) === null}>{t('reconcile')}</button>
+              </form>
             {/if}
           </li>
         {/each}
@@ -417,44 +475,60 @@
   description={moving?.token ? t('transferHint') : t('transferStepsHint')}
   icon="transfer"
   tone="warn"
+  dismissible={!busy}
+  onOpenAutoFocus={(event) => { if (targetForm) { event.preventDefault(); targetForm.querySelector('input')?.focus() } }}
   testid="transfer"
 >
   {#if moving && !moving.token}
-    <Field label={t('targetAccount')} hint={t('targetAccountHint')}>
-      <input bind:value={moving.target} placeholder={t('targetAccount')} class="font-mono text-[12.5px] placeholder:font-sans" data-testid="transfer-target" />
-    </Field>
+    <form bind:this={targetForm} id="plan-transfer-target" onsubmit={(event) => { event.preventDefault(); void offer() }}>
+      <TextField label={t('targetAccount')} hint={t('targetAccountHint')} bind:value={moving.target}
+        disabled={busy} mono dir="ltr" spellcheck="false" autocomplete="off" error={transferTried ? targetProblem : ''}
+        oninput={() => { transferError = ''; transferTried = false }} data-testid="transfer-target" />
+      {#if transferError}<Notice tone="danger" class="mt-2" testid="transfer-error">{transferError}</Notice>{/if}
+    </form>
   {:else if moving?.token}
     <div class="grid gap-3">
-      <p class="rounded-lg bg-surface-2 p-2.5 font-mono text-[11.5px] break-all select-all" data-testid="transfer-token">{moving.token}</p>
-      <div class="flex flex-wrap gap-1.5">
-        <button class={buttonClass('secondary', 'sm')} onclick={() => copyText(moving!.token!)} data-testid="transfer-copy"><Icon name="copy" />{t('copyToken')}</button>
+      <Fact label={t('targetAccount')}><Id id={moving.target} full wrap /></Fact>
+      <div class="flex flex-wrap gap-2">
+        <button bind:this={composeButton} class={buttonClass('primary', 'sm')} onclick={() => composeTransfer(moving!.target, moving!.token!)} data-testid="transfer-send"><Icon name="channels" />{t('planComposeTransfer')}</button>
         <button class={buttonClass('secondary', 'sm')} onclick={() => copyText(acceptLink(moving!.token!))} data-testid="transfer-link"><Icon name="link" />{t('copyLink')}</button>
-        <button class={buttonClass('secondary', 'sm')} onclick={() => send(moving!.target.trim(), moving!.token!)} data-testid="transfer-send"><Icon name="send" />{t('sendInConversation')}</button>
       </div>
+      <Collapsible testid="transfer-token-details">
+        {#snippet title()}<span class="text-[12px]">{t('token')}</span>{/snippet}
+        <p class="my-2 rounded-lg bg-surface-2 p-2.5 font-mono text-[11.5px] break-all select-all" dir="ltr" data-testid="transfer-token">{moving.token}</p>
+        <button class={buttonClass('ghost', 'sm')} onclick={() => copyText(moving!.token!)} data-testid="transfer-copy"><Icon name="copy" />{t('copyToken')}</button>
+      </Collapsible>
     </div>
   {/if}
   {#snippet footer()}
     {#if moving?.token}
-      <button class={buttonClass('primary')} onclick={() => (moving = null)} data-testid="transfer-done">{t('done')}</button>
+      <span class="flex-1"></span><button class={buttonClass('secondary')} onclick={() => (moving = null)} data-testid="transfer-done">{t('done')}</button>
     {:else}
-      <button class={buttonClass('secondary')} onclick={() => (moving = null)}>{t('cancel')}</button>
-      <button class={buttonClass('primary')} disabled={busy || !moving?.target.trim()} onclick={offer} data-testid="transfer-offer">{t('createToken')}</button>
+      <button class={buttonClass('secondary')} disabled={busy} onclick={() => (moving = null)}>{t('cancel')}</button>
+      <button class={buttonClass('primary')} disabled={busy} aria-busy={busy} type="submit" form="plan-transfer-target" data-testid="transfer-offer">{t('createToken')}</button>
     {/if}
   {/snippet}
 </Dialog>
 
-<Dialog bind:open={() => incoming !== null, (open) => (incoming = open ? incoming : null)} title={t('acceptName')} description={t('acceptHint')} icon="transfer" testid="accept">
-  <Field label={t('token')}>
-    <textarea
-      bind:value={() => incoming ?? '', (text) => (incoming = text)}
-      rows="4"
-      class="font-mono text-[12px] placeholder:font-sans"
-      placeholder={t('acceptPlaceholder')}
-      data-testid="accept-token"
-    ></textarea>
-  </Field>
+<Dialog bind:open={() => incoming !== null, (open) => (incoming = open ? incoming : null)}
+  title={t('acceptName')} description={t('acceptHint')} icon="transfer" dismissible={!busy} testid="accept"
+  onOpenAutoFocus={(event) => { event.preventDefault(); acceptForm?.querySelector('textarea')?.focus() }}>
+  <form bind:this={acceptForm} id="plan-accept-token" onsubmit={(event) => { event.preventDefault(); void accept() }}>
+    <TextArea label={t('token')} bind:value={() => incoming ?? '', text => { incoming = text; acceptError = ''; acceptTried = false }}
+      disabled={busy} rows={4} mono dir="ltr" spellcheck="false" placeholder={t('acceptPlaceholder')}
+      error={acceptTried && !tokenOf(incoming ?? '') ? t('planTokenError') : undefined} data-testid="accept-token" />
+    {#if acceptError}<Notice tone="danger" class="mt-2" testid="accept-error">{acceptError}</Notice>{/if}
+  </form>
   {#snippet footer()}
-    <button class={buttonClass('secondary')} onclick={() => (incoming = null)}>{t('cancel')}</button>
-    <button class={buttonClass('primary')} disabled={busy || !tokenOf(incoming ?? '')} onclick={accept} data-testid="accept-continue">{t('continueToApprove')}</button>
+    <span class="flex-1"></span>
+    <button class={buttonClass('secondary')} disabled={busy} onclick={() => (incoming = null)}>{t('cancel')}</button>
+    <button class={buttonClass('primary')} disabled={busy} aria-busy={busy} type="submit" form="plan-accept-token" data-testid="accept-continue">{t('continueToApprove')}</button>
   {/snippet}
 </Dialog>
+
+<Confirm focusCancel bind:open={() => !!forgetting, open => { if (!open) forgetting = null }}
+  title={t('planRemoveTransfer')} description={t('planRemoveTransferHint')} confirm={t('removeEntry')} testid="name-remove-dialog"
+  onConfirm={async () => { await call('handle/forget', { id: forgetting.id }); if (alive) await readOperations() }}
+  onReview={readOperations}>
+  {#snippet body()}{#if forgetting}<b>@{forgetting.name}</b>{#if forgetting.to}<Fact label={t('targetAccount')}><Id id={forgetting.to} full wrap /></Fact>{/if}{/if}{/snippet}
+</Confirm>

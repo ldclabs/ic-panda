@@ -230,35 +230,28 @@ private fun packageFieldTitle(field: PackageField): String = field.label.ifBlank
         current.completed?.let { ids -> SectionTitle(str(R.string.text_imported_copies_3c1c692)); ids.forEach { id -> TextButton(onClick = { client.navigation.push(Route("vault", id)) }) { Text(id) } } }
         Text(str(R.string.text_mobile_packages_are_limited_to_8_mib_preview_verifies_content_bef_7a4533d), style = MaterialTheme.typography.bodySmall)
     }
-    if (choosingFolder) SecretFolderDialog(client, { choosingFolder = false }) { id, name -> client.secretSharing.editIncoming { it.copy(folder = id, folderName = name) }; choosingFolder = false }
-}
-
-@Composable private fun SecretFolderDialog(client: ClientController, close: () -> Unit, choose: (String, String) -> Unit) {
-    var parents by remember { mutableStateOf(listOf("root" to str(R.string.text_files_c79ddc2))) }
-    val folder = parents.last()
-    val listing by client.library.destinations.state.collectAsStateWithLifecycle()
-    LaunchedEffect(folder.first) { client.library.destination(folder.first) }
-    AlertDialog(onDismissRequest = close, title = { Text(folder.second) }, text = {
-        Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
-            ReadFeedback(listing) { client.library.destination(folder.first) }
-            if (parents.size > 1) TextButton(onClick = { parents = parents.dropLast(1) }) { Text(str(R.string.text_parent_folder_3af9479)) }
-            listing.valueOrNull()?.takeIf { it.folder == folder.first }?.folders.orEmpty().forEach { child -> TextButton(onClick = { parents = parents + (child.id to child.name) }) { Icon(Icons.Outlined.Folder, null); Text(child.name) } }
-        }
-    }, confirmButton = { TextButton(onClick = { choose(folder.first, folder.second) }, enabled = listing.valueOrNull()?.folder == folder.first && (listing is ReadState.Ready || listing is ReadState.Empty)) { Text(str(R.string.text_use_this_folder_4a67a24)) } },
-        dismissButton = { TextButton(onClick = close) { Text(str(R.string.text_cancel_998b9c4)) } })
+    if (choosingFolder) FileFolderDialog(client, str(R.string.text_files_c79ddc2), { choosingFolder = false }) { path ->
+        client.secretSharing.editIncoming { it.copy(folder = path.folderId, folderName = path.lastOrNull()?.name ?: str(R.string.text_files_c79ddc2)) }
+        choosingFolder = false
+    }
 }
 
 @Composable fun SecretSnapshotPicker(client: ClientController, channel: String) {
-    val read by client.vault.listing.state.collectAsStateWithLifecycle()
-    var query by remember { mutableStateOf("") }
-    LaunchedEffect(query) { kotlinx.coroutines.delay(180); client.vault.browse(VaultQuery(text = query)) }
+    val picker = client.secretSharing.picker
+    val read by picker.listing.state.collectAsStateWithLifecycle()
+    val query by picker.filters.collectAsStateWithLifecycle()
+    LaunchedEffect(channel) { picker.browse() }
     LazyColumn(contentPadding = PaddingValues(20.dp)) {
-        item { OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text(str(R.string.text_search_vault_f6e42b2)) }); ReadFeedback(read) { client.vault.browse(VaultQuery(text = query)) } }
+        item {
+            WorkspaceSearchField(query.text, { picker.browse(VaultQuery(text = it)) }, str(R.string.text_search_vault_f6e42b2))
+            ReadFeedback(read) { picker.browse() }
+            if (read is ReadState.Empty) EmptyPanel(str(if (query.text.isBlank()) R.string.autofill_no_items else R.string.text_no_matching_items_b35c7c3))
+        }
         items(read.valueOrNull()?.items.orEmpty(), key = { it.id }) { item ->
             ListItem(modifier = Modifier.clickable(enabled = !item.reserved && !item.deleted && !item.conflict) { client.navigation.push(Route("secret-compose", item.id, channel = channel)) },
                 headlineContent = { Text(item.title) }, supportingContent = { Text(vaultKindName(item.kind)) }, leadingContent = { SecretIcon(item.kind) })
         }
-        if (read.valueOrNull()?.hasMore == true) item { TextButton(onClick = { client.vault.browse(VaultQuery(text = query), more = true) }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+        if (read.valueOrNull()?.hasMore == true) item { TextButton(onClick = { picker.browse(more = true) }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
     }
 }
 

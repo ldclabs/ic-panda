@@ -21,6 +21,7 @@
     icon = 'warning',
     tone = 'danger',
     busy = false,
+    focusCancel = false,
     testid,
     confirmTestid,
     onConfirm,
@@ -35,6 +36,7 @@
     icon?: Glyph
     tone?: 'warn' | 'danger'
     busy?: boolean
+    focusCancel?: boolean
     testid?: string
     confirmTestid?: string
     /** Resolve after the write is accepted. Reject with its original error. */
@@ -45,6 +47,7 @@
     body?: Snippet
   } = $props()
 
+  let cancelButton = $state<HTMLButtonElement>()
   let submitting = $state(false)
   let failure = $state.raw<{ cause: unknown } | null>(null)
   const uncertain = $derived(failure !== null && ['EXECUTION_UNKNOWN', 'PENDING', 'RESULT_EXPIRED'].includes(code(failure.cause)))
@@ -77,7 +80,8 @@
   }
 </script>
 
-<Dialog bind:open dismissible={!submitting && !uncertain} {title} {description} {icon} {tone} {testid}>
+<Dialog bind:open dismissible={!submitting && !uncertain} {title} {description} {icon} {tone} {testid}
+  onOpenAutoFocus={(event) => { if (focusCancel && cancelButton) { event.preventDefault(); cancelButton.focus() } }}>
   {#if body}<fieldset class="min-w-0" disabled={submitting || uncertain}>{@render body()}</fieldset>{/if}
   {#if failure}
     <Notice tone={uncertain ? 'warn' : 'danger'} testid="confirmation-error">{message}</Notice>
@@ -87,7 +91,7 @@
     {#if uncertain}
       <button class={buttonClass('primary')} onclick={review} data-testid="confirmation-review">{t('confirmCheckStatus')}</button>
     {:else}
-      <button class={buttonClass('ghost')} disabled={submitting} onclick={() => (open = false)}>{t('cancel')}</button>
+      <button bind:this={cancelButton} class={buttonClass('ghost')} disabled={submitting} onclick={() => (open = false)}>{t('cancel')}</button>
       <button class={buttonClass(tone === 'danger' ? 'danger' : 'primary')} disabled={busy || submitting} aria-busy={submitting} onclick={decide} data-testid={confirmTestid ?? (testid ? `${testid}-confirm` : undefined)}>{failure ? t('retry') : confirm}</button>
     {/if}
   {/snippet}

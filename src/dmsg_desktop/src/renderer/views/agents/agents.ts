@@ -8,10 +8,10 @@
 
 /** The Agent Protocols services, with the capabilities that read and write each. */
 export const services = [
-  { name: 'Agent Discourse', read: 'discourse.read', write: 'discourse.write' },
-  { name: 'Agent Mail', read: 'mail.read', write: 'mail.write' },
-  { name: 'Agent Knowledge', read: 'knowledge.read', write: 'knowledge.write' },
-  { name: 'Agent Profile', read: 'agent.profile.read', write: 'agent.profile.write' }
+  { name: 'Agent Discourse', label: 'tabDiscourse', read: 'discourse.read', write: 'discourse.write' },
+  { name: 'Agent Mail', label: 'mail', read: 'mail.read', write: 'mail.write' },
+  { name: 'Agent Knowledge', label: 'knowledge', read: 'knowledge.read', write: 'knowledge.write' },
+  { name: 'Agent Profile', label: 'agentProfile', read: 'agent.profile.read', write: 'agent.profile.write' }
 ] as const
 
 const reaching = new Set<string>(services.flatMap((s) => [s.read, s.write]))

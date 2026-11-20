@@ -25,6 +25,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -115,6 +121,7 @@ import net.dmsg.core.MessageItem
     val blocked by client.safety.blocked.state.collectAsStateWithLifecycle()
     val timeline by client.messages.timeline.state.collectAsStateWithLifecycle()
     val outgoing by client.messages.outbox.state.collectAsStateWithLifecycle()
+    val syncFailure by client.messages.channelSyncError.collectAsStateWithLifecycle()
     val composers by client.messages.composers.collectAsStateWithLifecycle()
     val draftsReady by client.messages.draftsReady.collectAsStateWithLifecycle()
     val files by client.messages.attachmentChoices.state.collectAsStateWithLifecycle()
@@ -128,7 +135,15 @@ import net.dmsg.core.MessageItem
     var action by remember(channel) { mutableStateOf<MessageItem?>(null) }
     var editText by remember { mutableStateOf<String?>(null) }
     var retract by remember { mutableStateOf(false) }
-    val scroll = workspaceListState(client.navigation, "conversation:" + channel)
+    var queuedId by remember(channel) { mutableStateOf<String?>(null) }
+    val composerFocus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    var focusReply by remember(channel) { mutableStateOf(false) }
+    val positionKey = "conversation:" + channel
+    val savedPosition = remember(channel) { client.navigation.savedScrollPosition(positionKey) }
+    var opened by remember(channel) { mutableStateOf(false) }
+    val threadScroll = workspaceListState(client.navigation, positionKey)
+    val scroll = if (search.isBlank()) threadScroll else key(search) { rememberLazyListState() }
     val noticeOwner = remember(channel) { java.util.UUID.randomUUID().toString() }
     val noticeView = androidx.compose.ui.platform.LocalView.current
     val noticeFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
@@ -139,7 +154,40 @@ import net.dmsg.core.MessageItem
     val blockedAccounts = blocked.valueOrNull()
     val rows = remember(currentTimeline, blockedAccounts) { currentTimeline?.items.orEmpty().filter { blockedAccounts?.contains(it.account) == false } }
     val sequences = remember(rows) { rows.associate { "message:" + it.id to it.sequence } }
-    val firstUnread = remember(rows, info?.readThrough) { rows.firstOrNull { it.sequence > (info?.readThrough ?: 0u) }?.id }
+    val firstUnread = if (search.isBlank() && info != null && info.unread > 0u) {
+        rows.firstOrNull { it.sequence > info.readThrough && it.account != state.session?.account }?.id
+    } else null
+    val pending = outgoing.valueOrNull()?.takeIf { it.channel == channel }?.items.orEmpty().filter {
+        search.isBlank() || it.text.contains(search, true) || it.attachmentName?.contains(search, true) == true
+    }
+    LaunchedEffect(focusReply) {
+        if (focusReply) { composerFocus.requestFocus(); keyboard?.show(); focusReply = false }
+    }
+    val timelineReady = (timeline is ReadState.Ready || timeline is ReadState.Empty) &&
+        (outgoing is ReadState.Ready || outgoing is ReadState.Empty) && blockedAccounts != null && info != null && currentTimeline != null
+    LaunchedEffect(queuedId, rows, pending, search, timelineReady) {
+        if (!timelineReady || search.isNotBlank() || rows.isEmpty() && pending.isEmpty()) return@LaunchedEffect
+        val firstRow = if (currentTimeline?.hasMore == true) 1 else 0
+        val id = queuedId
+        if (id == null) {
+            if (!opened) {
+                when {
+                    savedPosition != null -> scroll.scrollToItem(savedPosition.first, savedPosition.offset)
+                    firstUnread != null -> scroll.scrollToItem(firstRow + rows.indexOfFirst { it.id == firstUnread })
+                    else -> scroll.scrollToItem(firstRow + rows.size + pending.size)
+                }
+                opened = true
+            }
+            return@LaunchedEffect
+        }
+        val confirmed = rows.indexOfFirst { it.id == id }
+        val queued = pending.indexOfFirst { it.id == id }
+        if (confirmed < 0 && queued < 0) return@LaunchedEffect
+        // The outbox status occupies one list item between received and pending messages.
+        scroll.scrollToItem(firstRow + if (confirmed >= 0) confirmed else rows.size + 1 + queued)
+        opened = true
+        queuedId = null
+    }
     LaunchedEffect(channel, state.epoch) { client.safety.loadBlocks(); client.messages.load(channel, search = "") }
     LaunchedEffect(channel, rows, search, noticeFocused, timeline is ReadState.Ready, state.unlocked, state.concealed) {
         if (search.isNotBlank()) {
@@ -161,7 +209,10 @@ import net.dmsg.core.MessageItem
     fun update(value: MessageComposer) = client.messages.edit(channel, value)
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(str(R.string.text_encrypted_conversation_9f9e912), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val syncError = syncFailure?.takeIf { it.first == channel }?.second
+            Text(syncError?.let { errorText(it) } ?: str(R.string.text_encrypted_conversation_9f9e912),
+                Modifier.weight(1f).semantics { if (syncError != null) liveRegion = LiveRegionMode.Polite },
+                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             IconButton(onClick = { searching = !searching; if (!searching) { search = ""; client.messages.search("") } }) { Icon(Icons.Outlined.Search, str(R.string.text_search_messages_ee3eb59)) }
             IconButton(onClick = { client.messages.refresh(channel) }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
             IconButton(onClick = { client.navigation.push(Route("channel-settings", channel = channel)) }) { Icon(Icons.Outlined.Settings, str(R.string.text_conversation_settings_f07a685)) }
@@ -178,8 +229,10 @@ import net.dmsg.core.MessageItem
                 if (previous == null || messageDay(previous.createdAtMs) != day) Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(day, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
                     if (message.id == firstUnread) Text(str(R.string.text_unread_messages_15b52a0), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    if (previous?.account != message.account || messageDay(previous?.createdAtMs) != day) ParticipantIdentity(client, message.account, avatar = false)
-                    Surface(Modifier.widthIn(max = 440.dp).combinedClickable(onClick = {}, onLongClick = { action = message }), shape = RoundedCornerShape(18.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer) {
+                    if (previous?.account != message.account || messageDay(previous.createdAtMs) != day) ParticipantIdentity(client, message.account, avatar = false)
+                    Surface(Modifier.padding(start = if (mine) 28.dp else 0.dp, end = if (mine) 0.dp else 28.dp).widthIn(max = 440.dp)
+                        .combinedClickable(onClickLabel = str(R.string.message_actions), onClick = { action = message }, onLongClick = { action = message }),
+                        shape = RoundedCornerShape(18.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer) {
                         Column(Modifier.padding(14.dp)) {
                             message.replySequence?.let { sequence ->
                                 TextButton(onClick = { client.navigation.push(Route("message-reference", channel = channel, sequence = sequence)) }) {
@@ -188,27 +241,43 @@ import net.dmsg.core.MessageItem
                                         Text(original?.takeIf { !it.hidden && !it.unreadable && !it.retracted }?.let { it.text.ifBlank { if (it.attachmentDeleted) "" else it.attachmentName.orEmpty() } }?.takeIf(String::isNotBlank) ?: str(R.string.text_view_original_message_a5b610b), maxLines = 2, overflow = TextOverflow.Ellipsis) }
                                 }
                             }
-                            Text(when { message.unreadable -> str(R.string.text_this_message_cannot_be_verified_or_opened_0021683)
-                                message.retracted -> str(R.string.text_message_withdrawn_c19a5e2)
-                                else -> message.text })
-                            Text(messageTime(message.createdAtMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            when {
+                                message.unreadable -> Text(str(R.string.text_this_message_cannot_be_verified_or_opened_0021683))
+                                message.retracted -> Text(str(R.string.text_message_withdrawn_c19a5e2))
+                                else -> {
+                                    if (message.text.isNotEmpty()) Text(message.text)
+                                    if (message.attachmentName != null) {
+                                        if (message.text.isNotEmpty()) Spacer(Modifier.height(8.dp))
+                                        MessageAttachmentRow(client, channel, message)
+                                    }
+                                }
+                            }
+                            Text(messageClock(message.createdAtMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (message.edited && !message.retracted) Text(str(R.string.text_edited_91efa39), style = MaterialTheme.typography.labelSmall)
                         }
                     }
-                    if (message.attachmentName != null && !message.unreadable && !message.retracted) MessageAttachmentRow(client, channel, message)
                 }
             }
             item { ReadFeedback(outgoing, { client.messages.load(channel, false) }) }
-            items(outgoing.valueOrNull()?.takeIf { it.channel == channel }?.items.orEmpty(), key = { "outgoing:" + it.id }) { queued ->
+            items(pending, key = { "outgoing:" + it.id }) { queued ->
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
                     Text(queued.text.ifBlank { queued.attachmentName.orEmpty() }, Modifier.background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(18.dp)).padding(14.dp))
                     if (queued.text.isNotBlank()) queued.attachmentName?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                    Text(if (queued.error == "EXECUTION_UNKNOWN") str(R.string.text_waiting_for_confirmation_9c87aad) else str(R.string.text_saved_locally_waiting_to_send_7e2484e), style = MaterialTheme.typography.labelSmall)
-                    queued.error?.let { Text(errorText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                    TextButton(onClick = { client.messages.retry(channel, queued.id) }, enabled = !state.working("message:send:" + queued.id)) { Text(str(R.string.text_retry_original_message_695da75)) }
+                    val sending = state.working("message:send:" + queued.id)
+                    Text(str(when {
+                        sending -> R.string.message_sending
+                        queued.error == "EXECUTION_UNKNOWN" -> R.string.text_waiting_for_confirmation_9c87aad
+                        queued.error != null -> R.string.text_send_failed_8c3e812
+                        else -> R.string.text_saved_locally_waiting_to_send_7e2484e
+                    }), style = MaterialTheme.typography.labelSmall)
+                    if (!sending) queued.error?.let { Text(errorText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                    if (!sending) TextButton(onClick = { client.messages.retry(channel, queued.id) }) { Text(str(R.string.text_retry_original_message_695da75)) }
                 }
             }
-            if (timeline is ReadState.Empty && outgoing.valueOrNull()?.items.isNullOrEmpty()) item { Notice(str(R.string.text_no_messages_yet_1d23127)) }
+            if (currentTimeline != null && (timeline is ReadState.Ready || timeline is ReadState.Empty) && !currentTimeline.hasMore &&
+                blockedAccounts != null && (outgoing is ReadState.Ready || outgoing is ReadState.Empty) && rows.isEmpty() && pending.isEmpty()) {
+                item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_messages_yet_1d23127 else R.string.no_matches)) }
+            }
         }
         HorizontalDivider()
         composer.reply?.let { reply -> Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -223,13 +292,13 @@ import net.dmsg.core.MessageItem
         if (info?.canPublish == false) Notice(str(R.string.text_you_cannot_publish_in_the_current_channel_state_a56d35a))
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             FileIntakeButton(client, channel = channel, enabled = info?.canPublish == true && draftsReady, chooseExisting = { attachmentFolder = "root"; attachmentParents = listOf("root"); client.messages.chooseFolder("root"); attachment = true })
-            OutlinedTextField(composer.text, { update(composer.copy(text = it)) }, Modifier.weight(1f).revealFocusedInput(), enabled = draftsReady && info?.canPublish == true, placeholder = { Text(str(R.string.text_say_something_c413667)) }, shape = RoundedCornerShape(24.dp), maxLines = 5)
-            FilledIconButton(onClick = { client.messages.send(channel) }, enabled = composer.sendable && !state.working("message:queue:" + channel) && draftsReady && info?.canPublish == true) { Icon(Icons.AutoMirrored.Outlined.Send, str(R.string.text_send_06acd73)) }
+            OutlinedTextField(composer.text, { update(composer.copy(text = it)) }, Modifier.weight(1f).focusRequester(composerFocus).revealFocusedInput(), enabled = draftsReady && info?.canPublish == true, placeholder = { Text(str(R.string.text_say_something_c413667)) }, shape = RoundedCornerShape(24.dp), maxLines = 5)
+            FilledIconButton(onClick = { client.messages.send(channel) { id -> search = ""; searching = false; queuedId = id } }, enabled = composer.sendable && !state.working("message:queue:" + channel) && draftsReady && info?.canPublish == true) { Icon(Icons.AutoMirrored.Outlined.Send, str(R.string.text_send_06acd73)) }
         }
     }
     if (attachment) AlertDialog(onDismissRequest = { attachment = false }, title = { Text(str(R.string.text_attach_from_files_d9fc92f)) }, text = {
         Column(Modifier.heightIn(max = 350.dp).verticalScroll(rememberScrollState())) {
-            TextButton(onClick = { attachment = false; client.navigation.push(Route("secret-picker", channel = channel)) }) { Icon(Icons.Outlined.Shield, null); Text(str(R.string.text_share_a_secret_snapshot_7502b61)) }
+            TextButton(onClick = { attachment = false; client.secretSharing.picker.reset(); client.navigation.push(Route("secret-picker", channel = channel)) }) { Icon(Icons.Outlined.Shield, null); Text(str(R.string.text_share_a_secret_snapshot_7502b61)) }
             ReadFeedback(files, { client.messages.chooseFolder(attachmentFolder) })
             if (attachmentParents.size > 1) TextButton(onClick = { attachmentParents = attachmentParents.dropLast(1); attachmentFolder = attachmentParents.last(); client.messages.chooseFolder(attachmentFolder) }) { Text(str(R.string.text_parent_folder_3af9479)) }
             val choices = files.valueOrNull()?.takeIf { it.folder == attachmentFolder }
@@ -241,30 +310,39 @@ import net.dmsg.core.MessageItem
             if (files is ReadState.Empty) Text(str(R.string.text_import_a_file_in_files_first_d76a295))
         }
     }, confirmButton = { TextButton(onClick = { attachment = false }) { Text(str(R.string.text_close_6cf4a77)) } })
-    action?.let { message -> AlertDialog(onDismissRequest = { action = null }, title = { Text(str(R.string.text_message_6302964)) }, text = {
-        Column {
+    action?.takeIf { editText == null && !retract }?.let { message -> AlertDialog(onDismissRequest = { action = null }, title = { Text(str(R.string.text_message_6302964)) }, text = {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
             Text(message.text, maxLines = 4, overflow = TextOverflow.Ellipsis)
-            TextButton(onClick = { client.clipboard.copy(message.text); action = null }) { Text(str(R.string.text_copy_d6e9651)) }
+            if (!message.unreadable && !message.retracted && info?.canPublish == true) {
+                TextButton(onClick = { update(composer.copy(reply = ComposerReply(message.sequence, message.digest, message.text.ifBlank { message.attachmentName.orEmpty() }))); action = null; focusReply = true }) { Text(str(R.string.text_reply_b4c9334)) }
+            }
+            if (message.text.isNotEmpty() && !message.unreadable && !message.retracted) {
+                TextButton(onClick = { client.clipboard.copy(message.text); action = null }) { Text(str(R.string.text_copy_d6e9651)) }
+            }
+            if (!message.unreadable && !message.retracted && info?.canPublish == true && message.account == state.session?.account) {
+                if (message.text.isNotEmpty()) TextButton(onClick = { editText = message.text }) { Text(str(R.string.text_edit_message_320c6f1)) }
+                TextButton(onClick = { retract = true }) { Text(str(R.string.text_withdraw_message_aad22ea)) }
+            }
             TextButton(onClick = { action = null; client.safety.openReport(ReportTarget("channel", message.account, channel, message.sequence)) }, enabled = !message.unreadable) { Text(str(R.string.text_report_message_9354138)) }
             if (message.account != state.session?.account) TextButton(onClick = { action = null; client.safety.openBlock(message.account) }) { Text(str(R.string.text_block_account_11bc76b)) }
-            if (!message.unreadable && !message.retracted && info?.canPublish == true) {
-                TextButton(onClick = { update(composer.copy(reply = ComposerReply(message.sequence, message.digest, message.text.ifBlank { message.attachmentName.orEmpty() }))); action = null }) { Text(str(R.string.text_reply_b4c9334)) }
-                if (message.account == state.session?.account) {
-                    TextButton(onClick = { editText = message.text }) { Text(str(R.string.text_edit_message_320c6f1)) }
-                    TextButton(onClick = { retract = true }) { Text(str(R.string.text_withdraw_message_aad22ea)) }
-                }
-            }
         }
     }, confirmButton = { TextButton(onClick = { action = null }) { Text(str(R.string.text_close_6cf4a77)) } }) }
     if ((editText != null || retract) && action != null) AlertDialog(onDismissRequest = { editText = null; retract = false }, title = { Text(if (retract) str(R.string.text_withdraw_this_message_6ad534b) else str(R.string.text_edit_message_320c6f1)) }, text = {
-        if (retract) Text(str(R.string.text_copies_already_read_or_saved_cannot_be_recalled_0717a55)) else OutlinedTextField(editText.orEmpty(), { editText = it }, minLines = 3)
+        if (retract) Text(str(R.string.text_copies_already_read_or_saved_cannot_be_recalled_0717a55)) else {
+            val edit = MessageComposer(editText.orEmpty())
+            OutlinedTextField(edit.text, { editText = it }, minLines = 3, isError = edit.tooLong, supportingText = {
+                Text(localizedNumber(edit.bytes) + " / " + localizedNumber(MessageComposer.MAX_TEXT_BYTES) + " " + str(R.string.text_utf_8_bytes_121f5ad))
+            })
+        }
     }, confirmButton = { TextButton(onClick = {
         val message = action!!; val actionName = if (retract) "retract" else "edit"; val text = if (retract) "" else editText.orEmpty()
         client.perform({ it.queueMessageAction(channel, actionName, message.sequence, message.digest, text) }, key = "message:action:" + message.id) { client.messages.retry(channel, it); action = null; editText = null; retract = false }
-    }, enabled = !state.working("message:action:" + action!!.id)) { Text(str(R.string.text_confirm_563fd5a)) } }, dismissButton = { TextButton(onClick = { editText = null; retract = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    }, enabled = !state.working("message:action:" + action!!.id) && (retract || (editText != action!!.text && MessageComposer(editText.orEmpty()).sendable))) { Text(str(R.string.text_confirm_563fd5a)) } }, dismissButton = { TextButton(onClick = { editText = null; retract = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
 internal fun messageTime(ms: ULong?): String = if (ms == null || ms == 0uL || ms > Long.MAX_VALUE.toULong()) "—" else displayTime(ms)
+internal fun messageClock(ms: ULong): String = if (ms == 0uL || ms > Long.MAX_VALUE.toULong()) "—" else
+    java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT, net.dmsg.android.platform.AppLanguage.locale()).format(java.util.Date(ms.toLong()))
 internal fun messageDay(ms: ULong?): String = if (ms == null || ms == 0uL || ms > Long.MAX_VALUE.toULong()) "—" else java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(ms.toLong()))
 
 @Composable fun ReferencedMessageScreen(client: ClientController, channel: String, sequence: ULong) {

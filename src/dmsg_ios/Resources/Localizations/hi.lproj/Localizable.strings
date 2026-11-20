@@ -1986,6 +1986,8 @@
 	<string>अपलोड के लिए आरक्षित</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>इस खाते को हटाने से पहले लंबित खाता संचालन का समाधान करें।</string>
+	<key>Restored</key>
+	<string>बहाल किया गया</string>
 	<key>Restore</key>
 	<string>पुनर्स्थापित करें</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>कम से कम 12 वर्ण इस्तेमाल करें।</string>
 	<key>Confirm local password</key>
 	<string>स्थानीय पासवर्ड की पुष्टि करें</string>
+	<key>File digest checked</key>
+	<string>फ़ाइल डाइजेस्ट की जाँच की गई</string>
+	<key>The file changed or cannot be read</key>
+	<string>फ़ाइल बदल गई या पढ़ी नहीं जा सकती</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>केवल डाइजेस्ट की पुष्टि हुई है; फ़ाइल की जाँच नहीं की गई थी</string>
+	<key>Delivery report</key>
+	<string>डिलीवरी रिपोर्ट</string>
+	<key>Sign in</key>
+	<string>साइन इन करें</string>
+	<key>Link to an existing account</key>
+	<string>किसी मौजूदा खाते से लिंक करें</string>
+	<key>Confirm it is still you</key>
+	<string>पुष्टि करें कि यह अभी भी आप ही हैं</string>
+	<key>Receiver</key>
+	<string>रिसीवर</string>
+	<key>Valid until</key>
+	<string>तक वैध है</string>
+	<key>High risk</key>
+	<string>उच्च जोखिम</string>
 </dict>
 </plist>

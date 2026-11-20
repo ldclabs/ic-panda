@@ -63,6 +63,7 @@ private val allDestinations = listOf(
     LaunchedEffect(route) { if (route !in setOf("vault-backup", "approvals")) client.vaultBackup.clear() }
     val selected = navigation.current.id.orEmpty()
     val showEditor by client.vaultDrafts.presented.collectAsStateWithLifecycle()
+    val vaultFilters by client.vault.filters.collectAsStateWithLifecycle()
     var discardEditor by remember { mutableStateOf(false) }
     var activityMenu by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
@@ -98,6 +99,7 @@ private val allDestinations = listOf(
                     } } ?: true
                     val wide = maxWidth >= 840.dp && density.fontScale < 1.6f && separatedPanesFit
                     val root = route in destinations.map { it.id }
+                    val inConversation = route == "messages" && selected.isNotEmpty()
                     FoldSafeWorkspace(fold, wide && (route in setOf("vault", "messages", "files") || navigation.workspace == Workspace.ACCOUNT)) {
                     Row(Modifier.fillMaxSize().testTag("workspace-content")) {
                         if (wide) NavigationRail(Modifier.fillMaxHeight(), containerColor = MaterialTheme.colorScheme.surfaceContainer) {
@@ -132,12 +134,19 @@ private val allDestinations = listOf(
                             } },
                             floatingActionButton = {
                                 if ((selected.isEmpty() || wide) && route == "files") FileIntakeButton(client, folder = navigation.current.folder, extended = true)
-                                else if ((selected.isEmpty() || wide) && route == "vault") ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, modifier = Modifier.semantics { contentDescription = str(R.string.text_new_item_9916f9f) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_5a5d1d1)) })
+                                else if ((selected.isEmpty() || wide) && route == "vault" && !vaultFilters.trash) ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, modifier = Modifier.semantics { contentDescription = str(R.string.text_new_item_9916f9f) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_5a5d1d1)) })
                             },
-                            snackbarHost = { SnackbarHost(snackbar) },
+                            snackbarHost = { if (!inConversation) SnackbarHost(snackbar) },
                         ) { padding ->
                             Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                                 Box(Modifier.fillMaxWidth().height(4.dp)) { if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                                if (inConversation) {
+                                    val syncError by client.messages.channelSyncError.collectAsStateWithLifecycle()
+                                    val headerNotice = syncError?.takeIf { it.first == selected }?.let { errorText(it.second) }
+                                    SnackbarHost(snackbar) { notice ->
+                                        if (notice.visuals.message != headerNotice) Snackbar(notice)
+                                    }
+                                }
                                 val pageContent: @Composable () -> Unit = { when (route) {
                                     "vault" -> {
                                         if (wide) WorkspacePanes(fold, list = { VaultScreen(client, ::select) }, detail = {
@@ -148,7 +157,7 @@ private val allDestinations = listOf(
                                     "messages" -> if (wide) WorkspacePanes(fold, list = { MessagesScreen(client, state, "", ::select, { go("inbox") }) }, detail = {
                                         if (selected.isNotEmpty()) MessagesScreen(client, state, selected, ::select, { go("inbox") }) else EmptyPanel(str(R.string.text_choose_a_conversation_f1e5111))
                                     }) else MessagesScreen(client, state, selected, ::select, { go("inbox") })
-                                    "inbox" -> InboxScreen(client, state)
+                                    "inbox" -> InboxScreen(client, state, navigation.current)
                                     "invite-letter-sender" -> InviteLetterSenderScreen(client, selected)
                                     "message-settings" -> MessageSettingsScreen(client)
                                     "inbox-settings" -> InboxSettingsScreen(client)

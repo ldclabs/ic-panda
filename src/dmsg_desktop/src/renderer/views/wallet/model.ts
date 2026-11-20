@@ -87,6 +87,26 @@ export function networkName(a: Asset): string {
 export const assetChain = (a: Asset) =>
   ['ICP', 'ICRC'].includes(a.asset) ? 'Icp' : a.asset === 'BTC' ? 'Bitcoin' : ['ETH', 'ERC20'].includes(a.asset) ? 'Evm' : 'Solana'
 
+/** A kept number or destination must still mean the same thing after picking a source. */
+export function selectTransferSource(
+  draft: { from: string; asset: string; maxFee: string; memo: string; outputs: { to: string; amount: string }[] },
+  from: string, asset: string, addresses: Wallet['addresses']
+) {
+  if (draft.from === from && draft.asset === asset) return
+  const chainOf = (id: string) => addresses.find(row => String(row.id) === id)?.chain
+  const networkChanged = chainOf(draft.from) !== chainOf(from) ||
+    (draft.asset.startsWith('evm:') && asset.startsWith('evm:') && draft.asset.split(':')[1] !== asset.split(':')[1])
+  if (networkChanged) {
+    draft.outputs = [{ to: '', amount: '' }]
+    draft.memo = ''
+  } else if (draft.asset) {
+    draft.outputs = draft.outputs.map(row => ({ ...row, amount: '' }))
+  }
+  draft.maxFee = ''
+  draft.from = from
+  draft.asset = asset
+}
+
 export function assetFromKey(key: string, metadata: Asset[] = []): Asset {
   const found = metadata.find((a) => assetKey(a) === key)
   if (found) return found

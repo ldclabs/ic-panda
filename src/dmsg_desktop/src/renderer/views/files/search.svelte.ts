@@ -6,6 +6,7 @@ interface FileHit {
   name: string
   size: number
   status: string
+  path?: string[]
 }
 
 type SearchResult =

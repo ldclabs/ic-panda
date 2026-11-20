@@ -1970,6 +1970,8 @@
 	<string>Reserved for uploads</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Resolve the pending account operation before deleting this account.</string>
+	<key>Restored</key>
+	<string>Restored</string>
 	<key>Restore</key>
 	<string>Restore</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Use at least 12 characters.</string>
 	<key>Confirm local password</key>
 	<string>Confirm local password</string>
+	<key>File digest checked</key>
+	<string>File digest checked</string>
+	<key>The file changed or cannot be read</key>
+	<string>The file changed or cannot be read</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Only the digest is confirmed; the file was not checked</string>
+	<key>Delivery report</key>
+	<string>Delivery report</string>
+	<key>Sign in</key>
+	<string>Sign in</string>
+	<key>Link to an existing account</key>
+	<string>Link to an existing account</string>
+	<key>Confirm it is still you</key>
+	<string>Confirm it is still you</string>
+	<key>Receiver</key>
+	<string>Receiver</string>
+	<key>Valid until</key>
+	<string>Valid until</string>
+	<key>High risk</key>
+	<string>High risk</string>
 </dict>
 </plist>

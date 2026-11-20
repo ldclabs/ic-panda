@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"অনুমতি যোগ করুন"</string>
     <string name="android_purchase_privacy" formatted="false">"কনফিগার করা থাকলে Google Play-এর কেনাকাটায় Google অ্যাকাউন্ট, বিলিং ও ডিভাইস যাচাই পরিষেবা ব্যবহৃত হয়। পরিষেবা অধিকার সরবরাহ যাচাই না করা পর্যন্ত ক্রয় টোকেন এনক্রিপ্ট করে রাখা হয়। dMsg-এর বিষয়বস্তু Google-এ পাঠানো হয় না। নিচের পরিষেবা নীতিতে অন্য dMsg অ্যাপে ব্যবহৃত Apple-নির্দিষ্ট পরিষেবাও বর্ণিত আছে।"</string>
     <string name="app_language" formatted="false">"ভাষা"</string>
+    <string name="approval_file_changed" formatted="false">"ফাইল পরিবর্তিত বা পড়া যাবে না"</string>
+    <string name="approval_link" formatted="false">"একটি বিদ্যমান অ্যাকাউন্ট লিঙ্ক"</string>
+    <string name="approval_login" formatted="false">"সাইন ইন করুন"</string>
+    <string name="approval_reauthenticate" formatted="false">"এটা এখনও আপনি নিশ্চিত"</string>
+    <string name="approval_receiver" formatted="false">"রিসিভার"</string>
+    <string name="approval_request_expires" formatted="false">"অনুরোধের মেয়াদ"</string>
+    <string name="approval_valid_until" formatted="false">"পর্যন্ত বৈধ"</string>
     <string name="autofill_choose_at_login" formatted="false">"অ্যাপ বা ওয়েবসাইট পাসওয়ার্ড চাইলে একটি অ্যাকাউন্ট বেছে নিন।"</string>
     <string name="autofill_confirm" formatted="false">"এই অ্যাকাউন্টের তথ্য পূরণ করবেন?"</string>
     <string name="autofill_no_items" formatted="false">"এখনও কোন রেকর্ড নেই"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"এনক্রিপ্ট করা স্থানান্তর"</string>
     <string name="customize_fields" formatted="false">"ফিল্ড সাজান"</string>
     <string name="empty_folder" formatted="false">"এই ফোল্ডারে কোনো ফাইল নেই"</string>
+    <string name="file_moved_to_trash" formatted="false">"ট্র্যাশে সরানো হয়েছে"</string>
+    <string name="file_name_rule" formatted="false">"স্ল্যাশ বা নিয়ন্ত্রণ অক্ষর ছাড়া ১–২৫৫ অক্ষরের নাম ব্যবহার করুন।"</string>
+    <string name="file_name_taken" formatted="false">"এই নামে একটি ফাইল বা ফোল্ডার ইতিমধ্যেই আছে।"</string>
+    <string name="file_original_folder" formatted="false">"মূল ফোল্ডার"</string>
+    <string name="file_restored" formatted="false">"পুনরুদ্ধার করা হয়েছে"</string>
     <string name="follow_system_language" formatted="false">"সিস্টেমের ভাষা অনুসরণ করুন"</string>
     <string name="history_device" formatted="false">"ডিভাইস"</string>
     <string name="history_fields" formatted="false">"ক্ষেত্র"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"%2$sটির মধ্যে %1$sটি তৈরি হয়েছে"</string>
     <string name="local_password" formatted="false">"স্থানীয় পাসওয়ার্ড"</string>
     <string name="local_password_length" formatted="false">"অন্তত ১২টি অক্ষর ব্যবহার করুন।"</string>
+    <string name="message_actions" formatted="false">"কাজ"</string>
+    <string name="message_sending" formatted="false">"প্রেরণ"</string>
     <string name="no_matches" formatted="false">"মিলে যাওয়া ফলাফল নেই"</string>
     <string name="offline_account" formatted="false">"স্থানীয় অ্যাকাউন্ট"</string>
     <string name="operation_failed_code" formatted="true">"এই কাজটি শেষ করা যায়নি। কোড: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"আমদানি সংরক্ষিত হয়নি। আবার ব্যাকআপ বেছে নিন।"</string>
     <string name="vault_backup_unlockerror" formatted="false">"ব্যাকআপ খোলা গেল না। পাসওয়ার্ড যাচাই করুন বা সম্পূর্ণ ফাইল বেছে নিন।"</string>
     <string name="vault_backup_wallet" formatted="false">"ওয়ালেট এন্ট্রিতে রাখা গোপন তথ্য অন্তর্ভুক্ত।"</string>
+    <string name="vault_conflict_saved" formatted="false">"একটি পৃথক সংস্করণ হিসাবে সংরক্ষিত. সিঙ্ক দ্বন্দ্ব পর্যালোচনা করুন।"</string>
+    <string name="vault_copied" formatted="false">"কপি হয়েছে"</string>
     <string name="vault_field_birthday" formatted="false">"জন্মদিন"</string>
     <string name="vault_field_cardholder" formatted="false">"কার্ডধারী"</string>
     <string name="vault_field_credential" formatted="false">"শংসাপত্র"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"সর্বজনীন কী"</string>
     <string name="vault_field_purchased" formatted="false">"ক্রয় করা হয়েছে"</string>
     <string name="vault_field_username" formatted="false">"ব্যবহারকারীর নাম"</string>
+    <string name="vault_loading" formatted="false">"লোড হচ্ছে…"</string>
+    <string name="vault_search_files" formatted="false">"ফাইল অনুসন্ধান করুন"</string>
     <string name="widget_description" formatted="false">"ব্যক্তিগত কর্মক্ষেত্র খুলুন। এখানে অ্যাকাউন্টের বিষয়বস্তু দেখানো হয় না।"</string>
     <string name="widget_open" formatted="false">"ব্যক্তিগত কর্মক্ষেত্র খুলুন"</string>
     <string name="widget_title" formatted="false">"dMsg ওয়ার্কস্পেস"</string>

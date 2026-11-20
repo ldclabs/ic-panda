@@ -136,7 +136,7 @@ extension SessionModel {
         do {
             let item = try await readVaultItem(id: summary.id)
             guard current == epoch, let field = item.fields.first(where: { $0.id == id }), !field.value.isEmpty else {
-                if current == epoch { notice = String(localized: "No fields or notes") }
+                if current == epoch { notice = vaultFieldName(id) + " · " + String(localized: "Unavailable") }
                 return
             }
             let value = try await vaultFieldValue(item, field: field)

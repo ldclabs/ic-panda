@@ -125,6 +125,11 @@ export function matchesFile(file: { name?: string; tags?: string[]; note?: strin
   return [file.name, file.note, ...(file.tags ?? [])].some((field) => String(field ?? '').toLowerCase().includes(q))
 }
 
+export function validFileName(name: string): boolean {
+  const text = name.trim()
+  return !!text && text !== '.' && text !== '..' && [...text].length <= 255 && !/[\/\\\p{Cc}]/u.test(text)
+}
+
 /** What a dragged row carries: the IDs of the rows dragged, as JSON. */
 export const DRAG_TYPE = 'application/x-dmsg-files'
 

@@ -27,13 +27,15 @@
     tab = $bindable<'create' | 'join'>('create'),
     invitation = $bindable(''),
     peer = $bindable<{ account: string; name?: string } | null>(null),
-    onOpened
+    onOpened,
+    onDirectInvited
   }: {
     open?: boolean
     tab?: 'create' | 'join'
     invitation?: string
     peer?: { account: string; name?: string } | null
     onOpened: (id: string) => void
+    onDirectInvited?: (id: string, account: string) => void
   } = $props()
 
   let name = $state('')
@@ -107,7 +109,10 @@
         direct = { kind: 'created', channel: created.id, account }
       }
       const packet = await call('channel/invite', { id: direct.channel, account: direct.account })
-      if (current()) direct = { kind: 'invited', link: invitationLink(packet) }
+      if (current()) {
+        onDirectInvited?.(direct.channel, direct.account)
+        direct = { kind: 'invited', link: invitationLink(packet) }
+      }
     } catch (e) {
       if (current()) failure = e
     } finally {

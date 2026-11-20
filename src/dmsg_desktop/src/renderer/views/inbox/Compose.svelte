@@ -1,16 +1,17 @@
 <script lang="ts">
   import Notice from '../../components/page/Notice.svelte'
-  import { onDestroy } from 'svelte'
+  import { onDestroy, untrack } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import TextArea from '../../components/TextArea.svelte'
   import TextField from '../../components/TextField.svelte'
   import { toast } from '../../components/toast.svelte'
   import { buttonClass } from '../../components/ui'
-  import { t } from '../../i18n/index.svelte'
+  import { locale, t } from '../../i18n/index.svelte'
   import { bridge, call, code, errorText } from '../../rpc'
   import { rememberedPlain, rememberPlain } from '../../view-memory'
   import { accountOf } from '../channels/names.svelte'
+  import { bytes } from '../channels/channels'
 
   /**
    * A letter to an account, named by its ID or its dMsg name. A free one is
@@ -22,18 +23,23 @@
   let { open = $bindable(false), to = '', mod }: { open?: boolean; to?: string; mod: string } = $props()
 
   type Pending = { key: string; order: string; account: string } | null
-  const draft = rememberedPlain<{ recipient: string; text: string; pay: boolean; pending: Pending }>('inbox.compose')
-  let recipient = $state(draft?.recipient ?? '')
+  const replyRecipient = untrack(() => to)
+  const draftKey = replyRecipient ? `inbox.reply.${replyRecipient}` : 'inbox.compose'
+  const draft = rememberedPlain<{ recipient: string; text: string; pay: boolean; pending: Pending }>(draftKey)
+  let recipient = $state(replyRecipient || (draft?.recipient ?? ''))
   let text = $state(draft?.text ?? '')
   let pay = $state(draft?.pay ?? false)
   let busy = $state(false)
   let error = $state('')
   let generation = 0
-  let pending: Pending = draft?.pending ?? null
+  let pending = $state.raw<Pending>(draft?.pending ?? null)
+  const maxBytes = 6000
+  const used = $derived(bytes(text))
+  const counter = $derived(`${used.toLocaleString(locale())} / ${new Intl.NumberFormat(locale(), { style: 'unit', unit: 'byte' }).format(maxBytes)} (UTF-8)`)
+  const canSend = $derived(!busy && !!recipient.trim() && !!text.trim() && used <= maxBytes)
 
   $effect(() => {
     if (!open) { generation += 1; error = '' }
-    else if (to) recipient = to
   })
 
   $effect(() => {
@@ -41,13 +47,11 @@
     error = ''
   })
 
-  onDestroy(() => {
-    generation += 1
-    rememberPlain('inbox.compose', { recipient, text, pay, pending })
-  })
+  $effect(() => rememberPlain(draftKey, { recipient, text, pay, pending }))
+  onDestroy(() => { generation += 1 })
 
   async function send() {
-    if (busy || !recipient.trim() || !text.trim()) return
+    if (!canSend) return
     const at = generation
     busy = true
     error = ''
@@ -73,7 +77,7 @@
       }
       if (at !== generation || !open) return
       pending = null
-      recipient = ''
+      recipient = replyRecipient
       text = ''
       pay = false
       open = false
@@ -105,15 +109,15 @@
 <Dialog bind:open title={t('writeLetter')} description={t('letterHint')} icon="mail" testid="letter-dialog">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="grid gap-3" onkeydown={onKey}>
-    <TextField label={t('to')} hint={t('accountOrName')} dir="ltr" disabled={busy} bind:value={recipient} placeholder="panda / @panda" spellcheck={false} data-testid="letter-recipient" />
-    <TextArea label={t('message')} disabled={busy} bind:value={text} rows={7} data-testid="letter-text" />
+    <TextField label={t('to')} hint={replyRecipient ? undefined : t('accountOrName')} dir="ltr" readonly={!!replyRecipient} disabled={busy} bind:value={recipient} placeholder="panda / @panda" spellcheck={false} data-testid="letter-recipient" />
+    <TextArea label={t('message')} hint={used >= maxBytes * 0.8 && used <= maxBytes ? counter : undefined} error={used > maxBytes ? counter : undefined} disabled={busy} bind:value={text} rows={7} data-testid="letter-text" />
     <Checkbox disabled={busy} bind:checked={pay} class="text-[12.5px] text-ink-2">{t('paidLetterHint')}</Checkbox>
     {#if error}<Notice failure={error} tone="danger" testid="letter-send-error">{error}</Notice>{/if}
   </div>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>
-    <button class={buttonClass('primary')} disabled={busy || !recipient.trim() || !text.trim()} onclick={send} data-testid="letter-send">
+    <button class={buttonClass('primary')} disabled={!canSend} onclick={send} data-testid="letter-send">
       {t('send')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
     </button>
   {/snippet}

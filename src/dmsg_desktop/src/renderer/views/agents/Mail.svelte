@@ -42,7 +42,9 @@
   let agent = $state('')
   let folder = $state('received')
   let mailboxes = $state<any[]>([])
-  let push = $state<any>({ enabled: false, subscriptions: [] })
+  let push = $state<any>(null)
+  let boxesLoaded = $state(false)
+  let loadError = $state('')
   let messages = $state<any[] | null>(null)
   let selected = $state('')
   let cursor = $state<string | null>(null)
@@ -72,7 +74,11 @@
   $effect(() => {
     if (unlocked && agent && folder)
       untrack(() => {
-        messages = null
+        if (agent !== previousAgent) {
+          closing = null; mailboxes = []; boxesLoaded = false; push = null; routes = DEFAULT_RELAY
+          error = ''; notice = ''; loadError = ''; refreshPending = false
+        }
+        messages = null; cursor = null; unread = 0
         selected = ''
         synced = ''
         syncing = receiving.has(agent)
@@ -83,12 +89,12 @@
 
   async function tool(name: string, input: Record<string, unknown> = {}, target = agent) {
     const answer: any = await call('ap/call', { agent: target, tool: `agent_protocols_${name}`, input })
-    if (answer.error) throw Object.assign(new CallError(`${String(answer.error.code).toUpperCase()}: ${answer.error.message}`), { tool: answer.error.code })
+    if (answer.error) throw new CallError(String(answer.error.code).toUpperCase())
     return answer.result
   }
 
   function mailError(e: any) {
-    return e?.tool ? `${t('error')}: ${e.tool} ${e.message}` : errorText(e)
+    return code(e) === 'LOCKED' ? t('agentLocked') : errorText(e) || t('agentLoadFailed')
   }
 
   async function attempt(work: () => Promise<void>) {
@@ -130,20 +136,26 @@
 
   const refreshBoxes = async (target = agent) => {
     await Promise.all([
-      tool('mail_mailboxes_list', {}, target).then((result) => { if (alive && agent === target) mailboxes = result.mailboxes }),
+      tool('mail_mailboxes_list', {}, target).then((result) => { if (alive && agent === target) { mailboxes = result.mailboxes; boxesLoaded = true } }),
       call('agent/mail_push', { agent: target }).then((status) => { if (alive && agent === target) push = status })
     ])
   }
 
   const togglePush = () => attempt(async () => {
     const target = agent
+    if (!push) return
     const status = await call('agent/mail_push_set', { agent: target, enabled: !push.enabled })
     if (alive && agent === target) push = status
   })
   const loadSaved = single(() => attempt(async () => {
     const target = agent
     const box = folder
-    await Promise.all([refreshBoxes(target), list(false, target, box)])
+    try {
+      await Promise.all([refreshBoxes(target), list(false, target, box)])
+      if (alive && agent === target && folder === box) loadError = ''
+    } catch (e) {
+      if (alive && agent === target && folder === box) loadError = mailError(e)
+    }
   }))
 
   async function receive(target: string) {
@@ -157,7 +169,7 @@
       await loadSaved()
       if (alive && agent === target && report.errors.length) error = report.errors.map((e: any) => `${e.route}: ${e.code}`).join('\n')
     } catch (e: any) {
-      if (alive && agent === target) error = `${t('error')}: ${e?.tool ?? code(e)} ${e.message ?? ''}`
+      if (alive && agent === target) error = mailError(e)
     } finally {
       receiving.delete(target)
       if (alive && agent === target) syncing = false
@@ -188,6 +200,7 @@
 
   const publish = () =>
     attempt(async () => {
+      const publishingAgent = agent, submittedRoutes = routes
       await publishBox(
         {
           routes: routes
@@ -197,7 +210,7 @@
         },
         t('mailboxCreated')
       )
-      routes = DEFAULT_RELAY
+      if (alive && agent === publishingAgent && routes === submittedRoutes) routes = DEFAULT_RELAY
     })
   const recover = () => attempt(async () => {
     const target = agent
@@ -242,13 +255,16 @@
           <p class="mt-1">{t('mailOwnerRole')}</p>
         </div>
       </div>
+      {#if loadError}<Notice tone="danger" testid="mail-load-error">{loadError}
+        {#snippet action()}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => loadMail(false)}>{t('retry')}</button>{/snippet}
+      </Notice>{/if}
       {#if error}<Notice failure={error} tone="danger" testid="mail-error">{error}</Notice>{/if}
       {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
       <div class="flex flex-wrap items-center gap-3 rounded-xl border border-line px-4 py-3" data-testid="mail-push">
         <div class="min-w-0 flex-1"><p class="text-[13px] font-medium">{t('mailPushTitle')}</p><p class="text-[12px] text-muted">{t('mailPushHint')}</p>
-          {#if push.enabled}<p class="mt-1 text-[12px] text-muted">{push.last_error ? t('mailPushFallback') : push.subscriptions?.some((s: any) => s.id && s.refresh_before > Date.now()) ? t('mailPushReady') : t('mailPushStarting')}</p>{/if}
+          {#if push?.enabled}<p class="mt-1 text-[12px] text-muted">{push.last_error ? t('mailPushFallback') : push.subscriptions?.some((s: any) => s.id && s.refresh_before > Date.now()) ? t('mailPushReady') : t('mailPushStarting')}</p>{/if}
         </div>
-        <button class={buttonClass('secondary','sm')} disabled={busy} aria-pressed={push.enabled} onclick={togglePush} data-testid="mail-push-toggle">{push.enabled ? t('mailPushDisable') : t('mailPushEnable')}</button>
+        <button class={buttonClass('secondary','sm')} disabled={busy || !push} aria-pressed={push?.enabled ?? false} onclick={togglePush} data-testid="mail-push-toggle">{push?.enabled ? t('mailPushDisable') : t('mailPushEnable')}</button>
         <button class={buttonClass('ghost','sm')} onclick={manage}>{t('tabCapabilities')}</button>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -336,7 +352,7 @@
             {/if}
           </div>
         </div>
-      {:else}
+      {:else if messages || (!error && !loadError)}
         <div class="grid min-h-60 place-content-center justify-items-center gap-3 px-8 text-center" data-testid="mail-empty">
           <Icon name="mail" class="size-8 text-faint" />
           <h3 class="text-[14px] font-medium">{busy ? t('loading') : error ? t('agentLoadFailed') : t('noLetters')}</h3>
@@ -345,7 +361,7 @@
       {/if}
       <p class="text-[11.5px] text-faint">{t('mailReadHint')}</p>
       <details class="rounded-xl border border-line" data-testid="mailbox-settings">
-        <summary class="cursor-pointer px-4 py-3 text-[12.5px] font-medium">{t('mailboxManagement')} · {mailboxes.length}</summary>
+        <summary class="cursor-pointer px-4 py-3 text-[12.5px] font-medium">{t('mailboxManagement')}{boxesLoaded ? ' · ' + mailboxes.length : ''}</summary>
         <div class="grid grid-cols-1 gap-3 border-t border-line p-4">
           <ul class="grid grid-cols-1 gap-2" data-testid="mailboxes">
             {#each mailboxes as box (box.mailbox_id)}
@@ -376,7 +392,7 @@
                   {/if}
                 </div>
               </li>
-            {:else}<li class="text-[12.5px] text-muted">{t('noMailboxes')}</li>{/each}
+            {:else}<li class="text-[12.5px] text-muted">{boxesLoaded ? t('noMailboxes') : loadError ? '' : t('loading')}</li>{/each}
           </ul>
           <div class="flex flex-wrap gap-2">
             <input class="min-w-48 flex-1" aria-label={t('mailRoutes')} placeholder={t('mailRoutes')} bind:value={routes} data-testid="mail-routes" /><button

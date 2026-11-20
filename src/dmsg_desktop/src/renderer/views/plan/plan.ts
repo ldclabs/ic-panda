@@ -95,13 +95,20 @@ const stageLabels: Record<string, [Label, Tone]> = {
 }
 
 /** An order's state for people: the service's status once read, else the journal's stage. */
-export function orderState(job: any, order?: any): { label: Label; tone: Tone } {
+export function orderState(job: any, order?: any, now = Date.now()): { label: Label; tone: Tone } {
+  if (job.stage === 'review' && quoteExpired(job, now)) return { label: 'twDepositExpired', tone: 'neutral' }
   const [label, tone] = (order && statusLabels[order.status]) || stageLabels[job.stage] || stageLabels.unknown
   return { label, tone }
 }
 
 /** When an approved order must reach the service: funded, or applied with the neuron. */
 export const deadlineOf = (job: any): number | undefined => (job.terms?.method === 'Cash' ? job.terms.funding_deadline_ms : job.terms?.application_deadline_ms)
+
+export function quoteDeadline(job: any): number | undefined {
+  const deadlines = [job.accept_by_ms, deadlineOf(job)].filter((time): time is number => time != null && Number.isFinite(time))
+  return deadlines.length ? Math.min(...deadlines) : undefined
+}
+export const quoteExpired = (job: any, now: number) => now >= (quoteDeadline(job) ?? Infinity)
 
 /** Statuses the service moves on by itself. */
 const MOVING = new Set(['Reserving', 'AwaitingFunding', 'Applying', 'Checking', 'Closing'])
@@ -129,7 +136,7 @@ export type OrderAction = 'pay' | 'discard' | 'cancel' | 'refund' | 'advance' | 
  * purchase within its window, the order `refundable` names.
  */
 export function orderActions(job: any, order: any, now: number, refundable?: string | null): OrderAction[] {
-  if (job.stage === 'review') return ['pay', 'discard']
+  if (job.stage === 'review') return quoteExpired(job, now) ? ['discard'] : ['pay', 'discard']
   if (!order) {
     if (job.stage !== 'authorized') return ['reconcile']
     return now >= (deadlineOf(job) ?? 0) ? ['discard'] : []
@@ -198,13 +205,21 @@ export function namePrice(length: number): number {
 /** Whether the payer's balance on `ledger` covers `most`; null when the balance is unknown. */
 export function covers(payer: any, ledger: string, most: string): boolean | null {
   const row = (payer?.balances ?? []).find((b: any) => b.ledger === ledger)
-  if (row?.balance == null) return null
+  if (row?.balance == null || row.error || !/^\d+$/.test(row.balance) || !/^\d+$/.test(most)) return null
   return BigInt(row.balance) >= BigInt(most)
 }
 
 /** What a cash checkout's payer must hold: the amount, its fee reserve and the network fee. */
-export function cashTotal(terms: any): bigint {
+export function cashTotal(terms: any): bigint | null {
+  if (![terms?.amount, terms?.fee_reserve, terms?.network_fee].every(value => /^\d+$/.test(value))) return null
   return BigInt(terms.amount) + BigInt(terms.fee_reserve) + BigInt(terms.network_fee)
+}
+
+/** Send the ledger block exactly, keeping the number format older daemons accept when it fits. */
+export function ledgerBlock(input = ''): number | string | null {
+  const digits = input.trim().replace(/^0+(?=\d)/, '')
+  if (!/^\d{1,20}$/.test(digits) || BigInt(digits) > 0xffffffffffffffffn) return null
+  return Number.isSafeInteger(Number(digits)) ? Number(digits) : digits
 }
 
 /** A non-dissolving neuron's delay starts now; a dissolving one's end is fixed. */
@@ -225,7 +240,10 @@ export function refundOutcome(refunds: any[]): { label: Label; error?: string } 
 export const acceptLink = (token: string) => `dmsg://handle/accept#${token}`
 
 /** A transfer token pasted alone or inside its link. */
-export const tokenOf = (text: string) => text.trim().replace(/^dmsg:\/\/handle\/accept#/, '')
+export function tokenOf(text: string): string {
+  const token = text.trim().replace(/^dmsg:\/\/handle\/accept#/i, '')
+  return /^[A-Za-z0-9_-]{16,8192}$/.test(token) ? token : ''
+}
 
 /** A name operation's actions, for people. */
 export const nameActionLabels: Record<string, Label> = {

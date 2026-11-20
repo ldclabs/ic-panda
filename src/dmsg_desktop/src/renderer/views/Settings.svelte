@@ -3,6 +3,7 @@
   import { syncState } from '../sync-state'
   import { onMount, untrack } from 'svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
+  import Confirm from '../components/Confirm.svelte'
   import CacheSettings from './CacheSettings.svelte'
   import NotificationSettings from './NotificationSettings.svelte'
   import { RadioGroup } from 'bits-ui'
@@ -12,6 +13,7 @@
   import Collapsible from '../components/Collapsible.svelte'
   import Fact from '../components/page/Fact.svelte'
   import Id from '../components/page/Id.svelte'
+  import Locked from '../components/page/Locked.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Page from '../components/page/Page.svelte'
   import Pill from '../components/page/Pill.svelte'
@@ -23,8 +25,9 @@
   import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import { locale, sessionLabel, setLocale, t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, single, when } from '../rpc'
-  import { settingsPages, type SettingsPage } from '../shell/nav'
-  import { unlock, unlocking } from '../shell/session'
+  import { settingsGroupsFor, type SettingsPage } from '../shell/nav'
+  import LocalAccount from '../shell/LocalAccount.svelte'
+  import { lock, unlock, unlocking } from '../shell/session'
   import About from './About.svelte'
   import Devices from './Devices.svelte'
   import FilesSettings from './files/FilesSettings.svelte'
@@ -46,12 +49,20 @@
    */
   let { status, refresh, route, go }: { status: any; refresh: () => Promise<void>; route: string; go: (path: string) => void } = $props()
 
+  const local = $derived(status?.account_kind === 'local')
+  const settingsGroups = $derived(settingsGroupsFor(local))
+  const settingsPages = $derived(settingsGroups.flatMap(group => group.pages))
   const currentPage = $derived(settingsPages.find(p => route.split('?')[0] === `/settings/${p.value}`) ?? settingsPages[0])
   const part = $derived(currentPage.value)
 
   let account = $state<any>(null)
   /** Null while the device cannot sign for them: locked without a resident key. */
-  let pairings = $state<any[] | null>([])
+  type Pairing = { pairing_id: string; label?: string; state: string; issued_by?: string; granted_at: number; last_used_at: number }
+  let pairings = $state<Pairing[] | null>([])
+  let revokeTarget = $state<Pairing | null>(null)
+  let pollError = $state('')
+  let granted = $state('')
+  let copiedUntil = $state(0)
   type BrowserInvite = Awaited<ReturnType<typeof window.dmsg.pair>>
   type BrowserCandidate = { pairing_id: string; label: string }
   let invite = $state.raw<BrowserInvite | null>(null)
@@ -61,8 +72,8 @@
   const syncStatus = $derived(syncState(status, now))
   let error = $state('')
   let actionBusy = $state(false)
-  let languageBusy = $state(false)
-  let appearanceBusy = $state(false)
+  let applyingLanguage = $state('')
+  let applyingAppearance = $state('')
   let timer: ReturnType<typeof setTimeout> | undefined
   let alive = true
   let generation = 0
@@ -72,7 +83,7 @@
   let lastPart: SettingsPage | undefined
   let errors = $state<Record<string, string>>({})
   let loaded = $state<Record<string, boolean>>({})
-  const reportReminder = reminderVisibility(() => ({ status, ready: part === 'session' && !!loaded.account && !errors.account }), '[data-testid="settings-sync"]')
+  const reportReminder = reminderVisibility(() => ({ status, ready: !local && part === 'session' && !!loaded.account && !errors.account }), '[data-testid="settings-sync"]')
   $effect(() => { void status; void route; void loaded.account; void errors.account; reportReminder() })
   const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
   const current = (turn: number) => alive && generation === turn
@@ -83,23 +94,23 @@
 
   /** The main process keeps the interface language and appearance for every window. */
   async function pickLanguage(next: string) {
-    if (languageBusy || !isLocale(next) || next === locale()) return
-    languageBusy = true
+    if (applyingLanguage || !isLocale(next) || next === locale()) return
+    applyingLanguage = next
     try {
       await setLocale(next)
     } catch {
       toast(() => t('languageFailed'))
-    } finally { languageBusy = false }
+    } finally { applyingLanguage = '' }
   }
 
   async function pickAppearance(next: string) {
-    if (appearanceBusy || !isAppearance(next) || next === appearance()) return
-    appearanceBusy = true
+    if (applyingAppearance || !isAppearance(next) || next === appearance()) return
+    applyingAppearance = next
     try {
       await setAppearance(next)
     } catch {
       toast(() => t('appearanceFailed'))
-    } finally { appearanceBusy = false }
+    } finally { applyingAppearance = '' }
   }
 
   function reader(key: string, method: string, visible: () => boolean, apply: (value: any) => void) {
@@ -116,7 +127,7 @@
       } finally { if (current(turn)) loaded[key] = true }
     })
   }
-  const loadAccount = reader('account', 'account/show', () => part === 'session' && opened, (value) => (account = value))
+  const loadAccount = reader('account', 'account/show', () => !local && part === 'session' && opened, (value) => (account = value))
   const loadPairings = reader('pairings', 'connect/pairings', () => part === 'browsers' && opened, (value) => (pairings = value))
   function reload() { void loadAccount(); void loadPairings() }
 
@@ -136,7 +147,7 @@
   function stopPairing() {
     pairingRevision++
     clearTimeout(timer)
-    invite = null; candidates = []; pairingBusy = false
+    invite = null; candidates = []; pollError = ''; copiedUntil = 0; pairingBusy = false
   }
 
   const expired = (invitation: BrowserInvite, at: number) => at >= invitation.expires_at
@@ -146,8 +157,8 @@
     if (!valid()) return
     try {
       const found = await call<{ candidates: BrowserCandidate[] }>('connect/candidates', { invite: invitation.invite_id })
-      if (valid()) { candidates = found.candidates; error = '' }
-    } catch (e) { if (valid()) error = errorText(e) }
+      if (valid()) { candidates = found.candidates; pollError = '' }
+    } catch (e) { if (valid()) pollError = errorText(e) }
     finally {
       if (valid()) timer = setTimeout(() => void poll(invitation, revision), 2000)
     }
@@ -155,16 +166,28 @@
 
   async function pair(copy: boolean) {
     if (pairingBusy) return
-    stopPairing()
+    const existing = invite && !expired(invite, Date.now()) ? invite : null
+    if (existing && !copy) return
+    if (!existing) stopPairing()
     const revision = pairingRevision
     const turn = generation
     pairingBusy = true
-    error = ''
+    error = granted = ''
     try {
-      const value = await bridge<BrowserInvite>(() => window.dmsg.pair(copy))
-      if (!current(turn) || revision !== pairingRevision || part !== 'browsers') return
-      invite = value
-      timer = setTimeout(() => void poll(value, revision), 2000)
+      const value = existing ?? await bridge<BrowserInvite>(() => window.dmsg.pair(copy))
+      if (!current(turn) || revision !== pairingRevision) return
+      if (!existing) {
+        invite = value
+        timer = setTimeout(() => void poll(value, revision), 2000)
+      }
+      if (copy) {
+        try {
+          const result = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copyShareLink(value.url))
+          if (current(turn) && revision === pairingRevision) copiedUntil = Math.min(value.expires_at, Date.now() + result.clear_after_ms)
+        } catch {
+          if (current(turn) && revision === pairingRevision) { copiedUntil = 0; error = t('copyFailed') }
+        }
+      }
     } catch (e) { if (current(turn) && revision === pairingRevision) error = errorText(e) }
     finally { if (current(turn) && revision === pairingRevision) pairingBusy = false }
   }
@@ -180,7 +203,11 @@
     error = ''
     try {
       await bridge(() => window.dmsg.grant(invitation.invite_id, candidate.pairing_id))
-      if (current(turn) && revision === pairingRevision) stopPairing()
+      if (current(turn) && revision === pairingRevision) {
+        stopPairing()
+        granted = candidate.label
+        void loadPairings()
+      }
     } catch (e) {
       if (current(turn) && revision === pairingRevision) {
         error = errorText(e)
@@ -203,6 +230,8 @@
     untrack(() => {
       error = ''
       if (lastPart !== part) {
+        revokeTarget = null
+        granted = ''
         lastPart = part
         generation++
         actionBusy = false
@@ -210,7 +239,7 @@
       if (lastSession !== next) {
         lastSession = next
         generation++
-        account = null; pairings = []; error = ''; errors = {}; loaded = {}; actionBusy = false
+        account = null; pairings = []; revokeTarget = null; granted = ''; error = ''; errors = {}; loaded = {}; actionBusy = false
         stopPairing()
       } else if (part !== 'browsers') stopPairing()
       reload()
@@ -221,7 +250,10 @@
 
 <div class="@container flex h-full min-h-0">
   <nav class="hidden w-[228px] shrink-0 flex-col gap-px overflow-y-auto border-e border-line p-2.5 @min-[720px]:flex" aria-label={t('settings')}>
-    {#each settingsPages as item (item.value)}
+    {#each settingsGroups as group (group.label)}
+      <div role="group" aria-label={t(group.label)} class="mb-2 grid gap-px">
+        <p class="px-2.5 pt-1.5 pb-1 text-[11.5px] font-medium text-muted" aria-hidden="true">{t(group.label)}</p>
+      {#each group.pages as item (item.value)}
       <button
         class={cn(
           'flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-start text-[13px] outline-none transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-focus/35',
@@ -234,6 +266,8 @@
         <Icon name={item.icon} class={part === item.value ? 'text-forest' : 'text-faint'} />
         <span class="truncate">{t(item.label)}</span>
       </button>
+      {/each}
+      </div>
     {/each}
   </nav>
   <div class="flex min-w-0 flex-1 flex-col">
@@ -241,15 +275,19 @@
       <Select
         value={part}
         options={settingsPages.map(item => ({ value: item.value, label: t(item.label) }))}
-        label={t(currentPage.label)}
+        label={`${t('settings')} · ${t(currentPage.label)}`}
         onChange={next => go(`/settings/${next}`)}
         testid="settings-section"
       />
     </nav>
     <div class="min-h-0 flex-1">
-      <Page>
-        {#key sessionKey}
-        {#each (part === 'session' ? [errors.account] : part === 'browsers' ? [errors.pairings] : []).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
+      {#key `${sessionKey}:${part}`}<Page testid="settings-content">
+        {#if part === 'session' && errors.account || part === 'browsers' && errors.pairings}
+          <Notice tone="danger" testid="settings-read-error">{part === 'session' ? errors.account : errors.pairings}
+            {#snippet action()}<button class={buttonClass('secondary', 'xs')}
+              onclick={() => part === 'session' ? loadAccount('fresh') : loadPairings()}>{t('retry')}</button>{/snippet}
+          </Notice>
+        {/if}
         {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
         {#if part === 'feedback'}
           <Feedback {status} />
@@ -267,17 +305,17 @@
             <dl>
               <Fact label={t('language')}>
                 <Select
-                  value={locale()}
+                  value={applyingLanguage || locale()}
                   options={locales.map((code) => ({ value: code, label: localeNames[code] }))}
                   label={t('language')}
                   onChange={pickLanguage}
-                  disabled={languageBusy}
+                  disabled={!!applyingLanguage}
                   testid="settings-language"
                   class="w-56"
                 />
               </Fact>
               <Fact label={t('appearance')}>
-                <RadioGroup.Root value={appearance()} onValueChange={pickAppearance} disabled={appearanceBusy} aria-label={t('appearance')} class="flex flex-wrap gap-x-5 gap-y-2">
+                <RadioGroup.Root value={applyingAppearance || appearance()} onValueChange={pickAppearance} disabled={!!applyingAppearance} aria-label={t('appearance')} class="flex flex-wrap gap-x-5 gap-y-2">
                   {#each appearances as choice (choice)}
                     <Radio value={choice} testid={`appearance-${choice}`}>
                       <span class="inline-flex items-center gap-1.5"><Icon name={choice} class="text-faint" />{t(appearanceLabel[choice])}</span>
@@ -289,6 +327,14 @@
           </Section>
         {:else if part === 'about'}
           <About />
+        {:else if part === 'session' && local}
+          <Section title={t('offlineAccount')} description={t('savedOnDevice')} icon="account" testid="local-settings">
+            <div class="flex flex-wrap gap-2">
+              <button class={buttonClass('secondary', 'sm')} onclick={lock}><Icon name="lock" />{t('lock')}</button>
+              {#if status.local_unlock_method === 'password'}<LocalAccount action="password" {status} />{/if}
+              <LocalAccount action="delete" {status} {refresh} />
+            </div>
+          </Section>
         {:else if part === 'session'}
           <Moved {status} {refresh} />
           <Section title={t('status')} icon="account">
@@ -338,8 +384,9 @@
             <Section title={t('browsers')} description={t('browsersHint')} icon="browser" flush>
               <div class="mb-3 flex flex-wrap gap-2 px-5">
                 <button class={buttonClass('secondary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-copy" onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
-                <button class={buttonClass('primary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-pair" onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>
+                {#if !invite || expired(invite, now)}<button class={buttonClass('primary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-pair" onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>{/if}
               </div>
+              {#if granted}<p class="px-5 pb-3 text-[13px] text-ok" role="status" data-testid="browser-connected">{granted} · {t('granted')}</p>{/if}
               {#if invite && expired(invite, now)}
                 <Notice tone="warn" testid="browser-expired">
                   {t('browserInviteExpired')}
@@ -348,7 +395,10 @@
               {:else if invite}
                 <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
                   <button class={buttonClass('ghost', 'xs', 'justify-self-end')} disabled={pairingBusy} onclick={stopPairing} data-testid="browser-cancel">{t('cancel')}</button>
-                  <p class="flex items-center gap-2 text-[12.5px] text-muted"><span class="shimmer">{t('waitingBrowser')}</span></p>
+                  {#if pollError}<Notice tone="warn">{pollError}</Notice>{/if}
+                  {#if !candidates.length}<p class="text-[12.5px] text-muted" role="status">{t('waitingBrowser')}</p>{/if}
+                  {#if copiedUntil > now}<span class="text-[12px] text-ok" role="status" data-testid="browser-copied"><Icon name="check" class="inline size-3.5" /> {t('copiedText')}</span>{/if}
+                  <p class="text-[12px] text-muted">{t('expires')} · {when(invite.expires_at)}</p>
                   <bdi dir="ltr" class="font-mono text-[11.5px] break-all text-faint">{invite.url}</bdi>
                   {#each candidates as c (c.pairing_id)}
                     <div class="flex flex-wrap items-center gap-2 rounded-xl border border-forest/30 bg-pale px-3 py-2.5">
@@ -369,7 +419,7 @@
                       · {t('granted')} {when(p.granted_at)} · {t('lastUsed')} {when(p.last_used_at)}
                     </span>
                     {#if p.state === 'active'}
-                      <button class={buttonClass('danger', 'xs')} disabled={actionBusy || pairingBusy} onclick={() => act('connect/revoke', { pairing: p.pairing_id })}>{t('revoke')}</button>
+                      <button class={buttonClass('danger', 'xs')} disabled={actionBusy || pairingBusy || !!errors.pairings} aria-label={`${t('revoke')} · ${p.label || p.pairing_id.slice(0,12)}`} data-testid="browser-revoke" onclick={() => (revokeTarget = p)}>{t('revoke')}</button>
                     {/if}
                   </li>
                 {:else}
@@ -378,10 +428,10 @@
               </ul>
             </Section>
           {:else}
-            <Notice>{t('locked')}</Notice>
+            <Locked {status} testid="settings-locked" />
           {/if}
         {:else if !unlocked}
-          <Notice icon="lock">{t('locked')}</Notice>
+          <Locked {status} testid="settings-locked" />
         {:else if part === 'security'}
           <LockSettings {status} />
           <Security {status} {go} />
@@ -392,8 +442,21 @@
         {:else}
           {#key status.account}<Profile {status} />{/key}
         {/if}
-        {/key}
-      </Page>
+      </Page>{/key}
     </div>
   </div>
 </div>
+
+{#if revokeTarget}
+  {@const target = revokeTarget}
+  <Confirm focusCancel bind:open={() => !!revokeTarget, (open) => { if (!open) revokeTarget = null }}
+    title={t('settingsRevokeBrowser')} description={t('settingsRevokeBrowserHint')} confirm={t('revoke')}
+    testid="browser-revoke-dialog" busy={!pairings?.some(p => p.pairing_id === target.pairing_id && p.state === 'active') || !!errors.pairings}
+    onConfirm={async () => {
+      const turn = generation
+      await call('connect/revoke', { pairing: target.pairing_id })
+      if (current(turn)) await loadPairings()
+    }} onReview={() => loadPairings()}>
+    {#snippet body()}<p class="font-medium">{target.label || t('browsers')}</p><Id id={target.pairing_id} full />{/snippet}
+  </Confirm>
+{/if}

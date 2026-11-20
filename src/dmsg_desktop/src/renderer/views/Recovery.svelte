@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte'
+  import { onDestroy, onMount, untrack } from 'svelte'
+  import { refreshSettingsApprovals, settingsApprovals } from './settings-approvals.svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import { noticeVisibility } from '../notification-visibility'
   import DisplayNotice from '../components/DisplayNotice.svelte'
@@ -30,7 +31,7 @@
   let open = $state(false)
   let enabled = $state(false)
   let days = $state('')
-  let pending = $state<Partial<Record<Pending, string>>>({})
+  const pending = untrack(() => settingsApprovals<Pending>('recovery', status))
   const blocked = $derived(busy || needsLogin || !security || !!loadError)
   const changed = $derived(/^[1-7]$/.test(days) && (enabled !== security?.recovery_enabled || (enabled && Number(days) * 86_400_000 !== security?.recovery_delay_ms)))
 
@@ -47,13 +48,7 @@
       needsLogin = code(e) === 'AUTH_REQUIRED'
       loadError = needsLogin ? '' : errorText(e)
     } finally { if (alive) loading = false }
-    for (const [group, id] of Object.entries(pending)) {
-      try {
-        const result: any = await call('approval/show', { id })
-        if (!alive) return
-        if (['done', 'rejected', 'cancelled', 'expired', 'failed', 'elsewhere'].includes(result?.state) && pending[group as Pending] === id) delete pending[group as Pending]
-      } catch { /* Keep the receipt until its outcome can be read. */ }
-    }
+    await refreshSettingsApprovals(pending, () => alive)
   })
 
   const reportNotice = noticeVisibility(() => security?.notification && status?.state === 'unlocked'
@@ -71,8 +66,9 @@
     busy = true; error = ''
     try {
       const id = pending[group] || (method && (await call<any>(method, params)).id)
-      if (!alive || !id) return
+      if (!id) return
       pending[group] = id
+      if (!alive) return
       await bridge(() => window.dmsg.openApproval(id))
       if (!alive) return
       open = false; void reload()

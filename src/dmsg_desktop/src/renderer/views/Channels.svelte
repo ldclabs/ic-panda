@@ -4,7 +4,7 @@
   import type { Delivery, MessageDeliveries } from '../message-delivery'
   import Notice from '../components/page/Notice.svelte'
   import { ContextMenu, DropdownMenu } from 'bits-ui'
-  import { onMount, tick } from 'svelte'
+  import { onMount, tick, untrack } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
   import { tomorrowMorning } from '../../shared/notification-time'
   import { localeDir } from '../../shared/locales'
@@ -75,18 +75,19 @@
   let attached = $state<Record<string, { id: string; name: string }[]>>(rememberedPlain('channels.attached') ?? {})
   /** The message each channel's next one answers. */
   let replies = $state<Record<string, any>>(rememberedPlain('channels.replies') ?? {})
-  let editing = $state<any>(null)
+  let editing = $state<{ message: any; text: string } | null>(null)
   /** The timeline shows a search result's surroundings until the person asks for the latest again. */
   let reading = $state(false)
   let pins = $state<string[]>([])
   let onlyUnread = $state(remembered<boolean>('channels.unread') ?? false)
   let searchInput = $state<HTMLInputElement | null>(null)
+  let searchButton = $state<HTMLButtonElement | null>(null)
   let listInput = $state<HTMLInputElement | null>(null)
   /** The daemon's outbox of the open channel, the messages this window sends now, and why the last try failed. */
   let outbox = $state<Outgoing[]>([])
   let receipts = $state<any>(null)
   let images = $state<Record<number, string>>({})
-  let search = $state<{ open: boolean; query: string; results: any[] | null }>({ open: false, query: '', results: null })
+  let search = $state<{ open: boolean; query: string; results: any[] | null; busy?: boolean; error?: string }>({ open: false, query: '', results: null })
   let highlight = $state<number | null>(null)
   let membersOpen = $state(stored('dmsg.members') === 'open')
   let showOther = $state(stored('dmsg.channels-other') === 'open')
@@ -95,6 +96,8 @@
   let createTab = $state<'create' | 'join'>('create')
   let joinText = $state('')
   let peer = $state<{ account: string; name?: string } | null>(null)
+  let transferDraft = $state<{ target: string; text: string; channel?: string } | null>(null)
+
   let settling = $state(false)
   let transfer = $state<{ open: boolean; kind: 'owner' | 'sponsor' }>({ open: false, kind: 'owner' })
   let history = $state<{ open: boolean; member: any; from: number; to: number }>({ open: false, member: null, from: 1, to: 1 })
@@ -341,16 +344,15 @@
 
   async function send() {
     const id = channel.id
-    const text = drafts[id] ?? ''
-    const files = attached[id] ?? []
     if (reading) void latest()
     if (editing) {
-      const target = editing
+      const { message, text } = editing
       editing = null
-      drafts[id] = ''
-      if (text.trim() && text !== target.text) deliver(id, { message_id: random(), draft: { text } }, { text, edit_of: ref(target) })
+      if (text.trim() && text !== message.text) deliver(id, { message_id: random(), draft: { text } }, { text, edit_of: ref(message) })
       return
     }
+    const text = drafts[id] ?? ''
+    const files = attached[id] ?? []
     if (!text.trim() && !files.length) return
     const replyTo = replies[id] ? ref(replies[id]) : null
     drafts[id] = ''
@@ -487,15 +489,24 @@
     finally { if (channelVisit === visit) loadingEarlier = false }
   }
 
+  function showSearch(open: boolean) {
+    if (open !== search.open) search = { ...search, open, busy: false }
+    if (open) void tick().then(() => searchInput?.focus())
+  }
+
   async function find() {
     const form = search, id = channel?.id
     const asked = search.query.trim()
-    if (!asked || !id || selected !== id) return
+    if (!asked || !id || selected !== id || form.busy) return
+    form.busy = true
+    form.error = ''
     try {
       const results = await call<any[]>('channel/search', { id, query: asked })
       if (alive && selected === id && search === form) search.results = results
     } catch (e) {
-      if (alive && selected === id && search === form) fail(e)
+      if (alive && selected === id && search === form) form.error = errorText(e)
+    } finally {
+      form.busy = false
     }
   }
 
@@ -552,10 +563,8 @@
     const key = event.key.toLowerCase()
     if (held && !event.altKey && !event.shiftKey && key === 'f') {
       event.preventDefault()
-      if (channel) {
-        search = { ...search, open: true }
-        void tick().then(() => searchInput?.focus())
-      } else listInput?.focus()
+      if (channel) showSearch(true)
+      else listInput?.focus()
     } else if (held && !event.altKey && !event.shiftKey && key === 'n' && unlocked) {
       event.preventDefault()
       createTab = 'create'
@@ -570,6 +579,7 @@
     } else if (event.key === 'Escape' && search.open) {
       event.preventDefault()
       search = { open: false, query: '', results: null }
+      searchButton?.focus()
     }
   }
   const control = (action: Record<string, unknown>) => attempt(() => call('channel/control', { id: channel.id, action }))
@@ -630,6 +640,43 @@
     await reload()
   }
 
+  function directFor(entry: any, target: string, invited = false) {
+    const members = Object.keys(entry?.ledger?.members ?? {})
+    return !!me && entry?.ledger?.type === 'direct' && entry.ledger.status !== 'archived' && !entry.hidden
+      && members.includes(me) && members.every(member => member === me || member === target) && (invited || members.includes(target))
+  }
+  function appendTransferLink(id: string, text: string) {
+    const current = drafts[id] ?? channel?.draft ?? ''
+    if (!current.split('\n').includes(text)) drafts[id] = current ? current + '\n' + text : text
+  }
+  async function openNameConversation(target: string, name?: string, text?: string) {
+    const visit = channelVisit
+    await reload()
+    if (!alive || !unlocked || error || visit !== channelVisit) return
+    const existing = arrange(channels, me, pins).live.find(entry => directFor(entry, target))
+    if (existing) {
+      await pick(existing.id)
+      if (text && alive && channel?.id === existing.id && directFor(channel, target)) appendTransferLink(existing.id, text)
+    } else {
+      transferDraft = text ? { target, text } : null
+      peer = { account: target, name: name ?? label(target) }
+      creating = true
+    }
+  }
+  function invitedForTransfer(id: string, account: string) {
+    if (transferDraft?.target === account) transferDraft.channel = id
+  }
+  $effect(() => {
+    const draft = transferDraft
+    if (draft?.channel && channel?.id === draft.channel) {
+      const id = draft.channel
+      untrack(() => {
+        if (directFor(channel, draft.target, true)) appendTransferLink(id, draft.text)
+        transferDraft = null
+      })
+    } else if (draft && !creating && !draft.channel) transferDraft = null
+  })
+
   // Links and other views arrive as the route's query: an invitation, a person, a channel.
   $effect(() => {
     const at = route.indexOf('?')
@@ -644,8 +691,16 @@
       createTab = 'join'
       creating = true
     } else if (direct) {
-      peer = { account: direct, name: params.get('name') ?? label(direct) }
-      creating = true
+      const draft = params.get('compose') === 'transfer'
+        ? rememberedPlain<{ target: string; text: string }>('plan.transfer-draft') : null
+      rememberPlain('plan.transfer-draft', null)
+      if (draft?.target === direct || params.get('compose') === 'message') {
+        untrack(() => void openNameConversation(direct, params.get('name') ?? undefined, draft?.target === direct ? draft.text : undefined))
+      }
+      else {
+        peer = { account: direct, name: params.get('name') ?? label(direct) }
+        creating = true
+      }
     } else if (target) void pick(target)
     else if (legacy) {
       legacyRequested = legacy
@@ -811,9 +866,9 @@
                 <p class="text-[13px] text-muted" data-testid="channels-initial-sync">{t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')}</p>
                 <p class="text-[12.5px] text-muted">{t('syncInitialHint')}</p>
               {:else}
-                <p class="text-[13px] text-muted">{query ? t('noMatch', { query }) : t('noChannels')}</p>
+                <p class="text-[13px] text-muted">{query.trim() ? t('noMatch', { query }) : onlyUnread ? t('noResults') : t('noChannels')}</p>
               {/if}
-              {#if unlocked && !query && status?.sync_initialized !== false}
+              {#if unlocked && !query.trim() && !onlyUnread && status?.sync_initialized !== false}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => ((createTab = 'create'), (creating = true))}>{t('newChannel')}</button>
               {/if}
             </li>
@@ -883,9 +938,11 @@
               <button
                 {...props}
                 class={iconButtonClass('ghost', 'md', cn(search.open && 'bg-wash text-ink'))}
+                bind:this={searchButton}
                 aria-label={t('searchMessages')}
-                aria-pressed={search.open}
-                onclick={() => (search = { ...search, open: !search.open })}
+                aria-expanded={search.open}
+                aria-controls={search.open ? 'channel-search-panel' : undefined}
+                onclick={() => showSearch(!search.open)}
                 data-testid="channel-search-toggle"
               >
                 <Icon name="search" />
@@ -1001,20 +1058,22 @@
         </header>
 
         {#if search.open}
-          <div class="border-b border-line px-5 py-2" data-testid="channel-search">
-            <label class="relative block">
-              <Icon name="search" class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />
+          <div id="channel-search-panel" class="border-b border-line px-5 py-2" data-testid="channel-search">
+            <div class="flex items-center gap-2">
               <input
                 bind:this={searchInput}
                 bind:value={() => search.query, (query) => { search = { open: true, query, results: null } }}
                 type="search"
-                class="ps-8"
+                class="min-w-0 flex-1"
                 placeholder={t('searchMessages')}
                 aria-label={t('searchMessages')}
                 onkeydown={(e) => !e.isComposing && e.key === 'Enter' && find()}
                 data-testid="channel-search-query"
               />
-            </label>
+              <button class={iconButtonClass('secondary', 'md')} aria-label={t('searchMessages')} disabled={!search.query.trim() || search.busy} onclick={find} data-testid="channel-search-submit"><Icon name="search" /></button>
+            </div>
+            {#if search.busy}<p class="mt-1.5 text-[12px] text-muted" role="status">{t('loading')}</p>{/if}
+            {#if search.error}<Notice tone="danger" failure={search.error}>{search.error}</Notice>{/if}
             {#if search.results}
               <ul class="mt-1.5 max-h-56 overflow-y-auto" data-testid="channel-search-results">
                 {#each search.results as hit (hit.seq)}
@@ -1128,7 +1187,7 @@
   {/if}
 </div>
 
-<NewChannel bind:open={creating} bind:tab={createTab} bind:invitation={joinText} bind:peer onOpened={opened} />
+<NewChannel bind:open={creating} bind:tab={createTab} bind:invitation={joinText} bind:peer onOpened={opened} onDirectInvited={invitedForTransfer} />
 <Packet bind:open={settling} />
 <LibraryPicker
   bind:open={picking}

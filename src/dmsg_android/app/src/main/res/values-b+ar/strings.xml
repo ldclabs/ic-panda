@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"إضافة إذن"</string>
     <string name="android_purchase_privacy" formatted="false">"تستخدم مشتريات Google Play خدمات حساب Google والفوترة والتحقق من الجهاز عند إعدادها. تُحفظ رموز الشراء مشفّرة حتى تتحقق الخدمة من التسليم. لا يُرسل محتوى dMsg إلى Google. تصف سياسة الخدمة أدناه أيضًا الخدمات الخاصة بـ Apple التي تستخدمها تطبيقات dMsg الأخرى."</string>
     <string name="app_language" formatted="false">"اللغة"</string>
+    <string name="approval_file_changed" formatted="false">"تغيّر الملف أو تتعذّر قراءته"</string>
+    <string name="approval_link" formatted="false">"الربط بحساب موجود"</string>
+    <string name="approval_login" formatted="false">"تسجيل الدخول"</string>
+    <string name="approval_reauthenticate" formatted="false">"التأكيد أنك ما زلت أنت"</string>
+    <string name="approval_receiver" formatted="false">"الجهة المستلمة"</string>
+    <string name="approval_request_expires" formatted="false">"انتهاء صلاحية الطلب"</string>
+    <string name="approval_valid_until" formatted="false">"صالحة حتى"</string>
     <string name="autofill_choose_at_login" formatted="false">"اختر حسابًا عندما يطلب تطبيق أو موقع كلمة مرور."</string>
     <string name="autofill_confirm" formatted="false">"هل تريد تعبئة بيانات هذا الحساب؟"</string>
     <string name="autofill_no_items" formatted="false">"لا سجلات بعد"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"عمليات النقل المشفّرة"</string>
     <string name="customize_fields" formatted="false">"تخصيص الحقول"</string>
     <string name="empty_folder" formatted="false">"لا توجد ملفات في هذا المجلد"</string>
+    <string name="file_moved_to_trash" formatted="false">"تم النقل إلى سلة المهملات"</string>
+    <string name="file_name_rule" formatted="false">"استخدم اسماً من 1 إلى 255 حرفاً دون شرطات مائلة أو أحرف تحكم."</string>
+    <string name="file_name_taken" formatted="false">"يوجد ملف أو مجلد بهذا الاسم بالفعل."</string>
+    <string name="file_original_folder" formatted="false">"المجلد الأصلي"</string>
+    <string name="file_restored" formatted="false">"تمت الاستعادة"</string>
     <string name="follow_system_language" formatted="false">"اتباع لغة النظام"</string>
     <string name="history_device" formatted="false">"الجهاز"</string>
     <string name="history_fields" formatted="false">"الحقول"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"تم إنشاء %1$s من %2$s"</string>
     <string name="local_password" formatted="false">"كلمة المرور المحلية"</string>
     <string name="local_password_length" formatted="false">"استخدم 12 حرفًا على الأقل."</string>
+    <string name="message_actions" formatted="false">"الإجراءات"</string>
+    <string name="message_sending" formatted="false">"إرسال"</string>
     <string name="no_matches" formatted="false">"لا توجد نتائج مطابقة"</string>
     <string name="offline_account" formatted="false">"حساب محلي"</string>
     <string name="operation_failed_code" formatted="true">"تعذر إكمال هذه العملية. الرمز: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"لم تُحفظ عملية الاستيراد. اختر النسخة مجددًا."</string>
     <string name="vault_backup_unlockerror" formatted="false">"تعذر فتح النسخة. تحقّق من كلمة المرور أو اختر ملفًا كاملًا."</string>
     <string name="vault_backup_wallet" formatted="false">"يتضمن الأسرار المحفوظة في عناصر المحفظة."</string>
+    <string name="vault_conflict_saved" formatted="false">"حُفظ كنسخة مستقلة. راجع تعارضات المزامنة."</string>
+    <string name="vault_copied" formatted="false">"تم النسخ"</string>
     <string name="vault_field_birthday" formatted="false">"تاريخ الميلاد"</string>
     <string name="vault_field_cardholder" formatted="false">"حامل البطاقة"</string>
     <string name="vault_field_credential" formatted="false">"بيانات الاعتماد"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"المفتاح العام"</string>
     <string name="vault_field_purchased" formatted="false">"تاريخ الشراء"</string>
     <string name="vault_field_username" formatted="false">"اسم المستخدم"</string>
+    <string name="vault_loading" formatted="false">"جارٍ التحميل…"</string>
+    <string name="vault_search_files" formatted="false">"البحث في الملفات"</string>
     <string name="widget_description" formatted="false">"افتح مساحة عمل خاصة. لا يُعرض هنا أي محتوى من الحساب."</string>
     <string name="widget_open" formatted="false">"فتح مساحة العمل الخاصة"</string>
     <string name="widget_title" formatted="false">"مساحة عمل dMsg"</string>

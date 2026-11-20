@@ -1986,6 +1986,8 @@
 	<string>Nakalaan para sa mga upload</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Resolbahin ang nakabinbing pagpapatakbo ng account bago tanggalin ang account na ito.</string>
+	<key>Restored</key>
+	<string>Ibinalik</string>
 	<key>Restore</key>
 	<string>Ibalik</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Gumamit ng hindi bababa sa 12 character.</string>
 	<key>Confirm local password</key>
 	<string>Kumpirmahin ang lokal na password</string>
+	<key>File digest checked</key>
+	<string>Sinuri ang hash ng file</string>
+	<key>The file changed or cannot be read</key>
+	<string>Nagbago o hindi mabasa ang file</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Ang hash lamang ang nakumpirma; hindi nasuri ang file</string>
+	<key>Delivery report</key>
+	<string>Ulat ng paghahatid</string>
+	<key>Sign in</key>
+	<string>Mag-sign in</string>
+	<key>Link to an existing account</key>
+	<string>Mag-link sa isang umiiral nang account</string>
+	<key>Confirm it is still you</key>
+	<string>Kumpirmahin na ikaw pa rin ito</string>
+	<key>Receiver</key>
+	<string>Receiver</string>
+	<key>Valid until</key>
+	<string>May bisa hanggang</string>
+	<key>High risk</key>
+	<string>Mataas na panganib</string>
 </dict>
 </plist>

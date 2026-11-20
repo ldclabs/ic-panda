@@ -14,7 +14,7 @@ struct FileTrashView: View {
             if let days = listing.trashDays {
                 Section {
                     LabeledContent("Days before removal", value: days.formatted())
-                    Text("Cloud backups are kept. This only changes the copy on this device.").font(.footnote).foregroundStyle(.secondary)
+                    if !model.localAccount { Text("Cloud backups are kept. This only changes the copy on this device.").font(.footnote).foregroundStyle(.secondary) }
                 }
             }
             if loading { ProgressView("Loading…") }
@@ -53,7 +53,9 @@ struct FileTrashView: View {
             #else
             try await restoreRemote(id)
             #endif
-            guard stamp == model.epoch, visible, !Task.isCancelled else { return }; await load(); await model.loadFiles()
+            guard stamp == model.epoch, visible, !Task.isCancelled else { return }
+            model.notice = String(localized: "Restored")
+            await load(); await model.loadFiles()
         } catch { if stamp == model.epoch, visible, !Task.isCancelled { errors[id] = model.fileFailureMessage(error) } }
     }
 

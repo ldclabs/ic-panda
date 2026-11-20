@@ -274,7 +274,7 @@ export async function fileRequestsFlow({ app, main, shots, methods, hold, waitFo
   const lateLinks = hold('files/requests', p => p?.refresh === true)
   await main.getByTestId('requests-refresh').click()
   setSession('locked'); emit('session/changed', { state: 'locked' })
-  await waitFor(async () => !(await main.getByTestId('requests-new').count()) || main.getByTestId('requests-new').isDisabled())
+  await main.getByTestId('requests-new').waitFor({ state: 'detached' })
   await lateLinks()
   assert.equal(await main.getByText('Tax documents', { exact: true }).count(), 0)
   setSession('unlocked'); emit('session/changed', { state: 'unlocked' })

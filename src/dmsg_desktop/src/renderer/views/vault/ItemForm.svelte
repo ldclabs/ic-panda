@@ -44,6 +44,7 @@
     busy = false,
     mod,
     dirty = $bindable(false),
+    error = '',
     valid = $bindable(false),
     onSubmit,
     onCancel,
@@ -55,6 +56,7 @@
     busy?: boolean
     mod: string
     dirty?: boolean
+    error?: string
     valid?: boolean
     onSubmit: (changes: Record<string, unknown>) => void
     onCancel: () => void
@@ -97,7 +99,7 @@
   })
 
   export function submit() {
-    if (!title.trim() || busy || !datesValid) return
+    if (!title.trim() || busy || !datesValid || edit && !dirty) return
     onSubmit({ title: title.trim(), tags, notes, files, fields: fieldChanges(fields) })
   }
 
@@ -222,8 +224,8 @@
   {/if}
 {/snippet}
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="grid gap-3" onkeydown={onKey} data-testid="vault-form">
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions (Shortcuts bubble from the form controls.) -->
+<fieldset class="m-0 grid min-w-0 gap-3 border-0 p-0" disabled={busy} onkeydown={onKey} data-testid="vault-form">
   <label class="grid gap-1 text-[12px] text-faint">
     {t('title')}
     <input bind:this={titleInput} bind:value={title} class="text-[13.5px] text-ink" data-testid="vault-title" />
@@ -251,7 +253,7 @@
           />
           <span class="shrink-0 rounded bg-wash px-1.5 py-px text-[11px] text-faint">{t(fieldTypeLabel[field.type])}</span>
           <DropdownMenu.Root dir={localeDir(locale())}>
-            <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} data-testid="field-menu">
+            <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions') + ' · ' + (fieldName(field, t) || t(fieldTypeLabel[field.type]))} data-testid="field-menu">
               <Icon name="more" />
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
@@ -318,13 +320,14 @@
   </div>
 
   {#if footer}
+    {#if error}<p role="alert" class="text-[13px] text-danger" data-testid="vault-edit-error">{error}</p>{/if}
     <div class="flex items-center justify-end gap-2 pt-1">
-      <button type="button" class={buttonClass('ghost')} onclick={onCancel}>{t('cancel')}</button>
-      <button type="button" class={buttonClass('primary')} disabled={busy || !title.trim() || !datesValid} onclick={submit} data-testid="vault-save">
+      <button type="button" class={buttonClass('ghost')} disabled={busy} onclick={onCancel}>{t('cancel')}</button>
+      <button type="button" class={buttonClass('primary')} disabled={busy || !title.trim() || !datesValid || edit && !dirty} onclick={submit} data-testid="vault-save">
         {t('save')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
       </button>
     </div>
   {/if}
-</div>
+</fieldset>
 
 <FilePicker bind:open={picking} taken={files} onPick={(id) => (files = [...files, id])} />

@@ -20,6 +20,7 @@
     entry,
     folder = false,
     selected,
+    focusable,
     unlocked,
     showPath = false,
     onSelect,
@@ -42,6 +43,7 @@
     entry: any
     folder?: boolean
     selected: boolean
+    focusable: boolean
     unlocked: boolean
     showPath?: boolean
     onSelect: (event: MouseEvent) => void
@@ -65,7 +67,7 @@
 
   const status = $derived(statusOf(entry.status))
   const tones: Record<string, string> = { neutral: 'text-faint', forest: 'text-forest', gem: 'text-gem', warn: 'text-warn', danger: 'text-danger', ok: 'text-ok' }
-  const where = $derived(`/${(entry.path ?? []).join('/')}`)
+  const where = $derived((entry.path ?? []).join(' / ') || t('library'))
 
   function onDragStart(event: DragEvent) {
     if (!unlocked) return event.preventDefault()
@@ -117,7 +119,7 @@
           data-id={entry.id}
           data-kind={folder ? 'folder' : 'file'}
           aria-current={selected ? 'true' : undefined}
-          tabindex={selected ? 0 : -1}
+          tabindex={focusable ? 0 : -1}
         >
           <span class={cn('grid size-8 place-items-center [&_svg]:size-5', selected ? 'text-forest' : 'text-faint')}>
             <Icon name={folder ? 'folder' : fileIcon(entry.mime)} />
@@ -125,7 +127,7 @@
           <span class="min-w-0">
             <span class="block truncate text-[13.5px] leading-snug font-medium text-ink">{entry.name}</span>
             <span class="block truncate text-[12px] leading-snug text-faint">
-              {#if showPath}<span dir="ltr">{where}</span> ·{/if}
+              {#if showPath}<bdi title={where}>{where}</bdi> ·{/if}
               {#if folder}
                 {ago(entry.updated_at)}
               {:else}
@@ -140,6 +142,7 @@
                 {#snippet children(props)}
                   <span {...props} class={cn('grid size-6 place-items-center', tones[statusTone[status]])} data-status={status}>
                     <Icon name={statusIcon[status]} class={cn('size-4', status === 'backing_up' && 'animate-pulse')} />
+                    <span class="sr-only">{t(statusLabel[status])}</span>
                   </span>
                 {/snippet}
               </Tooltip>

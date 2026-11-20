@@ -41,10 +41,7 @@ class NotificationCoordinator(private val client: ClientController) {
         }
         when (target.kind) {
             "channel" -> client.navigation.push(Route("messages", id = target.id))
-            "inbox" -> {
-                client.letters.rememberLocation(LetterLocation(selected = target.id), client.currentStamp())
-                client.navigation.push(Route("inbox"))
-            }
+            "inbox" -> client.navigation.push(Route("inbox", id = target.id))
             "approval" -> client.approvals.open(target.id!!)
             "plan" -> client.navigation.push(Route("membership"))
             "wallet" -> client.navigation.push(Route("wallet-proposal", target.wallet, sequence = canonicalNoticeVersion(target.id!!)))

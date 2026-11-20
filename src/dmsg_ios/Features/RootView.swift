@@ -136,7 +136,7 @@ private struct AccountWorkspace: View {
     var body: some View {
         if sizeClass == .compact { NavigationStack { AccountView() } }
         else {
-            NavigationSplitView { AccountView() } detail: {
+            NavigationSplitView { AccountView(inSplitView: true) } detail: {
                 ContentUnavailableView("Account", image: AppGlyph.account.assetName)
             }.navigationSplitViewStyle(.balanced)
         }

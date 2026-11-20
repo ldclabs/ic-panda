@@ -15,14 +15,16 @@ struct VaultTrashView: View {
                 HStack {
                     NavigationLink { VaultDetailView(id: item.id) } label: { VaultRow(item: item) }
                     if restoring == item.id { ProgressView() }
-                    else { Button("Restore") { Task { await restore(item) } }.buttonStyle(.bordered).disabled(restoring != nil) }
+                    else { Button("Restore") { Task { await restore(item) } }.buttonStyle(.bordered).disabled(restoring != nil)
+                            .accessibilityLabel(Text("Restore") + Text(verbatim: " · " + item.title))
+                            .accessibilityIdentifier("vault.trash.restore.\(item.id)") }
                 }
             }
             if loading { ProgressView() }
             else if failed { Button("Retry") { Task { await load(reset: true) } } }
             else if items.isEmpty { ContentUnavailableView("Trash is empty", systemImage: "trash") }
             if more { LoadMoreRow(working: loading, trigger: items.count) { await load(reset: false) } }
-            Text("Moving to Trash does not free cloud storage.").font(.footnote).foregroundStyle(.secondary)
+            if !model.localAccount && !items.isEmpty { Text("Moving to Trash does not free cloud storage.").font(.footnote).foregroundStyle(.secondary) }
         }.privateScreen().navigationTitle("Trash").task(id: model.contentRevision) { await load(reset: true) }
             .refreshable { await load(reset: true) }
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
@@ -33,7 +35,7 @@ struct VaultTrashView: View {
         do {
             try await model.trashVaultItem(item, restore: true)
             guard epoch == model.epoch else { return }
-            model.notice = String(localized: "Saved on this device"); await load(reset: true)
+            model.notice = String(localized: "Restored"); await load(reset: true)
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 

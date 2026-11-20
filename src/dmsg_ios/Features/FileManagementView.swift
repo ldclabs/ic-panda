@@ -15,7 +15,7 @@ struct FileManagementView: View {
                 .disabled(working).accessibilityIdentifier("file.trash")
                 .confirmationDialog("Move to Trash", isPresented: $confirming, titleVisibility: .visible) {
                     Button("Move to Trash", role: .destructive) { Task { await trash() } }
-                } message: { Text("Cloud backups are kept. This only changes the copy on this device.") }
+                } message: { Text(fileTrashConfirmation([file.name], localAccount: model.localAccount)) }
         }.privateScreen().navigationTitle("Manage file")
     }
 
@@ -96,6 +96,7 @@ struct FileNameEditor: View {
             }
             guard stamp == model.epoch, visible, !Task.isCancelled else { return }
             model.settingsDrafts.removeValue(forKey: draftKey)
+            if target == nil { model.revealLocalFileListing(in: parent) }
             await model.loadFiles(); dismiss()
         } catch { if stamp == model.epoch, visible, !Task.isCancelled { failure = model.fileFailureMessage(error) } }
     }

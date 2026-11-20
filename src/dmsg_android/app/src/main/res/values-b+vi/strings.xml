@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Thêm quyền"</string>
     <string name="android_purchase_privacy" formatted="false">"Khi được cấu hình, giao dịch Google Play sử dụng dịch vụ tài khoản Google, thanh toán và xác minh thiết bị. Mã thông báo mua hàng được lưu mã hóa cho đến khi dịch vụ xác minh việc cấp quyền lợi. Nội dung dMsg không được gửi tới Google. Chính sách dịch vụ bên dưới cũng mô tả các dịch vụ riêng của Apple được những ứng dụng dMsg khác sử dụng."</string>
     <string name="app_language" formatted="false">"Ngôn ngữ"</string>
+    <string name="approval_file_changed" formatted="false">"Tệp đã thay đổi hoặc không thể đọc được"</string>
+    <string name="approval_link" formatted="false">"Liên kết với tài khoản hiện có"</string>
+    <string name="approval_login" formatted="false">"Đăng nhập"</string>
+    <string name="approval_reauthenticate" formatted="false">"Xác nhận đó vẫn là bạn"</string>
+    <string name="approval_receiver" formatted="false">"Người nhận"</string>
+    <string name="approval_request_expires" formatted="false">"Yêu cầu hết hạn"</string>
+    <string name="approval_valid_until" formatted="false">"Có hiệu lực cho đến khi"</string>
     <string name="autofill_choose_at_login" formatted="false">"Chọn tài khoản khi ứng dụng hoặc trang web yêu cầu mật khẩu."</string>
     <string name="autofill_confirm" formatted="false">"Điền bằng tài khoản này?"</string>
     <string name="autofill_no_items" formatted="false">"Chưa có hồ sơ nào"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"Truyền dữ liệu mã hóa"</string>
     <string name="customize_fields" formatted="false">"Tùy chỉnh trường"</string>
     <string name="empty_folder" formatted="false">"Không có tệp trong thư mục này"</string>
+    <string name="file_moved_to_trash" formatted="false">"Đã chuyển vào Thùng rác"</string>
+    <string name="file_name_rule" formatted="false">"Dùng tên dài 1–255 ký tự, không chứa dấu gạch chéo hoặc ký tự điều khiển."</string>
+    <string name="file_name_taken" formatted="false">"Đã có tệp hoặc thư mục mang tên này."</string>
+    <string name="file_original_folder" formatted="false">"Thư mục gốc"</string>
+    <string name="file_restored" formatted="false">"Đã khôi phục"</string>
     <string name="follow_system_language" formatted="false">"Theo ngôn ngữ hệ thống"</string>
     <string name="history_device" formatted="false">"Thiết bị"</string>
     <string name="history_fields" formatted="false">"Trường"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"Đã tạo %1$s trên %2$s"</string>
     <string name="local_password" formatted="false">"Mật khẩu cục bộ"</string>
     <string name="local_password_length" formatted="false">"Dùng ít nhất 12 ký tự."</string>
+    <string name="message_actions" formatted="false">"Thao tác"</string>
+    <string name="message_sending" formatted="false">"Đang gửi"</string>
     <string name="no_matches" formatted="false">"Không có kết quả phù hợp"</string>
     <string name="offline_account" formatted="false">"Tài khoản cục bộ"</string>
     <string name="operation_failed_code" formatted="true">"Không thể hoàn tất thao tác này. Mã: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"Chưa ghi dữ liệu nhập. Hãy chọn lại bản sao lưu."</string>
     <string name="vault_backup_unlockerror" formatted="false">"Không thể mở bản sao lưu. Hãy kiểm tra mật khẩu hoặc chọn tệp đầy đủ."</string>
     <string name="vault_backup_wallet" formatted="false">"Bao gồm bí mật đã lưu trong mục ví."</string>
+    <string name="vault_conflict_saved" formatted="false">"Được lưu dưới dạng phiên bản riêng biệt. Xem lại xung đột đồng bộ hóa."</string>
+    <string name="vault_copied" formatted="false">"Đã sao chép"</string>
     <string name="vault_field_birthday" formatted="false">"Sinh nhật"</string>
     <string name="vault_field_cardholder" formatted="false">"Chủ thẻ"</string>
     <string name="vault_field_credential" formatted="false">"Thông tin xác thực"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"Khóa công khai"</string>
     <string name="vault_field_purchased" formatted="false">"Đã mua"</string>
     <string name="vault_field_username" formatted="false">"Tên người dùng"</string>
+    <string name="vault_loading" formatted="false">"Đang tải…"</string>
+    <string name="vault_search_files" formatted="false">"Tìm kiếm tập tin"</string>
     <string name="widget_description" formatted="false">"Mở không gian làm việc riêng. Không nội dung tài khoản nào được hiển thị tại đây."</string>
     <string name="widget_open" formatted="false">"Mở không gian làm việc riêng tư"</string>
     <string name="widget_title" formatted="false">"Không gian làm việc dMsg"</string>

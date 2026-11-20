@@ -24,16 +24,13 @@ import java.io.File
 @Composable fun FilesScreen(client: ClientController, state: UiState, selected: String, select: (String) -> Unit, share: (File, String) -> Unit, trash: Boolean = false) {
     val navigation by client.navigation.state.collectAsStateWithLifecycle()
     val details by client.library.detail.state.collectAsStateWithLifecycle()
-    val destination by client.library.destinations.state.collectAsStateWithLifecycle()
     val folder = navigation.current.folder
-    var name by remember { mutableStateOf("") }
     var selectedVersion by remember(selected, navigation.current.revision) { mutableStateOf(navigation.current.revision) }
     var rename by remember { mutableStateOf(false) }
     var metadata by remember(selected) { mutableStateOf(false) }
     var versionAction by remember(selected) { mutableStateOf<String?>(null) }
     var move by remember { mutableStateOf(false) }
-    var parent by remember { mutableStateOf("root") }
-    var parents by remember { mutableStateOf(listOf("root")) }
+    var moveError by remember(selected) { mutableStateOf<Pair<String, String>?>(null) }
     var confirmation by remember(selected) { mutableStateOf<String?>(null) }
     LaunchedEffect(selected, state.epoch) { if (selected.isNotEmpty()) client.library.select(selected) }
     val current = details.valueOrNull()?.takeIf { it.file.id == selected }
@@ -64,8 +61,8 @@ import java.io.File
                 if (state.session?.accountKind != "local" && file.local && file.backup != null) TextButton(onClick = { confirmation = "evict" }) { Text(str(R.string.text_free_local_space_89b2267)) }
                 if (state.session?.accountKind != "local" && (file.local || file.backup != null)) OutlinedButton(onClick = { client.navigation.push(Route("file-link-compose", id = file.id, revision = file.version)) }, enabled = file.size <= 100uL * 1024u * 1024u, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Link, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_by_link_05aafef)) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TextButton(onClick = { name = file.name; rename = true }) { Text(str(R.string.text_rename_dd3a2f7)) }
-                    TextButton(onClick = { parent = "root"; parents = listOf("root"); client.library.destination(parent); move = true }) { Text(str(R.string.text_move_207d5fe)) }
+                    TextButton(onClick = { rename = true }) { Text(str(R.string.text_rename_dd3a2f7)) }
+                    TextButton(onClick = { moveError = null; move = true }) { Text(str(R.string.text_move_207d5fe)) }
                 }
             }
             if (file.trashedAt == null) TextButton(onClick = { client.library.beginMetadata(current!!.file); metadata = true }) { Text(str(R.string.text_edit_notes_tags_and_favorite_25ab2c0)) }
@@ -101,17 +98,13 @@ import java.io.File
             Text(if (versionAction == "use") str(R.string.text_the_selected_immutable_version_becomes_current_other_versions_rem_558f51b) else str(R.string.text_this_permanently_removes_this_version_from_the_local_library_its_4a332f6))
         }
     }, confirmButton = { TextButton(onClick = { if (versionAction == "use") client.library.useVersion(current.file, file.version) else client.library.deleteVersion(current.file, file.version); versionAction = null }) { Text(str(R.string.text_confirm_563fd5a)) } }, dismissButton = { TextButton(onClick = { versionAction = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
-    if (rename && file != null) AlertDialog(onDismissRequest = { rename = false }, title = { Text(str(R.string.text_rename_dd3a2f7)) }, text = { OutlinedTextField(name, { name = it }, label = { Text(str(R.string.text_name_dd4dc4c)) }) }, confirmButton = {
-        TextButton(enabled = name.isNotBlank() && !name.contains('/') && !name.contains('\\') && !state.working("files:rename:${file.id}"), onClick = { client.library.rename(file.id, name) { rename = false } }) { Text(str(R.string.text_save_ec8e6d5)) }
-    }, dismissButton = { TextButton(onClick = { rename = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
-    if (move && file != null) AlertDialog(onDismissRequest = { move = false }, title = { Text(str(R.string.text_move_to_folder_1c1670d)) }, text = {
-        Column(Modifier.heightIn(max = 350.dp).verticalScroll(rememberScrollState())) {
-            Text(parents.joinToString(" / "), style = MaterialTheme.typography.labelSmall)
-            if (parents.size > 1) TextButton(onClick = { parents = parents.dropLast(1); parent = parents.last(); client.library.destination(parent) }) { Text(str(R.string.text_parent_folder_3af9479)) }
-            ReadFeedback(destination, { client.library.destination(parent) })
-            destination.valueOrNull()?.folders.orEmpty().forEach { entry -> TextButton(onClick = { parent = entry.id; parents += parent; client.library.destination(parent) }) { Icon(Icons.Outlined.Folder, null); Text(entry.name) } }
-        }
-    }, confirmButton = { TextButton(onClick = { client.library.move(file.id, parent) { move = false } }, enabled = parent != file.folder && !state.working("files:move:" + file.id)) { Text(str(R.string.text_move_here_2a2705e)) } }, dismissButton = { TextButton(onClick = { move = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    if (rename && file != null) FileNameDialog(client, file.folder, FileActionTarget(file.id, file.name, false), { rename = false }) { rename = false }
+    if (move && file != null) FileFolderDialog(client, str(R.string.text_move_to_folder_1c1670d), { move = false },
+        action = str(R.string.text_move_here_2a2705e), unchanged = file.folder, busy = state.working("files:move:" + file.id),
+        review = { folderId -> Text(file.name); moveError?.takeIf { it.first == folderId }?.let { Notice(fileActionError(it.second), true) } }) { path ->
+        moveError = null
+        client.library.move(file.id, path.folderId, { moveError = path.folderId to it }) { move = false; client.notice("FILE_MOVED") }
+    }
     if (confirmation != null && file != null) AlertDialog(onDismissRequest = { confirmation = null }, title = { Text(when (confirmation) { "share" -> str(R.string.text_share_a_copy_4b1b25d); "backup" -> str(R.string.text_back_up_this_version_179ee9c); "evict" -> str(R.string.text_free_local_space_e8ccb7a); else -> str(R.string.text_move_to_trash_79243d8) }) }, text = {
         Text(when (confirmation) {
             "share" -> str(R.string.text_shared_copies_leave_dmsg_s_protection_and_cannot_be_recalled_84ddf5e)
@@ -126,7 +119,7 @@ import java.io.File
             "evict" -> client.perform({ core -> client.operation { core.evictFile(file.id, file.version, it) } }, key = "file:evict:" + file.id) { client.library.select(file.id); client.library.browse() }
             else -> client.library.remove(file.id) { select("") }
         }; confirmation = null
-    }) { Text(str(R.string.text_continue_fd19155)) } }, dismissButton = { TextButton(onClick = { confirmation = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
+    }) { Text(str(when (confirmation) { "share" -> R.string.text_share_a_verified_copy_fc77423; "evict" -> R.string.text_free_local_space_89b2267; "backup" -> R.string.text_back_up_this_version_f74abb5; else -> R.string.text_move_to_trash_c4056f9 })) } }, dismissButton = { TextButton(onClick = { confirmation = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
 internal fun fileSize(value: ULong): String = when { value >= 1024uL * 1024uL -> "%.1f MiB".format(value.toDouble() / 1048576.0); value >= 1024uL -> "%.0f KiB".format(value.toDouble() / 1024.0); else -> net.dmsg.android.platform.localizedNumber(value) + " B" }

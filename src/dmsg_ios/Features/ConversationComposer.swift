@@ -33,9 +33,8 @@ struct ConversationComposer: View {
     @State private var canPasteImage = false
 
     private static let maxAttachmentBytes: UInt64 = 100 * 1024 * 1024
-    private static let maxTextBytes = 16 * 1024
     private var draft: String { model.drafts[channel.id] ?? "" }
-    private var tooLong: Bool { draft.utf8.count > Self.maxTextBytes }
+    private var tooLong: Bool { draft.utf8.count > ComposerQueue.maxTextBytes }
     private var empty: Bool { draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && attachments.isEmpty }
 
     var body: some View {
@@ -65,7 +64,12 @@ struct ConversationComposer: View {
                     .accessibilityIdentifier("message.send").keyboardShortcut(.return, modifiers: .command)
                     .disabled(!channel.canPublish || empty || tooLong || queuing)
             }.padding(12).background(.bar)
-            if tooLong { Text("This message is too long.").font(.caption).foregroundStyle(.red) }
+            if tooLong {
+                VStack {
+                    Text("This message is too long.")
+                    Text(utf8ByteCounter(draft, limit: Int64(ComposerQueue.maxTextBytes)))
+                }.font(.caption).foregroundStyle(.red).accessibilityElement(children: .combine)
+            }
         }
         .sheet(isPresented: $choosingFile) {
             NavigationStack { AttachmentPicker(folder: "root") { file in

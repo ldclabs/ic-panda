@@ -1970,6 +1970,8 @@
 	<string>محجوز للرفع</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>عالج عملية الحساب المعلّقة قبل حذفه.</string>
+	<key>Restored</key>
+	<string>تمت الاستعادة</string>
 	<key>Restore</key>
 	<string>استعادة</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>استخدم 12 حرفًا على الأقل.</string>
 	<key>Confirm local password</key>
 	<string>تأكيد كلمة المرور المحلية</string>
+	<key>File digest checked</key>
+	<string>تم التحقق من ملخص الملف</string>
+	<key>The file changed or cannot be read</key>
+	<string>تغيّر الملف أو تتعذّر قراءته</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>تم تأكيد الملخص فقط؛ لم يُتحقَّق من الملف</string>
+	<key>Delivery report</key>
+	<string>تقرير التسليم</string>
+	<key>Sign in</key>
+	<string>تسجيل الدخول</string>
+	<key>Link to an existing account</key>
+	<string>الربط بحساب موجود</string>
+	<key>Confirm it is still you</key>
+	<string>التأكيد أنك ما زلت أنت</string>
+	<key>Receiver</key>
+	<string>الجهة المستلمة</string>
+	<key>Valid until</key>
+	<string>صالحة حتى</string>
+	<key>High risk</key>
+	<string>خطورة عالية</string>
 </dict>
 </plist>

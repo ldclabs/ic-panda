@@ -3,6 +3,16 @@ import DMsgCore
 
 enum FileScope: String, CaseIterable { case local, cloud }
 
+func fileFolderPath(_ path: [String]?) -> String {
+    guard let path, !path.isEmpty else { return String(localized: "Files") }
+    return path.joined(separator: " / ")
+}
+
+func fileTrashConfirmation(_ names: [String], localAccount: Bool) -> String {
+    let items = names.count <= 3 ? names.joined(separator: "\n") : String(localized: "Selected files") + " · " + names.count.formatted()
+    return localAccount ? items : items + "\n\n" + String(localized: "Cloud backups are kept. This only changes the copy on this device.")
+}
+
 enum FileSort: String, CaseIterable {
     case name, date, size
 

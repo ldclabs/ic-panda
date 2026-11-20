@@ -15,7 +15,7 @@
   let alive = true
   onDestroy(() => { alive = false })
   let info = $state<AppUpdates | null>(null)
-  let error = $state('')
+  let error = $state(''), readError = $state('')
   let acting = $state(false)
   let changing = $state(false)
   let beta = $state(false)
@@ -33,10 +33,10 @@
       if (!alive) return
       info = next
       if (!changing && !channelDirty) beta = next.channel === 'beta'
-      error = ''
+      readError = ''
     } catch (e) {
       if (!alive) return
-      error = errorText(e)
+      readError = errorText(e)
     }
   })
 
@@ -79,6 +79,8 @@
   })
 </script>
 
+{#if readError}<Notice tone="danger" testid="about-read-error">{readError}
+  <button class={buttonClass('ghost', 'xs')} onclick={reload}>{t('retry')}</button></Notice>{/if}
 {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 <Section title={t('aboutApp')} description={t('productCategory')} icon="info" testid="about-product">
   <p class="text-[13px] leading-relaxed text-muted">{t('productSummary')}</p>
@@ -107,7 +109,7 @@
     {/if}
   </div>
   <dl>
-    <Fact label={t('appVersion')} testid="app-version"><bdi dir="ltr">{info?.version ?? '-'}</bdi></Fact>
+    {#if info}<Fact label={t('appVersion')} testid="app-version"><bdi dir="ltr">{info?.version ?? '-'}</bdi></Fact>
     <Fact label={t('updateChannel')} testid="update-channel">{info ? (info.channel === 'beta' ? 'Beta' : t('updateStable')) : '-'}</Fact>
     <Fact label={t('updates')} testid="update-state">
       {#if !update}
@@ -130,7 +132,9 @@
         <span class="text-muted">{t('updateIdle')}</span>
       {/if}
     </Fact>
+    {/if}
   </dl>
+  {#if !info && !readError}<p role="status" class="text-xs text-muted">{t('loading')}</p>{/if}
   <div class="mt-4 grid gap-2" aria-busy={changing}>
     <Checkbox checked={beta} label={t('betaUpdates')} descriptionId="beta-updates-hint" testid="beta-updates"
       disabled={!info || changing || info.applying || (info.homebrew && !beta)}

@@ -1986,6 +1986,8 @@
 	<string>Reservado para cargas</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Resuelve la operación de cuenta pendiente antes de eliminarla.</string>
+	<key>Restored</key>
+	<string>Restaurado</string>
 	<key>Restore</key>
 	<string>Restaurar</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Usa al menos 12 caracteres.</string>
 	<key>Confirm local password</key>
 	<string>Confirmar contraseña local</string>
+	<key>File digest checked</key>
+	<string>Resumen del archivo comprobado</string>
+	<key>The file changed or cannot be read</key>
+	<string>El archivo cambió o no se puede leer</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Solo se confirma el resumen; el archivo no se comprobó</string>
+	<key>Delivery report</key>
+	<string>Informe de entrega</string>
+	<key>Sign in</key>
+	<string>Iniciar sesión</string>
+	<key>Link to an existing account</key>
+	<string>Vincular a una cuenta existente</string>
+	<key>Confirm it is still you</key>
+	<string>Confirmar que sigues siendo tú</string>
+	<key>Receiver</key>
+	<string>Receptor</string>
+	<key>Valid until</key>
+	<string>Válido hasta</string>
+	<key>High risk</key>
+	<string>Riesgo alto</string>
 </dict>
 </plist>

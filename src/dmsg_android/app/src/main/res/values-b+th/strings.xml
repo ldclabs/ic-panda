@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"เพิ่มสิทธิ์"</string>
     <string name="android_purchase_privacy" formatted="false">"เมื่อกำหนดค่าแล้ว การซื้อผ่าน Google Play จะใช้บริการบัญชี Google การเรียกเก็บเงิน และการตรวจสอบอุปกรณ์ โทเค็นการซื้อจะถูกเก็บแบบเข้ารหัสจนกว่าบริการจะยืนยันการมอบสิทธิ์ เนื้อหา dMsg จะไม่ถูกส่งให้ Google นโยบายบริการด้านล่างยังอธิบายบริการเฉพาะของ Apple ที่แอป dMsg อื่นใช้ด้วย"</string>
     <string name="app_language" formatted="false">"ภาษา"</string>
+    <string name="approval_file_changed" formatted="false">"ไฟล์มีการเปลี่ยนแปลงหรือไม่สามารถอ่านได้"</string>
+    <string name="approval_link" formatted="false">"เชื่อมโยงกับบัญชีที่มีอยู่"</string>
+    <string name="approval_login" formatted="false">"เข้าสู่ระบบ"</string>
+    <string name="approval_reauthenticate" formatted="false">"ยืนยันว่ายังคงเป็นคุณ"</string>
+    <string name="approval_receiver" formatted="false">"ผู้รับ"</string>
+    <string name="approval_request_expires" formatted="false">"คำขอหมดอายุ"</string>
+    <string name="approval_valid_until" formatted="false">"ใช้ได้ถึงวันที่"</string>
     <string name="autofill_choose_at_login" formatted="false">"เลือกบัญชีเมื่อแอปหรือเว็บไซต์ขอรหัสผ่าน"</string>
     <string name="autofill_confirm" formatted="false">"กรอกด้วยบัญชีนี้หรือไม่"</string>
     <string name="autofill_no_items" formatted="false">"ยังไม่มีบันทึก"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"การโอนข้อมูลที่เข้ารหัส"</string>
     <string name="customize_fields" formatted="false">"ปรับแต่งช่องข้อมูล"</string>
     <string name="empty_folder" formatted="false">"ไม่มีไฟล์ในโฟลเดอร์นี้"</string>
+    <string name="file_moved_to_trash" formatted="false">"ย้ายไปถังขยะแล้ว"</string>
+    <string name="file_name_rule" formatted="false">"ใช้ชื่อยาว 1–255 อักขระ โดยไม่มีเครื่องหมายทับหรืออักขระควบคุม"</string>
+    <string name="file_name_taken" formatted="false">"มีไฟล์หรือโฟลเดอร์ชื่อนี้อยู่แล้ว"</string>
+    <string name="file_original_folder" formatted="false">"โฟลเดอร์เดิม"</string>
+    <string name="file_restored" formatted="false">"คืนค่า"</string>
     <string name="follow_system_language" formatted="false">"ใช้ภาษาของระบบ"</string>
     <string name="history_device" formatted="false">"อุปกรณ์"</string>
     <string name="history_fields" formatted="false">"เขตข้อมูล"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"สร้างแล้ว %1$s จาก %2$s"</string>
     <string name="local_password" formatted="false">"รหัสผ่านในเครื่อง"</string>
     <string name="local_password_length" formatted="false">"ใช้อย่างน้อย 12 ตัวอักษร"</string>
+    <string name="message_actions" formatted="false">"การดำเนินการ"</string>
+    <string name="message_sending" formatted="false">"กำลังส่ง"</string>
     <string name="no_matches" formatted="false">"ไม่พบผลลัพธ์ที่ตรงกัน"</string>
     <string name="offline_account" formatted="false">"บัญชีในเครื่อง"</string>
     <string name="operation_failed_code" formatted="true">"ไม่สามารถดำเนินการนี้ให้เสร็จได้ รหัส: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"ยังไม่ได้บันทึกการนำเข้า โปรดเลือกข้อมูลสำรองอีกครั้ง"</string>
     <string name="vault_backup_unlockerror" formatted="false">"เปิดข้อมูลสำรองไม่ได้ ตรวจสอบรหัสผ่านหรือเลือกไฟล์ที่สมบูรณ์"</string>
     <string name="vault_backup_wallet" formatted="false">"รวมข้อมูลลับที่บันทึกในรายการกระเป๋าเงิน"</string>
+    <string name="vault_conflict_saved" formatted="false">"บันทึกเป็นเวอร์ชันแยกต่างหาก ตรวจสอบข้อขัดแย้งในการซิงค์"</string>
+    <string name="vault_copied" formatted="false">"คัดลอกแล้ว"</string>
     <string name="vault_field_birthday" formatted="false">"วันเกิด"</string>
     <string name="vault_field_cardholder" formatted="false">"ผู้ถือบัตร"</string>
     <string name="vault_field_credential" formatted="false">"หนังสือรับรอง"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"คีย์สาธารณะ"</string>
     <string name="vault_field_purchased" formatted="false">"ซื้อแล้ว"</string>
     <string name="vault_field_username" formatted="false">"ชื่อผู้ใช้"</string>
+    <string name="vault_loading" formatted="false">"กำลังโหลด…"</string>
+    <string name="vault_search_files" formatted="false">"ค้นหาไฟล์"</string>
     <string name="widget_description" formatted="false">"เปิดพื้นที่ทำงานส่วนตัว ที่นี่ไม่แสดงเนื้อหาบัญชี"</string>
     <string name="widget_open" formatted="false">"เปิดพื้นที่ทำงานส่วนตัว"</string>
     <string name="widget_title" formatted="false">"พื้นที่ทำงาน dMsg"</string>

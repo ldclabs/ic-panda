@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, tick } from 'svelte'
+  import { onDestroy, tick, untrack } from 'svelte'
   import Notice from '../../components/page/Notice.svelte'
   import { RadioGroup } from 'bits-ui'
   import Dialog from '../../components/Dialog.svelte'
@@ -9,7 +9,7 @@
   import { t } from '../../i18n/index.svelte'
   import { call, errorText } from '../../rpc'
   import ItemForm from './ItemForm.svelte'
-  import { typeIcon, typeLabel, types, type Field, type ItemType, type Templates } from './vault'
+  import { typeIcon, typeLabel, types, type Field, type ItemType, type Scope, type Templates } from './vault'
 
   /**
    * A new item in a dialog: its type, then the form with that type's
@@ -20,8 +20,11 @@
     open = $bindable(false),
     mod,
     templates,
+    scope,
+    templateError,
+    retryTemplates,
     onSaved
-  }: { open?: boolean; mod: string; templates: Templates | null; onSaved: (id: string) => void } = $props()
+  }: { open?: boolean; mod: string; templates: Templates | null; scope: Scope; templateError: string; retryTemplates: () => void; onSaved: (id: string) => void } = $props()
 
   let type = $state<ItemType>('login')
   let busy = $state(false)
@@ -36,14 +39,16 @@
 
   const initial = $derived({
     title: '',
-    tags: [] as string[],
+    tags: scope.startsWith('tag:') ? [scope.slice(4)] : [],
     notes: '',
     files: [] as string[],
     fields: (templates?.[type]?.fields ?? []).map((f): Field => ({ id: f.id, type: f.type, label: '', section: '', value: '' }))
   })
 
   $effect(() => {
-    if (!open) {
+    if (open) {
+      type = untrack(() => types.find(kind => scope === 'type:' + kind) ?? 'login')
+    } else {
       error = ''
       discardTo = null
       dirty = false
@@ -84,7 +89,7 @@
     busy = true
     error = ''
     try {
-      const entry: any = await call('vault/create', { type, changes })
+      const entry: any = await call('vault/create', { type, changes: scope === 'starred' ? { ...changes, favorite: true } : changes })
       if (!alive) return
       dirty = false
       open = false
@@ -117,6 +122,8 @@
       {#key type}
         <ItemForm bind:this={form} bind:dirty bind:valid kind={type} {initial} {busy} {mod} footer={false} onSubmit={save} onCancel={() => close(false)} />
       {/key}
+    {:else if templateError}
+      <Notice tone="warn"><p>{templateError}</p><button class={buttonClass('secondary', 'xs', 'mt-2')} onclick={retryTemplates}>{t('retry')}</button></Notice>
     {:else}
       <p class="shimmer text-[13px]">{t('loading')}</p>
     {/if}

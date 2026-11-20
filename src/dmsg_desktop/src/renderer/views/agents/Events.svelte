@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte'
+  import { onDestroy, onMount, tick } from 'svelte'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
@@ -36,6 +36,7 @@
   let busy = $state(false)
 
   async function attempt(work: () => Promise<void>) {
+    if (busy || !alive) return
     busy = true
     error = ''
     try {
@@ -61,14 +62,21 @@
     const turn = revision
     try {
       const value = await call('mcp-events/list')
-      if (alive && turn === revision) { endpoints = value.endpoints; loadErrors.list = '' }
+      if (alive && turn === revision) { endpoints = value.endpoints; listLoaded = true; loadErrors.list = '' }
     } catch (e) { if (alive && turn === revision) loadErrors.list = errorText(e) }
-    finally { if (alive && turn === revision) listLoaded = true }
+
   })
   const reload = () => { void readStatus(); void readEndpoints() }
 
+  async function showSecret(endpoint_id: string, value: string) {
+    secret = { endpoint_id, secret: value }
+    await tick()
+    document.getElementById('endpoint-credential')?.focus()
+  }
+
   const create = () =>
     attempt(async () => {
+      const submittedLabel = label, submittedSession = session
       const context: Record<string, string> = {}
       if (label.trim()) context.label = label.trim()
       if (agent) context.agent = agent
@@ -79,16 +87,16 @@
       revision++
       endpoints = [...endpoints.filter((e) => e.endpoint_id !== endpoint.endpoint_id), endpoint]
       listLoaded = true
-      secret = { endpoint_id: endpoint.endpoint_id, secret: value }
-      label = ''
-      session = ''
+      if (label === submittedLabel) label = ''
+      if (session === submittedSession) session = ''
+      await showSecret(endpoint.endpoint_id, value)
       if (alive) void readEndpoints()
     })
 
   /** The old secret stays valid for a day, so the upstream can switch. */
   async function rotate(id: string) {
     const rotated: any = await call('mcp-events/rotate', { endpoint_id: id })
-    if (alive) secret = { endpoint_id: id, secret: rotated.secret }
+    if (alive) await showSecret(id, rotated.secret)
   }
 
   async function remove(id: string) {
@@ -115,7 +123,11 @@
       </Pill>
     </div>
   {/if}
-  {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
+  {#each Object.entries(loadErrors).filter(([, message]) => message) as [part, message] (part)}
+    <Notice tone="danger" testid={'events-error-' + part}>{message}
+      {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={part === 'list' ? readEndpoints : readStatus}>{t('retry')}</button>{/snippet}
+    </Notice>
+  {/each}
   {#if relay?.last_fetch || relay?.rejected || error}
     <div class="grid gap-2 px-5 pb-3">
       {#if relay?.last_fetch}
@@ -135,13 +147,13 @@
           <span class="text-[12px] text-faint">{labelOf(endpoint.agent ?? endpoint.context?.agent)} · {when(endpoint.created_at)}</span>
           <span class="flex-1"></span>
           {#if endpoint.state === 'active' && unlocked}
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => (rotating = endpoint)} data-testid="endpoint-rotate">{t('rotateSecret')}</button>
+            <button class={buttonClass('secondary', 'xs')} id={'endpoint-rotate-' + endpoint.endpoint_id} disabled={busy} onclick={() => (rotating = endpoint)} data-testid="endpoint-rotate">{t('rotateSecret')}</button>
             <button class={buttonClass('danger', 'xs')} disabled={busy} onclick={() => (removing = endpoint)} data-testid="endpoint-remove">{t('remove')}</button>
           {/if}
         </div>
         <div class="flex items-center gap-1.5">
           <bdi dir="ltr" class="min-w-0 truncate font-mono text-[11.5px] text-muted">{endpoint.url}</bdi>
-          <button class={iconButtonClass('ghost', 'md')} aria-label={t('copy')} onclick={() => copyText(endpoint.url)}><Icon name="copy" /></button>
+          <button class={iconButtonClass('ghost', 'md')} aria-label={t('copy') + ' · ' + endpoint.url} onclick={() => copyText(endpoint.url)}><Icon name="copy" /></button>
         </div>
         {#if endpoint.binding?.server}
           <p class="text-[12px] text-faint">{endpoint.binding.server}{endpoint.binding.refresh_before ? ` · ${t('refreshBefore')} ${when(endpoint.binding.refresh_before)}` : ''}</p>
@@ -156,24 +168,25 @@
             <p>{t('secretOnce')}</p>
             <pre class="mt-1.5 rounded-lg bg-surface px-2.5 py-2 font-mono text-[11.5px] break-all whitespace-pre-wrap text-ink select-all" data-testid="endpoint-secret">{secret?.secret}</pre>
             {#snippet action()}
-              <button class={buttonClass('secondary', 'xs')} onclick={() => secret && copyText(secret.secret)}><Icon name="copy" />{t('copy')}</button>
+              <button id="endpoint-credential" class={buttonClass('secondary', 'xs')} aria-label={t('copy') + ' · ' + (endpoint.context?.label ?? endpoint.endpoint_id)} onclick={() => secret && copyText(secret.secret)}><Icon name="copy" />{t('copy')}</button>
+              <button class={buttonClass('ghost', 'xs')} onclick={async () => { secret = null; await tick(); document.getElementById('endpoint-rotate-' + endpoint.endpoint_id)?.focus() }}>{t('done')}</button>
             {/snippet}
           </Notice>
         {/if}
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{listLoaded ? t('noEndpoints') : t('loading')}</li>
+      {#if !loadErrors.list}<li class="px-5 py-3 text-[13px] text-faint"><span role="status">{listLoaded ? t('noEndpoints') : t('loading')}</span></li>{/if}
     {/each}
   </ul>
   {#if unlocked}
-    <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3.5 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+    <form onsubmit={(e) => { e.preventDefault(); void create() }} class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3.5 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
       <Field label={t('label')}><input bind:value={label} data-testid="endpoint-label" /></Field>
       <Field label={t('agentIds')}>
-        <Select bind:value={agent} class="w-full" options={[{ value: '', label: t('anyAgent') }, ...agents.map((a) => ({ value: a.agent_id, label: a.label }))]} />
+        <Select bind:value={agent} label={t('tabAgentIds')} class="w-full" options={[{ value: '', label: t('anyAgent') }, ...agents.map((a) => ({ value: a.agent_id, label: a.label }))]} />
       </Field>
       <Field label={t('eventsSession')}><input bind:value={session} /></Field>
-      <button class={buttonClass('primary')} disabled={busy} data-testid="endpoint-create" onclick={create}>{t('create')}</button>
-    </div>
+      <button class={buttonClass('primary')} disabled={busy} data-testid="endpoint-create" type="submit">{t('create')}</button>
+    </form>
   {/if}
 </Section>
 

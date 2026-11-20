@@ -21,7 +21,9 @@ data class ChannelMatches(val channel: String, val items: List<MessageItem>, val
 data class MessageOutbox(val channel: String, val items: List<OutgoingMessage>)
 data class ComposerReply(val sequence: ULong, val digest: String, val preview: String? = null)
 data class MessageComposer(val text: String = "", val attachments: List<ComposerAttachment> = emptyList(), val reply: ComposerReply? = null) {
-    val tooLong get() = text.toByteArray(Charsets.UTF_8).size > 16_000
+    companion object { const val MAX_TEXT_BYTES = 16_000 }
+    val bytes get() = text.toByteArray(Charsets.UTF_8).size
+    val tooLong get() = bytes > MAX_TEXT_BYTES
     val sendable get() = !tooLong && attachments.size <= 10 && (text.isNotBlank() || attachments.isNotEmpty())
 }
 
@@ -43,6 +45,8 @@ class MessageCoordinator(private val client: ClientController, private val scope
     val channels = ReadStore<List<ChannelItem>> { it.isEmpty() }
     val timeline = ReadStore<MessageTimeline> { it.items.isEmpty() }
     val outbox = ReadStore<MessageOutbox> { it.items.isEmpty() }
+    private val syncError = MutableStateFlow<Pair<String, String>?>(null)
+    val channelSyncError = syncError.asStateFlow()
     val attachmentChoices = ReadStore<FileCoordinator.Listing> { it.files.isEmpty() && it.folders.isEmpty() }
     data class ReferencedMessage(val channel: String, val sequence: ULong, val message: MessageItem?)
     val reference = ReadStore<ReferencedMessage> { it.message == null }
@@ -183,6 +187,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
         val same = selected == channel && query == search
         if (more && (!same || timeline.state.value is ReadState.Loading || timeline.value()?.hasMore != true)) return
         val previous = if ((more || preserveLoaded) && same) timeline.value() else null
+        if (selected != channel) syncError.value = null
         selected = channel; query = search
         val request = timeline.begin(keep = same)
         client.perform({ core ->
@@ -194,7 +199,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
             timeline.accept(request, updated)
         }
         val outgoing = outbox.begin(keep = same)
-        client.perform({ MessageOutbox(channel, it.outbox(channel).items) }, key = "message:outbox", replace = true,
+        client.perform({ MessageOutbox(channel, it.outbox(channel).items) }, key = "message:outbox", replace = true, quiet = true,
             onError = { outbox.fail(outgoing, it) }) { outbox.accept(outgoing, it) }
         if (refresh) refresh(channel)
     }
@@ -210,9 +215,12 @@ class MessageCoordinator(private val client: ClientController, private val scope
                 if (client.accepts(stamp)) refresh(selected)
             }
         }
-        client.perform({ core -> client.operation { core.refreshChannel(channel, it) } }, key = "message:refresh",
-            onError = { finished() }) {
-            if (selected == channel) load(channel, false, preserveLoaded = true)
+        client.perform({ core -> client.operation { core.refreshChannel(channel, it) } }, key = "message:refresh", quiet = true,
+            onError = { code -> if (selected == channel) syncError.value = channel to code; finished() }) {
+            if (selected == channel) {
+                syncError.value = null
+                load(channel, false, preserveLoaded = true)
+            }
             invalidateDirectory(); browse(); finished()
         }
     }
@@ -230,7 +238,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
             onError = { finished() }) { finished(); browse() }
     }
 
-    fun send(channel: String) {
+    fun send(channel: String, onQueued: (String) -> Unit = {}) {
         val key = "message:queue:" + channel
         if (client.isWorking(key)) return
         if (!readyValue.value || pendingQueues[channel] == null && !composer(channel).sendable) return
@@ -249,7 +257,10 @@ class MessageCoordinator(private val client: ClientController, private val scope
             if (ledger.current(authored) && composer(channel) == value) mutableComposers.value += channel to MessageComposer()
             else edit(channel, remainingComposer(value, composer(channel)))
             ledger.saved(authored)
-            if (selected == channel) load(channel, false, preserveLoaded = true)
+            if (selected == channel) {
+                load(channel, false, search = "", preserveLoaded = true)
+                ids.lastOrNull()?.let(onQueued)
+            }
             ids.forEach { retry(channel, it) }
         }
     }
@@ -270,7 +281,7 @@ class MessageCoordinator(private val client: ClientController, private val scope
     fun saved(draft: DraftLedger.Draft) = ledger.saved(draft)
     fun suspend() { writes.values.forEach { it.cancel() }; writes.clear(); pendingReads.clear(); refreshAgain = false }
     fun clear(account: String?, retainDrafts: Boolean = false) {
-        suspend(); matches.reset(); directoryText.value = ""; channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
+        suspend(); syncError.value = null; matches.reset(); directoryText.value = ""; channels.reset(); timeline.reset(); outbox.reset(); attachmentChoices.reset(); reference.reset()
         if (!retainDrafts) { account?.let(ledger::clear); mutableComposers.value = emptyMap(); readyValue.value = false; pendingQueues.clear(); selected = null; query = "" }
     }
 }

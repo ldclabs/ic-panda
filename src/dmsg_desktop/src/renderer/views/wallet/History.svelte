@@ -21,6 +21,8 @@
     type Wallet,
     type Proposal
   } from './model'
+  import { t } from '../../i18n/index.svelte'
+  import { toast } from '../../components/toast.svelte'
   import { w } from './text'
   let { wallet, metadata, now, onOpen }: { wallet: Wallet; metadata: Asset[]; now: number; onOpen: (id: number) => void } = $props()
   let rows = $state<Proposal[]>([]),
@@ -30,43 +32,47 @@
     to = $state(''),
     busy = $state(false),
     error = $state(''),
+    notesError = $state(''),
+    exportError = $state(''),
+    saving = $state(false),
     complete = $state(false)
   let alive = true,
     generation = 0
   const rangeValid = $derived((!from || validDateText(from, 'date')) && (!to || validDateText(to, 'date')) && (!from || !to || from <= to))
-  const shown = $derived(
-    rows.filter((p) => {
-      const text = [p.id, intentHeadline(p.intent, metadata).text, notes[p.id] ?? '', p.proposer].join(' ').toLowerCase()
-      return (
-        rangeValid && text.includes(search.trim().toLowerCase()) &&
-        (!from || p.created_at >= new Date(`${from}T00:00:00`).getTime()) &&
-        (!to || p.created_at <= new Date(`${to}T23:59:59.999`).getTime())
-      )
+  const filtered = $derived(!!(search.trim() || from || to))
+  const shown = $derived.by(() => {
+    if (!rangeValid) return []
+    const query = search.trim().toLowerCase()
+    const start = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity
+    const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity
+    return rows.filter(p => {
+      if (p.created_at < start || p.created_at > end) return false
+      if (!query) return true
+      const headline = intentHeadline(p.intent, metadata)
+      const terms = [`#${p.id}`, w(headline.kind), headline.text, w(resultState(p, now)), notes[p.id], p.proposer,
+        ...(p.intent.outputs ?? []).map((o: any) => o.to), ...p.signed.map(s => s.txid)]
+      return terms.join(' ').toLowerCase().includes(query)
     })
-  )
+  })
   async function load(mode: Mode = 'swr') {
     const seq = ++generation
     busy = true
-    error = ''
-    complete = false
-    try {
-      const [history, local] = await Promise.all([
-        display<any>('wallet/history', { wallet: wallet.wallet }, mode),
-        call<Record<string, string>>('wallet/notes', { wallet: wallet.wallet })
-      ])
-      if (alive && seq === generation) {
-        rows = history.proposals
-        notes = local
-        complete = history.complete === true
-      }
-    } catch (e) {
-      if (alive && seq === generation) error = walletError(e)
-    } finally {
-      if (alive && seq === generation) busy = false
-    }
+    const current = () => alive && seq === generation
+    const params = { wallet: wallet.wallet }
+    await Promise.all([
+      display<any>('wallet/history', params, mode).then(history => {
+        if (current()) { rows = history.proposals; complete = history.complete === true; error = '' }
+      }).catch(e => { if (current()) { error = walletError(e); complete = false } }),
+      call<Record<string, string>>('wallet/notes', params).then(local => {
+        if (current()) { notes = local; notesError = '' }
+      }).catch(e => { if (current()) notesError = walletError(e) })
+    ])
+    if (current()) busy = false
   }
   async function save() {
-    if (!rangeValid || busy || !complete || !shown.length) return
+    if (!rangeValid || busy || saving || notesError || !complete || !shown.length) return
+    saving = true
+    exportError = ''
     const report = shown.flatMap((p) =>
       (p.intent.outputs?.length ? p.intent.outputs : [{}]).map((o: any) => [
         wallet.wallet,
@@ -85,7 +91,11 @@
         w('historyCoverage')
       ])
     )
-    await bridge(() => window.dmsg.saveReport({ format: 'dmsg-wallet-history/1', rows: report }))
+    try {
+      const saved = await bridge<{ path: string } | null>(() => window.dmsg.saveReport({ format: 'dmsg-wallet-history/1', rows: report }))
+      if (alive && saved) toast(() => `${w('saved')} · ${saved.path}`)
+    } catch (e) { if (alive) exportError = walletError(e) }
+    finally { if (alive) saving = false }
   }
   $effect(() => {
     wallet
@@ -101,15 +111,20 @@
 <section class="grid gap-4" data-testid="wallet-history" aria-busy={busy}>
   <p class="text-muted text-[12px]">{w('historyCoverage')}</p>
   <div class="grid gap-3 sm:grid-cols-[minmax(0,2fr)_1fr_1fr]">
-    <Field label={w('searchHistory')}><input bind:value={search} /></Field>
+    <Field label={w('searchHistory')}><input bind:value={search} data-testid="wallet-history-search" /></Field>
     <DateInput label={w('fromDate')} bind:value={from} max={validDateText(to, 'date') ? to : undefined} testid="wallet-history-from" />
     <DateInput label={w('toDate')} bind:value={to} testid="wallet-history-to" />
   </div>
-  {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'sm')} onclick={() => load()}>{w('retry')}</button></Notice>{/if}
+  {#if error || notesError}<Notice tone="danger" testid="wallet-history-error">
+    {error}{error && notesError ? ' · ' : ''}{notesError ? `${w('privateNote')}: ${notesError}` : ''}
+    <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => load('fresh')}>{w('retry')}</button>
+  </Notice>{/if}
+  {#if exportError}<Notice tone="danger" testid="wallet-history-export-error">{exportError}</Notice>{/if}
   <div class="flex flex-wrap items-center justify-between gap-3"
-    ><p class="text-muted text-[12px]" role="status">{busy ? w('loading') : `${shown.length}`}</p><button
+    ><div class="flex flex-wrap items-center gap-2"><p class="text-muted text-[12px]" role="status">{busy ? w('loading') : rangeValid && (rows.length || complete) ? `${shown.length}` : ''}</p>
+        {#if filtered}<button class={buttonClass('ghost', 'sm')} onclick={() => { search = from = to = '' }}>{w('clearFilters')}</button>{/if}</div><button
       class={buttonClass('secondary', 'sm')}
-      disabled={busy || !rangeValid || !complete || !shown.length}
+      disabled={busy || saving || !!notesError || !rangeValid || !complete || !shown.length} aria-busy={saving}
       onclick={save}>{w('exportHistory')}</button
     ></div
   >
@@ -119,9 +134,9 @@
       <div class="flex flex-wrap items-center gap-2"
         ><Pill>#{p.id}</Pill><b class="text-[13px]">{w(summary.kind)}</b><Pill>{w(resultState(p, now))}</Pill></div
       >
-      <p class="text-[13px] break-all">{summary.text}</p>
+      {#if summary.text}<p class="text-[13px] break-all">{summary.text}</p>{/if}
       {#if notes[p.id]}<p class="text-[12px]">{w('privateNote')}: {notes[p.id]}</p>{/if}
       <p class="text-muted text-[12px]">{when(p.created_at)}</p>
     </button>
-  {:else}{#if !busy && complete}<p class="text-muted">{w('noHistory')}</p>{/if}{/each}
+  {:else}{#if !busy && complete && rangeValid}<p class="text-muted">{filtered ? w('noHistory') : t('noItems')}</p>{/if}{/each}
 </section>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { rememberedPlain, rememberPlain } from '../view-memory'
   import Section from '../components/page/Section.svelte'
   import Notice from '../components/page/Notice.svelte'
   import ShortcutInput from '../components/ShortcutInput.svelte'
@@ -19,12 +20,22 @@
   const recording = $derived(openRecording || lockRecording)
   const failure = $derived(failureCode === 'SHORTCUT_UNAVAILABLE' ? t('shortcutUnavailable') : error)
 
+  const defaults = defaultShortcuts(window.dmsg.platform)
+  const atDefaults = $derived(shortcutActions.every(action => draft[action] === defaults[action]))
+  const draftKey = 'settings.shortcut-edits'
+  $effect(() => {
+    if (saved) {
+      const edits = Object.fromEntries(shortcutActions.filter(action => draft[action] !== saved!.bindings[action]).map(action => [action, draft[action]]))
+      rememberPlain(draftKey, Object.keys(edits).length ? edits : null)
+    }
+  })
+
   async function load() {
     const turn = ++generation
     loading = true; error = ''; failureCode = ''
     try {
       const value = await bridge<ShortcutStatus>(() => window.dmsg.shortcuts())
-      if (alive && turn === generation) { saved = value; draft = { ...value.bindings } }
+      if (alive && turn === generation) { saved = value; draft = { ...value.bindings, ...rememberedPlain<Partial<ShortcutBindings>>(draftKey) } }
     } catch (cause) { if (alive && turn === generation) error = errorText(cause) }
     finally { if (alive && turn === generation) loading = false }
   }
@@ -54,9 +65,12 @@
       <ShortcutInput value={draft.lock} label={t('shortcutLock')} disabled={busy} testid="shortcut-lock" bind:recording={lockRecording}
         error={duplicate ? t('shortcutDuplicate') : draft.lock && draft.lock === saved.bindings.lock && !saved.registered.lock ? t('shortcutUnavailable') : ''}
         onChange={value => { draft.lock = value; error = ''; failureCode = '' }} />
+      {#if dirty}<span class="text-xs text-muted" role="status">{t('settingsUnsaved')}</span>{/if}
       <div class="flex flex-wrap gap-2">
-        <button class={buttonClass('primary')} disabled={busy || duplicate || recording || (!dirty && !unavailable)} onclick={save} data-testid="shortcuts-save">{dirty ? t('save') : unavailable ? t('retry') : t('savedValue')}</button>
-        <button class={buttonClass('secondary')} disabled={busy || recording} onclick={() => { draft = defaultShortcuts(window.dmsg.platform); error = ''; failureCode = '' }} data-testid="shortcuts-defaults">{t('shortcutDefaults')}</button>
+        <button class={buttonClass('primary')} disabled={busy || duplicate || recording || (!dirty && !unavailable)} onclick={save} data-testid="shortcuts-save" aria-busy={busy}>{busy ? t('loading') : dirty ? t('save') : unavailable ? t('retry') : t('savedValue')}</button>
+        {#if dirty}<button class={buttonClass('ghost')} disabled={busy || recording}
+          onclick={() => { draft = { ...saved!.bindings }; error = failureCode = '' }} data-testid="shortcuts-discard">{t('discard')}</button>{/if}
+        <button class={buttonClass('secondary')} disabled={busy || recording || atDefaults} onclick={() => { draft = { ...defaults }; error = ''; failureCode = '' }} data-testid="shortcuts-defaults">{t('shortcutDefaults')}</button>
       </div>
     {:else}<button class={buttonClass('secondary')} onclick={load}>{t('retry')}</button>{/if}
   </div>

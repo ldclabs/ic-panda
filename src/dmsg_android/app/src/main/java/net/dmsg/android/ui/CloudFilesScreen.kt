@@ -25,11 +25,10 @@ import net.dmsg.android.core.*
 @Composable fun CloudFilesScreen(client: ClientController, selected: String) {
     val state by client.state.collectAsStateWithLifecycle()
     val inventory by client.cloudFiles.inventory.state.collectAsStateWithLifecycle()
-    val destinations by client.library.destinations.state.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf("date") }
-    var folder by remember(selected) { mutableStateOf("root") }
-    var parents by remember(selected) { mutableStateOf(listOf("root")) }
+    var destination by remember(selected) { mutableStateOf(emptyList<LibraryFolder>()) }
+    val folder = destination.folderId
     var choosing by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
     val saved = inventory.valueOrNull()
@@ -51,7 +50,7 @@ import net.dmsg.android.core.*
         }
         if (selected.isEmpty()) {
             item {
-                OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text(str(R.string.text_search_name_or_path_55a6b79)) }, leadingIcon = { Icon(Icons.Outlined.Search, null) })
+                WorkspaceSearchField(query, { query = it }, str(R.string.text_search_name_or_path_55a6b79))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("date", "name", "size").forEach { option ->
                         FilterChip(sort == option, { sort = option }, {
@@ -90,7 +89,7 @@ import net.dmsg.android.core.*
                     }
                     current.local && current.file != null -> Button(onClick = { client.navigation.push(Route("files", id = current.file, revision = current.version)) }) { Text(str(R.string.text_open_local_details_ccd7b04)) }
                     else -> {
-                        TextButton(onClick = { client.library.destination(folder); choosing = true }) { Text(str(R.string.text_restore_into_9068fec) + if (folder == "root") str(R.string.text_files_c79ddc2) else folder) }
+                        TextButton(onClick = { choosing = true }) { Text(str(R.string.text_restore_into_9068fec) + destination.folderLabel) }
                         OutlinedButton(onClick = { client.backgroundFiles.download(current.id, folder) }, enabled = !state.working("cipher:prepare")) { Text(str(R.string.text_download_ciphertext_in_background_bd6e2c4)) }
                         Button(onClick = { client.fileWork.restore(current.id, folder) }, enabled = !state.working("file:restore:${current.id}")) { Text(str(R.string.text_restore_this_copy_5a61a44)) }
                     }
@@ -103,13 +102,9 @@ import net.dmsg.android.core.*
             }
         } else if (inventory !is ReadState.Loading) item { Notice(str(R.string.text_this_backup_is_no_longer_in_the_current_inventory_090f582)) }
     }
-    if (choosing) AlertDialog(onDismissRequest = { choosing = false }, title = { Text(str(R.string.text_restore_destination_431edf6)) }, text = {
-        Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
-            if (parents.size > 1) TextButton(onClick = { parents = parents.dropLast(1); folder = parents.last(); client.library.destination(folder) }) { Text(str(R.string.text_parent_folder_3af9479)) }
-            ReadFeedback(destinations, { client.library.destination(folder) })
-            destinations.valueOrNull()?.takeIf { it.folder == folder }?.folders.orEmpty().forEach { entry -> TextButton(onClick = { folder = entry.id; parents += folder; client.library.destination(folder) }) { Icon(Icons.Outlined.Folder, null); Text(entry.name) } }
-        }
-    }, confirmButton = { TextButton(onClick = { choosing = false }) { Text(str(R.string.text_use_this_folder_4a67a24)) } })
+    if (choosing) FileFolderDialog(client, str(R.string.text_restore_destination_431edf6), { choosing = false }, initial = destination) {
+        destination = it; choosing = false
+    }
     if (deleting && current != null) AlertDialog(onDismissRequest = { deleting = false }, title = { Text(str(R.string.text_delete_this_cloud_copy_79eadc7)) }, text = {
         Text(if (current.local) str(R.string.text_this_deletes_only_the_selected_cloud_copy_local_copies_remain_on_e5dfe9c) else str(R.string.text_this_device_has_no_local_copy_this_may_be_your_only_recoverable_c_e3959bb))
     }, confirmButton = { TextButton(onClick = { client.cloudFiles.delete(current) { deleting = false; client.navigation.back() } }, enabled = !state.working("cloud:delete:${current.id}")) { Text(str(R.string.text_delete_cloud_copy_2cefb18)) } }, dismissButton = { TextButton(onClick = { deleting = false }) { Text(str(R.string.text_cancel_998b9c4)) } })

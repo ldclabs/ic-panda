@@ -58,7 +58,7 @@ test('cached rights stop looking current at their lease deadline without reclass
 })
 
 test('an order reads as the service reports it, or as its journal stands before that', () => {
-  assert.deepEqual(orderState(cash('review')), { label: 'orderReview', tone: 'neutral' })
+  assert.deepEqual(orderState(cash('review'), undefined, now), { label: 'orderReview', tone: 'neutral' })
   assert.deepEqual(orderState(cash('accepted'), { status: 'AwaitingFunding' }), { label: 'orderAwaitingFunding', tone: 'warn' })
   assert.deepEqual(orderState(cash('accepted'), { status: 'Applied' }), { label: 'orderApplied', tone: 'ok' })
   assert.deepEqual(orderState(panda('accepted'), { status: 'Active' }), { label: 'orderApplied', tone: 'ok' })

@@ -2,6 +2,7 @@
   import Checkbox from '../../components/Checkbox.svelte'
   import Icon from '../../components/Icon.svelte'
   import Notice from '../../components/page/Notice.svelte'
+  import TextField from '../../components/TextField.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass } from '../../components/ui'
@@ -21,6 +22,7 @@
     unlocked,
     busy,
     loaded,
+    error,
     onRefresh,
     onFetch,
     onFetchTo,
@@ -33,6 +35,7 @@
     unlocked: boolean
     busy: boolean
     loaded: boolean
+    error: string
     onRefresh: () => void
     onFetch: (upload: string) => void
     /** Fetch into a folder the person picks, instead of where it was. */
@@ -43,13 +46,18 @@
   } = $props()
 
   let ticked = $state<string[]>([])
+  let query = $state('')
+  const visible = $derived.by(() => {
+    const term = query.trim().toLowerCase()
+    return term ? entries.filter(e => [e.name, (e.path ?? []).join('/')].some(value => value?.toLowerCase().includes(term))) : entries
+  })
   /** The ticked backups still listed: what was deleted leaves the selection. */
-  const picked = $derived(ticked.filter((id) => entries.some((e) => e.upload_id === id)))
+  const picked = $derived(ticked.filter((id) => visible.some((e) => e.upload_id === id)))
 
   const dateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }))
   const groups = $derived.by(() => {
     const map = new Map<string, any[]>()
-    for (const entry of entries) {
+    for (const entry of visible) {
       const key = '/' + (entry.path ?? []).join('/')
       map.set(key, [...(map.get(key) ?? []), entry])
     }
@@ -89,8 +97,16 @@
   </header>
 
   <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-    {#if !entries.length}
-      {#if loaded}
+    {#if entries.length || query}
+      <div class="mb-4"><TextField label={t('searchCloudBackups')} type="search" bind:value={query} oninput={() => ticked = []} data-testid="files-cloud-search" /></div>
+    {/if}
+    {#if error}
+      <Notice tone="warn" class="mb-3" testid="files-cloud-error">{error}</Notice>
+    {/if}
+    {#if !visible.length}
+      {#if query.trim() && entries.length}
+        <p class="px-4 py-10 text-center text-sm text-muted" role="status">{t('noFilesMatch', { query })}</p>
+      {:else if loaded && !error}
         <div class="grid justify-items-center gap-2 px-4 py-14 text-center" data-testid="files-cloud-empty">
           <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="cloud-down" /></span>
           <b class="text-[13.5px] font-semibold">{t('cloudEmpty')}</b>
@@ -155,6 +171,8 @@
         {/each}
       </div>
     {/if}
-    <Notice tone="info" class="mt-4" icon="info">{t('deleteCloudHint')}</Notice>
+    {#if entries.length}
+      <Notice tone="info" class="mt-4" icon="info">{t('deleteCloudHint')}</Notice>
+    {/if}
   </div>
 </section>

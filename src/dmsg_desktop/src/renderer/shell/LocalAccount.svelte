@@ -33,7 +33,13 @@
   const requiredFiles = $derived(new Set(plan?.items.filter(row => items.includes(row.index)).flatMap(row => row.attachments.filter((v): v is number => v !== null))))
   const selectedBytes = $derived(plan?.files.filter(row => files.includes(row.index) || requiredFiles.has(row.index)).reduce((sum, row) => sum + row.size, 0) ?? 0)
   const setting = $derived(method === 'password' && (action === 'password' || action === 'create'))
-  const ready = $derived(!busy && (!setting || (!!next && next === repeat)) && (!plan || !!(items.length || files.length)) && (method !== 'password' || action === 'create' || !!password || !!plan))
+  const normalized = $derived(next.normalize('NFC'))
+  const characters = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+  const passwordShort = $derived([...characters.segment(normalized)].length < 12)
+  const passwordLong = $derived(new TextEncoder().encode(normalized).length > 256 || new TextEncoder().encode(next).length > 1024)
+  const mismatch = $derived(repeat !== '' && normalized !== repeat.normalize('NFC'))
+  const ready = $derived(!busy && (!setting || (!!repeat && !passwordShort && !passwordLong && !mismatch))
+    && (!plan || !!(items.length || files.length)) && (method !== 'password' || action === 'create' || !!password || !!plan))
   function close() {
     if (plan) void call('local_import/cancel', { id: plan.id }).catch(() => {})
     plan = null; password = ''; next = ''; repeat = ''; items = []; files = []; count = null; bytes = 0; open = false
@@ -103,15 +109,16 @@
         </Checkbox>
       {/each}
     {:else}
-      {#if method === 'password' && action !== 'create'}<SecretInput bind:value={password} disabled={busy} label={t('localPassword')} testid="local-current-password" />{/if}
+      {#if method === 'password' && action !== 'create'}<SecretInput bind:value={password} disabled={busy} label={t(action === 'password' ? 'settingsCurrentPassword' : 'localPassword')} testid="local-current-password" />{/if}
       {#if setting}
-        <SecretInput bind:value={next} disabled={busy} label={t('localPassword')} hint={t('localPasswordLength')} generate testid="local-new-password" />
-        <SecretInput bind:value={repeat} disabled={busy} label={t('repeatLocalPassword')} testid="local-confirm-password" />
+        <SecretInput bind:value={next} disabled={busy} label={t(action === 'password' ? 'settingsNewPassword' : 'localPassword')} hint={t('localPasswordLength')}
+          error={passwordLong ? t('settingsPasswordLong') : repeat && passwordShort ? t('localPasswordLength') : undefined} generate testid="local-new-password" />
+        <SecretInput bind:value={repeat} disabled={busy} label={t('repeatLocalPassword')} error={mismatch ? t('settingsPasswordMismatch') : undefined} testid="local-confirm-password" />
       {/if}
     {/if}
   </div>
   {#snippet footer()}
     <button class={buttonClass('secondary')} disabled={busy && !plan} onclick={close}>{t('cancel')}</button>
-    <button class={buttonClass(action === 'delete' ? 'danger' : 'primary')} disabled={!ready || (action === 'delete' && !count)} aria-busy={busy} onclick={submit} data-testid="local-submit">{t(action === 'delete' ? 'remove' : 'continueOrder')}</button>
+    <button class={buttonClass(action === 'delete' ? 'danger' : 'primary')} disabled={!ready || (action === 'delete' && !count)} aria-busy={busy} onclick={submit} data-testid="local-submit">{t(action === 'delete' ? 'remove' : action === 'password' ? 'save' : 'continueOrder')}</button>
   {/snippet}
 </Dialog>

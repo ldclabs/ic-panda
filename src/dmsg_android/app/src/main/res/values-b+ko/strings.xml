@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"권한 추가"</string>
     <string name="android_purchase_privacy" formatted="false">"설정된 경우 Google Play 구매에는 Google 계정, 결제 및 기기 확인 서비스가 사용됩니다. 구매 토큰은 서비스가 권리 제공을 확인할 때까지 암호화되어 보관됩니다. dMsg 콘텐츠는 Google에 전송되지 않습니다. 아래 서비스 정책에는 다른 dMsg 앱에서 사용하는 Apple 전용 서비스도 설명되어 있습니다."</string>
     <string name="app_language" formatted="false">"언어"</string>
+    <string name="approval_file_changed" formatted="false">"파일이 변경되었거나 읽을 수 없습니다"</string>
+    <string name="approval_link" formatted="false">"기존 계정에 연결"</string>
+    <string name="approval_login" formatted="false">"로그인"</string>
+    <string name="approval_reauthenticate" formatted="false">"아직 본인인지 확인하세요"</string>
+    <string name="approval_receiver" formatted="false">"수신기"</string>
+    <string name="approval_request_expires" formatted="false">"요청 만료"</string>
+    <string name="approval_valid_until" formatted="false">"유효기간"</string>
     <string name="autofill_choose_at_login" formatted="false">"앱이나 웹사이트에서 암호를 요청하면 사용할 계정을 선택하세요."</string>
     <string name="autofill_confirm" formatted="false">"이 계정으로 입력할까요?"</string>
     <string name="autofill_no_items" formatted="false">"아직 기록이 없습니다"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"암호화 전송"</string>
     <string name="customize_fields" formatted="false">"필드 사용자화"</string>
     <string name="empty_folder" formatted="false">"이 폴더에 파일 없음"</string>
+    <string name="file_moved_to_trash" formatted="false">"휴지통으로 이동됨"</string>
+    <string name="file_name_rule" formatted="false">"슬래시나 제어 문자 없이 1~255자로 이름을 입력하세요."</string>
+    <string name="file_name_taken" formatted="false">"이 이름의 파일이나 폴더가 이미 있습니다."</string>
+    <string name="file_original_folder" formatted="false">"원래 폴더"</string>
+    <string name="file_restored" formatted="false">"복원됨"</string>
     <string name="follow_system_language" formatted="false">"시스템 언어 따르기"</string>
     <string name="history_device" formatted="false">"장치"</string>
     <string name="history_fields" formatted="false">"필드"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"%2$s개 중 %1$s개 생성됨"</string>
     <string name="local_password" formatted="false">"로컬 비밀번호"</string>
     <string name="local_password_length" formatted="false">"12자 이상 입력하세요."</string>
+    <string name="message_actions" formatted="false">"작업"</string>
+    <string name="message_sending" formatted="false">"보내는 중"</string>
     <string name="no_matches" formatted="false">"일치하는 결과 없음"</string>
     <string name="offline_account" formatted="false">"로컬 계정"</string>
     <string name="operation_failed_code" formatted="true">"이 작업을 완료하지 못했습니다. 코드: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"가져온 항목이 없습니다. 백업을 다시 선택하세요."</string>
     <string name="vault_backup_unlockerror" formatted="false">"백업을 열 수 없습니다. 암호를 확인하거나 완전한 파일을 선택하세요."</string>
     <string name="vault_backup_wallet" formatted="false">"지갑 항목에 저장한 비밀 정보가 포함됩니다."</string>
+    <string name="vault_conflict_saved" formatted="false">"별도의 버전으로 저장되었습니다. 동기화 충돌을 검토하세요."</string>
+    <string name="vault_copied" formatted="false">"복사됨"</string>
     <string name="vault_field_birthday" formatted="false">"생일"</string>
     <string name="vault_field_cardholder" formatted="false">"카드홀더"</string>
     <string name="vault_field_credential" formatted="false">"자격 증명"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"공개 키"</string>
     <string name="vault_field_purchased" formatted="false">"구매함"</string>
     <string name="vault_field_username" formatted="false">"사용자 이름"</string>
+    <string name="vault_loading" formatted="false">"로드 중…"</string>
+    <string name="vault_search_files" formatted="false">"파일 검색"</string>
     <string name="widget_description" formatted="false">"비공개 작업 공간을 여세요. 여기에는 계정 콘텐츠가 표시되지 않습니다."</string>
     <string name="widget_open" formatted="false">"개인 작업 공간 열기"</string>
     <string name="widget_title" formatted="false">"dMsg 작업 공간"</string>

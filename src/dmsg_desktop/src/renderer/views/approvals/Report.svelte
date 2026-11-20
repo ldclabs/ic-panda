@@ -58,7 +58,7 @@
       <Icon name={report.valid ? 'check' : 'close'} />
     </span>
     <div class="min-w-0 flex-1">
-      <b class="block text-[14px] font-semibold" data-testid="verify-result">{report.valid ? t('reportValid') : t('reportInvalid')}</b>
+      <b id="bundle-verdict" class="block text-[14px] font-semibold" data-testid="verify-result">{report.valid ? t('reportValid') : t('reportInvalid')}</b>
       {#if report.statement}<span class="block truncate text-[12px] text-muted">{summary(report.statement)}</span>{/if}
     </div>
     {#if save}<button class={buttonClass('ghost', 'sm')} onclick={save} data-testid="verify-save"><Icon name="download" />{t('saveReport')}</button>{/if}

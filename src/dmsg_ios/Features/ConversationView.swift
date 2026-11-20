@@ -74,8 +74,10 @@ struct ConversationView: View {
                         Button("Retry") { actionTask = Task { await refreshMessages() } }
                             .disabled(refreshing).accessibilityIdentifier("conversation.retry")
                     } else if messagesKnown && shown.isEmpty && pending.isEmpty && !hasEarlier && !refreshing {
-                        ContentUnavailableView(searchQuery.isEmpty ? "No messages" : "No matching results", image: AppGlyph.channels.assetName)
-                            .accessibilityIdentifier("conversation.empty")
+                        let title: LocalizedStringKey = searchQuery.isEmpty ? "No messages" : "No matching results"
+                        ContentUnavailableView {
+                            Label { Text(title) } icon: { AppGlyph.channels.image }
+                        }.accessibilityIdentifier("conversation.empty")
                     }
                     if !searchQuery.isEmpty {
                         Text("Searches messages saved on this device.").font(.caption).foregroundStyle(.secondary)
@@ -112,7 +114,9 @@ struct ConversationView: View {
                         }
                         .onScrollVisibilityChange(threshold: 0.01) { nearBottom = $0 }
                 }.padding(16)
-            }.defaultScrollAnchor(.bottom).scrollDismissesKeyboard(.interactively)
+            }.defaultScrollAnchor(.bottom)
+                .defaultScrollAnchor(shown.isEmpty && pending.isEmpty ? .center : .bottom, for: .alignment)
+                .scrollDismissesKeyboard(.interactively)
                 .onChange(of: shown.count) { _, _ in
                     if let preserveMessage { proxy.scrollTo(preserveMessage, anchor: .top); self.preserveMessage = nil }
                     else if let historyAnchor, let target = shown.last, target.sequence == historyAnchor { proxy.scrollTo(target.id, anchor: .center) }
@@ -158,7 +162,7 @@ struct ConversationView: View {
             .safeAreaInset(edge: .top, spacing: 0) { if searching { searchBar } }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ConversationComposer(channel: currentChannel, restriction: channelRestriction(currentChannel.status), receiving: receiving != nil,
-                                     willQueue: { followLatest(); queuedAt = .now }, failed: { await load() })
+                                     willQueue: { query = ""; searching = false; followLatest(); queuedAt = .now }, failed: { await load() })
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -563,15 +567,21 @@ struct MessageEditView: View {
     @State private var leaving = false
     @State private var scope: UInt64 = 0
     private var key: String { "message-edit:" + channel + ":" + message.id }
+    private var tooLong: Bool { text.utf8.count > ComposerQueue.maxTextBytes }
     var body: some View {
-        Form { SettingsField("Message") { TextEditor(text: $text).frame(minHeight: 180) } }.disabled(working)
+        Form {
+            SettingsField("Message", counter: utf8ByteCounter(text, limit: Int64(ComposerQueue.maxTextBytes)), invalid: tooLong) {
+                TextEditor(text: $text).frame(minHeight: 180)
+            }
+            if tooLong { Text("This message is too long.").font(.caption).foregroundStyle(.red) }
+        }.disabled(working)
             .privateScreen().navigationTitle("Edit message").onAppear { scope = model.viewGeneration; text = model.formDraft(key, as: String.self) ?? message.text }
             .interactiveDismissDisabled(working || text != message.text)
             .onDisappear { if text != message.text { model.keepFormDraft(key, value: text, generation: scope) } }
             .confirmationDialog("Leave this form?", isPresented: $leaving) { Button("Keep draft and leave") { dismiss() } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if text == message.text { dismiss() } else { leaving = true } }.disabled(working) }
-                ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { await save() } }.disabled(working || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || text.utf8.count > 16 * 1024) }
+                ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { await save() } }.disabled(working || text == message.text || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || tooLong) }
             }
     }
     private func save() async {

@@ -6,6 +6,7 @@
   import TabBar from '../components/page/TabBar.svelte'
   import { toast } from '../components/toast.svelte'
   import { t } from '../i18n/index.svelte'
+  import { buttonClass } from '../components/ui'
   import { bridge, call, closed, errorText, single } from '../rpc'
   import Bundles from './approvals/Bundles.svelte'
   import Grants from './approvals/Grants.svelte'
@@ -33,13 +34,24 @@
   let busy = $state(false)
   let loaded = $state(false)
   let historyError = $state('')
+  let historyLoaded = $state(false)
+  let now = $state(Date.now())
   let alive = true
   let generation = 0
 
   const unlocked = $derived(status?.state === 'unlocked')
   const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
   const valid = (at: number) => alive && at === generation && unlocked
-  const waiting = $derived(requests.filter((r) => r.state === 'awaiting_user'))
+  const waiting = $derived(requests.filter((r) => r.state === 'awaiting_user' && r.expires_at > now))
+  $effect(() => {
+    if (!waiting.length) return
+    const expires = Math.min(...waiting.map(r => r.expires_at))
+    const timer = setTimeout(() => {
+      now = Date.now()
+      if (now >= expires) void reload()
+    }, Math.max(1, Math.min(15_000, expires - Date.now())))
+    return () => clearTimeout(timer)
+  })
   const known = $derived(new Set(requests.map((r) => r.id)))
 
   const loadAgents = single(async () => {
@@ -55,6 +67,7 @@
     try {
       const next = await call('approval/list', { all: true })
       if (!valid(at)) return
+      now = Date.now()
       requests = next
       loaded = true
       error = ''
@@ -69,7 +82,7 @@
     if (!valid(at) || tab !== 'bundles') return
     try {
       const next = await call('attest/history')
-      if (valid(at)) { history = next; historyError = '' }
+      if (valid(at)) { history = next; historyLoaded = true; historyError = '' }
     } catch (e) {
       if (valid(at) && !closed(e, status)) historyError = errorText(e)
     }
@@ -86,11 +99,12 @@
     }
   }
 
-  const open = (id: string) => attempt(() => bridge(() => window.dmsg.openApproval(id)))
+  const openWindow = (id: string) => bridge(() => window.dmsg.openApproval(id))
+  const open = (id: string) => attempt(() => openWindow(id))
   /** Withdraw a request this device's own clients made; a web request is the page's to cancel. */
-  const cancel = (id: string) => attempt(() => call('approval/cancel', { id }))
+  const cancel = async (id: string) => { await call('approval/cancel', { id }); await reload() }
   /** Settle approved requests whose outcome is not known yet, now rather than at the next pass. */
-  const reconcile = () => attempt(() => call('approval/reconcile'))
+  const reconcile = () => attempt(async () => { await call('approval/reconcile'); await reload() })
 
   onMount(() => {
     const off = window.dmsg.onEvent((event) => {
@@ -108,7 +122,8 @@
       generation += 1
       requests = []; history = []; agents = {}
       error = historyError = ''
-      loaded = busy = false
+      loaded = historyLoaded = busy = false
+      now = Date.now()
       if (unlocked) { void reload(); void loadHistory() }
     })
   })
@@ -133,16 +148,17 @@
     {:else}
       {#key sessionKey}
       <Page>
-        {#if tab === 'bundles' && historyError}<Notice failure={historyError} tone="danger">{historyError}</Notice>{/if}
-        {#if error}<Notice failure={error} tone="danger" testid="approvals-error">{error}</Notice>{/if}
         {#if tab === 'requests'}
-          <Requests {requests} {agents} {loaded} {busy} {open} {cancel} {reconcile} />
+          {#if error}<Notice tone="danger" testid="approvals-error">{error}
+            {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={reload}>{t('retry')}</button>{/snippet}
+          </Notice>{/if}
+          <Requests {requests} {agents} {loaded} {error} {now} {busy} {open} {cancel} {reconcile} />
         {:else if tab === 'sign'}
-          <Sign {open} />
+          <Sign open={openWindow} />
         {:else if tab === 'bundles'}
-          <Bundles {history} {known} {unlocked} {open} />
+          <Bundles {history} {historyLoaded} {historyError} retry={loadHistory} {known} {unlocked} {open} />
         {:else}
-          <Grants {requests} />
+          <Grants {requests} {loaded} {error} retry={reload} />
         {/if}
       </Page>
       {/key}

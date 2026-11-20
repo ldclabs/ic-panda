@@ -36,21 +36,37 @@ export const shortcuts: View[] = [...groups.flatMap((g) => g.views), views.setti
 /** Settings' own pages, each with its route under /settings. */
 export type SettingsPage = 'session' | 'security' | 'recovery' | 'devices' | 'profile' | 'browsers' | 'files' | 'notifications' | 'shortcuts' | 'appearance' | 'legacy' | 'about' | 'feedback'
 
-export const settingsPages: { value: SettingsPage; label: Label; icon: Glyph }[] = [
-  { value: 'session', label: 'sessionAccounts', icon: 'account' },
-  { value: 'security', label: 'security', icon: 'security' },
-  { value: 'recovery', label: 'recovery', icon: 'recovery' },
-  { value: 'devices', label: 'devices', icon: 'device' },
-  { value: 'profile', label: 'publicProfile', icon: 'profile' },
-  { value: 'browsers', label: 'browsers', icon: 'browser' },
-  { value: 'files', label: 'files', icon: 'folder' },
-  { value: 'notifications', label: 'noticeSettings', icon: 'bell' },
-  { value: 'shortcuts', label: 'shortcutsTitle', icon: 'system' },
-  { value: 'appearance', label: 'languageAppearance', icon: 'system' },
-  { value: 'legacy', label: 'legacy', icon: 'legacy' },
-  { value: 'about', label: 'aboutApp', icon: 'info' },
-  { value: 'feedback', label: 'feedbackTitle', icon: 'mail' }
+interface SettingsEntry { value: SettingsPage; label: Label; icon: Glyph }
+
+export const settingsGroups: { label: Label; pages: SettingsEntry[] }[] = [
+  { label: 'account', pages: [
+    { value: 'session', label: 'sessionAccounts', icon: 'account' },
+    { value: 'profile', label: 'publicProfile', icon: 'profile' },
+    { value: 'security', label: 'security', icon: 'security' },
+    { value: 'devices', label: 'devices', icon: 'device' },
+    { value: 'recovery', label: 'recovery', icon: 'recovery' },
+    { value: 'browsers', label: 'browsers', icon: 'browser' }
+  ] },
+  { label: 'settingsPreferences', pages: [
+    { value: 'appearance', label: 'languageAppearance', icon: 'system' },
+    { value: 'notifications', label: 'noticeSettings', icon: 'bell' },
+    { value: 'files', label: 'files', icon: 'folder' },
+    { value: 'shortcuts', label: 'shortcutsTitle', icon: 'system' }
+  ] },
+  { label: 'settingsHelp', pages: [
+    { value: 'legacy', label: 'legacy', icon: 'legacy' },
+    { value: 'about', label: 'aboutApp', icon: 'info' },
+    { value: 'feedback', label: 'feedbackTitle', icon: 'mail' }
+  ] }
 ]
+export function settingsGroupsFor(local: boolean) {
+  if (!local) return settingsGroups
+  return settingsGroups.map(group => ({
+    ...group,
+    pages: group.pages.filter(page => ['session', 'appearance', 'shortcuts', 'about'].includes(page.value))
+      .map(page => page.value === 'session' ? { ...page, label: 'offlineAccount' as const } : page)
+  }))
+}
 
 /** The view a route shows; Settings' own pages keep Settings selected in the sidebar. */
 export function viewOf(route: string): View {

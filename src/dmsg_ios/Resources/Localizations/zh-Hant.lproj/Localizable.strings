@@ -1986,6 +1986,8 @@
 	<string>上傳預留</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>請先處理待定帳號操作，再刪除此帳號。</string>
+	<key>Restored</key>
+	<string>已恢復</string>
 	<key>Restore</key>
 	<string>恢復</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>請至少輸入 12 個字元。</string>
 	<key>Confirm local password</key>
 	<string>確認本機密碼</string>
+	<key>File digest checked</key>
+	<string>檔案摘要已核對</string>
+	<key>The file changed or cannot be read</key>
+	<string>檔案已變化或無法讀取</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>僅確認摘要，未核對原檔案</string>
+	<key>Delivery report</key>
+	<string>交付報告</string>
+	<key>Sign in</key>
+	<string>登入</string>
+	<key>Link to an existing account</key>
+	<string>關聯已有帳戶</string>
+	<key>Confirm it is still you</key>
+	<string>再次確認身份</string>
+	<key>Receiver</key>
+	<string>接收方</string>
+	<key>Valid until</key>
+	<string>有效期至</string>
+	<key>High risk</key>
+	<string>高風險</string>
 </dict>
 </plist>

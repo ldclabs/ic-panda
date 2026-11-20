@@ -19,6 +19,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -109,6 +112,72 @@ import net.dmsg.core.*
     }
 }
 
+private fun approvalSource(source: String): String = when {
+    source == "gui" -> "dMsg"
+    source == "cli" -> "dMsg CLI"
+    source.startsWith("connect:https://") || source.startsWith("connect:http://") -> source.removePrefix("connect:")
+    else -> source
+}
+
+@Composable private fun ApprovalQueueRows(title: String, entries: List<Approval>, select: (String) -> Unit) {
+    if (entries.isEmpty()) return
+    SectionTitle(title)
+    entries.forEach { entry ->
+        ListItem(
+            headlineContent = { Text(approvalTitle(entry.kind)) },
+            supportingContent = {
+                Column {
+                    Text(approvalSource(entry.source))
+                    Text(if (entry.state == "awaiting_user") str(R.string.approval_request_expires) + " · " + messageTime(entry.expiresAt) else secretStateName(entry.state))
+                }
+            },
+            trailingContent = { Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null) },
+            modifier = Modifier.clickable(role = Role.Button) { select(entry.id) }
+        )
+    }
+}
+
+@Composable private fun StatementReview(value: ApprovalDetail) {
+    val statement = value.statement() ?: return
+    val content = statement["content"] as? JsonObject ?: return
+    val body = value.detail as JsonObject
+    SelectionContainer {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            statement.text("subject")?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+            content.text("text")?.let { Text(it) }
+            (body["file"] as? JsonObject)?.text("name")?.let { Text(it) }
+            content.text("sha256")?.let { hash ->
+                LabelValue("SHA-256", hash)
+                value.fileCheck()?.let { check ->
+                    Notice(str(when (check) {
+                        ApprovalFileCheck.Checked -> R.string.text_the_original_file_was_checked_against_this_digest_c5ffd5d
+                        ApprovalFileCheck.ChangedOrUnreadable -> R.string.approval_file_changed
+                        ApprovalFileCheck.DigestOnly -> R.string.text_only_the_digest_is_being_reviewed_the_original_file_has_not_been_241cfe0
+                    }))
+                }
+            }
+            content.text("app_id")?.let { app -> content.text("command")?.let { Text(app + " · " + it) } }
+        }
+    }
+}
+
+@Composable private fun BrowserLoginReview(body: JsonObject) {
+    val content = body["content"] as? JsonObject ?: return
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        content.text("purpose")?.let { purpose ->
+            Text(when (purpose) {
+                "Login" -> str(R.string.approval_login)
+                "Link" -> str(R.string.approval_link)
+                "Reauthenticate" -> str(R.string.approval_reauthenticate)
+                else -> purpose
+            }, style = MaterialTheme.typography.titleMedium)
+        }
+        body.text("origin")?.let { LabelValue(str(R.string.text_website_ad80f52), it) }
+        content.text("receiver")?.let { LabelValue(str(R.string.approval_receiver), it) }
+        content.unsigned("expires_at")?.let { LabelValue(str(R.string.approval_valid_until), displayTime(it)) }
+    }
+}
+
 @Composable fun ApprovalsScreen(client: ClientController, state: UiState, selected: String, select: (String) -> Unit) {
     val listing by client.approvals.listing.state.collectAsStateWithLifecycle()
     val detail by client.approvals.detail.state.collectAsStateWithLifecycle()
@@ -119,41 +188,63 @@ import net.dmsg.core.*
     var technical by remember(selected) { mutableStateOf(false) }
     val current = detail.valueOrNull()?.takeIf { it.id == selected }
     LaunchedEffect(selected, state.epoch) { if (selected.isEmpty()) client.approvals.refreshRemote() else client.approvals.select(selected) }
+    DisposableEffect(selected) { onDispose { client.approvals.leave(selected) } }
+    val scroll = if (selected.isEmpty()) workspaceScrollState(client.navigation, "approvals:index") else key(selected) { rememberScrollState() }
+    LaunchedEffect(current?.id, current?.state) {
+        if (current != null && current.state != "awaiting_user") scroll.scrollTo(0)
+    }
     LaunchedEffect(current?.digest) { readyAt = if (current == null) Long.MAX_VALUE else android.os.SystemClock.elapsedRealtime() + 1000 }
-    LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis().toULong(); uptime = android.os.SystemClock.elapsedRealtime(); kotlinx.coroutines.delay(1000) } }
+    LaunchedEffect(current?.id, current?.state) {
+        while (current?.state == "awaiting_user") {
+            now = System.currentTimeMillis().toULong()
+            uptime = android.os.SystemClock.elapsedRealtime()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(scroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (selected.isEmpty()) {
                 ReadFeedback(listing, client.approvals::refreshRemote)
-                Notice(str(R.string.text_desktop_local_requests_stay_on_that_desktop_only_requests_availab_7e3389e))
+                val entries = listing.valueOrNull().orEmpty()
+                val (waiting, processing) = entries.partition { it.state == "awaiting_user" }
+                ApprovalQueueRows(str(R.string.text_waiting_for_approval_45d78c0), waiting.sortedBy { it.expiresAt }, select)
+                ApprovalQueueRows(str(R.string.text_in_progress_6906b67), processing, select)
                 if (listing is ReadState.Empty) EmptyPanel(str(R.string.text_no_pending_approvals_58ba7ee))
-                listing.valueOrNull().orEmpty().forEach { entry ->
-                    ListItem(headlineContent = { Text(approvalTitle(entry.kind)) }, supportingContent = { Column { Text(entry.source); Text(secretStateName(entry.state)); Text(str(R.string.text_expires_1efbbe3) + messageTime(entry.expiresAt)) } }, modifier = Modifier.clickable { select(entry.id) })
-                }
+                Text(str(R.string.text_desktop_local_requests_stay_on_that_desktop_only_requests_availab_7e3389e),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 ReadFeedback(detail, { client.approvals.select(selected) })
                 current?.let { value ->
                     Text(approvalTitle(value.kind), modifier = if (detail is ReadState.Ready) Modifier.reminderVisible(client, NoticeTarget("approval", value.id), revision = value) else Modifier, style = MaterialTheme.typography.headlineSmall)
-                    SelectionContainer { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(state.session?.account.orEmpty()); Text(value.source)  } }
-                    Text(if (value.risk == "high") str(R.string.text_review_this_sensitive_action_carefully_9a6034a) else str(R.string.text_review_the_complete_request_9d9ec00), style = MaterialTheme.typography.titleSmall)
-                    Text(str(R.string.text_expires_d2c7887) + messageTime(value.expiresAt))
-                    if (value.kind == "device_pair") Notice(str(R.string.text_this_device_may_receive_your_private_content_approval_must_be_fol_6938488))
+                    if (value.state != "awaiting_user") Text(secretStateName(value.state), style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                    SelectionContainer { LabelValue(str(R.string.text_source_fcdba0f), approvalSource(value.source)) }
+                    if (value.kind == "attest" || value.kind == "connect") StatementReview(value)
+                    if (value.state == "awaiting_user" && value.risk == "high") {
+                        Text(str(R.string.text_review_this_sensitive_action_carefully_9a6034a), style = MaterialTheme.typography.titleSmall)
+                    }
+                    if (value.state == "awaiting_user") LabelValue(str(R.string.approval_request_expires), messageTime(value.expiresAt))
+                    SelectionContainer { LabelValue(str(R.string.text_account_id_43f0a66), state.session?.account.orEmpty()) }
+                    if (value.state == "awaiting_user" && value.kind == "device_pair") Notice(str(R.string.text_this_device_may_receive_your_private_content_approval_must_be_fol_6938488))
                     if (value.kind == "connect") Notice(str(R.string.text_the_source_is_relayed_by_the_browser_through_connect_dmsg_net_a_b_8ce6a30))
                     val body = value.detail as? JsonObject
-                    val document = value.kind == "attest" || value.kind == "connect" && body?.text("method") == "signDocument"
-                    if (document) Notice(if (body?.optionalFlag("file_checked") == true) str(R.string.text_the_original_file_was_checked_against_this_digest_c5ffd5d) else str(R.string.text_only_the_digest_is_being_reviewed_the_original_file_has_not_been_241cfe0))
+                    val webLogin = value.browserLogin()
+                    val statement = value.statement()
+                    val plainText = statement?.text("profile") == "text" && !(statement["content"] as? JsonObject)?.text("text").isNullOrEmpty()
+                    if (webLogin != null) BrowserLoginReview(webLogin)
                     if (value.kind == "account" && body?.text("change") == "recovery_policy") Notice(if (body.flag("enabled")) str(R.string.text_a_bound_login_can_recover_uploaded_content_after_the_waiting_peri_31381f9) else str(R.string.text_keep_an_authorized_device_you_can_unlock_recovering_a_login_alone_11b8c07))
                     if (value.kind == "vault_backup" && body != null) BackupApprovalContent(body)
-                    else if (value.secret != null) SecretApprovalContent(value.secret) else HumanRecord(value.detail)
-                    SectionTitle(str(R.string.text_request_state_e7453d3))
-                    Text(secretStateName(value.state))
+                    else if (value.secret != null) SecretApprovalContent(value.secret)
+                    else if (webLogin == null && !plainText) HumanRecord(value.detail)
                     value.error?.let { Notice(errorText(it), true) }
                     value.record["result"]?.takeIf { it != JsonNull }?.let { SectionTitle(str(R.string.text_result_d6b21bc)); HumanRecord(it) }
                     value.record["delivery_report"]?.takeIf { it != JsonNull }?.let { SectionTitle(str(R.string.text_delivery_report_29f483d)); HumanRecord(it) }
                     TextButton(onClick = { technical = !technical }) { Text(str(R.string.text_technical_details_5ec1b41)) }
-                    if (technical) HumanRecord(JsonObject(value.record.filterKeys { it !in setOf("detail", "result", "delivery_report") }))
-                    if (!value.supported) Notice(str(R.string.text_this_action_requires_a_supported_desktop_client_85a09eb))
-                    if (now >= value.expiresAt && value.state == "awaiting_user") Notice(str(R.string.text_this_request_expired_refresh_before_continuing_04ccc12))
+                    if (technical) {
+                        if (webLogin != null || plainText) HumanRecord(value.detail)
+                        HumanRecord(JsonObject(value.record.filterKeys { it !in setOf("detail", "result", "delivery_report") }))
+                    }
+                    if (value.state == "awaiting_user" && !value.supported) Notice(str(R.string.text_this_action_requires_a_supported_desktop_client_85a09eb))
                     if (value.state in setOf("executing", "unknown")) {
                         Notice(str(R.string.text_the_result_is_not_confirmed_check_the_original_operation_before_r_57342fb))
                         OutlinedButton(onClick = { client.approvals.reconcile(value) }, enabled = !state.working("approval:reconcile:" + value.id)) { Text(str(R.string.text_reconcile_original_operation_065467d)) }
@@ -164,20 +255,32 @@ import net.dmsg.core.*
         current?.takeIf { it.state == "awaiting_user" }?.let { value ->
             Surface {
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                    Text(str(R.string.text_your_decision_applies_only_to_this_request_a7693fb), style = MaterialTheme.typography.bodySmall)
-                    val actionable = now < value.expiresAt && !state.working("approval:decide:" + selected) && detail is ReadState.Ready && uptime >= readyAt
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(enabled = actionable, onClick = { decision = value to false }, modifier = Modifier.weight(1f)) { Text(str(R.string.text_reject_52e8be4)) }
-                        Button(enabled = actionable && value.supported, onClick = { decision = value to true }, modifier = Modifier.weight(1f)) { Text(str(R.string.text_approve_8d032fb)) }
+                    val submitting = state.working("approval:decide:" + selected)
+                    if (now >= value.expiresAt) {
+                        Text(str(R.string.text_this_request_expired_refresh_before_continuing_04ccc12))
+                        TextButton(onClick = { client.approvals.select(selected) }) { Text(str(R.string.text_refresh_cba212b)) }
+                    } else {
+                        Text(str(if (submitting) R.string.text_waiting_for_confirmation_9c87aad else R.string.text_your_decision_applies_only_to_this_request_a7693fb),
+                            style = MaterialTheme.typography.bodySmall, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                        val actionable = !submitting && detail is ReadState.Ready && uptime >= readyAt
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(enabled = actionable, onClick = { decision = value to false }, modifier = Modifier.weight(1f)) { Text(str(R.string.text_reject_52e8be4)) }
+                            Button(enabled = actionable && value.supported, onClick = { decision = value to true }, modifier = Modifier.weight(1f)) { Text(str(R.string.text_approve_8d032fb)) }
+                        }
                     }
                 }
             }
         }
     }
+    LaunchedEffect(current?.id, current?.state, current?.digest, now >= (current?.expiresAt ?: ULong.MAX_VALUE)) {
+        val pending = decision?.first ?: return@LaunchedEffect
+        if (current?.id != pending.id || current.digest != pending.digest || current.state != "awaiting_user" || now >= pending.expiresAt) decision = null
+    }
     decision?.let { (value, approve) ->
         AlertDialog(onDismissRequest = { decision = null }, title = { Text(if (approve) str(R.string.text_approve_the_reviewed_request_18d90f3) else str(R.string.text_reject_this_request_24df6c9)) }, text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(approvalTitle(value.kind), style = MaterialTheme.typography.titleMedium)
+                LabelValue(str(R.string.text_source_fcdba0f), approvalSource(value.source))
                 val secret = value.secret
                 if (secret != null) {
                     Text(secret.title, style = MaterialTheme.typography.titleSmall)
@@ -201,17 +304,19 @@ import net.dmsg.core.*
                             if (formatted != null) LabelValue(str(label), formatted + " ICP")
                         }
                     }
-                    if (value.kind == "vault_backup" && body != null) BackupApprovalContent(body)
+                    val webLogin = value.browserLogin()
+                    if (webLogin != null) BrowserLoginReview(webLogin)
+                    else if (value.kind == "vault_backup" && body != null) BackupApprovalContent(body)
                     else HumanRecord(value.detail)
                 }
                 HorizontalDivider()
                 SelectionContainer { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(value.id, style = MaterialTheme.typography.bodySmall)
-                    Text(value.digest, style = MaterialTheme.typography.bodySmall)
+                    LabelValue(str(R.string.text_request_id_3182520), value.id)
+                    LabelValue(str(R.string.text_reviewed_digest_ea1e6f9), value.digest)
                 } }
                 Text(str(R.string.text_this_decision_is_bound_to_the_exact_request_and_digest_shown_0594140), style = MaterialTheme.typography.bodySmall)
             }
-        }, confirmButton = { TextButton(onClick = { decision = null; client.approvals.decide(value, approve) }, enabled = current?.id == value.id && current.digest == value.digest && current.state == "awaiting_user" && detail is ReadState.Ready && now < value.expiresAt && state.unlocked) { Text(if (approve) str(R.string.text_approve_this_request_fac866f) else str(R.string.text_reject_this_request_46758a1)) } }, dismissButton = { TextButton(onClick = { decision = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
+        }, confirmButton = { TextButton(onClick = { decision = null; client.approvals.decide(value, approve) }, enabled = current?.id == value.id && current.digest == value.digest && current.state == "awaiting_user" && detail is ReadState.Ready && now < value.expiresAt && (!approve || current.supported) && !state.working("approval:decide:" + selected) && state.unlocked) { Text(if (approve) str(R.string.text_approve_this_request_fac866f) else str(R.string.text_reject_this_request_46758a1)) } }, dismissButton = { TextButton(onClick = { decision = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
     }
 }
 

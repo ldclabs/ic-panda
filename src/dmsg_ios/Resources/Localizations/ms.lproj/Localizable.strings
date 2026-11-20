@@ -1986,6 +1986,8 @@
 	<string>Dikhaskan untuk muat naik</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Selesaikan operasi akaun yang belum selesai sebelum memadamkan akaun ini.</string>
+	<key>Restored</key>
+	<string>Dipulihkan</string>
 	<key>Restore</key>
 	<string>Pulihkan</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Gunakan sekurang-kurangnya 12 aksara.</string>
 	<key>Confirm local password</key>
 	<string>Sahkan kata laluan setempat</string>
+	<key>File digest checked</key>
+	<string>Hash fail disemak</string>
+	<key>The file changed or cannot be read</key>
+	<string>Fail berubah atau tidak boleh dibaca</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Hanya cincangan yang disahkan; fail tidak disemak</string>
+	<key>Delivery report</key>
+	<string>Laporan penghantaran</string>
+	<key>Sign in</key>
+	<string>Log masuk</string>
+	<key>Link to an existing account</key>
+	<string>Pautan ke akaun sedia ada</string>
+	<key>Confirm it is still you</key>
+	<string>Sahkan ia masih anda</string>
+	<key>Receiver</key>
+	<string>Penerima</string>
+	<key>Valid until</key>
+	<string>Sah sehingga</string>
+	<key>High risk</key>
+	<string>Berisiko tinggi</string>
 </dict>
 </plist>

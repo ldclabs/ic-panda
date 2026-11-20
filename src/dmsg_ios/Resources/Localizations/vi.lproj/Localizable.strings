@@ -1986,6 +1986,8 @@
 	<string>Dành riêng cho tải lên</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Giải quyết thao tác tài khoản đang chờ xử lý trước khi xóa tài khoản này.</string>
+	<key>Restored</key>
+	<string>Đã khôi phục</string>
 	<key>Restore</key>
 	<string>Khôi phục</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Dùng ít nhất 12 ký tự.</string>
 	<key>Confirm local password</key>
 	<string>Xác nhận mật khẩu cục bộ</string>
+	<key>File digest checked</key>
+	<string>Đã kiểm tra hàm băm tệp</string>
+	<key>The file changed or cannot be read</key>
+	<string>Tệp đã thay đổi hoặc không thể đọc được</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Chỉ có hàm băm được xác nhận; tập tin chưa được kiểm tra</string>
+	<key>Delivery report</key>
+	<string>Báo cáo gửi</string>
+	<key>Sign in</key>
+	<string>Đăng nhập</string>
+	<key>Link to an existing account</key>
+	<string>Liên kết với tài khoản hiện có</string>
+	<key>Confirm it is still you</key>
+	<string>Xác nhận đó vẫn là bạn</string>
+	<key>Receiver</key>
+	<string>Người nhận</string>
+	<key>Valid until</key>
+	<string>Có hiệu lực cho đến khi</string>
+	<key>High risk</key>
+	<string>Rủi ro cao</string>
 </dict>
 </plist>

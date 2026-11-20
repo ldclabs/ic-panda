@@ -64,7 +64,7 @@ export async function confirmationFlow({ app, main, methods, hold, waitFor, form
       reasons.push(params.reason)
       throw { code: reasons.length === 1 ? 'FORBIDDEN' : 'EXECUTION_UNKNOWN' }
     }
-    await main.evaluate(() => { location.hash = '/agents' })
+    await main.evaluate(() => { location.hash = '/agents/overview' })
     await main.getByTestId('credential-revoke').first().click()
     const reason = main.getByTestId('revoke-reason')
     await reason.fill('Retire this delegation')
@@ -75,7 +75,7 @@ export async function confirmationFlow({ app, main, methods, hold, waitFor, form
     const reviewRevocation = main.getByTestId('confirmation-review')
     await reviewRevocation.waitFor()
     await main.keyboard.press('Escape')
-    assert.equal(await main.evaluate(() => location.hash), '#/agents')
+    assert.equal(await main.evaluate(() => location.hash), '#/agents/overview')
     assert.ok(await reviewRevocation.isVisible(), 'Escape cannot open approval history')
     await reviewRevocation.press('Enter')
     await main.waitForFunction(() => location.hash === '#/approvals')

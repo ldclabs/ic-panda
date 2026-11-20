@@ -33,6 +33,12 @@
     if (next !== tab) go(next === 'membership' ? '/plan' : `/plan?tab=${next}`)
   }
 
+  function showPayer(orderId?: string) {
+    const query = new URLSearchParams({ tab: 'payments', section: 'wallet' })
+    if (orderId) query.set('order', orderId)
+    go('/plan?' + query.toString())
+  }
+
   // Hand off a one-time lookup or invitation. The lasting route only names the tab.
   $effect(() => {
     if (!unlocked) return
@@ -60,11 +66,11 @@
     {:else}
       {#key status?.account}
         {#if tab === 'membership'}
-          <Membership {status} onReviewPayments={() => showTab('payments')} />
+          <Membership {status} onReviewPayments={() => showTab('payments')} onWallet={showPayer} />
         {:else if tab === 'names'}
           <Names {status} {go} bind:ask />
         {:else}
-          <Payments />
+          <Payments walletFirst={params.get('section') === 'wallet'} fundingOrderId={params.get('order')} onMembership={() => showTab('membership')} />
         {/if}
       {/key}
     {/if}

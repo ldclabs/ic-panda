@@ -28,7 +28,7 @@ import net.dmsg.android.core.ClientController
         DropdownMenu(expanded, { expanded = false }) {
             chooseExisting?.let { choose -> DropdownMenuItem(text = { Text(str(R.string.text_attach_from_files_d9fc92f)) }, leadingIcon = { Icon(Icons.Outlined.Folder, null) }, onClick = { expanded = false; choose() }) }
             DropdownMenuItem(text = { Text(str(R.string.text_photos_and_videos_d968b5a)) }, leadingIcon = { Icon(Icons.Outlined.PhotoLibrary, null) }, onClick = {
-                if (prepare()) pickers.photos()
+                if (prepare()) pickers.photos(channel?.let { 10 - client.messages.composer(it).attachments.size })
             })
             DropdownMenuItem(text = { Text(str(R.string.text_choose_documents_2d5a07b)) }, leadingIcon = { Icon(Icons.Outlined.InsertDriveFile, null) }, onClick = {
                 if (prepare()) pickers.documents()

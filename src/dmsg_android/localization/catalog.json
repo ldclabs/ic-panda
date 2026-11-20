@@ -1,4 +1,24 @@
 {
+  "access_existing_account": {
+    "en": "Open an existing account",
+    "zh-Hans": "打开已有账号",
+    "ios": "Open an existing account"
+  },
+  "access_existing_passkey": {
+    "en": "Use an existing passkey",
+    "zh-Hans": "使用已有通行密钥",
+    "ios": "Use an existing passkey"
+  },
+  "access_linked_login": {
+    "en": "Use a login already linked to the account you want to open.",
+    "zh-Hans": "请使用已关联目标账号的登录方式。",
+    "ios": "Use a login already linked to the account you want to open."
+  },
+  "access_new_workspace": {
+    "en": "Set up a new workspace",
+    "zh-Hans": "设置新的工作区",
+    "ios": "Set up a new workspace"
+  },
   "add_permission": {
     "en": "Add permission",
     "zh-Hans": "添加权限",
@@ -12,6 +32,41 @@
     "en": "App language",
     "zh-Hans": "应用语言",
     "ios": "Language"
+  },
+  "approval_file_changed": {
+    "en": "The file changed or cannot be read",
+    "zh-Hans": "文件已变化或无法读取",
+    "ios": "The file changed or cannot be read"
+  },
+  "approval_link": {
+    "en": "Link to an existing account",
+    "zh-Hans": "关联已有账户",
+    "ios": "Link to an existing account"
+  },
+  "approval_login": {
+    "en": "Sign in",
+    "zh-Hans": "登录",
+    "ios": "Sign in"
+  },
+  "approval_reauthenticate": {
+    "en": "Confirm it is still you",
+    "zh-Hans": "再次确认身份",
+    "ios": "Confirm it is still you"
+  },
+  "approval_receiver": {
+    "en": "Receiver",
+    "zh-Hans": "接收方",
+    "ios": "Receiver"
+  },
+  "approval_request_expires": {
+    "en": "Request expires",
+    "zh-Hans": "请求过期时间",
+    "ios": "Request expires"
+  },
+  "approval_valid_until": {
+    "en": "Valid until",
+    "zh-Hans": "有效期至",
+    "ios": "Valid until"
   },
   "autofill_choose_at_login": {
     "en": "Choose a login when an app or website asks for a password.",
@@ -73,6 +128,22 @@
     "ur": "بیک اپ کے بغیر کوئی فائل ورژن نہیں ہے۔",
     "vi": "Không có phiên bản tệp nào chưa được sao lưu."
   },
+  "backup_already_saved": {
+    "en": "This version is already backed up.",
+    "zh-Hans": "此版本已备份。",
+    "ios": "This version is already backed up."
+  },
+  "backup_selected_help": {
+    "en": "Files are backed up only when you explicitly choose to do so.",
+    "zh-Hans": "只有你明确选择时，才会备份文件。",
+    "ios": "Files are backed up only when you explicitly choose to do so."
+  },
+  "backup_total_size": {
+    "en": "Total size",
+    "zh-Hans": "总大小",
+    "zh-Hant": "總大小",
+    "ios": "Total size"
+  },
   "choose_permission": {
     "en": "Choose a permission",
     "zh-Hans": "选择一项权限",
@@ -96,9 +167,49 @@
     "zh-Hans": "此文件夹中没有文件",
     "ios": "No files in this folder"
   },
+  "file_moved_to_trash": {
+    "en": "Moved to Trash",
+    "zh-Hans": "已移入回收站",
+    "ios": "Moved to Trash"
+  },
+  "file_name_rule": {
+    "en": "Use a name of 1–255 characters without slashes or control characters.",
+    "zh-Hans": "名称须为 1–255 个字符，且不能包含斜杠或控制字符。",
+    "ios": "Use a name of 1–255 characters without slashes or control characters."
+  },
+  "file_name_taken": {
+    "en": "A file or folder with this name already exists.",
+    "zh-Hans": "已存在同名文件或文件夹。",
+    "ios": "A file or folder with this name already exists."
+  },
+  "file_original_folder": {
+    "en": "Original folder",
+    "zh-Hans": "原文件夹",
+    "ios": "Original folder"
+  },
+  "file_restored": {
+    "en": "Restored",
+    "zh-Hans": "已恢复",
+    "ios": "Restored"
+  },
   "follow_system_language": {
     "en": "Follow system language",
     "zh-Hans": "跟随系统语言"
+  },
+  "history_device": {
+    "en": "Device",
+    "zh-Hans": "设备",
+    "ios": "Device"
+  },
+  "history_fields": {
+    "en": "Fields",
+    "zh-Hans": "字段",
+    "ios": "Fields"
+  },
+  "import_local_account": {
+    "en": "Import from local account",
+    "zh-Hans": "从本地账户导入",
+    "ios": "Import from local account"
   },
   "language_search": {
     "en": "Find a language",
@@ -108,10 +219,35 @@
     "en": "Created %1$s of %2$s",
     "zh-Hans": "已创建 %1$s / %2$s"
   },
+  "local_password": {
+    "en": "Local password",
+    "zh-Hans": "本地解锁口令",
+    "ios": "Local password"
+  },
+  "local_password_length": {
+    "en": "Use at least 12 characters.",
+    "zh-Hans": "请至少输入 12 个字符。",
+    "ios": "Use at least 12 characters."
+  },
+  "message_actions": {
+    "en": "Actions",
+    "zh-Hans": "消息操作",
+    "ios": "Actions"
+  },
+  "message_sending": {
+    "en": "Sending",
+    "zh-Hans": "发送中",
+    "ios": "Sending"
+  },
   "no_matches": {
     "en": "No matching results",
     "zh-Hans": "无匹配结果",
     "ios": "No matching results"
+  },
+  "offline_account": {
+    "en": "Local account",
+    "zh-Hans": "本地账户",
+    "ios": "Local account"
   },
   "operation_failed_code": {
     "en": "This operation could not finish. Code: %1$s",
@@ -186,6 +322,11 @@
     "zh-Hans": "只有选定账号或持有效邀请的人可以来信。",
     "ios": "Only selected accounts or people with a valid invitation can write."
   },
+  "repeat_local_password": {
+    "en": "Confirm local password",
+    "zh-Hans": "确认本地口令",
+    "ios": "Confirm local password"
+  },
   "review_anyone_with_the_link": {
     "en": "Anyone with the link",
     "zh-Hans": "持有链接的任何人",
@@ -200,6 +341,11 @@
     "en": "Receiving",
     "zh-Hans": "接收",
     "ios": "Receiving"
+  },
+  "saved_on_device": {
+    "en": "Saved on this device",
+    "zh-Hans": "已保存到本机",
+    "ios": "Saved on this device"
   },
   "search_local_messages": {
     "en": "Searches messages saved on this device.",
@@ -640,6 +786,11 @@
     "en": "Administrator",
     "zh-Hans": "管理员",
     "ios": "Administrator"
+  },
+  "text_advanced": {
+    "en": "Advanced",
+    "zh-Hans": "高级",
+    "ios": "Advanced"
   },
   "text_after_creation_invite_an_account_to_start_the_conversation_b389453": {
     "en": "After creation, invite an account to start the conversation.",
@@ -9140,24 +9291,120 @@
     "en": "Your subscription term changed. Refresh membership and review it again.",
     "zh-Hans": "订阅期限已变化，请刷新会员后重新核对。"
   },
-  "widget_description": {
-    "en": "Open a private workspace. No account content is shown here.",
-    "zh-Hans": "打开私密工作区，此处不展示账号内容。"
+  "use_on_device": {
+    "en": "Use only on this device",
+    "zh-Hans": "仅在本机使用",
+    "ios": "Use only on this device"
   },
-  "widget_open": {
-    "en": "Open private workspace",
-    "zh-Hans": "打开私密工作区",
-    "ios": "Open private workspace"
+  "vault_backup_changed": {
+    "en": "Different content · save a copy",
+    "zh-Hans": "内容不同，可另存副本",
+    "ios": "Different content · save a copy"
   },
-  "widget_title": {
-    "en": "dMsg workspace",
-    "zh-Hans": "dMsg 工作区",
-    "ios": "dMsg workspace"
+  "vault_backup_deleted": {
+    "en": "Deleted here · save a copy",
+    "zh-Hans": "本机已删除，可另存副本",
+    "ios": "Deleted here · save a copy"
   },
-  "text_advanced": {
-    "en": "Advanced",
-    "zh-Hans": "高级",
-    "ios": "Advanced"
+  "vault_backup_export": {
+    "en": "Export encrypted backup",
+    "zh-Hans": "导出加密备份",
+    "ios": "Export encrypted backup"
+  },
+  "vault_backup_files": {
+    "en": "Include linked files",
+    "zh-Hans": "包含关联附件",
+    "ios": "Include linked files"
+  },
+  "vault_backup_hint": {
+    "en": "At least 6 characters. Keep this password separately. dMsg cannot recover it.",
+    "zh-Hans": "至少 6 个字符。请单独保管口令，dMsg 无法找回。",
+    "ios": "At least 6 characters. Keep this password separately. dMsg cannot recover it."
+  },
+  "vault_backup_import": {
+    "en": "Import from backup",
+    "zh-Hans": "从备份导入",
+    "ios": "Import from backup"
+  },
+  "vault_backup_mismatch": {
+    "en": "The two backup passwords do not match.",
+    "zh-Hans": "两次输入的备份口令不一致。",
+    "ios": "The two backup passwords do not match."
+  },
+  "vault_backup_new": {
+    "en": "Add as new",
+    "zh-Hans": "新增条目",
+    "ios": "Add as new"
+  },
+  "vault_backup_omitted": {
+    "en": "Omitted attachments",
+    "zh-Hans": "已省略附件",
+    "ios": "Omitted attachments"
+  },
+  "vault_backup_password": {
+    "en": "Backup password",
+    "zh-Hans": "备份口令",
+    "ios": "Backup password"
+  },
+  "vault_backup_repeat": {
+    "en": "Confirm backup password",
+    "zh-Hans": "再次输入备份口令",
+    "ios": "Confirm backup password"
+  },
+  "vault_backup_same": {
+    "en": "Already present",
+    "zh-Hans": "已存在",
+    "ios": "Already present"
+  },
+  "vault_backup_saved": {
+    "en": "Saved locally",
+    "zh-Hans": "已保存到本机",
+    "ios": "Saved locally"
+  },
+  "vault_backup_scope": {
+    "en": "Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.",
+    "zh-Hans": "仅备份当前条目。历史、回收站、草稿、冲突副本及 dMsg 管理的密钥不包含在内。",
+    "ios": "Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded."
+  },
+  "vault_backup_sync": {
+    "en": "Vault entries follow normal sync. Attachments are saved in Files on this device.",
+    "zh-Hans": "保险库条目按正常流程同步。附件保存在本机文件库。",
+    "ios": "Vault entries follow normal sync. Attachments are saved in Files on this device."
+  },
+  "vault_backup_title": {
+    "en": "Backup and restore",
+    "zh-Hans": "备份与恢复",
+    "ios": "Backup and restore"
+  },
+  "vault_backup_unavailable": {
+    "en": "Some linked files are unavailable. Download them or export items only.",
+    "zh-Hans": "部分附件不可用。请先取回附件，或仅导出条目。",
+    "ios": "Some linked files are unavailable. Download them or export items only."
+  },
+  "vault_backup_uncommitted": {
+    "en": "No import was committed. Choose the backup again.",
+    "zh-Hans": "本机没有这次导入的提交记录，请重新选择备份。",
+    "ios": "No import was committed. Choose the backup again."
+  },
+  "vault_backup_unlockerror": {
+    "en": "Cannot unlock this backup. Check the password or choose a complete backup file.",
+    "zh-Hans": "无法解开备份。请核对口令或重新选择完整文件。",
+    "ios": "Cannot unlock this backup. Check the password or choose a complete backup file."
+  },
+  "vault_backup_wallet": {
+    "en": "Includes secrets saved in wallet items.",
+    "zh-Hans": "包含你保存在钱包条目中的秘密字段。",
+    "ios": "Includes secrets saved in wallet items."
+  },
+  "vault_conflict_saved": {
+    "en": "Saved as a separate version. Review sync conflicts.",
+    "zh-Hans": "已保存为独立版本，请处理同步冲突。",
+    "ios": "Saved as a separate version. Review sync conflicts."
+  },
+  "vault_copied": {
+    "en": "Copied",
+    "zh-Hans": "已复制",
+    "ios": "Copied"
   },
   "vault_field_birthday": {
     "en": "Birthday",
@@ -9259,190 +9506,33 @@
     "zh-Hans": "用户名",
     "ios": "Username"
   },
+  "vault_loading": {
+    "en": "Loading…",
+    "zh-Hans": "正在读取…",
+    "ios": "Loading…"
+  },
+  "vault_search_files": {
+    "en": "Search files",
+    "zh-Hans": "搜索文件",
+    "ios": "Search files"
+  },
+  "widget_description": {
+    "en": "Open a private workspace. No account content is shown here.",
+    "zh-Hans": "打开私密工作区，此处不展示账号内容。"
+  },
+  "widget_open": {
+    "en": "Open private workspace",
+    "zh-Hans": "打开私密工作区",
+    "ios": "Open private workspace"
+  },
+  "widget_title": {
+    "en": "dMsg workspace",
+    "zh-Hans": "dMsg 工作区",
+    "ios": "dMsg workspace"
+  },
   "without_backup": {
     "en": "Without a cloud backup",
     "zh-Hans": "没有云端备份",
     "ios": "Without a cloud backup"
-  },
-  "access_new_workspace": {
-    "en": "Set up a new workspace",
-    "zh-Hans": "设置新的工作区",
-    "ios": "Set up a new workspace"
-  },
-  "access_existing_account": {
-    "en": "Open an existing account",
-    "zh-Hans": "打开已有账号",
-    "ios": "Open an existing account"
-  },
-  "access_existing_passkey": {
-    "en": "Use an existing passkey",
-    "zh-Hans": "使用已有通行密钥",
-    "ios": "Use an existing passkey"
-  },
-  "access_linked_login": {
-    "en": "Use a login already linked to the account you want to open.",
-    "zh-Hans": "请使用已关联目标账号的登录方式。",
-    "ios": "Use a login already linked to the account you want to open."
-  },
-  "history_device": {
-    "en": "Device",
-    "zh-Hans": "设备",
-    "ios": "Device"
-  },
-  "history_fields": {
-    "en": "Fields",
-    "zh-Hans": "字段",
-    "ios": "Fields"
-  },
-  "backup_total_size": {
-    "en": "Total size",
-    "zh-Hans": "总大小",
-    "zh-Hant": "總大小",
-    "ios": "Total size"
-  },
-  "backup_already_saved": {
-    "en": "This version is already backed up.",
-    "zh-Hans": "此版本已备份。",
-    "ios": "This version is already backed up."
-  },
-  "backup_selected_help": {
-    "en": "Files are backed up only when you explicitly choose to do so.",
-    "zh-Hans": "只有你明确选择时，才会备份文件。",
-    "ios": "Files are backed up only when you explicitly choose to do so."
-  },
-  "vault_backup_changed": {
-    "en": "Different content · save a copy",
-    "zh-Hans": "内容不同，可另存副本",
-    "ios": "Different content · save a copy"
-  },
-  "vault_backup_deleted": {
-    "en": "Deleted here · save a copy",
-    "zh-Hans": "本机已删除，可另存副本",
-    "ios": "Deleted here · save a copy"
-  },
-  "vault_backup_export": {
-    "en": "Export encrypted backup",
-    "zh-Hans": "导出加密备份",
-    "ios": "Export encrypted backup"
-  },
-  "vault_backup_files": {
-    "en": "Include linked files",
-    "zh-Hans": "包含关联附件",
-    "ios": "Include linked files"
-  },
-  "vault_backup_hint": {
-    "en": "At least 6 characters. Keep this password separately. dMsg cannot recover it.",
-    "zh-Hans": "至少 6 个字符。请单独保管口令，dMsg 无法找回。",
-    "ios": "At least 6 characters. Keep this password separately. dMsg cannot recover it."
-  },
-  "vault_backup_import": {
-    "en": "Import from backup",
-    "zh-Hans": "从备份导入",
-    "ios": "Import from backup"
-  },
-  "vault_backup_new": {
-    "en": "Add as new",
-    "zh-Hans": "新增条目",
-    "ios": "Add as new"
-  },
-  "vault_backup_omitted": {
-    "en": "Omitted attachments",
-    "zh-Hans": "已省略附件",
-    "ios": "Omitted attachments"
-  },
-  "vault_backup_password": {
-    "en": "Backup password",
-    "zh-Hans": "备份口令",
-    "ios": "Backup password"
-  },
-  "vault_backup_repeat": {
-    "en": "Confirm backup password",
-    "zh-Hans": "再次输入备份口令",
-    "ios": "Confirm backup password"
-  },
-  "vault_backup_same": {
-    "en": "Already present",
-    "zh-Hans": "已存在",
-    "ios": "Already present"
-  },
-  "vault_backup_saved": {
-    "en": "Saved locally",
-    "zh-Hans": "已保存到本机",
-    "ios": "Saved locally"
-  },
-  "vault_backup_scope": {
-    "en": "Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded.",
-    "zh-Hans": "仅备份当前条目。历史、回收站、草稿、冲突副本及 dMsg 管理的密钥不包含在内。",
-    "ios": "Only current items are included. History, trash, drafts, conflict copies and dMsg-managed keys are excluded."
-  },
-  "vault_backup_title": {
-    "en": "Backup and restore",
-    "zh-Hans": "备份与恢复",
-    "ios": "Backup and restore"
-  },
-  "vault_backup_unavailable": {
-    "en": "Some linked files are unavailable. Download them or export items only.",
-    "zh-Hans": "部分附件不可用。请先取回附件，或仅导出条目。",
-    "ios": "Some linked files are unavailable. Download them or export items only."
-  },
-  "vault_backup_wallet": {
-    "en": "Includes secrets saved in wallet items.",
-    "zh-Hans": "包含你保存在钱包条目中的秘密字段。",
-    "ios": "Includes secrets saved in wallet items."
-  },
-  "vault_backup_unlockerror": {
-    "en": "Cannot unlock this backup. Check the password or choose a complete backup file.",
-    "zh-Hans": "无法解开备份。请核对口令或重新选择完整文件。",
-    "ios": "Cannot unlock this backup. Check the password or choose a complete backup file."
-  },
-  "vault_backup_uncommitted": {
-    "en": "No import was committed. Choose the backup again.",
-    "zh-Hans": "本机没有这次导入的提交记录，请重新选择备份。",
-    "ios": "No import was committed. Choose the backup again."
-  },
-  "vault_backup_sync": {
-    "en": "Vault entries follow normal sync. Attachments are saved in Files on this device.",
-    "zh-Hans": "保险库条目按正常流程同步。附件保存在本机文件库。",
-    "ios": "Vault entries follow normal sync. Attachments are saved in Files on this device."
-  },
-  "vault_backup_mismatch": {
-    "en": "The two backup passwords do not match.",
-    "zh-Hans": "两次输入的备份口令不一致。",
-    "ios": "The two backup passwords do not match."
-  },
-  "import_local_account": {
-    "en": "Import from local account",
-    "zh-Hans": "从本地账户导入",
-    "ios": "Import from local account"
-  },
-  "local_password": {
-    "en": "Local password",
-    "zh-Hans": "本地解锁口令",
-    "ios": "Local password"
-  },
-  "local_password_length": {
-    "en": "Use at least 12 characters.",
-    "zh-Hans": "请至少输入 12 个字符。",
-    "ios": "Use at least 12 characters."
-  },
-  "offline_account": {
-    "en": "Local account",
-    "zh-Hans": "本地账户",
-    "ios": "Local account"
-  },
-  "repeat_local_password": {
-    "en": "Confirm local password",
-    "zh-Hans": "确认本地口令",
-    "ios": "Confirm local password"
-  },
-  "saved_on_device": {
-    "en": "Saved on this device",
-    "zh-Hans": "已保存到本机",
-    "ios": "Saved on this device"
-  },
-  "use_on_device": {
-    "en": "Use only on this device",
-    "zh-Hans": "仅在本机使用",
-    "ios": "Use only on this device"
   }
 }

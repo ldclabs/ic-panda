@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Berechtigung hinzufügen"</string>
     <string name="android_purchase_privacy" formatted="false">"Wenn eingerichtet, nutzen Käufe über Google Play die Google-Dienste für Konten, Zahlungen und Geräteprüfung. Kauf-Token bleiben verschlüsselt gespeichert, bis der Dienst die Bereitstellung bestätigt. Inhalte aus dMsg werden nicht an Google gesendet. Die nachstehenden Dienstrichtlinien beschreiben auch Apple-spezifische Dienste anderer dMsg-Apps."</string>
     <string name="app_language" formatted="false">"Sprache"</string>
+    <string name="approval_file_changed" formatted="false">"Die Datei wurde geändert oder kann nicht gelesen werden"</string>
+    <string name="approval_link" formatted="false">"Link zu einem bestehenden Konto"</string>
+    <string name="approval_login" formatted="false">"Melden Sie sich an"</string>
+    <string name="approval_reauthenticate" formatted="false">"Bestätigen Sie, dass Sie es immer noch sind"</string>
+    <string name="approval_receiver" formatted="false">"Empfänger"</string>
+    <string name="approval_request_expires" formatted="false">"Anfrage läuft ab"</string>
+    <string name="approval_valid_until" formatted="false">"Gültig bis"</string>
     <string name="autofill_choose_at_login" formatted="false">"Wähle einen Zugang, wenn eine App oder Website nach einem Passwort fragt."</string>
     <string name="autofill_confirm" formatted="false">"Diesen Zugang ausfüllen?"</string>
     <string name="autofill_no_items" formatted="false">"Noch keine Aufzeichnungen"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"Verschlüsselte Übertragungen"</string>
     <string name="customize_fields" formatted="false">"Felder anpassen"</string>
     <string name="empty_folder" formatted="false">"Keine Dateien in diesem Ordner"</string>
+    <string name="file_moved_to_trash" formatted="false">"In den Papierkorb verschoben"</string>
+    <string name="file_name_rule" formatted="false">"Verwende einen Namen mit 1–255 Zeichen ohne Schrägstriche oder Steuerzeichen."</string>
+    <string name="file_name_taken" formatted="false">"Eine Datei oder ein Ordner mit diesem Namen ist bereits vorhanden."</string>
+    <string name="file_original_folder" formatted="false">"Ursprünglicher Ordner"</string>
+    <string name="file_restored" formatted="false">"Restauriert"</string>
     <string name="follow_system_language" formatted="false">"Systemsprache verwenden"</string>
     <string name="history_device" formatted="false">"Gerät"</string>
     <string name="history_fields" formatted="false">"Felder"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"%1$s von %2$s erstellt"</string>
     <string name="local_password" formatted="false">"Lokales Passwort"</string>
     <string name="local_password_length" formatted="false">"Mindestens 12 Zeichen verwenden."</string>
+    <string name="message_actions" formatted="false">"Aktionen"</string>
+    <string name="message_sending" formatted="false">"Senden"</string>
     <string name="no_matches" formatted="false">"Keine passenden Ergebnisse"</string>
     <string name="offline_account" formatted="false">"Lokales Konto"</string>
     <string name="operation_failed_code" formatted="true">"Dieser Vorgang konnte nicht abgeschlossen werden. Code: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"Es wurde nichts importiert. Wähle die Sicherung erneut."</string>
     <string name="vault_backup_unlockerror" formatted="false">"Sicherung nicht lesbar. Prüfe das Passwort oder wähle eine vollständige Datei."</string>
     <string name="vault_backup_wallet" formatted="false">"Enthält Geheimnisse aus Wallet-Einträgen."</string>
+    <string name="vault_conflict_saved" formatted="false">"Als separate Version gespeichert. Überprüfen Sie Synchronisierungskonflikte."</string>
+    <string name="vault_copied" formatted="false">"Kopiert"</string>
     <string name="vault_field_birthday" formatted="false">"Geburtstag"</string>
     <string name="vault_field_cardholder" formatted="false">"Karteninhaber"</string>
     <string name="vault_field_credential" formatted="false">"Ausweis"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"Öffentlicher Schlüssel"</string>
     <string name="vault_field_purchased" formatted="false">"Gekauft"</string>
     <string name="vault_field_username" formatted="false">"Benutzername"</string>
+    <string name="vault_loading" formatted="false">"Laden…"</string>
+    <string name="vault_search_files" formatted="false">"Dateien durchsuchen"</string>
     <string name="widget_description" formatted="false">"Öffne einen privaten Arbeitsbereich. Hier werden keine Kontoinhalte angezeigt."</string>
     <string name="widget_open" formatted="false">"Öffnen Sie den privaten Arbeitsbereich"</string>
     <string name="widget_title" formatted="false">"dMsg-Arbeitsbereich"</string>

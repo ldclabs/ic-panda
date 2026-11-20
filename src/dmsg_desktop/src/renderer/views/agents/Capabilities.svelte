@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -9,7 +10,7 @@
   import TextField from '../../components/TextField.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn } from '../../components/ui'
-  import { t } from '../../i18n/index.svelte'
+  import { t, type Label } from '../../i18n/index.svelte'
   import { call, when } from '../../rpc'
   import { grantState, matrix, serviceOrigins, sensitive, services, unknownCapabilities } from './agents'
 
@@ -26,20 +27,32 @@
     grants,
     unlocked,
     busy,
-    run, attempt, onReview
+    active, selectAgent, attempt, onReview
   }: {
     hosted: any
     grants: any[]
     unlocked: boolean
     busy: boolean
-    run: (method: string, params?: Record<string, unknown>) => Promise<boolean>
+    active: string
+    selectAgent: (agent: string) => void
     attempt: (work: () => Promise<unknown>) => Promise<boolean>
     onReview: () => Promise<void>
   } = $props()
 
   let grantee = $state('')
   /** The origin the service capabilities name, `*` for every allowed host. */
-  let origin = $state('*')
+  let origin = $state('')
+  const origins = $derived(serviceOrigins(hosted.hosts.filter((h: any) => h.allowed !== false)))
+  const selectedOrigin = $derived(origin ? (origin === '*' || origins.some(h => h.host === origin) ? origin : '') : origins.length === 1 ? origins[0].host : '')
+  let revoking = $state<any>(null)
+  let submitting = $state(false)
+  let now = $state(Date.now())
+  $effect(() => {
+    const expires = Math.min(...grants.filter(g => !g.revoked_at && g.expires_at > now).map(g => g.expires_at))
+    if (!Number.isFinite(expires)) return
+    const timer = setTimeout(() => (now = Date.now()), Math.max(1, Math.min(2_147_483_647, expires - Date.now())))
+    return () => clearTimeout(timer)
+  })
   let ticked = $state<Record<string, boolean>>({})
   /** The capabilities picked from the vocabulary, targets filled in. */
   let others = $state<string[]>([])
@@ -50,16 +63,25 @@
   let days = $state('')
   let confirming = $state(false)
 
-  const reach = $derived(matrix(grants))
+  $effect(() => {
+    const recipient = active
+    untrack(() => {
+      if (grantee && grantee !== recipient) {
+        ticked = {}; others = []; asking = null; target = ''; confirming = false
+      }
+      grantee = recipient
+    })
+  })
+
+  const reach = $derived(matrix(grants, now))
+  const selectedServices = $derived(Object.keys(ticked).filter(name => ticked[name]))
   const columns = services.flatMap((s) => [s.read, s.write])
   const labelOf = (did: string) => hosted.agents.find((a: any) => a.agent_id === did)?.label ?? did
 
   /** The ticked services at the origin and the picked capabilities, each once. */
   const chosen = $derived([
     ...new Set([
-      ...Object.keys(ticked)
-        .filter((name) => ticked[name])
-        .map((name) => `${name}:${origin}`),
+      ...(selectedOrigin ? selectedServices.map(name => name + ':' + selectedOrigin) : []),
       ...others
     ])
   ])
@@ -91,38 +113,67 @@
   }
 
   async function grant() {
-    await call('grants/add', { agent: grantee, capabilities: chosen, days: days ? Number(days) : null })
-    ticked = {}
-    others = []
-    asking = null
-    target = ''
+    if (!ready || submitting) return
+    submitting = true
+    const recipient = grantee
+    try {
+      await call('grants/add', { agent: recipient, capabilities: chosen, days: days ? Number(days) : null })
+      if (grantee === recipient) { ticked = {}; others = []; asking = null; target = '' }
+      await onReview()
+    } finally { submitting = false }
   }
 
-  const submit = () => (wide.length ? (confirming = true) : attempt(grant))
+  const groups: Record<string, Label> = {
+    account: 'account', vault: 'vault', files: 'files', channel: 'channels', inbox: 'inbox', wallet: 'wallet',
+    profile: 'profile', 'agent.delegation': 'agentPermissionDelegations'
+  }
+  const verbs: Record<string, Label> = {
+    read: 'canRead', write: 'canWrite', list: 'agentPermissionList', publish: 'agentPermissionPublish',
+    contact: 'agentPermissionLetter', propose: 'agentPermissionPropose', execute: 'agentPermissionExecute'
+  }
+  const actions: Record<string, Label> = {
+    'secret.use': 'agentPermissionUse', 'attest.request': 'agentPermissionSign',
+    'action.request': 'agentPermissionAction', 'events.endpoint': 'agentPermissionEndpoints'
+  }
+  function describe(capability: string) {
+    const colon = capability.indexOf(':')
+    const code = colon < 0 ? capability : capability.slice(0, colon)
+    const target = colon < 0 ? '' : capability.slice(colon + 1)
+    const service = services.find(s => s.read === code || s.write === code)
+    const dot = code.lastIndexOf('.')
+    const group = service?.label ?? groups[code.slice(0, dot)]
+    const verb = verbs[code.slice(dot + 1)]
+    const title = actions[code] ? t(actions[code]) : group && verb ? t(group) + ' · ' + t(verb) : code
+    return target ? title + ' · ' + (target === '*' ? t(service ? 'everyHost' : 'everything') : target) : title
+  }
+
+  const ready = $derived(!!grantee && chosen.length > 0 && (!selectedServices.length || !!selectedOrigin))
+  const submit = () => { if (ready && !busy && !submitting) { if (wide.length) confirming = true; else void attempt(grant) } }
 </script>
 
 {#snippet cell(origins: string[] | undefined)}
   {#if origins?.length}
     <Tooltip content={origins.map((o) => (o === '*' ? t('everyHost') : o)).join('\n')}>
       {#snippet children(props)}
-        <span {...props} class="inline-grid size-6 place-items-center rounded-md bg-pale text-forest">
+        <button type="button" {...props} aria-label={origins.map(o => o === '*' ? t('everyHost') : o).join(', ')} class="inline-grid size-6 place-items-center rounded-md bg-pale text-forest">
           {#if origins.includes('*')}<Icon name="check" class="size-3.5" />{:else}<span class="font-mono text-[10.5px]">{origins.length}</span>{/if}
-        </span>
+        </button>
       {/snippet}
     </Tooltip>
   {:else}
-    <span class="inline-block size-1 rounded-full bg-line" aria-label="-"></span>
+    <span class="inline-block size-1 rounded-full bg-line" aria-hidden="true"></span><span class="sr-only">{t('noGrants')}</span>
   {/if}
 {/snippet}
 
 <Section title={t('capabilityGrants')} description={t('capabilitiesHint')} icon="security" flush>
   <div class="overflow-x-auto border-t border-line">
     <table class="w-full min-w-[640px] border-collapse text-[12.5px]" data-testid="capability-matrix">
+      <caption class="sr-only">{t('capabilityGrants')}</caption>
       <thead>
         <tr class="text-[11px] text-faint">
           <th rowspan="2" class="px-5 py-2 text-start font-medium">{t('agentIds')}</th>
           {#each services as service (service.read)}
-            <th colspan="2" class="border-s border-line px-2 pt-2 text-center font-medium text-ink-2">{service.name.replace('Agent ', '')}</th>
+            <th scope="colgroup" colspan="2" class="border-s border-line px-2 pt-2 text-center font-medium text-ink-2">{t(service.label)}</th>
           {/each}
           <th rowspan="2" class="border-s border-line px-3 py-2 text-start font-medium">{t('otherCapabilities')}</th>
         </tr>
@@ -137,7 +188,7 @@
         {#each hosted.agents as agent (agent.agent_id)}
           {@const row = reach.get(agent.agent_id)}
           <tr class="border-t border-line">
-            <td class="px-5 py-2.5 font-medium">{agent.label}</td>
+            <th scope="row" class="px-5 py-2.5 text-start font-medium">{agent.label}</th>
             {#each columns as column, i (column)}
               <td class={cn('px-2 py-2.5 text-center', (i % 2 === 0) && 'border-s border-line')}>{@render cell(row?.services[column])}</td>
             {/each}
@@ -155,33 +206,35 @@
   </div>
 </Section>
 
-{#if unlocked}
+{#if unlocked && hosted.agents.length}
   <Section title={t('serviceGrants')} description={t('serviceGrantsHint')} icon="add" testid="grants-card">
-    <div class="grid gap-4">
+    <fieldset class="grid min-w-0 gap-4" disabled={busy || submitting}>
       <p class="text-[12.5px] text-muted">{t('agentContentBoundary')}</p>
       <div class="grid gap-3 sm:grid-cols-2">
         <Field label={t('grantee')}>
-          <Select bind:value={grantee} placeholder={t('grantee')} testid="grant-agent" class="w-full" options={hosted.agents.map((a: any) => ({ value: a.agent_id, label: a.label }))} />
+          <Select bind:value={() => grantee, selectAgent} label={t('grantee') + (grantee ? ' · ' + labelOf(grantee) : '')} placeholder={t('choose')} testid="grant-agent" class="w-full" options={hosted.agents.map((a: any) => ({ value: a.agent_id, label: a.label }))} />
         </Field>
         <Field label={t('origin')}>
           <Select
-            bind:value={origin}
+            bind:value={() => selectedOrigin, (value) => (origin = value)} label={t('origin') + (selectedOrigin ? ' · ' + (selectedOrigin === '*' ? t('everyHost') : selectedOrigin) : '')}
+            aria-describedby={selectedServices.length && !selectedOrigin ? 'grant-origin-needed' : undefined} placeholder={t('choose')}
             testid="grant-origin"
             class="w-full"
             options={[
               { value: '*', label: t('everyHost') },
-              ...serviceOrigins(hosted.hosts).map((h) => ({ value: h.host, label: h.label ? `${h.host} · ${h.label}` : h.host, mono: true }))
+              ...origins.map((h) => ({ value: h.host, label: h.label ? `${h.host} · ${h.label}` : h.host, mono: true }))
             ]}
           />
+          {#if selectedServices.length && !selectedOrigin}<span id="grant-origin-needed" class="text-[12px] text-muted" role="status">{t('keysRequired')}</span>{/if}
         </Field>
       </div>
       <div class="grid gap-1.5 rounded-lg bg-surface-2/60 p-3" data-testid="service-grants">
         {#each services as service (service.read)}
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="text-[13px]">{service.name}</span>
+            <span class="text-[13px]">{t(service.label)}</span>
             <span class="flex gap-4">
-              <Checkbox bind:checked={() => ticked[service.read] ?? false, (on) => (ticked[service.read] = on)} testid="service-{service.read}">{t('canRead')}</Checkbox>
-              <Checkbox bind:checked={() => ticked[service.write] ?? false, (on) => (ticked[service.write] = on)} testid="service-{service.write}">{t('canWrite')}</Checkbox>
+              <Checkbox label={t(service.label) + ' · ' + t('canRead')} bind:checked={() => ticked[service.read] ?? false, (on) => (ticked[service.read] = on)} testid="service-{service.read}">{t('canRead')}</Checkbox>
+              <Checkbox label={t(service.label) + ' · ' + t('canWrite')} bind:checked={() => ticked[service.write] ?? false, (on) => (ticked[service.write] = on)} testid="service-{service.write}">{t('canWrite')}</Checkbox>
             </span>
           </div>
         {/each}
@@ -246,22 +299,22 @@
         <Select
           bind:value={days}
           testid="grant-days"
-          label={t('grantLifetime')}
+          label={t('grantLifetime') + ' · ' + (days ? t('daysCount', { n: Number(days) }) : t('untilRevoked'))}
           options={[
             { value: '', label: t('untilRevoked') },
             ...[7, 30, 90, 366].map((n) => ({ value: String(n), label: t('daysCount', { n }) }))
           ]}
         />
-        <button class={buttonClass('primary')} data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length} onclick={submit}>{t('grant')}</button>
+        <button class={buttonClass('primary')} data-testid="grant-capabilities" disabled={busy || submitting || !ready} onclick={submit}>{t('grant')}</button>
       </div>
-    </div>
+    </fieldset>
   </Section>
 {/if}
 
 <Section title={t('grantsList')} icon="audit" flush>
   <ul class="divide-y divide-line" data-testid="capability-grants">
     {#each grants as g (g.id)}
-      {@const state = grantState(g)}
+      {@const state = grantState(g, now)}
       <li class="flex items-start gap-3 px-5 py-3">
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-1.5">
@@ -279,7 +332,7 @@
           </div>
         </div>
         {#if state === 'live' && unlocked}
-          <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('grants/revoke', { id: g.id })}>{t('revoke')}</button>
+          <button class={buttonClass('secondary', 'sm')} disabled={busy} aria-label={t('revoke') + ' · ' + labelOf(g.grantee)} onclick={() => (revoking = g)} data-testid="grant-revoke">{t('revoke')}</button>
         {/if}
       </li>
     {:else}
@@ -288,10 +341,20 @@
   </ul>
 </Section>
 
+{#snippet reviewPermissions(values: string[])}
+  <ul class="grid gap-2">
+    {#each values as capability, index (index)}
+      <li class="min-w-0 rounded-lg bg-surface-2 px-3 py-2">
+        <p class={cn('text-[13px] font-medium [overflow-wrap:anywhere]', sensitive(capability) && 'text-warn')}>{describe(capability)}</p>
+        <bdi dir="ltr" class="font-mono text-[11.5px] text-muted [overflow-wrap:anywhere]">{capability}</bdi>
+      </li>
+    {/each}
+  </ul>
+{/snippet}
+
 <Confirm
   bind:open={confirming}
-  title={t('wideGrantTitle', { label: labelOf(grantee) })}
-  description={t('wideGrantHint')}
+  title={t('grant') + ' · ' + labelOf(grantee)}
   confirm={t('grant')}
   tone="warn"
   {busy}
@@ -300,6 +363,16 @@
   {onReview}
 >
   {#snippet body()}
-    <div class="flex flex-wrap gap-1">{#each wide as capability (capability)}<Pill tone="warn" class="font-mono font-normal">{capability}</Pill>{/each}</div>
+    <p class="mb-2 text-[13px]">{t('grantLifetime')} · {days ? t('daysCount', { n: Number(days) }) : t('untilRevoked')}</p>
+    {@render reviewPermissions(chosen)}
+  {/snippet}
+</Confirm>
+
+<Confirm bind:open={() => !!revoking, (next) => !next && (revoking = null)}
+  title={t('revoke') + ' · ' + (revoking ? labelOf(revoking.grantee) : '')}
+  description={t('revokeAllOfGrant')} confirm={t('revoke')} tone="danger" {busy} testid="grant-revoke-dialog"
+  onConfirm={async () => { await call('grants/revoke', { id: revoking.id }); await onReview() }} {onReview}>
+  {#snippet body()}
+    {@render reviewPermissions(revoking?.capabilities ?? [])}
   {/snippet}
 </Confirm>

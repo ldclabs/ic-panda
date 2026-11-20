@@ -61,8 +61,9 @@ class FileTransferCoordinator(private val client: ClientController, private val 
         val captured = capture.also { capture = null }
         val cleanup = { captured?.let { paths()?.finishCapture(it) }; Unit }
         if (uris.isEmpty()) { cleanup(); return }
-        val available = request.channel?.let { (10 - client.messages.composer(it).attachments.size).coerceAtLeast(0) } ?: 10
-        if (uris.size > available) { cleanup(); client.showError("ATTACHMENT_LIMIT"); return }
+        if (request.channel != null && uris.size > 10 - client.messages.composer(request.channel).attachments.size) {
+            cleanup(); client.showError("ATTACHMENT_LIMIT"); return
+        }
         client.deliverExternalResult("file-import", request.stamp, discard = cleanup) { importFiles(uris, request, cleanup) }
     }
     fun beginCapture(): Uri? {
@@ -94,7 +95,14 @@ class FileTransferCoordinator(private val client: ClientController, private val 
                     }
                 }
             } finally { cleanup(); withContext(NonCancellable + Dispatchers.Main.immediate) { cleanupTasks.remove(id) } }
-        }, key = id, onError = { finish(id, it) }) { finish(id); client.library.browse(); client.notice(if (channel == null) "FILE_SAVED_LOCALLY" else "ATTACHMENTS_READY") }
+        }, key = id, onError = {
+            finish(id, it)
+            if (channel == null && mutable.value[id]?.name?.isNotEmpty() == true) client.library.imported(folder, stamp)
+        }) {
+            finish(id)
+            if (channel == null) client.library.imported(folder, stamp) else client.library.changed()
+            client.notice(if (channel == null) "FILE_SAVED_LOCALLY" else "ATTACHMENTS_READY")
+        }
     }
     fun share(file: LibraryFile, open: (File, String) -> Unit) {
         val files = paths() ?: return

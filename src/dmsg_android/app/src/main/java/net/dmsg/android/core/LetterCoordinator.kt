@@ -19,7 +19,7 @@ data class SentLetter(val id: String, val recipient: String, val text: String?, 
 fun parseLetterDrafts(value: JsonElement) = value.arrayRows().map { LetterDraft(it.required("id"), it.required("recipient"), it.required("text"), it.text("invitation"), it.requiredUnsigned("updated_at")) }
 fun parseSentLetters(value: JsonElement) = value.arrayRows().map { SentLetter(it.required("id"), it.required("recipient"), it.text("text"), it.unsigned("created_at"), it.required("state"), it.text("error"), it.requiredFlag("pending"), it.requiredFlag("editable")) }
 
-data class LetterLocation(val folder: String = "INBOX", val query: String = "", val selected: String? = null, val sent: String? = null, val editing: String? = null)
+data class LetterLocation(val folder: String = "INBOX", val query: String = "", val editing: String? = null)
 
 /** Draft identity survives Send, cancellation and retries. No form content enters Bundle. */
 class LetterCoordinator(private val client: ClientController) {
@@ -37,7 +37,7 @@ class LetterCoordinator(private val client: ClientController) {
 
     fun refresh(network: Boolean = true) {
         val request = incoming.begin()
-        client.perform({ parseLetters(it.inbox(false).json) }, key = "letter:inbox", replace = true,
+        client.perform({ parseLetters(it.inbox(false).json) }, key = "letter:inbox", replace = true, quiet = true,
             onError = { incoming.fail(request, it) }) {
             incoming.accept(request, it)
             if (network) refreshIncoming()
@@ -46,7 +46,7 @@ class LetterCoordinator(private val client: ClientController) {
         val sent = history.begin()
         val started = revision
         client.perform({ core -> parseLetterDrafts(core.letterDrafts().decode()) to parseSentLetters(core.letterHistory().decode()) },
-            key = "letter:workspace", replace = true, onError = { saved.fail(loaded, it); history.fail(sent, it) }) { (values, outgoing) ->
+            key = "letter:workspace", replace = true, quiet = true, onError = { saved.fail(loaded, it); history.fail(sent, it) }) { (values, outgoing) ->
             saved.accept(loaded, values); history.accept(sent, outgoing)
             val local = mutable.value.filterKeys { it in dirty || started != revision }
             mutable.value = values.associateBy { it.id } + local
@@ -54,7 +54,7 @@ class LetterCoordinator(private val client: ClientController) {
     }
     private fun refreshIncoming() {
         val request = incoming.begin()
-        client.perform({ parseLetters(it.inbox(true).json) }, key = "letter:inbox:network", replace = true,
+        client.perform({ parseLetters(it.inbox(true).json) }, key = "letter:inbox:network", replace = true, quiet = true,
             onError = { incoming.fail(request, it) }) { incoming.accept(request, it) }
     }
     fun create(): String = LetterDraft().also { mutable.value += it.id to it; revision++ }.id

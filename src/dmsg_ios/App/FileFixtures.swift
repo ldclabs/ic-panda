@@ -56,10 +56,13 @@ extension SessionModel {
         let selected = fixtureFileFolders.first { $0.id == folder }
         if folder != "root", selected == nil { throw MobileError.Failure(code: "NOT_FOUND") }
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let folders = fixtureFileFolders.filter { $0.trashedAt == nil && ($0.parent ?? "root") == folder && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)) }
+        let prefix = selected.map { ($0.path ?? []) + [$0.name] } ?? []
+        let folders = fixtureFileFolders.filter {
+            $0.trashedAt == nil && (query.isEmpty ? ($0.parent ?? "root") == folder : ($0.path ?? []).starts(with: prefix) && $0.name.localizedCaseInsensitiveContains(query))
+        }
         let files = fixtureFiles.filter { file in
             guard file.trashedAt == nil, !fixtureFileFolders.contains(where: { $0.id == file.folder && $0.trashedAt != nil }) else { return false }
-            return (query.isEmpty ? (file.folder ?? "root") == folder : folder == "root" || file.folder == folder)
+            return (query.isEmpty ? (file.folder ?? "root") == folder : (file.path ?? []).starts(with: prefix))
                 && (query.isEmpty || file.name.localizedCaseInsensitiveContains(query))
         }
         updateFileSummaryFixture()
@@ -136,6 +139,8 @@ extension SessionModel {
     }
 
     func trashFileFixture(_ id: String) throws {
+        fixtureFileSaves += 1
+        if ProcessInfo.processInfo.arguments.contains("--ui-files-save-failure"), fixtureFileSaves == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
         if let index = fixtureFiles.firstIndex(where: { $0.id == id }) { fixtureFiles[index].trashedAt = 1_793_000_000_000 }
         else if let index = fixtureFileFolders.firstIndex(where: { $0.id == id }) { fixtureFileFolders[index].trashedAt = 1_793_000_000_000 }
         else { throw MobileError.Failure(code: "NOT_FOUND") }

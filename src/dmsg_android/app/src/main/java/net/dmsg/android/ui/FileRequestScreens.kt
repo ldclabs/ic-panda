@@ -161,12 +161,9 @@ import net.dmsg.android.core.*
     val state by client.state.collectAsStateWithLifecycle()
     val received by client.fileRequests.received.state.collectAsStateWithLifecycle()
     val saving by client.fileRequests.saving.collectAsStateWithLifecycle()
-    val destinations by client.library.destinations.state.collectAsStateWithLifecycle()
     var closing by remember(id) { mutableStateOf(false) }
     var deleting by remember(id) { mutableStateOf<ReceivedFile?>(null) }
     var choosing by remember(id) { mutableStateOf<ReceivedFile?>(null) }
-    var parent by remember(id) { mutableStateOf("root") }
-    var parents by remember(id) { mutableStateOf(listOf("root")) }
     val files = received.valueOrNull()?.takeIf { it.request == id }?.files.orEmpty()
     LaunchedEffect(id, state.epoch, link?.url) { if (link != null) client.fileRequests.select(id) }
     DisposableEffect(id) { onDispose { client.fileRequests.leaveDetail() } }
@@ -207,7 +204,7 @@ import net.dmsg.android.core.*
                     TextButton(onClick = { client.fileRequests.cancelSave(file.id) }) { Text(str(R.string.text_stop_saving_839873c)) }
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (file.canSave) TextButton(onClick = { choosing = file; parent = "root"; parents = listOf("root"); client.library.destination(parent) }, enabled = saving.isEmpty() && !state.working("requests:delete:${file.id}")) { Text(str(R.string.text_save_to_library_0ea6c15)) }
+                    if (file.canSave) TextButton(onClick = { choosing = file }, enabled = saving.isEmpty() && !state.working("requests:delete:${file.id}")) { Text(str(R.string.text_save_to_library_0ea6c15)) }
                     file.savedFile?.let { saved -> TextButton(onClick = { client.navigation.push(Route("files", id = saved)) }) { Text(str(R.string.text_show_in_library_ea56489)) } }
                     if (file.canDelete) TextButton(onClick = { deleting = file }, enabled = progress == null && !state.working("requests:delete:${file.id}")) { Text(str(R.string.text_delete_cloud_copy_2cefb18), color = MaterialTheme.colorScheme.error) }
                 }
@@ -217,15 +214,12 @@ import net.dmsg.android.core.*
     }
     if (closing) AlertDialog(onDismissRequest = { closing = false }, title = { Text(str(R.string.text_close_this_link_304dbda)) }, text = { Text(str(R.string.text_it_will_stop_accepting_uploads_files_already_received_stay_until_eafd93b)) }, confirmButton = { TextButton(onClick = { client.fileRequests.revoke(id); closing = false }) { Text(str(R.string.text_close_link_2384596)) } }, dismissButton = { TextButton(onClick = { closing = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
     deleting?.let { file -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text(str(R.string.text_delete_this_cloud_copy_79eadc7)) }, text = { Text(str(R.string.text_the_received_cloud_copy_will_be_deleted_a_copy_already_saved_in_y_0a229b8)) }, confirmButton = { TextButton(onClick = { client.fileRequests.delete(file); deleting = null }) { Text(str(R.string.text_delete_5b87532)) } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text(str(R.string.text_cancel_998b9c4)) } }) }
-    choosing?.let { file -> AlertDialog(onDismissRequest = { choosing = null }, title = { Text(str(R.string.text_save_into_folder_dd2484b)) }, text = {
-        Column(Modifier.heightIn(max = 350.dp).verticalScroll(rememberScrollState())) {
+    choosing?.let { file ->
+        FileFolderDialog(client, str(R.string.text_save_into_folder_dd2484b), { choosing = null }, action = str(R.string.text_save_here_ac62376), review = {
             Text(str(R.string.text_choose_a_folder_or_use_received_files_title_name_4a3845e))
             TextButton(onClick = { client.fileRequests.save(file, null, str(R.string.text_received_files_1a98b82)); choosing = null }) { Text(str(R.string.text_use_organized_received_folder_a524895)) }
-            ReadFeedback(destinations, { client.library.destination(parent) })
-            if (parents.size > 1) TextButton(onClick = { parents = parents.dropLast(1); parent = parents.last(); client.library.destination(parent) }) { Text(str(R.string.text_parent_folder_3af9479)) }
-            destinations.valueOrNull()?.takeIf { it.folder == parent }?.folders.orEmpty().forEach { folder -> TextButton(onClick = { parent = folder.id; parents += parent; client.library.destination(parent) }) { Icon(Icons.Outlined.Folder, null); Text(folder.name) } }
-        }
-    }, confirmButton = { TextButton(onClick = { client.fileRequests.save(file, parent, str(R.string.text_received_files_1a98b82)); choosing = null }) { Text(str(R.string.text_save_here_ac62376)) } }, dismissButton = { TextButton(onClick = { choosing = null }) { Text(str(R.string.text_cancel_998b9c4)) } }) }
+        }) { path -> client.fileRequests.save(file, path.folderId, str(R.string.text_received_files_1a98b82)); choosing = null }
+    }
 }
 
 internal fun requestState(state: String) = when (state) {

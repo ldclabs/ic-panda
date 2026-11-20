@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat
 import net.dmsg.android.core.ClientController
 import net.dmsg.android.core.LibraryFile
 
-internal class FilePickers(val documents: () -> Unit, val photos: () -> Unit, val camera: () -> Unit, val export: (LibraryFile) -> Unit, val profilePhoto: () -> Unit)
+internal class FilePickers(val documents: () -> Unit, val photos: (remainingAttachments: Int?) -> Unit, val camera: () -> Unit, val export: (LibraryFile) -> Unit, val profilePhoto: () -> Unit)
 internal val LocalFilePickers = staticCompositionLocalOf<FilePickers> { error("File picker host missing") }
 
 private class ExportDocument : ActivityResultContract<LibraryFile, Uri?>() {
@@ -29,7 +29,8 @@ private class ExportDocument : ActivityResultContract<LibraryFile, Uri?>() {
 @Composable internal fun rememberFilePickers(client: ClientController): FilePickers {
     val context = LocalContext.current
     val documents = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments(), client.transfers::importResults)
-    val photos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10), client.transfers::importResults)
+    val photos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(), client.transfers::importResults)
+    val onePhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia(), client.transfers::importResult)
     val profilePhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia(), client.profile::photoResult)
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture(), client.transfers::captureResult)
     val export = rememberLauncherForActivityResult(remember { ExportDocument() }, client.transfers::exportResult)
@@ -44,7 +45,14 @@ private class ExportDocument : ActivityResultContract<LibraryFile, Uri?>() {
     }
     return FilePickers(
         documents = { runCatching { documents.launch(arrayOf("*/*")) }.onFailure { client.transfers.importResult(null); client.showError("FILE_UNAVAILABLE") } },
-        photos = { runCatching { photos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }.onFailure { client.transfers.importResult(null); client.showError("FILE_UNAVAILABLE") } },
+        photos = { remaining -> runCatching {
+            val request = PickVisualMediaRequest.Builder().setMediaType(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+            if (remaining == 1) onePhoto.launch(request.build())
+            else {
+                if (remaining != null) request.setMaxItems(remaining)
+                photos.launch(request.build())
+            }
+        }.onFailure { client.transfers.importResult(null); client.showError("FILE_UNAVAILABLE") } },
         camera = {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) capture()
             else permission.launch(Manifest.permission.CAMERA)

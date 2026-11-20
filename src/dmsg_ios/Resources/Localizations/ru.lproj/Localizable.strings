@@ -1986,6 +1986,8 @@
 	<string>Зарезервировано для загрузки</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Завершите ожидающую операцию аккаунта перед его удалением.</string>
+	<key>Restored</key>
+	<string>Восстановлено</string>
 	<key>Restore</key>
 	<string>Восстановить</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Используйте не менее 12 символов.</string>
 	<key>Confirm local password</key>
 	<string>Подтвердите локальный пароль</string>
+	<key>File digest checked</key>
+	<string>Хеш файла проверен</string>
+	<key>The file changed or cannot be read</key>
+	<string>Файл изменился или не читается</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Подтверждён только хеш; файл не проверялся</string>
+	<key>Delivery report</key>
+	<string>Отчёт о доставке</string>
+	<key>Sign in</key>
+	<string>Вход</string>
+	<key>Link to an existing account</key>
+	<string>Связать с существующим аккаунтом</string>
+	<key>Confirm it is still you</key>
+	<string>Подтвердить, что это вы</string>
+	<key>Receiver</key>
+	<string>Получатель</string>
+	<key>Valid until</key>
+	<string>Действует до</string>
+	<key>High risk</key>
+	<string>Высокий риск</string>
 </dict>
 </plist>

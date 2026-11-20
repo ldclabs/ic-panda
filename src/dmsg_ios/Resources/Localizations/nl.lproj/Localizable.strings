@@ -1986,6 +1986,8 @@
 	<string>Gereserveerd voor uploads</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Los de lopende accountbewerking op voordat je dit account verwijdert.</string>
+	<key>Restored</key>
+	<string>Hersteld</string>
 	<key>Restore</key>
 	<string>Herstellen</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Gebruik minstens 12 tekens.</string>
 	<key>Confirm local password</key>
 	<string>Lokaal wachtwoord bevestigen</string>
+	<key>File digest checked</key>
+	<string>Bestandshash gecontroleerd</string>
+	<key>The file changed or cannot be read</key>
+	<string>Het bestand is gewijzigd of kan niet worden gelezen</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Alleen de hash wordt bevestigd; het bestand is niet gecontroleerd</string>
+	<key>Delivery report</key>
+	<string>Afleverrapport</string>
+	<key>Sign in</key>
+	<string>Log in</string>
+	<key>Link to an existing account</key>
+	<string>Koppelen aan een bestaand account</string>
+	<key>Confirm it is still you</key>
+	<string>Bevestig dat jij het nog steeds bent</string>
+	<key>Receiver</key>
+	<string>Ontvanger</string>
+	<key>Valid until</key>
+	<string>Geldig tot</string>
+	<key>High risk</key>
+	<string>Hoog risico</string>
 </dict>
 </plist>

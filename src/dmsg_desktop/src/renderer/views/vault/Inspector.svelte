@@ -37,6 +37,9 @@
     issues,
     editing = $bindable(false),
     dirty = $bindable(false),
+    busy = $bindable(false),
+    onCancelEdit,
+    onTrash,
     go,
     onCompare,
     onDuplicated
@@ -51,12 +54,15 @@
     issues: Map<string, string[]> | undefined
     editing?: boolean
     dirty?: boolean
+    busy?: boolean
+    onCancelEdit: () => void
+    onTrash: () => void
     go: (path: string) => void
     onCompare: () => void
     onDuplicated: (id: string) => void
   } = $props()
 
-  let busy = $state(false)
+  let editError = $state('')
   let history = $state(false)
   let base = $state('')
   let names = $state<Record<string, any>>({})
@@ -116,7 +122,6 @@
   }
 
   const star = () => attempt(() => call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !item.favorite } }))
-  const discard = () => attempt(() => call(trash ? 'vault/restore' : 'vault/delete', { id: entry.id }), trash ? t('restored') : t('movedToTrash'))
   const duplicate = () =>
     attempt(async () => {
       const copy: any = await call('vault/duplicate', { id: entry.id, title: t('copyTitle', { title: item.title }) })
@@ -126,16 +131,27 @@
   /** The form keeps the version it started from: a version synced in meanwhile makes the save a conflict, not an overwrite. */
   function startEdit() {
     base = entry.revision
+    editError = ''
     history = false
     editing = true
   }
 
-  const save = (changes: Record<string, unknown>) =>
-    attempt(async () => {
+  async function save(changes: Record<string, unknown>) {
+    if (busy || !dirty) return
+    busy = true
+    editError = ''
+    try {
       await call('vault/edit', { id: entry.id, base, changes })
+      if (!alive) return
       dirty = false
       editing = false
-    }, t('saved'))
+      toast(() => t('saved'))
+    } catch (error) {
+      if (alive) editError = errorText(error)
+    } finally {
+      busy = false
+    }
+  }
 
   async function open(url: string) {
     try {
@@ -216,7 +232,7 @@
     {#if unlocked && !editing}
       <div class="ms-auto flex max-w-full flex-wrap items-center gap-1">
         {#if trash}
-          <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={discard} data-testid="vault-restore">
+          <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={onTrash} data-testid="vault-restore">
             <Icon name="restore" />{t('restore')}
           </button>
         {:else if !managed}
@@ -254,7 +270,7 @@
                     <span class="flex items-center gap-2"><Icon name="duplicate" class="text-faint" />{t('duplicate')}</span>
                   </DropdownMenu.Item>
                   <DropdownMenu.Separator class="my-1 h-px bg-line" />
-                  <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={discard} data-testid="vault-trash">
+                  <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={onTrash} data-testid="vault-trash">
                     <span class="flex items-center gap-2"><Icon name="trash" />{t('moveToTrash')}</span>
                   </DropdownMenu.Item>
                 {/if}
@@ -295,8 +311,9 @@
         {busy}
         {mod}
         bind:dirty
+        error={editError}
         onSubmit={save}
-        onCancel={() => (editing = false)}
+        onCancel={onCancelEdit}
       />
     {:else}
       {#each sections(shownFields) as section (section.title)}

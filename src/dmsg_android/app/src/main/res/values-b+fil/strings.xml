@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Magdagdag ng pahintulot"</string>
     <string name="android_purchase_privacy" formatted="false">"Kapag naka-configure, ginagamit ng mga pagbili sa Google Play ang mga serbisyo ng Google account, pagsingil, at pag-verify ng device. Nananatiling naka-encrypt ang mga purchase token hanggang ma-verify ng serbisyo ang paghahatid ng mga karapatan. Hindi ipinapadala sa Google ang nilalaman ng dMsg. Inilalarawan din ng patakaran sa serbisyo sa ibaba ang mga serbisyong para sa Apple na ginagamit ng ibang dMsg app."</string>
     <string name="app_language" formatted="false">"Wika"</string>
+    <string name="approval_file_changed" formatted="false">"Nagbago o hindi mabasa ang file"</string>
+    <string name="approval_link" formatted="false">"Mag-link sa isang umiiral nang account"</string>
+    <string name="approval_login" formatted="false">"Mag-sign in"</string>
+    <string name="approval_reauthenticate" formatted="false">"Kumpirmahin na ikaw pa rin ito"</string>
+    <string name="approval_receiver" formatted="false">"Receiver"</string>
+    <string name="approval_request_expires" formatted="false">"Mag-e-expire ang kahilingan"</string>
+    <string name="approval_valid_until" formatted="false">"May bisa hanggang"</string>
     <string name="autofill_choose_at_login" formatted="false">"Pumili ng account kapag humingi ng password ang isang app o website."</string>
     <string name="autofill_confirm" formatted="false">"Punan gamit ang account na ito?"</string>
     <string name="autofill_no_items" formatted="false">"Wala pang record"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"Mga naka-encrypt na paglilipat"</string>
     <string name="customize_fields" formatted="false">"Iangkop ang mga field"</string>
     <string name="empty_folder" formatted="false">"Walang file sa folder na ito"</string>
+    <string name="file_moved_to_trash" formatted="false">"Inilipat sa Basurahan"</string>
+    <string name="file_name_rule" formatted="false">"Gumamit ng pangalang may 1–255 character na walang slash o control character."</string>
+    <string name="file_name_taken" formatted="false">"May file o folder na may ganitong pangalan."</string>
+    <string name="file_original_folder" formatted="false">"Orihinal na folder"</string>
+    <string name="file_restored" formatted="false">"Ibinalik"</string>
     <string name="follow_system_language" formatted="false">"Sundin ang wika ng system"</string>
     <string name="history_device" formatted="false">"Device"</string>
     <string name="history_fields" formatted="false">"Mga patlang"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"Nagawa na ang %1$s sa %2$s"</string>
     <string name="local_password" formatted="false">"Lokal na password"</string>
     <string name="local_password_length" formatted="false">"Gumamit ng hindi bababa sa 12 character."</string>
+    <string name="message_actions" formatted="false">"Mga aksyon"</string>
+    <string name="message_sending" formatted="false">"Nagpapadala"</string>
     <string name="no_matches" formatted="false">"Walang tugmang resulta"</string>
     <string name="offline_account" formatted="false">"Lokal na account"</string>
     <string name="operation_failed_code" formatted="true">"Hindi natapos ang operasyong ito. Code: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"Walang na-import. Piliin muli ang backup."</string>
     <string name="vault_backup_unlockerror" formatted="false">"Hindi mabuksan ang backup. Suriin ang password o pumili ng kumpletong file."</string>
     <string name="vault_backup_wallet" formatted="false">"Kasama ang mga lihim na naka-save sa mga entry ng wallet."</string>
+    <string name="vault_conflict_saved" formatted="false">"Nai-save bilang isang hiwalay na bersyon. Suriin ang mga salungatan sa pag-sync."</string>
+    <string name="vault_copied" formatted="false">"Nakopya na"</string>
     <string name="vault_field_birthday" formatted="false">"Birthday"</string>
     <string name="vault_field_cardholder" formatted="false">"Cardholder"</string>
     <string name="vault_field_credential" formatted="false">"Kredensyal"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"Pampublikong Susi"</string>
     <string name="vault_field_purchased" formatted="false">"Binili"</string>
     <string name="vault_field_username" formatted="false">"Username"</string>
+    <string name="vault_loading" formatted="false">"Naglo-load…"</string>
+    <string name="vault_search_files" formatted="false">"Maghanap ng mga file"</string>
     <string name="widget_description" formatted="false">"Magbukas ng pribadong workspace. Walang nilalaman ng account na ipinapakita rito."</string>
     <string name="widget_open" formatted="false">"Buksan ang pribadong workspace"</string>
     <string name="widget_title" formatted="false">"dMsg workspace"</string>

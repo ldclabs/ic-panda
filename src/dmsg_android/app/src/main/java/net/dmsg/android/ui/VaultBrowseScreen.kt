@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import net.dmsg.android.core.*
 import net.dmsg.core.vaultKinds
 
@@ -49,37 +48,37 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
     val localMode = client.state.collectAsStateWithLifecycle().value.session?.accountKind == "local"
     val read by client.vault.listing.state.collectAsStateWithLifecycle()
     val page = read.valueOrNull()
-    var query by remember { mutableStateOf(client.vault.query) }
+    val query by client.vault.filters.collectAsStateWithLifecycle()
     val scroll = workspaceListState(client.navigation, "vault:list")
     var types by remember { mutableStateOf(false) }
     var tags by remember { mutableStateOf(false) }
     var tools by remember { mutableStateOf(false) }
-    LaunchedEffect(query) { delay(180); client.vault.browse(query) }
+    LaunchedEffect(Unit) { client.vault.browse() }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-            WorkspaceSearchField(query.text, { query = query.copy(text = it.take(1000)) }, str(R.string.text_search_vault_f6e42b2))
+            WorkspaceSearchField(query.text, { client.vault.browse(query.copy(text = it.take(1000))) }, str(R.string.text_search_vault_f6e42b2))
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(!query.favorites && query.kind == null && !query.trash, { query = query.copy(favorites = false, kind = null, trash = false) }, { Text(str(R.string.text_all_eae0ae1) + (page?.all?.let { " · " + localizedNumber(it) } ?: "")) })
-                FilterChip(query.favorites, { query = query.copy(favorites = !query.favorites, trash = false) }, { Text(str(R.string.text_favorites_960eb5d) + (page?.favorites?.let { " · " + localizedNumber(it) } ?: "")) })
+                FilterChip(!query.favorites && query.kind == null && query.tag == null && !query.trash, { client.vault.browse(VaultQuery(text = if (query.trash) "" else query.text, sort = query.sort)) }, { Text(str(R.string.text_all_eae0ae1) + (page?.all?.let { " · " + localizedNumber(it) } ?: "")) })
+                FilterChip(query.favorites, { client.vault.browse(query.copy(favorites = !query.favorites, trash = false)) }, { Text(str(R.string.text_favorites_960eb5d) + (page?.favorites?.let { " · " + localizedNumber(it) } ?: "")) })
                 Box {
                     FilterChip(query.kind != null, { types = true }, { Text(query.kind?.let(::vaultKindName) ?: str(R.string.text_type_6172196)) })
                     DropdownMenu(types, { types = false }) {
-                        DropdownMenuItem(text = { Text(str(R.string.text_all_types_338629e)) }, onClick = { query = query.copy(kind = null); types = false })
-                        vaultKinds().forEach { kind -> DropdownMenuItem(text = { Text(vaultKindName(kind) + " · " + localizedNumber(page?.kinds?.get(kind) ?: 0u)) }, onClick = { query = query.copy(kind = kind); types = false }) }
+                        DropdownMenuItem(text = { Text(str(R.string.text_all_types_338629e)) }, onClick = { client.vault.browse(query.copy(kind = null)); types = false })
+                        vaultKinds().forEach { kind -> DropdownMenuItem(text = { Text(vaultKindName(kind) + " · " + localizedNumber(page?.kinds?.get(kind) ?: 0u)) }, onClick = { client.vault.browse(query.copy(kind = kind)); types = false }) }
                     }
                 }
                 Box {
                     FilterChip(query.tag != null, { tags = true }, { Text(query.tag ?: str(R.string.text_tags_33e9c4d)) })
                     DropdownMenu(tags, { tags = false }) {
-                        DropdownMenuItem(text = { Text(str(R.string.text_all_tags_b8ceb46)) }, onClick = { query = query.copy(tag = null); tags = false })
-                        page?.tags?.forEach { tag -> DropdownMenuItem(text = { Text(tag) }, onClick = { query = query.copy(tag = tag); tags = false }) }
+                        DropdownMenuItem(text = { Text(str(R.string.text_all_tags_b8ceb46)) }, onClick = { client.vault.browse(query.copy(tag = null)); tags = false })
+                        page?.tags?.forEach { tag -> DropdownMenuItem(text = { Text(tag) }, onClick = { client.vault.browse(query.copy(tag = tag)); tags = false }) }
                     }
                 }
-                FilterChip(query.trash, { query = query.copy(trash = !query.trash) }, { Text(str(R.string.text_trash_8af1079)) })
+                FilterChip(query.trash, client.vault::toggleTrash, { Text(str(R.string.text_trash_8af1079)) })
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(page?.total?.let { quantity(R.plurals.items, it) } ?: str(R.string.text_reading_vault_e577709), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { query = query.copy(sort = if (query.sort == "title") "updated" else "title") }) {
+                TextButton(onClick = { client.vault.browse(query.copy(sort = if (query.sort == "title") "updated" else "title")) }) {
                     Icon(Icons.AutoMirrored.Outlined.Sort, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
                     Text(if (query.sort == "title") str(R.string.text_title_4c18fa6) else str(R.string.text_updated_9306ca8))
                 }
@@ -115,9 +114,10 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
             if (read is ReadState.Empty) item {
                 Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(if (query.trash) Icons.Outlined.DeleteOutline else Icons.Outlined.Search, null, Modifier.size(40.dp))
-                    Spacer(Modifier.height(12.dp)); Text(if (query.trash) str(R.string.text_trash_is_empty_c562cd3) else str(R.string.text_no_matching_items_b35c7c3))
-                    if (!query.trash) TextButton(onClick = { client.navigation.open("vault-backup") }) { Text(str(R.string.vault_backup_import)) }
-                    if (query != VaultQuery()) TextButton(onClick = { query = VaultQuery() }) { Text(str(R.string.text_clear_filters_5ea61be)) }
+                    Spacer(Modifier.height(12.dp)); Text(when { query.filtered -> str(R.string.text_no_matching_items_b35c7c3); query.trash -> str(R.string.text_trash_is_empty_c562cd3); else -> str(R.string.autofill_no_items) })
+                    if (!query.trash && !query.filtered) TextButton(onClick = { client.navigation.open("vault-backup") }) { Text(str(R.string.vault_backup_import)) }
+                    if (query.text.isNotEmpty()) TextButton(onClick = { client.vault.browse(query.copy(text = "")) }) { Text(str(R.string.text_clear_search_3f4dec6)) }
+                    else if (query.filtered) TextButton(onClick = { client.vault.browse(VaultQuery(sort = query.sort, trash = query.trash)) }) { Text(str(R.string.text_clear_filters_5ea61be)) }
                 }
             }
             if (page?.hasMore == true) item { TextButton(onClick = { client.vault.browse(query, more = true) }, enabled = read !is ReadState.Loading, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_load_more_4e1d9f8)) } }

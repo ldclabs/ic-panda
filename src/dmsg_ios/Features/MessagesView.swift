@@ -374,8 +374,15 @@ struct MessagesView: View {
 /// not tick, so the list stays still.
 private struct ChannelRow: View {
     let channel: ChannelItem
+    @Environment(SessionModel.self) private var model
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private var weight: Font.Weight { channel.unread > 0 ? .semibold : .medium }
+    private var preview: String {
+        let text = model.drafts[channel.id] ?? channel.draft
+        if !text.isEmpty { return String(localized: "Draft: ") + text }
+        if let file = model.attachmentDrafts[channel.id]?.first { return String(localized: "Draft: ") + file.name }
+        return channel.preview
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -388,7 +395,7 @@ private struct ChannelRow: View {
                     VStack(alignment: .leading) { title; time }
                 }
                 HStack(alignment: .top, spacing: 6) {
-                    Text(channel.draft.isEmpty ? channel.preview : String(localized: "Draft: ") + channel.draft)
+                    Text(preview)
                         .font(.caption).foregroundStyle(channel.unread > 0 ? .primary : .secondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .frame(maxWidth: .infinity, alignment: .leading)

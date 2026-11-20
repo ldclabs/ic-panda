@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte'
   import DateInput from '../../components/DateInput.svelte'
   import { localMinute, validDateText } from '../../components/form-values'
   import Checkbox from '../../components/Checkbox.svelte'
@@ -44,7 +45,8 @@
     onReviewRequests,
     run,
     onRetry,
-    delegate = $bindable('')
+    delegate = $bindable(''),
+    focusDelegate = $bindable(false)
   }: {
     principal: any
     principalError: string
@@ -56,11 +58,12 @@
     unlocked: boolean
     busy: boolean
     /** Whether the approval request was made. */
-    request: (method: string, params?: Record<string, unknown>) => Promise<boolean>
+    request: (method: string, params?: Record<string, unknown>, failed?: (message: string) => void) => Promise<boolean>
     createRequest: (method: string, params: Record<string, unknown>) => Promise<void>
     onReviewRequests: () => void
     run: (method: string, params?: Record<string, unknown>) => Promise<boolean>
     onRetry: () => void
+    focusDelegate?: boolean
     delegate?: string
   } = $props()
 
@@ -71,7 +74,7 @@
   let defaultConsent = $state(false)
   let registrationPending = $state(false)
   let customController = $state(false)
-  let controllerTouched = $state(false)
+  let controllerTouched = $state<Record<string, boolean>>({})
   let scopes = $state('')
   let audiences = $state('')
   let days = $state(30)
@@ -92,6 +95,8 @@
     { label: t('credentials'), message: errors.credentials },
     { label: t('delegationJournal'), message: errors.delegations }
   ].filter((failure) => failure.message))
+  const eligibleControllers = $derived(current.filter((c: any) => !scopes.trim() || !audiences.trim() || covers(c, list(scopes), list(audiences))))
+  $effect(() => { if (generation && !eligibleControllers.some((c: any) => String(c.generation) === generation)) generation = '' })
   const defaultController = $derived(current.find((c: any) => c.delegation === '*'))
   const registrationErrors = $derived(controllerErrors(controllerName, ceilingScopes, ceilingAudiences))
   const rotationErrors = $derived(rotating ? controllerErrors(rotating.name, rotating.scopes, rotating.audiences, rotating.unrestricted) : {})
@@ -102,6 +107,17 @@
   const successor = $derived(rotation ? current.find((c: any) => c.generation >= rotation!.after) : null)
   const rotatingFrom = $derived(rotation ? principal?.controllers.find((c: any) => c.generation === rotation!.from) : null)
 
+
+  let dialogError = $state('')
+  let grantError = $state('')
+  const validDays = (value: number) => Number.isInteger(value) && value >= 1 && value <= 366
+  $effect(() => { if (!renaming && !renewing && !rotating && !compromising) dialogError = '' })
+  $effect(() => {
+    if (!focusDelegate || !loaded.principal || principalError) return
+    const target = current.length ? '[data-testid="grant-subject"]' : principal ? '[data-testid="default-controller"] [role="checkbox"]' : '[data-testid="enable-principal"]'
+    focusDelegate = false
+    void tick().then(() => document.querySelector<HTMLElement>(target)?.focus())
+  })
 
   async function registerDefault() {
     if (!defaultConsent || defaultController || registrationPending) return
@@ -114,28 +130,31 @@
   }
 
   async function register() {
-    controllerTouched = true
+    controllerTouched = { name: true, scopes: true, audiences: true }
     if (Object.keys(registrationErrors).length || registrationPending) return
     registrationPending = true
     try {
       if (await request('agent/register', controllerParams(controllerName, ceilingScopes, ceilingAudiences))) {
         controllerName = ceilingScopes = ceilingAudiences = ''
-        controllerTouched = customController = false
+        controllerTouched = {}; customController = false
       }
     } finally {
       registrationPending = false
     }
   }
 
-  const grant = () =>
-    request('agent/grant', {
+  async function grant() {
+    if (!delegate.trim() || !scopes.trim() || !audiences.trim() || !validDays(days)) return
+    grantError = ''
+    await request('agent/grant', {
       subject: delegate.trim(),
       scopes: list(scopes),
       audiences: list(audiences),
       days,
       relationship: relationship.trim() || null,
       generation: generation ? Number(generation) : null
-    })
+    }, message => (grantError = message))
+  }
 
   async function rotate() {
     if (!rotating || Object.keys(rotationErrors).length || registrationPending) return
@@ -143,7 +162,8 @@
     // A refused request leaves the dialog open and starts no rotation.
     registrationPending = true
     try {
-      if (!(await request('agent/register', controllerParams(rotating.name, rotating.scopes, rotating.audiences, rotating.unrestricted)))) return
+      dialogError = ''
+      if (!(await request('agent/register', controllerParams(rotating.name, rotating.scopes, rotating.audiences, rotating.unrestricted), message => (dialogError = message)))) return
       rotation = { from, after }
       rotating = null
     } finally {
@@ -153,8 +173,7 @@
 
   async function retireRotated() {
     if (!rotation) return
-    await request('agent/retire', { generation: rotation.from })
-    rotation = null
+    if (await request('agent/retire', { generation: rotation.from })) rotation = null
   }
 
   function renew(credential: any) {
@@ -163,18 +182,18 @@
   }
 
   async function submitRenewal() {
-    if (!renewing) return
+    if (!renewing || !validDays(renewing.days)) return
+    dialogError = ''
     const { credential } = renewing
     const picked = (values: Record<string, boolean>) => Object.keys(values).filter((v) => values[v])
-    await request('agent/grant', {
+    if (await request('agent/grant', {
       subject: credential.subject,
       scopes: picked(renewing.scopes),
       audiences: picked(renewing.audiences),
       days: renewing.days,
       relationship: renewing.relationship.trim() || null,
       replaces: credential.id
-    })
-    renewing = null
+    }, message => (dialogError = message))) renewing = null
   }
 
   const statusLabel = (status: string) =>
@@ -216,7 +235,7 @@
         </span>
       </Fact>
     </dl>
-  {:else if !loaded.principal}
+  {:else if !loaded.principal && !principalError && unlocked}
     <p class="text-[13px] text-muted">{t('loading')}</p>
   {:else if unlocked && !principalError}
     <div class="flex flex-wrap items-end gap-2">
@@ -306,14 +325,14 @@
       <details bind:open={customController} class="border-t border-line px-5 py-3.5" data-testid="custom-controller">
         <summary class="cursor-pointer text-[13px] font-medium">{t('customController')}</summary>
         <p class="mt-2 text-[12px] text-muted">{t('customControllerHint')}</p>
-        <form class="mt-3 grid gap-3" onsubmit={(event) => { event.preventDefault(); register() }} oninput={() => (controllerTouched = true)}>
-          <Field label={t('name')} hint={t('controllerNameHint')}><input bind:value={controllerName} aria-invalid={!!registrationErrors.name} data-testid="controller-name" /></Field>
-          {#if controllerTouched && registrationErrors.name}<p role="alert" class="text-[12px] text-danger">{t(registrationErrors.name)}</p>{/if}
+        <form class="mt-3 grid gap-3" onsubmit={(event) => { event.preventDefault(); register() }}>
+          <TextField label={t('name')} hint={t('controllerNameHint')} bind:value={controllerName} onblur={() => (controllerTouched.name = true)}
+            error={controllerTouched.name && registrationErrors.name ? t(registrationErrors.name) : undefined} data-testid="controller-name" />
           <div class="grid gap-3 sm:grid-cols-2">
-            <div><Field label={t('scopes')} hint={t('controllerScopesHint')}><input bind:value={ceilingScopes} placeholder="app.read, app.write" aria-invalid={controllerTouched && !!registrationErrors.scopes} data-testid="controller-scopes" /></Field>
-              {#if controllerTouched && registrationErrors.scopes}<p role="alert" class="mt-1 text-[12px] text-danger">{t(registrationErrors.scopes)}</p>{/if}</div>
-            <div><Field label={t('audiences')} hint={t('controllerAudiencesHint')}><input bind:value={ceilingAudiences} placeholder="https://example.com" aria-invalid={controllerTouched && !!registrationErrors.audiences} data-testid="controller-audiences" /></Field>
-              {#if controllerTouched && registrationErrors.audiences}<p role="alert" class="mt-1 text-[12px] text-danger">{t(registrationErrors.audiences)}</p>{/if}</div>
+            <TextField label={t('scopes')} hint={t('controllerScopesHint')} bind:value={ceilingScopes} placeholder="app.read, app.write" onblur={() => (controllerTouched.scopes = true)}
+              error={controllerTouched.scopes && registrationErrors.scopes ? t(registrationErrors.scopes) : undefined} data-testid="controller-scopes" />
+            <TextField label={t('audiences')} hint={t('controllerAudiencesHint')} bind:value={ceilingAudiences} placeholder="https://example.com" onblur={() => (controllerTouched.audiences = true)}
+              error={controllerTouched.audiences && registrationErrors.audiences ? t(registrationErrors.audiences) : undefined} data-testid="controller-audiences" />
           </div>
           <div><button class={buttonClass('secondary')} disabled={busy || registrationPending || !!Object.keys(registrationErrors).length} data-testid="controller-register">{t('registerController')}</button></div>
         </form>
@@ -334,7 +353,7 @@
             {#if labelOf(subject) !== subject}<Id id={subject} />{/if}
             <span class="flex-1"></span>
             {#if unlocked && current.length}
-              <button class={buttonClass('ghost', 'xs')} onclick={() => (delegate = labelOf(subject))}><Icon name="add" />{t('grantAnother')}</button>
+              <button class={buttonClass('ghost', 'xs')} onclick={() => { delegate = labelOf(subject); focusDelegate = true }}><Icon name="add" />{t('grantAnother')}</button>
             {/if}
           </div>
           <ul class="divide-y divide-line">
@@ -370,39 +389,38 @@
           </ul>
         </div>
       {:else}
-        <p class="px-5 py-3 text-[13px] text-faint">{!unlocked ? t('locked') : !loaded.credentials ? t('loading') : errors.credentials ? '' : t('noCredentials')}</p>
+        <p class="px-5 py-3 text-[13px] text-faint">{!unlocked ? t('locked') : errors.credentials ? '' : !loaded.credentials ? t('loading') : t('noCredentials')}</p>
       {/each}
     </div>
     {#if unlocked && current.length}
-      <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3.5" data-testid="grant-form">
+      <form class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3.5" data-testid="grant-form" onsubmit={(e) => { e.preventDefault(); void grant() }}>
+        {#if grantError}<Notice tone="danger">{grantError}</Notice>{/if}
         <div class="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_84px] sm:items-end">
           <Field label={t('grantee')}>
             <Suggest bind:value={delegate} testid="grant-subject" suggestions={hosted.agents.map((a: any) => ({ value: a.label, hint: a.agent_id }))} />
           </Field>
           <Field label={t('scopes')}><input bind:value={scopes} placeholder="message.draft" data-testid="grant-scopes" /></Field>
           <Field label={t('audiences')}><input bind:value={audiences} placeholder="https://…" data-testid="grant-audiences" /></Field>
-          <Field label={t('days')}><input type="number" min="1" max="366" bind:value={days} class="tabular-nums" /></Field>
+          <Field label={t('days')} hint={t('agentDaysRange')} hintId="grant-day-hint"><input type="number" required min="1" max="366" step="1" bind:value={days} aria-describedby="grant-day-hint" data-testid="credential-days" class="tabular-nums" /></Field>
         </div>
         <div class="grid gap-2 sm:grid-cols-[1fr_220px_auto] sm:items-end">
           <Field label={t('relationship')}><input bind:value={relationship} placeholder={t('relationshipHint')} data-testid="grant-relationship" /></Field>
           <Field label={t('controller')}>
             <Select
               bind:value={generation}
-              testid="grant-controller"
+              label={t('controller')} testid="grant-controller"
               class="w-full"
               options={[
                 { value: '', label: t('controllerAuto') },
-                ...current
-                  .filter((c: any) => !scopes.trim() || !audiences.trim() || covers(c, list(scopes), list(audiences)))
-                  .map((c: any) => ({ value: String(c.generation), label: `#${c.generation} · ${c.name ?? ceilingText(c)}` }))
+                ...eligibleControllers.map((c: any) => ({ value: String(c.generation), label: `#${c.generation} · ${c.name ?? ceilingText(c)}` }))
               ]}
             />
           </Field>
-          <button class={buttonClass('primary')} data-testid="grant-submit" disabled={busy || !delegate.trim() || !scopes.trim() || !audiences.trim()} onclick={grant}>
+          <button class={buttonClass('primary')} data-testid="grant-submit" disabled={busy || !delegate.trim() || !scopes.trim() || !audiences.trim()} type="submit">
             {t('grant')}
           </button>
         </div>
-      </div>
+      </form>
     {/if}
   </Section>
 
@@ -423,18 +441,19 @@
     </Section>
   {/if}
 
-<Dialog bind:open={() => !!renaming, (open) => !open && (renaming = null)} title={t('renameController')} icon="edit">
-  <Field label={t('name')}><input bind:value={() => renaming?.name ?? '', (v) => renaming && (renaming.name = v)} maxlength="64" /></Field>
+<Dialog dismissible={!busy} testid="controller-rename-dialog" bind:open={() => !!renaming, (open) => !open && (renaming = null)} title={t('renameController')} icon="edit">
+  {#if dialogError}<Notice tone="danger">{dialogError}</Notice>{/if}
+  <Field label={t('name')}><input disabled={busy} bind:value={() => renaming?.name ?? '', (v) => renaming && (renaming.name = v)} maxlength="64" /></Field>
   {#snippet footer()}
     <span class="flex-1"></span>
-    <button class={buttonClass('ghost')} onclick={() => (renaming = null)}>{t('cancel')}</button>
+    <button class={buttonClass('ghost')} disabled={busy} onclick={() => (renaming = null)}>{t('cancel')}</button>
     <button
       class={buttonClass('primary')}
       disabled={busy}
       onclick={async () => {
         if (!renaming) return
-        await request('agent/rename', { generation: renaming.generation, name: renaming.name.trim() || null })
-        renaming = null
+        dialogError = ''
+        if (await request('agent/rename', { generation: renaming.generation, name: renaming.name.trim() || null }, message => (dialogError = message))) renaming = null
       }}>{t('rename')}</button
     >
   {/snippet}
@@ -448,24 +467,26 @@
   tone="danger"
   testid="compromise-dialog"
 >
+  {#if dialogError}<Notice tone="danger">{dialogError}</Notice>{/if}
   <DateInput label={t('untrustedFrom')} mode="datetime" max={localMinute(Date.now())} disabled={busy} bind:value={() => compromising?.at ?? '', (v) => compromising && (compromising.at = v)} testid="compromise-at" />
   {#snippet footer()}
     <span class="flex-1"></span>
-    <button class={buttonClass('ghost')} onclick={() => (compromising = null)}>{t('cancel')}</button>
+    <button class={buttonClass('ghost')} disabled={busy} onclick={() => (compromising = null)}>{t('cancel')}</button>
     <button
       class={buttonClass('danger')}
       disabled={busy || !compromising?.at || !validDateText(compromising.at, 'datetime') || new Date(compromising.at).getTime() > Date.now()}
       data-testid="compromise-confirm"
       onclick={async () => {
         if (!compromising || !validDateText(compromising.at, 'datetime') || new Date(compromising.at).getTime() > Date.now()) return
-        await request('agent/compromise', { generation: compromising.generation, invalid_from: new Date(compromising.at).getTime() })
-        compromising = null
+        dialogError = ''
+        if (await request('agent/compromise', { generation: compromising.generation, invalid_from: new Date(compromising.at).getTime() }, message => (dialogError = message))) compromising = null
       }}>{t('markCompromised')}</button
     >
   {/snippet}
 </Dialog>
 
 <Dialog bind:open={() => !!rotating, (open) => !open && (rotating = null)} title={t('rotateTitle', { generation: rotating?.from.generation ?? '' })} description={t('rotateHint')} icon="key" wide testid="rotate-dialog">
+  {#if dialogError}<Notice tone="danger">{dialogError}</Notice>{/if}
   {#if rotating}
     <div class="grid gap-3">
       <Field label={t('name')} hint={t('controllerNameHint')}><input bind:value={rotating.name} /></Field>
@@ -481,14 +502,15 @@
   {/if}
   {#snippet footer()}
     <span class="flex-1"></span>
-    <button class={buttonClass('ghost')} onclick={() => (rotating = null)}>{t('cancel')}</button>
+    <button class={buttonClass('ghost')} disabled={busy} onclick={() => (rotating = null)}>{t('cancel')}</button>
     <button class={buttonClass('primary')} disabled={busy || registrationPending || !!Object.keys(rotationErrors).length} onclick={rotate} data-testid="rotate-confirm">{t('registerController')}</button>
   {/snippet}
 </Dialog>
 
-<Dialog bind:open={() => !!renewing, (open) => !open && (renewing = null)} title={t('renewTitle')} description={t('renewHint')} icon="epoch" wide testid="renew-dialog">
+<Dialog bind:open={() => !!renewing, (open) => !open && (renewing = null)} title={t('renewTitle') + (renewing ? ' · ' + labelOf(renewing.credential.subject) : '')} description={t('renewHint')} icon="epoch" wide testid="renew-dialog">
+  {#if dialogError}<Notice tone="danger">{dialogError}</Notice>{/if}
   {#if renewing}
-    <div class="grid gap-3">
+    <form id="agent-renew-form" class="grid gap-3" onsubmit={(e) => { e.preventDefault(); void submitRenewal() }}>
       <div class="grid gap-1.5">
         <h3 class="text-[12px] font-medium text-faint">{t('scopeLabel')}</h3>
         <div class="flex flex-wrap gap-3">
@@ -507,17 +529,17 @@
       </div>
       <div class="grid gap-3 sm:grid-cols-[1fr_96px]">
         <Field label={t('relationship')}><input bind:value={renewing.relationship} /></Field>
-        <Field label={t('days')}><input type="number" min="1" max="366" bind:value={renewing.days} class="tabular-nums" data-testid="renew-days" /></Field>
+        <Field label={t('days')}><input type="number" required min="1" max="366" step="1" aria-describedby="renew-days-range" bind:value={renewing.days} class="tabular-nums" data-testid="renew-days" /><span id="renew-days-range" class="text-[11.5px] text-muted">{t('agentDaysRange')}</span></Field>
       </div>
-    </div>
+    </form>
   {/if}
   {#snippet footer()}
     <span class="flex-1"></span>
-    <button class={buttonClass('ghost')} onclick={() => (renewing = null)}>{t('cancel')}</button>
+    <button class={buttonClass('ghost')} disabled={busy} onclick={() => (renewing = null)}>{t('cancel')}</button>
     <button
       class={buttonClass('primary')}
       disabled={busy || !renewing || !Object.values(renewing.scopes).some(Boolean) || !Object.values(renewing.audiences).some(Boolean)}
-      onclick={submitRenewal}
+      type="submit" form="agent-renew-form"
       data-testid="renew-confirm">{t('renew')}</button
     >
   {/snippet}

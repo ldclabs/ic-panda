@@ -2,6 +2,7 @@ import SwiftUI
 import DMsgCore
 
 struct AccountView: View {
+    var inSplitView = false
     private enum Destination: Hashable { case profile, plan }
     @Environment(SessionModel.self) private var model
     @State private var signingOut = false
@@ -33,7 +34,10 @@ struct AccountView: View {
             DisplayLoadStatus(state: planDisplay) { Task { await loadPlan(force: true) } }
             DisplayLoadStatus(state: display) { Task { await loadProfile(force: true) } }
             Section {
-                NavigationLink { ApprovalsView() } label: {
+                NavigationLink {
+                    if inSplitView { NavigationStack { ApprovalsView() } }
+                    else { ApprovalsView() }
+                } label: {
                     Label { LabeledContent("Approvals", value: (model.session?.approvalsWaiting ?? 0).formatted()) } icon: { AppGlyph.approvals.image }
                 }.accessibilityIdentifier("account.approvals")
                 NavigationLink { AccountSecurityView() } label: {

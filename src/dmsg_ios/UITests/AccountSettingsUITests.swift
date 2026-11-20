@@ -5,8 +5,9 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"] + extra
         app.launch()
-        XCTAssertTrue(app.buttons["Account"].waitForExistence(timeout: 8))
-        app.buttons["Account"].tap()
+        let account = app.buttons["Account"].firstMatch
+        XCTAssertTrue(account.waitForExistence(timeout: 8))
+        account.tap()
         return app
     }
 
@@ -209,7 +210,7 @@ import XCTest
             XCTAssertTrue(app.staticTexts["security.passkey-pending"].exists || app.otherElements["security.passkey-pending"].exists)
             capture(app, "Passkey binding retry kept · \(language) · \(appearance)")
             add.tap()
-            XCTAssertTrue(app.staticTexts["gui"].waitForExistence(timeout: 7), "Retry proceeds to the approval without creating another credential")
+            XCTAssertTrue(app.staticTexts["approval.source"].waitForExistence(timeout: 7), "Retry proceeds to the approval without creating another credential")
             XCTAssertTrue(add.waitForNonExistence(timeout: 3))
             capture(app, "Passkey binding approval after retry · \(language) · \(appearance)")
             app.terminate()
@@ -241,7 +242,7 @@ import XCTest
             let busy = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: reset)
             XCTAssertEqual(XCTWaiter.wait(for: [busy], timeout: 2), .completed)
             capture(app, "Reset selected passkey progress · \(language) · \(appearance)")
-            XCTAssertTrue(app.staticTexts["gui"].waitForExistence(timeout: 8))
+            XCTAssertTrue(app.staticTexts["approval.source"].waitForExistence(timeout: 8))
             XCTAssertTrue(app.buttons["security.bind-passkey"].waitForNonExistence(timeout: 3))
             capture(app, "Same passkey binding approval after reset · \(language) · \(appearance)")
             app.terminate()
@@ -295,8 +296,9 @@ import XCTest
             capture(app, "Slow device approval remains visible · \(language)")
             let finished = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: approve)
             XCTAssertEqual(XCTWaiter.wait(for: [finished], timeout: 12), .completed)
-            let result = app.staticTexts["done"]
-            for _ in 0..<6 where !result.isHittable { app.swipeUp() }
+            let result = app.staticTexts["approval.status"]
+            XCTAssertTrue(result.waitForExistence(timeout: 5))
+            XCTAssertEqual(result.label, ["en": "Completed", "zh-Hans": "已完成", "ar": "مكتمل"][language])
             XCTAssertTrue(result.isHittable)
             XCTAssertFalse(app.images["workspace.privacy-shield"].exists)
             capture(app, "Device approval completed · \(language)")

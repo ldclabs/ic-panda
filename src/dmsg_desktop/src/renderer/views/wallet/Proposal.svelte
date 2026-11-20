@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
   import Collapsible from '../../components/Collapsible.svelte'
+  import Confirm from '../../components/Confirm.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Field from '../../components/page/Field.svelte'
@@ -39,26 +40,39 @@
     id,
     metadata,
     now,
+    initialNote,
+    onNoteSaved,
     onUpdated
-  }: { open?: boolean; wallet: Wallet; id: number; metadata: Asset[]; now: number; onUpdated: () => void } = $props()
+  }: { open?: boolean; wallet: Wallet; id: number; metadata: Asset[]; now: number; initialNote?: string; onNoteSaved: () => void; onUpdated: () => void } = $props()
   const noteHintId = $props.id()
   let p = $state<Proposal | null>(null),
     busy = $state(false),
     error = $state(''),
+    readError = $state(''),
+    withdrawOpen = $state(false),
+    approvalToOpen = $state<string | null>(null),
     notice = $state(''),
     packet = $state(''),
     collection = $state<any>(null),
     replace = $state(false)
   let note = $state(''),
     noteLoaded = $state(false),
+    savedNote = $state(''),
+    noteSaving = $state(false),
+    noteSaved = $state(false),
     noteError = $state('')
+  const disabled = $derived(busy || !!readError)
   async function saveNote() {
+    if (noteSaving || !noteLoaded || savedNote === note) return
+    const value = note
+    noteSaving = true
+    noteError = ''
     try {
-      await call('wallet/notes', { wallet: wallet.wallet, proposal: id, note })
-      if (alive) { notice = w('saved'); onUpdated() }
+      await call('wallet/notes', { wallet: wallet.wallet, proposal: id, note: value })
+      if (alive) { savedNote = value; noteSaved = true; onNoteSaved(); onUpdated() }
     } catch (e) {
-      if (alive) error = errorText(e)
-    }
+      if (alive) noteError = errorText(e)
+    } finally { if (alive) noteSaving = false }
   }
   let nonceAction = $state(''),
     nonceFee = $state('0.001'),
@@ -114,12 +128,13 @@
       const result: Proposal = await call('wallet/proposal', { wallet: wallet.wallet, proposal: id })
       if (!alive || seq !== sequence) return
       p = result
-      error = ''
+      readError = ''
       if (!noteLoaded) {
         try {
           const notes: any = await call('wallet/notes', { wallet: wallet.wallet })
           if (alive && seq === sequence) {
-            note = notes[id] ?? ''
+            savedNote = notes[id] ?? ''
+            note = initialNote ?? savedNote
             noteLoaded = true
             noteError = ''
           }
@@ -135,11 +150,11 @@
         selectedPlan = result.plans
       void readCollection()
     } catch (e) {
-      if (alive && seq === sequence) error = errorText(e)
+      if (alive && seq === sequence) readError = errorText(e)
     }
   })
   async function run(method: string, extra: Record<string, unknown> = {}) {
-    if (busy) return
+    if (disabled || approvalToOpen) return
     sequence++
     busy = true
     error = ''
@@ -147,7 +162,11 @@
     try {
       const result: any = await call(method, { wallet: wallet.wallet, proposal: id, ...extra })
       if (!alive) return
-      if (result.kind === 'wallet' && result.digest) await bridge(() => window.dmsg.openApproval(result.id))
+      if (result.kind === 'wallet' && result.digest) {
+        approvalToOpen = result.id
+        await bridge(() => window.dmsg.openApproval(result.id))
+        if (alive) approvalToOpen = null
+      }
       if (method === 'wallet/change') {
         location.hash = walletRoute(wallet.wallet, result.id)
         onUpdated()
@@ -167,6 +186,15 @@
       busy = false
       replace = false
     }
+  }
+  async function resumeApproval() {
+    if (!approvalToOpen || busy) return
+    busy = true
+    try {
+      await bridge(() => window.dmsg.openApproval(approvalToOpen!))
+      if (alive) { approvalToOpen = null; error = '' }
+    } catch (e) { if (alive) error = errorText(e) }
+    finally { if (alive) busy = false }
   }
   async function proposeNonce() {
     if (!p) return
@@ -193,8 +221,9 @@
   })
 </script>
 
-<Dialog bind:open title={`${w('proposals')} #${id}`} description={wallet.name} wide icon="approvals" testid="wallet-proposal-detail">
-  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+<Dialog bind:open dismissible={!busy && !noteSaving} title={`${w('proposals')} #${id}`} description={wallet.name} wide icon="approvals" testid="wallet-proposal-detail">
+  {#if readError}<Notice tone="danger" testid="wallet-proposal-read-error">{readError}
+    <button class={buttonClass('secondary', 'sm')} onclick={load}>{w('retry')}</button></Notice>{/if}
   {#if notice}<Notice>{notice}</Notice>{/if}
   {#if p && available}
     <div class="grid gap-4">
@@ -266,7 +295,7 @@
           <Field label={w('ledgerBlock')}><input bind:value={ledgerBlock} inputmode="numeric" dir="ltr" /></Field>
           <button
             class={buttonClass('secondary', 'sm')}
-            disabled={busy || !/^\d+$/.test(ledgerBlock) || !available.execute}
+            disabled={disabled || !/^\d+$/.test(ledgerBlock) || !available.execute}
             onclick={() => run('wallet/reconcile_transfer', { item: ledgerItem, block: ledgerBlock })}>{w('reconcile')}</button
           >
         </section>
@@ -275,10 +304,10 @@
         <Collapsible
           >{#snippet title()}<span class="text-[13px]">{w('advancedRecovery')}</span>{/snippet}
           <div class="flex flex-wrap gap-2">
-            <button class={buttonClass('secondary', 'sm')} disabled={busy || wallet.frozen} onclick={() => (nonceAction = 'cancel_nonce')}
+            <button class={buttonClass('secondary', 'sm')} disabled={disabled || wallet.frozen} onclick={() => (nonceAction = 'cancel_nonce')}
               >{w('cancel_evm_nonce')}</button
             >
-            <button class={buttonClass('ghost', 'sm')} disabled={busy || wallet.frozen} onclick={() => (nonceAction = 'release_nonce')}
+            <button class={buttonClass('ghost', 'sm')} disabled={disabled || wallet.frozen} onclick={() => (nonceAction = 'release_nonce')}
               >{w('release_evm_nonce')}</button
             >
           </div>
@@ -287,7 +316,7 @@
               {#if nonceAction === 'cancel_nonce'}<Field label={`${w('fee')} · ETH`}
                   ><input bind:value={nonceFee} inputmode="decimal" dir="ltr" /></Field
                 >{/if}
-              <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={proposeNonce}>{w('submit')}</button>
+              <button class={buttonClass('secondary', 'sm')} disabled={disabled} onclick={proposeNonce}>{w('submit')}</button>
             </section>{/if}</Collapsible
         >
       {/if}
@@ -340,7 +369,7 @@
             >{/if}
           {#if !livePlan}<button
               class={buttonClass('secondary', 'sm', 'justify-self-start')}
-              disabled={busy || wallet.frozen || (!available.execute && !available.resign)}
+              disabled={disabled || wallet.frozen || (!available.execute && !available.resign)}
               onclick={() => run('wallet/prepare')}>{w(plan ? 'renewPlan' : 'preparePlan')}</button
             >
           {:else if collection}
@@ -371,14 +400,14 @@
             <div class="flex flex-wrap gap-2">
               <button
                 class={buttonClass('secondary', 'sm')}
-                disabled={busy || wallet.frozen || !livePlan || !packet.trim()}
+                disabled={disabled || wallet.frozen || !livePlan || !packet.trim()}
                 onclick={() => run('wallet/cosign_import', { plan, packet: packet.trim() })}>{w('importPacket')}</button
               ></div
             ></Collapsible
           ><div class="flex flex-wrap gap-2">
             <button
               class={buttonClass('secondary', 'sm')}
-              disabled={busy ||
+              disabled={disabled ||
                 wallet.frozen ||
                 !livePlan ||
                 wallet.me?.status !== 'Active' ||
@@ -388,58 +417,72 @@
             >
             <button
               class={buttonClass('primary', 'sm')}
-              disabled={busy || !livePlan || !collection?.ready || !available.executeCollected}
+              disabled={disabled || !livePlan || !collection?.ready || !available.executeCollected}
               onclick={() => run('wallet/cosign_execute', { plan })}>{w('executeCollected')}</button
             >
           </div>
         </section>
       {/if}
       <section class="border-line grid gap-2 border-t pt-4">
-        {#if noteError}<Notice failure={noteError} tone="danger"
-            >{noteError}<button class={buttonClass('ghost', 'sm')} onclick={load}>{w('retry')}</button></Notice
-          >{/if}
-        <Field label={w('privateNote')} hint={w('privateNoteHint')} hintId={noteHintId}><textarea aria-label={w('privateNote')} aria-describedby={noteHintId} bind:value={note} maxlength="500" rows="2"></textarea></Field>
-        <button class={buttonClass('ghost', 'sm', 'justify-self-start')} disabled={!noteLoaded} onclick={saveNote}>{w('save')}</button>
+        {#if initialNote !== undefined}<Notice tone="warn" testid="wallet-unsaved-note">{w('noteSaveFailed')}</Notice>{/if}
+        {#if noteError}<Notice tone="danger">{noteError}{#if !noteLoaded}<button class={buttonClass('ghost', 'sm')} onclick={load}>{w('retry')}</button>{/if}</Notice>{/if}
+        <Field label={w('privateNote')} hint={w('privateNoteHint')} hintId={noteHintId}><textarea aria-label={w('privateNote')} aria-describedby={noteHintId} disabled={!noteLoaded || noteSaving} bind:value={note} oninput={() => { noteSaved = false; noteError = '' }} maxlength="500" rows="2"></textarea></Field>
+        <button class={buttonClass('ghost', 'sm', 'justify-self-start')} disabled={!noteLoaded || noteSaving || savedNote === note} onclick={saveNote}>{w('save')}</button>
+        {#if noteSaved && note === savedNote}<p class="text-ok text-[12px]" role="status">{w('saved')}</p>{/if}
       </section>
       {#if replace}<Notice tone="warn"
           >{w('resignHint')}<button
             class={buttonClass('danger', 'sm', 'mt-2')}
-            disabled={busy}
+            disabled={disabled}
             onclick={() => run(required.length ? 'wallet/prepare' : 'wallet/execute')}>{w('continue')}</button
           ></Notice
         >{/if}
     </div>
-  {:else}<p class="text-muted">{w('loading')}</p>{/if}
+  {:else if !readError}<p class="text-muted" role="status">{w('loading')}</p>{/if}
   {#snippet footer()}
-    {#if p && available}
+    {#if error}<Notice class="w-full" tone="danger" testid="wallet-proposal-action-error">{error}</Notice>{/if}
+    {#if approvalToOpen}<button class={buttonClass('primary', 'sm')} disabled={busy} onclick={resumeApproval}>{w('openApproval')}</button>
+    {:else if p && available}
       {#if available.approve && knownIntent(p.intent)}<button
           class={buttonClass('primary', 'sm')}
-          disabled={busy}
+          disabled={disabled}
           onclick={() => run('wallet/approve')}>{t('approve')}</button
         >{/if}
-      {#if available.reject}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('wallet/reject')}
+      {#if available.reject}<button class={buttonClass('secondary', 'sm')} disabled={disabled} onclick={() => run('wallet/reject')}
           >{t('reject')}</button
         >{/if}
-      {#if available.veto}<button class={buttonClass('danger', 'sm')} disabled={busy} onclick={() => run('wallet/veto')}
+      {#if available.veto}<button class={buttonClass('danger', 'sm')} disabled={disabled} onclick={() => run('wallet/veto')}
           >{t('twVeto')}</button
         >{/if}
       {#if available.execute && (!required.length || p.status === 'Executing')}<button
           class={buttonClass('primary', 'sm')}
-          disabled={busy}
+          disabled={disabled}
           onclick={() => run(p?.status === 'Executing' ? 'wallet/reconcile' : 'wallet/execute')}
           >{p.status === 'Executing' ? w('reconcile') : t('twExecute')}</button
         >{/if}
-      {#if available.rebroadcast}<button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => run('wallet/settle')}>{t('twSettle')}</button>
-        <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('wallet/broadcast')}
+      {#if available.rebroadcast}<button class={buttonClass('primary', 'sm')} disabled={disabled} onclick={() => run('wallet/settle')}>{t('twSettle')}</button>
+        <button class={buttonClass('secondary', 'sm')} disabled={disabled} onclick={() => run('wallet/broadcast')}
           >{w('rebroadcast')}</button
         >{/if}
-      {#if available.resign}<button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => (replace = true)}
+      {#if available.resign}<button class={buttonClass('ghost', 'sm')} disabled={disabled} onclick={() => (replace = true)}
           >{w('resign')}</button
         >{/if}
       <span class="flex-1"></span>
-      {#if available.cancel}<button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => run('wallet/cancel')}
-          >{t('cancel')}</button
+      {#if available.cancel}<button class={buttonClass('ghost', 'sm')} disabled={disabled} onclick={() => (withdrawOpen = true)} data-testid="wallet-withdraw"
+          >{w('withdrawProposal')}</button
         >{/if}
     {/if}
   {/snippet}
 </Dialog>
+
+<Confirm focusCancel bind:open={withdrawOpen} title={w('withdrawProposal')} description={w('withdrawHint')}
+  confirm={w('withdrawProposal')} busy={disabled || !available?.cancel} describeError={errorText} testid="wallet-withdraw-dialog"
+  onConfirm={async () => {
+    await call('wallet/cancel', { wallet: wallet.wallet, proposal: id })
+    if (alive) { await load(); onUpdated() }
+  }} onReview={() => { void load(); onUpdated() }}>
+  {#snippet body()}
+    <p class="mb-3 font-medium">{wallet.name} · #{id}</p>
+    {#if p}<Intent intent={p.intent} {metadata} compact />{/if}
+  {/snippet}
+</Confirm>

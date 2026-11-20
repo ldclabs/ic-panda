@@ -1986,6 +1986,8 @@
 	<string>上传预留</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>请先处理待定账号操作，再删除此账号。</string>
+	<key>Restored</key>
+	<string>已恢复</string>
 	<key>Restore</key>
 	<string>恢复</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>请至少输入 12 个字符。</string>
 	<key>Confirm local password</key>
 	<string>确认本地口令</string>
+	<key>File digest checked</key>
+	<string>文件摘要已核对</string>
+	<key>The file changed or cannot be read</key>
+	<string>文件已变化或无法读取</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>仅确认摘要，未核对原文件</string>
+	<key>Delivery report</key>
+	<string>交付报告</string>
+	<key>Sign in</key>
+	<string>登录</string>
+	<key>Link to an existing account</key>
+	<string>关联已有账户</string>
+	<key>Confirm it is still you</key>
+	<string>再次确认身份</string>
+	<key>Receiver</key>
+	<string>接收方</string>
+	<key>Valid until</key>
+	<string>有效期至</string>
+	<key>High risk</key>
+	<string>高风险</string>
 </dict>
 </plist>

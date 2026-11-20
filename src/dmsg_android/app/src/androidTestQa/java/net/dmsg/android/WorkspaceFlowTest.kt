@@ -1010,7 +1010,7 @@ class WorkspaceFlowTest {
         capture("qa-vault-detail-light")
         compose.runOnIdle { client.dark(true) }
         capture("qa-vault-detail-dark")
-        compose.onNodeWithContentDescription("Field actions").performClick()
+        compose.onNodeWithContentDescription("Field actions · Password").performClick()
         compose.onNodeWithText("Reveal").performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Sample-only password").fetchSemanticsNodes().isNotEmpty() }
         compose.runOnIdle { client.lock() }
@@ -1405,9 +1405,10 @@ class WorkspaceFlowTest {
         compose.waitUntil(10_000) { client.library.listing.value()?.trash == true && client.library.listing.value()?.folders?.any { it.id == folderId } == true }
         capture("qa-file-trash-risk")
         compose.onNodeWithText("Empty local trash").performScrollTo().performClick()
-        compose.onNodeWithText("Confirm").performClick()
+        compose.onNodeWithText("Delete permanently").performClick()
         compose.waitUntil(10_000) { !client.state.value.working("files:batch") && client.library.results.value.any { it.id == folderId && it.action == "purge" && it.error == null } }
         assertTrue(runCatching { runBlocking { native.fileDetails(id) } }.isFailure)
+        compose.onNodeWithText("Review operation results").performScrollTo().performClick()
         compose.onNodeWithText("Operation results").assertExists()
     }
 
@@ -1421,7 +1422,7 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Local copy saved to Files").assertExists()
         assertFalse(client.state.value.operations.any { it.startsWith("message:file-save:") })
         capture("qa-message-saved-attachment")
-        compose.onNodeWithText("Preview", substring = false).performClick()
+        compose.onNodeWithText("Preview", substring = false).performScrollTo().performClick()
         compose.waitUntil(10_000) { client.filePreview.preview.value()?.bitmap != null }
         compose.onNodeWithText("Complete file verified").assertExists()
     }
@@ -1853,7 +1854,7 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Studio account").performClick()
         compose.waitUntil(10_000) { client.vault.detail.state.value is ReadState.Ready }
         val item = client.vault.detail.value()!!
-        compose.onNodeWithContentDescription("Field actions").performClick()
+        compose.onNodeWithContentDescription("Field actions · Password").performClick()
         compose.onNodeWithText("Field reference and rotation").performClick()
         compose.waitUntil(10_000) { client.secretTools.reference.state.value is ReadState.Ready }
         compose.onNodeWithText("Sample-only password").assertDoesNotExist()

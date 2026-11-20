@@ -262,13 +262,14 @@ struct VaultDetailView: View {
 
     private func remove(_ item: VaultItem) async {
         working = true; defer { working = false }; clearRevealed()
-        do { try await model.trashVaultItem(item); dismiss() }
+        let epoch = model.epoch
+        do { try await model.trashVaultItem(item); guard model.epoch == epoch else { return }; model.notice = String(localized: "Moved to Trash"); dismiss() }
         catch { model.report(error) }
     }
 
     private func restore(_ item: VaultItem) async {
-        working = true; defer { working = false }
-        do { try await model.trashVaultItem(item, restore: true); reload &+= 1 }
+        working = true; defer { working = false }; let epoch = model.epoch
+        do { try await model.trashVaultItem(item, restore: true); guard model.epoch == epoch else { return }; model.notice = String(localized: "Restored"); reload &+= 1 }
         catch { model.report(error) }
     }
 }

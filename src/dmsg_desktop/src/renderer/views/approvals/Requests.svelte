@@ -1,11 +1,13 @@
 <script lang="ts">
   import Icon from '../../components/Icon.svelte'
+  import Dialog from '../../components/Dialog.svelte'
+  import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Section from '../../components/page/Section.svelte'
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { stateLabel, t } from '../../i18n/index.svelte'
-  import { ago, when } from '../../rpc'
+  import { ago, errorText, when } from '../../rpc'
   import { kindIcon, kindOf, reasonLabels, summaryOf, titleOf, trailOf } from '../../approval'
 
   /**
@@ -18,6 +20,8 @@
     requests,
     agents,
     loaded,
+    error,
+    now,
     busy,
     open,
     cancel,
@@ -26,19 +30,30 @@
     requests: any[]
     agents: Record<string, string>
     loaded: boolean
+    error: string
+    now: number
     busy: boolean
     open: (id: string) => unknown
-    cancel: (id: string) => unknown
+    cancel: (id: string) => Promise<void>
     reconcile: () => unknown
   } = $props()
 
   let kind = $state('all')
-  let now = $state(Date.now())
+  let withdrawing = $state<string | null>(null)
+  let sending = $state(false)
+  let withdrawError = $state('')
+  let cancelButton: HTMLButtonElement
+  let withdrawTrigger: HTMLButtonElement | null = null
+  const target = $derived(requests.find(r => r.id === withdrawing && r.state === 'awaiting_user' && r.expires_at > now))
 
-  $effect(() => {
-    const clock = setInterval(() => (now = Date.now()), 15_000)
-    return () => clearInterval(clock)
-  })
+  async function withdraw() {
+    if (!target || sending) return
+    sending = true
+    withdrawError = ''
+    try { await cancel(target.id); withdrawing = null }
+    catch (e) { withdrawError = errorText(e) }
+    finally { sending = false }
+  }
 
   const waiting = $derived(requests.filter((r) => r.state === 'awaiting_user'))
   const running = $derived(requests.filter((r) => r.state === 'executing' || r.state === 'unknown'))
@@ -78,23 +93,23 @@
             {#if request.risk === 'high'}<Pill tone="warn">{t('highRisk')}</Pill>{/if}
             <Pill><Icon name={from.icon} class="size-3" />{from.name || t(from.role)}</Pill>
             <span class="text-[11.5px] text-faint" title={when(request.created_at)}>{ago(request.created_at)}</span>
-            <span class={cn('text-[11.5px] tabular-nums', request.expires_at - now <= 60_000 ? 'text-warn' : 'text-faint')} data-testid="waiting-left">
-              {t('minutesLeft', { n: minutes(request.expires_at - now) })}
+            <span class={cn('text-[11.5px] tabular-nums', request.expires_at - now <= 60_000 ? 'text-warn' : 'text-faint')} title={when(request.expires_at)} data-testid="waiting-left">
+              {request.expires_at <= now ? stateLabel('expired') : t('minutesLeft', { n: minutes(request.expires_at - now) })}
             </span>
           </div>
           <p class="truncate text-[12.5px] text-muted">{summaryOf(request)}</p>
           {#if request.error}<p class="text-[12px] text-warn" data-testid="waiting-error">{t('notRunYet')} {reason(request.error)}</p>{/if}
         </div>
-        {#if request.type !== 'connect'}
-          <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => cancel(request.id)} data-testid="request-cancel">{t('withdraw')}</button>
+        {#if request.type !== 'connect' && request.expires_at > now}
+          <button class={buttonClass('ghost', 'sm')} disabled={busy || !!error} aria-label={t('withdraw') + ' · ' + title(request)} onclick={(event) => { withdrawTrigger = event.currentTarget; withdrawError = ''; withdrawing = request.id }} data-testid="request-cancel">{t('withdraw')}</button>
         {/if}
-        <button class={buttonClass('primary', 'sm')} onclick={() => open(request.id)} data-testid="request-open">{t('open')}</button>
+        <button class={buttonClass('primary', 'sm')} aria-label={t('review') + ' · ' + title(request)} onclick={() => open(request.id)} data-testid="request-open">{t('review')}</button>
       </li>
     {/each}
   </ul>
 </Section>
-{:else}
-  <p class="flex items-center gap-2 px-5 text-[13px] text-faint" data-testid="waiting-list"><Icon name="check" class="text-ok" />{loaded ? t('noRequests') : t('loading')}</p>
+{:else if !error}
+  <p class="flex items-center gap-2 px-5 text-[13px] text-faint" data-testid="waiting-list" role="status">{#if loaded}<Icon name="check" class="text-ok" />{/if}{loaded ? t('noRequests') : t('loading')}</p>
 {/if}
 
 {#if running.length}
@@ -116,7 +131,7 @@
 
 <Section title={t('history')} icon="time" flush>
   {#snippet actions()}
-    <Select bind:value={kind} options={kinds} testid="history-kind" />
+    <Select bind:value={kind} options={kinds} label={t('history') + ' · ' + kinds.find(option => option.value === kind)?.label} testid="history-kind" />
   {/snippet}
   <ul class="divide-y divide-line" data-testid="history-list">
     {#each decided as request (request.id)}
@@ -132,7 +147,25 @@
         </button>
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">-</li>
+      {#if loaded && !error}<li class="flex items-center gap-2 px-5 py-3 text-[13px] text-faint">
+        <span role="status">{kind === 'all' ? t('noRecords') : t('noResults')}</span>
+        {#if kind !== 'all'}<button class={buttonClass('ghost', 'sm')} onclick={() => (kind = 'all')}>{t('allKinds')}</button>{/if}
+      </li>{/if}
     {/each}
   </ul>
 </Section>
+
+<Dialog bind:open={() => !!target, (next) => { if (!next) withdrawing = null }} title={t('withdraw')} description={target && title(target)}
+  icon="approvals" dismissible={!sending} testid="withdraw-dialog" onOpenAutoFocus={(e) => { e.preventDefault(); cancelButton?.focus() }}
+  onCloseAutoFocus={(e) => { e.preventDefault(); (withdrawTrigger?.isConnected ? withdrawTrigger : document.querySelector<HTMLButtonElement>('[data-testid="request-open"], [data-testid="history-kind"]'))?.focus() }}>
+  {#if target}
+    {@const from = source(target)}
+    <p class="text-[13px] text-muted">{from.name || t(from.role)}</p>
+    <p class="mt-1 text-sm [overflow-wrap:anywhere]">{summaryOf(target)}</p>
+  {/if}
+  {#if withdrawError}<Notice tone="danger">{withdrawError}</Notice>{/if}
+  {#snippet footer()}
+    <button bind:this={cancelButton} class={buttonClass('secondary')} disabled={sending} onclick={() => (withdrawing = null)}>{t('cancel')}</button>
+    <button class={buttonClass('danger')} disabled={sending || !!error} onclick={withdraw} data-testid="withdraw-confirm">{t('withdraw')}</button>
+  {/snippet}
+</Dialog>

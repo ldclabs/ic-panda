@@ -41,7 +41,11 @@ struct FileBrowseBar: View {
     var body: some View {
         let active = model.fileTransfers.activeCount
         HStack(spacing: 4) {
-            if showsScopes {
+            if showsScopes && model.localAccount {
+                Label("On this device", systemImage: "internaldrive").font(.subheadline.weight(.medium))
+                    .accessibilityIdentifier("files.scope.local")
+                Spacer()
+            } else if showsScopes {
                 BrowseScopes(title: "Files", selection: $scope, options: [
                     .init(value: .local, title: "On this device", icon: Image(systemName: "internaldrive"), identifier: "files.scope.local"),
                     .init(value: .cloud, title: "Cloud backups", icon: AppGlyph.sync.image, identifier: "files.scope.cloud"),
@@ -98,11 +102,14 @@ struct FileSummaryRow: View {
 
 struct FileRow: View {
     let file: LibraryFile
+    var showsLocation = false
     @Environment(SessionModel.self) private var model
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            FileSummaryRow(name: file.name, mime: file.mime, subtitle: fileSize(file.size) + " · " + file.statusLabel, thumbnail: file)
+            let details = fileSize(file.size) + " · " + file.statusLabel
+            let location = fileFolderPath(file.path)
+            FileSummaryRow(name: file.name, mime: file.mime, subtitle: showsLocation ? location + " · " + details : details, thumbnail: file)
             if let job = model.fileTransfers.backups.first(where: { $0.file == file.id && $0.version == file.current }) {
                 FileTransferProgressView(id: job.id, stage: job.stage, bytes: job.bytes, total: job.totalBytes, failure: job.error, retry: job.retryAt, compact: true)
             }
@@ -138,25 +145,31 @@ struct FileResultsView: View {
 }
 
 struct FileLibraryHelpView: View {
+    @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         List {
             Section("On this device") {
-                Text("Import a document to encrypt it on this device. Cloud backup is a separate action.")
-                Text("Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.")
+                if !model.localAccount {
+                    Text("Import a document to encrypt it on this device. Cloud backup is a separate action.")
+                    Text("Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.")
+                }
                 LabeledContent("Import file", value: "1000 MiB")
-                LabeledContent("Conversation attachments", value: "100 MiB")
+                    .accessibilityIdentifier("files.importLimit")
+                if !model.localAccount { LabeledContent("Conversation attachments", value: "100 MiB") }
             }
-            Section("Cloud backups") {
-                Text("Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.")
-                Text("Restoring downloads and verifies the selected version before it can be opened.")
-                NavigationLink("Current plan and limits") { SubscriptionView() }
+            if !model.localAccount {
+                Section("Cloud backups") {
+                    Text("Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.")
+                    Text("Restoring downloads and verifies the selected version before it can be opened.")
+                    NavigationLink("Current plan and limits") { SubscriptionView() }
+                }
+                Section("Background transfer") {
+                    Text("Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.")
+                }
+                Section("Trash") { Text("Cloud backups are kept. This only changes the copy on this device.") }
             }
-            Section("Background transfer") {
-                Text("Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.")
-            }
-            Section("Trash") { Text("Cloud backups are kept. This only changes the copy on this device.") }
-        }.privateScreen().navigationTitle("About files and backups").navigationBarTitleDisplayMode(.inline)
+        }.privateScreen().navigationTitle(model.localAccount ? String(localized: "Files") : String(localized: "About files and backups")).navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
     }
 }

@@ -7,6 +7,7 @@ struct ApprovalsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var verified: Bool?
     @State private var readID: UUID?
+    @State private var selected: ApprovalView?
 
     var body: some View {
         List {
@@ -14,20 +15,13 @@ struct ApprovalsView: View {
                 NoticeBar(text: model.approvals.isEmpty ? String(localized: "The operation could not be completed. Please try again.") : String(localized: "Showing saved content. The latest sync did not finish."))
                 Button("Retry") { Task { await reload() } }.accessibilityIdentifier("approvals.retry")
             }
+            let waiting = model.approvals.filter { $0.state == "awaiting_user" }
+            let processing = model.approvals.filter { $0.state != "awaiting_user" }
+            if !waiting.isEmpty {
+                Section("Waiting for approval") { rows(waiting.sorted { $0.expiresAt < $1.expiresAt }) }
+            }
+            if !processing.isEmpty { Section("In progress") { rows(processing) } }
             Section {
-                ForEach(model.approvals) { request in
-                    NavigationLink { ApprovalDetailView(request: request) } label: {
-                        HStack(alignment: .top, spacing: 10) {
-                            ObjectIcon(glyph: request.type == "device_pair" ? .device : .signature)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(approvalTitle(request.type)).font(.headline)
-                                Text(request.source).font(.caption).foregroundStyle(.secondary)
-                                Text(Date(timeIntervalSince1970: Double(request.expiresAt) / 1000), style: .relative)
-                                    .font(.caption).foregroundStyle(.orange)
-                            }
-                        }
-                    }.compactObjectRow()
-                }
                 if model.approvals.isEmpty {
                     if verified == true {
                         ContentUnavailableView("All caught up", image: AppGlyph.approvals.assetName, description: Text("Requests that need your decision appear here."))
@@ -38,9 +32,37 @@ struct ApprovalsView: View {
                 Text("Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.")
             }
         }.privateScreen().navigationTitle("Approvals")
+            .navigationDestination(isPresented: Binding(get: { selected != nil }, set: { if !$0 { selected = nil } })) {
+                if let selected { ApprovalDetailView(request: selected) }
+            }
             .toolbar { if showsDone { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } } }
             .task(id: model.contentRevision) { await reload(showCached: true) }
             .refreshable { await reload() }
+    }
+
+    @ViewBuilder private func rows(_ requests: [ApprovalView]) -> some View {
+        ForEach(requests) { request in
+            Button { selected = request } label: {
+                HStack(alignment: .top, spacing: 10) {
+                    ObjectIcon(glyph: request.type == "device_pair" ? .device : .signature)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(approvalTitle(request.type)).font(.headline)
+                        Text(approvalSource(request.source)).font(.subheadline).foregroundStyle(.secondary)
+                        if request.state == "awaiting_user" {
+                            HStack(spacing: 4) {
+                                Text("Request expires")
+                                Text(Date(timeIntervalSince1970: Double(request.expiresAt) / 1000), format: .dateTime.month().day().hour().minute())
+                            }.font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Text(secretStateTitle(request.state)).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.forward").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
+                }.contentShape(Rectangle())
+            }.buttonStyle(.plain).compactObjectRow()
+        }
     }
 
     private func reload(showCached: Bool = false) async {
@@ -52,6 +74,13 @@ struct ApprovalsView: View {
         let success = await model.loadApprovals(refresh: true)
         if readID == attempt && !Task.isCancelled { verified = success }
     }
+}
+
+private func approvalSource(_ source: String) -> String {
+    if source == "gui" { return "dMsg" }
+    if source == "cli" { return "dMsg CLI" }
+    if source.hasPrefix("connect:https://") || source.hasPrefix("connect:http://") { return String(source.dropFirst("connect:".count)) }
+    return source
 }
 
 func approvalTitle(_ type: String) -> String {
@@ -91,14 +120,17 @@ struct ApprovalDetailView: View {
     @State private var payload: DisplayValue?
     @State private var working = false
     @State private var decision: Bool?
-    @State private var result: DisplayValue?
+    @State private var readFailed = false
+    @State private var readID: UUID?
     @State private var state: String?
     @State private var observedVersion: UInt64?
     @State private var supported = false
     @State private var readyAt = Date.distantFuture
     @State private var decisionTask: Task<Void, Never>?
+    @AccessibilityFocusState private var statusFocused: Bool
     #if DEBUG
     @State private var fixtureState: String?
+    @State private var fixtureReadFailed = false
     #endif
 
 
@@ -118,10 +150,15 @@ struct ApprovalDetailView: View {
         return payload
     }
 
+    private func recordField(_ key: String) -> DisplayValue? {
+        guard case .object(let fields)? = payload, let value = fields[key], !value.isNull else { return nil }
+        return value
+    }
+
     private var envelope: DisplayValue? {
-        guard case .object(var fields)? = payload, let detail = fields["detail"], !detail.isNull else { return nil }
-        fields.removeValue(forKey: "detail")
-        return .object(fields)
+        guard case .object(var fields)? = payload, fields["detail"] != nil else { return nil }
+        for key in ["detail", "result", "delivery_report", "state"] { fields.removeValue(forKey: key) }
+        return fields.isEmpty ? nil : .object(fields)
     }
 
     private var summary: String? {
@@ -129,91 +166,150 @@ struct ApprovalDetailView: View {
         return approvalSummary(type: request.type, detail: reviewed)
     }
 
+    private var readKey: String {
+        let current = model.approvals.first { $0.id == request.id }
+        return "\(request.id):\(model.epoch):\(model.concealed):\(current?.state ?? ""):\(current?.updatedAt ?? 0)"
+    }
+
     var body: some View {
-        List {
-            HStack(alignment: .top, spacing: 12) {
-                ObjectIcon(glyph: .approvals)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(approvalTitle(request.type)).font(.title2.bold())
-                    Text(request.source).font(.subheadline).foregroundStyle(.secondary).textSelection(.enabled)
-                }
-            }.listRowBackground(Color.clear).listRowSeparator(.hidden)
-                .reminderVisible(.approval(request.id), watermark: observedVersion, ready: observedVersion != nil)
-            if let summary {
-                Text(summary).font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("approval.summary")
-            }
-            if request.type == "device_pair" {
-                NoticeBar(text: String(localized: "This device may receive your private content. The content root must be redistributed after approval."))
-                    .listRowBackground(Color.clear)
-            }
-            if let recoveryNotice { NoticeBar(text: recoveryNotice).listRowBackground(Color.clear) }
-            if let notice = approvalNotice(request.type) { NoticeBar(text: notice).listRowBackground(Color.clear) }
-            if payload != nil && !supported { NoticeBar(text: String(localized: "This request requires a supported desktop client.")) }
-            LabeledContent("Account ID") {
-                Text(model.session?.account ?? "").font(.caption.monospaced()).textSelection(.enabled)
-                    .environment(\.layoutDirection, .leftToRight)
-            }
-            Section("Review the complete request") {
-                if let reviewed { CanonicalDetails(value: reviewed) } else { ProgressView() }
-            }
-            // Bookkeeping around the request, not part of what is being decided.
-            if let envelope { DisclosureGroup("Technical details") { CanonicalDetails(value: envelope) } }
-            if let result { Section("Result") { CanonicalDetails(value: result) } }
-        }.privateScreen().navigationTitle("Review request").navigationBarTitleDisplayMode(.inline)
-            .safeAreaInset(edge: .bottom) {
-                if result == nil && state == "awaiting_user" {
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let expired = context.date.timeIntervalSince1970 * 1000 >= Double(request.expiresAt)
-                        VStack(spacing: 8) {
-                            Text(LocalizedStringKey(working ? "Waiting for confirmation" : expired ? "This request has expired" : "Your decision applies only to this request."))
-                                .font(.caption).foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                                .accessibilityIdentifier("approval.decision-hint")
-                            HStack {
-                                Button(role: .destructive) { decision = false } label: {
-                                    Text("Reject").frame(maxWidth: .infinity)
-                                }.buttonStyle(.bordered).accessibilityIdentifier("approval.reject")
-                                Button { decision = true } label: {
-                                    HStack(spacing: 8) {
-                                        if working { ProgressView().controlSize(.small).accessibilityHidden(true) }
-                                        Text("Approve")
-                                    }.frame(maxWidth: .infinity)
-                                }.buttonStyle(.borderedProminent).frame(maxWidth: .infinity)
-                                    .accessibilityIdentifier("approval.approve")
-                                    .disabled(expired || context.date < readyAt || !supported)
-                            }.controlSize(.large).disabled(payload == nil || working)
+        ScrollViewReader { reader in
+            List {
+                HStack(alignment: .top, spacing: 12) {
+                    ObjectIcon(glyph: .approvals)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(approvalTitle(request.type)).font(.title2.bold())
+                        Text(approvalSource(request.source)).font(.subheadline).foregroundStyle(.secondary).textSelection(.enabled)
+                            .accessibilityIdentifier("approval.source")
+                        if request.risk == "high", state == "awaiting_user" {
+                            Label("High risk", systemImage: "exclamationmark.triangle").font(.caption.weight(.semibold))
+                                .foregroundStyle(.orange)
                         }
-                    }.padding(16).background(.bar)
-                } else if result == nil && (state == "executing" || state == "unknown") {
-                    VStack(spacing: 8) {
-                        Text("The result is not confirmed. Check it again before retrying.")
-                            .font(.caption).foregroundStyle(.secondary)
-                        Button("Refresh") { Task { await reconcile() } }.disabled(working)
-                    }.padding(16).background(.bar)
+                        if let state, state != "awaiting_user" {
+                            Text(secretStateTitle(state)).font(.headline)
+                                .accessibilityIdentifier("approval.status")
+                                .accessibilityFocused($statusFocused)
+                        }
+                    }
+                }.listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    .reminderVisible(.approval(request.id), watermark: observedVersion, ready: observedVersion != nil)
+                    .id("approval.heading")
+                if let summary {
+                    Text(summary).font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("approval.summary")
                 }
-            }
-            .task(id: request.id + ":\(model.epoch):\(model.concealed)") { await load() }
-            .alert(LocalizedStringKey(decision == true ? "Approve the reviewed request?" : "Reject this request?"),
-                isPresented: Binding(get: { decision != nil }, set: { if !$0 { decision = nil } }), presenting: decision) { approve in
-                Button(LocalizedStringKey(approve ? "Approve this request" : "Reject"), role: approve ? nil : .destructive) {
-                    decisionTask = Task { await decide(approve) }
+                if state == "awaiting_user", request.type == "device_pair" {
+                    NoticeBar(text: String(localized: "This device may receive your private content. The content root must be redistributed after approval."))
+                        .listRowBackground(Color.clear)
                 }
-                Button("Cancel", role: .cancel) { decision = nil }
-            } message: { _ in
-                if let summary { Text(verbatim: request.source + "\n" + summary) }
-                else { Text("Your decision applies only to this request.") }
-            }
-            .onDisappear { decisionTask?.cancel() }
+                if state == "awaiting_user", let recoveryNotice { NoticeBar(text: recoveryNotice).listRowBackground(Color.clear) }
+                if state == "awaiting_user", let notice = approvalNotice(request.type) { NoticeBar(text: notice).listRowBackground(Color.clear) }
+                if let reviewed, let check = approvalFileCheck(type: request.type, detail: reviewed) {
+                    Text(check).font(.subheadline).accessibilityIdentifier("approval.file-check")
+                }
+                if state == "awaiting_user" && payload != nil && !supported { NoticeBar(text: String(localized: "This request requires a supported desktop client.")) }
+                LabeledContent("Account ID") {
+                    Text(model.session?.account ?? "").font(.caption.monospaced()).textSelection(.enabled)
+                        .environment(\.layoutDirection, .leftToRight)
+                }
+                Section("Review the complete request") {
+                    if let reviewed { CanonicalDetails(value: reviewed) }
+                    else if readFailed {
+                        NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
+                        Button("Retry") { Task { await load() } }.accessibilityIdentifier("approval.detail-retry")
+                    } else { ProgressView() }
+                }
+                // Bookkeeping around the request, not part of what is being decided.
+                if let envelope { DisclosureGroup("Technical details") { CanonicalDetails(value: envelope) } }
+                if let result = recordField("result") { Section("Result") { CanonicalDetails(value: result) } }
+                if let delivery = recordField("delivery_report") { Section("Delivery report") { CanonicalDetails(value: delivery) } }
+            }.privateScreen().navigationTitle("Review request").navigationBarTitleDisplayMode(.inline)
+                .safeAreaInset(edge: .bottom) {
+                    if state == "awaiting_user" {
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            let expired = context.date.timeIntervalSince1970 * 1000 >= Double(request.expiresAt)
+                            VStack(spacing: 8) {
+                                Text(LocalizedStringKey(working ? "Waiting for confirmation" : expired ? "This request has expired" : "Your decision applies only to this request."))
+                                    .font(.caption).foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                                    .accessibilityIdentifier("approval.decision-hint")
+                                if expired {
+                                    Button("Refresh") { Task { await load() } }
+                                } else { HStack {
+                                    Button(role: .destructive) { decision = false } label: {
+                                        Text("Reject").frame(maxWidth: .infinity)
+                                    }.buttonStyle(.bordered).accessibilityIdentifier("approval.reject")
+                                    Button { decision = true } label: {
+                                        HStack(spacing: 8) {
+                                            if working { ProgressView().controlSize(.small).accessibilityHidden(true) }
+                                            Text("Approve")
+                                        }.frame(maxWidth: .infinity)
+                                    }.buttonStyle(.borderedProminent).frame(maxWidth: .infinity)
+                                        .accessibilityIdentifier("approval.approve")
+                                        .disabled(expired || context.date < readyAt || !supported)
+                                }.controlSize(.large).disabled(payload == nil || working) }
+                            }
+                        }.padding(16).background(.bar)
+                    } else if state == "executing" || state == "unknown" {
+                        VStack(spacing: 8) {
+                            Text("The result is not confirmed. Check it again before retrying.")
+                                .font(.caption).foregroundStyle(.secondary)
+                            Button("Refresh") { Task { await reconcile() } }.disabled(working)
+                        }.padding(16).background(.bar)
+                    }
+                }
+                .task(id: readKey) { await load() }
+                .alert(LocalizedStringKey(decision == true ? "Approve the reviewed request?" : "Reject this request?"),
+                    isPresented: Binding(get: { decision != nil }, set: { if !$0 { decision = nil } }), presenting: decision) { approve in
+                    Button(LocalizedStringKey(approve ? "Approve this request" : "Reject"), role: approve ? nil : .destructive) {
+                        decisionTask = Task { await decide(approve) }
+                    }
+                    Button("Cancel", role: .cancel) { decision = nil }
+                } message: { _ in
+                    if let summary { Text(verbatim: approvalSource(request.source) + "\n" + summary) }
+                    else { Text(verbatim: approvalTitle(request.type) + "\n" + approvalSource(request.source)) }
+                }
+                .task(id: state == "awaiting_user" ? request.expiresAt : nil) {
+                    guard state == "awaiting_user" else { return }
+                    let remaining = Date(timeIntervalSince1970: Double(request.expiresAt) / 1000).timeIntervalSinceNow
+                    if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
+                    guard !Task.isCancelled, !working, !model.concealed else { return }
+                    decision = nil
+                }
+                .onDisappear { decisionTask?.cancel() }
+                .onChange(of: state) { previous, next in
+                    if previous != nil, let next, next != "awaiting_user" {
+                        reader.scrollTo("approval.heading", anchor: .top)
+                        statusFocused = true
+                    }
+                }
+        }
     }
 
     private func load() async {
         guard !working else { return }
-        supported = false; state = nil; payload = nil; observedVersion = nil; readyAt = .distantFuture
-        guard !model.concealed else { return }
+        let attempt = UUID()
+        readID = attempt
+        supported = false; state = nil; payload = nil; readFailed = false; observedVersion = nil; readyAt = .distantFuture
+        guard !model.concealed else { decision = nil; return }
         #if DEBUG
         if model.uiTesting {
-            state = fixtureState ?? request.state; supported = true; readyAt = .now
+            if ProcessInfo.processInfo.arguments.contains("--ui-approval-detail-retry"), !fixtureReadFailed {
+                fixtureReadFailed = true; readFailed = true; return
+            }
+            state = fixtureState ?? request.state
+            if state == "awaiting_user" && request.expiresAt <= NotificationTime.now { state = "expired" }
+            supported = request.mobileSupported == true; readyAt = .now
+            if request.id == "web-review" {
+                payload = .object(["detail": .object(["method": .string("authenticate"), "origin": .string("https://studio.example.test"),
+                    "content": .object(["purpose": .string("Login"), "receiver": .string("Studio notes"),
+                        "expires_at": .number(Decimal(request.expiresAt + 3_600_000))])])])
+                return
+            }
+            if request.type == "attest" {
+                payload = .object(["detail": .object(["statement": .object(["profile": .string("text"),
+                    "content": .object(["text": .string("Publish the reviewed release notes")])])])])
+                return
+            }
             if request.type == "grant", let grant = model.fixtureGrantReview { payload = .object(["detail": grant]); return }
             payload = .object(["detail": .object([
                 "capabilities": .array([.string("ContentSign"), .string("VaultUnlock"), .string("RootManage")]),
@@ -224,43 +320,52 @@ struct ApprovalDetailView: View {
         #endif
         let epoch = model.epoch
         do {
-            guard let snapshot = try await model.engine?.approval(id: request.id), epoch == model.epoch else { return }
+            guard let engine = model.engine else { return }
+            let snapshot = try await engine.approval(id: request.id)
+            guard readID == attempt, epoch == model.epoch, !Task.isCancelled, !model.concealed else { return }
             let fresh: ApprovalView = try model.decode(snapshot)
             guard fresh.digest == request.digest else { throw CocoaError(.coderInvalidValue) }
             state = fresh.state
+            if fresh.state != "awaiting_user" { decision = nil }
             observedVersion = fresh.updatedAt
             supported = fresh.mobileSupported == true
             payload = try model.decode(snapshot); readyAt = .now.addingTimeInterval(1)
-        } catch { if epoch == model.epoch { model.report(error) } }
+        } catch {
+            if readID == attempt, epoch == model.epoch, !Task.isCancelled, !model.concealed {
+                readFailed = true; decision = nil; model.reportBackground(error)
+            }
+        }
     }
 
     private func reconcile() async {
-        guard let engine = model.engine, !working else { return }
-        working = true; model.activity(); defer { working = false }
+        guard !working else { return }
+        working = true; model.activity()
         let epoch = model.epoch
         do {
-            _ = try await coreOperation { try await engine.reconcile(operation: $0) }
-            let snapshot = try await engine.approval(id: request.id)
-            guard epoch == model.epoch else { return }
-            let fresh: ApprovalView = try model.decode(snapshot)
-            guard fresh.digest == request.digest else { throw CocoaError(.coderInvalidValue) }
-            state = fresh.state; payload = try model.decode(snapshot)
-            supported = fresh.mobileSupported == true
-            await model.loadApprovals()
-        } catch { if epoch == model.epoch { supported = false; state = nil; model.report(error) } }
+            if let engine = model.engine { _ = try await coreOperation { try await engine.reconcile(operation: $0) } }
+            #if DEBUG
+            if model.uiTesting { fixtureState = "done"; model.approvals.removeAll { $0.id == request.id } }
+            #endif
+        } catch { if epoch == model.epoch { model.report(error) } }
         working = false
-        if epoch == model.epoch && !model.concealed { await load() }
+        if epoch == model.epoch && !model.concealed { await load(); await model.loadApprovals() }
     }
 
     private func decide(_ approve: Bool) async {
-        guard model.engine != nil || model.uiTesting, !working, !approve || supported else { return }
+        guard model.engine != nil || model.uiTesting, !working, !model.concealed, state == "awaiting_user",
+              request.expiresAt > NotificationTime.now, !approve || (supported && Date.now >= readyAt) else { return }
         decision = nil; working = true; model.activity()
         let epoch = model.epoch
         defer { working = false }
         do {
             let value = try await decideRequest(approve)
             guard epoch == model.epoch else { return }
-            result = value; Haptics.success(); await model.updateSession(); await model.loadApprovals()
+            if case .object(let fields) = value, case .string(let outcome)? = fields["state"] {
+                state = outcome
+                if fields["detail"] != nil { payload = value }
+                if outcome == "done" || outcome == "rejected" { Haptics.success() }
+            }
+            await model.updateSession(); await model.loadApprovals()
         } catch { if epoch == model.epoch { supported = false; state = nil; model.report(error) } }
         working = false
         if epoch == model.epoch && !model.concealed { await load() }
@@ -285,6 +390,7 @@ struct ApprovalDetailView: View {
             }
             let outcome = approve ? "done" : "rejected"
             fixtureState = outcome
+            model.approvals.removeAll { $0.id == request.id }
             return .object(["state": .string(outcome)])
         }
         #endif
@@ -305,6 +411,31 @@ struct ApprovalDetailView: View {
     }
 }
 
+private func reviewedStatement(type: String, fields: [String: DisplayValue]) -> [String: DisplayValue]? {
+    let statement: DisplayValue?
+    switch type {
+    case "attest": statement = fields["statement"]
+    case "connect":
+        guard case .object(let content)? = fields["content"] else { return nil }
+        switch fields["method"]?.text {
+        case "signDocument": statement = content["statement"]
+        case "signAction": statement = fields["content"]
+        default: return nil
+        }
+    default: return nil
+    }
+    guard case .object(let value)? = statement else { return nil }
+    return value
+}
+
+func approvalFileCheck(type: String, detail: DisplayValue) -> String? {
+    guard case .object(let fields) = detail, let statement = reviewedStatement(type: type, fields: fields),
+          case .object(let content)? = statement["content"], case .string(let digest)? = content["sha256"], !digest.isEmpty else { return nil }
+    if case .boolean(true)? = fields["file_checked"] { return String(localized: "File digest checked") }
+    if case .object? = fields["file"] { return String(localized: "The file changed or cannot be read") }
+    return String(localized: "Only the digest is confirmed; the file was not checked")
+}
+
 /// Summarize only the verified action. The complete payload remains available below it.
 func approvalSummary(type: String, detail: DisplayValue) -> String? {
     guard case .object(let fields) = detail else { return nil }
@@ -313,6 +444,35 @@ func approvalSummary(type: String, detail: DisplayValue) -> String? {
         return value
     }
     switch type {
+    case "attest", "connect":
+        var lines = [string("app_id"), string("origin")].compactMap { $0 }
+        if let statement = reviewedStatement(type: type, fields: fields) {
+            if case .string(let subject)? = statement["subject"], !subject.isEmpty { lines.append(subject) }
+            if case .object(let file)? = fields["file"], case .string(let name)? = file["name"] { lines.append(name) }
+            if case .object(let content)? = statement["content"] {
+                if case .string(let text)? = content["text"], !text.isEmpty {
+                    lines.append(text.count > 200 ? String(text.prefix(200)) + "…" : text)
+                }
+                if case .string(let digest)? = content["sha256"] { lines.append("SHA-256 · " + digest) }
+                if case .string(let app)? = content["app_id"], case .string(let command)? = content["command"] { lines.append(app + " · " + command) }
+            }
+        } else if type == "connect", string("method") == "authenticate", case .object(let content)? = fields["content"] {
+            if case .string(let purpose)? = content["purpose"] {
+                let action = switch purpose {
+                case "Login": String(localized: "Sign in")
+                case "Link": String(localized: "Link to an existing account")
+                case "Reauthenticate": String(localized: "Confirm it is still you")
+                default: purpose
+                }
+                lines.insert(action, at: 0)
+            }
+            if case .string(let receiver)? = content["receiver"] { lines.append(String(localized: "Receiver") + " · " + receiver) }
+            if case .number(let milliseconds)? = content["expires_at"] {
+                let date = Date(timeIntervalSince1970: NSDecimalNumber(decimal: milliseconds).doubleValue / 1000)
+                lines.append(String(localized: "Valid until") + " · " + date.formatted())
+            }
+        } else if let method = string("method") { lines.append(method) }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
     case "vault_backup":
         let items = fields["items"]?.text ?? ""
         let files = fields["files"]?.text ?? ""

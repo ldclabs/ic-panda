@@ -1986,6 +1986,8 @@
 	<string>업로드 예약 용량</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>이 계정을 삭제하기 전에 보류 중인 계정 작업을 해결하세요.</string>
+	<key>Restored</key>
+	<string>복원됨</string>
 	<key>Restore</key>
 	<string>복원</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>12자 이상 입력하세요.</string>
 	<key>Confirm local password</key>
 	<string>로컬 비밀번호 확인</string>
+	<key>File digest checked</key>
+	<string>파일 다이제스트 확인됨</string>
+	<key>The file changed or cannot be read</key>
+	<string>파일이 변경되었거나 읽을 수 없습니다</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>다이제스트만 확인됩니다. 파일이 확인되지 않았습니다</string>
+	<key>Delivery report</key>
+	<string>전달 보고서</string>
+	<key>Sign in</key>
+	<string>로그인</string>
+	<key>Link to an existing account</key>
+	<string>기존 계정에 연결</string>
+	<key>Confirm it is still you</key>
+	<string>아직 본인인지 확인하세요</string>
+	<key>Receiver</key>
+	<string>수신기</string>
+	<key>Valid until</key>
+	<string>유효기간</string>
+	<key>High risk</key>
+	<string>고위험</string>
 </dict>
 </plist>

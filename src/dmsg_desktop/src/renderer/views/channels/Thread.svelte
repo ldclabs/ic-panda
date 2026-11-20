@@ -53,7 +53,7 @@
     draft = $bindable(''),
     attachments = $bindable<{ id: string; name: string }[]>([]),
     reply = $bindable<any>(null),
-    editing = $bindable<any>(null),
+    editing = $bindable<{ message: any; text: string } | null>(null),
     onSend,
     onRetry,
     onDiscard,
@@ -88,7 +88,7 @@
     draft?: string
     attachments?: { id: string; name: string }[]
     reply?: any
-    editing?: any
+    editing?: { message: any; text: string } | null
     onSend: () => void
     onRetry: (item: Outgoing) => void
     onDiscard: (item: Outgoing) => void
@@ -129,8 +129,12 @@
   const bySeq = $derived(new Map(messages.map((m) => [m.seq, m])))
   const dayFormat = $derived(new Intl.DateTimeFormat(locale(), { weekday: 'long', month: 'long', day: 'numeric' }))
   const timeFormat = $derived(new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit' }))
-  const used = $derived(bytes(draft))
+  const composerText = $derived(editing?.text ?? draft)
+  const used = $derived(bytes(composerText))
   const tooLong = $derived(used > MAX_TEXT)
+  const canSend = $derived(writes && !tooLong && (editing
+    ? !!editing.text.trim() && editing.text !== editing.message.text
+    : !!draft.trim() || attachments.length > 0))
 
   function dayLabel(at: number): string {
     const today = new Date()
@@ -220,7 +224,7 @@
   }
 
   function send() {
-    if (!writes || tooLong || (!draft.trim() && !attachments.length)) return
+    if (!canSend) return
     // An explicit send follows its own pending row even when the person was
     // reading older history. Incoming messages still respect their position.
     atEnd = true
@@ -254,9 +258,7 @@
   const editable = (message: any) => !!message.text && !message.retracted && !message.unreadable && !message.packet
 
   function edit(message: any) {
-    reply = null
-    editing = message
-    draft = message.text
+    editing = { message, text: message.text }
     void tick().then(() => input?.focus())
   }
 
@@ -267,11 +269,13 @@
   }
 
   function leave() {
-    if (editing) draft = ''
-    reply = editing = null
+    if (editing) editing = null
+    else reply = null
+    void tick().then(() => input?.focus())
   }
 
   function pasteFiles(event: ClipboardEvent) {
+    if (editing) return
     const pasted = [...(event.clipboardData?.files ?? [])]
     if (!pasted.length) return
     event.preventDefault()
@@ -282,7 +286,7 @@
     event.preventDefault()
     dragging = false
     const list = [...(event.dataTransfer?.files ?? [])]
-    if (list.length && writes) onDrop(list)
+    if (list.length && writes && !editing) onDrop(list)
   }
 
   /** What a person selected in the message, else its whole text. */
@@ -413,7 +417,7 @@
   role="log"
   onscroll={onScroll}
   ondragover={(e) => {
-    if (!writes) return
+    if (!writes || editing || !e.dataTransfer?.types.includes('Files')) return
     e.preventDefault()
     dragging = true
   }}
@@ -617,7 +621,7 @@
       <div class="mb-2 flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12px] text-muted" data-testid="composer-mode">
         <Icon name={editing ? 'edit' : 'reply'} class="size-3.5 shrink-0" />
         <span class="shrink-0 font-medium">{editing ? t('editing') : `${t('replyingTo')} ${reply.account === me ? t('you') : label(reply.account)}`}</span>
-        <span class="min-w-0 flex-1 truncate">{snippet(editing ?? reply)}</span>
+        <span class="min-w-0 flex-1 truncate">{snippet(editing?.message ?? reply)}</span>
         <button class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('cancel')} onclick={leave}><Icon name="close" /></button>
       </div>
     {/if}
@@ -672,7 +676,7 @@
       {/if}
       <textarea
         bind:this={input}
-        bind:value={draft}
+        bind:value={() => composerText, (text) => { if (editing) editing.text = text; else draft = text }}
         rows="1"
         class="max-h-40 min-h-8 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 text-[13.5px] shadow-none [field-sizing:content] focus-visible:shadow-none"
         placeholder={t('messageTo', { name: channel.name })}
@@ -680,7 +684,7 @@
         onpaste={pasteFiles}
         data-testid="channel-text"
       ></textarea>
-      <button class={buttonClass('primary', 'md')} disabled={tooLong || (!draft.trim() && !attachments.length)} onclick={send} data-testid="channel-send">
+      <button class={buttonClass('primary', 'md')} disabled={!canSend} onclick={send} data-testid="channel-send">
         <Icon name={editing ? 'check' : 'send'} class="rtl:-scale-x-100" />{editing ? t('save') : t('send')}
       </button>
     </div>

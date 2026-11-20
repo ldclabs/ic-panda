@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, tick } from 'svelte'
   import Icon from '../../components/Icon.svelte'
   import Fact from '../../components/page/Fact.svelte'
   import Field from '../../components/page/Field.svelte'
@@ -37,12 +37,15 @@
   let usageBusy = $state(false)
   let busy = $state(false)
   let error = $state('')
+  let prepared = $state('')
+  let digestTouched = $state(false)
 
   const MAX_TEXT = 4096
   const bytes = $derived(new TextEncoder().encode(text).length)
   const hex = $derived(/^[0-9a-fA-F]{64}$/.test(sha256.trim()))
   const needsText = $derived(profile !== 'digest')
   const textOk = $derived(!needsText || (text.trim().length > 0 && bytes <= MAX_TEXT))
+  const byteFormat = $derived(new Intl.NumberFormat(locale(), { style: 'unit', unit: 'byte', unitDisplay: 'short' }))
 
   const reloadReadiness = single(async () => {
     if (!alive) return
@@ -63,19 +66,23 @@
       const next = await call('attest/usage')
       if (alive) usage = next
     } catch (e) {
-      usageError = code(e)
+      if (alive) usageError = code(e)
     } finally {
       usageBusy = false
     }
   })
 
   async function attempt(work: () => Promise<unknown>) {
+    if (busy) return
     busy = true
     error = ''
     try {
       await work()
     } catch (e) {
+      if (!alive) return
       error = reasonLabels[code(e)] ? t(reasonLabels[code(e)]) : errorText(e)
+      await tick()
+      document.getElementById('sign-failure')?.focus()
     } finally {
       busy = false
     }
@@ -89,19 +96,25 @@
     ...(profile !== 'text' ? { content_type: contentType.trim() || null, location: location.trim() || null } : {})
   })
 
-  const opened = async (request: any) => {
-    if (!request || !alive) return
-    text = ''
-    sha256 = ''
-    await open(request.id)
+  const reviewPrepared = async () => {
+    await open(prepared)
+    if (alive) prepared = ''
   }
 
-  const signText = () => attempt(async () => opened(await call('attest/request', { statement: fields() })))
+  const opened = async (request: any, submitted?: 'text' | 'digest') => {
+    if (!request || !alive) return
+    prepared = request.id
+    if (submitted === 'text') text = ''
+    if (submitted === 'digest') { sha256 = ''; digestTouched = false }
+    await reviewPrepared()
+  }
+
+  const signText = () => attempt(async () => opened(await call('attest/request', { statement: fields() }), 'text'))
 
   /** A local file goes to the daemon only from the main process's dialog. */
-  const signFile = () => attempt(async () => opened(await bridge(() => window.dmsg.attestFile(fields()))))
+  const signFile = () => attempt(async () => opened(await bridge(() => window.dmsg.attestFile(fields())), needsText ? 'text' : undefined))
 
-  const signDigest = () => attempt(async () => opened(await call('attest/request', { statement: { ...fields(), sha256: sha256.trim().toLowerCase() } })))
+  const signDigest = () => attempt(async () => opened(await call('attest/request', { statement: { ...fields(), sha256: sha256.trim().toLowerCase() } }), 'digest'))
 
   /** An action its application prepared, approved in the approval window like a page's `signAction`. */
   const signAction = () => attempt(async () => opened(await bridge(() => window.dmsg.attestAction())))
@@ -161,12 +174,12 @@
 </Section>
 
 <Section title={t('newSignature')} description={t('statementHint')} icon="signature">
-  <div class="grid gap-3">
+  <fieldset disabled={busy} class="grid min-w-0 gap-3">
     <Segmented bind:value={() => profile, (next) => (profile = next as Profile)} label={t('newSignature')} options={profiles} testid="statement-profile" />
     {#if needsText}
       <Field label={t('statement')}>
-        <textarea placeholder={t('statement')} bind:value={text} rows="4" data-testid="statement-text"></textarea>
-        <span class={cn('justify-self-end text-[11.5px] tabular-nums', bytes > MAX_TEXT ? 'text-danger' : 'text-faint')} data-testid="statement-bytes">{bytes} / {MAX_TEXT}</span>
+        <textarea placeholder={t('statement')} bind:value={text} rows="4" aria-describedby="statement-bytes" aria-invalid={bytes > MAX_TEXT} data-testid="statement-text"></textarea>
+        <span id="statement-bytes" class={cn('justify-self-end text-[11.5px] tabular-nums', bytes > MAX_TEXT ? 'text-danger' : 'text-faint')} data-testid="statement-bytes">{bytes} / {byteFormat.format(MAX_TEXT)} (UTF-8)</span>
       </Field>
     {/if}
     <div class="grid gap-3 sm:grid-cols-2">
@@ -176,14 +189,18 @@
         <Field label={t('location')}><input bind:value={location} placeholder="https://" class="font-mono text-[12.5px]" /></Field>
       {/if}
       {#if profile === 'digest'}
-        <Field label="SHA-256"><input bind:value={sha256} placeholder={t('digestHint')} class="font-mono text-[12.5px]" data-testid="statement-sha256" /></Field>
+        <Field label="SHA-256"><input bind:value={sha256} onblur={() => (digestTouched = true)} aria-invalid={digestTouched && !!sha256.trim() && !hex} aria-describedby="statement-digest-hint" class="font-mono text-[12.5px]" data-testid="statement-sha256" />
+          <span id="statement-digest-hint" class={digestTouched && sha256.trim() && !hex ? 'text-danger' : 'text-muted'}>{t('digestHint')}</span>
+        </Field>
       {/if}
     </div>
     {#if profile !== 'text'}<p class="text-[12px] text-faint">{t('signFileHint')}</p>{/if}
-    {#if error}<Notice failure={error} tone="danger" testid="sign-error">{error}</Notice>{/if}
+    {#if error}<div id="sign-failure" tabindex="-1" role="group" aria-label={error}><Notice tone="danger" testid="sign-error">{error}
+      {#snippet action()}{#if prepared}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(reviewPrepared)}>{t('workflow.review')}</button>{/if}{/snippet}
+    </Notice></div>{/if}
     <div class="flex flex-wrap justify-end gap-2">
       {#if profile === 'text'}
-        <button class={buttonClass('primary')} disabled={busy || !textOk} onclick={signText} data-testid="statement-submit">{t('submit')}</button>
+        <button class={buttonClass('primary')} disabled={busy || !textOk} onclick={signText} data-testid="statement-submit">{t('workflow.review')}</button>
       {:else}
         {#if profile === 'digest'}
           <button class={buttonClass('secondary')} disabled={busy || !hex} onclick={signDigest} data-testid="statement-digest">{t('signDigest')}</button>
@@ -191,7 +208,7 @@
         <button class={buttonClass('primary')} disabled={busy || !textOk} onclick={signFile} data-testid="statement-file"><Icon name="file" />{t('chooseFileToSign')}</button>
       {/if}
     </div>
-  </div>
+  </fieldset>
 </Section>
 
 <Section title={t('appAction')} description={t('appActionHint')} icon="api">
@@ -220,7 +237,8 @@
         </ul>
       {/if}
     </div>
-  {:else if usageError}
+  {/if}
+  {#if usageError}
     <Notice tone={usageError === 'AUTH_REQUIRED' ? 'info' : 'danger'} testid="usage-error">
       {reasonLabels[usageError] ? t(reasonLabels[usageError]) : `${t('error')}: ${usageError}`}
       {#snippet action()}
@@ -231,7 +249,7 @@
         {/if}
       {/snippet}
     </Notice>
-  {:else}
+  {:else if !usage}
     <p class="shimmer text-[13px]">{t('loading')}</p>
   {/if}
 </Section>

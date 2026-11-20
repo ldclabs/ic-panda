@@ -8,6 +8,13 @@
     <string name="add_permission" formatted="false">"Add permission"</string>
     <string name="android_purchase_privacy" formatted="false">"Google Play purchases use Google account, billing and device verification services when configured. Purchase tokens are retained encrypted until the service verifies delivery. dMsg content is not sent to Google. The service policy below also describes Apple-specific services used by other dMsg apps."</string>
     <string name="app_language" formatted="false">"App language"</string>
+    <string name="approval_file_changed" formatted="false">"The file changed or cannot be read"</string>
+    <string name="approval_link" formatted="false">"Link to an existing account"</string>
+    <string name="approval_login" formatted="false">"Sign in"</string>
+    <string name="approval_reauthenticate" formatted="false">"Confirm it is still you"</string>
+    <string name="approval_receiver" formatted="false">"Receiver"</string>
+    <string name="approval_request_expires" formatted="false">"Request expires"</string>
+    <string name="approval_valid_until" formatted="false">"Valid until"</string>
     <string name="autofill_choose_at_login" formatted="false">"Choose a login when an app or website asks for a password."</string>
     <string name="autofill_confirm" formatted="false">"Fill this login?"</string>
     <string name="autofill_no_items" formatted="false">"No items"</string>
@@ -24,6 +31,11 @@
     <string name="cipher_transfer_title" formatted="false">"Encrypted transfers"</string>
     <string name="customize_fields" formatted="false">"Customize fields"</string>
     <string name="empty_folder" formatted="false">"No files in this folder"</string>
+    <string name="file_moved_to_trash" formatted="false">"Moved to Trash"</string>
+    <string name="file_name_rule" formatted="false">"Use a name of 1–255 characters without slashes or control characters."</string>
+    <string name="file_name_taken" formatted="false">"A file or folder with this name already exists."</string>
+    <string name="file_original_folder" formatted="false">"Original folder"</string>
+    <string name="file_restored" formatted="false">"Restored"</string>
     <string name="follow_system_language" formatted="false">"Follow system language"</string>
     <string name="history_device" formatted="false">"Device"</string>
     <string name="history_fields" formatted="false">"Fields"</string>
@@ -32,6 +44,8 @@
     <string name="links_created_progress" formatted="true">"Created %1$s of %2$s"</string>
     <string name="local_password" formatted="false">"Local password"</string>
     <string name="local_password_length" formatted="false">"Use at least 12 characters."</string>
+    <string name="message_actions" formatted="false">"Actions"</string>
+    <string name="message_sending" formatted="false">"Sending"</string>
     <string name="no_matches" formatted="false">"No matching results"</string>
     <string name="offline_account" formatted="false">"Local account"</string>
     <string name="operation_failed_code" formatted="true">"This operation could not finish. Code: %1$s"</string>
@@ -2097,6 +2111,8 @@
     <string name="vault_backup_uncommitted" formatted="false">"No import was committed. Choose the backup again."</string>
     <string name="vault_backup_unlockerror" formatted="false">"Cannot unlock this backup. Check the password or choose a complete backup file."</string>
     <string name="vault_backup_wallet" formatted="false">"Includes secrets saved in wallet items."</string>
+    <string name="vault_conflict_saved" formatted="false">"Saved as a separate version. Review sync conflicts."</string>
+    <string name="vault_copied" formatted="false">"Copied"</string>
     <string name="vault_field_birthday" formatted="false">"Birthday"</string>
     <string name="vault_field_cardholder" formatted="false">"Cardholder"</string>
     <string name="vault_field_credential" formatted="false">"Credential"</string>
@@ -2117,6 +2133,8 @@
     <string name="vault_field_public_key" formatted="false">"Public Key"</string>
     <string name="vault_field_purchased" formatted="false">"Purchased"</string>
     <string name="vault_field_username" formatted="false">"Username"</string>
+    <string name="vault_loading" formatted="false">"Loading…"</string>
+    <string name="vault_search_files" formatted="false">"Search files"</string>
     <string name="widget_description" formatted="false">"Open a private workspace. No account content is shown here."</string>
     <string name="widget_open" formatted="false">"Open private workspace"</string>
     <string name="widget_title" formatted="false">"dMsg workspace"</string>

@@ -50,7 +50,7 @@ struct FileImportView: View {
                 let file = try await model.importLibraryDocument(url, folder: folder)
                 guard stamp == model.epoch, visible, !Task.isCancelled else { return }
                 imported.append(file)
-                results[url.absoluteString] = FileActionResult(name: file.name, message: String(localized: "Imported to this device. Cloud backup is a separate action."))
+                results[url.absoluteString] = FileActionResult(name: file.name, message: model.fileImportNotice)
             } catch {
                 guard stamp == model.epoch, visible, !Task.isCancelled else { return }
                 if (error as? MobileError)?.fileCode == "CANCELLED" {
@@ -60,10 +60,12 @@ struct FileImportView: View {
                 results[url.absoluteString] = FileActionResult(name: url.lastPathComponent, message: message, failed: true)
             }
         }
-        guard stamp == model.epoch else { return }; await model.loadFiles()
+        guard stamp == model.epoch else { return }
+        if !imported.isEmpty { model.revealLocalFileListing(in: folder) }
+        await model.loadFiles()
         // A clean import needs no results page; only what went wrong does.
         if visible, !Task.isCancelled, !results.values.contains(where: \.failed) {
-            model.notice = String(localized: "Imported to this device. Cloud backup is a separate action.")
+            model.notice = model.fileImportNotice
             dismiss()
         }
     }

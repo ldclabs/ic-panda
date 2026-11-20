@@ -20,8 +20,23 @@ extension SessionModel {
     }
 
     func resetFilePresentation() {
+        filesSearches.removeAll()
         filesRequest = nil; filesLoading = false; filesLoaded = false; filesFailed = false; filesQuery = ""
         filesLocalOnly = nil; filesPendingImports = 0; filesSharedImports = 0; fileOperations = []
+    }
+
+    func setFileSearch(_ text: String, in folder: String) {
+        filesSearches[folder] = text.isEmpty ? nil : text
+    }
+
+    func revealLocalFileListing(in folder: String) {
+        guard filesFolder == folder else { return }
+        filesScope = .local
+        filesSearch = ""
+    }
+
+    var fileImportNotice: String {
+        localAccount ? String(localized: "Saved on this device") : String(localized: "Imported to this device. Cloud backup is a separate action.")
     }
 
     /// A quiet reload tells views about the library only if the listing changed;
@@ -53,14 +68,16 @@ extension SessionModel {
         }
     }
 
-    private func readFileListing(folder: String, query: String) async throws -> LibraryListing {
+    func readFileListing(folder: String, query: String) async throws -> LibraryListing {
         guard let engine else { throw CancellationError() }
         let listing: LibraryListing = try await decodeInBackground(try await engine.files(folder: folder))
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if query.isEmpty { return listing }
         let matches: [LibraryFile] = try await decodeInBackground(try await engine.searchFiles(query: query, folder: folder == "root" ? nil : folder))
-        return LibraryListing(folder: listing.folder,
-                              folders: listing.folders.filter { $0.name.localizedCaseInsensitiveContains(query) }, files: matches)
+        let tree: [FolderItem] = try await decodeInBackground(try await engine.fileFolders())
+        let prefix = listing.folder.map { ($0.path ?? []) + [$0.name] } ?? []
+        let folders = tree.filter { ($0.path ?? []).starts(with: prefix) && $0.name.localizedCaseInsensitiveContains(query) }
+        return LibraryListing(folder: listing.folder, folders: folders, files: matches)
     }
 
     func loadFileSummary() async {

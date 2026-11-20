@@ -1986,6 +1986,8 @@
 	<string>اپ لوڈ کے لیے مختص</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>اس اکاؤنٹ کو حذف کرنے سے پہلے زیر التواء اکاؤنٹ آپریشن کو حل کریں۔</string>
+	<key>Restored</key>
+	<string>بحال</string>
 	<key>Restore</key>
 	<string>بحال کریں</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>کم از کم 12 حروف استعمال کریں۔</string>
 	<key>Confirm local password</key>
 	<string>مقامی پاس ورڈ کی تصدیق کریں</string>
+	<key>File digest checked</key>
+	<string>فائل ہیش چیک کی گئی</string>
+	<key>The file changed or cannot be read</key>
+	<string>فائل بدل گئی ہے یا پڑھی نہیں جا سکتی</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>صرف ہیش کی تصدیق ہوتی ہے۔ فائل کو چیک نہیں کیا گیا</string>
+	<key>Delivery report</key>
+	<string>ترسیل کی رپورٹ</string>
+	<key>Sign in</key>
+	<string>سائن ان کریں</string>
+	<key>Link to an existing account</key>
+	<string>موجودہ اکاؤنٹ سے لنک کریں</string>
+	<key>Confirm it is still you</key>
+	<string>تصدیق کریں کہ یہ اب بھی آپ ہیں</string>
+	<key>Receiver</key>
+	<string>وصول کنندہ</string>
+	<key>Valid until</key>
+	<string>تک درست ہے</string>
+	<key>High risk</key>
+	<string>زیادہ خطرہ</string>
 </dict>
 </plist>

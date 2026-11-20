@@ -1,8 +1,10 @@
 import { CallError, errorText } from '../../rpc'
+import { t } from '../../i18n/index.svelte'
 import { failureLabel } from '../../failure'
 /** Wallet forms keep the daemon's actionable field/reason, without losing its error code. */
 export function walletError(error: unknown): string {
   if (error instanceof CallError) {
+    if (['FORBIDDEN', 'PERMISSION_DENIED'].includes(error.code)) return t('confirmForbidden')
     const message = errorText(error)
     if (failureLabel(error.code)) return message
     return error.message && error.message !== error.code && !message.includes(error.message) ? `${message} · ${error.message}` : message

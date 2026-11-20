@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte'
+  import { onDestroy, onMount, untrack } from 'svelte'
+  import { refreshSettingsApprovals, settingsApprovals } from './settings-approvals.svelte'
   import { offerSetupAgain } from '../notice-setup.svelte'
   import NoticeSetup from './NoticeSetup.svelte'
   let { status, go }: { status: any; go: (path: string) => void } = $props()
@@ -59,7 +60,7 @@
   let biometryOnly = $state(false)
   let made = $state<any>(null)
   let unprotected = $state<any>(null)
-  let pending = $state<Partial<Record<Pending, string>>>({})
+  const pending = untrack(() => settingsApprovals<Pending>('security', status))
 
   const blocked = $derived(busy || needsLogin || !security || !!loadError)
   const own = $derived(keys?.key ?? null)
@@ -113,15 +114,7 @@
       if (alive) keyError = errorText(e)
     }
     // Keep submitted settings unavailable until the request has a terminal outcome.
-    for (const [group, id] of Object.entries(pending)) {
-      try {
-        const result: any = await call('approval/show', { id })
-        if (!alive) return
-        if (['done', 'rejected', 'cancelled', 'expired', 'failed', 'elsewhere'].includes(result?.state) && pending[group as Pending] === id) {
-          delete pending[group as Pending]
-        }
-      } catch { /* retain the receipt when its result cannot yet be read */ }
-    }
+    await refreshSettingsApprovals(pending, () => alive)
   })
 
   function begin(next: Editor) {
@@ -160,8 +153,8 @@
   function ask(method: string, params: unknown, group?: Pending) {
     return guard(async () => {
       const id = (group && pending[group]) || (await call<any>(method, params)).id
-      if (!alive) return
       if (group) pending[group] = id
+      if (!alive) return
       await bridge(() => window.dmsg.openApproval(id))
       if (!alive) return
       open = false

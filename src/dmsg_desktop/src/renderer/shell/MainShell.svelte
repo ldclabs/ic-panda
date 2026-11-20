@@ -3,7 +3,7 @@
   import LinkConfirm from '../components/LinkConfirm.svelte'
   import Toaster from '../components/Toaster.svelte'
   import { t } from '../i18n/index.svelte'
-  import { buttonClass, modalOpen } from '../components/ui'
+  import { modalOpen } from '../components/ui'
   import { MessageDeliveries, type Delivery } from '../message-delivery'
   import { call, onChange, single } from '../rpc'
   import { lastRoute, noteRoute, visitRoute } from '../view-memory'
@@ -100,7 +100,8 @@
   let welcomed = false
 
   const local = $derived(status?.account_kind === 'local')
-  const view = $derived(local && ![views.files, views.settings, views.vault].some(v => v === viewOf(route)) ? views.vault : viewOf(route))
+  const view = $derived(local && entryOf(route) === views.settings ? views.settings
+    : local && ![views.files, views.settings, views.vault].some(v => v === viewOf(route)) ? views.vault : viewOf(route))
   const page = $derived(view === views.legacy ? views.settings.path : view.path)
   const unlocked = $derived(status?.state === 'unlocked')
   const legacyNotice = $derived(offers.some((nonce) => !dismissed.includes(nonce)))
@@ -224,6 +225,15 @@
     go(target)
   }
 
+  /** Dismiss a detail route without recording the dismissal as another visit. */
+  function closeRoute(target: string, openedHere: boolean) {
+    traveling = true
+    if (visits[visit - 1] === target) visit--
+    else visits = [...visits.slice(0, visit), target, ...visits.slice(visit + 1)]
+    if (openedHere) window.history.back()
+    else location.replace('#' + target)
+  }
+
   /** A view's entry returns to where it was left; pressed again, it goes to the view's start. */
   const enter = (path: string) => go(entryOf(route).path === path ? path : lastRoute(path))
 
@@ -331,14 +341,8 @@
             <section class="mx-auto max-w-xl p-6"><Moved {status} {refresh} /></section>
           {:else if local && status?.state === 'locked'}
             <div class="grid h-full place-content-center justify-items-center gap-4"><h1>{t('offlineAccount')}</h1><LocalAccount action="unlock" {status} {refresh} /></div>
-          {:else if local && unlocked && view === views.settings}
-            <section class="grid max-w-xl justify-items-start gap-4 p-6"><h1 class="text-xl font-semibold">{t('offlineAccount')}</h1><p>{t('savedOnDevice')}</p>
-              <button class={buttonClass('secondary')} onclick={lock}>{t('lock')}</button>
-              {#if status.local_unlock_method === 'password'}<LocalAccount action="password" {status} />{/if}
-              <LocalAccount action="delete" {status} {refresh} />
-            </section>
           {:else if viewSession && Page}
-            <Page {status} {mod} {route} {go} {refresh} {deliveries} {messageDeliveries} />
+            <Page {status} {mod} {route} {go} {closeRoute} {refresh} {deliveries} {messageDeliveries} />
           {/if}
         {/key}
       </main>

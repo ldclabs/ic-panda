@@ -27,6 +27,9 @@ import net.dmsg.core.*
 import java.net.URI
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 
 fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.string.text_unknown_d748bba) else
     runCatching { java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.MEDIUM,
@@ -46,8 +49,12 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
 
 @Composable private fun SecretDetailBody(client: ClientController, id: String, read: ReadState<VaultItem>, historical: Boolean, reload: () -> Unit, edit: (VaultItem) -> Unit) {
     val item = read.valueOrNull()?.takeIf { it.id == id }
+    val state by client.state.collectAsStateWithLifecycle()
+    val changing = state.working("vault:edit:" + id)
     var deleting by remember(id) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val scroll = rememberScrollState()
+    LaunchedEffect(item?.id, item?.deleted) { if (item != null) scroll.scrollTo(0) }
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(read, reload)
         if (item != null) {
             if (item.saveState == "local_only") Text(str(R.string.saved_on_device), style = MaterialTheme.typography.labelMedium)
@@ -55,12 +62,19 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
                 SecretIcon(item.kind)
                 Column(Modifier.weight(1f)) { Text(item.title, style = MaterialTheme.typography.headlineSmall); Text(vaultKindName(item.kind), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 if (!historical && !item.reserved && !item.deleted) {
-                    IconButton(onClick = { client.vault.favorite(item) }) { Icon(if (item.favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_toggle_favorite_5797c90)) }
+                    IconToggleButton(checked = item.favorite, onCheckedChange = { client.vault.favorite(item) }, enabled = !changing) {
+                        Icon(if (item.favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_favorite_898f4c6))
+                    }
                     IconButton(onClick = { edit(item) }) { Icon(Icons.Outlined.Edit, str(R.string.text_edit_item_3638f4f)) }
                 }
             }
             if (historical) { Notice(str(R.string.text_you_are_viewing_an_immutable_historical_version_0b9544a)); SelectionContainer { Text(item.revision, style = MaterialTheme.typography.bodySmall) } }
-            if (item.deleted) Notice(str(R.string.text_this_item_is_in_the_trash_restore_it_to_edit_history_is_retained_025a0c4))
+            if (item.deleted) {
+                Notice(str(R.string.text_this_item_is_in_the_trash_restore_it_to_edit_history_is_retained_025a0c4))
+                if (!historical && !item.reserved) Button(onClick = { client.perform({ it.restoreItem(id) }, key = "vault:edit:" + id) {
+                    client.vault.changed(); client.vault.select(id); client.notice("VAULT_RESTORED")
+                } }, enabled = !changing) { Text(str(R.string.text_restore_item_1f6ceaa)) }
+            }
             if (item.conflict) { Notice(str(R.string.text_this_item_has_another_version_review_the_conflict_before_replacin_763272d), true); TextButton(onClick = { client.navigation.open("conflicts") }) { Text(str(R.string.text_review_sync_conflicts_7186d41)) } }
             if (item.tags.isNotEmpty()) Text(item.tags.joinToString(" · "), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             var section = ""
@@ -82,13 +96,15 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
                 TextButton(onClick = { client.navigation.push(Route("vault-links", id)) }) { Text(str(R.string.text_share_links_fe69aa5)) }
             }
             if (item.reserved) Notice(str(R.string.text_this_key_is_managed_by_dmsg_its_private_fields_cannot_be_revealed_4a768a2))
-            else if (!historical && item.deleted) Button(onClick = { client.perform({ it.restoreItem(id) }, key = "vault:edit:" + id) { client.vault.changed(); client.vault.select(id) } }) { Text(str(R.string.text_restore_item_1f6ceaa)) }
-            else if (!historical) TextButton(onClick = { deleting = true }) { Text(str(R.string.text_move_to_trash_c4056f9), color = MaterialTheme.colorScheme.error) }
+            else if (!historical && !item.deleted) TextButton(onClick = { deleting = true }) { Text(str(R.string.text_move_to_trash_c4056f9), color = MaterialTheme.colorScheme.error) }
         }
     }
-    if (deleting) AlertDialog(onDismissRequest = { deleting = false }, title = { Text(str(R.string.text_move_this_item_to_trash_2a04c82)) },
-        text = { Text(str(R.string.text_a_deletion_marker_will_sync_to_your_other_devices_version_history_18e2556)) },
-        confirmButton = { TextButton(onClick = { client.perform({ it.deleteItem(id) }, key = "vault:edit:" + id) { deleting = false; client.vault.changed(); client.vault.select(id) } }) { Text(str(R.string.text_move_to_trash_c4056f9)) } },
+    if (deleting && item != null) AlertDialog(onDismissRequest = { if (!changing) deleting = false }, title = { Text(str(R.string.text_move_this_item_to_trash_2a04c82)) },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(item.title, style = MaterialTheme.typography.titleMedium)
+            if (state.session?.accountKind != "local") Text(str(R.string.text_a_deletion_marker_will_sync_to_your_other_devices_version_history_18e2556))
+        } },
+        confirmButton = { TextButton(onClick = { client.perform({ it.deleteItem(id) }, key = "vault:edit:" + id) { deleting = false; client.vault.changed(); client.vault.select(id); client.notice("VAULT_TRASHED") } }, enabled = !changing) { Text(str(R.string.text_move_to_trash_c4056f9), color = MaterialTheme.colorScheme.error) } },
         dismissButton = { TextButton(onClick = { deleting = false }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
@@ -104,6 +120,8 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
     val isOtp = field.kind == "otp"
     val resource = "vault:field:" + item.id + ":" + item.revision + ":" + field.id
     var otpFailed by remember { mutableStateOf(false) }
+    var copiedAt by remember { mutableLongStateOf(0) }
+    LaunchedEffect(copiedAt) { if (copiedAt != 0L) { delay(2000); copiedAt = 0L } }
     DisposableEffect(resource) {
         onDispose { client.cancelOperation(resource); revealed = null; otp = null; large = null; deadline = 0 }
     }
@@ -121,6 +139,10 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
             if (isOtp) { otp = value.value; tick = SystemClock.elapsedRealtime(); deadline = tick + (left ?: 0u).coerceAtMost(300_000u).toLong() }
             action(value)
         }
+    }
+    fun copyValue() = readValue {
+        client.clipboard.copy(it.value, (it.remainingMs ?: 30_000u).coerceAtMost(30_000u).toLong())
+        copiedAt = SystemClock.elapsedRealtime()
     }
     LaunchedEffect(item.revision, field.id, historical) {
         otp = null; revealed = null; deadline = 0; otpFailed = false
@@ -141,18 +163,18 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
     }
     val value = if (isOtp) otp?.takeIf { tick < deadline } ?: if (historical) "••••••••" else "—" else if (field.concealed) revealed ?: "••••••••" else field.value
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).combinedClickable(enabled = !item.reserved && !item.deleted, onClick = {
-            readValue { client.clipboard.copy(it.value, (it.remainingMs ?: 30_000u).coerceAtMost(30_000u).toLong()) }
-        }, onLongClick = { menu = true }).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).semantics { if (copiedAt != 0L) stateDescription = str(R.string.vault_copied) }
+            .combinedClickable(enabled = !item.reserved && !item.deleted, role = Role.Button, onClickLabel = str(R.string.text_copy_d6e9651) + " · " + label, onClick = ::copyValue,
+                onLongClickLabel = str(R.string.text_field_actions_a2183fb), onLongClick = { menu = true }).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(6.dp)); Text(value, modifier = if (isOtp) Modifier.clearAndSetSemantics { contentDescription = str(R.string.otp_accessibility_hint) } else Modifier, style = (if (isOtp) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyLarge).copy(textDirection = direction))
                 if (isOtp && deadline > tick) Text(str(R.string.text_expires_in_679949a) + localizedNumber((deadline - tick + 999) / 1000) + str(R.string.text_s_4b54bb0), style = MaterialTheme.typography.labelSmall)
             }
             if (!item.reserved && !item.deleted) Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_field_actions_a2183fb)) }
+                IconButton(onClick = { menu = true }) { Icon(if (copiedAt != 0L) Icons.Outlined.Check else Icons.Outlined.MoreVert, str(R.string.text_field_actions_a2183fb) + " · " + label) }
                 DropdownMenu(menu, { menu = false }) {
-                    DropdownMenuItem(text = { Text(str(R.string.text_copy_d6e9651)) }, onClick = { menu = false; readValue { client.clipboard.copy(it.value, (it.remainingMs ?: 30_000u).coerceAtMost(30_000u).toLong()) } })
+                    DropdownMenuItem(text = { Text(str(R.string.text_copy_d6e9651)) }, onClick = { menu = false; copyValue() })
                     if (field.concealed && (!isOtp || historical)) DropdownMenuItem(text = { Text(if ((if (isOtp) otp else revealed) == null) str(R.string.text_reveal_5917b8a) else str(R.string.text_hide_d2e660d)) }, onClick = { menu = false; if (isOtp && otp != null) { otp = null; deadline = 0 } else if (revealed != null) revealed = null else readValue { if (!isOtp) revealed = it.value } })
                     DropdownMenuItem(text = { Text(str(R.string.text_large_type_35f1ac3)) }, onClick = { menu = false; readValue { large = it.value } })
                     if (!historical) DropdownMenuItem(text = { Text(str(R.string.text_field_reference_and_rotation_449f016)) }, onClick = {
@@ -166,5 +188,5 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
     }
     if (large != null) AlertDialog(onDismissRequest = { large = null }, title = { Text(label) }, text = { SelectionContainer { Text(if (isOtp) value else large!!, Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()), fontSize = 30.sp, lineHeight = 42.sp, style = MaterialTheme.typography.bodyLarge.copy(textDirection = direction)) } },
         confirmButton = { TextButton(onClick = { large = null }) { Text(str(R.string.text_done_9ffd599)) } },
-        dismissButton = { TextButton(onClick = { readValue { client.clipboard.copy(it.value, (it.remainingMs ?: 30_000u).coerceAtMost(30_000u).toLong()) } }) { Text(str(R.string.text_copy_d6e9651)) } })
+        dismissButton = { TextButton(onClick = ::copyValue) { Text(str(if (copiedAt == 0L) R.string.text_copy_d6e9651 else R.string.vault_copied)) } })
 }

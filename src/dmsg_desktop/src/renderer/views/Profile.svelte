@@ -17,6 +17,7 @@
   import Notice from '../components/page/Notice.svelte'
   import Section from '../components/page/Section.svelte'
   import Select from '../components/Select.svelte'
+  import { toast } from '../components/toast.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, single } from '../rpc'
@@ -29,6 +30,8 @@
   let loaded = $state({ document: false, status: false })
   let loadErrors = $state<Record<string, string>>({})
   let editing = $state(false)
+  let publishedReadPending = $state(false)
+  let lookupForm = $state<HTMLFormElement>()
   let lookupOpen = $state(false)
   let lookupFor = $state('')
   let lookupBusy = $state(false)
@@ -119,8 +122,16 @@
   const loadDocument = single(async (mode: Mode = 'swr') => {
     if (!alive) return
     try {
-      const document = await display('profile/show', {}, mode)
-      if (alive) { if (!editing) show(document); loaded.document = true; loadErrors.document = '' }
+      const document = await display('profile/show', {}, publishedReadPending ? 'fresh' : mode)
+      if (alive) {
+        if (!editing || publishedReadPending) {
+          if (document) show(document)
+          else mine = null
+        }
+        publishedReadPending = false
+        loaded.document = true
+        loadErrors.document = ''
+      }
     } catch (e) { if (alive) loadErrors.document = errorText(e) }
   })
   const loadStatus = single(async () => {
@@ -142,7 +153,7 @@
   })
   function load() { void loadDocument(); void loadStatus(); void loadArchives() }
   function retryLoad() {
-    if (loadErrors.document) void loadDocument()
+    if (loadErrors.document) void loadDocument('fresh')
     if (loadErrors.status) void loadStatus()
     if (loadErrors.archives) void loadArchives()
   }
@@ -181,7 +192,7 @@
   })
 
   const publish = () => attempt(async () => {
-    if (!mine || !ready || (!pending && (!changed || !valid))) return
+    if (publishedReadPending || !mine || !ready || (!pending && (!changed || !valid))) return
     if (pending) {
       let outcome: any
       try { outcome = await call('profile/retry') } catch (cause) {
@@ -201,7 +212,9 @@
     }
     pending = false
     fromLegacy = false
-    show(await display('profile/show', {}, 'fresh'))
+    publishedReadPending = true
+    toast(() => t('published'))
+    await loadDocument('fresh')
   })
 
   function changeLinkUrl(index: number, url: string) {
@@ -256,7 +269,7 @@
         {#each mine.links ?? [] as link}<Fact label={t('link')}><span class="break-all">{link.name} · {link.url}</span></Fact>{/each}
       </dl>
     </div>
-  {:else if !Object.values(loadErrors).some(Boolean)}<p class="text-[13px] text-muted">{loaded.document ? '-' : t('loading')}</p>{/if}
+  {:else if !Object.values(loadErrors).some(Boolean)}<p class="text-[13px] text-muted">{loaded.document ? t('settingsProfileMissing') : t('loading')}</p>{/if}
   {#if pending}<Notice tone="warn">{t('principalPublicationPending')}</Notice>{/if}
   <div class="mt-3 flex flex-wrap gap-2">
     <button class={buttonClass('secondary', 'sm')} disabled={busy || !ready || !mine} onclick={edit} data-testid="profile-edit">{pending ? t('retry') : t('edit')}</button>
@@ -267,6 +280,8 @@
 <Dialog bind:open={editing} title={t('publicProfile')} description={t('avatarHint')} icon="profile" wide dismissible={!busy} testid="profile">
     <div class="grid gap-4">
       {#if error}<Notice failure={error} tone="danger" testid="profile-edit-error">{error}</Notice>{/if}
+      {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice tone="danger">{failure}
+        <button class={buttonClass('secondary','xs')} onclick={retryLoad}>{t('retry')}</button></Notice>{/each}
       {#if archives.length}
         <Collapsible testid="profile-import">
           {#snippet title()}<span class="text-[12.5px]">{t('legacyUseProfile')}</span>{/snippet}
@@ -312,19 +327,20 @@
       </fieldset>
     </div>
   {#snippet footer()}
-    {#if !changed && !pending}<span class="text-[12px] text-faint">{t('securityUnchanged')}</span>{/if}
+    {#if !changed && !pending && !publishedReadPending}<span class="text-[12px] text-faint">{t('securityUnchanged')}</span>{/if}
     <span class="flex-1"></span>
     <button class={buttonClass('secondary')} disabled={busy} onclick={() => { editing = false; error = '' }}>{t('close')}</button>
-    <button class={buttonClass('primary')} disabled={busy || !ready || (!pending && (!changed || !valid))} onclick={publish} data-testid="profile-publish">{pending ? t('retry') : t('publish')}</button>
+    <button class={buttonClass('primary')} disabled={busy || publishedReadPending || !ready || (!pending && (!changed || !valid))} onclick={publish} data-testid="profile-publish">{pending ? t('retry') : t('publish')}</button>
   {/snippet}
 </Dialog>
 
-<Dialog bind:open={() => lookupOpen, (value) => { lookupOpen = value; if (!value) { lookupRevision++; lookupBusy = false; found = undefined } }} title={t('resolveProfile')} icon="search" testid="profile-lookup">
+<Dialog bind:open={() => lookupOpen, (value) => { lookupOpen = value; if (!value) { lookupRevision++; lookupBusy = false; found = undefined } }} title={t('resolveProfile')} icon="search" testid="profile-lookup"
+  onOpenAutoFocus={(event) => { event.preventDefault(); lookupForm?.querySelector('input')?.focus() }}>
   <div class="grid gap-3">
-    <div class="flex flex-wrap items-end gap-2">
+    <form bind:this={lookupForm} class="flex flex-wrap items-end gap-2" onsubmit={(event) => { event.preventDefault(); void resolve() }}>
       <TextField label={t('accountId')} bind:value={other} oninput={() => { lookupRevision++; found = undefined; lookupError = ''; lookupBusy = false }} mono class="min-w-48 flex-1" data-testid="profile-lookup-account" />
-      <button class={buttonClass('secondary')} disabled={lookupBusy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
-    </div>
+      <button class={buttonClass('secondary')} type="submit" disabled={lookupBusy || !other.trim()} aria-busy={lookupBusy}>{lookupBusy ? t('loading') : t('lookUp')}</button>
+    </form>
     {#if lookupError}<Notice failure={lookupError} tone="danger">{lookupError}</Notice>{/if}
     {#if found && lookupFor === other.trim()}
       <div class="flex flex-wrap items-start gap-3 rounded-lg bg-surface-2 p-3.5" data-testid="profile-found">
@@ -344,7 +360,7 @@
         {/if}
       </div>
     {:else if found === null}
-      <p class="text-[12.5px] text-faint">-</p>
+      <p class="text-[12.5px] text-muted" role="status">{t('settingsProfileMissing')}</p>
     {/if}
   </div>
 </Dialog>

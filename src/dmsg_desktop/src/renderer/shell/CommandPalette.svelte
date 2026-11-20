@@ -17,7 +17,7 @@
   import { focus } from '../views/vault/focus.svelte'
   import { workflowText } from '../views/secrets/workflow-text'
   import { isManaged, otpField, typeIcon, typeLabel, typeOf, valueOf, workflowIcon, vaultWorkflows } from '../views/vault/vault'
-  import { settingsPages, shortcuts, views } from './nav'
+  import { settingsGroupsFor, shortcuts, views } from './nav'
   import { best, GROUP_LIMIT, tokensOf } from './palette'
   import { lock, nextStep, shortId, sync } from './session'
 
@@ -164,7 +164,7 @@
       { label: t(views.reminders.label), icon: views.reminders.icon, run: () => go(views.reminders.path) }
     ]
     const secretParts: Entry[] = vaultWorkflows(status?.account_kind === 'local').map((name) => ({ label: `${t('vault')} › ${workflowText(name)}`, value: `workflow:${name}`, icon: workflowIcon[name], run: () => go(`/vault/${name}`) }))
-    const pages: Entry[] = settingsPages.map((page) => ({ label: `${t('settings')} › ${t(page.label)}`, value: `settings:${page.value}`, icon: page.icon, run: () => go(`/settings/${page.value}`) }))
+    const pages: Entry[] = settingsGroupsFor(status?.account_kind === 'local').flatMap(group => group.pages).map((page) => ({ label: `${t('settings')} › ${t(page.label)}`, value: `settings:${page.value}`, icon: page.icon, run: () => go(`/settings/${page.value}`) }))
     const step = nextStep(status)
     const offered: (Entry | null)[] = [
       unlocked ? { label: t('lock'), icon: 'lock', hint: `${mod}L`, run: lock } : step ? { label: t(step.label), icon: step.icon, run: step.run } : null,

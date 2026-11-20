@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
+  import { onDestroy, untrack } from 'svelte'
   import Icon from '../../components/Icon.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -18,13 +18,13 @@
    * it was. Its next sync brings what is new. Room content comes from
    * others and is shown as text.
    */
-  let { agents, active }: { agents: any[]; active: string | null } = $props()
+  let { agents, active, selectAgent }: { agents: any[]; active: string; selectAgent: (id: string) => void } = $props()
 
   let alive = true
   let revision = 0
   let opened = 0
   onDestroy(() => { alive = false; revision++; opened++ })
-  let agent = $state('')
+  const agent = $derived(active || agents[0]?.agent_id || '')
   let rooms = $state<any[] | null>(null)
   let drafts = $state<any[]>([])
   let inbox = $state<any[]>([])
@@ -36,10 +36,13 @@
   let busy = $state(false)
 
   $effect(() => {
-    if (!agent && agents.length) {
-      agent = active ?? agents[0].agent_id
-      void load()
-    }
+    const id = agent
+    untrack(() => {
+      revision++; opened++
+      room = ''; state_ = null; members = []; timeline = []
+      rooms = null; drafts = []; inbox = []; error = ''; busy = false
+      if (id) void load()
+    })
   })
 
   const read = async (uri: string) => ((await call('ap/read', { agent, uri })) as any).value
@@ -61,17 +64,17 @@
 
   const load = () =>
     attempt(async () => {
-      const target = agent
+      const turn = revision, target = agent
       const [listed, held, pending] = await Promise.all([
         read('agent-protocols://rooms'),
         read('agent-protocols://drafts/held'),
         read('agent-protocols://inbox/pending')
       ])
-      if (!alive || agent !== target) return
+      if (!alive || turn !== revision || agent !== target) return
       rooms = listed.rooms ?? []
       drafts = held.drafts ?? []
       inbox = pending.items ?? []
-      if (room && !rooms!.some((r) => r.room_id === room)) room = ''
+      if (room && !rooms!.some((r) => r.room_id === room)) { room = ''; state_ = null; members = []; timeline = [] }
       if (room) await open(room)
     })
 
@@ -98,14 +101,19 @@
   <Section title={t('discourse')} description={t('discourseHint')} icon="members" testid="agent-discourse">
     {#snippet actions()}
       <Select
-        bind:value={agent}
-        onChange={() => ((room = ''), (rooms = null), void load())}
+        bind:value={() => agent, selectAgent}
+        label={t('tabAgentIds')}
         testid="discourse-agent"
         options={agents.map((a) => ({ value: a.agent_id, label: a.label }))}
       />
       <button class={buttonClass('secondary', 'md')} disabled={busy || !agent} onclick={load} data-testid="discourse-reload"><Icon name="sync-now" />{t('reload')}</button>
     {/snippet}
-    {#if error}<Notice failure={error} tone="danger" class="mb-3" testid="discourse-error">{error}</Notice>{/if}
+    {#if error}<Notice tone="danger" class="mb-3" testid="discourse-error">{error}
+      {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={load}>{t('retry')}</button>{/snippet}
+    </Notice>{/if}
+    {#if !rooms}
+      {#if !error}<p role="status" class="text-[13px] text-muted">{t('loading')}</p>{/if}
+    {:else}
     <div class="grid gap-4 lg:grid-cols-[minmax(220px,300px)_1fr]">
       <div class="grid content-start gap-3">
         <div>
@@ -115,6 +123,7 @@
               <li>
                 <button
                   class={cn('grid w-full gap-0.5 rounded-lg px-3 py-2 text-start', room === r.room_id ? 'bg-pale font-medium' : 'hover:bg-surface-2')}
+                  aria-pressed={room === r.room_id}
                   onclick={() => choose(r.room_id)}
                 >
                   <span class="flex items-center gap-1.5">
@@ -201,10 +210,11 @@
             </div>
           </div>
         {:else}
-          <p class="text-[12.5px] text-faint">{t('pickRoom')}</p>
+          <p class="text-[12.5px] text-faint">{room && busy ? t('loading') : room && error ? t('agentLoadFailed') : t('pickRoom')}</p>
         {/if}
         <p class="mt-3 text-[11.5px] text-faint">{t('discourseLocal')}</p>
       </div>
     </div>
+    {/if}
   </Section>
 {/if}

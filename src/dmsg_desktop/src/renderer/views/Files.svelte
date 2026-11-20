@@ -26,7 +26,7 @@
   import Links from './files/Links.svelte'
   import Requests from './files/Requests.svelte'
   import Detail from './files/Detail.svelte'
-  import { ancestorsOf, isSort, matchesFile, ordered, ROOT, runsAsProgram, sortKeys, statusOf, type Sort, type SortKey } from './files/files'
+  import { ancestorsOf, foldersByParent, folderSubtree, isSort, matchesFile, ordered, ROOT, runsAsProgram, sortKeys, statusOf, validFileName, type Sort, type SortKey } from './files/files'
   import FolderDetail from './files/FolderDetail.svelte'
   import SearchStatus from './files/SearchStatus.svelte'
   import { searchLibrary } from './files/search.svelte'
@@ -76,7 +76,7 @@
   let dragging = $state(0)
   let limit = $state(PAGE)
   let sort = $state<Sort>(readSort())
-  let search = $state<HTMLInputElement | null>(null)
+  let region = $state<HTMLDivElement | null>(null)
   let list = $state<HTMLElement | null>(null)
   let sentinel = $state<HTMLElement | null>(null)
   /** Dialogs: each holds what it acts on. */
@@ -115,6 +115,8 @@
   const quoteError = $derived(quoteState.kind === 'failed' ? quoteState.error : '')
   const quoting = $derived(quoteState.kind === 'loading')
   let draft = $state('')
+  let nameError = $state('')
+  const nameFeedback = $derived(draft && !validFileName(draft) ? t('fileNameRule') : nameError)
   /** The names of files a backup card names by ID, read once each. */
   let resolved = $state<Record<string, string>>({})
   let cancelling = false
@@ -126,22 +128,23 @@
   const unlocked = $derived(status?.state === 'unlocked')
   const tag = $derived(scope.startsWith('tag:') ? scope.slice(4) : null)
   const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'links' && scope !== 'requests' && !tag)
-  // Search this folder first. A miss asks the daemon for matches across the library.
-  const searchResults = searchLibrary(() => {
-    const q = query.trim()
-    return unlocked && folderScope && q && !listing?.files.some((f) => matchesFile(f, q)) ? q : null
-  })
-  const found = $derived(searchResults.result.kind === 'ready' ? searchResults.result.files : null)
+  // A fresh listing also refreshes the search after a file is changed or imported.
+  const searchResults = searchLibrary(() => unlocked && folderScope && listing ? query.trim() || null : null, 150, () => scope)
+  const found = $derived(searchResults.result.kind === 'ready' && searchResults.result.query === query.trim() && searchResults.result.folder === scope ? searchResults.result.files : null)
   const names = $derived(Object.fromEntries((listing?.files ?? []).concat(found ?? []).map((f: any) => [f.id, f.name])))
   const cloudNames = $derived(Object.fromEntries(cloud.map((e) => [e.upload_id, e.name])))
   /** Rows from across the library show where they lie. */
-  const spread = $derived(!!found || !folderScope)
+  const spread = $derived(!!query.trim() || !folderScope)
+  const folderIndex = $derived(foldersByParent(folders))
   const rows = $derived.by(() => {
-    if (found) return ordered([], found.map((f) => ({ ...f, kind: 'file' })), locale(), sort)
     if (!listing) return []
-    const files = listing.files.filter((f) => matchesFile(f, query)).map((f) => ({ ...f, kind: 'file' }))
-    const subfolders = query.trim() ? [] : listing.folders.map((f) => ({ ...f, kind: 'folder' }))
-    return ordered(subfolders, files, locale(), sort)
+    const files = found ?? listing.files.filter((f) => matchesFile(f, query))
+    let subfolders = listing.folders
+    if (folderScope && query.trim()) {
+      const subtree = scope === ROOT ? null : folderSubtree(folderIndex, [scope])
+      subfolders = folders.filter(f => f.id !== scope && (!subtree || subtree.has(f.id)) && matchesFile(f, query))
+    }
+    return ordered(subfolders.map(f => ({ ...f, kind: 'folder' })), files.map(f => ({ ...f, kind: 'file' })), locale(), sort)
   })
   const shown = $derived(rows.slice(0, limit))
   const currentRow = $derived(selected.length === 1 ? (rows.find((r) => r.id === selected[0]) ?? null) : null)
@@ -152,9 +155,14 @@
   const ancestors = $derived(ancestorsOf(folders, folderScope ? scope : ROOT))
   /** The selection as a set: a folder of thousands, all selected, stays cheap. */
   const chosen = $derived(new Set(selected))
+  const tabRow = $derived(shown.findLast(row => chosen.has(row.id))?.id ?? shown[0]?.id)
   const chosenFiles = $derived(rows.filter((r) => chosen.has(r.id) && r.kind === 'file'))
   /** What an export can write: a file only in the cloud has no bytes here. */
   const exportable = $derived(chosenFiles.filter((f) => statusOf(f.status) !== 'cloud_only'))
+  const moveSource = $derived.by(() => {
+    const parents = moving?.map(id => rows.find(row => row.id === id)?.folder ?? folders.find(folder => folder.id === id)?.parent)
+    return parents?.length && parents.every(parent => parent === parents[0]) ? parents[0] : undefined
+  })
 
   function readSort(): Sort {
     try {
@@ -179,13 +187,13 @@
   const failure = (e: unknown) => (code(e) === 'IDEMPOTENCY_CONFLICT' ? t('nameTaken') : errorText(e))
   const fail = (e: unknown) => toast(() => failure(e), planAction(e))
 
-  async function attempt(work: () => Promise<unknown>, done?: string | (() => string)) {
+  async function attempt(work: () => Promise<unknown>, done?: string | (() => string), onError = fail) {
     busy = true
     try {
       await work()
       if (done) toast(typeof done === 'function' ? done : () => done)
     } catch (e) {
-      fail(e)
+      onError(e)
     } finally {
       busy = false
     }
@@ -216,6 +224,14 @@
     else if (next === 'cloud') go('/files/cloud')
     else if (next === 'trash') go('/files/trash')
     else if (route !== '/files') go('/files')
+  }
+
+  function changeQuery(value: string) {
+    if (query === value) return
+    query = value
+    selected = []
+    anchor = null
+    list?.scrollTo({ top: 0 })
   }
 
   // A vault item's attachment opens here: its folder, with the file selected.
@@ -375,11 +391,14 @@
   function onListKey(event: KeyboardEvent) {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
     event.preventDefault()
-    const lead = selected.at(-1)
+    const lead = (event.target as HTMLElement)?.closest<HTMLElement>('[data-id]')?.dataset.id ?? selected.at(-1)
     const at = rows.findIndex((r) => r.id === lead)
     const next = rows[Math.max(0, Math.min(rows.length - 1, at + (event.key === 'ArrowDown' ? 1 : -1)))]
     if (!next) return
-    if (event.shiftKey && anchor) selected = [...range(anchor, next.id).filter((id) => id !== next.id), next.id]
+    if (event.shiftKey && lead) {
+      anchor ??= lead
+      selected = [...range(anchor, next.id).filter((id) => id !== next.id), next.id]
+    }
     else {
       selected = [next.id]
       anchor = next.id
@@ -405,9 +424,8 @@
     const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
     if (held && !event.altKey && !event.shiftKey) {
       if (key === 'f') {
-        event.preventDefault()
-        search?.focus()
-        search?.select()
+        const field = region?.querySelector<HTMLInputElement>('input[type="search"]')
+        if (field) { event.preventDefault(); field.focus(); field.select() }
       } else if (key === 'n' && unlocked && folderScope) {
         event.preventDefault()
         newFolderIn(scope)
@@ -427,10 +445,12 @@
     if (key === 'Delete' && selected.length) {
       event.preventDefault()
       trash(selected)
-    } else if (key === 'Enter' && currentRow) {
+    } else if (key === 'Enter' && (currentRow || target?.closest('[data-id]'))) {
       event.preventDefault()
-      if (currentRow.kind === 'folder') pick(currentRow.id)
-      else if (statusOf(currentRow.status) !== 'cloud_only') open(currentRow.id, null)
+      const id = target?.closest<HTMLElement>('[data-id]')?.dataset.id
+      const row = rows.find(row => row.id === id) ?? currentRow
+      if (row?.kind === 'folder') pick(row.id)
+      else if (row && statusOf(row.status) !== 'cloud_only') open(row.id, null)
     } else if (key === ' ' && current && window.dmsg.platform === 'darwin' && statusOf(current.status) !== 'cloud_only') {
       event.preventDefault()
       void bridge(() => window.dmsg.filesPreview(current.id, current.name)).catch(fail)
@@ -454,10 +474,12 @@
       if (!result && dropped) forget(dropped.map((f) => f.name))
       if (result) {
         added(result.names, result.files, { duplicate: (n) => t('duplicateOf', { n }), version: t('addedAsVersion'), files: (n) => t('filesAddedCount', { n }) })
+        if (scope !== folder || !result.files.length) return
+        changeQuery('')
         // A single file opens once the list holds it.
         if (!target && result.files.length === 1 && result.files[0].file && result.names.includes(result.files[0].file.name)) {
           await reload()
-          selected = [result.files[0].file.id]
+          if (scope === folder) selected = [result.files[0].file.id]
         }
       }
     } catch (e) {
@@ -541,10 +563,12 @@
   }
   const newFolderIn = (parent: string) => {
     naming = { parent }
+    nameError = ''
     draft = ''
   }
   const renameItem = (item: any) => {
     renaming = { id: item.id, name: item.name }
+    nameError = ''
     draft = item.name
   }
   function folderAction(action: 'rename' | 'backup' | 'grant' | 'move' | 'trash', folder: any) {
@@ -557,20 +581,25 @@
 
   function createFolder() {
     const name = draft.trim(), dialog = naming
-    if (busy || !name || !dialog) return
+    if (busy || !validFileName(name) || !dialog) return
     return attempt(async () => {
-      await call('files/mkdir', { parent: dialog.parent, name })
+      const folder = await call<{ id: string }>('files/mkdir', { parent: dialog.parent, name })
+      if (scope === dialog.parent) {
+        changeQuery('')
+        await reload()
+        if (scope === dialog.parent) selected = [folder.id]
+      }
       if (naming === dialog) naming = null
-    })
+    }, undefined, e => { nameError = failure(e) })
   }
 
   function rename() {
     const name = draft.trim(), dialog = renaming
-    if (busy || !name || !dialog || name === dialog.name) return
+    if (busy || !validFileName(name) || !dialog || name === dialog.name) return
     return attempt(async () => {
       await call('files/rename', { id: dialog.id, name })
       if (renaming === dialog) renaming = null
-    })
+    }, undefined, e => { nameError = failure(e) })
   }
 
   /**
@@ -682,7 +711,10 @@
     catch (e) { if (scope === 'cloud') { const failure = errorText(e); await reload(); if (scope === 'cloud') error = failure } }
   })
 
-  const refreshCloud = () => attempt(() => call('files/cloud_refresh'))
+  const refreshCloud = () => attempt(async () => {
+    await call('files/cloud_refresh')
+    if (scope === 'cloud') await reload()
+  }, undefined, e => { if (scope === 'cloud') error = errorText(e) })
   const fetchBackup = (upload: string, folder: string | null) => attempt(() => call('files/cloud_fetch', { upload_id: upload, folder, background: true }), () => t('transferQueued'))
   const verifyBackup = (upload: string) =>
     attempt(async () => {
@@ -769,6 +801,13 @@
   </DropdownMenu.Root>
 {/snippet}
 
+{#snippet readFailure()}
+  <Notice tone="warn" class="m-3" testid="files-list-error">
+    <p>{error}</p>
+    <button class={buttonClass('secondary', 'xs', 'mt-2')} onclick={() => attempt(reload)} disabled={busy}>{t('retry')}</button>
+  </Notice>
+{/snippet}
+
 {#snippet places()}
       <Tree {standalone} {folders} {tags} {scope} {unlocked} onPick={(next) => { placesOpen = false; pick(next) }} onDropMove={move} onDropFiles={dropFiles} onNewFolder={newFolderIn} onFolderAction={folderAction} />
       {#if usage}
@@ -805,6 +844,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+  bind:this={region}
   class="@container relative flex h-full min-h-0 flex-col"
   ondragenter={onDragEnter}
   ondragover={onDragOver}
@@ -835,6 +875,7 @@
           {unlocked}
           {busy}
           loaded={cloudLoaded}
+          {error}
           onRefresh={refreshCloud}
           onFetch={(upload) => fetchBackup(upload, null)}
           onFetchTo={(upload) => (fetching = upload)}
@@ -846,6 +887,9 @@
       </div>
     {:else if scope === 'trash'}
       <div class="min-w-0 flex-1">
+        {#if error}
+          {@render readFailure()}
+        {:else}
         <Trash
           listing={trashListing}
           days={usage?.trash_days ?? 30}
@@ -857,6 +901,7 @@
           onPurge={(ids) => (purging = ids)}
           onEmpty={() => (purging = 'all')}
         />
+        {/if}
       </div>
       {#if trashOpened && trashDetails?.file?.id === trashOpened}
         <div class="w-[380px] shrink-0 border-s border-line">
@@ -890,7 +935,7 @@
           <div class="flex items-center gap-1.5">
             <label class="relative min-w-0 flex-1">
               <Icon name="search" class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />
-              <input bind:this={search} bind:value={query} type="search" class="ps-8" placeholder={t('searchFiles')} aria-label={t('search')} data-testid="files-search" />
+              <input bind:value={() => query, changeQuery} type="search" class="ps-8" placeholder={t('searchFiles')} aria-label={t('search')} data-testid="files-search" />
             </label>
             {#if unlocked && folderScope}
               <DropdownMenu.Root dir={localeDir(locale())}>
@@ -941,7 +986,7 @@
 
         {#if selected.length > 1 && unlocked}
           <div class="mx-3 mb-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-2.5 py-1.5 text-[12px] text-ink-2" data-testid="files-selection">
-            <span class="min-w-0 flex-1">{t('selectedCount', { n: selected.length })}</span>
+            <span class="basis-full font-medium">{t('selectedCount', { n: selected.length })}</span>
             {#if !standalone}<Tooltip content={t('backUp')}>
               {#snippet children(props)}
                 <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('backUp')} onclick={() => askBackup(selected, false)}><Icon name="cloud-up" /></button>
@@ -959,7 +1004,7 @@
             </Tooltip>
             <Tooltip content={chosenFiles.every((f) => f.starred) ? t('unstar') : t('star')}>
               {#snippet children(props)}
-                <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('star')} disabled={!chosenFiles.length} onclick={() => starMany(chosenFiles)}><Icon name="star" /></button>
+                <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t(chosenFiles.every(f => f.starred) ? 'unstar' : 'star')} disabled={!chosenFiles.length} onclick={() => starMany(chosenFiles)}><Icon name="star" /></button>
               {/snippet}
             </Tooltip>
             <Tooltip content={t('moveToTrash')}>
@@ -980,6 +1025,7 @@
           {#each shown as row (row.id)}
             <Row {standalone}
               entry={row}
+              focusable={tabRow === row.id}
               folder={row.kind === 'folder'}
               selected={chosen.has(row.id)}
               {unlocked}
@@ -1001,9 +1047,11 @@
               dragIds={() => (chosen.has(row.id) ? selected : [row.id])}
             />
           {:else}
-            {#if loaded}
+            {#if error}
+              <li>{@render readFailure()}</li>
+            {:else if loaded}
               <li class="grid gap-2 px-4 py-10 text-center" data-testid={searchResults.result.kind === 'failed' || searchResults.result.kind === 'loading' ? undefined : 'files-empty'}>
-                {#if query}
+                {#if query.trim()}
                   <SearchStatus search={searchResults} empty={t('noFilesMatch', { query })} />
                 {:else if !folderScope}
                   <p class="text-[13px] text-muted">{t('noItems')}</p>
@@ -1018,6 +1066,9 @@
               <li class="px-4 py-10 text-center" data-testid="files-loading"><p class="shimmer text-[13px] text-muted">{t('loading')}</p></li>
             {/if}
           {/each}
+          {#if shown.length && (searchResults.result.kind === 'failed' || searchResults.result.kind === 'loading')}
+            <li class="px-3 py-2"><SearchStatus search={searchResults} empty="" /></li>
+          {/if}
           {#if rows.length > shown.length}
             <li bind:this={sentinel} class="py-3 text-center text-[11.5px] text-faint" data-testid="files-more-rows">{t('moreRows', { n: rows.length - shown.length })}</li>
           {/if}
@@ -1067,7 +1118,7 @@
           />
         {:else if loaded}
           <div class="grid h-full place-items-center p-8 text-center text-[13px] text-faint">
-            <p>{selected.length > 1 ? t('selectedCount', { n: selected.length }) : rows.length ? t('selectFile') : error || ''}</p>
+            <p>{selected.length > 1 ? t('selectedCount', { n: selected.length }) : rows.length ? t('selectFile') : ''}</p>
           </div>
         {/if}
       </div>
@@ -1107,26 +1158,30 @@
 </Dialog>
 
 <Dialog bind:open={() => !!naming, (next) => !next && (naming = null)} title={t('newFolder')} icon="folder-add" testid="files-new-folder-dialog">
-  <TextField label={t('folderName')} bind:value={draft} disabled={busy} onkeydown={(e) => !e.isComposing && e.key === 'Enter' && createFolder()} data-testid="files-folder-name" />
+  <TextField label={t('folderName')} bind:value={draft} error={nameFeedback} oninput={() => nameError = ''} disabled={busy} onkeydown={(e) => !e.isComposing && e.key === 'Enter' && createFolder()} data-testid="files-folder-name" />
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (naming = null)}>{t('cancel')}</button>
-    <button class={buttonClass('primary')} disabled={busy || !draft.trim()} onclick={createFolder} data-testid="files-folder-create">{t('add')}</button>
+    <button class={buttonClass('primary')} disabled={busy || !validFileName(draft)} onclick={createFolder} data-testid="files-folder-create">{t('add')}</button>
   {/snippet}
 </Dialog>
 
 <Dialog bind:open={() => !!renaming, (next) => !next && (renaming = null)} title={t('renameFile')} description={renaming?.name} icon="edit" testid="files-rename-dialog">
-  <TextField label={t('newName')} bind:value={draft} disabled={busy} onkeydown={(e) => !e.isComposing && e.key === 'Enter' && rename()} data-testid="files-rename-input" />
+  <TextField label={t('newName')} bind:value={draft} error={nameFeedback} oninput={() => nameError = ''} disabled={busy} onkeydown={(e) => !e.isComposing && e.key === 'Enter' && rename()} data-testid="files-rename-input" />
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (renaming = null)}>{t('cancel')}</button>
-    <button class={buttonClass('primary')} disabled={busy || !draft.trim() || draft.trim() === renaming?.name} onclick={rename} data-testid="files-rename-save">{t('save')}</button>
+    <button class={buttonClass('primary')} disabled={busy || !validFileName(draft) || draft.trim() === renaming?.name} onclick={rename} data-testid="files-rename-save">{t('save')}</button>
   {/snippet}
 </Dialog>
 
-<FolderPicker bind:open={() => !!moving, (next) => !next && (moving = null)} {folders} title={t('moveTo')} action={t('moveHere')} exclude={moving ?? []} onPick={(folder) => moving && move(moving, folder)} />
+<FolderPicker bind:open={() => !!moving, (next) => !next && (moving = null)} {folders} title={t('moveTo')} action={t('moveHere')} exclude={moving ?? []} unchanged={moveSource} onPick={async (folder) => {
+  if (moving) { await call('files/move', { ids: moving, folder }); toast(() => t('moved')) }
+}} />
 
-<FolderPicker bind:open={() => !!fetching, (next) => !next && (fetching = null)} {folders} title={t('fetchTo')} action={t('fetchHere')} onPick={(folder) => fetching && fetchBackup(fetching, folder)} />
+<FolderPicker bind:open={() => !!fetching, (next) => !next && (fetching = null)} {folders} title={t('fetchTo')} action={t('fetchHere')} onPick={async (folder) => {
+  if (fetching) { await call('files/cloud_fetch', { upload_id: fetching, folder, background: true }); toast(() => t('transferQueued')) }
+}} />
 
 <GrantDialog bind:folder={granting} {go} />
 

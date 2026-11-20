@@ -1986,6 +1986,8 @@
 	<string>Für Uploads reserviert</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Beheben Sie den ausstehenden Kontovorgang, bevor Sie dieses Konto löschen.</string>
+	<key>Restored</key>
+	<string>Restauriert</string>
 	<key>Restore</key>
 	<string>Wiederherstellen</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>Mindestens 12 Zeichen verwenden.</string>
 	<key>Confirm local password</key>
 	<string>Lokales Passwort bestätigen</string>
+	<key>File digest checked</key>
+	<string>Datei-Digest überprüft</string>
+	<key>The file changed or cannot be read</key>
+	<string>Die Datei wurde geändert oder kann nicht gelesen werden</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>Nur der Digest wird bestätigt; Die Datei wurde nicht überprüft</string>
+	<key>Delivery report</key>
+	<string>Zustellbericht</string>
+	<key>Sign in</key>
+	<string>Melden Sie sich an</string>
+	<key>Link to an existing account</key>
+	<string>Link zu einem bestehenden Konto</string>
+	<key>Confirm it is still you</key>
+	<string>Bestätigen Sie, dass Sie es immer noch sind</string>
+	<key>Receiver</key>
+	<string>Empfänger</string>
+	<key>Valid until</key>
+	<string>Gültig bis</string>
+	<key>High risk</key>
+	<string>Hohes Risiko</string>
 </dict>
 </plist>

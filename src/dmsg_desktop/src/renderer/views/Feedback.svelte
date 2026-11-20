@@ -81,7 +81,8 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="mt-4 grid gap-4" onpaste={paste} onkeydown={key} data-testid="feedback-form">
       {#if !form.loaded}
-        <button class={buttonClass('secondary')} disabled={form.busy} onclick={load}>{t('retry')}</button>
+        {#if form.failure && !form.busy}<button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={load}>{t('retry')}</button>
+        {:else}<p class="text-[13px] text-muted" role="status">{t('loading')}</p>{/if}
       {:else}
         <div class="grid gap-1">
           <TextArea label={t('message')} value={form.text} oninput={(e) => form.update(e.currentTarget.value)} readonly={!!form.record && form.record.state !== 'draft'} disabled={form.busy} dir="auto"
@@ -109,7 +110,7 @@
             <button class={buttonClass('primary')} onclick={() => form.clear()} data-testid="feedback-new">{t('feedbackNew')}</button>
           {:else}
             {#if form.record?.state === 'pending' && form.record.editable}<button class={buttonClass('secondary')} disabled={form.busy} onclick={() => form.edit()}>{t('edit')}</button>{/if}
-            {#if !form.record || form.record.state === 'draft'}<button class={buttonClass('ghost')} disabled={form.busy || importing} onclick={() => discarding = true}>{t('discard')}</button>{/if}
+            {#if !form.record || form.record.state === 'draft'}<button class={buttonClass('ghost')} disabled={form.busy || importing || (!form.record && !form.text && !form.screenshots.length)} onclick={() => discarding = true}>{t('discard')}</button>{/if}
             <button class={buttonClass('primary')} disabled={form.busy || importing || bytes > 4500 || (!form.text.trim() && !form.screenshots.length)} onclick={() => form.send()} data-testid="feedback-send">{form.record?.state === 'pending' ? t('retry') : t('send')}</button>
           {/if}
         </div>
@@ -118,7 +119,8 @@
     </div>
   {/if}
 </Section>
-<Dialog bind:open={discarding} title={t('discard')} description={t('feedbackDiscardHint')}>
+<Dialog bind:open={discarding} dismissible={!form.busy} testid="feedback-discard-dialog" title={t('discard')} description={t('feedbackDiscardHint')}>
   <p class="text-[13px]">{t('feedbackDiscardTitle')}</p>
-  {#snippet footer()}<button class={buttonClass('ghost')} onclick={() => discarding = false}>{t('cancel')}</button><button class={buttonClass('danger')} onclick={async () => { await form.clear(); discarding = false }}>{t('discard')}</button>{/snippet}
+  {#if form.failure}<Notice tone="danger">{errorText(new CallError(form.failure))}</Notice>{/if}
+  {#snippet footer()}<button class={buttonClass('ghost')} disabled={form.busy} onclick={() => discarding = false}>{t('cancel')}</button><button class={buttonClass('danger')} disabled={form.busy} aria-busy={form.busy} onclick={async () => { await form.clear(); if (!form.failure) discarding = false }}>{t('discard')}</button>{/snippet}
 </Dialog>

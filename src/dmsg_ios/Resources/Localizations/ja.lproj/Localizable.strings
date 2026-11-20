@@ -1986,6 +1986,8 @@
 	<string>アップロード予約分</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>このアカウントを削除する前に、保留中のアカウント操作を解決してください。</string>
+	<key>Restored</key>
+	<string>復元されました</string>
 	<key>Restore</key>
 	<string>復元</string>
 	<key>Restore purchases</key>
@@ -3540,5 +3542,25 @@
 	<string>12 文字以上入力してください。</string>
 	<key>Confirm local password</key>
 	<string>ローカルパスワードを確認</string>
+	<key>File digest checked</key>
+	<string>ファイルダイジェストチェック済み</string>
+	<key>The file changed or cannot be read</key>
+	<string>ファイルが変更されたか、読み取れません</string>
+	<key>Only the digest is confirmed; the file was not checked</key>
+	<string>ダイジェストのみが確認されます。ファイルはチェックされていませんでした</string>
+	<key>Delivery report</key>
+	<string>配信レポート</string>
+	<key>Sign in</key>
+	<string>サインイン</string>
+	<key>Link to an existing account</key>
+	<string>既存のアカウントにリンクする</string>
+	<key>Confirm it is still you</key>
+	<string>まだあなたであることを確認してください</string>
+	<key>Receiver</key>
+	<string>受信機</string>
+	<key>Valid until</key>
+	<string>まで有効</string>
+	<key>High risk</key>
+	<string>高リスク</string>
 </dict>
 </plist>

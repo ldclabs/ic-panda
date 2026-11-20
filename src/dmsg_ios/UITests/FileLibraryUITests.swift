@@ -8,7 +8,7 @@ class FileLibraryTestCase: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-files-rich", "-AppleLanguages", "(\(language))", "-AppleLocale", locale] + extra
         app.launch()
-        XCTAssertTrue(app.buttons["files.scope.local"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.descendants(matching: .any)["files.scope.local"].firstMatch.waitForExistence(timeout: 8))
         return app
     }
 

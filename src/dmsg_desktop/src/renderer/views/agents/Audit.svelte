@@ -14,37 +14,55 @@
   let { agents }: { agents: any[] } = $props()
 
   let entries = $state<any[]>([])
+  let loaded = $state(false)
+  let busy = $state(false)
+  let failedBefore = $state<number | undefined>()
   let actor = $state('')
   let more = $state(false)
   let error = $state('')
   let alive = true
   let revision = 0
+  let refreshPending = false
   let displayedActor = ''
   onDestroy(() => { alive = false; revision++ })
   const PAGE = 50
 
-  async function load(before?: number) {
+  async function load(before?: number, preserve = false) {
     const turn = ++revision
     const selected = actor
-    if (displayedActor !== actor) { entries = []; more = false; displayedActor = actor }
-    error = ''
+    if (displayedActor !== actor) { entries = []; more = false; loaded = false; displayedActor = actor }
+    error = ''; busy = true; failedBefore = undefined
     try {
       const page: any = await call('audit/list', { agent: actor || null, before: before ?? null, limit: PAGE })
       if (!alive || turn !== revision || actor !== selected) return
-      entries = before ? [...entries, ...page.entries] : page.entries
-      more = page.entries.length === PAGE
+      const next = page.entries as any[]
+      if (preserve && entries.length > PAGE && next.length && entries.some(e => e.seq === next[next.length - 1].seq)) {
+        entries = [...next, ...entries.filter(e => e.seq < next[next.length - 1].seq)]
+      } else {
+        entries = before === undefined ? next : [...entries, ...next]
+        more = next.length === PAGE
+      }
+      loaded = true
     } catch (e) {
       if (!alive || turn !== revision || actor !== selected) return
-      error = errorText(e)
+      error = errorText(e); failedBefore = before
+    } finally {
+      if (alive && turn === revision) {
+        busy = false
+        if (refreshPending) { refreshPending = false; void reload() }
+      }
     }
   }
 
   /** The first page again, once per burst of changes. */
-  const reload = single(() => load())
+  const reload = single(() => load(undefined, true))
 
   onMount(() => {
     void reload()
-    return onChange(['agent/changed', 'approval/changed', 'audit/changed'], reload)
+    return onChange(['agent/changed', 'approval/changed', 'audit/changed'], () => {
+      if (busy) refreshPending = true
+      else void reload()
+    })
   })
 
   const labelOf = (who: string) => (who === 'owner' ? t('owner') : (agents.find((a) => a.agent_id === who)?.label ?? who))
@@ -64,7 +82,9 @@
       options={[{ value: '', label: t('everyone') }, { value: 'owner', label: t('owner') }, ...agents.map((a) => ({ value: a.agent_id, label: a.label }))]}
     />
   {/snippet}
-  {#if error}<Notice failure={error} tone="danger" class="mb-3">{error}</Notice>{/if}
+  {#if error}<Notice tone="danger" class="mb-3" testid="audit-error">{error}
+    {#snippet action()}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => load(failedBefore)}>{t('retry')}</button>{/snippet}
+  </Notice>{/if}
   <div data-testid="audit-entries">
     {#each groups as group (group.day)}
       <h3 class="sticky top-0 bg-surface py-1.5 text-[11.5px] font-medium text-faint">{dayFormat.format(group.at)}</h3>
@@ -87,10 +107,13 @@
         {/each}
       </ol>
     {:else}
-      <p class="text-[13px] text-faint">{t('noAudit')}</p>
+      {#if !error}<div class="flex items-center gap-2 text-[13px] text-muted">
+        <span role="status">{!loaded ? t('loading') : actor ? t('noResults') : t('noAudit')}</span>
+        {#if loaded && actor}<button class={buttonClass('ghost', 'sm')} onclick={() => { actor = ''; void load() }}>{t('everyone')}</button>{/if}
+      </div>{/if}
     {/each}
   </div>
-  {#if more}
-    <button class={buttonClass('secondary', 'sm', 'mt-2')} onclick={() => load(entries[entries.length - 1].seq)}>{t('older')}</button>
+  {#if more && !error}
+    <button disabled={busy} class={buttonClass('secondary', 'sm', 'mt-2')} onclick={() => load(entries[entries.length - 1].seq)}>{t('older')}</button>
   {/if}
 </Section>

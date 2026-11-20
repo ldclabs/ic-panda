@@ -2,6 +2,7 @@ package net.dmsg.android.core
 
 import net.dmsg.core.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 
 data class LibraryFolder(val id: String, val name: String, val parent: String, val path: List<String>)
 data class LibraryFile(val id: String, val name: String, val size: ULong, val status: String, val sha256: String, val mime: String, val version: String,
@@ -42,8 +43,9 @@ fun parseFile(row: kotlinx.serialization.json.JsonObject) = LibraryFile(row.requ
     row.required("folder"), row.requiredFlag("local"), row.requiredFlag("starred"), row.strings("tags"), row.required("note"), row.requiredUnsigned("updated_at"), parseBackup(row["backup"]), row.unsigned("trashed_at"), row.strings("path"))
 fun parseFiles(json: String): Pair<List<LibraryFolder>, List<LibraryFile>> {
     val root = Json.parseToJsonElement(json).objectValue()
-    return root.rows("folders").map { LibraryFolder(it.required("id"), it.required("name"), it.required("parent"), it.strings("path")) } to root.rows("files").map(::parseFile)
+    return root.rows("folders").map(::parseFolder) to root.rows("files").map(::parseFile)
 }
+fun parseFolder(row: JsonObject) = LibraryFolder(row.required("id"), row.required("name"), row.required("parent"), row.strings("path"))
 fun parseFileDetails(value: kotlinx.serialization.json.JsonElement): FileDetails {
     val root = value.objectValue()
     return FileDetails(parseFile(root["file"]!!.objectValue()), root.rows("versions").map {

@@ -74,7 +74,13 @@ final class SessionModel {
     let vaultEditing = VaultEditing()
     let people = PeopleDirectory()
     let thumbnails = ThumbnailStore()
-    private var dirtyDrafts: Set<String> = []
+    // A paste can stay in the editor while the last text that fits is checkpointed.
+    private var dirtyDrafts: [String: String] = [:]
+    private var pendingMessageDrafts: [MessageDraft] {
+        dirtyDrafts.map { channel, text in
+            MessageDraft(channel: channel, text: text, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil)
+        }
+    }
     var library: LibraryListing = .empty
     private(set) var cloudBackups: [CloudBackup] = []
     private(set) var cloudBackupsFailed = false
@@ -88,7 +94,11 @@ final class SessionModel {
     }
     /// What each visited folder held, so going back shows it at once.
     var filesListings: [String: LibraryListing] = [:]
-    var filesSearch = ""
+    var filesSearches: [String: String] = [:]
+    var filesSearch: String {
+        get { filesSearches[filesFolder] ?? "" }
+        set { setFileSearch(newValue, in: filesFolder) }
+    }
     var filesScope = FileScope.local
     var filesSort = FileSort.name
     var filesLoading = false
@@ -267,6 +277,16 @@ final class SessionModel {
             approvals = [ApprovalView(id: String(repeating: "d", count: 64), digest: String(repeating: "e", count: 64),
                 type: "device_pair", state: "awaiting_user", source: "Studio iPhone", risk: "high",
                 expiresAt: NotificationTime.now + 600_000, mobileSupported: true, updatedAt: NotificationTime.now)]
+            if ProcessInfo.processInfo.arguments.contains("--ui-approval-queue") {
+                approvals.append(ApprovalView(id: "statement-review", digest: "test-digest", type: "attest", state: "awaiting_user",
+                    source: "Release desk", risk: "normal", expiresAt: NotificationTime.now + 300_000, mobileSupported: true, updatedAt: NotificationTime.now))
+                approvals.append(ApprovalView(id: "previous-review", digest: "test-previous", type: "device_pair", state: "unknown",
+                    source: "Previous device", risk: "high", expiresAt: NotificationTime.now - 60_000, mobileSupported: true, updatedAt: NotificationTime.now))
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-approval-web") {
+                approvals.append(ApprovalView(id: "web-review", digest: "test-web", type: "connect", state: "awaiting_user",
+                    source: "Studio browser", risk: "normal", expiresAt: NotificationTime.now + 300_000, mobileSupported: true, updatedAt: NotificationTime.now))
+            }
         }
         channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "Private project conversation")]
         cloudBackups = [CloudBackup(uploadId: "fixture-backup", name: "Project brief.pdf", size: 2048, bytes: 4096, needsRoot: false, local: false,
@@ -558,17 +578,18 @@ final class SessionModel {
 
     func setDraft(channel: String, text: String) {
         guard drafts[channel] != text else { return }
-        drafts[channel] = text; dirtyDrafts.insert(channel)
+        drafts[channel] = text
+        if text.utf8.count <= ComposerQueue.maxTextBytes { dirtyDrafts[channel] = text }
     }
 
     func draftSaved(channel: String, text: String) {
-        if drafts[channel] == text { dirtyDrafts.remove(channel) }
+        if dirtyDrafts[channel] == text { dirtyDrafts[channel] = nil }
     }
 
     func draftForAutosave(channel: String) -> String? {
         // Each queue batch clears the core's text slot. Keep later edits dirty until the send settles.
-        guard !queuingChannels.contains(channel), dirtyDrafts.contains(channel) else { return nil }
-        return drafts[channel]
+        guard !queuingChannels.contains(channel) else { return nil }
+        return dirtyDrafts[channel]
     }
 
     func saveEditedDraft(channel: String, epoch stamp: UInt64) async {
@@ -580,8 +601,9 @@ final class SessionModel {
     }
 
     func clearQueuedDraft(channel: String, sent: String) {
-        if drafts[channel] == sent { drafts[channel] = ""; dirtyDrafts.remove(channel) }
-        else if drafts[channel] != nil { dirtyDrafts.insert(channel) }
+        if drafts[channel] == sent { drafts[channel] = ""; dirtyDrafts[channel] = nil }
+        else if let current = drafts[channel], current.utf8.count <= ComposerQueue.maxTextBytes { dirtyDrafts[channel] = current }
+        else if dirtyDrafts[channel] == sent { dirtyDrafts[channel] = nil }
     }
 
     /// The read position follows to this account's other devices, once reading pauses.
@@ -1066,7 +1088,7 @@ final class SessionModel {
         vaultEditing.prepareLockFixture(self)
         let letterDrafts = letters.pendingInputs
         let feedbackDraft = feedback.pendingInput
-        let messageDrafts = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil) } }
+        let messageDrafts = pendingMessageDrafts
         let account = session?.account
         let finishing = unlocked && !immediateBackgroundLock
         stopAutomaticSync(.background)
@@ -1192,7 +1214,7 @@ final class SessionModel {
             await networkReturned()
             await letters.flush(self)
             await feedback.flush(self)
-            let pending = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil) } }
+            let pending = pendingMessageDrafts
             let current = epoch
             do {
                 try await engine?.saveMessageDrafts(drafts: pending)
@@ -1221,7 +1243,7 @@ final class SessionModel {
         authenticationGeneration &+= 1; webLogin.cancel(); passkeyLogin.cancel(); passkeySessionLimitCredential = nil
         busyOperation = nil
         privacyShield.show()
-        epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
+        epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = [:]
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; session = nil
         clearCloudBackups()
         if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.shutdown() } }
@@ -1232,7 +1254,7 @@ final class SessionModel {
         if clearClipboard { automaticUnlock.suppress() }
         if clearClipboard { lifecycleGeneration &+= 1 }
         let account = session?.account, engine = engine
-        let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0, stamp: nil, attachments: [], replySequence: nil, replyDigest: nil) } }
+        let drafts = pendingMessageDrafts
         let letterDrafts = letters.pendingInputs
         let feedbackDraft = feedback.pendingInput
         let vaultDrafts = vaultEditing.pendingInputs
@@ -1259,7 +1281,7 @@ final class SessionModel {
         transfer.cancel()
         recoveryOperation?.cancel()
         epoch &+= 1
-        viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
+        viewGeneration &+= 1; drafts = [:]; dirtyDrafts = [:]
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesListings = [:]; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
         notice = nil; error = nil; passkeySessionLimitCredential = nil
@@ -1607,7 +1629,7 @@ final class SessionModel {
         guard let engine else { return false }
         let current = epoch
         do {
-            if refresh { _ = try await coreOperation { try await engine.syncConnect(operation: $0) } }
+            if refresh && cloudAccount { _ = try await coreOperation { try await engine.syncConnect(operation: $0) } }
             let result = try await engine.approvals()
             let values: [ApprovalView] = try decode(result)
             guard current == epoch, !Task.isCancelled else { return false }

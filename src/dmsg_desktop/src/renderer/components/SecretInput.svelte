@@ -17,6 +17,7 @@
     label,
     hideLabel = false,
     hint,
+    error,
     disabled = false,
     value = $bindable(''),
     placeholder = '',
@@ -24,7 +25,7 @@
     pin = false,
     multiline = false,
     testid
-  }: { label: string; hideLabel?: boolean; hint?: string; disabled?: boolean; value?: string; placeholder?: string; generate?: boolean; pin?: boolean; multiline?: boolean; testid?: string } = $props()
+  }: { label: string; hideLabel?: boolean; hint?: string; error?: string; disabled?: boolean; value?: string; placeholder?: string; generate?: boolean; pin?: boolean; multiline?: boolean; testid?: string } = $props()
 
   const id = $props.id()
   let shown = $state(false)
@@ -42,7 +43,8 @@
   <textarea
     {id}
     {disabled}
-    aria-describedby={hint ? `${id}-hint` : undefined}
+    aria-invalid={error ? true : undefined}
+    aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
     bind:value
     {placeholder}
     {rows}
@@ -72,7 +74,7 @@
     </Tooltip>
   </div>
 </div>
-{#if hint}<p id={`${id}-hint`} class="text-[11.5px] text-faint">{hint}</p>{/if}
+{#if error}<p id={`${id}-error`} class="text-xs text-danger" role="alert">{error}</p>{:else if hint}<p id={`${id}-hint`} class="text-[11.5px] text-faint">{hint}</p>{/if}
 </div>
 
 <style>

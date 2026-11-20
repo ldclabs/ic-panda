@@ -6,6 +6,7 @@
   import DisplayNotice from '../../components/DisplayNotice.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import Icon from '../../components/Icon.svelte'
+  import Id from '../../components/page/Id.svelte'
   import Fact from '../../components/page/Fact.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Page from '../../components/page/Page.svelte'
@@ -13,7 +14,7 @@
   import Section from '../../components/page/Section.svelte'
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
-  import { t } from '../../i18n/index.svelte'
+  import { locale, t } from '../../i18n/index.svelte'
   import { call, code, errorText, onChange, single, size, units, when } from '../../rpc'
   import { startLogin } from '../../shell/login.svelte'
   import Checkout from './Checkout.svelte'
@@ -26,7 +27,7 @@
    * is read on its own, so one that fails leaves the others. Buying opens
    * the checkout dialog; paying is the approval window's.
    */
-  let { status, onReviewPayments }: { status: any; onReviewPayments: () => void } = $props()
+  let { status, onReviewPayments, onWallet }: { status: any; onReviewPayments: () => void; onWallet: (orderId?: string) => void } = $props()
   let plan = $state<any>(null)
   let catalog = $state<any>(null)
   let cloud = $state<any>(null)
@@ -46,11 +47,16 @@
   let alive = true
   let refreshPlan = false
 
+  let now = $state(Date.now())
   const current = $derived(plan?.current ?? null)
-  const membership = $derived(membershipState(plan, Date.now()))
+  const membership = $derived(membershipState(plan, now))
   const pending = $derived(membership.pending || !!stale.plan)
   const needsRefresh = $derived(pending || Object.values(stale).some(Boolean))
+  const canManageMembership = $derived(!!plan && !pending && !errors.plan)
+  const canChoose = $derived(canManageMembership && !!catalog && !stale.catalog && !errors.catalog)
   const offers = $derived(new Map<string, any>((plan?.offers ?? []).map((o: any) => [o.plan, o])))
+  const buyingAvailable = $derived(canChoose && (!buying || (buying.kind === 'storage' ? plan.storage_available
+    : offers.get(buying.plan)?.sku === buying.sku && offers.get(buying.plan)?.action === buying.action)))
   const paid = $derived<any[]>((catalog?.plans ?? []).filter((p: any) => p.price_cents > 0))
   const packs = $derived<any[]>(catalog?.storage_products ?? [])
   const walletLimit = $derived(catalog?.plans?.find((p: any) => p.plan_id === plan?.plan)?.limits?.team_wallets)
@@ -119,6 +125,7 @@
   }
 
   async function attempt(work: () => Promise<unknown>) {
+    if (busy) return
     busy = true
     try {
       await work()
@@ -132,7 +139,10 @@
   /** The refund is quoted first: what comes back, the network fee, and when the rights stop. */
   const quoteRefund = () =>
     attempt(async () => {
-      refund = await call('plan/refund_quote', { id: plan.refund.order })
+      const { order, contract } = plan.refund
+      const planName = contract && contract === current?.contract ? plan.plan : null
+      const quote = await call('plan/refund_quote', { id: order })
+      if (alive && plan?.refund?.order === order) refund = { ...quote, planName }
     })
 
   async function confirmRefund() {
@@ -147,7 +157,7 @@
   const acknowledge = () =>
     attempt(async () => {
       await call('plan/notice_ack', { id: notice.id })
-      void readCloud()
+      await readCloud('fresh')
     })
 
   const buy = (p: any, offer: any) => (buying = { kind: 'plan', plan: p.plan_id, price_cents: p.price_cents, ...offer })
@@ -156,6 +166,7 @@
 
   onMount(() => {
     void load()
+    const clock = setInterval(() => { now = Date.now() }, 1000)
     const off = onChange(['approval/changed'], () => {
       // A session event remounts this view. Its old payment-follow-up state
       // must never update the account being selected during that transition.
@@ -167,11 +178,14 @@
     const stop = watchDisplays(['plan', 'catalog', 'usage'], (mode) => {
       return Promise.all([readPlan(mode), readCatalog(mode), readCloud(mode)])
     })
-    return () => { alive = false; off(); stop() }
+    return () => { alive = false; clearInterval(clock); off(); stop() }
   })
 
-  const price = (cents: number) => `$${(cents / 100).toFixed(2)}`
-  const share = (used?: number | null, limit?: number | null) => (used != null && limit ? Math.min(100, Math.round((used / limit) * 100)) : 0)
+  const price = (cents: number) => new Intl.NumberFormat(locale(), { style: 'currency', currency: 'USD' }).format(cents / 100)
+  function share(used?: number | null, limit?: number | null) {
+    if (!used || limit == null) return 0
+    return limit === 0 ? 100 : Math.min(100, Math.round(used / limit * 100))
+  }
   const label = (labels: Record<string, any>, value: string) => (labels[value] ? t(labels[value]) : value)
 </script>
 
@@ -207,7 +221,7 @@
             {#if current}
               <Pill>{label(methodLabels, current.method)}</Pill>
               {#if current.store_environment === 'Sandbox'}<Pill testid="plan-sandbox">{t('appStoreSandbox')}</Pill>{/if}
-              {#if membership.active && !pending}<span data-testid="plan-ends">{t('termEnds', { time: when(current.ends_at_ms), n: daysLeft(current.ends_at_ms, Date.now()) })}</span>{/if}
+              {#if membership.active && !pending}<span data-testid="plan-ends">{t('termEnds', { time: when(current.ends_at_ms), n: daysLeft(current.ends_at_ms, now) })}</span>{/if}
             {/if}
           </div>
         {/if}
@@ -230,10 +244,10 @@
     {/if}
   </section>
 
-  {#if plan?.refund}
+  {#if plan?.refund && plan.refund.until_ms > now}
     <Notice tone="info" icon="info" testid="plan-refund">
       {t('refundWindow', { time: when(plan.refund.until_ms) })}
-      {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={quoteRefund} data-testid="plan-refund-quote">{t('requestRefund')}</button>{/snippet}
+      {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy || !canManageMembership} onclick={quoteRefund} data-testid="plan-refund-quote">{t('requestRefund')}</button>{/snippet}
     </Notice>
   {/if}
   {#if needsRefresh}
@@ -256,7 +270,7 @@
   <Section title={t('usageOverview')} icon="health" testid="plan-usage">
     <div class="grid gap-4 sm:grid-cols-3">
       {#if cloud}
-        {@render meter(t('storage'), size(cloud.reserved + cloud.committed), cloud.storage_limit ? size(cloud.storage_limit) : '-', share(cloud.reserved + cloud.committed, cloud.storage_limit), 'usage-storage')}
+        {@render meter(t('storage'), size(cloud.reserved + cloud.committed), cloud.storage_limit != null ? size(cloud.storage_limit) : '—', share(cloud.reserved + cloud.committed, cloud.storage_limit), 'usage-storage')}
         {@render meter(t('activeChannels'), String(cloud.active_channels ?? '-'), String(cloud.channel_limit ?? '-'), share(cloud.active_channels, cloud.channel_limit), 'usage-channels')}
       {:else}
         {@render meter(t('storage'), '—', !pending && plan?.limits ? size(plan.limits.storage_bytes) : '—', 0, 'usage-storage')}
@@ -313,7 +327,7 @@
             {#if offer && offer.action !== 'unavailable'}
               <button
                 class={buttonClass(offer.action === 'subscribe' || offer.action === 'upgrade' ? 'primary' : 'secondary', 'sm', 'mt-1')}
-                disabled={busy}
+                disabled={busy || !canChoose} aria-label={`${t(offerLabels[offer.action] ?? 'subscribe')} · ${p.plan_id}`}
                 onclick={() => buy(p, offer)}
                 data-testid={`plan-${value}-${offer.action}`}>{t(offerLabels[offer.action] ?? 'subscribe')}</button
               >
@@ -345,7 +359,7 @@
               <b class="text-[14px] font-semibold">+{size(pack.storage_bytes)}</b>
               <p class="text-[12px] text-faint tabular-nums">{price(pack.price_cents)} / {t('year')}</p>
             </div>
-            <button class={buttonClass('secondary', 'xs')} disabled={busy || !plan?.storage_available} onclick={() => buyPack(pack)} data-testid="plan-pack-buy">{t('addStorage')}</button>
+            <button class={buttonClass('secondary', 'xs')} disabled={busy || !canChoose || !plan?.storage_available} aria-label={`${t('addStorage')} · ${size(pack.storage_bytes)}`} onclick={() => buyPack(pack)} data-testid="plan-pack-buy">{t('addStorage')}</button>
           </li>
         {/each}
       </ul>
@@ -353,7 +367,7 @@
   {/if}
 </Page>
 
-<Checkout bind:offer={buying} onPaid={() => (paidAt = Date.now())} />
+<Checkout bind:offer={buying} available={buyingAvailable} onRefresh={() => load(true)} {onWallet} onOrders={onReviewPayments} onPaid={() => (paidAt = Date.now())} />
 
 <Confirm
   bind:open={() => refund !== null, (open) => (refund = open ? refund : null)}
@@ -361,7 +375,8 @@
   description={t('refundHint', { time: when(refund?.stops_at_ms) })}
   confirm={t('requestRefund')}
   tone="warn"
-  {busy}
+  busy={busy || (!!refund && (plan?.refund?.order !== refund.order || refund.until_ms <= now))}
+  focusCancel
   testid="refund"
   onConfirm={confirmRefund}
   onReview={onReviewPayments}
@@ -369,6 +384,8 @@
   {#snippet body()}
     {#if refund}
       <dl>
+        {#if refund.planName}<Fact label={t('plan')}>{refund.planName}</Fact>{/if}
+        <Fact label={t('planOrderId')}><Id id={refund.order} full wrap /></Fact>
         <Fact label={t('refundAmount')} testid="refund-amount">{units(refund.refund, refund.decimals)} {refund.asset}</Fact>
         <Fact label={t('networkFee')}>{units(refund.fee, refund.decimals)} {refund.asset}</Fact>
         <Fact label={t('refundReceived')}>{units(refund.received, refund.decimals)} {refund.asset}</Fact>

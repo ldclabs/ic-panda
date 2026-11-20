@@ -30,7 +30,8 @@ class FileCoordinator(private val client: ClientController) {
     private val selectionValue = MutableStateFlow<Set<String>>(emptySet())
     val selection = selectionValue.asStateFlow()
     private val cache = linkedMapOf<String, Listing>()
-    private val preferences = mutableMapOf<String, FileBrowsePreferences>()
+    private val savedPreferences = MutableStateFlow<Map<String, FileBrowsePreferences>>(emptyMap())
+    val preferences = savedPreferences.asStateFlow()
     var folder = "root"
         private set
     var query = ""
@@ -38,9 +39,17 @@ class FileCoordinator(private val client: ClientController) {
     var trash = false
         private set
     private var selected: String? = null
-    fun preferences(folder: String, trash: Boolean) = preferences["$trash:$folder"] ?: FileBrowsePreferences()
     fun remember(folder: String, trash: Boolean, value: FileBrowsePreferences, owner: SessionStamp?) {
-        if (owner != null && client.accepts(owner)) preferences["$trash:$folder"] = value
+        if (owner != null && client.accepts(owner)) savedPreferences.value += ("$trash:$folder" to value)
+    }
+    fun imported(destination: String, owner: SessionStamp) {
+        val route = client.navigation.state.value.current
+        if (route.page == "files" && route.folder == destination && route.id == null) {
+            val options = savedPreferences.value["false:$destination"] ?: FileBrowsePreferences()
+            remember(destination, false, options.copy(query = "", favorites = false, first = 0, offset = 0), owner)
+            clearSelection()
+            changed(search = "")
+        } else changed()
     }
     fun choose(id: String) { client.activity(); selectionValue.value = if (id in selectionValue.value) selectionValue.value - id else selectionValue.value + id }
     fun clearSelection() { selectionValue.value = emptySet() }
@@ -67,9 +76,16 @@ class FileCoordinator(private val client: ClientController) {
         client.perform({ core ->
             val base = if (discarded) core.fileTrash() else core.files(next)
             val (folders, files) = parseFiles(base.json)
-            if (search.isBlank()) Listing(next, search, discarded, folders, files)
-            else if (discarded) Listing(next, search, discarded, folders.filter { it.name.contains(search, true) }, files.filter { it.name.contains(search, true) || it.note.contains(search, true) || it.tags.any { tag -> tag.contains(search, true) } })
-            else Listing(next, search, discarded, emptyList(), core.searchFiles(search, next.takeIf { it != "root" }).decode().arrayRows().map(::parseFile))
+            val term = search.trim()
+            if (term.isEmpty()) Listing(next, search, discarded, folders, files)
+            else if (discarded) Listing(next, search, true, folders.filter { it.name.contains(term, true) }, files.filter { it.name.contains(term, true) || it.note.contains(term, true) || it.tags.any { tag -> tag.contains(term, true) } })
+            else {
+                val tree = core.fileFolders().decode().arrayRows().map(::parseFolder)
+                val parent = tree.find { it.id == next }
+                val prefix = parent?.let { it.path + it.name }.orEmpty()
+                val matching = tree.filter { it.name.contains(term, true) && (next == "root" || parent != null && it.path.take(prefix.size) == prefix) }
+                Listing(next, search, false, matching, core.searchFiles(term, next.takeIf { it != "root" }).decode().arrayRows().map(::parseFile))
+            }
         }, key = "files:list", replace = true, quiet = true, onError = { listing.fail(request, it) }) {
             listing.accept(request, it)
             selectionValue.value = selectionValue.value.intersect((it.files.map { it.id } + it.folders.map { it.id }).toSet())
@@ -90,7 +106,7 @@ class FileCoordinator(private val client: ClientController) {
     }
     fun loadTree() {
         val request = tree.begin()
-        client.perform({ it.fileFolders().decode().arrayRows().map { row -> LibraryFolder(row.required("id"), row.required("name"), row.required("parent"), row.strings("path")) } },
+        client.perform({ it.fileFolders().decode().arrayRows().map(::parseFolder) },
             key = "files:tree", replace = true, quiet = true, onError = { tree.fail(request, it) }) { tree.accept(request, it) }
     }
     fun loadUsage() {
@@ -98,9 +114,12 @@ class FileCoordinator(private val client: ClientController) {
         client.perform({ it.fileLibraryUsage().decode().objectValue().let { row -> LibraryUsage(row.requiredUnsigned("files"), row.requiredUnsigned("trashed"), row.requiredUnsigned("versions"), row.requiredUnsigned("local_versions"), row.requiredUnsigned("blob_bytes"), row.requiredUnsigned("open_copies"), row.requiredUnsigned("trash_days")) } },
             key = "files:usage", replace = true, quiet = true, onError = { usage.fail(request, it) }) { usage.accept(request, it) }
     }
-    fun changed() { cache.clear(); client.messageAttachments.invalidate(); browse(); loadTree(); selected?.let(::select) }
-    fun rename(id: String, name: String, done: () -> Unit) = client.perform({ it.renameFile(id, name) }, key = "files:rename:" + id) { changed(); done() }
-    fun move(id: String, folder: String, done: () -> Unit) = client.perform({ it.moveFile(id, folder) }, key = "files:move:" + id) { changed(); done() }
+    fun changed(search: String = query) { cache.clear(); client.messageAttachments.invalidate(); browse(search = search); loadTree(); selected?.let(::select) }
+    fun saveName(id: String?, parent: String, name: String, onError: (String) -> Unit, done: () -> Unit) = client.perform({
+        if (id == null) it.createFolder(parent, name) else it.renameFile(id, name)
+    }, key = id?.let { "files:rename:$it" } ?: "files:create-folder", quiet = true, onError = onError) { changed(); done() }
+    fun move(id: String, folder: String, onError: (String) -> Unit, done: () -> Unit) = client.perform({ it.moveFile(id, folder) },
+        key = "files:move:" + id, quiet = true, onError = onError) { changed(); done() }
     fun remove(id: String, done: () -> Unit) = client.perform({ it.trashFile(id) }, key = "files:trash:" + id) { changed(); done() }
     fun restore(id: String, done: () -> Unit) = client.perform({ it.restoreFile(id) }, key = "files:restore:" + id) { changed(); done() }
     fun saveMetadata(done: () -> Unit) {
@@ -142,7 +161,7 @@ class FileCoordinator(private val client: ClientController) {
     }
     fun cancelBatch() { client.cancelOperation("files:batch"); changed(); loadUsage() }
     fun clear(retainForms: Boolean = false) {
-        listing.reset(); detail.reset(); destinations.reset(); tree.reset(); usage.reset(); resultsValue.value = emptyList(); selectionValue.value = emptySet(); cache.clear(); preferences.clear()
+        listing.reset(); detail.reset(); destinations.reset(); tree.reset(); usage.reset(); resultsValue.value = emptyList(); selectionValue.value = emptySet(); cache.clear(); savedPreferences.value = emptyMap()
         if (!retainForms) { editorValue.value = null; editorFailure.value = null }
         folder = "root"; query = ""; trash = false; selected = null
     }

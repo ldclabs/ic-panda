@@ -84,23 +84,23 @@ async function agentDraft({ main, methods, hold, waitFor, capture }) {
   }
   await go(main, '/agents/ids')
   const label = main.getByTestId('agent-label'), create = main.getByRole('button', { name: 'Create', exact: true })
-  await label.fill('Research agent')
+  await label.fill('research-agent')
   await create.click()
   await waitFor(() => names.length === 1)
   await settleReplies(main)
-  assert.equal(await label.inputValue(), 'Research agent')
+  assert.equal(await label.inputValue(), 'research-agent')
   await capture('agent-draft', '[data-testid="agent-label"]')
   const release = hold('agent/create')
   await create.click()
   await waitFor(() => names.length === 2)
-  await label.fill('Next agent')
+  await label.fill('next-agent')
   await release()
   await settleReplies(main)
-  assert.equal(await label.inputValue(), 'Next agent')
+  assert.equal(await label.inputValue(), 'next-agent')
   await create.focus()
   await main.keyboard.press('Enter')
   await main.waitForFunction(() => document.querySelector('[data-testid="agent-label"]').value === '')
-  assert.deepEqual(names, ['Research agent', 'Research agent', 'Next agent'])
+  assert.deepEqual(names, ['research-agent', 'research-agent', 'next-agent'])
 
   // Capability grants share the action result: retain the choices on refusal.
   let grantAttempts = 0
