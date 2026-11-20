@@ -122,6 +122,7 @@ struct ApprovalDetailView: View {
     @State private var decision: Bool?
     @State private var readFailed = false
     @State private var readID: UUID?
+    @State private var reviewedScope: String?
     @State private var state: String?
     @State private var observedVersion: UInt64?
     @State private var supported = false
@@ -206,17 +207,20 @@ struct ApprovalDetailView: View {
                 if let reviewed, let check = approvalFileCheck(type: request.type, detail: reviewed) {
                     Text(check).font(.subheadline).accessibilityIdentifier("approval.file-check")
                 }
-                if state == "awaiting_user" && payload != nil && !supported { NoticeBar(text: String(localized: "This request requires a supported desktop client.")) }
+                if state == "awaiting_user" && payload != nil && readID == nil && !readFailed && !supported {
+                    NoticeBar(text: String(localized: "This request requires a supported desktop client."))
+                }
                 LabeledContent("Account ID") {
                     Text(model.session?.account ?? "").font(.caption.monospaced()).textSelection(.enabled)
                         .environment(\.layoutDirection, .leftToRight)
                 }
                 Section("Review the complete request") {
-                    if let reviewed { CanonicalDetails(value: reviewed) }
-                    else if readFailed {
+                    if readFailed {
                         NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
                         Button("Retry") { Task { await load() } }.accessibilityIdentifier("approval.detail-retry")
-                    } else { ProgressView() }
+                    }
+                    if let reviewed { CanonicalDetails(value: reviewed) }
+                    else if !readFailed { ProgressView() }
                 }
                 // Bookkeeping around the request, not part of what is being decided.
                 if let envelope { DisclosureGroup("Technical details") { CanonicalDetails(value: envelope) } }
@@ -246,14 +250,14 @@ struct ApprovalDetailView: View {
                                     }.buttonStyle(.borderedProminent).frame(maxWidth: .infinity)
                                         .accessibilityIdentifier("approval.approve")
                                         .disabled(expired || context.date < readyAt || !supported)
-                                }.controlSize(.large).disabled(payload == nil || working) }
+                                }.controlSize(.large).disabled(payload == nil || working || readID != nil || readFailed) }
                             }
                         }.padding(16).background(.bar)
                     } else if state == "executing" || state == "unknown" {
                         VStack(spacing: 8) {
                             Text("The result is not confirmed. Check it again before retrying.")
                                 .font(.caption).foregroundStyle(.secondary)
-                            Button("Refresh") { Task { await reconcile() } }.disabled(working)
+                            Button("Refresh") { Task { await reconcile() } }.disabled(working || readID != nil)
                         }.padding(16).background(.bar)
                     }
                 }
@@ -289,12 +293,20 @@ struct ApprovalDetailView: View {
         guard !working else { return }
         let attempt = UUID()
         readID = attempt
-        supported = false; state = nil; payload = nil; readFailed = false; observedVersion = nil; readyAt = .distantFuture
-        guard !model.concealed else { decision = nil; return }
+        defer { if readID == attempt { readID = nil } }
+        let epoch = model.epoch
+        let scope = "\(request.id):\(request.digest):\(epoch)"
+        if reviewedScope != scope || model.concealed { state = nil; payload = nil }
+        reviewedScope = scope
+        supported = false; decision = nil; readFailed = false; observedVersion = nil; readyAt = .distantFuture
+        guard !model.concealed else { return }
         #if DEBUG
         if model.uiTesting {
             if ProcessInfo.processInfo.arguments.contains("--ui-approval-detail-retry"), !fixtureReadFailed {
                 fixtureReadFailed = true; readFailed = true; return
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-approval-result-reread-failure"), fixtureState != nil {
+                readFailed = true; return
             }
             state = fixtureState ?? request.state
             if state == "awaiting_user" && request.expiresAt <= NotificationTime.now { state = "expired" }
@@ -318,18 +330,17 @@ struct ApprovalDetailView: View {
             return
         }
         #endif
-        let epoch = model.epoch
         do {
-            guard let engine = model.engine else { return }
+            guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
             let snapshot = try await engine.approval(id: request.id)
             guard readID == attempt, epoch == model.epoch, !Task.isCancelled, !model.concealed else { return }
             let fresh: ApprovalView = try model.decode(snapshot)
             guard fresh.digest == request.digest else { throw CocoaError(.coderInvalidValue) }
+            let reviewed: DisplayValue = try model.decode(snapshot)
             state = fresh.state
-            if fresh.state != "awaiting_user" { decision = nil }
             observedVersion = fresh.updatedAt
             supported = fresh.mobileSupported == true
-            payload = try model.decode(snapshot); readyAt = .now.addingTimeInterval(1)
+            payload = reviewed; readyAt = .now.addingTimeInterval(1)
         } catch {
             if readID == attempt, epoch == model.epoch, !Task.isCancelled, !model.concealed {
                 readFailed = true; decision = nil; model.reportBackground(error)
@@ -338,7 +349,7 @@ struct ApprovalDetailView: View {
     }
 
     private func reconcile() async {
-        guard !working else { return }
+        guard !working, readID == nil else { return }
         working = true; model.activity()
         let epoch = model.epoch
         do {
@@ -352,7 +363,7 @@ struct ApprovalDetailView: View {
     }
 
     private func decide(_ approve: Bool) async {
-        guard model.engine != nil || model.uiTesting, !working, !model.concealed, state == "awaiting_user",
+        guard model.engine != nil || model.uiTesting, !working, readID == nil, !readFailed, !model.concealed, state == "awaiting_user",
               request.expiresAt > NotificationTime.now, !approve || (supported && Date.now >= readyAt) else { return }
         decision = nil; working = true; model.activity()
         let epoch = model.epoch

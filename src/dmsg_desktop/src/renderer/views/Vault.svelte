@@ -54,7 +54,9 @@
    * to act on together. Files have their own library and items only name them.
    * Each change reaches the list through the daemon's `vault/changed`.
    */
-  let { status, mod, route = '/vault', go }: { status: any; mod: string; route?: string; go: (path: string) => void } = $props()
+  let { status, mod, route = '/vault', go, cancelTravel }: {
+    status: any; mod: string; route?: string; go: (path: string) => void; cancelTravel: () => void
+  } = $props()
 
   const SORT_KEY = 'dmsg.vault.sort'
   /** Rows rendered at first and added each time the list's end comes into view. */
@@ -342,6 +344,11 @@
     next?.()
   }
 
+  function keepEditing() {
+    leaving = null
+    cancelTravel()
+  }
+
   function range(from: string, to: string): string[] {
     const ids = shown.map((entry) => entry.id)
     const [a, b] = [ids.indexOf(from), ids.indexOf(to)].sort((x, y) => x - y)
@@ -570,6 +577,7 @@
     const navigate = (event: NavigateEvent) => {
       if (!event.hashChange || !event.cancelable || !editing || !dirty && !savingEdit) return
       event.preventDefault()
+      if (savingEdit) { cancelTravel(); return }
       const { key, url } = event.destination
       finishEditing(() => {
         if (event.navigationType === 'traverse' && key) void window.navigation.traverseTo(key)
@@ -811,13 +819,13 @@
 <Backup bind:open={backingUp} account={status?.account ?? ''}/>
 <Conflict bind:open={comparing} {conflicts} start={compareFrom} />
 
-<Dialog bind:open={() => leaving !== null, (next) => !next && (leaving = null)} title={t('unsavedTitle')} description={current?.item.title} icon="edit" tone="warn" testid="vault-unsaved"
+<Dialog bind:open={() => leaving !== null, (next) => { if (!next) keepEditing() }} title={t('unsavedTitle')} description={current?.item.title} icon="edit" tone="warn" testid="vault-unsaved"
   onOpenAutoFocus={(event) => { if (keepEditButton) { event.preventDefault(); keepEditButton.focus() } }}
   onCloseAutoFocus={(event) => { if (editing) { event.preventDefault(); (lastEditField?.isConnected ? lastEditField : document.querySelector<HTMLElement>('[data-testid="vault-title"]'))?.focus() } lastEditField = null }}>
   <p class="text-[13px] text-muted">{t('unsavedBody')}</p>
   {#snippet footer()}
     <span class="min-w-0 flex-1"></span>
-    <button bind:this={keepEditButton} class={buttonClass('secondary')} onclick={() => (leaving = null)}>{t('keepEditing')}</button>
+    <button bind:this={keepEditButton} class={buttonClass('secondary')} onclick={keepEditing}>{t('keepEditing')}</button>
     <button class={buttonClass('danger')} onclick={leave} data-testid="vault-unsaved-discard">{t('discard')}</button>
   {/snippet}
 </Dialog>

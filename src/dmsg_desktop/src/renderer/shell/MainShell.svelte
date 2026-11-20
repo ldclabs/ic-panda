@@ -202,14 +202,18 @@
   /** Back and forward walk the views this window showed, as in anda-bot. */
   let visits = $state(untrack(() => [visitRoute(route)]))
   let visit = $state(0)
-  let traveling = false
+  let pendingTravel: { target: string; index: number; visits?: string[] } | null = null
 
   $effect(() => {
     const next = visitRoute(route)
     noteRoute(entryOf(next).path, next)
     untrack(() => {
-      if (traveling) traveling = false
-      else if (next !== visits[visit]) {
+      const travel = pendingTravel
+      pendingTravel = null
+      if (travel?.target === next) {
+        if (travel.visits) visits = travel.visits
+        visit = travel.index
+      } else if (next !== visits[visit]) {
         visits = [...visits.slice(0, visit + 1), next].slice(-50)
         visit = visits.length - 1
       }
@@ -220,16 +224,17 @@
   function travel(step: -1 | 1) {
     const target = visits[visit + step]
     if (target === undefined) return
-    traveling = true
-    visit += step
+    pendingTravel = { target, index: visit + step }
     go(target)
   }
 
+  function cancelTravel() { pendingTravel = null }
+
   /** Dismiss a detail route without recording the dismissal as another visit. */
   function closeRoute(target: string, openedHere: boolean) {
-    traveling = true
-    if (visits[visit - 1] === target) visit--
-    else visits = [...visits.slice(0, visit), target, ...visits.slice(visit + 1)]
+    pendingTravel = visits[visit - 1] === target
+      ? { target, index: visit - 1 }
+      : { target, index: visit, visits: [...visits.slice(0, visit), target, ...visits.slice(visit + 1)] }
     if (openedHere) window.history.back()
     else location.replace('#' + target)
   }
@@ -342,7 +347,7 @@
           {:else if local && status?.state === 'locked'}
             <div class="grid h-full place-content-center justify-items-center gap-4"><h1>{t('offlineAccount')}</h1><LocalAccount action="unlock" {status} {refresh} /></div>
           {:else if viewSession && Page}
-            <Page {status} {mod} {route} {go} {closeRoute} {refresh} {deliveries} {messageDeliveries} />
+            <Page {status} {mod} {route} {go} {closeRoute} {cancelTravel} {refresh} {deliveries} {messageDeliveries} />
           {/if}
         {/key}
       </main>

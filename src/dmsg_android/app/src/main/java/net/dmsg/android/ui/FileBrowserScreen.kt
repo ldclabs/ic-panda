@@ -45,6 +45,8 @@ import net.dmsg.android.core.*
     val owner = remember(state.epoch) { client.currentStamp() }
     val savedPreferences by client.library.preferences.collectAsStateWithLifecycle()
     val preferences = savedPreferences["$trash:$folder"] ?: FileBrowsePreferences()
+    val canBrowseUnbacked = state.session?.accountKind != "local" && !trash
+    val showUnbacked = canBrowseUnbacked && root && unbacked > 0uL && preferences.query.isBlank() && !preferences.favorites
     fun update(value: FileBrowsePreferences) { client.library.remember(folder, trash, value, owner) }
     val scroll = remember(folder, trash) { LazyListState(preferences.first, preferences.offset) }
     var menu by remember { mutableStateOf(false) }
@@ -109,7 +111,7 @@ import net.dmsg.android.core.*
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_more_file_actions_65e84ee)) }
                     DropdownMenu(menu, { menu = false }) {
-                        if (state.session?.accountKind != "local" && !trash && (!root || unbacked == 0uL)) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
+                        if (canBrowseUnbacked && !showUnbacked) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
                             onClick = { menu = false; client.navigation.push(Route("file-unbacked")) })
                         if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_new_folder_3b1862d)) }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
                             onClick = { menu = false; creating = true })
@@ -121,7 +123,7 @@ import net.dmsg.android.core.*
                     }
                 }
             }
-            if (root && state.session?.accountKind != "local" && preferences.query.isBlank() && !preferences.favorites && unbacked > 0uL) {
+            if (showUnbacked) {
                 AccountRow(str(R.string.text_unbacked_file_versions_f59bc2a), value = localizedNumber(unbacked)) { client.navigation.push(Route("file-unbacked")) }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

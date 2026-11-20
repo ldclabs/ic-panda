@@ -709,6 +709,7 @@ const methods = {
   'files/mount_status': () => ({ mounted: false, enabled: false, os: 'macos', supported: true, note: '' }),
   'files/cloud_list': () => [],
   'files/cloud_status': () => ({ complete: true, observed_at_ms: Date.now() }),
+  'files/cloud_refresh': () => ({ cached: true }),
   'files/cloud_usage': () => ({
     reserved: 0,
     committed: 1300,
@@ -3044,6 +3045,19 @@ smoke: try {
   await main.click('[data-testid="handle-register"]')
   await waitFor(() => latest('handle/register'))
   assert.deepEqual(latest('handle/register').params, { name: 'Panda123', source: 'gui' })
+  await approval.getByTestId('approval-title').getByText('Panda123', { exact: false }).waitFor()
+  const nameRegistrations = calls.filter(c => c.method === 'handle/register').length
+  await main.getByTestId('plan-tab-payments').click()
+  await answer('__open', payerPem)
+  await main.getByTestId('payer-pem').click()
+  await main.getByTestId('payer-source').getByText('PEM file', { exact: true }).waitFor()
+  await main.getByTestId('plan-tab-names').click()
+  await main.getByTestId('handle-register').click()
+  await waitFor(() => calls.filter(c => c.method === 'handle/register').length === nameRegistrations + 1)
+  await main.getByTestId('plan-tab-payments').click()
+  await main.getByTestId('payer-login').click()
+  await main.getByTestId('payer-source').getByText('Login', { exact: true }).waitFor()
+  await main.getByTestId('plan-tab-names').click()
   await main.fill('[data-testid="handle-name"]', 'taken')
   await main.click('[data-testid="handle-lookup"]')
   await main.waitForSelector('[data-testid="handle-message"]')
@@ -4574,7 +4588,9 @@ smoke: try {
   await main.press('[data-testid="vault-batch-tags-input"] input', 'Enter')
   await main.click('[data-testid="vault-batch-tags-save"]')
   await waitFor(() => latest('vault/tags'))
-  assert.deepEqual(latest('vault/tags').params, { ids: ['22'.repeat(32), 'c0'.repeat(32)], add: ['shared'] })
+  const { ids: taggedItems, add: addedTags } = latest('vault/tags').params
+  assert.deepEqual([...taggedItems].sort(), ['22'.repeat(32), 'c0'.repeat(32)])
+  assert.deepEqual(addedTags, ['shared'])
   await main.click('[data-testid="vault-batch-done"]')
   await main.waitForSelector('[data-testid="vault-batch"]', { state: 'detached' })
   await main.click('[data-testid="vault-conflicts-review"]')

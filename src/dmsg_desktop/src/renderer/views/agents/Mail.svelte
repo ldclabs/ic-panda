@@ -239,7 +239,7 @@
   <Section title={t('mail')} description={t('mailHint')} icon="mail" testid="agent-mail">
     {#snippet actions()}
       <Select
-        bind:value={agent}
+        value={agent}
         onChange={selectAgent}
         disabled={busy}
         label={t('tabAgentIds')}

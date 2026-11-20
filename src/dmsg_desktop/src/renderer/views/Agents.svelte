@@ -234,7 +234,9 @@
       {:else if tab === 'discourse'}
         <Discourse agents={hosted.agents} active={selection} {selectAgent} />
       {:else if tab === 'mail'}
-        <Mail agents={hosted.agents} active={selection} {selectAgent} blocked={hosted.blocked_senders ?? []} {unlocked} manage={() => inspect('capabilities', selection)} />
+        {#key route}
+          <Mail agents={hosted.agents} active={selection} {selectAgent} blocked={hosted.blocked_senders ?? []} {unlocked} manage={() => inspect('capabilities', selection)} />
+        {/key}
       {:else if tab === 'knowledge'}
         <Knowledge agents={hosted.agents} active={selection} {selectAgent} hosts={hosted.hosts} {unlocked} manage={() => inspect('capabilities', selection)} />
       {:else if tab === 'events'}

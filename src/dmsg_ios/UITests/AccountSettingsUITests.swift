@@ -323,6 +323,23 @@ import XCTest
         app.terminate()
     }
 
+    func testCompletedApprovalRemainsVisibleAfterDetailRefreshFails() {
+        let app = open(["--ui-approval", "--ui-approval-result-reread-failure"])
+        tap("account.approvals", in: app)
+        let request = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Studio iPhone")).firstMatch
+        XCTAssertTrue(request.waitForExistence(timeout: 5)); request.tap()
+        let approve = app.buttons["approval.approve"]
+        XCTAssertTrue(approve.waitForExistence(timeout: 5)); approve.tap()
+        app.alerts.buttons["Approve this request"].tap()
+        let retry = app.buttons["approval.detail-retry"]
+        for _ in 0..<6 where !retry.isHittable { app.swipeUp() }
+        XCTAssertTrue(retry.exists)
+        let status = app.staticTexts["approval.status"]
+        for _ in 0..<6 where !status.isHittable { app.swipeDown() }
+        XCTAssertEqual(status.label, "Completed")
+        XCTAssertFalse(approve.exists)
+    }
+
     func testFailedApprovalRefreshDoesNotClaimThereAreNoRequests() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-approval-refresh-failure", "-AppleLanguages", "(en)"]

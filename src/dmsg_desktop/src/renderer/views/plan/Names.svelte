@@ -177,8 +177,9 @@
     if (!found || busy || (!claim && (payerLoading || enough !== true || errors.payer))) return
     const query = lookupQuery, handle = claim ? found.name : found.display_handle ?? found.name
     const method = claim ? 'handle/claim' : 'handle/register'
+    const key = claim ? `${method}:${handle}` : `${method}:${handle}:${payer.principal}:${found.most}`
     lookupActionError = ''
-    return attempt(() => reviewApproval(`${method}:${handle}:${claim ? '' : found.most}`,
+    return attempt(() => reviewApproval(key,
       () => call(method, { name: handle }), () => alive && lookupQuery === query),
       message => { if (lookupQuery === query) lookupActionError = message })
   }

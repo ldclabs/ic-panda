@@ -133,7 +133,10 @@ class WorkspaceFlowTest {
         }
         compose.runOnIdle { client.navigation.open("files") }
         compose.waitUntil(10_000) { (client.accountWorkspace.local.value()?.unbacked ?: 0uL) >= 6uL }
-        compose.onNodeWithText("Unbacked file versions").performScrollTo().performClick()
+        compose.onNodeWithText("Favorites").performScrollTo().performClick()
+        compose.onNodeWithText("Unbacked file versions").assertDoesNotExist()
+        compose.onNodeWithContentDescription("More file actions").performScrollTo().performClick()
+        compose.onNodeWithText("Unbacked file versions").performClick()
         compose.waitUntil(10_000) { client.cloudFiles.unbacked.value()?.size == 3 }
         chosen.take(2).forEach { (id, version) ->
             compose.onNodeWithTag("unbacked-version:" + id + ":" + version.id).performScrollTo().performClick()

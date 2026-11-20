@@ -262,6 +262,42 @@ async function libraryForms({ app, main, methods, file, waitFor, capture }) {
   await go(main, '/channels')
 }
 
+async function vaultBack({ main, capture }) {
+  await go(main, '/files')
+  await main.getByTestId('files-list').waitFor()
+  await go(main, '/vault')
+  await main.getByTestId('vault-list').locator(`[data-id="${'24'.repeat(32)}"]`).click()
+  await main.getByTestId('vault-edit-open').click()
+  const title = main.getByTestId('vault-title')
+  const savedTitle = await title.inputValue()
+  const back = main.getByTestId('nav-back'), forward = main.getByTestId('nav-forward')
+  const review = main.getByTestId('vault-unsaved')
+  await title.fill('Unsaved title')
+  await back.press('Enter')
+  await review.waitFor()
+  await capture('vault-back-with-unsaved-edit', '[data-testid="vault-unsaved"]')
+  await review.getByRole('button', { name: 'Keep editing', exact: true }).press('Enter')
+  await review.waitFor({ state: 'detached' })
+  assert.equal(await title.inputValue(), 'Unsaved title')
+  assert.equal(await forward.isDisabled(), true)
+  await back.press('Enter')
+  await review.getByTestId('vault-unsaved-discard').click()
+  await main.getByTestId('files-list').waitFor()
+  await forward.click()
+  await main.getByTestId('vault-list').waitFor()
+  await main.getByTestId('vault-edit-open').click()
+  await title.fill('Another edit')
+  await back.press('Enter')
+  await review.getByRole('button', { name: 'Keep editing', exact: true }).press('Enter')
+  await review.waitFor({ state: 'detached' })
+  await title.fill(savedTitle)
+  await main.getByTestId('vault-form').getByRole('button', { name: 'Cancel', exact: true }).click()
+  await go(main, '/files')
+  await main.getByTestId('files-list').waitFor()
+  await back.click()
+  await main.getByTestId('vault-list').waitFor()
+}
+
 async function planNavigation({ main, methods, emit, hold, waitFor, capture }) {
   const tab = value => main.getByTestId('plan-tab-' + value)
   const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
@@ -410,7 +446,7 @@ export async function navigationRegressions({ app, main, formMatrix, shots, ...f
   await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
   await main.waitForSelector('html[lang="en"]')
   const capture = (name, selector) => formMatrix(app, main, shots, name, selector)
-  for (const run of [palette, channelNavigation, libraryForms, planNavigation, compactNavigation, inboxFeedback]) {
+  for (const run of [palette, channelNavigation, libraryForms, vaultBack, planNavigation, compactNavigation, inboxFeedback]) {
     await run({ app, main, capture, ...fixture })
     console.log('Desktop navigation regression passed:', run.name)
   }
