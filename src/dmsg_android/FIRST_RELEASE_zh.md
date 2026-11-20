@@ -15,6 +15,8 @@
 
 选择 Play 或独立 APK 渠道后，再配置正式签名。Play 的 app signing key 与 upload key 用途不同；App Links 和 Passkey 使用用户安装包的实际 app signing 证书指纹。
 
+启用 Play 量子就绪签名后，从「应用签名密钥」分别复制当前传统证书和后量子证书的 SHA-256，再核对较低版本 Android 使用的旧证书。将三枚指纹同步到两个域名的关联文件与 `dmsg_auth.android_signers`；控制台生成的 Digital Asset Links 示例可能只列出旧证书。三个生产配置分别走 SNS 提案，验证后在 Android 17 和较低版本的 Play 安装包上测试。见 [Play 应用签名](https://support.google.com/googleplay/android-developer/answer/9842756) 和 [Android v3.2 签名身份](https://source.android.com/docs/security/features/apksigning/v3-2)。
+
 保存私钥及密码到受保护的本地/CI secret 配置，不进仓库。记录正式 package、证书 SHA-256、环境和轮换策略。不同包名代表不同安装/设备，不能通过复制数据库迁移身份。
 
 ## 3 开通登录与网页关联
@@ -30,7 +32,9 @@
 
 创建自有 Firebase/Google Cloud 项目并登记实际应用包名；Play Console 关联相同项目，登记实际 Play App Signing 证书 SHA-256。私有服务配置 Play Integrity 与 FCM 发送凭据，客户端不包含服务账户钥匙。当前 gms 使用手动 FirebaseOptions 初始化，不要求在公开源码放 google-services.json。
 
-准备本地 JSON 文件，字段为 package_name、environment（production/staging）、firebase_app_id、api_key、project_id、cloud_project_number（十进制字符串）。这些值来自对应 Firebase 应用；firebase_app_id 的项目编号必须匹配 cloud_project_number。通过 `-Pdmsg.googleConfig=/path/to/android-google.json` 构建相应 gms 变体。Debug/qa 包有 .dev/.qa 后缀，必须使用与实际包名相符的配置；不能复用另一包的配置骗过检查。缺少或不匹配时入口明确不可用，Firebase 不自动初始化。构建期只接受上述公共客户端字段；传入服务账户 JSON 会在生成 APK 配置之前拒绝，错误不回显配置内容。
+本地可将 Firebase 下载的文件放在 `app/google-services.json`，直接构建 `:app:bundleProductionGmsRelease`。CI 手动运行 dMsg Android 工作流并选择 `firebase_bundle` 时，从 `dmsg-release` 环境变量 `DMSG_ANDROID_CLIENT_JSON` 读取规范化的客户端 JSON。
+
+规范化 JSON 的字段为 package_name、environment（production/staging）、firebase_app_id、api_key、project_id、cloud_project_number（十进制字符串）。这些值来自对应 Firebase 应用；firebase_app_id 的项目编号必须匹配 cloud_project_number。通过 `-Pdmsg.googleConfig=/path/to/android-google.json` 构建相应 gms 变体。Debug/qa 包有 .dev/.qa 后缀，必须使用与实际包名相符的配置；不能复用另一包的配置骗过检查。缺少或不匹配时入口明确不可用，Firebase 不自动初始化。构建期只接受上述公共客户端字段；传入服务账户 JSON 会在生成 APK 配置之前拒绝，错误不回显配置内容。
 
 应用内先允许系统通知并开启全局/账号提醒，再选择“登记／续期后台投递”。它在线获取标准安装证明并通过当前设备权限登记，7 天租约在前台续期；不在后台解锁根。none 不包含 Google 适配。项目、业务环境和 token 生命周期分开；真实 Play 安装必须通过已配置的服务准入，模拟器不伪造成功。
 

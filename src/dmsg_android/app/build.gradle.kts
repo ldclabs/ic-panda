@@ -1,3 +1,6 @@
+import com.android.build.api.variant.BuildConfigField
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -8,18 +11,50 @@ plugins {
 val requestedAbis = providers.gradleProperty("dmsg.abis").orElse("arm64-v8a,x86_64").get().split(",")
 val instrumentationType = providers.gradleProperty("dmsg.testBuildType").orElse("debug").get()
 require(requestedAbis.isNotEmpty() && requestedAbis.toSet().size == requestedAbis.size && requestedAbis.all { it in setOf("arm64-v8a", "x86_64") }) { "dmsg.abis must contain arm64-v8a and/or x86_64" }
-val googleConfig = providers.gradleProperty("dmsg.googleConfig").orNull?.let { path ->
-    val source = file(path)
-    require(source.length() in 1..16384) { "dmsg.googleConfig must be a bounded public Firebase client configuration" }
-    val decoded = try { groovy.json.JsonSlurper().parseText(source.readText()) }
-        catch (_: Exception) { throw GradleException("dmsg.googleConfig must contain a public Firebase client JSON object") }
-    val fields = decoded as? Map<*, *> ?: throw GradleException("dmsg.googleConfig must be an object")
-    val allowed = setOf("package_name", "environment", "firebase_app_id", "api_key", "project_id", "cloud_project_number")
-    // Reject service-account files before generating BuildConfig or any APK resources.
-    require(fields.keys == allowed && fields.values.all { it is String && it.isNotBlank() && it.length <= 256 && it.none(Char::isWhitespace) }) {
-        "dmsg.googleConfig accepts only public Firebase client fields; service-account credentials must remain on the server"
+fun readClientJson(source: File): Map<*, *> {
+    require(source.length() in 1..65536) { "Expected a bounded Firebase client JSON file" }
+    return try {
+        JsonSlurper().parseText(source.readText()) as Map<*, *>
+    } catch (_: Exception) {
+        throw GradleException("Invalid Firebase client JSON object")
     }
-    groovy.json.JsonOutput.toJson(fields)
+}
+
+fun productionFirebaseClient(source: File): Map<String, Any?> {
+    val json = readClientJson(source)
+    val project = json["project_info"] as? Map<*, *>
+    val clients = json["client"] as? List<*> ?: error("Missing Firebase Android clients")
+    val client = clients.filterIsInstance<Map<*, *>>().singleOrNull {
+        val info = it["client_info"] as? Map<*, *>
+        (info?.get("android_client_info") as? Map<*, *>)?.get("package_name") == "net.dmsg.android"
+    } ?: error("Expected one Firebase Android client for net.dmsg.android")
+    val info = client["client_info"] as Map<*, *>
+    val key = (client["api_key"] as? List<*>)?.filterIsInstance<Map<*, *>>()?.firstOrNull()
+    return mapOf(
+        "package_name" to "net.dmsg.android", "environment" to "production",
+        "firebase_app_id" to info["mobilesdk_app_id"], "api_key" to key?.get("current_key"),
+        "project_id" to project?.get("project_id"), "cloud_project_number" to project?.get("project_number"),
+    )
+}
+
+val explicitConfigPath = providers.gradleProperty("dmsg.googleConfig")
+    .orElse(providers.environmentVariable("DMSG_ANDROID_CLIENT_FILE")).orNull
+val googleClient = if (explicitConfigPath != null) {
+    readClientJson(file(explicitConfigPath))
+} else {
+    file("google-services.json").takeIf { it.isFile }?.let(::productionFirebaseClient)
+}
+val googleConfig = googleClient?.let { fields ->
+    val allowed = setOf("package_name", "environment", "firebase_app_id", "api_key", "project_id", "cloud_project_number")
+    require(fields.keys == allowed && fields.values.all { it is String && it.isNotBlank() && it.length <= 256 && it.none(Char::isWhitespace) }) {
+        "Expected only public Firebase client fields"
+    }
+    val number = fields["cloud_project_number"] as String
+    require(number.toLongOrNull()?.let { it > 0 && it.toString() == number } == true &&
+        (fields["firebase_app_id"] as String).matches(Regex("1:${number}:android:[0-9a-f]+")) &&
+        (fields["project_id"] as String).matches(Regex("[a-z][a-z0-9-]{4,61}[a-z0-9]")) &&
+        (fields["api_key"] as String).length >= 20) { "Invalid Firebase project, app ID or API key" }
+    JsonOutput.toJson(fields)
 }.orEmpty()
 val stagingConfig = providers.gradleProperty("dmsg.stagingConfig").orNull?.let { file(it).readText() }.orEmpty()
 fun quoted(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\""
@@ -32,10 +67,10 @@ android {
         applicationId = "net.dmsg.android"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "GOOGLE_CONFIG", quoted(googleConfig))
+        buildConfigField("String", "GOOGLE_CONFIG", quoted(""))
         ndk { abiFilters += requestedAbis }
     }
     flavorDimensions += listOf("environment", "push")
@@ -67,7 +102,7 @@ android {
         }
     }
     testBuildType = instrumentationType
-    if (testBuildType == "qa") sourceSets.getByName("androidTest").java.srcDir("src/androidTestQa/java")
+    if (testBuildType == "qa") sourceSets.getByName("androidTest").java.directories.add("src/androidTestQa/java")
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     packaging {
@@ -118,6 +153,11 @@ fun coreTasks(qa: Boolean): Pair<TaskProvider<GenerateDmsgBindings>, TaskProvide
 val productionCore = coreTasks(false)
 val qaCore = coreTasks(true)
 androidComponents.onVariants { variant ->
+    if (googleClient != null && variant.productFlavors.contains("push" to "gms") &&
+        variant.productFlavors.contains("environment" to googleClient["environment"]) &&
+        variant.applicationId.get() == googleClient["package_name"]) {
+        checkNotNull(variant.buildConfigFields).put("GOOGLE_CONFIG", BuildConfigField("String", quoted(googleConfig), null))
+    }
     val (bindings, native) = if (variant.buildType == "qa") qaCore else productionCore
     variant.sources.java?.addGeneratedSourceDirectory(bindings) { it.kotlinDirectory }
     variant.sources.jniLibs?.addGeneratedSourceDirectory(native) { it.nativeDirectory }

@@ -8,7 +8,9 @@
       "namespace": "android_app",
       "package_name": "net.dmsg.android",
       "sha256_cert_fingerprints": [
-        "05:BD:CE:89:DC:ED:B9:0A:98:D8:83:84:45:8D:16:2C:25:7A:2F:80:06:A7:5C:6F:BD:41:FE:D9:78:22:59:D6"
+        "05:BD:CE:89:DC:ED:B9:0A:98:D8:83:84:45:8D:16:2C:25:7A:2F:80:06:A7:5C:6F:BD:41:FE:D9:78:22:59:D6",
+        "76:88:CA:69:25:2C:B9:99:75:23:A2:9E:17:4F:44:8D:DC:5B:FB:81:09:22:61:29:6D:CE:B4:F9:18:F4:0C:EA",
+        "B3:EE:F5:48:77:CA:0D:36:CC:A3:7A:E0:71:89:4D:A0:57:5C:00:55:8B:FF:21:8F:C5:06:FE:3B:16:02:2C:5F"
       ]
     }
   }

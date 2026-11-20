@@ -19,23 +19,7 @@ pub(crate) fn hardware_failure(error: Error) -> MobileError {
         Error::IntegrityFailed => MobileError::Failure {
             code: "HARDWARE_KEY_INVALIDATED".into(),
         },
-        Error::Unavailable(message)
-            if message.strip_prefix("hardware: ").is_some_and(|code| {
-                matches!(
-                    code,
-                    "BIOMETRIC_LOCKOUT"
-                        | "BIOMETRIC_LOCKOUT_PERMANENT"
-                        | "BIOMETRIC_NOT_ENROLLED"
-                        | "DEVICE_CREDENTIAL_NOT_SET"
-                        | "HARDWARE_SECURITY_UPDATE_REQUIRED"
-                        | "AUTHENTICATION_TIMEOUT"
-                )
-            }) =>
-        {
-            MobileError::Failure {
-                code: message["hardware: ".len()..].into(),
-            }
-        }
+        Error::Unavailable(ref message) if message.starts_with("hardware: ") => error.into(),
         Error::Unavailable(_) => MobileError::Failure {
             code: "HARDWARE_UNAVAILABLE".into(),
         },

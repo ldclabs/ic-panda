@@ -1,6 +1,11 @@
 name: dMsg Android
 on:
   workflow_dispatch:
+    inputs:
+      firebase_bundle:
+        description: Build a production GMS bundle using the Firebase client configuration
+        type: boolean
+        default: false
   pull_request:
     branches: [main]
     paths:
@@ -33,10 +38,11 @@ jobs:
       - uses: actions/checkout@v7
       - run: bash scripts/android/verify.sh resources
   packages:
+    if: github.event_name != 'workflow_dispatch' || !inputs.firebase_bundle
     needs: resources
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    steps:
+    steps: &package_steps
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
         with:
@@ -55,6 +61,16 @@ jobs:
         run: |
           sdkmanager 'cmdline-tools;22.0'
           "$ANDROID_HOME/cmdline-tools/22.0/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+      - name: Configure production Firebase client
+        if: github.event_name == 'workflow_dispatch' && inputs.firebase_bundle
+        env:
+          CLIENT_JSON: ${{ vars.DMSG_ANDROID_CLIENT_JSON }}
+        run: |
+          : "${CLIENT_JSON:?Set DMSG_ANDROID_CLIENT_JSON in the dmsg-release environment}"
+          client_file="$RUNNER_TEMP/android-client.json"
+          printf '%s' "$CLIENT_JSON" > "$client_file"
+          jq -e '.package_name == "net.dmsg.android" and .environment == "production"' "$client_file" > /dev/null
+          echo "DMSG_ANDROID_CLIENT_FILE=$client_file" >> "$GITHUB_ENV"
       - run: bash scripts/android/verify.sh build
       - uses: actions/upload-artifact@v4
         if: always()
@@ -68,6 +84,13 @@ jobs:
             src/dmsg_android/app/build/outputs/bundle/production*Release/*.aab
             src/dmsg_android/app/build/outputs/mapping/
             src/dmsg_android/app/build/outputs/native-debug-symbols/
+  firebase-packages:
+    if: github.event_name == 'workflow_dispatch' && inputs.firebase_bundle
+    needs: resources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: dmsg-release
+    steps: *package_steps
   emulator:
     needs: resources
     runs-on: ubuntu-24.04

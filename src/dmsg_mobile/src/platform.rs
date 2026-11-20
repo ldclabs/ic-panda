@@ -706,6 +706,22 @@ pub(crate) mod tests {
         );
     }
 
+    #[test]
+    fn local_authentication_preserves_system_prompt_errors() {
+        for code in [
+            "BIOMETRIC_LOCKOUT",
+            "BIOMETRIC_LOCKOUT_PERMANENT",
+            "BIOMETRIC_NOT_ENROLLED",
+            "DEVICE_CREDENTIAL_NOT_SET",
+            "HARDWARE_SECURITY_UPDATE_REQUIRED",
+            "AUTHENTICATION_TIMEOUT",
+        ] {
+            let error = platform_error(MobileError::Failure { code: code.into() });
+            let MobileError::Failure { code: returned } = error.into();
+            assert_eq!(returned, code);
+        }
+    }
+
     #[tokio::test]
     async fn cancelling_an_android_batch_cannot_open_the_next_prompt() {
         use std::sync::atomic::Ordering::SeqCst;

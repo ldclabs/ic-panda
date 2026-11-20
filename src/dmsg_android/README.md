@@ -28,6 +28,8 @@ From this directory:
 
 The production debug application ID is net.dmsg.android.dev (staging adds .staging); the intended production ID is net.dmsg.android. The none flavor does not include Firebase. The gms flavor is compiled separately; adding an SDK alone does not configure notification delivery.
 
+For a local production GMS build, place the Firebase Android download at `app/google-services.json` and run `./gradlew :app:bundleProductionGmsRelease`. Gradle extracts the public fields for `net.dmsg.android`. To supply the normalized client JSON instead, pass `-Pdmsg.googleConfig=/absolute/path/to/android-client.json`. Only GMS variants matching the configured package and environment embed it. Push registration still requires user consent.
+
 Generated Kotlin and libraries live in app/build/generated/dmsg. Gradle builds current bindings and the requested ABI slices, then verifies source/output fingerprints before native packaging. The app verifies its generated fingerprint against the loaded Rust library before opening a workspace. Never edit generated bindings or use stale libraries to fix a compiler error.
 
 The rustls JVM component uses the published org.rustls Maven group and the companion version from Cargo.lock. Gradle verification-metadata.xml pins downloaded artifacts. Changes to dependency verification must be reviewed against their upstream source. The AAR owns @xml/network_security_config: its default is HTTPS-only, with a CCADB list of CA revocation hosts allowed to fetch signed CRLs over HTTP. Do not shadow that resource; doing so makes valid CRL-only certificates fail as revoked. No certificate/hostname verification is disabled. See [upstream issue 221](https://github.com/rustls/rustls-platform-verifier/issues/221).
@@ -59,11 +61,23 @@ Release signing is injected through DMSG_ANDROID_KEYSTORE, DMSG_ANDROID_STORE_PA
 
 For actual package validation, run python3 ../../scripts/android/verify-package.py app/build/outputs/apk/productionNone/release/app-production-none-release-unsigned.apk. This checks all packaged ABI libraries, not only the Rust linker flag. Device runtime and final store-signed artifacts remain separate checks.
 
+## Google Play internal testing
+
+Before each upload, increment `versionCode` in `app/build.gradle.kts` and set the user-facing `versionName`. From the repository root run:
+
+```sh
+python3 scripts/android/internal-test.py
+```
+
+Supply the production Firebase configuration as described above. On macOS the script can use the dMsg upload keystore in `~/Library/Application Support/dMsg/PlaySigning/` and the login Keychain item with service `net.dmsg.android.play-upload` and account `dmsg-upload`. For another keystore, set the four release signing variables listed above. The script builds both ABIs, verifies the upload signature and native libraries, and prints the versioned AAB path under `misc/dmsg-play-internal/` for manual upload.
+
 ## Repeatable validation
 
 From the repository root, `bash scripts/android/verify.sh resources` checks all 23 languages, format placeholders, generated resources and shared notification vocabulary. Missing translations fail the gate; English fallback does not count as a translation. `build` additionally checks shared contracts, JVM tests, four build variants, Lint, both production Release APK/AAB outputs and every packaged native library. Set `DMSG_ANDROID_ABIS` only when deliberately running a subset.
 
 For `device`, set `ANDROID_SERIAL` to a dedicated emulator: it installs and removes QA/test packages, runs both none and GMS fixture suites, then tests the ordinary native build and its live TLS probe. The opt-in 1000 MiB, 1000-item vault and real hardware probes remain separate. No fixture can sign in, pay, or grant a real entitlement. Real hardware, cross-device service flows and store-signed split installation still require the release matrix in VALIDATION.md.
+
+For a configured CI build, run the dMsg Android workflow manually with `firebase_bundle` enabled. The package job reads the `DMSG_ANDROID_CLIENT_JSON` configuration variable from the `dmsg-release` GitHub environment. Supply the normalized client JSON as its value.
 
 The Android workflow runs these gates on pull requests affecting the app or shared core. Its Linux API 31/36 x86_64 emulator jobs report their actual page size; they do not replace the separate ARM64 16 KiB check. The workflow has no signing or service secrets and does not publish. SDK provisioning uses the [Android command-line tools](https://developer.android.com/tools/sdkmanager) and the installed emulator interface described in the [official emulator guide](https://developer.android.com/studio/run/emulator-commandline). JDK setup follows [actions/setup-java](https://github.com/actions/setup-java).
 

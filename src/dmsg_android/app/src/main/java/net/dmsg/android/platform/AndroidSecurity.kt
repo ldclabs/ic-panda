@@ -112,7 +112,11 @@ class AndroidSecurity(
             return generator.generateKeyPair()
         }
         try {
-            val value = if (context.packageManager.hasSystemFeature("android.hardware.strongbox_keystore")) {
+            // Gatekeeper may confirm the screen lock yet StrongBox reject the per-use
+            // token for RSA decryption. Use the default hardware Keystore for new
+            // credential-unlocked envelopes; privateKey still verifies its KeyInfo.
+            val useStrongBox = !(rsa && !only) && context.packageManager.hasSystemFeature("android.hardware.strongbox_keystore")
+            val value = if (useStrongBox) {
                 try { create(true) } catch (_: StrongBoxUnavailableException) { create(false) }
             } else create(false)
             privateKey(handle, authentication)

@@ -18,10 +18,19 @@ impl From<Error> for MobileError {
             };
         }
         if let Error::Unavailable(message) = &error
-            && message.starts_with("hardware: ")
+            && let Some(reason) = message.strip_prefix("hardware: ")
         {
             return Self::Failure {
-                code: "HARDWARE_UNAVAILABLE".into(),
+                code: match reason {
+                    "BIOMETRIC_LOCKOUT"
+                    | "BIOMETRIC_LOCKOUT_PERMANENT"
+                    | "BIOMETRIC_NOT_ENROLLED"
+                    | "DEVICE_CREDENTIAL_NOT_SET"
+                    | "HARDWARE_SECURITY_UPDATE_REQUIRED"
+                    | "AUTHENTICATION_TIMEOUT" => reason,
+                    _ => "HARDWARE_UNAVAILABLE",
+                }
+                .into(),
             };
         }
         Self::Failure {
