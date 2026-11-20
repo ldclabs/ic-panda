@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createRequire } from 'node:module'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 
 const require = createRequire(import.meta.url)
 const { policy, requirement, assertReleaseTeam } = require('../../../scripts/dmsg/macos-signing.cjs')
 const sign = require('../scripts/sign-macos.cjs')
-const { validateDistributionProfile, verifyMountEntitlements } = require('../scripts/fskit-package.cjs')
+const { validateDistributionProfile, verifyApp, verifyMountEntitlements } = require('../scripts/fskit-package.cjs')
 
 test('reviewed identities are pinned and only the configured team may sign a release', () => {
   assertReleaseTeam('63G8VNQPXB')
@@ -63,6 +63,35 @@ test('a macOS release cannot package without the FSKit extension', { skip: proce
   })
   assert.equal(result.status, 1)
   assert.match(result.stderr, /signed SecretsFS\.appex in DMSG_FSKIT_EXTENSION/)
+})
+
+test('macOS update verification rejects modified resources in an Electron helper', { skip: process.platform !== 'darwin' }, () => {
+  const directory = mkdtempSync(join(tmpdir(), 'dmsg-nested-signature-'))
+  try {
+    const app = join(directory, 'dMsg.app')
+    const helper = join(app, 'Contents', 'Frameworks', 'Helper.app')
+    for (const [bundle, identifier] of [[app, policy.desktopIdentifier], [helper, policy.desktopIdentifier + '.helper']]) {
+      const contents = join(bundle, 'Contents')
+      mkdirSync(join(contents, 'MacOS'), { recursive: true })
+      copyFileSync('/usr/bin/true', join(contents, 'MacOS', 'fixture'))
+      writeFileSync(join(contents, 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>CFBundleIdentifier</key><string>${identifier}</string>
+  <key>CFBundleExecutable</key><string>fixture</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+</dict></plist>`)
+    }
+    const resource = join(helper, 'Contents', 'Resources', 'fixture.txt')
+    mkdirSync(dirname(resource), { recursive: true })
+    writeFileSync(resource, 'sealed content')
+    for (const bundle of [helper, app]) {
+      execFileSync('/usr/bin/codesign', ['--force', '--sign', '-', bundle], { stdio: 'pipe' })
+    }
+    // The intact ad hoc signature fails only the Developer ID requirement.
+    assert.throws(() => verifyApp(app, true), { status: 3 })
+    writeFileSync(resource, 'modified content')
+    assert.throws(() => verifyApp(app, true), { status: 1 })
+  } finally { rmSync(directory, { recursive: true, force: true }) }
 })
 
 test('FSKit distribution requires the Yiwen module profile and the IPC group on both peers', () => {

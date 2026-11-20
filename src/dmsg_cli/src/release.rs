@@ -1,6 +1,6 @@
 //! Releases and installs of `dmsg`: the latest stable SemVer release of the
 //! repository, a download checked against its published SHA-256 and, on
-//! macOS, signed by its team or the pinned recipient of the LDC transition,
+//! macOS, signed by the running binary's Developer ID team,
 //! and the shared location that the install scripts, Homebrew and the desktop app use.
 //!
 //! GitHub Latest stays on the LDC bridge for old clients. New clients enumerate

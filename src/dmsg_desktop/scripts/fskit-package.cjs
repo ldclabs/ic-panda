@@ -47,10 +47,10 @@ function daemonTeam(daemon, release) {
   return team
 }
 
-function verifyCode(bundle, identifier, team, release) {
+function verifyCode(bundle, identifier, team, release, ...flags) {
   const expression = release ? requirement(identifier, team)
     : `identifier "${identifier}" and anchor apple generic and certificate leaf[subject.OU] = "${team}"`
-  execFileSync('/usr/bin/codesign', ['--verify', '--strict', '-R', `=${expression}`, bundle])
+  execFileSync('/usr/bin/codesign', ['--verify', '--strict', ...flags, '-R', `=${expression}`, bundle])
 }
 
 function verifyMountEntitlements(moduleClaims, daemonClaims, team) {
@@ -76,7 +76,7 @@ function verifyModule(extension, daemon, team, release) {
 function verifyApp(app, release) {
   const daemon = path.join(app, daemonPath)
   const team = daemonTeam(daemon, release)
-  verifyCode(app, policy.desktopIdentifier, team, release)
+  verifyCode(app, policy.desktopIdentifier, team, release, '--deep')
   if (release) verifyDesignatedRequirement(app, requirement(policy.desktopIdentifier, policy.releaseTeam))
   verifyModule(path.join(app, extensionPath), daemon, team, release)
 }

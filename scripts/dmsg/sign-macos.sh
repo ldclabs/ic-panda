@@ -22,7 +22,7 @@ error() { printf 'Error: %s\n' "$1" >&2; exit 1; }
 [ "$#" -ge 1 ] && [ "$#" -le 2 ] || error "usage: $0 <dmsg binary> [SecretsFS.zip]"
 FILE="$1"
 FSKIT_ARCHIVE=${2:-}
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 DESKTOP="$SCRIPT_DIR/../../src/dmsg_desktop"
 : "${MAC_CSC_LINK:?}" "${MAC_CSC_KEY_PASSWORD:?}"
 : "${APPLE_ID:?}" "${APPLE_APP_SPECIFIC_PASSWORD:?}" "${APPLE_TEAM_ID:?}"
