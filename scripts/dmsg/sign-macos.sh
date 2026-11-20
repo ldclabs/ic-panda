@@ -103,15 +103,36 @@ fi
 mkdir "${WORK}/notarize"
 cp "$FILE" "${WORK}/notarize/"
 ditto -c -k "${WORK}/notarize" "${WORK}/notarize.zip"
-xcrun notarytool submit "${WORK}/notarize.zip" \
-    --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" \
-    --wait --timeout 1h --output-format json >"${WORK}/notarization.json" || true
-STATUS=$(plutil -extract status raw -o - "${WORK}/notarization.json" 2>/dev/null || true)
-if [ "$STATUS" != "Accepted" ]; then
-    cat "${WORK}/notarization.json" >&2
-    SUBMISSION=$(plutil -extract id raw -o - "${WORK}/notarization.json" 2>/dev/null || true)
-    [ -z "$SUBMISSION" ] || xcrun notarytool log "$SUBMISSION" \
-        --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" >&2 || true
-    error "notarization did not succeed (status: ${STATUS:-unknown})"
-fi
+notary() {
+    xcrun notarytool "$@" --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID"
+}
+
+response="$WORK/notarization.json"
+notary submit "$WORK/notarize.zip" --no-wait --output-format json >"$response"
+submission=$(plutil -extract id raw -o - "$response")
+[ -n "$submission" ] || error "Apple returned no notarization submission ID"
+printf 'Submitted %s to Apple for notarization: %s\n' "$FILE" "$submission"
+
+deadline=$(( $(date +%s) + 4 * 3600 ))
+failures=0
+while :; do
+    if notary info "$submission" --output-format json >"$response"; then
+        status=$(plutil -extract status raw -o - "$response")
+        failures=0
+        case "$status" in
+            Accepted) break ;;
+            "In Progress") ;;
+            Invalid|Rejected)
+                notary log "$submission" >&2 || true
+                error "Apple notarization $submission: $status" ;;
+            *) error "Unexpected status for notarization $submission: $status" ;;
+        esac
+    else
+        failures=$((failures + 1))
+        [ "$failures" -lt 5 ] || error "Could not query notarization $submission after five attempts; check it with notarytool info"
+        printf 'Retrying notarization status query for %s\n' "$submission" >&2
+    fi
+    [ "$(date +%s)" -lt "$deadline" ] || error "Stopped waiting for notarization $submission after 4h; check it with notarytool info"
+    sleep 60
+done
 printf 'Signed and notarized %s\n' "$FILE"
