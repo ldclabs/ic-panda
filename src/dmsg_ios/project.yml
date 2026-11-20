@@ -98,6 +98,7 @@ targets:
     sources:
       - Extensions/Credentials
       - Shared/CredentialPicker.swift
+      - Shared/CredentialPickerView.swift
       - Shared/SystemExports.swift
       - Shared/KeychainMigration.swift
       - Shared/IncomingShare.swift

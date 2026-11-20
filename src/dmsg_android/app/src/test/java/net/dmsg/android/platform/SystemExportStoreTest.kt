@@ -20,6 +20,32 @@ class SystemExportStoreTest {
     }
     private val credential = ExportCredentialInput("Private title", "private-user", "private-password", "https://example.com")
 
+    @Test fun confirmedLoginSurvivesRenewalOnlyForTheSameAccountAndDisplayedItem() {
+        val store = SystemExportStore(temporary.newFolder(), ExportPurpose.credentials, TestKeys())
+        val work = credential.copy(itemId = "work")
+        val personal = credential.copy(username = "personal", password = "other-password", itemId = "personal")
+        store.prepareCredentials(listOf(work, personal), "A", false, "before").use { store.publish(it) }
+        store.open().use { before ->
+            val selected = store.credentials(before).first()
+            val legacy = selected.copy(itemId = null)
+            assertEquals(legacy, legacy.afterUnlock(before.header, before.header, listOf(legacy)))
+            store.prepareCredentials(listOf(personal, work.copy(password = "rotated")), "A", false, "after").use { store.publish(it) }
+            store.open().use { after ->
+                val entries = store.credentials(after)
+                val current = checkNotNull(selected.afterUnlock(before.header, after.header, entries))
+                assertNotEquals(selected.id, current.id)
+                assertEquals("rotated", store.plain(after, current.id).toString(Charsets.UTF_8))
+                assertEquals("private-user", current.username)
+                assertNull(legacy.afterUnlock(before.header, after.header, entries))
+                assertNull(selected.afterUnlock(before.header, after.header.copy(account = "other"), entries))
+                for (changed in listOf(current.copy(username = "personal"), current.copy(title = "other"),
+                    current.copy(origin = "https://other.example"), current.copy(itemId = "personal"))) {
+                    assertNull(selected.afterUnlock(before.header, after.header, listOf(changed)))
+                }
+            }
+        }
+    }
+
     @Test fun aLoginCanBeFoundByItsWebsiteWhenItIsIneligibleForSiteTrust() {
         val http = AutofillTrust.displayOrigin("http://example.com/sign-in")
         val alternatePort = AutofillTrust.displayOrigin("https://account@example.net:8443/sign-in?token=fixture")

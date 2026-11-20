@@ -16,7 +16,15 @@ enum class ExportPurpose { credentials, files }
 data class ExportHeader(val id: String, val installation: String, val purpose: ExportPurpose, val account: String, val created: Long, val expires: Long, val count: Int, val biometryOnly: Boolean, val wrapped: ByteArray, val digest: String? = null) {
     fun binding() = ("$installation:$purpose:$id:$account:$created:$expires:$count:$biometryOnly" + digest?.let { ":$it" }.orEmpty()).toByteArray()
 }
-data class ExportCredential(val id: String, val title: String, val username: String, val origin: String, val itemId: String? = null)
+data class ExportCredential(val id: String, val title: String, val username: String, val origin: String, val itemId: String? = null) {
+    fun afterUnlock(previous: ExportHeader, current: ExportHeader, entries: List<ExportCredential>): ExportCredential? {
+        if (previous.installation != current.installation || previous.account != current.account) return null
+        return entries.firstOrNull { candidate ->
+            val sameItem = if (previous.id == current.id) candidate.id == id else itemId != null && candidate.itemId == itemId
+            sameItem && candidate.title == title && candidate.username == username && candidate.origin == origin
+        }
+    }
+}
 data class ExportCredentialInput(val title: String, val username: String, val password: String, val origin: String, val itemId: String? = null)
 data class ExportFile(val id: String, val name: String, val mime: String, val size: Long, val sha256: String, val parts: Int, val modified: Long)
 data class ExportFileInput(val path: File, val name: String, val mime: String, val size: Long, val sha256: String)

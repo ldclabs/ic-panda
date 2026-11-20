@@ -46,7 +46,10 @@ Only the main application owns a Client. AutoFill, document copies, incoming sha
 Password AutoFill maintains an encrypted local login catalog while the vault is unlocked.
 The authenticated system picker supports searching all logins, one-time filling and
 remembering several accounts for the same signed app or verified website. The
-selected dataset fills the requesting fields immediately. Retrieved file copies
+selected dataset fills the requesting fields immediately. If the catalog or
+authentication expires during an active selection, the picker reauthenticates
+and resumes the confirmed account only if the item and displayed login still
+match. Remembered choices also require the same verified destination. Retrieved file copies
 retain their separate expiry and authentication policy.
 
 

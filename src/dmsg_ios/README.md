@@ -199,8 +199,10 @@ counts independently; unavailable values are never displayed as zero.
 
 AutoFill remembers stable vault item IDs for each account and service, including
 after password changes. Unidentified callers support a one-time fill. A missing
-catalog is prepared when the main workspace is unlocked. A replaced catalog
-requires renewed authentication before releasing a password. Settings show
+catalog is prepared when the main workspace is unlocked. If authentication
+expires or the catalog changes during selection, the picker authenticates again
+and finishes the confirmed login when its account, item and displayed details
+still match. A changed login returns to the list for a new choice. Settings show
 the catalog count, authentication policy and a retry if preparation failed.
 
 Wallet transfer forms use existing asset metadata and fee preview, exact decimal

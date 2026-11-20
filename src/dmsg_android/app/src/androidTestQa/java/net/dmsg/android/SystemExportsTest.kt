@@ -107,7 +107,7 @@ class SystemExportsTest {
         fun shell(command: String) = android.os.ParcelFileDescriptor.AutoCloseInputStream(ui.executeShellCommand(command)).use { it.readBytes().toString(Charsets.UTF_8).trim() }
         fun find(node: android.view.accessibility.AccessibilityNodeInfo?, text: String): android.view.accessibility.AccessibilityNodeInfo? {
             if (node == null || !node.refresh()) return null
-            if (node.text?.toString() == text) return node
+            if (node.text?.toString() == text || node.contentDescription?.toString() == text) return node
             for (index in 0 until node.childCount) find(node.getChild(index), text)?.let { return it }
             return null
         }

@@ -266,6 +266,131 @@ final class SystemExportsTests: XCTestCase {
         XCTAssertEqual(try store.credential(entries[0].id, opened: current), "current-secret")
         XCTAssertThrowsError(try store.credential(oldEntries[0].id, opened: old))
     }
+
+    @MainActor
+    func testFillOnceAfterAMinuteUsesTheFirstConfirmationExactlyOnce() async throws {
+        let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
+        let input = CredentialInput(title: "Example", username: "work", password: "work-password", origin: "", itemID: "work")
+        let opened = try activate(store.prepareCredentials([input], account: "vault", digest: "1"), in: store)
+        var time = ContinuousClock.now
+        var unlocks = 0
+        var fills: [ASPasswordCredential] = []
+        let picker = CredentialPickerSession(store: { store }, authenticate: { store in
+            unlocks += 1
+            return (opened, try store.credentialMetadata(opened))
+        }, now: { time }) { credential, identity in
+            XCTAssertNil(identity)
+            fills.append(credential)
+        }
+
+        picker.start(services: [])
+        await picker.operation?.value
+        picker.query = "work"
+        let selected = try XCTUnwrap(picker.sections.first?.entries.first)
+        picker.choose(selected)
+        picker.back()
+        XCTAssertEqual(picker.query, "work")
+        picker.choose(selected)
+        XCTAssertFalse(picker.canRemember(selected))
+        time += .seconds(61)
+        picker.confirm(remember: false)
+        picker.confirm(remember: false)
+        await picker.operation?.value
+        picker.choose(selected)
+        picker.confirm(remember: false)
+        XCTAssertEqual(unlocks, 2)
+        XCTAssertEqual(fills.map(\.user), ["work"])
+        XCTAssertEqual(fills.first?.password, "work-password")
+        guard case .finished = picker.page else { return XCTFail("A delivered request cannot reopen the picker") }
+    }
+
+    @MainActor
+    func testConfirmedAccountSurvivesPasswordRotationAndRemembersBothAccounts() async throws {
+        let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
+        let service = ASCredentialServiceIdentifier(identifier: "example.org", type: .domain)
+        let key = try XCTUnwrap(service.loginServiceKey)
+        let input = { (user: String, password: String) in
+            CredentialInput(title: "Example", username: user, password: password, origin: "https://example.org", itemID: user)
+        }
+        let personal = input("personal", "my-password")
+        var opened = try activate(store.prepareCredentials([personal, input("work", "before")], account: "vault", digest: "1"), in: store)
+        try store.remember("personal", service: key, opened: opened)
+        var fills: [ASPasswordCredential] = []
+        var identity: ASPasswordCredentialIdentity?
+        let picker = CredentialPickerSession(store: { store }, authenticate: { store in
+            (opened, try store.credentialMetadata(opened))
+        }) { credential, suggestion in fills.append(credential); identity = suggestion }
+        picker.start(services: [service])
+        await picker.operation?.value
+        picker.query = "work"
+        picker.choose(try XCTUnwrap(picker.sections.first?.entries.first))
+        opened = try activate(store.prepareCredentials([personal, input("work", "rotated")], account: "vault", digest: "2"), in: store)
+        picker.confirm(remember: true)
+        await picker.operation?.value
+        XCTAssertEqual(fills.map(\.password), ["rotated"])
+        XCTAssertEqual(try store.recentLogins(account: opened.header.accountHash, service: key), ["work", "personal"])
+
+        let suggestion = try XCTUnwrap(identity)
+        picker.start(services: [service], requested: suggestion)
+        await picker.operation?.value
+        XCTAssertEqual(fills.map(\.user), ["work", "work"])
+        picker.start(services: [service])
+        await picker.operation?.value
+        XCTAssertEqual(picker.sections.first?.entries.map(\.username), ["work", "personal"])
+        picker.choose(try XCTUnwrap(picker.sections.first?.entries.last))
+        await picker.operation?.value
+        XCTAssertEqual(fills.last?.password, "my-password")
+    }
+
+    @MainActor
+    func testReplacementCannotRedirectAConfirmedLogin() async throws {
+        for (account, username, origin, itemID) in [("other", "work", "https://example.org", "1"),
+            ("vault", "personal", "https://example.org", "1"), ("vault", "work", "https://other.org", "1"),
+            ("vault", "work", "https://example.org", "2")] {
+            let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
+            let original = CredentialInput(title: "Example", username: "work", password: "first", origin: "https://example.org", itemID: "1")
+            var opened = try activate(store.prepareCredentials([original], account: "vault", digest: "1"), in: store)
+            let picker = CredentialPickerSession(store: { store }, authenticate: { store in
+                (opened, try store.credentialMetadata(opened))
+            }) { _, _ in XCTFail("A changed account, item or displayed login requires a new choice") }
+            picker.start(services: [])
+            await picker.operation?.value
+            picker.choose(try XCTUnwrap(picker.sections.first?.entries.first))
+            let replacement = CredentialInput(title: "Example", username: username, password: "second", origin: origin, itemID: itemID)
+            opened = try activate(store.prepareCredentials([replacement], account: account, digest: "2"), in: store)
+            picker.confirm(remember: false)
+            await picker.operation?.value
+            guard case .list = picker.page else { return XCTFail("The refreshed picker should be visible") }
+        }
+    }
+
+    @MainActor
+    func testDismissalDuringReauthenticationDropsTheConfirmedLogin() async throws {
+        let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
+        let input = CredentialInput(title: "Example", username: "work", password: "unused", origin: "", itemID: "work")
+        let opened = try activate(store.prepareCredentials([input], account: "vault", digest: "1"), in: store)
+        var time = ContinuousClock.now
+        let start = time
+        let started = expectation(description: "Reauthentication requested")
+        var resume: CheckedContinuation<Void, Never>?
+        let picker = CredentialPickerSession(store: { store }, authenticate: { store in
+            if time > start {
+                await withCheckedContinuation { resume = $0; started.fulfill() }
+            }
+            return (opened, try store.credentialMetadata(opened))
+        }, now: { time }) { _, _ in XCTFail("A cancelled request must never return a password") }
+        picker.start(services: [])
+        await picker.operation?.value
+        picker.choose(try XCTUnwrap(picker.sections.first?.entries.first))
+        time += .seconds(61)
+        picker.confirm(remember: false)
+        let operation = try XCTUnwrap(picker.operation)
+        await fulfillment(of: [started], timeout: 3)
+        picker.close()
+        resume?.resume()
+        await operation.value
+        guard case .finished = picker.page else { return XCTFail("Dismissal is final") }
+    }
 }
 
 extension SystemExportsTests {

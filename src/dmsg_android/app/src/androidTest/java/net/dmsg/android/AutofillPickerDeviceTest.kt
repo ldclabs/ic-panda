@@ -72,21 +72,31 @@ class AutofillPickerDeviceTest {
             }
             catalog.use { store.publish(it) }
             shell("settings put secure autofill_service ${app.packageName}/net.dmsg.android.platform.DMsgAutofillService")
-            for ((index, account) in listOf("personal", "work", "personal").withIndex()) {
-                shell("am start -W -n $fixture/net.dmsg.android.AutofillFixtureActivity --ez nativeLogin true")
-                tap("Unlock dMsg passwords")
+            fun enterPin() {
                 waitFor("system PIN entry") {
                     node { it.packageName.toString() in setOf("com.android.systemui", "com.android.settings") &&
                         (it.isPassword || it.text?.toString()?.contains("PIN", ignoreCase = true) == true) } != null
                 }
                 shell("input text $pin"); shell("input keyevent ENTER")
+            }
+            for ((index, account) in listOf("personal", "work", "personal").withIndex()) {
+                shell("am start -W -n $fixture/net.dmsg.android.AutofillFixtureActivity --ez nativeLogin true")
+                tap("Unlock dMsg passwords")
+                enterPin()
                 waitFor("both accounts") { bounds("personal") != null && bounds("work") != null }
                 if (index == 2) assertTrue("Most recently used account first", bounds("work")!!.centerY() < bounds("personal")!!.centerY())
                 tap(account)
+                if (index == 0) {
+                    waitFor("first-use confirmation") { bounds("Fill and remember") != null }
+                    val updated = logins.map { if (it.username == "personal") it.copy(password = "rotated-personal") else it }
+                    store.prepareCredentials(updated, "test-account", false, "rotated").use { store.publish(it) }
+                }
                 if (index < 2) tap("Fill and remember")
+                if (index == 0) enterPin()
                 waitFor("selected username and password in the host") {
                     app.contentResolver.query(uri, null, null, null, null)!!.use {
-                        it.moveToFirst() && it.getString(0) == "fixture-$account" && it.getString(2) == account
+                        val expected = if (account == "personal") "rotated-personal" else "fixture-work"
+                        it.moveToFirst() && it.getString(0) == expected && it.getString(2) == account
                     }
                 }
                 app.contentResolver.query(uri.buildUpon().path("/autofill-finish").build(), null, null, null, null)?.close()
