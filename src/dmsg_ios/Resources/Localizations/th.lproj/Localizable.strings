@@ -244,6 +244,8 @@
 	<string>การสำรองข้อมูลไฟล์แนบไม่ได้รับการยืนยัน</string>
 	<key>Attachment unavailable on this device</key>
 	<string>ไฟล์แนบไม่พร้อมใช้งานบนอุปกรณ์นี้</string>
+	<key>Attachments</key>
+	<string>ไฟล์แนบ</string>
 	<key>Attestations</key>
 	<string>การรับรอง</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>ตรวจสอบสถานะการกู้คืน</string>
 	<key>Check request</key>
 	<string>ตรวจสอบคำขอ</string>
+	<key>Check status</key>
+	<string>ตรวจสอบสถานะ</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>ตรวจสอบชื่อและโฟลเดอร์ปลายทาง แล้วลองอีกครั้ง</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>เลือกแชร์ผ่านลิงก์ที่ไฟล์เพื่อส่งให้ใครก็ได้ โดยไม่ต้องมีบัญชีหรือแอป dMsg</string>
 	<key>Choose a credential for:</key>
 	<string>เลือกข้อมูลรับรองสำหรับ:</string>
+	<key>Choose a file</key>
+	<string>เลือกไฟล์</string>
 	<key>Choose a secret</key>
 	<string>เลือกความลับ</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>กำลังยืนยันการสำรองข้อมูลบนคลาวด์…</string>
 	<key>Conflicting version</key>
 	<string>เวอร์ชันที่ขัดแย้งกัน</string>
+	<key>Conflicts</key>
+	<string>ข้อขัดแย้ง</string>
 	<key>Connect</key>
 	<string>เชื่อมต่อ</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>ติดต่อฝ่ายสนับสนุน</string>
 	<key>Content signing</key>
 	<string>การลงนามเนื้อหา</string>
+	<key>Continue</key>
+	<string>ดำเนินการต่อ</string>
 	<key>Continue adding this passkey</key>
 	<string>เพิ่มพาสคีย์นี้ต่อ</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>จัดการสินทรัพย์ส่วนตัวหรือสินทรัพย์ร่วมกันบนหลายเชน กำหนดจำนวนการอนุมัติและข้อกำหนดการร่วมลงนามของอุปกรณ์</string>
 	<key>Manage subscriptions</key>
 	<string>จัดการการสมัครสมาชิก</string>
+	<key>Managed by dMsg</key>
+	<string>จัดการโดย dMsg</string>
 	<key>Mark as read</key>
 	<string>ทำเครื่องหมายว่าอ่านแล้ว</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>โฟลเดอร์ใหม่</string>
 	<key>New free letter</key>
 	<string>จดหมายฟรีใหม่</string>
+	<key>New items</key>
+	<string>รายการใหม่</string>
 	<key>New link</key>
 	<string>ลิงก์ใหม่</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>เลือกไฟล์</string>
 	<key>Select a secret</key>
 	<string>เลือกความลับ</string>
+	<key>Select all</key>
+	<string>เลือกทั้งหมด</string>
 	<key>Select an asset</key>
 	<string>เลือกสินทรัพย์</string>
 	<key>Select attachments to import</key>

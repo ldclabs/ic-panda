@@ -244,6 +244,8 @@
 	<string>De back-up van de bijlage is niet bevestigd</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Bijlage niet beschikbaar op dit apparaat</string>
+	<key>Attachments</key>
+	<string>Bijlagen</string>
 	<key>Attestations</key>
 	<string>Attesten</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Controleer de herstelstatus</string>
 	<key>Check request</key>
 	<string>Verzoek controleren</string>
+	<key>Check status</key>
+	<string>Status controleren</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Controleer de naam en doelmap en probeer het opnieuw.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Kies Delen via link bij een bestand om het naar iedereen te sturen. Een dMsg-account of -app is niet nodig.</string>
 	<key>Choose a credential for:</key>
 	<string>Kies een referentie voor:</string>
+	<key>Choose a file</key>
+	<string>Kies een bestand</string>
 	<key>Choose a secret</key>
 	<string>Kies een geheim</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Cloudback-up bevestigen…</string>
 	<key>Conflicting version</key>
 	<string>Conflicterende versie</string>
+	<key>Conflicts</key>
+	<string>Conflicten</string>
 	<key>Connect</key>
 	<string>Verbinden</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Neem contact op met ondersteuning</string>
 	<key>Content signing</key>
 	<string>Inhoud ondertekenen</string>
+	<key>Continue</key>
+	<string>Doorgaan</string>
 	<key>Continue adding this passkey</key>
 	<string>Doorgaan met deze passkey toevoegen</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Beheer eigen of gezamenlijke activa op meerdere blockchains. Stel goedkeuringsdrempels en regels voor medeondertekening op apparaten in.</string>
 	<key>Manage subscriptions</key>
 	<string>Beheer abonnementen</string>
+	<key>Managed by dMsg</key>
+	<string>Beheerd door dMsg</string>
 	<key>Mark as read</key>
 	<string>Markeer als gelezen</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Nieuwe map</string>
 	<key>New free letter</key>
 	<string>Nieuwe gratis brief</string>
+	<key>New items</key>
+	<string>Nieuwe items</string>
 	<key>New link</key>
 	<string>Nieuwe link</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Selecteer een bestand</string>
 	<key>Select a secret</key>
 	<string>Selecteer een geheim</string>
+	<key>Select all</key>
+	<string>Alles selecteren</string>
 	<key>Select an asset</key>
 	<string>Activum selecteren</string>
 	<key>Select attachments to import</key>

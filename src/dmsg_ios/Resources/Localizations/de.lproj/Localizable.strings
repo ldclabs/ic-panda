@@ -244,6 +244,8 @@
 	<string>Die Sicherung des Anhangs wurde nicht bestätigt</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Anhang auf diesem Gerät nicht verfügbar</string>
+	<key>Attachments</key>
+	<string>Anhänge</string>
 	<key>Attestations</key>
 	<string>Bescheinigungen</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Überprüfen Sie den Wiederherstellungsstatus</string>
 	<key>Check request</key>
 	<string>Anfrage prüfen</string>
+	<key>Check status</key>
+	<string>Status prüfen</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Prüfe den Namen und den Zielordner und versuche es erneut.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Wählen Sie bei einer Datei „Per Link teilen“, um sie an beliebige Personen zu senden. Die Empfänger brauchen weder ein dMsg-Konto noch die App.</string>
 	<key>Choose a credential for:</key>
 	<string>Wählen Sie einen Ausweis für:</string>
+	<key>Choose a file</key>
+	<string>Datei auswählen</string>
 	<key>Choose a secret</key>
 	<string>Wählen Sie ein Geheimnis</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Cloud-Sicherung wird bestätigt…</string>
 	<key>Conflicting version</key>
 	<string>Widersprüchliche Version</string>
+	<key>Conflicts</key>
+	<string>Konflikte</string>
 	<key>Connect</key>
 	<string>Verbinden</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Kontaktieren Sie den Support</string>
 	<key>Content signing</key>
 	<string>Inhalte signieren</string>
+	<key>Continue</key>
+	<string>Weiter</string>
 	<key>Continue adding this passkey</key>
 	<string>Diesen Passkey weiter hinzufügen</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Verwalten Sie eigene oder gemeinsame Vermögenswerte über mehrere Blockchains. Legen Sie Freigabeschwellen und Regeln für das Mitsignieren auf Geräten fest.</string>
 	<key>Manage subscriptions</key>
 	<string>Abonnements verwalten</string>
+	<key>Managed by dMsg</key>
+	<string>Von dMsg verwaltet</string>
 	<key>Mark as read</key>
 	<string>Als gelesen markieren</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Neuer Ordner</string>
 	<key>New free letter</key>
 	<string>Neuer kostenloser Brief</string>
+	<key>New items</key>
+	<string>Neue Einträge</string>
 	<key>New link</key>
 	<string>Neuer Link</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Wählen Sie eine Datei aus</string>
 	<key>Select a secret</key>
 	<string>Wählen Sie ein Geheimnis aus</string>
+	<key>Select all</key>
+	<string>Alle auswählen</string>
 	<key>Select an asset</key>
 	<string>Vermögenswert wählen</string>
 	<key>Select attachments to import</key>

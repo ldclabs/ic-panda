@@ -244,6 +244,8 @@
 	<string>Bản sao lưu tệp đính kèm chưa được xác nhận</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Tệp đính kèm không có sẵn trên thiết bị này</string>
+	<key>Attachments</key>
+	<string>Tệp đính kèm</string>
 	<key>Attestations</key>
 	<string>Chứng thực</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Kiểm tra trạng thái khôi phục</string>
 	<key>Check request</key>
 	<string>Kiểm tra yêu cầu</string>
+	<key>Check status</key>
+	<string>Kiểm tra trạng thái</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Kiểm tra tên và thư mục đích rồi thử lại.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Chọn Chia sẻ qua liên kết trên một tệp để gửi cho bất kỳ ai. Họ không cần tài khoản hay ứng dụng dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Chọn thông tin xác thực cho:</string>
+	<key>Choose a file</key>
+	<string>Chọn tệp</string>
 	<key>Choose a secret</key>
 	<string>Chọn một bí mật</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Đang xác nhận bản sao đám mây…</string>
 	<key>Conflicting version</key>
 	<string>Phiên bản xung đột</string>
+	<key>Conflicts</key>
+	<string>Xung đột</string>
 	<key>Connect</key>
 	<string>Kết nối</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Liên hệ hỗ trợ</string>
 	<key>Content signing</key>
 	<string>Ký nội dung</string>
+	<key>Continue</key>
+	<string>Tiếp tục</string>
 	<key>Continue adding this passkey</key>
 	<string>Tiếp tục thêm khóa truy cập này</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Quản lý tài sản cá nhân hoặc chung trên nhiều chuỗi. Thiết lập số lượt phê duyệt cần thiết và quy tắc đồng ký trên thiết bị.</string>
 	<key>Manage subscriptions</key>
 	<string>Quản lý đăng ký</string>
+	<key>Managed by dMsg</key>
+	<string>Do dMsg quản lý</string>
 	<key>Mark as read</key>
 	<string>Đánh dấu là đã đọc</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Thư mục mới</string>
 	<key>New free letter</key>
 	<string>Thư miễn phí mới</string>
+	<key>New items</key>
+	<string>Mục mới</string>
 	<key>New link</key>
 	<string>Liên kết mới</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Chọn một tập tin</string>
 	<key>Select a secret</key>
 	<string>Chọn một bí mật</string>
+	<key>Select all</key>
+	<string>Chọn tất cả</string>
 	<key>Select an asset</key>
 	<string>Chọn tài sản</string>
 	<key>Select attachments to import</key>

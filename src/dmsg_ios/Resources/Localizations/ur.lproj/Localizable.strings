@@ -244,6 +244,8 @@
 	<string>منسلکہ بیک اپ غیر مصدقہ ہے</string>
 	<key>Attachment unavailable on this device</key>
 	<string>اس آلہ پر منسلکہ دستیاب نہیں ہے</string>
+	<key>Attachments</key>
+	<string>منسلکات</string>
 	<key>Attestations</key>
 	<string>تصدیقات</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>بحالی کی حیثیت چیک کریں</string>
 	<key>Check request</key>
 	<string>درخواست جانچیں</string>
+	<key>Check status</key>
+	<string>حالت چیک کریں</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>نام اور منزل کے فولڈر کو چیک کر کے دوبارہ کوشش کریں۔</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>کسی فائل پر لنک کے ذریعے شیئر کریں منتخب کر کے اسے کسی کو بھی بھیجیں۔ اسے dMsg اکاؤنٹ یا ایپ کی ضرورت نہیں۔</string>
 	<key>Choose a credential for:</key>
 	<string>اس کے لیے ایک سند کا انتخاب کریں:</string>
+	<key>Choose a file</key>
+	<string>ایک فائل منتخب کریں</string>
 	<key>Choose a secret</key>
 	<string>ایک راز کا انتخاب کریں</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>کلاؤڈ بیک اپ کی تصدیق ہو رہی ہے…</string>
 	<key>Conflicting version</key>
 	<string>متضاد ورژن</string>
+	<key>Conflicts</key>
+	<string>متصادم اندراجات</string>
 	<key>Connect</key>
 	<string>جڑیں</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>سپورٹ سے رابطہ کریں</string>
 	<key>Content signing</key>
 	<string>مواد پر دستخط</string>
+	<key>Continue</key>
+	<string>جاری رکھیں</string>
 	<key>Continue adding this passkey</key>
 	<string>یہ پاس کی شامل کرنا جاری رکھیں</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>مختلف بلاک چینز پر ذاتی یا مشترکہ اثاثوں کا انتظام کریں۔ درکار منظوریوں کی تعداد اور آلات کے مشترکہ دستخط کے اصول طے کریں۔</string>
 	<key>Manage subscriptions</key>
 	<string>سبسکرپشنز کا نظم کریں</string>
+	<key>Managed by dMsg</key>
+	<string>dMsg کے زیر انتظام</string>
 	<key>Mark as read</key>
 	<string>پڑھا ہوا نشان زد کریں</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>نیا فولڈر</string>
 	<key>New free letter</key>
 	<string>نیا مفت خط</string>
+	<key>New items</key>
+	<string>نئے آئٹمز</string>
 	<key>New link</key>
 	<string>نیا لنک</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>ایک فائل منتخب کریں</string>
 	<key>Select a secret</key>
 	<string>ایک راز منتخب کریں</string>
+	<key>Select all</key>
+	<string>سب منتخب کریں</string>
 	<key>Select an asset</key>
 	<string>اثاثہ منتخب کریں</string>
 	<key>Select attachments to import</key>

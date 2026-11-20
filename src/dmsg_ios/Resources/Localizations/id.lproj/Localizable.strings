@@ -244,6 +244,8 @@
 	<string>Cadangan lampiran belum dikonfirmasi</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Lampiran tidak tersedia di perangkat ini</string>
+	<key>Attachments</key>
+	<string>Lampiran</string>
 	<key>Attestations</key>
 	<string>Pengesahan</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Periksa status pemulihan</string>
 	<key>Check request</key>
 	<string>Periksa permintaan</string>
+	<key>Check status</key>
+	<string>Periksa status</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Periksa nama dan folder tujuan, lalu coba lagi.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Pilih Bagikan lewat tautan pada file untuk mengirimkannya kepada siapa saja. Mereka tidak memerlukan akun atau aplikasi dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Pilih kredensial untuk:</string>
+	<key>Choose a file</key>
+	<string>Pilih file</string>
 	<key>Choose a secret</key>
 	<string>Pilih sebuah rahasia</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Mengonfirmasi cadangan cloud…</string>
 	<key>Conflicting version</key>
 	<string>Versi yang bertentangan</string>
+	<key>Conflicts</key>
+	<string>Konflik</string>
 	<key>Connect</key>
 	<string>Hubungkan</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Hubungi dukungan</string>
 	<key>Content signing</key>
 	<string>Penandatanganan konten</string>
+	<key>Continue</key>
+	<string>Lanjutkan</string>
 	<key>Continue adding this passkey</key>
 	<string>Lanjutkan menambahkan passkey ini</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Kelola aset pribadi atau bersama di berbagai blockchain. Tetapkan ambang persetujuan dan persyaratan tanda tangan bersama perangkat.</string>
 	<key>Manage subscriptions</key>
 	<string>Kelola langganan</string>
+	<key>Managed by dMsg</key>
+	<string>Dikelola oleh dMsg</string>
 	<key>Mark as read</key>
 	<string>Tandai sebagai telah dibaca</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Folder baru</string>
 	<key>New free letter</key>
 	<string>Surat gratis baru</string>
+	<key>New items</key>
+	<string>Item baru</string>
 	<key>New link</key>
 	<string>Tautan baru</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Pilih file</string>
 	<key>Select a secret</key>
 	<string>Pilih sebuah rahasia</string>
+	<key>Select all</key>
+	<string>Pilih semua</string>
 	<key>Select an asset</key>
 	<string>Pilih aset</string>
 	<key>Select attachments to import</key>

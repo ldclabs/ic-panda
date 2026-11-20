@@ -244,6 +244,8 @@
 	<string>সংযুক্তি ব্যাকআপ অনিশ্চিত</string>
 	<key>Attachment unavailable on this device</key>
 	<string>এই ডিভাইসে সংযুক্তি অনুপলব্ধ৷</string>
+	<key>Attachments</key>
+	<string>সংযুক্তি</string>
 	<key>Attestations</key>
 	<string>প্রত্যয়ন</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>পুনরুদ্ধারের স্থিতি পরীক্ষা করুন</string>
 	<key>Check request</key>
 	<string>অনুরোধ যাচাই</string>
+	<key>Check status</key>
+	<string>অবস্থা যাচাই করুন</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>নাম ও গন্তব্য ফোল্ডার পরীক্ষা করে আবার চেষ্টা করুন।</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>কোনো ফাইলে লিঙ্কে শেয়ার করুন বেছে নিয়ে যে কাউকে পাঠান। dMsg অ্যাকাউন্ট বা অ্যাপের প্রয়োজন নেই।</string>
 	<key>Choose a credential for:</key>
 	<string>এর জন্য একটি শংসাপত্র চয়ন করুন:</string>
+	<key>Choose a file</key>
+	<string>একটি ফাইল নির্বাচন করুন</string>
 	<key>Choose a secret</key>
 	<string>একটি গোপন চয়ন করুন</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>ক্লাউড ব্যাকআপ নিশ্চিত করা হচ্ছে…</string>
 	<key>Conflicting version</key>
 	<string>পরস্পরবিরোধী সংস্করণ</string>
+	<key>Conflicts</key>
+	<string>দ্বন্দ্ব</string>
 	<key>Connect</key>
 	<string>সংযোগ করুন</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>সহায়তার সাথে যোগাযোগ করুন</string>
 	<key>Content signing</key>
 	<string>বিষয়বস্তু স্বাক্ষর</string>
+	<key>Continue</key>
+	<string>চালিয়ে যান</string>
 	<key>Continue adding this passkey</key>
 	<string>এই পাসকি যোগ করা চালিয়ে যান</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>বিভিন্ন ব্লকচেইনে ব্যক্তিগত বা যৌথ সম্পদ পরিচালনা করুন। প্রয়োজনীয় অনুমোদনের সংখ্যা ও ডিভাইসের সহ-স্বাক্ষরের নিয়ম নির্ধারণ করুন।</string>
 	<key>Manage subscriptions</key>
 	<string>সদস্যতা পরিচালনা করুন</string>
+	<key>Managed by dMsg</key>
+	<string>dMsg দ্বারা পরিচালিত</string>
 	<key>Mark as read</key>
 	<string>পঠিত হিসাবে চিহ্নিত করুন</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>নতুন ফোল্ডার</string>
 	<key>New free letter</key>
 	<string>নতুন বিনামূল্যে চিঠি</string>
+	<key>New items</key>
+	<string>নতুন আইটেম</string>
 	<key>New link</key>
 	<string>নতুন লিঙ্ক</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>একটি ফাইল নির্বাচন করুন</string>
 	<key>Select a secret</key>
 	<string>একটি গোপন নির্বাচন করুন</string>
+	<key>Select all</key>
+	<string>সব নির্বাচন করুন</string>
 	<key>Select an asset</key>
 	<string>সম্পদ নির্বাচন করুন</string>
 	<key>Select attachments to import</key>

@@ -244,6 +244,8 @@
 	<string>अनुलग्नक बैकअप अपुष्ट है</string>
 	<key>Attachment unavailable on this device</key>
 	<string>इस डिवाइस पर अनुलग्नक उपलब्ध नहीं है</string>
+	<key>Attachments</key>
+	<string>अनुलग्नक</string>
 	<key>Attestations</key>
 	<string>सत्यापन</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>पुनर्प्राप्ति स्थिति जांचें</string>
 	<key>Check request</key>
 	<string>अनुरोध जाँचें</string>
+	<key>Check status</key>
+	<string>स्थिति जाँचें</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>नाम और गंतव्य फ़ोल्डर जाँचें, फिर दोबारा कोशिश करें।</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>किसी फ़ाइल पर लिंक से शेयर करें चुनकर उसे किसी को भी भेजें। उसे dMsg खाते या ऐप की ज़रूरत नहीं है।</string>
 	<key>Choose a credential for:</key>
 	<string>इसके लिए एक क्रेडेंशियल चुनें:</string>
+	<key>Choose a file</key>
+	<string>एक फ़ाइल चुनें</string>
 	<key>Choose a secret</key>
 	<string>एक रहस्य चुनें</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>क्लाउड बैकअप की पुष्टि हो रही है…</string>
 	<key>Conflicting version</key>
 	<string>विरोधाभासी संस्करण</string>
+	<key>Conflicts</key>
+	<string>टकराव</string>
 	<key>Connect</key>
 	<string>कनेक्ट करें</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>समर्थन से संपर्क करें</string>
 	<key>Content signing</key>
 	<string>सामग्री पर हस्ताक्षर</string>
+	<key>Continue</key>
+	<string>जारी रखें</string>
 	<key>Continue adding this passkey</key>
 	<string>इस पासकी को जोड़ना जारी रखें</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>कई ब्लॉकचेन पर निजी या साझा संपत्तियाँ प्रबंधित करें। आवश्यक मंज़ूरियों की संख्या और डिवाइस सह-हस्ताक्षर के नियम तय करें।</string>
 	<key>Manage subscriptions</key>
 	<string>सदस्यताएँ प्रबंधित करें</string>
+	<key>Managed by dMsg</key>
+	<string>dMsg द्वारा प्रबंधित</string>
 	<key>Mark as read</key>
 	<string>पढ़ा गया के रूप में चिह्नित करें</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>नया फ़ोल्डर</string>
 	<key>New free letter</key>
 	<string>नया निःशुल्क पत्र</string>
+	<key>New items</key>
+	<string>नए आइटम</string>
 	<key>New link</key>
 	<string>नया लिंक</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>एक फ़ाइल चुनें</string>
 	<key>Select a secret</key>
 	<string>एक रहस्य चुनें</string>
+	<key>Select all</key>
+	<string>सभी चुनें</string>
 	<key>Select an asset</key>
 	<string>संपत्ति चुनें</string>
 	<key>Select attachments to import</key>

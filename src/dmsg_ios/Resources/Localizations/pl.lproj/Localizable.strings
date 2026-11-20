@@ -244,6 +244,8 @@
 	<string>Kopia zapasowa załącznika jest niepotwierdzona</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Załącznik niedostępny na tym urządzeniu</string>
+	<key>Attachments</key>
+	<string>Załączniki</string>
 	<key>Attestations</key>
 	<string>Atesty</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Sprawdź status odzyskiwania</string>
 	<key>Check request</key>
 	<string>Sprawdź prośbę</string>
+	<key>Check status</key>
+	<string>Sprawdź stan</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Sprawdź nazwę i folder docelowy, a następnie spróbuj ponownie.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Wybierz Udostępnij przez link przy pliku, aby wysłać go komukolwiek. Odbiorca nie potrzebuje konta ani aplikacji dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Wybierz dane uwierzytelniające dla:</string>
+	<key>Choose a file</key>
+	<string>Wybierz plik</string>
 	<key>Choose a secret</key>
 	<string>Wybierz sekret</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Potwierdzanie kopii w chmurze…</string>
 	<key>Conflicting version</key>
 	<string>Wersja sprzeczna</string>
+	<key>Conflicts</key>
+	<string>Konflikty</string>
 	<key>Connect</key>
 	<string>Połącz</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Skontaktuj się z pomocą techniczną</string>
 	<key>Content signing</key>
 	<string>Podpisywanie treści</string>
+	<key>Continue</key>
+	<string>Kontynuuj</string>
 	<key>Continue adding this passkey</key>
 	<string>Kontynuuj dodawanie tego klucza</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Zarządzaj własnymi lub wspólnymi aktywami w wielu blockchainach. Ustal progi zatwierdzania i wymagania dotyczące współpodpisu na urządzeniach.</string>
 	<key>Manage subscriptions</key>
 	<string>Zarządzaj subskrypcjami</string>
+	<key>Managed by dMsg</key>
+	<string>Zarządzane przez dMsg</string>
 	<key>Mark as read</key>
 	<string>Oznacz jako przeczytane</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Nowy folder</string>
 	<key>New free letter</key>
 	<string>Nowy darmowy list</string>
+	<key>New items</key>
+	<string>Nowe elementy</string>
 	<key>New link</key>
 	<string>Nowy link</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Wybierz plik</string>
 	<key>Select a secret</key>
 	<string>Wybierz sekret</string>
+	<key>Select all</key>
+	<string>Zaznacz wszystko</string>
 	<key>Select an asset</key>
 	<string>Wybierz aktywo</string>
 	<key>Select attachments to import</key>

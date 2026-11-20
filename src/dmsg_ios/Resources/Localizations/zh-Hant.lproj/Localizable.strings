@@ -244,6 +244,8 @@
 	<string>附件備份尚未確認</string>
 	<key>Attachment unavailable on this device</key>
 	<string>此裝置上沒有該附件</string>
+	<key>Attachments</key>
+	<string>附件</string>
 	<key>Attestations</key>
 	<string>宣告簽名</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>檢查恢復狀態</string>
 	<key>Check request</key>
 	<string>核對請求</string>
+	<key>Check status</key>
+	<string>查看狀態</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>請檢查名稱和目標資料夾後重試。</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>在檔案上選擇「透過連結分享」，就能傳給任何人。對方不需要 dMsg 帳號或應用程式。</string>
 	<key>Choose a credential for:</key>
 	<string>為以下物件選擇登入憑據：</string>
+	<key>Choose a file</key>
+	<string>選擇檔案</string>
 	<key>Choose a secret</key>
 	<string>選擇秘密條目</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>正在確認雲端備份…</string>
 	<key>Conflicting version</key>
 	<string>衝突版本</string>
+	<key>Conflicts</key>
+	<string>衝突</string>
 	<key>Connect</key>
 	<string>連線</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>聯絡支援</string>
 	<key>Content signing</key>
 	<string>內容簽署</string>
+	<key>Continue</key>
+	<string>繼續</string>
 	<key>Continue adding this passkey</key>
 	<string>繼續新增此通行密鑰</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>管理個人或共同持有的多鏈資產，自主設定批准人數與裝置協簽規則。</string>
 	<key>Manage subscriptions</key>
 	<string>管理訂閱</string>
+	<key>Managed by dMsg</key>
+	<string>由 dMsg 管理</string>
 	<key>Mark as read</key>
 	<string>標記為已讀</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>新建資料夾</string>
 	<key>New free letter</key>
 	<string>新增免費信件</string>
+	<key>New items</key>
+	<string>新項目</string>
 	<key>New link</key>
 	<string>新增連結</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>選擇一個檔案</string>
 	<key>Select a secret</key>
 	<string>選擇一個秘密</string>
+	<key>Select all</key>
+	<string>全選</string>
 	<key>Select an asset</key>
 	<string>選擇資產</string>
 	<key>Select attachments to import</key>

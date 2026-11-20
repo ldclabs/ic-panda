@@ -244,6 +244,8 @@
 	<string>附件备份尚未确认</string>
 	<key>Attachment unavailable on this device</key>
 	<string>此设备上没有该附件</string>
+	<key>Attachments</key>
+	<string>附件</string>
 	<key>Attestations</key>
 	<string>声明签名</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>检查恢复状态</string>
 	<key>Check request</key>
 	<string>核对请求</string>
+	<key>Check status</key>
+	<string>查看状态</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>请检查名称和目标文件夹后重试。</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>在文件上选择“通过链接分享”，就能发给任何人。对方不需要 dMsg 账号或应用。</string>
 	<key>Choose a credential for:</key>
 	<string>为以下对象选择登录凭据：</string>
+	<key>Choose a file</key>
+	<string>选择文件</string>
 	<key>Choose a secret</key>
 	<string>选择秘密条目</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>正在确认云端备份…</string>
 	<key>Conflicting version</key>
 	<string>冲突版本</string>
+	<key>Conflicts</key>
+	<string>冲突</string>
 	<key>Connect</key>
 	<string>连接</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>联系支持</string>
 	<key>Content signing</key>
 	<string>内容签名</string>
+	<key>Continue</key>
+	<string>继续</string>
 	<key>Continue adding this passkey</key>
 	<string>继续添加此通行密钥</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>管理个人或共同持有的多链资产，自主设置批准人数与设备协签规则。</string>
 	<key>Manage subscriptions</key>
 	<string>管理订阅</string>
+	<key>Managed by dMsg</key>
+	<string>由 dMsg 管理</string>
 	<key>Mark as read</key>
 	<string>标记为已读</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>新建文件夹</string>
 	<key>New free letter</key>
 	<string>新建免费信件</string>
+	<key>New items</key>
+	<string>新条目</string>
 	<key>New link</key>
 	<string>新建链接</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>选择一个文件</string>
 	<key>Select a secret</key>
 	<string>选择一个秘密</string>
+	<key>Select all</key>
+	<string>全选</string>
 	<key>Select an asset</key>
 	<string>选择资产</string>
 	<key>Select attachments to import</key>

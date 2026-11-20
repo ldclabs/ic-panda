@@ -244,6 +244,8 @@
 	<string>Резервная копия вложения не подтверждена</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Вложение недоступно на этом устройстве</string>
+	<key>Attachments</key>
+	<string>Вложения</string>
 	<key>Attestations</key>
 	<string>Заверения</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Проверить восстановление</string>
 	<key>Check request</key>
 	<string>Проверить запрос</string>
+	<key>Check status</key>
+	<string>Проверить статус</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Проверьте имя и папку назначения и повторите попытку.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Выберите «Поделиться ссылкой» у файла, чтобы отправить его кому угодно. Аккаунт и приложение dMsg не нужны.</string>
 	<key>Choose a credential for:</key>
 	<string>Выберите учётные данные для:</string>
+	<key>Choose a file</key>
+	<string>Выбрать файл</string>
 	<key>Choose a secret</key>
 	<string>Выбрать секрет</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Подтверждение облачной копии…</string>
 	<key>Conflicting version</key>
 	<string>Конфликтующая версия</string>
+	<key>Conflicts</key>
+	<string>Конфликты</string>
 	<key>Connect</key>
 	<string>Подключить</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Связаться с поддержкой</string>
 	<key>Content signing</key>
 	<string>Подпись содержимого</string>
+	<key>Continue</key>
+	<string>Продолжить</string>
 	<key>Continue adding this passkey</key>
 	<string>Продолжить добавление этого ключа</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Управляйте личными или общими активами в разных блокчейнах. Настраивайте пороги одобрения и правила совместной подписи устройств.</string>
 	<key>Manage subscriptions</key>
 	<string>Управлять подписками</string>
+	<key>Managed by dMsg</key>
+	<string>Под управлением dMsg</string>
 	<key>Mark as read</key>
 	<string>Отметить как прочитанное</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Новая папка</string>
 	<key>New free letter</key>
 	<string>Новое бесплатное письмо</string>
+	<key>New items</key>
+	<string>Новые элементы</string>
 	<key>New link</key>
 	<string>Новая ссылка</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Выбрать файл</string>
 	<key>Select a secret</key>
 	<string>Выбрать секрет</string>
+	<key>Select all</key>
+	<string>Выбрать все</string>
 	<key>Select an asset</key>
 	<string>Выберите актив</string>
 	<key>Select attachments to import</key>

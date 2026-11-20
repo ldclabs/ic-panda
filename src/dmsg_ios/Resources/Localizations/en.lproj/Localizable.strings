@@ -242,6 +242,8 @@
 	<string>Attachment backup is unconfirmed</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Attachment unavailable on this device</string>
+	<key>Attachments</key>
+	<string>Attachments</string>
 	<key>Attestations</key>
 	<string>Attestations</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -422,6 +424,8 @@
 	<string>Check recovery status</string>
 	<key>Check request</key>
 	<string>Check request</string>
+	<key>Check status</key>
+	<string>Check status</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Check the name and destination folder, then try again.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -436,6 +440,8 @@
 	<string>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</string>
 	<key>Choose a credential for:</key>
 	<string>Choose a credential for:</string>
+	<key>Choose a file</key>
+	<string>Choose a file</string>
 	<key>Choose a secret</key>
 	<string>Choose a secret</string>
 	<key>Choose a version</key>
@@ -528,6 +534,8 @@
 	<string>Confirming cloud backup…</string>
 	<key>Conflicting version</key>
 	<string>Conflicting version</string>
+	<key>Conflicts</key>
+	<string>Conflicts</string>
 	<key>Connect</key>
 	<string>Connect</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -546,6 +554,8 @@
 	<string>Contact support</string>
 	<key>Content signing</key>
 	<string>Content signing</string>
+	<key>Continue</key>
+	<string>Continue</string>
 	<key>Continue import</key>
 	<string>Continue import</string>
 	<key>Continue password import</key>
@@ -1260,6 +1270,8 @@
 	<string>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</string>
 	<key>Manage subscriptions</key>
 	<string>Manage subscriptions</string>
+	<key>Managed by dMsg</key>
+	<string>Managed by dMsg</string>
 	<key>Mark as read</key>
 	<string>Mark as read</string>
 	<key>Mark as unread</key>
@@ -1362,6 +1374,8 @@
 	<string>New folder</string>
 	<key>New free letter</key>
 	<string>New free letter</string>
+	<key>New items</key>
+	<string>New items</string>
 	<key>New link</key>
 	<string>New link</string>
 	<key>New revision</key>
@@ -2242,6 +2256,8 @@
 	<string>Select a file</string>
 	<key>Select a secret</key>
 	<string>Select a secret</string>
+	<key>Select all</key>
+	<string>Select all</string>
 	<key>Select an asset</key>
 	<string>Select an asset</string>
 	<key>Select attachments to import</key>

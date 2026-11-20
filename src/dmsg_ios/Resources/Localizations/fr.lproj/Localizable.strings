@@ -244,6 +244,8 @@
 	<string>Sauvegarde de pièce jointe non confirmée</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Pièce jointe indisponible sur cet appareil</string>
+	<key>Attachments</key>
+	<string>Pièces jointes</string>
 	<key>Attestations</key>
 	<string>Attestations</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Vérifier la récupération</string>
 	<key>Check request</key>
 	<string>Vérifier la demande</string>
+	<key>Check status</key>
+	<string>Vérifier l’état</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Vérifiez le nom et le dossier de destination, puis réessayez.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Choisissez Partager par lien sur un fichier pour l’envoyer à n’importe qui. Aucun compte ni application dMsg n’est nécessaire.</string>
 	<key>Choose a credential for:</key>
 	<string>Choisir un identifiant pour :</string>
+	<key>Choose a file</key>
+	<string>Choisir un fichier</string>
 	<key>Choose a secret</key>
 	<string>Choisir un secret</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Confirmation de la sauvegarde en ligne…</string>
 	<key>Conflicting version</key>
 	<string>Version en conflit</string>
+	<key>Conflicts</key>
+	<string>Conflits</string>
 	<key>Connect</key>
 	<string>Connecter</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Contacter l’assistance</string>
 	<key>Content signing</key>
 	<string>Signature de contenu</string>
+	<key>Continue</key>
+	<string>Continuer</string>
 	<key>Continue adding this passkey</key>
 	<string>Continuer à ajouter cette clé d’accès</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Gérez des actifs personnels ou partagés sur plusieurs blockchains. Définissez les seuils d’approbation et les règles de cosignature des appareils.</string>
 	<key>Manage subscriptions</key>
 	<string>Gérer les abonnements</string>
+	<key>Managed by dMsg</key>
+	<string>Éléments gérés par dMsg</string>
 	<key>Mark as read</key>
 	<string>Marquer comme lu</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Nouveau dossier</string>
 	<key>New free letter</key>
 	<string>Nouveau message gratuit</string>
+	<key>New items</key>
+	<string>Nouveaux éléments</string>
 	<key>New link</key>
 	<string>Nouveau lien</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Choisir un fichier</string>
 	<key>Select a secret</key>
 	<string>Sélectionner un secret</string>
+	<key>Select all</key>
+	<string>Tout sélectionner</string>
 	<key>Select an asset</key>
 	<string>Choisir un actif</string>
 	<key>Select attachments to import</key>

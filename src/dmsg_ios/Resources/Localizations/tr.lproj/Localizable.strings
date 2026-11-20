@@ -244,6 +244,8 @@
 	<string>Ek yedeklemesi onaylanmadı</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Bu cihazda eklenti kullanılamıyor</string>
+	<key>Attachments</key>
+	<string>Ekler</string>
 	<key>Attestations</key>
 	<string>Onaylar</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Kurtarma durumunu kontrol edin</string>
 	<key>Check request</key>
 	<string>İsteği kontrol et</string>
+	<key>Check status</key>
+	<string>Durumu kontrol et</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Adı ve hedef klasörü kontrol edip tekrar deneyin.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Bir dosyada Bağlantıyla paylaş seçeneğini kullanarak onu herkese gönderin. dMsg hesabı veya uygulaması gerekmez.</string>
 	<key>Choose a credential for:</key>
 	<string>Aşağıdakiler için bir kimlik bilgisi seçin:</string>
+	<key>Choose a file</key>
+	<string>Dosya seç</string>
 	<key>Choose a secret</key>
 	<string>Bir sır seç</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Bulut yedeği doğrulanıyor…</string>
 	<key>Conflicting version</key>
 	<string>Çakışan sürüm</string>
+	<key>Conflicts</key>
+	<string>Çakışmalar</string>
 	<key>Connect</key>
 	<string>Bağlan</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Desteğe başvurun</string>
 	<key>Content signing</key>
 	<string>İçerik imzalama</string>
+	<key>Continue</key>
+	<string>Devam et</string>
 	<key>Continue adding this passkey</key>
 	<string>Bu geçiş anahtarını eklemeye devam et</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Kişisel veya ortak varlıkları farklı blokzincirlerde yönetin. Onay eşiklerini ve cihaz ortak imza gereksinimlerini belirleyin.</string>
 	<key>Manage subscriptions</key>
 	<string>Abonelikleri yönet</string>
+	<key>Managed by dMsg</key>
+	<string>dMsg tarafından yönetilen öğeler</string>
 	<key>Mark as read</key>
 	<string>Okundu olarak işaretle</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Yeni klasör</string>
 	<key>New free letter</key>
 	<string>Yeni ücretsiz mektup</string>
+	<key>New items</key>
+	<string>Yeni öğeler</string>
 	<key>New link</key>
 	<string>Yeni bağlantı</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Bir dosya seçin</string>
 	<key>Select a secret</key>
 	<string>Bir sır seçin</string>
+	<key>Select all</key>
+	<string>Tümünü seç</string>
 	<key>Select an asset</key>
 	<string>Varlık seç</string>
 	<key>Select attachments to import</key>

@@ -242,6 +242,8 @@
 	<string>لم يُؤكَّد النسخ الاحتياطي للمرفق</string>
 	<key>Attachment unavailable on this device</key>
 	<string>المرفق غير متاح على هذا الجهاز</string>
+	<key>Attachments</key>
+	<string>المرفقات</string>
 	<key>Attestations</key>
 	<string>الإفادات الموقّعة</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -422,6 +424,8 @@
 	<string>التحقق من حالة الاسترداد</string>
 	<key>Check request</key>
 	<string>التحقق من الطلب</string>
+	<key>Check status</key>
+	<string>التحقق من الحالة</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>تحقق من الاسم ومجلد الوجهة ثم أعد المحاولة.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -436,6 +440,8 @@
 	<string>اختر «مشاركة عبر رابط» في أي ملف لإرساله إلى أي شخص. لا يحتاج إلى حساب أو تطبيق dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>اختر بيانات الدخول لـ:</string>
+	<key>Choose a file</key>
+	<string>اختيار ملف</string>
 	<key>Choose a secret</key>
 	<string>اختيار سر</string>
 	<key>Choose a version</key>
@@ -528,6 +534,8 @@
 	<string>جارٍ تأكيد النسخة السحابية…</string>
 	<key>Conflicting version</key>
 	<string>النسخة المتعارضة</string>
+	<key>Conflicts</key>
+	<string>التعارضات</string>
 	<key>Connect</key>
 	<string>توصيل</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -546,6 +554,8 @@
 	<string>التواصل مع الدعم</string>
 	<key>Content signing</key>
 	<string>توقيع المحتوى</string>
+	<key>Continue</key>
+	<string>متابعة</string>
 	<key>Continue import</key>
 	<string>متابعة الاستيراد</string>
 	<key>Continue password import</key>
@@ -1260,6 +1270,8 @@
 	<string>أدِر أصولك الشخصية أو المشتركة عبر سلاسل متعددة. حدّد عدد الموافقات المطلوبة وقواعد التوقيع المشترك للأجهزة.</string>
 	<key>Manage subscriptions</key>
 	<string>إدارة الاشتراكات</string>
+	<key>Managed by dMsg</key>
+	<string>عناصر بإدارة dMsg</string>
 	<key>Mark as read</key>
 	<string>وضع علامة كمقروءة</string>
 	<key>Mark as unread</key>
@@ -1362,6 +1374,8 @@
 	<string>مجلد جديد</string>
 	<key>New free letter</key>
 	<string>رسالة مجانية جديدة</string>
+	<key>New items</key>
+	<string>عناصر جديدة</string>
 	<key>New link</key>
 	<string>رابط جديد</string>
 	<key>New revision</key>
@@ -2242,6 +2256,8 @@
 	<string>اختيار ملف</string>
 	<key>Select a secret</key>
 	<string>اختيار سر</string>
+	<key>Select all</key>
+	<string>تحديد الكل</string>
 	<key>Select an asset</key>
 	<string>اختيار أصل</string>
 	<key>Select attachments to import</key>

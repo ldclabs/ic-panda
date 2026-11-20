@@ -244,6 +244,8 @@
 	<string>Il backup dell'allegato non è confermato</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Allegato non disponibile su questo dispositivo</string>
+	<key>Attachments</key>
+	<string>Allegati</string>
 	<key>Attestations</key>
 	<string>Attestazioni</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Controlla lo stato del recupero</string>
 	<key>Check request</key>
 	<string>Controlla la richiesta</string>
+	<key>Check status</key>
+	<string>Verifica lo stato</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Controlla il nome e la cartella di destinazione, poi riprova.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Scegli Condividi tramite link su un file per inviarlo a chiunque. Non servono account né app dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Scegli una credenziale per:</string>
+	<key>Choose a file</key>
+	<string>Scegli un file</string>
 	<key>Choose a secret</key>
 	<string>Scegli un segreto</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Conferma del backup cloud…</string>
 	<key>Conflicting version</key>
 	<string>Versione contrastante</string>
+	<key>Conflicts</key>
+	<string>Conflitti</string>
 	<key>Connect</key>
 	<string>Connettiti</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Contatta l'assistenza</string>
 	<key>Content signing</key>
 	<string>Firma dei contenuti</string>
+	<key>Continue</key>
+	<string>Continua</string>
 	<key>Continue adding this passkey</key>
 	<string>Continua ad aggiungere questa passkey</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Gestisci asset personali o condivisi su più blockchain. Imposta le soglie di approvazione e i requisiti di cofirma dei dispositivi.</string>
 	<key>Manage subscriptions</key>
 	<string>Gestisci gli abbonamenti</string>
+	<key>Managed by dMsg</key>
+	<string>Elementi gestiti da dMsg</string>
 	<key>Mark as read</key>
 	<string>Segna come letto</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Nuova cartella</string>
 	<key>New free letter</key>
 	<string>Nuova lettera gratuita</string>
+	<key>New items</key>
+	<string>Nuovi elementi</string>
 	<key>New link</key>
 	<string>Nuovo link</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Seleziona un file</string>
 	<key>Select a secret</key>
 	<string>Seleziona un segreto</string>
+	<key>Select all</key>
+	<string>Seleziona tutto</string>
 	<key>Select an asset</key>
 	<string>Seleziona un asset</string>
 	<key>Select attachments to import</key>

@@ -4,6 +4,21 @@ import XCTest
 final class LocalizationTests: XCTestCase {
     private let languages = ["en", "zh-Hans", "zh-Hant", "fr", "es", "ru", "ar", "hi", "id", "pt-BR", "ja", "de", "ko", "it", "tr", "vi", "th", "fil", "ms", "bn", "ur", "pl", "nl"]
 
+    func testVaultBackupAndImportLabelsResolveInEveryInterfaceLanguage() throws {
+        let keys = ["Attachments", "Check status", "Choose a file", "Conflicts",
+                    "Continue", "Managed by dMsg", "New items", "Select all"]
+        for language in languages {
+            let path = try XCTUnwrap(Bundle.main.path(forResource: language, ofType: "lproj"), language)
+            let bundle = try XCTUnwrap(Bundle(path: path))
+            for key in keys {
+                let value = bundle.localizedString(forKey: key, value: "__missing__", table: nil)
+                XCTAssertNotEqual(value, "__missing__", "\(language): \(key)")
+                XCTAssertFalse(value.isEmpty, "\(language): \(key)")
+                if language != "en" { XCTAssertNotEqual(value, key, "\(language): \(key)") }
+            }
+        }
+    }
+
     func testPlanSelectionAndComparisonAreTranslatedInEveryInterfaceLanguage() throws {
         for language in languages where language != "en" {
             let path = try XCTUnwrap(Bundle.main.path(forResource: language, ofType: "lproj"))

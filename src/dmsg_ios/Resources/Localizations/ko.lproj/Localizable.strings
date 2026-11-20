@@ -244,6 +244,8 @@
 	<string>첨부파일 백업이 확인되지 않았습니다.</string>
 	<key>Attachment unavailable on this device</key>
 	<string>이 기기에서는 첨부파일을 사용할 수 없습니다.</string>
+	<key>Attachments</key>
+	<string>첨부 파일</string>
 	<key>Attestations</key>
 	<string>증명</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>복구 상태 확인</string>
 	<key>Check request</key>
 	<string>요청 확인</string>
+	<key>Check status</key>
+	<string>상태 확인</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>이름과 대상 폴더를 확인한 후 다시 시도하세요.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>파일에서 링크로 공유를 선택하면 누구에게나 보낼 수 있습니다. dMsg 계정이나 앱은 필요 없습니다.</string>
 	<key>Choose a credential for:</key>
 	<string>다음에 대한 자격 증명을 선택하세요.</string>
+	<key>Choose a file</key>
+	<string>파일 선택</string>
 	<key>Choose a secret</key>
 	<string>비밀을 선택하세요</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>클라우드 백업 확인 중…</string>
 	<key>Conflicting version</key>
 	<string>충돌하는 버전</string>
+	<key>Conflicts</key>
+	<string>충돌</string>
 	<key>Connect</key>
 	<string>연결</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>지원팀에 문의</string>
 	<key>Content signing</key>
 	<string>콘텐츠 서명</string>
+	<key>Continue</key>
+	<string>계속</string>
 	<key>Continue adding this passkey</key>
 	<string>이 패스키 추가 계속</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>여러 체인의 개인 또는 공동 자산을 관리하세요. 필요한 승인 수와 기기 공동 서명 규칙을 설정할 수 있습니다.</string>
 	<key>Manage subscriptions</key>
 	<string>구독 관리</string>
+	<key>Managed by dMsg</key>
+	<string>dMsg에서 관리하는 항목</string>
 	<key>Mark as read</key>
 	<string>읽음으로 표시</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>새 폴더</string>
 	<key>New free letter</key>
 	<string>새로운 무료 편지</string>
+	<key>New items</key>
+	<string>새 항목</string>
 	<key>New link</key>
 	<string>새 링크</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>파일 선택</string>
 	<key>Select a secret</key>
 	<string>비밀을 선택하세요</string>
+	<key>Select all</key>
+	<string>모두 선택</string>
 	<key>Select an asset</key>
 	<string>자산 선택</string>
 	<key>Select attachments to import</key>

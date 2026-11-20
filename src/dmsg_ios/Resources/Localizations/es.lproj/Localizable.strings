@@ -244,6 +244,8 @@
 	<string>Copia de seguridad del adjunto sin confirmar</string>
 	<key>Attachment unavailable on this device</key>
 	<string>Adjunto no disponible en este dispositivo</string>
+	<key>Attachments</key>
+	<string>Adjuntos</string>
 	<key>Attestations</key>
 	<string>Atestaciones</string>
 	<key>Audience origins or Agent IDs, one per line</key>
@@ -424,6 +426,8 @@
 	<string>Comprobar recuperación</string>
 	<key>Check request</key>
 	<string>Comprobar solicitud</string>
+	<key>Check status</key>
+	<string>Comprobar el estado</string>
 	<key>Check the name and destination folder, then try again.</key>
 	<string>Comprueba el nombre y la carpeta de destino e inténtalo de nuevo.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
@@ -438,6 +442,8 @@
 	<string>Elige Compartir por enlace en un archivo para enviarlo a cualquiera. No necesita cuenta ni app de dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Elegir credenciales para:</string>
+	<key>Choose a file</key>
+	<string>Elegir un archivo</string>
 	<key>Choose a secret</key>
 	<string>Elegir un secreto</string>
 	<key>Choose a version</key>
@@ -530,6 +536,8 @@
 	<string>Confirmando copia en la nube…</string>
 	<key>Conflicting version</key>
 	<string>Versión en conflicto</string>
+	<key>Conflicts</key>
+	<string>Conflictos</string>
 	<key>Connect</key>
 	<string>Conectar</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
@@ -548,6 +556,8 @@
 	<string>Contactar con soporte</string>
 	<key>Content signing</key>
 	<string>Firma de contenido</string>
+	<key>Continue</key>
+	<string>Continuar</string>
 	<key>Continue adding this passkey</key>
 	<string>Continuar añadiendo esta llave</string>
 	<key>Continue import</key>
@@ -1272,6 +1282,8 @@
 	<string>Gestiona activos personales o compartidos en varias cadenas. Define los umbrales de aprobación y los requisitos de cofirma en dispositivos.</string>
 	<key>Manage subscriptions</key>
 	<string>Gestionar suscripciones</string>
+	<key>Managed by dMsg</key>
+	<string>Elementos gestionados por dMsg</string>
 	<key>Mark as read</key>
 	<string>Marcar como leído</string>
 	<key>Mark as unread</key>
@@ -1374,6 +1386,8 @@
 	<string>Nueva carpeta</string>
 	<key>New free letter</key>
 	<string>Nuevo mensaje gratuito</string>
+	<key>New items</key>
+	<string>Elementos nuevos</string>
 	<key>New link</key>
 	<string>Enlace nuevo</string>
 	<key>New revision</key>
@@ -2258,6 +2272,8 @@
 	<string>Seleccionar archivo</string>
 	<key>Select a secret</key>
 	<string>Seleccionar un secreto</string>
+	<key>Select all</key>
+	<string>Seleccionar todo</string>
 	<key>Select an asset</key>
 	<string>Seleccionar activo</string>
 	<key>Select attachments to import</key>
