@@ -98,6 +98,7 @@ const noticeViewports = new Map<number, { id: string; version: string; stage: nu
 const noticeViewEpoch = new Map<number, number>()
 let pendingLink: string | null = null
 let trayState = 'connecting'
+let trayLocal = false
 /** Window bounds, the last view and the desktop's own choices, kept in the app's profile. */
 let desktop: DesktopState = { lockOnScreenLock: true }
 const keepsDesktopState = !testMode || process.env.DMSG_DESKTOP_TEST_STATE === '1'
@@ -1141,6 +1142,18 @@ const refreshNotices = single(async () => {
   if (!daemon.connected || quitting) return
   const epoch = noticeEpoch
   try {
+    const status = await daemon.call('daemon/status') as { account_kind?: string; offline_mode?: boolean; state?: string; session?: string }
+    if (epoch !== noticeEpoch) return
+    if (status.state !== 'unlocked') void forgetCopied()
+    trayLocal = status.account_kind === 'local'
+    if (trayLocal) {
+      waiting = 0
+      app.setBadgeCount(0)
+      app.dock?.setBadge('')
+    }
+    const state = status.state ?? 'unknown'
+    updateTray(state)
+    if (trayLocal || status.offline_mode) return
     if (!noticeLegacyAttempted) {
       noticeLegacyAttempted = true
       try {
@@ -1150,8 +1163,6 @@ const refreshNotices = single(async () => {
         await daemon.call('notifications/migrate', { plans })
       } catch { console.warn('Notification reminder migration is pending') }
     }
-    const status = await daemon.call('daemon/status') as { account?: string; state?: string; session?: string }
-    if (status.state !== 'unlocked') void forgetCopied()
     const preferences = await daemon.call('notifications/settings') as NoticePreferences
     const counts = await daemon.call('notifications/status') as NoticeStatus
     if (epoch !== noticeEpoch || !preferences.global || !counts.counts || !status.session) return
@@ -1161,7 +1172,7 @@ const refreshNotices = single(async () => {
     // The daemon applies the badge preference. Pending verification alone is
     // not unread work and must not turn a zero count back into a Dock dot.
     if (process.platform === 'darwin') app.dock?.setBadge(badge > 99 ? '99+' : badge ? String(badge) : '')
-    updateTray(status.state ?? 'unknown')
+    updateTray(state)
     const visible = noticeForeground() ? [...noticeViewports.values()] : []
     await daemon.call('notifications/context', { session: status.session, context: {
       now: 0, allowed: Notification.isSupported() && preferences.global.enabled,
@@ -1343,7 +1354,7 @@ function updateTray(state: string) {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: `dMsg: ${text.state(state)}`, enabled: false },
-      { label: `${notificationText(locale).noticeTitle} (${waiting})`, click: () => showMain('/reminders') },
+      ...(trayLocal ? [] : [{ label: `${notificationText(locale).noticeTitle} (${waiting})`, click: () => showMain('/reminders') }]),
       { type: 'separator' },
       { label: text.open, click: () => showMain() },
       { label: text.lock, enabled: state === 'unlocked', click: () => void daemon.call('session/lock').catch(() => {}) },

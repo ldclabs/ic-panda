@@ -186,17 +186,24 @@ pub trait Hold: Sync {
     /// targets, made without the client the first time.
     fn anonymous(&self) -> impl Future<Output = Result<Ic>> + Send {
         async move {
-            let (made, config) = self
+            let (made, config, cloud) = self
                 .with(|c| {
                     c.require_online()?;
-                    Ok((c.anonymous.clone(), c.config.clone()))
+                    Ok((c.anonymous.clone(), c.config.clone(), c.relay()))
                 })
                 .await?;
             if let Some(ic) = made {
                 return Ok(ic);
             }
-            let ic = Ic::anonymous(&config).await?;
-            self.with(|c| Ok(c.anonymous.get_or_insert(ic).clone()))
+            cloud
+                .while_online(async {
+                    let ic = Ic::anonymous(&config).await?;
+                    self.with(|c| {
+                        c.require_online()?;
+                        Ok(c.anonymous.get_or_insert(ic).clone())
+                    })
+                    .await
+                })
                 .await
         }
     }

@@ -624,7 +624,7 @@ final class SessionModel {
     }
 
     func openPushRoute(_ route: String) async {
-        if localAccount { DMsgAppDelegate.pendingRoute = nil; return }
+        if localAccount { DMsgAppDelegate.pendingRoute = route; return }
         automaticUnlock.suppress()
         guard let files, let engine else { DMsgAppDelegate.pendingRoute = route; return }
         let current = epoch

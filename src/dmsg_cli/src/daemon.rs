@@ -402,6 +402,8 @@ fn local_method(method: &str) -> bool {
                 | "approval/respond"
                 | "approval/cancel"
                 | "files/mount_status"
+                | "files/preferences"
+                | "files/preferences_reload"
                 | "files/mount"
                 | "files/unmount"
                 | "files/list"
@@ -1262,11 +1264,13 @@ impl Daemon {
             self.hold().ensure_login().await?;
         }
         let origin = params["origin"].as_str().unwrap_or("https://dmsg.net");
-        let (config, generation, available) = self
+        let (config, relay, generation, available) = self
             .hold()
             .with(|c| {
+                ensure(!c.offline_mode(), dmsg_client::local::only())?;
                 Ok((
                     c.config().clone(),
+                    c.relay(),
                     c.session_generation(),
                     c.passkey_available(),
                 ))
@@ -1320,8 +1324,10 @@ impl Daemon {
                     .with(|c| c.passkey_start(action, credential))
                     .await?;
                 InteractiveLogin::Passkey(Box::new(
-                    setup
-                        .start(format!("http://127.0.0.1:{}/auth/callback", self.port))
+                    relay
+                        .while_online(
+                            setup.start(format!("http://127.0.0.1:{}/auth/callback", self.port)),
+                        )
                         .await?,
                 ))
             }
@@ -1331,7 +1337,7 @@ impl Daemon {
                     Some("register") if params["bind"] == true => {}
                     _ => return Err(dmsg_types::invalid("II login action")),
                 }
-                let targets = login_targets(&config).await?;
+                let targets = relay.while_online(login_targets(&config)).await?;
                 LoginSession::new(&targets, origin, self.port, DEFAULT_TTL_MS, now_ms())?.into()
             }
             _ => return Err(dmsg_types::invalid("login provider")),
@@ -4304,6 +4310,12 @@ mod tests {
             .unwrap();
         assert_eq!(ready["account"], created["account"]);
         assert_eq!(daemon.client.lock().await.session_generation(), generation);
+        for method in ["files/preferences", "files/preferences_reload"] {
+            let reply = daemon
+                .dispatch(request(method, Value::Null), &Session::Owner, true)
+                .await;
+            assert!(reply["result"]["files_mount"].is_boolean(), "{reply}");
+        }
         let input = dir.path("sample.txt");
         std::fs::write(&input, b"original").unwrap();
         let copy = {

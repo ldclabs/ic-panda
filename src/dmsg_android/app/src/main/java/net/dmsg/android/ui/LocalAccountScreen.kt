@@ -52,7 +52,11 @@ fun LocalImportScreen(client: ClientController) {
         if (reviewed == null) {
             item { Button(enabled = !working, onClick = {
                 working = true
-                client.perform({ it.localImportPreview().decode().objectValue() }, key = "local-import:preview", userInitiated = true, onError = { working = false }) { value ->
+                client.clearNotice()
+                client.perform({ it.localImportPreview().decode().objectValue() }, key = "local-import:preview", quiet = true, userInitiated = true, onError = { code ->
+                    working = false
+                    if (alive) client.showError(code)
+                }) { value ->
                     working = false
                     if (alive) {
                         plan = value
@@ -84,20 +88,33 @@ fun LocalImportScreen(client: ClientController) {
             item { Text(str(R.string.text_files_c79ddc2), style = MaterialTheme.typography.titleMedium) }
             items(reviewed.rows("files")) { row ->
                 val index = row.requiredUInt("index")
-                ListItem(headlineContent = { Text(row.required("name")) }, supportingContent = { Text(fileSize(row.requiredUnsigned("size")) + " · " + row.required("version").take(8)) }, leadingContent = {
+                val path = (row.strings("path") + row.required("name")).joinToString("/")
+                ListItem(headlineContent = { Text(path) }, supportingContent = {
+                    Text(fileSize(row.requiredUnsigned("size")) + " · " + displayTime(row.requiredUnsigned("created_at")) + " · " + row.required("version").take(8))
+                    if (row.requiredFlag("current")) Text(str(R.string.text_current_version_b3f03bb))
+                }, leadingContent = {
                     Checkbox(index in files || index in required, { on -> files = if (on) files + index else files - index }, enabled = !working && index !in required && row.requiredFlag("local"))
                 })
             }
             item { Button(enabled = !working && (selected.isNotEmpty() || files.isNotEmpty()), onClick = {
                 working = true
-                client.perform({ it.localImportCommit(reviewed.required("id"), selected.sorted(), files.sorted(), "root") }, key = "local-import:commit", userInitiated = true, onError = { code ->
+                client.clearNotice()
+                client.perform({ it.localImportCommit(reviewed.required("id"), selected.sorted(), files.sorted(), "root") }, key = "local-import:commit", quiet = true, userInitiated = true, onError = { code ->
                     working = false
-                    if (code == "EXPIRED" || code == "VERSION_CONFLICT") {
-                        client.perform({ it.localImportCancel(reviewed.required("id")) }, key = "local-import:cancel", quiet = true) {}
-                        plan = null; files = emptySet(); copied = 0
+                    copied = 0
+                    if (alive) {
+                        client.showError(code)
+                        if (code == "EXPIRED" || code == "VERSION_CONFLICT") {
+                            client.perform({ it.localImportCancel(reviewed.required("id")) }, key = "local-import:cancel", quiet = true) {}
+                            plan = null; files = emptySet()
+                        }
                     }
                 }) {
-                    plan = null; working = false; client.navigation.back()
+                    plan = null
+                    working = false
+                    client.vault.changed()
+                    client.library.changed()
+                    if (alive) client.navigation.back()
                 }
             }) { Text(str(R.string.text_import_1a200b3)) } }
         }

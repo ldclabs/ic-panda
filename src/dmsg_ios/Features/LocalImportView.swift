@@ -4,7 +4,14 @@ import DMsgCore
 struct LocalImportView: View {
     private struct Plan: Decodable {
         struct Entry: Decodable { let index: UInt32; let title: String; let state: String; let attachments: [UInt32?] }
-        struct File: Decodable { let index: UInt32; let name: String; let version: String; let local: Bool; let size: Int64 }
+        struct File: Decodable {
+            let index: UInt32
+            let name, version: String
+            let path: [String]
+            let local, current: Bool
+            let size: Int64
+            let createdAt: UInt64
+        }
         let id: String; let target: String; let items: [Entry]; let files: [File]
     }
     @Environment(SessionModel.self) private var model
@@ -39,8 +46,11 @@ struct LocalImportView: View {
                 Section("Files") {
                     ForEach(plan.files, id: \.index) { file in
                         Toggle(isOn: required.contains(file.index) ? .constant(true) : selection($files, file.index)) {
-                            Text(verbatim: file.name + " · " + file.version.prefix(8))
-                            Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
+                            Text(verbatim: (file.path + [file.name]).joined(separator: "/"))
+                            Text(verbatim: ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file)
+                                 + " · " + Date(timeIntervalSince1970: Double(file.createdAt) / 1000).formatted()
+                                 + " · " + file.version.prefix(8))
+                            if file.current { Text("Current version").font(.caption).foregroundStyle(.secondary) }
                         }.disabled(!file.local || required.contains(file.index))
                     }
                 }

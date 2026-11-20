@@ -15,6 +15,7 @@ const home = join(profile, 'home')
 const shots = process.env.DMSG_OFFLINE_SCREENSHOTS
 const password = 'synthetic offline workspace password'
 const destination = resolve('.')
+const testTray = process.platform === 'darwin'
 const cli = (...args) => promisify(execFile)(binary, ['--home', home, '--json', ...args])
 const requests = []
 const relay = createServer((req, res) => { requests.push(req.url); res.writeHead(503).end() })
@@ -24,9 +25,29 @@ let app
 let page
 async function open() {
   app = await electron.launch({ executablePath: electronPath, args: [destination], colorScheme: null,
-    env: { ...process.env, DMSG_BIN: binary, DMSG_HOME: home, DMSG_DESKTOP_TEST: '1', DMSG_DESKTOP_USER_DATA: join(profile, 'user') } })
+    env: { ...process.env, DMSG_BIN: binary, DMSG_HOME: home, DMSG_DESKTOP_TEST: '1', DMSG_DESKTOP_TEST_TRAY: testTray ? '1' : '0', DMSG_DESKTOP_USER_DATA: join(profile, 'user') } })
   page = await app.firstWindow()
   page.setDefaultTimeout(20000)
+  if (testTray) {
+    await app.evaluate(({ Tray }) => {
+      const setContextMenu = Tray.prototype.setContextMenu
+      Tray.prototype.setContextMenu = function (menu) {
+        globalThis.localTrayLockEnabled = menu.items.find(item => item.label === 'Lock')?.enabled
+        setContextMenu.call(this, menu)
+      }
+    })
+  }
+}
+async function expectTrayLock(enabled) {
+  if (!testTray) return
+  const actual = await app.evaluate(async (_electron, expected) => {
+    const deadline = Date.now() + 5000
+    while (globalThis.localTrayLockEnabled !== expected && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    return globalThis.localTrayLockEnabled
+  }, enabled)
+  assert.equal(actual, enabled, 'Standalone lock state in the tray menu')
 }
 const rpc = (method, params = {}) => page.evaluate(([m, p]) => window.dmsg.call(m, p), [method, params])
 async function stop() {
@@ -49,6 +70,7 @@ try {
   const created = await rpc('daemon/status')
   assert.equal(created.account, '00000000000000000000')
   assert.equal(created.account_kind, 'local')
+  await expectTrayLock(true)
   const item = await rpc('vault/create', { type: 'note', changes: { title: 'Offline test note', notes: 'Local fixture only' } })
   assert.equal(item.save_state, 'local_only'); assert.equal(item.synced, false)
   await page.locator(`[data-id="${item.id}"]`).first().click()
@@ -90,6 +112,7 @@ try {
   assert.equal((await rpc('daemon/status')).pending_sync, 0)
   await rpc('session/lock')
   await page.getByTestId('local-unlock').waitFor()
+  await expectTrayLock(false)
   await stop(); await open()
   await page.getByTestId('local-unlock').click()
   await page.getByTestId('local-current-password').fill('wrong synthetic password')
@@ -108,7 +131,7 @@ try {
   await page.keyboard.press('Tab')
   if (shots) {
     await mkdir(shots, { recursive: true })
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(760, 700))
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(760, 540))
     for (const [locale, appearance] of [['zh', 'light'], ['de', 'dark'], ['ar', 'dark'], ['en', 'light']]) {
       await page.evaluate(async ([l, a]) => { await window.dmsg.setLocale(l); await window.dmsg.setAppearance(a) }, [locale, appearance])
       await page.waitForFunction(l => document.documentElement.lang === l || (l === 'zh' && document.documentElement.lang.startsWith('zh')), locale)

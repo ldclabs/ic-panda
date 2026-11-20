@@ -484,9 +484,9 @@ class ClientController internal constructor(private val application: Application
 
     private fun startForegroundWork() {
         val session = state.value.session ?: return
-        if (session.accountKind == "local" || session.account == null) {
+        if (session.accountKind == "local") {
             notices.stop(); push.stop(); purchases.stop(); synchronization.stop(clear = true); fileWork.stop(clear = true)
-            if (session.accountKind == "local" && state.value.unlocked) { systemExports.start(); incoming.checkPending(); routePendingWorkspace() }
+            if (state.value.unlocked) { systemExports.start(); incoming.checkPending(); routePendingWorkspace() }
             return
         }
         notices.start(); push.start(); purchases.start()

@@ -25,6 +25,24 @@ fn ending_a_creation_resumes_only_the_current_service_transport() {
     assert!(!c.offline_mode());
 }
 
+#[tokio::test]
+async fn creating_a_standalone_workspace_fences_queued_service_queries() {
+    let dir = TempDir::new();
+    let mut c = crate::testing::unlocked(&dir.0, false, None);
+    let original = c.session_state().account;
+    assert!(original.is_some());
+    let queued = c.warmup(crate::client::Warm::Home).unwrap().unwrap();
+
+    let creating = c.prepare_local_create().unwrap();
+    assert_eq!(c.session_state().account, original);
+    assert!(c.notification_receivers().unwrap().is_empty());
+    assert!(matches!(queued.run().await, Err(error) if error == only()));
+
+    drop(creating);
+    assert!(!c.offline_mode());
+    assert_eq!(c.session_state().account, original);
+}
+
 #[test]
 fn standalone_workspace_survives_restart_without_identity_or_outbox() {
     let _fixture = crate::testing::PASSWORD_FIXTURE.blocking_lock();
@@ -177,6 +195,9 @@ fn standalone_workspace_survives_restart_without_identity_or_outbox() {
     .unwrap();
     let id = preview["id"].as_str().unwrap();
     assert_eq!(preview["items"].as_array().unwrap().len(), 2);
+    assert_eq!(preview["files"][0]["version"], file.version);
+    assert_eq!(preview["files"][0]["current"], true);
+    assert_eq!(preview["files"][0]["created_at"], file.file.created_at);
     assert!(
         preview["items"]
             .as_array()

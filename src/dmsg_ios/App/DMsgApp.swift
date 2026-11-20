@@ -28,19 +28,24 @@ struct DMsgApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: .dmsgPushOpen)) { notification in
                     if let route = notification.object as? String { Task { await model.openPushRoute(route) } }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .dmsgPushReceived)) { _ in
-                    Task { if model.cloudAccount { await model.notifications.refresh(model, receive: true) } }
+                .onChange(of: model.localAccount) { _, local in
+                    if !local, let route = DMsgAppDelegate.pendingRoute { Task { await model.openPushRoute(route) } }
                 }
-                .task(id: "notifications:\(scenePhase == .active):\(model.session?.generation ?? 0)") {
-                    guard model.cloudAccount, scenePhase == .active else { return }
+                .onReceive(NotificationCenter.default.publisher(for: .dmsgPushReceived)) { _ in
+                    Task { await model.notifications.refresh(model, receive: true) }
+                }
+                .task(id: "notifications:\(scenePhase == .active):\(model.session != nil):\(model.session?.generation ?? 0)") {
+                    guard !model.localAccount, model.session != nil, scenePhase == .active else { return }
                     while !Task.isCancelled {
                         await model.notifications.refresh(model, receive: true)
                         do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }
                     }
                 }
-                .onChange(of: model.contentRevision) { _, _ in Task { if model.cloudAccount { await model.notifications.refresh(model) } } }
+                .onChange(of: model.contentRevision) { _, _ in Task { await model.notifications.refresh(model) } }
                 .onChange(of: model.epoch) { _, _ in model.notifications.clearVisibility() }
-                .task(id: model.cloudAccount) { if model.cloudAccount { await model.purchases.listen(model) } }
+                .task(id: model.session != nil && !model.localAccount) {
+                    if model.session != nil, !model.localAccount { await model.purchases.listen(model) }
+                }
                 .task(id: "store:\(model.concealed):\(model.epoch):\(model.unlocked):\(model.purchases.working)") {
                     if model.cloudAccount, !model.concealed, model.unlocked, !model.purchases.working { await model.purchases.refresh(model) }
                 }

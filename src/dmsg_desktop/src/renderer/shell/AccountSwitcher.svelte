@@ -178,6 +178,12 @@
     </DropdownMenu.Content>
   </DropdownMenu.Portal>
 </DropdownMenu.Root>
-{#if accountsLoaded && status?.state === 'unlocked' && status.account_kind === 'cloud'}
-  <LocalAccount bind:this={localAction} action={hasLocal ? 'import' : 'create'} {status} showTrigger={false} />
-{/if}
+{#key status?.account}
+  {#if status?.account_kind === 'cloud'}
+    {#if !hasLocal}
+      <LocalAccount bind:this={localAction} action="create" {status} showTrigger={false} />
+    {:else if status.state === 'unlocked'}
+      <LocalAccount bind:this={localAction} action="import" {status} showTrigger={false} />
+    {/if}
+  {/if}
+{/key}

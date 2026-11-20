@@ -50,7 +50,7 @@ type Connection =
  */
 const UNTIMED = new Set([
   'files/import', 'files/export', 'files/open', 'files/verify', 'files/cloud_fetch', 'files/cloud_verify', 'files/backup_run',
-  'vault/backup_export', 'vault/backup_inspect', 'vault/backup_save'
+  'vault/backup_export', 'vault/backup_inspect', 'vault/backup_save', 'local_import/commit'
 ])
 
 export interface DaemonOptions {

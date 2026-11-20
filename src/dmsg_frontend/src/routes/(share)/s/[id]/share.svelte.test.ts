@@ -477,6 +477,7 @@ it('opens a legacy vault snapshot once, labels its one populated field, and copi
     click('[data-testid="snapshot-open"]')
     await shown('.snapshot-field')
     expect(target.querySelector('h1')).toHaveTextContent('Team API')
+    expect(document.activeElement).toBe(target.querySelector('h1'))
     expect(target.querySelectorAll('.snapshot-field')).toHaveLength(1)
     expect(target.querySelector('.snapshot-field strong')?.textContent).toBe('凭据')
     expect(target.textContent).not.toContain(value)

@@ -67,6 +67,7 @@
   let previewUrl = $state('')
   let previewError = $state('')
   let source = $state(false)
+  let headline = $state<HTMLHeadingElement>()
   let reader = $state<HTMLElement>()
   let fullScreen = $state(false)
   let previewDialog = $state<HTMLDialogElement>()
@@ -299,6 +300,8 @@
         for (const chunk of chunks) chunk.fill(0)
         blob = null
         phase = 'done'
+        await tick()
+        if (alive) headline?.focus()
         return
       }
       blob = new Blob([whole as BlobPart], {
@@ -421,7 +424,7 @@
     aria-busy={phase === 'working' || phase === 'loading'}
   >
     <div class="utility-icon" aria-hidden="true">{#if isSnapshot}<Glyph name="lock" size={22} />{:else}<IconFile />{/if}</div>
-    <h1 dir="auto">{secretPackage?.item.title ?? $t(isSnapshot ? 'Shared vault item' : 'A file shared with you')}</h1>
+    <h1 bind:this={headline} tabindex="-1" dir="auto">{secretPackage?.item.title ?? $t(isSnapshot ? 'Shared vault item' : 'A file shared with you')}</h1>
     {#if secretPackage}<p class="utility-lead">{$t('Secret snapshot fully verified.')}</p>
     {:else if !isSnapshot}<p class="utility-lead">
       {$t('Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.')}

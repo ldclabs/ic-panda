@@ -108,6 +108,9 @@ pub async fn run(daemon: Arc<Daemon>) {
 async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, Diagnostic> {
     let (session, stored) = {
         let client = daemon.client().lock().await;
+        if client.offline_mode() {
+            return Ok(None);
+        }
         (
             client.session_state(),
             client

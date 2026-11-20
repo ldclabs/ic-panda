@@ -55,7 +55,10 @@ pub fn preview(c: &mut Client, access: Access) -> Result<Value> {
                 size: v.size,
                 sha256: ByteArray::new(*hex_id(&v.sha256)?),
             });
-            files.push(json!({"index":index,"name":f.name,"path":f.path,"version":v.id,"current":v.id==f.current,"size":v.size,"local":v.local}));
+            files.push(json!({
+                "index": index, "name": f.name, "path": f.path, "version": v.id,
+                "current": v.current, "created_at": v.created_at, "size": v.size, "local": v.local,
+            }));
             versions.push((f.id.clone(), v.id));
         }
     }

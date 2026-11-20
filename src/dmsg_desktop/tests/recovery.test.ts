@@ -153,7 +153,7 @@ test('entitlement updates are never queued as ordinary read recovery', () => {
   recovery.reset()
 })
 
-test('cloud downloads outlive the normal write deadline without replay', async (t) => {
+test('file downloads and local account imports outlive the normal write deadline without replay', async (t) => {
   const server = new WebSocketServer({ port: 0, host: '127.0.0.1' })
   await new Promise<void>(resolve => server.on('listening', resolve))
   const counts: Record<string, number> = {}
@@ -166,8 +166,12 @@ test('cloud downloads outlive the normal write deadline without replay', async (
   const daemon = new Daemon({ binary: '', home: '', fixed: { url: `http://127.0.0.1:${port}`, token: 'test' }, timing: { write: 20, read: 100 } })
   t.after(() => { daemon.close(); for (const socket of server.clients) socket.terminate(); server.close() })
   await daemon.connect()
-  for (const method of ['files/cloud_fetch', 'files/cloud_verify']) {
-    assert.deepEqual(await daemon.call(method, { upload_id: 'same-backup' }), { verified: true })
+  for (const [method, params] of [
+    ['files/cloud_fetch', { upload_id: 'same-backup' }],
+    ['files/cloud_verify', { upload_id: 'same-backup' }],
+    ['local_import/commit', { id: 'reviewed-plan', items: [], files: [0], folder: 'root' }]
+  ] as const) {
+    assert.deepEqual(await daemon.call(method, params), { verified: true })
     assert.equal(counts[method], 1)
   }
 })

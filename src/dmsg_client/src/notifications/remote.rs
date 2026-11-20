@@ -286,7 +286,7 @@ impl Client {
     /// Enumerate only locally bound account receivers, without switching
     /// accounts; a workspace from other hardware receives nothing.
     pub fn notification_receivers(&self) -> Result<Vec<ReceiveContext>> {
-        if self.is_local() {
+        if self.offline_mode() {
             return Ok(Vec::new());
         }
         let mut result = Vec::new();

@@ -24,7 +24,7 @@ final class NativeNotifications {
     func clearVisibility() { visible.removeAll(); wake?.cancel(); wake = nil; presented = nil }
 
     func refresh(_ model: SessionModel, receive: Bool = false) async {
-        guard model.cloudAccount else { return }
+        guard !model.localAccount else { return }
         guard !model.uiTesting else { return }
         guard let engine = model.engine else { return }
         if working { retry = true; receiveAgain = receiveAgain || receive; return }

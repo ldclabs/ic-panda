@@ -582,6 +582,10 @@ impl Warmup {
     /// Errors of the user home's queries; the relay's refusal is kept in
     /// [`Warmed`] for [`Client::warmed`].
     pub async fn run(self) -> Result<Warmed> {
+        self.cloud.clone().while_online(self.run_online()).await
+    }
+
+    async fn run_online(self) -> Result<Warmed> {
         let mut warmed = Warmed {
             account: self.account,
             fetched: None,
@@ -1343,7 +1347,11 @@ impl Client {
                 .map(crate::local::Protection::name),
             account_kind: self.account_kind(),
             state,
-            account: self.content_id().ok().map(|id| id.to_string()),
+            account: if self.is_local() {
+                Some(dmsg_types::LOCAL_ACCOUNT_ID.to_string())
+            } else {
+                account.map(|value| value.id.to_string())
+            },
             resident: self.keys.is_none() && self.resident.is_some(),
         }
     }
@@ -1388,6 +1396,7 @@ impl Client {
     /// # Errors
     /// As [`Self::login`].
     pub async fn prepare_login(&mut self, login: Delegated) -> Result<Option<LoginUnlock>> {
+        self.require_online()?;
         ensure(login.expires_at > now_ms(), Error::Expired)?;
         let ic = Ic::connect(&self.config, login.identity).await?;
         let principal = ic.principal()?;

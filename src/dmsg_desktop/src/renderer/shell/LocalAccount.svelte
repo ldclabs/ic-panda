@@ -6,11 +6,12 @@
   import Notice from '../components/page/Notice.svelte'
   import { buttonClass } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
-  import { call, code, errorText, size } from '../rpc'
+  import { call, code, errorText, size, when } from '../rpc'
   import { feedback } from '../feedback.svelte'
 
   type Action = 'create' | 'unlock' | 'password' | 'delete' | 'import'
-  type Plan = { id: string; target: string; items: { index: number; title: string; state: string; attachments: (number | null)[] }[]; files: { index: number; name: string; path: string[]; size: number; version: string; local: boolean }[] }
+  type FileVersion = { index: number; name: string; path: string[]; size: number; version: string; current: boolean; created_at: number; local: boolean }
+  type Plan = { id: string; target: string; items: { index: number; title: string; state: string; attachments: (number | null)[] }[]; files: FileVersion[] }
   const labels: Record<Action, Label> = { create: 'useOnDevice', unlock: 'deviceUnlockWorkspace', password: 'localPassword', delete: 'remove', import: 'importLocalAccount' }
   let { action, status, showTrigger = true, refresh = async () => {} }: { action: Action; status: any; showTrigger?: boolean; refresh?: () => Promise<void> } = $props()
   let open = $state(false), busy = $state(false), error = $state(''), password = $state(''), next = $state(''), repeat = $state('')
@@ -95,7 +96,12 @@
         </Checkbox>
       {/each}
       <h3>{t('files')} · {size(selectedBytes)}</h3>
-      {#each plan.files as row (row.index)}<Checkbox checked={files.includes(row.index) || requiredFiles.has(row.index)} disabled={busy || !row.local || requiredFiles.has(row.index)} onCheckedChange={v => files = toggle(files, row.index, v)}><bdi>{[...row.path, row.name].join('/')}</bdi> · {size(row.size)} · <bdi dir="ltr">{row.version.slice(0, 8)}</bdi></Checkbox>{/each}
+      {#each plan.files as row (row.index)}
+        <Checkbox checked={files.includes(row.index) || requiredFiles.has(row.index)} disabled={busy || !row.local || requiredFiles.has(row.index)} onCheckedChange={v => files = toggle(files, row.index, v)}>
+          <bdi>{[...row.path, row.name].join('/')}</bdi> · {size(row.size)} · {when(row.created_at)} · <bdi dir="ltr">{row.version.slice(0, 8)}</bdi>
+          {#if row.current} · {t('currentVersion')}{/if}
+        </Checkbox>
+      {/each}
     {:else}
       {#if method === 'password' && action !== 'create'}<SecretInput bind:value={password} disabled={busy} label={t('localPassword')} testid="local-current-password" />{/if}
       {#if setting}
