@@ -5,11 +5,12 @@
 # the daemon creates stay readable across `dmsg update`, which installs only
 # a binary signed by the same team.
 #
-# Usage: scripts/dmsg/sign-macos.sh release/dmsg-macos-arm64
+# Usage: scripts/dmsg/sign-macos.sh release/dmsg-macos-arm64 [SecretsFS.zip]
 #
 # Environment (the dmsg-release GitHub environment):
 #   MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD  base64 Developer ID Application .p12 and its password
 #   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID  the notary account
+#   MAC_FSKIT_PROFILE_BASE64  Developer ID provisioning profile for SecretsFS
 
 set -eu
 
@@ -18,18 +19,24 @@ DEVELOPER_ID_CA_URL="https://www.apple.com/certificateauthority/DeveloperIDG2CA.
 
 error() { printf 'Error: %s\n' "$1" >&2; exit 1; }
 
-[ "$#" -eq 1 ] || error "usage: $0 <dmsg binary>"
+[ "$#" -ge 1 ] && [ "$#" -le 2 ] || error "usage: $0 <dmsg binary> [SecretsFS.zip]"
 FILE="$1"
+FSKIT_ARCHIVE=${2:-}
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+DESKTOP="$SCRIPT_DIR/../../src/dmsg_desktop"
 : "${MAC_CSC_LINK:?}" "${MAC_CSC_KEY_PASSWORD:?}"
 : "${APPLE_ID:?}" "${APPLE_APP_SPECIFIC_PASSWORD:?}" "${APPLE_TEAM_ID:?}"
-node "$(dirname "$0")/macos-signing.cjs" check-team "$APPLE_TEAM_ID"
+node "$SCRIPT_DIR/macos-signing.cjs" check-team "$APPLE_TEAM_ID"
+if [ -n "$FSKIT_ARCHIVE" ]; then : "${MAC_FSKIT_PROFILE_BASE64:?}"; fi
 
 WORK=$(mktemp -d)
 KEYCHAIN="${WORK}/signing.keychain-db"
 KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
 USER_KEYCHAINS=$(security list-keychains -d user | tr -d '"')
+INSTALLED_PROFILE=
 
 cleanup() {
+    if [ -n "$INSTALLED_PROFILE" ]; then rm -f "$INSTALLED_PROFILE"; fi
     # shellcheck disable=SC2086 # one keychain path per word
     security list-keychains -d user -s $USER_KEYCHAINS
     security delete-keychain "$KEYCHAIN" 2>/dev/null || true
@@ -48,8 +55,8 @@ security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN
 # shellcheck disable=SC2086
 security list-keychains -d user -s "$KEYCHAIN" $USER_KEYCHAINS
 
-IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | awk '/"Developer ID Application:/ { print $2; exit }')
-[ -n "$IDENTITY" ] || error "MAC_CSC_LINK has no Developer ID Application identity"
+IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | awk -v team="$APPLE_TEAM_ID" '/"Developer ID Application:/ && index($0, "(" team ")\"") { print $2; exit }')
+[ -n "$IDENTITY" ] || error "MAC_CSC_LINK has no Developer ID Application identity for $APPLE_TEAM_ID"
 
 # The team's App Group is where the sandboxed FSKit secret-files module
 # reaches the daemon's socket (`native_directory` in secret_mounts.rs).
@@ -71,6 +78,27 @@ codesign --verify --strict --verbose=2 "$FILE"
 # The notary team also names the FSKit IPC group. Refuse a certificate/team
 # mismatch before notarization; never ship an entitlement for the wrong team.
 codesign --verify --strict -R "=identifier \"net.dmsg.dmsg\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = \"${APPLE_TEAM_ID}\"" "$FILE"
+
+if [ -n "$FSKIT_ARCHIVE" ]; then
+    profile="$WORK/SecretsFS.provisionprofile"
+    printf '%s' "$MAC_FSKIT_PROFILE_BASE64" | base64 --decode >"$profile"
+    uuid=$(node "$DESKTOP/scripts/fskit-package.cjs" profile-uuid "$profile")
+    profiles="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+    mkdir -p "$profiles"
+    if [ -e "$profiles/$uuid.provisionprofile" ]; then
+        cmp -s "$profile" "$profiles/$uuid.provisionprofile" || error "Conflicting installed FSKit profile"
+    else
+        INSTALLED_PROFILE="$profiles/$uuid.provisionprofile"
+        install -m 600 "$profile" "$INSTALLED_PROFILE"
+    fi
+    python3 "$DESKTOP/native/fskit/build-module.py" --output "$WORK/fskit" \
+        --configuration Release --team "$APPLE_TEAM_ID" --identity "$IDENTITY" --profile "$uuid"
+    extension="$WORK/fskit/derived/Build/Products/Release/SecretsFS.appex"
+    embedded=$(node "$DESKTOP/scripts/fskit-package.cjs" profile-uuid "$extension/Contents/embedded.provisionprofile")
+    [ "$embedded" = "$uuid" ] || error "Unexpected embedded FSKit profile"
+    # Preserve Mach-O permissions and the nested signature across Actions jobs.
+    ditto -c -k --keepParent "$extension" "$FSKIT_ARCHIVE"
+fi
 
 mkdir "${WORK}/notarize"
 cp "$FILE" "${WORK}/notarize/"

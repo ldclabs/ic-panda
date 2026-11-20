@@ -7,6 +7,7 @@ name: dMsg release
 # Secrets of the dmsg-release environment (macOS signing/notarization are required):
 #   MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD   Developer ID Application .p12 (base64) and password
 #   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID   notarization
+#   MAC_FSKIT_PROFILE_BASE64  Yiwen Developer ID profile for net.dmsg.desktop.SecretFiles
 #   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD   Windows code signing; variable DMSG_WINDOWS_PUBLISHER
 #   HOMEBREW_TAP_TOKEN                   write access to ldclabs/homebrew-tap
 on:
@@ -85,40 +86,44 @@ jobs:
   # Its own job, so only it and the desktop jobs see the signing secrets.
   sign-macos:
     needs: binary
-    runs-on: macos-latest
+    # SecretsFS uses the macOS 27 FSKit handlers.
+    runs-on: xcode-27
     environment: dmsg-release
     steps:
       - uses: actions/checkout@v7
-      - id: signing
-        env:
-          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+      - name: Prepare the FSKit toolchain
         run: |
-          if [ -n "$MAC_CSC_LINK" ]; then echo "configured=true" >> "$GITHUB_OUTPUT"
-          else echo "No Developer ID certificate; the macOS binary stays ad hoc signed."; fi
-      - if: steps.signing.outputs.configured == 'true'
-        uses: actions/download-artifact@v4
+          sdk=$(xcrun --sdk macosx --show-sdk-version)
+          test "${sdk%%.*}" -ge 27
+          command -v xcodegen || brew install xcodegen
+      - uses: actions/download-artifact@v4
         with:
           name: release-dmsg-macos-arm64
           path: release
-      - if: steps.signing.outputs.configured == 'true'
+      - name: Sign the CLI and build the distribution FSKit module
         env:
           MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MAC_FSKIT_PROFILE_BASE64: ${{ secrets.MAC_FSKIT_PROFILE_BASE64 }}
         run: |
           # Artifacts do not keep the executable bit.
           chmod +x release/dmsg-macos-arm64
-          scripts/dmsg/sign-macos.sh release/dmsg-macos-arm64
+          scripts/dmsg/sign-macos.sh release/dmsg-macos-arm64 "$RUNNER_TEMP/SecretsFS.zip"
           release/dmsg-macos-arm64 --version
           (cd release && shasum -a 256 dmsg-macos-arm64 > dmsg-macos-arm64.sha256)
-      - if: steps.signing.outputs.configured == 'true'
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: release-dmsg-macos-arm64
           path: release/*
           overwrite: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-secretsfs
+          path: ${{ runner.temp }}/SecretsFS.zip
+          if-no-files-found: error
 
   desktop:
     needs: [version, binary, sign-macos]
@@ -128,8 +133,12 @@ jobs:
         include:
           - os: macos-latest
             asset: dmsg-macos-arm64
+            certificate: MAC_CSC_LINK
+            password: MAC_CSC_KEY_PASSWORD
           - os: windows-latest
             asset: dmsg-windows-x64.exe
+            certificate: WIN_CSC_LINK
+            password: WIN_CSC_KEY_PASSWORD
             optional: true
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.optional == true }}
@@ -150,6 +159,16 @@ jobs:
         with:
           name: release-${{ matrix.asset }}
           path: runtime
+      - if: runner.os == 'macOS'
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-secretsfs
+          path: ${{ runner.temp }}/dmsg-fskit
+      - name: Stage the signed FSKit extension
+        if: runner.os == 'macOS'
+        run: |
+          ditto -x -k "$RUNNER_TEMP/dmsg-fskit/SecretsFS.zip" "$RUNNER_TEMP/dmsg-fskit"
+          echo "DMSG_FSKIT_EXTENSION=$RUNNER_TEMP/dmsg-fskit/SecretsFS.appex" >> "$GITHUB_ENV"
       - name: Prepare
         shell: bash
         run: |
@@ -160,13 +179,19 @@ jobs:
         shell: bash
         working-directory: src/dmsg_desktop
         env:
-          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets[matrix.certificate] }}
+          CSC_KEY_PASSWORD: ${{ secrets[matrix.password] }}
+          APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
           DMSG_WINDOWS_PUBLISHER: ${{ vars.DMSG_WINDOWS_PUBLISHER }}
         run: pnpm exec electron-builder --config electron-builder.release.cjs --publish never
+      - name: Verify the notarized macOS update and its embedded FSKit extension
+        if: runner.os == 'macOS'
+        run: |
+          ditto -x -k src/dmsg_desktop/release/dMsg-mac-arm64.zip "$RUNNER_TEMP/dmsg-update"
+          node src/dmsg_desktop/scripts/fskit-package.cjs verify-app "$RUNNER_TEMP/dmsg-update/dMsg.app"
+          xcrun stapler validate "$RUNNER_TEMP/dmsg-update/dMsg.app"
       - name: Collect
         shell: bash
         run: |
@@ -207,12 +232,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          bridge=$(node -p 'require("./scripts/dmsg/macos-signing.json").bridgeVersion')
           latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
-          if [ "$latest" != "$bridge" ]; then
-            echo "GitHub Latest must remain on the LDC transition release $bridge before publishing a later stable release." >&2
-            exit 1
-          fi
+          node -e 'require("./scripts/dmsg/release-config.cjs").assertLegacyLatest(process.argv[1])' "$latest"
       - uses: softprops/action-gh-release@v3
         id: upload
         with:

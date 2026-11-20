@@ -247,8 +247,8 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
 - **Releases.** Since 1.3.0, dMsg client tags are bare versions (`1.3.0`,
   `1.4.0-beta.1`). From 1.5.8, the official updater enumerates GitHub releases
   and chooses the highest stable version with this platform's binary and
-  checksum fully uploaded. GitHub Latest remains on the LDC-signed 1.5.8
-  bridge for older clients and default installers; canister tags and betas
+  checksum fully uploaded. GitHub Latest points to an LDC bridge (1.5.8 or
+  1.5.10) for older clients and default installers; canister tags and betas
   are excluded from the CLI's stable selection.
   `dmsg update --check --json` reports `{current, latest, available,
   homebrew}`. `dmsg update` downloads this platform's binary
@@ -256,9 +256,9 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
   `dmsg-windows-x64.exe`), checks it against the release's `.sha256` and, when
   this binary is signed by a Developer ID team, that the new one verifies and
   has the exact `net.dmsg.dmsg` identifier and an accepted Developer ID team;
-  then it replaces this binary through a staged file. A verified LDC binary
-  (`S9Z2WAMAV8`) accepts LDC or the pinned recipient Yiwen (`63G8VNQPXB`).
-  Yiwen binaries accept Yiwen only; other signing teams accept their own team.
+  then it replaces this binary through a staged file. The published LDC
+  bridges accept Yiwen. From 1.6.0-beta.1, signed binaries require their own
+  team, which is Yiwen (`63G8VNQPXB`) for official releases.
   See the [macOS transition runbook](../dmsg_desktop/docs/macos-team-transfer.md).
   `DMSG_RELEASE_URL` replaces `https://github.com/ldclabs/ic-panda/releases`
   (tests, mirrors); explicit mirrors retain their `/latest` JSON contract.

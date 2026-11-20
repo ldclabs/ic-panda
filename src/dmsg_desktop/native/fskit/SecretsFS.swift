@@ -4,7 +4,7 @@ import FSKit
 import os
 
 /// Fixed failure reasons only: never paths, names or content.
-let diagnostics = Logger(subsystem: "net.dmsg.desktop.SecretsFS", category: "volume")
+let diagnostics = Logger(subsystem: "net.dmsg.desktop.SecretFiles", category: "volume")
 
 @main struct SecretsExtension: UnaryFileSystemExtension {
     var fileSystem: FSUnaryFileSystem & FSUnaryFileSystemOperations { SecretsFileSystem() }

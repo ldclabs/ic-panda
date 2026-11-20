@@ -869,7 +869,7 @@ async fn native_connection(host: Weak<Daemon>, id: String, mut stream: tokio::ne
                 fn dmsg_fskit_peer_allowed(pid: i32, identifier: *const std::ffi::c_char) -> i32;
             }
             // The module PID authenticates IPC. It is never presented as the reader's PID.
-            unsafe { dmsg_fskit_peer_allowed(pid, c"net.dmsg.desktop.SecretsFS".as_ptr()) == 1 }
+            unsafe { dmsg_fskit_peer_allowed(pid, c"net.dmsg.desktop.SecretFiles".as_ptr()) == 1 }
         })
         .await
         .unwrap_or(false);
@@ -1217,7 +1217,7 @@ mod tests {
         // The formats `/sbin/mount` prints for FSKit modules.
         for (stderr, code) in [
             (
-                "Module net.dmsg.desktop.SecretsFS is disabled!\nmount: Unable to invoke task\n",
+                "Module net.dmsg.desktop.SecretFiles is disabled!\nmount: Unable to invoke task\n",
                 "FSKIT_EXTENSION_DISABLED",
             ),
             (

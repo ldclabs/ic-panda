@@ -1,29 +1,20 @@
 # macOS 签名团队过渡
 
-**1.5.8** 客户端发布版是由 LDC 签名的过渡到 Yiwen 的桥接版本。这是针对 Electron 应用与 `dmsg` 的 Developer ID 分发路径，与 iOS App Store 转移及其共享钥匙串组（shared Keychain group）相互独立。
+从 `1.6.0-beta.1` 开始，桌面应用、随包 `dmsg` 和 SecretsFS 扩展统一由 Yiwen AI Limited（`63G8VNQPXB`）签名。LDC Labs Limited（`S9Z2WAMAV8`）已发布的 **`1.5.8` 和 `1.5.10` 都是桥接版**。两个版本的应用更新要求和 CLI 校验器都接受 Yiwen。桌面端走 Developer ID 分发，iOS App Store 转移独立进行。
 
-## 策略与更新路径
+## 签名策略与更新入口
 
-[`scripts/dmsg/macos-signing.json`](../../../scripts/dmsg/macos-signing.json) 是经过审查的身份来源配置：
+| 对象 | 标识或规则 |
+| --- | --- |
+| 桌面应用 | `net.dmsg.desktop` |
+| CLI / daemon | `net.dmsg.dmsg` |
+| FSKit 扩展 | `net.dmsg.desktop.SecretFiles` |
+| 新版签名与后续更新 | Yiwen Developer ID Application，精确校验代码标识和签发团队 |
+| 旧版稳定客户端的 GitHub Latest 入口 | 已发布的 LDC 桥接版 `1.5.8` 或 `1.5.10` |
 
-| 设置                                             | 值                             |
-| ------------------------------------------------ | ------------------------------ |
-| 源团队（Source team）                            | LDC Labs Limited, `S9Z2WAMAV8` |
-| 接收团队（Recipient team）                       | Yiwen AI Limited, `63G8VNQPXB` |
-| 当前发布签名团队（Current release signing team） | `S9Z2WAMAV8`                   |
-| 桥接版本（Bridge version）                       | `1.5.8`                        |
-| 桌面端标识符（Desktop identifier）               | `net.dmsg.desktop`             |
-| CLI/守护进程标识符（CLI/daemon identifier）      | `net.dmsg.dmsg`                |
+Squirrel.Mac 用已安装应用的指定要求验证候选包。用户已运行任一桥接版，即可在「设置 → 关于 dMsg」开启 Beta 更新，接收 Yiwen 的 beta。早于桥接版的 Beta 客户端可能直接发现新包，应先安装任一官方桥接版并保留工作区。Homebrew 的 formula 和 cask 共同升级，Beta 试用请使用官方桌面安装包。[签名策略](../../../scripts/dmsg/macos-signing.json)
 
-Squirrel.Mac 会根据已安装应用的指定要求（designated requirement）来验证更新。因此，旧版 LDC 应用会接受由 LDC 签名的桥接版本。桥接版本的外层应用要求同时接受这两个固定团队，并附加精确的桌面端标识符以及 Apple Developer ID Application 证书约束。自定义签名钩子会在公证（notarization）之前运行，并保留嵌套代码的独立要求及随附守护进程的签名；它还会在签名后对照 `releaseTeam` 检查实际签名方。
-
-CLI 在安装或运行已下载/共享的二进制文件前，会独立检查精确的守护进程标识符和 Developer ID 签名。只有经过验证的 LDC 版 `dmsg` 才会同时接受接收团队及自身团队；Yiwen 版仅接受 Yiwen 团队。无论是环境变量还是发布元数据，都不能添加受信任的团队。未签名的开发二进制文件保留其本地行为。
-
-旧版稳定版更新器仅识别 GitHub Latest。请将该指针保持在 1.5.8：旧稳定版 → LDC 桥接版 → 最新受支持版本。桥接版及后续客户端会枚举所有发布页面，为对应平台和渠道选择版本号最高的完整发布版本。后续稳定版发布时使用 `make_latest: false`；如果 Latest 不再指向 1.5.8，CI 将拒绝发布。每次稳定版发布仍会更新 Homebrew。现有的 `/releases/latest` 下载链接和默认安装脚本会先提供桥接版本，因此全新安装后可能需要再执行一次更新。显式配置了 `DMSG_RELEASE_URL` 的 CLI 镜像会保留其原有的 `/latest` JSON 约定，必须自行管理过渡路由。
-
-**旧版 Beta 安装是一个例外：** 它们已经会枚举发布列表，因此 Latest 指针无法强制其经过桥接版本。在切换团队之前，请提醒 Beta 用户先安装 1.5.8。错过该步骤的用户如果当前版本低于 1.5.8，可以关闭 Beta 渠道并通过 1.5.8 更新，或手动安装桥接安装包。不要让用户删除其工作区。Homebrew 用户请使用 `brew upgrade dmsg dmsg-desktop` 同时更新 formula 和 cask；若只升级 cask，桌面端随附的 `dmsg` 与 Homebrew 管理的 CLI 会出现版本和签名团队不一致。
-
-在 1.5.8 仍保持为 GitHub Latest 期间，**切勿吊销（revoke）LDC 的 Developer ID 证书**，否则 macOS Gatekeeper 会拦截尚未升级的旧版自动更新与新装用户下载的桥接安装包。待过渡窗口结束、确认不再需要支持 1.5.8 之前的旧稳定版直连更新时，再解除 Latest 固定并按正常发布流程切换回最新稳定版。
+截至 2026-11-20，`1.5.10` 已在线，GitHub `/releases/latest` 指向 `1.5.8`。旧稳定版和默认安装脚本从该入口取得可验证的 LDC 包，桥接版再枚举后续完整发布。新发布使用 `make_latest: false`，稳定版 CI 会核对入口仍为上述两版之一。保留两份已签名的桥接资产，避免吊销其签名证书。新构建只使用 `dmsg-release` 环境中的 Yiwen 凭据。[Apple 的 Developer ID 证书说明](https://developer.apple.com/help/account/certificates/create-developer-id-certificates/)
 
 ## 钥匙串、硬件密钥与 FSKit
 
@@ -35,24 +26,27 @@ CLI 在安装或运行已下载/共享的二进制文件前，会独立检查精
 
 安全隔区（Secure Enclave）密钥保留其不透明的 CryptoKit 句柄和公钥。此实现**并不**保证每一个现有硬件句柄都能在团队变更后继续可用。发布的准入门槛是一次真实的“旧版 → 桥接版 → Yiwen 版”全流程测试，覆盖硬件锚点（hardware anchor）、Touch ID 解锁、审批签名与硬件协同签名（hardware cosign）。如果任何句柄变得不可访问，请停止团队切换并进行排查；不要将该错误视为替换用户密钥的许可。
 
-FSKit 保留其同团队对等身份验证（same-team peer authentication）。切换完成后，应用、守护进程以及 `net.dmsg.desktop.SecretsFS` 模块必须使用相同的团队；打包器在嵌入模块时会检查这一点。Yiwen 需要拥有自己有效的 FSKit 描述文件（provisioning profile）以及 `<team>.net.dmsg.secrets` App Group 授权（entitlement）。该组仅包含临时 IPC 套接字，不包含用户工作区。LDC 桥接版本仍保留原有组配置。在启动新的完整安装包之前，请退出应用并停止旧的守护进程/挂载点；如果 macOS 有要求，请启用新模块。仅更新 CLI 而保留旧团队的文件系统模块无法提供跨团队的 FSKit 访问。
+FSKit 模块与 daemon 通过各自签名中的 `63G8VNQPXB.net.dmsg.secrets` App Group 连接。该组只保存临时 IPC 套接字。macOS 会校验 Team ID 前缀，这种格式的组无需在开发者网站单独注册。FSKit Module 能力本身需要分发描述文件。[Apple 的 macOS App Group 说明](https://developer.apple.com/documentation/xcode/accessing-app-group-containers)
 
-## 发布 LDC 桥接版本
+LDC 开发测试曾为 `net.dmsg.desktop.SecretsFS` 签发描述文件。已发布的 `1.5.8` 和 `1.5.10` 均未内嵌该扩展。Yiwen 首次随包发布时使用独立的 `net.dmsg.desktop.SecretFiles`，这样可以直接在新团队配置能力。扩展产物名为 `SecretsFS.appex`。
 
-1. 保留现有的 `dmsg-release` CI 密钥：LDC Developer ID 证书、证书密码、Apple 公证凭据以及 `APPLE_TEAM_ID=S9Z2WAMAV8`。保持 `releaseTeam` 设为 LDC。二进制签名脚本和桌面端发布打包器会拒绝团队不匹配的构建。
-2. 构建并验证 1.5.8 版本。使用 `codesign -d -r- /path/to/dMsg.app` 检查打包后的应用：其指定要求必须同时包含两个固定团队以及 `net.dmsg.desktop`，而实际的 `TeamIdentifier` 仍必须为 LDC。验证随附 `dmsg` 的标识符/团队、签名完整性、公证状态以及完整的发布资产。
-3. 在测试 Mac 上从旧版 LDC 安装执行就地更新，并保留其测试工作区。确认已安装的应用/守护进程版本、凭据读取、解锁、审批签名以及所有已启用的 FSKit 挂载。
-4. 通过现有工作流发布裸标签（bare tag）`1.5.8`。确认发布资产完整且 GitHub Latest 指向该版本。在切换团队后保持其资产可用且不做更改。
+## Yiwen 发行配置与验收
 
-本次源码变更不会创建标签、发布版本或更改密钥。
+1. 在 GitHub 的 `dmsg-release` 环境配置 `MAC_CSC_LINK`（包含 Yiwen Developer ID Application 证书及私钥的 `.p12` 的 Base64 内容）、`MAC_CSC_KEY_PASSWORD`、`APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD` 和 `APPLE_TEAM_ID=63G8VNQPXB`。
+2. 在 Yiwen 团队为 `net.dmsg.desktop.SecretFiles` 配置 FSKit Module 能力。用本次签名证书生成 **Developer ID 分发描述文件**，将原始 `.provisionprofile` 的 Base64 内容填入新增的 `MAC_FSKIT_PROFILE_BASE64`。CI 安装该 profile，通过 macOS 27 SDK 构建 `SecretsFS.appex`，将它嵌入 `dMsg.app/Contents/Extensions/`。最终更新 ZIP 将校验宿主、daemon、模块及其授权和公证票据。[FSKit 构建说明](../native/fskit/README.md)
+3. 在分支上手动运行 **dMsg release**，取出构建产物。在测试 Mac 上用下面的命令核对桥接包接受候选包及反向签名限制。用独立测试账户从桥接版原地升级，确认旧钥匙串凭据可读、Touch ID 解锁和审批签名成功、硬件公钥一致。在 macOS 27 的系统设置中启用 **dMsg secret files**，用测试资料完成挂载、读取和卸载。
+4. 验收后使用裸标签 `1.6.0-beta.1` 发布。Beta 使用 `beta-mac.yml`，标记为 prerelease 并跳过 Homebrew。分支运行只生成测试产物。
 
-## 后续 Yiwen 切换
+```sh
+node scripts/dmsg/test-macos-transition.cjs /path/to/bridge/dMsg.app /path/to/yiwen/dMsg.app
+```
 
-在桥接版本可用且下述跨团队检查全部通过后，仅在已审查的策略中将 `releaseTeam` 修改为 `63G8VNQPXB`；保持 `sourceTeam`、`recipientTeam`、标识符和 `bridgeVersion` 不变。使用更高的客户端版本号。同时将签名/公证 CI 密钥以及任何嵌入的 FSKit 描述文件切换为 Yiwen。此后同一签名钩子会生成仅限 Yiwen 的外层要求。不要在 Yiwen 下重新发布 1.5.8，也不要将后续版本标记为 Latest。
+## Yiwen 切换的本地验证，2026-11-20
 
-请在单独的测试 Mac/账户上验证完整的 Yiwen 安装包：从桥接版本更新、读取旧测试凭据、拒绝并重试钥匙串授权、使用 Touch ID 解锁、验证硬件公钥未发生变化，以及在旧进程停止后重新挂载 FSKit。还需测试长期离线的旧稳定版应用执行两步更新的过程。被下载但被拒绝的更新必须使旧安装和工作区保持可用。新团队测试需要使用真实的 Yiwen Developer ID 凭据；要求解析器或仅限 LDC 的测试夹具无法替代。
+- 公开的 `1.5.8` 更新 ZIP 通过发布的 SHA-256 校验。本机 `1.5.10` 随包 CLI 的 SHA-256 与发布值一致。两个实际应用及其 daemon 均通过 LDC Developer ID 签名校验。两个应用的公证票据均通过 `xcrun stapler validate`，签名中写入的更新要求均接受 Yiwen。
+- 使用锁定的 Electron 在 arm64 上完成了本地 ad hoc 试打包。核对了应用标识、版本、随包 CLI，以及 Beta 更新 ZIP、清单与校验和。FSKit 扩展使用 macOS 27.2 SDK 编译通过。正式签名、公证、桥接版原地升级、钥匙串授权、Touch ID 和实际挂载仍需使用 Yiwen 分发候选包验收。
 
-## 本地验证，2026-11-17
+## LDC 桥接阶段的本地验证，2026-11-17
 
 基于 `b413ed1d` 的实现（本地 `main` 分支上的工作补丁）。
 
@@ -64,7 +58,7 @@ FSKit 保留其同团队对等身份验证（same-team peer authentication）。
 - `DMSG_DESKTOP_SMOKE=updates node scripts/smoke.mjs`：使用隔离配置/模拟守护进程通过。验证了渠道持久化、保存失败重试、延迟回复、键盘操作、更新状态以及 Homebrew 限制。已检查全部七张生成的截图：浅色/深色主题下的中文标准/窄窗口、中文/法语/阿拉伯语窄窗口、阿拉伯语 RTL（含长版本文本）。
 - `node scripts/dmsg/test-macos-transition.cjs`：真实 LDC Developer ID 测试夹具通过了“旧版 → 桥接版”要求兼容性、守护进程身份检查，以及对错误标识符、ad-hoc 签名、篡改和反向团队信任的拒绝测试。未安装任何生产应用或读取任何凭据项。
 
-未运行项目：实际 Yiwen 签名（本地无 Yiwen 身份）、已公证分发包/更新安装、跨团队钥匙串授权、Touch ID 或 FSKit 交接、远程 CI、Windows/Linux 打包或发布上线。Electron 冒烟测试使用的是更新 IPC 夹具，并未执行 Squirrel 安装。
+当日未运行 Yiwen Developer ID 分发签名、公证包更新安装、跨团队钥匙串授权、Touch ID、FSKit 交接、远程 CI 或 Windows/Linux 打包。Electron 冒烟测试只覆盖更新 IPC 夹具。
 
 ## 参考资料
 

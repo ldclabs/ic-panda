@@ -9,16 +9,16 @@ import { execFileSync } from 'node:child_process'
 import { stringify } from 'yaml'
 
 const require = createRequire(import.meta.url)
-const { releaseConfig, publishConfig } = require('../../../scripts/dmsg/release-config.cjs')
-const { policy } = require('../../../scripts/dmsg/macos-signing.cjs')
+const { releaseConfig, publishConfig, assertLegacyLatest } = require('../../../scripts/dmsg/release-config.cjs')
 const { verifyRelease } = require('../scripts/verify-release.cjs')
 
 test('release tags, feed channels and publication flags agree without leaking beta into stable', () => {
-  if (policy.releaseTeam === policy.sourceTeam) {
-    assert.deepEqual(releaseConfig('1.5.8'), { version: '1.5.8', channel: 'latest', prerelease: false, make_latest: true })
-  } else {
-    assert.throws(() => releaseConfig('1.5.8'), /bridge must retain its LDC signature/)
+  for (const bridge of ['1.5.8', '1.5.10']) {
+    assertLegacyLatest(bridge)
+    assert.throws(() => releaseConfig(bridge), /bridges must retain their LDC signatures/)
   }
+  for (const tag of ['1.5.7', '1.5.10-beta.1', '1.6.0-beta.1', '1.6.0']) assert.throws(() => assertLegacyLatest(tag))
+  assert.deepEqual(releaseConfig('1.6.0-beta.1'), { version: '1.6.0-beta.1', channel: 'beta', prerelease: true, make_latest: false })
   assert.equal(releaseConfig('1.5.9').make_latest, false, 'Keep the old-team bridge discoverable by legacy clients')
   assert.equal(releaseConfig('2.0.0').make_latest, false)
   assert.deepEqual(releaseConfig('1.3.0-beta.10'), { version: '1.3.0-beta.10', channel: 'beta', prerelease: true, make_latest: false })

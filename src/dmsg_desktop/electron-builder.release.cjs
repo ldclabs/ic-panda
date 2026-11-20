@@ -15,6 +15,8 @@ const signed = Boolean(process.env.CSC_LINK)
 // until a certificate is configured.
 if (process.platform === 'darwin' && !signed)
   throw new Error('A macOS release needs the Developer ID certificate in CSC_LINK')
+if (process.platform === 'darwin' && !process.env.DMSG_FSKIT_EXTENSION)
+  throw new Error('A macOS release needs the signed SecretsFS.appex in DMSG_FSKIT_EXTENSION')
 config.forceCodeSigning = signed
 // The main process selects an eligible release and overrides this pinned feed.
 config.publish = [publishConfig(version)]

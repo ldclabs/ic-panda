@@ -646,14 +646,12 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   and the update feed of the GitHub release (`latest-mac.yml`, `latest.yml`
   for stable; `beta-mac.yml`, `beta.yml` for beta). Tags are bare versions,
   such as `1.3.0` or `1.4.0-beta.1`; see [release instructions](../../scripts/dmsg/README.md).
-- The macOS 1.5.8 transition stays signed by LDC (`S9Z2WAMAV8`). Its outer
-  app requirement and CLI verifier also accept Yiwen (`63G8VNQPXB`), always
-  with the exact dMsg identifier and Apple Developer ID constraints. Signing
-  policy is pinned in `scripts/dmsg/macos-signing.json`; changing CI secrets
-  alone cannot switch teams. Nested helpers retain individual requirements,
-  and FSKit peers must still share one team. Keychain service names, opaque
-  hardware handles and workspace paths are preserved; a later team switch
-  may require system Keychain consent. See the [transition runbook](docs/macos-team-transfer.md).
+- LDC signed the 1.5.8 and 1.5.10 macOS bridges. Both accept the Yiwen
+  update. From 1.6.0-beta.1, official packages use Yiwen (`63G8VNQPXB`)
+  and require its Developer ID for subsequent updates. The app includes a
+  provisioned, same-team FSKit extension for secret-file mounts on macOS 27.
+  Existing Keychain items may prompt for permission when first read by Yiwen.
+  See the [transition runbook](docs/macos-team-transfer.md).
 - Packages register the `dmsg:` scheme (`CFBundleURLTypes` on macOS, the
   NSIS installer on Windows) besides `setAsDefaultProtocolClient` at run time.
   The Windows app installs per user under `%LOCALAPPDATA%\Programs\dMsg`,
@@ -677,8 +675,8 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   `update-channel` file; it does not sync between accounts or devices. Beta
   includes newer stable releases. Release selection checks canonical SemVer,
   GitHub prerelease flags and complete platform assets, with paginated queries
-  and short caches for both channels. GitHub Latest stays on 1.5.8 for old
-  stable clients; the bridge and later clients enumerate newer releases.
+  and short caches for both channels. GitHub Latest stays on a published LDC
+  bridge (1.5.8 or 1.5.10) for old stable clients. The bridges enumerate newer releases.
   A later stable hotfix cannot hide a higher beta version.
   The selected tag pins the updater's feed and all downloads; the manifest
   version and filenames must match before a download starts.

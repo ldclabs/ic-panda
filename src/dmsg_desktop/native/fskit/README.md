@@ -7,7 +7,7 @@ and read/write handlers. Lookup and read replies carry item attributes. Director
 enumeration retains its cookie and verifier, and a rejected write returns
 `EROFS`. The daemon still authorizes each read window. [Apple volume handler](https://developer.apple.com/documentation/fskit/fsvolume/handler) · [Apple read/write handler](https://developer.apple.com/documentation/fskit/fsvolume/readwritehandler)
 
-- `SecretsFS.swift` and `IPC.swift`: production module, `net.dmsg.desktop.SecretsFS`.
+- `SecretsFS.swift` and `IPC.swift`: production module, `net.dmsg.desktop.SecretFiles`.
 - `Probe.swift`: separate synthetic-only test module. It never accesses a Vault or daemon account.
 - `DevelopmentHost.swift`: optional independent development host. Do not substitute it for the packaged desktop host.
 
@@ -21,11 +21,13 @@ python3 build-module.py --output /absolute/build-directory --team YOUR_TEAM_ID
 
 An FSKit Module provisioning profile is required in addition to a code signature. Pass `--provision` only when authorized to let Xcode create/update the App ID and development profile in that Apple Developer account. The build script does not launch or enable the module. For distribution use `--configuration Release --identity 'Developer ID Application: …' --profile 'Your FSKit distribution profile'` with an appropriately provisioned profile.
 
-To embed a previously signed module, set `DMSG_FSKIT_EXTENSION` to its absolute `.appex` path when packaging Electron. Packaging checks the exact identifier, entitlement, embedded profile and same signing team as the bundled daemon and app. It preserves the module's own signature and profile rather than resigning it with Electron's entitlements. Release packaging rejects an Apple Development module. The app's existing notarization flow remains responsible for the complete bundle. An ordinary package without this variable does not bundle the extension; mount attempts report unavailable.
+The macOS release workflow builds the module with Xcode 27, the Yiwen Developer ID Application certificate and the distribution profile from the `dmsg-release` environment secret `MAC_FSKIT_PROFILE_BASE64`. Supply the base64-encoded `.provisionprofile` issued for `net.dmsg.desktop.SecretFiles` with the FSKit Module capability. The extension and daemon both declare `63G8VNQPXB.net.dmsg.secrets`. macOS validates the team prefix for this form of App Group. [Apple App Groups on macOS](https://developer.apple.com/documentation/xcode/accessing-app-group-containers)
+
+The signing job transports the signed module in a ZIP to preserve its executable and code signature. The desktop job sets `DMSG_FSKIT_EXTENSION` to the extracted `.appex`, embeds it in `Contents/Extensions/SecretsFS.appex`, then checks signatures, entitlements and the embedded profile in the notarized update ZIP. The same path variable can select a signed module for local development. Release packaging requires it.
 
 ## Enable and lifecycle
 
-macOS ships file system extensions turned off. The desktop's secret-files page tells the person to turn on **dMsg secret files** and opens System Settings at Login Items & Extensions; a failed start keeps a fixed cause on the mount's card (`FSKIT_EXTENSION_DISABLED`, `FSKIT_EXTENSION_MISSING`, `FSKIT_EXTENSION_REFUSED`, `FSKIT_DAEMON_UNSIGNED`, `FSKIT_UNAVAILABLE`). Release packages carry the module only once a Developer ID module with an FSKit distribution profile is embedded through `DMSG_FSKIT_EXTENSION`; the release workflow does not do that yet.
+macOS ships file system extensions turned off. The desktop's secret-files page tells the person to turn on **dMsg secret files** and opens System Settings at Login Items & Extensions. A failed start keeps a fixed cause on the mount's card (`FSKIT_EXTENSION_DISABLED`, `FSKIT_EXTENSION_MISSING`, `FSKIT_EXTENSION_REFUSED`, `FSKIT_DAEMON_UNSIGNED`, `FSKIT_UNAVAILABLE`).
 
 After installing a correctly signed bundle, the user enables it in System Settings → General → Login Items & Extensions → **By Category → File System Extensions**. The generic app-detail FSKit switch is not sufficient evidence that a filesystem module is enabled. A build/sign success is not an enablement or mount success.
 
@@ -39,12 +41,12 @@ The module receives metadata and approved bytes through a private Unix socket in
 
 Native configuration does not contain an owner API token, decryption key or plaintext backing file. Source bytes are delivered only after the daemon's approval. A source change stops the volume and requires an explicit start; this is not a promise of automatic IDE reload.
 
-See [validation scope](../../../../docs/protocol/secrets_zh.md#验证入口与边界) for actual evidence. The enabled, development-signed production module passes `real_fskit_window_reads_expire_revoke_and_stop`; cross-UID checks, sleep, distribution notarization and upgrade/uninstall acceptance still require separate evidence.
+The LDC development build passed `real_fskit_window_reads_expire_revoke_and_stop`. The Yiwen distribution build still needs a mount test with its new bundle ID. Cross-UID access, sleep, notarization, upgrade and uninstall have separate checks. [Validation scope](../../../../docs/protocol/secrets_zh.md#验证入口与边界)
 
 ## Production module test
 
 On 2026-11-18 both modules passed Swift type checking with deprecations treated
-as errors under SDK 27.2. The freshly development-signed production extension
+as errors under SDK 27.2. The LDC development build (`net.dmsg.desktop.SecretsFS`)
 served the real mount integration test below on macOS arm64. The test covered
 approval, repeated reads within the window, expiry, revocation and stopping the
 mount. The optional cross-UID assertion was skipped because sudo required a

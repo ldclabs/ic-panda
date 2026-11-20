@@ -268,8 +268,6 @@ fn valid_team(team: &str) -> bool {
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct MacSigningPolicy {
-    source_team: String,
-    recipient_team: String,
     daemon_identifier: String,
 }
 
@@ -280,35 +278,17 @@ fn mac_signing_policy() -> MacSigningPolicy {
 }
 
 #[cfg(any(target_os = "macos", test))]
-fn mac_requirement(identifier: &str, teams: &[&str]) -> String {
+fn mac_requirement(identifier: &str, signer: &str) -> String {
     assert!(
         !identifier.is_empty()
             && identifier
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-')
     );
-    assert!(!teams.is_empty() && teams.iter().all(|team| valid_team(team)));
-    let teams = teams
-        .iter()
-        .map(|team| format!("certificate leaf[subject.OU] = \"{team}\""))
-        .collect::<Vec<_>>()
-        .join(" or ");
+    assert!(valid_team(signer));
     format!(
-        "identifier \"{identifier}\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and ({teams})"
+        "identifier \"{identifier}\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = \"{signer}\""
     )
-}
-
-#[cfg(any(target_os = "macos", test))]
-fn update_teams<'a>(
-    policy: &'a MacSigningPolicy,
-    signer: &'a str,
-    verified_source: bool,
-) -> Vec<&'a str> {
-    if signer == policy.source_team && verified_source {
-        vec![policy.source_team.as_str(), policy.recipient_team.as_str()]
-    } else {
-        vec![signer]
-    }
 }
 
 #[cfg(target_os = "macos")]
@@ -320,9 +300,7 @@ fn matches_requirement(path: &Path, requirement: &str) -> bool {
         .is_ok_and(|output| output.status.success())
 }
 
-/// Only a genuine LDC Developer ID dmsg may introduce the pinned recipient.
-/// A recipient binary accepts its own team only, never a rollback to LDC.
-/// Unsigned development builds retain their local-install behavior.
+/// Signed clients accept a Developer ID binary from their own signing team.
 #[cfg(target_os = "macos")]
 fn check_signature(candidate: &Path) -> Result<(), Failure> {
     let own = std::env::current_exe().map_err(unavailable)?;
@@ -330,11 +308,9 @@ fn check_signature(candidate: &Path) -> Result<(), Failure> {
         return Ok(());
     };
     let policy = mac_signing_policy();
-    let source = mac_requirement(&policy.daemon_identifier, &[&policy.source_team]);
-    let teams = update_teams(&policy, &expected, matches_requirement(&own, &source));
     if matches_requirement(
         candidate,
-        &mac_requirement(&policy.daemon_identifier, &teams),
+        &mac_requirement(&policy.daemon_identifier, &expected),
     ) {
         return Ok(());
     }
@@ -342,8 +318,7 @@ fn check_signature(candidate: &Path) -> Result<(), Failure> {
         "INTEGRITY_FAILED",
         format!(
             "the binary must be Developer ID signed as {} by {}",
-            policy.daemon_identifier,
-            teams.join(" or ")
+            policy.daemon_identifier, expected
         ),
     ))
 }
@@ -490,28 +465,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_the_authenticated_source_may_introduce_the_recipient() {
+    fn developer_id_updates_require_the_same_team_and_daemon_identifier() {
         let policy = mac_signing_policy();
-        assert_eq!(
-            update_teams(&policy, &policy.source_team, true),
-            [&policy.source_team, &policy.recipient_team]
-        );
-        assert_eq!(
-            update_teams(&policy, &policy.source_team, false),
-            [&policy.source_team]
-        );
-        assert_eq!(
-            update_teams(&policy, &policy.recipient_team, true),
-            [&policy.recipient_team]
-        );
-        assert_eq!(update_teams(&policy, "OTHERTEAM1", true), ["OTHERTEAM1"]);
         for invalid in ["", "not set", "short", "S9Z2WAMAV8\" or true", "s9z2wamav8"] {
             assert!(!valid_team(invalid));
         }
-        let requirement = mac_requirement(
-            &policy.daemon_identifier,
-            &[&policy.source_team, &policy.recipient_team],
-        );
+        let requirement = mac_requirement(&policy.daemon_identifier, "63G8VNQPXB");
+        assert!(requirement.contains("certificate leaf[subject.OU] = \"63G8VNQPXB\""));
+        assert!(!requirement.contains(" or "));
         assert!(requirement.contains("identifier \"net.dmsg.dmsg\""));
         assert!(requirement.contains("anchor apple generic"));
         assert!(requirement.contains("certificate leaf[field.1.2.840.113635.100.6.1.13] exists"));

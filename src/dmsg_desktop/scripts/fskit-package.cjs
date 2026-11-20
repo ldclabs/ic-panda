@@ -1,46 +1,114 @@
-// Keep the native FSKit entitlement/profile and signature intact when embedding.
-// An absent module leaves secret mounts unavailable, without installing a substitute.
+// Preserve the signed ExtensionKit bundle through Electron packaging.
 const fs = require('node:fs')
 const path = require('node:path')
-const { execFileSync } = require('node:child_process')
-function signing(bundle) {
-  execFileSync('/usr/bin/codesign', ['--verify', '--strict', bundle], { stdio: 'pipe' })
-  const output = execFileSync('/usr/bin/codesign', ['-d', '--verbose=4', bundle], { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] })
-  return output
+const { execFileSync, spawnSync } = require('node:child_process')
+const { policy, requirement, verifyDesignatedRequirement } = require('../../../scripts/dmsg/macos-signing.cjs')
+
+const moduleIdentifier = 'net.dmsg.desktop.SecretFiles'
+const extensionPath = 'Contents/Extensions/SecretsFS.appex'
+const daemonPath = 'Contents/Resources/runtime/dmsg'
+
+function plistValue(plist, key, format) {
+  return execFileSync('/usr/bin/plutil', ['-extract', key, format, '-o', '-', '--', '-'], { input: plist, encoding: 'utf8' }).trim()
 }
-function info(bundle) {
-  const result = require('node:child_process').spawnSync('/usr/bin/codesign', ['-d','--verbose=4',bundle], { encoding:'utf8' })
-  if(result.status!==0) throw Error('FSKit code signature missing')
-  const text=result.stdout+result.stderr
-  const team=/^TeamIdentifier=([A-Z0-9]{10})$/m.exec(text)?.[1]
-  const id=/^Identifier=(.+)$/m.exec(text)?.[1]
-  if(!team)throw Error('FSKit requires a team signature')
-  return {team,id,text}
+
+function distributionProfileUUID(file) {
+  const plist = execFileSync('/usr/bin/security', ['cms', '-D', '-i', file])
+  return validateDistributionProfile({
+    claims: JSON.parse(plistValue(plist, 'Entitlements', 'json')),
+    teams: JSON.parse(plistValue(plist, 'TeamIdentifier', 'json')),
+    uuid: plistValue(plist, 'UUID', 'raw'),
+    allDevices: plistValue(plist, 'ProvisionsAllDevices', 'raw') === 'true',
+    expires: plistValue(plist, 'ExpirationDate', 'raw')
+  })
 }
-async function afterPack(context) {
-  if(context.electronPlatformName!=='darwin' || !process.env.DMSG_FSKIT_EXTENSION)return
-  const source=path.resolve(process.env.DMSG_FSKIT_EXTENSION)
-  signing(source)
-  if(info(source).id!=='net.dmsg.desktop.SecretsFS')throw Error('Unexpected FSKit module identifier')
-  if(!fs.existsSync(path.join(source,'Contents','embedded.provisionprofile')))throw Error('Missing FSKit Module profile')
-  const entitlement=execFileSync('/usr/bin/codesign',['-d','--entitlements',':-',source],{encoding:'utf8',stdio:['ignore','pipe','pipe']})
-  if(!/<key>com\.apple\.developer\.fskit\.fsmodule<\/key>\s*<true\s*\/>/.test(entitlement))throw Error('Missing FSKit Module entitlement')
-  const app=path.join(context.appOutDir,context.packager.appInfo.productFilename+'.app')
-  const daemon=path.join(app,'Contents','Resources','runtime','dmsg')
-  if(info(source).team!==info(daemon).team)throw Error('FSKit and daemon must use the same signing team')
-  // The sandboxed module reaches the daemon only through the team's App Group container.
-  const daemonEntitlements=execFileSync('/usr/bin/codesign',['-d','--entitlements',':-',daemon],{encoding:'utf8',stdio:['ignore','pipe','pipe']})
-  if(!daemonEntitlements.includes(`<string>${info(daemon).team}.net.dmsg.secrets</string>`))throw Error('The daemon needs the team App Group entitlement for FSKit')
-  const target=path.join(app,'Contents','Extensions','SecretsFS.appex')
-  fs.mkdirSync(path.dirname(target),{recursive:true});fs.cpSync(source,target,{recursive:true,errorOnExist:true,force:false})
+
+function validateDistributionProfile({ claims, teams, uuid, allDevices, expires }) {
+  if (!/^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(uuid) ||
+      !Array.isArray(teams) || !teams.includes(policy.releaseTeam) ||
+      claims['com.apple.application-identifier'] !== `${policy.releaseTeam}.${moduleIdentifier}` ||
+      claims['com.apple.developer.fskit.fsmodule'] !== true ||
+      !allDevices || !(Date.parse(expires) > Date.now())) {
+    throw new Error(`Expected a valid Developer ID FSKit profile for ${policy.releaseTeam}.${moduleIdentifier}`)
+  }
+  return uuid
 }
-async function afterSign(context) {
-  if(context.electronPlatformName!=='darwin' || !process.env.DMSG_FSKIT_EXTENSION)return
-  const app=path.join(context.appOutDir,context.packager.appInfo.productFilename+'.app')
-  const extension=path.join(app,'Contents','Extensions','SecretsFS.appex')
-  signing(extension)
-  if(info(app).team!==info(extension).team)throw Error('FSKit host and module signing teams differ')
-  // Developer builds can be embedded locally; publish only Developer ID distribution signatures.
-  if(process.env.CSC_LINK && !info(extension).text.includes('Authority=Developer ID Application:'))throw Error('Release FSKit module needs a Developer ID distribution signature and profile')
+
+function entitlements(bundle) {
+  const plist = execFileSync('/usr/bin/codesign', ['-d', '--entitlements', '-', '--xml', bundle], { stdio: ['ignore', 'pipe', 'pipe'] })
+  return JSON.parse(execFileSync('/usr/bin/plutil', ['-convert', 'json', '-o', '-', '--', '-'], { input: plist, encoding: 'utf8' }))
 }
-module.exports={afterPack,afterSign}
+
+function daemonTeam(daemon, release) {
+  if (release) return policy.releaseTeam
+  const display = spawnSync('/usr/bin/codesign', ['-d', '--verbose=2', daemon], { encoding: 'utf8' })
+  const team = /^TeamIdentifier=([A-Z0-9]{10})$/m.exec(display.stderr)?.[1]
+  if (!team) throw new Error('FSKit development builds need a team-signed daemon')
+  return team
+}
+
+function verifyCode(bundle, identifier, team, release) {
+  const expression = release ? requirement(identifier, team)
+    : `identifier "${identifier}" and anchor apple generic and certificate leaf[subject.OU] = "${team}"`
+  execFileSync('/usr/bin/codesign', ['--verify', '--strict', '-R', `=${expression}`, bundle])
+}
+
+function verifyMountEntitlements(moduleClaims, daemonClaims, team) {
+  const group = `${team}.net.dmsg.secrets`
+  if (moduleClaims['com.apple.developer.fskit.fsmodule'] !== true || moduleClaims['com.apple.security.app-sandbox'] !== true) {
+    throw new Error('SecretsFS needs its sandbox and FSKit Module entitlements')
+  }
+  for (const claims of [moduleClaims, daemonClaims]) {
+    const groups = claims['com.apple.security.application-groups']
+    if (!Array.isArray(groups) || !groups.includes(group)) throw new Error(`Missing FSKit App Group ${group}`)
+  }
+}
+
+function verifyModule(extension, daemon, team, release) {
+  verifyCode(extension, moduleIdentifier, team, release)
+  verifyCode(daemon, policy.daemonIdentifier, team, release)
+  verifyMountEntitlements(entitlements(extension), entitlements(daemon), team)
+  const profile = path.join(extension, 'Contents', 'embedded.provisionprofile')
+  if (release) distributionProfileUUID(profile)
+  else if (!fs.existsSync(profile)) throw new Error('Missing embedded FSKit profile')
+}
+
+function verifyApp(app, release) {
+  const daemon = path.join(app, daemonPath)
+  const team = daemonTeam(daemon, release)
+  verifyCode(app, policy.desktopIdentifier, team, release)
+  if (release) verifyDesignatedRequirement(app, requirement(policy.desktopIdentifier, policy.releaseTeam))
+  verifyModule(path.join(app, extensionPath), daemon, team, release)
+}
+
+function appPath(context) {
+  return path.join(context.appOutDir, context.packager.appInfo.productFilename + '.app')
+}
+
+function afterPack(context) {
+  const source = process.env.DMSG_FSKIT_EXTENSION
+  if (context.electronPlatformName !== 'darwin' || !source) return
+  const app = appPath(context)
+  const daemon = path.join(app, daemonPath)
+  const release = Boolean(process.env.CSC_LINK)
+  verifyModule(source, daemon, daemonTeam(daemon, release), release)
+  const target = path.join(app, extensionPath)
+  if (fs.existsSync(target)) throw new Error(`FSKit destination already exists: ${target}`)
+  fs.mkdirSync(path.dirname(target), { recursive: true })
+  execFileSync('/usr/bin/ditto', [source, target])
+}
+
+function afterSign(context) {
+  if (context.electronPlatformName === 'darwin' && process.env.DMSG_FSKIT_EXTENSION) {
+    verifyApp(appPath(context), Boolean(process.env.CSC_LINK))
+  }
+}
+
+module.exports = { afterPack, afterSign, verifyApp, validateDistributionProfile, verifyMountEntitlements }
+
+if (require.main === module) {
+  const [operation, file] = process.argv.slice(2)
+  if (operation === 'profile-uuid' && file) console.log(distributionProfileUUID(file))
+  else if (operation === 'verify-app' && file) verifyApp(file, true)
+  else throw new Error('Usage: fskit-package.cjs profile-uuid PROFILE | verify-app APP')
+}

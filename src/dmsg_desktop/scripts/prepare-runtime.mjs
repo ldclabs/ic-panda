@@ -6,8 +6,7 @@ import { chmod, copyFile, mkdir, readFile, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// Electron 44 downloads its runtime on first import; electron-builder packages
-// that download (electronDist).
+// Let Electron fetch its pinned runtime before electron-builder uses electronDist.
 await import('electron')
 
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -17,7 +16,8 @@ let source = process.env.DMSG_DESKTOP_RUNTIME
 if (process.env.CI && !source) throw new Error('Set DMSG_DESKTOP_RUNTIME to the release dmsg binary')
 if (!source) {
   execFileSync('cargo', ['build', '--release', '--locked', '-p', 'dmsg_cli'], { cwd: repository, stdio: 'inherit' })
-  source = resolve(repository, 'target/release', executable)
+  const metadata = execFileSync('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], { cwd: repository, encoding: 'utf8' })
+  source = resolve(JSON.parse(metadata).target_directory, 'release', executable)
 }
 const { version } = JSON.parse(await readFile(resolve(desktop, 'package.json'), 'utf8'))
 const reported = execFileSync(source, ['--version'], { encoding: 'utf8' }).trim().split(/\s+/).pop()

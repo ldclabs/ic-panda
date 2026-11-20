@@ -6,6 +6,16 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.0-beta.1] - 2026-11-20
+
+- Use the vault and files with a standalone local account and review imports
+  before adding them to the workspace.
+- Sign the macOS app, daemon and FSKit secret-files extension with Yiwen AI
+  Limited (`63G8VNQPXB`). Both LDC bridges, 1.5.8 and 1.5.10, accept this
+  signing team. New official updates require Yiwen's Developer ID.
+- Include the provisioned `SecretsFS.appex` in macOS release packages and
+  verify it in the notarized update ZIP. Secret-file mounts use macOS 27.
+
 ## [1.5.10] - 2026-11-19
 
 - Export selected vault entries and attachments to a password-protected backup
@@ -940,6 +950,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.6.0-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.5.10...1.6.0-beta.1
 [1.5.10-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.5.9...1.5.10-beta.1
 [1.5.7]: https://github.com/ldclabs/ic-panda/compare/1.5.6...1.5.7
 [1.5.6]: https://github.com/ldclabs/ic-panda/compare/1.5.5...1.5.6

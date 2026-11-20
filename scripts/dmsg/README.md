@@ -3,11 +3,11 @@
 One release carries the `dmsg` CLI and daemon and the desktop app. Starting
 with 1.3.0, its tag is the bare version: `1.3.0` or `1.4.0-beta.1`.
 `src/dmsg_cli/Cargo.toml` and `src/dmsg_desktop/package.json` must agree.
-GitHub Latest stays on the LDC-signed macOS transition release **1.5.8** so
-older stable clients first receive its new signing policy. Clients from
+Both **1.5.8** and **1.5.10** are published LDC-signed bridges to Yiwen.
+GitHub Latest points to a bridge so older stable clients can upgrade. Clients from
 1.5.8 onward enumerate complete releases and select the highest stable version;
 Homebrew also advances with each stable release. Install scripts and website
-links using `/releases/latest` first deliver 1.5.8. Beta releases are
+links using `/releases/latest` first deliver that bridge. Beta releases are
 prereleases and canister tags remain `canisters-v*`.
 Historical `dmsg-v*` tags remain downloadable, but new releases do not create
 compatibility aliases. Older CLI installations can rerun the current installer.
@@ -26,9 +26,9 @@ compatibility aliases. Older CLI installations can rerun the current installer.
 | --- | --- |
 | `install.sh` | macOS Apple Silicon and Linux: download, check the SHA-256, `dmsg install`, add the directory to PATH; `--uninstall` |
 | `install.ps1` | Windows x64, the same; `-Uninstall` |
-| `sign-macos.sh` | Sign the macOS binary with the Developer ID certificate (identifier `net.dmsg.dmsg`, hardened runtime) and notarize it |
-| `macos-signing.json`, `macos-signing.cjs` | Pin LDC, Yiwen, the current signing team and the transition version; build the exact Developer ID requirements |
-| `test-macos-transition.cjs` | Verify isolated signed fixtures with local Developer ID identities, without installing dMsg or accessing its credentials |
+| `sign-macos.sh` | Sign and notarize the macOS CLI, and build the signed FSKit extension for the desktop job |
+| `macos-signing.json`, `macos-signing.cjs` | Pin Yiwen release signing, the published bridge versions and the Developer ID requirements |
+| `test-macos-transition.cjs BRIDGE.app [YIWEN.app]` | Check upgrade compatibility using the on-disk signatures of existing bundles |
 | `publish-homebrew.sh` | Write `Formula/dmsg.rb` and `Casks/dmsg-desktop.rb` (which depends on the formula) to `ldclabs/homebrew-tap`; `DRY_RUN=1` prints them |
 
 ## Releasing
@@ -40,8 +40,8 @@ compatibility aliases. Older CLI installations can rerun the current installer.
 2. `.github/workflows/dmsg-release.yml` builds the four binaries, signs and
    notarizes the macOS one, packages the desktop app around the release's own
    binary, verifies its update manifest and checksums, uploads to a draft and
-   only then publishes it. Only 1.5.8 becomes Latest; later stable releases
-   require Latest to still point to 1.5.8 and use `make_latest: false`.
+   only then publishes it. Yiwen releases use `make_latest: false`.
+   The stable release job checks that Latest still points to 1.5.8 or 1.5.10.
    Every stable release updates the tap. Beta releases have `prerelease: true`,
    `make_latest: false` and skip Homebrew.
    A final release is rebuilt with the stable version; do not merely clear a
@@ -73,19 +73,18 @@ local ad hoc builds can still offer manual downloads but cannot auto-install:
 
 | Name | Use |
 | --- | --- |
-| `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD` | Developer ID Application certificate (.p12, base64) |
-| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | Notarization |
+| `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD` | Yiwen Developer ID Application certificate with private key (.p12, base64) and export password |
+| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | Notarization account, its app-specific password and `63G8VNQPXB` |
+| `MAC_FSKIT_PROFILE_BASE64` | Base64 of the Yiwen Developer ID distribution `.provisionprofile` for `net.dmsg.desktop.SecretFiles` with the FSKit Module capability |
 | `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, variable `DMSG_WINDOWS_PUBLISHER` | Windows code signing |
 | `HOMEBREW_TAP_TOKEN` | Write access to the tap |
 
-For 1.5.8, keep all existing LDC signing/notarization secrets and
-`APPLE_TEAM_ID=S9Z2WAMAV8`. The source policy rejects another team. The outer
-app's designated requirement and the CLI update verifier additionally trust
-Yiwen `63G8VNQPXB`, with the exact dMsg identifiers and Apple Developer ID
-certificate constraints. This changes update trust, not existing Keychain
-ACLs. Follow the [macOS team-transfer runbook](../../src/dmsg_desktop/docs/macos-team-transfer.md)
-before changing the signing team; it includes Beta users, Keychain consent,
-FSKit, release verification and the later CI secret switch.
+Starting with 1.6.0-beta.1, both stable and beta use the same Yiwen environment.
+The signing job builds `SecretsFS.appex` on an arm64 runner with the macOS 27 SDK.
+The desktop job embeds it and verifies the app, daemon, extension, shared App
+Group and notarization ticket in the final ZIP. Run the workflow on a branch to
+obtain signed artifacts for testing. A matching bare Git tag triggers publication.
+See the [macOS transfer runbook](../../src/dmsg_desktop/docs/macos-team-transfer.md).
 
 Windows jobs are still optional: a failing Windows job does not hold the
 macOS/Linux release, and incomplete Windows releases are not offered by the

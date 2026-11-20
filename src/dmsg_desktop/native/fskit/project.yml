@@ -56,10 +56,11 @@ targets:
       - SecretsFS.swift
       - IPC.swift
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.desktop.SecretsFS
+      PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.desktop.SecretFiles
       GENERATE_INFOPLIST_FILE: YES
       INFOPLIST_FILE: SecretsInfo.plist
       CODE_SIGN_ENTITLEMENTS: SecretsFS.entitlements
+      ENABLE_HARDENED_RUNTIME: YES
       APPLICATION_EXTENSION_API_ONLY: YES
       SKIP_INSTALL: YES
     dependencies:

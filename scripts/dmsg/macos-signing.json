@@ -1,8 +1,8 @@
 {
   "sourceTeam": "S9Z2WAMAV8",
   "recipientTeam": "63G8VNQPXB",
-  "releaseTeam": "S9Z2WAMAV8",
-  "bridgeVersion": "1.5.8",
+  "releaseTeam": "63G8VNQPXB",
+  "bridgeVersions": ["1.5.8", "1.5.10"],
   "desktopIdentifier": "net.dmsg.desktop",
   "daemonIdentifier": "net.dmsg.dmsg"
 }

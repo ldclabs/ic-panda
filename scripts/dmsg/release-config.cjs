@@ -1,14 +1,18 @@
 /** One version rule for CI and both desktop packagers. Tags equal the version, without a prefix. */
-const { bridgeVersion, sourceTeam, releaseTeam } = require('./macos-signing.json')
+const { bridgeVersions } = require('./macos-signing.json')
+
+function assertLegacyLatest(tag) {
+  if (!bridgeVersions.includes(tag)) throw new Error(`GitHub Latest must point to a published LDC bridge (${bridgeVersions.join(' or ')}); found ${tag}`)
+}
+
 function releaseConfig(version) {
   if (typeof version !== 'string' || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-beta\.(0|[1-9]\d*))?$/.test(version)) {
     throw new Error(`Expected X.Y.Z or X.Y.Z-beta.N, got ${version}`)
   }
   const prerelease = version.includes('-')
-  if (version === bridgeVersion && releaseTeam !== sourceTeam) throw new Error('The legacy bridge must retain its LDC signature')
-  // Legacy clients only know /releases/latest and trust LDC. Keep that entry
-  // on the LDC bridge; the bridge and later clients enumerate releases.
-  return { version, channel: prerelease ? 'beta' : 'latest', prerelease, make_latest: version === bridgeVersion }
+  if (bridgeVersions.includes(version)) throw new Error('The published bridges must retain their LDC signatures')
+  // Older stable clients find their LDC bridge through /releases/latest.
+  return { version, channel: prerelease ? 'beta' : 'latest', prerelease, make_latest: false }
 }
 
 function publishConfig(version) {
@@ -16,7 +20,7 @@ function publishConfig(version) {
   return { provider: 'generic', url: `https://github.com/ldclabs/ic-panda/releases/download/${version}/`, channel, useMultipleRangeRequest: false }
 }
 
-module.exports = { releaseConfig, publishConfig }
+module.exports = { releaseConfig, publishConfig, assertLegacyLatest }
 
 if (require.main === module) {
   const { readFileSync, appendFileSync } = require('node:fs')

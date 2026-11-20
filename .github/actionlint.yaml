@@ -1,0 +1,3 @@
+# GitHub-hosted Xcode 27 image, ahead of actionlint 1.7.12's label catalog.
+self-hosted-runner:
+  labels: [xcode-27]

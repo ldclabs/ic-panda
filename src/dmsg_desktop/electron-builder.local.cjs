@@ -24,8 +24,7 @@ function developerId() {
 
 const identity = developerId()
 if (identity) {
-  // Squirrel.Mac checks the running app's designated requirement, including
-  // the pinned recipient during the transition. Local
+  // Squirrel.Mac checks the running app's designated requirement. Local
   // packages are not notarized, so they need no secure timestamp either; macOS
   // runs them since they were not downloaded.
   config.mac.identity = identity
