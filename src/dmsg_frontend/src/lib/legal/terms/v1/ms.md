@@ -1,8 +1,10 @@
 # Syarat Perkhidmatan dMsg
 
-Versi 1. Kemas kini terakhir: 2026-11-07.
+Versi 1. Kemas kini terakhir: 2026-11-20.
 
 Terma ini mengawal penggunaan dMsg oleh anda: laman web dmsg.net, aplikasi web dMsg lama (legacy), sambungan pelayar dMsg, perkhidmatan awan dMsg dan canister dMsg pada Internet Computer (ICP). "dMsg" dan "kami" merujuk kepada pasukan yang mengendalikan perkhidmatan dMsg di bawah tadbir urus ICPanda DAO. "Anda" merujuk kepada individu atau organisasi yang menggunakan dMsg.
+
+Terma ini turut meliputi aplikasi dMsg untuk desktop, iOS dan Android. Bagi pembelian melalui Google Play atau App Store, gedung mengendalikan pengebilan, pembaharuan, pembatalan dan permohonan bayaran balik. Urus langganan dalam akaun gedung yang digunakan untuk membeli. Memadam akaun dMsg tidak membatalkan langganan.
 
 ## 1. Menerima terma ini
 
@@ -57,7 +59,7 @@ Aplikasi yang disambungkan dikendalikan oleh pengendali mereka sendiri. Perkhidm
 
 Plus, Pro dan Max yang dibeli melalui App Store ialah langganan setahun yang diperbaharui secara automatik setiap tahun melainkan anda membatalkannya sebelum tarikh pembaharuan. Apple mengenakan caj kepada Akaun Apple anda. Harga, mata wang, tempoh dan manfaat yang disertakan dipaparkan sebelum pembelian disahkan. Pembaharuan, perubahan harga dan pertukaran pelan mengikut terma serta pengesahan daripada Apple. Peraturan App Store ini terpakai apabila pembelian dalam aplikasi tersedia; peraturan pembayaran melalui dompet dan pembaharuan manual dalam bahagian 7.2 tidak terpakai kepada langganan ini.
 
-### 7.2 Pembayaran di luar App Store
+### 7.2 Pembayaran di luar App Store / Google Play
 
 dMsg menawarkan pelan Percuma dan pelan berbayar. Pelan, had sumber dan harga diterbitkan dalam katalog diperakui pada canister perdagangan (commerce canister) dMsg dan ditunjukkan kepada anda sebelum anda membuat pembayaran. Harga ditetapkan dalam dolar AS (USD).
 
@@ -76,7 +78,7 @@ Anda boleh mengurus atau membatalkan pembaharuan automatik dalam tetapan langgan
 
 Apple mengendalikan pengebilan dan permohonan bayaran balik App Store. Mohon bayaran balik di https://reportaproblem.apple.com atau hubungi Sokongan Apple. Kelayakan tertakluk pada peraturan Apple dan undang-undang yang terpakai; sekatan bayaran balik ke dompet dan yuran lejar dalam bahagian 8.2 tidak terpakai kepada pembelian App Store. Jika pembelian belum dipaparkan dalam dMsg, pulihkan pembelian menggunakan Akaun Apple asal dan akaun dMsg yang sama, bukannya membayar semula.
 
-### 8.2 Pembayaran di luar App Store
+### 8.2 Pembayaran di luar App Store / Google Play
 
 - Tempoh berbayar yang telah bermula tidak akan dikembalikan bayarannya, kecuali seperti yang dinyatakan dalam bahagian 11 atau apabila dikehendaki oleh undang-undang.
 - Pembaharuan yang belum bermula boleh dibatalkan; jumlah yang telah dibayar untuknya akan dikembalikan.

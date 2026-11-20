@@ -1,8 +1,10 @@
 # Servicevoorwaarden van dMsg
 
-Versie 1. Laatst bijgewerkt: 2026-11-07.
+Versie 1. Laatst bijgewerkt: 2026-11-20.
 
 Deze voorwaarden zijn van toepassing op je gebruik van dMsg: de website dmsg.net, de verouderde dMsg-webapp, de dMsg-browserextensie, de dMsg-clouddienst en de dMsg-canisters op het Internet Computer (ICP). Met "dMsg", "wij" en "ons" bedoelen we het team dat de dMsg-dienst beheert onder het bestuur van ICPanda DAO. Met "jij" en "je" bedoelen we de persoon of organisatie die dMsg gebruikt.
+
+Deze voorwaarden gelden ook voor de desktop-, iOS- en Android-apps van dMsg. Bij aankopen via Google Play of de App Store behandelt de winkel de facturering, verlengingen, opzeggingen en terugbetalingsverzoeken. Beheer abonnementen met het winkelaccount waarmee u de aankoop deed. Uw dMsg-account verwijderen beëindigt het abonnement niet.
 
 ## 1. Aanvaarding van deze voorwaarden
 
@@ -57,7 +59,7 @@ Gekoppelde applicaties worden beheerd door hun eigen aanbieders. Hun diensten, v
 
 Plus, Pro en Max die via de App Store worden aangeschaft, zijn jaarabonnementen die elk jaar automatisch worden verlengd, tenzij je vóór de verlengingsdatum opzegt. Apple brengt de kosten in rekening via je Apple Account. De prijs, valuta, abonnementsperiode en inbegrepen voordelen worden getoond voordat je de aankoop bevestigt. Voor verlengingen, prijswijzigingen en abonnementswijzigingen gelden de voorwaarden en bevestigingen van Apple. Deze App Store-regels zijn van toepassing wanneer in-app-aankopen beschikbaar zijn; de regels voor walletbetalingen en handmatige verlenging in paragraaf 7.2 zijn niet van toepassing op deze abonnementen.
 
-### 7.2 Betalingen buiten de App Store
+### 7.2 Betalingen buiten de App Store / Google Play
 
 dMsg biedt een gratis abonnement (Free) en betaalde abonnementen. De abonnementen, resourcelimieten en prijzen worden gepubliceerd in de gecertificeerde catalogus van de dMsg-commerce-canister en aan je getoond voordat je betaalt. De prijzen zijn vastgesteld in Amerikaanse dollars (USD).
 
@@ -76,7 +78,7 @@ Je kunt automatische verlenging beheren of opzeggen in de abonnementsinstellinge
 
 Apple behandelt de facturering en terugbetalingsverzoeken voor de App Store. Vraag een terugbetaling aan via https://reportaproblem.apple.com of bij Apple Support. De regels van Apple en het toepasselijke recht zijn van toepassing; de beperkingen voor walletterugbetalingen en ledgerkosten in paragraaf 8.2 gelden niet voor aankopen via de App Store. Als een aankoop nog niet zichtbaar is in dMsg, herstel deze dan met het oorspronkelijke Apple Account en hetzelfde dMsg-account in plaats van opnieuw te betalen.
 
-### 8.2 Betalingen buiten de App Store
+### 8.2 Betalingen buiten de App Store / Google Play
 
 - Een reeds ingegane betaalde periode wordt niet terugbetaald, behalve zoals bepaald in paragraaf 11 of wanneer de wet dit vereist.
 - Een verlenging die nog niet is ingegaan, kan worden geannuleerd; het daarvoor betaalde bedrag wordt dan terugbetaald.

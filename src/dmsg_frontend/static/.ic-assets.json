@@ -20,6 +20,14 @@
         "ignore": false
     },
     {
+        "match": ".well-known/assetlinks.json",
+        "headers": {
+            "Content-Type": "application/json",
+            "Cache-Control": "public, max-age=3600"
+        },
+        "ignore": false
+    },
+    {
         "match": "**/*",
         "security_policy": "standard",
         "headers": {

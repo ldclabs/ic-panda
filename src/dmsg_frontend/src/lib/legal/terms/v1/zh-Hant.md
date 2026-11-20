@@ -1,8 +1,10 @@
 # dMsg 服務條款
 
-第 1 版（繁體中文譯本）。最後更新：2026-11-07。
+第 1 版（繁體中文譯本）。最後更新：2026-11-20。
 
 本條款適用於你對 dMsg 的使用，包括 dmsg.net 網站、舊版 dMsg 網頁應用、dMsg 瀏覽器擴充功能、dMsg 雲端服務，以及 Internet Computer（ICP）上的 dMsg canister。「dMsg」、「我們」指在 ICPanda DAO 治理下營運 dMsg 服務的團隊；「你」指使用 dMsg 的個人或組織。
+
+本條款也適用於 dMsg 桌面、iOS 和 Android 應用程式。透過 Google Play 或 App Store 購買時，由該商店處理計費、續訂、取消與退款申請。請在購買時使用的商店帳戶管理訂閱。刪除 dMsg 帳戶不會取消商店訂閱。
 
 ## 1. 接受條款
 
@@ -57,7 +59,7 @@ dMsg 仍在積極開發中。我們可能會新增、修改、限制或移除功
 
 透過 App Store 購買的 Plus、Pro 和 Max 均為一年期訂閱，除非你在續訂前取消，否則每年會自動續訂。Apple 會透過你的 Apple 帳號收費。你在確認購買前會看到價格、幣別、訂閱週期及所含權益。續訂、價格調整與方案變更均依 Apple 提供的條款與確認流程辦理。上述 App Store 規則於應用程式開放內購時適用；第 7.2 節的錢包付款與手動續期規則不適用於此類訂閱。
 
-### 7.2 App Store 以外的付款
+### 7.2 App Store / Google Play 以外的付款
 
 dMsg 提供免費方案與付費方案。各方案、資源限額與價格均發布於 dMsg commerce canister 的認證目錄中，並在你付款前顯示。價格以美元計價。
 
@@ -76,7 +78,7 @@ dMsg 提供免費方案與付費方案。各方案、資源限額與價格均發
 
 App Store 的帳單與退款申請由 Apple 處理。請透過 https://reportaproblem.apple.com 或聯絡 Apple 支援申請退款。退款資格依 Apple 規則及適用法律而定；第 8.2 節的錢包退款限制與帳本手續費不適用於 App Store 購買。若購買後權益尚未顯示於 dMsg 中，請使用原 Apple 帳號與同一個 dMsg 帳戶「恢復購買」，請勿重複付款。
 
-### 8.2 App Store 以外的付款
+### 8.2 App Store / Google Play 以外的付款
 
 - 已開始的付費期間不予退款，但第 11 節所述情形或法律另有規定者除外。
 - 尚未開始的續期可以取消，取消後將退還該筆已付金額。

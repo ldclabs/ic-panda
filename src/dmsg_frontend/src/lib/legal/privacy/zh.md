@@ -1,8 +1,10 @@
 # dMsg 隐私政策
 
-最后更新：2026-11-19。
+最后更新：2026-11-20。
 
 dMsg 在你授权的设备上加密私密内容。本政策适用于 dmsg.net、只读旧版网页应用、桌面与 iOS 应用、connect.dmsg.net、云端服务和 Internet Computer（ICP）上的 canister。“我们”指在 ICPanda DAO 治理下运营 dMsg 的团队。具体功能是否可用，取决于应用版本与服务配置。
+
+本政策也适用于 dMsg Android 版。开启后台通知后，Firebase Cloud Messaging 使用安装标识和投递令牌发送通用提醒，Play Integrity 验证应用安装。通过 Google Play 购买时，Google 处理账单，dMsg 核验购买令牌、商品、账户绑定和订阅状态。
 
 我们不出售个人数据，不把你的内容用于广告；网站没有广告或分析追踪代码。
 

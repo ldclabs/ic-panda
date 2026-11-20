@@ -1,8 +1,10 @@
 # Warunki korzystania z usługi dMsg
 
-Wersja 1. Ostatnia aktualizacja: 2026-11-07.
+Wersja 1. Ostatnia aktualizacja: 2026-11-20.
 
 Niniejsze warunki regulują korzystanie z dMsg: witryny dmsg.net, starszej aplikacji internetowej dMsg, rozszerzenia przeglądarki dMsg, usługi chmurowej dMsg oraz canisterów dMsg w sieci Internet Computer (ICP). Określenia „dMsg” oraz „my” oznaczają zespół prowadzący usługę dMsg w ramach zarządzania ICPanda DAO. „Ty” oznacza osobę fizyczną lub organizację korzystającą z dMsg.
+
+Warunki obejmują także aplikacje dMsg na komputery, iOS i Android. W przypadku zakupów w Google Play lub App Store sklep obsługuje rozliczenia, odnowienia, anulowanie i wnioski o zwrot. Zarządzaj subskrypcją na koncie sklepu użytym do zakupu. Usunięcie konta dMsg nie anuluje subskrypcji.
 
 ## 1. Akceptacja niniejszych warunków
 
@@ -57,7 +59,7 @@ Połączone aplikacje są prowadzone przez ich własnych operatorów. Odpowiedzi
 
 Plany Plus, Pro i Max kupowane przez App Store to roczne subskrypcje, które odnawiają się automatycznie co roku, chyba że anulujesz je przed terminem odnowienia. Opłatę pobiera Apple z Twojego konta Apple Account. Cena, waluta, okres subskrypcji i objęte nią korzyści są wyświetlane przed potwierdzeniem zakupu. Odnowienia, zmiany cen i zmiany planu podlegają warunkom oraz potwierdzeniom zapewnianym przez Apple. Powyższe zasady App Store obowiązują, gdy dostępne są zakupy w aplikacji; zasady płatności z portfela i ręcznego odnawiania opisane w sekcji 7.2 nie mają zastosowania do tych subskrypcji.
 
-### 7.2 Płatności poza App Store
+### 7.2 Płatności poza App Store / Google Play
 
 dMsg oferuje plan bezpłatny (Free) oraz plany płatne. Plany, limity zasobów i ceny są publikowane w certyfikowanym katalogu canistera handlowego dMsg i wyświetlane przed dokonaniem płatności. Ceny są wyrażone w dolarach amerykańskich (USD).
 
@@ -76,7 +78,7 @@ Automatycznym odnawianiem możesz zarządzać lub je anulować w ustawieniach su
 
 Apple obsługuje rozliczenia i wnioski o zwrot środków za zakupy w App Store. Wniosek o zwrot możesz złożyć na stronie https://reportaproblem.apple.com lub kontaktując się ze Wsparciem Apple. Kwalifikowalność do zwrotu podlega zasadom Apple oraz obowiązującemu prawu; ograniczenia zwrotów na portfel i opłaty księgi głównej z sekcji 8.2 nie dotyczą zakupów w App Store. Jeśli zakup nie jest widoczny w dMsg, przywróć go przy użyciu pierwotnego konta Apple Account i tego samego konta dMsg, zamiast płacić ponownie.
 
-### 8.2 Płatności poza App Store
+### 8.2 Płatności poza App Store / Google Play
 
 - Rozpoczęty okres płatny nie podlega zwrotowi, z wyjątkiem przypadków określonych w sekcji 11 lub sytuacjach wymaganych przez prawo.
 - Odnowienie, które jeszcze się nie rozpoczęło, można anulować; wpłacona za nie kwota zostaje wówczas zwrócona.

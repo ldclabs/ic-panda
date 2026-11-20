@@ -1,8 +1,10 @@
 # Mga Tuntunin ng Serbisyo ng dMsg
 
-Bersyon 1. Huling na-update: 2026-11-07.
+Bersyon 1. Huling na-update: 2026-11-20.
 
 Saklaw ng mga tuntuning ito ang paggamit mo sa dMsg: ang website na dmsg.net, ang legacy na dMsg web app, ang dMsg browser extension, ang dMsg cloud service, at ang mga dMsg canister sa Internet Computer (ICP). Ang "dMsg" at "kami" ay tumutukoy sa team na nagpapatakbo ng serbisyo ng dMsg sa ilalim ng pamamahala ng ICPanda DAO. Ang "ikaw" ay tumutukoy sa tao o organisasyong gumagamit ng dMsg.
+
+Saklaw din ng mga tuntuning ito ang mga app ng dMsg para sa desktop, iOS at Android. Para sa mga pagbili sa Google Play o App Store, ang tindahan ang humahawak ng pagsingil, pag-renew, pagkansela at mga kahilingan sa refund. Pamahalaan ang subscription sa account ng tindahang ginamit sa pagbili. Hindi kinakansela ng pagtanggal ng dMsg account ang subscription.
 
 ## 1. Pagtanggap sa mga tuntuning ito
 
@@ -57,7 +59,7 @@ Pinapatakbo ng kani-kanilang operator ang mga nakakonektang application. Respons
 
 Ang Plus, Pro, at Max na binili sa App Store ay mga isang-taong subscription na awtomatikong nagre-renew bawat taon maliban kung kakanselahin mo bago ang petsa ng renewal. Sisingilin ng Apple ang iyong Apple Account. Ipinapakita ang presyo, currency, panahon, at mga kasamang benepisyo bago mo kumpirmahin ang pagbili. Sumusunod sa mga tuntunin at kumpirmasyon ng Apple ang mga renewal, pagbabago sa presyo, at pagpapalit ng plano. Nalalapat ang mga patakarang ito ng App Store kapag available ang in-app purchase; hindi nalalapat sa mga subscription na ito ang mga patakaran sa pagbabayad gamit ang wallet at manual na renewal sa seksyon 7.2.
 
-### 7.2 Mga pagbabayad sa labas ng App Store
+### 7.2 Mga pagbabayad sa labas ng App Store / Google Play
 
 Nag-aalok ang dMsg ng Libreng plano at mga bayad na plano. Inilalathala ang mga plano, limitasyon sa resource, at presyo sa sertipikadong catalog ng commerce canister ng dMsg at ipinapakita sa iyo bago ka magbayad. Nakatakda ang mga presyo sa US dollars (USD).
 
@@ -76,7 +78,7 @@ Maaari mong pamahalaan o kanselahin ang awtomatikong renewal sa mga setting ng s
 
 Pinangangasiwaan ng Apple ang pagsingil at mga kahilingan sa refund sa App Store. Humiling ng refund sa https://reportaproblem.apple.com o sa Apple Support. Nakabatay ang pagiging kwalipikado sa mga patakaran ng Apple at sa naaangkop na batas; hindi nalalapat sa mga binili sa App Store ang mga limitasyon sa refund sa wallet at mga ledger fee sa seksyon 8.2. Kung hindi pa lumalabas sa dMsg ang binili mo, i-restore ito gamit ang orihinal na Apple Account at ang parehong dMsg account sa halip na magbayad muli.
 
-### 8.2 Mga pagbabayad sa labas ng App Store
+### 8.2 Mga pagbabayad sa labas ng App Store / Google Play
 
 - Hindi na ire-refund ang bayad na panahong nagsimula na, maliban sa nakasaad sa seksyon 11 o kung kinakailangan ng batas.
 - Maaaring kanselahin ang renewal na hindi pa nagsisimula, at ibabalik ang halagang ibinayad para dito.

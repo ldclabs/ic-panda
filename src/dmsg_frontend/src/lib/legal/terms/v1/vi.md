@@ -1,8 +1,10 @@
 # Điều khoản dịch vụ của dMsg
 
-Phiên bản 1. Cập nhật lần cuối: 2026-11-07.
+Phiên bản 1. Cập nhật lần cuối: 2026-11-20.
 
 Các điều khoản này điều chỉnh việc bạn sử dụng dMsg: trang web dmsg.net, ứng dụng web dMsg bản cũ, tiện ích mở rộng trình duyệt dMsg, dịch vụ đám mây dMsg và các canister dMsg trên Internet Computer (ICP). "dMsg" và "chúng tôi" là nhóm vận hành dịch vụ dMsg dưới sự quản trị của ICPanda DAO. "Bạn" là cá nhân hoặc tổ chức sử dụng dMsg.
+
+Các điều khoản này cũng áp dụng cho ứng dụng dMsg trên máy tính, iOS và Android. Với giao dịch qua Google Play hoặc App Store, cửa hàng xử lý việc tính phí, gia hạn, hủy và yêu cầu hoàn tiền. Hãy quản lý gói đăng ký bằng tài khoản cửa hàng đã dùng để mua. Xóa tài khoản dMsg không hủy gói đăng ký.
 
 ## 1. Chấp nhận điều khoản
 
@@ -57,7 +59,7 @@ Các ứng dụng được kết nối do đơn vị vận hành riêng của ch
 
 Các gói Plus, Pro và Max mua qua App Store là gói đăng ký theo năm và tự động gia hạn hằng năm trừ khi bạn hủy trước kỳ gia hạn. Apple thu phí thông qua Tài khoản Apple của bạn. Giá, đơn vị tiền tệ, chu kỳ và các quyền lợi đi kèm được hiển thị trước khi bạn xác nhận mua. Việc gia hạn, điều chỉnh giá và thay đổi gói tuân theo điều khoản và quy trình xác nhận của Apple. Các quy tắc App Store này áp dụng khi tính năng mua hàng trong ứng dụng được mở; quy tắc thanh toán bằng ví và gia hạn thủ công tại mục 7.2 không áp dụng cho các gói đăng ký này.
 
-### 7.2 Thanh toán ngoài App Store
+### 7.2 Thanh toán ngoài App Store / Google Play
 
 dMsg cung cấp gói Miễn phí và các gói trả phí. Các gói, hạn mức tài nguyên và bảng giá được công bố trong danh mục đã chứng thực của canister thương mại dMsg và hiển thị cho bạn trước khi thanh toán. Giá được niêm yết bằng đô la Mỹ (USD).
 
@@ -76,7 +78,7 @@ Bạn có thể quản lý hoặc hủy tự động gia hạn trong phần cài
 
 Apple xử lý việc lập hóa đơn và yêu cầu hoàn tiền trên App Store. Vui lòng gửi yêu cầu hoàn tiền tại https://reportaproblem.apple.com hoặc liên hệ Bộ phận Hỗ trợ của Apple. Điều kiện hoàn tiền tuân theo quy định của Apple và pháp luật hiện hành; các giới hạn hoàn tiền về ví và phí sổ cái tại mục 8.2 không áp dụng cho giao dịch mua qua App Store. Nếu giao dịch mua chưa hiển thị trong dMsg, hãy khôi phục giao dịch bằng Tài khoản Apple ban đầu và cùng tài khoản dMsg thay vì thanh toán lại.
 
-### 8.2 Thanh toán ngoài App Store
+### 8.2 Thanh toán ngoài App Store / Google Play
 
 - Kỳ hạn trả phí đã bắt đầu sẽ không được hoàn tiền, ngoại trừ trường hợp nêu tại mục 11 hoặc khi pháp luật có quy định khác.
 - Kỳ gia hạn chưa bắt đầu có thể được hủy; số tiền đã thanh toán cho kỳ gia hạn đó sẽ được hoàn lại.

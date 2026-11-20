@@ -1,8 +1,10 @@
 # Kebijakan Privasi dMsg
 
-Terakhir diperbarui: 2026-11-19.
+Terakhir diperbarui: 2026-11-20.
 
 dMsg mengenkripsi konten pribadi pada perangkat resmi Anda. Kebijakan ini mencakup dmsg.net, aplikasi web versi lama (legacy) yang bersifat hanya-baca, aplikasi desktop dan iOS, connect.dmsg.net, layanan cloud, serta canister pada Internet Computer (ICP). “Kami” berarti tim yang mengoperasikan dMsg di bawah tata kelola ICPanda DAO. Ketersediaan masing-masing fitur bergantung pada versi aplikasi dan konfigurasi layanan.
+
+Kebijakan ini juga mencakup dMsg untuk Android. Saat notifikasi diaktifkan, Firebase Cloud Messaging memproses ID instalasi dan token pengiriman untuk pengingat umum. Play Integrity memverifikasi instalasi. Google menangani tagihan pembelian Google Play dan dMsg memverifikasi token pembelian, produk, akun terkait, dan status langganan.
 
 Kami tidak menjual data pribadi atau menggunakan konten Anda untuk iklan. Situs web ini tidak memuat pelacak iklan maupun analitik.
 

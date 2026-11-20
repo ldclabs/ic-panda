@@ -1,8 +1,10 @@
 # Polityka prywatności dMsg
 
-Ostatnia aktualizacja: 2026-11-19.
+Ostatnia aktualizacja: 2026-11-20.
 
 dMsg szyfruje prywatne treści na Twoich autoryzowanych urządzeniach. Niniejsza polityka obejmuje witrynę dmsg.net, starszą aplikację internetową działającą w trybie tylko do odczytu, aplikacje na komputery oraz system iOS, stronę connect.dmsg.net, usługę chmurową oraz canistery w sieci Internet Computer (ICP). „My” oznacza zespół prowadzący dMsg w ramach zarządzania ICPanda DAO. Dostępność poszczególnych funkcji zależy od wersji aplikacji i konfiguracji usługi.
+
+Polityka obejmuje również dMsg na Androida. Po włączeniu powiadomień Firebase Cloud Messaging przetwarza identyfikator instalacji i token dostarczania ogólnych przypomnień. Play Integrity weryfikuje instalację. Google rozlicza zakupy w Google Play, a dMsg sprawdza token zakupu, produkt, powiązanie konta i stan subskrypcji.
 
 Nie sprzedajemy danych osobowych ani nie wykorzystujemy Twoich treści do celów reklamowych. Witryna nie zawiera żadnych skryptów śledzących o charakterze reklamowym ani analitycznym.
 

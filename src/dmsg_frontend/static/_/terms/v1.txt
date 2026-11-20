@@ -1,8 +1,10 @@
 # dMsg Terms of Service
 
-Version 1. Last updated: 2026-11-07.
+Version 1. Last updated: 2026-11-20.
 
 These terms govern your use of dMsg: the dmsg.net website, the legacy dMsg web app, the dMsg browser extension, the dMsg cloud service and the dMsg canisters on the Internet Computer (ICP). "dMsg", "we" and "us" mean the team that operates the dMsg service under the governance of ICPanda DAO. "You" means the person or organization using dMsg.
+
+These terms also cover the dMsg desktop, iOS and Android apps. For purchases through Google Play or the App Store, the store handles billing, renewals, cancellations and refund requests. Manage subscriptions in the store account used to purchase them. Deleting your dMsg account does not cancel a store subscription.
 
 ## 1. Accepting these terms
 
@@ -57,7 +59,7 @@ Connected applications are run by their own operators. Their services, terms and
 
 Plus, Pro and Max purchased through the App Store are one-year subscriptions that renew automatically each year unless you cancel before renewal. Apple charges your Apple Account. The price, currency, subscription period and included benefits are shown before you confirm the purchase. Renewals, price changes and plan changes follow the terms and confirmations provided by Apple. These App Store rules apply when purchases are available in the app; the wallet payment and manual renewal rules in section 7.2 do not apply to them.
 
-### 7.2 Payments outside the App Store
+### 7.2 Payments outside the App Store / Google Play
 
 dMsg offers a Free plan and paid plans. The plans, resource limits and prices are published in the certified catalog of the dMsg commerce canister and shown to you before you pay. Prices are set in US dollars.
 
@@ -76,7 +78,7 @@ You can manage or cancel automatic renewal in your Apple Account subscription se
 
 Apple handles App Store billing and refund requests. Request a refund at https://reportaproblem.apple.com or contact Apple Support. Eligibility follows Apple's rules and applicable law; section 8.2's wallet refund restrictions and ledger fees do not apply to App Store purchases. If a purchase has not appeared in dMsg, use Restore purchases with the original Apple Account and the same dMsg account instead of paying again.
 
-### 8.2 Payments outside the App Store
+### 8.2 Payments outside the App Store / Google Play
 
 - A paid term that has started is not refunded, except as stated in section 11 or where the law requires it.
 - A renewal that has not started can be cancelled. The amount paid for it is then refunded.

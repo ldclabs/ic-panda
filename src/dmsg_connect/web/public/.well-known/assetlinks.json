@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "net.dmsg.android",
+      "sha256_cert_fingerprints": [
+        "05:BD:CE:89:DC:ED:B9:0A:98:D8:83:84:45:8D:16:2C:25:7A:2F:80:06:A7:5C:6F:BD:41:FE:D9:78:22:59:D6"
+      ]
+    }
+  }
+]

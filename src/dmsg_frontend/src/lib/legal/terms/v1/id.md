@@ -1,8 +1,10 @@
 # Ketentuan Layanan dMsg
 
-Versi 1. Terakhir diperbarui: 2026-11-07.
+Versi 1. Terakhir diperbarui: 2026-11-20.
 
 Ketentuan ini mengatur penggunaan Anda atas dMsg: situs web dmsg.net, aplikasi web dMsg versi lama (legacy), ekstensi browser dMsg, layanan cloud dMsg, serta canister dMsg di Internet Computer (ICP). "dMsg" dan "kami" berarti tim yang mengoperasikan layanan dMsg di bawah tata kelola ICPanda DAO. "Anda" berarti individu atau organisasi yang menggunakan dMsg.
+
+Ketentuan ini juga mencakup aplikasi dMsg untuk desktop, iOS, dan Android. Untuk pembelian melalui Google Play atau App Store, toko menangani penagihan, perpanjangan, pembatalan, dan permintaan pengembalian dana. Kelola langganan dari akun toko yang digunakan untuk membeli. Menghapus akun dMsg tidak membatalkan langganan toko.
 
 ## 1. Menerima ketentuan ini
 
@@ -57,7 +59,7 @@ Aplikasi yang terhubung dioperasikan oleh pengelolanya masing-masing. Layanan, k
 
 Plus, Pro, dan Max yang dibeli melalui App Store adalah langganan satu tahun yang diperpanjang otomatis setiap tahun kecuali Anda membatalkannya sebelum tanggal perpanjangan. Apple menagih melalui Akun Apple Anda. Harga, mata uang, periode, dan manfaat yang disertakan ditampilkan sebelum Anda mengonfirmasi pembelian. Perpanjangan, perubahan harga, dan perubahan paket mengikuti ketentuan serta konfirmasi dari Apple. Aturan App Store ini berlaku ketika pembelian dalam aplikasi tersedia; aturan pembayaran melalui dompet dan perpanjangan manual pada bagian 7.2 tidak berlaku untuk langganan ini.
 
-### 7.2 Pembayaran di luar App Store
+### 7.2 Pembayaran di luar App Store / Google Play
 
 dMsg menyediakan paket Gratis dan paket berbayar. Pilihan paket, batas sumber daya, dan harga dipublikasikan dalam katalog tersertifikasi pada canister niaga (commerce canister) dMsg dan ditampilkan kepada Anda sebelum membayar. Harga ditetapkan dalam dolar AS (USD).
 
@@ -76,7 +78,7 @@ Anda dapat mengelola atau membatalkan perpanjangan otomatis di pengaturan langga
 
 Apple menangani penagihan dan permohonan pengembalian dana App Store. Ajukan pengembalian dana di https://reportaproblem.apple.com atau melalui Dukungan Apple. Kelayakan pengembalian dana mengikuti aturan Apple dan hukum yang berlaku; batasan pengembalian dana ke dompet dan biaya buku besar (ledger fee) pada bagian 8.2 tidak berlaku untuk pembelian App Store. Jika pembelian belum muncul di dMsg, pulihkan pembelian menggunakan Akun Apple asli dan akun dMsg yang sama, alih-alih membayar ulang.
 
-### 8.2 Pembayaran di luar App Store
+### 8.2 Pembayaran di luar App Store / Google Play
 
 - Periode berbayar yang sudah dimulai tidak dapat dikembalikan dananya, kecuali sebagaimana diatur dalam bagian 11 atau jika diwajibkan oleh hukum.
 - Perpanjangan yang belum dimulai dapat dibatalkan; jumlah yang telah dibayarkan untuk perpanjangan tersebut akan dikembalikan.

@@ -1,8 +1,10 @@
 # dMsg Privacy Policy
 
-Last updated: 2026-11-19.
+Last updated: 2026-11-20.
 
 dMsg encrypts private content on your authorized devices. This policy covers dmsg.net, the read-only legacy web app, the desktop and iOS apps, connect.dmsg.net, the cloud service and the Internet Computer (ICP) canisters. “We” means the team operating dMsg under ICPanda DAO governance. Availability of individual features depends on the app version and service configuration.
+
+This policy also covers dMsg for Android. When enabled, Firebase Cloud Messaging processes an installation ID and delivery token for generic reminders. Play Integrity verifies the installation. For Google Play purchases, Google handles billing and dMsg verifies the purchase token, product, account binding and subscription status.
 
 We do not sell personal data or use your content for advertising. The website contains no advertising or analytics trackers.
 

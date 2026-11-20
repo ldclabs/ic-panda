@@ -1,8 +1,10 @@
 # Dasar Privasi dMsg
 
-Kemas kini terakhir: 2026-11-19.
+Kemas kini terakhir: 2026-11-20.
 
 dMsg menyulitkan kandungan peribadi pada peranti anda yang dibenarkan. Dasar ini meliputi dmsg.net, aplikasi web lama (legacy) baca sahaja, aplikasi desktop dan iOS, connect.dmsg.net, perkhidmatan awan serta canister pada Internet Computer (ICP). “Kami” bermaksud pasukan yang mengendalikan dMsg di bawah tadbir urus ICPanda DAO. Ketersediaan ciri individu bergantung pada versi aplikasi dan konfigurasi perkhidmatan.
+
+Dasar ini turut meliputi dMsg untuk Android. Apabila pemberitahuan diaktifkan, Firebase Cloud Messaging memproses ID pemasangan dan token penghantaran untuk peringatan umum. Play Integrity mengesahkan pemasangan. Google mengurus pengebilan pembelian Google Play dan dMsg mengesahkan token pembelian, produk, akaun terpaut dan status langganan.
 
 Kami tidak menjual data peribadi atau menggunakan kandungan anda untuk tujuan pengiklanan. Laman web ini tidak mengandungi penjejak pengiklanan atau analitik.
 

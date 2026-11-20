@@ -1,8 +1,10 @@
 # dMsg 개인정보 처리방침
 
-최종 업데이트: 2026-11-19.
+최종 업데이트: 2026-11-20.
 
 dMsg는 승인된 기기에서 개인 콘텐츠를 암호화합니다. 본 방침은 dmsg.net, 읽기 전용 구버전 웹 앱, 데스크톱 및 iOS 앱, connect.dmsg.net, 클라우드 서비스 및 Internet Computer(ICP) 상의 canister에 적용됩니다. "당사"는 ICPanda DAO 거버넌스 하에 dMsg를 운영하는 팀을 의미합니다. 개별 기능의 제공 여부는 앱 버전 및 서비스 구성에 따라 다릅니다.
+
+이 정책은 Android용 dMsg에도 적용됩니다. 알림을 켜면 Firebase Cloud Messaging은 일반 알림을 보내기 위해 설치 ID와 전송 토큰을 처리하고 Play Integrity는 설치를 검증합니다. Google Play 구매는 Google이 청구하며 dMsg는 구매 토큰, 상품, 계정 연결 및 구독 상태를 확인합니다.
 
 당사는 개인정보를 판매하거나 귀하의 콘텐츠를 광고 목적으로 사용하지 않습니다. 웹사이트에는 어떠한 광고나 분석 추적기도 포함되어 있지 않습니다.
 

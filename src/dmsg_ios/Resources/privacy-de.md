@@ -1,8 +1,10 @@
 # dMsg Datenschutzerklärung
 
-Letzte Aktualisierung: 2026-11-19.
+Letzte Aktualisierung: 2026-11-20.
 
 dMsg verschlüsselt private Inhalte auf Ihren autorisierten Geräten. Diese Erklärung gilt für dmsg.net, die schreibgeschützte bisherige Web-App, die Desktop- und iOS-Apps, connect.dmsg.net, den Cloud-Dienst und die Canister auf dem Internet Computer (ICP). „Wir“ bezeichnet das Team, das dMsg unter der Governance der ICPanda DAO betreibt. Die Verfügbarkeit einzelner Funktionen hängt von der App-Version und der Dienstkonfiguration ab.
+
+Diese Richtlinie gilt auch für dMsg für Android. Bei aktivierten Benachrichtigungen verarbeitet Firebase Cloud Messaging eine Installations-ID und ein Zustellungstoken für allgemeine Hinweise. Play Integrity prüft die Installation. Bei Google-Play-Käufen übernimmt Google die Abrechnung. dMsg prüft Kauftoken, Produkt, Kontozuordnung und Abonnementstatus.
 
 Wir verkaufen keine personenbezogenen Daten und nutzen Ihre Inhalte nicht für Werbezwecke. Die Website enthält keine Werbe- oder Analyse-Tracker.
 

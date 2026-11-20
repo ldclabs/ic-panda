@@ -1,8 +1,10 @@
 # Patakaran sa Privacy ng dMsg
 
-Huling na-update: 2026-11-19.
+Huling na-update: 2026-11-20.
 
 Ine-encrypt ng dMsg ang pribadong content sa iyong mga awtorisadong device. Sinasaklaw ng patakarang ito ang dmsg.net, ang read-only na legacy web app, ang mga desktop at iOS app, ang connect.dmsg.net, ang cloud service, at ang mga canister sa Internet Computer (ICP). Ang ibig sabihin ng “kami” ay ang team na nagpapatakbo ng dMsg sa ilalim ng pamamahala ng ICPanda DAO. Nakadepende sa bersyon ng app at sa configuration ng serbisyo ang pagiging available ng bawat feature.
+
+Saklaw din ng patakarang ito ang dMsg para sa Android. Kapag pinagana ang mga abiso, ginagamit ng Firebase Cloud Messaging ang ID ng installation at delivery token para sa mga pangkalahatang paalala. Bineberipika ng Play Integrity ang installation. Google ang naniningil sa mga pagbili sa Google Play at bineberipika ng dMsg ang purchase token, produkto, nakaugnay na account at katayuan ng subscription.
 
 Hindi kami nagbebenta ng personal na data at hindi namin ginagamit ang iyong content para sa advertising. Walang anumang tracker para sa advertising o analytics ang website.
 

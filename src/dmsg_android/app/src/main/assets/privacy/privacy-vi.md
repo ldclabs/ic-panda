@@ -1,8 +1,10 @@
 # Chính sách quyền riêng tư của dMsg
 
-Cập nhật lần cuối: 2026-11-19.
+Cập nhật lần cuối: 2026-11-20.
 
 dMsg mã hóa nội dung riêng tư trên các thiết bị được ủy quyền của bạn. Chính sách này áp dụng cho dmsg.net, ứng dụng web bản cũ chỉ đọc, các ứng dụng trên máy tính và iOS, connect.dmsg.net, dịch vụ đám mây và các canister trên Internet Computer (ICP). “Chúng tôi” là nhóm vận hành dMsg dưới sự quản trị của ICPanda DAO. Khả năng sử dụng từng tính năng phụ thuộc vào phiên bản ứng dụng và cấu hình dịch vụ.
+
+Chính sách này cũng áp dụng cho dMsg trên Android. Khi bật thông báo, Firebase Cloud Messaging xử lý mã cài đặt và mã thông báo phân phối để gửi lời nhắc chung. Play Integrity xác minh bản cài đặt. Google xử lý thanh toán cho giao dịch trên Google Play và dMsg xác minh mã mua hàng, sản phẩm, liên kết tài khoản và trạng thái đăng ký.
 
 Chúng tôi không bán dữ liệu cá nhân cũng như không sử dụng nội dung của bạn cho mục đích quảng cáo. Trang web không chứa bất kỳ trình theo dõi quảng cáo hay phân tích nào.
 

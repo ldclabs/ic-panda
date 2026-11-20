@@ -1,8 +1,10 @@
 # dMsg Gizlilik Politikası
 
-Son güncelleme: 2026-11-19.
+Son güncelleme: 2026-11-20.
 
 dMsg, yetkili cihazlarınızdaki özel içerikleri şifreler. Bu politika; dmsg.net web sitesini, salt okunur eski web uygulamasını, masaüstü ve iOS uygulamalarını, connect.dmsg.net adresini, bulut hizmetini ve Internet Computer (ICP) üzerindeki canister'ları kapsar. “Biz”, ICPanda DAO yönetişimi altında dMsg'yi işleten ekibi ifade eder. Bireysel özelliklerin kullanılabilirliği, uygulama sürümüne ve hizmet yapılandırmasına bağlıdır.
+
+Bu politika Android için dMsg uygulamasını da kapsar. Bildirimler açıkken Firebase Cloud Messaging genel hatırlatmalar için kurulum kimliğini ve teslim belirtecini işler. Play Integrity kurulumu doğrular. Google Play alımlarında Google faturalandırmayı yürütür; dMsg satın alma belirtecini, ürünü, hesap bağlantısını ve abonelik durumunu doğrular.
 
 Kişisel verileri satmıyoruz ve içeriğinizi reklam amacıyla kullanmıyoruz. Web sitesinde hiçbir reklam veya analiz izleyicisi (tracker) bulunmaz.
 

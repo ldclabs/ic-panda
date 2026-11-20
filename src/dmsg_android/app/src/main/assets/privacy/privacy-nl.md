@@ -1,8 +1,10 @@
 # Privacybeleid van dMsg
 
-Laatst bijgewerkt: 2026-11-19.
+Laatst bijgewerkt: 2026-11-20.
 
 dMsg versleutelt privé-inhoud op je geautoriseerde apparaten. Dit beleid is van toepassing op dmsg.net, de verouderde alleen-lezen webapp, de desktop- en iOS-apps, connect.dmsg.net, de clouddienst en de canisters op het Internet Computer (ICP). Met “wij” bedoelen we het team dat dMsg beheert onder het bestuur van ICPanda DAO. De beschikbaarheid van afzonderlijke functies hangt af van de app-versie en de configuratie van de dienst.
+
+Dit beleid geldt ook voor dMsg voor Android. Als meldingen zijn ingeschakeld, verwerkt Firebase Cloud Messaging een installatie-ID en een bezorgtoken voor algemene herinneringen. Play Integrity verifieert de installatie. Google factureert aankopen via Google Play en dMsg controleert het aankooptoken, het product, de accountkoppeling en de abonnementsstatus.
 
 Wij verkopen geen persoonsgegevens en gebruiken je inhoud niet voor advertenties. De website bevat geen advertentie- of analysetrackers.
 

@@ -1,8 +1,10 @@
 # Termini di servizio di dMsg
 
-Versione 1. Ultimo aggiornamento: 2026-11-07.
+Versione 1. Ultimo aggiornamento: 2026-11-20.
 
 I presenti termini regolano l'utilizzo di dMsg: il sito web dmsg.net, l'applicazione web legacy di dMsg, l'estensione del browser dMsg, il servizio cloud dMsg e i canister dMsg su Internet Computer (ICP). "dMsg", "noi" e "nostro" indicano il team che gestisce il servizio dMsg sotto la governance di ICPanda DAO. "Tu" indica la persona fisica o l'organizzazione che utilizza dMsg.
+
+Queste condizioni valgono anche per le app dMsg per desktop, iOS e Android. Per gli acquisti su Google Play o App Store, lo store gestisce fatturazione, rinnovi, disdette e richieste di rimborso. Gestisci gli abbonamenti con l’account dello store usato per l’acquisto. Eliminare l’account dMsg non annulla un abbonamento.
 
 ## 1. Accettazione dei presenti termini
 
@@ -57,7 +59,7 @@ Le applicazioni connesse sono gestite dai rispettivi operatori, che sono gli uni
 
 I piani Plus, Pro e Max acquistati tramite l'App Store sono abbonamenti annuali che si rinnovano automaticamente ogni anno, salvo disdetta prima del rinnovo. Apple addebita il costo sul tuo Apple Account. Prezzo, valuta, durata e vantaggi inclusi vengono mostrati prima della conferma dell'acquisto. Rinnovi, variazioni di prezzo e cambi di piano seguono le condizioni e le procedure di conferma fornite da Apple. Queste regole dell'App Store si applicano quando gli acquisti in-app sono disponibili; le regole sui pagamenti tramite wallet e sui rinnovi manuali della sezione 7.2 non si applicano a questi abbonamenti.
 
-### 7.2 Pagamenti al di fuori dell'App Store
+### 7.2 Pagamenti al di fuori dell'App Store / Google Play
 
 dMsg offre un piano gratuito (Free) e piani a pagamento. I piani, i limiti delle risorse e i prezzi sono pubblicati nel catalogo certificato del canister commerciale di dMsg e vengono mostrati prima del pagamento. I prezzi sono espressi in dollari statunitensi (USD).
 
@@ -76,7 +78,7 @@ Puoi gestire o disattivare il rinnovo automatico nelle impostazioni degli abbona
 
 Apple gestisce la fatturazione e le richieste di rimborso dell'App Store. Puoi richiedere un rimborso su https://reportaproblem.apple.com o contattando il supporto Apple. L'idoneità al rimborso segue le regole di Apple e la legge applicabile; le limitazioni sui rimborsi tramite wallet e le commissioni di ledger indicate nella sezione 8.2 non si applicano agli acquisti effettuati sull'App Store. Se un acquisto non compare ancora in dMsg, ripristinalo utilizzando l'Apple Account originale e lo stesso account dMsg invece di effettuare un nuovo pagamento.
 
-### 8.2 Pagamenti al di fuori dell'App Store
+### 8.2 Pagamenti al di fuori dell'App Store / Google Play
 
 - Un periodo a pagamento già iniziato non è rimborsabile, salvo quanto previsto nella sezione 11 o ove richiesto dalla legge.
 - Un rinnovo non ancora iniziato può essere annullato; l'importo pagato verrà rimborsato.

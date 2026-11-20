@@ -1,8 +1,10 @@
 # Termos de Serviço do dMsg
 
-Versão 1. Última atualização: 2026-11-07.
+Versão 1. Última atualização: 2026-11-20.
 
 Estes termos regem o seu uso do dMsg: o site dmsg.net, o aplicativo web legado do dMsg, a extensão de navegador do dMsg, o serviço em nuvem do dMsg e os canisters do dMsg no Internet Computer (ICP). "dMsg", "nós" e "nosso" referem-se à equipe que opera o serviço dMsg sob a governança da ICPanda DAO. "Você" refere-se à pessoa física ou organização que utiliza o dMsg.
+
+Estes termos também abrangem os aplicativos dMsg para desktop, iOS e Android. Nas compras pelo Google Play ou pela App Store, a loja cuida da cobrança, renovação, cancelamento e pedidos de reembolso. Gerencie as assinaturas pela conta usada na compra. Excluir a conta dMsg não cancela a assinatura da loja.
 
 ## 1. Aceitação destes termos
 
@@ -57,7 +59,7 @@ Os aplicativos conectados são operados por seus respectivos responsáveis, que 
 
 Os planos Plus, Pro e Max adquiridos pela App Store são assinaturas anuais que se renovam automaticamente a cada ano, a menos que você cancele antes da renovação. A cobrança é feita pela Apple na sua Conta Apple. O preço, a moeda, o período e os benefícios incluídos são exibidos antes da confirmação da compra. Renovações, alterações de preço e mudanças de plano seguem os termos e confirmações fornecidos pela Apple. Estas regras da App Store aplicam-se quando as compras no aplicativo estão disponíveis; as regras de pagamento via carteira e renovação manual da seção 7.2 não se aplicam a essas assinaturas.
 
-### 7.2 Pagamentos fora da App Store
+### 7.2 Pagamentos fora da App Store / Google Play
 
 O dMsg oferece um plano Gratuito e planos pagos. Os planos, limites de recursos e preços são publicados no catálogo certificado do canister de comércio do dMsg e exibidos antes do pagamento. Os preços são fixados em dólares americanos (USD).
 
@@ -76,7 +78,7 @@ Você pode gerenciar ou cancelar a renovação automática nos ajustes de assina
 
 A Apple processa o faturamento e as solicitações de reembolso da App Store. Solicite reembolsos em https://reportaproblem.apple.com ou junto ao Suporte da Apple. A elegibilidade segue as regras da Apple e a legislação aplicável; as restrições de reembolso para carteira e as taxas de ledger da seção 8.2 não se aplicam às compras feitas na App Store. Se uma compra ainda não aparecer no dMsg, restaure-a usando a Conta Apple original e a mesma conta dMsg, em vez de pagar novamente.
 
-### 8.2 Pagamentos fora da App Store
+### 8.2 Pagamentos fora da App Store / Google Play
 
 - Um período pago que já tenha começado não é reembolsável, exceto conforme previsto na seção 11 ou quando exigido por lei.
 - Uma renovação que ainda não tenha começado pode ser cancelada, e o valor pago por ela será reembolsado.

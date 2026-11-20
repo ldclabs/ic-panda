@@ -1,8 +1,10 @@
 # dMsg Nutzungsbedingungen
 
-Version 1. Letzte Aktualisierung: 07.11.2026.
+Version 1. Letzte Aktualisierung: 20.11.2026.
 
 Diese Bedingungen regeln Ihre Nutzung von dMsg: der Website dmsg.net, der bisherigen dMsg-Web-App, der dMsg-Browsererweiterung, des dMsg-Cloud-Dienstes und der dMsg-Canister auf dem Internet Computer (ICP). „dMsg“, „wir“ und „uns“ bezeichnen das Team, das den dMsg-Dienst unter der Governance der ICPanda DAO betreibt. „Sie“ bezeichnet die Person oder Organisation, die dMsg nutzt.
+
+Diese Bedingungen gelten auch für die Desktop-, iOS- und Android-Apps von dMsg. Bei Käufen über Google Play oder den App Store bearbeitet der jeweilige Store Abrechnung, Verlängerung, Kündigung und Erstattungsanträge. Verwalten Sie Abonnements im Store-Konto des Kaufs. Das Löschen Ihres dMsg-Kontos kündigt kein Abonnement.
 
 ## 1. Zustimmung zu diesen Bedingungen
 
@@ -57,7 +59,7 @@ Verbundene Anwendungen werden von ihren jeweiligen Betreibern bereitgestellt. F�
 
 Über den App Store erworbene Plus-, Pro- und Max-Tarife sind Jahresabonnements, die sich jährlich automatisch verlängern, sofern Sie nicht vor der Verlängerung kündigen. Apple belastet Ihren Apple Account. Preis, Währung, Laufzeit und enthaltene Leistungen werden vor der Kaufbestätigung angezeigt. Für Verlängerungen, Preisänderungen und Tarifwechsel gelten die von Apple bereitgestellten Bedingungen und Bestätigungen. Diese App-Store-Regeln gelten, wenn In-App-Käufe verfügbar sind; die Regeln für Wallet-Zahlungen und manuelle Verlängerungen in Abschnitt 7.2 finden auf diese Abonnements keine Anwendung.
 
-### 7.2 Zahlungen außerhalb des App Store
+### 7.2 Zahlungen außerhalb des App Store / Google Play
 
 dMsg bietet einen kostenlosen Tarif sowie kostenpflichtige Tarife an. Die Tarife, Ressourcenlimits und Preise werden im zertifizierten Katalog des dMsg-Commerce-Canisters veröffentlicht und Ihnen vor der Zahlung angezeigt. Die Preise sind in US-Dollar festgelegt.
 
@@ -76,7 +78,7 @@ Sie können die automatische Verlängerung in den Abonnementeinstellungen Ihres 
 
 Apple bearbeitet Abrechnungen und Erstattungsanträge für den App Store. Beantragen Sie eine Erstattung unter https://reportaproblem.apple.com oder beim Apple Support. Es gelten die Regeln von Apple und das anwendbare Recht; die Einschränkungen für Wallet-Erstattungen und Ledger-Gebühren in Abschnitt 8.2 gelten nicht für App-Store-Käufe. Wenn ein Kauf in dMsg noch nicht angezeigt wird, stellen Sie ihn mit dem ursprünglichen Apple Account und demselben dMsg-Konto wieder her, anstatt erneut zu bezahlen.
 
-### 8.2 Zahlungen außerhalb des App Store
+### 8.2 Zahlungen außerhalb des App Store / Google Play
 
 - Eine bereits begonnene kostenpflichtige Laufzeit wird nicht erstattet, außer in den in Abschnitt 11 genannten Fällen oder soweit gesetzlich vorgeschrieben.
 - Eine noch nicht begonnene Verlängerung kann storniert werden; der dafür gezahlte Betrag wird anschließend erstattet.

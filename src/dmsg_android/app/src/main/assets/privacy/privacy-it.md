@@ -1,8 +1,10 @@
 # Informativa sulla privacy di dMsg
 
-Ultimo aggiornamento: 2026-11-19.
+Ultimo aggiornamento: 2026-11-20.
 
 dMsg crittografa i contenuti privati sui tuoi dispositivi autorizzati. La presente informativa riguarda dmsg.net, l'applicazione web legacy di sola lettura, le app per desktop e iOS, connect.dmsg.net, il servizio cloud e i canister su Internet Computer (ICP). Con "noi" si intende il team che gestisce dMsg sotto la governance di ICPanda DAO. La disponibilità delle singole funzionalità dipende dalla versione dell'app e dalla configurazione del servizio.
+
+Questa informativa copre anche dMsg per Android. Con le notifiche attive, Firebase Cloud Messaging tratta un ID di installazione e un token di recapito per i promemoria generici. Play Integrity verifica l’installazione. Google fattura gli acquisti su Google Play e dMsg verifica il token di acquisto, il prodotto, l’account associato e lo stato dell’abbonamento.
 
 Non vendiamo dati personali né utilizziamo i tuoi contenuti a fini pubblicitari. Il sito web non contiene tracker pubblicitari o di analisi.
 

@@ -82,6 +82,7 @@ function assets(config: ConnectConfig): Plugin {
     },
     { match: 'assets/**/*', headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
     { match: '.well-known', ignore: false },
+    { match: '.well-known/assetlinks.json', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } },
     { match: '.well-known/apple-app-site-association', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } }
   ]
   return {

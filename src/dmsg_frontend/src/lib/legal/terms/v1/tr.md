@@ -1,8 +1,10 @@
 # dMsg Hizmet Şartları
 
-Sürüm 1. Son güncelleme: 2026-11-07.
+Sürüm 1. Son güncelleme: 2026-11-20.
 
 Bu şartlar, dmsg.net web sitesi, eski dMsg web uygulaması, dMsg tarayıcı uzantısı, dMsg bulut hizmeti ve Internet Computer (ICP) üzerindeki dMsg canister'ları dahil olmak üzere dMsg kullanımınızı düzenler. "dMsg" ve "biz", ICPanda DAO yönetişimi altında dMsg hizmetini işleten ekibi ifade eder. "Siz", dMsg'yi kullanan gerçek kişiyi veya kuruluşu ifade eder.
+
+Bu koşullar dMsg masaüstü, iOS ve Android uygulamalarını da kapsar. Google Play veya App Store üzerinden yapılan alımlarda faturalandırma, yenileme, iptal ve iade taleplerini mağaza yönetir. Aboneliğinizi satın alma işleminde kullandığınız mağaza hesabından yönetin. dMsg hesabınızı silmek aboneliği iptal etmez.
 
 ## 1. Bu şartların kabulü
 
@@ -57,7 +59,7 @@ Bağlı uygulamalar kendi işletmecileri tarafından yürütülür; sundukları 
 
 App Store üzerinden satın alınan Plus, Pro ve Max planları, yenileme tarihinden önce iptal etmediğiniz sürece her yıl otomatik olarak yenilenen bir yıllık aboneliklerdir. Ücretlendirme Apple tarafından Apple Hesabınız üzerinden yapılır. Satın alma işlemini onaylamadan önce fiyat, para birimi, abonelik süresi ve dahil olan haklar gösterilir. Yenilemeler, fiyat değişiklikleri ve plan değişiklikleri Apple'ın sunduğu koşullara ve onay süreçlerine tabidir. Bu App Store kuralları, uygulama içi satın alımlar sunulduğunda geçerlidir; bölüm 7.2'deki cüzdanla ödeme ve manuel yenileme kuralları bu aboneliklere uygulanmaz.
 
-### 7.2 App Store dışındaki ödemeler
+### 7.2 App Store / Google Play dışındaki ödemeler
 
 dMsg, Ücretsiz bir plan ve ücretli planlar sunar. Planlar, kaynak limitleri ve fiyatlar dMsg ticaret canister'ının sertifikalı kataloğunda yayınlanır ve ödeme yapmadan önce size gösterilir. Fiyatlar ABD doları (USD) cinsinden belirlenir.
 
@@ -76,7 +78,7 @@ Otomatik yenilemeyi Apple Hesabınızın abonelik ayarlarından veya dMsg içind
 
 App Store faturalandırma ve iade talepleri Apple tarafından işlenir. İade taleplerinizi https://reportaproblem.apple.com adresinden veya Apple Destek üzerinden iletebilirsiniz. İade uygunluğu Apple kurallarına ve yürürlükteki yasalara tabidir; bölüm 8.2'deki cüzdan iade kısıtlamaları ve defter (ledger) ücretleri App Store satın alımlarına uygulanmaz. Satın aldığınız plan dMsg'de görünmüyorsa tekrar ödeme yapmak yerine orijinal Apple Hesabınız ve aynı dMsg hesabınızla satın alımları geri yükleyin.
 
-### 8.2 App Store dışındaki ödemeler
+### 8.2 App Store / Google Play dışındaki ödemeler
 
 - Başlamış olan ücretli bir dönem için, bölüm 11'de belirtilen durumlar veya yasaların zorunlu kıldığı haller dışında iade yapılmaz.
 - Henüz başlamamış bir yenileme iptal edilebilir; bu durumda ödenen tutar iade edilir.
