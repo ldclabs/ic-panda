@@ -35,6 +35,10 @@
   "ic_message_channel_03": {
     "ic": "4jxyd-pqaaa-aaaah-qdqtq-cai"
   },
+  "dmsg_connect": {
+    "ic": "acjs3-cyaaa-aaaas-qg7da-cai",
+    "local": "acjs3-cyaaa-aaaas-qg7da-cai"
+  },
   "dmsg_frontend": {
     "ic": "2fvu6-tqaaa-aaaap-akksa-cai",
     "local": "2fvu6-tqaaa-aaaap-akksa-cai"

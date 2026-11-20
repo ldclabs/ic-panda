@@ -91,6 +91,17 @@
       "type": "assets",
       "workspace": "ic_panda_frontend"
     },
+    "dmsg_connect": {
+      "dependencies": [],
+      "build": [
+        "echo 'Disable dfx build for dmsg_connect because some issue, you should run npm build manually'"
+      ],
+      "source": [
+        "src/dmsg_connect/dist"
+      ],
+      "type": "assets",
+      "workspace": "dmsg_connect"
+    },
     "dmsg_frontend": {
       "dependencies": [],
       "build": [
