@@ -94,7 +94,7 @@ if [ -n "$FSKIT_ARCHIVE" ]; then
     python3 "$DESKTOP/native/fskit/build-module.py" --output "$WORK/fskit" \
         --configuration Release --team "$APPLE_TEAM_ID" --identity "$IDENTITY" --profile "$uuid"
     extension="$WORK/fskit/derived/Build/Products/Release/SecretsFS.appex"
-    embedded=$(node "$DESKTOP/scripts/fskit-package.cjs" profile-uuid "$extension/Contents/embedded.provisionprofile")
+    embedded=$(node "$DESKTOP/scripts/fskit-package.cjs" verify-module "$extension" "$FILE")
     [ "$embedded" = "$uuid" ] || error "Unexpected embedded FSKit profile"
     # Preserve Mach-O permissions and the nested signature across Actions jobs.
     ditto -c -k --keepParent "$extension" "$FSKIT_ARCHIVE"

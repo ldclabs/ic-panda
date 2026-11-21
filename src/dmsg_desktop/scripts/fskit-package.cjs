@@ -53,12 +53,15 @@ function verifyCode(bundle, identifier, team, release, ...flags) {
   execFileSync('/usr/bin/codesign', ['--verify', '--strict', ...flags, '-R', `=${expression}`, bundle])
 }
 
-function verifyMountEntitlements(moduleClaims, daemonClaims, team) {
+function verifyMountEntitlements(moduleClaims, daemonClaims, team, release) {
   const group = `${team}.net.dmsg.secrets`
   if (moduleClaims['com.apple.developer.fskit.fsmodule'] !== true || moduleClaims['com.apple.security.app-sandbox'] !== true) {
     throw new Error('SecretsFS needs its sandbox and FSKit Module entitlements')
   }
   for (const claims of [moduleClaims, daemonClaims]) {
+    if (release && claims['com.apple.security.get-task-allow'] === true) {
+      throw new Error('Release binaries must not request com.apple.security.get-task-allow')
+    }
     const groups = claims['com.apple.security.application-groups']
     if (!Array.isArray(groups) || !groups.includes(group)) throw new Error(`Missing FSKit App Group ${group}`)
   }
@@ -67,10 +70,10 @@ function verifyMountEntitlements(moduleClaims, daemonClaims, team) {
 function verifyModule(extension, daemon, team, release) {
   verifyCode(extension, moduleIdentifier, team, release)
   verifyCode(daemon, policy.daemonIdentifier, team, release)
-  verifyMountEntitlements(entitlements(extension), entitlements(daemon), team)
+  verifyMountEntitlements(entitlements(extension), entitlements(daemon), team, release)
   const profile = path.join(extension, 'Contents', 'embedded.provisionprofile')
-  if (release) distributionProfileUUID(profile)
-  else if (!fs.existsSync(profile)) throw new Error('Missing embedded FSKit profile')
+  if (release) return distributionProfileUUID(profile)
+  if (!fs.existsSync(profile)) throw new Error('Missing embedded FSKit profile')
 }
 
 function verifyApp(app, release) {
@@ -107,8 +110,9 @@ function afterSign(context) {
 module.exports = { afterPack, afterSign, verifyApp, validateDistributionProfile, verifyMountEntitlements }
 
 if (require.main === module) {
-  const [operation, file] = process.argv.slice(2)
+  const [operation, file, daemon] = process.argv.slice(2)
   if (operation === 'profile-uuid' && file) console.log(distributionProfileUUID(file))
+  else if (operation === 'verify-module' && file && daemon) console.log(verifyModule(file, daemon, policy.releaseTeam, true))
   else if (operation === 'verify-app' && file) verifyApp(file, true)
-  else throw new Error('Usage: fskit-package.cjs profile-uuid PROFILE | verify-app APP')
+  else throw new Error('Usage: fskit-package.cjs profile-uuid PROFILE | verify-module EXTENSION DAEMON | verify-app APP')
 }

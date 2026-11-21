@@ -106,9 +106,13 @@ test('FSKit distribution requires the Yiwen module profile and the IPC group on 
   }
   const daemon = { 'com.apple.security.application-groups': [team + '.net.dmsg.secrets'] }
   const extension = { ...daemon, 'com.apple.developer.fskit.fsmodule': true, 'com.apple.security.app-sandbox': true }
-  verifyMountEntitlements(extension, daemon, team)
-  assert.throws(() => verifyMountEntitlements(daemon, daemon, team))
-  assert.throws(() => verifyMountEntitlements({ ...extension, 'com.apple.security.app-sandbox': false }, daemon, team))
-  assert.throws(() => verifyMountEntitlements({ ...extension, 'com.apple.security.application-groups': [] }, daemon, team))
-  assert.throws(() => verifyMountEntitlements(extension, { 'com.apple.security.application-groups': [policy.sourceTeam + '.net.dmsg.secrets'] }, team))
+  verifyMountEntitlements(extension, daemon, team, true)
+  assert.throws(() => verifyMountEntitlements(daemon, daemon, team, true))
+  assert.throws(() => verifyMountEntitlements({ ...extension, 'com.apple.security.app-sandbox': false }, daemon, team, true))
+  assert.throws(() => verifyMountEntitlements({ ...extension, 'com.apple.security.application-groups': [] }, daemon, team, true))
+  assert.throws(() => verifyMountEntitlements(extension, { 'com.apple.security.application-groups': [policy.sourceTeam + '.net.dmsg.secrets'] }, team, true))
+  const debug = { 'com.apple.security.get-task-allow': true }
+  assert.throws(() => verifyMountEntitlements({ ...extension, ...debug }, daemon, team, true), /get-task-allow/)
+  assert.throws(() => verifyMountEntitlements(extension, { ...daemon, ...debug }, team, true), /get-task-allow/)
+  verifyMountEntitlements({ ...extension, ...debug }, daemon, team, false)
 })

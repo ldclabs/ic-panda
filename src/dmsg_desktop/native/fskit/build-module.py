@@ -34,7 +34,8 @@ command = [
 if args.profile:
     command.append("PROVISIONING_PROFILE_SPECIFIER=" + args.profile)
 if args.configuration == "Release" and args.profile:
-    command.append("OTHER_CODE_SIGN_FLAGS=--timestamp")
+    # This build ships directly, without Xcode's archive export stripping debugger access.
+    command.extend(["CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO", "OTHER_CODE_SIGN_FLAGS=--timestamp"])
 if args.provision:
     command.append("-allowProvisioningUpdates")
 subprocess.run([*command, "build"], check=True)
