@@ -64,18 +64,22 @@ import java.security.MessageDigest
     }
     fun check(manual: Boolean = false) {
         if (state.busy || state.concealed || needsLogin || client.qr.state.value is QrRequest) return
+        // The refresh transition cancels other operations in progress.
+        if (client.isWorking("access:pair-request") || client.isWorking("access:invitation")) return
         if (!manual && (!polling || state.session?.state !in setOf("pairing_required", "root_required"))) return
         if (manual) polling = true
         client.perform({ it.refreshAccount() }, transition = true, userInitiated = manual, onError = { code ->
             failure = code; needsLogin = code in setOf("AUTH_REQUIRED", "LOGIN_EXPIRED")
             if (needsLogin || code == "CANCELLED" || code.contains("HARDWARE") || code.startsWith("BIOMETRIC") || code.startsWith("DEVICE_CREDENTIAL") || code == "AUTHENTICATION_TIMEOUT") polling = false
-        }) { failure = null }
+        }) { refreshed ->
+            failure = null
+            if (refreshed.state == "pairing_required" && token != null && android.os.SystemClock.elapsedRealtime() >= refreshAt) request()
+        }
     }
     LaunchedEffect(Unit) {
         if (state.session?.state == "pairing_required") request()
         while (true) {
             delay(5000)
-            if (state.session?.state == "pairing_required" && token != null && android.os.SystemClock.elapsedRealtime() >= refreshAt) request()
             check()
         }
     }
@@ -107,7 +111,12 @@ import java.security.MessageDigest
         }
         failure?.let { Notice(errorText(it), true) }
         if (needsLogin) TextButton(onClick = { client.showAccess(AccessPage.WELCOME) }) { Text(str(R.string.text_return_to_sign_in_b22d5c4)) }
-        else OutlinedButton(onClick = { check(manual = true) }, enabled = !state.busy) { Text(str(if (!polling || state.session?.state == "locked") R.string.text_unlock_workspace_ec9cb2a else R.string.text_check_authorization_039f8a2)) }
+        else OutlinedButton(
+            onClick = { check(manual = true) },
+            enabled = !state.busy && !state.working("access:pair-request") && !state.working("access:invitation")
+        ) {
+            Text(str(if (!polling || state.session?.state == "locked") R.string.text_unlock_workspace_ec9cb2a else R.string.text_check_authorization_039f8a2))
+        }
         OutlinedButton(onClick = { client.showAccess(AccessPage.HANDOVER) }) { Text(str(R.string.text_replace_an_old_device_186797a)) }
         TextButton(onClick = { client.showAccess(AccessPage.RECOVERY) }) { Text(str(R.string.text_all_devices_lost_c768f48)) }
     }

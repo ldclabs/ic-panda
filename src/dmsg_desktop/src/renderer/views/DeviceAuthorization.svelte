@@ -70,8 +70,8 @@
       } else timer = setTimeout(() => void poll(turn, invite), 1500)
     } catch (e) {
       if (current(turn)) {
-        error = errorText(e)
-        if (['UNAVAILABLE', 'EXECUTION_UNKNOWN'].includes(code(e)) && invite.expires_at > Date.now()) timer = setTimeout(() => void poll(turn, invite), 5000)
+        error = requestError(e)
+        if (['UNAVAILABLE', 'NETWORK_UNAVAILABLE', 'EXECUTION_UNKNOWN', 'POLICY_STALE'].includes(code(e)) && invite.expires_at > Date.now()) timer = setTimeout(() => void poll(turn, invite), 5000)
         else cancelInvitation()
       }
     }
@@ -169,7 +169,12 @@
       }
       await bridge(() => window.dmsg.openApproval(pending))
       if (current(turn)) setOpen(false)
-    } catch (e) { if (current(turn)) error = errorText(e) }
+    } catch (e) {
+      if (current(turn)) {
+        if (!pending && candidate && code(e) === 'VERSION_CONFLICT') candidate = { ...candidate, route: 'refresh' }
+        else error = requestError(e)
+      }
+    }
     finally { if (current(turn)) busy = '' }
   }
 
@@ -255,7 +260,7 @@
         {:else}
           <Notice>{t('securityApprovalHint')}</Notice>
         {/if}
-        {#if expired && !manual}<button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={!!busy} onclick={invite}>{t('retry')}</button>{/if}
+        {#if !manual && (expired || candidate.route === 'refresh')}<button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={disabled || !canInvite || !!busy} onclick={invite}>{t('retry')}</button>{/if}
       </div>
     {/if}
   </div>

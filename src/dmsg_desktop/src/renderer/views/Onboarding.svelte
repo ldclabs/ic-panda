@@ -13,7 +13,7 @@
   import { copyText } from '../components/clipboard'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { call, errorText, onChange, when } from '../rpc'
+  import { call, code, errorText, onChange, when } from '../rpc'
 
   /** What a login without a ready workspace does next: create or join an account, pair, or recover. */
   let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
@@ -80,7 +80,8 @@
       await call('session/unlock', automatic ? { pairing_poll: true } : {})
       polling = true
     } catch (e) {
-      polling = false
+      // The desktop reports a network failure inside unlock as UNAVAILABLE.
+      if (!['DAEMON_DISCONNECTED', 'UNAVAILABLE', 'EXECUTION_UNKNOWN', 'POLICY_STALE', 'SYNC_BUSY'].includes(code(e))) polling = false
       throw e
     }
   })
@@ -94,6 +95,7 @@
     })
 
   onMount(() => {
+    if (status?.state === 'root_required' && !status.setup_pending) polling = true
     if (recoverable) void recoveryCall('recovery/status')
     const off = onChange(['recovery/changed'], () => { if (recoverable) void recoveryCall('recovery/status') })
     const timer = setInterval(() => { now = Date.now() }, 1000)
@@ -136,7 +138,7 @@
       </div>
       <Checkbox bind:checked={member} disabled={busy} onCheckedChange={() => (pairing = null)}>{t('memberRole')}</Checkbox>
       <div class="flex flex-wrap gap-2">
-        <button class={buttonClass('primary')} disabled={busy || (!!pairing && (!pairing.expires_at || pairing.expires_at > now))} data-testid="pair-request" onclick={pair}>{t('pairRequest')}</button>
+        <button class={buttonClass('primary')} disabled={busy} data-testid="pair-request" onclick={pair}>{t(pairing ? 'refresh' : 'pairRequest')}</button>
         <button class={buttonClass('secondary')} disabled={busy} onclick={() => joined()}>{t('checkApproval')}</button>
       </div>
       {#if pairing}

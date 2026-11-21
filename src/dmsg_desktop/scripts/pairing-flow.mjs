@@ -3,9 +3,9 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /** Real Electron UI/IPC and QR pixels, with an isolated daemon fixture. */
-export async function pairingFlow({ app, main, shots, methods, hold, waitFor, calls, created }) {
+export async function pairingFlow({ app, main, shots, methods, hold, waitFor, calls, created, emit, setSession }) {
   const vector = JSON.parse(readFileSync(new URL('../../../tests/vectors/client/device-invite-v2.json', import.meta.url)))
-  let sequence = 0, next = null, failInvite = false, failApprove = false, scanReady = false
+  let sequence = 0, next = null, failInvite = false, failInspect = false, approveError, scanReady = false
   const preview = token => ({ token, kind: 'device_pair', route: 'approve', device_id: '34'.repeat(32), role: 'Administrator', capabilities: ['ContentSign', 'VaultUnlock', 'RootManage'], expires_at: Date.now() + 240000 })
   const count = method => calls.filter(c => c.method === method).length
   const last = method => calls.filter(c => c.method === method).at(-1)
@@ -16,6 +16,7 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   methods['device/pair_invite_status'] = p => ({ id: p.id, candidate: next })
   methods['device/pair_invite_cancel'] = () => null
   methods['device/pair_inspect'] = p => {
+    if (failInspect) { failInspect = false; throw { code: 'POLICY_STALE', message: 'Fixture account changed during preview' } }
     if (p.token === 'invalid') throw { code: 'INTEGRITY_FAILED', message: 'Fixture bad pairing proof' }
     if (p.token === 'other-device') return { ...preview(p.token), route: 'handoff', can_enroll: true, approvers: ['56'.repeat(32)], qr: vector.qr }
     if (p.token === 'expired-request') return { ...preview(p.token), expires_at: Date.now() - 1 }
@@ -30,7 +31,7 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   }
   methods['device/key_request'] = () => ({ token: 'signed-key-request', device_id: '78'.repeat(32), key_id: '9a'.repeat(32), qr: vector.qr })
   methods['device/approve'] = p => {
-    if (failApprove) throw { code: 'UNAVAILABLE', message: 'Fixture approval failure' }
+    if (approveError) throw { code: approveError, message: 'Fixture approval failure' }
     return created('e9'.repeat(32), 'device_pair', preview(p.token))
   }
   const go = async part => { await main.evaluate(part => location.hash = `/settings/${part}`, part) }
@@ -82,11 +83,11 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   await main.getByTestId('device-pair-preview').getByText('Content signing', { exact: true }).waitFor()
   await main.getByTestId('device-pair-preview').getByText('Unlock workspace', { exact: true }).waitFor()
   await main.getByTestId('device-pair-preview').getByText('Manage account security', { exact: true }).waitFor()
-  failApprove = true
+  approveError = 'UNAVAILABLE'
   await main.getByTestId('device-pair-review').click()
   await main.getByTestId('device-authorization-error').waitFor()
   assert.equal(await main.getByTestId('device-pair-preview').isVisible(), true)
-  failApprove = false
+  approveError = undefined
   const finishApproval = hold('device/approve')
   await main.getByTestId('device-pair-review').click()
   await waitFor(() => count('device/approve') === 2)
@@ -96,6 +97,25 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   await main.getByTestId('device-authorization').waitFor({ state: 'detached' })
   assert.deepEqual(last('device/approve').params, { token: 'scanned-request', device: '34'.repeat(32), source: 'gui' })
   assert.equal(count('approval/respond'), 0, 'transport and review never authorize automatically')
+
+  // A concurrent account change can interrupt the preview or invalidate it before review.
+  failInspect = true
+  next = preview('joining-request')
+  await open()
+  await main.getByTestId('device-authorization-error').waitFor()
+  assert.equal(await main.getByTestId('device-invitation-qr').isVisible(), true)
+  await main.getByTestId('device-pair-preview').waitFor()
+  next = null
+  approveError = 'VERSION_CONFLICT'
+  await main.getByTestId('device-pair-review').click()
+  await main.getByText('Refresh the request on the joining device and scan it again.', { exact: true }).waitFor()
+  assert.equal(await main.getByTestId('device-pair-review').count(), 0)
+  const invitations = count('device/pair_invite')
+  await main.getByTestId('device-authorization').getByRole('button', { name: 'Retry' }).click()
+  await main.getByTestId('device-invitation-qr').waitFor()
+  assert.equal(count('device/pair_invite'), invitations + 1)
+  await close()
+  approveError = undefined
 
   // An unavailable relay still leaves the direct request flow usable. Edits invalidate a pending preview.
   failInvite = true
@@ -274,4 +294,34 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   assert.equal(await main.getByTestId('device-pair-review').isDisabled(), true)
   await close()
   next = null
+
+  // The joining desktop can replace a still-valid request and retry after losing its connection.
+  let made = 0, checks = 0
+  methods['device/pair_request'] = () => ({ ...preview(`joining-request-${++made}`), qr: vector.qr })
+  methods['device/moved_list'] = () => []
+  methods['recovery/status'] = () => ({ enabled: false })
+  methods['session/unlock'] = p => {
+    assert.equal(p.pairing_poll, true)
+    if (++checks === 1) throw { code: 'NETWORK_UNAVAILABLE', message: 'Fixture connection interrupted' }
+    if (checks > 2) {
+      setSession(checks === 3 ? 'root_required' : 'unlocked')
+      emit('session/changed')
+    }
+    return null
+  }
+  await main.evaluate(async () => { await window.dmsg.setLocale('en') })
+  setSession('pairing_required')
+  emit('session/changed')
+  const generate = main.getByTestId('onboarding').getByTestId('pair-request')
+  await generate.click()
+  await main.getByTestId('pair-token').filter({ hasText: 'joining-request-1' }).waitFor()
+  await generate.focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('pair-token').filter({ hasText: 'joining-request-2' }).waitFor()
+  await main.screenshot({ path: join(shots, 'pairing-refresh-joining.png'), animations: 'disabled' })
+  await waitFor(() => checks === 2)
+  assert.equal(await main.getByTestId('pair-token').isVisible(), true)
+  await main.getByText('Approved. Preparing your vault…', { exact: true }).waitFor()
+  await waitFor(() => checks === 4)
+  await main.getByTestId('welcome-finish').waitFor()
 }

@@ -347,6 +347,12 @@ struct RpcRequest {
     params: Value,
 }
 
+impl RpcRequest {
+    fn pairing_poll(&self) -> bool {
+        self.method == "session/unlock" && self.params["pairing_poll"] == true
+    }
+}
+
 async fn local_auth(
     daemon: &Daemon,
     request: dmsg_client::local::Challenge,
@@ -2365,7 +2371,7 @@ fn reply_failure(id: &Value, error: &Error) -> Value {
 /// resident Agent ID works while locked.
 fn is_activity(request: &RpcRequest, reports: bool) -> bool {
     let method = request.method.as_str();
-    if method.starts_with("notifications/") {
+    if method.starts_with("notifications/") || request.pairing_poll() {
         return false;
     }
     if reports {
@@ -2414,6 +2420,12 @@ impl Daemon {
         if !agent_method && is_activity(&request, reports) {
             self.activity.store(now_ms(), Ordering::Relaxed);
         }
+        let before = if request.pairing_poll() {
+            let client = self.client.lock().await;
+            Some((client.session_generation(), client.session_state().state))
+        } else {
+            None
+        };
         let started = std::time::Instant::now();
         let outcome = match session {
             Session::Owner => self.call(module, method, &request.params).await,
@@ -2428,8 +2440,17 @@ impl Daemon {
         );
         match outcome {
             Ok(result) => {
-                for kind in events_of(module, method) {
-                    self.emit(kind, json!({"method": method}));
+                // A no-op poll must not discard the desktop's joining request.
+                let changed = if let Some(before) = before {
+                    let client = self.client.lock().await;
+                    before != (client.session_generation(), client.session_state().state)
+                } else {
+                    true
+                };
+                if changed {
+                    for kind in events_of(module, method) {
+                        self.emit(kind, json!({"method": method}));
+                    }
                 }
                 json!({"jsonrpc": "2.0", "id": id, "result": result})
             }
@@ -4272,9 +4293,23 @@ mod tests {
             dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
             crate::mcp_events::McpEvents::new(&[]).unwrap(),
         );
+        let mut events = daemon.events.subscribe();
+        daemon.activity.store(0, Ordering::Relaxed);
+        let reply = daemon
+            .dispatch(
+                request("session/unlock", json!({"pairing_poll": true})),
+                &Session::Owner,
+                false,
+            )
+            .await;
+        assert_eq!(reply["result"]["state"], "locked");
+        assert_eq!(daemon.activity.load(Ordering::Relaxed), 0);
+        assert!(matches!(
+            events.try_recv(),
+            Err(broadcast::error::TryRecvError::Empty)
+        ));
         // The desktop reports only input in its windows, and a window that
         // asks for Touch ID as it comes to the front has none.
-        daemon.activity.store(0, Ordering::Relaxed);
         let status = daemon
             .call_daemon("session/unlock", &json!({"fast": true}))
             .await
@@ -4366,6 +4401,11 @@ mod tests {
     fn activity_of_requests() {
         assert!(is_activity(&request("vault/list", Value::Null), false));
         assert!(!is_activity(&request("daemon/status", Value::Null), false));
+        assert!(is_activity(&request("session/unlock", json!({})), false));
+        assert!(!is_activity(
+            &request("session/unlock", json!({"pairing_poll": true})),
+            false
+        ));
         // A client that reports its person's activity: only the reports count.
         assert!(!is_activity(&request("vault/list", Value::Null), true));
         assert!(is_activity(&request("app/activity", Value::Null), true));

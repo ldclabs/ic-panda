@@ -1499,7 +1499,9 @@ server.on('upgrade', (req, socket, head) => {
       }
       const send = () => {
         if (['profile/publish', 'profile/retry'].includes(message.method) && reply.result?.published) emit('profile/changed')
-        if (handler && !reply.error) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
+        if (handler && !reply.error && !(message.method === 'session/unlock' && message.params?.pairing_poll === true)) {
+          for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
+        }
         ws.send(JSON.stringify(reply))
       }
       if (held.has(message.method) && (!heldFilters.has(message.method) || heldFilters.get(message.method)(message.params))) held.set(message.method, send)
@@ -2178,7 +2180,7 @@ smoke: try {
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'pairing') {
-    await pairingFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created })
+    await pairingFlow({ app, main, shots, methods, emit, hold, waitFor, calls, created, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])
     console.log('desktop device invitation smoke test passed')
     break smoke

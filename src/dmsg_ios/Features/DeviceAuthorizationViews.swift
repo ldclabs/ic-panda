@@ -60,7 +60,7 @@ struct PairView: View {
         }.privateScreen().navigationTitle("Join account")
             .task(id: model.epoch) { await watch() }
             .onChange(of: model.session?.state) {
-                if model.session?.state == "logged_out" { dismiss() }
+                if model.session?.state == "logged_out" || (model.session?.state == "locked" && !paused && !needsLogin) { dismiss() }
             }
     }
 

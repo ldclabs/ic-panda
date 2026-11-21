@@ -134,7 +134,7 @@ fn waiting_for_the_pairing_root_opens_the_device_hardware_once() {
         testing,
     };
     use dmsg_types::{
-        Hash, Result,
+        Error, Hash, Result,
         user::{AccountMutation, ControllerRole},
     };
     use k256::elliptic_curve::zeroize::Zeroizing;
@@ -225,6 +225,15 @@ fn waiting_for_the_pairing_root_opens_the_device_hardware_once() {
                 .await
                 .unwrap();
         assert_eq!(stale["route"], "refresh");
+        let result = dmsg_client::approval::add_device_request(
+            &admin.cooperative_hold(),
+            "gui",
+            &token,
+            preview["device_id"].as_str().unwrap(),
+        )
+        .await;
+        assert_eq!(result, Err(Error::VersionConflict));
+        assert_eq!(admin.approvals_waiting().unwrap(), 0);
         let token = phone
             .pair_request(ControllerRole::Administrator)
             .await

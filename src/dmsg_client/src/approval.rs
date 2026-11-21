@@ -2178,8 +2178,8 @@ pub async fn revoke_request<H: Hold>(h: &H, source: &str, device_id: Hash) -> Re
 /// # Errors
 /// Returns `Error::Forbidden` on a device that cannot approve account
 /// changes, `Error::InvalidInput` when `device` is not the token's, and
-/// refuses a token of another account, an expired one or a bad proof of
-/// possession.
+/// `Error::VersionConflict` when the joining device needs to refresh.
+/// Refuses a token of another account, an expired one or a bad proof of possession.
 pub async fn add_device_request<H: Hold>(
     h: &H,
     source: &str,
@@ -2199,6 +2199,10 @@ pub async fn add_device_request<H: Hold>(
         ensure(
             hex::encode(*pairing.device.device_id) == device,
             Error::InvalidInput("device does not match the request".into()),
+        )?;
+        ensure(
+            pairing.mutation.expected_version == security.snapshot.account_version,
+            Error::VersionConflict,
         )?;
         let expires_at = pairing
             .mutation
