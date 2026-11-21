@@ -16,7 +16,7 @@ import kotlinx.coroutines.delay
 import net.dmsg.android.core.*
 import net.dmsg.core.PasskeyOperation
 
-@Composable fun LoginIdentitiesScreen(client: ClientController, browser: (String) -> Unit) {
+@Composable fun LoginIdentitiesScreen(client: ClientController, openLogin: (String) -> Unit) {
     val session by client.state.collectAsStateWithLifecycle()
     val security by client.account.security.state.collectAsStateWithLifecycle()
     val devices by client.account.devices.state.collectAsStateWithLifecycle()
@@ -37,7 +37,7 @@ import net.dmsg.core.PasskeyOperation
             TextButton(onClick = { client.approvals.request("login:remove:" + login.principal) { it.removeLogin(login.principal) } }, enabled = manage && !login.current && value.logins.size > 1) { Text(str(R.string.text_review_removing_this_login_7a4b004)) }
             HorizontalDivider()
         }
-        OutlinedButton(onClick = { client.login(binding = true, open = browser) }, enabled = manage && !session.busy) { Text(str(R.string.text_bind_another_internet_identity_92200a6)) }
+        OutlinedButton(onClick = { client.login(binding = true, open = openLogin) }, enabled = manage && !session.busy) { Text(str(R.string.text_bind_another_internet_identity_92200a6)) }
         if (session.bindingRetry) {
             Notice(str(R.string.text_the_verified_login_is_waiting_for_binding_continue_the_original_a_74d014f))
             Button(onClick = client::continueBrowserBinding, enabled = !session.busy) { Text(str(R.string.text_continue_internet_identity_binding_459296a)) }

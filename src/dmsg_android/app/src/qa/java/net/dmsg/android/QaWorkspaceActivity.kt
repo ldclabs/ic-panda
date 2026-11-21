@@ -29,7 +29,8 @@ class QaWorkspaceActivity : ComponentActivity() {
         AppLanguage.applyToWindow(this)
         enableEdgeToEdge()
         model = ViewModelProvider(this)[QaWorkspaceModel::class.java]
-        setContent { DMsgApp(model.client, browser = { model.client.showError("UNSUPPORTED_PROTOCOL") }, share = { _, _ -> model.client.showError("UNSUPPORTED_PROTOCOL") }) }
+        val unavailable: (String) -> Unit = { model.client.showError("UNSUPPORTED_PROTOCOL") }
+        setContent { DMsgApp(model.client, browser = unavailable, openLogin = unavailable, share = { _, _ -> model.client.showError("UNSUPPORTED_PROTOCOL") }) }
         if (intent.getBooleanExtra("scale_probe", false)) model.seedScale()
     }
     override fun onStart() { super.onStart(); model.client.prompts.attach(this) }

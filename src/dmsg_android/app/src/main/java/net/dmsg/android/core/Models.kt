@@ -56,7 +56,9 @@ fun parseApprovals(json: String) = Json.parseToJsonElement(json).arrayRows().map
 fun parseLetters(json: String) = Json.parseToJsonElement(json).arrayRows().map { Letter(it.required("order_id"), it.required("sender"), it.required("text"), it.requiredFlag("read"), it.requiredFlag("archived"), it.required("state"), it.requiredUnsigned("created_at")) }
 
 object LoginCallback {
-    const val TARGET = "https://dmsg.net/_/android/auth/callback"
+    const val HOST = "dmsg.net"
+    const val PATH = "/_/android/auth/callback"
+    const val TARGET = "https://$HOST$PATH"
     fun valid(raw: String): Boolean {
         if (raw.length > 96 * 1024 || !raw.startsWith("$TARGET#")) return false
         val fragment = raw.substring(TARGET.length + 1)

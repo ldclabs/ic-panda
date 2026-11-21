@@ -23,7 +23,7 @@ class WelcomeIntentTest {
         val sample = mutableStateOf(initial.copy(session = session))
         val requestsBefore = client.state.value.session!!.approvalsWaiting
         compose.runOnUiThread {
-            compose.activity.setContent { DMsgTheme(false) { EntryScreen(client, sample.value, {}, remember { SnackbarHostState() }) } }
+            compose.activity.setContent { DMsgTheme(false) { EntryScreen(client, sample.value, {}, {}, remember { SnackbarHostState() }) } }
         }
         compose.onNodeWithText("Open an existing account").performClick()
         compose.onNodeWithText("Use an existing passkey").assertIsDisplayed()

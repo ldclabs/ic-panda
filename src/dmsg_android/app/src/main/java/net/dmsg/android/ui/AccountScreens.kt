@@ -29,11 +29,11 @@ import kotlinx.serialization.json.*
 import net.dmsg.android.core.*
 import net.dmsg.core.*
 
-@Composable fun AccountScreen(client: ClientController, state: UiState, go: (String) -> Unit, browser: (String) -> Unit) {
+@Composable fun AccountScreen(client: ClientController, state: UiState, go: (String) -> Unit, openLogin: (String) -> Unit) {
     var choosingLanguage by remember { mutableStateOf(false) }
     if (choosingLanguage) LanguagePicker { choosingLanguage = false }
     Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(20.dp)) {
-        AccountIdentityHeader(client, browser)
+        AccountIdentityHeader(client, openLogin)
         SectionTitle(str(R.string.text_identity_and_security_b4f1b0c))
         AccountRow(str(R.string.text_approvals_1b5e94c), Icons.AutoMirrored.Outlined.FactCheck,
             state.session?.approvalsWaiting?.let(::localizedNumber) ?: "—") { go("approvals") }

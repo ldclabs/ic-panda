@@ -47,7 +47,7 @@ private val allDestinations = listOf(
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun DMsgApp(client: ClientController, browser: (String) -> Unit, share: (File, String) -> Unit) {
+@Composable fun DMsgApp(client: ClientController, browser: (String) -> Unit, openLogin: (String) -> Unit, share: (File, String) -> Unit) {
     val state by client.state.collectAsStateWithLifecycle()
     val local = state.session?.accountKind == "local"
     val destinations = if (local) allDestinations.filter { it.id != "messages" } else allDestinations
@@ -91,7 +91,7 @@ private val allDestinations = listOf(
             when {
                 state.starting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 state.concealed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.dmsg_mark), null, Modifier.size(52.dp)) }
-                !state.unlocked -> EntryScreen(client, state, browser, snackbar)
+                !state.unlocked -> EntryScreen(client, state, browser, openLogin, snackbar)
                 else -> BoxWithConstraints {
                     val density = LocalDensity.current
                     val separatedPanesFit = fold?.let { feature -> with(density) {
@@ -178,7 +178,7 @@ private val allDestinations = listOf(
                                     "system-files" -> SystemExportsScreen(client, net.dmsg.android.platform.ExportPurpose.files)
                                     "file-trash" -> FilesScreen(client, state, selected, ::select, share, trash = true)
                                     "approvals" -> ApprovalsScreen(client, state, selected, ::select)
-                                    "account" -> if (local) LocalSettings(client, ::go) else AccountScreen(client, state, ::go, browser)
+                                    "account" -> if (local) LocalSettings(client, ::go) else AccountScreen(client, state, ::go, openLogin)
                                     "system-integrations" -> SystemIntegrationsScreen(client)
                                     "advanced" -> AdvancedAccountScreen(client)
                                     "about" -> AboutScreen(browser) { client.navigation.push(Route("privacy")) }
@@ -215,7 +215,7 @@ private val allDestinations = listOf(
                                     "devices" -> DevicesScreen(client)
                                     "recovery" -> RecoveryScreen(client, navigation.current.id)
                                     "recovery-policy" -> RecoveryPolicyScreen(client)
-                                    "bindings" -> LoginIdentitiesScreen(client, browser)
+                                    "bindings" -> LoginIdentitiesScreen(client, openLogin)
                                     "hardware" -> HardwareScreen(client)
                                     "pair-approve" -> PairApprovalScreen(client)
                                     "notifications" -> NotificationsScreen(client)
@@ -257,7 +257,7 @@ private val allDestinations = listOf(
                                     else -> EmptyPanel(str(R.string.text_choose_a_destination_f70f6ae))
                                 } }
                                 if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
-                                    list = { AccountScreen(client, state, ::go, browser) },
+                                    list = { AccountScreen(client, state, ::go, openLogin) },
                                     detail = { if (route == "account") EmptyPanel(str(R.string.text_choose_a_destination_f70f6ae)) else pageContent() })
                                 else pageContent()
                             }

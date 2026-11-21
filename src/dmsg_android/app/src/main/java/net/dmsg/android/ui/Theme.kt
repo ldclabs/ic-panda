@@ -95,6 +95,7 @@ fun errorText(code: String): String = when (code) {
     "DEVICE_LOCKED" -> str(R.string.text_unlock_the_phone_before_opening_these_copies_92b7796)
     "INCOMING_KEY_UNAVAILABLE" -> str(R.string.text_this_installation_cannot_open_the_pending_shared_copies_4de1049)
     "INVALID_LINK" -> str(R.string.text_this_link_is_not_a_supported_dmsg_request_679a1ec)
+    "LOGIN_DOMAIN_UNVERIFIED" -> str(R.string.text_address_verification_failed_b36aa77)
     "KEY_VERIFIED" -> str(R.string.text_the_key_signed_and_verified_a_local_challenge_eb69eeb)
     "PREVIEW_EXPIRED" -> str(R.string.text_refresh_the_transfer_preview_before_submitting_9a48d14)
     "REMINDER_UNAVAILABLE" -> str(R.string.text_this_reminder_cannot_open_its_original_item_here_f6a992c)

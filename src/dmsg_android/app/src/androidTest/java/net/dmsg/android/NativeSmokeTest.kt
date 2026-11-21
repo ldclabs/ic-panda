@@ -1,7 +1,13 @@
 package net.dmsg.android
 
+import android.app.Activity
+import android.app.Instrumentation
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.view.WindowManager
+import androidx.browser.auth.AuthTabIntent
+import androidx.browser.customtabs.CustomTabsClient
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -48,6 +54,46 @@ class NativeSmokeTest {
             check(android.os.SystemClock.elapsedRealtime() < until) { "Condition timed out" }
             Thread.sleep(50)
         }
+    }
+
+    @Test fun browserLoginReceivesTheHttpsFragmentThroughTheSupportedReturnPath() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val app = instrumentation.targetContext.applicationContext as DMsgApplication
+        val request = "https://dmsg.net/_/login#offline-test"
+        val returned = Uri.parse("https://dmsg.net/_/android/auth/callback#YWJj")
+        var launched: Intent? = null
+        val monitor = object : Instrumentation.ActivityMonitor() {
+            override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {
+                if (intent.dataString != request) return null
+                launched = Intent(intent)
+                return Instrumentation.ActivityResult(Activity.RESULT_OK, Intent().setData(returned))
+            }
+        }
+        instrumentation.addMonitor(monitor)
+        try {
+            // ActivityScenario follows the intent after the fallback App Link's data has been cleared.
+            val entry = Intent(Intent.ACTION_VIEW, null, app, MainActivity::class.java)
+            ActivityScenario.launch<MainActivity>(entry).use { scenario ->
+                await { !app.client.state.value.starting && app.client.state.value.session != null }
+                scenario.onActivity { activity ->
+                    app.client.clearNotice()
+                    activity.openLogin(request)
+                    val tab = checkNotNull(launched)
+                    val browser = CustomTabsClient.getPackageName(activity, null) ?: tab.`package`
+                    if (browser != null && CustomTabsClient.isAuthTabSupported(activity, browser)) {
+                        assertTrue(tab.getBooleanExtra(AuthTabIntent.EXTRA_LAUNCH_AUTH_TAB, false))
+                        assertEquals("dmsg.net", tab.getStringExtra(AuthTabIntent.EXTRA_HTTPS_REDIRECT_HOST))
+                        assertEquals("/_/android/auth/callback", tab.getStringExtra(AuthTabIntent.EXTRA_HTTPS_REDIRECT_PATH))
+                        assertFalse(tab.hasExtra(AuthTabIntent.EXTRA_REDIRECT_SCHEME))
+                    } else {
+                        assertFalse(tab.getBooleanExtra(AuthTabIntent.EXTRA_LAUNCH_AUTH_TAB, false))
+                        activity.startActivity(Intent(Intent.ACTION_VIEW, returned, activity, MainActivity::class.java))
+                    }
+                }
+                // A complete callback reached the login parser. This offline test has no pending II request.
+                await { app.client.state.value.error == "LOGIN_EXPIRED" }
+            }
+        } finally { instrumentation.removeMonitor(monitor) }
     }
 
     @Test fun nativeStartupRotationAndLockInvalidateOldScopedHandles() {

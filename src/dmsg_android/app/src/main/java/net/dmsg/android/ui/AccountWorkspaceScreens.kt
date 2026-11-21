@@ -32,7 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.BuildConfig
 import net.dmsg.android.core.*
 
-@Composable fun AccountIdentityHeader(client: ClientController, browser: (String) -> Unit) {
+@Composable fun AccountIdentityHeader(client: ClientController, openLogin: (String) -> Unit) {
     val state by client.state.collectAsStateWithLifecycle()
     val names by client.accountNames.collectAsStateWithLifecycle()
     val image by client.profile.bitmap.collectAsStateWithLifecycle()
@@ -68,7 +68,7 @@ import net.dmsg.android.core.*
         Notice(str(R.string.text_online_sign_in_has_expired_local_content_remains_available_b845b15))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { client.passkey() }, enabled = !state.busy) { Text(str(R.string.text_sign_in_with_passkey_0c861d7)) }
-            TextButton(onClick = { client.login(open = browser) }, enabled = !state.busy) { Text(str(R.string.text_use_internet_identity_cc89ec7)) }
+            TextButton(onClick = { client.login(open = openLogin) }, enabled = !state.busy) { Text(str(R.string.text_use_internet_identity_cc89ec7)) }
         }
     }
 }

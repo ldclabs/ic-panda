@@ -4,20 +4,40 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.browser.auth.AuthTabIntent
+import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.browser.customtabs.CustomTabsService
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import net.dmsg.android.core.LoginCallback
 import net.dmsg.android.ui.DMsgApp
 
 class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) = super.attachBaseContext(net.dmsg.android.platform.AppLanguage.wrap(newBase))
     private val client get() = (application as DMsgApplication).client
     private var callback: String? = null
+    private val loginLauncher = AuthTabIntent.registerActivityResultLauncher(this) { result ->
+        when (result.resultCode) {
+            AuthTabIntent.RESULT_OK -> {
+                val url = result.resultUri?.toString()
+                if (url != null && LoginCallback.valid(url)) {
+                    callback = url
+                    if (hasWindowFocus()) consumeCallback()
+                } else client.browserLoginFailed("INVALID_LINK")
+            }
+            AuthTabIntent.RESULT_CANCELED -> client.browserLoginFailed("CANCELLED")
+            AuthTabIntent.RESULT_VERIFICATION_FAILED -> client.browserLoginFailed("LOGIN_DOMAIN_UNVERIFIED")
+            AuthTabIntent.RESULT_VERIFICATION_TIMED_OUT -> client.browserLoginFailed("AUTHENTICATION_TIMEOUT")
+            else -> client.browserLoginFailed("UNAVAILABLE")
+        }
+    }
     private val screenOff = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) { if (intent.action == Intent.ACTION_SCREEN_OFF) client.lock() }
     }
@@ -32,7 +52,8 @@ class MainActivity : ComponentActivity() {
         ContextCompat.registerReceiver(this, screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), ContextCompat.RECEIVER_NOT_EXPORTED)
         setContent {
             DMsgApp(client,
-                browser = { url -> CustomTabsIntent.Builder().build().launchUrl(this, android.net.Uri.parse(url)) },
+                browser = { url -> CustomTabsIntent.Builder().build().launchUrl(this, Uri.parse(url)) },
+                openLogin = ::openLogin,
                 share = { file, mime ->
                     client.beginExternalInteraction()
                     val uri = FileProvider.getUriForFile(this, "$packageName.files", file)
@@ -42,6 +63,24 @@ class MainActivity : ComponentActivity() {
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }, null))
                 })
+        }
+    }
+
+    internal fun openLogin(url: String) {
+        val uri = Uri.parse(url)
+        val browser = CustomTabsClient.getPackageName(this, null)
+            ?: packageManager.resolveService(Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION)
+                .addCategory(CustomTabsService.CATEGORY_AUTH_TAB), 0)?.serviceInfo?.packageName
+        if (browser != null && CustomTabsClient.isAuthTabSupported(this, browser)) {
+            val tab = AuthTabIntent.Builder().build()
+            tab.intent.setPackage(browser)
+            tab.launch(loginLauncher, uri, LoginCallback.HOST, LoginCallback.PATH)
+        } else {
+            // Older browsers return through the verified App Link. Closing their tab
+            // must not deliver a competing cancellation to the Activity Result launcher.
+            val tab = CustomTabsIntent.Builder().build()
+            tab.intent.setPackage(browser)
+            tab.launchUrl(this, uri)
         }
     }
 

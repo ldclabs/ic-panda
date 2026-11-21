@@ -75,7 +75,7 @@ class WorkspaceFlowTest {
             }
             client.start()
         }
-        compose.setContent { key(uiVersion) { DMsgApp(client, browser = { error("Unexpected external navigation") }, share = { _, _ -> error("Unexpected external share") }) } }
+        compose.setContent { key(uiVersion) { DMsgApp(client, browser = { error("Unexpected external navigation") }, openLogin = { error("Unexpected login") }, share = { _, _ -> error("Unexpected external share") }) } }
         compose.waitUntil(20_000) { client.state.value.unlocked }
         compose.runOnIdle { client.automaticSync(false); client.dark(false) }
         try { compose.waitUntil(10_000) { client.vault.listing.state.value is ReadState.Ready } }

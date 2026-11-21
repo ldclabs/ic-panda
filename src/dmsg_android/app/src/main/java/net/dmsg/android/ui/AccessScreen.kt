@@ -27,7 +27,7 @@ import net.dmsg.core.PasskeyOperation
 
 private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
 
-@Composable internal fun EntryScreen(client: ClientController, state: UiState, browser: (String) -> Unit, snackbar: SnackbarHostState) {
+@Composable internal fun EntryScreen(client: ClientController, state: UiState, browser: (String) -> Unit, openLogin: (String) -> Unit, snackbar: SnackbarHostState) {
     val page by client.access.collectAsStateWithLifecycle()
     val authentication by client.authentication.state.collectAsStateWithLifecycle()
     val incoming by client.incoming.intake.collectAsStateWithLifecycle()
@@ -120,8 +120,8 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                                     TextButton(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy) { Text(str(R.string.access_new_workspace)) }
                                 }
                             }
-                            if (state.session?.passkeyAvailable == true || state.session?.fastUnlock == true) OutlinedButton(onClick = { client.login(open = browser) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
-                            else Button(onClick = { client.login(open = browser) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
+                            if (state.session?.passkeyAvailable == true || state.session?.fastUnlock == true) OutlinedButton(onClick = { client.login(open = openLogin) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
+                            else Button(onClick = { client.login(open = openLogin) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
                             Text(if (state.session?.fastUnlock == true) str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d)
                                 else if (state.session?.passkeyAvailable == true) str(R.string.signin_saved_passkey)
                                 else str(R.string.text_sign_in_opens_your_system_browser_content_access_still_requires_a_6a9bef5), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

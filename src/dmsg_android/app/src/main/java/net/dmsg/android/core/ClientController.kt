@@ -612,8 +612,20 @@ class ClientController internal constructor(private val application: Application
         automaticUnlock.suppress()
         cancelAuthentication()
         perform({ if (binding) it.beginBinding() else it.beginLogin() }, key = "session") {
-            pendingLogin = true; bindingLogin = binding; open(it.url)
+            pendingLogin = true; bindingLogin = binding
+            try { open(it.url) }
+            catch (error: Exception) {
+                browserLoginFailed(if (error is android.content.ActivityNotFoundException) "UNAVAILABLE" else errorCode(error))
+            }
         }
+    }
+
+    fun browserLoginFailed(code: String) {
+        if (!pendingLogin) return
+        pendingLogin = false
+        bindingLogin = false
+        engine?.cancelLogin()
+        showError(code)
     }
 
     fun acceptCallback(raw: String) {
