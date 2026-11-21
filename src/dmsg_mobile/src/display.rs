@@ -1,10 +1,22 @@
 use super::*;
+use dmsg_client::display::{self, Avatar, Scoped};
 use std::collections::BTreeMap;
+use tokio::sync::Semaphore;
 
-#[derive(Default)]
 pub(crate) struct ReadTurns {
     lanes: Mutex<BTreeMap<String, Arc<tokio::sync::Mutex<()>>>>,
     names: Mutex<NameRetries>,
+    avatar_downloads: Semaphore,
+}
+
+impl Default for ReadTurns {
+    fn default() -> Self {
+        Self {
+            lanes: Mutex::default(),
+            names: Mutex::default(),
+            avatar_downloads: Semaphore::new(4),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -19,21 +31,98 @@ impl ReadTurns {
         lanes.retain(|_, v| Arc::strong_count(v) > 1);
         lanes.entry(resource.into()).or_default().clone()
     }
+
+    async fn fetch_avatar<H: Hold>(&self, h: &H, url: &str) -> dmsg_types::Result<Option<Avatar>> {
+        let turn = self.lane(&format!("avatar:{url}"));
+        let _turn = turn.lock().await;
+        let legacy = h.with(|c| c.profile_avatar(url)).await?;
+        if legacy.as_ref().is_some_and(|a| {
+            !display::stale(a.fetched_at_ms, display::AVATAR_TTL, dmsg_client::now_ms())
+        }) {
+            return Ok(legacy);
+        }
+        Ok(
+            display::participant_avatar_limited(h, url, Some(&self.avatar_downloads))
+                .await?
+                .or(legacy),
+        )
+    }
+}
+
+fn cached_avatar(c: &Client, url: &str) -> dmsg_types::Result<Option<Avatar>> {
+    match c.participant_avatar_cached(url)? {
+        Some(avatar) => Ok(Some(avatar)),
+        None => c.profile_avatar(url),
+    }
+}
+
+fn published_avatar_matches(c: &Client, url: &str) -> dmsg_types::Result<bool> {
+    Ok(c.profile_display()?.and_then(|p| p.avatar_url).as_deref() == Some(url))
 }
 
 #[uniffi::export]
 impl MobileEngine {
+    /// Read the current published profile image from the unlocked workspace cache.
+    pub async fn cached_profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
+        self.held(move |h| {
+            Box::pin(async move {
+                h.with(|c| {
+                    if published_avatar_matches(c, &url)? {
+                        Ok(cached_avatar(c, &url)?.map(|a| a.bytes))
+                    } else {
+                        Ok(None)
+                    }
+                })
+                .await
+            })
+        })
+        .await
+    }
+
+    /// The owner profile and participant rows reuse the same URL-keyed download cache.
+    pub async fn profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
+        let reads = self.read_turns.clone();
+        self.held(move |h| {
+            Box::pin(async move {
+                let session = h.with(|c| c.display_session()).await?;
+                let h = &Scoped { inner: h, session };
+                if !h.with(|c| published_avatar_matches(c, &url)).await? {
+                    return Ok(None);
+                }
+                let image = reads.fetch_avatar(h, &url).await?;
+                h.with(|c| {
+                    ensure(published_avatar_matches(c, &url)?, Error::VersionConflict)?;
+                    Ok(image.map(|a| a.bytes))
+                })
+                .await
+            })
+        })
+        .await
+    }
+
     /// Fetch a participant's published image without retaining the client lock.
     pub async fn channel_avatar(&self, account: String, refresh: bool) -> Result<Option<Vec<u8>>> {
         let account = account
             .parse::<dmsg_types::AccountId>()
             .map_err(|_| dmsg_types::invalid("account"))?;
-        let turn = self.read_turns.lane("participant-avatars");
+        let reads = self.read_turns.clone();
         self.held(move |h| {
             Box::pin(async move {
                 let session = h.with(|c| c.display_session()).await?;
-                let scoped = dmsg_client::display::Scoped { inner: h, session };
-                let h = &scoped;
+                let h = &Scoped { inner: h, session };
+                if !refresh {
+                    return h
+                        .with(|c| {
+                            let names = c.public_names()?;
+                            let Some(url) =
+                                names.get(&account).and_then(|n| n.avatar_url.as_deref())
+                            else {
+                                return Ok(None);
+                            };
+                            Ok(cached_avatar(c, url)?.map(|a| a.bytes))
+                        })
+                        .await;
+                }
                 let url = h
                     .with(|c| {
                         Ok(c.public_names()?
@@ -42,12 +131,7 @@ impl MobileEngine {
                     })
                     .await?;
                 let Some(url) = url else { return Ok(None) };
-                let image = if refresh {
-                    let _turn = turn.lock().await;
-                    dmsg_client::display::participant_avatar(h, &url).await?
-                } else {
-                    h.with(|c| c.participant_avatar_cached(&url)).await?
-                };
+                let image = reads.fetch_avatar(h, &url).await?;
                 h.with(|c| {
                     ensure(
                         c.public_names()?
@@ -229,6 +313,121 @@ mod tests {
             plan_checked: Arc::default(),
             transfers: Arc::default(),
         })
+    }
+
+    #[tokio::test]
+    async fn mobile_avatars_share_a_download_beside_a_stalled_avatar() {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+        use tokio::time::timeout;
+
+        let dir = testing::TempDir::new();
+        let mut client = testing::unlocked(&dir.0, false, None);
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        testing::relay_to(&mut client, &origin);
+        let owner = testing::account().id;
+        let peer = dmsg_types::AccountId([2; 12]);
+        let url = format!("{origin}/shared.webp");
+        let slow_url = format!("{origin}/slow.webp");
+        let now = dmsg_client::now_ms();
+        client
+            .keep_profile_display(display::Profile {
+                name: None,
+                avatar_url: Some(url.clone()),
+                updated_at: Some(1),
+                observed_at_ms: now,
+            })
+            .unwrap();
+        client
+            .keep_public_names(
+                [(owner, &url), (peer, &slow_url)]
+                    .into_iter()
+                    .map(|(account, avatar)| {
+                        (
+                            account,
+                            display::Name {
+                                name: None,
+                                avatar_url: Some(avatar.clone()),
+                                updated_at: Some(1),
+                                observed_at_ms: now,
+                            },
+                        )
+                    })
+                    .collect(),
+            )
+            .unwrap();
+        let engine = engine(client, &dir);
+        let slow = tokio::spawn({
+            let engine = engine.clone();
+            async move { engine.channel_avatar(peer.to_string(), true).await }
+        });
+        let wait = Duration::from_secs(5);
+        let (socket, _) = timeout(wait, listener.accept()).await.unwrap().unwrap();
+        let mut stalled = BufReader::new(socket);
+        let mut request = String::new();
+        timeout(wait, stalled.read_line(&mut request))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(request.starts_with("GET /slow.webp "));
+
+        let shared = tokio::spawn({
+            let engine = engine.clone();
+            let url = url.clone();
+            async move {
+                tokio::join!(
+                    engine.channel_avatar(owner.to_string(), true),
+                    engine.profile_avatar(url)
+                )
+            }
+        });
+        let (socket, _) = timeout(wait, listener.accept()).await.unwrap().unwrap();
+        let mut ready = BufReader::new(socket);
+        request.clear();
+        timeout(wait, ready.read_line(&mut request))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(request.starts_with("GET /shared.webp "));
+        let bytes = b"RIFF0000WEBPfixture".to_vec();
+        let header = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            bytes.len()
+        );
+        ready.get_mut().write_all(header.as_bytes()).await.unwrap();
+        ready.get_mut().write_all(&bytes).await.unwrap();
+        let (channel, profile) = timeout(wait, shared).await.unwrap().unwrap();
+        assert_eq!(channel.unwrap(), Some(bytes.clone()));
+        assert_eq!(profile.unwrap(), Some(bytes.clone()));
+        let _remaining_permits = engine
+            .read_turns
+            .avatar_downloads
+            .acquire_many(3)
+            .await
+            .unwrap();
+        timeout(wait, async {
+            assert_eq!(
+                engine.cached_profile_avatar(url.clone()).await.unwrap(),
+                Some(bytes.clone())
+            );
+            assert_eq!(engine.profile_avatar(url).await.unwrap(), Some(bytes));
+            assert!(
+                engine
+                    .cached_profile_avatar(slow_url)
+                    .await
+                    .unwrap()
+                    .is_none()
+            );
+            engine
+                .vault_page("".into(), None, false, 0, 20)
+                .await
+                .unwrap();
+        })
+        .await
+        .unwrap();
+        assert!(!slow.is_finished());
+        slow.abort();
+        engine.shutdown().await.unwrap();
     }
 
     #[tokio::test]

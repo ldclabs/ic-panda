@@ -2,6 +2,7 @@ package net.dmsg.android.core
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.SystemClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +11,8 @@ import kotlinx.serialization.json.*
 import net.dmsg.android.platform.BoundedImages
 import net.dmsg.android.platform.PrivateFiles
 import net.dmsg.android.platform.ProfileImages
+import net.dmsg.core.MobileEngine
+import net.dmsg.core.OperationToken
 import java.io.File
 import java.net.URI
 
@@ -40,6 +43,17 @@ fun parseProfilePublication(value: JsonElement): ProfilePublication {
 }
 private fun PublicProfile.draft() = ProfileDraft(name.orEmpty(), about.orEmpty(), avatar, links)
 
+internal suspend fun MobileEngine.publishedAvatarBytes(url: String, token: OperationToken): ByteArray? {
+    cachedProfileAvatar(url)?.let { return it }
+    // The editor snapshot can include pending changes. Core fetches avatars from the published document.
+    val published = parseProfileSnapshot(cachedDisplay("profile-document", "").decode())
+    if (published?.avatar != url) {
+        val refreshed = parseProfileSnapshot(refreshDisplay("profile-document", "", true, token).decode())
+        if (refreshed?.avatar != url) return null
+    }
+    return profileAvatar(url)
+}
+
 /** The form and selected photo remain local until the person confirms publication. */
 class ProfileCoordinator(private val client: ClientController, private val paths: () -> PrivateFiles?) {
     val saved = ReadStore<PublicProfile>()
@@ -48,6 +62,8 @@ class ProfileCoordinator(private val client: ClientController, private val paths
     val form = formValue.asStateFlow()
     private val bitmapValue = MutableStateFlow<Bitmap?>(null)
     val bitmap = bitmapValue.asStateFlow()
+    private var avatarUrl: String? = null
+    private var retryAvatarAfter = 0L
     private val conflictValue = MutableStateFlow(false)
     val conflict = conflictValue.asStateFlow()
     private val errorValue = MutableStateFlow<String?>(null)
@@ -58,39 +74,67 @@ class ProfileCoordinator(private val client: ClientController, private val paths
     private var uploaded: String? = null
     private var picker: SessionStamp? = null
     private var uncertain = false
+    private var refreshStatusAfter = 0L
     fun edit(value: ProfileDraft) { client.activity(); edited = true; formValue.value = value; errorValue.value = null }
     fun load(force: Boolean = false, rebase: Boolean = false) {
+        if (!force && (client.isWorking("profile:cached") || client.isWorking("profile:read"))) return
+        if (force) retryAvatarAfter = 0
         val request = saved.begin()
         fun apply(value: PublicProfile, fresh: Boolean = false) {
             if (!saved.accept(request, value)) return
-            if (!edited) { formValue.value = value.draft(); expected = value.updatedAt; loadAvatar(value.avatar) }
-            else if (rebase && fresh) { expected = value.updatedAt; conflictValue.value = false }
+            if (!edited) {
+                formValue.value = value.draft()
+                expected = value.updatedAt
+                loadAvatar(value.avatar)
+            } else if (rebase && fresh) { expected = value.updatedAt; conflictValue.value = false }
             client.state.value.session?.account?.let { client.rememberAccountName(it, value.name) }
         }
-        client.perform({ parseProfileSnapshot(it.cachedDisplay("profile-editor", "").decode()) }, key = "profile:cached", replace = true, quiet = true, onError = { saved.fail(request, it) }) { value ->
+        client.perform({
+            val snapshot = it.cachedDisplay("profile-editor", "").decode()
+            parseProfileSnapshot(snapshot) to snapshot.objectValue().requiredFlag("stale")
+        }, key = "profile:cached", replace = true, quiet = true, onError = { saved.fail(request, it) }) { (value, stale) ->
             value?.let { apply(it) }
-            client.perform({ core -> parseProfileSnapshot(client.operation { core.refreshDisplay("profile-editor", "", force, it) }.decode()) ?: error("INTEGRITY_FAILED") }, key = "profile:read", replace = true, quiet = true, onError = { saved.fail(request, it) }) { apply(it, true) }
+            if (force || stale || value == null) {
+                client.perform({ core -> parseProfileSnapshot(client.operation { core.refreshDisplay("profile-editor", "", force, it) }.decode()) ?: error("INTEGRITY_FAILED") }, key = "profile:read", replace = true, quiet = true, onError = { saved.fail(request, it) }) { apply(it, true) }
+            }
         }
-        val selectedPhoto = photo?.copyOf()
-        if (selectedPhoto != null) client.perform({ try { BoundedImages.thumbnail(selectedPhoto, 512) } finally { selectedPhoto.fill(0) } }, key = "profile:selected-preview", replace = true, quiet = true) { bitmapValue.value = it }
-        else if (edited && !formValue.value.avatarChanged) loadAvatar(formValue.value.avatar)
-        client.account.devices()
-        status()
+        if (edited && !formValue.value.avatarChanged) loadAvatar(formValue.value.avatar)
+        if (bitmapValue.value == null && !client.isWorking("profile:selected-preview")) {
+            photo?.copyOf()?.let { selected ->
+                client.perform({ BoundedImages.avatarThumbnail(selected, 512) }, key = "profile:selected-preview", quiet = true) { bitmapValue.value = it }
+            }
+        }
+    }
+    fun loadEditor(force: Boolean = false, rebase: Boolean = false) {
+        load(force, rebase)
+        if (!client.isWorking("account:devices")) client.account.devices()
+        if (!client.isWorking("profile:publication") && (force || SystemClock.elapsedRealtime() >= refreshStatusAfter)) status()
     }
     fun status() {
+        refreshStatusAfter = SystemClock.elapsedRealtime() + 60_000
         val request = publication.begin()
         client.perform({ parseProfilePublication(it.profilePublication().decode()) }, key = "profile:publication", replace = true, quiet = true, onError = { publication.fail(request, it) }) {
-            publication.accept(request, it)
-            if (!it.pending && it.published && !client.isWorking("profile:publish")) uncertain = false
+            if (publication.accept(request, it) && !it.pending && it.published && !client.isWorking("profile:publish")) uncertain = false
         }
     }
     fun ready() = client.account.devices.value()?.canManage == true && expected != null && formValue.value.valid && edited && !conflictValue.value && !uncertain && publication.value()?.let { it.published && !it.pending } == true
     private fun loadAvatar(url: String?) {
-        if (url == null) { bitmapValue.value = null; return }
+        if (avatarUrl != url) {
+            client.cancelOperation("profile:avatar")
+            avatarUrl = url
+            retryAvatarAfter = 0
+            bitmapValue.value = null
+        }
+        if (url == null || bitmapValue.value != null || client.isWorking("profile:avatar") || SystemClock.elapsedRealtime() < retryAvatarAfter) return
+        fun finish(bitmap: Bitmap?) {
+            if (formValue.value.avatarChanged || formValue.value.avatar != url) return
+            bitmapValue.value = bitmap
+            if (bitmap == null) retryAvatarAfter = SystemClock.elapsedRealtime() + AVATAR_RETRY_MS
+        }
         client.perform({ core ->
-            val bytes = core.cachedProfileAvatar(url) ?: core.profileAvatar(url)
-            bytes?.let { try { BoundedImages.thumbnail(it, 512) } finally { it.fill(0) } }
-        }, key = "profile:avatar", replace = true, quiet = true) { if (!formValue.value.avatarChanged && formValue.value.avatar == url) bitmapValue.value = it }
+            val bytes = client.operation { core.publishedAvatarBytes(url, it) }
+            bytes?.let { BoundedImages.avatarThumbnail(it, 512) }
+        }, key = "profile:avatar", quiet = true, onError = { finish(null) }, apply = ::finish)
     }
     fun beginPhoto(): Boolean {
         val stamp = client.currentStamp() ?: return false
@@ -111,6 +155,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
                     bytes to image
                 } finally { paths.finishImport(handle) }
             }, key = "profile:prepare-photo", replace = true, quiet = true, onError = { errorValue.value = it }) { (bytes, image) ->
+                client.cancelOperation("profile:avatar")
                 client.cancelOperation("profile:selected-preview")
                 photo?.fill(0); photo = bytes; uploaded = null; bitmapValue.value = image
                 edit(formValue.value.copy(avatarChanged = true))
@@ -118,6 +163,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
         }
     }
     fun removePhoto() {
+        client.cancelOperation("profile:avatar")
         client.cancelOperation("profile:prepare-photo")
         client.cancelOperation("profile:selected-preview")
         photo?.fill(0); photo = null; uploaded = null; bitmapValue.value = null
@@ -148,6 +194,7 @@ class ProfileCoordinator(private val client: ClientController, private val paths
             val request = publication.begin(); publication.accept(request, result)
             if (formValue.value == submitted) {
                 edited = false; expected = result.updatedAt ?: expected
+                if (result.published && !result.pending && url != null) avatarUrl = url
                 formValue.value = submitted.copy(avatar = url ?: submitted.avatar, avatarChanged = false)
                 photo?.fill(0); photo = null; uploaded = null
             }
@@ -161,7 +208,9 @@ class ProfileCoordinator(private val client: ClientController, private val paths
         }
     }
     fun clear(retainForm: Boolean = false) {
+        listOf("profile:cached", "profile:read", "profile:avatar", "profile:publication", "profile:selected-preview").forEach(client::cancelOperation)
         saved.reset(); publication.reset(); bitmapValue.value = null
+        avatarUrl = null; retryAvatarAfter = 0; refreshStatusAfter = 0
         if (!retainForm) { photo?.fill(0); photo = null; uploaded = null; picker = null; expected = null; edited = false; uncertain = false; formValue.value = ProfileDraft(); conflictValue.value = false; errorValue.value = null }
     }
 }

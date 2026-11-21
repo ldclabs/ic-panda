@@ -1712,6 +1712,44 @@ class WorkspaceFlowTest {
         assertEquals(account, runBlocking { native.sessionState() }.account)
     }
 
+    @Test fun publishedAvatarAppearsInMessagesAndProfile() {
+        val image = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
+        val color = android.graphics.Color.rgb(72, 70, 158)
+        image.eraseColor(color)
+        android.graphics.Canvas(image).drawCircle(32f, 32f, 18f, android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = android.graphics.Color.rgb(247, 200, 116)
+        })
+        val bytes = java.io.ByteArrayOutputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it); it.toByteArray() }
+        image.recycle()
+        val channel = runBlocking {
+            native.seedUiAvatars(bytes)
+            native.seedUiReceivedFile().decode().objectValue().required("channel")
+        }
+        compose.runOnIdle { client.navigation.open("messages"); client.navigation.select(channel) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("participant-avatar", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("participant-avatar", useUnmergedTree = true).assertIsDisplayed()
+        val account = checkNotNull(client.state.value.session?.account)
+        val messageAvatar = checkNotNull(client.participants.people.value[account]?.avatar)
+        capture("qa-avatar-messages")
+
+        compose.runOnIdle { client.navigation.open("account") }
+        compose.waitUntil(10_000) { client.profile.bitmap.value?.getPixel(0, 0) == color }
+        val profileAvatar = client.profile.bitmap.value
+        assertEquals(ReadState.Idle, client.profile.publication.state.value)
+        capture("qa-avatar-account")
+        compose.onNodeWithText("Public profile").performClick()
+        compose.onNodeWithContentDescription("Complete image to publish").performScrollTo().assertIsDisplayed()
+        compose.waitUntil(10_000) { !client.isWorking("profile:cached") && !client.isWorking("profile:read") && !client.isWorking("profile:avatar") }
+        assertSame(profileAvatar, client.profile.bitmap.value)
+        capture("qa-avatar-profile")
+
+        compose.runOnIdle { client.navigation.open("messages"); client.navigation.select(channel) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("participant-avatar", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("participant-avatar", useUnmergedTree = true).assertIsDisplayed()
+        assertSame(messageAvatar, client.participants.people.value[account]?.avatar)
+        assertFalse(client.state.value.working("participant:avatar:$account"))
+    }
+
     @Test fun publicProfileDraftAndOrientedAvatarStayLocalAndCacheClearKeepsLibraryFiles() {
         runBlocking { native.seedUiProfile() }
         val file = runBlocking { net.dmsg.android.core.parseFileDetails(kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiFileHistory().json)) }

@@ -128,6 +128,15 @@ impl CachedAvatar {
 /// then recheck this cache so concurrent rows never download the same URL twice.
 /// Failed/missing images have a one-minute cooldown; successful images last a day.
 pub async fn participant_avatar<H: Hold>(h: &H, url: &str) -> Result<Option<Avatar>> {
+    participant_avatar_limited(h, url, None).await
+}
+
+/// Apply the optional concurrency limit only to actual network reads.
+pub async fn participant_avatar_limited<H: Hold>(
+    h: &H,
+    url: &str,
+    downloads: Option<&tokio::sync::Semaphore>,
+) -> Result<Option<Avatar>> {
     let session = h.with(|c| c.display_session()).await?;
     let h = &Scoped { inner: h, session };
     let (scope, saved) = h
@@ -149,7 +158,18 @@ pub async fn participant_avatar<H: Hold>(h: &H, url: &str) -> Result<Option<Avat
         }
         None => CachedAvatar::default(),
     };
-    let fetched = crate::principal::avatar(h, url).await;
+    let fetched = {
+        let _permit = match downloads {
+            Some(limit) => Some(
+                limit
+                    .acquire()
+                    .await
+                    .map_err(|_| Error::Unavailable("avatar downloads".into()))?,
+            ),
+            None => None,
+        };
+        crate::principal::avatar(h, url).await
+    };
     let now = crate::now_ms();
     saved.retry_in_ms = ABSENT_TTL;
     match fetched {

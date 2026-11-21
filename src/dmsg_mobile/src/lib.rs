@@ -2121,35 +2121,6 @@ impl MobileEngine {
             .await
     }
 
-    /// Pure local avatar read; an unobserved image is absent, never fetched here.
-    pub async fn cached_profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
-        self.held(move |h| {
-            Box::pin(async move {
-                h.with(|c| Ok(c.profile_avatar(&url)?.map(|a| a.bytes)))
-                    .await
-            })
-        })
-        .await
-    }
-
-    /// Refresh the current profile image separately from its document. Failed
-    /// image reads keep a valid cached image and cannot delay the text snapshot.
-    pub async fn profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
-        let turn = self.read_turns.lane("profile-avatar");
-        self.held(move |h| {
-            Box::pin(async move {
-                let session = h.with(|c| c.display_session()).await?;
-                let scoped = dmsg_client::display::Scoped { inner: h, session };
-                let h = &scoped;
-                let _turn = turn.lock().await;
-                dmsg_client::snapshot::refresh_avatar(h).await;
-                h.with(|c| Ok(c.profile_avatar(&url)?.map(|a| a.bytes)))
-                    .await
-            })
-        })
-        .await
-    }
-
     pub async fn publish_profile(
         &self,
         name: String,
@@ -2191,12 +2162,11 @@ impl MobileEngine {
     }
 
     pub async fn profile_publication(&self) -> Result<ObjectSnapshot> {
-        self.held(|h| Box::pin(async { h.ensure_login().await }))
-            .await?;
-        self.object(|c| {
+        self.held_object(|h| {
             Box::pin(async {
-                let pending = c.document_pending()?;
-                let info = c.principal().await?;
+                h.ensure_login().await?;
+                let info = dmsg_client::agent::principal(h).await?;
+                let pending = h.with(|c| c.document_pending()).await?;
                 Ok(serde_json::json!({"pending": pending,
                 "published": info.as_ref().is_none_or(|i| i.state.version == i.published_version),
                 "updated_at": info.map(|i| i.state.updated_at)}))

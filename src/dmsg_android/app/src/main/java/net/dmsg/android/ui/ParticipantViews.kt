@@ -19,19 +19,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 
-@Composable fun ParticipantIdentity(client: ClientController, account: String, showId: Boolean = false, avatar: Boolean = true) {
+@Composable fun ParticipantIdentity(client: ClientController, account: String, showId: Boolean = false) {
     val people by client.participants.people.collectAsStateWithLifecycle()
     val person = people[account]
     var inspecting by remember(account) { mutableStateOf(false) }
-    DisposableEffect(client, account, avatar) { client.participants.observe(account, avatar); onDispose { client.participants.release(account, avatar) } }
+    DisposableEffect(client, account) { client.participants.observe(account); onDispose { client.participants.release(account) } }
     Row(Modifier.clickable { inspecting = true }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (avatar) person?.avatar?.let { Image(it.asImageBitmap(), null, Modifier.size(32.dp).clip(CircleShape), contentScale = ContentScale.Crop) }
-            ?: Icon(Icons.Outlined.Person, null, Modifier.size(28.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+            val image = person?.avatar
+            if (image != null) Image(image.asImageBitmap(), null, Modifier.fillMaxSize().clip(CircleShape).testTag("participant-avatar"), contentScale = ContentScale.Crop)
+            else Icon(Icons.Outlined.Person, null, Modifier.size(28.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Column {
             Text(person?.name ?: account, style = MaterialTheme.typography.labelLarge, maxLines = if (showId) 2 else 1, overflow = TextOverflow.Ellipsis)
             if (showId && person?.name != null) Text(account, style = MaterialTheme.typography.bodySmall)

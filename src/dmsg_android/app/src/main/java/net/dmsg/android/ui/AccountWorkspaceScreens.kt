@@ -190,10 +190,10 @@ import net.dmsg.android.core.*
     val working = state.working("profile:publish") || state.working("profile:prepare-photo")
     val editable = saved.valueOrNull() != null && !working && !pending
     var confirming by remember { mutableStateOf(false) }
-    LaunchedEffect(state.epoch) { client.profile.load() }
+    LaunchedEffect(state.epoch) { client.profile.loadEditor() }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            ReadFeedback(saved, { client.profile.load(true) })
+            ReadFeedback(saved, { client.profile.loadEditor(true) })
             state.session?.account?.let { account ->
                 SelectionContainer { Text(account, style = MaterialTheme.typography.bodySmall) }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -230,7 +230,7 @@ import net.dmsg.android.core.*
             failure?.let { Notice(errorText(it), true) }
             if (conflict) {
                 Notice(str(R.string.text_the_saved_profile_changed_your_draft_is_kept_reload_the_saved_pro_22fbc85), true)
-                TextButton(onClick = { client.profile.load(true, rebase = true) }, enabled = !working) { Text(str(R.string.text_reload_saved_profile_bcf1663)) }
+                TextButton(onClick = { client.profile.loadEditor(true, rebase = true) }, enabled = !working) { Text(str(R.string.text_reload_saved_profile_bcf1663)) }
                 saved.valueOrNull()?.let { Text(str(R.string.text_currently_saved_d79fd8f) + it.name.orEmpty()); Text(it.about.orEmpty()) }
             }
             if (pending) Notice(str(R.string.text_the_original_profile_is_saved_or_awaiting_confirmation_directory_fb8bd6f))

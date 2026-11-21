@@ -56,6 +56,57 @@ impl MobileEngine {
         })).await
     }
 
+    /// Seed published avatar caches for the profile and message fixtures.
+    pub async fn seed_ui_avatars(&self, bytes: Vec<u8>) -> Result<()> {
+        use dmsg_client::{cache::Kind, display};
+        use serde_json::json;
+
+        self.held(move |h| {
+            Box::pin(async move {
+                h.with(|c| {
+                    let account = testing::account().id;
+                    ensure(c.session_state().account == Some(account.to_string()), Error::Forbidden)?;
+                    let now = dmsg_client::now_ms();
+                    let url = "https://example.test/qa-avatar.png";
+                    let name = Some("Mina's workspace".to_string());
+                    c.cache_save(
+                        Kind::ProfileEditor,
+                        "",
+                        &json!({"name": name, "avatar_url": url, "links": [], "updated_at": 1}),
+                        now,
+                    )?;
+                    c.keep_profile_display(display::Profile {
+                        name: name.clone(),
+                        avatar_url: Some(url.into()),
+                        updated_at: Some(1),
+                        observed_at_ms: now,
+                    })?;
+                    c.keep_public_names(vec![(account, display::Name {
+                        name,
+                        avatar_url: Some(url.into()),
+                        updated_at: Some(1),
+                        observed_at_ms: now,
+                    })])?;
+                    c.cache_save(
+                        Kind::Avatar,
+                        url,
+                        &json!({"data": dmsg_client::codec::b64(&bytes), "fetched_at_ms": now, "retry_in_ms": display::AVATAR_TTL}),
+                        now,
+                    )?;
+                    c.keep_profile_avatar(display::Avatar {
+                        url: url.into(),
+                        mime: dmsg_client::principal::avatar_type(&bytes)?.into(),
+                        bytes,
+                        fetched_at_ms: now,
+                    })?;
+                    Ok(())
+                })
+                .await
+            })
+        })
+        .await
+    }
+
     pub async fn seed_ui_channel_members(&self, role: String) -> Result<ObjectSnapshot> {
         self.object(move |c| {
             Box::pin(async move {

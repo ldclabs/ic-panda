@@ -234,7 +234,7 @@ import net.dmsg.core.MessageItem
                 if (previous == null || messageDay(previous.createdAtMs) != day) Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(day, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
                     if (message.id == firstUnread) Text(str(R.string.text_unread_messages_15b52a0), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    if (previous?.account != message.account || messageDay(previous.createdAtMs) != day) ParticipantIdentity(client, message.account, avatar = false)
+                    if (previous?.account != message.account || messageDay(previous.createdAtMs) != day) ParticipantIdentity(client, message.account)
                     Surface(Modifier.padding(start = if (mine) 28.dp else 0.dp, end = if (mine) 0.dp else 28.dp).widthIn(max = 440.dp)
                         .combinedClickable(onClickLabel = str(R.string.message_actions), onClick = { action = message }, onLongClick = { action = message }),
                         shape = RoundedCornerShape(18.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer) {
