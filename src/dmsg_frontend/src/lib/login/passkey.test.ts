@@ -50,6 +50,9 @@ describe('first-party Passkey transport', () => {
   })
 
   it('requires discoverable ES256 credentials on old and new WebAuthn clients', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(
+      new Date(2026, 10, 21, 10, 37).getTime()
+    )
     const value = request()
     value.challenge.action = 'register'
     const create = vi.fn().mockResolvedValue({
@@ -66,7 +69,11 @@ describe('first-party Passkey transport', () => {
     const options = create.mock.calls[0]![0].publicKey
     expect(options).toMatchObject({
       rp: { id: 'dmsg.net' },
-      user: { id: value.state, name: 'dMsg · 01010101', displayName: 'dMsg · 01010101' },
+      user: {
+        id: value.state,
+        name: 'dMsg-11-21-1037',
+        displayName: 'dMsg-11-21-1037'
+      },
       pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
       authenticatorSelection: {
         residentKey: 'required',
@@ -83,6 +90,22 @@ describe('first-party Passkey transport', () => {
     expect(result.response.authenticator_data).toEqual(new Uint8Array([5]))
     expect(result.response.signature).toEqual(new Uint8Array())
     expect(result.error).toBeNull()
+  })
+
+  it('pads the local creation time and keeps same-minute user handles distinct', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(new Date(2026, 0, 2, 0, 5).getTime())
+    const create = vi.fn().mockResolvedValue(null)
+    for (const byte of [1, 2]) {
+      const value = request()
+      value.challenge.action = 'register'
+      value.state.fill(byte)
+      await completePasskey(value, { create, get: vi.fn() }, vi.fn())
+      expect(create.mock.lastCall![0].publicKey.user).toEqual({
+        id: new Uint8Array(32).fill(byte),
+        name: 'dMsg-01-02-0005',
+        displayName: 'dMsg-01-02-0005'
+      })
+    }
   })
 
   it('does not require a platform authenticator for external security keys', () => {

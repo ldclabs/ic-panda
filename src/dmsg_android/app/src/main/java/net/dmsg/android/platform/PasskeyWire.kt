@@ -4,10 +4,16 @@ import kotlinx.serialization.json.*
 import net.dmsg.core.NativePasskeyResponse
 import net.dmsg.core.PasskeyOperation
 import net.dmsg.core.PasskeyStart
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Base64
+import java.util.Locale
 
 /** A transport for signed WebAuthn bytes, never an origin-rewriting adapter. */
 object PasskeyWire {
+    private val credentialNameFormat = DateTimeFormatter.ofPattern("'dMsg-'MM-dd-HHmm", Locale.ROOT)
+
     fun encode(bytes: ByteArray): String = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
     fun creating(operation: PasskeyOperation) = operation == PasskeyOperation.REGISTER || operation == PasskeyOperation.BIND
 
@@ -22,7 +28,7 @@ object PasskeyWire {
                 putJsonObject("rp") { put("id", "dmsg.net"); put("name", "dMsg") }
                 putJsonObject("user") {
                     put("id", encode(start.userId))
-                    val name = "dMsg · " + start.userId.take(4).joinToString("") { "%02x".format(it) }
+                    val name = credentialNameFormat.format(Instant.ofEpochMilli(now.toLong()).atZone(ZoneId.systemDefault()))
                     put("name", name); put("displayName", name)
                 }
                 putJsonArray("pubKeyCredParams") { add(buildJsonObject { put("type", "public-key"); put("alg", -7) }) }

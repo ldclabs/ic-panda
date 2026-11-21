@@ -10,14 +10,15 @@ final class PasskeyLogin: NSObject, ASAuthorizationControllerDelegate, ASAuthori
 
     func authenticate(_ start: PasskeyStart) async throws -> NativePasskeyResponse {
         cancel()
-        guard start.deadlineMs > UInt64(Date.now.timeIntervalSince1970 * 1000) else {
+        let now = Date.now
+        guard start.deadlineMs > UInt64(now.timeIntervalSince1970 * 1000) else {
             throw MobileError.Failure(code: "EXPIRED")
         }
         let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: "dmsg.net")
         let request: ASAuthorizationRequest
         switch start.operation {
         case .register, .bind:
-            let creation = provider.createCredentialRegistrationRequest(challenge: start.challenge, name: Self.credentialName(start.userId), userID: start.userId)
+            let creation = provider.createCredentialRegistrationRequest(challenge: start.challenge, name: Self.credentialName(now), userID: start.userId)
             creation.userVerificationPreference = .required
             creation.attestationPreference = .none
             request = creation
@@ -41,8 +42,12 @@ final class PasskeyLogin: NSObject, ASAuthorizationControllerDelegate, ASAuthori
         } onCancel: { Task { @MainActor [weak self] in self?.cancel() } }
     }
 
-    static func credentialName(_ userID: Data) -> String {
-        "dMsg · " + userID.prefix(4).map { String(format: "%02x", $0) }.joined()
+    static func credentialName(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "'dMsg-'MM-dd-HHmm"
+        return formatter.string(from: date)
     }
 
     func cancel() {

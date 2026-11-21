@@ -5,11 +5,29 @@ import net.dmsg.core.PasskeyOperation
 import net.dmsg.core.PasskeyStart
 import org.junit.Assert.*
 import org.junit.Test
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class PasskeyWireTest {
     private val certificate = ByteArray(32) { 0x35 }
     private fun start(operation: PasskeyOperation = PasskeyOperation.LOGIN, credential: ByteArray? = null) =
         PasskeyStart(ByteArray(32) { 1 }, ByteArray(32) { 9 }, ByteArray(32) { 3 }, credential, operation, 1800000300000u)
+
+    @Test fun newCredentialsUseLocalCreationTimeForTheirName() {
+        for ((localTime, name) in listOf(
+            LocalDateTime.of(2026, 11, 21, 10, 37) to "dMsg-11-21-1037",
+            LocalDateTime.of(2026, 1, 2, 0, 5) to "dMsg-01-02-0005",
+        )) {
+            val now = localTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli().toULong()
+            for (operation in listOf(PasskeyOperation.REGISTER, PasskeyOperation.BIND)) {
+                val start = start(operation).copy(deadlineMs = now + 300_000u)
+                val user = Json.parseToJsonElement(PasskeyWire.request(start, now)).jsonObject.getValue("user").jsonObject
+                assertEquals(PasskeyWire.encode(start.userId), user.getValue("id").jsonPrimitive.content)
+                assertEquals(name, user.getValue("name").jsonPrimitive.content)
+                assertEquals(name, user.getValue("displayName").jsonPrimitive.content)
+            }
+        }
+    }
 
     private fun response(start: PasskeyStart, origin: String = "android:apk-key-hash:" + PasskeyWire.encode(certificate)): Pair<String, ByteArray> {
         val client = buildJsonObject {

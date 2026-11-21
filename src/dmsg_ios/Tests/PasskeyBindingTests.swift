@@ -96,7 +96,7 @@ final class PasskeyBindingTests: XCTestCase {
         XCTAssertFalse(flow.working); XCTAssertFalse(flow.hasSavedCredential)
     }
 
-    func testPermanentFailureClearsTheSavedAttemptAndNamesDistinguishNewCredentials() async {
+    func testPermanentFailureClearsTheSavedAttempt() async {
         let flow = PasskeyBinding()
         do {
             _ = try await flow.run { self.start() } authenticate: { _ in self.response } complete: { _, _ in
@@ -104,8 +104,15 @@ final class PasskeyBindingTests: XCTestCase {
             }
         } catch {}
         XCTAssertFalse(flow.hasSavedCredential)
-        XCTAssertEqual(PasskeyLogin.credentialName(Data([1, 2, 3, 4, 5])), "dMsg · 01020304")
-        XCTAssertNotEqual(PasskeyLogin.credentialName(Data([1, 2, 3, 4])), PasskeyLogin.credentialName(Data([5, 6, 7, 8])))
+    }
+
+    func testCredentialNameUsesLocalCreationTime() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let morning = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 11, day: 21, hour: 10, minute: 37)))
+        let midnight = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 1, day: 2, hour: 0, minute: 5)))
+        XCTAssertEqual(PasskeyLogin.credentialName(morning), "dMsg-11-21-1037")
+        XCTAssertEqual(PasskeyLogin.credentialName(midnight), "dMsg-01-02-0005")
     }
 
     func testLeavingDuringConfirmationDiscardsALateApproval() async {

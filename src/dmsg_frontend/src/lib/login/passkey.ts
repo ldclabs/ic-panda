@@ -104,6 +104,13 @@ export function parsePasskeyRequest(
   return request
 }
 
+function registrationUser(id: Uint8Array<ArrayBuffer>, now: number) {
+  const date = new Date(now)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  const name = `dMsg-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}`
+  return { id, name, displayName: name }
+}
+
 export async function completePasskey(
   request: PasskeyRequest,
   credentials: Partial<PasskeyCredentials> | undefined,
@@ -112,19 +119,19 @@ export async function completePasskey(
   let response = null
   let error: string | null = null
   try {
-    const timeout = Math.min(60_000, request.challenge.expires_at - Date.now())
+    const now = Date.now()
+    const timeout = Math.min(60_000, request.challenge.expires_at - now)
     if (timeout <= 0) throw new DOMException('Expired', 'TimeoutError')
     if (!supportsPasskey(credentials))
       throw new DOMException('WebAuthn unavailable', 'NotSupportedError')
     const registration = request.challenge.action === 'register'
-    const credentialName = `dMsg · ${Array.from(request.state.slice(0, 4), b => b.toString(16).padStart(2, '0')).join('')}`
     const credential = (
       registration
         ? await credentials.create({
             publicKey: {
               challenge: request.challenge.challenge,
               rp: { id: 'dmsg.net', name: 'dMsg' },
-              user: { id: request.state, name: credentialName, displayName: credentialName },
+              user: registrationUser(request.state, now),
               pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
               authenticatorSelection: {
                 residentKey: 'required',
