@@ -377,10 +377,11 @@ impl Client {
             })
             .filter(|g| !g.capabilities.is_empty())
             .collect();
-        secure.set(
-            &self.resident_grants_name(agent_id)?,
-            &serde_json::to_vec(&own).expect("serializable"),
-        )
+        let name = self.resident_grants_name(agent_id)?;
+        if own.is_empty() {
+            return secure.delete(&name);
+        }
+        secure.set(&name, &serde_json::to_vec(&own).expect("serializable"))
     }
 
     /// The copy of a resident Agent ID's grants.
@@ -409,6 +410,18 @@ impl Client {
             Some(bytes) => serde_json::from_slice(&bytes).map_err(|_| Error::IntegrityFailed),
             None => Ok(MailKeys::new()),
         }
+    }
+
+    fn save_resident_mail_keys(&self, agent_id: &str, keys: &MailKeys) -> Result<()> {
+        let secure = self.secure().ok_or(Error::Locked)?;
+        let name = self.resident_mail_name(agent_id)?;
+        if keys.is_empty() {
+            return secure.delete(&name);
+        }
+        secure.set(
+            &name,
+            &Zeroizing::new(serde_json::to_vec(keys).expect("serializable")),
+        )
     }
 
     /// The hosted Agent IDs and the active one; readable while locked.
@@ -516,15 +529,11 @@ impl Client {
             .secure()
             .ok_or_else(|| Error::Unavailable("no system credential store".into()))?;
         let slot = self.resident_name(&entry.agent_id)?;
-        let mail_slot = self.resident_mail_name(&entry.agent_id)?;
         if on {
             let seed = self.agent_vault_seed(&entry)?;
             secure.set(&slot, seed.as_slice())?;
-            let keys = self.sealed_mail_keys(&entry.agent_id)?;
-            secure.set(
-                &mail_slot,
-                &Zeroizing::new(serde_json::to_vec(&keys).expect("serializable")),
-            )?;
+            let keys = self.mail_keys(&entry)?;
+            self.save_resident_mail_keys(&entry.agent_id, &keys)?;
             self.resident_grants_save(&entry.agent_id, &self.capability_grants()?)?;
             self.mail_push_keep_resident(&entry.agent_id)?;
         } else {
@@ -735,6 +744,11 @@ impl Client {
     /// Returns `Error::Locked` while locked for an Agent ID that is not resident.
     pub fn agent_mail_keys(&mut self, agent: &str) -> Result<Json> {
         let entry = self.agent_find(agent)?;
+        let keys = self.mail_keys(&entry)?;
+        Ok(json!({"version": 1, "agent_id": entry.agent_id, "keys": keys}))
+    }
+
+    fn mail_keys(&self, entry: &AgentEntry) -> Result<MailKeys> {
         let mut keys = match (self.keys.is_some(), entry.resident) {
             (true, _) => self.sealed_mail_keys(&entry.agent_id)?,
             (false, true) => MailKeys::new(),
@@ -743,7 +757,7 @@ impl Client {
         if entry.resident {
             keys.extend(self.resident_mail_keys(&entry.agent_id)?);
         }
-        Ok(json!({"version": 1, "agent_id": entry.agent_id, "keys": keys}))
+        Ok(keys)
     }
 
     /// Keep the mail keys a connector call left, which drop those of cards
@@ -770,11 +784,7 @@ impl Client {
             )?;
         }
         if entry.resident {
-            let secure = self.secure().ok_or(Error::Locked)?;
-            secure.set(
-                &self.resident_mail_name(&entry.agent_id)?,
-                &Zeroizing::new(serde_json::to_vec(&keys).expect("serializable")),
-            )?;
+            self.save_resident_mail_keys(&entry.agent_id, &keys)?;
         }
         Ok(())
     }

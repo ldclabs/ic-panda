@@ -1060,6 +1060,18 @@ fn reset_starts_a_new_device() {
     client.vault_create("note", &note("gone")).unwrap();
     client.enable_fast_unlock().unwrap();
     let name = client.fast_name().unwrap();
+    let hint = client.hint_name().unwrap();
+    let other_dir = TempDir::new();
+    let other = unlocked(&other_dir.0, false, Some(storage.clone()));
+    let token = crate::connect::HintToken {
+        token: "fixture".into(),
+        expires_at: u64::MAX,
+    };
+    for slot in [&hint, &other.hint_name().unwrap()] {
+        storage
+            .set(slot, &serde_json::to_vec(&token).unwrap())
+            .unwrap();
+    }
     let before = client.status().unwrap().device_id;
     let status = client.reset().unwrap();
     assert!(status.device_id.is_some());
@@ -1067,6 +1079,8 @@ fn reset_starts_a_new_device() {
     assert_eq!(status.state, "logged_out");
     assert_eq!(status.pending_sync, 0);
     assert!(storage.get(&name).unwrap().is_none());
+    assert!(storage.get(&hint).unwrap().is_none());
+    assert_eq!(other.stored_hint_token().unwrap(), Some(token));
     // The new workspace is the one on disk.
     drop(client);
     let reopened = Client::open(crate::testing::config(false), &dir.0, None).unwrap();

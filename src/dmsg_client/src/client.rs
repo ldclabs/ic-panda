@@ -2249,6 +2249,7 @@ impl Client {
         self.forget_passkey().inspect_err(|_| self.lock())?;
         self.retire_notifications()?;
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
+            secure.delete(&self.hint_name()?)?;
             secure.delete(&name)?;
             secure.delete(&self.bound_name()?)?;
             // Resident Agent ID copies go with the workspace.

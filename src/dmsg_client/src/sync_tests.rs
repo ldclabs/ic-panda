@@ -71,6 +71,46 @@ fn reply(data: serde_json::Value) -> Option<serde_json::Value> {
 }
 
 #[tokio::test]
+async fn a_stale_relay_root_cannot_replace_local_keys_or_consume_pending_changes() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    client.vault_create("note", &item("local draft")).unwrap();
+    client
+        .workspace
+        .store
+        .set_meta(pull::CURSOR, &10u64)
+        .unwrap();
+
+    let base = client.base().unwrap();
+    let previous = reply(json!({"root":{
+        "root_generation":1,"upload_id":"11".repeat(32),"digest":"22".repeat(32)
+    }}));
+    let server = scripted_relay(&mut client, vec![("GET", format!("{base}/root"), previous)]).await;
+    let mut security = crate::testing::account_state(&client).security;
+    security.certified_at = now_ms();
+    security.snapshot.content_root_generation = 4;
+    security.snapshot.content_root_digest = Some(Hash::new([4; 32]));
+    client.published = Some(security.certified_at);
+    client.security = Some(security);
+
+    assert_eq!(
+        sync(&client.hold()).await.unwrap_err(),
+        Error::IntegrityFailed
+    );
+    assert_eq!(client.roots().unwrap().generation, 1);
+    assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 1);
+    assert_eq!(
+        client.workspace.store.meta::<u64>(pull::CURSOR).unwrap(),
+        Some(10)
+    );
+    assert_eq!(
+        client.last_sync().unwrap().unwrap().stage,
+        Some(SyncStage::Security)
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
@@ -435,11 +475,14 @@ async fn a_locked_resident_sync_keeps_its_cursor_without_fetching_content() {
     client.workspace.store.set_meta(SNAPSHOT, &42u64).unwrap();
     client.lock();
     crate::testing::warm(&mut client);
+    let snapshot = &mut client.security.as_mut().unwrap().snapshot;
+    snapshot.content_root_generation = 4;
+    snapshot.content_root_digest = Some(Hash::new([8; 32]));
     // All endpoints are unreachable. With no pending writes, a locked
-    // pass needs no relay content read, and retains its last verified cursor.
+    // pass neither fetches the new root nor changes its last verified cursor.
     let report = sync(&client.hold()).await.unwrap();
     assert_eq!((report.through, report.revisions, report.sent), (42, 0, 0));
-    assert!(client.keys.is_none());
+    assert!(client.keys.is_none() && client.root.is_none());
     assert_eq!(client.last_sync().unwrap().unwrap().error, None);
 }
 

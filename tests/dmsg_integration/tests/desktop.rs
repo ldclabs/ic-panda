@@ -2831,6 +2831,37 @@ fn desktop_unlock_syncs_in_background_with_periodic_sync_disabled() {
     env.finish();
 }
 
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_sync_follows_a_root_rotation_while_unlocked() {
+    let env = Env::start("sync-rotated-root", "sync_interval_minutes = 0\n");
+    env.pair();
+    let (a, b) = (&env.a, &env.b);
+    let previous = b.run(&["status"])["root_generation"].as_u64().unwrap();
+    a.run(&["vault", "add", "--title", "before rotation"]);
+    a.run(&["sync"]);
+    b.run(&["sync"]);
+
+    // A rotates the content root while B is already unlocked with the old one.
+    let request = a.run(&["account", "recovery", "on", "--days", "2"]);
+    assert_eq!(
+        a.decide(&env.http, &request, true).unwrap()["state"],
+        "done"
+    );
+    assert_eq!(b.run(&["account", "show"])["root_generation"], previous + 1);
+    a.run(&["vault", "add", "--title", "after rotation"]);
+    a.run(&["sync"]);
+
+    b.run(&["sync"]);
+    let status = b.run(&["status"]);
+    assert_eq!(status["root_generation"], previous + 1);
+    assert!(status["last_sync"]["error"].is_null());
+    let visible = titles(b);
+    assert!(visible.iter().any(|title| title == "before rotation"));
+    assert!(visible.iter().any(|title| title == "after rotation"));
+    env.finish();
+}
+
 /// How long a change takes between two devices and what an idle device costs.
 /// A measurement: it asserts only that changes arrive, and prints the numbers.
 #[test]
@@ -7903,9 +7934,12 @@ fn desktop_system_credentials() {
         format!("{workspace}:agent-mail-push:{agent}"),
     ];
     keychain.0.extend(resident.iter().cloned());
+    let [seed, mail, grants, push] = &resident;
     a.run(&["agent", "id", "resident", "bot", "on"]);
-    assert!(resident.iter().all(|name| Keychain::has(name)));
+    assert!(Keychain::has(seed) && Keychain::has(push));
+    assert!(!Keychain::has(mail) && !Keychain::has(grants));
     a.run(&["grants", "add", "bot", "discourse.read:*"]);
+    assert!(Keychain::has(grants));
     let credential = a.run(&["agent", "id", "credential", "bot"])["credential"]
         .as_str()
         .unwrap()

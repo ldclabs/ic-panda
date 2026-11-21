@@ -1199,17 +1199,23 @@ async fn sync_once<H: Hold>(
 ) -> Result<SyncReport> {
     stage.stage(SyncStage::Security);
     h.with(|c| c.signing().map(|_| ())).await?;
-    h.signed(Client::fresh).await?;
-    let unlocked = h
-        .with(|c| {
+    let (_, (unlocked, missing_root)) = h
+        .signed(|c| {
             let security = c.fresh()?;
             c.check_revoked(&security)?;
-            if c.keys.is_some() {
+            if c.keys.is_none() {
+                return Ok((false, None));
+            }
+            let missing = c.missing_committed_root(&security);
+            if missing.is_none() {
                 c.roots()?;
             }
-            Ok(c.keys.is_some())
+            Ok((true, missing))
         })
         .await?;
+    if let Some((generation, digest)) = missing_root {
+        crate::root::open_committed(h, generation, digest).await?;
+    }
     stage.stage(SyncStage::Reconcile);
     if !receive_only {
         reconcile(h).await?;

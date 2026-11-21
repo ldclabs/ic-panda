@@ -225,7 +225,7 @@ impl Client {
             state.info.recovered_device == Some((device, generation)),
             Error::DeviceNotApproved,
         )?;
-        let (bundles, upload_id) = self.root_bundles(generation).await?;
+        let (bundles, upload_id) = crate::root::root_bundles(&self.hold(), generation).await?;
         let bundle = parse_bundle(&bundles[0])?;
         let recovery = self
             .recovery_key(&account.id, generation, state.info.home_cose)

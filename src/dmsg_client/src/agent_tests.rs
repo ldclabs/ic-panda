@@ -376,6 +376,8 @@ fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
         .unwrap();
     // Unlocked again, the keys made while locked join the sealed ones.
     reopen(&mut client);
+    // Enabling residency again must preserve keys added by the locked connector.
+    client.agent_resident("mailer", true).unwrap();
     assert_eq!(
         client.agent_mail_keys("mailer").unwrap(),
         keys(&[("pk1", "s1"), ("pk2", "s2")])
@@ -411,6 +413,62 @@ fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
             .unwrap()
             .is_none()
     );
+}
+
+#[test]
+fn empty_resident_mail_and_grant_copies_take_no_credential_slots() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    let agent = client.agent_create("worker").unwrap().agent_id;
+    let workspace = client.workspace.name().unwrap();
+    let mail = format!("{workspace}:agent-mail:{agent}");
+    let grants = format!("{workspace}:agent-grants:{agent}");
+    let empty = json!({"version": 1, "agent_id": agent, "keys": {}});
+
+    // A grant usable only while unlocked is never copied to the credential store.
+    client
+        .capability_grant(
+            "gui",
+            &agent,
+            vec![format!("secret.use:{}", "01".repeat(16))],
+            None,
+        )
+        .unwrap();
+    client.agent_resident(&agent, true).unwrap();
+    assert!(storage.get(&mail).unwrap().is_none());
+    assert!(storage.get(&grants).unwrap().is_none());
+
+    // Older releases stored empty JSON. Locked reads still accept it, and
+    // the next write clears it without a startup migration.
+    storage.set(&mail, b"{}").unwrap();
+    storage.set(&grants, b"[]").unwrap();
+    client.lock();
+    assert_eq!(client.agent_mail_keys(&agent).unwrap(), empty);
+    assert!(client.capability_live(&agent).unwrap().is_empty());
+    reopen(&mut client);
+    client.agent_resident(&agent, true).unwrap();
+    assert!(storage.get(&mail).unwrap().is_none());
+    assert!(storage.get(&grants).unwrap().is_none());
+
+    let grant = client
+        .capability_grant("gui", &agent, vec!["mail.read:*".into()], None)
+        .unwrap();
+    assert!(storage.get(&grants).unwrap().is_some());
+    client.capability_revoke("gui", &grant.id).unwrap();
+    assert!(storage.get(&grants).unwrap().is_none());
+    client.lock();
+    assert!(client.capability_live(&agent).unwrap().is_empty());
+    client
+        .agent_mail_keys_save(
+            &agent,
+            &json!({"version": 1, "agent_id": agent, "keys": {"pk":"sk"}}),
+        )
+        .unwrap();
+    assert!(storage.get(&mail).unwrap().is_some());
+    client.agent_mail_keys_save(&agent, &empty).unwrap();
+    assert!(storage.get(&mail).unwrap().is_none());
+    assert_eq!(client.agent_mail_keys(&agent).unwrap(), empty);
 }
 
 #[test]

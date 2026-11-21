@@ -2003,7 +2003,7 @@ impl Client {
         }))
     }
 
-    fn hint_name(&self) -> Result<String> {
+    pub(crate) fn hint_name(&self) -> Result<String> {
         Ok(format!("{}:hint", self.workspace.name()?))
     }
 

@@ -13,7 +13,7 @@ use crate::codec::{b64, base64url, canonical, decode, digest, sha256, unb64};
 use crate::crypto::{
     Key, derive, hpke_open, hpke_seal, open, random_key, seal, sign, signing_public,
 };
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan, hex_id, random_hex};
 use dmsg_protocol::{
@@ -25,6 +25,7 @@ use dmsg_types::{
     ensure,
     user::{AccountCommand, Capability, ContentRootRef, RootReservation},
 };
+use futures_util::future::BoxFuture;
 use ic_vetkeys::{DerivedPublicKey, IbeCiphertext, IbeIdentity, IbeSeed, VetKey};
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
@@ -716,6 +717,81 @@ struct RootPointer {
     root_generation: u64,
 }
 
+/// Read the committed bundle chain, current first, with no client lock across downloads.
+pub(crate) async fn root_bundles<H: Hold>(
+    h: &H,
+    generation: u64,
+) -> Result<(Vec<Vec<u8>>, String)> {
+    let base = h.with(|c| c.base()).await?;
+    let value = h.get(&format!("{base}/root")).await?;
+    let pointer: RootPointer =
+        serde_json::from_value(value["root"].clone()).map_err(|_| Error::IntegrityFailed)?;
+    hex_id(&pointer.upload_id)?;
+    ensure(
+        pointer.root_generation == generation,
+        Error::IntegrityFailed,
+    )?;
+    let mut bundles =
+        vec![crate::upload::download(h, &pointer.upload_id, "manifest", &pointer.digest).await?];
+    let mut link = parse_bundle(&bundles[0])?.body.previous;
+    while let Some(previous) = link {
+        ensure(bundles.len() < MAX_CHAIN, Error::RecoveryIncomplete)?;
+        let bytes =
+            crate::upload::download(h, &previous.upload_id, "manifest", &previous.digest).await?;
+        link = decode::<RootBundle>(&bytes, MAX_BUNDLE)?.body.previous;
+        bundles.push(bytes);
+    }
+    Ok((bundles, pointer.upload_id))
+}
+
+/// Open an existing commitment for this device. Recheck the session, device grant
+/// and certified commitment before storing the keys fetched across network waits.
+pub(crate) fn open_committed<H: Hold>(
+    h: &H,
+    generation: u64,
+    digest: Hash,
+) -> BoxFuture<'_, Result<()>> {
+    // Root downloads are infrequent. Keep their state off the daemon's unlock and approval stacks.
+    Box::pin(async move {
+        let h = Unlocked::new(h).await?;
+        let authorize = |c: &mut Client| {
+            let state = c.fresh()?;
+            let device = state.active(&c.workspace.meta.device_id)?;
+            ensure(
+                device.input.capabilities.contains(&Capability::VaultUnlock),
+                Error::Forbidden,
+            )?;
+            ensure(
+                state.snapshot.content_root_generation == generation
+                    && state.snapshot.content_root_digest == Some(digest),
+                Error::PolicyStale,
+            )
+        };
+        h.signed(authorize).await?;
+        let (bundles, upload_id) = root_bundles(&h, generation).await?;
+        h.signed(|c| {
+            authorize(c)?;
+            let (root, history) = open_root(
+                &bundles,
+                &digest,
+                (&h.account.to_string(), c.environment(), generation),
+                &c.workspace.meta.device_id,
+                &c.keys()?.hpke,
+            )?;
+            c.keep_root(
+                generation,
+                digest,
+                &bundles[0],
+                upload_id.clone(),
+                root,
+                history,
+            )
+        })
+        .await?;
+        Ok(())
+    })
+}
+
 impl Client {
     /// Recognize the interrupted v3 draft produced for a legacy account by
     /// earlier clients. This only reopens an already-approved root operation;
@@ -799,6 +875,23 @@ impl Client {
         self.workspace.put_private(self.keys()?, ROOT, &record)
     }
 
+    pub(crate) fn missing_committed_root(
+        &self,
+        state: &crate::account::Security,
+    ) -> Option<(u64, Hash)> {
+        let generation = state.snapshot.content_root_generation;
+        let digest = state.snapshot.content_root_digest?;
+        if self
+            .root
+            .as_ref()
+            .is_some_and(|r| r.generation == generation && r.committed_digest() == Some(digest))
+        {
+            None
+        } else {
+            Some((generation, digest))
+        }
+    }
+
     /// Load the root this device holds, and fetch the committed one when
     /// the account has moved past it.
     ///
@@ -825,59 +918,19 @@ impl Client {
         // Unlock already checked the user home's certified security. A
         // matching local root needs no relay publication or request. When
         // fast unlock is offline, keep reading the root stored on this device.
-        if let Some(root) = &self.root
-            && self.security.as_ref().is_none_or(|state| {
-                state.snapshot.content_root_digest.is_none()
-                    || (state.snapshot.content_root_generation == root.generation
-                        && state.snapshot.content_root_digest == root.committed_digest())
-            })
+        if self.root.is_some()
+            && self
+                .security
+                .as_ref()
+                .is_none_or(|s| self.missing_committed_root(s).is_none())
         {
             return Ok(());
         }
         let state = self.cloud_state().await?;
-        let snapshot = &state.snapshot;
-        match snapshot.content_root_digest {
-            Some(digest)
-                if self
-                    .root
-                    .as_ref()
-                    .and_then(|r| Some((r.generation, r.committed_digest()?)))
-                    != Some((snapshot.content_root_generation, digest)) =>
-            {
-                self.open_current().await
-            }
-            _ => Ok(()),
+        if let Some((generation, digest)) = self.missing_committed_root(&state) {
+            open_committed(&self.hold(), generation, digest).await?;
         }
-    }
-
-    /// The committed bundle of `generation` and every bundle its chain
-    /// links to, current first, with the upload holding the current one.
-    ///
-    /// # Errors
-    /// Returns `Error::RecoveryIncomplete` for a chain the relay cannot serve.
-    pub(crate) async fn root_bundles(&mut self, generation: u64) -> Result<(Vec<Vec<u8>>, String)> {
-        let value = self.relay_get(&format!("{}/root", self.base()?)).await?;
-        let pointer: RootPointer =
-            serde_json::from_value(value["root"].clone()).map_err(|_| Error::IntegrityFailed)?;
-        hex_id(&pointer.upload_id)?;
-        ensure(
-            pointer.root_generation == generation,
-            Error::IntegrityFailed,
-        )?;
-        let mut bundles = vec![
-            self.download(&pointer.upload_id, "manifest", &pointer.digest)
-                .await?,
-        ];
-        let mut link = parse_bundle(&bundles[0])?.body.previous;
-        while let Some(previous) = link {
-            ensure(bundles.len() < MAX_CHAIN, Error::RecoveryIncomplete)?;
-            let bytes = self
-                .download(&previous.upload_id, "manifest", &previous.digest)
-                .await?;
-            link = decode::<RootBundle>(&bytes, MAX_BUNDLE)?.body.previous;
-            bundles.push(bytes);
-        }
-        Ok((bundles, pointer.upload_id))
+        Ok(())
     }
 
     /// Download the committed bundle chain and open it with this device's envelope.
@@ -885,29 +938,13 @@ impl Client {
     /// # Errors
     /// As [`open_root`].
     pub async fn open_current(&mut self) -> Result<()> {
-        let account = self.account()?.clone();
         let state = self.cloud_state().await?;
         let generation = state.snapshot.content_root_generation;
         let digest = state
             .snapshot
             .content_root_digest
             .ok_or(Error::RecoveryIncomplete)?;
-        state.active(&self.workspace.meta.device_id).and_then(|d| {
-            ensure(
-                d.input.capabilities.contains(&Capability::VaultUnlock),
-                Error::Forbidden,
-            )
-        })?;
-        let (bundles, upload_id) = self.root_bundles(generation).await?;
-        let environment = crate::config::environment_name(&self.config.environment);
-        let (root, history) = open_root(
-            &bundles,
-            &digest,
-            (&account.id.to_string(), environment, generation),
-            &self.workspace.meta.device_id,
-            &self.keys()?.hpke,
-        )?;
-        self.keep_root(generation, digest, &bundles[0], upload_id, root, history)
+        open_committed(&self.hold(), generation, digest).await
     }
 
     /// Keep an opened committed root as this device's root.
