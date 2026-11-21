@@ -23,15 +23,16 @@ class NativePasskeys(private val context: Context) {
     }
     fun cancel() { active?.cancel(); active = null }
 
-    /** Current APK signer, including Play App Signing; never a hardcoded upload/debug hash. */
-    fun certificate(): ByteArray {
+    /** Android orders a verified signing lineage oldest to current; independent co-signers have no lineage. */
+    fun signingCertificateHistory(): List<ByteArray> {
         val info = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-        val signers = info.signingInfo?.apkContentsSigners ?: throw MobileException.Failure("PASSKEY_ORIGIN_MISMATCH")
-        if (signers.size != 1) throw MobileException.Failure("PASSKEY_ORIGIN_MISMATCH")
-        return MessageDigest.getInstance("SHA-256").digest(signers.single().toByteArray())
+        val history = info.signingInfo?.signingCertificateHistory
+        if (history.isNullOrEmpty()) throw MobileException.Failure("PASSKEY_ORIGIN_MISMATCH")
+        val sha256 = MessageDigest.getInstance("SHA-256")
+        return history.map { sha256.digest(it.toByteArray()) }
     }
 
-    suspend fun authenticate(start: PasskeyStart): NativePasskeyResponse = withContext(Dispatchers.Main.immediate) {
+    suspend fun authenticate(start: PasskeyStart, signingHistory: List<ByteArray>): NativePasskeyResponse = withContext(Dispatchers.Main.immediate) {
         if (active != null) throw MobileException.Failure("PRESENCE_BUSY")
         val owner = activity.get()?.takeUnless { it.isFinishing || it.isDestroyed }
             ?: throw MobileException.Failure("CANCELLED")
@@ -49,7 +50,7 @@ class NativePasskeys(private val context: Context) {
             } ?: throw MobileException.Failure("INTEGRITY_FAILED")
             currentCoroutineContext().ensureActive()
             if (System.currentTimeMillis().toULong() >= start.deadlineMs) throw MobileException.Failure("EXPIRED")
-            PasskeyWire.response(raw, start, certificate())
+            PasskeyWire.response(raw, start, signingHistory)
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: GetCredentialCancellationException) { throw MobileException.Failure("CANCELLED") }
         catch (_: CreateCredentialCancellationException) { throw MobileException.Failure("CANCELLED") }

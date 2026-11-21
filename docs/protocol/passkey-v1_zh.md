@@ -30,7 +30,7 @@ Android Credential Manager 的 origin 为 `android:apk-key-hash:<base64url-no-pa
 
 `dmsg_auth.android_signers()` 返回当前允许的 SHA-256 列表；治理/controller 使用 `admin_set_android_signers(vec blob32)` 原子替换，配套 `validate_admin_set_android_signers` 可在执行前审阅。最多 8 项，不接受重复或全零值；空列表为默认值，关闭原生 Android 注册/登录/退出全部的断言准入。开发/测试证书只加入隔离测试 issuer，生产列表只登记实际发行证书。服务端不能仅由哈希自动判断其是否是 debug 证书，发布配置审查必须拒绝开发证书。
 
-Android 在申请系统凭据前查询签发方准入，注册继续完成 readiness、admission 与 targets 预检查；未知证书不会先创建系统凭据。最终认证仍以 canister 当前政策和原始签名为准，预检查不代替权威校验。包名、证书和 `dmsg.net` 的 Digital Asset Links 还需分别配置 `delegate_permission/common.handle_all_urls` 与 `delegate_permission/common.get_login_creds`；这份准入列表不是 DAL 的替代。
+Android 在申请系统凭据前，使用系统签名轮换链的最后一枚证书（当前 signer）查询签发方准入，注册继续完成 readiness、admission 与 targets 预检查。系统返回凭据后，客户端要求原始 origin 精确匹配此次请求开始时从 `SigningInfo.signingCertificateHistory` 取得的某一枚证书；这兼容凭据提供方使用轮换链中较早证书的情况。缺少签名链或存在多个独立 signer 时拒绝请求。最终认证仍以 canister 当前政策和原始签名为准，预检查不代替权威校验。包名、证书和 `dmsg.net` 的 Digital Asset Links 还需分别配置 `delegate_permission/common.handle_all_urls` 与 `delegate_permission/common.get_login_creds`；这份准入列表不是 DAL 的替代。
 
 证书轮换按安装包实际 signer 同时登记新旧正式证书，完成发行过渡后移除旧项。移除项会拒绝新的 WebAuthn 证明，不自动撤销已登记硬件会话或已经签发的最长 12 小时 delegation；现有 `logout/logout_all` 与账户设备撤销保持独立。生产不使用测试向量中的合成证书。
 

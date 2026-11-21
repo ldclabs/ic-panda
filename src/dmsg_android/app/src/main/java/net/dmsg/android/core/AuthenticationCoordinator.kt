@@ -37,8 +37,9 @@ class AuthenticationCoordinator(private val provider: NativePasskeys) {
         try {
             if (!resume) {
                 attempt = null
-                val start = core.beginAndroidPasskey(operation, credential, provider.certificate())
-                val proof = provider.authenticate(start)
+                val signingHistory = provider.signingCertificateHistory()
+                val start = core.beginAndroidPasskey(operation, credential, signingHistory.last())
+                val proof = provider.authenticate(start, signingHistory)
                 attempt = Attempt(start, proof, core.controlGeneration())
             }
             val current = attempt ?: throw MobileException.Failure("EXPIRED")

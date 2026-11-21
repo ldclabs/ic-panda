@@ -48,8 +48,8 @@ object PasskeyWire {
         }.toString()
     }
 
-    fun response(raw: String, start: PasskeyStart, certificate: ByteArray): NativePasskeyResponse {
-        require(raw.length <= 24 * 1024 && certificate.size == 32) { "INTEGRITY_FAILED" }
+    fun response(raw: String, start: PasskeyStart, signingHistory: List<ByteArray>): NativePasskeyResponse {
+        require(raw.length <= 24 * 1024 && signingHistory.isNotEmpty() && signingHistory.all { it.size == 32 }) { "INTEGRITY_FAILED" }
         val root = Json.parseToJsonElement(raw).jsonObject
         fun JsonObject.string(key: String): String {
             val value = this[key] as? JsonPrimitive ?: error("INTEGRITY_FAILED")
@@ -70,7 +70,8 @@ object PasskeyWire {
         val client = payload.bytes("clientDataJSON", 4096)
         val data = Json.parseToJsonElement(client.decodeToString(throwOnInvalidSequence = true)).jsonObject
         check(data.string("type") == if (creating(start.operation)) "webauthn.create" else "webauthn.get") { "INTEGRITY_FAILED" }
-        check(data.string("origin") == "android:apk-key-hash:" + encode(certificate)) { "PASSKEY_ORIGIN_MISMATCH" }
+        val origin = data.string("origin")
+        check(signingHistory.any { origin == "android:apk-key-hash:" + encode(it) }) { "PASSKEY_ORIGIN_MISMATCH" }
         check(data.string("challenge") == encode(start.challenge)) { "INTEGRITY_FAILED" }
         check(data["topOrigin"] == null || data["topOrigin"] == JsonNull) { "INTEGRITY_FAILED" }
         check(data["crossOrigin"] == null || data["crossOrigin"] == JsonPrimitive(false)) { "INTEGRITY_FAILED" }
