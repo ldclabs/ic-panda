@@ -2837,28 +2837,32 @@ fn desktop_sync_follows_a_root_rotation_while_unlocked() {
     let env = Env::start("sync-rotated-root", "sync_interval_minutes = 0\n");
     env.pair();
     let (a, b) = (&env.a, &env.b);
-    let previous = b.run(&["status"])["root_generation"].as_u64().unwrap();
-    a.run(&["vault", "add", "--title", "before rotation"]);
-    a.run(&["sync"]);
     b.run(&["sync"]);
+    let previous = b.run(&["status"])["root_generation"].as_u64().unwrap();
+    b.run(&["vault", "add", "--title", "before rotation"]);
 
-    // A rotates the content root while B is already unlocked with the old one.
+    // A publishes the new commitment while B has an unsent draft and cached security.
     let request = a.run(&["account", "recovery", "on", "--days", "2"]);
     assert_eq!(
         a.decide(&env.http, &request, true).unwrap()["state"],
         "done"
     );
-    assert_eq!(b.run(&["account", "show"])["root_generation"], previous + 1);
+    a.run(&["sync"]);
+    assert_eq!(b.run(&["status"])["root_generation"], previous);
+    assert_eq!(b.run(&["sync"])["sent"], 1);
+
     a.run(&["vault", "add", "--title", "after rotation"]);
     a.run(&["sync"]);
 
     b.run(&["sync"]);
     let status = b.run(&["status"]);
     assert_eq!(status["root_generation"], previous + 1);
+    assert_eq!(status["pending_sync"], 0);
     assert!(status["last_sync"]["error"].is_null());
     let visible = titles(b);
     assert!(visible.iter().any(|title| title == "before rotation"));
     assert!(visible.iter().any(|title| title == "after rotation"));
+    assert!(titles(a).iter().any(|title| title == "before rotation"));
     env.finish();
 }
 

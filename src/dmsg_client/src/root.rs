@@ -727,6 +727,10 @@ pub(crate) async fn root_bundles<H: Hold>(
     let pointer: RootPointer =
         serde_json::from_value(value["root"].clone()).map_err(|_| Error::IntegrityFailed)?;
     hex_id(&pointer.upload_id)?;
+    // The relay may have learned of a rotation since we read the commitment.
+    if pointer.root_generation > generation {
+        return Err(Error::PolicyStale);
+    }
     ensure(
         pointer.root_generation == generation,
         Error::IntegrityFailed,

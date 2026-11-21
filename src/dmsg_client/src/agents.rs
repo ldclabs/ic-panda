@@ -402,10 +402,7 @@ impl Client {
             .unwrap_or_default())
     }
 
-    fn resident_mail_keys(&self, agent_id: &str) -> Result<MailKeys> {
-        let Some(secure) = self.secure() else {
-            return Ok(MailKeys::new());
-        };
+    fn resident_mail_keys(&self, secure: &dyn SecureStorage, agent_id: &str) -> Result<MailKeys> {
         match secure.get(&self.resident_mail_name(agent_id)?)? {
             Some(bytes) => serde_json::from_slice(&bytes).map_err(|_| Error::IntegrityFailed),
             None => Ok(MailKeys::new()),
@@ -531,27 +528,26 @@ impl Client {
         let slot = self.resident_name(&entry.agent_id)?;
         if on {
             let seed = self.agent_vault_seed(&entry)?;
-            secure.set(&slot, seed.as_slice())?;
             let keys = self.mail_keys(&entry)?;
+            secure.set(&slot, seed.as_slice())?;
             self.save_resident_mail_keys(&entry.agent_id, &keys)?;
             self.resident_grants_save(&entry.agent_id, &self.capability_grants()?)?;
             self.mail_push_keep_resident(&entry.agent_id)?;
-        } else {
-            // Keys made while locked live only in the copy: fold them in first.
-            let resident = self.resident_mail_keys(&entry.agent_id)?;
-            if !resident.is_empty() {
-                let mut keys = self.sealed_mail_keys(&entry.agent_id)?;
-                keys.extend(resident);
-                self.workspace.put_private(
-                    self.keys()?,
-                    &format!("{MAIL_KEYS}{}", entry.agent_id),
-                    &keys,
-                )?;
+        } else if entry.resident {
+            // Preserve the latest snapshot before removing the resident copy.
+            let keys = self.resident_mail_keys(secure.as_ref(), &entry.agent_id)?;
+            let name = format!("{MAIL_KEYS}{}", entry.agent_id);
+            if keys.is_empty() {
+                self.workspace.delete_private(&name)?;
+            } else {
+                self.workspace.put_private(self.keys()?, &name, &keys)?;
             }
-            self.forget_resident(secure.as_ref(), &entry.agent_id)?;
         }
         entry.resident = on;
         self.agent_update(&entry)?;
+        if !on {
+            self.forget_resident(secure.as_ref(), &entry.agent_id)?;
+        }
         Ok(entry)
     }
 
@@ -737,8 +733,8 @@ impl Client {
     }
 
     /// The mail decryption keys of a hosted Agent ID's mailboxes, as its
-    /// connector restores them (`{version, agent_id, keys}`): the sealed
-    /// ones while unlocked, and a resident Agent ID's copy.
+    /// connector restores them (`{version, agent_id, keys}`). Resident Agent
+    /// IDs record their latest snapshot in the credential store.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked for an Agent ID that is not resident.
@@ -749,15 +745,10 @@ impl Client {
     }
 
     fn mail_keys(&self, entry: &AgentEntry) -> Result<MailKeys> {
-        let mut keys = match (self.keys.is_some(), entry.resident) {
-            (true, _) => self.sealed_mail_keys(&entry.agent_id)?,
-            (false, true) => MailKeys::new(),
-            (false, false) => return Err(Error::Locked),
-        };
-        if entry.resident {
-            keys.extend(self.resident_mail_keys(&entry.agent_id)?);
+        if let Some(secure) = self.secure().filter(|_| entry.resident) {
+            return self.resident_mail_keys(secure.as_ref(), &entry.agent_id);
         }
-        Ok(keys)
+        self.sealed_mail_keys(&entry.agent_id)
     }
 
     /// Keep the mail keys a connector call left, which drop those of cards

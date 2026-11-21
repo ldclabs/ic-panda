@@ -20,7 +20,7 @@
 //! restore, so an older edit never revives it.
 
 use crate::account::Security;
-use crate::client::Client;
+use crate::client::{Client, Warm};
 use crate::cloud::{Evidence, Presigned};
 use crate::codec::{canonical, sha256};
 use crate::content::{
@@ -1077,14 +1077,14 @@ pub async fn sync_observed<H: Hold>(
     let started = std::time::Instant::now();
     let mut stage = Observer::new(notify);
     let mut result = sync_once(&session, receive_only, &mut stage).await;
-    if matches!(result, Err(Error::PolicyStale)) {
-        session
-            .with(|c| {
-                c.published = None;
-                Ok(())
-            })
-            .await?;
-        result = sync_once(&session, receive_only, &mut stage).await;
+    if matches!(result, Err(Error::PolicyStale | Error::RekeyRequired)) {
+        // The relay can observe a new commitment while our proof is still fresh.
+        stage.stage(SyncStage::Security);
+        result = async {
+            session.warm(Warm::RelayFresh).await?;
+            sync_once(&session, receive_only, &mut stage).await
+        }
+        .await;
     }
     if matches!(result, Err(Error::DeviceNotApproved)) {
         let security = crate::account::refreshed_security(&session).await?;
@@ -1168,16 +1168,19 @@ struct SyncSession<'a, H> {
 /// Locked/revoked device, unavailable relay or an unverifiable snapshot.
 pub async fn pull_metadata<H: Hold>(h: &H) -> Result<usize> {
     let h = crate::hold::Unlocked::new(h).await?;
-    h.signed(|c| {
-        let security = c.fresh()?;
-        c.check_revoked(&security)?;
-        c.roots()?;
-        Ok(())
-    })
-    .await?;
     let mut noop = |_: &SyncProgress| {};
     let mut stage = Observer::new(&mut noop);
-    let report = pull::full(&h, &mut stage).await?;
+    let mut read = async || {
+        open_sync_root(&h).await?;
+        pull::full(&h, &mut stage).await
+    };
+    let report = match read().await {
+        Err(Error::PolicyStale) => {
+            h.warm(Warm::RelayFresh).await?;
+            read().await?
+        }
+        result => result?,
+    };
     Ok(report.revisions)
 }
 
@@ -1192,13 +1195,7 @@ impl<H: Hold> Hold for SyncSession<'_, H> {
     }
 }
 
-async fn sync_once<H: Hold>(
-    h: &H,
-    receive_only: bool,
-    stage: &mut Observer<'_>,
-) -> Result<SyncReport> {
-    stage.stage(SyncStage::Security);
-    h.with(|c| c.signing().map(|_| ())).await?;
+async fn open_sync_root<H: Hold>(h: &H) -> Result<bool> {
     let (_, (unlocked, missing_root)) = h
         .signed(|c| {
             let security = c.fresh()?;
@@ -1216,6 +1213,17 @@ async fn sync_once<H: Hold>(
     if let Some((generation, digest)) = missing_root {
         crate::root::open_committed(h, generation, digest).await?;
     }
+    Ok(unlocked)
+}
+
+async fn sync_once<H: Hold>(
+    h: &H,
+    receive_only: bool,
+    stage: &mut Observer<'_>,
+) -> Result<SyncReport> {
+    stage.stage(SyncStage::Security);
+    h.with(|c| c.signing().map(|_| ())).await?;
+    let unlocked = open_sync_root(h).await?;
     stage.stage(SyncStage::Reconcile);
     if !receive_only {
         reconcile(h).await?;
@@ -1546,14 +1554,25 @@ async fn push<H: Hold>(h: &H) -> Result<(usize, usize)> {
     Ok((sent, blocked))
 }
 
+fn write_security(c: &Client) -> Result<&Security> {
+    let security = c.fresh_state().ok_or(Error::PolicyStale)?;
+    ensure(
+        security.snapshot.vault_write_state == VaultWriteState::Ready,
+        Error::RekeyRequired,
+    )?;
+    if c.keys.is_some() {
+        ensure(
+            c.missing_committed_root(security).is_none(),
+            Error::PolicyStale,
+        )?;
+    }
+    Ok(security)
+}
+
 async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
     let (_, (mut record, job, replace)) = h
         .signed(|c| {
-            let security = c.fresh()?;
-            ensure(
-                security.snapshot.vault_write_state == VaultWriteState::Ready,
-                Error::RekeyRequired,
-            )?;
+            let security = write_security(c)?;
             let record = record(&row)?;
             let job = match c.workspace.store.job::<ContentJob>(&row.key)? {
                 Some(job) => job,
@@ -1594,9 +1613,10 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
                 crate::upload::cancel_upload(h, &upload.plan.upload_id).await?;
             }
         }
-        let replacement = h
-            .with(|c| {
-                c.roots()?;
+        let (_, replacement) = h
+            .signed(|c| {
+                write_security(c)?;
+                let roots = c.roots()?;
                 let child = c.workspace.store.objects_in(LOCAL)?.iter().any(|r| {
                     r.item == record.id && record_parent(r).as_deref() == Some(&record.revision)
                 });
@@ -1606,7 +1626,7 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
                     return Ok(None);
                 }
                 let file = c.version_file(&record)?;
-                let payload = record.open(c.environment(), c.roots()?)?;
+                let payload = record.open(c.environment(), roots)?;
                 let parent = c.sent_ancestor(&record.id, record.parent.clone())?;
                 let (replacement, _) = c.reseal(&row, &record, parent, &payload, file.as_ref())?;
                 let row = c
@@ -1627,10 +1647,9 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
     }
     let (relay, dispatch) = h
         .signed(|c| {
-            let security = c.fresh()?;
+            let security = write_security(c)?;
             ensure(
-                security.snapshot.vault_write_state == VaultWriteState::Ready
-                    && security.snapshot.content_root_generation == record.generation,
+                security.snapshot.content_root_generation == record.generation,
                 Error::RekeyRequired,
             )?;
             let mut job: ContentJob = c
@@ -1657,7 +1676,7 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
             let base = c.base()?;
             let request = hex::encode(*job.request_id);
             let dispatch = c.cloud.presign(
-                &c.signer(&security)?,
+                &c.signer(security)?,
                 &format!("{base}/vault"),
                 "dmsg/vault/revision/v1",
                 &revision,
@@ -1804,6 +1823,13 @@ async fn cache<H: Hold>(h: &H, plans: &[UploadPlan], stage: &mut Observer<'_>) -
     let (missing, files, missing_sizes, file_sizes, bytes) = h
         .with(|c| {
             let base = c.base()?;
+            let generation = c.roots()?.generation;
+            ensure(
+                c.security
+                    .as_ref()
+                    .is_none_or(|s| c.missing_committed_root(s).is_none()),
+                Error::PolicyStale,
+            )?;
             let mut seen = BTreeSet::new();
             let mut bytes = 0;
             let mut missing = Vec::new();
@@ -1811,6 +1837,8 @@ async fn cache<H: Hold>(h: &H, plans: &[UploadPlan], stage: &mut Observer<'_>) -
             let mut missing_sizes = Vec::new();
             let mut file_sizes = Vec::new();
             for plan in plans {
+                // A verified page can contain revisions under a newly committed root.
+                ensure(plan.root_generation <= generation, Error::PolicyStale)?;
                 let parts = plan
                     .chunks
                     .iter()

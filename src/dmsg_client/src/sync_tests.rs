@@ -111,6 +111,23 @@ async fn a_stale_relay_root_cannot_replace_local_keys_or_consume_pending_changes
 }
 
 #[tokio::test]
+async fn a_relay_root_ahead_of_the_certificate_requests_fresh_security() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let base = client.base().unwrap();
+    let newer = reply(json!({"root":{
+        "root_generation":2,"upload_id":"11".repeat(32),"digest":"22".repeat(32)
+    }}));
+    let server = scripted_relay(&mut client, vec![("GET", format!("{base}/root"), newer)]).await;
+
+    assert_eq!(
+        crate::root::root_bundles(&client.hold(), 1).await,
+        Err(Error::PolicyStale)
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);

@@ -372,19 +372,11 @@ fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
         keys(&[("pk1", "s1")])
     );
     client
-        .agent_mail_keys_save("mailer", &keys(&[("pk1", "s1"), ("pk2", "s2")]))
-        .unwrap();
-    // Unlocked again, the keys made while locked join the sealed ones.
-    reopen(&mut client);
-    // Enabling residency again must preserve keys added by the locked connector.
-    client.agent_resident("mailer", true).unwrap();
-    assert_eq!(
-        client.agent_mail_keys("mailer").unwrap(),
-        keys(&[("pk1", "s1"), ("pk2", "s2")])
-    );
-    client
         .agent_mail_keys_save("mailer", &keys(&[("pk2", "s2")]))
         .unwrap();
+    // The locked connector replaced the previous mailbox's keys.
+    reopen(&mut client);
+    client.agent_resident("mailer", true).unwrap();
     assert_eq!(
         client.agent_mail_keys("mailer").unwrap(),
         keys(&[("pk2", "s2")])
@@ -394,7 +386,7 @@ fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
     // which needs the device unlocked, then deletes the copy.
     client.lock();
     client
-        .agent_mail_keys_save("mailer", &keys(&[("pk2", "s2"), ("pk3", "s3")]))
+        .agent_mail_keys_save("mailer", &keys(&[("pk3", "s3")]))
         .unwrap();
     assert_eq!(
         client.agent_resident("mailer", false).unwrap_err(),
@@ -404,7 +396,7 @@ fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
     client.agent_resident("mailer", false).unwrap();
     assert_eq!(
         client.agent_mail_keys("mailer").unwrap(),
-        keys(&[("pk2", "s2"), ("pk3", "s3")])
+        keys(&[("pk3", "s3")])
     );
     let workspace = client.workspace.name().unwrap();
     assert!(
@@ -459,6 +451,8 @@ fn empty_resident_mail_and_grant_copies_take_no_credential_slots() {
     assert!(storage.get(&grants).unwrap().is_none());
     client.lock();
     assert!(client.capability_live(&agent).unwrap().is_empty());
+
+    reopen(&mut client);
     client
         .agent_mail_keys_save(
             &agent,
@@ -466,8 +460,17 @@ fn empty_resident_mail_and_grant_copies_take_no_credential_slots() {
         )
         .unwrap();
     assert!(storage.get(&mail).unwrap().is_some());
+    client.lock();
     client.agent_mail_keys_save(&agent, &empty).unwrap();
     assert!(storage.get(&mail).unwrap().is_none());
+    assert_eq!(client.agent_mail_keys(&agent).unwrap(), empty);
+    reopen(&mut client);
+    client.agent_resident(&agent, true).unwrap();
+    assert!(storage.get(&mail).unwrap().is_none());
+    assert_eq!(client.agent_mail_keys(&agent).unwrap(), empty);
+    client.lock();
+    client.agent_resident(&agent, false).unwrap();
+    reopen(&mut client);
     assert_eq!(client.agent_mail_keys(&agent).unwrap(), empty);
 }
 

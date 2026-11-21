@@ -149,6 +149,42 @@ async fn an_ack_cannot_advance_past_an_omitted_revision_and_a_retry_keeps_other_
 }
 
 #[tokio::test]
+async fn a_delta_under_a_new_root_waits_for_fresh_security() {
+    let (a, b) = (TempDir::new(), TempDir::new());
+    let (mut source, mut client) = (unlocked(&a.0, false, None), unlocked(&b.0, false, None));
+    let mut relay = Relay::default();
+    relay.deliver(&mut client).unwrap();
+    source.root = Some(crate::root::RootKeys::single(2, [6; 32]));
+    source.vault_create("note", &item("new root")).unwrap();
+    relay.accept(&mut source);
+    relay.cache(&client).unwrap();
+    let snapshot = relay.snapshot();
+    let entries = page(
+        vec![
+            Entry::Object(snapshot.plans[0].clone()),
+            Entry::Revision(snapshot.revisions[0].0.clone(), false),
+        ],
+        snapshot.through,
+        true,
+    );
+    let mut noop = |_: &SyncProgress| {};
+    let mut stage = Observer::new(&mut noop);
+    let mut report = SyncReport::default();
+
+    assert_eq!(
+        apply_incremental_page(&client.hold(), &entries, &mut stage, &mut report).await,
+        Err(Error::PolicyStale)
+    );
+    assert_eq!(position(&client).unwrap(), 0);
+    client.root = source.root.take();
+    apply_incremental_page(&client.hold(), &entries, &mut stage, &mut report)
+        .await
+        .unwrap();
+    assert_eq!(position(&client).unwrap(), snapshot.through);
+    assert_eq!(report.revisions, 1);
+}
+
+#[tokio::test]
 async fn invalid_new_content_does_not_advance_the_cursor_or_move_heads() {
     let (a, b) = (TempDir::new(), TempDir::new());
     let (mut source, mut client) = (unlocked(&a.0, false, None), unlocked(&b.0, false, None));
