@@ -145,7 +145,7 @@ class SecretSharingCoordinator(private val client: ClientController) {
             val row = core.secretShare(id, reveal).decode().objectValue()
             val url = if (reveal) row["link"]?.takeIf { it != JsonNull }?.objectValue()?.required("url") ?: error("NOT_FOUND") else null
             parseSecretShare(row) to url
-        }, key = "secret:share", replace = true, onError = { job.fail(request, it) }) { (value, url) ->
+        }, key = "secret:share", replace = true, quiet = true, onError = { job.fail(request, it) }) { (value, url) ->
             job.accept(request, value)
             mutableLink.value = url?.let { id to it }
         }

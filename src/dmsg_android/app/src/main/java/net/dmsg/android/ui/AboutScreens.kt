@@ -22,18 +22,22 @@ import net.dmsg.android.BuildConfig
 
 @Composable fun AboutScreen(browser: (String) -> Unit, privacy: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("dMsg", style = MaterialTheme.typography.displaySmall)
-        Text(str(R.string.text_a_private_workspace_for_the_ai_era_17ce1ec), style = MaterialTheme.typography.titleLarge)
-        Text(str(R.string.text_protect_passwords_notes_and_files_with_end_to_end_encryption_shar_85afd73))
-        LabelValue(str(R.string.text_version_7e42933), BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")")
-        if (BuildConfig.IS_STAGING) Text(str(R.string.text_staging_environment_00872b1), color = MaterialTheme.colorScheme.primary)
-        Text(str(R.string.text_a_product_of_icpanda_dao_44dd8fa), style = MaterialTheme.typography.bodySmall)
-        Text(str(R.string.text_dao_proposals_can_upgrade_on_chain_code_app_and_cloud_service_rel_24439eb), style = MaterialTheme.typography.bodySmall)
-        AccountRow(str(R.string.text_privacy_policy_d216307), click = privacy)
-        AccountRow(str(R.string.text_terms_of_service_01b68b7)) { browser("https://dmsg.net/_/terms") }
-        AccountRow(str(R.string.text_contact_support_70c3b08)) { browser("https://dmsg.net/_/support") }
-        AccountRow(str(R.string.text_website_ad80f52)) { browser("https://dmsg.net/") }
-        AccountRow(str(R.string.text_dao_governance_8b8d8f9)) { browser("https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai") }
+        DetailCard {
+            Text("dMsg", style = MaterialTheme.typography.displaySmall)
+            Text(str(R.string.text_a_private_workspace_for_the_ai_era_17ce1ec), style = MaterialTheme.typography.titleLarge)
+            Text(str(R.string.text_protect_passwords_notes_and_files_with_end_to_end_encryption_shar_85afd73))
+            LabelValue(str(R.string.text_version_7e42933), BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")")
+            if (BuildConfig.IS_STAGING) Text(str(R.string.text_staging_environment_00872b1), color = MaterialTheme.colorScheme.primary)
+            Text(str(R.string.text_a_product_of_icpanda_dao_44dd8fa), style = MaterialTheme.typography.bodySmall)
+            Text(str(R.string.text_dao_proposals_can_upgrade_on_chain_code_app_and_cloud_service_rel_24439eb), style = MaterialTheme.typography.bodySmall)
+        }
+        SettingsGroup {
+            AccountRow(str(R.string.text_privacy_policy_d216307), click = privacy)
+            AccountRow(str(R.string.text_terms_of_service_01b68b7)) { browser("https://dmsg.net/_/terms") }
+            AccountRow(str(R.string.text_contact_support_70c3b08)) { browser("https://dmsg.net/_/support") }
+            AccountRow(str(R.string.text_website_ad80f52)) { browser("https://dmsg.net/") }
+            AccountRow(str(R.string.text_dao_governance_8b8d8f9)) { browser("https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai") }
+        }
     }
 }
 

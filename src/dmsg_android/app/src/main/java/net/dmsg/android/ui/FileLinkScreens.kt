@@ -108,6 +108,11 @@ import net.dmsg.android.core.*
     DisposableEffect(id) { onDispose { if (client.state.value.working("links:run:$id")) client.fileLinks.pause(id) } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(intents, client.fileLinks::loadIntents)
+        if (job == null && (intents is ReadState.Ready || intents is ReadState.Empty)) {
+            EmptyPanel(str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f), Icons.Outlined.LinkOff) {
+                TextButton(onClick = client.fileLinks::loadIntents) { Text(str(R.string.text_refresh_cba212b)) }
+            }
+        }
         if (job != null) {
             Text(job.name, style = MaterialTheme.typography.headlineSmall)
             Text(fileSize(job.size) + " · " + job.mime)

@@ -244,6 +244,11 @@
     "zh-Hans": "发送中",
     "ios": "Sending"
   },
+  "no_conversations_yet": {
+    "en": "No conversations yet",
+    "zh-Hans": "暂无会话",
+    "ios": "No conversations yet"
+  },
   "no_matches": {
     "en": "No matching results",
     "zh-Hans": "无匹配结果",
@@ -257,6 +262,11 @@
   "operation_failed_code": {
     "en": "This operation could not finish. Code: %1$s",
     "zh-Hans": "操作未完成，错误码：%1$s"
+  },
+  "operation_failed_retry": {
+    "en": "The operation could not be completed. Please try again.",
+    "zh-Hans": "操作未完成，请重试。",
+    "ios": "The operation could not be completed. Please try again."
   },
   "otp_accessibility_hint": {
     "en": "One-time code. Use field actions to copy it or show it in large type.",
@@ -406,6 +416,11 @@
     "en": "Use a saved passkey if you already created one. Create a new passkey only if you need another login identity.",
     "zh-Hans": "如果已经创建过通行密钥，请使用已保存的密钥。只有需要另一个登录身份时才创建新密钥。",
     "ios": "Use a saved passkey if you already created one. Create a new passkey only if you need another login identity."
+  },
+  "sort_by": {
+    "en": "Sort by",
+    "zh-Hans": "排序方式",
+    "ios": "Sort by"
   },
   "text_15_minutes_b81c469": {
     "en": "15 minutes",

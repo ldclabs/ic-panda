@@ -11,7 +11,10 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -105,12 +108,16 @@ private fun historyChange(code: String) = str(when (code) {
     }
 }
 @Composable private fun ComparisonRow(title: String, current: String, previous: String) {
-    SectionTitle(title)
-    Text(str(R.string.text_current_version_b3f03bb), style = MaterialTheme.typography.labelMedium)
-    SelectionContainer { Text(current.ifEmpty { "—" }) }
-    Text(str(R.string.text_historical_version_119b50c), style = MaterialTheme.typography.labelMedium)
-    SelectionContainer { Text(previous.ifEmpty { "—" }, color = if (current != previous) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) }
-    HorizontalDivider()
+    DetailCard {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+            Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
+            if (current != previous) Text(str(R.string.text_updated_9306ca8), style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary)
+        }
+        SelectionContainer { LabelValue(str(R.string.text_current_version_b3f03bb), current.ifEmpty { "—" }) }
+        HorizontalDivider()
+        SelectionContainer { LabelValue(str(R.string.text_historical_version_119b50c), previous.ifEmpty { "—" }) }
+    }
 }
 
 @Composable fun VaultConflictsScreen(client: ClientController, selected: String?, select: (String) -> Unit) {

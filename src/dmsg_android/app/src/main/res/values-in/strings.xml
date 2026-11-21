@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"Gunakan setidaknya 12 karakter."</string>
     <string name="message_actions" formatted="false">"Tindakan"</string>
     <string name="message_sending" formatted="false">"Mengirim"</string>
+    <string name="no_conversations_yet" formatted="false">"Belum ada percakapan"</string>
     <string name="no_matches" formatted="false">"Tidak ada hasil yang cocok"</string>
     <string name="offline_account" formatted="false">"Akun lokal"</string>
     <string name="operation_failed_code" formatted="true">"Operasi ini tidak dapat diselesaikan. Kode: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"Operasi tidak dapat diselesaikan. Silakan coba lagi."</string>
     <string name="otp_accessibility_hint" formatted="false">"Kode sekali pakai. Gunakan tindakan kolom untuk menyalin atau menampilkannya dalam ukuran besar."</string>
     <string name="permission_account_information" formatted="false">"Informasi akun"</string>
     <string name="permission_channel_id" formatted="false">"ID Saluran"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"Pesan"</string>
     <string name="shortcut_vault" formatted="false">"Brankas"</string>
     <string name="signin_saved_passkey" formatted="false">"Jika sudah membuat passkey, gunakan yang tersimpan. Buat passkey baru hanya jika memerlukan identitas login lain."</string>
+    <string name="sort_by" formatted="false">"Urutkan berdasarkan"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 menit"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 hari"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 huruf kecil, angka, _ atau -"</string>

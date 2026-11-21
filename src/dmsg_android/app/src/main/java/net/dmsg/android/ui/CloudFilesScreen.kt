@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
 
-@Composable fun CloudFilesScreen(client: ClientController, selected: String) {
+@Composable fun CloudFilesScreen(client: ClientController, selected: String, showScopes: Boolean) {
     val state by client.state.collectAsStateWithLifecycle()
     val inventory by client.cloudFiles.inventory.state.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
@@ -36,29 +36,27 @@ import net.dmsg.android.core.*
     LaunchedEffect(state.epoch) { client.cloudFiles.browse(false, refreshAfter = true) }
     val entries = saved?.items.orEmpty().filter { query.isBlank() || it.name.orEmpty().contains(query, true) || it.path.joinToString("/").contains(query, true) }
         .let { values -> when (sort) { "name" -> values.sortedBy { it.name.orEmpty().lowercase() }; "size" -> values.sortedByDescending { it.size }; else -> values.sortedByDescending { it.committedAt ?: it.createdAt } } }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 24.dp + LocalWorkspaceBarInset.current), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (selected.isEmpty()) item {
+            WorkspaceSearchField(query, { query = it }, str(R.string.text_search_name_or_path_55a6b79))
+            if (showScopes) {
+                Spacer(Modifier.height(8.dp))
+                WorkspaceScope(str(R.string.text_on_this_device_6032118), str(R.string.text_cloud_backups_ab4daf1), true, switch = client.navigation::back)
+            }
+        }
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(str(R.string.text_encrypted_cloud_copies_9caa6c8), style = MaterialTheme.typography.titleLarge)
                     saved?.observedAt?.let { Text(str(R.string.text_last_refreshed_fb86c19) + messageTime(it), style = MaterialTheme.typography.labelSmall) }
                 }
+                if (selected.isEmpty()) SortMenu(sort, listOf("date" to R.string.text_newest_31c84cc, "name" to R.string.text_name_dd4dc4c, "size" to R.string.text_largest_4d2cb3c)) { sort = it }
                 IconButton(onClick = { client.cloudFiles.browse() }, enabled = inventory !is ReadState.Loading) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_backup_list_3104cef)) }
             }
             ReadFeedback(inventory, { client.cloudFiles.browse() })
             if (saved?.complete != true) Notice(str(R.string.text_the_cloud_inventory_has_not_been_fully_read_yet_an_empty_list_doe_b6ae09e))
         }
         if (selected.isEmpty()) {
-            item {
-                WorkspaceSearchField(query, { query = it }, str(R.string.text_search_name_or_path_55a6b79))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("date", "name", "size").forEach { option ->
-                        FilterChip(sort == option, { sort = option }, {
-                            Text(when (option) { "name" -> str(R.string.text_name_dd4dc4c); "size" -> str(R.string.text_largest_4d2cb3c); else -> str(R.string.text_newest_31c84cc) })
-                        })
-                    }
-                }
-            }
             items(entries, key = { it.id }) { item ->
                 ListItem(modifier = Modifier.clickable { client.navigation.select(item.id) }, headlineContent = { Text(item.name ?: str(R.string.text_encrypted_backup_2ad5848), maxLines = 2, overflow = TextOverflow.Ellipsis) },
                     leadingContent = { Icon(if (item.needsRoot) Icons.Outlined.Key else Icons.Outlined.Cloud, null) },

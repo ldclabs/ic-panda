@@ -215,8 +215,7 @@ internal fun permissionDescription(value: String): String {
     LaunchedEffect(state.epoch) { client.agents.loadPrincipal(); client.approvals.settle() }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            ReadFeedback(principal, client.agents::loadPrincipal)
-            ReadFeedback(devices, client.account::devices)
+            ReadFeedback(principal, devices, client.agents::loadPrincipal, client.account::devices)
             if (!manages) Notice(str(R.string.text_account_changes_need_an_administrator_with_account_management_per_5eddc16))
             if (principal is ReadState.Empty) Button(onClick = client.agents::enablePrincipal, enabled = manages && !state.working("approval:request:agent:enable")) { Text(str(R.string.text_review_enabling_a_principal_a184a02)) }
             value?.let { record ->
@@ -275,8 +274,7 @@ internal fun permissionDescription(value: String): String {
     LaunchedEffect(state.epoch) { client.agents.loadPrincipal(); client.approvals.settle() }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            ReadFeedback(principal, client.agents::loadPrincipal)
-            ReadFeedback(devices, client.account::devices)
+            ReadFeedback(principal, devices, client.agents::loadPrincipal, client.account::devices)
             principal.valueOrNull()?.let { AgentFingerprint(str(R.string.text_principal_415a07f), it.id) }
             if (controller) {
                 OutlinedTextField(draft.name, { client.agents.editDelegation(draft.copy(name = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_controller_name_e2bf892)) }, singleLine = true)

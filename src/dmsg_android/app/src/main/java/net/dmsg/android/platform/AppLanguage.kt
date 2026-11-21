@@ -100,6 +100,10 @@ fun localizedNumber(value: UInt): String = localizedNumber(value.toULong())
 fun localizedNumber(value: Int): String = NumberFormat.getIntegerInstance(AppLanguage.locale()).format(value)
 fun localizedNumber(value: Long): String = NumberFormat.getIntegerInstance(AppLanguage.locale()).format(value)
 
+/** A measurement or ratio is read in the same order when embedded in an RTL sentence. */
+internal fun numericExpression(value: String): String =
+    if (android.text.TextUtils.getLayoutDirectionFromLocale(AppLanguage.locale()) == android.view.View.LAYOUT_DIRECTION_RTL) "\u2066$value\u2069" else value
+
 fun quantity(@PluralsRes id: Int, count: Int): String = quantity(id, count.coerceAtLeast(0).toULong())
 fun quantity(@PluralsRes id: Int, count: UInt): String = quantity(id, count.toULong())
 

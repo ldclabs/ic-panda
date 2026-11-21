@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"Gebruik minstens 12 tekens."</string>
     <string name="message_actions" formatted="false">"Acties"</string>
     <string name="message_sending" formatted="false">"Versturen"</string>
+    <string name="no_conversations_yet" formatted="false">"Nog geen gesprekken"</string>
     <string name="no_matches" formatted="false">"Geen overeenkomende resultaten"</string>
     <string name="offline_account" formatted="false">"Lokaal account"</string>
     <string name="operation_failed_code" formatted="true">"Deze bewerking kon niet worden voltooid. Code: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"De operatie kon niet worden voltooid. Probeer het opnieuw."</string>
     <string name="otp_accessibility_hint" formatted="false">"Eenmalige code. Gebruik de veldacties om de code te kopiëren of in grote letters te tonen."</string>
     <string name="permission_account_information" formatted="false">"Accountgegevens"</string>
     <string name="permission_channel_id" formatted="false">"Kanaal-ID"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"Berichten"</string>
     <string name="shortcut_vault" formatted="false">"Kluis"</string>
     <string name="signin_saved_passkey" formatted="false">"Gebruik de opgeslagen passkey als je er al een hebt gemaakt. Maak alleen een nieuwe als je een andere aanmeldidentiteit nodig hebt."</string>
+    <string name="sort_by" formatted="false">"Sorteren op"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 minuten"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 dagen"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 kleine letters, cijfers, _ of -"</string>

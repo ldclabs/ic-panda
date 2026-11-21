@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"En az 12 karakter kullanın."</string>
     <string name="message_actions" formatted="false">"İşlemler"</string>
     <string name="message_sending" formatted="false">"Gönderme"</string>
+    <string name="no_conversations_yet" formatted="false">"Henüz görüşme yok"</string>
     <string name="no_matches" formatted="false">"Eşleşen sonuç yok"</string>
     <string name="offline_account" formatted="false">"Yerel hesap"</string>
     <string name="operation_failed_code" formatted="true">"Bu işlem tamamlanamadı. Kod: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"İşlem tamamlanamadı. Lütfen tekrar deneyin."</string>
     <string name="otp_accessibility_hint" formatted="false">"Tek kullanımlık kod. Kopyalamak veya büyük yazıyla göstermek için alan eylemlerini kullanın."</string>
     <string name="permission_account_information" formatted="false">"Hesap bilgileri"</string>
     <string name="permission_channel_id" formatted="false">"Kanal kimliği"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"Mesajlar"</string>
     <string name="shortcut_vault" formatted="false">"Kasa"</string>
     <string name="signin_saved_passkey" formatted="false">"Daha önce bir geçiş anahtarı oluşturduysanız kayıtlı olanı kullanın. Yalnızca başka bir giriş kimliği gerekiyorsa yeni anahtar oluşturun."</string>
+    <string name="sort_by" formatted="false">"Sıralama ölçütü"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 dakika"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 gün"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 küçük harf, rakam, _ veya -"</string>

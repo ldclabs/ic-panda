@@ -925,6 +925,64 @@ class WorkspaceFlowTest {
         assertTrue(runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.pendingWalletProposals().json) as kotlinx.serialization.json.JsonArray }.isEmpty())
     }
 
+    @Test fun emptyWorkspaceExplainsTheNextActionAndLeavesFeedbackOnItsOwnPage() {
+        val channel = client.messages
+        compose.runOnIdle { client.navigation.open("messages") }
+        compose.waitUntil(10_000) { channel.channels.state.value is ReadState.Ready }
+        compose.runOnIdle { channel.channels.accept(channel.channels.begin(), emptyList()) }
+        compose.onNodeWithText(net.dmsg.android.platform.str(R.string.no_conversations_yet)).assertIsDisplayed()
+        capture("qa-messages-empty")
+        compose.runOnIdle { client.showError("INVALID_INPUT") }
+        compose.onNodeWithText(net.dmsg.android.ui.errorText("INVALID_INPUT")).assertExists()
+        compose.onNodeWithContentDescription(net.dmsg.android.platform.str(R.string.text_new_channel_6ea7fcc)).performClick()
+        compose.waitUntil(1_500) { compose.onAllNodesWithText(net.dmsg.android.ui.errorText("INVALID_INPUT")).fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithText(net.dmsg.android.platform.str(R.string.text_conversation_name_428c56e)).assertIsDisplayed()
+        compose.runOnIdle { client.navigation.open("files") }
+        compose.onNodeWithText("Project materials").performClick()
+        compose.onNodeWithText(net.dmsg.android.platform.str(R.string.empty_folder)).assertIsDisplayed()
+        capture("qa-files-empty")
+    }
+
+    @Test fun membershipOverviewUsesTheUsageLimitAndKeepsComparisonOnItsOwnPage() {
+        val membership = client.membership
+        compose.runOnIdle { client.navigation.open("account"); client.navigation.open("membership") }
+        compose.waitUntil(10_000) { membership.usage.state.value !is ReadState.Idle && client.state.value.operations.none { it.startsWith("membership:") } }
+        compose.runOnIdle {
+            val mib = 1024uL * 1024uL
+            val limits = net.dmsg.android.core.PlanLimits(100uL * mib, 5u, 5u, 2u)
+            membership.plan.accept(membership.plan.begin(), net.dmsg.android.core.MembershipPlan("Free", "Free", null, null, limits, null))
+            membership.usage.accept(membership.usage.begin(), net.dmsg.android.core.MembershipUsage(
+                net.dmsg.android.core.MembershipCloudUsage(25uL * mib, 5uL * mib, 120uL * mib, 2u, 5u),
+                net.dmsg.android.core.MembershipExecutionUsage(202611u, 1u, 0u, 1u, ULong.MAX_VALUE), null, null))
+        }
+        val storage = compose.onNodeWithContentDescription(net.dmsg.android.platform.str(R.string.text_cloud_storage_3a75090))
+        assertEquals(0.25f, storage.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo].current, 0.001f)
+        compose.onNodeWithText("Free").assertIsDisplayed()
+        compose.onNodeWithTag("plan-card-Free").assertDoesNotExist()
+        capture("qa-membership-overview")
+        compose.runOnIdle { client.dark(true) }
+        capture("qa-membership-overview-dark")
+    }
+
+    @Test fun searchPrecedesScopeAndReturningKeepsTheOriginalDirectory() {
+        compose.onAllNodesWithText("Messages").onLast().performClick()
+        val search = compose.onNode(hasSetTextAction())
+        val letters = compose.onNodeWithText("Letters")
+        assertTrue(search.getUnclippedBoundsInRoot().bottom <= letters.getUnclippedBoundsInRoot().top)
+        search.performTextInput("test")
+        letters.performClick()
+        compose.onNodeWithText("Conversations").performClick()
+        compose.onNode(hasSetTextAction()).assertTextContains("test")
+        compose.onAllNodesWithText("Files").onLast().performClick()
+        compose.onNodeWithText("Project materials").performClick()
+        compose.onNodeWithText("Cloud backups").performClick()
+        compose.onNodeWithText("On this device").performClick()
+        assertTrue(client.library.folder != "root")
+        compose.onNodeWithContentDescription("Sort by").performClick()
+        compose.onNodeWithText("Largest").performClick()
+        compose.onNodeWithText("Largest").assertIsDisplayed()
+    }
+
     @Test fun membershipKeepsUnverifiedRightsUnknownAndComparesAllFourTiers() {
         // Synthetic display values only; no certified remote entitlement is claimed.
         compose.runOnIdle { client.navigation.open("account"); client.navigation.push(net.dmsg.android.core.Route("membership")) }
@@ -1610,6 +1668,7 @@ class WorkspaceFlowTest {
         compose.waitUntil(10_000) { client.vaultHistory.history.value()?.versions?.all { it.alias == "Studio phone" } == true }
         capture("qa-vault-history")
         compose.onNodeWithTag("vault-version:" + previous.revision).performClick()
+        compose.waitUntil(10_000) { client.vaultHistory.historical.value()?.revision == previous.revision }
         compose.onNodeWithText("You are viewing an immutable historical version.").assertExists()
         compose.onNodeWithText("Offline QA fixture · no real credentials").assertExists()
         assertEquals(current.revision, client.vault.detail.value()?.revision)

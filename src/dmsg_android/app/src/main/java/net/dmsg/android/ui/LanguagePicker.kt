@@ -1,16 +1,30 @@
 package net.dmsg.android.ui
 
 import android.app.Activity
+import android.content.res.Resources
 import android.content.ContextWrapper
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -25,7 +39,35 @@ import java.util.Locale
 
 private data class LanguageChoice(val tag: String, val name: String, val localizedName: String? = null)
 
-@Composable internal fun LanguagePicker(close: () -> Unit) {
+/** Android recreates the Activity for a new locale. Return to the setting that opened the picker. */
+@Composable internal fun AccountLanguageRow() {
+    var open by remember { mutableStateOf(false) }
+    var returnLocale by rememberSaveable { mutableStateOf<String?>(null) }
+    val locale = LocalConfiguration.current.locales[0].toLanguageTag()
+    val windowFocused = LocalWindowInfo.current.isWindowFocused
+    val input = LocalInputModeManager.current
+    val focus = remember { FocusRequester() }
+    val scroll = remember { BringIntoViewRequester() }
+    var height by remember { mutableIntStateOf(0) }
+    val clearance = with(LocalDensity.current) { LocalWorkspaceBarInset.current.toPx() }
+
+    Box(Modifier.fillMaxWidth().focusRequester(focus).bringIntoViewRequester(scroll).onSizeChanged { height = it.height }) {
+        AccountRow(str(R.string.app_language), Icons.Outlined.Translate) { open = true }
+    }
+    if (open) LanguagePicker(onSelected = { tag ->
+        returnLocale = tag.ifEmpty { Resources.getSystem().configuration.locales[0].toLanguageTag() }
+    }) { open = false }
+    LaunchedEffect(returnLocale, locale, windowFocused, open, height) {
+        if (returnLocale == locale && !open && windowFocused && height > 0) {
+            withFrameNanos { }
+            if (input.inputMode == InputMode.Keyboard) focus.requestFocus()
+            scroll.bringIntoView(Rect(0f, 0f, 1f, height + clearance))
+            returnLocale = null
+        }
+    }
+}
+
+@Composable internal fun LanguagePicker(onSelected: (String) -> Unit = {}, close: () -> Unit) {
     val context = LocalContext.current
     val selected = remember(LocalConfiguration.current) { AppLanguage.selected(context) }
     var query by remember { mutableStateOf("") }
@@ -39,9 +81,11 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
                     IconButton(onClick = close) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
                     Text(str(R.string.app_language), Modifier.padding(12.dp), style = MaterialTheme.typography.titleLarge)
                 }
-                OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp).testTag("language-search"), label = { Text(str(R.string.language_search)) }, singleLine = true)
+                WorkspaceSearchField(query, { query = it }, str(R.string.language_search), Modifier.padding(horizontal = 16.dp).testTag("language-search"))
                 LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
-                    items(choices.filter { query.isBlank() || it.tag.contains(query, true) || it.name.contains(query, true) || it.localizedName?.contains(query, true) == true }, key = { it.tag }) { (tag, name, localizedName) ->
+                    val visible = choices.filter { query.isBlank() || it.tag.contains(query, true) || it.name.contains(query, true) || it.localizedName?.contains(query, true) == true }
+                    if (visible.isEmpty()) item { EmptyPanel(str(R.string.no_matches), Icons.Outlined.Search) }
+                    items(visible, key = { it.tag }) { (tag, name, localizedName) ->
                         ListItem(
                             headlineContent = { Text(name) },
                             supportingContent = if (localizedName == null) null else ({ Text(localizedName) }),
@@ -50,7 +94,7 @@ private data class LanguageChoice(val tag: String, val name: String, val localiz
                                 .selectable(selected == tag, role = Role.RadioButton) {
                                     var owner = context
                                     while (owner is ContextWrapper && owner !is Activity) owner = owner.baseContext
-                                    (owner as? Activity)?.let { activity -> close(); AppLanguage.choose(activity, tag) }
+                                    (owner as? Activity)?.let { activity -> onSelected(tag); close(); AppLanguage.choose(activity, tag) }
                                 },
                         )
                     }

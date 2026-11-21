@@ -2,7 +2,7 @@
 
 Native Kotlin/Compose app using the same in-process Rust client as iOS. The [validation log](VALIDATION.md) records the iOS versions used for comparison, completed checks and outstanding work.
 
-For the interaction fixes, emulator and local ledger results, and remaining acceptance checks, see the [Android UX review (Chinese)](docs/ux-review-2026-11-18.zh.md).
+The [Android interface review (Chinese)](docs/ux-review-2026-11-21.zh.md) covers workspace navigation, page-by-page checks and follow-up tasks. The [November 18 UX review (Chinese)](docs/ux-review-2026-11-18.zh.md) records earlier interaction fixes, emulator and local ledger results.
 
 For the owner, transitions, and regression tests for each user flow, see the [Android state machine index (Chinese)](docs/state-machines.zh.md).
 

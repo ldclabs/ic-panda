@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"کم از کم 12 حروف استعمال کریں۔"</string>
     <string name="message_actions" formatted="false">"کارروائیاں"</string>
     <string name="message_sending" formatted="false">"ارسال"</string>
+    <string name="no_conversations_yet" formatted="false">"ابھی تک کوئی بات چیت نہیں ہے"</string>
     <string name="no_matches" formatted="false">"کوئی مماثل نتیجہ نہیں"</string>
     <string name="offline_account" formatted="false">"مقامی اکاؤنٹ"</string>
     <string name="operation_failed_code" formatted="true">"یہ عمل مکمل نہیں ہو سکا۔ کوڈ: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"آپریشن مکمل نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔"</string>
     <string name="otp_accessibility_hint" formatted="false">"ایک بار استعمال ہونے والا کوڈ۔ نقل کرنے یا بڑے حروف میں دکھانے کے لیے فیلڈ کے اعمال استعمال کریں۔"</string>
     <string name="permission_account_information" formatted="false">"اکاؤنٹ کی معلومات"</string>
     <string name="permission_channel_id" formatted="false">"چینل آئی ڈی"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"پیغامات"</string>
     <string name="shortcut_vault" formatted="false">"محفوظ ذخیرہ"</string>
     <string name="signin_saved_passkey" formatted="false">"اگر پہلے پاس کی بنا چکے ہیں تو محفوظ شدہ پاس کی استعمال کریں۔ نئی پاس کی صرف کسی دوسری لاگ ان شناخت کے لیے بنائیں۔"</string>
+    <string name="sort_by" formatted="false">"ترتیب دیں"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 منٹ"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 دن"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 چھوٹے حروف، ہندسے، _ یا -"</string>

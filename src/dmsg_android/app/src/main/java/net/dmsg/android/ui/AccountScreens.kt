@@ -11,7 +11,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.FactCheck
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,27 +30,31 @@ import net.dmsg.android.core.*
 import net.dmsg.core.*
 
 @Composable fun AccountScreen(client: ClientController, state: UiState, go: (String) -> Unit, openLogin: (String) -> Unit) {
-    var choosingLanguage by remember { mutableStateOf(false) }
-    if (choosingLanguage) LanguagePicker { choosingLanguage = false }
-    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:index")).padding(bottom = LocalWorkspaceBarInset.current).padding(20.dp)) {
         AccountIdentityHeader(client, openLogin)
         SectionTitle(str(R.string.text_identity_and_security_b4f1b0c))
-        AccountRow(str(R.string.text_approvals_1b5e94c), Icons.AutoMirrored.Outlined.FactCheck,
-            state.session?.approvalsWaiting?.let(::localizedNumber) ?: "—") { go("approvals") }
-        AccountRow(str(R.string.text_account_security_41c2886), Icons.Outlined.Security) { go("security") }
-        AccountRow(str(R.string.text_devices_bebe058), Icons.Outlined.Devices) { go("devices") }
-        AccountRow(str(R.string.text_switch_account_52f71df), Icons.Outlined.SwitchAccount) { go("accounts") }
+        SettingsGroup {
+            AccountRow(str(R.string.text_approvals_1b5e94c), Icons.AutoMirrored.Outlined.FactCheck,
+                state.session?.approvalsWaiting?.takeIf { it > 0u }?.let(::localizedNumber)) { go("approvals") }
+            AccountRow(str(R.string.text_account_security_41c2886), Icons.Outlined.Security) { go("security") }
+            AccountRow(str(R.string.text_devices_bebe058), Icons.Outlined.Devices) { go("devices") }
+            AccountRow(str(R.string.text_switch_account_52f71df), Icons.Outlined.SwitchAccount) { go("accounts") }
+        }
         SectionTitle(str(R.string.text_sync_and_storage_6513532))
-        AccountRow(str(R.string.text_account_synchronization_77ccb72), Icons.Outlined.Sync) { go("sync") }
-        AccountRow(str(R.string.text_plan_and_usage_acf1a9a), Icons.Outlined.Verified) { go("membership") }
-        AccountRow(str(R.string.text_system_integrations_9ea81ce), Icons.Outlined.Layers) { go("system-integrations") }
+        SettingsGroup(MaterialTheme.colorScheme.secondaryContainer) {
+            AccountRow(str(R.string.text_account_synchronization_77ccb72), Icons.Outlined.Sync) { go("sync") }
+            AccountRow(str(R.string.text_plan_and_usage_acf1a9a), Icons.Outlined.Verified) { go("membership") }
+            AccountRow(str(R.string.text_system_integrations_9ea81ce), Icons.Outlined.Layers) { go("system-integrations") }
+        }
         SectionTitle(str(R.string.text_settings_8d4d0d8))
-        AccountRow(str(R.string.text_send_feedback_73e1781), Icons.Outlined.Feedback) { go("feedback") }
-        AccountRow(str(R.string.text_notifications_3e7769a), Icons.Outlined.NotificationsNone) { go("notifications") }
-        AccountRow(str(R.string.app_language), Icons.Outlined.Translate) { choosingLanguage = true }
-        AccountRow(str(R.string.text_advanced), Icons.Outlined.Tune) { go("advanced") }
-        AccountRow(str(R.string.text_about_dmsg_630408f), Icons.Outlined.Info) { go("about") }
-        HorizontalDivider()
+        SettingsGroup(MaterialTheme.colorScheme.tertiaryContainer) {
+            AccountRow(str(R.string.text_send_feedback_73e1781), Icons.Outlined.Feedback) { go("feedback") }
+            AccountRow(str(R.string.text_notifications_3e7769a), Icons.Outlined.NotificationsNone) { go("notifications") }
+            AccountLanguageRow()
+            AccountRow(str(R.string.text_advanced), Icons.Outlined.Tune) { go("advanced") }
+            AccountRow(str(R.string.text_about_dmsg_630408f), Icons.Outlined.Info) { go("about") }
+        }
+        Spacer(Modifier.height(12.dp))
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             var signingOut by remember { mutableStateOf(false) }
             TextButton(onClick = { signingOut = true }) { Text(str(R.string.text_sign_out_7bfa045), color = MaterialTheme.colorScheme.error) }
@@ -65,50 +69,60 @@ import net.dmsg.core.*
 
 @Composable internal fun AccountRow(label: String, icon: ImageVector? = null, value: String? = null, click: () -> Unit) {
     ListItem(headlineContent = { Text(label) },
-        leadingContent = icon?.let { glyph -> { Icon(glyph, null, tint = MaterialTheme.colorScheme.primary) } },
+        leadingContent = icon?.let { glyph -> { TonalIcon(glyph) } },
         trailingContent = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             value?.let { Text(it, style = MaterialTheme.typography.labelLarge) }
-            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         } },
         modifier = Modifier.clickable(role = Role.Button, onClick = click).heightIn(min = 56.dp))
 }
 
 @Composable fun SystemIntegrationsScreen(client: ClientController) {
     Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:system-integrations")).padding(20.dp)) {
-        AccountRow(str(R.string.text_password_autofill_872af78), Icons.Outlined.Key) { client.navigation.push(Route("system-autofill")) }
-        AccountRow(str(R.string.text_files_app_copies_96ebae6), Icons.Outlined.Folder) { client.navigation.push(Route("system-files")) }
-        AccountRow(str(R.string.text_shared_with_dmsg_0df2fa8), Icons.Outlined.Share) { client.navigation.push(Route("incoming-shares")) }
-        AccountRow(str(R.string.text_home_screen_entries_7e5f087), Icons.Outlined.Widgets) { client.navigation.push(Route("workspace-entries")) }
+        SettingsGroup {
+            AccountRow(str(R.string.text_password_autofill_872af78), Icons.Outlined.Key) { client.navigation.push(Route("system-autofill")) }
+            AccountRow(str(R.string.text_files_app_copies_96ebae6), Icons.Outlined.Folder) { client.navigation.push(Route("system-files")) }
+            AccountRow(str(R.string.text_shared_with_dmsg_0df2fa8), Icons.Outlined.Share) { client.navigation.push(Route("incoming-shares")) }
+            AccountRow(str(R.string.text_home_screen_entries_7e5f087), Icons.Outlined.Widgets) { client.navigation.push(Route("workspace-entries")) }
+        }
     }
 }
 
 @Composable fun AdvancedAccountScreen(client: ClientController) {
     Column(Modifier.fillMaxSize().verticalScroll(workspaceScrollState(client.navigation, "account:advanced")).padding(20.dp)) {
-        AccountRow(str(R.string.text_agents_dcfd6ed), Icons.Outlined.SmartToy) { client.navigation.push(Route("agents")) }
-        AccountRow(str(R.string.text_multisig_wallets_451404c), Icons.Outlined.AccountBalanceWallet) { client.navigation.push(Route("wallets")) }
-        AccountRow(str(R.string.text_connected_browsers_e404840), Icons.Outlined.Language) { client.navigation.push(Route("browser-connections")) }
-        AccountRow(str(R.string.text_hardware_security_04e42f4), Icons.Outlined.Memory) { client.navigation.push(Route("hardware")) }
-        AccountRow(str(R.string.text_activity_on_this_device_288740a), Icons.Outlined.History) { client.navigation.push(Route("secret-activity")) }
-        AccountRow(str(R.string.text_cached_data_b29fb6f), Icons.Outlined.Storage) { client.navigation.push(Route("display-cache")) }
+        SettingsGroup {
+            AccountRow(str(R.string.text_agents_dcfd6ed), Icons.Outlined.SmartToy) { client.navigation.push(Route("agents")) }
+            AccountRow(str(R.string.text_multisig_wallets_451404c), Icons.Outlined.AccountBalanceWallet) { client.navigation.push(Route("wallets")) }
+            AccountRow(str(R.string.text_connected_browsers_e404840), Icons.Outlined.Language) { client.navigation.push(Route("browser-connections")) }
+            AccountRow(str(R.string.text_hardware_security_04e42f4), Icons.Outlined.Memory) { client.navigation.push(Route("hardware")) }
+            AccountRow(str(R.string.text_activity_on_this_device_288740a), Icons.Outlined.History) { client.navigation.push(Route("secret-activity")) }
+            AccountRow(str(R.string.text_cached_data_b29fb6f), Icons.Outlined.Storage) { client.navigation.push(Route("display-cache")) }
+        }
     }
 }
 
 @Composable fun SecurityScreen(client: ClientController, state: UiState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Text(str(R.string.text_security_and_unlock_7ba00a7), style = MaterialTheme.typography.headlineSmall)
-        SettingToggle(str(R.string.text_quick_unlock_bdfe73d), checked = state.session?.fastUnlock == true, change = client::fastUnlock, enabled = !state.busy, description = str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d))
-        SettingToggle(str(R.string.text_lock_immediately_in_background_67ea031), state.immediateLock, client::immediateLock)
-        SectionTitle(str(R.string.text_appearance_7bcd380))
-        listOf(null to str(R.string.text_system_b9dd0f7), false to str(R.string.text_light_f3bfabb), true to str(R.string.text_dark_0bea023)).forEach { (value, label) ->
-            RadioChoiceRow(label, state.dark == value) { if (value == null) client.systemAppearance() else client.dark(value) }
+        SectionTitle(str(R.string.text_security_and_unlock_7ba00a7))
+        SettingsGroup {
+            SettingToggle(str(R.string.text_quick_unlock_bdfe73d), checked = state.session?.fastUnlock == true, change = client::fastUnlock, enabled = !state.busy, description = str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d))
+            SettingToggle(str(R.string.text_lock_immediately_in_background_67ea031), state.immediateLock, client::immediateLock)
+            AccountRow(str(R.string.text_hardware_security_04e42f4)) { client.navigation.open("hardware") }
+            AccountRow(str(R.string.text_login_identities_09c2f23)) { client.navigation.open("bindings") }
+            AccountRow(str(R.string.text_account_recovery_a3a426c)) { client.navigation.open("recovery") }
+            AccountRow(str(R.string.text_message_settings_1a28455)) { client.navigation.push(Route("message-settings")) }
         }
-        AccountRow(str(R.string.text_hardware_security_04e42f4)) { client.navigation.open("hardware") }
-        AccountRow(str(R.string.text_login_identities_09c2f23)) { client.navigation.open("bindings") }
-        AccountRow(str(R.string.text_account_recovery_a3a426c)) { client.navigation.open("recovery") }
-        AccountRow(str(R.string.text_message_settings_1a28455)) { client.navigation.push(Route("message-settings")) }
+        SectionTitle(str(R.string.text_appearance_7bcd380))
+        SettingsGroup {
+            listOf(null to str(R.string.text_system_b9dd0f7), false to str(R.string.text_light_f3bfabb), true to str(R.string.text_dark_0bea023)).forEach { (value, label) ->
+                RadioChoiceRow(label, state.dark == value) { if (value == null) client.systemAppearance() else client.dark(value) }
+            }
+        }
         SectionTitle(str(R.string.text_account_4ab56e9))
-        AccountRow(str(R.string.text_remove_local_data_c45125e)) { client.navigation.push(Route("account-remove")) }
-        AccountRow(str(R.string.text_delete_service_account_1475636)) { client.navigation.push(Route("account-delete")) }
+        SettingsGroup {
+            AccountRow(str(R.string.text_remove_local_data_c45125e)) { client.navigation.push(Route("account-remove")) }
+            AccountRow(str(R.string.text_delete_service_account_1475636)) { client.navigation.push(Route("account-delete")) }
+        }
     }
 }
 
@@ -131,7 +145,7 @@ private fun approvalSource(source: String): String = when {
                     Text(if (entry.state == "awaiting_user") str(R.string.approval_request_expires) + " · " + messageTime(entry.expiresAt) else secretStateName(entry.state))
                 }
             },
-            trailingContent = { Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null) },
+            trailingContent = { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null) },
             modifier = Modifier.clickable(role = Role.Button) { select(entry.id) }
         )
     }

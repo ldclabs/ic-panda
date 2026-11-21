@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,7 +42,7 @@ import net.dmsg.android.core.*
     val identity: @Composable (Modifier) -> Unit = { modifier ->
         Row(modifier.clickable(role = Role.Button) { client.navigation.push(Route("profile")) }.padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(Modifier.size(52.dp), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+            Surface(Modifier.size(52.dp), shape = CircleShape, color = MaterialTheme.colorScheme.surface) {
                 image?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                     ?: Icon(Icons.Outlined.Person, null, Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
             }
@@ -52,15 +52,17 @@ import net.dmsg.android.core.*
             }
         }
     }
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= 340.dp && LocalDensity.current.fontScale < 1.3f) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                identity(Modifier.weight(1f))
+    Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+            if (maxWidth >= 280.dp && LocalDensity.current.fontScale < 1.3f) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    identity(Modifier.weight(1f))
+                    MembershipBadge(client)
+                }
+            } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                identity(Modifier.fillMaxWidth())
                 MembershipBadge(client)
             }
-        } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            identity(Modifier.fillMaxWidth())
-            MembershipBadge(client)
         }
     }
     val loginExpired = state.session?.loginExpiresAtMs?.let { it <= System.currentTimeMillis().toULong() } == true
@@ -123,7 +125,7 @@ import net.dmsg.android.core.*
 }
 
 @Composable internal fun LocalContentPanel(value: LocalContent, reviewUnbacked: (() -> Unit)? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    DetailCard {
         Text(str(R.string.text_only_on_this_device_6efee99), style = MaterialTheme.typography.titleMedium)
         LabelValue(str(R.string.text_changes_waiting_to_sync_344814b), localizedNumber(value.pending))
         LabelValue(str(R.string.text_unbacked_file_versions_f59bc2a), localizedNumber(value.unbacked))
@@ -240,15 +242,11 @@ import net.dmsg.android.core.*
 }
 
 @Composable internal fun LabelValue(label: String, value: String) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth < 400.dp || androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelLarge)
-                Text(value)
-            }
-        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-            Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, Modifier.weight(1f))
-        }
+    FlowRow(Modifier.fillMaxWidth().padding(vertical = 4.dp).semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(2.dp),
+        itemVerticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.padding(end = 12.dp), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleSmall)
     }
 }

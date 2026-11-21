@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"Use at least 12 characters."</string>
     <string name="message_actions" formatted="false">"Actions"</string>
     <string name="message_sending" formatted="false">"Sending"</string>
+    <string name="no_conversations_yet" formatted="false">"No conversations yet"</string>
     <string name="no_matches" formatted="false">"No matching results"</string>
     <string name="offline_account" formatted="false">"Local account"</string>
     <string name="operation_failed_code" formatted="true">"This operation could not finish. Code: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"The operation could not be completed. Please try again."</string>
     <string name="otp_accessibility_hint" formatted="false">"One-time code. Use field actions to copy it or show it in large type."</string>
     <string name="permission_account_information" formatted="false">"Account information"</string>
     <string name="permission_channel_id" formatted="false">"Channel ID"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"Messages"</string>
     <string name="shortcut_vault" formatted="false">"Vault"</string>
     <string name="signin_saved_passkey" formatted="false">"Use a saved passkey if you already created one. Create a new passkey only if you need another login identity."</string>
+    <string name="sort_by" formatted="false">"Sort by"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 minutes"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 days"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 lowercase letters, digits, _ or -"</string>

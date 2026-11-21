@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"Mindestens 12 Zeichen verwenden."</string>
     <string name="message_actions" formatted="false">"Aktionen"</string>
     <string name="message_sending" formatted="false">"Senden"</string>
+    <string name="no_conversations_yet" formatted="false">"Noch keine Gespräche"</string>
     <string name="no_matches" formatted="false">"Keine passenden Ergebnisse"</string>
     <string name="offline_account" formatted="false">"Lokales Konto"</string>
     <string name="operation_failed_code" formatted="true">"Dieser Vorgang konnte nicht abgeschlossen werden. Code: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"Der Vorgang konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut."</string>
     <string name="otp_accessibility_hint" formatted="false">"Einmalcode. Über die Feldaktionen kannst du ihn kopieren oder in Großschrift anzeigen."</string>
     <string name="permission_account_information" formatted="false">"Kontoinformationen"</string>
     <string name="permission_channel_id" formatted="false">"Kanal-ID"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"Nachrichten"</string>
     <string name="shortcut_vault" formatted="false">"Tresor"</string>
     <string name="signin_saved_passkey" formatted="false">"Wenn du bereits einen Passkey erstellt hast, verwende den gespeicherten. Erstelle nur für eine weitere Anmeldeidentität einen neuen."</string>
+    <string name="sort_by" formatted="false">"Sortieren nach"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 Minuten"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 Tage"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 Kleinbuchstaben, Ziffern, _ oder -"</string>

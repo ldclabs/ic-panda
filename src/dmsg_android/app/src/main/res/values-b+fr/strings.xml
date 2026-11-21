@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"Utilisez au moins 12 caractères."</string>
     <string name="message_actions" formatted="false">"Actions"</string>
     <string name="message_sending" formatted="false">"Envoi"</string>
+    <string name="no_conversations_yet" formatted="false">"Aucune conversation pour le moment"</string>
     <string name="no_matches" formatted="false">"Aucun résultat correspondant"</string>
     <string name="offline_account" formatted="false">"Compte local"</string>
     <string name="operation_failed_code" formatted="true">"Cette opération n’a pas pu aboutir. Code : %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"L’opération n’a pas pu être terminée. Veuillez réessayer."</string>
     <string name="otp_accessibility_hint" formatted="false">"Code à usage unique. Utilisez les actions du champ pour le copier ou l’afficher en grand."</string>
     <string name="permission_account_information" formatted="false">"Informations du compte"</string>
     <string name="permission_channel_id" formatted="false">"ID du canal"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"Messages"</string>
     <string name="shortcut_vault" formatted="false">"Coffre"</string>
     <string name="signin_saved_passkey" formatted="false">"Si vous avez déjà créé une clé d’accès, utilisez celle enregistrée. Créez-en une nouvelle seulement pour une autre identité de connexion."</string>
+    <string name="sort_by" formatted="false">"Trier par"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 minutes"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1 à 366 jours"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1 à 40 lettres minuscules, chiffres, _ ou -"</string>

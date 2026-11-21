@@ -6,6 +6,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect as ComposeRect
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -46,6 +48,34 @@ class AdaptiveLayoutTest {
         compose.onNodeWithTag("workspace-list").assertWidthIsEqualTo(480.dp)
     }
 
+    @Test fun keyboardFocusUsesTheViewportAboveTheFloatingBar() {
+        compose.setContent {
+            val manager = LocalInputModeManager.current
+            SideEffect { manager.requestInputMode(InputMode.Keyboard) }
+            Box(Modifier.requiredSize(320.dp, 600.dp)) {
+                WorkspaceBody(PaddingValues(bottom = 84.dp), floatingBar = true) {
+                    Box(Modifier.fillMaxSize().testTag("focus-viewport"))
+                }
+            }
+        }
+        compose.onNodeWithTag("focus-viewport").assertHeightIsEqualTo(516.dp)
+    }
+
+    @Test fun segmentedScopesStayEqualInHeightWhenOnlyOneLabelWraps() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f), LocalLayoutDirection provides LayoutDirection.Rtl) {
+                DMsgTheme(false) {
+                    Box(Modifier.width(280.dp)) { WorkspaceScope("Local", "Encrypted cloud backups", false) {} }
+                }
+            }
+        }
+        val local = compose.onNode(hasClickAction() and hasText("Local")).getUnclippedBoundsInRoot()
+        val cloud = compose.onNode(hasClickAction() and hasText("Encrypted cloud backups")).getUnclippedBoundsInRoot()
+        assertEquals(local.top, cloud.top)
+        assertEquals(local.bottom, cloud.bottom)
+        assertTrue(local.bottom - local.top >= 48.dp)
+    }
+
     @Test fun tabletopUsesOneUnobstructedAreaAndLargeTextStacksLongValues() {
         var fold by mutableStateOf<WorkspaceFold?>(null)
         var bounds = ComposeRect.Zero
@@ -60,8 +90,8 @@ class AdaptiveLayoutTest {
         }
         compose.runOnIdle { fold = WorkspaceFold(Rect(bounds.left.toInt(), bounds.top.toInt() + 250, bounds.right.toInt(), bounds.top.toInt() + 300), false) }
         compose.onNodeWithTag("safe-content").assertHeightIsEqualTo(300.dp)
-        val label = compose.onNodeWithText("Complete account identifier").getUnclippedBoundsInRoot()
-        val value = compose.onNodeWithText("aaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg").getUnclippedBoundsInRoot()
+        val label = compose.onNodeWithText("Complete account identifier", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val value = compose.onNodeWithText("aaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg", useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue(value.top >= label.bottom)
     }
 }

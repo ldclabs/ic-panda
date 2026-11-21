@@ -5,7 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -24,6 +25,6 @@ import net.dmsg.android.platform.BoundedImages
         }, key = operation, quiet = true) { bitmap = it }
     }
     DisposableEffect(operation) { onDispose { client.cancelOperation(operation); bitmap = null } }
-    if (bitmap != null) Image(bitmap!!.asImageBitmap(), null, Modifier.size(40.dp), contentScale = ContentScale.Crop)
-    else Icon(if (file.mime.startsWith("image/")) Icons.Outlined.Image else Icons.Outlined.Description, null)
+    if (bitmap != null) Image(bitmap!!.asImageBitmap(), null, Modifier.size(40.dp).clip(MaterialTheme.shapes.small), contentScale = ContentScale.Crop)
+    else TonalIcon(if (file.mime.startsWith("image/")) Icons.Outlined.Image else Icons.Outlined.Description, MaterialTheme.colorScheme.secondaryContainer)
 }

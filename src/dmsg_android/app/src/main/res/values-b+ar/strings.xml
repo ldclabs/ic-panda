@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"استخدم 12 حرفًا على الأقل."</string>
     <string name="message_actions" formatted="false">"الإجراءات"</string>
     <string name="message_sending" formatted="false">"إرسال"</string>
+    <string name="no_conversations_yet" formatted="false">"لا توجد محادثات بعد"</string>
     <string name="no_matches" formatted="false">"لا توجد نتائج مطابقة"</string>
     <string name="offline_account" formatted="false">"حساب محلي"</string>
     <string name="operation_failed_code" formatted="true">"تعذر إكمال هذه العملية. الرمز: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"تعذّر إكمال العملية. يُرجى المحاولة مجددًا."</string>
     <string name="otp_accessibility_hint" formatted="false">"رمز للاستخدام مرة واحدة. استخدم إجراءات الحقل لنسخه أو عرضه بخط كبير."</string>
     <string name="permission_account_information" formatted="false">"معلومات الحساب"</string>
     <string name="permission_channel_id" formatted="false">"معرّف القناة"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"الرسائل"</string>
     <string name="shortcut_vault" formatted="false">"الخزنة"</string>
     <string name="signin_saved_passkey" formatted="false">"إذا سبق أن أنشأت مفتاح مرور، فاستخدم المفتاح المحفوظ. أنشئ مفتاحًا جديدًا فقط إذا احتجت إلى هوية دخول أخرى."</string>
+    <string name="sort_by" formatted="false">"ترتيب حسب"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 دقيقة"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 يومًا"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 حرفًا لاتينيًا صغيرًا أو رقمًا أو _ أو -"</string>

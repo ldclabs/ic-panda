@@ -180,7 +180,7 @@ private fun minuteTime(minutes: Int) = (minutes / 60).toString().padStart(2, '0'
         }.sortedWith(compareBy<Triple<String, String, String>> { it.first != current }.thenComparator { a, b -> sorter.compare(a.second, b.second) })
     }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text(str(R.string.text_search_time_zones_e44910f)) }, singleLine = true)
+        WorkspaceSearchField(query, { query = it }, str(R.string.text_search_time_zones_e44910f))
         LazyColumn {
             val visible = zones.filter { (id, city, region) -> listOf(id, city, region).any { it.contains(query.trim(), ignoreCase = true) } }
             if (visible.isEmpty()) item { EmptyPanel(str(R.string.no_matches)) }

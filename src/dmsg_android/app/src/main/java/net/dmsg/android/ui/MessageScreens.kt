@@ -55,35 +55,39 @@ import net.dmsg.core.MessageItem
     LaunchedEffect(search, ids, blocked, selected, state.epoch, revision) {
         if (selected.isEmpty() && blocked != null) client.messages.searchDirectory(search, ids, blocked)
     }
-    if (selected.isEmpty()) LazyColumn(Modifier.fillMaxSize(), state = workspaceListState(client.navigation, "messages:list"), contentPadding = PaddingValues(20.dp)) {
+    if (selected.isEmpty()) LazyColumn(Modifier.fillMaxSize(), state = workspaceListState(client.navigation, "messages:list"), contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp + LocalWorkspaceBarInset.current)) {
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                FilterChip(true, {}, { Text(str(R.string.text_conversations_23a085e)) })
-                FilterChip(false, inbox, { Text(str(R.string.text_letters_cfbff5c)) })
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = { client.channels.openSetup(false) }) { Icon(Icons.Outlined.Add, str(R.string.text_new_channel_6ea7fcc)) }
-                IconButton(onClick = { client.channels.openSetup(true) }) { Icon(Icons.AutoMirrored.Outlined.Login, str(R.string.text_join_5f4ca2d)) }
-            }
             WorkspaceSearchField(search, client.messages::editDirectoryQuery, str(R.string.text_search_messages_ee3eb59))
-            TextButton(onClick = { client.navigation.push(Route("message-settings")) }) { Text(str(R.string.text_message_settings_1a28455)) }
+            Spacer(Modifier.height(8.dp))
+            WorkspaceScope(str(R.string.text_conversations_23a085e), str(R.string.text_letters_cfbff5c), false, switch = inbox)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { client.channels.openSetup(true) }) {
+                    Icon(Icons.AutoMirrored.Outlined.Login, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(str(R.string.text_join_5f4ca2d))
+                }
+                IconButton(onClick = { client.navigation.push(Route("message-settings")) }) {
+                    Icon(Icons.Outlined.Settings, str(R.string.text_message_settings_1a28455))
+                }
+            }
             ReadFeedback(listing, client.messages::browse)
         }
-        items(matchingChannels, key = { it.id }) { channel ->
+        itemsIndexed(matchingChannels, key = { _, channel -> channel.id }) { index, channel ->
             val draft = drafts[channel.id]?.text ?: channel.draft
             val attachmentCount = drafts[channel.id]?.attachments?.size ?: 0
-            ListItem(modifier = Modifier.clickable { select(channel.id) }, headlineContent = { Text(channel.name) }, supportingContent = {
+            ListItem(modifier = Modifier.listRowShape(index, matchingChannels.size).clickable { select(channel.id) }, headlineContent = { Text(channel.name) }, supportingContent = {
                 Column {
                     if (query.isEmpty()) Text(if (draft.isNotEmpty()) str(R.string.text_draft_4a4143d) + draft else if (attachmentCount > 0) quantity(R.plurals.draft_attachments, attachmentCount) else channel.preview, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (channel.pendingSends > 0u) Text(str(R.string.text_waiting_to_send_93d9311) + channel.pendingSends, style = MaterialTheme.typography.labelSmall)
                 }
-            }, leadingContent = { Icon(if (channel.news) Icons.Outlined.Campaign else Icons.Outlined.Forum, null, tint = MaterialTheme.colorScheme.primary) }, trailingContent = {
+            }, leadingContent = { TonalIcon(if (channel.news) Icons.Outlined.Campaign else Icons.Outlined.Forum) }, trailingContent = {
                 Column(horizontalAlignment = Alignment.End) {
                     Text(messageTime(channel.lastAt), style = MaterialTheme.typography.labelSmall)
                     if (channel.muted) Icon(Icons.Outlined.NotificationsOff, str(R.string.text_muted_8d0508d), Modifier.size(16.dp))
                     if (channel.unread > 0u) Badge { Text(localizedNumber(channel.unread)) }
                 }
             })
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(2.dp))
         }
         if (query.isNotEmpty()) {
             item {
@@ -111,7 +115,8 @@ import net.dmsg.core.MessageItem
                 }
                 if (matchingChannels.isEmpty() && matches is ReadState.Empty && (listing is ReadState.Ready || listing is ReadState.Empty)) item { EmptyPanel(str(R.string.no_matches)) }
             }
-        } else if (listing is ReadState.Empty) item { Notice(str(R.string.text_start_a_private_channel_or_join_with_an_invitation_no_contacts_ar_ac9dfa2)) }
+        } else if (listing is ReadState.Empty) item { EmptyPanel(str(R.string.no_conversations_yet), Icons.Outlined.Forum,
+            str(R.string.text_start_a_private_channel_or_join_with_an_invitation_no_contacts_ar_ac9dfa2)) }
     } else ConversationScreen(client, state, selected)
 
 }

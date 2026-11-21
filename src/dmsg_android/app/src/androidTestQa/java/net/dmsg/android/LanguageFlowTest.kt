@@ -35,17 +35,25 @@ class LanguageFlowTest {
                 android.content.res.Configuration(previousActivity.resources.configuration).apply {
                     setLocales(android.os.LocaleList.forLanguageTags(tag))
                 }).getString(R.string.app_language)
-            compose.onNodeWithText(str(R.string.app_language)).performScrollTo().performClick()
+            compose.revealAccountRow(compose.onNodeWithText(str(R.string.app_language))).performClick()
             compose.onNodeWithTag("language-search").performTextInput(tag)
             compose.onNodeWithTag("language-$tag").performClick()
-            compose.waitUntil(15_000) {
-                (!recreates || compose.activity !== previousActivity) &&
-                    AppLanguage.selected() == tag &&
-                    AppLanguage.locale().toLanguageTag() == tag &&
-                    compose.activity.resources.configuration.locales[0].toLanguageTag() == tag &&
-                    compose.activity.hasWindowFocus() &&
-                    compose.onNodeWithText(expectedLanguage).isDisplayed() &&
-                    compose.onAllNodesWithTag("language-picker").fetchSemanticsNodes().isEmpty()
+            try {
+                compose.waitUntil(15_000) {
+                    (!recreates || compose.activity !== previousActivity) &&
+                        AppLanguage.selected() == tag &&
+                        AppLanguage.locale().toLanguageTag() == tag &&
+                        compose.activity.resources.configuration.locales[0].toLanguageTag() == tag &&
+                        compose.activity.hasWindowFocus() &&
+                        compose.onNodeWithText(expectedLanguage).isDisplayed() &&
+                        compose.onAllNodesWithTag("language-picker").fetchSemanticsNodes().isEmpty()
+                }
+            } catch (error: Throwable) {
+                val locale = compose.activity.resources.configuration.locales.toLanguageTags()
+                throw AssertionError("Switch to $tag: selected=${AppLanguage.selected()} locale=$locale " +
+                    "focus=${compose.activity.hasWindowFocus()} route=${client.navigation.state.value.current} " +
+                    "scroll=${client.navigation.scrollPosition("account:index")}\n" +
+                    compose.onRoot().printToString().take(10_000), error)
             }
             assertSame(client, compose.activity.qaClient)
             assertEquals(account, client.state.value.session!!.account)

@@ -8,7 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -90,7 +90,7 @@ import net.dmsg.android.core.*
         val latest = client.library.preferences.value["$trash:$folder"] ?: FileBrowsePreferences()
         client.library.remember(folder, trash, latest.copy(first = scroll.firstVisibleItemIndex, offset = scroll.firstVisibleItemScrollOffset), owner)
     } }
-    LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 110.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), state = scroll, contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 100.dp + LocalWorkspaceBarInset.current), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         item {
             if (trash) Text(str(R.string.text_deleted_on_this_device_c40f3ba), style = MaterialTheme.typography.titleMedium)
             if (!trash && folder != "root") Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
@@ -98,37 +98,34 @@ import net.dmsg.android.core.*
                 crumbs.forEach { crumb -> Text("/"); TextButton(onClick = { client.navigation.folder(crumb.id) }, enabled = crumb.id != folder) { Text(crumb.name) } }
             }
             WorkspaceSearchField(preferences.query, { client.library.clearSelection(); update(preferences.copy(query = it, limit = 100, first = 0, offset = 0)) }, str(R.string.text_search_files_notes_and_tags_9013c74))
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-                if (!trash) {
-                    FilterChip(true, { if (folder != "root") client.navigation.folder("root") }, { Text(str(R.string.text_on_this_device_6032118)) },
-                        leadingIcon = { Icon(Icons.Outlined.PhoneAndroid, null, Modifier.size(18.dp)) })
-                    if (state.session?.accountKind != "local") FilterChip(false, { client.navigation.push(Route("cloud-files")) }, { Text(str(R.string.text_cloud_backups_ab4daf1)) },
-                        leadingIcon = { Icon(Icons.Outlined.Cloud, null, Modifier.size(18.dp)) })
+            if (!trash && state.session?.accountKind != "local") {
+                Spacer(Modifier.height(8.dp))
+                WorkspaceScope(str(R.string.text_on_this_device_6032118), str(R.string.text_cloud_backups_ab4daf1), false) {
+                    client.navigation.push(Route("cloud-files"))
                 }
-                if (!trash) IconButton(onClick = { client.navigation.push(Route("file-transfers")) }) {
-                    Icon(Icons.Outlined.SwapVert, str(R.string.text_transfers_6fdfd95))
-                }
-                Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_more_file_actions_65e84ee)) }
-                    DropdownMenu(menu, { menu = false }) {
-                        if (canBrowseUnbacked && !showUnbacked) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
-                            onClick = { menu = false; client.navigation.push(Route("file-unbacked")) })
-                        if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_new_folder_3b1862d)) }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
-                            onClick = { menu = false; creating = true })
-                        DropdownMenuItem(text = { Text(str(R.string.text_select_visible_items_5b34cd2)) }, onClick = { menu = false; all.take(preferences.limit).filterNot { it.id in selection }.forEach { client.library.choose(it.id) } }, enabled = all.isNotEmpty())
-                        if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_share_links_fe69aa5)) }, onClick = { menu = false; client.navigation.push(Route("file-links")) })
-                        if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_collect_files_3ad17e5)) }, onClick = { menu = false; client.navigation.push(Route("file-requests")) })
-                        if (trash) DropdownMenuItem(text = { Text(str(R.string.text_transfers_6fdfd95)) }, onClick = { menu = false; client.navigation.push(Route("file-transfers")) })
-                        if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_trash_8af1079)) }, onClick = { menu = false; client.navigation.push(Route("file-trash")) })
+            }
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, itemVerticalAlignment = Alignment.CenterVertically) {
+                FilterChip(preferences.favorites, { client.library.clearSelection(); update(preferences.copy(favorites = !preferences.favorites)) },
+                    { Text(str(R.string.text_favorites_960eb5d)) }, leadingIcon = { Icon(if (preferences.favorites) Icons.Outlined.Star else Icons.Outlined.StarOutline, null, Modifier.size(18.dp)) })
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SortMenu(preferences.sort, listOf("name" to R.string.text_name_dd4dc4c, "updated" to R.string.text_recent_723c894, "size" to R.string.text_largest_4d2cb3c)) {
+                        update(preferences.copy(sort = it))
+                    }
+                    Box {
+                        IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_more_file_actions_65e84ee)) }
+                        DropdownMenu(menu, { menu = false }) {
+                            if (canBrowseUnbacked && !showUnbacked) DropdownMenuItem(text = { Text(str(R.string.text_unbacked_file_versions_f59bc2a)) },
+                                onClick = { menu = false; client.navigation.push(Route("file-unbacked")) })
+                            if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_new_folder_3b1862d)) }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) },
+                                onClick = { menu = false; creating = true })
+                            DropdownMenuItem(text = { Text(str(R.string.text_select_visible_items_5b34cd2)) }, onClick = { menu = false; all.take(preferences.limit).filterNot { it.id in selection }.forEach { client.library.choose(it.id) } }, enabled = all.isNotEmpty())
+                            if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_share_links_fe69aa5)) }, onClick = { menu = false; client.navigation.push(Route("file-links")) })
+                            if (state.session?.accountKind != "local") DropdownMenuItem(text = { Text(str(R.string.text_collect_files_3ad17e5)) }, onClick = { menu = false; client.navigation.push(Route("file-requests")) })
+                            DropdownMenuItem(text = { Text(str(R.string.text_transfers_6fdfd95)) }, onClick = { menu = false; client.navigation.push(Route("file-transfers")) })
+                            if (!trash) DropdownMenuItem(text = { Text(str(R.string.text_trash_8af1079)) }, onClick = { menu = false; client.navigation.push(Route("file-trash")) })
+                        }
                     }
                 }
-            }
-            if (showUnbacked) {
-                AccountRow(str(R.string.text_unbacked_file_versions_f59bc2a), value = localizedNumber(unbacked)) { client.navigation.push(Route("file-unbacked")) }
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("name", "updated", "size").forEach { sort -> FilterChip(preferences.sort == sort, { update(preferences.copy(sort = sort)) }, { Text(when (sort) { "updated" -> str(R.string.text_recent_723c894); "size" -> str(R.string.text_largest_4d2cb3c); else -> str(R.string.text_name_dd4dc4c) }) }) }
-                FilterChip(preferences.favorites, { client.library.clearSelection(); update(preferences.copy(favorites = !preferences.favorites)) }, { Text(str(R.string.text_favorites_960eb5d)) })
             }
             if (selection.isNotEmpty()) {
                 Text(str(R.string.text_selected_26244a5) + localizedNumber(selection.size), style = MaterialTheme.typography.labelLarge)
@@ -147,9 +144,9 @@ import net.dmsg.android.core.*
                 if (preferences.query.isBlank() && !preferences.favorites && all.isNotEmpty()) TextButton(onClick = { start("purge", all) }, enabled = !state.working("files:batch")) { Text(str(R.string.text_empty_local_trash_3566898), color = MaterialTheme.colorScheme.error) }
             }
         }
-        items(all.take(preferences.limit), key = { it.id }) { entry ->
+        itemsIndexed(all.take(preferences.limit), key = { _, entry -> entry.id }) { index, entry ->
             val file = filesById[entry.id]
-            ListItem(modifier = Modifier.semantics { if (selection.isNotEmpty()) toggleableState = ToggleableState(entry.id in selection) }
+            ListItem(modifier = Modifier.listRowShape(index, minOf(all.size, preferences.limit)).semantics { if (selection.isNotEmpty()) toggleableState = ToggleableState(entry.id in selection) }
                 .combinedClickable(role = if (selection.isNotEmpty()) Role.Checkbox else Role.Button,
                     onClick = { if (selection.isNotEmpty()) client.library.choose(entry.id) else if (trash) target = entry else if (entry.folder) client.navigation.folder(entry.id) else select(entry.id) }, onLongClick = { client.library.choose(entry.id) }),
                 headlineContent = { Text(entry.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
@@ -162,18 +159,21 @@ import net.dmsg.android.core.*
                         file?.let { Text(fileSize(it.size) + " · " + fileState(it)) }
                     }
                 },
-                leadingContent = { if (selection.isNotEmpty()) Checkbox(entry.id in selection, onCheckedChange = null) else if (file != null) FileThumbnail(client, file) else Icon(Icons.Outlined.Folder, null) },
+                leadingContent = { if (selection.isNotEmpty()) Checkbox(entry.id in selection, onCheckedChange = null) else if (file != null) FileThumbnail(client, file) else TonalIcon(Icons.Outlined.Folder, MaterialTheme.colorScheme.secondaryContainer) },
                 trailingContent = { Row(verticalAlignment = Alignment.CenterVertically) { if (file?.starred == true) Icon(Icons.Outlined.Star, str(R.string.text_favorite_898f4c6)); IconButton(onClick = { target = entry }) { Icon(Icons.Outlined.MoreVert, str(R.string.text_actions_for_342986f) + entry.name) } } })
-            HorizontalDivider()
         }
         if (all.size > preferences.limit) item { TextButton(onClick = { update(preferences.copy(limit = preferences.limit + 100)) }) { Text(str(R.string.text_show_more_items_688023e)) } }
-        if (current != null && all.isEmpty() && (listing is ReadState.Ready || listing is ReadState.Empty)) item { EmptyPanel(when {
-            preferences.query.isNotBlank() || preferences.favorites -> str(R.string.text_no_matching_files_2fc3030)
-            trash -> str(R.string.text_trash_is_empty_c562cd3)
-            else -> str(R.string.empty_folder)
-        }) }
+        val empty = current != null && all.isEmpty() && (listing is ReadState.Ready || listing is ReadState.Empty)
+        val privacy = str(if (state.session?.accountKind == "local") R.string.saved_on_device else R.string.text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b)
+        if (empty) item {
+            val filtered = preferences.query.isNotBlank() || preferences.favorites
+            EmptyPanel(str(when { filtered -> R.string.text_no_matching_files_2fc3030; trash -> R.string.text_trash_is_empty_c562cd3; else -> R.string.empty_folder }),
+                when { filtered -> Icons.Outlined.Search; trash -> Icons.Outlined.DeleteOutline; else -> Icons.Outlined.FolderOpen },
+                detail = if (!filtered && !trash) privacy else null,
+                action = if (filtered) ({ TextButton(onClick = { update(preferences.copy(query = "", favorites = false, limit = 100)) }) { Text(str(R.string.text_clear_filters_5ea61be)) } }) else null)
+        }
         item {
-            if (!trash) Notice(str(if (state.session?.accountKind == "local") R.string.saved_on_device else R.string.text_files_are_encrypted_locally_cloud_backup_is_a_separate_explicit_a_28bc23b))
+            if (!trash && !empty && all.isNotEmpty()) Notice(privacy)
             if (state.working("files:batch")) { LinearProgressIndicator(Modifier.fillMaxWidth()); TextButton(onClick = client.library::cancelBatch) { Text(str(R.string.text_stop_after_completed_items_d0aee2e)) } }
             if (results.isNotEmpty()) TextButton(onClick = { showingResults = true }) { Text(str(R.string.text_review_operation_results_f79dc63)) }
         }

@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,10 +23,12 @@ import net.dmsg.android.core.*
 
 @Composable fun MessageSettingsScreen(client: ClientController) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        AccountRow(str(R.string.text_receiving_policy_7270844)) { client.navigation.push(Route("inbox-settings")) }
-        AccountRow(str(R.string.text_blocked_accounts_c7f6322)) { client.navigation.push(Route("blocked-accounts")) }
-        AccountRow(str(R.string.text_your_reports_8c328aa)) { client.navigation.push(Route("reports")) }
-        AccountRow(str(R.string.text_hidden_conversations_46b7307)) { client.navigation.push(Route("channel-hidden")) }
+        SettingsGroup {
+            AccountRow(str(R.string.text_receiving_policy_7270844), Icons.Outlined.MarkEmailRead) { client.navigation.push(Route("inbox-settings")) }
+            AccountRow(str(R.string.text_blocked_accounts_c7f6322), Icons.Outlined.Block) { client.navigation.push(Route("blocked-accounts")) }
+            AccountRow(str(R.string.text_your_reports_8c328aa), Icons.Outlined.Flag) { client.navigation.push(Route("reports")) }
+            AccountRow(str(R.string.text_hidden_conversations_46b7307), Icons.Outlined.VisibilityOff) { client.navigation.push(Route("channel-hidden")) }
+        }
     }
 }
 
@@ -115,7 +119,11 @@ import net.dmsg.android.core.*
         if (prepared != null) ReportReviewContent(client, prepared)
         else if (form != null) {
             ParticipantIdentity(client, target.account, true)
-            listOf("spam", "harassment", "illegal", "other").forEach { reason -> FilterChip(form.reason == reason, { client.safety.editReport(form.copy(reason = reason)) }, { Text(reportReason(reason)) }) }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("spam", "harassment", "illegal", "other").forEach { reason ->
+                    FilterChip(form.reason == reason, { client.safety.editReport(form.copy(reason = reason)) }, { Text(reportReason(reason)) })
+                }
+            }
             OutlinedTextField(form.note, { client.safety.editReport(form.copy(note = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), minLines = 3, label = { Text(str(R.string.text_describe_the_issue_d8ac397)) }, supportingText = { Text(localizedNumber(form.note.toByteArray(Charsets.UTF_8).size) + " / " + localizedNumber(2000) + " " + str(R.string.text_utf_8_bytes_121f5ad)) }, isError = form.note.isNotEmpty() && !form.valid)
             if (target.kind != "account") SettingToggle(str(R.string.text_include_this_message_s_text_359f600), form.disclose, { client.safety.editReport(form.copy(disclose = it)) })
             Notice(str(R.string.text_only_the_details_you_review_and_text_you_explicitly_select_are_se_a93daca))

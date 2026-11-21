@@ -57,15 +57,17 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
     Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ReadFeedback(read, reload)
         if (item != null) {
-            if (item.saveState == "local_only") Text(str(R.string.saved_on_device), style = MaterialTheme.typography.labelMedium)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SecretIcon(item.kind)
-                Column(Modifier.weight(1f)) { Text(item.title, style = MaterialTheme.typography.headlineSmall); Text(vaultKindName(item.kind), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                if (!historical && !item.reserved && !item.deleted) {
-                    IconToggleButton(checked = item.favorite, onCheckedChange = { client.vault.favorite(item) }, enabled = !changing) {
-                        Icon(if (item.favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_favorite_898f4c6))
+            DetailCard {
+                if (item.saveState == "local_only") Text(str(R.string.saved_on_device), style = MaterialTheme.typography.labelMedium)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SecretIcon(item.kind)
+                    Column(Modifier.weight(1f)) { Text(item.title, style = MaterialTheme.typography.headlineSmall); Text(vaultKindName(item.kind), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    if (!historical && !item.reserved && !item.deleted) {
+                        IconToggleButton(checked = item.favorite, onCheckedChange = { client.vault.favorite(item) }, enabled = !changing) {
+                            Icon(if (item.favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder, str(R.string.text_favorite_898f4c6))
+                        }
+                        IconButton(onClick = { edit(item) }) { Icon(Icons.Outlined.Edit, str(R.string.text_edit_item_3638f4f)) }
                     }
-                    IconButton(onClick = { edit(item) }) { Icon(Icons.Outlined.Edit, str(R.string.text_edit_item_3638f4f)) }
                 }
             }
             if (historical) { Notice(str(R.string.text_you_are_viewing_an_immutable_historical_version_0b9544a)); SelectionContainer { Text(item.revision, style = MaterialTheme.typography.bodySmall) } }
@@ -162,7 +164,7 @@ fun displayTime(ms: ULong): String = if (ms > Long.MAX_VALUE.toULong()) str(R.st
         }
     }
     val value = if (isOtp) otp?.takeIf { tick < deadline } ?: if (historical) "••••••••" else "—" else if (field.concealed) revealed ?: "••••••••" else field.value
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).semantics { if (copiedAt != 0L) stateDescription = str(R.string.vault_copied) }
             .combinedClickable(enabled = !item.reserved && !item.deleted, role = Role.Button, onClickLabel = str(R.string.text_copy_d6e9651) + " · " + label, onClick = ::copyValue,
                 onLongClickLabel = str(R.string.text_field_actions_a2183fb), onLongClick = { menu = true }).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

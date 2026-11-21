@@ -7,21 +7,14 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
@@ -30,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.R
 import net.dmsg.android.core.*
@@ -38,19 +30,11 @@ import net.dmsg.core.*
 import java.io.File
 import kotlinx.coroutines.CancellationException
 
-private data class Destination(val id: String, val label: Int, val icon: ImageVector)
-private val allDestinations = listOf(
-    Destination("vault", R.string.text_vault_ede2a06, Icons.Outlined.Lock),
-    Destination("messages", R.string.text_messages_3a9ab2d, Icons.AutoMirrored.Outlined.Chat),
-    Destination("files", R.string.text_files_c79ddc2, Icons.Outlined.Folder),
-    Destination("account", R.string.text_account_4ab56e9, Icons.Outlined.Person),
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun DMsgApp(client: ClientController, browser: (String) -> Unit, openLogin: (String) -> Unit, share: (File, String) -> Unit) {
     val state by client.state.collectAsStateWithLifecycle()
     val local = state.session?.accountKind == "local"
-    val destinations = if (local) allDestinations.filter { it.id != "messages" } else allDestinations
+    val destinations = if (local) workspaceDestinations.filter { it.id != "messages" } else workspaceDestinations
     LaunchedEffect(state.unlocked, state.concealed, state.session?.account) { client.routePendingChannel(); client.routePendingConnect(); client.routePendingWorkspace(); client.routePendingNotice() }
     val context = LocalContext.current
     val channelListing by client.messages.channels.state.collectAsStateWithLifecycle()
@@ -76,6 +60,9 @@ private val allDestinations = listOf(
         if (state.unlocked && !state.concealed) client.vaultDrafts.load()
     }
     LaunchedEffect(state.unlocked) { if (state.unlocked) client.refresh(route) }
+    DisposableEffect(navigation.current, state.epoch, state.unlocked, state.concealed) {
+        onDispose { snackbar.currentSnackbarData?.dismiss() }
+    }
     LaunchedEffect(state.error, state.notice) {
         (state.error ?: state.notice)?.let { snackbar.showSnackbar(errorText(it)); client.clearNotice() }
     }
@@ -100,22 +87,31 @@ private val allDestinations = listOf(
                     val wide = maxWidth >= 840.dp && density.fontScale < 1.6f && separatedPanesFit
                     val root = route in destinations.map { it.id }
                     val inConversation = route == "messages" && selected.isNotEmpty()
+                    val scopeList = selected.isEmpty() && when (route) {
+                        "inbox" -> navigation.stack.getOrNull(navigation.stack.lastIndex - 1)?.page == "messages"
+                        "cloud-files" -> navigation.stack.getOrNull(navigation.stack.lastIndex - 1)?.page == "files"
+                        else -> false
+                    }
+                    val floatingBar = !wide && (root || scopeList) && selected.isEmpty() && WindowInsets.ime.getBottom(density) == 0
                     FoldSafeWorkspace(fold, wide && (route in setOf("vault", "messages", "files") || navigation.workspace == Workspace.ACCOUNT)) {
                     Row(Modifier.fillMaxSize().testTag("workspace-content")) {
                         if (wide) NavigationRail(Modifier.fillMaxHeight(), containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                             Spacer(Modifier.height(24.dp))
-                            destinations.forEach { destination -> NavigationRailItem(selected = navigation.workspace.route == destination.id, onClick = { go(destination.id) }, icon = { Icon(destination.icon, str(destination.label)) }, label = { Text(str(destination.label)) }) }
+                            destinations.forEach { destination -> NavigationRailItem(selected = navigation.workspace.route == destination.id, onClick = { go(destination.id) }, icon = { Icon(destination.icon, null) }, label = { Text(str(destination.label)) }) }
                         }
                         Scaffold(
                             modifier = Modifier.weight(1f).imePadding(),
-                            topBar = { TopAppBar(title = {
+                            containerColor = MaterialTheme.colorScheme.background,
+                            topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = {
                                 val label = when {
                                     local && route == "account" -> str(R.string.offline_account)
                                     inConversation -> channelListing.valueOrNull()?.find { it.id == selected }?.name ?: str(R.string.text_conversation_654b88b)
+                                    scopeList -> str(destinations.first { it.id == navigation.workspace.route }.label)
                                     root -> str(destinations.first { it.id == route }.label)
                                     else -> title(route)
                                 }
-                                Text(label, style = MaterialTheme.typography.titleLarge)
+                                Text(label, style = if ((root || scopeList) && selected.isEmpty()) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                             }, navigationIcon = {
                                 if (navigation.canGoBack) IconButton(onClick = { client.navigation.back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
                             }, actions = {
@@ -137,16 +133,15 @@ private val allDestinations = listOf(
                                     }
                                 }
                             }) },
-                            bottomBar = { if (!wide && root && selected.isEmpty()) NavigationBar {
-                                destinations.forEach { destination -> NavigationBarItem(selected = navigation.workspace.route == destination.id, onClick = { go(destination.id) }, icon = { Icon(destination.icon, null) }, label = { Text(str(destination.label)) }) }
-                            } },
+                            bottomBar = { if (floatingBar) FloatingWorkspaceBar(destinations, navigation.workspace.route, ::go) },
                             floatingActionButton = {
-                                if ((selected.isEmpty() || wide) && route == "files") FileIntakeButton(client, folder = navigation.current.folder, extended = true)
+                                if (selected.isEmpty() && route == "messages") ExtendedFloatingActionButton(onClick = { client.channels.openSetup(false) }, modifier = Modifier.semantics { contentDescription = str(R.string.text_new_channel_6ea7fcc) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_channel_6ea7fcc)) })
+                                else if ((selected.isEmpty() || wide) && route == "files") FileIntakeButton(client, folder = navigation.current.folder, extended = true)
                                 else if ((selected.isEmpty() || wide) && route == "vault" && !vaultFilters.trash) ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, modifier = Modifier.semantics { contentDescription = str(R.string.text_new_item_9916f9f) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_5a5d1d1)) })
                             },
                             snackbarHost = { if (!inConversation) SnackbarHost(snackbar) },
                         ) { padding ->
-                            Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
+                            WorkspaceBody(padding, floatingBar) {
                                 Box(Modifier.fillMaxWidth().height(4.dp)) { if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth()) }
                                 if (inConversation) {
                                     val syncError by client.messages.channelSyncError.collectAsStateWithLifecycle()
@@ -165,7 +160,7 @@ private val allDestinations = listOf(
                                     "messages" -> if (wide) WorkspacePanes(fold, list = { MessagesScreen(client, state, "", ::select, { go("inbox") }) }, detail = {
                                         if (selected.isNotEmpty()) MessagesScreen(client, state, selected, ::select, { go("inbox") }) else EmptyPanel(str(R.string.text_choose_a_conversation_f1e5111))
                                     }) else MessagesScreen(client, state, selected, ::select, { go("inbox") })
-                                    "inbox" -> InboxScreen(client, state, navigation.current)
+                                    "inbox" -> InboxScreen(client, state, navigation.current, showScopes = scopeList)
                                     "invite-letter-sender" -> InviteLetterSenderScreen(client, selected)
                                     "message-settings" -> MessageSettingsScreen(client)
                                     "inbox-settings" -> InboxSettingsScreen(client)
@@ -233,7 +228,7 @@ private val allDestinations = listOf(
                                     "feedback" -> FeedbackScreen(client)
                                     "file-transfers" -> TransferScreen(client)
                                     "file-preview" -> FilePreviewScreen(client, selected, navigation.current.revision.orEmpty())
-                                    "cloud-files" -> CloudFilesScreen(client, selected)
+                                    "cloud-files" -> CloudFilesScreen(client, selected, showScopes = scopeList)
                                     "file-unbacked" -> UnbackedFilesScreen(client)
                                     "file-backup" -> if (navigation.current.field == "batch") BatchBackupScreen(client)
                                         else FileBackupScreen(client, selected, navigation.current.revision, navigation.current.field == "revision")
@@ -363,5 +358,3 @@ private fun title(route: String) = when (route) {
     "bindings" -> str(R.string.text_sign_in_identities_aa0f5b7); "conflicts" -> str(R.string.text_version_conflicts_0df1b3c)
     else -> str(R.string.text_inbox_2cd8ee3)
 }
-
-@Composable fun EmptyPanel(text: String) { Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) { Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant) } }

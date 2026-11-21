@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"Dùng ít nhất 12 ký tự."</string>
     <string name="message_actions" formatted="false">"Thao tác"</string>
     <string name="message_sending" formatted="false">"Đang gửi"</string>
+    <string name="no_conversations_yet" formatted="false">"Chưa có cuộc trò chuyện nào"</string>
     <string name="no_matches" formatted="false">"Không có kết quả phù hợp"</string>
     <string name="offline_account" formatted="false">"Tài khoản cục bộ"</string>
     <string name="operation_failed_code" formatted="true">"Không thể hoàn tất thao tác này. Mã: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"Hoạt động không thể hoàn thành. Vui lòng thử lại."</string>
     <string name="otp_accessibility_hint" formatted="false">"Mã dùng một lần. Dùng thao tác của trường để sao chép hoặc hiển thị bằng chữ lớn."</string>
     <string name="permission_account_information" formatted="false">"Thông tin tài khoản"</string>
     <string name="permission_channel_id" formatted="false">"Mã kênh"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"Tin nhắn"</string>
     <string name="shortcut_vault" formatted="false">"Kho bảo mật"</string>
     <string name="signin_saved_passkey" formatted="false">"Nếu đã tạo khóa truy cập, hãy dùng khóa đã lưu. Chỉ tạo khóa mới khi cần danh tính đăng nhập khác."</string>
+    <string name="sort_by" formatted="false">"Sắp xếp theo"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 phút"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 ngày"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40 chữ thường, chữ số, _ hoặc -"</string>

@@ -115,7 +115,12 @@ import net.dmsg.android.core.*
     DisposableEffect(batch) { onDispose { if (client.fileRequests.publication.value?.batch == batch) client.fileRequests.pausePublication() } }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Text(jobs.firstOrNull()?.title ?: str(R.string.text_collection_links_91ac11d), style = MaterialTheme.typography.headlineSmall)
+            jobs.firstOrNull()?.let { Text(it.title, style = MaterialTheme.typography.headlineSmall) }
+            if (jobs.isEmpty() && (intents is ReadState.Ready || intents is ReadState.Empty)) {
+                EmptyPanel(str(R.string.text_this_item_is_no_longer_available_refresh_the_list_23e6e8f), Icons.Outlined.LinkOff) {
+                    TextButton(onClick = client.fileRequests::loadIntents) { Text(str(R.string.text_refresh_cba212b)) }
+                }
+            }
             ReadFeedback(intents, client.fileRequests::loadIntents)
             val running = progress?.takeIf { it.batch == batch }
             if (running != null) {

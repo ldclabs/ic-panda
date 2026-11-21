@@ -140,9 +140,8 @@ import net.dmsg.android.core.*
     LaunchedEffect(Unit) { client.channels.loadCreations(); while (true) { kotlinx.coroutines.delay(1000); now = System.currentTimeMillis().toULong() } }
     LaunchedEffect(qr.result) { client.qr.consume("channel-join")?.let { client.channels.editSetup(form.copy(joining = true, invitation = it)) } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(!form.joining, { client.channels.editSetup(form.copy(joining = false)) }, { Text(str(R.string.text_create_7570cfc)) }, enabled = !working)
-            FilterChip(form.joining, { client.channels.editSetup(form.copy(joining = true)) }, { Text(str(R.string.text_join_5f4ca2d)) }, enabled = !working)
+        WorkspaceScope(str(R.string.text_create_7570cfc), str(R.string.text_join_5f4ca2d), form.joining, enabled = !working) {
+            client.channels.editSetup(form.copy(joining = !form.joining))
         }
         if (form.joining) {
             if (summary == null || editingInvitation) {
@@ -164,8 +163,14 @@ import net.dmsg.android.core.*
             } else if (form.invitation.isNotEmpty()) Notice(str(R.string.text_the_invitation_is_invalid_0374805), true)
         } else {
             OutlinedTextField(form.name, { client.channels.editSetup(form.copy(name = it)) }, Modifier.fillMaxWidth().revealFocusedInput(), label = { Text(str(R.string.text_conversation_name_428c56e)) }, enabled = !working && form.request == null, singleLine = true, isError = form.name.isNotEmpty() && !validChannelName(form.name))
-            listOf("direct", "collaboration", "distribution").forEach { kind -> FilterChip(form.kind == kind, { client.channels.editSetup(form.copy(kind = kind)) }, { Text(channelType(kind)) }, enabled = !working && form.request == null) }
-            Text(when (form.kind) { "distribution" -> str(R.string.text_only_the_owner_administrators_and_publishers_can_send_messages_6811c29); "direct" -> str(R.string.text_a_conversation_for_two_accounts_7ba9e18); else -> str(R.string.text_every_member_can_send_messages_020f52c) })
+            SettingsGroup {
+                listOf("direct" to R.string.text_a_conversation_for_two_accounts_7ba9e18,
+                    "collaboration" to R.string.text_every_member_can_send_messages_020f52c,
+                    "distribution" to R.string.text_only_the_owner_administrators_and_publishers_can_send_messages_6811c29).forEach { (kind, description) ->
+                    RadioChoiceRow(channelType(kind), form.kind == kind, enabled = !working && form.request == null,
+                        subtitle = str(description)) { client.channels.editSetup(form.copy(kind = kind)) }
+                }
+            }
             Text(str(R.string.text_after_creation_invite_an_account_to_start_the_conversation_b389453), style = MaterialTheme.typography.bodySmall)
         }
         form.error?.let { Notice(errorText(it), true) }

@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"12자 이상 입력하세요."</string>
     <string name="message_actions" formatted="false">"작업"</string>
     <string name="message_sending" formatted="false">"보내는 중"</string>
+    <string name="no_conversations_yet" formatted="false">"아직 대화가 없습니다."</string>
     <string name="no_matches" formatted="false">"일치하는 결과 없음"</string>
     <string name="offline_account" formatted="false">"로컬 계정"</string>
     <string name="operation_failed_code" formatted="true">"이 작업을 완료하지 못했습니다. 코드: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"작업을 완료할 수 없습니다. 다시 시도해 주세요."</string>
     <string name="otp_accessibility_hint" formatted="false">"일회용 코드입니다. 필드 동작으로 복사하거나 큰 글자로 표시하세요."</string>
     <string name="permission_account_information" formatted="false">"계정 정보"</string>
     <string name="permission_channel_id" formatted="false">"채널 ID"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"메시지"</string>
     <string name="shortcut_vault" formatted="false">"금고"</string>
     <string name="signin_saved_passkey" formatted="false">"이미 패스키를 만들었다면 저장된 패스키를 사용하세요. 다른 로그인 ID가 필요한 경우에만 새로 만드세요."</string>
+    <string name="sort_by" formatted="false">"정렬 기준"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15분"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366일"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"소문자, 숫자, _ 또는 - 1–40자"</string>

@@ -28,7 +28,7 @@ import net.dmsg.core.PasskeyOperation
     val manage = devices.valueOrNull()?.canManage == true && devices is ReadState.Ready
     LaunchedEffect(session.epoch) { client.account.security(); client.approvals.settle() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        ReadFeedback(security, client.account::security); ReadFeedback(devices, client.account::devices)
+        ReadFeedback(security, devices, client.account::security, client.account::devices)
         if (!manage && devices is ReadState.Ready) Notice(str(R.string.text_an_administrator_device_is_required_to_change_account_security_b4649ea))
         value?.logins?.forEach { login ->
             SelectionContainer { Text(login.principal) }
@@ -165,7 +165,7 @@ import net.dmsg.core.PasskeyOperation
     val manage = devices is ReadState.Ready && devices.valueOrNull()?.canManage == true
     LaunchedEffect(Unit) { client.account.security(); client.approvals.settle() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        ReadFeedback(security, client.account::security); ReadFeedback(devices, client.account::devices)
+        ReadFeedback(security, devices, client.account::security, client.account::devices)
         Notice(str(R.string.text_on_chain_recovery_is_off_by_default_for_new_accounts_configure_it_ebbc51d))
         SettingToggle(str(R.string.text_on_chain_recovery_dcf7d3f), form.enabled, { client.account.editRecovery(form.copy(enabled = it)) }, enabled = manage)
         Notice(if (form.enabled) str(R.string.text_a_bound_login_can_recover_uploaded_content_after_the_waiting_peri_491ba41) else str(R.string.text_if_all_authorized_devices_are_lost_recovering_your_login_does_not_01fe5e2))

@@ -119,7 +119,7 @@ import net.dmsg.core.WalletChange
     Column(Modifier.fillMaxSize()) {
     LazyColumn(Modifier.weight(1f).testTag("wallet-transfer"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            ReadFeedback(assets, { client.wallets.transfer(wallet) }); ReadFeedback(details, { client.wallets.select(wallet, true) })
+            ReadFeedback(assets, details, { client.wallets.transfer(wallet) }, { client.wallets.select(wallet, true) })
             SelectionContainer { Text(wallet, style = MaterialTheme.typography.bodySmall) }
             SectionTitle(str(R.string.text_asset_b2cb743))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

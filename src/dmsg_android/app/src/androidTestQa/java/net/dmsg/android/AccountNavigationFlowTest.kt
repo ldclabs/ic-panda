@@ -4,17 +4,46 @@ import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import net.dmsg.android.core.Route
 import net.dmsg.android.platform.str
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
 
 class AccountNavigationFlowTest {
     @get:Rule val compose = createAndroidComposeRule<QaWorkspaceActivity>()
+
+    @Test fun compactNavigationFloatsAboveSystemGesturesAndLeavesTheLastActionReachable() {
+        compose.waitUntil(20_000) { compose.activity.qaClient.state.value.unlocked }
+        val client = compose.activity.qaClient
+        compose.runOnIdle { client.navigation.open("account") }
+        val bar = compose.onNodeWithTag("workspace-navigation").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val window = compose.onNodeWithTag("workspace-content").getUnclippedBoundsInRoot()
+        assertTrue(bar.left > window.left && bar.right < window.right && bar.bottom < window.bottom)
+        val tab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
+        compose.onAllNodes(tab).assertCountEquals(4)
+        compose.onNode(tab and hasText(str(R.string.text_account_4ab56e9))).assertIsSelected()
+        compose.onNode(hasScrollAction()).performSemanticsAction(SemanticsActions.ScrollBy) { scroll -> scroll(0f, 10_000f) }
+        val signOut = compose.onNodeWithText(str(R.string.text_sign_out_7bfa045)).getUnclippedBoundsInRoot()
+        assertTrue(signOut.bottom <= bar.top)
+        capture("floating-account")
+        compose.onNode(tab and hasText(str(R.string.text_files_c79ddc2))).performClick()
+        val files = compose.onNode(tab and hasText(str(R.string.text_files_c79ddc2))).assertIsSelected()
+        val target = files.getUnclippedBoundsInRoot()
+        assertTrue(target.bottom - target.top >= 48.dp)
+        val importAction = compose.onNodeWithContentDescription(str(R.string.text_import_files_2fd22c6)).getUnclippedBoundsInRoot()
+        assertTrue(importAction.bottom <= bar.top)
+        capture("floating-files")
+    }
 
     @Test fun groupedAccountActionsKeepTheirParentAndWorkspaceRootsStayUsable() {
         compose.waitUntil(20_000) { compose.activity.qaClient.state.value.unlocked }
@@ -78,7 +107,7 @@ class AccountNavigationFlowTest {
     }
 
     private fun row(resource: Int): SemanticsNodeInteraction =
-        compose.onNode(hasText(str(resource)) and hasClickAction()).performScrollTo().assertIsDisplayed()
+        compose.revealAccountRow(compose.onNode(hasText(str(resource)) and hasClickAction())).assertIsDisplayed()
 
     private fun back() = compose.onNodeWithContentDescription(str(R.string.text_back_5db5cac)).performClick()
 
@@ -94,4 +123,17 @@ class AccountNavigationFlowTest {
             ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use { it.readBytes() }
         }
     }
+}
+
+
+/** performScrollTo uses the list bounds. A sighted user scrolls past the floating tab hit targets before tapping a row. */
+internal fun ComposeContentTestRule.revealAccountRow(row: SemanticsNodeInteraction): SemanticsNodeInteraction {
+    row.performScrollTo()
+    val bar = onAllNodesWithTag("workspace-navigation").fetchSemanticsNodes().singleOrNull() ?: return row
+    val overlap = row.fetchSemanticsNode().boundsInRoot.bottom - bar.boundsInRoot.top
+    if (overlap > 0f) {
+        onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+            .performSemanticsAction(SemanticsActions.ScrollBy) { scroll -> scroll(0f, overlap + 1f) }
+    }
+    return row
 }

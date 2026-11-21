@@ -100,7 +100,7 @@ private fun validBackupPassword(value: String, repeat: String): Boolean {
     LaunchedEffect(form.step) { if (form.step=="waiting") controller.approved() }
     LaunchedEffect(form.failure) { if(form.failure=="INTEGRITY_FAILED") password="" }
     LazyColumn(contentPadding=PaddingValues(18.dp), verticalArrangement=Arrangement.spacedBy(10.dp)) {
-        item { Text(str(R.string.text_account_4ab56e9)+" · "+app.session?.account.orEmpty()) }
+        item { LabelValue(str(R.string.text_account_4ab56e9), app.session?.account.orEmpty()) }
         if(working) item {
             LinearProgressIndicator(Modifier.fillMaxWidth())
             if (processed > 0uL) Text(fileSize(processed))
@@ -108,9 +108,16 @@ private fun validBackupPassword(value: String, repeat: String): Boolean {
         if(form.failure!=null) item { Notice(str(if(form.failure=="uncommitted") R.string.vault_backup_uncommitted else R.string.vault_backup_unlockerror)) }
         when(form.step) {
             "home" -> item {
-                Button({controller.begin(false)},enabled=!working){Text(str(R.string.vault_backup_export))}
-                OutlinedButton({controller.begin(true)},enabled=!working){Text(str(R.string.vault_backup_import))}
-                if (controller.previous()!=null) TextButton(controller::reconcile,enabled=!working){Text(str(R.string.text_review_9a1a906))}
+                DetailCard {
+                    Text(str(R.string.vault_backup_scope), style = MaterialTheme.typography.bodyMedium)
+                    Button(onClick = { controller.begin(false) }, enabled = !working, modifier = Modifier.fillMaxWidth()) {
+                        Text(str(R.string.vault_backup_export))
+                    }
+                    OutlinedButton(onClick = { controller.begin(true) }, enabled = !working, modifier = Modifier.fillMaxWidth()) {
+                        Text(str(R.string.vault_backup_import))
+                    }
+                    if (controller.previous() != null) TextButton(onClick = controller::reconcile, enabled = !working) { Text(str(R.string.text_review_9a1a906)) }
+                }
             }
             "loading" -> item { TextButton(controller::inventory,enabled=!working){Text(str(R.string.text_retry_563171c))} }
             "export" -> {

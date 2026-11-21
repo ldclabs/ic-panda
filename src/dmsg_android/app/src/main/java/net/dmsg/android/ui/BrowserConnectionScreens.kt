@@ -3,6 +3,8 @@ package net.dmsg.android.ui
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -85,7 +87,7 @@ import net.dmsg.android.core.*
     val state by client.state.collectAsStateWithLifecycle()
     val request by client.browserConnections.request.state.collectAsStateWithLifecycle()
     if (link.account != null && link.account != state.session?.account) {
-        Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Notice(str(R.string.text_this_request_belongs_to_another_account_choose_its_account_before_0b05dcb))
             SelectionContainer { Text(link.account) }
             Button(onClick = { client.navigation.open("accounts") }) { Text(str(R.string.text_choose_account_58cfffa)) }
@@ -94,7 +96,7 @@ import net.dmsg.android.core.*
     } else if (link.destination == "pair") BrowserConnectionsScreen(client, browser)
     else {
         LaunchedEffect(link, state.epoch) { client.browserConnections.locate(link) }
-        Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Notice(str(R.string.text_the_app_retrieves_and_verifies_the_original_browser_request_openi_aea3c2b))
             ReadFeedback(request, { client.browserConnections.locate(link) })
             if (request is ReadState.Empty) Text(str(R.string.text_the_request_is_unavailable_to_this_device_it_may_have_expired_or_763c484))

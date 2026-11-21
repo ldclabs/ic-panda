@@ -75,28 +75,29 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
             return@Scaffold
         }
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = 560.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Column(Modifier.widthIn(max = 560.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 if (incoming.working) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(str(R.string.text_encrypting_shared_items_for_later_import_8caa029)) }
                 else if (incoming.count > 0) Notice(str(R.string.text_shared_items_are_waiting_unlock_an_account_to_review_and_import_t_713dc4a))
                 incoming.error?.let { Notice(errorText(it), true) }
                 if (intent != null) IconButton(onClick = { intent = null; client.cancelAuthentication() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
                 else if (anotherAccount) TextButton(onClick = ::backToWelcome, enabled = !state.busy) { Text(str(R.string.text_cancel_998b9c4)) }
-                Image(painterResource(R.drawable.dmsg_mark), null, Modifier.padding(top = 24.dp).size(64.dp))
-                Text(str(when (intent) {
-                    PasskeyIntent.NEW_WORKSPACE -> R.string.access_new_workspace
-                    PasskeyIntent.EXISTING_ACCOUNT -> R.string.access_existing_account
-                    null -> when {
-                        anotherAccount -> R.string.access_sign_in_another
-                        status == "locked" -> R.string.text_welcome_back_70da839
-                        else -> R.string.text_keep_what_matters_private_2a3adeb
-                    }
-                }), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                Text(str(when (intent) {
-                    PasskeyIntent.NEW_WORKSPACE -> R.string.text_your_passkey_will_be_saved_by_your_credential_provider_this_creat_527af1f
-                    PasskeyIntent.EXISTING_ACCOUNT -> R.string.access_linked_login
-                    null -> if (anotherAccount) R.string.access_linked_login else R.string.text_protect_passwords_notes_and_files_with_end_to_end_encryption_sync_50ec150
-                }), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(12.dp))
+                DetailCard(color = MaterialTheme.colorScheme.surface) {
+                    Image(painterResource(R.drawable.dmsg_mark), null, Modifier.size(54.dp))
+                    Text(str(when (intent) {
+                        PasskeyIntent.NEW_WORKSPACE -> R.string.access_new_workspace
+                        PasskeyIntent.EXISTING_ACCOUNT -> R.string.access_existing_account
+                        null -> when {
+                            anotherAccount -> R.string.access_sign_in_another
+                            status == "locked" -> R.string.text_welcome_back_70da839
+                            else -> R.string.text_keep_what_matters_private_2a3adeb
+                        }
+                    }), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                    Text(str(when (intent) {
+                        PasskeyIntent.NEW_WORKSPACE -> R.string.text_your_passkey_will_be_saved_by_your_credential_provider_this_creat_527af1f
+                        PasskeyIntent.EXISTING_ACCOUNT -> R.string.access_linked_login
+                        null -> if (anotherAccount) R.string.access_linked_login else R.string.text_protect_passwords_notes_and_files_with_end_to_end_encryption_sync_50ec150
+                    }), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 when {
                     state.session == null -> {
                         Notice(str(R.string.text_the_encrypted_workspace_could_not_be_opened_on_this_device_871676c), true)

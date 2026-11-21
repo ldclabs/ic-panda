@@ -2,6 +2,7 @@ package net.dmsg.android.ui
 
 import net.dmsg.android.R
 import net.dmsg.android.platform.str
+import net.dmsg.android.platform.numericExpression
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -43,9 +44,11 @@ import java.io.File
             TextButton(onClick = { selectedVersion = null }) { Text(str(R.string.text_view_the_current_version_86f22e5)) }
         }
         if (file != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Description, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
-                Column { Text(file.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(file.size) + " · " + fileState(file), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            DetailCard {
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TonalIcon(Icons.Outlined.Description, MaterialTheme.colorScheme.secondaryContainer)
+                    Column { Text(file.name, style = MaterialTheme.typography.headlineSmall); Text(fileSize(file.size) + " · " + fileState(file), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
             }
             if (file.trashedAt != null) {
                 Notice(str(R.string.text_restore_this_file_before_opening_it_5bf614e))
@@ -77,9 +80,11 @@ import java.io.File
                 Text(if (backup.verified) str(R.string.text_all_chunks_read_back_and_verified_153e284) else str(R.string.text_backup_has_not_been_fully_read_back_30e3810), style = MaterialTheme.typography.bodySmall)
             }
             SectionTitle(str(R.string.text_versions_0ff2bdb))
-            current.versions.reversed().forEach { version ->
-                RadioChoiceRow(messageTime(version.createdAt) + if (version.current) str(R.string.text_current_de083b6) else "", file.version == version.id,
-                    subtitle = fileSize(version.size) + " · " + version.device) { selectedVersion = version.id }
+            SettingsGroup {
+                current.versions.reversed().forEach { version ->
+                    RadioChoiceRow(messageTime(version.createdAt) + if (version.current) str(R.string.text_current_de083b6) else "", file.version == version.id,
+                        subtitle = fileSize(version.size) + " · " + version.device) { selectedVersion = version.id }
+                }
             }
             if (file.version != current.file.version && file.trashedAt == null) {
                 OutlinedButton(onClick = { versionAction = "use" }, enabled = !state.working("files:version:${file.id}")) { Text(str(R.string.text_make_this_the_current_version_ddcd50e)) }
@@ -122,7 +127,16 @@ import java.io.File
     }) { Text(str(when (confirmation) { "share" -> R.string.text_share_a_verified_copy_fc77423; "evict" -> R.string.text_free_local_space_89b2267; "backup" -> R.string.text_back_up_this_version_f74abb5; else -> R.string.text_move_to_trash_c4056f9 })) } }, dismissButton = { TextButton(onClick = { confirmation = null }) { Text(str(R.string.text_cancel_998b9c4)) } })
 }
 
-internal fun fileSize(value: ULong): String = when { value >= 1024uL * 1024uL -> "%.1f MiB".format(value.toDouble() / 1048576.0); value >= 1024uL -> "%.0f KiB".format(value.toDouble() / 1024.0); else -> net.dmsg.android.platform.localizedNumber(value) + " B" }
+internal fun fileSize(value: ULong): String {
+    val units = listOf("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB")
+    var amount = value.toString().toBigDecimal()
+    var unit = 0
+    val step = 1024.toBigDecimal()
+    while (amount >= step) { amount = amount.divide(step); unit++ }
+    val format = java.text.NumberFormat.getNumberInstance(net.dmsg.android.platform.AppLanguage.locale())
+    format.maximumFractionDigits = 1
+    return numericExpression(format.format(amount) + " " + units[unit])
+}
 @Composable internal fun fileState(value: LibraryFile): String = when {
     value.trashedAt != null -> str(R.string.text_in_trash_3b5e1bf)
     !value.local && value.backup != null -> str(R.string.text_cloud_only_535ba57)

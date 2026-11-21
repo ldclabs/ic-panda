@@ -19,11 +19,15 @@ import net.dmsg.android.platform.str
 
 @Composable
 fun LocalSettings(client: ClientController, go: (String) -> Unit) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp)) {
-        item { Text(str(R.string.saved_on_device), Modifier.padding(bottom = 12.dp)) }
-        item { AccountRow(str(R.string.text_switch_account_52f71df), Icons.Outlined.SwitchAccount) { go("accounts") } }
-        item { AccountRow(str(R.string.text_remove_local_data_c45125e), Icons.Outlined.DeleteOutline) { go("account-remove") } }
-        item { AccountRow(str(R.string.text_lock_workspace_78665ed), Icons.Outlined.Lock) { client.lock() } }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 20.dp, 20.dp, 20.dp + LocalWorkspaceBarInset.current)) {
+        item { SectionTitle(str(R.string.saved_on_device)) }
+        item {
+            SettingsGroup {
+                AccountRow(str(R.string.text_switch_account_52f71df), Icons.Outlined.SwitchAccount) { go("accounts") }
+                AccountRow(str(R.string.text_remove_local_data_c45125e), Icons.Outlined.DeleteOutline) { go("account-remove") }
+                AccountRow(str(R.string.text_lock_workspace_78665ed), Icons.Outlined.Lock) { client.lock() }
+            }
+        }
     }
 }
 

@@ -64,7 +64,7 @@ import net.dmsg.android.core.*
     LaunchedEffect(wallet, state.epoch) { client.wallets.deviceKeys(wallet) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            ReadFeedback(native, { client.wallets.deviceKeys(wallet) }); ReadFeedback(details, { client.wallets.select(wallet, true) })
+            ReadFeedback(native, details, { client.wallets.deviceKeys(wallet) }, { client.wallets.select(wallet, true) })
             SectionTitle(str(R.string.text_native_taproot_key_741b323))
             Text(str(R.string.text_l1_spends_need_this_device_s_bip_340_key_its_root_is_wrapped_by_a_22fb83d), style = MaterialTheme.typography.bodyMedium)
             value?.let {

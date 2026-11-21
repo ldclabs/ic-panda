@@ -24,7 +24,7 @@ import net.dmsg.android.core.*
 private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460020), SENT(R.string.text_sent_a16d792), PENDING(R.string.text_pending_3f118eb), DRAFTS(R.string.text_drafts_14a9642), ARCHIVED(R.string.text_archived_fafdfe8) }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun InboxScreen(client: ClientController, state: UiState, route: Route) {
+@Composable fun InboxScreen(client: ClientController, state: UiState, route: Route, showScopes: Boolean) {
     val blocked by client.safety.blocked.state.collectAsStateWithLifecycle()
     val incoming by client.letters.incoming.state.collectAsStateWithLifecycle()
     val history by client.letters.history.state.collectAsStateWithLifecycle()
@@ -48,6 +48,12 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
     LaunchedEffect(selected, letter?.id) { letter?.takeIf { !it.read }?.let { client.letters.mark(it, read = true) } }
     Column(Modifier.fillMaxSize()) {
         if (route.id == null) {
+            Column(Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                WorkspaceSearchField(search, { search = it }, str(R.string.text_search_letters_1249ccd))
+                if (showScopes) {
+                    WorkspaceScope(str(R.string.text_conversations_23a085e), str(R.string.text_letters_cfbff5c), true, switch = client.navigation::back)
+                }
+            }
             Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(str(R.string.text_on_this_device_4541a6f), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.Settings, str(R.string.text_message_settings_1a28455)) }
@@ -57,8 +63,7 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
             PrimaryScrollableTabRow(selectedTabIndex = folder.ordinal, edgePadding = 16.dp) { LetterFolder.entries.forEach { item ->
                 Tab(folder == item, onClick = { folder = item }, text = { Text(str(item.label)) })
             } }
-            WorkspaceSearchField(search, { search = it }, str(R.string.text_search_letters_1249ccd), Modifier.padding(16.dp))
-            LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp)) {
+            LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
                 when (folder) {
                     LetterFolder.INBOX, LetterFolder.ARCHIVED -> {
                         item { ReadFeedback(blocked, { client.safety.loadBlocks() }); ReadFeedback(incoming, { client.letters.refresh() }) }

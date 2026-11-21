@@ -116,7 +116,7 @@ class SecretToolsCoordinator(private val client: ClientController) {
             check(rotations.requiredFlag("device_local")) { "INTEGRITY_FAILED" }
             val found = rotations.rows("rotations").map(::parseSecretRotation).singleOrNull { it.id == id } ?: error("NOT_FOUND")
             SecretRotationDetail(found, parseSecretDependencies(core.secretRotationDependencies(id).decode()))
-        }, key = "secret:rotation", replace = true, onError = { rotation.fail(request, it) }) { rotation.accept(request, it) }
+        }, key = "secret:rotation", replace = true, quiet = true, onError = { rotation.fail(request, it) }) { rotation.accept(request, it) }
     }
 
     fun record(value: SecretRotationDetail, step: String) = client.perform({

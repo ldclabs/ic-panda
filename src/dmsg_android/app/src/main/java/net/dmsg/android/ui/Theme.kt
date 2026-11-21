@@ -1,6 +1,7 @@
 package net.dmsg.android.ui
 
 import net.dmsg.android.R
+import net.dmsg.android.platform.AppLanguage
 import net.dmsg.android.platform.str
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -8,51 +9,52 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import android.app.Activity
+import android.app.KeyguardManager
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.core.view.WindowCompat
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import java.util.Locale
-
 
 private val light = lightColorScheme(
-    primary = Color(0xFF315B40), onPrimary = Color.White,
-    primaryContainer = Color(0xFFDCEBD5), onPrimaryContainer = Color(0xFF193A23),
-    secondary = Color(0xFF52634F), onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE8EEE2), onSecondaryContainer = Color(0xFF1B2B20),
-    tertiary = Color(0xFF52685C), onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFD5E8DC), onTertiaryContainer = Color(0xFF183326),
-    surfaceTint = Color(0xFF315B40), outline = Color(0xFF758270),
+    primary = Color(0xFF296347), onPrimary = Color.White,
+    primaryContainer = Color(0xFFCBEBD8), onPrimaryContainer = Color(0xFF153E2B),
+    secondary = Color(0xFF415F77), onSecondary = Color.White,
+    secondaryContainer = Color(0xFFDCE9F3), onSecondaryContainer = Color(0xFF203E53),
+    tertiary = Color(0xFF785936), onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFF5E2C9), onTertiaryContainer = Color(0xFF523819),
+    surfaceTint = Color(0xFF296347), outline = Color(0xFF758270),
     onBackground = Color(0xFF1B2B20), surfaceVariant = Color(0xFFE7EDE1),
     surfaceContainerLowest = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFF3F6EE), surfaceContainerHighest = Color(0xFFE1E8DA),
     inverseSurface = Color(0xFF26342A), inverseOnSurface = Color(0xFFF0F3EB), inversePrimary = Color(0xFFB3D6A9),
-    background = Color(0xFFFBFCF7), surface = Color(0xFFFBFCF7),
-    surfaceContainer = Color(0xFFF0F3EB), surfaceContainerHigh = Color(0xFFE8EEE2),
-    onSurface = Color(0xFF1B2B20), onSurfaceVariant = Color(0xFF616F61), outlineVariant = Color(0xFFDCE3D6),
+    background = Color(0xFFEEF2EE), surface = Color(0xFFFCFDFB),
+    surfaceContainer = Color(0xFFE5EBE5), surfaceContainerHigh = Color(0xFFDEE6DF),
+    onSurface = Color(0xFF1B2B20), onSurfaceVariant = Color(0xFF536454), outlineVariant = Color(0xFFDCE3D6),
 )
 private val dark = darkColorScheme(
     primary = Color(0xFFB3D6A9), onPrimary = Color(0xFF183720),
     primaryContainer = Color(0xFF344F37), onPrimaryContainer = Color(0xFFD5EDCC),
-    secondary = Color(0xFFBECEB7), onSecondary = Color(0xFF24351F),
-    secondaryContainer = Color(0xFF35472E), onSecondaryContainer = Color(0xFFDCEBD5),
-    tertiary = Color(0xFFB4CEBC), onTertiary = Color(0xFF20372B),
-    tertiaryContainer = Color(0xFF364E40), onTertiaryContainer = Color(0xFFD0EAD7),
+    secondary = Color(0xFFAFCCE3), onSecondary = Color(0xFF153447),
+    secondaryContainer = Color(0xFF2A475A), onSecondaryContainer = Color(0xFFD3E9F9),
+    tertiary = Color(0xFFE3C09A), onTertiary = Color(0xFF442E18),
+    tertiaryContainer = Color(0xFF543E26), onTertiaryContainer = Color(0xFFFFE3C5),
     surfaceTint = Color(0xFFB3D6A9), outline = Color(0xFF84927F),
     onBackground = Color(0xFFE4EBDF), surfaceVariant = Color(0xFF354436),
     surfaceContainerLowest = Color(0xFF0C140F), surfaceContainerLow = Color(0xFF18231B), surfaceContainerHighest = Color(0xFF314335),
-    inverseSurface = Color(0xFFE4EBDF), inverseOnSurface = Color(0xFF26342A), inversePrimary = Color(0xFF315B40),
-    background = Color(0xFF111A15), surface = Color(0xFF111A15),
+    inverseSurface = Color(0xFFE4EBDF), inverseOnSurface = Color(0xFF26342A), inversePrimary = Color(0xFF296347),
+    background = Color(0xFF101713), surface = Color(0xFF202A24),
     surfaceContainer = Color(0xFF1D2A20), surfaceContainerHigh = Color(0xFF293A2B),
     onSurface = Color(0xFFE4EBDF), onSurfaceVariant = Color(0xFFB0BDAC), outlineVariant = Color(0xFF354436),
 )
@@ -74,16 +76,27 @@ private val dark = darkColorScheme(
         shapes = Shapes(small = RoundedCornerShape(14.dp), medium = RoundedCornerShape(20.dp), large = RoundedCornerShape(26.dp)), content = content)
 }
 
-@Composable fun Notice(text: String, warning: Boolean = false) {
-    Row(Modifier.fillMaxWidth().background(if (warning) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp)).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(Icons.Outlined.Info, null, Modifier.size(18.dp), tint = if (warning) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text, fontSize = 13.sp, lineHeight = 21.sp, color = if (warning) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+@Composable fun Notice(text: String, warning: Boolean = false, action: (@Composable () -> Unit)? = null) {
+    val colors = MaterialTheme.colorScheme
+    val ink = if (warning) colors.onErrorContainer else colors.onSurfaceVariant
+    Column(Modifier.fillMaxWidth().background(if (warning) colors.errorContainer else colors.surfaceContainer, MaterialTheme.shapes.medium)
+        .padding(horizontal = 14.dp, vertical = 12.dp)) {
+        Row(Modifier.semantics(mergeDescendants = true) { if (warning) liveRegion = LiveRegionMode.Polite },
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(if (warning) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, Modifier.size(20.dp), tint = ink)
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = ink)
+        }
+        action?.invoke()
     }
 }
 
-@Composable fun SectionTitle(text: String) { Text(text, Modifier.semantics { heading() }.padding(top = 18.dp, bottom = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium) }
+@Composable fun SectionTitle(text: String) {
+    Text(text, Modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp).semantics { heading() },
+        style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+}
 
 fun errorText(code: String): String = when (code) {
+    "OPERATION_FAILED" -> str(R.string.operation_failed_retry)
     "INVALID_INPUT", "INVALID_AGENT_LABEL" -> str(R.string.text_check_the_input_or_paste_the_complete_request_then_try_again_75d51aa)
     "PENDING", "TRANSFER_PENDING" -> str(R.string.text_an_earlier_task_still_needs_attention_check_its_status_before_sta_6778343)
     "WRONG_ACCOUNT" -> str(R.string.text_switch_to_the_account_originally_selected_for_this_task_80ba072)
@@ -109,6 +122,11 @@ fun errorText(code: String): String = when (code) {
     "BIOMETRIC_LOCKOUT" -> str(R.string.text_biometric_authentication_is_temporarily_locked_wait_then_try_agai_ca0505f)
     "BIOMETRIC_LOCKOUT_PERMANENT" -> str(R.string.text_unlock_the_phone_with_its_screen_lock_credential_before_using_bio_fcf1764)
     "BIOMETRIC_NOT_ENROLLED" -> str(R.string.text_enroll_a_strong_biometric_in_android_settings_before_using_this_p_83623a6)
+    "LOCAL_HARDWARE_UNAVAILABLE" -> {
+        val secured = AppLanguage.context().getSystemService(KeyguardManager::class.java).isDeviceSecure
+        str(if (secured) R.string.text_hardware_approval_is_unavailable_on_this_device_be15b10
+            else R.string.text_set_a_screen_lock_in_android_settings_to_use_hardware_authenticat_2b8c0bc)
+    }
     "DEVICE_CREDENTIAL_NOT_SET" -> str(R.string.text_set_a_screen_lock_in_android_settings_to_use_hardware_authenticat_2b8c0bc)
     "HARDWARE_SECURITY_UPDATE_REQUIRED" -> str(R.string.text_android_requires_a_security_update_before_this_authenticator_can_1e33b02)
     "AUTHENTICATION_TIMEOUT" -> str(R.string.text_authentication_timed_out_start_a_new_confirmation_when_ready_b072688)

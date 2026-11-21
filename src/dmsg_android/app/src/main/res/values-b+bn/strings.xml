@@ -47,9 +47,11 @@
     <string name="local_password_length" formatted="false">"অন্তত ১২টি অক্ষর ব্যবহার করুন।"</string>
     <string name="message_actions" formatted="false">"কাজ"</string>
     <string name="message_sending" formatted="false">"প্রেরণ"</string>
+    <string name="no_conversations_yet" formatted="false">"এখনো কোনো কথোপকথন নেই"</string>
     <string name="no_matches" formatted="false">"মিলে যাওয়া ফলাফল নেই"</string>
     <string name="offline_account" formatted="false">"স্থানীয় অ্যাকাউন্ট"</string>
     <string name="operation_failed_code" formatted="true">"এই কাজটি শেষ করা যায়নি। কোড: %1$s"</string>
+    <string name="operation_failed_retry" formatted="false">"অপারেশন সম্পন্ন করা যায়নি। আবার চেষ্টা করুন."</string>
     <string name="otp_accessibility_hint" formatted="false">"একবার ব্যবহারযোগ্য কোড। কপি করতে বা বড় অক্ষরে দেখতে ফিল্ডের কাজগুলো ব্যবহার করুন।"</string>
     <string name="permission_account_information" formatted="false">"অ্যাকাউন্টের তথ্য"</string>
     <string name="permission_channel_id" formatted="false">"চ্যানেল আইডি"</string>
@@ -81,6 +83,7 @@
     <string name="shortcut_messages" formatted="false">"বার্তা"</string>
     <string name="shortcut_vault" formatted="false">"ভল্ট"</string>
     <string name="signin_saved_passkey" formatted="false">"আগে পাসকি তৈরি করে থাকলে সংরক্ষিত পাসকি ব্যবহার করুন। অন্য লগইন পরিচয় প্রয়োজন হলেই শুধু নতুন পাসকি তৈরি করুন।"</string>
+    <string name="sort_by" formatted="false">"সাজানোর ক্রম"</string>
     <string name="text_15_minutes_b81c469" formatted="false">"15 মিনিট"</string>
     <string name="text_1_366_days_602f2fd" formatted="false">"1–366 দিন"</string>
     <string name="text_1_40_lowercase_letters_digits_or_525c917" formatted="false">"1–40টি ছোট হাতের অক্ষর, সংখ্যা, _ বা -"</string>
