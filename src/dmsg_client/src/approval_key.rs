@@ -875,7 +875,8 @@ impl Client {
     ) -> Result<Json> {
         let own = self.workspace.meta.device_id;
         state.active(&own)?;
-        let (mut view, purpose, complete, stale) = if let Ok(key) = self.inspect_key_request(token)
+        let (mut view, purpose, complete, stale, self_enrollment) = if let Ok(key) =
+            self.inspect_key_request(token)
         {
             state.active(&key.device_id)?;
             let id = approval_key_id(&key.key.public_key)?;
@@ -886,10 +887,11 @@ impl Client {
                 .is_some_and(|k| k.key_id == id);
             (
                 json!({"kind":"approval_key", "device_id":hex::encode(*key.device_id),
-                "key_id":hex::encode(*id)}),
+                    "key_id":hex::encode(*id)}),
                 HardwarePurpose::AccountControl,
                 complete,
                 false,
+                key.device_id == own,
             )
         } else {
             let pair = self.inspect_pairing(token)?;
@@ -899,11 +901,12 @@ impl Client {
                 .is_ok_and(|d| d.input == *device);
             (
                 json!({"kind":"device_pair", "device_id":hex::encode(*device.device_id),
-                "role":device.role, "capabilities":device.capabilities, "account":pair.account.to_string(),
-                "expires_at":pair.mutation.approval.expires_at}),
+                    "role":device.role, "capabilities":device.capabilities, "account":pair.account.to_string(),
+                    "expires_at":pair.mutation.approval.expires_at}),
                 HardwarePurpose::DeviceControl,
                 complete,
                 state.info.account_version != pair.mutation.expected_version,
+                false,
             )
         };
         let protected = state.info.hardware_policy.contains(&purpose);
@@ -935,8 +938,14 @@ impl Client {
             .map(|(id, _)| hex::encode(**id))
             .collect();
         view["route"] = json!(route);
-        view["can_enroll"] =
-            json!(route == "handoff" && admin && hardware && !usable && !approvers.is_empty());
+        view["can_enroll"] = json!(
+            route == "handoff"
+                && !self_enrollment
+                && admin
+                && hardware
+                && !usable
+                && !approvers.is_empty()
+        );
         view["approvers"] = json!(approvers);
         Ok(view)
     }

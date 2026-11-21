@@ -70,7 +70,7 @@ import java.security.MessageDigest
         if (manual) polling = true
         client.perform({ it.refreshAccount() }, transition = true, userInitiated = manual, onError = { code ->
             failure = code; needsLogin = code in setOf("AUTH_REQUIRED", "LOGIN_EXPIRED")
-            if (needsLogin || code == "CANCELLED" || code.contains("HARDWARE") || code.startsWith("BIOMETRIC") || code.startsWith("DEVICE_CREDENTIAL") || code == "AUTHENTICATION_TIMEOUT") polling = false
+            if (needsLogin || code in setOf("CANCELLED", "LOCKED", "FORBIDDEN", "INTEGRITY_FAILED", "AUTHENTICATION_TIMEOUT") || code.contains("HARDWARE") || code.startsWith("BIOMETRIC") || code.startsWith("DEVICE_CREDENTIAL")) polling = false
         }) { refreshed ->
             failure = null
             if (refreshed.state == "pairing_required" && token != null && android.os.SystemClock.elapsedRealtime() >= refreshAt) request()
@@ -166,9 +166,13 @@ private fun pairingReceipt(token: String): String =
             quiet = true, onError = { code -> if (visible && input == token.trim()) reviewError = code }) { inspected ->
             if (!visible || input != token.trim()) return@perform
             val key = inspected.required("kind") == "approval_key"
-            if (enrollmentOnly && !key) { client.showError("INVALID_INPUT"); return@perform }
+            if (enrollmentOnly && !key) { reviewError = "INVALID_INPUT"; return@perform }
             preview = inspected
-            if (inspected.required("route") == "approve") client.approvals.request(pairingReceipt(input), active = { visible && token.trim() == input }) { core ->
+            if (inspected.required("route") == "approve") client.approvals.request(
+                pairingReceipt(input),
+                active = { visible && token.trim() == input },
+                onError = { code -> if (visible && input == token.trim()) reviewError = code },
+            ) { core ->
                 val device = inspected.required("device_id")
                 if (key) core.approveApprovalKey(input, device) else core.approvePairingRequest(input, device)
             }

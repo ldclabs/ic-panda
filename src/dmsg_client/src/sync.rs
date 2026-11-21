@@ -1645,7 +1645,7 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
     for file in [true, false] {
         send_upload(h, &row.key, &record, file).await?;
     }
-    let (relay, dispatch) = h
+    let (relay, (dispatch, reused)) = h
         .signed(|c| {
             let security = write_security(c)?;
             ensure(
@@ -1663,7 +1663,7 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
             )?;
             let now = now_ms();
             if let Some(dispatch) = job.dispatch.as_ref().filter(|d| d.deadline > now + 5_000) {
-                return Ok(dispatch.clone());
+                return Ok((dispatch.clone(), true));
             }
             let revision = Revision {
                 item_id: record.id.clone(),
@@ -1686,7 +1686,7 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
             )?;
             job.dispatch = Some(dispatch.clone());
             c.workspace.store.set_job(&row.key, &job)?;
-            Ok(dispatch)
+            Ok((dispatch, false))
         })
         .await?;
     let mut verdict = relay.submit(&dispatch, now_ms()).await;
@@ -1707,7 +1707,7 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
         }
     }
     h.with(|c| {
-        let job: ContentJob = c
+        let mut job: ContentJob = c
             .workspace
             .store
             .job(&row.key)?
@@ -1719,6 +1719,12 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
         match verdict {
             Ok(verdict) => c.settle(&row.key, &verdict).map(|_| true),
             Err(Error::VersionConflict) => c.block(&row.key).map(|_| false),
+            Err(error @ (Error::PolicyStale | Error::RekeyRequired)) if !reused => {
+                // The relay explicitly refused this new command; allow resealing under the new root.
+                job.dispatch = None;
+                c.workspace.store.set_job(&row.key, &job)?;
+                Err(error)
+            }
             Err(error) => Err(error),
         }
     })

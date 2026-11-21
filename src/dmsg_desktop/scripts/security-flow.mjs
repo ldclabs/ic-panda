@@ -26,6 +26,7 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   methods['recovery/dispute'] = () => make('account', { change: 'dispute_recovery', op_id: security.pending_recovery.op_id })
   methods['account/hardware_policy'] = p => make('hardware_policy', { purposes: p.purposes, previous: keys.policy, missing_devices: [] })
   methods['device/pair_inspect'] = p => {
+    if (p.token === 'wrong-kind-handoff') return { kind: 'device_pair', route: 'handoff', device_id: '34'.repeat(32), expires_at: Date.now() - 1, can_enroll: true, approvers: ['56'.repeat(32)] }
     if (p.token !== 'fixture-key-request') throw { code: 'INTEGRITY_FAILED' }
     return { kind: 'approval_key', route: 'approve', device_id: '34'.repeat(32), key_id: '5a'.repeat(32) }
   }
@@ -199,6 +200,12 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   await closeEditor()
   await main.getByTestId('security-key-transfer').getByRole('button').click()
   await main.getByTestId('security-key-approve').click()
+  await main.getByTestId('device-pair-request').fill('wrong-kind-handoff')
+  await main.getByTestId('device-pair-inspect').click()
+  await main.getByTestId('device-pair-preview').waitFor()
+  assert.equal(await main.getByTestId('device-pair-request').isVisible(), true)
+  assert.equal(await main.getByTestId('device-pair-review').count(), 0)
+  assert.equal(await main.getByTestId('device-pair-enroll').count(), 0)
   await main.getByTestId('device-pair-request').fill('fixture-key-request')
   await main.getByTestId('device-pair-inspect').click()
   await main.getByTestId('device-pair-preview').waitFor()

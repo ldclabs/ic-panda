@@ -8,6 +8,7 @@ import AVFoundation
 struct DesktopPairingView: View {
     private struct Delivery: Decodable { let deviceId: String; let expiresAt: UInt64 }
     @Environment(SessionModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var invitation = ""
     @State private var scanning = false
@@ -42,7 +43,7 @@ struct DesktopPairingView: View {
             if working { ProgressView().accessibilityIdentifier("pair.desktop.working") }
             if needsLogin {
                 NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
-                Button("Continue with Internet Identity") { Task { await model.login(usingInternetIdentity: true) } }.disabled(working || model.busy)
+                Button("Continue with Internet Identity") { Task { await model.login(usingInternetIdentity: true); needsLogin = false } }.disabled(working || model.busy)
             }
             if model.session?.state == "root_required" { NoticeBar(text: String(localized: "Approved. Preparing your vault…")) }
             if paused { Button("Unlock workspace") { Task { paused = false; await refresh() } }.disabled(working) }
@@ -60,6 +61,9 @@ struct DesktopPairingView: View {
             }
         }.privateScreen().navigationTitle("Scan desktop invitation").navigationBarTitleDisplayMode(.inline)
             .onChange(of: invitation) { delivery = nil; failed = false; expired = false }
+            .onChange(of: model.session?.state) {
+                if model.session?.state == "logged_out" || (model.session?.state == "locked" && !paused && !needsLogin) { dismiss() }
+            }
             .sheet(isPresented: $scanning) {
                 QRCodeScanner { text in
                     invitation = text; delivery = nil; scanning = false; attempt = UUID()
@@ -81,7 +85,7 @@ struct DesktopPairingView: View {
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(5))
                     guard !Task.isCancelled else { return }
-                    if !paused && !needsLogin && !working { await refresh() }
+                    if !paused && !needsLogin && !working && ["pairing_required", "root_required"].contains(model.session?.state ?? "") { await refresh() }
                 }
             }
             .task(id: attempt) {

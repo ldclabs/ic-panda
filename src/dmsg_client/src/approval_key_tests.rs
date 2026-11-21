@@ -678,8 +678,9 @@ fn key_requests_prove_the_key_for_this_device_of_this_account() {
     let (client, key) = client(&dir, &software, None);
     let account = account();
     let device_id = Hash::new([7; 32]);
-    let token = |device: Hash, account_id: AccountId| {
-        let message = approval_key_message(account.home, &account.id, device_id, &key.public_key);
+    let signed_token = |signed_device: Hash, device: Hash, account_id: AccountId| {
+        let message =
+            approval_key_message(account.home, &account.id, signed_device, &key.public_key);
         let raw = software
             .authorize("approval_key", false)
             .unwrap()
@@ -696,6 +697,7 @@ fn key_requests_prove_the_key_for_this_device_of_this_account() {
             },
         }))
     };
+    let token = |device: Hash, account_id: AccountId| signed_token(device_id, device, account_id);
     let request = client
         .inspect_key_request(&token(device_id, account.id))
         .unwrap();
@@ -718,9 +720,11 @@ fn key_requests_prove_the_key_for_this_device_of_this_account() {
     peer.input.device_id = device_id;
     state.info.devices.insert(device_id, peer.clone());
     state.security.devices.insert(device_id, peer);
-    let token = token(device_id, account.id);
-    let inspect =
-        |state: &crate::account::AccountState| client.device_request_view(state, &token).unwrap();
+    let peer_token = token(device_id, account.id);
+    let own_token = signed_token(own, own, account.id);
+    let inspect = |state: &crate::account::AccountState| {
+        client.device_request_view(state, &peer_token).unwrap()
+    };
     let preview = inspect(&state);
     assert_eq!(preview["kind"], "approval_key");
     assert_eq!(preview["route"], "approve");
@@ -736,6 +740,9 @@ fn key_requests_prove_the_key_for_this_device_of_this_account() {
     assert_eq!(missing["route"], "handoff");
     assert_eq!(missing["can_enroll"], true);
     assert_eq!(missing["approvers"], json!([hex::encode(*device_id)]));
+    let own_request = client.device_request_view(&state, &own_token).unwrap();
+    assert_eq!(own_request["route"], "handoff");
+    assert_eq!(own_request["can_enroll"], false);
     state.info.approval_keys.get_mut(&device_id).unwrap().key_id = key.key_id;
     assert_eq!(inspect(&state)["route"], "done");
 }

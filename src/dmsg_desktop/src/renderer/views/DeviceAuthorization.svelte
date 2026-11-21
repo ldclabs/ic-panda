@@ -33,7 +33,8 @@
   let pending = $state('')
   let enrollment = $state<{ token: string; device_id: string; key_id: string; qr?: string } | null>(null)
   let now = $state(Date.now())
-  const handoff = $derived(candidate?.route === 'handoff')
+  const wrongKind = $derived(enrollmentOnly && !!candidate && candidate.kind !== 'approval_key')
+  const handoff = $derived(candidate?.route === 'handoff' && !wrongKind)
   const expired = $derived(!!candidate?.expires_at && candidate.expires_at <= now)
 
   function cancelInvitation() {
@@ -229,10 +230,10 @@
           {#if candidate.expires_at}<Fact label={t('expires')}>{when(candidate.expires_at)}</Fact>{/if}
         </dl>
         {/if}
-        {#if (expired && !enrollment) || candidate.route === 'refresh'}
-          <Notice tone="warn">{t('pairRefreshRequest')}</Notice>
-        {:else if enrollmentOnly && candidate.kind !== 'approval_key'}
+        {#if wrongKind}
           <Notice tone="warn">{t('keyRequestHint')}</Notice>
+        {:else if (expired && !enrollment) || candidate.route === 'refresh'}
+          <Notice tone="warn">{t('pairRefreshRequest')}</Notice>
         {:else if candidate.route === 'done'}
           <Notice>{t('done')}</Notice>
         {:else if candidate.route === 'handoff'}

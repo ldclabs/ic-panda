@@ -128,6 +128,40 @@ async fn a_relay_root_ahead_of_the_certificate_requests_fresh_security() {
 }
 
 #[tokio::test]
+async fn a_refused_rekey_dispatch_clears_so_a_rotated_root_can_reseal() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    client.vault_create("note", &item("pending")).unwrap();
+    let row = client.workspace.store.objects_in(LOCAL).unwrap().remove(0);
+    let rec = record(&row).unwrap();
+    let mut job = client.prepare_job(&rec, None, now_ms()).unwrap();
+    job.vault.done = true;
+    client.workspace.store.set_job(&row.key, &job).unwrap();
+
+    let base = client.base().unwrap();
+    let absent = reply(json!({"found": false}));
+    let rekey = Some(json!({
+        "ok": false, "error": {"code": "REKEY_REQUIRED", "message": "root rotated"}
+    }));
+    let server = scripted_relay(
+        &mut client,
+        vec![
+            ("GET", format!("{base}/operations/*"), absent),
+            ("POST", format!("{base}/vault"), rekey),
+        ],
+    )
+    .await;
+
+    assert_eq!(
+        push_one(&client.hold(), row.clone()).await,
+        Err(Error::RekeyRequired)
+    );
+    let updated: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+    assert!(updated.dispatch.is_none());
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
