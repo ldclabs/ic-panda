@@ -12,6 +12,7 @@ import net.dmsg.android.platform.BoundedImages
 import net.dmsg.android.platform.PrivateFiles
 import net.dmsg.android.platform.ProfileImages
 import net.dmsg.core.MobileEngine
+import net.dmsg.core.MobileException
 import net.dmsg.core.OperationToken
 import java.io.File
 import java.net.URI
@@ -48,7 +49,13 @@ internal suspend fun MobileEngine.publishedAvatarBytes(url: String, token: Opera
     // The editor snapshot can include pending changes. Core fetches avatars from the published document.
     val published = parseProfileSnapshot(cachedDisplay("profile-document", "").decode())
     if (published?.avatar != url) {
-        val refreshed = parseProfileSnapshot(refreshDisplay("profile-document", "", true, token).decode())
+        val refreshed = try {
+            parseProfileSnapshot(refreshDisplay("profile-document", "", true, token).decode())
+        } catch (error: MobileException.Failure) {
+            // A lagging directory reply cannot overwrite a newer confirmed publication in core.
+            if (error.code == "VERSION_CONFLICT") return profileAvatar(url)
+            throw error
+        }
         if (refreshed?.avatar != url) return null
     }
     return profileAvatar(url)
@@ -93,9 +100,10 @@ class ProfileCoordinator(private val client: ClientController, private val paths
             val snapshot = it.cachedDisplay("profile-editor", "").decode()
             parseProfileSnapshot(snapshot) to snapshot.objectValue().requiredFlag("stale")
         }, key = "profile:cached", replace = true, quiet = true, onError = { saved.fail(request, it) }) { (value, stale) ->
-            value?.let { apply(it) }
-            if (force || stale || value == null) {
-                client.perform({ core -> parseProfileSnapshot(client.operation { core.refreshDisplay("profile-editor", "", force, it) }.decode()) ?: error("INTEGRITY_FAILED") }, key = "profile:read", replace = true, quiet = true, onError = { saved.fail(request, it) }) { apply(it, true) }
+            val outdated = value != null && expected?.let { value.updatedAt < it } == true
+            if (value != null && !outdated) apply(value)
+            if (force || stale || value == null || outdated) {
+                client.perform({ core -> parseProfileSnapshot(client.operation { core.refreshDisplay("profile-editor", "", force || outdated, it) }.decode()) ?: error("INTEGRITY_FAILED") }, key = "profile:read", replace = true, quiet = true, onError = { saved.fail(request, it) }) { apply(it, true) }
             }
         }
         if (edited && !formValue.value.avatarChanged) loadAvatar(formValue.value.avatar)
@@ -111,10 +119,16 @@ class ProfileCoordinator(private val client: ClientController, private val paths
         if (!client.isWorking("profile:publication") && (force || SystemClock.elapsedRealtime() >= refreshStatusAfter)) status()
     }
     fun status() {
-        refreshStatusAfter = SystemClock.elapsedRealtime() + 60_000
         val request = publication.begin()
-        client.perform({ parseProfilePublication(it.profilePublication().decode()) }, key = "profile:publication", replace = true, quiet = true, onError = { publication.fail(request, it) }) {
-            if (publication.accept(request, it) && !it.pending && it.published && !client.isWorking("profile:publish")) uncertain = false
+        client.perform({ parseProfilePublication(it.profilePublication().decode()) }, key = "profile:publication", replace = true, quiet = true, onError = {
+            refreshStatusAfter = 0
+            publication.fail(request, it)
+        }) {
+            if (publication.accept(request, it)) {
+                val settled = !it.pending && it.published
+                refreshStatusAfter = if (settled) SystemClock.elapsedRealtime() + 60_000 else 0
+                if (settled && !client.isWorking("profile:publish")) uncertain = false
+            }
         }
     }
     fun ready() = client.account.devices.value()?.canManage == true && expected != null && formValue.value.valid && edited && !conflictValue.value && !uncertain && publication.value()?.let { it.published && !it.pending } == true
@@ -192,9 +206,10 @@ class ProfileCoordinator(private val client: ClientController, private val paths
         }) { (result, url) ->
             uncertain = false
             val request = publication.begin(); publication.accept(request, result)
+            refreshStatusAfter = if (!result.pending && result.published) SystemClock.elapsedRealtime() + 60_000 else 0
             if (formValue.value == submitted) {
                 edited = false; expected = result.updatedAt ?: expected
-                if (result.published && !result.pending && url != null) avatarUrl = url
+                if (submitted.avatarChanged) avatarUrl = url
                 formValue.value = submitted.copy(avatar = url ?: submitted.avatar, avatarChanged = false)
                 photo?.fill(0); photo = null; uploaded = null
             }
@@ -204,7 +219,10 @@ class ProfileCoordinator(private val client: ClientController, private val paths
     fun retryPublication() {
         uncertain = true
         client.perform({ parseProfilePublication(it.retryProfilePublication().decode()) }, key = "profile:publish", quiet = true, onError = { errorValue.value = it; status() }) {
-            uncertain = false; val request = publication.begin(); publication.accept(request, it); load(true)
+            uncertain = false
+            val request = publication.begin(); publication.accept(request, it)
+            refreshStatusAfter = if (!it.pending && it.published) SystemClock.elapsedRealtime() + 60_000 else 0
+            load(true)
         }
     }
     fun clear(retainForm: Boolean = false) {

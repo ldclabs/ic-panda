@@ -139,24 +139,41 @@ pub async fn participant_avatar_limited<H: Hold>(
 ) -> Result<Option<Avatar>> {
     let session = h.with(|c| c.display_session()).await?;
     let h = &Scoped { inner: h, session };
-    let (scope, saved) = h
+    let (scope, saved, legacy) = h
         .with(|c| {
-            Ok((
-                c.cache_scope(crate::cache::Kind::Avatar)?,
-                c.cache_read(crate::cache::Kind::Avatar, url)?,
-            ))
+            let scope = c.cache_scope(crate::cache::Kind::Avatar)?;
+            let saved = c.cache_read(crate::cache::Kind::Avatar, url)?;
+            let legacy = if saved.is_none() {
+                c.profile_avatar(url)?
+            } else {
+                None
+            };
+            Ok((scope, saved, legacy))
         })
         .await?;
+    let now = crate::now_ms();
     let mut saved = match saved {
         Some(snapshot) => {
             let entry: CachedAvatar =
                 serde_json::from_value(snapshot.data).map_err(|_| Error::IntegrityFailed)?;
-            if !stale(snapshot.observed_at_ms, entry.retry_in_ms, crate::now_ms()) {
+            if !stale(snapshot.observed_at_ms, entry.retry_in_ms, now) {
                 return entry.image(url);
             }
             entry
         }
-        None => CachedAvatar::default(),
+        None => match legacy {
+            Some(avatar) => {
+                if !stale(avatar.fetched_at_ms, AVATAR_TTL, now) {
+                    return Ok(Some(avatar));
+                }
+                CachedAvatar {
+                    data: Some(crate::codec::b64(&avatar.bytes)),
+                    fetched_at_ms: avatar.fetched_at_ms,
+                    retry_in_ms: 0,
+                }
+            }
+            None => CachedAvatar::default(),
+        },
     };
     let fetched = {
         let _permit = match downloads {
@@ -171,6 +188,7 @@ pub async fn participant_avatar_limited<H: Hold>(
         crate::principal::avatar(h, url).await
     };
     let now = crate::now_ms();
+    let absent = matches!(fetched, Ok(None));
     saved.retry_in_ms = ABSENT_TTL;
     match fetched {
         Ok(Some((_, bytes))) => {
@@ -189,7 +207,11 @@ pub async fn participant_avatar_limited<H: Hold>(
             url,
             &serde_json::to_value(saved).map_err(|_| Error::IntegrityFailed)?,
             now,
-        )
+        )?;
+        if absent && c.profile_avatar(url)?.is_some() {
+            c.workspace.store.delete_sealed(AVATAR)?;
+        }
+        Ok(())
     })
     .await?;
     Ok(image)
@@ -243,14 +265,14 @@ pub fn stale(observed: u64, ttl: u64, now: u64) -> bool {
 impl Client {
     /// Local image bytes, including a stale image usable while refreshing.
     pub fn participant_avatar_cached(&self, url: &str) -> Result<Option<Avatar>> {
-        self.cache_read(crate::cache::Kind::Avatar, url)?
-            .map(|snapshot| {
+        match self.cache_read(crate::cache::Kind::Avatar, url)? {
+            Some(snapshot) => {
                 let entry: CachedAvatar =
                     serde_json::from_value(snapshot.data).map_err(|_| Error::IntegrityFailed)?;
                 entry.image(url)
-            })
-            .transpose()
-            .map(Option::flatten)
+            }
+            None => self.profile_avatar(url),
+        }
     }
 
     /// The generation used to distinguish lock/unlock of the same account.

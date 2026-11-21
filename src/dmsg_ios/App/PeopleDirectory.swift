@@ -1,3 +1,4 @@
+import CryptoKit
 import SwiftUI
 @preconcurrency import DMsgCore
 
@@ -15,6 +16,7 @@ final class PeopleDirectory {
 
     private(set) var people: [String: MessagePerson] = [:]
     private var images: [String: UIImage] = [:]
+    @ObservationIgnored private var imageDigests: [String: SHA256.Digest] = [:]
     @ObservationIgnored private var checked: [String: ContinuousClock.Instant] = [:]
     @ObservationIgnored private var waiting: Set<String> = []
     @ObservationIgnored private var worker: Task<Void, Never>?
@@ -85,7 +87,7 @@ final class PeopleDirectory {
     }
 
     /// A changed profile is read again the next time it is requested.
-    func invalidate() { checked = [:] }
+    func invalidate() { checked = [:]; avatarAfter = [:] }
 
     func suspend() {
         worker?.cancel(); worker = nil
@@ -96,7 +98,12 @@ final class PeopleDirectory {
 
     func reset() {
         suspend()
-        avatarAfter = [:]; people = [:]; images = [:]
+        avatarAfter = [:]; people = [:]; images = [:]; imageDigests = [:]
+    }
+
+    private func avatarOwner(for url: String, preferred: String) -> String? {
+        if people[preferred]?.avatarUrl == url { return preferred }
+        return people.first { $0.value.avatarUrl == url }?.key
     }
 
     private func enqueueAvatars(_ names: [String: MessagePerson], read: @escaping AvatarReader) {
@@ -112,10 +119,11 @@ final class PeopleDirectory {
     private func startAvatars() {
         while avatarTasks.count < 4, let (url, request) = avatarWaiting.first {
             avatarWaiting.removeValue(forKey: url)
-            guard people[request.account]?.avatarUrl == url else { continue }
+            guard let owner = avatarOwner(for: url, preferred: request.account) else { continue }
+            let active = AvatarRequest(account: owner, read: request.read)
             avatarTasks[url] = Task { [weak self] in
                 guard let self else { return }
-                await loadAvatar(url, request: request)
+                await loadAvatar(url, request: active)
                 guard !Task.isCancelled else { return }
                 avatarTasks.removeValue(forKey: url)
                 startAvatars()
@@ -124,32 +132,50 @@ final class PeopleDirectory {
     }
 
     private func loadAvatar(_ url: String, request: AvatarRequest) async {
-        func current() -> Bool { !Task.isCancelled && people[request.account]?.avatarUrl == url }
-        guard current() else { return }
-        var cached: Data? = nil
+        func activeOwner() -> String? {
+            Task.isCancelled ? nil : avatarOwner(for: url, preferred: request.account)
+        }
+        guard let initialOwner = activeOwner() else { return }
         if images[url] == nil {
-            cached = try? await request.read(request.account, url, false)
-            guard current() else { return }
+            let cached: Data?
+            do {
+                cached = try await request.read(initialOwner, url, false)
+            } catch is CancellationError {
+                return
+            } catch {
+                cached = nil
+            }
+            guard activeOwner() != nil else { return }
             if let cached {
+                let digest = SHA256.hash(data: cached)
                 let image = await AvatarImage.decode(cached)
-                guard current() else { return }
-                images[url] = image
+                guard activeOwner() != nil else { return }
+                if let image {
+                    images[url] = image
+                    imageDigests[url] = digest
+                }
             }
         }
+        guard let refreshOwner = activeOwner() else { return }
         do {
-            let fresh = try await request.read(request.account, url, true)
-            guard current() else { return }
+            let fresh = try await request.read(refreshOwner, url, true)
+            guard activeOwner() != nil else { return }
             if let fresh {
-                if fresh != cached || images[url] == nil {
+                let digest = SHA256.hash(data: fresh)
+                if images[url] == nil || imageDigests[url] != digest {
                     let image = await AvatarImage.decode(fresh)
-                    guard current() else { return }
+                    guard activeOwner() != nil else { return }
                     images[url] = image
+                    imageDigests[url] = image == nil ? nil : digest
                 }
             } else if images[url] != nil {
                 images[url] = nil
+                imageDigests[url] = nil
             }
+        } catch is CancellationError {
+            return
         } catch { /* Keep a decoded image available when the refresh is offline. */ }
-        if current() {
+        if activeOwner() != nil {
             avatarAfter[url] = ContinuousClock.now.advanced(by: .seconds(images[url] == nil ? 60 : 600))
         }
     }

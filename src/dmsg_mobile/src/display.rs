@@ -35,24 +35,7 @@ impl ReadTurns {
     async fn fetch_avatar<H: Hold>(&self, h: &H, url: &str) -> dmsg_types::Result<Option<Avatar>> {
         let turn = self.lane(&format!("avatar:{url}"));
         let _turn = turn.lock().await;
-        let legacy = h.with(|c| c.profile_avatar(url)).await?;
-        if legacy.as_ref().is_some_and(|a| {
-            !display::stale(a.fetched_at_ms, display::AVATAR_TTL, dmsg_client::now_ms())
-        }) {
-            return Ok(legacy);
-        }
-        Ok(
-            display::participant_avatar_limited(h, url, Some(&self.avatar_downloads))
-                .await?
-                .or(legacy),
-        )
-    }
-}
-
-fn cached_avatar(c: &Client, url: &str) -> dmsg_types::Result<Option<Avatar>> {
-    match c.participant_avatar_cached(url)? {
-        Some(avatar) => Ok(Some(avatar)),
-        None => c.profile_avatar(url),
+        display::participant_avatar_limited(h, url, Some(&self.avatar_downloads)).await
     }
 }
 
@@ -68,7 +51,7 @@ impl MobileEngine {
             Box::pin(async move {
                 h.with(|c| {
                     if published_avatar_matches(c, &url)? {
-                        Ok(cached_avatar(c, &url)?.map(|a| a.bytes))
+                        Ok(c.participant_avatar_cached(&url)?.map(|a| a.bytes))
                     } else {
                         Ok(None)
                     }
@@ -140,7 +123,7 @@ impl MobileEngine {
                 if !refresh {
                     return h
                         .with(|c| match avatar_url(c)? {
-                            Some(url) => Ok(cached_avatar(c, &url)?.map(|a| a.bytes)),
+                            Some(url) => Ok(c.participant_avatar_cached(&url)?.map(|a| a.bytes)),
                             None => Ok(None),
                         })
                         .await;

@@ -31,6 +31,7 @@ class ParticipantCoordinator(private val client: ClientController, private val s
     private data class AvatarAttempt(val url: String, val retryAfter: Long = 0)
     private val avatarAttempts = mutableMapOf<String, AvatarAttempt>()
     private var batch: Job? = null
+    private var batchSequence = 0L
     fun observe(account: String) {
         if (!validAccount(account)) return
         val count = visible[account] ?: 0
@@ -73,7 +74,7 @@ class ParticipantCoordinator(private val client: ClientController, private val s
         trim()
     }
     private fun read(selected: List<String>) {
-        val key = "participants:" + selected.first()
+        val key = "participants:" + ++batchSequence
         client.perform({ core -> parseParticipants(client.operation { core.channelNames(selected, false, it) }.decode()) }, key = key, quiet = true,
             onError = { attempted.removeAll(selected.toSet()) }) { names ->
             merge(names)
@@ -110,7 +111,7 @@ class ParticipantCoordinator(private val client: ClientController, private val s
             }
         }
         client.perform({ core ->
-            val bytes = core.channelAvatar(account, false) ?: core.channelAvatar(account, true)
+            val bytes = core.channelAvatarForUrl(account, url, false) ?: core.channelAvatarForUrl(account, url, true)
             bytes?.let { BoundedImages.avatarThumbnail(it, 96) }
         }, key = key, replace = true, quiet = true, onError = { finish(null) }, apply = ::finish)
     }

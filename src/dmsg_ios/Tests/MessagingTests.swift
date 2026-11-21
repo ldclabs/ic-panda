@@ -115,6 +115,138 @@ final class MessagingTests: XCTestCase {
     }
 
     @MainActor
+    func testInvalidateReusesUnchangedThumbnailAndCancellationDoesNotCooldown() async throws {
+        let directory = PeopleDirectory()
+        let account = "040g2082040g2082040g", other = "040g2081040g2081040g"
+        let url = "https://example.test/avatar.png"
+        let size = CGSize(width: 8, height: 8)
+        let firstPNG = UIGraphicsImageRenderer(size: size).pngData { context in
+            UIColor.black.setFill()
+            context.cgContext.fill(CGRect(origin: .zero, size: size))
+        }
+        let secondPNG = UIGraphicsImageRenderer(size: size).pngData { context in
+            UIColor.red.setFill()
+            context.cgContext.fill(CGRect(origin: .zero, size: size))
+        }
+        var shouldCancel = true
+        var cancelledReads = 0
+        var payload = firstPNG
+        var refreshes = 0
+        let names: PeopleDirectory.NameReader = { accounts, _ in
+            Dictionary(uniqueKeysWithValues: accounts.map { ($0, MessagePerson(name: "Ada", avatarUrl: url)) })
+        }
+        let avatar: PeopleDirectory.AvatarReader = { _, _, refresh in
+            if shouldCancel {
+                cancelledReads += 1
+                throw CancellationError()
+            }
+            if refresh { refreshes += 1 }
+            return payload
+        }
+        defer { directory.reset() }
+
+        // A cancelled read must not put the URL into cooldown (tested without invalidate()).
+        directory.request([account], names: names, avatar: avatar)
+        let cancelDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while cancelledReads < 1 && ContinuousClock.now < cancelDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertGreaterThanOrEqual(cancelledReads, 1)
+        XCTAssertNil(directory.avatar(account))
+
+        shouldCancel = false
+        directory.request([other], names: names, avatar: avatar)
+        let firstDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while (directory.avatar(other) == nil || refreshes < 1) && ContinuousClock.now < firstDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let initial = try XCTUnwrap(directory.avatar(account))
+
+        // Rechecking after invalidate keeps the same decoded instance when bytes are unchanged.
+        directory.invalidate()
+        directory.request([account], names: names, avatar: avatar)
+        let secondDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while refreshes < 2 && ContinuousClock.now < secondDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertTrue(directory.avatar(account) === initial)
+
+        // Changed bytes under the same URL decode a replacement image.
+        payload = secondPNG
+        directory.invalidate()
+        directory.request([account], names: names, avatar: avatar)
+        let thirdDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while (refreshes < 3 || directory.avatar(account) === initial) && ContinuousClock.now < thirdDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertNotNil(directory.avatar(account))
+        XCTAssertFalse(directory.avatar(account) === initial)
+    }
+
+    @MainActor
+    func testSharedAvatarCompletesAfterInitialOwnerChangesURL() async throws {
+        let directory = PeopleDirectory()
+        let first = "040g2082040g2082040g", second = "040g2081040g2081040g"
+        let sharedURL = "https://example.test/shared.png", nextURL = "https://example.test/next.png"
+        let size = CGSize(width: 8, height: 8)
+        let png = UIGraphicsImageRenderer(size: size).pngData { context in
+            UIColor.blue.setFill()
+            context.cgContext.fill(CGRect(origin: .zero, size: size))
+        }
+        var firstURL = sharedURL
+        var releaseCached: CheckedContinuation<Data?, Never>?
+        var refreshOwner: String?
+        let names: PeopleDirectory.NameReader = { accounts, _ in
+            Dictionary(uniqueKeysWithValues: accounts.map { account in
+                (account, MessagePerson(name: account == first ? "First" : "Second", avatarUrl: account == first ? firstURL : sharedURL))
+            })
+        }
+        let avatar: PeopleDirectory.AvatarReader = { account, url, refresh in
+            if url == sharedURL && !refresh && releaseCached == nil {
+                XCTAssertEqual(account, first)
+                return await withCheckedContinuation { releaseCached = $0 }
+            }
+            if url == sharedURL && refresh {
+                refreshOwner = account
+                return png
+            }
+            return nil
+        }
+        defer { directory.reset(); releaseCached?.resume(returning: nil) }
+
+        directory.request([first], names: names, avatar: avatar)
+        let startDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while releaseCached == nil && ContinuousClock.now < startDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertNotNil(releaseCached)
+
+        directory.request([second], names: names, avatar: avatar)
+        let secondDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while directory.people[second]?.avatarUrl != sharedURL && ContinuousClock.now < secondDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertEqual(directory.people[second]?.avatarUrl, sharedURL)
+
+        firstURL = nextURL
+        directory.invalidate()
+        directory.request([first], names: names, avatar: avatar)
+        let changeDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while directory.people[first]?.avatarUrl != nextURL && ContinuousClock.now < changeDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertEqual(directory.people[first]?.avatarUrl, nextURL)
+
+        releaseCached?.resume(returning: nil); releaseCached = nil
+        let finishDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while directory.avatar(second) == nil && ContinuousClock.now < finishDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertEqual(refreshOwner, second)
+        XCTAssertNotNil(directory.avatar(second))
+    }
+
+    @MainActor
     func testResetWhileNamesAreLoadingKeepsTheNewQueueAndMergesRepeatedRows() async throws {
         let directory = PeopleDirectory()
         let first = "040g2082040g2082040g", second = "040g2081040g2081040g"

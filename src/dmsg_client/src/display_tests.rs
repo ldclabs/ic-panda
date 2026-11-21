@@ -278,3 +278,130 @@ fn failed_profile_replacement_rolls_back_profile_and_avatar_together() {
     assert_eq!(c.profile_display().unwrap(), Some(old));
     assert_eq!(c.profile_avatar(&avatar.url).unwrap(), Some(avatar));
 }
+
+#[tokio::test]
+async fn legacy_profile_avatar_respects_cache_priority_and_clears_on_404() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!("http://{}", listener.local_addr().unwrap());
+    let calls = Arc::new(AtomicUsize::new(0));
+    let status = Arc::new(AtomicUsize::new(503));
+    let server = tokio::spawn({
+        let calls = calls.clone();
+        let status = status.clone();
+        async move {
+            loop {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut request = [0; 4096];
+                assert!(socket.read(&mut request).await.unwrap() > 0);
+                calls.fetch_add(1, Ordering::SeqCst);
+                let body = b"RIFF0000WEBPfresh";
+                let head = format!(
+                    "HTTP/1.1 {} Test\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    status.load(Ordering::SeqCst),
+                    body.len()
+                );
+                socket.write_all(head.as_bytes()).await.unwrap();
+                socket.write_all(body).await.unwrap();
+            }
+        }
+    });
+
+    let dir = testing::TempDir::new();
+    let mut c = testing::unlocked(&dir.0, false, None);
+    testing::relay_to(&mut c, &origin);
+    let url = format!("{origin}/owner.webp");
+    let now = crate::now_ms();
+    let legacy_bytes = b"RIFF0000WEBPlegacy".to_vec();
+    c.keep_profile_display(Profile {
+        name: None,
+        avatar_url: Some(url.clone()),
+        updated_at: Some(1),
+        observed_at_ms: now,
+    })
+    .unwrap();
+    c.keep_profile_avatar(Avatar {
+        url: url.clone(),
+        mime: "image/webp".into(),
+        bytes: legacy_bytes.clone(),
+        fetched_at_ms: now,
+    })
+    .unwrap();
+
+    // Fresh legacy record answers without touching the network.
+    assert_eq!(
+        participant_avatar(&c.hold(), &url)
+            .await
+            .unwrap()
+            .unwrap()
+            .bytes,
+        legacy_bytes
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+    // An expired legacy record survives a transient 503 failure.
+    c.keep_profile_avatar(Avatar {
+        url: url.clone(),
+        mime: "image/webp".into(),
+        bytes: legacy_bytes.clone(),
+        fetched_at_ms: 1,
+    })
+    .unwrap();
+    assert_eq!(
+        participant_avatar(&c.hold(), &url)
+            .await
+            .unwrap()
+            .unwrap()
+            .bytes,
+        legacy_bytes
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    // A newer Kind::Avatar entry takes precedence over a fresh legacy record.
+    status.store(200, Ordering::SeqCst);
+    c.cache_invalidate(&[crate::cache::Kind::Avatar]).unwrap();
+    assert_eq!(
+        participant_avatar(&c.hold(), &url)
+            .await
+            .unwrap()
+            .unwrap()
+            .bytes,
+        b"RIFF0000WEBPfresh"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    c.keep_profile_avatar(Avatar {
+        url: url.clone(),
+        mime: "image/webp".into(),
+        bytes: legacy_bytes,
+        fetched_at_ms: crate::now_ms(),
+    })
+    .unwrap();
+    assert_eq!(
+        c.participant_avatar_cached(&url).unwrap().unwrap().bytes,
+        b"RIFF0000WEBPfresh"
+    );
+    assert_eq!(
+        participant_avatar(&c.hold(), &url)
+            .await
+            .unwrap()
+            .unwrap()
+            .bytes,
+        b"RIFF0000WEBPfresh"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+
+    // A 404 removes both the URL cache image and the stale legacy avatar record.
+    status.store(404, Ordering::SeqCst);
+    c.cache_invalidate(&[crate::cache::Kind::Avatar]).unwrap();
+    assert!(participant_avatar(&c.hold(), &url).await.unwrap().is_none());
+    assert!(c.participant_avatar_cached(&url).unwrap().is_none());
+    assert!(c.profile_avatar(&url).unwrap().is_none());
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
+
+    server.abort();
+}

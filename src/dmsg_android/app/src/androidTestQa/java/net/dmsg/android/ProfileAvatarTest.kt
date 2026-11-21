@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import net.dmsg.android.core.publishedAvatarBytes
 import net.dmsg.core.MobileEngine
+import net.dmsg.core.MobileException
 import net.dmsg.core.NoHandle
 import net.dmsg.core.ObjectSnapshot
 import net.dmsg.core.OperationToken
@@ -39,7 +40,18 @@ class ProfileAvatarTest {
         assertEquals(0, core.downloads)
     }
 
-    private inner class AvatarEngine(private val publishedUrl: String, private val cached: ByteArray? = null) : MobileEngine(NoHandle) {
+    @Test fun laggingDirectoryConflictStillReadsConfirmedPublishedAvatar() = runBlocking {
+        val core = AvatarEngine(publishedUrl = url, refreshConflict = true)
+        assertArrayEquals(image, OperationToken().use { core.publishedAvatarBytes(url, it) })
+        assertEquals(1, core.refreshes)
+        assertEquals(1, core.downloads)
+    }
+
+    private inner class AvatarEngine(
+        private val publishedUrl: String,
+        private val cached: ByteArray? = null,
+        private val refreshConflict: Boolean = false,
+    ) : MobileEngine(NoHandle) {
         var documentReads = 0
         var refreshes = 0
         var downloads = 0
@@ -57,6 +69,7 @@ class ProfileAvatarTest {
             assertEquals("", id)
             assertTrue(force)
             refreshes++
+            if (refreshConflict) throw MobileException.Failure("VERSION_CONFLICT")
             return ObjectSnapshot(0u, """{"state":"present","observed_at_ms":1,"stale":false,"data":{"avatar_url":"$publishedUrl","links":[],"updated_at":1}}""")
         }
 
