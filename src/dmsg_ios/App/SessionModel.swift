@@ -11,7 +11,7 @@ final class SessionModel {
     private(set) var engine: MobileEngine?
     private(set) var files: PrivateFiles?
     private(set) var session: SessionSnapshot?
-    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); feedback.suspend(); vaultEditing.suspend(); resetFilePresentation() } }
+    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); feedback.suspend(); vaultEditing.suspend(); people.suspend(); resetFilePresentation() } }
     // Background invalidates reads through epoch while retaining this workspace's forms.
     private(set) var viewGeneration: UInt64 = 0 { didSet {
         settingsDrafts = [:]; attachmentDrafts = [:]; replyDrafts = [:]; queuingChannels = []; composerQueue = ComposerQueue()

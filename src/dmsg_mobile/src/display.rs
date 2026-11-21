@@ -102,6 +102,27 @@ impl MobileEngine {
 
     /// Fetch a participant's published image without retaining the client lock.
     pub async fn channel_avatar(&self, account: String, refresh: bool) -> Result<Option<Vec<u8>>> {
+        self.read_channel_avatar(account, None, refresh).await
+    }
+
+    /// Fetch only the avatar referenced by the caller's participant snapshot.
+    pub async fn channel_avatar_for_url(
+        &self,
+        account: String,
+        url: String,
+        refresh: bool,
+    ) -> Result<Option<Vec<u8>>> {
+        self.read_channel_avatar(account, Some(url), refresh).await
+    }
+}
+
+impl MobileEngine {
+    async fn read_channel_avatar(
+        &self,
+        account: String,
+        expected_url: Option<String>,
+        refresh: bool,
+    ) -> Result<Option<Vec<u8>>> {
         let account = account
             .parse::<dmsg_types::AccountId>()
             .map_err(|_| dmsg_types::invalid("account"))?;
@@ -110,27 +131,23 @@ impl MobileEngine {
             Box::pin(async move {
                 let session = h.with(|c| c.display_session()).await?;
                 let h = &Scoped { inner: h, session };
+                let avatar_url = |c: &mut Client| {
+                    Ok(c.public_names()?
+                        .get(&account)
+                        .and_then(|n| n.avatar_url.clone())
+                        .filter(|url| expected_url.as_ref().is_none_or(|expected| expected == url)))
+                };
                 if !refresh {
                     return h
-                        .with(|c| {
-                            let names = c.public_names()?;
-                            let Some(url) =
-                                names.get(&account).and_then(|n| n.avatar_url.as_deref())
-                            else {
-                                return Ok(None);
-                            };
-                            Ok(cached_avatar(c, url)?.map(|a| a.bytes))
+                        .with(|c| match avatar_url(c)? {
+                            Some(url) => Ok(cached_avatar(c, &url)?.map(|a| a.bytes)),
+                            None => Ok(None),
                         })
                         .await;
                 }
-                let url = h
-                    .with(|c| {
-                        Ok(c.public_names()?
-                            .get(&account)
-                            .and_then(|n| n.avatar_url.clone()))
-                    })
-                    .await?;
-                let Some(url) = url else { return Ok(None) };
+                let Some(url) = h.with(avatar_url).await? else {
+                    return Ok(None);
+                };
                 let image = reads.fetch_avatar(h, &url).await?;
                 h.with(|c| {
                     ensure(
@@ -147,7 +164,10 @@ impl MobileEngine {
         })
         .await
     }
+}
 
+#[uniffi::export]
+impl MobileEngine {
     /// Certified participant display fields; local reads stay available offline.
     pub async fn channel_names(
         &self,
@@ -406,6 +426,20 @@ mod tests {
             .await
             .unwrap();
         timeout(wait, async {
+            assert_eq!(
+                engine
+                    .channel_avatar_for_url(owner.to_string(), url.clone(), false)
+                    .await
+                    .unwrap(),
+                Some(bytes.clone())
+            );
+            assert!(
+                engine
+                    .channel_avatar_for_url(owner.to_string(), slow_url.clone(), true)
+                    .await
+                    .unwrap()
+                    .is_none()
+            );
             assert_eq!(
                 engine.cached_profile_avatar(url.clone()).await.unwrap(),
                 Some(bytes.clone())

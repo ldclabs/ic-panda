@@ -179,11 +179,21 @@ impl Daemon {
             "channel/avatar" => {
                 let url = text(params, "avatar_url")?;
                 let bound = Unlocked::new(&h).await?;
+                let session = bound.with(|c| c.display_session()).await?;
+                let bound = dmsg_client::display::Scoped {
+                    inner: &bound,
+                    session,
+                };
                 let image = if params["refresh"] != true {
                     bound.with(|c| c.participant_avatar_cached(&url)).await?
                 } else {
-                    let _turn = self.turn("participant-avatars").await;
-                    dmsg_client::display::participant_avatar(&bound, &url).await?
+                    let _turn = self.turn(&format!("participant-avatar:{url}")).await;
+                    dmsg_client::display::participant_avatar_limited(
+                        &bound,
+                        &url,
+                        Some(&self.display.avatar_downloads),
+                    )
+                    .await?
                 };
                 return Ok(image.map_or(Value::Null, |image| {
                     crate::display::image(&image.mime, &image.bytes)

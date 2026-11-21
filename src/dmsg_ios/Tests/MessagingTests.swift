@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import dMsg
 
 final class MessagingTests: XCTestCase {
@@ -59,6 +60,58 @@ final class MessagingTests: XCTestCase {
         while batches.count < 3 && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
         XCTAssertEqual(batches.map(\.count), [100, 100, 5])
         XCTAssertEqual(Set(batches.joined()), Set(accounts))
+    }
+
+    @MainActor
+    func testSlowAvatarDoesNotDelayLaterNamesAndOneURLIsLoadedOnce() async throws {
+        let directory = PeopleDirectory()
+        let slow = "040g2082040g2082040g", fast = "040g2081040g2081040g", sameImage = "040g2083040g2083040g"
+        let slowURL = "https://example.test/slow.png", sharedURL = "https://example.test/shared.png"
+        let size = CGSize(width: 8, height: 8)
+        let png = UIGraphicsImageRenderer(size: size).pngData { context in
+            UIColor.black.setFill()
+            context.cgContext.fill(CGRect(origin: .zero, size: size))
+        }
+        var releaseSlow: CheckedContinuation<Data?, Never>?
+        var reads: [String: [Bool]] = [:]
+        let names: PeopleDirectory.NameReader = { accounts, _ in
+            Dictionary(uniqueKeysWithValues: accounts.map { account in
+                (account, MessagePerson(name: account == slow ? "Slow" : "Fast", avatarUrl: account == slow ? slowURL : sharedURL))
+            })
+        }
+        let avatar: PeopleDirectory.AvatarReader = { _, url, refresh in
+            reads[url, default: []].append(refresh)
+            guard url == slowURL else { return png }
+            if !refresh { return nil }
+            return await withCheckedContinuation { releaseSlow = $0 }
+        }
+        defer { directory.reset(); releaseSlow?.resume(returning: nil) }
+
+        directory.request([slow], names: names, avatar: avatar)
+        let started = ContinuousClock.now.advanced(by: .seconds(2))
+        while releaseSlow == nil && ContinuousClock.now < started { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertNotNil(releaseSlow)
+        XCTAssertEqual(directory.people[slow]?.name, "Slow")
+
+        directory.request([fast, sameImage], names: names, avatar: avatar)
+        let loaded = ContinuousClock.now.advanced(by: .seconds(2))
+        while (directory.avatar(fast) == nil || reads[sharedURL]?.count != 2) && ContinuousClock.now < loaded {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertEqual(directory.people[fast]?.name, "Fast")
+        XCTAssertNotNil(directory.avatar(fast))
+        XCTAssertTrue(directory.avatar(fast) === directory.avatar(sameImage))
+        XCTAssertEqual(reads[sharedURL], [false, true])
+        XCTAssertNil(directory.avatar(slow))
+
+        directory.suspend()
+        releaseSlow?.resume(returning: png); releaseSlow = nil
+        await Task.yield()
+        XCTAssertNil(directory.avatar(slow))
+        XCTAssertNotNil(directory.avatar(fast))
+        directory.reset()
+        XCTAssertTrue(directory.people.isEmpty)
+        XCTAssertNil(directory.avatar(fast))
     }
 
     @MainActor

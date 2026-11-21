@@ -15,7 +15,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-use tokio::sync::Notify;
+use tokio::sync::{Notify, Semaphore};
 
 #[derive(Default)]
 struct Queue {
@@ -30,11 +30,22 @@ struct Queue {
     after: BTreeMap<AccountId, Instant>,
 }
 
-#[derive(Default)]
 pub(crate) struct Display {
     queue: Mutex<Queue>,
     profile: Notify,
     names: Notify,
+    pub(crate) avatar_downloads: Semaphore,
+}
+
+impl Default for Display {
+    fn default() -> Self {
+        Self {
+            queue: Mutex::default(),
+            profile: Notify::new(),
+            names: Notify::new(),
+            avatar_downloads: Semaphore::new(4),
+        }
+    }
 }
 
 fn ready(after: Option<Instant>, now: Instant) -> bool {

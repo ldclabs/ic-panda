@@ -5,11 +5,22 @@ import SwiftUI
 /// starts blank, and a screen full of rows asks once.
 @MainActor @Observable
 final class PeopleDirectory {
+    typealias NameReader = @MainActor ([String], Bool) async throws -> [String: MessagePerson]
+    typealias AvatarReader = @MainActor (String, String, Bool) async throws -> Data?
+
+    private struct AvatarRequest {
+        let account: String
+        let read: AvatarReader
+    }
+
     private(set) var people: [String: MessagePerson] = [:]
     private var images: [String: UIImage] = [:]
     @ObservationIgnored private var checked: [String: ContinuousClock.Instant] = [:]
     @ObservationIgnored private var waiting: Set<String> = []
     @ObservationIgnored private var worker: Task<Void, Never>?
+    @ObservationIgnored private var avatarWaiting: [String: AvatarRequest] = [:]
+    @ObservationIgnored private var avatarTasks: [String: Task<Void, Never>] = [:]
+    @ObservationIgnored private var avatarAfter: [String: ContinuousClock.Instant] = [:]
 
     func avatar(_ account: String) -> UIImage? {
         people[account]?.avatarUrl.flatMap { images[$0] }
@@ -17,9 +28,36 @@ final class PeopleDirectory {
 
     /// Accounts checked in the last ten minutes are left alone.
     func request(_ accounts: some Sequence<String>, model: SessionModel) {
-        request(accounts) { [weak self, weak model] batch in
-            guard let self, let model, !model.concealed, let engine = model.engine else { return false }
-            return await self.read(batch, engine: engine, model: model)
+        let epoch = model.epoch
+        request(accounts, names: { [weak model] batch, refresh in
+            guard let model, model.epoch == epoch, !model.concealed, let engine = model.engine else { throw CancellationError() }
+            let snapshot = try await coreOperation { try await engine.channelNames(accounts: batch, refresh: refresh, operation: $0) }
+            guard model.epoch == epoch, !model.concealed else { throw CancellationError() }
+            return try model.decode(snapshot)
+        }, avatar: { [weak model] account, url, refresh in
+            guard let model, model.epoch == epoch, !model.concealed, let engine = model.engine else { throw CancellationError() }
+            let bytes = try await engine.channelAvatarForUrl(account: account, url: url, refresh: refresh)
+            guard model.epoch == epoch, !model.concealed else { throw CancellationError() }
+            return bytes
+        })
+    }
+
+    func request(_ accounts: some Sequence<String>, names readNames: @escaping NameReader, avatar readAvatar: @escaping AvatarReader) {
+        request(accounts) { [weak self] batch in
+            var completed = false
+            for refresh in [false, true] {
+                guard !Task.isCancelled else { return false }
+                do {
+                    let names = try await readNames(batch, refresh)
+                    guard let self, !Task.isCancelled else { return false }
+                    if names.contains(where: { people[$0.key] != $0.value }) {
+                        people.merge(names) { _, fresh in fresh }
+                    }
+                    enqueueAvatars(names, read: readAvatar)
+                    completed = true
+                } catch { /* Keep published names available while offline. */ }
+            }
+            return completed
         }
     }
 
@@ -49,36 +87,71 @@ final class PeopleDirectory {
     /// A changed profile is read again the next time it is requested.
     func invalidate() { checked = [:] }
 
-    func reset() {
+    func suspend() {
         worker?.cancel(); worker = nil
-        waiting = []; checked = [:]; people = [:]; images = [:]
+        avatarTasks.values.forEach { $0.cancel() }
+        avatarTasks = [:]; avatarWaiting = [:]
+        waiting = []; checked = [:]
     }
 
-    private func read(_ batch: [String], engine: MobileEngine, model: SessionModel) async -> Bool {
-        let epoch = model.epoch
-        var completed = false
-        for refresh in [false, true] {
-            guard epoch == model.epoch, !Task.isCancelled else { return false }
-            do {
-                let snapshot = try await coreOperation { try await engine.channelNames(accounts: batch, refresh: refresh, operation: $0) }
-                let names: [String: MessagePerson] = try model.decode(snapshot)
-                guard epoch == model.epoch, !Task.isCancelled else { return false }
-                for (account, person) in names where people[account] != person { people[account] = person }
-                completed = true
-                var seen: Set<String> = []
-                for (account, person) in names {
-                    guard epoch == model.epoch, !Task.isCancelled else { return false }
-                    guard let url = person.avatarUrl, seen.insert(url).inserted, refresh || images[url] == nil else { continue }
-                    do {
-                        let bytes = try await engine.channelAvatar(account: account, refresh: refresh)
-                        let image = await AvatarImage.decode(bytes)
-                        guard epoch == model.epoch, !Task.isCancelled else { return false }
-                        if refresh || image != nil { images[url] = image }
-                    } catch { /* Keep the saved image when the refresh is offline. */ }
-                }
-            } catch { /* Keep published names available while offline. */ }
+    func reset() {
+        suspend()
+        avatarAfter = [:]; people = [:]; images = [:]
+    }
+
+    private func enqueueAvatars(_ names: [String: MessagePerson], read: @escaping AvatarReader) {
+        let now = ContinuousClock.now
+        avatarAfter = avatarAfter.filter { $0.value > now }
+        for (account, person) in names {
+            guard let url = person.avatarUrl, avatarAfter[url] == nil, avatarTasks[url] == nil else { continue }
+            avatarWaiting[url] = AvatarRequest(account: account, read: read)
         }
-        return completed
+        startAvatars()
+    }
+
+    private func startAvatars() {
+        while avatarTasks.count < 4, let (url, request) = avatarWaiting.first {
+            avatarWaiting.removeValue(forKey: url)
+            guard people[request.account]?.avatarUrl == url else { continue }
+            avatarTasks[url] = Task { [weak self] in
+                guard let self else { return }
+                await loadAvatar(url, request: request)
+                guard !Task.isCancelled else { return }
+                avatarTasks.removeValue(forKey: url)
+                startAvatars()
+            }
+        }
+    }
+
+    private func loadAvatar(_ url: String, request: AvatarRequest) async {
+        func current() -> Bool { !Task.isCancelled && people[request.account]?.avatarUrl == url }
+        guard current() else { return }
+        var cached: Data? = nil
+        if images[url] == nil {
+            cached = try? await request.read(request.account, url, false)
+            guard current() else { return }
+            if let cached {
+                let image = await AvatarImage.decode(cached)
+                guard current() else { return }
+                images[url] = image
+            }
+        }
+        do {
+            let fresh = try await request.read(request.account, url, true)
+            guard current() else { return }
+            if let fresh {
+                if fresh != cached || images[url] == nil {
+                    let image = await AvatarImage.decode(fresh)
+                    guard current() else { return }
+                    images[url] = image
+                }
+            } else if images[url] != nil {
+                images[url] = nil
+            }
+        } catch { /* Keep a decoded image available when the refresh is offline. */ }
+        if current() {
+            avatarAfter[url] = ContinuousClock.now.advanced(by: .seconds(images[url] == nil ? 60 : 600))
+        }
     }
 }
 

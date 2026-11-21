@@ -151,6 +151,89 @@ async fn background_profile_network_does_not_block_local_reads() {
 }
 
 #[tokio::test]
+async fn participant_avatar_downloads_are_coalesced_without_delaying_other_urls() {
+    let dir = testing::TempDir::new();
+    let (d, _) = fixture(&dir);
+    let entered = Arc::new(Notify::new());
+    let finish = Arc::new(Notify::new());
+    let downloads = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .unwrap();
+    let origin = format!("http://{}", listener.local_addr().unwrap());
+    let app = Router::new()
+        .route(
+            "/slow",
+            axum::routing::get({
+                let entered = entered.clone();
+                let finish = finish.clone();
+                move || async move {
+                    entered.notify_one();
+                    finish.notified().await;
+                    b"RIFF0000WEBPslow".to_vec()
+                }
+            }),
+        )
+        .route(
+            "/shared",
+            axum::routing::get({
+                let downloads = downloads.clone();
+                move || async move {
+                    downloads.fetch_add(1, Ordering::SeqCst);
+                    b"RIFF0000WEBPshared".to_vec()
+                }
+            }),
+        );
+    let server = tokio::spawn(axum::serve(listener, app).into_future());
+    testing::relay_to(&mut *d.client.lock().await, &origin);
+    let slow = tokio::spawn({
+        let d = d.clone();
+        let params = json!({"avatar_url":format!("{origin}/slow"),"refresh":true});
+        async move { d.call(Module::More, "channel/avatar", &params).await }
+    });
+    let wait = Duration::from_secs(5);
+    tokio::time::timeout(wait, entered.notified())
+        .await
+        .unwrap();
+
+    let params = json!({"avatar_url":format!("{origin}/shared"),"refresh":true});
+    let expected = crate::display::image("image/webp", b"RIFF0000WEBPshared");
+    let (first, second) = tokio::time::timeout(wait, async {
+        tokio::join!(
+            d.call(Module::More, "channel/avatar", &params),
+            d.call(Module::More, "channel/avatar", &params)
+        )
+    })
+    .await
+    .unwrap();
+    assert_eq!(first.unwrap(), expected);
+    assert_eq!(second.unwrap(), expected);
+    assert_eq!(downloads.load(Ordering::SeqCst), 1);
+
+    // A cached refresh does not need a network slot, even while the slow request is pending.
+    let remaining = tokio::time::timeout(wait, d.display.avatar_downloads.acquire_many(3))
+        .await
+        .unwrap()
+        .unwrap();
+    let cached = tokio::time::timeout(wait, d.call(Module::More, "channel/avatar", &params))
+        .await
+        .unwrap();
+    assert_eq!(cached.unwrap(), expected);
+    assert!(!slow.is_finished());
+    drop(remaining);
+    d.call_daemon("cache/clear", &Value::Null).await.unwrap();
+    finish.notify_one();
+    assert!(
+        tokio::time::timeout(wait, slow)
+            .await
+            .unwrap()
+            .unwrap()
+            .is_err()
+    );
+    server.abort();
+}
+
+#[tokio::test]
 async fn display_modes_cannot_turn_an_entitlement_update_or_command_into_a_read() {
     let dir = testing::TempDir::new();
     let (d, _) = fixture(&dir);
