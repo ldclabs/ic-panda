@@ -95,12 +95,14 @@ It also accepts exactly `https://dmsg.net/_/ios/auth/callback` for iOS and `http
 
 The Android core uses the same fixed callback for sign-in, identity binding and native Passkey responses. For II sign-in and binding, the app opens an Auth Tab in the system browser. After verifying the association between dmsg.net and the app's signing certificate, the browser returns the full HTTPS callback URI, including its fragment, to the initiating app through an Activity Result. Older browsers use the verified App Link. Both paths require the exact Android callback and a pending login request. The site's `/.well-known/assetlinks.json` declares the production package and signing certificates.
 
+The II popup can still be in front when it sends a delegation or an error. The Android login page holds that result in memory until the user taps **Return to the dMsg app** in the original tab. The tap navigates to the verified HTTPS callback. Leaving the login page discards the result. iOS and loopback clients receive their callbacks automatically.
+
 iOS uses `ASWebAuthenticationSession.Callback.https(host:path:)`. The app's Associated Domains include `webcredentials:dmsg.net`. During the team transfer, the AASA for dmsg.net associates the login callback and web credentials with both signed versions of `net.dmsg.ios` (LDC `S9Z2WAMAV8` and Yiwen `63G8VNQPXB`). Generate `src/dmsg_frontend/static/.well-known/apple-app-site-association` with `node scripts/ios/aasa.mjs S9Z2WAMAV8 net.dmsg.ios` and deploy it with the callback page as a direct 200 JSON response. The connect.dmsg.net build uses the same app IDs for its pairing and request links. Outside the initiating system session the fallback page clears the fragment and asks the user to restart in the app, without forwarding or third-party scripts. A callback is consumed once. Process termination invalidates pending requests.
 
 ## 6. Page requirements
 
 - `/_/login` uses an independent layout without the site's login state, auth store or other business modules.
-- Show only the destination, local dMsg with port number, the derivation origin and a Continue button. Contact II only after the click; provide no other actions.
+- Show the destination (including the port for a loopback client), the derivation origin and the Continue button. Contact II only after the click. For Android, the same button becomes **Return to the dMsg app** once II responds.
 - Immediately clear the fragment with `history.replaceState` after reading it, keeping it out of history.
 - Write no cookies, localStorage or IndexedDB.
 - Use the dmsg.net asset-canister header policy: `frame-ancestors 'none'`; `upgrade-insecure-requests` does not affect cross-host navigation to loopback; `form-action 'self'` means callbacks must use navigation, not form submission.

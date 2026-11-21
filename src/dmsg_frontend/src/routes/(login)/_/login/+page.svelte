@@ -15,6 +15,7 @@
     type PasskeyRequest
   } from '$lib/login/passkey'
   import {
+    ANDROID_CALLBACK,
     callbackTarget,
     parseRequest,
     type LoginRequest
@@ -29,6 +30,7 @@
   let passkeyAvailable = $state(false)
   let invalid = $state(false)
   let busy = $state(false)
+  let androidReturnUrl = $state<string | null>(null)
 
   onMount(() => {
     try {
@@ -75,9 +77,32 @@
     }
     if (!request || busy) return
     busy = true
-    void complete(request, delegate, (url) => location.assign(url))
+    const android = request.next_url === ANDROID_CALLBACK
+    void complete(request, delegate, (url) => {
+      if (android) {
+        // The II popup can still own the foreground when its response arrives.
+        // Let a tap in the original Auth Tab initiate the verified HTTPS return.
+        if (!invalid) androidReturnUrl = url
+      } else location.assign(url)
+    })
+  }
+
+  function returnToAndroid() {
+    const url = androidReturnUrl
+    if (!url) return
+    androidReturnUrl = null
+    location.replace(url)
+  }
+
+  function leavePage() {
+    if (request?.next_url === ANDROID_CALLBACK) {
+      androidReturnUrl = null
+      invalid = true
+    }
   }
 </script>
+
+<svelte:window onpagehide={leavePage} />
 
 <svelte:head>
   <title>{$t('Sign in to dMsg')}</title>
@@ -154,13 +179,15 @@
     <button
       type="button"
       class="button primary utility-action"
-      disabled={busy}
-      onclick={start}
-      aria-busy={busy}
+      disabled={busy && !androidReturnUrl}
+      onclick={androidReturnUrl ? returnToAndroid : start}
+      aria-busy={busy && !androidReturnUrl}
     >
-      {busy
-        ? $t('Waiting for Internet Identity…')
-        : $t('Continue with Internet Identity')}
+      {androidReturnUrl
+        ? $t('Return to the dMsg app')
+        : busy
+          ? $t('Waiting for Internet Identity…')
+          : $t('Continue with Internet Identity')}
     </button>
     <p class="utility-note"
       >{$t(

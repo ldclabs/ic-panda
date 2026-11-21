@@ -97,6 +97,8 @@ POST 的应答：成功 200；`Origin` 或 `Content-Type` 不符 403；其他校
 
 Android 核心在编译时固定回调地址，登录绑定和原生 Passkey 响应使用同一地址。II 登录和绑定使用系统浏览器的 Auth Tab。浏览器验证 dmsg.net 与应用签名的关联后，通过 Activity Result 把带 fragment 的完整 HTTPS 回调交还给发起登录的应用。旧浏览器通过已验证的 App Link 返回。两种入口都只接受上述精确回调和本次登录请求。生产签名和包名在站点 `/.well-known/assetlinks.json` 中声明。
 
+II 弹窗送回委托或错误时，弹窗可能仍在前台。Android 登录页将结果暂存在内存，用户回到原标签页点「返回 dMsg 应用」后，页面才导航到已验证的 HTTPS 回调。离开登录页会丢弃结果。iOS 和回环客户端继续自动接收回调。
+
 移动端发起的登录与登录绑定固定使用 `https://dmsg.net` 派生域，不再提供 `panda.fans` 选项。旧域认证与旧数据迁移继续通过桌面端的既有流程进行；这项入口限制不改变协议对桌面迁移请求的支持，也不自动合并两个派生身份的账户。
 
 iOS 使用 `ASWebAuthenticationSession.Callback.https(host:path:)`，App 的 Associated Domains 须含 `webcredentials:dmsg.net`。团队转让期间，dmsg.net 的 AASA 将登录回调和共享网页凭据关联到 `net.dmsg.ios` 的两个签名团队（LDC `S9Z2WAMAV8`、Yiwen `63G8VNQPXB`）。用 `node scripts/ios/aasa.mjs S9Z2WAMAV8 net.dmsg.ios` 生成 `src/dmsg_frontend/static/.well-known/apple-app-site-association`，随回调页部署，直接返回 200 JSON。connect.dmsg.net 构建时使用同一组 App ID 关联配对与请求链接。系统会话外打开回调页时，只清除 fragment 并显示重新从 App 登录的说明，不转发或加载第三方脚本。回调消费一次，进程终止后旧请求失效。
@@ -104,7 +106,7 @@ iOS 使用 `ASWebAuthenticationSession.Callback.https(host:path:)`，App 的 Ass
 ## 6. 页面要求
 
 - 路由 `/_/login` 使用独立布局，不加载站点的登录状态、认证 store 或其他业务模块。
-- 页面只显示：连接目标"本机 dMsg（端口 n）"、所选派生 origin、"继续"按钮；按钮点击后才联系 II。不提供其他动作。
+- 页面显示连接目标（回环客户端显示端口）、所选派生 origin 和「继续」按钮，用户点击后才联系 II。Android 上收到 II 响应后，同一按钮变为「返回 dMsg 应用」。
 - 读取 fragment 后立即用 `history.replaceState` 清除，避免留在历史记录。
 - 不写 cookie、localStorage、IndexedDB。
 - 响应头沿用 dmsg.net 资产 canister 的策略：`frame-ancestors 'none'`；`upgrade-insecure-requests` 不影响到回环地址的跨主机导航；`form-action 'self'` 意味着不能用表单提交回调，必须用导航。
