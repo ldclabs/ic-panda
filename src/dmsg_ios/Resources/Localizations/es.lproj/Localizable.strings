@@ -3562,5 +3562,19 @@
 	<string>Válido hasta</string>
 	<key>High risk</key>
 	<string>Riesgo alto</string>
+	<key>Continue on another device</key>
+	<string>Continuar en otro dispositivo</string>
+	<key>Let this device approve future requests</key>
+	<string>Permitir que este dispositivo apruebe futuras solicitudes</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Solicitud aprobada. Preparando la bóveda…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>No se encontró ningún dispositivo administrador autorizado para aprobar la solicitud.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Actualiza la solicitud en el dispositivo que se va a añadir y vuelve a escanearla.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Tras registrar la clave, actualiza la solicitud en el dispositivo que se va a añadir y vuelve a escanearla.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Escanea este código con un dispositivo administrador para revisar la solicitud.</string>
 </dict>
 </plist>

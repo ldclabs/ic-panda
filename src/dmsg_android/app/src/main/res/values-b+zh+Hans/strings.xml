@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"操作未完成，错误码：%1$s"</string>
     <string name="operation_failed_retry" formatted="false">"操作未完成，请重试。"</string>
     <string name="otp_accessibility_hint" formatted="false">"一次性验证码。使用字段操作可复制或以大字显示。"</string>
+    <string name="pair_after_registration" formatted="false">"钥匙登记成功后，请在要加入的设备上刷新请求，再重新扫码。"</string>
+    <string name="pair_continue_elsewhere" formatted="false">"在另一台设备上继续"</string>
+    <string name="pair_enable_approvals" formatted="false">"让这台设备以后也能批准请求"</string>
+    <string name="pair_key_fingerprint" formatted="false">"钥匙指纹"</string>
+    <string name="pair_no_approver" formatted="false">"没有找到可批准此请求的管理员设备。"</string>
+    <string name="pair_preparing_vault" formatted="false">"已批准，正在准备保险库…"</string>
+    <string name="pair_refresh_request" formatted="false">"请在要加入的设备上刷新请求，再重新扫码。"</string>
+    <string name="pair_scan_with_admin" formatted="false">"请用有批准权限的管理员设备扫码，核对并处理请求。"</string>
+    <string name="pair_share_request" formatted="false">"分享请求"</string>
     <string name="permission_account_information" formatted="false">"账号信息"</string>
     <string name="permission_channel_id" formatted="false">"频道 ID"</string>
     <string name="permission_delegations" formatted="false">"委托"</string>

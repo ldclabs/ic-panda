@@ -1500,6 +1500,31 @@ impl Client {
         Ok(None)
     }
 
+    /// Check a device join. Once the account workspace is open, only the
+    /// certified device state and the content root may still be pending.
+    ///
+    /// # Errors
+    /// As [`Self::prepare_unlock`]. A locked or provisional workspace still
+    /// goes through the full login and hardware checks.
+    pub async fn prepare_pairing_refresh(&mut self) -> Result<Option<LoginUnlock>> {
+        if self.workspace.provisional() || self.keys.is_none() || self.default_binding_needed()? {
+            return self.prepare_unlock().await;
+        }
+        self.hardware_ready()?;
+        self.session()?;
+        let account = self.account()?.clone();
+        let security = self.refresh_security(account.home, &account.id).await?;
+        self.check_revoked(&security)?;
+        security.active(&self.workspace.meta.device_id)?;
+        if let Err(error) = self.resume().await
+            && error != Error::Expired
+        {
+            return Err(error);
+        }
+        self.open_root().await?;
+        Ok(None)
+    }
+
     /// A deliberate unbind is remembered for II; choosing Passkey again
     /// requires binding, so a Passkey login does not honour it.
     fn binding_declined(&self) -> bool {

@@ -18,6 +18,7 @@ struct DesktopPairingView: View {
     @State private var failed = false
     @State private var cameraDenied = false
     @State private var needsLogin = false
+    @State private var paused = false
 
     var body: some View {
         Form {
@@ -43,11 +44,13 @@ struct DesktopPairingView: View {
                 NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
                 Button("Continue with Internet Identity") { Task { await model.login(usingInternetIdentity: true) } }.disabled(working || model.busy)
             }
+            if model.session?.state == "root_required" { NoticeBar(text: String(localized: "Approved. Preparing your vault…")) }
+            if paused { Button("Unlock workspace") { Task { paused = false; await refresh() } }.disabled(working) }
             if failed || expired {
                 NoticeBar(text: expired ? String(localized: "This request has expired") : String(localized: "Device request delivery is unconfirmed. Check your connection and the desktop before retrying."))
                 Button("Check authorization") { Task { await refresh() } }.disabled(working)
             }
-            if let delivery {
+            if let delivery, model.session?.state != "root_required" {
                 Section("Waiting for approval") {
                     Text("Compare the device ID on both screens and approve on your desktop.")
                     Text(groupedFingerprint(delivery.deviceId)).font(.caption.monospaced()).textSelection(.enabled)
@@ -69,7 +72,7 @@ struct DesktopPairingView: View {
                 if remaining > 0 {
                     do { try await Task.sleep(for: .seconds(remaining)) } catch { return }
                 }
-                guard !Task.isCancelled, delivery?.expiresAt == receipt.expiresAt else { return }
+                guard !Task.isCancelled, delivery?.expiresAt == receipt.expiresAt, model.session?.state != "root_required" else { return }
                 delivery = nil; expired = true
             }
             // Stop polling when the request expires, even if a refresh was slow.
@@ -77,8 +80,8 @@ struct DesktopPairingView: View {
                 guard delivery != nil else { return }
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(5))
-                    guard !Task.isCancelled, !needsLogin else { return }
-                    await check()
+                    guard !Task.isCancelled else { return }
+                    if !paused && !needsLogin && !working { await refresh() }
                 }
             }
             .task(id: attempt) {
@@ -128,9 +131,10 @@ struct DesktopPairingView: View {
         }
         catch {
             if epoch == model.epoch, !Task.isCancelled {
-                if let failure = error as? MobileError, case .Failure(let code) = failure, code == "AUTH_REQUIRED" {
+                if let failure = error as? MobileError, case .Failure(let code) = failure, ["AUTH_REQUIRED", "LOGIN_EXPIRED"].contains(code) {
                     needsLogin = true
-                } else { model.reportBackground(error) }
+                } else if pairingNeedsManualUnlock(error) { paused = true; model.report(error) }
+                else { model.reportBackground(error) }
             }
         }
         if epoch == model.epoch { await model.updateSession() }

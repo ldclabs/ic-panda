@@ -1,5 +1,6 @@
 package net.dmsg.android.ui
 
+import kotlinx.serialization.json.JsonObject
 import net.dmsg.android.R
 import net.dmsg.android.platform.quantity
 import net.dmsg.android.platform.str
@@ -105,7 +106,7 @@ import net.dmsg.core.PasskeyOperation
     val form by client.account.hardwareDraft.collectAsStateWithLifecycle()
     val value = status.valueOrNull()
     var binding by remember { mutableStateOf<Boolean?>(null) }
-    var enrollment by remember { mutableStateOf<String?>(null) }
+    var enrollment by remember { mutableStateOf<JsonObject?>(null) }
     val controls = setOf("account_control", "device_control", "principal_control")
     LaunchedEffect(session.epoch) { client.account.hardware(); client.approvals.settle() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -117,10 +118,10 @@ import net.dmsg.core.PasskeyOperation
             value.key?.let { key -> SelectionContainer { Text(key.id, style = MaterialTheme.typography.bodySmall) }; if (key.changed == true) Notice(str(R.string.text_biometric_enrollment_changed_review_replacing_this_key_a3ffff1)) }
             if (!value.available) Notice(str(R.string.text_hardware_approval_is_unavailable_on_this_device_be15b10))
             SettingToggle(str(R.string.text_biometrics_only_2dc6cc9), form.biometryOnly, { client.account.editHardware(form.copy(biometryOnly = it)) }, enabled = value.biometry, description = str(R.string.text_no_device_pin_fallback_changing_enrolled_biometrics_may_invalidat_196305d))
-            Button(onClick = { client.approvals.request("hardware:key") { it.registerApprovalKey(form.biometryOnly) } }, enabled = value.available && !session.working("approval:request:hardware:key")) { Text(if (value.key?.here == true) str(R.string.text_review_replacement_key_e3e0fd1) else str(R.string.text_review_key_registration_0ac05aa)) }
+            if ("account_control" !in value.policy || value.key?.here == true && value.key.changed != true) Button(onClick = { client.approvals.request("hardware:key") { it.registerApprovalKey(form.biometryOnly) } }, enabled = value.available && !session.working("approval:request:hardware:key")) { Text(if (value.key?.here == true) str(R.string.text_review_replacement_key_e3e0fd1) else str(R.string.text_review_key_registration_0ac05aa)) }
             ApprovalReceipt(client, "hardware:key")
-            OutlinedButton(onClick = { client.perform({ it.approvalKeyRequest(form.biometryOnly).decode().objectValue().required("token") }, key = "hardware:enrollment") { enrollment = it } }, enabled = value.available && !session.working("hardware:enrollment")) { Text(str(R.string.text_create_administrator_enrollment_request_42868af)) }
-            enrollment?.let { token -> Notice(str(R.string.text_this_request_alone_does_not_register_a_key_share_it_with_an_autho_d461dfc)); TextButton(onClick = { client.clipboard.copy(token) }) { Text(str(R.string.text_copy_enrollment_request_d04fb33)) } }
+            OutlinedButton(onClick = { client.perform({ it.approvalKeyRequest(form.biometryOnly).decode().objectValue() }, key = "hardware:enrollment") { enrollment = it } }, enabled = value.available && !session.working("hardware:enrollment")) { Text(str(R.string.text_create_administrator_enrollment_request_42868af)) }
+            enrollment?.let { key -> DeviceRequestCode(client, key.required("token"), key.required("device_id"), key.required("key_id")) }
             if (value.key != null) TextButton(onClick = { client.approvals.request("hardware:key") { it.retireApprovalKey(null) } }) { Text(str(R.string.text_review_retiring_this_key_88ea641)) }
             SectionTitle(str(R.string.text_device_bound_workspace_170f7b1))
             SettingToggle(str(R.string.text_require_this_device_to_unlock_c7b4d5f), value.bound, { binding = it }, enabled = value.available && !session.working("hardware:binding"))
@@ -146,10 +147,7 @@ import net.dmsg.core.PasskeyOperation
             }
             if (value.canManage) {
                 SectionTitle(str(R.string.text_review_an_enrollment_request_65ae501))
-                OutlinedTextField(form.token, { client.account.editHardware(form.copy(token = it)) }, Modifier.fillMaxWidth(), minLines = 2, label = { Text(str(R.string.text_enrollment_request_7039197)) })
-                OutlinedTextField(form.device, { client.account.editHardware(form.copy(device = it.trim())) }, Modifier.fillMaxWidth(), label = { Text(str(R.string.text_device_id_b31993b)) })
-                Button(onClick = { client.approvals.request("hardware:enroll:" + form.device) { it.approveApprovalKey(form.token.trim(), form.device) } }, enabled = form.token.isNotBlank() && form.device.matches(Regex("[0-9a-f]{64}"))) { Text(str(R.string.text_review_key_enrollment_4a53b87)) }
-                ApprovalReceipt(client, "hardware:enroll:" + form.device)
+                OutlinedButton(onClick = { client.navigation.open("key-enrollment") }) { Text(str(R.string.text_scan_device_request_c50056e)) }
             }
         }
     }
@@ -189,7 +187,7 @@ import net.dmsg.core.PasskeyOperation
         AccountRow(str(R.string.text_transfer_between_devices_fc09783)) { client.navigation.push(Route("device-transfer")) }
         AccountRow(str(R.string.text_replace_a_device_fbe5457)) { client.navigation.push(Route("handovers")) }
         ReadFeedback(devices, client.account::devices)
-        if (selected == null) Button(onClick = { client.navigation.open("pair-approve") }, enabled = value?.canManage == true) { Text(str(R.string.text_authorize_another_device_d67d951)) }
+        if (selected == null) Button(onClick = { client.navigation.open("pair-approve") }, enabled = value != null) { Text(str(R.string.text_authorize_another_device_d67d951)) }
         value?.devices?.filter { selected == null || it.id == selected }?.forEach { device ->
             if (selected == null) AccountRow(if (device.current) str(R.string.text_this_android_device_7a65c2a) else device.id) { selected = device.id }
             else {

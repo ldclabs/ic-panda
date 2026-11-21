@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "درخواست کا جائزہ لینے کے لیے منتظم کی ڈیوائس سے یہ کوڈ اسکین کریں۔",
+  pairContinueElsewhere: "دوسری ڈیوائس پر جاری رکھیں",
+  pairEnableApprovals: "اس ڈیوائس کو آئندہ درخواستیں منظور کرنے کی اجازت دیں",
+  pairPreparingVault: "منظوری مل گئی۔ والٹ تیار ہو رہا ہے…",
+  pairNoApprover: "منظوری دینے کی اہل کوئی منتظم ڈیوائس نہیں ملی۔",
+  pairRefreshRequest: "شامل کی جانے والی ڈیوائس پر درخواست تازہ کریں اور دوبارہ اسکین کریں۔",
+  pairAfterRegistration: "کلید رجسٹر کرنے کے بعد شامل کی جانے والی ڈیوائس پر درخواست تازہ کریں اور دوبارہ اسکین کریں۔",
   useOnDevice: "صرف اس ڈیوائس پر استعمال کریں",
   offlineAccount: "مقامی اکاؤنٹ",
   savedOnDevice: "اس ڈیوائس پر محفوظ ہے",

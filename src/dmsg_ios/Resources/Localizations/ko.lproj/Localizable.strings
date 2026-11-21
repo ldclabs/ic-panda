@@ -3562,5 +3562,19 @@
 	<string>유효기간</string>
 	<key>High risk</key>
 	<string>고위험</string>
+	<key>Continue on another device</key>
+	<string>다른 기기에서 계속</string>
+	<key>Let this device approve future requests</key>
+	<string>이 기기에서 향후 요청을 승인하도록 허용</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>승인되었습니다. 보관함을 준비하는 중…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>승인 권한이 있는 관리자 기기를 찾을 수 없습니다.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>추가할 기기에서 요청을 새로 고친 후 다시 스캔하세요.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>키를 등록한 후 추가할 기기에서 요청을 새로 고치고 다시 스캔하세요.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>관리자 기기로 이 코드를 스캔하여 요청을 검토하세요.</string>
 </dict>
 </plist>

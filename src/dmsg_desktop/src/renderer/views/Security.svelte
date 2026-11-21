@@ -10,6 +10,7 @@
   import Collapsible from '../components/Collapsible.svelte'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
+  import DeviceAuthorization from './DeviceAuthorization.svelte'
   import SecretInput from '../components/SecretInput.svelte'
   import TextField from '../components/TextField.svelte'
   import TextArea from '../components/TextArea.svelte'
@@ -28,15 +29,15 @@
   import LocalOnly from './LocalOnly.svelte'
 
   /** The page shows effective settings. One dialog edits one task; the approval window decides account changes. */
-  type Editor = 'policy' | 'hardware' | 'login' | 'key' | 'key-request' | 'key-approve' | 'bound'
+  type Editor = 'policy' | 'hardware' | 'login' | 'key' | 'key-request' | 'bound'
   type Pending = 'policy' | 'hardware' | 'key'
   const titles: Record<Editor, Label> = {
     policy: 'signingPolicy', hardware: 'approvalKeys', login: 'approveLogin',
-    key: 'approvalKey', 'key-request': 'keyRequest', 'key-approve': 'approveKeyRequest', bound: 'deviceBound'
+    key: 'approvalKey', 'key-request': 'keyRequest', bound: 'deviceBound'
   }
   const descriptions: Record<Editor, Label> = {
     policy: 'securityApprovalHint', hardware: 'securityApprovalHint', login: 'approveLoginHint',
-    key: 'approvalKeysHint', 'key-request': 'keyRequestHint', 'key-approve': 'keyRequestHint', bound: 'deviceBoundHint'
+    key: 'approvalKeysHint', 'key-request': 'keyRequestHint', bound: 'deviceBoundHint'
   }
   const OPTIONAL = ['payment', 'attestation']
   const CONTROL = ['account_control', 'device_control', 'principal_control']
@@ -68,14 +69,12 @@
   const missing = $derived((keys?.devices ?? []).filter((device: any) => !device.key_id))
   const policy = $derived(security ? policyChanges(security.policy, daily, purposes) : null)
   const hardwareChanged = $derived(!sameSelection([...CONTROL, ...extra], keys?.policy ?? []))
-  const validDeviceId = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
   const canSubmit = $derived.by(() => {
     if (blocked) return false
     switch (editor) {
       case 'policy': return !!policy && !pending.policy
       case 'hardware': return hardwareChanged && !!own?.here && !own.fingerprints_changed && !keyError && !pending.hardware
       case 'login': return !!request.trim() && !!shown.trim()
-      case 'key-approve': return !!request.trim() && validDeviceId && !keyError
       case 'key': return !!keys?.available && !keyError && !pending.key
       case 'key-request': return !!keys?.available && !keyError && !made
       case 'bound': return !!keys?.available && !keys.device_bound && !keyError
@@ -172,7 +171,6 @@
     if (editor === 'hardware') return ask('account/hardware_policy', { purposes: [...CONTROL, ...extra] }, 'hardware')
     if (editor === 'key') return ask('device/key_register', { biometry_only: biometryOnly }, 'key')
     if (editor === 'login') return ask('account/bind_approve', { token: request.trim(), principal: shown.trim() })
-    if (editor === 'key-approve') return ask('device/key_approve', { token: request.trim(), device: shown.trim() })
     if (editor === 'key-request') return guard(async () => {
       const result = await call('device/key_request', { biometry_only: biometryOnly })
       if (alive) made = result
@@ -292,7 +290,8 @@
         <Fact label={t('approvalKeysRequiredFor')}>{required ? purposeText(keys.policy) : t('nothingRequired')}</Fact>
       </dl>
       <div class="mt-3 flex flex-wrap gap-2">
-        {#if keys.available}<button class={buttonClass('secondary', 'sm')} disabled={blocked || !!keyError || !!pending.key} data-testid="security-key-edit" onclick={() => begin('key')}>{own ? t('replaceKey') : t('registerKey')}</button>{/if}
+        {#if keys.available && (!required || own?.here && !own.fingerprints_changed)}<button class={buttonClass('secondary', 'sm')} disabled={blocked || !!keyError || !!pending.key} data-testid="security-key-edit" onclick={() => begin('key')}>{own ? t('replaceKey') : t('registerKey')}</button>{/if}
+        {#if keys.available && required && (!own?.here || own.fingerprints_changed)}<button class={buttonClass('primary', 'sm')} disabled={blocked || !!keyError} onclick={() => begin('key-request')}>{t('pairEnableApprovals')}</button>{/if}
         <button class={buttonClass('secondary', 'sm')} disabled={blocked || !!keyError || !own?.here || own.fingerprints_changed || !!pending.hardware} aria-label={required ? `${t('edit')} · ${t('approvalKeys')}` : t('requireKeys')} data-testid="approval-keys-require" onclick={() => begin('hardware')}>{required ? t('edit') : t('requireKeys')}</button>
         {#if own}<button class={buttonClass('danger', 'sm')} disabled={blocked || !!keyError || !!pending.key} onclick={() => ask('device/key_retire', {}, 'key')}>{t('retireKey')}</button>{/if}
       </div>
@@ -304,7 +303,7 @@
         <p class="py-2 text-[12px] text-muted">{t('keyRequestHint')}</p>
         <div class="flex flex-wrap gap-2">
           {#if keys.available}<button class={buttonClass('secondary', 'sm')} disabled={blocked || !!keyError} data-testid="security-key-request" onclick={() => begin('key-request')}>{t('keyRequest')}</button>{/if}
-          <button class={buttonClass('secondary', 'sm')} disabled={blocked || !!keyError} data-testid="security-key-approve" onclick={() => begin('key-approve')}>{t('approveKeyRequest')}</button>
+          <DeviceAuthorization enrollmentOnly disabled={blocked || !!keyError} />
         </div>
       </Collapsible>
     </Section>
@@ -327,7 +326,7 @@
   <div class="grid gap-4">
     {#if error}<Notice failure={error} tone="danger" testid="security-editor-error">{error}</Notice>{/if}
     {#if needsLogin || loadError}<Notice tone="warn">{needsLogin ? t('securityNeedsLogin') : loadError}</Notice>{/if}
-    {#if keyError && ['hardware', 'key', 'key-request', 'key-approve', 'bound'].includes(editor)}<Notice failure={keyError} tone="danger">{keyError}</Notice>{/if}
+    {#if keyError && ['hardware', 'key', 'key-request', 'bound'].includes(editor)}<Notice failure={keyError} tone="danger">{keyError}</Notice>{/if}
     {#if editor === 'policy'}
       <TextField label={t('dailyExecutions')} bind:value={daily} inputmode="numeric" disabled={blocked || !!pending.policy} hint={t('securityDailyHint')} error={dailyLimit(daily) === null ? t('securityDailyRange') : ''} data-testid="daily-executions" />
       <fieldset class="grid gap-2" disabled={blocked || !!pending.policy}>
@@ -348,11 +347,13 @@
           <button class={buttonClass('danger', 'sm')} disabled={blocked || !!pending.hardware || !!keyError} onclick={() => ask('account/hardware_policy', { purposes: [] }, 'hardware')}>{t('stopRequiring')}</button>
         </div>
       {/if}
-    {:else if editor === 'login' || editor === 'key-approve'}
-      <SecretInput label={t('pasteRequest')} bind:value={request} multiline disabled={blocked} testid={editor === 'login' ? 'approve-request' : 'approval-key-request'} />
-      <TextField label={editor === 'login' ? t('principalShown') : t('deviceShown')} bind:value={shown} mono disabled={blocked} error={editor === 'key-approve' && shown.trim() && !validDeviceId ? t('securityDeviceIdHint') : ''} data-testid="approve-shown" />
+    {:else if editor === 'login'}
+      <SecretInput label={t('pasteRequest')} bind:value={request} multiline disabled={blocked} testid="approve-request" />
+      <TextField label={t('principalShown')} bind:value={shown} mono disabled={blocked} data-testid="approve-shown" />
     {:else if made && editor === 'key-request'}
       <TextField label={`${t('device')} · ${t('thisDevice')}`} readonly value={made.device_id} mono />
+      {#if made.key_id}<Fact label={t('approvalKey')}><Id id={made.key_id} full wrap /></Fact>{/if}
+      {#if made.qr}<img src={made.qr} alt={t('keyRequest')} width="200" height="200" class="max-w-full justify-self-center rounded-lg bg-white p-2" />{/if}
       <TextArea label={t('requestToken')} readonly rows={3} value={made.token} mono data-testid="approval-key-token" />
       <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(made.token)} data-testid="approval-key-copy"><Icon name="copy" />{t('copy')}</button>
     {:else}

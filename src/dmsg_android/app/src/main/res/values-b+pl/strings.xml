@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Nie udało się ukończyć operacji. Kod: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"Nie można ukończyć operacji. Spróbuj ponownie."</string>
     <string name="otp_accessibility_hint" formatted="false">"Kod jednorazowy. Użyj działań pola, aby go skopiować lub wyświetlić dużą czcionką."</string>
+    <string name="pair_after_registration" formatted="false">"Po zarejestrowaniu klucza odśwież prośbę na dodawanym urządzeniu i zeskanuj ją ponownie."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Kontynuuj na innym urządzeniu"</string>
+    <string name="pair_enable_approvals" formatted="false">"Zezwól temu urządzeniu na zatwierdzanie przyszłych próśb"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Kluczowy odcisk palca"</string>
+    <string name="pair_no_approver" formatted="false">"Nie znaleziono urządzenia administratora uprawnionego do zatwierdzenia prośby."</string>
+    <string name="pair_preparing_vault" formatted="false">"Zatwierdzono. Przygotowywanie sejfu…"</string>
+    <string name="pair_refresh_request" formatted="false">"Odśwież prośbę na dodawanym urządzeniu i zeskanuj ją ponownie."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Zeskanuj ten kod urządzeniem administratora, aby sprawdzić prośbę."</string>
+    <string name="pair_share_request" formatted="false">"Udostępnij prośbę"</string>
     <string name="permission_account_information" formatted="false">"Informacje o koncie"</string>
     <string name="permission_channel_id" formatted="false">"Identyfikator kanału"</string>
     <string name="permission_delegations" formatted="false">"Delegacje"</string>

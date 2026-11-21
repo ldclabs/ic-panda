@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "管理者デバイスでこのコードをスキャンして、リクエストを確認してください。",
+  pairContinueElsewhere: "別のデバイスで続ける",
+  pairEnableApprovals: "このデバイスで今後のリクエストを承認できるようにする",
+  pairPreparingVault: "承認されました。保管庫を準備中…",
+  pairNoApprover: "承認できる管理者デバイスが見つかりません。",
+  pairRefreshRequest: "追加するデバイスでリクエストを更新し、もう一度スキャンしてください。",
+  pairAfterRegistration: "鍵の登録後、追加するデバイスでリクエストを更新し、もう一度スキャンしてください。",
   useOnDevice: "この端末のみで使う",
   offlineAccount: "ローカルアカウント",
   savedOnDevice: "この端末に保存済み",

@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"یہ عمل مکمل نہیں ہو سکا۔ کوڈ: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"آپریشن مکمل نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔"</string>
     <string name="otp_accessibility_hint" formatted="false">"ایک بار استعمال ہونے والا کوڈ۔ نقل کرنے یا بڑے حروف میں دکھانے کے لیے فیلڈ کے اعمال استعمال کریں۔"</string>
+    <string name="pair_after_registration" formatted="false">"کلید رجسٹر کرنے کے بعد شامل کی جانے والی ڈیوائس پر درخواست تازہ کریں اور دوبارہ اسکین کریں۔"</string>
+    <string name="pair_continue_elsewhere" formatted="false">"دوسری ڈیوائس پر جاری رکھیں"</string>
+    <string name="pair_enable_approvals" formatted="false">"اس ڈیوائس کو آئندہ درخواستیں منظور کرنے کی اجازت دیں"</string>
+    <string name="pair_key_fingerprint" formatted="false">"کلیدی فنگر پرنٹ"</string>
+    <string name="pair_no_approver" formatted="false">"منظوری دینے کی اہل کوئی منتظم ڈیوائس نہیں ملی۔"</string>
+    <string name="pair_preparing_vault" formatted="false">"منظوری مل گئی۔ والٹ تیار ہو رہا ہے…"</string>
+    <string name="pair_refresh_request" formatted="false">"شامل کی جانے والی ڈیوائس پر درخواست تازہ کریں اور دوبارہ اسکین کریں۔"</string>
+    <string name="pair_scan_with_admin" formatted="false">"درخواست کا جائزہ لینے کے لیے منتظم کی ڈیوائس سے یہ کوڈ اسکین کریں۔"</string>
+    <string name="pair_share_request" formatted="false">"درخواست شیئر کریں"</string>
     <string name="permission_account_information" formatted="false">"اکاؤنٹ کی معلومات"</string>
     <string name="permission_channel_id" formatted="false">"چینل آئی ڈی"</string>
     <string name="permission_delegations" formatted="false">"وفود"</string>

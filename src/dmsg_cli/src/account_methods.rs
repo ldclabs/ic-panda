@@ -168,8 +168,9 @@ impl Daemon {
                 let biometry_only = params["biometry_only"].as_bool().unwrap_or(false);
                 let h = self.hold();
                 let token = approval_key::key_request(&h, biometry_only).await?;
-                let device = h.with(|c| Ok(c.status()?.device_id)).await?;
-                return Ok(json!({"token": token, "device_id": device}));
+                let mut view = h.with(|c| c.enrollment_fingerprints(&token)).await?;
+                view["qr"] = json!(dmsg_client::qr::png_data(&token).ok());
+                return Ok(view);
             }
             "device/key_approve" => {
                 let (token, device) = (text(params, "token")?, text(params, "device")?);

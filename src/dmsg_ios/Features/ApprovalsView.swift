@@ -613,6 +613,8 @@ func approvalFieldLabel(_ key: String) -> String {
         words.append(character.lowercased())
     }
     switch words {
+    case "key id": return String(localized: "Key fingerprint")
+    case "this device": return String(localized: "This device")
     case "device id", "device": return String(localized: "Device ID")
     case "to device": return String(localized: "To device")
     case "role": return String(localized: "Role")

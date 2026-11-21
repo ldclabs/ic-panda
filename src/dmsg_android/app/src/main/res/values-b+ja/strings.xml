@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"操作を完了できませんでした。コード：%1$s"</string>
     <string name="operation_failed_retry" formatted="false">"操作を完了できませんでした。もう一度試してください。"</string>
     <string name="otp_accessibility_hint" formatted="false">"ワンタイムコード。フィールドの操作からコピーするか、大きく表示できます。"</string>
+    <string name="pair_after_registration" formatted="false">"鍵の登録後、追加するデバイスでリクエストを更新し、もう一度スキャンしてください。"</string>
+    <string name="pair_continue_elsewhere" formatted="false">"別のデバイスで続ける"</string>
+    <string name="pair_enable_approvals" formatted="false">"このデバイスで今後のリクエストを承認できるようにする"</string>
+    <string name="pair_key_fingerprint" formatted="false">"鍵の指紋"</string>
+    <string name="pair_no_approver" formatted="false">"承認できる管理者デバイスが見つかりません。"</string>
+    <string name="pair_preparing_vault" formatted="false">"承認されました。保管庫を準備中…"</string>
+    <string name="pair_refresh_request" formatted="false">"追加するデバイスでリクエストを更新し、もう一度スキャンしてください。"</string>
+    <string name="pair_scan_with_admin" formatted="false">"管理者デバイスでこのコードをスキャンして、リクエストを確認してください。"</string>
+    <string name="pair_share_request" formatted="false">"依頼を共有"</string>
     <string name="permission_account_information" formatted="false">"アカウント情報"</string>
     <string name="permission_channel_id" formatted="false">"チャンネルID"</string>
     <string name="permission_delegations" formatted="false">"代表団"</string>

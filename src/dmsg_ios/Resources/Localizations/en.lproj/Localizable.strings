@@ -3562,5 +3562,19 @@
 	<string>Valid until</string>
 	<key>High risk</key>
 	<string>High risk</string>
+	<key>Continue on another device</key>
+	<string>Continue on another device</string>
+	<key>Let this device approve future requests</key>
+	<string>Let this device approve future requests</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Approved. Preparing your vault…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>No eligible administrator device was found.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Refresh the request on the joining device and scan it again.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>After key registration, refresh the request on the joining device and scan it again.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Scan this code with an administrator device to review the request.</string>
 </dict>
 </plist>

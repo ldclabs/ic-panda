@@ -110,7 +110,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                         TextButton(onClick = { intent = PasskeyIntent.EXISTING_ACCOUNT }, enabled = !authentication.working && !state.busy) { Text(str(R.string.text_already_have_a_passkey_sign_in_9207f1f)) }
                     }
                     intent == PasskeyIntent.EXISTING_ACCOUNT -> {
-                        Notice(str(R.string.text_approve_this_phone_from_an_authorized_device_then_continue_here_7cbcaea))
+                        Notice(str(if (status == "root_required") R.string.pair_preparing_vault else R.string.text_approve_this_phone_from_an_authorized_device_then_continue_here_7cbcaea))
                         Button(onClick = { client.passkey() }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_existing_passkey)) }
                     }
                     anotherAccount -> {
@@ -127,8 +127,8 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                         TextButton(onClick = client::signInToAnotherAccount, enabled = !state.busy) { Text(str(R.string.text_switch_account_52f71df)) }
                     }
                     authorize -> {
-                        Notice(str(R.string.text_approve_this_phone_from_an_authorized_device_then_continue_here_7cbcaea))
-                        Button(onClick = { client.showAccess(AccessPage.PAIRING) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.text_authorize_this_device_3a0243f)) }
+                        Notice(str(if (status == "root_required") R.string.pair_preparing_vault else R.string.text_approve_this_phone_from_an_authorized_device_then_continue_here_7cbcaea))
+                        Button(onClick = { client.showAccess(AccessPage.PAIRING) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(if (status == "root_required") R.string.text_check_authorization_039f8a2 else R.string.text_authorize_this_device_3a0243f)) }
                         TextButton(onClick = { client.showAccess(AccessPage.RECOVERY) }) { Text(str(R.string.text_all_devices_lost_c768f48)) }
                     }
                     else -> {

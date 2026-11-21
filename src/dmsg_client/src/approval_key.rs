@@ -844,6 +844,104 @@ fn administrator(state: &crate::account::AccountState, device_id: &Hash) -> Resu
     )
 }
 
+/// Preview either signed request accepted by the device scanner. The approval
+/// entry points still verify the original token and current account state.
+///
+/// # Errors
+/// Rejects a locked workspace, invalid proofs and unavailable account state.
+pub async fn inspect_device_request<H: Hold>(h: &H, token: &str) -> Result<Json> {
+    ensure(token.len() <= 4096, Error::QuotaExceeded)?;
+    let h = crate::hold::Unlocked::new(h).await?;
+    let state = crate::account::refreshed(&h).await?;
+    h.with(|c| c.device_request_view(&state, token)).await
+}
+
+impl Client {
+    /// Fingerprints to compare on the originating device and the reviewing administrator.
+    /// # Errors
+    /// Rejects an invalid token or a request for another account.
+    pub fn enrollment_fingerprints(&self, token: &str) -> Result<Json> {
+        let request = self.inspect_key_request(token)?;
+        Ok(
+            json!({"token": token, "device_id": hex::encode(*request.device_id),
+            "key_id": hex::encode(*approval_key_id(&request.key.public_key)?)}),
+        )
+    }
+
+    fn device_request_view(
+        &self,
+        state: &crate::account::AccountState,
+        token: &str,
+    ) -> Result<Json> {
+        let own = self.workspace.meta.device_id;
+        state.active(&own)?;
+        let (mut view, purpose, complete, stale) = if let Ok(key) = self.inspect_key_request(token)
+        {
+            state.active(&key.device_id)?;
+            let id = approval_key_id(&key.key.public_key)?;
+            let complete = state
+                .info
+                .approval_keys
+                .get(&key.device_id)
+                .is_some_and(|k| k.key_id == id);
+            (
+                json!({"kind":"approval_key", "device_id":hex::encode(*key.device_id),
+                "key_id":hex::encode(*id)}),
+                HardwarePurpose::AccountControl,
+                complete,
+                false,
+            )
+        } else {
+            let pair = self.inspect_pairing(token)?;
+            let device = &pair.device;
+            let complete = state
+                .active(&device.device_id)
+                .is_ok_and(|d| d.input == *device);
+            (
+                json!({"kind":"device_pair", "device_id":hex::encode(*device.device_id),
+                "role":device.role, "capabilities":device.capabilities, "account":pair.account.to_string(),
+                "expires_at":pair.mutation.approval.expires_at}),
+                HardwarePurpose::DeviceControl,
+                complete,
+                state.info.account_version != pair.mutation.expected_version,
+            )
+        };
+        let protected = state.info.hardware_policy.contains(&purpose);
+        let registered = state.info.approval_keys.get(&own).map(|k| k.key_id);
+        let key = self.registered_key(registered)?;
+        let hardware = self.approval_keys.as_ref().is_some_and(|h| h.available());
+        let usable = key.is_some_and(|k| !k.biometry.is_some_and(|s| self.biometry_changed(s)));
+        let admin = administrator(state, &own).is_ok();
+        let route = if complete {
+            "done"
+        } else if stale {
+            "refresh"
+        } else if admin && (!protected || usable && hardware) {
+            "approve"
+        } else {
+            "handoff"
+        };
+        let approvers: Vec<_> = state
+            .security
+            .devices
+            .iter()
+            .filter(|(id, device)| {
+                **id != own
+                    && device.revoked_at.is_none()
+                    && device.input.role == ControllerRole::Administrator
+                    && device.input.capabilities.contains(&Capability::RootManage)
+                    && (!protected || state.info.approval_keys.contains_key(*id))
+            })
+            .map(|(id, _)| hex::encode(**id))
+            .collect();
+        view["route"] = json!(route);
+        view["can_enroll"] =
+            json!(route == "handoff" && admin && hardware && !usable && !approvers.is_empty());
+        view["approvers"] = json!(approvers);
+        Ok(view)
+    }
+}
+
 /// This device's approval key and the account's hardware policy, read now.
 ///
 /// # Errors

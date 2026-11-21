@@ -60,9 +60,9 @@ pub enum DeviceCommand {
     Approve {
         /// The request printed by `dmsg device pair-request`.
         request: String,
-        /// The device ID shown on the new device.
+        /// Optionally check the full device ID against the signed request.
         #[arg(long)]
-        device: String,
+        device: Option<String>,
     },
     /// Replace a device's capabilities; goes through the approval center.
     Capabilities {
@@ -259,9 +259,9 @@ pub enum KeyCommand {
     Approve {
         /// The request printed by `dmsg device key request`.
         request: String,
-        /// The device ID shown on that device.
+        /// Optionally check the full device ID against the signed request.
         #[arg(long)]
-        device: String,
+        device: Option<String>,
     },
     /// Ask to retire a device's key, this device's by default; goes
     /// through the approval center.
@@ -773,18 +773,15 @@ pub async fn device(remote: &Remote, json: bool, command: DeviceCommand) -> Resu
                     v["token"].as_str().unwrap_or_default(),
                 );
                 tr!(
-                    "device: {device}\n\nOn an administrator device run:\n  dmsg device approve {token} --device {device}",
-                    "设备：{device}\n\n在一台管理员设备上运行：\n  dmsg device approve {token} --device {device}"
+                    "device: {device}\n\nOn an administrator device run:\n  dmsg device approve {token}",
+                    "设备：{device}\n\n在一台管理员设备上运行：\n  dmsg device approve {token}"
                 )
             });
         }
         DeviceCommand::Approve {
             request: token,
             device,
-        } => {
-            let params = json!({"token": token, "device": device});
-            request(remote, json, "device/approve", params).await?
-        }
+        } => review_device_request(remote, json, token, device, false).await?,
         DeviceCommand::Capabilities { device, set } => {
             let params = json!({"device": device, "capabilities": set});
             request(remote, json, "device/capabilities", params).await?
@@ -947,22 +944,99 @@ async fn key(remote: &Remote, json: bool, command: KeyCommand) -> Result<(), Fai
                     v["device_id"].as_str().unwrap_or_default(),
                     v["token"].as_str().unwrap_or_default(),
                 );
+                let key = v["key_id"].as_str().unwrap_or_default();
                 tr!(
-                    "device: {device}\n\nOn an administrator device with a key run:\n  dmsg device key approve {token} --device {device}",
-                    "设备：{device}\n\n在一台有钥匙的管理员设备上运行：\n  dmsg device key approve {token} --device {device}"
+                    "device: {device}\nkey: {key}\n\nOn an administrator device with a key run:\n  dmsg device key approve {token}",
+                    "设备：{device}\n钥匙指纹：{key}\n\n在一台有钥匙的管理员设备上运行：\n  dmsg device key approve {token}"
                 )
             });
         }
         KeyCommand::Approve {
             request: token,
             device,
-        } => {
-            let params = json!({"token": token, "device": device});
-            request(remote, json, "device/key_approve", params).await?
-        }
+        } => review_device_request(remote, json, token, device, true).await?,
         KeyCommand::Retire { device } => {
             let params = json!({"device": device});
             request(remote, json, "device/key_retire", params).await?
+        }
+    }
+    Ok(())
+}
+
+async fn review_device_request(
+    remote: &Remote,
+    json: bool,
+    token: String,
+    expected: Option<String>,
+    key_only: bool,
+) -> Result<(), Failure> {
+    let view = remote
+        .call("device/pair_inspect", json!({"token":token}))
+        .await?;
+    let device = view["device_id"]
+        .as_str()
+        .ok_or_else(|| Failure::new("INTEGRITY_FAILED", "missing device ID"))?;
+    let key = view["kind"] == "approval_key";
+    if expected.as_deref().is_some_and(|id| id != device) || key_only && !key {
+        return Err(Failure::new(
+            "INVALID_INPUT",
+            "request does not match the expected device or kind",
+        ));
+    }
+    match view["route"].as_str() {
+        Some("approve") => {
+            request(
+                remote,
+                json,
+                if key {
+                    "device/key_approve"
+                } else {
+                    "device/approve"
+                },
+                json!({"device":device, "token":token}),
+            )
+            .await?
+        }
+        Some("handoff" | "done" | "refresh") => print(json, &view, |v| {
+            if v["route"] == "done" {
+                return tr!("Already approved", "已经批准");
+            }
+            if v["route"] == "refresh" {
+                return tr!(
+                    "Refresh the joining device’s request.",
+                    "请在要加入的设备上刷新请求。"
+                );
+            }
+            let ids = v["approvers"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .collect::<Vec<_>>()
+                .join("\n");
+            if ids.is_empty() {
+                return tr!(
+                    "No eligible administrator device was found.",
+                    "没有找到可批准此请求的管理员设备。"
+                );
+            }
+            let mut message = tr!(
+                "Continue with this request on an administrator device:\n{ids}",
+                "请在管理员设备上继续处理此请求：\n{ids}"
+            );
+            if v["can_enroll"] == true {
+                message.push_str(&tr!(
+                    "\nTo enable future approvals here, run dmsg device key request.",
+                    "\n如要让本机以后也能批准请求，请运行 dmsg device key request。"
+                ));
+            }
+            message
+        }),
+        _ => {
+            return Err(Failure::new(
+                "UNSUPPORTED_PROTOCOL",
+                "unknown device request",
+            ));
         }
     }
     Ok(())

@@ -5,6 +5,13 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  pairScanWithAdmin: "Scan this code with an administrator device to review the request.",
+  pairContinueElsewhere: "Continue on another device",
+  pairEnableApprovals: "Let this device approve future requests",
+  pairPreparingVault: "Approved. Preparing your vault…",
+  pairNoApprover: "No eligible administrator device was found.",
+  pairRefreshRequest: "Refresh the request on the joining device and scan it again.",
+  pairAfterRegistration: "After key registration, refresh the request on the joining device and scan it again.",
   useOnDevice: "Use only on this device",
   offlineAccount: "Local account",
   savedOnDevice: "Saved on this device",

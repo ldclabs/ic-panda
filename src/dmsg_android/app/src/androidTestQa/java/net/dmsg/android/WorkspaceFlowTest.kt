@@ -1592,6 +1592,17 @@ class WorkspaceFlowTest {
         } finally { file.delete() }
     }
 
+    @Test fun enrollmentReviewTakesOneRequestAndKeepsTheDeviceIdOutOfTextEntry() {
+        compose.runOnIdle { client.navigation.open("key-enrollment") }
+        compose.onNodeWithText("Device request").assertIsDisplayed()
+        compose.onNodeWithText("Scan device request").assertIsDisplayed()
+        compose.onNodeWithText("Review request").assertIsNotEnabled()
+        compose.onAllNodes(hasSetTextAction()).assertCountEquals(1)
+        compose.onNodeWithText("Device request").performTextInput("unsigned request")
+        compose.onNodeWithText("Review request").assertIsEnabled()
+        assertTrue(client.approvals.receipts.value.isEmpty())
+    }
+
     @Test fun deniedCameraRetainsPasteAndDoesNotCreateAnApproval() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val app = instrumentation.targetContext

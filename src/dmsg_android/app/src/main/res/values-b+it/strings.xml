@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Impossibile completare l\'operazione. Codice: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"Impossibile completare l\'operazione. Per favore riprova."</string>
     <string name="otp_accessibility_hint" formatted="false">"Codice monouso. Usa le azioni del campo per copiarlo o mostrarlo in caratteri grandi."</string>
+    <string name="pair_after_registration" formatted="false">"Dopo aver registrato la chiave, aggiorna la richiesta sul dispositivo da aggiungere e scansiona di nuovo il codice."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Continua su un altro dispositivo"</string>
+    <string name="pair_enable_approvals" formatted="false">"Consenti a questo dispositivo di approvare le richieste future"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Impronta digitale della chiave"</string>
+    <string name="pair_no_approver" formatted="false">"Nessun dispositivo amministratore abilitato a dare l’approvazione."</string>
+    <string name="pair_preparing_vault" formatted="false">"Richiesta approvata. Preparazione della cassaforte…"</string>
+    <string name="pair_refresh_request" formatted="false">"Aggiorna la richiesta sul dispositivo da aggiungere e scansiona di nuovo il codice."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Scansiona questo codice con un dispositivo amministratore per esaminare la richiesta."</string>
+    <string name="pair_share_request" formatted="false">"Condividi richiesta"</string>
     <string name="permission_account_information" formatted="false">"Informazioni sull’account"</string>
     <string name="permission_channel_id" formatted="false">"ID del canale"</string>
     <string name="permission_delegations" formatted="false">"Delegazioni"</string>

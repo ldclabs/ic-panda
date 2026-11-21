@@ -41,13 +41,11 @@ struct HardwareSecurityView: View {
     @State private var biometryOnly = false
     @State private var policy: Set<String> = []
     @State private var bindingChange: Bool?
-    @State private var enrollmentToken: String?
-    @State private var incomingToken = ""
-    @State private var incomingDevice = ""
+    @State private var enrollmentRequest: EnrollmentRequest?
     @State private var local: LocalOnly?
     @State private var scope: UInt64 = 0
-    struct Draft: Codable { let policy: Set<String>; let biometry: Bool; let token: String; let device: String }
-    private var dirty: Bool { status != nil && (policy != Set(status?.policy ?? []) || !incomingToken.isEmpty || !incomingDevice.isEmpty) }
+    struct Draft: Codable { let policy: Set<String>; let biometry: Bool }
+    private var dirty: Bool { status != nil && (policy != Set(status?.policy ?? [])) }
     private let controlPurposes: Set<String> = ["account_control", "device_control", "principal_control"]
 
     var body: some View {
@@ -64,22 +62,23 @@ struct HardwareSecurityView: View {
                     Toggle("Biometrics only", isOn: $biometryOnly).disabled(!status.biometry || busy)
                     Text("Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.")
                         .font(.footnote).foregroundStyle(.secondary)
-                    SettingsAction(LocalizedStringKey(status.key?.here == true ? "Review replacement key" : "Review key registration")) { Task { await register() } }
-                        .disabled(!status.available || busy || receipts["hardware.key"] != nil)
-                    SettingsAction("Create an administrator enrollment request") { Task { await enrollment() } }
+                    if !status.policy.contains("account_control") || status.key?.here == true && status.key?.fingerprintsChanged != true {
+                        SettingsAction(LocalizedStringKey(status.key?.here == true ? "Review replacement key" : "Review key registration")) { Task { await register() } }
+                            .disabled(!status.available || busy || receipts["hardware.key"] != nil)
+                    }
+                    SettingsAction(LocalizedStringKey(status.key?.here == true ? "Create an administrator enrollment request" : "Let this device approve future requests")) { Task { await enrollment() } }
                         .disabled(!status.available || busy)
                     if status.key != nil {
                         SettingsAction("Review retiring this approval key", role: .destructive) { Task { await retire(nil) } }.disabled(busy || receipts["hardware.key"] != nil)
                     }
                     ApprovalReceiptRow(receipts: receipts, key: "hardware.key") { request = $0 }
                 }
-                if let enrollmentToken {
+                if let enrollmentRequest {
                     Section("Send to an administrator") {
                         Text("Share this request with an authorized administrator. It does not register or approve the key by itself.")
                             .font(.footnote).foregroundStyle(.secondary)
-                        ShareLink(item: enrollmentToken) { SettingsActionLabel("Share enrollment request", systemImage: "square.and.arrow.up") }
-                        SettingsAction("Copy enrollment request") { model.clipboard.copy(enrollmentToken) }
-                        FingerprintRow(title: "Device ID", value: model.session?.deviceId ?? "")
+                        DeviceRequestCode(token: enrollmentRequest.token, deviceId: enrollmentRequest.deviceId, keyId: enrollmentRequest.keyId)
+                        SettingsAction("Copy enrollment request") { model.clipboard.copy(enrollmentRequest.token) }
                     }
                 }
                 Section("Device-bound workspace") {
@@ -127,16 +126,13 @@ struct HardwareSecurityView: View {
                     }
                 }
                 Section("Review an enrollment request") {
-                    SettingsField("Paste enrollment request") { TextField("Paste enrollment request", text: $incomingToken, axis: .vertical).lineLimit(2...5).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
-                    SettingsField("Device ID") { TextField("Device ID", text: $incomingDevice, axis: .vertical).font(.caption.monospaced()).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
-                    SettingsAction("Review key enrollment") { Task { await enrollOther() } }
-                        .disabled(busy || !status.canManagePolicy || incomingToken.isEmpty || incomingDevice.count != 64)
+                    NavigationLink("Scan device request") { PairApprovalView(enrollmentOnly: true) }
                 }
             } else if loading { ProgressView() }
             else { SettingsAction("Retry loading hardware security") { Task { await load() } } }
         }.disabled(busy).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Hardware security").navigationBarTitleDisplayMode(.inline).confirmLeavingDraft(dirty)
             .task { scope = model.viewGeneration; await load() }
-            .onDisappear { if dirty { model.keepFormDraft("hardware", value: Draft(policy: policy, biometry: biometryOnly, token: incomingToken, device: incomingDevice), generation: scope) } }.refreshable { await load() }
+            .onDisappear { if dirty { model.keepFormDraft("hardware", value: Draft(policy: policy, biometry: biometryOnly), generation: scope) } }.refreshable { await load() }
             .approvalDestination($request, receipts: receipts, model: model)
             .confirmationDialog(LocalizedStringKey(bindingChange == true ? "Bind this workspace to this iPhone?" : "Remove device binding?"),
                 isPresented: Binding(get: { bindingChange != nil }, set: { if !$0 { bindingChange = nil } })) {
@@ -160,7 +156,7 @@ struct HardwareSecurityView: View {
             status = next
             if !editing && policy == previousPolicy && biometryOnly == previousBiometry { policy = Set(next.policy); biometryOnly = next.key?.biometryOnly ?? next.boundBiometryOnly ?? false }
             if let draft = model.formDraft("hardware", as: Draft.self) {
-                policy = draft.policy; biometryOnly = draft.biometry; incomingToken = draft.token; incomingDevice = draft.device
+                policy = draft.policy; biometryOnly = draft.biometry
                 model.settingsDrafts.removeValue(forKey: "hardware")
             }
         } catch { if epoch == model.epoch && visible { model.report(error) } }
@@ -186,17 +182,15 @@ struct HardwareSecurityView: View {
         await approval(device.map { "hardware.key.\($0)" } ?? "hardware.key") { try await $0.retireApprovalKey(device: device) }
     }
     private func changePolicy() async { await approval("hardware.policy") { try await $0.setHardwarePolicy(purposes: policy.sorted()) } }
-    private func enrollOther() async { await approval { try await $0.approveApprovalKey(token: incomingToken, device: incomingDevice) } }
 
     private func enrollment() async {
-        struct Token: Decodable { let token: String }
         guard let engine = model.engine, !busy else { return }
         let epoch = model.epoch; busy = true; model.activity()
         defer { busy = false }
         do {
             let result = try await engine.approvalKeyRequest(biometryOnly: biometryOnly)
             guard epoch == model.epoch && visible else { return }
-            let token: Token = try model.decode(result); enrollmentToken = token.token
+            enrollmentRequest = try model.decode(result)
         } catch { if epoch == model.epoch && visible { model.report(error) } }
     }
 

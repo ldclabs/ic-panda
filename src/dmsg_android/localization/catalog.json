@@ -272,6 +272,51 @@
     "en": "One-time code. Use field actions to copy it or show it in large type.",
     "zh-Hans": "一次性验证码。使用字段操作可复制或以大字显示。"
   },
+  "pair_after_registration": {
+    "en": "After key registration, refresh the request on the joining device and scan it again.",
+    "zh-Hans": "钥匙登记成功后，请在要加入的设备上刷新请求，再重新扫码。",
+    "ios": "After key registration, refresh the request on the joining device and scan it again."
+  },
+  "pair_continue_elsewhere": {
+    "en": "Continue on another device",
+    "zh-Hans": "在另一台设备上继续",
+    "ios": "Continue on another device"
+  },
+  "pair_enable_approvals": {
+    "en": "Let this device approve future requests",
+    "zh-Hans": "让这台设备以后也能批准请求",
+    "ios": "Let this device approve future requests"
+  },
+  "pair_key_fingerprint": {
+    "en": "Key fingerprint",
+    "zh-Hans": "钥匙指纹",
+    "ios": "Key fingerprint"
+  },
+  "pair_no_approver": {
+    "en": "No eligible administrator device was found.",
+    "zh-Hans": "没有找到可批准此请求的管理员设备。",
+    "ios": "No eligible administrator device was found."
+  },
+  "pair_preparing_vault": {
+    "en": "Approved. Preparing your vault…",
+    "zh-Hans": "已批准，正在准备保险库…",
+    "ios": "Approved. Preparing your vault…"
+  },
+  "pair_refresh_request": {
+    "en": "Refresh the request on the joining device and scan it again.",
+    "zh-Hans": "请在要加入的设备上刷新请求，再重新扫码。",
+    "ios": "Refresh the request on the joining device and scan it again."
+  },
+  "pair_scan_with_admin": {
+    "en": "Scan this code with an administrator device to review the request.",
+    "zh-Hans": "请用有批准权限的管理员设备扫码，核对并处理请求。",
+    "ios": "Scan this code with an administrator device to review the request."
+  },
+  "pair_share_request": {
+    "en": "Share request",
+    "zh-Hans": "分享请求",
+    "ios": "Share request"
+  },
   "permission_account_information": {
     "en": "Account information",
     "zh-Hans": "账号信息",

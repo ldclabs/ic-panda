@@ -3562,5 +3562,19 @@
 	<string>পর্যন্ত বৈধ</string>
 	<key>High risk</key>
 	<string>উচ্চ ঝুঁকি</string>
+	<key>Continue on another device</key>
+	<string>অন্য ডিভাইসে চালিয়ে যান</string>
+	<key>Let this device approve future requests</key>
+	<string>এই ডিভাইসকে ভবিষ্যতের অনুরোধ অনুমোদন করতে দিন</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>অনুমোদিত হয়েছে। ভল্ট প্রস্তুত হচ্ছে…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>অনুমোদন দেওয়ার মতো কোনো প্রশাসক ডিভাইস পাওয়া যায়নি।</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>যে ডিভাইসটি যোগ করছেন সেখানে অনুরোধটি রিফ্রেশ করে আবার স্ক্যান করুন।</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>চাবি নিবন্ধনের পর যে ডিভাইসটি যোগ করছেন সেখানে অনুরোধটি রিফ্রেশ করে আবার স্ক্যান করুন।</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>অনুরোধটি পর্যালোচনা করতে প্রশাসক ডিভাইস দিয়ে এই কোড স্ক্যান করুন।</string>
 </dict>
 </plist>

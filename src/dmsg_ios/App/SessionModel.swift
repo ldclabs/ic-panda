@@ -234,7 +234,7 @@ final class SessionModel {
     // A renewable passkey login alone does not provide a workspace to unlock.
     var canUnlockWorkspace: Bool {
         guard !signingIntoAnotherAccount, let session, session.account != nil, !needsAccountSetup else { return false }
-        return (session.state == "locked" || session.state == "root_required") && (session.fastUnlock || session.loginRenewable)
+        return session.state == "locked" && (session.fastUnlock || session.loginRenewable)
     }
     var automaticSyncEnabled: Bool { cloudAccount && (session?.account.map { !manualSyncAccounts.contains($0) } ?? false) }
 

@@ -3562,5 +3562,19 @@
 	<string>Có hiệu lực cho đến khi</string>
 	<key>High risk</key>
 	<string>Rủi ro cao</string>
+	<key>Continue on another device</key>
+	<string>Tiếp tục trên thiết bị khác</string>
+	<key>Let this device approve future requests</key>
+	<string>Cho phép thiết bị này phê duyệt các yêu cầu sau này</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Đã phê duyệt. Đang chuẩn bị kho bảo mật…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Không tìm thấy thiết bị quản trị có quyền phê duyệt.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Sau khi đăng ký khóa, làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Dùng thiết bị quản trị quét mã này để xem xét yêu cầu.</string>
 </dict>
 </plist>

@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Không thể hoàn tất thao tác này. Mã: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"Hoạt động không thể hoàn thành. Vui lòng thử lại."</string>
     <string name="otp_accessibility_hint" formatted="false">"Mã dùng một lần. Dùng thao tác của trường để sao chép hoặc hiển thị bằng chữ lớn."</string>
+    <string name="pair_after_registration" formatted="false">"Sau khi đăng ký khóa, làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Tiếp tục trên thiết bị khác"</string>
+    <string name="pair_enable_approvals" formatted="false">"Cho phép thiết bị này phê duyệt các yêu cầu sau này"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Vân tay chìa khóa"</string>
+    <string name="pair_no_approver" formatted="false">"Không tìm thấy thiết bị quản trị có quyền phê duyệt."</string>
+    <string name="pair_preparing_vault" formatted="false">"Đã phê duyệt. Đang chuẩn bị kho bảo mật…"</string>
+    <string name="pair_refresh_request" formatted="false">"Làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Dùng thiết bị quản trị quét mã này để xem xét yêu cầu."</string>
+    <string name="pair_share_request" formatted="false">"Chia sẻ yêu cầu"</string>
     <string name="permission_account_information" formatted="false">"Thông tin tài khoản"</string>
     <string name="permission_channel_id" formatted="false">"Mã kênh"</string>
     <string name="permission_delegations" formatted="false">"Đoàn đại biểu"</string>

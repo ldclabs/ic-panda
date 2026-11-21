@@ -1621,6 +1621,7 @@ impl Daemon {
             "session/unlock" => {
                 let selected = optional(params, "account", account)?;
                 let fast = params["fast"].as_bool().unwrap_or(false);
+                let pairing_poll = params["pairing_poll"].as_bool() == Some(true);
                 enum Unlock {
                     Ready(Value),
                     Local(dmsg_client::local::Challenge),
@@ -1631,7 +1632,9 @@ impl Daemon {
                 let _turn = self.turn("session/unlock").await;
                 // Starting an unlock is activity too: an expired idle deadline
                 // must not invalidate its off-lock system presence prompt.
-                self.activity.store(now_ms(), Ordering::Relaxed);
+                if !pairing_poll {
+                    self.activity.store(now_ms(), Ordering::Relaxed);
+                }
                 // Preparation can switch/lock the workspace before failing.
                 // Shared emits the session change even when no unlock follows,
                 // so owner windows and display schedulers discard old content.
@@ -1639,6 +1642,11 @@ impl Daemon {
                     .hold()
                     .with(|client| {
                         let session = client.session_state();
+                        if pairing_poll
+                            && !matches!(session.state, "pairing_required" | "root_required")
+                        {
+                            return Ok(Unlock::Ready(to_json(&client.status()?)));
+                        }
                         if session.state == "unlocked"
                             && selected.as_ref().is_none_or(|account| {
                                 session.account.as_deref() == Some(account.to_string().as_str())
@@ -1684,7 +1692,7 @@ impl Daemon {
                         let prepared = self
                             .under_lock(async |client| {
                                 ensure(client.session_generation() == generation, Error::Locked)?;
-                                client.prepare_unlock().await
+                                client.prepare_pairing_refresh().await
                             })
                             .await?;
                         self.finish_login_unlock(prepared).await?
@@ -1692,7 +1700,9 @@ impl Daemon {
                 };
                 // Unlocking is the person's activity: a window that asks for
                 // Touch ID as it comes to the front has no input to report.
-                self.activity.store(now_ms(), Ordering::Relaxed);
+                if !pairing_poll {
+                    self.activity.store(now_ms(), Ordering::Relaxed);
+                }
                 if status.account_kind == "cloud" && status.state == "unlocked" {
                     self.request_sync();
                 }
@@ -1826,19 +1836,15 @@ impl Daemon {
                 let token = tokio::task::spawn_blocking(move || dmsg_client::qr::scan(&image))
                     .await
                     .map_err(|e| Error::Unavailable(e.to_string()))??;
-                h.with(|c| {
-                    ensure(c.session_generation() == session, Error::Locked)?;
-                    let mut preview = c.pairing_preview(&token)?;
-                    preview["token"] = json!(token);
-                    Ok(preview)
-                })
-                .await
+                h.with(|c| ensure(c.session_generation() == session, Error::Locked))
+                    .await?;
+                let mut preview = self.device_request_preview(&token).await?;
+                h.with(|c| ensure(c.session_generation() == session, Error::Locked))
+                    .await?;
+                preview["token"] = json!(token);
+                Ok(preview)
             }
-            "device/pair_inspect" => {
-                self.hold()
-                    .with(|c| c.pairing_preview(&text(params, "token")?))
-                    .await
-            }
+            "device/pair_inspect" => self.device_request_preview(&text(params, "token")?).await,
             "device/pair_invite" => self.pairing.start(self).await,
             "device/pair_invite_status" => self.pairing.status(self, &text(params, "id")?).await,
             "device/pair_invite_cancel" => {

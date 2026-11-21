@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"이 작업을 완료하지 못했습니다. 코드: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"작업을 완료할 수 없습니다. 다시 시도해 주세요."</string>
     <string name="otp_accessibility_hint" formatted="false">"일회용 코드입니다. 필드 동작으로 복사하거나 큰 글자로 표시하세요."</string>
+    <string name="pair_after_registration" formatted="false">"키를 등록한 후 추가할 기기에서 요청을 새로 고치고 다시 스캔하세요."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"다른 기기에서 계속"</string>
+    <string name="pair_enable_approvals" formatted="false">"이 기기에서 향후 요청을 승인하도록 허용"</string>
+    <string name="pair_key_fingerprint" formatted="false">"키 지문"</string>
+    <string name="pair_no_approver" formatted="false">"승인 권한이 있는 관리자 기기를 찾을 수 없습니다."</string>
+    <string name="pair_preparing_vault" formatted="false">"승인되었습니다. 보관함을 준비하는 중…"</string>
+    <string name="pair_refresh_request" formatted="false">"추가할 기기에서 요청을 새로 고친 후 다시 스캔하세요."</string>
+    <string name="pair_scan_with_admin" formatted="false">"관리자 기기로 이 코드를 스캔하여 요청을 검토하세요."</string>
+    <string name="pair_share_request" formatted="false">"요청 공유"</string>
     <string name="permission_account_information" formatted="false">"계정 정보"</string>
     <string name="permission_channel_id" formatted="false">"채널 ID"</string>
     <string name="permission_delegations" formatted="false">"대표단"</string>

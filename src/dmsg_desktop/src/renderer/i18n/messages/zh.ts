@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  pairScanWithAdmin: "请用有批准权限的管理员设备扫码，核对并处理请求。",
+  pairContinueElsewhere: "在另一台设备上继续",
+  pairEnableApprovals: "让这台设备以后也能批准请求",
+  pairPreparingVault: "已批准，正在准备保险库…",
+  pairNoApprover: "没有找到可批准此请求的管理员设备。",
+  pairRefreshRequest: "请在要加入的设备上刷新请求，再重新扫码。",
+  pairAfterRegistration: "钥匙登记成功后，请在要加入的设备上刷新请求，再重新扫码。",
   useOnDevice: "仅在本机使用",
   offlineAccount: "本地账户",
   savedOnDevice: "已保存在本机",

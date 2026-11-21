@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  pairScanWithAdmin: "Escanea este código con un dispositivo administrador para revisar la solicitud.",
+  pairContinueElsewhere: "Continuar en otro dispositivo",
+  pairEnableApprovals: "Permitir que este dispositivo apruebe futuras solicitudes",
+  pairPreparingVault: "Solicitud aprobada. Preparando la bóveda…",
+  pairNoApprover: "No se encontró ningún dispositivo administrador autorizado para aprobar la solicitud.",
+  pairRefreshRequest: "Actualiza la solicitud en el dispositivo que se va a añadir y vuelve a escanearla.",
+  pairAfterRegistration: "Tras registrar la clave, actualiza la solicitud en el dispositivo que se va a añadir y vuelve a escanearla.",
   useOnDevice: "Usar solo en este dispositivo",
   offlineAccount: "Cuenta local",
   savedOnDevice: "Guardado en este dispositivo",

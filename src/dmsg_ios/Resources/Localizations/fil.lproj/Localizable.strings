@@ -3562,5 +3562,19 @@
 	<string>May bisa hanggang</string>
 	<key>High risk</key>
 	<string>Mataas na panganib</string>
+	<key>Continue on another device</key>
+	<string>Magpatuloy sa ibang device</string>
+	<key>Let this device approve future requests</key>
+	<string>Payagang mag-apruba ang device na ito ng mga susunod na kahilingan</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Naaprubahan na. Inihahanda ang iyong vault…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Walang nahanap na device ng administrator na may pahintulot na mag-apruba.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>I-refresh ang kahilingan sa device na idaragdag at i-scan ito muli.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Pagkatapos irehistro ang susi, i-refresh ang kahilingan sa device na idaragdag at i-scan ito muli.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>I-scan ang code na ito gamit ang device ng administrator para suriin ang kahilingan.</string>
 </dict>
 </plist>

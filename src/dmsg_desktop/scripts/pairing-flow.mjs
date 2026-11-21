@@ -6,7 +6,7 @@ import { join } from 'node:path'
 export async function pairingFlow({ app, main, shots, methods, hold, waitFor, calls, created }) {
   const vector = JSON.parse(readFileSync(new URL('../../../tests/vectors/client/device-invite-v2.json', import.meta.url)))
   let sequence = 0, next = null, failInvite = false, failApprove = false, scanReady = false
-  const preview = token => ({ token, device_id: '34'.repeat(32), role: 'Administrator', capabilities: ['ContentSign', 'VaultUnlock', 'RootManage'], expires_at: Date.now() + 240000 })
+  const preview = token => ({ token, kind: 'device_pair', route: 'approve', device_id: '34'.repeat(32), role: 'Administrator', capabilities: ['ContentSign', 'VaultUnlock', 'RootManage'], expires_at: Date.now() + 240000 })
   const count = method => calls.filter(c => c.method === method).length
   const last = method => calls.filter(c => c.method === method).at(-1)
   methods['device/pair_invite'] = () => {
@@ -17,6 +17,8 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   methods['device/pair_invite_cancel'] = () => null
   methods['device/pair_inspect'] = p => {
     if (p.token === 'invalid') throw { code: 'INTEGRITY_FAILED', message: 'Fixture bad pairing proof' }
+    if (p.token === 'other-device') return { ...preview(p.token), route: 'handoff', can_enroll: true, approvers: ['56'.repeat(32)], qr: vector.qr }
+    if (p.token === 'expired-request') return { ...preview(p.token), expires_at: Date.now() - 1 }
     return preview(p.token)
   }
   methods['device/pair_scan'] = p => {
@@ -26,6 +28,7 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
     if (!scanReady) throw { code: 'NOT_FOUND', message: 'No QR in this frame' }
     return preview(vector.plaintext)
   }
+  methods['device/key_request'] = () => ({ token: 'signed-key-request', device_id: '78'.repeat(32), key_id: '9a'.repeat(32), qr: vector.qr })
   methods['device/approve'] = p => {
     if (failApprove) throw { code: 'UNAVAILABLE', message: 'Fixture approval failure' }
     return created('e9'.repeat(32), 'device_pair', preview(p.token))
@@ -240,6 +243,21 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
     await dialog.getByTestId('dialog-close').focus()
     assert.ok(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1))
     await main.screenshot({ path: join(shots, `pairing-preview-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
+    await close()
+    await openScan()
+    await main.getByTestId('device-pair-request').fill('other-device')
+    await main.getByTestId('device-pair-inspect').click()
+    await main.getByTestId('device-pair-preview').waitFor()
+    assert.equal(await main.getByTestId('device-pair-review').count(), 0)
+    await main.getByTestId('device-pair-preview').getByRole('img').waitFor()
+    assert.ok(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    await main.screenshot({ path: join(shots, `pairing-handoff-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
+    await main.getByTestId('device-pair-enroll').click()
+    await main.getByTestId('device-pair-refresh-after-enrollment').waitFor()
+    assert.equal(await dialog.getByRole('img').count(), 1)
+    assert.equal(await main.getByTestId('device-pair-review').count(), 0)
+    assert.equal(count('device/key_register'), 0, 'registration needs an eligible administrator')
+    await main.screenshot({ path: join(shots, `pairing-enrollment-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
     await close()
     await open()
     await main.getByTestId('device-pair-mode').click()

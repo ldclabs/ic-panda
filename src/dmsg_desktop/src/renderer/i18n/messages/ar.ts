@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  pairScanWithAdmin: "امسح هذا الرمز بجهاز مسؤول لمراجعة الطلب.",
+  pairContinueElsewhere: "المتابعة على جهاز آخر",
+  pairEnableApprovals: "السماح لهذا الجهاز بالموافقة على الطلبات المستقبلية",
+  pairPreparingVault: "تمت الموافقة. جارٍ تجهيز الخزنة…",
+  pairNoApprover: "لم يُعثر على جهاز مسؤول مؤهل للموافقة.",
+  pairRefreshRequest: "حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.",
+  pairAfterRegistration: "بعد تسجيل المفتاح، حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.",
   useOnDevice: "الاستخدام على هذا الجهاز فقط",
   offlineAccount: "حساب محلي",
   savedOnDevice: "محفوظ على هذا الجهاز",

@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"এই কাজটি শেষ করা যায়নি। কোড: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"অপারেশন সম্পন্ন করা যায়নি। আবার চেষ্টা করুন."</string>
     <string name="otp_accessibility_hint" formatted="false">"একবার ব্যবহারযোগ্য কোড। কপি করতে বা বড় অক্ষরে দেখতে ফিল্ডের কাজগুলো ব্যবহার করুন।"</string>
+    <string name="pair_after_registration" formatted="false">"চাবি নিবন্ধনের পর যে ডিভাইসটি যোগ করছেন সেখানে অনুরোধটি রিফ্রেশ করে আবার স্ক্যান করুন।"</string>
+    <string name="pair_continue_elsewhere" formatted="false">"অন্য ডিভাইসে চালিয়ে যান"</string>
+    <string name="pair_enable_approvals" formatted="false">"এই ডিভাইসকে ভবিষ্যতের অনুরোধ অনুমোদন করতে দিন"</string>
+    <string name="pair_key_fingerprint" formatted="false">"কী আঙুলের ছাপ"</string>
+    <string name="pair_no_approver" formatted="false">"অনুমোদন দেওয়ার মতো কোনো প্রশাসক ডিভাইস পাওয়া যায়নি।"</string>
+    <string name="pair_preparing_vault" formatted="false">"অনুমোদিত হয়েছে। ভল্ট প্রস্তুত হচ্ছে…"</string>
+    <string name="pair_refresh_request" formatted="false">"যে ডিভাইসটি যোগ করছেন সেখানে অনুরোধটি রিফ্রেশ করে আবার স্ক্যান করুন।"</string>
+    <string name="pair_scan_with_admin" formatted="false">"অনুরোধটি পর্যালোচনা করতে প্রশাসক ডিভাইস দিয়ে এই কোড স্ক্যান করুন।"</string>
+    <string name="pair_share_request" formatted="false">"অনুরোধ শেয়ার করুন"</string>
     <string name="permission_account_information" formatted="false">"অ্যাকাউন্টের তথ্য"</string>
     <string name="permission_channel_id" formatted="false">"চ্যানেল আইডি"</string>
     <string name="permission_delegations" formatted="false">"প্রতিনিধি দল"</string>

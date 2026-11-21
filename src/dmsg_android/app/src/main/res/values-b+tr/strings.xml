@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Bu işlem tamamlanamadı. Kod: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"İşlem tamamlanamadı. Lütfen tekrar deneyin."</string>
     <string name="otp_accessibility_hint" formatted="false">"Tek kullanımlık kod. Kopyalamak veya büyük yazıyla göstermek için alan eylemlerini kullanın."</string>
+    <string name="pair_after_registration" formatted="false">"Anahtarı kaydettikten sonra katılacak cihazdaki isteği yenileyip tekrar tarayın."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Başka bir cihazda devam et"</string>
+    <string name="pair_enable_approvals" formatted="false">"Bu cihazın gelecekteki istekleri onaylamasına izin ver"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Anahtar parmak izi"</string>
+    <string name="pair_no_approver" formatted="false">"Onay vermeye yetkili bir yönetici cihazı bulunamadı."</string>
+    <string name="pair_preparing_vault" formatted="false">"Onaylandı. Kasa hazırlanıyor…"</string>
+    <string name="pair_refresh_request" formatted="false">"Katılacak cihazdaki isteği yenileyip tekrar tarayın."</string>
+    <string name="pair_scan_with_admin" formatted="false">"İsteği incelemek için bu kodu bir yönetici cihazıyla tarayın."</string>
+    <string name="pair_share_request" formatted="false">"İsteği paylaş"</string>
     <string name="permission_account_information" formatted="false">"Hesap bilgileri"</string>
     <string name="permission_channel_id" formatted="false">"Kanal kimliği"</string>
     <string name="permission_delegations" formatted="false">"Heyetler"</string>

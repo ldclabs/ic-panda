@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "अनुरोध की समीक्षा करने के लिए व्यवस्थापक डिवाइस से यह कोड स्कैन करें।",
+  pairContinueElsewhere: "दूसरे डिवाइस पर जारी रखें",
+  pairEnableApprovals: "इस डिवाइस को आगे के अनुरोध मंज़ूर करने दें",
+  pairPreparingVault: "मंज़ूरी मिल गई। वॉल्ट तैयार हो रहा है…",
+  pairNoApprover: "मंज़ूरी देने योग्य कोई व्यवस्थापक डिवाइस नहीं मिला।",
+  pairRefreshRequest: "जोड़े जा रहे डिवाइस पर अनुरोध रीफ़्रेश करें और उसे फिर स्कैन करें।",
+  pairAfterRegistration: "कुंजी पंजीकृत होने के बाद, जोड़े जा रहे डिवाइस पर अनुरोध रीफ़्रेश करें और उसे फिर स्कैन करें।",
   useOnDevice: "केवल इस डिवाइस पर उपयोग करें",
   offlineAccount: "स्थानीय खाता",
   savedOnDevice: "इस डिवाइस पर सहेजा गया",

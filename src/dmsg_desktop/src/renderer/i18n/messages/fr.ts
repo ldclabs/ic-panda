@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  pairScanWithAdmin: "Scannez ce code avec un appareil administrateur pour examiner la demande.",
+  pairContinueElsewhere: "Continuer sur un autre appareil",
+  pairEnableApprovals: "Autoriser cet appareil à approuver les prochaines demandes",
+  pairPreparingVault: "Demande approuvée. Préparation du coffre…",
+  pairNoApprover: "Aucun appareil administrateur habilité à approuver cette demande.",
+  pairRefreshRequest: "Actualisez la demande sur le nouvel appareil, puis scannez-la à nouveau.",
+  pairAfterRegistration: "Après l’enregistrement de la clé, actualisez la demande sur le nouvel appareil et scannez-la à nouveau.",
   useOnDevice: "Utiliser uniquement sur cet appareil",
   offlineAccount: "Compte local",
   savedOnDevice: "Enregistré sur cet appareil",

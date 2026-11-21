@@ -3562,5 +3562,19 @@
 	<string>Şu tarihe kadar geçerlidir:</string>
 	<key>High risk</key>
 	<string>Yüksek risk</string>
+	<key>Continue on another device</key>
+	<string>Başka bir cihazda devam et</string>
+	<key>Let this device approve future requests</key>
+	<string>Bu cihazın gelecekteki istekleri onaylamasına izin ver</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Onaylandı. Kasa hazırlanıyor…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Onay vermeye yetkili bir yönetici cihazı bulunamadı.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Katılacak cihazdaki isteği yenileyip tekrar tarayın.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Anahtarı kaydettikten sonra katılacak cihazdaki isteği yenileyip tekrar tarayın.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>İsteği incelemek için bu kodu bir yönetici cihazıyla tarayın.</string>
 </dict>
 </plist>

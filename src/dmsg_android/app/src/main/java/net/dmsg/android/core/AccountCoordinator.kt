@@ -42,7 +42,7 @@ fun parseRecovery(value: JsonElement): RecoveryStatus {
     return RecoveryStatus(row.required("account"), row.requiredFlag("enabled"), row.requiredFlag("member"), row.requiredFlag("ready"), row.requiredUnsigned("recovery_delay_ms"), row["pending"]?.takeIf { it != JsonNull }?.objectValue()?.let { RecoveryPending(it.required("op_id"), it.requiredUnsigned("execute_after"), it.requiredUnsigned("expires_at"), it.requiredFlag("this_device"), it.required("digest").also { digest -> check(digest.matches(Regex("[a-f0-9]{64}"))) { "INTEGRITY_FAILED" } }) })
 }
 
-data class HardwareDraft(val policy: Set<String> = emptySet(), val biometryOnly: Boolean = false, val token: String = "", val device: String = "")
+data class HardwareDraft(val policy: Set<String> = emptySet(), val biometryOnly: Boolean = false)
 data class RecoveryDraft(val enabled: Boolean = false, val days: Int = 3)
 
 class AccountCoordinator(private val client: ClientController) {

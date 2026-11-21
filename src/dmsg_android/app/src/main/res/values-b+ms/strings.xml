@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Operasi ini tidak dapat diselesaikan. Kod: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"Operasi tidak dapat diselesaikan. Sila cuba lagi."</string>
     <string name="otp_accessibility_hint" formatted="false">"Kod sekali guna. Gunakan tindakan medan untuk menyalin atau memaparkannya dalam saiz besar."</string>
+    <string name="pair_after_registration" formatted="false">"Selepas kunci didaftarkan, muat semula permintaan pada peranti yang akan ditambah dan imbas sekali lagi."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Teruskan pada peranti lain"</string>
+    <string name="pair_enable_approvals" formatted="false">"Benarkan peranti ini meluluskan permintaan akan datang"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Cap jari kunci"</string>
+    <string name="pair_no_approver" formatted="false">"Tiada peranti pentadbir yang layak untuk meluluskan permintaan ini."</string>
+    <string name="pair_preparing_vault" formatted="false">"Diluluskan. Bilik kebal sedang disediakan…"</string>
+    <string name="pair_refresh_request" formatted="false">"Muat semula permintaan pada peranti yang akan ditambah, kemudian imbas sekali lagi."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Imbas kod ini dengan peranti pentadbir untuk menyemak permintaan."</string>
+    <string name="pair_share_request" formatted="false">"Kongsi permintaan"</string>
     <string name="permission_account_information" formatted="false">"Maklumat akaun"</string>
     <string name="permission_channel_id" formatted="false">"ID Saluran"</string>
     <string name="permission_delegations" formatted="false">"Perwakilan"</string>

@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "ใช้อุปกรณ์ของผู้ดูแลระบบสแกนรหัสนี้เพื่อตรวจสอบคำขอ",
+  pairContinueElsewhere: "ดำเนินการต่อบนอุปกรณ์อื่น",
+  pairEnableApprovals: "อนุญาตให้อุปกรณ์นี้อนุมัติคำขอในอนาคต",
+  pairPreparingVault: "อนุมัติแล้ว กำลังเตรียมคลังนิรภัย…",
+  pairNoApprover: "ไม่พบอุปกรณ์ของผู้ดูแลระบบที่มีสิทธิ์อนุมัติ",
+  pairRefreshRequest: "รีเฟรชคำขอบนอุปกรณ์ที่จะเพิ่ม แล้วสแกนอีกครั้ง",
+  pairAfterRegistration: "หลังจากลงทะเบียนกุญแจแล้ว ให้รีเฟรชคำขอบนอุปกรณ์ที่จะเพิ่ม แล้วสแกนอีกครั้ง",
   useOnDevice: "ใช้เฉพาะบนอุปกรณ์นี้",
   offlineAccount: "บัญชีในเครื่อง",
   savedOnDevice: "บันทึกบนอุปกรณ์นี้แล้ว",

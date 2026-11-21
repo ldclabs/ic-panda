@@ -20,6 +20,10 @@ A scan or relay receipt never enrolls a device or binds a login identity.
 The normal `AddDevice` checks and content-root rotation remain authoritative.
 The new device checks its account's certified state to finish joining.
 
+The scanner also accepts a signed `dmsg-approval-key/1` enrollment request from an authorized device. The client verifies the account, device and proof of key possession and shows the fingerprints for review. A device without the required approval key can pass the original join request to an eligible administrator or create a separate enrollment request for itself. Key registration changes the account version, so the joining device must refresh its signed request. Direct scans and forwarding create no server-side approval queue.
+
+Device authorization commits before the new content root is distributed. During the same unlocked session the joining device checks certified device status and fetches the new root without another local hardware prompt.
+
 ## Invitation and encryption
 
 Invitation text is `dmsg-device-invite/2:` plus unpadded base64url of a canonical

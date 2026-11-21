@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Deze bewerking kon niet worden voltooid. Code: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"De operatie kon niet worden voltooid. Probeer het opnieuw."</string>
     <string name="otp_accessibility_hint" formatted="false">"Eenmalige code. Gebruik de veldacties om de code te kopiëren of in grote letters te tonen."</string>
+    <string name="pair_after_registration" formatted="false">"Vernieuw na de sleutelregistratie het verzoek op het toe te voegen apparaat en scan het opnieuw."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Doorgaan op een ander apparaat"</string>
+    <string name="pair_enable_approvals" formatted="false">"Dit apparaat toekomstige verzoeken laten goedkeuren"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Sleutel vingerafdruk"</string>
+    <string name="pair_no_approver" formatted="false">"Geen beheerdersapparaat gevonden dat dit verzoek mag goedkeuren."</string>
+    <string name="pair_preparing_vault" formatted="false">"Goedgekeurd. Je kluis wordt voorbereid…"</string>
+    <string name="pair_refresh_request" formatted="false">"Vernieuw het verzoek op het toe te voegen apparaat en scan het opnieuw."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Scan deze code met een beheerdersapparaat om het verzoek te beoordelen."</string>
+    <string name="pair_share_request" formatted="false">"Verzoek delen"</string>
     <string name="permission_account_information" formatted="false">"Accountgegevens"</string>
     <string name="permission_channel_id" formatted="false">"Kanaal-ID"</string>
     <string name="permission_delegations" formatted="false">"Delegaties"</string>

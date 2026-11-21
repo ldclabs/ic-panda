@@ -89,10 +89,11 @@ class ApprovalCoordinator(private val client: ClientController) {
     }
     fun leave(id: String) { if (selected == id) { selected = null; detail.reset() } }
     fun open(id: String) { client.navigation.push(Route("approvals", id)) }
-    fun request(key: String, create: suspend (MobileEngine) -> ObjectSnapshot) {
+    fun request(key: String, active: () -> Boolean = { true }, create: suspend (MobileEngine) -> ObjectSnapshot) {
         mutableReceipts.value[key]?.let { open(it); return }
         client.perform({ create(it).decode().objectValue().required("id") }, key = "approval:request:" + key) { id ->
-            mutableReceipts.value += key to id; open(id)
+            mutableReceipts.value += key to id
+            if (active()) open(id)
         }
     }
     fun decide(value: ApprovalDetail, approved: Boolean) {

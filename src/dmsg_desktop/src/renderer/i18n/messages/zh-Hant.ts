@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "請用有核准權限的管理員裝置掃碼，核對並處理請求。",
+  pairContinueElsewhere: "在另一台裝置上繼續",
+  pairEnableApprovals: "讓這台裝置日後也能核准請求",
+  pairPreparingVault: "已核准，正在準備保險庫…",
+  pairNoApprover: "找不到可核准此請求的管理員裝置。",
+  pairRefreshRequest: "請在要加入的裝置上重新整理請求，再掃描一次。",
+  pairAfterRegistration: "金鑰登記成功後，請在要加入的裝置上重新整理請求，再掃描一次。",
   useOnDevice: "僅在本機使用",
   offlineAccount: "本機帳戶",
   savedOnDevice: "已儲存在本機",

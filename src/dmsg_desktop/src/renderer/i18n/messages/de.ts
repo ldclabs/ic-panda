@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "Scanne diesen Code mit einem Administratorgerät, um die Anfrage zu prüfen.",
+  pairContinueElsewhere: "Auf einem anderen Gerät fortfahren",
+  pairEnableApprovals: "Diesem Gerät erlauben, künftige Anfragen zu genehmigen",
+  pairPreparingVault: "Genehmigt. Der Tresor wird vorbereitet…",
+  pairNoApprover: "Kein berechtigtes Administratorgerät gefunden.",
+  pairRefreshRequest: "Aktualisiere die Anfrage auf dem neuen Gerät und scanne sie erneut.",
+  pairAfterRegistration: "Aktualisiere nach der Schlüsselregistrierung die Anfrage auf dem neuen Gerät und scanne sie erneut.",
   useOnDevice: "Nur auf diesem Gerät verwenden",
   offlineAccount: "Lokales Konto",
   savedOnDevice: "Auf diesem Gerät gespeichert",

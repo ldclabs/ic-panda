@@ -28,6 +28,7 @@
   let error = $state('')
   let busy = $state(false)
   let alive = true
+  let polling = false
   let now = $state(Date.now())
   const recoverable = $derived(status?.state === 'pairing_required' || (status?.state === 'root_required' && !status.setup_pending))
   const canComplete = $derived(!!recovery && (recovery.ready || (recovery.pending?.this_device && now >= recovery.pending.execute_after) || (status?.state === 'root_required' && !status.setup_pending && recovery.member)))
@@ -64,7 +65,7 @@
   const pair = () =>
     attempt(async () => {
       const value = await call('device/pair_request', { role: member ? 'member' : 'administrator' })
-      if (alive) pairing = value
+      if (alive) { pairing = value; polling = true }
     })
 
   /** Ask to replace an administrator device: it approves this one in its place. */
@@ -74,8 +75,15 @@
       if (alive) succession = value
     })
 
-  /** An approved device joins on the next unlock with the login. */
-  const joined = () => attempt(async () => void (await call('session/unlock')))
+  const joined = (automatic = false) => attempt(async () => {
+    try {
+      await call('session/unlock', automatic ? { pairing_poll: true } : {})
+      polling = true
+    } catch (e) {
+      polling = false
+      throw e
+    }
+  })
 
   const recoveryCall = (method: string) =>
     attempt(async () => {
@@ -89,7 +97,10 @@
     if (recoverable) void recoveryCall('recovery/status')
     const off = onChange(['recovery/changed'], () => { if (recoverable) void recoveryCall('recovery/status') })
     const timer = setInterval(() => { now = Date.now() }, 1000)
-    return () => { clearInterval(timer); off() }
+    const check = setInterval(() => {
+      if (!document.hidden && !busy && polling && recoverable) void joined(true)
+    }, 5000)
+    return () => { clearInterval(timer); clearInterval(check); off() }
   })
 </script>
 
@@ -126,7 +137,7 @@
       <Checkbox bind:checked={member} disabled={busy} onCheckedChange={() => (pairing = null)}>{t('memberRole')}</Checkbox>
       <div class="flex flex-wrap gap-2">
         <button class={buttonClass('primary')} disabled={busy || (!!pairing && (!pairing.expires_at || pairing.expires_at > now))} data-testid="pair-request" onclick={pair}>{t('pairRequest')}</button>
-        <button class={buttonClass('secondary')} disabled={busy} onclick={joined}>{t('checkApproval')}</button>
+        <button class={buttonClass('secondary')} disabled={busy} onclick={() => joined()}>{t('checkApproval')}</button>
       </div>
       {#if pairing}
         <Notice>
@@ -159,7 +170,7 @@
             <TextArea label={t('requestToken')} readonly rows={3} value={succession.token} mono data-testid="succession-token-made" />
             <div class="flex flex-wrap gap-2">
               <button class={buttonClass('secondary')} onclick={() => copyText(succession.token)} data-testid="succession-token-copy"><Icon name="copy" />{t('copy')}</button>
-              <button class={buttonClass('primary')} disabled={busy} onclick={joined}>{t('checkApproval')}</button>
+              <button class={buttonClass('primary')} disabled={busy} onclick={() => joined()}>{t('checkApproval')}</button>
             </div>
           {/if}
         </div>
@@ -167,8 +178,8 @@
     </div>
   </Section>
 {:else if status?.state === 'root_required'}
-  <Section title={t('accountSetup')} description={t(status.setup_pending ? 'accountSetupHint' : 'accountOpenHint')} icon="account" testid="account-setup">
-    <button class={buttonClass('primary')} disabled={busy} onclick={status.setup_pending ? create : joined} data-testid="retry-account-setup">
+  <Section title={t('accountSetup')} description={t(status.setup_pending ? 'accountSetupHint' : 'pairPreparingVault')} icon="account" testid="account-setup">
+    <button class={buttonClass('primary')} disabled={busy} onclick={() => status.setup_pending ? create() : joined()} data-testid="retry-account-setup">
       {t(status.setup_pending ? 'retryAccountSetup' : 'checkApproval')}
     </button>
   </Section>

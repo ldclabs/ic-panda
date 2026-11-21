@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "Zeskanuj ten kod urządzeniem administratora, aby sprawdzić prośbę.",
+  pairContinueElsewhere: "Kontynuuj na innym urządzeniu",
+  pairEnableApprovals: "Zezwól temu urządzeniu na zatwierdzanie przyszłych próśb",
+  pairPreparingVault: "Zatwierdzono. Przygotowywanie sejfu…",
+  pairNoApprover: "Nie znaleziono urządzenia administratora uprawnionego do zatwierdzenia prośby.",
+  pairRefreshRequest: "Odśwież prośbę na dodawanym urządzeniu i zeskanuj ją ponownie.",
+  pairAfterRegistration: "Po zarejestrowaniu klucza odśwież prośbę na dodawanym urządzeniu i zeskanuj ją ponownie.",
   useOnDevice: "Używaj tylko na tym urządzeniu",
   offlineAccount: "Konto lokalne",
   savedOnDevice: "Zapisano na tym urządzeniu",

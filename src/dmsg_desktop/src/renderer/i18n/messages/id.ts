@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "Pindai kode ini dengan perangkat administrator untuk meninjau permintaan.",
+  pairContinueElsewhere: "Lanjutkan di perangkat lain",
+  pairEnableApprovals: "Izinkan perangkat ini menyetujui permintaan berikutnya",
+  pairPreparingVault: "Disetujui. Menyiapkan brankas…",
+  pairNoApprover: "Tidak ditemukan perangkat administrator yang berwenang.",
+  pairRefreshRequest: "Perbarui permintaan di perangkat yang akan bergabung, lalu pindai lagi.",
+  pairAfterRegistration: "Setelah kunci terdaftar, perbarui permintaan di perangkat yang akan bergabung, lalu pindai lagi.",
   useOnDevice: "Gunakan hanya di perangkat ini",
   offlineAccount: "Akun lokal",
   savedOnDevice: "Tersimpan di perangkat ini",

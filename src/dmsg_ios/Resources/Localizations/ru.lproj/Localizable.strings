@@ -3562,5 +3562,19 @@
 	<string>Действует до</string>
 	<key>High risk</key>
 	<string>Высокий риск</string>
+	<key>Continue on another device</key>
+	<string>Продолжить на другом устройстве</string>
+	<key>Let this device approve future requests</key>
+	<string>Разрешить этому устройству одобрять будущие запросы</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Запрос одобрен. Готовим хранилище…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Устройство администратора с правом одобрения не найдено.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Обновите запрос на добавляемом устройстве и снова отсканируйте его.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>После регистрации ключа обновите запрос на добавляемом устройстве и снова отсканируйте его.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Отсканируйте код устройством администратора, чтобы проверить запрос.</string>
 </dict>
 </plist>

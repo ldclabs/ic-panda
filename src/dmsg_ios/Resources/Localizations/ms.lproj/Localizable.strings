@@ -3562,5 +3562,19 @@
 	<string>Sah sehingga</string>
 	<key>High risk</key>
 	<string>Berisiko tinggi</string>
+	<key>Continue on another device</key>
+	<string>Teruskan pada peranti lain</string>
+	<key>Let this device approve future requests</key>
+	<string>Benarkan peranti ini meluluskan permintaan akan datang</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Diluluskan. Bilik kebal sedang disediakan…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Tiada peranti pentadbir yang layak untuk meluluskan permintaan ini.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Muat semula permintaan pada peranti yang akan ditambah, kemudian imbas sekali lagi.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Selepas kunci didaftarkan, muat semula permintaan pada peranti yang akan ditambah dan imbas sekali lagi.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Imbas kod ini dengan peranti pentadbir untuk menyemak permintaan.</string>
 </dict>
 </plist>

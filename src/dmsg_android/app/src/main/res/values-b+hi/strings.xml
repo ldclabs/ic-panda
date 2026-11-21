@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"यह कार्रवाई पूरी नहीं हो सकी। कोड: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"ऑपरेशन पूरा नहीं हो सका. कृपया पुन: प्रयास करें।"</string>
     <string name="otp_accessibility_hint" formatted="false">"एक बार इस्तेमाल होने वाला कोड। इसे कॉपी करने या बड़े अक्षरों में देखने के लिए फ़ील्ड की कार्रवाइयाँ इस्तेमाल करें।"</string>
+    <string name="pair_after_registration" formatted="false">"कुंजी पंजीकृत होने के बाद, जोड़े जा रहे डिवाइस पर अनुरोध रीफ़्रेश करें और उसे फिर स्कैन करें।"</string>
+    <string name="pair_continue_elsewhere" formatted="false">"दूसरे डिवाइस पर जारी रखें"</string>
+    <string name="pair_enable_approvals" formatted="false">"इस डिवाइस को आगे के अनुरोध मंज़ूर करने दें"</string>
+    <string name="pair_key_fingerprint" formatted="false">"कुंजी फ़िंगरप्रिंट"</string>
+    <string name="pair_no_approver" formatted="false">"मंज़ूरी देने योग्य कोई व्यवस्थापक डिवाइस नहीं मिला।"</string>
+    <string name="pair_preparing_vault" formatted="false">"मंज़ूरी मिल गई। वॉल्ट तैयार हो रहा है…"</string>
+    <string name="pair_refresh_request" formatted="false">"जोड़े जा रहे डिवाइस पर अनुरोध रीफ़्रेश करें और उसे फिर स्कैन करें।"</string>
+    <string name="pair_scan_with_admin" formatted="false">"अनुरोध की समीक्षा करने के लिए व्यवस्थापक डिवाइस से यह कोड स्कैन करें।"</string>
+    <string name="pair_share_request" formatted="false">"अनुरोध साझा करें"</string>
     <string name="permission_account_information" formatted="false">"खाते की जानकारी"</string>
     <string name="permission_channel_id" formatted="false">"चैनल आईडी"</string>
     <string name="permission_delegations" formatted="false">"प्रतिनिधिमंडल"</string>

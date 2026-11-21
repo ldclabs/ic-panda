@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "Scansiona questo codice con un dispositivo amministratore per esaminare la richiesta.",
+  pairContinueElsewhere: "Continua su un altro dispositivo",
+  pairEnableApprovals: "Consenti a questo dispositivo di approvare le richieste future",
+  pairPreparingVault: "Richiesta approvata. Preparazione della cassaforte…",
+  pairNoApprover: "Nessun dispositivo amministratore abilitato a dare l’approvazione.",
+  pairRefreshRequest: "Aggiorna la richiesta sul dispositivo da aggiungere e scansiona di nuovo il codice.",
+  pairAfterRegistration: "Dopo aver registrato la chiave, aggiorna la richiesta sul dispositivo da aggiungere e scansiona di nuovo il codice.",
   useOnDevice: "Usa solo su questo dispositivo",
   offlineAccount: "Account locale",
   savedOnDevice: "Salvato su questo dispositivo",

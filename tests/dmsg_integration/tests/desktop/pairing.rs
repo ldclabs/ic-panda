@@ -121,3 +121,149 @@ fn legacy_home_recovers_a_device_added_before_its_v3_rotation_failed() {
     );
     env.finish();
 }
+
+/// Exercise the two separate commits in a device join, using a counted
+/// hardware provider in place of a system prompt.
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn waiting_for_the_pairing_root_opens_the_device_hardware_once() {
+    use dmsg_client::{
+        Client, codec,
+        crypto::Key,
+        secure::{Presence, PresenceKey},
+        testing,
+    };
+    use dmsg_types::{
+        Hash, Result,
+        user::{AccountMutation, ControllerRole},
+    };
+    use k256::elliptic_curve::zeroize::Zeroizing;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    #[derive(Default)]
+    struct Phone(AtomicUsize);
+
+    impl PresenceKey for Phone {
+        fn presence(&self) -> Option<Presence> {
+            Some(Presence::Password)
+        }
+
+        fn create(&self, _: bool) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<Key>)> {
+            Ok((vec![11], vec![12], Zeroizing::new([13; 32])))
+        }
+
+        fn open(&self, handle: &[u8], context: &[u8], _: bool) -> Result<Zeroizing<Key>> {
+            assert_eq!((handle, context), (&[11][..], &[12][..]));
+            self.0.fetch_add(1, Ordering::SeqCst);
+            Ok(Zeroizing::new([13; 32]))
+        }
+
+        fn biometry_state(&self) -> Option<Hash> {
+            None
+        }
+
+        fn confirm(&self, _: &str) -> Result<()> {
+            panic!("unexpected approval on the joining device")
+        }
+    }
+
+    #[derive(serde::Deserialize, serde::Serialize)]
+    struct Packet {
+        format: String,
+        home: Principal,
+        request: AccountMutation,
+    }
+
+    let env = Env::start("pairing-root-single-unlock", "");
+    let mut config = testing::config(false);
+    config.ic_host = env.deployment.gateway.trim_end_matches('/').to_owned();
+    config.handle = env.deployment.handle;
+    config.user_homes = vec![env.deployment.user];
+    config.root_key = Some(hex::decode(&env.deployment.root_key_hex).unwrap());
+    config.relay = env.relay.clone();
+    let mut admin = Client::open(config.clone(), &env.dir.join("administrator"), None).unwrap();
+    let mut phone = Client::open(
+        config,
+        &env.dir.join("joining"),
+        Some(Arc::new(testing::MemoryStorage::default())),
+    )
+    .unwrap();
+    let hardware = Arc::new(Phone::default());
+    phone.set_presence_key(hardware.clone());
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let login = testing::login(&mut admin, 41).await;
+        admin.login(login).await.unwrap();
+        admin.initialize_account().await.unwrap();
+        let login = testing::login(&mut phone, 41).await;
+        assert_eq!(phone.login(login).await.unwrap().state, "pairing_required");
+        let token = phone
+            .pair_request(ControllerRole::Administrator)
+            .await
+            .unwrap();
+        assert!(phone.prepare_pairing_refresh().await.unwrap().is_none());
+        assert_eq!(hardware.0.load(Ordering::SeqCst), 0);
+
+        let preview =
+            dmsg_client::approval_key::inspect_device_request(&admin.cooperative_hold(), &token)
+                .await
+                .unwrap();
+        assert_eq!(preview["route"], "approve");
+        admin
+            .mutate(
+                dmsg_types::user::AccountCommand::SetRecoveryDelay {
+                    delay_ms: 4 * dmsg_types::DAY,
+                },
+                None,
+            )
+            .await
+            .unwrap();
+        let stale =
+            dmsg_client::approval_key::inspect_device_request(&admin.cooperative_hold(), &token)
+                .await
+                .unwrap();
+        assert_eq!(stale["route"], "refresh");
+        let token = phone
+            .pair_request(ControllerRole::Administrator)
+            .await
+            .unwrap();
+        let packet: Packet = codec::decode(&codec::unb64(&token).unwrap(), 4096).unwrap();
+        let request = packet.request;
+        admin
+            .mutate(
+                request.command,
+                Some((request.approval.request_id, request.expected_version)),
+            )
+            .await
+            .unwrap();
+        let done =
+            dmsg_client::approval_key::inspect_device_request(&admin.cooperative_hold(), &token)
+                .await
+                .unwrap();
+        assert_eq!(done["route"], "done");
+        let prepared = phone.prepare_pairing_refresh().await.unwrap().unwrap();
+        let answer = prepared.open();
+        assert_eq!(
+            phone
+                .complete_login_unlock(prepared, answer)
+                .await
+                .unwrap()
+                .state,
+            "root_required"
+        );
+        for _ in 0..2 {
+            assert!(phone.prepare_pairing_refresh().await.unwrap().is_none());
+            assert_eq!(phone.status().unwrap().state, "root_required");
+        }
+        admin.rotate_root().await.unwrap();
+        assert!(phone.prepare_pairing_refresh().await.unwrap().is_none());
+        assert_eq!(phone.status().unwrap().state, "unlocked");
+        assert_eq!(hardware.0.load(Ordering::SeqCst), 1);
+        phone.lock();
+        assert_eq!(phone.unlock_fast().await.unwrap().state, "unlocked");
+        assert_eq!(hardware.0.load(Ordering::SeqCst), 2);
+    });
+    env.finish();
+}

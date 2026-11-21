@@ -3562,5 +3562,19 @@
 	<string>ใช้ได้ถึงวันที่</string>
 	<key>High risk</key>
 	<string>มีความเสี่ยงสูง</string>
+	<key>Continue on another device</key>
+	<string>ดำเนินการต่อบนอุปกรณ์อื่น</string>
+	<key>Let this device approve future requests</key>
+	<string>อนุญาตให้อุปกรณ์นี้อนุมัติคำขอในอนาคต</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>อนุมัติแล้ว กำลังเตรียมคลังนิรภัย…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>ไม่พบอุปกรณ์ของผู้ดูแลระบบที่มีสิทธิ์อนุมัติ</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>รีเฟรชคำขอบนอุปกรณ์ที่จะเพิ่ม แล้วสแกนอีกครั้ง</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>หลังจากลงทะเบียนกุญแจแล้ว ให้รีเฟรชคำขอบนอุปกรณ์ที่จะเพิ่ม แล้วสแกนอีกครั้ง</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>ใช้อุปกรณ์ของผู้ดูแลระบบสแกนรหัสนี้เพื่อตรวจสอบคำขอ</string>
 </dict>
 </plist>

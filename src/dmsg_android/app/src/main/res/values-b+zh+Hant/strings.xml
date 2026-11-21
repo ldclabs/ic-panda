@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"操作未完成，錯誤碼：%1$s"</string>
     <string name="operation_failed_retry" formatted="false">"操作未能完成，請重試。"</string>
     <string name="otp_accessibility_hint" formatted="false">"一次性驗證碼。使用欄位操作可複製或以大字顯示。"</string>
+    <string name="pair_after_registration" formatted="false">"金鑰登記成功後，請在要加入的裝置上重新整理請求，再掃描一次。"</string>
+    <string name="pair_continue_elsewhere" formatted="false">"在另一台裝置上繼續"</string>
+    <string name="pair_enable_approvals" formatted="false">"讓這台裝置日後也能核准請求"</string>
+    <string name="pair_key_fingerprint" formatted="false">"鑰匙指紋"</string>
+    <string name="pair_no_approver" formatted="false">"找不到可核准此請求的管理員裝置。"</string>
+    <string name="pair_preparing_vault" formatted="false">"已核准，正在準備保險庫…"</string>
+    <string name="pair_refresh_request" formatted="false">"請在要加入的裝置上重新整理請求，再掃描一次。"</string>
+    <string name="pair_scan_with_admin" formatted="false">"請用有核准權限的管理員裝置掃碼，核對並處理請求。"</string>
+    <string name="pair_share_request" formatted="false">"分享請求"</string>
     <string name="permission_account_information" formatted="false">"帳號資訊"</string>
     <string name="permission_channel_id" formatted="false">"頻道 ID"</string>
     <string name="permission_delegations" formatted="false">"委託"</string>

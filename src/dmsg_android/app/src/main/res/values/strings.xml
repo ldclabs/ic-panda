@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"This operation could not finish. Code: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"The operation could not be completed. Please try again."</string>
     <string name="otp_accessibility_hint" formatted="false">"One-time code. Use field actions to copy it or show it in large type."</string>
+    <string name="pair_after_registration" formatted="false">"After key registration, refresh the request on the joining device and scan it again."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Continue on another device"</string>
+    <string name="pair_enable_approvals" formatted="false">"Let this device approve future requests"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Key fingerprint"</string>
+    <string name="pair_no_approver" formatted="false">"No eligible administrator device was found."</string>
+    <string name="pair_preparing_vault" formatted="false">"Approved. Preparing your vault…"</string>
+    <string name="pair_refresh_request" formatted="false">"Refresh the request on the joining device and scan it again."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Scan this code with an administrator device to review the request."</string>
+    <string name="pair_share_request" formatted="false">"Share request"</string>
     <string name="permission_account_information" formatted="false">"Account information"</string>
     <string name="permission_channel_id" formatted="false">"Channel ID"</string>
     <string name="permission_delegations" formatted="false">"Delegations"</string>

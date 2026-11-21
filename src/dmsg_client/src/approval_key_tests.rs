@@ -712,6 +712,32 @@ fn key_requests_prove_the_key_for_this_device_of_this_account() {
             .err(),
         Some(Error::IntegrityFailed)
     );
+    let mut state = crate::testing::account_state(&client);
+    let own = client.workspace.meta.device_id;
+    let mut peer = state.info.devices[&own].clone();
+    peer.input.device_id = device_id;
+    state.info.devices.insert(device_id, peer.clone());
+    state.security.devices.insert(device_id, peer);
+    let token = token(device_id, account.id);
+    let inspect =
+        |state: &crate::account::AccountState| client.device_request_view(state, &token).unwrap();
+    let preview = inspect(&state);
+    assert_eq!(preview["kind"], "approval_key");
+    assert_eq!(preview["route"], "approve");
+    assert_eq!(preview["key_id"], hex::encode(*key.key_id));
+    state.info.hardware_policy = dmsg_types::user::CONTROL_PURPOSES.to_vec();
+    let mut registered = info(&client, Some(&key), &[])
+        .approval_keys
+        .remove(&own)
+        .unwrap();
+    registered.key_id = Hash::new([9; 32]);
+    state.info.approval_keys.insert(device_id, registered);
+    let missing = inspect(&state);
+    assert_eq!(missing["route"], "handoff");
+    assert_eq!(missing["can_enroll"], true);
+    assert_eq!(missing["approvers"], json!([hex::encode(*device_id)]));
+    state.info.approval_keys.get_mut(&device_id).unwrap().key_id = key.key_id;
+    assert_eq!(inspect(&state)["route"], "done");
 }
 
 #[test]

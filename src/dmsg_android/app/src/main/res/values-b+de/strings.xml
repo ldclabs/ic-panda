@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Dieser Vorgang konnte nicht abgeschlossen werden. Code: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"Der Vorgang konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut."</string>
     <string name="otp_accessibility_hint" formatted="false">"Einmalcode. Über die Feldaktionen kannst du ihn kopieren oder in Großschrift anzeigen."</string>
+    <string name="pair_after_registration" formatted="false">"Aktualisiere nach der Schlüsselregistrierung die Anfrage auf dem neuen Gerät und scanne sie erneut."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Auf einem anderen Gerät fortfahren"</string>
+    <string name="pair_enable_approvals" formatted="false">"Diesem Gerät erlauben, künftige Anfragen zu genehmigen"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Schlüsselfingerabdruck"</string>
+    <string name="pair_no_approver" formatted="false">"Kein berechtigtes Administratorgerät gefunden."</string>
+    <string name="pair_preparing_vault" formatted="false">"Genehmigt. Der Tresor wird vorbereitet…"</string>
+    <string name="pair_refresh_request" formatted="false">"Aktualisiere die Anfrage auf dem neuen Gerät und scanne sie erneut."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Scanne diesen Code mit einem Administratorgerät, um die Anfrage zu prüfen."</string>
+    <string name="pair_share_request" formatted="false">"Anfrage teilen"</string>
     <string name="permission_account_information" formatted="false">"Kontoinformationen"</string>
     <string name="permission_channel_id" formatted="false">"Kanal-ID"</string>
     <string name="permission_delegations" formatted="false">"Delegationen"</string>

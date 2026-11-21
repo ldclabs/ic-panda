@@ -1,6 +1,7 @@
 <script lang="ts">
   import { deviceCapabilityName, deviceRoleName } from './security'
   import { onDestroy } from 'svelte'
+  import Collapsible from '../components/Collapsible.svelte'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
   import SecretInput from '../components/SecretInput.svelte'
@@ -14,8 +15,8 @@
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, when } from '../rpc'
 
-  let { disabled = false }: { disabled?: boolean } = $props()
-  type Candidate = { token: string; device_id: string; role: string; capabilities: string[]; expires_at: number }
+  let { disabled = false, enrollmentOnly = false, canInvite = true }: { disabled?: boolean; enrollmentOnly?: boolean; canInvite?: boolean } = $props()
+  type Candidate = { token: string; device_id: string; role?: string; capabilities?: string[]; expires_at?: number; kind?: string; route?: string; approvers?: string[]; can_enroll?: boolean; key_id?: string; qr?: string }
   type Invitation = { id: string; token: string; qr: string; expires_at: number; candidate?: Candidate }
   let alive = true
   let revision = 0
@@ -30,8 +31,10 @@
   let busy = $state('')
   let error = $state('')
   let pending = $state('')
+  let enrollment = $state<{ token: string; device_id: string; key_id: string; qr?: string } | null>(null)
   let now = $state(Date.now())
-  const expired = $derived(!!candidate && candidate.expires_at <= now)
+  const handoff = $derived(candidate?.route === 'handoff')
+  const expired = $derived(!!candidate?.expires_at && candidate.expires_at <= now)
 
   function cancelInvitation() {
     if (timer) clearTimeout(timer)
@@ -42,14 +45,14 @@
 
   function setOpen(value: boolean) {
     open = value
-    if (!value) { revision++; cancelInvitation(); scanning = false; busy = ''; candidate = null; request = ''; pending = ''; error = '' }
+    if (!value) { revision++; cancelInvitation(); scanning = false; busy = ''; candidate = null; enrollment = null; request = ''; pending = ''; error = '' }
   }
 
   onDestroy(() => { alive = false; revision++; cancelInvitation() })
   const current = (turn: number) => alive && open && revision === turn
 
   function setRequest(value: string) {
-    revision++; request = value; candidate = null; error = ''; busy = ''
+    revision++; request = value; candidate = null; enrollment = null; error = ''; busy = ''
   }
 
   async function poll(turn: number, invite: Invitation) {
@@ -59,8 +62,10 @@
       now = Date.now()
       error = ''
       if (next.candidate) {
-        candidate = next.candidate
-        request = next.candidate.token
+        const token = next.candidate.token
+        const preview = await call<Candidate>('device/pair_inspect', { token })
+        if (!current(turn)) return
+        request = token; candidate = { ...preview, token }
         cancelInvitation()
       } else timer = setTimeout(() => void poll(turn, invite), 1500)
     } catch (e) {
@@ -75,7 +80,7 @@
   async function invite() {
     cancelInvitation()
     const turn = ++revision
-    manual = false; scanning = false; candidate = null; request = ''; pending = ''; error = ''; busy = 'invite'
+    manual = false; scanning = false; candidate = null; enrollment = null; request = ''; pending = ''; error = ''; busy = 'invite'
     try {
       const next: Invitation = await call('device/pair_invite')
       if (!current(turn)) { void call('device/pair_invite_cancel', { id: next.id }).catch(() => {}); return }
@@ -86,7 +91,7 @@
   }
 
   function begin() {
-    if (disabled) return
+    if (disabled || !canInvite) return
     open = true
     void invite()
   }
@@ -98,7 +103,7 @@
   }
 
   function paste() {
-    revision++; cancelInvitation(); scanning = false; candidate = null; request = ''; pending = ''; busy = ''; error = ''; manual = true
+    revision++; cancelInvitation(); scanning = false; candidate = null; enrollment = null; request = ''; pending = ''; busy = ''; error = ''; manual = true
   }
 
   function camera() {
@@ -121,8 +126,12 @@
     try {
       const preview = await bridge<Candidate | null>(() => window.dmsg.deviceQrImage(source))
       if (current(turn) && preview) { request = preview.token; candidate = preview; now = Date.now() }
-    } catch (e) { if (current(turn)) error = errorText(e) }
+    } catch (e) { if (current(turn)) error = requestError(e) }
     finally { if (current(turn)) busy = '' }
+  }
+
+  function requestError(e: unknown) {
+    return ['EXPIRED', 'VERSION_CONFLICT'].includes(code(e)) ? t('pairRefreshRequest') : errorText(e)
   }
 
   async function inspect() {
@@ -132,17 +141,29 @@
     try {
       const preview = await call<Candidate>('device/pair_inspect', { token })
       if (current(turn)) { candidate = { ...preview, token }; now = Date.now() }
+    } catch (e) { if (current(turn)) error = requestError(e) }
+    finally { if (current(turn)) busy = '' }
+  }
+
+  async function enrollHere() {
+    if (!candidate?.can_enroll || busy) return
+    const turn = revision
+    busy = 'enroll'; error = ''
+    try {
+      const value = await call<NonNullable<typeof enrollment>>('device/key_request', { biometry_only: false })
+      if (current(turn)) enrollment = value
     } catch (e) { if (current(turn)) error = errorText(e) }
     finally { if (current(turn)) busy = '' }
   }
 
   async function review() {
-    if (!candidate || busy || expired || disabled) return
+    if (!candidate || busy || expired || disabled || (candidate.route && candidate.route !== 'approve') || (enrollmentOnly && candidate.kind !== 'approval_key')) return
     const turn = revision
     busy = 'submit'; error = ''
     try {
       if (!pending) {
-        const result = await call<{ id: string }>('device/approve', { token: candidate.token, device: candidate.device_id })
+        const method = candidate.kind === 'approval_key' ? 'device/key_approve' : 'device/approve'
+        const result = await call<{ id: string }>(method, { token: candidate.token, device: candidate.device_id })
         if (!current(turn)) return
         pending = result.id
       }
@@ -160,14 +181,14 @@
 </script>
 
 <div class="flex flex-wrap gap-2">
-  <button class={buttonClass('secondary', 'sm')} {disabled} onclick={begin} data-testid="device-authorize"><Icon name="pair" />{t('authorizeDevice')}</button>
-  <button class={buttonClass('ghost', 'sm')} {disabled} onclick={beginRequest} data-testid="device-pair-open-scan"><Icon name="scan" />{t('scanDeviceRequest')}</button>
+  {#if !enrollmentOnly}<button class={buttonClass('secondary', 'sm')} disabled={disabled || !canInvite} onclick={begin} data-testid="device-authorize"><Icon name="pair" />{t('authorizeDevice')}</button>{/if}
+  <button class={buttonClass('ghost', 'sm')} {disabled} onclick={beginRequest} data-testid={enrollmentOnly ? "security-key-approve" : "device-pair-open-scan"}><Icon name="scan" />{t(enrollmentOnly ? 'approveKeyRequest' : 'scanDeviceRequest')}</button>
 </div>
 
-<Dialog bind:open={() => open, setOpen} title={t('authorizeDevice')} description={manual ? t('scanDeviceRequestHint') : t('authorizeDeviceHint')} icon="pair" dismissible={busy !== 'submit'} testid="device-authorization">
+<Dialog bind:open={() => open, setOpen} title={t(handoff ? (enrollment ? 'pairEnableApprovals' : 'pairContinueElsewhere') : enrollmentOnly || candidate?.kind === 'approval_key' ? 'approveKeyRequest' : 'authorizeDevice')} description={handoff ? t('pairScanWithAdmin') : manual ? t('scanDeviceRequestHint') : t('authorizeDeviceHint')} icon="pair" dismissible={busy !== 'submit'} testid="device-authorization">
   <div class="grid gap-4">
     {#if error}<Notice failure={error} tone="danger" testid="device-authorization-error">{error}</Notice>{/if}
-    {#if manual}
+    {#if manual && !handoff}
       {#if scanning}
         <QrCamera onImage={readFrame} onCancel={() => { revision++; scanning = false }} />
       {:else}
@@ -194,21 +215,55 @@
     {/if}
     {#if candidate}
       <div class="grid min-w-0 gap-3" data-testid="device-pair-preview">
+        {#if !handoff}
         <div class="grid min-w-0 gap-1.5"><p class="text-[12px] text-muted">{t('deviceShown')}</p><Id id={candidate.device_id} full wrap /></div>
         <dl>
-          <Fact label={t('role')}>{deviceRoleName(candidate.role, t)}</Fact>
-          <Fact label={t('capabilities')}>{#each candidate.capabilities as capability (capability)}<Pill>{deviceCapabilityName(capability, t)}</Pill>{/each}</Fact>
-          <Fact label={t('expires')}>{when(candidate.expires_at)}</Fact>
+          {#if candidate.key_id}<Fact label={t('approvalKey')}><Id id={candidate.key_id} full wrap /></Fact>{/if}
+          {#if candidate.role}<Fact label={t('role')}>{deviceRoleName(candidate.role, t)}</Fact>{/if}
+          {#if candidate.capabilities}<Fact label={t('capabilities')}>{#each candidate.capabilities as capability (capability)}<Pill>{deviceCapabilityName(capability, t)}</Pill>{/each}</Fact>{/if}
+          {#if candidate.expires_at}<Fact label={t('expires')}>{when(candidate.expires_at)}</Fact>{/if}
         </dl>
-        <Notice tone={expired ? 'warn' : 'info'}>{expired ? t('reasonExpired') : t('securityApprovalHint')}</Notice>
+        {/if}
+        {#if (expired && !enrollment) || candidate.route === 'refresh'}
+          <Notice tone="warn">{t('pairRefreshRequest')}</Notice>
+        {:else if enrollmentOnly && candidate.kind !== 'approval_key'}
+          <Notice tone="warn">{t('keyRequestHint')}</Notice>
+        {:else if candidate.route === 'done'}
+          <Notice>{t('done')}</Notice>
+        {:else if candidate.route === 'handoff'}
+          {#if !enrollment}
+            {#if candidate.qr}<img src={candidate.qr} alt={t('requestToken')} width="200" height="200" class="max-w-full justify-self-center rounded-lg bg-white p-2 [image-rendering:pixelated]" />{/if}
+            {#if candidate.approvers?.length}
+              <Fact label={t('devices')}>{#each candidate.approvers as id (id)}<Id {id} full wrap />{/each}</Fact>
+            {:else}<Notice>{t('pairNoApprover')}</Notice>{/if}
+            <Collapsible>
+              {#snippet title()}{t('deviceShown')}{/snippet}
+              <Id id={candidate.device_id} full wrap />
+              {#if candidate.key_id}<Fact label={t('approvalKey')}><Id id={candidate.key_id} full wrap /></Fact>{/if}
+            </Collapsible>
+            <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(candidate!.token)}>{t('copy')} · {t('requestToken')}</button>
+          {/if}
+          {#if enrollment}
+            <Fact label={t('thisDevice')}><Id id={enrollment.device_id} full wrap /></Fact>
+            <Fact label={t('approvalKey')}><Id id={enrollment.key_id} full wrap /></Fact>
+            {#if enrollment.qr}<img src={enrollment.qr} alt={t('keyRequest')} width="200" height="200" class="max-w-full justify-self-center rounded-lg bg-white p-2" />{/if}
+            <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(enrollment!.token)}>{t('copy')} · {t('keyRequest')}</button>
+            {#if candidate.kind === 'device_pair'}<Notice testid="device-pair-refresh-after-enrollment">{t('pairAfterRegistration')}</Notice>{/if}
+          {:else if candidate.can_enroll}
+            <button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={!!busy} onclick={enrollHere} data-testid="device-pair-enroll">{t('pairEnableApprovals')}</button>
+          {/if}
+        {:else}
+          <Notice>{t('securityApprovalHint')}</Notice>
+        {/if}
         {#if expired && !manual}<button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={!!busy} onclick={invite}>{t('retry')}</button>{/if}
       </div>
     {/if}
   </div>
   {#snippet footer()}
-    {#if !candidate}<button class={buttonClass('ghost', 'sm')} disabled={busy === 'submit'} onclick={() => manual ? invite() : paste()} data-testid="device-pair-mode">{manual ? t('authorizeDevice') : t('scanDeviceRequest')}</button>{/if}
+    {#if handoff}<button class={buttonClass('ghost', 'sm')} disabled={!!busy} onclick={paste}>{t('scanDeviceRequest')}</button>{/if}
+    {#if !candidate && !enrollmentOnly && canInvite}<button class={buttonClass('ghost', 'sm')} disabled={busy === 'submit'} onclick={() => manual ? invite() : paste()} data-testid="device-pair-mode">{manual ? t('authorizeDevice') : t('scanDeviceRequest')}</button>{/if}
     <span class="flex-1"></span>
     <button class={buttonClass('secondary')} disabled={busy === 'submit'} onclick={() => setOpen(false)}>{t('cancel')}</button>
-    {#if candidate}<button class={buttonClass('primary')} disabled={!!busy || expired || disabled} onclick={review} data-testid="device-pair-review">{pending ? t('securityViewApproval') : t('review')}</button>{/if}
+    {#if candidate && (!candidate.route || candidate.route === 'approve') && (!enrollmentOnly || candidate.kind === 'approval_key')}<button class={buttonClass('primary')} disabled={!!busy || expired || disabled} onclick={review} data-testid="device-pair-review">{pending ? t('securityViewApproval') : t('review')}</button>{/if}
   {/snippet}
 </Dialog>

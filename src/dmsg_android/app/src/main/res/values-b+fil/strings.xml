@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Hindi natapos ang operasyong ito. Code: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"Hindi makumpleto ang operasyon. Pakisubukang muli."</string>
     <string name="otp_accessibility_hint" formatted="false">"Isahang-gamit na code. Gamitin ang mga aksyon ng field para kopyahin ito o ipakita sa malaking teksto."</string>
+    <string name="pair_after_registration" formatted="false">"Pagkatapos irehistro ang susi, i-refresh ang kahilingan sa device na idaragdag at i-scan ito muli."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Magpatuloy sa ibang device"</string>
+    <string name="pair_enable_approvals" formatted="false">"Payagang mag-apruba ang device na ito ng mga susunod na kahilingan"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Key fingerprint"</string>
+    <string name="pair_no_approver" formatted="false">"Walang nahanap na device ng administrator na may pahintulot na mag-apruba."</string>
+    <string name="pair_preparing_vault" formatted="false">"Naaprubahan na. Inihahanda ang iyong vault…"</string>
+    <string name="pair_refresh_request" formatted="false">"I-refresh ang kahilingan sa device na idaragdag at i-scan ito muli."</string>
+    <string name="pair_scan_with_admin" formatted="false">"I-scan ang code na ito gamit ang device ng administrator para suriin ang kahilingan."</string>
+    <string name="pair_share_request" formatted="false">"Ibahagi ang kahilingan"</string>
     <string name="permission_account_information" formatted="false">"Impormasyon ng account"</string>
     <string name="permission_channel_id" formatted="false">"Channel ID"</string>
     <string name="permission_delegations" formatted="false">"Mga delegasyon"</string>

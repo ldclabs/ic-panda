@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "관리자 기기로 이 코드를 스캔하여 요청을 검토하세요.",
+  pairContinueElsewhere: "다른 기기에서 계속",
+  pairEnableApprovals: "이 기기에서 향후 요청을 승인하도록 허용",
+  pairPreparingVault: "승인되었습니다. 보관함을 준비하는 중…",
+  pairNoApprover: "승인 권한이 있는 관리자 기기를 찾을 수 없습니다.",
+  pairRefreshRequest: "추가할 기기에서 요청을 새로 고친 후 다시 스캔하세요.",
+  pairAfterRegistration: "키를 등록한 후 추가할 기기에서 요청을 새로 고치고 다시 스캔하세요.",
   useOnDevice: "이 기기에서만 사용",
   offlineAccount: "로컬 계정",
   savedOnDevice: "이 기기에 저장됨",

@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"No se pudo completar esta operación. Código: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"No se pudo completar la operación. Inténtalo de nuevo."</string>
     <string name="otp_accessibility_hint" formatted="false">"Código de un solo uso. Usa las acciones del campo para copiarlo o mostrarlo en letra grande."</string>
+    <string name="pair_after_registration" formatted="false">"Tras registrar la clave, actualiza la solicitud en el dispositivo que se va a añadir y vuelve a escanearla."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Continuar en otro dispositivo"</string>
+    <string name="pair_enable_approvals" formatted="false">"Permitir que este dispositivo apruebe futuras solicitudes"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Huella de la clave"</string>
+    <string name="pair_no_approver" formatted="false">"No se encontró ningún dispositivo administrador autorizado para aprobar la solicitud."</string>
+    <string name="pair_preparing_vault" formatted="false">"Solicitud aprobada. Preparando la bóveda…"</string>
+    <string name="pair_refresh_request" formatted="false">"Actualiza la solicitud en el dispositivo que se va a añadir y vuelve a escanearla."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Escanea este código con un dispositivo administrador para revisar la solicitud."</string>
+    <string name="pair_share_request" formatted="false">"Compartir solicitud"</string>
     <string name="permission_account_information" formatted="false">"Información de la cuenta"</string>
     <string name="permission_channel_id" formatted="false">"ID del canal"</string>
     <string name="permission_delegations" formatted="false">"Delegaciones"</string>

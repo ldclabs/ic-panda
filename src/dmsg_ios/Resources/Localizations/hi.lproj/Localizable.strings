@@ -3562,5 +3562,19 @@
 	<string>तक वैध है</string>
 	<key>High risk</key>
 	<string>उच्च जोखिम</string>
+	<key>Continue on another device</key>
+	<string>दूसरे डिवाइस पर जारी रखें</string>
+	<key>Let this device approve future requests</key>
+	<string>इस डिवाइस को आगे के अनुरोध मंज़ूर करने दें</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>मंज़ूरी मिल गई। वॉल्ट तैयार हो रहा है…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>मंज़ूरी देने योग्य कोई व्यवस्थापक डिवाइस नहीं मिला।</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>जोड़े जा रहे डिवाइस पर अनुरोध रीफ़्रेश करें और उसे फिर स्कैन करें।</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>कुंजी पंजीकृत होने के बाद, जोड़े जा रहे डिवाइस पर अनुरोध रीफ़्रेश करें और उसे फिर स्कैन करें।</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>अनुरोध की समीक्षा करने के लिए व्यवस्थापक डिवाइस से यह कोड स्कैन करें।</string>
 </dict>
 </plist>

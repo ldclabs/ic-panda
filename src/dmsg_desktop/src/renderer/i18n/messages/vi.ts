@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "Dùng thiết bị quản trị quét mã này để xem xét yêu cầu.",
+  pairContinueElsewhere: "Tiếp tục trên thiết bị khác",
+  pairEnableApprovals: "Cho phép thiết bị này phê duyệt các yêu cầu sau này",
+  pairPreparingVault: "Đã phê duyệt. Đang chuẩn bị kho bảo mật…",
+  pairNoApprover: "Không tìm thấy thiết bị quản trị có quyền phê duyệt.",
+  pairRefreshRequest: "Làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.",
+  pairAfterRegistration: "Sau khi đăng ký khóa, làm mới yêu cầu trên thiết bị sắp thêm rồi quét lại.",
   useOnDevice: "Chỉ dùng trên thiết bị này",
   offlineAccount: "Tài khoản cục bộ",
   savedOnDevice: "Đã lưu trên thiết bị này",

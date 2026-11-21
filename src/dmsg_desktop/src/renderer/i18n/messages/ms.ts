@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "Imbas kod ini dengan peranti pentadbir untuk menyemak permintaan.",
+  pairContinueElsewhere: "Teruskan pada peranti lain",
+  pairEnableApprovals: "Benarkan peranti ini meluluskan permintaan akan datang",
+  pairPreparingVault: "Diluluskan. Bilik kebal sedang disediakan…",
+  pairNoApprover: "Tiada peranti pentadbir yang layak untuk meluluskan permintaan ini.",
+  pairRefreshRequest: "Muat semula permintaan pada peranti yang akan ditambah, kemudian imbas sekali lagi.",
+  pairAfterRegistration: "Selepas kunci didaftarkan, muat semula permintaan pada peranti yang akan ditambah dan imbas sekali lagi.",
   useOnDevice: "Gunakan pada peranti ini sahaja",
   offlineAccount: "Akaun setempat",
   savedOnDevice: "Disimpan pada peranti ini",

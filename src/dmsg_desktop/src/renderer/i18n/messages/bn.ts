@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "অনুরোধটি পর্যালোচনা করতে প্রশাসক ডিভাইস দিয়ে এই কোড স্ক্যান করুন।",
+  pairContinueElsewhere: "অন্য ডিভাইসে চালিয়ে যান",
+  pairEnableApprovals: "এই ডিভাইসকে ভবিষ্যতের অনুরোধ অনুমোদন করতে দিন",
+  pairPreparingVault: "অনুমোদিত হয়েছে। ভল্ট প্রস্তুত হচ্ছে…",
+  pairNoApprover: "অনুমোদন দেওয়ার মতো কোনো প্রশাসক ডিভাইস পাওয়া যায়নি।",
+  pairRefreshRequest: "যে ডিভাইসটি যোগ করছেন সেখানে অনুরোধটি রিফ্রেশ করে আবার স্ক্যান করুন।",
+  pairAfterRegistration: "চাবি নিবন্ধনের পর যে ডিভাইসটি যোগ করছেন সেখানে অনুরোধটি রিফ্রেশ করে আবার স্ক্যান করুন।",
   useOnDevice: "শুধু এই ডিভাইসে ব্যবহার করুন",
   offlineAccount: "স্থানীয় অ্যাকাউন্ট",
   savedOnDevice: "এই ডিভাইসে সংরক্ষিত",

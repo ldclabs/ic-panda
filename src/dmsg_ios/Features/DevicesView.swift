@@ -16,7 +16,7 @@ struct DevicesView: View {
             Section {
                 NavigationLink { PairApprovalView() } label: {
                     DeviceChoice(title: "Authorize another device", detail: "Add a device and keep using this one.")
-                }.disabled(!canManage)
+                }
                 NavigationLink { SuccessionsView() } label: {
                     DeviceChoice(title: "Replace a device", detail: "Move this device’s role to its replacement.")
                 }.accessibilityIdentifier("devices.succession")

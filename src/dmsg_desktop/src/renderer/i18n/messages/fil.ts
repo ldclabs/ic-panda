@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "I-scan ang code na ito gamit ang device ng administrator para suriin ang kahilingan.",
+  pairContinueElsewhere: "Magpatuloy sa ibang device",
+  pairEnableApprovals: "Payagang mag-apruba ang device na ito ng mga susunod na kahilingan",
+  pairPreparingVault: "Naaprubahan na. Inihahanda ang iyong vault…",
+  pairNoApprover: "Walang nahanap na device ng administrator na may pahintulot na mag-apruba.",
+  pairRefreshRequest: "I-refresh ang kahilingan sa device na idaragdag at i-scan ito muli.",
+  pairAfterRegistration: "Pagkatapos irehistro ang susi, i-refresh ang kahilingan sa device na idaragdag at i-scan ito muli.",
   useOnDevice: "Gamitin lang sa device na ito",
   offlineAccount: "Lokal na account",
   savedOnDevice: "Naka-save sa device na ito",

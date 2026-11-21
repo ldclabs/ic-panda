@@ -25,6 +25,10 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   methods['account/recovery_policy'] = p => make('account', { change: 'recovery_policy', enabled: p.enabled, delay_ms: p.days * 86400000 })
   methods['recovery/dispute'] = () => make('account', { change: 'dispute_recovery', op_id: security.pending_recovery.op_id })
   methods['account/hardware_policy'] = p => make('hardware_policy', { purposes: p.purposes, previous: keys.policy, missing_devices: [] })
+  methods['device/pair_inspect'] = p => {
+    if (p.token !== 'fixture-key-request') throw { code: 'INTEGRITY_FAILED' }
+    return { kind: 'approval_key', route: 'approve', device_id: '34'.repeat(32), key_id: '5a'.repeat(32) }
+  }
   methods['device/key_approve'] = p => make('approval_key', { device_id: p.device, key_id: '5a'.repeat(32) })
   const refresh = async () => {
     const before = count('account/security')
@@ -195,12 +199,13 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   await closeEditor()
   await main.getByTestId('security-key-transfer').getByRole('button').click()
   await main.getByTestId('security-key-approve').click()
-  await main.getByTestId('approval-key-request').fill('fixture-key-request')
-  await main.getByTestId('approve-shown').fill('not-a-device')
-  assert.equal(await submit.isDisabled(), true)
-  await main.getByTestId('approve-shown').fill('34'.repeat(32))
-  assert.equal(await submit.isEnabled(), true)
-  await closeEditor()
+  await main.getByTestId('device-pair-request').fill('fixture-key-request')
+  await main.getByTestId('device-pair-inspect').click()
+  await main.getByTestId('device-pair-preview').waitFor()
+  assert.equal(await main.getByTestId('approve-shown').count(), 0)
+  await main.getByTestId('device-pair-review').click()
+  await main.getByTestId('device-authorization').waitFor({ state: 'detached' })
+  assert.equal(last('device/key_approve').params.device, '34'.repeat(32))
   await main.getByTestId('security-approve-login').click()
   assert.equal(await submit.isDisabled(), true)
   await main.getByTestId('approve-request').fill('binding-token')
@@ -236,11 +241,16 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
       await main.evaluate(path => location.hash = path, name === 'recovery' ? '/settings/recovery' : '/settings/security')
       if (['key-approve', 'key-request'].includes(name) && !await main.getByTestId(button).isVisible()) await main.getByTestId('security-key-transfer').getByRole('button').click()
       await main.getByTestId(button).click()
-      const dialog = main.getByTestId('security-editor')
+      const dialog = main.getByTestId(name === 'key-approve' ? 'device-authorization' : 'security-editor')
       await dialog.waitFor()
       if (name === 'policy') await main.getByTestId('daily-executions').fill('65')
-      if (name === 'login' || name === 'key-approve') {
-        await main.getByTestId(name === 'login' ? 'approve-request' : 'approval-key-request').fill('fixture-request-'.repeat(100))
+      if (name === 'key-approve') {
+        await main.getByTestId('device-pair-request').fill('fixture-key-request')
+        await main.getByTestId('device-pair-inspect').click()
+        await main.getByTestId('device-pair-preview').waitFor()
+      }
+      if (name === 'login') {
+        await main.getByTestId('approve-request').fill('fixture-request-'.repeat(100))
         await main.getByTestId('approve-shown').fill('34'.repeat(32))
       }
       if (name === 'key-request') {
@@ -258,7 +268,8 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
         assert.ok(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1), `enabled recovery fits ${locale}`)
         await main.screenshot({ path: join(shots, `security-recovery-on-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
       }
-      await closeEditor()
+      if (name === 'key-approve') { await dialog.getByTestId('dialog-close').click(); await dialog.waitFor({ state: 'detached' }) }
+      else await closeEditor()
     }
     await main.evaluate(() => location.hash = '/settings/recovery')
     security.pending_recovery = { op_id: 'ef'.repeat(32), new_auth: 'a-long-login-identity-'.repeat(6), execute_after: Date.now() + 259200000, expires_at: Date.now() + 864000000 }

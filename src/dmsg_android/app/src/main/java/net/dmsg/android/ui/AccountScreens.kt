@@ -355,6 +355,8 @@ private fun approvalSource(source: String): String = when {
     }
 }
 private fun fieldLabel(key: String): String = when (key) {
+    "key_id" -> str(R.string.pair_key_fingerprint)
+    "this_device" -> str(R.string.text_this_device_ce825c6)
     "account" -> str(R.string.text_account_4ab56e9); "device_id" -> str(R.string.text_device_id_b31993b)
     "source" -> str(R.string.text_source_fcdba0f); "expires_at", "expiresAt" -> str(R.string.text_expires_at_ms_0d84f58)
     "role" -> str(R.string.text_role_b9e0249)

@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"Не удалось завершить операцию. Код: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"Не удалось завершить операцию. Повторите попытку."</string>
     <string name="otp_accessibility_hint" formatted="false">"Одноразовый код. Используйте действия поля, чтобы скопировать его или показать крупным шрифтом."</string>
+    <string name="pair_after_registration" formatted="false">"После регистрации ключа обновите запрос на добавляемом устройстве и снова отсканируйте его."</string>
+    <string name="pair_continue_elsewhere" formatted="false">"Продолжить на другом устройстве"</string>
+    <string name="pair_enable_approvals" formatted="false">"Разрешить этому устройству одобрять будущие запросы"</string>
+    <string name="pair_key_fingerprint" formatted="false">"Отпечаток ключа"</string>
+    <string name="pair_no_approver" formatted="false">"Устройство администратора с правом одобрения не найдено."</string>
+    <string name="pair_preparing_vault" formatted="false">"Запрос одобрен. Готовим хранилище…"</string>
+    <string name="pair_refresh_request" formatted="false">"Обновите запрос на добавляемом устройстве и снова отсканируйте его."</string>
+    <string name="pair_scan_with_admin" formatted="false">"Отсканируйте код устройством администратора, чтобы проверить запрос."</string>
+    <string name="pair_share_request" formatted="false">"Поделиться запросом"</string>
     <string name="permission_account_information" formatted="false">"Сведения об аккаунте"</string>
     <string name="permission_channel_id" formatted="false">"ID канала"</string>
     <string name="permission_delegations" formatted="false">"Делегирования"</string>

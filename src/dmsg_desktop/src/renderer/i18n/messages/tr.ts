@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "İsteği incelemek için bu kodu bir yönetici cihazıyla tarayın.",
+  pairContinueElsewhere: "Başka bir cihazda devam et",
+  pairEnableApprovals: "Bu cihazın gelecekteki istekleri onaylamasına izin ver",
+  pairPreparingVault: "Onaylandı. Kasa hazırlanıyor…",
+  pairNoApprover: "Onay vermeye yetkili bir yönetici cihazı bulunamadı.",
+  pairRefreshRequest: "Katılacak cihazdaki isteği yenileyip tekrar tarayın.",
+  pairAfterRegistration: "Anahtarı kaydettikten sonra katılacak cihazdaki isteği yenileyip tekrar tarayın.",
   useOnDevice: "Yalnızca bu cihazda kullan",
   offlineAccount: "Yerel hesap",
   savedOnDevice: "Bu cihaza kaydedildi",

@@ -3562,5 +3562,19 @@
 	<string>まで有効</string>
 	<key>High risk</key>
 	<string>高リスク</string>
+	<key>Continue on another device</key>
+	<string>別のデバイスで続ける</string>
+	<key>Let this device approve future requests</key>
+	<string>このデバイスで今後のリクエストを承認できるようにする</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>承認されました。保管庫を準備中…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>承認できる管理者デバイスが見つかりません。</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>追加するデバイスでリクエストを更新し、もう一度スキャンしてください。</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>鍵の登録後、追加するデバイスでリクエストを更新し、もう一度スキャンしてください。</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>管理者デバイスでこのコードをスキャンして、リクエストを確認してください。</string>
 </dict>
 </plist>

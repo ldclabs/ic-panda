@@ -3562,5 +3562,19 @@
 	<string>Gültig bis</string>
 	<key>High risk</key>
 	<string>Hohes Risiko</string>
+	<key>Continue on another device</key>
+	<string>Auf einem anderen Gerät fortfahren</string>
+	<key>Let this device approve future requests</key>
+	<string>Diesem Gerät erlauben, künftige Anfragen zu genehmigen</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Genehmigt. Der Tresor wird vorbereitet…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Kein berechtigtes Administratorgerät gefunden.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Aktualisiere die Anfrage auf dem neuen Gerät und scanne sie erneut.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Aktualisiere nach der Schlüsselregistrierung die Anfrage auf dem neuen Gerät und scanne sie erneut.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Scanne diesen Code mit einem Administratorgerät, um die Anfrage zu prüfen.</string>
 </dict>
 </plist>

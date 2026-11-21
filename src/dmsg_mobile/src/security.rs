@@ -140,7 +140,8 @@ impl MobileEngine {
             .held(move |h| {
                 Box::pin(async move {
                     let token = approval_key::complete_key_request(h, proved).await?;
-                    Ok(serde_json::json!({"token": token}).to_string())
+                    h.with(|c| Ok(c.enrollment_fingerprints(&token)?.to_string()))
+                        .await
                 })
             })
             .await?;

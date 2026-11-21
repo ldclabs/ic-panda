@@ -53,6 +53,15 @@
     <string name="operation_failed_code" formatted="true">"ไม่สามารถดำเนินการนี้ให้เสร็จได้ รหัส: %1$s"</string>
     <string name="operation_failed_retry" formatted="false">"ไม่สามารถดำเนินการให้เสร็จสิ้นได้ โปรดลองอีกครั้ง"</string>
     <string name="otp_accessibility_hint" formatted="false">"รหัสใช้ครั้งเดียว ใช้การทำงานของช่องเพื่อคัดลอกหรือแสดงเป็นตัวอักษรขนาดใหญ่"</string>
+    <string name="pair_after_registration" formatted="false">"หลังจากลงทะเบียนกุญแจแล้ว ให้รีเฟรชคำขอบนอุปกรณ์ที่จะเพิ่ม แล้วสแกนอีกครั้ง"</string>
+    <string name="pair_continue_elsewhere" formatted="false">"ดำเนินการต่อบนอุปกรณ์อื่น"</string>
+    <string name="pair_enable_approvals" formatted="false">"อนุญาตให้อุปกรณ์นี้อนุมัติคำขอในอนาคต"</string>
+    <string name="pair_key_fingerprint" formatted="false">"ลายนิ้วมือที่สำคัญ"</string>
+    <string name="pair_no_approver" formatted="false">"ไม่พบอุปกรณ์ของผู้ดูแลระบบที่มีสิทธิ์อนุมัติ"</string>
+    <string name="pair_preparing_vault" formatted="false">"อนุมัติแล้ว กำลังเตรียมคลังนิรภัย…"</string>
+    <string name="pair_refresh_request" formatted="false">"รีเฟรชคำขอบนอุปกรณ์ที่จะเพิ่ม แล้วสแกนอีกครั้ง"</string>
+    <string name="pair_scan_with_admin" formatted="false">"ใช้อุปกรณ์ของผู้ดูแลระบบสแกนรหัสนี้เพื่อตรวจสอบคำขอ"</string>
+    <string name="pair_share_request" formatted="false">"แชร์คำขอ"</string>
     <string name="permission_account_information" formatted="false">"ข้อมูลบัญชี"</string>
     <string name="permission_channel_id" formatted="false">"รหัสช่อง"</string>
     <string name="permission_delegations" formatted="false">"การมอบหมาย"</string>

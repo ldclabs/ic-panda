@@ -3562,5 +3562,19 @@
 	<string>صالحة حتى</string>
 	<key>High risk</key>
 	<string>خطورة عالية</string>
+	<key>Continue on another device</key>
+	<string>المتابعة على جهاز آخر</string>
+	<key>Let this device approve future requests</key>
+	<string>السماح لهذا الجهاز بالموافقة على الطلبات المستقبلية</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>تمت الموافقة. جارٍ تجهيز الخزنة…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>لم يُعثر على جهاز مسؤول مؤهل للموافقة.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>بعد تسجيل المفتاح، حدّث الطلب على الجهاز المراد إضافته ثم امسحه ضوئيًا مرة أخرى.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>امسح هذا الرمز بجهاز مسؤول لمراجعة الطلب.</string>
 </dict>
 </plist>

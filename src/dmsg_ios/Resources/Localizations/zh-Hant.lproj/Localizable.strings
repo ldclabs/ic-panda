@@ -3562,5 +3562,19 @@
 	<string>有效期至</string>
 	<key>High risk</key>
 	<string>高風險</string>
+	<key>Continue on another device</key>
+	<string>在另一台裝置上繼續</string>
+	<key>Let this device approve future requests</key>
+	<string>讓這台裝置日後也能核准請求</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>已核准，正在準備保險庫…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>找不到可核准此請求的管理員裝置。</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>請在要加入的裝置上重新整理請求，再掃描一次。</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>金鑰登記成功後，請在要加入的裝置上重新整理請求，再掃描一次。</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>請用有核准權限的管理員裝置掃碼，核對並處理請求。</string>
 </dict>
 </plist>

@@ -14,7 +14,7 @@ final class AccountInitializationTests: XCTestCase {
             ("locked", true, false, true, false, true),
             ("locked", true, false, false, true, true),
             ("locked", true, false, false, false, false),
-            ("root_required", true, false, true, false, true),
+            ("root_required", true, false, true, false, false),
             ("logged_out", false, false, false, false, false),
             ("unlocked", true, false, true, true, false),
         ] {

@@ -243,6 +243,7 @@ struct AccessView: View {
         if needsSetup {
             return String(localized: "Create your encrypted workspace to start saving passwords, notes and files.")
         }
+        if model.session?.state == "root_required" { return String(localized: "Approved. Preparing your vault…") }
         if needsAuthorization {
             return String(localized: "To use your existing account on this iPhone, approve this device from one of your authorized devices.")
         }
@@ -289,7 +290,7 @@ struct AccessView: View {
                         }
                     } else if needsAuthorization {
                         NavigationLink { PairView() } label: {
-                            AccessActionLabel("Authorize this device", symbol: "checkmark.shield")
+                            AccessActionLabel(model.session?.state == "root_required" ? "Check authorization" : "Authorize this device", symbol: "checkmark.shield")
                         }.modifier(AccessActionStyle(prominent: !fastUnlock)).accessibilityIdentifier("login.authorize")
                         if model.session?.state == "pairing_required" {
                             NavigationLink { SuccessionRequestView() } label: {

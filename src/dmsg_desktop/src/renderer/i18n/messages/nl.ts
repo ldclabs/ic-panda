@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  pairScanWithAdmin: "Scan deze code met een beheerdersapparaat om het verzoek te beoordelen.",
+  pairContinueElsewhere: "Doorgaan op een ander apparaat",
+  pairEnableApprovals: "Dit apparaat toekomstige verzoeken laten goedkeuren",
+  pairPreparingVault: "Goedgekeurd. Je kluis wordt voorbereid…",
+  pairNoApprover: "Geen beheerdersapparaat gevonden dat dit verzoek mag goedkeuren.",
+  pairRefreshRequest: "Vernieuw het verzoek op het toe te voegen apparaat en scan het opnieuw.",
+  pairAfterRegistration: "Vernieuw na de sleutelregistratie het verzoek op het toe te voegen apparaat en scan het opnieuw.",
   useOnDevice: "Alleen op dit apparaat gebruiken",
   offlineAccount: "Lokaal account",
   savedOnDevice: "Op dit apparaat opgeslagen",

@@ -3562,5 +3562,19 @@
 	<string>تک درست ہے</string>
 	<key>High risk</key>
 	<string>زیادہ خطرہ</string>
+	<key>Continue on another device</key>
+	<string>دوسری ڈیوائس پر جاری رکھیں</string>
+	<key>Let this device approve future requests</key>
+	<string>اس ڈیوائس کو آئندہ درخواستیں منظور کرنے کی اجازت دیں</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>منظوری مل گئی۔ والٹ تیار ہو رہا ہے…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>منظوری دینے کی اہل کوئی منتظم ڈیوائس نہیں ملی۔</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>شامل کی جانے والی ڈیوائس پر درخواست تازہ کریں اور دوبارہ اسکین کریں۔</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>کلید رجسٹر کرنے کے بعد شامل کی جانے والی ڈیوائس پر درخواست تازہ کریں اور دوبارہ اسکین کریں۔</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>درخواست کا جائزہ لینے کے لیے منتظم کی ڈیوائس سے یہ کوڈ اسکین کریں۔</string>
 </dict>
 </plist>

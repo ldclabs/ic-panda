@@ -3562,5 +3562,19 @@
 	<string>有效期至</string>
 	<key>High risk</key>
 	<string>高风险</string>
+	<key>Continue on another device</key>
+	<string>在另一台设备上继续</string>
+	<key>Let this device approve future requests</key>
+	<string>让这台设备以后也能批准请求</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>已批准，正在准备保险库…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>没有找到可批准此请求的管理员设备。</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>请在要加入的设备上刷新请求，再重新扫码。</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>钥匙登记成功后，请在要加入的设备上刷新请求，再重新扫码。</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>请用有批准权限的管理员设备扫码，核对并处理请求。</string>
 </dict>
 </plist>

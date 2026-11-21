@@ -928,7 +928,7 @@ impl MobileEngine {
         let transition = self.transition_with_login().await?;
         let generation = transition.generation();
         let prepared = transition
-            .run(|c| Box::pin(async { c.prepare_unlock().await }))
+            .run(|c| Box::pin(async { c.prepare_pairing_refresh().await }))
             .await?;
         self.finish_login_unlock(generation, prepared).await?;
         transition.finish()?;
@@ -2103,8 +2103,12 @@ impl MobileEngine {
     }
 
     pub async fn inspect_pairing_request(&self, token: String) -> Result<ObjectSnapshot> {
-        self.object(move |c| Box::pin(async move { c.pairing_preview(&token) }))
-            .await
+        self.held_object(move |h| {
+            Box::pin(
+                async move { dmsg_client::approval_key::inspect_device_request(h, &token).await },
+            )
+        })
+        .await
     }
 
     pub async fn security(&self) -> Result<ObjectSnapshot> {

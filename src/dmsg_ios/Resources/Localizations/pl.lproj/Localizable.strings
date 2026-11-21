@@ -3562,5 +3562,19 @@
 	<string>Ważne do</string>
 	<key>High risk</key>
 	<string>Wysokie ryzyko</string>
+	<key>Continue on another device</key>
+	<string>Kontynuuj na innym urządzeniu</string>
+	<key>Let this device approve future requests</key>
+	<string>Zezwól temu urządzeniu na zatwierdzanie przyszłych próśb</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Zatwierdzono. Przygotowywanie sejfu…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Nie znaleziono urządzenia administratora uprawnionego do zatwierdzenia prośby.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Odśwież prośbę na dodawanym urządzeniu i zeskanuj ją ponownie.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Po zarejestrowaniu klucza odśwież prośbę na dodawanym urządzeniu i zeskanuj ją ponownie.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Zeskanuj ten kod urządzeniem administratora, aby sprawdzić prośbę.</string>
 </dict>
 </plist>

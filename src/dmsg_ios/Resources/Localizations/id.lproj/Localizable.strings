@@ -3562,5 +3562,19 @@
 	<string>Berlaku sampai</string>
 	<key>High risk</key>
 	<string>Risiko tinggi</string>
+	<key>Continue on another device</key>
+	<string>Lanjutkan di perangkat lain</string>
+	<key>Let this device approve future requests</key>
+	<string>Izinkan perangkat ini menyetujui permintaan berikutnya</string>
+	<key>Approved. Preparing your vault…</key>
+	<string>Disetujui. Menyiapkan brankas…</string>
+	<key>No eligible administrator device was found.</key>
+	<string>Tidak ditemukan perangkat administrator yang berwenang.</string>
+	<key>Refresh the request on the joining device and scan it again.</key>
+	<string>Perbarui permintaan di perangkat yang akan bergabung, lalu pindai lagi.</string>
+	<key>After key registration, refresh the request on the joining device and scan it again.</key>
+	<string>Setelah kunci terdaftar, perbarui permintaan di perangkat yang akan bergabung, lalu pindai lagi.</string>
+	<key>Scan this code with an administrator device to review the request.</key>
+	<string>Pindai kode ini dengan perangkat administrator untuk meninjau permintaan.</string>
 </dict>
 </plist>
