@@ -80,7 +80,8 @@ class NativeSmokeTest {
                     app.client.clearNotice()
                     activity.openLogin(request)
                     val tab = checkNotNull(launched)
-                    val browser = CustomTabsClient.getPackageName(activity, null) ?: tab.`package`
+                    val browser = CustomTabsClient.getPackageName(activity, null)
+                    assertEquals(browser, tab.`package`)
                     if (browser != null && CustomTabsClient.isAuthTabSupported(activity, browser)) {
                         assertTrue(tab.getBooleanExtra(AuthTabIntent.EXTRA_LAUNCH_AUTH_TAB, false))
                         assertEquals("dmsg.net", tab.getStringExtra(AuthTabIntent.EXTRA_HTTPS_REDIRECT_HOST))

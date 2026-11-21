@@ -97,7 +97,10 @@ import net.dmsg.android.core.*
                     Column {
                         if (!local && name != null) Text(account.id)
                         if (account.moved) Text(str(R.string.text_copied_workspace_device_authorization_required_b552490))
-                        else if (!account.current) Text(str(R.string.text_unlock_workspace_ec9cb2a))
+                        else if (!account.current) {
+                            val action = if (account.bound) R.string.text_unlock_workspace_ec9cb2a else R.string.text_authorize_this_device_3a0243f
+                            Text(str(action))
+                        }
                     }
                 },
                 trailingContent = {

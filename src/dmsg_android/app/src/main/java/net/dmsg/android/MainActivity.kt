@@ -12,7 +12,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
-import androidx.browser.customtabs.CustomTabsService
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import net.dmsg.android.core.LoginCallback
@@ -69,8 +68,6 @@ class MainActivity : ComponentActivity() {
     internal fun openLogin(url: String) {
         val uri = Uri.parse(url)
         val browser = CustomTabsClient.getPackageName(this, null)
-            ?: packageManager.resolveService(Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION)
-                .addCategory(CustomTabsService.CATEGORY_AUTH_TAB), 0)?.serviceInfo?.packageName
         if (browser != null && CustomTabsClient.isAuthTabSupported(this, browser)) {
             val tab = AuthTabIntent.Builder().build()
             tab.intent.setPackage(browser)

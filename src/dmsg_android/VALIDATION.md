@@ -2,9 +2,13 @@
 
 ## Account switching and screenshots — 2026-11-21
 
-The main workspace allows foreground screenshots for feedback. Its Recent apps card is black,
-including when the launcher renders a live window. The separate system-export authentication
-window still uses `FLAG_SECURE`. Earlier secure-window checks below describe previous builds.
+The main workspace allows screenshots for feedback while its window has focus. Its Recent
+apps card is black, including when the launcher renders a live window. The separate system-export
+authentication window uses `FLAG_SECURE`. Earlier secure-window checks below describe previous builds.
+
+In split screen, dMsg covers its pane when the other app takes focus. Tap the dMsg pane to
+reveal it. On the Android 16 emulator, Recent apps can display that same live split-screen
+window while the activity remains resumed, so the mask also follows window focus.
 
 Android 12 and 16 ARM64 emulators each passed ten focused instrumentation tests. The system
 screenshot action saved a readable welcome page on both. Visual checks covered an open language
