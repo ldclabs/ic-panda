@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"বিদ্যমান পাসকি ব্যবহার করুন"</string>
     <string name="access_linked_login" formatted="false">"যে অ্যাকাউন্ট খুলতে চান তার সঙ্গে আগে থেকে যুক্ত লগইন ব্যবহার করুন।"</string>
     <string name="access_new_workspace" formatted="false">"নতুন কর্মক্ষেত্র সেট আপ করুন"</string>
+    <string name="access_sign_in_another" formatted="false">"অন্য অ্যাকাউন্টে সাইন ইন করুন"</string>
     <string name="add_permission" formatted="false">"অনুমতি যোগ করুন"</string>
     <string name="android_purchase_privacy" formatted="false">"কনফিগার করা থাকলে Google Play-এর কেনাকাটায় Google অ্যাকাউন্ট, বিলিং ও ডিভাইস যাচাই পরিষেবা ব্যবহৃত হয়। পরিষেবা অধিকার সরবরাহ যাচাই না করা পর্যন্ত ক্রয় টোকেন এনক্রিপ্ট করে রাখা হয়। dMsg-এর বিষয়বস্তু Google-এ পাঠানো হয় না। নিচের পরিষেবা নীতিতে অন্য dMsg অ্যাপে ব্যবহৃত Apple-নির্দিষ্ট পরিষেবাও বর্ণিত আছে।"</string>
     <string name="app_language" formatted="false">"ভাষা"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"এই সেশনের স্থানীয় কাজ"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"স্থানীয় নিয়ম সংরক্ষিত; অনলাইন সিঙ্কে নজর দরকার।"</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"স্থানীয় নিরাপত্তা পর্যালোচনা"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"স্থানীয় আনলক সেট করা আছে"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"স্থানীয় আনলক অনলাইন লগইনের মেয়াদ থেকে স্বাধীন।"</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"পটভূমিতে অবিলম্বে লক করুন"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"কর্মক্ষেত্র লক করুন"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"নীরব"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"এই সময় পর্যন্ত নীরব · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"নাম"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"নাম যাচাই করা সর্বজনীন প্রোফাইল থেকে ক্যাশ হয়। এই তালিকা দেখানোর সময় অন্য কর্মক্ষেত্র লক থাকে।"</string>
     <string name="text_native_addresses_8199a08" formatted="false">"নেটিভ ঠিকানা"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"নেটিভ Taproot কী"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"একটি নতুন পর্যালোচনা প্রয়োজন"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"সেটিংস সংরক্ষণ করুন"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"পর্যালোচিত সংস্করণ সংরক্ষণ করবেন?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"লাইব্রেরিতে সংরক্ষণ করুন"</string>
-    <string name="text_saved_account_872291d" formatted="false">"সংরক্ষিত অ্যাকাউন্ট"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"সংরক্ষিত অ্যাকাউন্টগুলো"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"অন্য ডিভাইস থেকে সংরক্ষিত কপি"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"স্থানীয়ভাবে সংরক্ষিত · পাঠানোর অপেক্ষা"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"ক্যামেরা বদলান"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"এই কাজের জন্য প্রথমে নির্বাচিত অ্যাকাউন্টে যান।"</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"যোগদানের আগে আমন্ত্রিত অ্যাকাউন্টে যান।"</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"এই অ্যাকাউন্টে স্যুইচ করুন"</string>
     <string name="text_symbols_04fef1c" formatted="false">"প্রতীক"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"সিঙ্ক ও স্টোরেজ"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"সিঙ্ক সম্পূর্ণ।"</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"অনুমোদনের অপেক্ষায়"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"ব্রাউজার নিশ্চিতকরণের জন্য অপেক্ষা করা হচ্ছে"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"নিশ্চিতকরণের অপেক্ষায়"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"ডিভাইসের অনুমতির অপেক্ষা"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"নীতির অপেক্ষার সময় চলছে"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"সিস্টেমের অপেক্ষা বা স্থানান্তর চলছে"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"অন্য ডিভাইসের অপেক্ষা"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"এই বার্তা প্রত্যাহার করবেন?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"প্রেরক প্রত্যাহার করেছেন"</string>
     <string name="text_working_ef6a315" formatted="false">"চলছে"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"কর্মক্ষেত্র এই ডিভাইসে সংরক্ষিত"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"একটি চিঠি লিখুন"</string>
     <string name="text_yes_4e00e01" formatted="false">"হ্যাঁ"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"আপনার এই পরিকল্পনা আগেই আছে। Google Play-এ নবায়ন পরিচালনা করুন।"</string>

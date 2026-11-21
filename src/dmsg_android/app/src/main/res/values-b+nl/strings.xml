@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"Een bestaande passkey gebruiken"</string>
     <string name="access_linked_login" formatted="false">"Gebruik een login die al aan het gewenste account is gekoppeld."</string>
     <string name="access_new_workspace" formatted="false">"Nieuwe werkruimte instellen"</string>
+    <string name="access_sign_in_another" formatted="false">"Log in op een ander account"</string>
     <string name="add_permission" formatted="false">"Bevoegdheid toevoegen"</string>
     <string name="android_purchase_privacy" formatted="false">"Indien ingesteld gebruiken Google Play-aankopen de Google-diensten voor accounts, facturering en apparaatverificatie. Aankooptokens blijven versleuteld bewaard totdat de dienst de levering van rechten verifieert. dMsg-inhoud wordt niet naar Google verzonden. Het onderstaande dienstbeleid beschrijft ook Apple-specifieke diensten die andere dMsg-apps gebruiken."</string>
     <string name="app_language" formatted="false">"Taal"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"Lokale bewerkingen in deze sessie"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"Lokale regels zijn opgeslagen; online synchronisatie vraagt aandacht."</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"Lokale veiligheidsbeoordeling"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"Lokale ontgrendeling is ingesteld"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"Lokale ontgrendeling staat los van het verlopen van online aanmelding."</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"Vergrendel onmiddellijk op de achtergrond"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"Werkruimte vergrendelen"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"Gedempt"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"Gedempt tot · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"Naam"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"Namen komen uit de cache van geverifieerde openbare profielen. Andere werkruimten blijven vergrendeld terwijl deze lijst wordt getoond."</string>
     <string name="text_native_addresses_8199a08" formatted="false">"Native adressen"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"Native Taproot-sleutel"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"Heeft een nieuwe beoordeling nodig"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"Instellingen opslaan"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"De gecontroleerde versie opslaan?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"Opslaan in bibliotheek"</string>
-    <string name="text_saved_account_872291d" formatted="false">"Opgeslagen account"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"Opgeslagen accounts"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"Opgeslagen kopie van een ander apparaat"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"Lokaal opgeslagen · wacht op verzenden"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"Camera wisselen"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"Wissel naar het account dat oorspronkelijk voor deze taak is geselecteerd."</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"Schakel vóór deelname over naar het uitgenodigde account."</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"Schakel over naar dit account"</string>
     <string name="text_symbols_04fef1c" formatted="false">"Symbolen"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"Synchronisatie en opslag"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"Synchronisatie voltooid."</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"Wachten op goedkeuring"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"Wachten op browserbevestiging"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"Wachten op bevestiging"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"Wachten op apparaatmachtiging"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"Wachten op beleidsvertraging"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"Wachten op systeem of overdracht bezig"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"Wachten op het andere apparaat"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"Dit bericht intrekken?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"Ingetrokken door de afzender"</string>
     <string name="text_working_ef6a315" formatted="false">"In uitvoering"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"Werkruimte opgeslagen op dit apparaat"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"Schrijf een brief"</string>
     <string name="text_yes_4e00e01" formatted="false">"Ja"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"Je hebt dit plan al. Beheer verlenging in Google Play."</string>

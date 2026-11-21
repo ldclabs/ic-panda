@@ -19,12 +19,12 @@ class AccountWorkspaceCoordinator(private val client: ClientController) {
     val accounts = ReadStore<List<SavedAccount>> { it.isEmpty() }
     val local = ReadStore<LocalContent>()
     val cache = ReadStore<DisplayCacheUsage>()
-    fun accounts() {
+    fun accounts(resolveNames: Boolean = true) {
         val request = accounts.begin()
         client.perform({ parseSavedAccounts(it.accounts().decode()) }, key = "account:local-list", replace = true, quiet = true, onError = { accounts.fail(request, it) }) { values ->
             accounts.accept(request, values)
             val online = values.filter { it.id != LOCAL_ACCOUNT }
-            if (client.state.value.session?.accountKind == "cloud" && online.isNotEmpty()) client.perform({ core -> parseParticipants(client.operation { core.channelNames(online.map { it.id }.take(100), true, it) }.decode()) }, key = "account:local-names", replace = true, quiet = true) { names ->
+            if (resolveNames && client.state.value.unlocked && client.state.value.session?.accountKind == "cloud" && online.isNotEmpty()) client.perform({ core -> parseParticipants(client.operation { core.channelNames(online.map { it.id }.take(100), true, it) }.decode()) }, key = "account:local-names", replace = true, quiet = true) { names ->
                 client.rememberAccountNames(names.filterKeys { it != client.state.value.session?.account || client.profile.saved.value() == null }.mapValues { it.value.name })
             }
         }

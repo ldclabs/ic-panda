@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"استخدام مفتاح مرور موجود"</string>
     <string name="access_linked_login" formatted="false">"استخدم وسيلة دخول مرتبطة بالفعل بالحساب الذي تريد فتحه."</string>
     <string name="access_new_workspace" formatted="false">"إعداد مساحة عمل جديدة"</string>
+    <string name="access_sign_in_another" formatted="false">"تسجيل الدخول إلى حساب آخر"</string>
     <string name="add_permission" formatted="false">"إضافة إذن"</string>
     <string name="android_purchase_privacy" formatted="false">"تستخدم مشتريات Google Play خدمات حساب Google والفوترة والتحقق من الجهاز عند إعدادها. تُحفظ رموز الشراء مشفّرة حتى تتحقق الخدمة من التسليم. لا يُرسل محتوى dMsg إلى Google. تصف سياسة الخدمة أدناه أيضًا الخدمات الخاصة بـ Apple التي تستخدمها تطبيقات dMsg الأخرى."</string>
     <string name="app_language" formatted="false">"اللغة"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"العمليات المحلية في هذه الجلسة"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"حُفظت القواعد المحلية؛ المزامنة عبر الإنترنت تحتاج إلى انتباهك."</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"مراجعة الأمان المحلية"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"تم إعداد الفتح المحلي"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"الفتح المحلي مستقل عن انتهاء صلاحية تسجيل الدخول عبر الإنترنت."</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"القفل فور الانتقال إلى الخلفية"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"قفل مساحة العمل"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"مكتوم"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"مكتوم حتى · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"اسم"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"تُخزّن الأسماء مؤقتًا من الملفات العامة المتحقق منها. تظل مساحات العمل الأخرى مقفلة أثناء عرض هذه القائمة."</string>
     <string name="text_native_addresses_8199a08" formatted="false">"العناوين الأصلية"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"مفتاح Taproot الأصلي"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"يحتاج إلى مراجعة جديدة"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"حفظ الإعدادات"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"حفظ الإصدار الذي راجعته؟"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"حفظ في المكتبة"</string>
-    <string name="text_saved_account_872291d" formatted="false">"حساب محفوظ"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"الحسابات المحفوظة"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"نسخة محفوظة من جهاز آخر"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"محفوظ محليًا · بانتظار الإرسال"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"تبديل الكاميرا"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"انتقل إلى الحساب الذي اختير أصلًا لهذه المهمة."</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"بدّل إلى الحساب المدعو قبل الانضمام."</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"التبديل إلى هذا الحساب"</string>
     <string name="text_symbols_04fef1c" formatted="false">"رموز"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"المزامنة والتخزين"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"اكتملت المزامنة."</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"بانتظار الموافقة"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"بانتظار تأكيد المتصفح"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"في انتظار التأكيد"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"بانتظار تفويض الجهاز"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"بانتظار تأخير السياسة"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"بانتظار النظام أو جارٍ النقل"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"بانتظار الجهاز الآخر"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"سحب هذه الرسالة؟"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"سحبه المرسِل"</string>
     <string name="text_working_ef6a315" formatted="false">"قيد التنفيذ"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"مساحة العمل محفوظة على هذا الجهاز"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"كتابة رسالة"</string>
     <string name="text_yes_4e00e01" formatted="false">"نعم"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"لديك هذه الخطة بالفعل. أدر التجديد في Google Play."</string>

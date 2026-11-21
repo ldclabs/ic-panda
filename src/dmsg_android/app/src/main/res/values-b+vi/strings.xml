@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"Dùng khóa truy cập hiện có"</string>
     <string name="access_linked_login" formatted="false">"Dùng phương thức đăng nhập đã liên kết với tài khoản bạn muốn mở."</string>
     <string name="access_new_workspace" formatted="false">"Thiết lập không gian làm việc mới"</string>
+    <string name="access_sign_in_another" formatted="false">"Đăng nhập vào tài khoản khác"</string>
     <string name="add_permission" formatted="false">"Thêm quyền"</string>
     <string name="android_purchase_privacy" formatted="false">"Khi được cấu hình, giao dịch Google Play sử dụng dịch vụ tài khoản Google, thanh toán và xác minh thiết bị. Mã thông báo mua hàng được lưu mã hóa cho đến khi dịch vụ xác minh việc cấp quyền lợi. Nội dung dMsg không được gửi tới Google. Chính sách dịch vụ bên dưới cũng mô tả các dịch vụ riêng của Apple được những ứng dụng dMsg khác sử dụng."</string>
     <string name="app_language" formatted="false">"Ngôn ngữ"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"Thao tác cục bộ trong phiên này"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"Quy tắc cục bộ đã lưu; đồng bộ trực tuyến cần chú ý."</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"Đánh giá an ninh địa phương"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"Đã cấu hình mở khóa cục bộ"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"Mở khóa cục bộ độc lập với thời hạn đăng nhập trực tuyến."</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"Khóa ngay lập tức ở chế độ nền"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"Khóa không gian làm việc"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"Đã tắt tiếng"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"Tắt tiếng đến · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"Tên"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"Tên được lưu đệm từ hồ sơ công khai đã xác minh. Không gian làm việc khác vẫn khóa khi danh sách này hiển thị."</string>
     <string name="text_native_addresses_8199a08" formatted="false">"Địa chỉ native"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"Khóa Taproot native"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"Cần một đánh giá mới"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"Lưu cài đặt"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Lưu phiên bản đã kiểm tra?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"Lưu vào thư viện"</string>
-    <string name="text_saved_account_872291d" formatted="false">"Tài khoản đã lưu"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"Tài khoản đã lưu"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"Bản sao đã lưu từ thiết bị khác"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"Đã lưu cục bộ · chờ gửi"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"Đổi máy ảnh"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"Chuyển sang tài khoản đã chọn ban đầu cho tác vụ này."</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"Chuyển sang tài khoản được mời trước khi tham gia."</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"Chuyển sang tài khoản này"</string>
     <string name="text_symbols_04fef1c" formatted="false">"Ký hiệu"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"Đồng bộ và lưu trữ"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"Đồng bộ hoàn tất."</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"Đang chờ phê duyệt"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"Đang chờ xác nhận trình duyệt"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"Đang chờ xác nhận"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"Đang chờ cấp quyền thiết bị"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"Đang chờ hết thời gian theo chính sách"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"Đang chờ hệ thống hoặc đang truyền"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"Đang chờ thiết bị kia"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"Rút lại tin nhắn này?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"Người gửi đã rút lại"</string>
     <string name="text_working_ef6a315" formatted="false">"Đang tiến hành"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"Không gian làm việc đã lưu trên thiết bị này"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"Viết một lá thư"</string>
     <string name="text_yes_4e00e01" formatted="false">"Có"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"Bạn đã có gói này. Quản lý gia hạn trong Google Play."</string>

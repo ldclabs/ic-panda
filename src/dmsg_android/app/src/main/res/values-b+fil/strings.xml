@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"Gumamit ng kasalukuyang passkey"</string>
     <string name="access_linked_login" formatted="false">"Gumamit ng login na naka-link na sa account na gusto mong buksan."</string>
     <string name="access_new_workspace" formatted="false">"Mag-set up ng bagong workspace"</string>
+    <string name="access_sign_in_another" formatted="false">"Mag-sign in sa ibang account"</string>
     <string name="add_permission" formatted="false">"Magdagdag ng pahintulot"</string>
     <string name="android_purchase_privacy" formatted="false">"Kapag naka-configure, ginagamit ng mga pagbili sa Google Play ang mga serbisyo ng Google account, pagsingil, at pag-verify ng device. Nananatiling naka-encrypt ang mga purchase token hanggang ma-verify ng serbisyo ang paghahatid ng mga karapatan. Hindi ipinapadala sa Google ang nilalaman ng dMsg. Inilalarawan din ng patakaran sa serbisyo sa ibaba ang mga serbisyong para sa Apple na ginagamit ng ibang dMsg app."</string>
     <string name="app_language" formatted="false">"Wika"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"Mga lokal na operasyon sa session na ito"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"Na-save ang mga lokal na tuntunin; kailangang asikasuhin ang online sync."</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"Pagsusuri ng lokal na seguridad"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"Naka-configure ang lokal na pag-unlock"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"Hiwalay ang lokal na pag-unlock sa pag-expire ng online sign-in."</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"I-lock kaagad sa background"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"I-lock ang workspace"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"Naka-mute"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"Naka-mute hanggang · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"Pangalan"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"Naka-cache ang mga pangalan mula sa na-verify na pampublikong profile. Mananatiling naka-lock ang ibang workspace habang nakikita ang listahang ito."</string>
     <string name="text_native_addresses_8199a08" formatted="false">"Mga native address"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"Native Taproot key"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"Kailangan ng bagong pagsusuri"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"I-save ang mga setting"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"I-save ang nasuring bersyon?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"I-save sa library"</string>
-    <string name="text_saved_account_872291d" formatted="false">"Na-save na account"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"Mga na-save na account"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"Na-save na kopya mula sa ibang device"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"Na-save nang lokal · naghihintay na ipadala"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"Lumipat ng camera"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"Lumipat sa account na unang pinili para sa gawaing ito."</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"Lumipat sa inimbitahang account bago sumali."</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"Lumipat sa account na ito"</string>
     <string name="text_symbols_04fef1c" formatted="false">"Mga simbolo"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"Pag-sync at imbakan"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"Tapos na ang sync."</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"Naghihintay ng pag-apruba"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"Naghihintay para sa kumpirmasyon ng browser"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"Hinihintay ang kumpirmasyon"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"Naghihintay ng awtorisasyon ng device"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"Naghihintay sa pagkaantala ng patakaran"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"Naghihintay sa system o naglilipat"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"Naghihintay sa kabilang device"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"Bawiin ang mensaheng ito?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"Binawi ng nagpadala"</string>
     <string name="text_working_ef6a315" formatted="false">"Isinasagawa"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"Naka-save ang workspace sa device na ito"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"Sumulat ng isang liham"</string>
     <string name="text_yes_4e00e01" formatted="false">"Oo"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"Mayroon ka na ng planong ito. Pamahalaan ang pag-renew sa Google Play."</string>

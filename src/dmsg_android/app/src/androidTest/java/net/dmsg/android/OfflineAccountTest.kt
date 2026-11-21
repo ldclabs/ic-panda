@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap
 @RunWith(AndroidJUnit4::class)
 class OfflineAccountTest {
     // Substitute only OS credential callbacks. The production JNI bridge, SQLite and file library run on Android.
-    private class FixtureHardware(base: Platform) : Platform by base {
+    internal class FixtureHardware(base: Platform) : Platform by base {
         private val storage = ConcurrentHashMap<String, ByteArray>()
         private val secret = ByteArray(32).also(SecureRandom()::nextBytes)
         private val pair = KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec("secp256r1")) }.generateKeyPair()

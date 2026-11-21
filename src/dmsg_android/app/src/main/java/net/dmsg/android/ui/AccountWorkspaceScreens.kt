@@ -73,30 +73,49 @@ import net.dmsg.android.core.*
     }
 }
 
-@Composable fun AccountsScreen(client: ClientController) {
+@Composable fun AccountsScreen(client: ClientController, onSelected: (() -> Unit)? = null) {
     val entries by client.accountWorkspace.accounts.state.collectAsStateWithLifecycle()
     val names by client.accountNames.collectAsStateWithLifecycle()
+    val notices by client.notifications.status.state.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.epoch) { client.accountWorkspace.accounts() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { ReadFeedback(entries, client.accountWorkspace::accounts); Text(str(R.string.text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c), style = MaterialTheme.typography.bodySmall) }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp)) {
+        item { ReadFeedback(entries) { client.accountWorkspace.accounts() } }
         items(entries.valueOrNull().orEmpty(), key = { it.id }) { account ->
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(if (account.id == LOCAL_ACCOUNT) str(R.string.offline_account) else names[account.id] ?: str(R.string.text_saved_account_872291d), style = MaterialTheme.typography.titleMedium)
-                    if (account.id == LOCAL_ACCOUNT) Text(str(R.string.use_on_device)) else SelectionContainer { Text(account.id) }
-                    Text(when { account.current -> str(R.string.text_current_account_59c0362); account.moved -> str(R.string.text_copied_workspace_device_authorization_required_b552490); account.bound -> str(R.string.text_workspace_saved_on_this_device_dc64e7f); else -> str(R.string.text_waiting_for_device_authorization_9b74008) }, style = MaterialTheme.typography.bodySmall)
-                    if (account.quickUnlock) Text(str(R.string.text_local_unlock_is_configured_4c7291c), style = MaterialTheme.typography.bodySmall)
-                    if (!account.current) OutlinedButton(onClick = { client.switchAccount(account.id) }, enabled = !state.busy) { Text(str(R.string.text_switch_to_this_account_d82d52a)) }
-                }
-            }
-        }
-        if (entries.valueOrNull()?.any { it.id == LOCAL_ACCOUNT } == true && state.session?.accountKind == "cloud") item {
-            OutlinedButton(onClick = { client.navigation.push(Route("local-import")) }) { Text(str(R.string.import_local_account)) }
-        } else if (entries.valueOrNull()?.none { it.id == LOCAL_ACCOUNT } == true) item {
-            OutlinedButton(onClick = client::openLocal) { Text(str(R.string.use_on_device)) }
+            val local = account.id == LOCAL_ACCOUNT
+            val name = if (local) str(R.string.offline_account) else names[account.id]
+            val count = notices.valueOrNull()?.accounts?.find { it.account == account.id }?.counts?.total ?: 0uL
+            val canChoose = !account.current || onSelected != null
+            ListItem(
+                modifier = if (canChoose) Modifier.clickable(enabled = !state.busy, role = Role.Button) {
+                    if (!account.current) client.switchAccount(account.id)
+                    onSelected?.invoke()
+                } else Modifier,
+                leadingContent = { Icon(Icons.Outlined.Person, null) },
+                headlineContent = { Text(name ?: account.id) },
+                supportingContent = {
+                    Column {
+                        if (!local && name != null) Text(account.id)
+                        if (account.moved) Text(str(R.string.text_copied_workspace_device_authorization_required_b552490))
+                        else if (!account.current) Text(str(R.string.text_unlock_workspace_ec9cb2a))
+                    }
+                },
+                trailingContent = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (count > 0uL) Badge { Text(if (count > 99uL) "99+" else localizedNumber(count)) }
+                        if (account.current) Icon(Icons.Outlined.Check, str(R.string.text_current_account_59c0362), tint = MaterialTheme.colorScheme.primary)
+                    }
+                })
         }
         if (entries is ReadState.Empty) item { EmptyPanel(str(R.string.text_no_saved_accounts_f8486b6)) }
+        if ((entries is ReadState.Ready || entries is ReadState.Empty) && entries.valueOrNull()?.none { it.id == LOCAL_ACCOUNT } == true) item {
+            OutlinedButton(onClick = { client.openLocal(); onSelected?.invoke() }, enabled = !state.busy) { Text(str(R.string.use_on_device)) }
+        }
+        item {
+            Button(onClick = { client.signInToAnotherAccount(); onSelected?.invoke() }, enabled = !state.busy) {
+                Text(str(R.string.access_sign_in_another))
+            }
+        }
     }
 }
 

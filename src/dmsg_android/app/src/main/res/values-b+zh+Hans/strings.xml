@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"使用已有通行密钥"</string>
     <string name="access_linked_login" formatted="false">"请使用已关联目标账号的登录方式。"</string>
     <string name="access_new_workspace" formatted="false">"设置新的工作区"</string>
+    <string name="access_sign_in_another" formatted="false">"登录其他账号"</string>
     <string name="add_permission" formatted="false">"添加权限"</string>
     <string name="android_purchase_privacy" formatted="false">"启用 Google Play 购买后，会使用 Google 账号、结算和设备验证服务。购买凭证将加密保留，直到服务核验交付。dMsg 内容不会发送给 Google。下方服务政策还说明其他 dMsg 应用使用的 Apple 专属服务。"</string>
     <string name="app_language" formatted="false">"应用语言"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"本次会话的本机操作"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"本机规则已保存，线上同步尚未完成。"</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"本机安全检查"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"已配置本机解锁"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"本机解锁与在线登录的到期状态分开。"</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"进入后台立即锁定"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"锁定工作区"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"已静音"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"静音至 · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"名称"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"名称来自已核验的公开资料缓存。显示此列表不会解锁其他工作区。"</string>
     <string name="text_native_addresses_8199a08" formatted="false">"原生地址"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"原生 Taproot 钥匙"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"需要重新核对"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"保存设置"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"保存已核对的版本？"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"保存到文件库"</string>
-    <string name="text_saved_account_872291d" formatted="false">"已保存账号"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"已保存账号"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"来自其他设备的保留副本"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"已存本机 · 待发送"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"切换相机"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"请切换到此任务原先选择的账号。"</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"请先切换到受邀账号再加入。"</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"切换到此账号"</string>
     <string name="text_symbols_04fef1c" formatted="false">"符号"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"同步与存储"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"同步已完成。"</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"等待审批"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"等待浏览器确认"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"等待确认"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"等待设备授权"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"等待策略延时"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"等待系统调度或传输中"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"等待另一台设备"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"撤回这条消息？"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"发送者已撤回"</string>
     <string name="text_working_ef6a315" formatted="false">"进行中"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"本机已有工作区"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"写信"</string>
     <string name="text_yes_4e00e01" formatted="false">"是"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"你已拥有此套餐，请在 Google Play 中管理续订。"</string>

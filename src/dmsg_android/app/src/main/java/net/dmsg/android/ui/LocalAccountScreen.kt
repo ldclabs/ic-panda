@@ -3,6 +3,10 @@ package net.dmsg.android.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.SwitchAccount
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -15,12 +19,11 @@ import net.dmsg.android.platform.str
 
 @Composable
 fun LocalSettings(client: ClientController, go: (String) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(str(R.string.offline_account), style = MaterialTheme.typography.titleLarge)
-        Text(str(R.string.saved_on_device))
-        OutlinedButton(onClick = { go("accounts") }) { Text(str(R.string.text_saved_accounts_e314a1f)) }
-        OutlinedButton(onClick = { go("account-remove") }) { Text(str(R.string.text_remove_local_data_c45125e)) }
-        OutlinedButton(onClick = client::logout) { Text(str(R.string.text_sign_out_7bfa045)) }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp)) {
+        item { Text(str(R.string.saved_on_device), Modifier.padding(bottom = 12.dp)) }
+        item { AccountRow(str(R.string.text_switch_account_52f71df), Icons.Outlined.SwitchAccount) { go("accounts") } }
+        item { AccountRow(str(R.string.text_remove_local_data_c45125e), Icons.Outlined.DeleteOutline) { go("account-remove") } }
+        item { AccountRow(str(R.string.text_lock_workspace_78665ed), Icons.Outlined.Lock) { client.lock() } }
     }
 }
 

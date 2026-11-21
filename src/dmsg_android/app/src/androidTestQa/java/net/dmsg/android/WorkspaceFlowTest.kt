@@ -1631,9 +1631,15 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Saved accounts").performScrollTo().performClick()
         compose.waitUntil(10_000) { client.accountWorkspace.accounts.value()?.any { it.id == account } == true }
         compose.onAllNodesWithText(account).onLast().assertExists()
-        compose.onNodeWithText("Current account").assertExists()
+        compose.onNodeWithContentDescription("Current account").assertExists()
         assertFalse(client.state.value.unlocked)
         assertEquals("locked", runBlocking { native.sessionState() }.state)
+        compose.onNodeWithText("Sign in to another account").performClick()
+        compose.onNodeWithText("Use a login already linked to the account you want to open.").assertExists()
+        compose.onNodeWithText("Sign in with Internet Identity").assertExists()
+        compose.onNodeWithText("Unlock workspace").assertDoesNotExist()
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals(account, runBlocking { native.sessionState() }.account)
     }
 
     @Test fun publicProfileDraftAndOrientedAvatarStayLocalAndCacheClearKeepsLibraryFiles() {

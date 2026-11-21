@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"既存のパスキーを使う"</string>
     <string name="access_linked_login" formatted="false">"開きたいアカウントに連携済みのログイン方法を使ってください。"</string>
     <string name="access_new_workspace" formatted="false">"新しいワークスペースを設定"</string>
+    <string name="access_sign_in_another" formatted="false">"別のアカウントにサインインする"</string>
     <string name="add_permission" formatted="false">"権限を追加"</string>
     <string name="android_purchase_privacy" formatted="false">"Google Play の購入機能が設定されている場合、Google アカウント、決済、デバイス検証のサービスを使用します。購入トークンは、サービスが提供を確認するまで暗号化して保存されます。dMsg のコンテンツが Google に送信されることはありません。以下のサービス方針には、ほかの dMsg アプリが使用する Apple 固有のサービスについても記載されています。"</string>
     <string name="app_language" formatted="false">"言語"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"このセッションのローカル操作"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"ローカルルールを保存しました。オンライン同期の確認が必要です。"</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"ローカルセキュリティレビュー"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"ローカルロック解除は設定済み"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"ローカルロック解除は、オンラインログインの有効期限とは独立しています。"</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"バックグラウンドですぐにロックする"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"ワークスペースをロックする"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"ミュート中"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"ミュート終了 · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"名前"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"名前は検証済み公開プロフィールからキャッシュされます。この一覧の表示中も、ほかのワークスペースはロックされたままです。"</string>
     <string name="text_native_addresses_8199a08" formatted="false">"ネイティブアドレス"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"ネイティブ Taproot キー"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"新たなレビューが必要です"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"設定を保存する"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"確認したバージョンを保存しますか？"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"ライブラリに保存"</string>
-    <string name="text_saved_account_872291d" formatted="false">"保存済みアカウント"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"保存済みアカウント"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"別のデバイスから保存したコピー"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"ローカルに保存済み · 送信待ち"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"カメラを切り替え"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"このタスクで最初に選択したアカウントに切り替えてください。"</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"参加する前に招待されたアカウントに切り替えてください。"</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"このアカウントに切り替えます"</string>
     <string name="text_symbols_04fef1c" formatted="false">"記号"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"同期とストレージ"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"同期が完了しました。"</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"承認待ち"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"ブラウザの確認を待っています"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"確認を待っています"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"デバイスの承認待ち"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"ポリシーの待機期間中"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"システム待機中または転送中"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"相手のデバイスを待っています"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"このメッセージを撤回しますか?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"送信者が取り下げました"</string>
     <string name="text_working_ef6a315" formatted="false">"進行中"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"ワークスペースをこのデバイスに保存済み"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"手紙を書く"</string>
     <string name="text_yes_4e00e01" formatted="false">"はい"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"このプランはすでに利用中です。Google Play で更新を管理してください。"</string>

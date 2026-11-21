@@ -8,6 +8,7 @@ import android.net.Uri
 import android.view.WindowManager
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsClient
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -92,6 +93,7 @@ class NativeSmokeTest {
                 }
                 // A complete callback reached the login parser. This offline test has no pending II request.
                 await { app.client.state.value.error == "LOGIN_EXPIRED" }
+                scenario.onActivity { app.client.clearNotice() }
             }
         } finally { instrumentation.removeMonitor(monitor) }
     }
@@ -109,10 +111,7 @@ class NativeSmokeTest {
             val controller = app.client
             scenario.recreate()
             assertSame(controller, app.client)
-            scenario.onActivity { activity ->
-                assertTrue(activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0)
-                app.client.lock()
-            }
+            scenario.onActivity { app.client.lock() }
             await { app.client.state.value.session?.generation?.let { it > before.generation } == true }
             try {
                 // sessionState/controlGeneration are intentionally unscoped controller
@@ -137,19 +136,31 @@ class NativeSmokeTest {
         }
     }
 
-    @Test fun captureWelcomeWithoutChangingProductionScreenshotPolicy() {
+    @Test fun welcomeCanBeCapturedAfterReturningFromBackground() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val app = instrumentation.targetContext.applicationContext as DMsgApplication
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             await { !app.client.state.value.starting && app.client.state.value.session != null }
+            scenario.moveToState(Lifecycle.State.CREATED)
             scenario.onActivity { activity ->
-                assertTrue(activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0)
-                // Only instrumentation clears it, temporarily, to capture this no-account screen.
-                activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                assertEquals(android.graphics.Color.BLACK, (activity.window.decorView.foreground as? android.graphics.drawable.ColorDrawable)?.color)
+            }
+            scenario.moveToState(Lifecycle.State.RESUMED)
+            await {
+                var focused = false
+                scenario.onActivity { focused = it.hasWindowFocus() }
+                focused
+            }
+            scenario.onActivity { activity ->
+                assertEquals(0, activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE)
             }
             instrumentation.waitForIdleSync()
             Thread.sleep(250)
             val screenshot = checkNotNull(instrumentation.uiAutomation.takeScreenshot())
+            val center = screenshot.getPixel(screenshot.width / 2, screenshot.height / 2)
+            assertTrue("Screenshot should contain the welcome UI", (screenshot.height / 8 until screenshot.height * 7 / 8 step 8).any { y ->
+                (screenshot.width / 8 until screenshot.width * 7 / 8 step 8).any { x -> screenshot.getPixel(x, y) != center }
+            })
             val destination = File(checkNotNull(app.getExternalFilesDir(null)), "qa-welcome.png")
             destination.outputStream().use { assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)) }
             screenshot.recycle()
@@ -157,7 +168,6 @@ class NativeSmokeTest {
                 "mkdir -p /sdcard/Download/dmsg-qa")).use { it.readBytes() }
             android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
                 "cp " + destination.absolutePath + " /sdcard/Download/dmsg-qa/welcome.png")).use { it.readBytes() }
-            scenario.onActivity { it.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) }
         }
     }
 }

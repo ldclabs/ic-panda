@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"Mevcut bir geçiş anahtarını kullan"</string>
     <string name="access_linked_login" formatted="false">"Açmak istediğiniz hesaba zaten bağlı bir giriş yöntemi kullanın."</string>
     <string name="access_new_workspace" formatted="false">"Yeni çalışma alanı kur"</string>
+    <string name="access_sign_in_another" formatted="false">"Başka bir hesapta oturum açın"</string>
     <string name="add_permission" formatted="false">"İzin ekle"</string>
     <string name="android_purchase_privacy" formatted="false">"Yapılandırıldığında Google Play satın alımları, Google hesabı, faturalandırma ve cihaz doğrulama hizmetlerini kullanır. Satın alma jetonları, hizmet hakların teslimini doğrulayana kadar şifreli saklanır. dMsg içeriği Google\'a gönderilmez. Aşağıdaki hizmet politikası, diğer dMsg uygulamalarının kullandığı Apple\'a özgü hizmetleri de açıklar."</string>
     <string name="app_language" formatted="false">"Dil"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"Bu oturumdaki yerel işlemler"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"Yerel kurallar kaydedildi; çevrimiçi eşitleme ilgilenmenizi gerektiriyor."</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"Yerel güvenlik incelemesi"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"Yerel kilit açma yapılandırıldı"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"Yerel kilit açma, çevrimiçi oturumun sona ermesinden bağımsızdır."</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"Arka planda hemen kilitle"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"Çalışma alanını kilitle"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"Sessize alındı"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"Sessize alma bitişi · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"İsim"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"Adlar doğrulanmış herkese açık profillerden önbelleğe alınır. Bu liste görünürken diğer çalışma alanları kilitli kalır."</string>
     <string name="text_native_addresses_8199a08" formatted="false">"Yerel adresler"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"Yerel Taproot anahtarı"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"Yeni bir incelemeye ihtiyaç var"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"Ayarları kaydet"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"İncelenen sürüm kaydedilsin mi?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"Kitaplığa kaydet"</string>
-    <string name="text_saved_account_872291d" formatted="false">"Kayıtlı hesap"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"Kayıtlı hesaplar"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"Başka cihazdan kaydedilmiş kopya"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"Yerelde kaydedildi · gönderme bekleniyor"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"Kamerayı değiştir"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"Bu görev için ilk seçilen hesaba geçin."</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"Katılmadan önce davet edilen hesaba geçin."</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"Bu hesaba geç"</string>
     <string name="text_symbols_04fef1c" formatted="false">"Semboller"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"Eşitleme ve depolama"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"Eşitleme tamamlandı."</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"Onay bekleniyor"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"Tarayıcı onayı bekleniyor"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"Onay bekleniyor"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"Cihaz yetkisi bekleniyor"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"Politika bekleme süresi bekleniyor"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"Sistem bekleniyor veya aktarılıyor"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"Diğer cihaz bekleniyor"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"Bu mesaj geri çekilsin mi?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"Gönderen geri çekti"</string>
     <string name="text_working_ef6a315" formatted="false">"Devam ediyor"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"Çalışma alanı bu cihazda kayıtlı"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"Bir mektup yaz"</string>
     <string name="text_yes_4e00e01" formatted="false">"Evet"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"Bu plana zaten sahipsiniz. Yenilemeyi Google Play\'de yönetin."</string>

@@ -19,6 +19,11 @@
     "zh-Hans": "设置新的工作区",
     "ios": "Set up a new workspace"
   },
+  "access_sign_in_another": {
+    "en": "Sign in to another account",
+    "zh-Hans": "登录其他账号",
+    "ios": "Sign in to another account"
+  },
   "add_permission": {
     "en": "Add permission",
     "zh-Hans": "添加权限",
@@ -4241,10 +4246,6 @@
     "zh-Hans": "本机安全检查",
     "ios": "Local security review"
   },
-  "text_local_unlock_is_configured_4c7291c": {
-    "en": "Local unlock is configured",
-    "zh-Hans": "已配置本机解锁"
-  },
   "text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d": {
     "en": "Local unlock is independent of online sign-in expiry.",
     "zh-Hans": "本机解锁与在线登录的到期状态分开。"
@@ -4554,10 +4555,6 @@
     "en": "Name",
     "zh-Hans": "名称",
     "ios": "Name"
-  },
-  "text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c": {
-    "en": "Names are cached from verified public profiles. Other workspaces stay locked while this list is displayed.",
-    "zh-Hans": "名称来自已核验的公开资料缓存。显示此列表不会解锁其他工作区。"
   },
   "text_native_addresses_8199a08": {
     "en": "Native addresses",
@@ -6878,10 +6875,6 @@
     "zh-Hans": "保存到文件库",
     "ios": "Save to library"
   },
-  "text_saved_account_872291d": {
-    "en": "Saved account",
-    "zh-Hans": "已保存账号"
-  },
   "text_saved_accounts_e314a1f": {
     "en": "Saved accounts",
     "zh-Hans": "已保存账号"
@@ -7715,11 +7708,6 @@
     "en": "Switch to the invited account before joining.",
     "zh-Hans": "请先切换到受邀账号再加入。",
     "ios": "Switch to the invited account before joining."
-  },
-  "text_switch_to_this_account_d82d52a": {
-    "en": "Switch to this account",
-    "zh-Hans": "切换到此账号",
-    "ios": "Switch to this account"
   },
   "text_symbols_04fef1c": {
     "en": "Symbols",
@@ -9027,10 +9015,6 @@
     "zh-Hans": "等待确认",
     "ios": "Waiting for confirmation"
   },
-  "text_waiting_for_device_authorization_9b74008": {
-    "en": "Waiting for device authorization",
-    "zh-Hans": "等待设备授权"
-  },
   "text_waiting_for_policy_delay_7d2eaa2": {
     "en": "Waiting for policy delay",
     "zh-Hans": "等待策略延时"
@@ -9184,10 +9168,6 @@
     "en": "Working",
     "zh-Hans": "进行中",
     "ios": "In progress"
-  },
-  "text_workspace_saved_on_this_device_dc64e7f": {
-    "en": "Workspace saved on this device",
-    "zh-Hans": "本机已有工作区"
   },
   "text_write_a_letter_1a8f9c9": {
     "en": "Write a letter",

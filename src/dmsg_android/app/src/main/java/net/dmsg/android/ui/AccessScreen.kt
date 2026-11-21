@@ -27,8 +27,16 @@ import net.dmsg.core.PasskeyOperation
 
 private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
 
+@Composable private fun InternetIdentityButton(primary: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+    val label = str(R.string.text_sign_in_with_internet_identity_4d3941e)
+    if (primary) Button(onClick, modifier, enabled) { Text(label) }
+    else OutlinedButton(onClick, modifier, enabled) { Text(label) }
+}
+
 @Composable internal fun EntryScreen(client: ClientController, state: UiState, browser: (String) -> Unit, openLogin: (String) -> Unit, snackbar: SnackbarHostState) {
     val page by client.access.collectAsStateWithLifecycle()
+    val anotherAccount = page == AccessPage.SIGN_IN_ANOTHER
     val authentication by client.authentication.state.collectAsStateWithLifecycle()
     val incoming by client.incoming.intake.collectAsStateWithLifecycle()
     var information by remember { mutableStateOf<String?>(null) }
@@ -38,15 +46,22 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
     var confirmingReset by remember { mutableStateOf(false) }
     var slow by remember { mutableStateOf(false) }
     val status = state.session?.state
-    var intent by rememberSaveable(status, state.session?.account, state.session?.passkeyAvailable) { mutableStateOf<PasskeyIntent?>(null) }
+    var intent by rememberSaveable(page, status, state.session?.account, state.session?.passkeyAvailable) { mutableStateOf<PasskeyIntent?>(null) }
     val setup = state.session?.setupPending == true || status == "no_account"
     val authorize = status == "pairing_required" || status == "root_required"
     LaunchedEffect(state.busy, setup) { slow = false; if (state.busy && setup) { delay(15_000); slow = true } }
-    BackHandler(page != AccessPage.WELCOME) { client.showAccess(AccessPage.WELCOME) }
+    fun backToWelcome() {
+        if (anotherAccount) {
+            if (state.busy) return
+            client.cancelAuthentication()
+        }
+        client.showAccess(AccessPage.WELCOME)
+    }
+    BackHandler(page != AccessPage.WELCOME, onBack = ::backToWelcome)
     BackHandler(intent != null) { intent = null; client.cancelAuthentication() }
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        if (status == "moved") { Box(Modifier.padding(padding)) { MovedWorkspaceScreen(client) }; return@Scaffold }
-        if (page != AccessPage.WELCOME) {
+        if (status == "moved" && !anotherAccount) { Box(Modifier.padding(padding)) { MovedWorkspaceScreen(client) }; return@Scaffold }
+        if (page != AccessPage.WELCOME && !anotherAccount) {
             Column(Modifier.fillMaxSize().padding(padding)) {
                 TextButton(onClick = { client.showAccess(AccessPage.WELCOME) }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null); Text(str(R.string.text_back_5db5cac)) }
                 when (page) {
@@ -65,16 +80,21 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                 else if (incoming.count > 0) Notice(str(R.string.text_shared_items_are_waiting_unlock_an_account_to_review_and_import_t_713dc4a))
                 incoming.error?.let { Notice(errorText(it), true) }
                 if (intent != null) IconButton(onClick = { intent = null; client.cancelAuthentication() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
+                else if (anotherAccount) TextButton(onClick = ::backToWelcome, enabled = !state.busy) { Text(str(R.string.text_cancel_998b9c4)) }
                 Image(painterResource(R.drawable.dmsg_mark), null, Modifier.padding(top = 24.dp).size(64.dp))
                 Text(str(when (intent) {
                     PasskeyIntent.NEW_WORKSPACE -> R.string.access_new_workspace
                     PasskeyIntent.EXISTING_ACCOUNT -> R.string.access_existing_account
-                    null -> if (status == "locked") R.string.text_welcome_back_70da839 else R.string.text_keep_what_matters_private_2a3adeb
+                    null -> when {
+                        anotherAccount -> R.string.access_sign_in_another
+                        status == "locked" -> R.string.text_welcome_back_70da839
+                        else -> R.string.text_keep_what_matters_private_2a3adeb
+                    }
                 }), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                 Text(str(when (intent) {
                     PasskeyIntent.NEW_WORKSPACE -> R.string.text_your_passkey_will_be_saved_by_your_credential_provider_this_creat_527af1f
                     PasskeyIntent.EXISTING_ACCOUNT -> R.string.access_linked_login
-                    null -> R.string.text_protect_passwords_notes_and_files_with_end_to_end_encryption_sync_50ec150
+                    null -> if (anotherAccount) R.string.access_linked_login else R.string.text_protect_passwords_notes_and_files_with_end_to_end_encryption_sync_50ec150
                 }), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
                 when {
@@ -92,11 +112,18 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                         Notice(str(R.string.text_approve_this_phone_from_an_authorized_device_then_continue_here_7cbcaea))
                         Button(onClick = { client.passkey() }, enabled = !authentication.working && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_existing_passkey)) }
                     }
+                    anotherAccount -> {
+                        if (state.session?.passkeyAvailable == true) Button(onClick = { intent = PasskeyIntent.EXISTING_ACCOUNT }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                            Text(str(R.string.text_sign_in_with_passkey_0c861d7))
+                        }
+                        InternetIdentityButton(primary = state.session?.passkeyAvailable != true, enabled = !state.busy) { client.login(open = openLogin) }
+                    }
                     setup -> {
                         Button(onClick = client::initialize, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.access_new_workspace)) }
                         if (status == "no_account") OutlinedButton(onClick = { client.showAccess(AccessPage.JOIN_ACCOUNT) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.access_existing_account)) }
                         Notice(if (slow) str(R.string.text_the_network_is_taking_longer_than_usual_your_setup_progress_is_ke_d703303)
                             else str(R.string.text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122))
+                        TextButton(onClick = client::signInToAnotherAccount, enabled = !state.busy) { Text(str(R.string.text_switch_account_52f71df)) }
                     }
                     authorize -> {
                         Notice(str(R.string.text_approve_this_phone_from_an_authorized_device_then_continue_here_7cbcaea))
@@ -120,8 +147,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                                     TextButton(onClick = { intent = PasskeyIntent.NEW_WORKSPACE }, enabled = !authentication.working && !state.busy) { Text(str(R.string.access_new_workspace)) }
                                 }
                             }
-                            if (state.session?.passkeyAvailable == true || state.session?.fastUnlock == true) OutlinedButton(onClick = { client.login(open = openLogin) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
-                            else Button(onClick = { client.login(open = openLogin) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
+                            InternetIdentityButton(primary = state.session?.passkeyAvailable != true && state.session?.fastUnlock != true, enabled = !state.busy) { client.login(open = openLogin) }
                             Text(if (state.session?.fastUnlock == true) str(R.string.text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d)
                                 else if (state.session?.passkeyAvailable == true) str(R.string.signin_saved_passkey)
                                 else str(R.string.text_sign_in_opens_your_system_browser_content_access_still_requires_a_6a9bef5), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -133,7 +159,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                     Button(onClick = client::continuePasskey, enabled = !authentication.working) { Text(str(R.string.text_continue_registration_or_binding_e6a67ca)) }
                 }
                 if (authentication.canResetSessions) TextButton(onClick = { confirmingReset = true }) { Text(str(R.string.text_sign_out_this_passkey_s_devices_2927dca)) }
-                TextButton(onClick = { choosingAccount = true }, enabled = !state.busy) { Text(str(R.string.text_saved_accounts_e314a1f)) }
+                if (!anotherAccount) TextButton(onClick = { choosingAccount = true }, enabled = !state.busy) { Text(str(R.string.text_saved_accounts_e314a1f)) }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { choosingLanguage = true }, modifier = Modifier.testTag("open-language")) { Text(str(R.string.app_language)) }
                     TextButton(onClick = { information = "privacy" }) { Text(str(R.string.text_privacy_policy_d216307)) }
@@ -149,7 +175,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
         Surface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 TextButton(onClick = { choosingAccount = false }) { Text(str(R.string.text_close_6cf4a77)) }
-                Box(Modifier.weight(1f)) { AccountsScreen(client) }
+                Box(Modifier.weight(1f)) { AccountsScreen(client) { choosingAccount = false } }
             }
         }
     }

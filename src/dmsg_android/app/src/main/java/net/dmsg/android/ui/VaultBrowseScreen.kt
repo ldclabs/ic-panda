@@ -53,6 +53,8 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
     var types by remember { mutableStateOf(false) }
     var tags by remember { mutableStateOf(false) }
     var tools by remember { mutableStateOf(false) }
+    val savedAccounts by client.accountWorkspace.accounts.state.collectAsStateWithLifecycle()
+    LaunchedEffect(tools, localMode) { if (tools && !localMode) client.accountWorkspace.accounts(resolveNames = false) }
     LaunchedEffect(Unit) { client.vault.browse() }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
@@ -92,6 +94,9 @@ private fun kindIcon(kind: String): ImageVector = when (kind) {
                         if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_shared_snapshots_08679a9)) }, onClick = { tools = false; client.navigation.open("secret-shares") })
                         if (!localMode) DropdownMenuItem(text = { Text(str(R.string.text_import_secret_package_51433fa)) }, onClick = { tools = false; client.navigation.open("secret-import") })
                         DropdownMenuItem(text = { Text(str(R.string.text_import_passwords_16088a6)) }, onClick = { tools = false; client.navigation.open("vault-import") })
+                        if (!localMode && savedAccounts.valueOrNull()?.any { it.id == LOCAL_ACCOUNT } == true) {
+                            DropdownMenuItem(text = { Text(str(R.string.import_local_account)) }, onClick = { tools = false; client.navigation.open("local-import") })
+                        }
                     }
                 }
             }

@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"Usar uma chave de acesso existente"</string>
     <string name="access_linked_login" formatted="false">"Use um login já vinculado à conta que deseja abrir."</string>
     <string name="access_new_workspace" formatted="false">"Configurar um novo espaço de trabalho"</string>
+    <string name="access_sign_in_another" formatted="false">"Faça login em outra conta"</string>
     <string name="add_permission" formatted="false">"Adicionar permissão"</string>
     <string name="android_purchase_privacy" formatted="false">"Quando configuradas, as compras do Google Play usam serviços de conta Google, faturamento e verificação do dispositivo. Os tokens de compra ficam armazenados com criptografia até o serviço verificar a entrega dos direitos. O conteúdo do dMsg não é enviado ao Google. A política de serviço abaixo também descreve serviços específicos da Apple usados por outros apps dMsg."</string>
     <string name="app_language" formatted="false">"Idioma"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"Operações locais nesta sessão"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"As regras locais estão salvas; a sincronização online precisa de atenção."</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"Revisão de segurança local"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"Desbloqueio local configurado"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"O desbloqueio local independe da expiração do login online."</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"Bloqueie imediatamente em segundo plano"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"Bloquear espaço de trabalho"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"Silenciado"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"Silenciado até · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"Nome"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"Os nomes vêm do cache de perfis públicos verificados. Outros espaços de trabalho ficam bloqueados enquanto esta lista é exibida."</string>
     <string name="text_native_addresses_8199a08" formatted="false">"Endereços nativos"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"Chave Taproot nativa"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"Precisa de uma nova revisão"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"Salvar configurações"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Salvar a versão revisada?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"Salvar na biblioteca"</string>
-    <string name="text_saved_account_872291d" formatted="false">"Conta salva"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"Contas salvas"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"Cópia salva de outro dispositivo"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"Salvo localmente · aguardando envio"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"Trocar câmera"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"Troque para a conta selecionada originalmente para esta tarefa."</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"Mude para a conta convidada antes de entrar."</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"Mudar para esta conta"</string>
     <string name="text_symbols_04fef1c" formatted="false">"Símbolos"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"Sincronização e armazenamento"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"Sincronização concluída."</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"Aguardando aprovação"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"Aguardando confirmação do navegador"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"Aguardando confirmação"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"Aguardando autorização do dispositivo"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"Aguardando o prazo da política"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"Aguardando o sistema ou transferindo"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"Aguardando o outro dispositivo"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"Retirar esta mensagem?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"Retirado pelo remetente"</string>
     <string name="text_working_ef6a315" formatted="false">"Em andamento"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"Espaço de trabalho salvo neste dispositivo"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"Escreva uma carta"</string>
     <string name="text_yes_4e00e01" formatted="false">"Sim"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"Você já tem este plano. Gerencie a renovação no Google Play."</string>

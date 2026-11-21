@@ -1,5 +1,24 @@
 # Android implementation validation
 
+## Account switching and screenshots — 2026-11-21
+
+The main workspace allows foreground screenshots for feedback. Its Recent apps card is black,
+including when the launcher renders a live window. The separate system-export authentication
+window still uses `FLAG_SECURE`. Earlier secure-window checks below describe previous builds.
+
+Android 12 and 16 ARM64 emulators each passed ten focused instrumentation tests. The system
+screenshot action saved a readable welcome page on both. Visual checks covered an open language
+dialog, direct entry into Recent apps and entry through Home. Turning the Android 12 screen off
+also produced a theme-only task snapshot. The QA variant passed 121 JVM tests and the resource
+check covered all 23 languages.
+
+Account flow tests exercised locking and reopening a local workspace, choosing another login,
+cancelling, and selecting the saved workspace again. The cloud fixture also retained its
+selected account after cancellation. The system Back action waits during an alternate sign-in
+and remains available on the join-account page. On Android 16, the alternate-account Internet Identity
+action opened the dMsg sign-in page in Chrome. Physical devices and a completed sign-in with
+real credentials remain unverified.
+
 ## Encrypted vault drafts and lifecycle recovery — 2026-11-17
 
 Implemented on the `a9b371e9` worktree. Vault input now belongs to the account

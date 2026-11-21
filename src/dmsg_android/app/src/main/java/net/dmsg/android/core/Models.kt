@@ -15,7 +15,7 @@ fun LibraryFile.atVersion(v: FileVersion) = copy(version = v.id, mime = v.mime ?
 data class FileDetails(val file: LibraryFile, val versions: List<FileVersion>)
 data class Letter(val id: String, val sender: String, val text: String, val read: Boolean, val archived: Boolean, val state: String, val createdAt: ULong)
 data class Approval(val id: String, val digest: String, val kind: String, val state: String, val source: String, val risk: String, val expiresAt: ULong, val supported: Boolean)
-enum class AccessPage { WELCOME, JOIN_ACCOUNT, PAIRING, RECOVERY, HANDOVER }
+enum class AccessPage { WELCOME, SIGN_IN_ANOTHER, JOIN_ACCOUNT, PAIRING, RECOVERY, HANDOVER }
 
 data class UiState(
     val starting: Boolean = true,

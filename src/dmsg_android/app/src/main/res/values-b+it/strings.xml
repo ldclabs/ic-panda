@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"Usa una passkey esistente"</string>
     <string name="access_linked_login" formatted="false">"Usa un accesso già collegato all’account che vuoi aprire."</string>
     <string name="access_new_workspace" formatted="false">"Configura un nuovo spazio di lavoro"</string>
+    <string name="access_sign_in_another" formatted="false">"Accedi a un altro account"</string>
     <string name="add_permission" formatted="false">"Aggiungi permesso"</string>
     <string name="android_purchase_privacy" formatted="false">"Quando configurati, gli acquisti Google Play usano i servizi Google per account, fatturazione e verifica del dispositivo. I token di acquisto vengono conservati cifrati finché il servizio non verifica l\'erogazione dei diritti. I contenuti dMsg non vengono inviati a Google. L\'informativa seguente descrive anche i servizi specifici Apple usati da altre app dMsg."</string>
     <string name="app_language" formatted="false">"Lingua"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"Operazioni locali in questa sessione"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"Le regole locali sono salvate; la sincronizzazione online richiede attenzione."</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"Revisione della sicurezza locale"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"Sblocco locale configurato"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"Lo sblocco locale è indipendente dalla scadenza dell\'accesso online."</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"Blocca immediatamente in background"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"Blocca l\'area di lavoro"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"Silenziato"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"Silenziato fino a · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"Nome"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"I nomi provengono dalla cache dei profili pubblici verificati. Gli altri spazi di lavoro restano bloccati mentre questo elenco è visibile."</string>
     <string name="text_native_addresses_8199a08" formatted="false">"Indirizzi nativi"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"Chiave Taproot nativa"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"Ha bisogno di una nuova recensione"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"Salva impostazioni"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"Salvare la versione esaminata?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"Salva nella libreria"</string>
-    <string name="text_saved_account_872291d" formatted="false">"Account salvato"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"Account salvati"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"Copia salvata da un altro dispositivo"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"Salvato localmente · in attesa di invio"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"Cambia fotocamera"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"Passa all\'account selezionato in origine per questa attività."</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"Passa all’account invitato prima di partecipare."</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"Passa a questo account"</string>
     <string name="text_symbols_04fef1c" formatted="false">"Simboli"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"Sincronizzazione e archiviazione"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"Sincronizzazione completata."</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"In attesa di approvazione"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"In attesa della conferma del browser"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"In attesa di conferma"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"In attesa dell\'autorizzazione del dispositivo"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"In attesa del ritardo previsto dalla politica"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"In attesa del sistema o in trasferimento"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"In attesa dell’altro dispositivo"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"Ritirare questo messaggio?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"Ritirato dal mittente"</string>
     <string name="text_working_ef6a315" formatted="false">"In corso"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"Spazio di lavoro salvato su questo dispositivo"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"Scrivi una lettera"</string>
     <string name="text_yes_4e00e01" formatted="false">"Sì"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"Hai già questo piano. Gestisci il rinnovo in Google Play."</string>

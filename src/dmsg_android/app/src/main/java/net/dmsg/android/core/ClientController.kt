@@ -595,6 +595,7 @@ class ClientController internal constructor(private val application: Application
         automaticUnlock.suppress()
         perform({ core -> authentication.authenticate(core, operation, credential, resume) }, transition = true) { completed ->
             mutable.update { it.copy(concealed = false) }
+            if (completed.operation == PasskeyOperation.LOGIN && mutableAccess.value == AccessPage.SIGN_IN_ANOTHER) showAccess(AccessPage.WELCOME)
             if (completed.operation == PasskeyOperation.RESET_SESSIONS) {
                 authentication.capacityRecovery()?.let { (id, purpose) -> passkey(purpose, id) }
             } else if (completed.approval != null) approvals.open(completed.approval) else refresh("vault")
@@ -646,7 +647,10 @@ class ClientController internal constructor(private val application: Application
             val generation = sessions.snapshot?.generation ?: return
             bindingReturn = BindingReturn(raw, generation, SystemClock.elapsedRealtime() + 180_000)
             continueBrowserBinding()
-        } else perform({ it.completeLogin(raw) }, transition = true) { refresh("vault") }
+        } else perform({ it.completeLogin(raw) }, transition = true) {
+            showAccess(AccessPage.WELCOME)
+            refresh("vault")
+        }
     }
 
     fun routePendingConnect() {
@@ -685,6 +689,23 @@ class ClientController internal constructor(private val application: Application
     }
 
     fun unlock() { automaticUnlock.suppress(); perform({ it.unlockFast() }, transition = true) { refresh("vault") } }
+    fun signInToAnotherAccount() {
+        val current = state.value.session ?: return
+        if (state.value.busy) return
+        if (!state.value.unlocked && current.accountKind != "local") {
+            automaticUnlock.suppress()
+            cancelAuthentication()
+            showAccess(AccessPage.SIGN_IN_ANOTHER)
+            return
+        }
+        lock {
+            if (state.value.session?.account != current.account) return@lock
+            if (current.accountKind == "local") {
+                // Leaving the offline slot enables network login and retains its encrypted workspace.
+                perform({ systemExports.invalidate(); it.logout() }, transition = true) { showAccess(AccessPage.SIGN_IN_ANOTHER) }
+            } else showAccess(AccessPage.SIGN_IN_ANOTHER)
+        }
+    }
     fun openLocal() {
         lock {
             perform({ engine ->

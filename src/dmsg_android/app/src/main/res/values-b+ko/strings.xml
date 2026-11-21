@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"기존 패스키 사용"</string>
     <string name="access_linked_login" formatted="false">"열려는 계정에 이미 연결된 로그인 방법을 사용하세요."</string>
     <string name="access_new_workspace" formatted="false">"새 작업 공간 설정"</string>
+    <string name="access_sign_in_another" formatted="false">"다른 계정으로 로그인"</string>
     <string name="add_permission" formatted="false">"권한 추가"</string>
     <string name="android_purchase_privacy" formatted="false">"설정된 경우 Google Play 구매에는 Google 계정, 결제 및 기기 확인 서비스가 사용됩니다. 구매 토큰은 서비스가 권리 제공을 확인할 때까지 암호화되어 보관됩니다. dMsg 콘텐츠는 Google에 전송되지 않습니다. 아래 서비스 정책에는 다른 dMsg 앱에서 사용하는 Apple 전용 서비스도 설명되어 있습니다."</string>
     <string name="app_language" formatted="false">"언어"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"이 세션의 로컬 작업"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"로컬 규칙은 저장되었습니다. 온라인 동기화는 확인이 필요합니다."</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"로컬 보안 검토"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"로컬 잠금 해제 설정됨"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"로컬 잠금 해제는 온라인 로그인 만료와 별개입니다."</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"백그라운드에서 즉시 잠금"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"작업 공간 잠금"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"음소거됨"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"음소거 종료 · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"이름"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"이름은 확인된 공개 프로필에서 캐시합니다. 이 목록이 표시되는 동안 다른 작업 공간은 잠긴 상태로 유지됩니다."</string>
     <string name="text_native_addresses_8199a08" formatted="false">"네이티브 주소"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"네이티브 Taproot 키"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"새로운 검토가 필요합니다"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"설정 저장"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"검토한 버전을 저장할까요?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"라이브러리에 저장"</string>
-    <string name="text_saved_account_872291d" formatted="false">"저장된 계정"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"저장된 계정"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"다른 기기에서 저장한 사본"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"로컬에 저장됨 · 전송 대기"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"카메라 전환"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"이 작업에 원래 선택한 계정으로 전환하세요."</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"참여하기 전에 초대받은 계정으로 전환하세요."</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"이 계정으로 전환하세요"</string>
     <string name="text_symbols_04fef1c" formatted="false">"기호"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"동기화 및 저장 공간"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"동기화가 완료되었습니다."</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"승인을 기다리는 중"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"브라우저 확인을 기다리는 중"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"확인 대기 중"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"기기 승인 대기 중"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"정책 지연 대기 중"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"시스템 대기 또는 전송 중"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"다른 장치를 기다리는 중"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"이 메시지를 철회하시겠습니까?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"보낸 사람이 철회함"</string>
     <string name="text_working_ef6a315" formatted="false">"진행 중"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"이 기기에 저장된 작업 공간"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"편지 쓰기"</string>
     <string name="text_yes_4e00e01" formatted="false">"예"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"이미 이 요금제를 사용 중입니다. Google Play에서 갱신을 관리하세요."</string>

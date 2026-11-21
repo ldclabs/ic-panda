@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,6 +16,7 @@ import androidx.browser.customtabs.CustomTabsService
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import net.dmsg.android.core.LoginCallback
+import net.dmsg.android.platform.RecentsPrivacy
 import net.dmsg.android.ui.DMsgApp
 
 class MainActivity : ComponentActivity() {
@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         net.dmsg.android.platform.AppLanguage.applyToWindow(this)
         client.navigation.restore(savedInstanceState?.getString("workspace-navigation"))
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        RecentsPrivacy(this).install()
         enableEdgeToEdge()
         if (savedInstanceState == null) receive(intent)
         ContextCompat.registerReceiver(this, screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), ContextCompat.RECEIVER_NOT_EXPORTED)

@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import net.dmsg.android.core.AccessPage
 import net.dmsg.android.ui.DMsgTheme
 import net.dmsg.android.ui.EntryScreen
 import org.junit.Assert.assertEquals
@@ -14,6 +15,31 @@ import org.junit.Test
 
 class WelcomeIntentTest {
     @get:Rule val compose = createAndroidComposeRule<QaWorkspaceActivity>()
+
+    @Test fun systemBackDuringSignInOnlyWaitsOnTheAlternateLoginPage() {
+        val client = compose.activity.qaClient
+        compose.waitUntil(15_000) { client.state.value.unlocked }
+        compose.runOnUiThread { client.lock() }
+        compose.waitUntil(15_000) { client.state.value.session?.state == "locked" && !client.state.value.busy }
+        val locked = client.state.value
+        val busy = mutableStateOf(true)
+        compose.runOnUiThread {
+            client.showAccess(AccessPage.SIGN_IN_ANOTHER)
+            compose.activity.setContent {
+                DMsgTheme(false) { EntryScreen(client, locked.copy(busy = busy.value), {}, {}, remember { SnackbarHostState() }) }
+            }
+        }
+        fun pressBack() = compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        pressBack()
+        assertEquals(AccessPage.SIGN_IN_ANOTHER, client.access.value)
+        compose.runOnIdle { busy.value = false }
+        pressBack()
+        assertEquals(AccessPage.WELCOME, client.access.value)
+
+        compose.runOnIdle { busy.value = true; client.showAccess(AccessPage.JOIN_ACCOUNT) }
+        pressBack()
+        assertEquals(AccessPage.WELCOME, client.access.value)
+    }
 
     @Test fun newAndReturningUsersChooseAnIntentBeforeOpeningACredentialProvider() {
         val client = compose.activity.qaClient

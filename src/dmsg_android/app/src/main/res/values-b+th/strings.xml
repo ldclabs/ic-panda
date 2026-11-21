@@ -5,6 +5,7 @@
     <string name="access_existing_passkey" formatted="false">"ใช้พาสคีย์ที่มีอยู่"</string>
     <string name="access_linked_login" formatted="false">"ใช้วิธีเข้าสู่ระบบที่เชื่อมโยงกับบัญชีที่คุณต้องการเปิดอยู่แล้ว"</string>
     <string name="access_new_workspace" formatted="false">"ตั้งค่าพื้นที่ทำงานใหม่"</string>
+    <string name="access_sign_in_another" formatted="false">"ลงชื่อเข้าใช้บัญชีอื่น"</string>
     <string name="add_permission" formatted="false">"เพิ่มสิทธิ์"</string>
     <string name="android_purchase_privacy" formatted="false">"เมื่อกำหนดค่าแล้ว การซื้อผ่าน Google Play จะใช้บริการบัญชี Google การเรียกเก็บเงิน และการตรวจสอบอุปกรณ์ โทเค็นการซื้อจะถูกเก็บแบบเข้ารหัสจนกว่าบริการจะยืนยันการมอบสิทธิ์ เนื้อหา dMsg จะไม่ถูกส่งให้ Google นโยบายบริการด้านล่างยังอธิบายบริการเฉพาะของ Apple ที่แอป dMsg อื่นใช้ด้วย"</string>
     <string name="app_language" formatted="false">"ภาษา"</string>
@@ -942,7 +943,6 @@
     <string name="text_local_operations_in_this_session_5b92d3b" formatted="false">"การดำเนินการในอุปกรณ์ของเซสชันนี้"</string>
     <string name="text_local_rules_are_saved_online_synchronization_needs_attention_fc85a7d" formatted="false">"บันทึกกฎในอุปกรณ์แล้ว ต้องตรวจสอบการซิงก์ออนไลน์"</string>
     <string name="text_local_security_review_b7f4013" formatted="false">"การตรวจสอบความปลอดภัยในท้องถิ่น"</string>
-    <string name="text_local_unlock_is_configured_4c7291c" formatted="false">"ตั้งค่าการปลดล็อกในอุปกรณ์แล้ว"</string>
     <string name="text_local_unlock_is_independent_of_online_sign_in_expiry_5c2417d" formatted="false">"การปลดล็อกในอุปกรณ์เป็นอิสระจากการหมดอายุการลงชื่อเข้าใช้ออนไลน์"</string>
     <string name="text_lock_immediately_in_background_67ea031" formatted="false">"ล็อคทันทีในพื้นหลัง"</string>
     <string name="text_lock_workspace_78665ed" formatted="false">"ล็อคพื้นที่ทำงาน"</string>
@@ -1013,7 +1013,6 @@
     <string name="text_muted_8d0508d" formatted="false">"ปิดเสียงแล้ว"</string>
     <string name="text_muted_until_50fbca1" formatted="false">"ปิดเสียงจนถึง · "</string>
     <string name="text_name_dd4dc4c" formatted="false">"ชื่อ"</string>
-    <string name="text_names_are_cached_from_verified_public_profiles_other_workspaces_s_11b1c7c" formatted="false">"ชื่อถูกแคชจากโปรไฟล์สาธารณะที่ตรวจสอบแล้ว พื้นที่ทำงานอื่นจะยังล็อกอยู่ขณะแสดงรายการนี้"</string>
     <string name="text_native_addresses_8199a08" formatted="false">"ที่อยู่ native"</string>
     <string name="text_native_taproot_key_741b323" formatted="false">"คีย์ Taproot native"</string>
     <string name="text_needs_a_fresh_review_495fb48" formatted="false">"จำเป็นต้องทบทวนใหม่"</string>
@@ -1533,7 +1532,6 @@
     <string name="text_save_settings_a01ddf9" formatted="false">"บันทึกการตั้งค่า"</string>
     <string name="text_save_the_reviewed_version_a2ead70" formatted="false">"บันทึกเวอร์ชันที่ตรวจทานแล้วหรือไม่?"</string>
     <string name="text_save_to_library_0ea6c15" formatted="false">"บันทึกลงคลัง"</string>
-    <string name="text_saved_account_872291d" formatted="false">"บัญชีที่บันทึกไว้"</string>
     <string name="text_saved_accounts_e314a1f" formatted="false">"บัญชีที่บันทึกไว้"</string>
     <string name="text_saved_copy_from_another_device_a18a734" formatted="false">"สำเนาที่บันทึกจากอุปกรณ์อื่น"</string>
     <string name="text_saved_locally_waiting_to_send_7e2484e" formatted="false">"บันทึกในอุปกรณ์แล้ว · รอส่ง"</string>
@@ -1723,7 +1721,6 @@
     <string name="text_switch_camera_01e5df0" formatted="false">"สลับกล้อง"</string>
     <string name="text_switch_to_the_account_originally_selected_for_this_task_80ba072" formatted="false">"สลับไปยังบัญชีที่เลือกไว้เดิมสำหรับงานนี้"</string>
     <string name="text_switch_to_the_invited_account_before_joining_f24b50c" formatted="false">"สลับไปยังบัญชีที่ได้รับเชิญก่อนเข้าร่วม"</string>
-    <string name="text_switch_to_this_account_d82d52a" formatted="false">"เปลี่ยนไปใช้บัญชีนี้"</string>
     <string name="text_symbols_04fef1c" formatted="false">"สัญลักษณ์"</string>
     <string name="text_sync_and_storage_6513532" formatted="false">"การซิงค์และพื้นที่จัดเก็บ"</string>
     <string name="text_sync_completed_03e1220" formatted="false">"ซิงก์เสร็จแล้ว"</string>
@@ -2031,7 +2028,6 @@
     <string name="text_waiting_for_approval_45d78c0" formatted="false">"รอการอนุมัติ"</string>
     <string name="text_waiting_for_browser_confirmation_a77bc19" formatted="false">"กำลังรอการยืนยันเบราว์เซอร์"</string>
     <string name="text_waiting_for_confirmation_9c87aad" formatted="false">"กำลังรอการยืนยัน"</string>
-    <string name="text_waiting_for_device_authorization_9b74008" formatted="false">"รอการอนุญาตอุปกรณ์"</string>
     <string name="text_waiting_for_policy_delay_7d2eaa2" formatted="false">"รอระยะหน่วงตามนโยบาย"</string>
     <string name="text_waiting_for_system_or_transferring_4fb8f12" formatted="false">"รอระบบหรือกำลังถ่ายโอน"</string>
     <string name="text_waiting_for_the_other_device_dc2dcde" formatted="false">"กำลังรออุปกรณ์อีกเครื่อง"</string>
@@ -2065,7 +2061,6 @@
     <string name="text_withdraw_this_message_6ad534b" formatted="false">"ถอนข้อความนี้?"</string>
     <string name="text_withdrawn_by_the_sender_cad3248" formatted="false">"ผู้ส่งถอนแล้ว"</string>
     <string name="text_working_ef6a315" formatted="false">"อยู่ระหว่างดำเนินการ"</string>
-    <string name="text_workspace_saved_on_this_device_dc64e7f" formatted="false">"บันทึกพื้นที่ทำงานบนอุปกรณ์นี้แล้ว"</string>
     <string name="text_write_a_letter_1a8f9c9" formatted="false">"เขียนจดหมาย"</string>
     <string name="text_yes_4e00e01" formatted="false">"ใช่"</string>
     <string name="text_you_already_have_this_plan_manage_renewal_in_google_play_19b2cff" formatted="false">"คุณมีแพ็กเกจนี้แล้ว จัดการการต่ออายุใน Google Play"</string>

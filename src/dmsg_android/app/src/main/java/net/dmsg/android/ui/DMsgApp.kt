@@ -108,10 +108,18 @@ private val allDestinations = listOf(
                         }
                         Scaffold(
                             modifier = Modifier.weight(1f).imePadding(),
-                            topBar = { TopAppBar(title = { Text(if (route == "messages" && selected.isNotEmpty()) channelListing.valueOrNull()?.find { it.id == selected }?.name ?: str(R.string.text_conversation_654b88b) else if (root) destinations.first { it.id == route }.let { str(it.label) } else title(route), style = MaterialTheme.typography.titleLarge) }, navigationIcon = {
+                            topBar = { TopAppBar(title = {
+                                val label = when {
+                                    local && route == "account" -> str(R.string.offline_account)
+                                    inConversation -> channelListing.valueOrNull()?.find { it.id == selected }?.name ?: str(R.string.text_conversation_654b88b)
+                                    root -> str(destinations.first { it.id == route }.label)
+                                    else -> title(route)
+                                }
+                                Text(label, style = MaterialTheme.typography.titleLarge)
+                            }, navigationIcon = {
                                 if (navigation.canGoBack) IconButton(onClick = { client.navigation.back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
                             }, actions = {
-                                if (route == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
+                                if (!local && route == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
                                 if (!local) Box {
                                     IconButton(onClick = { activityMenu = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
                                     DropdownMenu(activityMenu, { activityMenu = false }) {
@@ -313,7 +321,7 @@ private fun title(route: String) = when (route) {
     "account-delete" -> str(R.string.text_delete_service_account_1475636)
     "membership" -> str(R.string.text_membership_ff9b3ff)
     "membership-compare" -> str(R.string.text_compare_all_plans_a6fbd12)
-    "accounts" -> str(R.string.text_saved_accounts_e314a1f)
+    "accounts" -> str(R.string.text_switch_account_52f71df)
     "display-cache" -> str(R.string.text_cached_data_b29fb6f)
     "account-remove" -> str(R.string.text_remove_local_data_c45125e)
     "invite-letter-sender" -> str(R.string.text_invite_to_a_conversation_e66d6f9)
