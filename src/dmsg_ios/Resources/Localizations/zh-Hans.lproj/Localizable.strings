@@ -55,7 +55,7 @@
 	<key>Access the copies you explicitly exported from dMsg</key>
 	<string>访问你明确从 dMsg 导出的副本</string>
 	<key>Account</key>
-	<string>我的</string>
+	<string>账户</string>
 	<key>Account ID</key>
 	<string>账号 ID</string>
 	<key>Account recovery</key>
@@ -3301,7 +3301,7 @@
 	<key>Anyone with this link can see your public profile, even before entering a password.</key>
 	<string>持有此链接的人可以查看你的公开资料，无需先输入密码。</string>
 	<key>Open dMsg → Account → System integrations → Password AutoFill → Select login items.</key>
-	<string>打开 dMsg 工作区 → 我的 → 系统集成 → 密码自动填充 → 选择登录项</string>
+	<string>打开 dMsg 工作区 → 账户 → 系统集成 → 密码自动填充 → 选择登录项</string>
 	<key>Open and unlock dMsg to update AutoFill, then try again.</key>
 	<string>请打开并解锁 dMsg，更新自动填充后重试。</string>
 	<key>Choose screenshots</key>

@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Ta wersja ma już kopię zapasową."</string>
     <string name="backup_selected_help" formatted="false">"Kopie zapasowe plików są tworzone tylko wtedy, gdy wyraźnie tak zdecydujesz."</string>
     <string name="backup_total_size" formatted="false">"Łączny rozmiar"</string>
+    <string name="browse_filters" formatted="false">"Filtry skarbca"</string>
+    <string name="browse_passwords" formatted="false">"Hasła"</string>
     <string name="choose_permission" formatted="false">"Wybierz uprawnienie"</string>
     <string name="cipher_transfer_running" formatted="false">"Przesyłanie zaszyfrowanych bloków"</string>
     <string name="cipher_transfer_title" formatted="false">"Zaszyfrowane transfery"</string>

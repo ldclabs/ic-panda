@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Cette version est déjà sauvegardée."</string>
     <string name="backup_selected_help" formatted="false">"Les fichiers sont sauvegardés uniquement lorsque vous le choisissez explicitement."</string>
     <string name="backup_total_size" formatted="false">"Taille totale"</string>
+    <string name="browse_filters" formatted="false">"Filtres du coffre"</string>
+    <string name="browse_passwords" formatted="false">"Mots de passe"</string>
     <string name="choose_permission" formatted="false">"Choisir une autorisation"</string>
     <string name="cipher_transfer_running" formatted="false">"Transfert des blocs chiffrés"</string>
     <string name="cipher_transfer_title" formatted="false">"Transferts chiffrés"</string>

@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"This version is already backed up."</string>
     <string name="backup_selected_help" formatted="false">"Files are backed up only when you explicitly choose to do so."</string>
     <string name="backup_total_size" formatted="false">"Total size"</string>
+    <string name="browse_filters" formatted="false">"Filters"</string>
+    <string name="browse_passwords" formatted="false">"Passwords"</string>
     <string name="choose_permission" formatted="false">"Choose a permission"</string>
     <string name="cipher_transfer_running" formatted="false">"Transferring encrypted blocks"</string>
     <string name="cipher_transfer_title" formatted="false">"Encrypted transfers"</string>

@@ -105,7 +105,7 @@ final class AccountInitializationUITests: XCTestCase {
         XCTAssertFalse(app.buttons["login.join"].exists, "The account already exists; only its initial root remains pending")
         initialize.tap()
         XCTAssertFalse(initialize.isEnabled)
-        XCTAssertTrue(app.buttons["我的"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["账户"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.alerts.firstMatch.exists)
     }
 

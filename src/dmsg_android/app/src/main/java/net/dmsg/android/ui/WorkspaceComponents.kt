@@ -3,7 +3,6 @@ package net.dmsg.android.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.Check
@@ -33,13 +32,6 @@ private val LocalGroupIconColor = staticCompositionLocalOf { Color.Unspecified }
         Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large),
             verticalArrangement = Arrangement.spacedBy(2.dp), content = content)
     }
-}
-
-/** Keep the first and last corners while lazy lists compose only their visible rows. */
-internal fun Modifier.listRowShape(index: Int, count: Int): Modifier {
-    val top = if (index == 0) 20.dp else 4.dp
-    val bottom = if (index == count - 1) 20.dp else 4.dp
-    return clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
 }
 
 @Composable internal fun TonalIcon(icon: ImageVector, color: Color = LocalGroupIconColor.current) {

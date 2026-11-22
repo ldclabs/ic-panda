@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Phiên bản này đã được sao lưu."</string>
     <string name="backup_selected_help" formatted="false">"Các tập tin chỉ được sao lưu khi bạn chọn làm như vậy một cách rõ ràng."</string>
     <string name="backup_total_size" formatted="false">"Tổng dung lượng"</string>
+    <string name="browse_filters" formatted="false">"Bộ lọc vault"</string>
+    <string name="browse_passwords" formatted="false">"Mật khẩu"</string>
     <string name="choose_permission" formatted="false">"Chọn quyền"</string>
     <string name="cipher_transfer_running" formatted="false">"Đang truyền các khối đã mã hóa"</string>
     <string name="cipher_transfer_title" formatted="false">"Truyền dữ liệu mã hóa"</string>

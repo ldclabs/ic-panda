@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"اس ورژن کا بیک اپ پہلے ہی موجود ہے۔"</string>
     <string name="backup_selected_help" formatted="false">"فائلوں کا بیک اپ صرف اس وقت لیا جاتا ہے جب آپ واضح طور پر ایسا کرنے کا انتخاب کرتے ہیں۔"</string>
     <string name="backup_total_size" formatted="false">"کل سائز"</string>
+    <string name="browse_filters" formatted="false">"والٹ فلٹرز"</string>
+    <string name="browse_passwords" formatted="false">"پاس ورڈز"</string>
     <string name="choose_permission" formatted="false">"ایک اجازت منتخب کریں"</string>
     <string name="cipher_transfer_running" formatted="false">"رمز شدہ بلاکس منتقل ہو رہے ہیں"</string>
     <string name="cipher_transfer_title" formatted="false">"رمز شدہ منتقلیاں"</string>

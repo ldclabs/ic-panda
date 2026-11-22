@@ -22,6 +22,7 @@
 | 设备保护策略与延迟恢复 | 混合 | 读取设备、硬件及恢复策略 → 编辑本机策略草稿或核对登记请求 → 提交审批 → 重新读取。账户恢复另有发起、等待、核对指定请求与完成路径。 | 两个 dirty 标记分别保护未提交输入。恢复入口会核对请求摘要和实际权限。[AccountCoordinator]、[SecurityPages] |
 | 删除、移开或恢复工作区 | 混合 | 本机移除先读仅本地数据，再确认当前解锁账户。服务端注销需新鲜依赖预览、账户文本及钱包审查，再提交或继续既有任务。移开的旧设备副本有单独的处置入口。 | 三种操作作用范围不同。核对预览摘要、请求身份和实际任务结果。[AccountWorkspaceScreens]、[AccountWorkspaceCoordinator]、[AccountDeletionCoordinator]、[AccountDeletionScreen]、[HandoverCoordinator] |
 | 工作区导航与重建 | 混合 | 账户激活 → 切换工作区或压入详情 → 返回、恢复选中项和滚动位置。切换账户后使用其自己的栈和位置。宽屏的列表与详情共享路由。 | 导航栈和可保存字段的边界在 `save/restore`。预测返回在手势完成时生效。[WorkspaceNavigation]、[DMsgApp]、[WorkspaceScroll]、[AdaptiveWorkspace] |
+| 工作区搜索 | 显式 | 点按或用键盘激活搜索框后接替操作栏。清空文字继续输入，提交后收起键盘查看结果，取消后恢复浏览并保留筛选和排序。系统返回先收键盘，再退出搜索。 | 页面持有搜索展开状态，查询沿用各列表的数据来源。详情返回时恢复查询和列表位置。[WorkspaceBrowser]、[WorkspaceSearchField]、[WorkspaceScroll] |
 | 外部导航仲裁 | 隐式 | 收到快捷入口、频道邀请、浏览器连接或通知 → 新意图取代旧意图 → 等启动、解锁及匹配账户 → 展示一次、关闭或完成。系统分享另走收件流程。 | `navigationIntent`、待办记录及已展示账户共同约束迟到结果。通知需先解析目标。[MainActivity]、[ClientController]、[WorkspaceLink]、[NoticeNavigation]、[WorkspaceEntries]、[WorkspaceEntriesScreen] |
 | 浏览器连接 | 混合 | 定位邀请 → 核对发起源和目标账户 → 选择候选并请求或查看审批 → 从原生快照读取已配对、关闭、撤销或到期。 | 深链、进入详情、用户批准是不同事件。[BrowserConnectionsCoordinator]、[BrowserConnectionScreens]、[ApprovalCoordinator] |
 | 网络、同步与提示流 | 混合 | 前台合格会话 → 启动内容同步和 hints 两个 Job → 网络变化重连、约束变化重启或手动同步 → 停止并取消旧订阅。频道收到提示还会合并后续刷新。 | `owner/sync/hints/connected` 是 Android 驱动状态。内容进度与重试调度取自 Rust。[SyncCoordinator]、[ForegroundEnvironment]、[SyncScreen]、[MessageCoordinator] |
@@ -277,6 +278,7 @@
 [WalletModels]: ../app/src/main/java/net/dmsg/android/core/WalletModels.kt
 [WalletScreens]: ../app/src/main/java/net/dmsg/android/ui/WalletScreens.kt
 [Wire]: ../app/src/main/java/net/dmsg/android/core/Wire.kt
+[WorkspaceBrowser]: ../app/src/main/java/net/dmsg/android/ui/WorkspaceBrowser.kt
 [WorkspaceEntries]: ../app/src/main/java/net/dmsg/android/platform/WorkspaceEntries.kt
 [WorkspaceEntriesScreen]: ../app/src/main/java/net/dmsg/android/ui/WorkspaceEntriesScreen.kt
 [WorkspaceLink]: ../app/src/main/java/net/dmsg/android/core/WorkspaceLink.kt

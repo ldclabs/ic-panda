@@ -65,6 +65,8 @@ class LanguageResourceTest {
     @Test fun scriptSpecificChineseAndSlavicPluralFormsAreDistinct() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext
         fun resources(tag: String) = app.createConfigurationContext(Configuration(app.resources.configuration).apply { setLocales(LocaleList.forLanguageTags(tag)) }).resources
+        assertEquals("账户", resources("zh-Hans").getString(R.string.text_account_4ab56e9))
+        assertEquals("帳戶", resources("zh-Hant").getString(R.string.text_account_4ab56e9))
         assertEquals("保险库", resources("zh-Hans").getString(R.string.shortcut_vault))
         assertEquals("保險庫", resources("zh-Hant").getString(R.string.shortcut_vault))
         assertEquals("1 элемент", resources("ru").getQuantityString(R.plurals.items, 1, "1"))

@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"تم نسخ هذا الإصدار احتياطياً بالفعل."</string>
     <string name="backup_selected_help" formatted="false">"لا تُنسخ الملفات احتياطيًا إلا عندما تختار ذلك صراحةً."</string>
     <string name="backup_total_size" formatted="false">"الحجم الإجمالي"</string>
+    <string name="browse_filters" formatted="false">"عوامل تصفية الخزنة"</string>
+    <string name="browse_passwords" formatted="false">"كلمات المرور"</string>
     <string name="choose_permission" formatted="false">"اختيار إذن"</string>
     <string name="cipher_transfer_running" formatted="false">"جارٍ نقل الكتل المشفّرة"</string>
     <string name="cipher_transfer_title" formatted="false">"عمليات النقل المشفّرة"</string>

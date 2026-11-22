@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"このバージョンはバックアップ済みです。"</string>
     <string name="backup_selected_help" formatted="false">"ファイルは、明示的に選択した場合にのみバックアップされます。"</string>
     <string name="backup_total_size" formatted="false">"合計サイズ"</string>
+    <string name="browse_filters" formatted="false">"ボールトフィルター"</string>
+    <string name="browse_passwords" formatted="false">"パスワード"</string>
     <string name="choose_permission" formatted="false">"権限を選択"</string>
     <string name="cipher_transfer_running" formatted="false">"暗号化ブロックを転送中"</string>
     <string name="cipher_transfer_title" formatted="false">"暗号化転送"</string>

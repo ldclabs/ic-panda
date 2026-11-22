@@ -6,7 +6,7 @@ final class AppStoreScreenshotTests: XCTestCase {
 
     func testEnglishScreenshots() { capture(language: "en", locale: "en_US", account: "Account") }
 
-    func testChineseScreenshots() { capture(language: "zh-Hans", locale: "zh_CN", account: "我的") }
+    func testChineseScreenshots() { capture(language: "zh-Hans", locale: "zh_CN", account: "账户") }
 
     private func capture(language: String, locale: String, account: String) {
         let app = XCUIApplication()

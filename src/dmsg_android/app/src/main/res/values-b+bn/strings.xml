@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"এই সংস্করণের ব্যাকআপ ইতিমধ্যেই আছে।"</string>
     <string name="backup_selected_help" formatted="false">"ফাইলগুলি শুধুমাত্র তখনই ব্যাক আপ করা হয় যখন আপনি স্পষ্টভাবে এটি করতে চান৷"</string>
     <string name="backup_total_size" formatted="false">"মোট আকার"</string>
+    <string name="browse_filters" formatted="false">"ভল্ট ফিল্টার"</string>
+    <string name="browse_passwords" formatted="false">"পাসওয়ার্ড"</string>
     <string name="choose_permission" formatted="false">"একটি অনুমতি বেছে নিন"</string>
     <string name="cipher_transfer_running" formatted="false">"এনক্রিপ্ট করা ব্লক স্থানান্তর হচ্ছে"</string>
     <string name="cipher_transfer_title" formatted="false">"এনক্রিপ্ট করা স্থানান্তর"</string>

@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"이 버전은 이미 백업되었습니다."</string>
     <string name="backup_selected_help" formatted="false">"파일은 명시적으로 선택한 경우에만 백업됩니다."</string>
     <string name="backup_total_size" formatted="false">"총 크기"</string>
+    <string name="browse_filters" formatted="false">"볼트 필터"</string>
+    <string name="browse_passwords" formatted="false">"비밀번호"</string>
     <string name="choose_permission" formatted="false">"권한 선택"</string>
     <string name="cipher_transfer_running" formatted="false">"암호화된 블록 전송 중"</string>
     <string name="cipher_transfer_title" formatted="false">"암호화 전송"</string>

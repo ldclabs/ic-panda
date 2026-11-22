@@ -6,7 +6,7 @@ final class FeedbackUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : []) + (failure ? ["--ui-feedback-failure"] : []) + extra
         app.launch()
-        let account = ["zh-Hans": "我的", "ar": "الحساب", "de": "Konto"][language] ?? "Account"
+        let account = ["zh-Hans": "账户", "ar": "الحساب", "de": "Konto"][language] ?? "Account"
         XCTAssertTrue(app.buttons[account].waitForExistence(timeout: 10)); app.buttons[account].tap()
         tap(app.buttons["account.feedback"], in: app)
         XCTAssertTrue(field(app).waitForExistence(timeout: 5))

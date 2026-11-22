@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,47 +49,60 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
     LaunchedEffect(selected, letter?.id) { letter?.takeIf { !it.read }?.let { client.letters.mark(it, read = true) } }
     Column(Modifier.fillMaxSize()) {
         if (route.id == null) {
-            Column(Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                WorkspaceSearchField(search, { search = it }, str(R.string.text_search_letters_1249ccd))
-                if (showScopes) {
-                    WorkspaceScope(str(R.string.text_conversations_23a085e), str(R.string.text_letters_cfbff5c), true, switch = client.navigation::back)
-                }
-            }
-            Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(str(R.string.text_on_this_device_4541a6f), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.Settings, str(R.string.text_message_settings_1a28455)) }
-                IconButton(onClick = { client.letters.refresh() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
-                IconButton(onClick = { editing = client.letters.create() }) { Icon(Icons.Outlined.Edit, str(R.string.text_write_a_letter_1a8f9c9)) }
-            }
-            PrimaryScrollableTabRow(selectedTabIndex = folder.ordinal, edgePadding = 16.dp) { LetterFolder.entries.forEach { item ->
-                Tab(folder == item, onClick = { folder = item }, text = { Text(str(item.label)) })
-            } }
-            LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
-                when (folder) {
-                    LetterFolder.INBOX, LetterFolder.ARCHIVED -> {
-                        item { ReadFeedback(blocked, { client.safety.loadBlocks() }); ReadFeedback(incoming, { client.letters.refresh() }) }
-                        val rows = incoming.valueOrNull().orEmpty().filter { blocked.valueOrNull()?.contains(it.sender) == false && it.archived == (folder == LetterFolder.ARCHIVED) && (search.isBlank() || it.text.contains(search, true) || it.sender.contains(search, true)) }
-                        items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.sender, row.text, messageTime(row.createdAt), !row.read) { client.navigation.push(Route("inbox", id = row.id)) } }
-                        if (rows.isEmpty() && blocked.valueOrNull() != null && (incoming is ReadState.Ready || incoming is ReadState.Empty || incoming is ReadState.Stale)) item {
-                            EmptyPanel(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches))
-                            if (folder == LetterFolder.INBOX && search.isBlank()) OutlinedButton(onClick = { editing = client.letters.create() }) { Text(str(R.string.text_write_a_letter_1a8f9c9)) }
+            WorkspaceBrowser(str(R.string.text_letters_cfbff5c), search, { search = it }, str(R.string.text_search_letters_1249ccd),
+                actions = {
+                    IconButton(onClick = { editing = client.letters.create() }) { Icon(Icons.Outlined.Edit, str(R.string.text_write_a_letter_1a8f9c9)) }
+                    IconButton(onClick = { client.letters.refresh() }) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_cba212b)) }
+                    IconButton(onClick = { client.navigation.push(Route("message-settings")) }) { Icon(Icons.Outlined.MoreHoriz, str(R.string.text_message_settings_1a28455)) }
+                }) {
+                Row(Modifier.padding(horizontal = 16.dp)) {
+                    BrowseScopes(trailing = {
+                        var choosing by remember { mutableStateOf(false) }
+                        Box {
+                            TextButton(onClick = { choosing = true }, modifier = Modifier.testTag("letter-folders")) {
+                                Text(str(folder.label))
+                                Icon(Icons.Outlined.KeyboardArrowDown, null, Modifier.size(16.dp))
+                            }
+                            DropdownMenu(choosing, { choosing = false }) {
+                                LetterFolder.entries.forEach { entry ->
+                                    DropdownMenuItem(text = { Text(str(entry.label)) }, onClick = { choosing = false; folder = entry })
+                                }
+                            }
                         }
-                        if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+                    }) {
+                        if (showScopes) {
+                            BrowseChoice(str(R.string.text_conversations_23a085e), false, onClick = client.navigation::back)
+                            BrowseChoice(str(R.string.text_letters_cfbff5c), true) {}
+                        } else Text(str(R.string.text_on_this_device_4541a6f), style = MaterialTheme.typography.labelMedium)
                     }
-                    LetterFolder.SENT, LetterFolder.PENDING -> {
-                        item { ReadFeedback(history, { client.letters.refresh(false) }); Notice(str(R.string.text_sending_history_is_saved_on_this_device_older_records_may_not_con_b7b9992)) }
-                        val rows = history.valueOrNull().orEmpty().filter { it.pending == (folder == LetterFolder.PENDING) && (search.isBlank() || it.recipient.contains(search, true) || it.text?.contains(search, true) == true) }
-                        items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.recipient, row.text ?: str(R.string.text_message_body_unavailable_6b03555), letterState(row.state) + " · " + messageTime(row.createdAt), false) { client.navigation.push(Route("inbox", id = row.id, field = "sent")) } }
-                        if (rows.isEmpty() && (history is ReadState.Ready || history is ReadState.Empty)) item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches)) }
-                        if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
-                    }
-                    LetterFolder.DRAFTS -> {
-                        item { ReadFeedback(saved, { client.letters.refresh(false) }) }
-                        val rows = drafts.values.filter { it.text.isNotBlank() || it.recipient.isNotBlank() || !it.invitation.isNullOrBlank() }
-                            .filter { search.isBlank() || it.text.contains(search, true) || it.recipient.contains(search, true) }.sortedByDescending { it.updatedAt }
-                        items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.recipient.ifBlank { str(R.string.text_no_recipient_4b720be) }, row.text, str(R.string.text_draft_ce89527), false) { editing = row.id } }
-                        if (rows.isEmpty() && (saved is ReadState.Ready || saved is ReadState.Empty)) item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_drafts_46c70ab else R.string.no_matches)) }
-                        if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+                }
+                LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
+                    when (folder) {
+                        LetterFolder.INBOX, LetterFolder.ARCHIVED -> {
+                            item { ReadFeedback(blocked, { client.safety.loadBlocks() }); ReadFeedback(incoming, { client.letters.refresh() }) }
+                            val rows = incoming.valueOrNull().orEmpty().filter { blocked.valueOrNull()?.contains(it.sender) == false && it.archived == (folder == LetterFolder.ARCHIVED) && (search.isBlank() || it.text.contains(search, true) || it.sender.contains(search, true)) }
+                            items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.sender, row.text, messageTime(row.createdAt), !row.read) { client.navigation.push(Route("inbox", id = row.id)) } }
+                            if (rows.isEmpty() && blocked.valueOrNull() != null && (incoming is ReadState.Ready || incoming is ReadState.Empty || incoming is ReadState.Stale)) item {
+                                EmptyPanel(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches))
+                                if (folder == LetterFolder.INBOX && search.isBlank()) OutlinedButton(onClick = { editing = client.letters.create() }) { Text(str(R.string.text_write_a_letter_1a8f9c9)) }
+                            }
+                            if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+                        }
+                        LetterFolder.SENT, LetterFolder.PENDING -> {
+                            item { ReadFeedback(history, { client.letters.refresh(false) }); Notice(str(R.string.text_sending_history_is_saved_on_this_device_older_records_may_not_con_b7b9992)) }
+                            val rows = history.valueOrNull().orEmpty().filter { it.pending == (folder == LetterFolder.PENDING) && (search.isBlank() || it.recipient.contains(search, true) || it.text?.contains(search, true) == true) }
+                            items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.recipient, row.text ?: str(R.string.text_message_body_unavailable_6b03555), letterState(row.state) + " · " + messageTime(row.createdAt), false) { client.navigation.push(Route("inbox", id = row.id, field = "sent")) } }
+                            if (rows.isEmpty() && (history is ReadState.Ready || history is ReadState.Empty)) item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_letters_here_edd0b41 else R.string.no_matches)) }
+                            if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+                        }
+                        LetterFolder.DRAFTS -> {
+                            item { ReadFeedback(saved, { client.letters.refresh(false) }) }
+                            val rows = drafts.values.filter { it.text.isNotBlank() || it.recipient.isNotBlank() || !it.invitation.isNullOrBlank() }
+                                .filter { search.isBlank() || it.text.contains(search, true) || it.recipient.contains(search, true) }.sortedByDescending { it.updatedAt }
+                            items(rows.take(limit), key = { it.id }) { row -> LetterRow(row.recipient.ifBlank { str(R.string.text_no_recipient_4b720be) }, row.text, str(R.string.text_draft_ce89527), false) { editing = row.id } }
+                            if (rows.isEmpty() && (saved is ReadState.Ready || saved is ReadState.Empty)) item { EmptyPanel(str(if (search.isBlank()) R.string.text_no_drafts_46c70ab else R.string.no_matches)) }
+                            if (rows.size > limit) item { TextButton(onClick = { limit += 100 }) { Text(str(R.string.text_load_more_4e1d9f8)) } }
+                        }
                     }
                 }
             }
@@ -152,10 +166,13 @@ private enum class LetterFolder(val label: Int) { INBOX(R.string.text_inbox_8460
 }
 
 @Composable private fun LetterRow(account: String, text: String, status: String, unread: Boolean, open: () -> Unit) {
-    ListItem(modifier = Modifier.clickable(onClick = open), headlineContent = { Text(account, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        supportingContent = { Column { Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis); Text(status, style = MaterialTheme.typography.labelSmall) } },
-        leadingContent = { Icon(if (unread) Icons.Outlined.MarkEmailUnread else Icons.Outlined.MailOutline, null) })
-    HorizontalDivider()
+    BrowseRow(account, Modifier.clickable(onClick = open),
+        leading = { BrowseIcon(if (unread) Icons.Outlined.MarkEmailUnread else Icons.Outlined.MailOutline) }) {
+        Column {
+            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(status, style = MaterialTheme.typography.labelSmall)
+        }
+    }
 }
 @Composable internal fun letterState(state: String): String = when (state) {
     "visible" -> str(R.string.text_sent_baf7943); "queued" -> str(R.string.text_waiting_to_submit_b989b07); "unconfirmed" -> str(R.string.text_waiting_for_confirmation_9c87aad)

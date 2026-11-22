@@ -34,7 +34,7 @@ final class AppPreviewTests: XCTestCase {
         mark("s2.item")
         mail.tap()
         hold(3.5)
-        app.buttons[text("Account", "我的")].firstMatch.tap()
+        app.buttons[text("Account", "账户")].firstMatch.tap()
         let devices = app.descendants(matching: .any).matching(identifier: "account.devices").firstMatch
         XCTAssertTrue(devices.waitForExistence(timeout: 10))
         hold(0.8)

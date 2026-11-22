@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Van deze versie is al een back-up gemaakt."</string>
     <string name="backup_selected_help" formatted="false">"Er wordt alleen een back-up van bestanden gemaakt als je daar expliciet voor kiest."</string>
     <string name="backup_total_size" formatted="false">"Totale grootte"</string>
+    <string name="browse_filters" formatted="false">"Kluisfilters"</string>
+    <string name="browse_passwords" formatted="false">"Wachtwoorden"</string>
     <string name="choose_permission" formatted="false">"Kies een bevoegdheid"</string>
     <string name="cipher_transfer_running" formatted="false">"Versleutelde blokken overdragen"</string>
     <string name="cipher_transfer_title" formatted="false">"Versleutelde overdrachten"</string>

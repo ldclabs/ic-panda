@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"เวอร์ชันนี้สำรองข้อมูลไว้แล้ว"</string>
     <string name="backup_selected_help" formatted="false">"ไฟล์ต่างๆ จะได้รับการสำรองข้อมูลเฉพาะเมื่อคุณเลือกที่จะดำเนินการดังกล่าวอย่างชัดเจนเท่านั้น"</string>
     <string name="backup_total_size" formatted="false">"ขนาดรวม"</string>
+    <string name="browse_filters" formatted="false">"ตัวกรองห้องนิรภัย"</string>
+    <string name="browse_passwords" formatted="false">"รหัสผ่าน"</string>
     <string name="choose_permission" formatted="false">"เลือกสิทธิ์"</string>
     <string name="cipher_transfer_running" formatted="false">"กำลังโอนบล็อกที่เข้ารหัส"</string>
     <string name="cipher_transfer_title" formatted="false">"การโอนข้อมูลที่เข้ารหัส"</string>

@@ -46,7 +46,11 @@ class VaultScaleProbeTest {
             }
             report.put("seed_ms", SystemClock.elapsedRealtime() - started)
             compose.runOnIdle { client.activity(); client.navigation.open("vault") }
-            compose.onNode(hasSetTextAction()).performTextReplacement("Scale ")
+            val entry = compose.onNodeWithTag("browse-search-entry")
+            entry.performClick()
+            val search = compose.onNodeWithTag("browse-search-editor")
+            search.performTextReplacement("Scale ")
+            search.performImeAction()
             compose.waitUntil(15_000) { client.vault.listing.state.value is ReadState.Ready && client.vault.listing.value()?.total == 1000uL }
             val readStart = SystemClock.elapsedRealtime()
             var loaded = 100
@@ -92,7 +96,8 @@ class VaultScaleProbeTest {
             compose.waitUntil(10_000) { client.vault.listing.value()?.items?.size == 125 }
             assertTrue(client.vault.listing.value()!!.items.all { it.favorite })
             compose.onNode(hasText(str(R.string.text_favorites_960eb5d), substring = true)).performClick()
-            compose.onNode(hasSetTextAction()).performTextReplacement("Scale 0999")
+            entry.performClick()
+            search.performTextReplacement("Scale 0999")
             compose.waitUntil(10_000) { client.vault.listing.state.value is ReadState.Ready && client.vault.listing.value()?.total == 1uL }
             compose.onNode(hasText("Scale 0999") and hasClickAction() and !hasSetTextAction()).performClick()
             compose.waitUntil(10_000) { client.vault.detail.value()?.title == "Scale 0999" }

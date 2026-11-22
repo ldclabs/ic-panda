@@ -683,9 +683,18 @@
     "zh-Hans": "已授予访问",
     "ios": "Access granted"
   },
+  "browse_filters": {
+    "en": "Filters",
+    "zh-Hans": "筛选",
+    "ios": "Filters"
+  },
+  "browse_passwords": {
+    "en": "Passwords",
+    "zh-Hans": "密码",
+    "ios": "Passwords"
+  },
   "text_account_4ab56e9": {
     "en": "Account",
-    "zh-Hans": "账号",
     "ios": "Account"
   },
   "text_account_changes_need_an_administrator_with_account_management_per_5eddc16": {

@@ -66,7 +66,7 @@ import XCTest
     }
 
     func testExpiredLoginKeepsLocalPasswordCopyAvailable() {
-        for (language, accountTab, vaultTab) in [("en", "Account", "Vault"), ("zh-Hans", "我的", "保险库"), ("ar", "الحساب", "الخزنة")] {
+        for (language, accountTab, vaultTab) in [("en", "Account", "Vault"), ("zh-Hans", "账户", "保险库"), ("ar", "الحساب", "الخزنة")] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-login-expired", "-AppleLanguages", "(\(language))"] + (language == "en" ? [] : ["--ui-dark"])
             app.launch()
@@ -266,13 +266,13 @@ import XCTest
     }
 
     func testAccountSwitcherShowsNamesInDarkChinese() {
-        checkAccountNames(language: "zh-Hans", locale: "zh_CN", tab: "我的", personal: "个人账号", dark: true)
+        checkAccountNames(language: "zh-Hans", locale: "zh_CN", tab: "账户", personal: "个人账号", dark: true)
     }
 
     func testSlowDeviceApprovalReturnsFromPrivacyShieldWhileStillWaiting() {
         for (language, tab, confirm, waiting) in [
             ("en", "Account", "Approve this request", "Waiting for confirmation"),
-            ("zh-Hans", "我的", "批准本次请求", "等待确认"),
+            ("zh-Hans", "账户", "批准本次请求", "等待确认"),
             ("ar", "الحساب", "الموافقة على هذا الطلب", "في انتظار التأكيد")
         ] {
             let app = XCUIApplication()
@@ -360,7 +360,7 @@ import XCTest
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-approval", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
-            let tab = app.buttons[["en": "Account", "zh-Hans": "我的", "de": "Konto", "ar": "الحساب"][language]!].firstMatch
+            let tab = app.buttons[["en": "Account", "zh-Hans": "账户", "de": "Konto", "ar": "الحساب"][language]!].firstMatch
             XCTAssertTrue(tab.waitForExistence(timeout: 8)); tab.tap()
             tap("account.approvals", in: app)
             let request = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Studio iPhone")).firstMatch
@@ -400,7 +400,7 @@ import XCTest
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-account-reminders", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
-            let accountTab = app.buttons[["en": "Account", "zh-Hans": "我的", "de": "Konto", "ar": "الحساب"][language]!]
+            let accountTab = app.buttons[["en": "Account", "zh-Hans": "账户", "de": "Konto", "ar": "الحساب"][language]!]
             XCTAssertTrue(accountTab.waitForExistence(timeout: 8)); accountTab.tap()
             tap("account.switch", in: app)
             let other = app.buttons["accounts.040g2082040g2082040g"]

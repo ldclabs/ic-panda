@@ -25,6 +25,6 @@ import net.dmsg.android.platform.BoundedImages
         }, key = operation, quiet = true) { bitmap = it }
     }
     DisposableEffect(operation) { onDispose { client.cancelOperation(operation); bitmap = null } }
-    if (bitmap != null) Image(bitmap!!.asImageBitmap(), null, Modifier.size(40.dp).clip(MaterialTheme.shapes.small), contentScale = ContentScale.Crop)
-    else TonalIcon(if (file.mime.startsWith("image/")) Icons.Outlined.Image else Icons.Outlined.Description, MaterialTheme.colorScheme.secondaryContainer)
+    if (bitmap != null) Image(bitmap!!.asImageBitmap(), null, Modifier.size(36.dp).clip(MaterialTheme.shapes.small), contentScale = ContentScale.Crop)
+    else BrowseIcon(if (file.mime.startsWith("image/")) Icons.Outlined.Image else Icons.Outlined.Description)
 }

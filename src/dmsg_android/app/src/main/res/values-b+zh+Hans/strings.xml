@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"此版本已备份。"</string>
     <string name="backup_selected_help" formatted="false">"只有你明确选择时，才会备份文件。"</string>
     <string name="backup_total_size" formatted="false">"总大小"</string>
+    <string name="browse_filters" formatted="false">"筛选"</string>
+    <string name="browse_passwords" formatted="false">"密码"</string>
     <string name="choose_permission" formatted="false">"选择一项权限"</string>
     <string name="cipher_transfer_running" formatted="false">"正在传输加密分块"</string>
     <string name="cipher_transfer_title" formatted="false">"加密传输"</string>
@@ -144,7 +146,7 @@
     <string name="text_about_dmsg_630408f" formatted="false">"关于 dMsg"</string>
     <string name="text_accepting_files_4bcf6d4" formatted="false">"可接收文件"</string>
     <string name="text_access_granted_2f19dc4" formatted="false">"已授予访问"</string>
-    <string name="text_account_4ab56e9" formatted="false">"账号"</string>
+    <string name="text_account_4ab56e9" formatted="false">"账户"</string>
     <string name="text_account_changes_need_an_administrator_with_account_management_per_5eddc16" formatted="false">"账号变更需要具有账号管理权限的管理员。"</string>
     <string name="text_account_deletion_does_not_cancel_a_subscription_purchased_through_6e817fb" formatted="false">"删除账号不会取消通过商店购买的订阅，请在付款的商店账号中管理续订。"</string>
     <string name="text_account_devices_and_identities_84f8f44" formatted="false">"账号、设备与身份"</string>

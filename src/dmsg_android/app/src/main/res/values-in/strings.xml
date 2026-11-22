@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Versi ini sudah dicadangkan."</string>
     <string name="backup_selected_help" formatted="false">"File dicadangkan hanya jika Anda secara eksplisit memilih untuk melakukannya."</string>
     <string name="backup_total_size" formatted="false">"Ukuran total"</string>
+    <string name="browse_filters" formatted="false">"Filter brankas"</string>
+    <string name="browse_passwords" formatted="false">"Kata sandi"</string>
     <string name="choose_permission" formatted="false">"Pilih izin"</string>
     <string name="cipher_transfer_running" formatted="false">"Mentransfer blok terenkripsi"</string>
     <string name="cipher_transfer_title" formatted="false">"Transfer terenkripsi"</string>

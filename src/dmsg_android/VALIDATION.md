@@ -1,5 +1,26 @@
 # Android implementation validation
 
+## Workspace search, compact lists and navigation — 2026-11-23
+
+On a 1080 × 2400 API 36 ARM64 emulator at 420 dpi, the first vault row began at
+568 px in browse mode and 442 px after tapping search. Its default height was
+147 px (56 dp). After selecting 你好 in Gboard Pinyin, the Search action
+dismissed the keyboard and kept the query. Hardware Tab and Enter also opened
+the editor and submitted a confirmed candidate.
+System Back first dismissed the visible keyboard, then closed search on the same
+page. Cancel closed an empty search in one tap. At 320 dp and 200% text size,
+the Arabic search prompt occupied one line, Cancel stayed reachable, and all
+four right-to-left navigation labels fit.
+
+The four Android navigation drawables and iOS template assets are checked
+against the same Remix paths by `scripts/ios/sync-icons.py --check`. The Account
+label and the navigation instructions that refer to it were compared in all
+23 packaged languages. All 123 QA JVM tests and 25 focused API 36 device tests
+passed. The latter include actual locale changes for all 23 languages, fold and
+large-text layouts, conversation and letter navigation, batch selection of
+matching files and the 1,000-record encrypted-vault probe (125 favorites).
+Checks used offline fixtures.
+
 ## Account switching and screenshots — 2026-11-21
 
 The main workspace allows screenshots for feedback while its window has focus. Its Recent

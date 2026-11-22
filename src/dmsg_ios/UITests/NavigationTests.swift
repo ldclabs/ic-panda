@@ -59,15 +59,20 @@ final class NavigationTests: NavigationTestCase {
         let access = XCTAttachment(screenshot: app.screenshot())
         access.name = "Language entry before login"; access.lifetime = .keepAlways; add(access)
 
-        app.terminate()
-        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
-        app.launch()
-        tab(app, symbol: "Glyph-account", title: "我的").tap()
-        for _ in 0..<8 where !language.isHittable { app.swipeUp() }
-        XCTAssertTrue(language.isHittable)
-        XCTAssertEqual(language.label, "语言")
-        let account = XCTAttachment(screenshot: app.screenshot())
-        account.name = "Language entry in account"; account.lifetime = .keepAlways; add(account)
+        for (locale, region, accountTitle, languageTitle) in [
+            ("zh-Hans", "zh_CN", "账户", "语言"), ("zh-Hant", "zh_TW", "帳戶", "語言"),
+        ] {
+            app.terminate()
+            app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(locale))", "-AppleLocale", region]
+            app.launch()
+            let account = app.buttons[accountTitle].firstMatch
+            XCTAssertTrue(account.waitForExistence(timeout: 8))
+            account.tap()
+            for _ in 0..<8 where !language.isHittable { app.swipeUp() }
+            XCTAssertTrue(language.isHittable)
+            XCTAssertEqual(language.label, languageTitle)
+            capture(app, name: "Language entry in account · \(locale)")
+        }
     }
 
     func testExpandedLanguageAccessScreens() {
@@ -102,7 +107,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testReadOnlyPlanInDarkChinese() {
-        assertReadOnlyPlan(language: "zh-Hans", locale: "zh_CN", accountTitle: "我的", dark: true)
+        assertReadOnlyPlan(language: "zh-Hans", locale: "zh_CN", accountTitle: "账户", dark: true)
     }
 
     func testReadOnlyPlanInDarkArabic() {
@@ -110,7 +115,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testForeignAppleSubscriptionOffersAccountSwitchInsteadOfPurchase() {
-        for (language, title, dark) in [("en", "Account", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+        for (language, title, dark) in [("en", "Account", false), ("zh-Hans", "账户", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-foreign-subscription", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
@@ -131,7 +136,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testUnavailableProductsOfferRetryWithoutHidingRestore() {
-        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+        for (language, title, dark) in [("zh-Hans", "账户", false), ("zh-Hans", "账户", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-purchases", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
@@ -156,7 +161,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testPrepaymentFailureExplainsThatNoPaymentStarted() {
-        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+        for (language, title, dark) in [("zh-Hans", "账户", false), ("zh-Hans", "账户", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-purchase-not-started", "--ui-purchase-attestation-unavailable", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
@@ -197,7 +202,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testPurchasePreparationStartsAtTheSelectedPriceAndDisablesAnotherAttempt() {
-        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+        for (language, title, dark) in [("zh-Hans", "账户", false), ("zh-Hans", "账户", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-purchase-progress", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
@@ -238,7 +243,7 @@ final class NavigationTests: NavigationTestCase {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-purchases", "--ui-purchase-progress", "--ui-purchase-\(stage)", "-AppleLanguages", "(zh-Hans)"]
             app.launch()
-            tab(app, symbol: "Glyph-account", title: "我的").tap()
+            tab(app, symbol: "Glyph-account", title: "账户").tap()
             let plan = app.buttons["account.plan"]
             for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
             XCTAssertTrue(plan.isHittable); plan.tap()
@@ -260,7 +265,7 @@ final class NavigationTests: NavigationTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-subscription-status-unavailable", "-AppleLanguages", "(zh-Hans)"]
         app.launch()
-        tab(app, symbol: "Glyph-account", title: "我的").tap()
+        tab(app, symbol: "Glyph-account", title: "账户").tap()
         let plan = app.buttons["account.plan"]
         for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
         XCTAssertTrue(plan.isHittable); plan.tap()
@@ -278,7 +283,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testSubscriptionStatusReadFailureStaysInlineAndOffersRetry() {
-        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("ar", "الحساب", true)] {
+        for (language, title, dark) in [("zh-Hans", "账户", false), ("zh-Hans", "账户", true), ("ar", "الحساب", true)] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-subscription-status-unavailable", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
@@ -304,7 +309,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testScheduledAppleDowngradeKeepsCurrentPlan() {
-        for (language, title, dark) in [("en", "Account", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+        for (language, title, dark) in [("en", "Account", false), ("zh-Hans", "账户", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "--ui-scheduled-subscription", "-AppleLanguages", "(\(language))"] + (dark ? ["--ui-dark"] : [])
             app.launch()
@@ -326,7 +331,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testSubscriptionActionsAndProgressAlignInChineseGermanAndArabic() {
-        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+        for (language, title, dark) in [("zh-Hans", "账户", false), ("zh-Hans", "账户", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             for working in [false, true] {
                 let app = XCUIApplication()
                 app.launchArguments = ["--ui-testing", "--ui-foreign-subscription", "-AppleLanguages", "(\(language))"]
@@ -357,7 +362,7 @@ final class NavigationTests: NavigationTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-promo-subscription", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
-        tab(app, symbol: "Glyph-account", title: "我的").tap()
+        tab(app, symbol: "Glyph-account", title: "账户").tap()
         let plan = app.buttons["account.plan"]
         for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
         XCTAssertTrue(plan.isHittable)
@@ -371,7 +376,7 @@ final class NavigationTests: NavigationTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-sandbox-subscription", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
-        tab(app, symbol: "Glyph-account", title: "我的").tap()
+        tab(app, symbol: "Glyph-account", title: "账户").tap()
         let plan = app.buttons["account.plan"]
         for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
         XCTAssertTrue(plan.isHittable); plan.tap()
@@ -382,7 +387,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testSubscriptionRefreshAndExpiryAreNotPendingPurchases() {
-        for (language, title, dark) in [("zh-Hans", "我的", false), ("zh-Hans", "我的", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
+        for (language, title, dark) in [("zh-Hans", "账户", false), ("zh-Hans", "账户", true), ("de", "Konto", false), ("ar", "الحساب", true)] {
             for expired in [false, true] {
                 let app = XCUIApplication()
                 app.launchArguments = ["--ui-testing", expired ? "--ui-expired-subscription" : "--ui-stale-subscription",
@@ -418,7 +423,7 @@ final class NavigationTests: NavigationTestCase {
     }
 
     func testMembershipEntryAndManagedProSubscriptionInChinese() {
-        assertMembershipEntry(language: "zh-Hans", locale: "zh_CN", accountTitle: "我的", tier: "Pro", dark: false)
+        assertMembershipEntry(language: "zh-Hans", locale: "zh_CN", accountTitle: "账户", tier: "Pro", dark: false)
     }
 
     func testMaxMembershipEntryInDarkArabic() {
@@ -852,7 +857,7 @@ final class AccountNavigationTests: NavigationTestCase {
     }
 
     func testCacheExplanationAndControlsInEnglishChineseFrenchAndArabic() {
-        for (language, locale, account, dark) in [("en", "en_US", "Account", false), ("zh-Hans", "zh_CN", "我的", true), ("fr", "fr_FR", "Compte", false), ("ar", "ar_SA", "الحساب", true)] {
+        for (language, locale, account, dark) in [("en", "en_US", "Account", false), ("zh-Hans", "zh_CN", "账户", true), ("fr", "fr_FR", "Compte", false), ("ar", "ar_SA", "الحساب", true)] {
             let app = XCUIApplication()
             app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale] + (dark ? ["--ui-dark"] : [])
             app.launch()
@@ -892,7 +897,7 @@ final class AccountNavigationTests: NavigationTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-dark", "--ui-long-profile", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
-        tab(app, symbol: "Glyph-account", title: "我的").tap()
+        tab(app, symbol: "Glyph-account", title: "账户").tap()
         let name = app.staticTexts["account.name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertEqual(name.label, "Studio Research · Design, Security and Collaboration")
@@ -1066,8 +1071,8 @@ final class SubscriptionPresentationTests: NavigationTestCase {
 
     func testLocalizedCardsAndFullComparison() {
         for (language, locale, account, subscribe, dark) in [
-            ("zh-Hans", "zh_CN", "我的", "订阅 Plus", false),
-            ("zh-Hant", "zh_TW", "我的", "訂閱 Plus", true),
+            ("zh-Hans", "zh_CN", "账户", "订阅 Plus", false),
+            ("zh-Hant", "zh_TW", "账户", "訂閱 Plus", true),
             ("de", "de_DE", "Konto", "Plus abonnieren", false),
             ("ar", "ar_SA", "الحساب", "الاشتراك في Plus", true)
         ] {
@@ -1095,7 +1100,7 @@ final class SubscriptionPresentationTests: NavigationTestCase {
 
     func testPlusSubscriberCanCompareAndFindMaxUpgradeWithoutStartingAnotherPurchase() {
         let app = XCUIApplication()
-        openPlans(app, language: "zh-Hans", locale: "zh_CN", account: "我的", flags: ["--ui-plus-subscription"])
+        openPlans(app, language: "zh-Hans", locale: "zh_CN", account: "账户", flags: ["--ui-plus-subscription"])
         let manage = app.buttons["plan.manage"]
         XCTAssertTrue(manage.waitForExistence(timeout: 5))
         XCTAssertTrue(manage.isHittable, "Existing subscribers can manage billing before browsing upgrade cards")

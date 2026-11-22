@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"此版本已備份。"</string>
     <string name="backup_selected_help" formatted="false">"只有你明確選擇時，才會備份檔案。"</string>
     <string name="backup_total_size" formatted="false">"總大小"</string>
+    <string name="browse_filters" formatted="false">"保險庫篩選"</string>
+    <string name="browse_passwords" formatted="false">"密碼"</string>
     <string name="choose_permission" formatted="false">"選擇一項權限"</string>
     <string name="cipher_transfer_running" formatted="false">"正在傳輸加密分塊"</string>
     <string name="cipher_transfer_title" formatted="false">"加密傳輸"</string>
@@ -144,7 +146,7 @@
     <string name="text_about_dmsg_630408f" formatted="false">"關於 dMsg"</string>
     <string name="text_accepting_files_4bcf6d4" formatted="false">"開放中"</string>
     <string name="text_access_granted_2f19dc4" formatted="false">"已授予存取權"</string>
-    <string name="text_account_4ab56e9" formatted="false">"我的"</string>
+    <string name="text_account_4ab56e9" formatted="false">"帳戶"</string>
     <string name="text_account_changes_need_an_administrator_with_account_management_per_5eddc16" formatted="false">"賬號變更需要具有賬號管理許可權的管理員。"</string>
     <string name="text_account_deletion_does_not_cancel_a_subscription_purchased_through_6e817fb" formatted="false">"刪除賬號不會取消透過商店購買的訂閱，請在付款的商店賬號中管理續訂。"</string>
     <string name="text_account_devices_and_identities_84f8f44" formatted="false">"帳號、裝置與身份"</string>
@@ -1162,7 +1164,7 @@
     <string name="text_only_this_undecided_request_will_be_cancelled_completed_deliverie_0d19134" formatted="false">"僅取消此未決定的請求，已完成的交付不會撤回。"</string>
     <string name="text_open_approvals_639b4b5" formatted="false">"開啟審批中心"</string>
     <string name="text_open_conversation_e4fc2cf" formatted="false">"開啟會話"</string>
-    <string name="text_open_dmsg_account_system_integrations_to_authorize_file_access_fo_20a1082" formatted="false">"請開啟 dMsg → 賬戶 → 系統整合，授權五分鐘檔案訪問。"</string>
+    <string name="text_open_dmsg_account_system_integrations_to_authorize_file_access_fo_20a1082" formatted="false">"請開啟 dMsg → 帳戶 → 系統整合，授權五分鐘檔案訪問。"</string>
     <string name="text_open_dmsg_copies_206a0b9" formatted="false">"開啟 dMsg 副本"</string>
     <string name="text_open_for_c0595c0" formatted="false">"開放時長"</string>
     <string name="text_open_in_another_app_d703f04" formatted="false">"使用其他應用開啟"</string>

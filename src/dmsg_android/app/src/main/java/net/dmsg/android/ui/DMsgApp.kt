@@ -16,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -48,12 +50,17 @@ import kotlinx.coroutines.CancellationException
     LaunchedEffect(route) { if (route !in setOf("vault-backup", "approvals")) client.vaultBackup.clear() }
     val selected = navigation.current.id.orEmpty()
     val showEditor by client.vaultDrafts.presented.collectAsStateWithLifecycle()
-    val vaultFilters by client.vault.filters.collectAsStateWithLifecycle()
     var discardEditor by remember { mutableStateOf(false) }
     var activityMenu by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     fun go(next: String) { client.navigation.open(next); client.refresh(next) }
-    fun select(id: String) { client.navigation.select(id) }
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    fun select(id: String) {
+        keyboard?.hide()
+        focus.clearFocus()
+        client.navigation.select(id)
+    }
     fun closeEditor() { if (client.vaultDrafts.dirty) discardEditor = true else client.vaultDrafts.discard() }
     val passwordImport = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument(), client.vaultImport::result)
     LaunchedEffect(state.epoch) { discardEditor = false }
@@ -67,8 +74,9 @@ import kotlinx.coroutines.CancellationException
     LaunchedEffect(state.error, state.notice) {
         (state.error ?: state.notice)?.let { snackbar.showSnackbar(errorText(it)); client.clearNotice() }
     }
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     BackHandler(enabled = showEditor) { closeEditor() }
-    PredictiveBackHandler(enabled = state.unlocked && !state.concealed && !showEditor && navigation.canGoBack) { progress ->
+    PredictiveBackHandler(enabled = state.unlocked && !state.concealed && !showEditor && !imeVisible && navigation.canGoBack) { progress ->
         try { progress.collect { }; client.navigation.back() } catch (_: CancellationException) { }
     }
     val filePickers = rememberFilePickers(client)
@@ -102,22 +110,47 @@ import kotlinx.coroutines.CancellationException
                     val wide = maxWidth >= 840.dp && density.fontScale < 1.6f && separatedPanesFit
                     val root = route in destinations.map { it.id }
                     val inConversation = route == "messages" && selected.isNotEmpty()
+                    var threadSearch by remember(state.epoch, route, selected) { mutableStateOf(BrowseSearchMode.Browse) }
                     val scopeList = selected.isEmpty() && when (route) {
                         "inbox" -> navigation.stack.getOrNull(navigation.stack.lastIndex - 1)?.page == "messages"
                         "cloud-files" -> navigation.stack.getOrNull(navigation.stack.lastIndex - 1)?.page == "files"
                         else -> false
                     }
-                    val floatingBar = !wide && (root || scopeList) && selected.isEmpty() && WindowInsets.ime.getBottom(density) == 0
+                    val floatingBar = !wide && (root || scopeList) && selected.isEmpty() && !imeVisible
+                    val browseHeader = !wide && selected.isEmpty() && route in setOf("vault", "messages", "inbox", "files", "file-trash", "cloud-files")
+                    val backButton: @Composable () -> Unit = {
+                        if (navigation.canGoBack) IconButton(onClick = client.navigation::back) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac))
+                        }
+                    }
+                    val activityButton: @Composable () -> Unit = {
+                        if (!local) Box {
+                            IconButton(onClick = { activityMenu = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
+                            DropdownMenu(activityMenu, { activityMenu = false }) {
+                                val reminders = noticeStatus.valueOrNull()?.counts?.total
+                                val approvals = state.session?.approvalsWaiting
+                                val actions = listOf(
+                                    Triple("approvals", str(R.string.text_approvals_1b5e94c) + " · " + (approvals?.let { localizedNumber(it) } ?: "—"), (approvals ?: 0u) > 0u),
+                                    Triple("reminders", str(R.string.text_reminders_e43c7b0) + " · " + (reminders?.let { localizedNumber(it) } ?: "—"), (reminders ?: 0uL) > 0uL),
+                                    Triple("sync", str(R.string.text_account_synchronization_77ccb72), syncStatus?.error != null),
+                                )
+                                actions.sortedByDescending { it.third }.forEach { (page, label, _) ->
+                                    DropdownMenuItem(text = { Text(label) }, onClick = { activityMenu = false; go(page) })
+                                }
+                                DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { activityMenu = false; go("secret-activity") })
+                            }
+                        }
+                    }
                     FoldSafeWorkspace(fold, wide && (route in setOf("vault", "messages", "files") || navigation.workspace == Workspace.ACCOUNT)) {
                     Row(Modifier.fillMaxSize().testTag("workspace-content")) {
                         if (wide) NavigationRail(Modifier.fillMaxHeight(), containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                             Spacer(Modifier.height(24.dp))
-                            destinations.forEach { destination -> NavigationRailItem(selected = navigation.workspace.route == destination.id, onClick = { go(destination.id) }, icon = { Icon(destination.icon, null) }, label = { Text(str(destination.label)) }) }
+                            destinations.forEach { destination -> NavigationRailItem(selected = navigation.workspace.route == destination.id, onClick = { go(destination.id) }, icon = { Icon(painterResource(destination.icon), null) }, label = { Text(str(destination.label)) }) }
                         }
                         Scaffold(
                             modifier = Modifier.weight(1f).imePadding(),
                             containerColor = MaterialTheme.colorScheme.background,
-                            topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = {
+                            topBar = { if (!browseHeader && (wide || threadSearch == BrowseSearchMode.Browse)) TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = {
                                 val label = when {
                                     local && route == "account" -> str(R.string.offline_account)
                                     inConversation -> channelListing.valueOrNull()?.find { it.id == selected }?.name ?: str(R.string.text_conversation_654b88b)
@@ -128,32 +161,12 @@ import kotlinx.coroutines.CancellationException
                                 Text(label, style = if ((root || scopeList) && selected.isEmpty()) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                             }, navigationIcon = {
-                                if (navigation.canGoBack) IconButton(onClick = { client.navigation.back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, str(R.string.text_back_5db5cac)) }
+                                backButton()
                             }, actions = {
                                 if (!local && route == "account") IconButton(onClick = { client.lock() }) { Icon(Icons.Outlined.Lock, str(R.string.text_lock_workspace_78665ed)) }
-                                if (!local) Box {
-                                    IconButton(onClick = { activityMenu = true }) { BadgedBox(badge = { if ((noticeStatus.valueOrNull()?.counts?.total ?: 0u) > 0u || (state.session?.approvalsWaiting ?: 0u) > 0u || syncStatus?.error != null) Badge() }) { Icon(Icons.Outlined.NotificationsNone, str(R.string.text_activity_1d8edfa)) } }
-                                    DropdownMenu(activityMenu, { activityMenu = false }) {
-                                        val reminders = noticeStatus.valueOrNull()?.counts?.total
-                                        val approvals = state.session?.approvalsWaiting
-                                        val actions = listOf(
-                                            Triple("approvals", str(R.string.text_approvals_1b5e94c) + " · " + (approvals?.let { localizedNumber(it) } ?: "—"), (approvals ?: 0u) > 0u),
-                                            Triple("reminders", str(R.string.text_reminders_e43c7b0) + " · " + (reminders?.let { localizedNumber(it) } ?: "—"), (reminders ?: 0uL) > 0uL),
-                                            Triple("sync", str(R.string.text_account_synchronization_77ccb72), syncStatus?.error != null),
-                                        )
-                                        actions.sortedByDescending { it.third }.forEach { (page, label, _) ->
-                                            DropdownMenuItem(text = { Text(label) }, onClick = { activityMenu = false; go(page) })
-                                        }
-                                        DropdownMenuItem(text = { Text(str(R.string.text_activity_on_this_device_288740a)) }, onClick = { activityMenu = false; go("secret-activity") })
-                                    }
-                                }
+                                activityButton()
                             }) },
                             bottomBar = { if (floatingBar) FloatingWorkspaceBar(destinations, navigation.workspace.route, ::go) },
-                            floatingActionButton = {
-                                if (selected.isEmpty() && route == "messages") ExtendedFloatingActionButton(onClick = { client.channels.openSetup(false) }, modifier = Modifier.semantics { contentDescription = str(R.string.text_new_channel_6ea7fcc) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_channel_6ea7fcc)) })
-                                else if ((selected.isEmpty() || wide) && route == "files") FileIntakeButton(client, folder = navigation.current.folder, extended = true)
-                                else if ((selected.isEmpty() || wide) && route == "vault" && !vaultFilters.trash) ExtendedFloatingActionButton(onClick = { client.vaultDrafts.open(null) }, modifier = Modifier.semantics { contentDescription = str(R.string.text_new_item_9916f9f) }, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text(str(R.string.text_new_5a5d1d1)) })
-                            },
                             snackbarHost = { if (!inConversation) SnackbarHost(snackbar) },
                         ) { padding ->
                             WorkspaceBody(padding, floatingBar) {
@@ -172,9 +185,15 @@ import kotlinx.coroutines.CancellationException
                                         }) else if (selected.isNotEmpty()) SecretScreen(client, selected) { client.vaultDrafts.open(it) }
                                         else VaultScreen(client, ::select)
                                     }
-                                    "messages" -> if (wide) WorkspacePanes(fold, list = { MessagesScreen(client, state, "", ::select, { go("inbox") }) }, detail = {
-                                        if (selected.isNotEmpty()) MessagesScreen(client, state, selected, ::select, { go("inbox") }) else EmptyPanel(str(R.string.text_choose_a_conversation_f1e5111))
-                                    }) else MessagesScreen(client, state, selected, ::select, { go("inbox") })
+                                    "messages" -> {
+                                        val list: @Composable () -> Unit = { MessagesScreen(client, state, ::select) { go("inbox") } }
+                                        val detail: @Composable () -> Unit = {
+                                            if (selected.isEmpty()) EmptyPanel(str(R.string.text_choose_a_conversation_f1e5111))
+                                            else ConversationScreen(client, state, selected, threadSearch) { threadSearch = it }
+                                        }
+                                        if (wide) WorkspacePanes(fold, list = list, detail = detail)
+                                        else if (inConversation) detail() else list()
+                                    }
                                     "inbox" -> InboxScreen(client, state, navigation.current, showScopes = scopeList)
                                     "invite-letter-sender" -> InviteLetterSenderScreen(client, selected)
                                     "message-settings" -> MessageSettingsScreen(client)
@@ -278,7 +297,9 @@ import kotlinx.coroutines.CancellationException
                                 if (!local && wide && navigation.workspace == Workspace.ACCOUNT) WorkspacePanes(fold,
                                     list = { AccountScreen(client, state, ::go, openLogin) },
                                     detail = { if (route == "account") EmptyPanel(str(R.string.text_choose_a_destination_f70f6ae)) else pageContent() })
-                                else pageContent()
+                                else CompositionLocalProvider(LocalBrowseNavigation provides {
+                                    if (browseHeader) Row(verticalAlignment = Alignment.CenterVertically) { backButton(); activityButton() }
+                                }) { pageContent() }
                             }
                         }
                     }

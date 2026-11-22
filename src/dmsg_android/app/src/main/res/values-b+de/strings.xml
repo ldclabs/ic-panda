@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Diese Version ist bereits gesichert."</string>
     <string name="backup_selected_help" formatted="false">"Dateien werden nur gesichert, wenn Sie dies ausdrücklich wünschen."</string>
     <string name="backup_total_size" formatted="false">"Gesamtgröße"</string>
+    <string name="browse_filters" formatted="false">"Tresorfilter"</string>
+    <string name="browse_passwords" formatted="false">"Passwörter"</string>
     <string name="choose_permission" formatted="false">"Berechtigung auswählen"</string>
     <string name="cipher_transfer_running" formatted="false">"Verschlüsselte Datenblöcke werden übertragen"</string>
     <string name="cipher_transfer_title" formatted="false">"Verschlüsselte Übertragungen"</string>

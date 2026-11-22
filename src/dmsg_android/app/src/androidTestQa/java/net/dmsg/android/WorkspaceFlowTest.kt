@@ -106,10 +106,77 @@ class WorkspaceFlowTest {
         capture("ux-new-login-saved")
     }
 
+    @Test fun browsingSearchCanClearSubmitAndCloseAcrossWorkspaces() {
+        val entry = compose.onNodeWithTag("browse-search-entry")
+        val editor = compose.onNodeWithTag("browse-search-editor")
+        val cancel = compose.onNodeWithTag("browse-cancel")
+        for (route in listOf("vault", "messages", "inbox", "files", "cloud-files")) {
+            compose.runOnIdle { client.navigation.open(route) }
+            val initialTop = entry.getUnclippedBoundsInRoot().top
+            entry.performClick()
+            cancel.assertIsDisplayed()
+            assertTrue(route, editor.getUnclippedBoundsInRoot().top < initialTop)
+            editor.performTextInput("Studio")
+            compose.onNodeWithContentDescription("Clear search").performClick()
+            editor.assertIsFocused()
+            editor.performTextInput("结果")
+            editor.performImeAction()
+            editor.assertDoesNotExist()
+            entry.assertTextContains("结果")
+            cancel.assertIsDisplayed().performClick()
+            cancel.assertDoesNotExist()
+            editor.assertDoesNotExist()
+            assertEquals(initialTop, entry.getUnclippedBoundsInRoot().top)
+            entry.performClick()
+            editor.assertTextEquals("").assertIsFocused()
+            cancel.performClick()
+            editor.assertDoesNotExist()
+        }
+    }
+
+    @Test fun vaultSearchReturnsToFilteredResultsWithoutReopeningTheKeyboard() {
+        val entry = compose.onNodeWithTag("browse-search-entry")
+        val editor = compose.onNodeWithTag("browse-search-editor")
+        compose.onNodeWithText("Favorites").performClick()
+        compose.onNodeWithText("Passwords").performClick()
+        entry.performClick()
+        editor.performTextInput("Studio")
+        editor.performImeAction()
+        compose.onNodeWithText("Studio account").performClick()
+        compose.onNodeWithContentDescription("Back").performClick()
+        entry.assertTextContains("Studio")
+        editor.assertDoesNotExist()
+        assertTrue(InstrumentationRegistry.getInstrumentation().uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK))
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("browse-cancel").fetchSemanticsNodes().isEmpty() }
+        editor.assertDoesNotExist()
+        compose.runOnIdle {
+            assertEquals("", client.vault.query.text)
+            assertTrue(client.vault.query.favorites)
+            assertEquals("login", client.vault.query.kind)
+        }
+    }
+
+    @Test fun closingConversationSearchReturnsToTheSameConversation() {
+        compose.runOnIdle { client.navigation.open("messages") }
+        compose.waitUntil(10_000) { client.messages.channels.value()?.isNotEmpty() == true }
+        val channel = client.messages.channels.value()!!.first()
+        compose.onNodeWithText(channel.name).performClick()
+        compose.onNodeWithContentDescription("Search messages").performClick()
+        val editor = compose.onNodeWithTag("browse-search-editor")
+        editor.assertIsFocused().performTextInput("Studio")
+        editor.performImeAction()
+        editor.assertDoesNotExist()
+        compose.onNodeWithTag("browse-search-entry").assertTextContains("Studio")
+        compose.onNodeWithTag("browse-cancel").performClick()
+        compose.onNodeWithContentDescription("Search messages").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(channel.id, client.navigation.state.value.current.id) }
+    }
+
     @Test fun directorySearchFindsVerifiedFileAndReturnsToTheSameQuery() {
         val meta = runBlocking { kotlinx.serialization.json.Json.parseToJsonElement(native.seedUiReceivedFile().json) as kotlinx.serialization.json.JsonObject }
         val channel = (meta.getValue("channel") as kotlinx.serialization.json.JsonPrimitive).content
         compose.runOnIdle { client.navigation.open("messages") }
+        compose.onNodeWithTag("browse-search-entry").performClick()
         compose.onNode(hasSetTextAction()).performTextInput("NoSuchFixtureResult")
         compose.waitUntil(10_000) { compose.onAllNodesWithText("No matching results").fetchSemanticsNodes().isNotEmpty() }
         capture("ux-search-no-matches")
@@ -120,7 +187,28 @@ class WorkspaceFlowTest {
         compose.waitUntil(10_000) { client.messages.reference.value()?.message?.sequence == 1uL }
         capture("ux-search-original")
         compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNode(hasSetTextAction()).assertTextContains("Received image.png")
+        compose.onNodeWithTag("browse-search-entry").assertTextContains("Received image.png")
+    }
+
+    @Test fun searchKeepsFileBatchSelectionAvailable() {
+        val ids = runBlocking {
+            listOf("Matching one.txt", "Matching two.txt").map { name ->
+                val file = net.dmsg.android.core.parseFileDetails(native.seedUiFileHistory().decode()).file
+                native.renameFile(file.id, name)
+                file.id
+            }.toSet()
+        }
+        compose.runOnIdle { client.navigation.open("files") }
+        compose.onNodeWithTag("browse-search-entry").performClick()
+        val field = compose.onNodeWithTag("browse-search-editor")
+        field.performTextInput("Matching")
+        field.performImeAction()
+        val first = compose.onNodeWithText("Matching one.txt")
+        compose.waitUntil(10_000) { compose.onAllNodesWithText("Matching one.txt").fetchSemanticsNodes().isNotEmpty() }
+        first.performTouchInput { longClick() }
+        compose.onNodeWithText("Select visible items").performClick()
+        compose.runOnIdle { assertEquals(ids, client.library.selection.value) }
+        compose.onNodeWithTag("browse-search-entry").assertTextContains("Matching")
     }
 
     @Test fun unbackedFilesReviewTheExactSelectedVersionsTogether() {
@@ -135,7 +223,7 @@ class WorkspaceFlowTest {
         compose.waitUntil(10_000) { (client.accountWorkspace.local.value()?.unbacked ?: 0uL) >= 6uL }
         compose.onNodeWithText("Favorites").performScrollTo().performClick()
         compose.onNodeWithText("Unbacked file versions").assertDoesNotExist()
-        compose.onNodeWithContentDescription("More file actions").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("More file actions").assertIsDisplayed().performClick()
         compose.onNodeWithText("Unbacked file versions").performClick()
         compose.waitUntil(10_000) { client.cloudFiles.unbacked.value()?.size == 3 }
         chosen.take(2).forEach { (id, version) ->
@@ -966,13 +1054,14 @@ class WorkspaceFlowTest {
 
     @Test fun searchPrecedesScopeAndReturningKeepsTheOriginalDirectory() {
         compose.onAllNodesWithText("Messages").onLast().performClick()
-        val search = compose.onNode(hasSetTextAction())
+        val entry = compose.onNodeWithTag("browse-search-entry")
         val letters = compose.onNodeWithText("Letters")
-        assertTrue(search.getUnclippedBoundsInRoot().bottom <= letters.getUnclippedBoundsInRoot().top)
-        search.performTextInput("test")
+        assertTrue(entry.getUnclippedBoundsInRoot().bottom <= letters.getUnclippedBoundsInRoot().top)
+        entry.performClick()
+        compose.onNodeWithTag("browse-search-editor").performTextInput("test")
         letters.performClick()
         compose.onNodeWithText("Conversations").performClick()
-        compose.onNode(hasSetTextAction()).assertTextContains("test")
+        entry.assertTextContains("test")
         compose.onAllNodesWithText("Files").onLast().performClick()
         compose.onNodeWithText("Project materials").performClick()
         compose.onNodeWithText("Cloud backups").performClick()
@@ -1526,6 +1615,7 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Keep draft").performScrollTo().assertIsDisplayed()
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
         compose.waitUntil(10_000) { compose.onAllNodes(hasSetTextAction() and hasText(text)).fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithTag("letter-folders").performClick()
         compose.onNodeWithText("Drafts").performClick()
         compose.waitUntil(10_000) { !client.state.value.operations.any { it.startsWith("letter:save:") } }
         compose.onNodeWithText(text).assertExists()
@@ -1539,7 +1629,7 @@ class WorkspaceFlowTest {
         compose.runOnIdle { client.navigation.open("vault") }
         compose.onNodeWithContentDescription("New item").assertExists()
         compose.runOnIdle { client.navigation.open("messages") }
-        compose.onNodeWithText("Drafts").performClick()
+        compose.onNodeWithTag("letter-folders").assertTextContains("Drafts")
         compose.onNodeWithText(text).assertExists()
     }
 

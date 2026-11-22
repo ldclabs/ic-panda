@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Bu sürüm zaten yedeklendi."</string>
     <string name="backup_selected_help" formatted="false">"Dosyalar yalnızca açıkça bunu yapmayı seçtiğinizde yedeklenir."</string>
     <string name="backup_total_size" formatted="false">"Toplam boyut"</string>
+    <string name="browse_filters" formatted="false">"Kasa filtreleri"</string>
+    <string name="browse_passwords" formatted="false">"Şifreler"</string>
     <string name="choose_permission" formatted="false">"İzin seç"</string>
     <string name="cipher_transfer_running" formatted="false">"Şifreli bloklar aktarılıyor"</string>
     <string name="cipher_transfer_title" formatted="false">"Şifreli aktarımlar"</string>

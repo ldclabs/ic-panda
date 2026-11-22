@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Esta versión ya tiene una copia de seguridad."</string>
     <string name="backup_selected_help" formatted="false">"Los archivos solo se respaldan cuando lo eliges explícitamente."</string>
     <string name="backup_total_size" formatted="false">"Tamaño total"</string>
+    <string name="browse_filters" formatted="false">"Filtros de la bóveda"</string>
+    <string name="browse_passwords" formatted="false">"Contraseñas"</string>
     <string name="choose_permission" formatted="false">"Elegir un permiso"</string>
     <string name="cipher_transfer_running" formatted="false">"Transfiriendo bloques cifrados"</string>
     <string name="cipher_transfer_title" formatted="false">"Transferencias cifradas"</string>

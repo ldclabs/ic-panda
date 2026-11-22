@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"Эта версия уже сохранена в резервной копии."</string>
     <string name="backup_selected_help" formatted="false">"Файлы копируются в облако только по вашему явному выбору."</string>
     <string name="backup_total_size" formatted="false">"Общий объём"</string>
+    <string name="browse_filters" formatted="false">"Фильтры хранилища"</string>
+    <string name="browse_passwords" formatted="false">"Пароли"</string>
     <string name="choose_permission" formatted="false">"Выбрать разрешение"</string>
     <string name="cipher_transfer_running" formatted="false">"Передача зашифрованных блоков"</string>
     <string name="cipher_transfer_title" formatted="false">"Зашифрованные передачи"</string>

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -36,70 +37,77 @@ import net.dmsg.android.core.*
     LaunchedEffect(state.epoch) { client.cloudFiles.browse(false, refreshAfter = true) }
     val entries = saved?.items.orEmpty().filter { query.isBlank() || it.name.orEmpty().contains(query, true) || it.path.joinToString("/").contains(query, true) }
         .let { values -> when (sort) { "name" -> values.sortedBy { it.name.orEmpty().lowercase() }; "size" -> values.sortedByDescending { it.size }; else -> values.sortedByDescending { it.committedAt ?: it.createdAt } } }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 24.dp + LocalWorkspaceBarInset.current), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (selected.isEmpty()) item {
-            WorkspaceSearchField(query, { query = it }, str(R.string.text_search_name_or_path_55a6b79))
-            if (showScopes) {
-                Spacer(Modifier.height(8.dp))
-                WorkspaceScope(str(R.string.text_on_this_device_6032118), str(R.string.text_cloud_backups_ab4daf1), true, switch = client.navigation::back)
-            }
+    val refresh: @Composable () -> Unit = {
+        IconButton(onClick = { client.cloudFiles.browse() }, enabled = inventory !is ReadState.Loading) {
+            Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_backup_list_3104cef))
         }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(str(R.string.text_encrypted_cloud_copies_9caa6c8), style = MaterialTheme.typography.titleLarge)
-                    saved?.observedAt?.let { Text(str(R.string.text_last_refreshed_fb86c19) + messageTime(it), style = MaterialTheme.typography.labelSmall) }
-                }
-                if (selected.isEmpty()) SortMenu(sort, listOf("date" to R.string.text_newest_31c84cc, "name" to R.string.text_name_dd4dc4c, "size" to R.string.text_largest_4d2cb3c)) { sort = it }
-                IconButton(onClick = { client.cloudFiles.browse() }, enabled = inventory !is ReadState.Loading) { Icon(Icons.Outlined.Refresh, str(R.string.text_refresh_backup_list_3104cef)) }
-            }
-            ReadFeedback(inventory, { client.cloudFiles.browse() })
-            if (saved?.complete != true) Notice(str(R.string.text_the_cloud_inventory_has_not_been_fully_read_yet_an_empty_list_doe_b6ae09e))
-        }
-        if (selected.isEmpty()) {
-            items(entries, key = { it.id }) { item ->
-                ListItem(modifier = Modifier.clickable { client.navigation.select(item.id) }, headlineContent = { Text(item.name ?: str(R.string.text_encrypted_backup_2ad5848), maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                    leadingContent = { Icon(if (item.needsRoot) Icons.Outlined.Key else Icons.Outlined.Cloud, null) },
-                    supportingContent = { Column {
-                        item.size?.let { Text(fileSize(it)) }
-                        Text(if (item.needsRoot) str(R.string.text_waiting_for_the_required_content_key_1d9169d) else if (item.local) str(R.string.text_also_on_this_device_7d07aa6) else str(R.string.text_only_in_cloud_6a03abd))
-                    } })
-                HorizontalDivider()
-            }
-            if (entries.isEmpty() && saved?.complete == true && inventory !is ReadState.Failed) item {
-                EmptyPanel(if (query.isBlank()) str(R.string.text_no_cloud_backups_27be5f2) else str(R.string.text_no_matching_backups_575e7e5))
-            }
-            item { Notice(str(R.string.text_back_up_selected_files_explicitly_your_local_library_is_not_uploa_0e590c9)) }
-        } else if (current != null) {
-            item {
-                Text(current.name ?: str(R.string.text_encrypted_backup_2ad5848), style = MaterialTheme.typography.headlineSmall)
-                current.size?.let { Text(fileSize(it)) }
-                Text(current.path.joinToString(" / "), style = MaterialTheme.typography.bodySmall)
-                Text(str(R.string.text_source_device_abc1e1a) + current.device, style = MaterialTheme.typography.bodySmall)
-                Text(str(R.string.text_created_ae8a09c) + messageTime(current.createdAt), style = MaterialTheme.typography.bodySmall)
-                current.sha256?.let { SelectionContainer { Text("SHA-256\n$it", style = MaterialTheme.typography.bodySmall) } }
-            }
-            item {
-                when {
-                    current.needsRoot -> {
-                        Notice(str(R.string.text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e))
-                        TextButton(onClick = { client.navigation.push(Route("sync")) }) { Text(str(R.string.text_account_synchronization_77ccb72)) }
-                    }
-                    current.local && current.file != null -> Button(onClick = { client.navigation.push(Route("files", id = current.file, revision = current.version)) }) { Text(str(R.string.text_open_local_details_ccd7b04)) }
-                    else -> {
-                        TextButton(onClick = { choosing = true }) { Text(str(R.string.text_restore_into_9068fec) + destination.folderLabel) }
-                        OutlinedButton(onClick = { client.backgroundFiles.download(current.id, folder) }, enabled = !state.working("cipher:prepare")) { Text(str(R.string.text_download_ciphertext_in_background_bd6e2c4)) }
-                        Button(onClick = { client.fileWork.restore(current.id, folder) }, enabled = !state.working("file:restore:${current.id}")) { Text(str(R.string.text_restore_this_copy_5a61a44)) }
-                    }
-                }
-            }
-            item {
-                if (!current.needsRoot && current.size != null && current.size <= 100uL * 1024u * 1024u) OutlinedButton(onClick = { client.navigation.push(Route("backup-link-compose", id = current.id)) }) { Icon(Icons.Outlined.Link, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_by_link_05aafef)) }
-                TextButton(onClick = { client.navigation.push(Route("file-transfers")) }) { Text(str(R.string.text_file_transfers_2b83297)) }
-                TextButton(onClick = { deleting = true }, enabled = !state.working("cloud:delete:${current.id}")) { Text(str(R.string.text_delete_cloud_copy_2cefb18), color = MaterialTheme.colorScheme.error) }
-            }
-        } else if (inventory !is ReadState.Loading) item { Notice(str(R.string.text_this_backup_is_no_longer_in_the_current_inventory_090f582)) }
     }
+    val content: @Composable (Boolean) -> Unit = { searching ->
+        LazyColumn(Modifier.fillMaxSize(), state = if (selected.isEmpty()) workspaceListState(client.navigation, "cloud-files:list") else rememberLazyListState(),
+            contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 16.dp + LocalWorkspaceBarInset.current)) {
+            if (selected.isEmpty()) browseScopesItem(searching) {
+                BrowseScopes(trailing = {
+                    SortMenu(sort, listOf("date" to R.string.text_newest_31c84cc, "name" to R.string.text_name_dd4dc4c, "size" to R.string.text_largest_4d2cb3c)) { sort = it }
+                }) {
+                    if (showScopes) BrowseChoice(str(R.string.text_on_this_device_6032118), false, onClick = client.navigation::back)
+                    BrowseChoice(str(R.string.text_cloud_backups_ab4daf1), true) {}
+                }
+            }
+            item {
+                if (selected.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(str(R.string.text_encrypted_cloud_copies_9caa6c8), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                    refresh()
+                }
+                saved?.observedAt?.let { Text(str(R.string.text_last_refreshed_fb86c19) + messageTime(it), style = MaterialTheme.typography.labelSmall) }
+                ReadFeedback(inventory, { client.cloudFiles.browse() })
+                if (saved?.complete != true) Notice(str(R.string.text_the_cloud_inventory_has_not_been_fully_read_yet_an_empty_list_doe_b6ae09e))
+            }
+            if (selected.isEmpty()) {
+                items(entries, key = { it.id }) { item ->
+                    BrowseRow(item.name ?: str(R.string.text_encrypted_backup_2ad5848), Modifier.clickable { client.navigation.select(item.id) },
+                        leading = { BrowseIcon(if (item.needsRoot) Icons.Outlined.Key else Icons.Outlined.Cloud) }) {
+                        Text(listOfNotNull(item.size?.let(::fileSize), str(if (item.needsRoot) R.string.text_waiting_for_the_required_content_key_1d9169d
+                            else if (item.local) R.string.text_also_on_this_device_7d07aa6 else R.string.text_only_in_cloud_6a03abd)).joinToString(" · "))
+                    }
+                }
+                if (entries.isEmpty() && saved?.complete == true && inventory !is ReadState.Failed) item {
+                    EmptyPanel(if (query.isBlank()) str(R.string.text_no_cloud_backups_27be5f2) else str(R.string.text_no_matching_backups_575e7e5))
+                }
+                item { Notice(str(R.string.text_back_up_selected_files_explicitly_your_local_library_is_not_uploa_0e590c9)) }
+            } else if (current != null) {
+                item {
+                    Text(current.name ?: str(R.string.text_encrypted_backup_2ad5848), style = MaterialTheme.typography.headlineSmall)
+                    current.size?.let { Text(fileSize(it)) }
+                    Text(current.path.joinToString(" / "), style = MaterialTheme.typography.bodySmall)
+                    Text(str(R.string.text_source_device_abc1e1a) + current.device, style = MaterialTheme.typography.bodySmall)
+                    Text(str(R.string.text_created_ae8a09c) + messageTime(current.createdAt), style = MaterialTheme.typography.bodySmall)
+                    current.sha256?.let { SelectionContainer { Text("SHA-256\n$it", style = MaterialTheme.typography.bodySmall) } }
+                }
+                item {
+                    when {
+                        current.needsRoot -> {
+                            Notice(str(R.string.text_synchronize_the_account_to_obtain_the_content_key_before_restorin_ac85e0e))
+                            TextButton(onClick = { client.navigation.push(Route("sync")) }) { Text(str(R.string.text_account_synchronization_77ccb72)) }
+                        }
+                        current.local && current.file != null -> Button(onClick = { client.navigation.push(Route("files", id = current.file, revision = current.version)) }) { Text(str(R.string.text_open_local_details_ccd7b04)) }
+                        else -> {
+                            TextButton(onClick = { choosing = true }) { Text(str(R.string.text_restore_into_9068fec) + destination.folderLabel) }
+                            OutlinedButton(onClick = { client.backgroundFiles.download(current.id, folder) }, enabled = !state.working("cipher:prepare")) { Text(str(R.string.text_download_ciphertext_in_background_bd6e2c4)) }
+                            Button(onClick = { client.fileWork.restore(current.id, folder) }, enabled = !state.working("file:restore:${current.id}")) { Text(str(R.string.text_restore_this_copy_5a61a44)) }
+                        }
+                    }
+                }
+                item {
+                    if (!current.needsRoot && current.size != null && current.size <= 100uL * 1024u * 1024u) OutlinedButton(onClick = { client.navigation.push(Route("backup-link-compose", id = current.id)) }) { Icon(Icons.Outlined.Link, null); Spacer(Modifier.width(8.dp)); Text(str(R.string.text_share_by_link_05aafef)) }
+                    TextButton(onClick = { client.navigation.push(Route("file-transfers")) }) { Text(str(R.string.text_file_transfers_2b83297)) }
+                    TextButton(onClick = { deleting = true }, enabled = !state.working("cloud:delete:${current.id}")) { Text(str(R.string.text_delete_cloud_copy_2cefb18), color = MaterialTheme.colorScheme.error) }
+                }
+            } else if (inventory !is ReadState.Loading) item { Notice(str(R.string.text_this_backup_is_no_longer_in_the_current_inventory_090f582)) }
+        }
+    }
+    if (selected.isEmpty()) WorkspaceBrowser(str(R.string.text_cloud_backups_ab4daf1), query, { query = it },
+        str(R.string.text_search_name_or_path_55a6b79), actions = { refresh() }, content = content)
+    else content(false)
     if (choosing) FileFolderDialog(client, str(R.string.text_restore_destination_431edf6), { choosing = false }, initial = destination) {
         destination = it; choosing = false
     }

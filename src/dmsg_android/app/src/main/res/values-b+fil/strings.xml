@@ -27,6 +27,8 @@
     <string name="backup_already_saved" formatted="false">"May backup na ang bersyong ito."</string>
     <string name="backup_selected_help" formatted="false">"Bina-back up lang ang mga file kapag tahasan mong piniling gawin ito."</string>
     <string name="backup_total_size" formatted="false">"Kabuuang laki"</string>
+    <string name="browse_filters" formatted="false">"Mga filter ng Vault"</string>
+    <string name="browse_passwords" formatted="false">"Mga password"</string>
     <string name="choose_permission" formatted="false">"Pumili ng pahintulot"</string>
     <string name="cipher_transfer_running" formatted="false">"Inililipat ang mga naka-encrypt na block"</string>
     <string name="cipher_transfer_title" formatted="false">"Mga naka-encrypt na paglilipat"</string>
