@@ -274,7 +274,8 @@ fn apply(
                     || t.is_upgraded == Some(true)
                     || t.environment == StoreEnvironment::Sandbox
                     || s.active(t.purchased_at_ms).is_none_or(|c| {
-                        c.source.priority() < 2 || matches!(c.source, ContractSource::AppStore { .. })
+                        c.source.priority() < 2
+                            || matches!(c.source, ContractSource::AppStore { .. })
                     }),
                 Error::Forbidden,
             )?;

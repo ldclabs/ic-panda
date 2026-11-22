@@ -641,13 +641,6 @@ impl Client {
         Ok(entry)
     }
 
-    /// Host this ID after reserving the account-wide seat.
-    /// # Errors
-    /// Returns `QuotaExceeded` for a new distinct ID beyond the effective plan.
-    pub async fn agent_create(&mut self, label: &str) -> Result<AgentEntry> {
-        create_hosted(&self.hold(), label).await
-    }
-
     /// Seed an offline test workspace with an already admitted identity.
     #[cfg(any(test, feature = "testing"))]
     pub fn test_host_agent(&mut self, label: &str) -> Result<AgentEntry> {
@@ -776,10 +769,6 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked and `Error::NotFound` for an
     /// unknown Agent ID.
-    pub async fn agent_remove(&mut self, via: &str, name: &str) -> Result<AgentEntry> {
-        remove_hosted(&self.hold(), via, name).await
-    }
-
     pub(crate) fn remove_local_agent(&mut self, via: &str, name: &str) -> Result<AgentEntry> {
         let entry = self.agent_find(name)?;
         let keys = self.keys()?;

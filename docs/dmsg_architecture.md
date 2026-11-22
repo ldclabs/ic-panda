@@ -6,6 +6,8 @@ English | [简体中文](dmsg_architecture_zh.md)
 
 Reviewed against public source `9fd70dca` on 2026-10-24. This document describes the desktop/iOS/CLI/MCP clients, public contracts, canister roles and scaling model. Interfaces and measured capacity follow each component README and Candid file. Historical capacity samples retain their original measurement scope; they do not include later profile metadata or prove production throughput. Private services appear only through public contracts. A source review is not a deployment verification or security audit.
 
+Membership grant addendum, 2026-11-22: [commerce](../src/dmsg_commerce/README.md) adds fixed-term membership grants (Plus, Pro or Max for 30 or 365 days) from issuers that governance registers; they are off by default. A granted account creates a beneficiary subject just as a purchase does and counts toward `max_subjects`. Formal contracts take precedence over grants, and grants over sandbox contracts; membership display moves to `get_membership_terms_v3`. This describes source, not a deployment or opened grants. Historical capacity figures below exclude this addition.
+
 Android commerce addendum, 2026-11-16: the independent [Google Play contract](protocol/google_play_zh.md) uses certified commerce entitlements with separate subscription-period and storage-purchase identities. Commerce retains its configuration, observations and receipts; user/directory stable layouts are unchanged. Local protocol, Wasm and upgrade checks do not establish live Google service or purchase acceptance. Historical capacity figures below exclude this addition.
 
 Mobile addendum, 2026-10-27: iOS reuses the Rust core through UniFFI. Extensions receive explicit, expiring exports; background transfer handles ciphertext only. See the [mobile contract](protocol/mobile_zh.md) for APNs/App Attest, StoreKit verification and commerce entitlements, deletion and reporting, and the [iOS validation record](../src/dmsg_ios/VALIDATION.md) for actual checks. Apple configuration and physical-device acceptance remain outstanding. Historical capacity figures below do not include the new transaction observations.
@@ -86,7 +88,7 @@ flowchart LR
 | [dmsg_cose](../src/dmsg_cose/README.md) | Content-root vetKD public key, recovery-derivation deduplication and budgets | Usually 1, serving every home | 1 million accounts that have performed a recovery derivation |
 | [dmsg_directory](../src/dmsg_directory/README.md) | Published Agent Delegation principal documents | 1 globally | Not measured at scale |
 | [dmsg_payment](../src/dmsg_payment/README.md) | Paid-delivery escrows, deposits, funds decisions and payouts | 1 or more; each home is bound to one | 10 million escrows |
-| [dmsg_commerce](../src/dmsg_commerce/README.md) | App and product registrations, catalog, cash orders, paying subjects and resource entitlements | 1 or more; each home belongs to one | 10 million paying subjects and 10 million lifetime orders |
+| [dmsg_commerce](../src/dmsg_commerce/README.md) | App and product registrations, catalog, cash orders, fixed-term grants, beneficiary subjects (purchased or granted) and resource entitlements | 1 or more; each home belongs to one | 10 million beneficiary subjects and 10 million lifetime orders |
 | [membership](../src/membership/README.md) | Cross-product PANDA neuron occupancy and product decisions | 1 per SNS | 1 million complete records, 10 million lifetime operations |
 | [dmsg_wallet_hub](../src/dmsg_wallet_hub/README.md) | Activation orders, wallet module versions, wallet records and the member index | 1 globally | 256 wallets indexed per member, 16 module versions |
 | [dmsg_wallet](../src/dmsg_wallet/README.md) | One wallet’s members, policy, addresses, cosigners, proposals, plans and audit | 1 per wallet, created by the hub | 64 members, 256 addresses, 64 cosigners, bounded pruning above 10,000 total proposals |
@@ -118,7 +120,7 @@ An account's `home_user` and `home_cose` are fixed for its lifetime.
 ### 4.4 Certified Evidence for the Cloud
 
 - Accounts: `security_snapshot_batch` takes 1–64 accounts per call with a certified response of at most 256 KiB. Verifiers check the IC certificate, canister ID, witness and a 60-second freshness window, then match `get_device_bundle` against the snapshot's `devices_root`.
-- Entitlements: commerce's `get_entitlement_batch` returns an absence proof for accounts that never paid, which together with the certified catalog means Free. The cloud rereads its stored entitlement projections with a query at least hourly.
+- Entitlements: commerce's `get_entitlement_batch` returns an absence proof for accounts that never purchased or received a grant, which together with the certified catalog means Free. The cloud rereads its stored entitlement projections with a query at least hourly.
 - The read volume grows with the number of distinct accounts that need checking. Reads are deduplicated per account, batched and cached until the certificate's deadline, so they do not multiply with online connections or channels.
 
 ### 4.5 Handles, Paid Delivery and Commerce
@@ -199,7 +201,7 @@ Upgrade cycles are dominated by installing the Wasm module and do not depend on 
 | dmsg_handle | Active handles plus pending charges | 10 million | At 10 million handles: ~1.8 GB for the name table and tree alone, an estimated 6–7 GB with charge and event history; a transfer costs only ~13% more cycles than at 1,000 handles; a 64-handle certified response is ~81 KB | Larger scale needs new measurements or name sharding (not implemented) |
 | dmsg_cose | Accounts that have performed a recovery derivation | 1 million across all homes | Records appear only on recovery after losing every device | Network-wide vetKD throughput of about 18 per second |
 | dmsg_payment | Lifetime escrows, independent of registered users | 10 million | 3.25 GB at 1 million escrows, ~3.2 KB each; ~32 GB extrapolated for 10 million | Ledger call budget: ~100 escrows per minute when `ledger_writes_per_minute` is 200 |
-| dmsg_commerce | Paying subjects and lifetime orders; Free accounts hold no state | 10 million each | 2.28 GB at 1 million subjects; ~1.3 KB per subject and ~9 KB per hot order with indexes | Price publication, per-order revenue collection and PANDA refreshes concentrate in one instance |
+| dmsg_commerce | Beneficiary subjects (purchased or granted) and lifetime orders; Free accounts that never purchased or received a grant hold no state | 10 million each | 2.28 GB at 1 million subjects; ~1.3 KB per subject and ~9 KB per hot order with indexes | Price publication, per-order revenue collection and PANDA refreshes concentrate in one instance |
 | membership | PANDA waiver claims, independent of account count | 1 million complete records, 10 million lifetime operations | 4.7 GB at 1 million `Active` claims, ~4.7 KB each | The PANDA SNS caps neurons at 200,000; the default 200 SNS reads per minute cover about 280,000 active members |
 | dmsg_directory | Accounts with an enabled principal | No total constant; each document ≤ 64 KiB | Small samples only | Not measured at scale |
 
@@ -282,7 +284,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 
 - **Monitoring**: `user_stats`, `cose_stats`, `payment_stats`, `commerce_stats`, `membership_stats` and `directory_stats` are public queries reporting record counts, configured limits, stable pages and cycle balances, and `user_stats` adds execution totals for the latest 12 charged months; handle's configuration and home list come from `get_handle_config`.
 - **Raise budgets first**: when usage nears 60% of a configured limit, raise the governed limit within the code bound: `admin_set_account_limits` on user, `admin_set_limits` on payment and commerce, `configure_panda_service` on membership.
-- **Then add instances**: when a home nears 21 million accounts, add a home and adjust the registration entry. When payment escrows, or commerce paying subjects or lifetime orders, near 10 million (or stable-memory headroom runs short), point new homes at new payment or commerce instances instead of raising the old instance's limit further.
+- **Then add instances**: when a home nears 21 million accounts, add a home and adjust the registration entry. When payment escrows, or commerce beneficiary subjects (granted ones included) or lifetime orders, near 10 million (or stable-memory headroom runs short), point new homes at new payment or commerce instances instead of raising the old instance's limit further.
 - **Throughput**: one canister executes its messages sequentially; several canisters run in parallel but share their subnet's resources, so large deployments spread homes across subnets. Before raising per-minute budgets, check subnet throughput and cycles at the target load on a test network; cross-subnet placement, chain-key and ledger throughput need separate measurement.
 
 ### 8.5 Not Yet Supported

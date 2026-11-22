@@ -2022,7 +2022,9 @@ fn google_play_purchase_reason(
     if matches!(kind, PlayProductKind::Storage { .. })
         && (current.is_null()
             || current["method"] != "GooglePlay"
-            || !store_action_allowed(status, "storage")
+            // Commerce lists storage only for formal terms; a Test environment sells it on its test base.
+            || (*environment == PlayEnvironment::Production
+                && !store_action_allowed(status, "storage"))
             || status["source"] != "Active"
             || current["contract"].as_str().is_none()
             || current["store_environment"]
@@ -2077,6 +2079,14 @@ mod google_play_purchase_tests {
             google_play_purchase_reason(&storage, &owned, &PlayEnvironment::Production),
             None
         );
+        // A formal term with a stale qualification lists no actions.
+        owned["allowed_actions"] = json!([]);
+        assert_eq!(
+            google_play_purchase_reason(&storage, &owned, &PlayEnvironment::Production),
+            Some("subscription_required")
+        );
+        // Commerce's actions for a test base alone, which carry no storage.
+        owned["allowed_actions"] = json!(["cash", "sns", "app_store", "google_play"]);
         owned["current"]["store_environment"] = "Test".into();
         assert_eq!(
             google_play_purchase_reason(&storage, &owned, &PlayEnvironment::Production),

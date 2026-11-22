@@ -6,6 +6,8 @@
 
 核对日期：2026-10-24，公开源码基线 `9fd70dca`。本文概述桌面/iOS/CLI/MCP 客户端、公开合同、canister 职责与扩容方式；接口与实测容量以各组件 README 和 Candid 为准。历史容量样本保留原测量范围，不包含后来新增的资料元数据，也不证明生产吞吐。私有服务只通过公开合同描述；源码核对不等于部署核验或安全审计。
 
+2026-11-22 赠予补充：[commerce](../src/dmsg_commerce/README.md) 新增由治理登记发放方的固定时长会员赠予（Plus、Pro、Max，30 或 365 天），默认关闭。获赠账户与购买账户一样创建受益主体，并计入 `max_subjects`；正式合同优先于赠予，赠予优先于沙盒；会员展示改用 `get_membership_terms_v3`。本说明描述源码，不代表已部署或已开放赠予；下述历史容量数据不包含此增量。
+
 2026-11-16 Android 商业补充：独立 [Google Play 合同](protocol/google_play_zh.md) 复用 commerce 认证权益，订阅账期与存储加购分别去重；新增配置、观察与回执保留在 commerce，未修改 user/directory 稳定布局。当前仅完成本地协议、Wasm 与升级回归，不代表 Google 服务或购买已上线；下述历史容量数据不包含此增量。
 
 2026-10-27 移动补充：iOS 通过 UniFFI 复用 Rust 核心，扩展只读取有时限的显式导出副本；后台传输只处理密文。APNs/App Attest、StoreKit 验证与 commerce 权益、删除／举报合同见 [mobile](protocol/mobile_zh.md)，实际验证边界见 [iOS 验证记录](../src/dmsg_ios/VALIDATION.md)。未完成 Apple 外部配置和真机验收；下面的历史容量数字不包含新增交易观察。
@@ -86,7 +88,7 @@ flowchart LR
 | [dmsg_cose](../src/dmsg_cose/README.md) | 内容根 vetKD 公钥、恢复派生的去重与预算 | 通常 1 个，服务全部 home | 100 万个做过恢复派生的账户 |
 | [dmsg_directory](../src/dmsg_directory/README.md) | 已发布的 Agent Delegation principal 文档 | 全局 1 个 | 未在大规模下实测 |
 | [dmsg_payment](../src/dmsg_payment/README.md) | 付费来信托管单、入金、资金决定与出金 | 1 个或多个，每个 home 绑定 1 个 | 1,000 万订单 |
-| [dmsg_commerce](../src/dmsg_commerce/README.md) | 应用与产品注册、目录、现金订单、付费主体与资源权益 | 1 个或多个，每个 home 属于 1 个 | 付费主体、累计订单各 1,000 万 |
+| [dmsg_commerce](../src/dmsg_commerce/README.md) | 应用与产品注册、目录、现金订单、固定时长赠予、受益主体（购买或获赠）与资源权益 | 1 个或多个，每个 home 属于 1 个 | 受益主体、累计订单各 1,000 万 |
 | [membership](../src/membership/README.md) | PANDA 神经元的跨产品占用与产品决定 | 每个 SNS 1 个 | 完整记录 100 万、累计操作 1,000 万 |
 | [dmsg_wallet_hub](../src/dmsg_wallet_hub/README.md) | 激活订单、钱包模块版本、钱包记录与成员索引 | 全局 1 个 | 每成员索引 256 个钱包，16 个模块版本 |
 | [dmsg_wallet](../src/dmsg_wallet/README.md) | 一个钱包的成员、策略、地址、协签人、提案、计划与审计 | 每个钱包 1 个，由 hub 创建 | 成员 64、地址 256、协签人 64、提案超 1 万触发有界清理 |
@@ -118,7 +120,7 @@ flowchart LR
 ### 4.4 云端读取认证证据
 
 - 账户：`security_snapshot_batch` 每次 1–64 个账户，认证响应不超过 256 KiB；验证方核对 IC 证书、canister ID、witness 和 60 秒新鲜度，再用快照中的 `devices_root` 核对 `get_device_bundle`。
-- 权益：commerce 的 `get_entitlement_batch` 对从未付费的账户返回不存在证明，配合认证目录即为 Free；云端至少每小时用 query 重读已保存的权益投影。
+- 权益：commerce 的 `get_entitlement_batch` 对从未购买或获赠的账户返回不存在证明，配合认证目录即为 Free；云端至少每小时用 query 重读已保存的权益投影。
 - 读取量随需要校验的不同账户数增长，按账户去重、批量读取并缓存到证书截止，不随在线连接数或频道数成倍增加。
 
 ### 4.5 名称、付费来信与商业
@@ -189,7 +191,7 @@ owner 审批配置本地策略；Agent 凭 `secret.use:<policy_id>` 申请固定
 | dmsg_handle | 活跃名称加未决扣款 | 1,000 万 | 1,000 万名称：仅名称表与认证树约 1.8 GB，计入收费操作和事件历史估算 6–7 GB；一次转移的 cycles 只比 1,000 名称时多约 13%；64 名称的认证响应约 81 KB | 更大规模须重新实测或按名称分片（未实现） |
 | dmsg_cose | 做过恢复派生的账户 | 100 万，所有 home 合计 | 只在全设备丢失恢复时留下记录 | 全网 vetKD 吞吐约 18 次/秒 |
 | dmsg_payment | 终身订单，与注册用户数无关 | 1,000 万 | 100 万单 3.25 GB，约 3.2 KB/单；推算 1,000 万单约 32 GB | 账本调用额度：`ledger_writes_per_minute` 为 200 时约 100 单/分钟 |
-| dmsg_commerce | 付费主体与累计订单；Free 账户不占状态 | 各 1,000 万 | 100 万主体 2.28 GB；主体约 1.3 KB，热订单连同索引约 9 KB | 价格发布、逐单收入归集和 PANDA 刷新集中在一个实例 |
+| dmsg_commerce | 受益主体（购买或获赠）与累计订单；从未购买或获赠的 Free 账户不占状态 | 各 1,000 万 | 100 万主体 2.28 GB；主体约 1.3 KB，热订单连同索引约 9 KB | 价格发布、逐单收入归集和 PANDA 刷新集中在一个实例 |
 | membership | PANDA 抵扣申请，与账户数无关 | 完整记录 100 万，累计操作 1,000 万 | 100 万条 `Active` 申请 4.7 GB，每条约 4.7 KB | PANDA SNS 神经元上限为 20 万；默认每分钟 200 次 SNS 读取约可支撑 28 万名在用会员 |
 | dmsg_directory | 启用 principal 的账户 | 没有总数常量；单文档 ≤ 64 KiB | 只有小样本 | 大规模没有实测 |
 
@@ -272,7 +274,7 @@ flowchart TB
 
 - **监控**：`user_stats`、`cose_stats`、`payment_stats`、`commerce_stats`、`membership_stats` 和 `directory_stats` 都是公开 query，报告记录数、配置上限、stable 页数和 cycles 余额，`user_stats` 另报最近 12 个有扣费月份的执行汇总；handle 的配置与 home 列表用 `get_handle_config` 读取。
 - **先调额度**：用量接近配置上限的 60% 时，先在代码上限以内提高治理额度：user 的 `admin_set_account_limits`，payment 和 commerce 的 `admin_set_limits`，membership 的 `configure_panda_service`。
-- **再加实例**：home 的账户数接近 2,100 万时新增 home 并调整注册入口；payment 订单数或 commerce 的付费主体、累计订单接近 1,000 万（或 stable memory 余量不足）时，让新 home 指向新的 payment 或 commerce 实例，不继续提高旧实例的上限。
+- **再加实例**：home 的账户数接近 2,100 万时新增 home 并调整注册入口；payment 订单数或 commerce 的受益主体（含获赠）、累计订单接近 1,000 万（或 stable memory 余量不足）时，让新 home 指向新的 payment 或 commerce 实例，不继续提高旧实例的上限。
 - **吞吐**：单个 canister 顺序执行消息；多个 canister 可以并行，但同一子网的 canister 共享子网资源，大规模时把 home 分布到不同子网。提高每分钟额度前，按目标负载在测试网核对子网吞吐和 cycles；跨子网部署、链上密钥和账本的吞吐需要单独测量。
 
 ### 8.5 尚未支持
