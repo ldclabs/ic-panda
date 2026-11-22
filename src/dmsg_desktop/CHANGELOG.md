@@ -6,6 +6,19 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.0-beta.3] - 2026-11-22
+
+- Preview the account, plan and duration before redeeming a membership code.
+  Check redemption status in Plan and usage. Promotional memberships end
+  without an automatic charge.
+- Eligible members can issue or replace guest passes. If the response is
+  lost, retrying recovers the same pass. Promotions require the updated
+  commerce service with membership terms v3 and grants enabled.
+- See hosted Agent ID usage in Agents or with `dmsg agent id quota`. Hosting
+  the same ID on several devices uses one account seat. Free, Plus, Pro and
+  Max allow 1, 3, 5 and 10 distinct IDs respectively. Existing IDs remain
+  usable after a downgrade.
+
 ## [1.6.0-beta.2] - 2026-11-22
 
 - Open an existing account on a new device with one encrypted invitation. If
@@ -964,6 +977,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.6.0-beta.3]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.2...1.6.0-beta.3
 [1.6.0-beta.2]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.1...1.6.0-beta.2
 [1.6.0-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.5.10...1.6.0-beta.1
 [1.5.10-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.5.9...1.5.10-beta.1

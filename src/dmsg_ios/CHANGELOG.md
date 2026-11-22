@@ -7,6 +7,19 @@ tracked separately. Build and device-test evidence is recorded in
 
 ## 1.2.4
 
+### Build 38 — 2026-11-22
+
+- See when a promotional or compensation membership ends, with a reminder
+  that expiry carries no automatic charge. You can start an App Store
+  subscription during the grant. Storage add-ons require an active App Store
+  subscription. Membership display requires the commerce service update for
+  membership terms v3.
+- Compare hosted Agent ID limits by plan and see the current account's usage
+  when creating an ID. Hosting the same ID on multiple devices uses one seat.
+- Resume unfinished account setup from Get started. Opening an existing
+  account from a reminder or browser request now dismisses the current sheet
+  so the invitation screen can open.
+
 ### Build 37 — 2026-11-22
 
 - Scan or paste an encrypted invitation to open an existing account. If the
