@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"ขอให้ดำเนินการ"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"ใช้ข้อมูลลับผ่านนโยบายด้านอุปกรณ์"</string>
     <string name="permission_write" formatted="false">"เขียน"</string>
+    <string name="promo_granted" formatted="false">"สมาชิกโปรโมชัน"</string>
+    <string name="promo_no_charge" formatted="false">"ไม่มีการเรียกเก็บเงินอัตโนมัติเมื่อหมดอายุ"</string>
     <string name="receive_closed" formatted="false">"เมื่อปิดรับจดหมาย จะไม่มีใครส่งจดหมายใหม่ถึงคุณได้"</string>
     <string name="receive_free" formatted="false">"ทุกคนที่คุณไม่ได้บล็อกส่งจดหมายได้ฟรี"</string>
     <string name="receive_selected" formatted="false">"เฉพาะบัญชีที่เลือกหรือผู้ที่มีคำเชิญที่ใช้ได้เท่านั้นที่ส่งจดหมายได้"</string>

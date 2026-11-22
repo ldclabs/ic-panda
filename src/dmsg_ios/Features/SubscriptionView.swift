@@ -5,10 +5,17 @@ struct SubscriptionView: View {
     @Environment(SessionModel.self) private var model
     struct Plan: Decodable {
         struct Limits: Decodable { let storageBytes: UInt64; let activeChannels: UInt64; let monthlyExecutionUnits: UInt64 }
-        struct Term: Decodable { let endsAtMs: UInt64; let method: String; let storeEnvironment: String? }
+        struct Term: Decodable {
+            let endsAtMs: UInt64
+            let method: String
+            let storeEnvironment: String?
+            var isGrant: Bool { method == "Promo" || method == "Compensation" }
+        }
         let plan: String; let source: String; let limits: Limits; let current: Term?
         var eligibility: String? = nil
         var leaseUntilMs: UInt64? = nil
+
+        var allowsStoreSubscription: Bool { current == nil || current?.method == "AppStore" || current?.isGrant == true }
 
         func needsRefresh(at: Date = .now) -> Bool {
             source == "Unverifiable" || eligibility == "Unverifiable"
@@ -25,6 +32,9 @@ struct SubscriptionView: View {
         static var fixture: Self {
             let args = ProcessInfo.processInfo.arguments
             let max = args.contains("--ui-max-subscription"), plus = args.contains("--ui-plus-subscription")
+            if args.contains("--ui-promo-subscription") {
+                return Plan(plan: "Plus", source: "Active", limits: Limits(storageBytes: 1_073_741_824, activeChannels: 10, monthlyExecutionUnits: 10), current: Term(endsAtMs: UInt64(Date.now.addingTimeInterval(30 * 86400).timeIntervalSince1970 * 1000), method: "Promo", storeEnvironment: nil))
+            }
             if args.contains("--ui-stale-subscription") {
                 return Plan(plan: "Free", source: "Unverifiable", limits: Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5),
                     current: Term(endsAtMs: UInt64(Date.now.addingTimeInterval(86400).timeIntervalSince1970 * 1000), method: "AppStore", storeEnvironment: "Sandbox"))
@@ -90,6 +100,10 @@ struct SubscriptionView: View {
                         if plan.source == "Expired" { Text("Your paid membership has ended. You are now on Free.").foregroundStyle(.secondary).accessibilityIdentifier("plan.expired") }
                     }
                     if let term = plan.current {
+                        if term.isGrant {
+                            Text("Promotional membership").accessibilityIdentifier("plan.promo")
+                            Text("No automatic charge at expiry.").font(.footnote).foregroundStyle(.secondary)
+                        }
                         LabeledContent(plan.needsRefresh() ? "Last recorded term" : "Current term ends") { Text(Date(timeIntervalSince1970: Double(term.endsAtMs) / 1000), style: .date) }
                     }
                     if plan.current?.storeEnvironment == "Sandbox" {
@@ -183,7 +197,7 @@ struct SubscriptionView: View {
                             }
                         }
                     }
-                    if let term = plan?.current, term.method != "AppStore", model.purchases.storeEnvironment != "Sandbox" {
+                    if let term = plan?.current, term.method != "AppStore", !term.isGrant, model.purchases.storeEnvironment != "Sandbox" {
                         NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
                     } else if plan?.current == nil, model.purchases.storeEnvironment == "Production", model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
@@ -383,7 +397,7 @@ struct SubscriptionView: View {
         guard let plan, !plan.needsRefresh(), model.purchases.canPurchase(product) else { return false }
         if product.type == .autoRenewable && managesSubscription { return false }
         if model.purchases.storeEnvironment == "Sandbox" { return product.type == .autoRenewable }
-        guard plan.current == nil || plan.current?.method == "AppStore" else { return false }
+        guard plan.allowsStoreSubscription else { return false }
         return product.type == .autoRenewable || (product.type == .consumable && plan.current?.method == "AppStore" && plan.source == "Active" && plan.current?.storeEnvironment != "Sandbox")
     }
     private static func period(_ period: Product.SubscriptionPeriod) -> String {

@@ -1,4 +1,6 @@
 {
+  "promo_granted": {"en":"Promotional membership","ios":"Promotional membership"},
+  "promo_no_charge": {"en":"No automatic charge at expiry.","ios":"No automatic charge at expiry."},
   "access_existing_account": {
     "en": "Open an existing account",
     "zh-Hans": "打开已有账号",

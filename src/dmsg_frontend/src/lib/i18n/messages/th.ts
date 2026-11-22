@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "แลกรหัส",
+  "Membership code": "รหัสสมาชิก",
+  "No automatic charge at expiry.": "ไม่มีการเรียกเก็บเงินอัตโนมัติเมื่อหมดอายุ",
+  "Open dMsg Desktop": "เปิด dMsg Desktop",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "ตรวจสอบและยืนยันใน dMsg Desktop หรือ dmsg CLI",
+  "Try Plus for 30 days": "ทดลองใช้ Plus 30 วัน",
   "Download sessions": "ดาวน์โหลดเซสชั่น",
   "User name": "ชื่อผู้ใช้",
   "Credential": "หนังสือรับรอง",

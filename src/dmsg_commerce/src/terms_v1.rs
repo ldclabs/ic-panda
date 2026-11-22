@@ -1,5 +1,4 @@
-//! Frozen display response for clients released before Google Play support.
-//! New sources belong in the versioned query, never in this Candid variant.
+//! Frozen v1 and v2 display projections. New sources use the open v3 record.
 use candid::CandidType;
 use dmsg_types::{app_store::StoreEnvironment, billing::*, membership::Eligibility, *};
 
@@ -19,12 +18,83 @@ pub(crate) enum ContractSourceV1 {
 }
 
 #[derive(CandidType)]
-pub(crate) struct MembershipContractV1 {
+pub(crate) enum ContractSourceV2 {
+    Cash {
+        order_id: Hash,
+    },
+    Sns {
+        claim_id: Hash,
+    },
+    AppStore {
+        transaction_id: Hash,
+        environment: Option<StoreEnvironment>,
+    },
+    GooglePlay {
+        transaction_id: Hash,
+        token_hash: Hash,
+        environment: crate::PlayEnvironment,
+    },
+    Compensation,
+}
+
+impl TryFrom<ContractSource> for ContractSourceV1 {
+    type Error = Error;
+
+    fn try_from(source: ContractSource) -> Result<Self> {
+        Ok(match source {
+            ContractSource::Cash { order_id } => Self::Cash { order_id },
+            ContractSource::Sns { claim_id } => Self::Sns { claim_id },
+            ContractSource::AppStore {
+                transaction_id,
+                environment,
+            } => Self::AppStore {
+                transaction_id,
+                environment,
+            },
+            ContractSource::Compensation => Self::Compensation,
+            ContractSource::GooglePlay { .. } | ContractSource::Promo { .. } => {
+                return Err(Error::UnsupportedProtocol);
+            }
+        })
+    }
+}
+
+impl TryFrom<ContractSource> for ContractSourceV2 {
+    type Error = Error;
+
+    fn try_from(source: ContractSource) -> Result<Self> {
+        Ok(match source {
+            ContractSource::Cash { order_id } => Self::Cash { order_id },
+            ContractSource::Sns { claim_id } => Self::Sns { claim_id },
+            ContractSource::AppStore {
+                transaction_id,
+                environment,
+            } => Self::AppStore {
+                transaction_id,
+                environment,
+            },
+            ContractSource::GooglePlay {
+                transaction_id,
+                token_hash,
+                environment,
+            } => Self::GooglePlay {
+                transaction_id,
+                token_hash,
+                environment,
+            },
+            ContractSource::Compensation => Self::Compensation,
+            ContractSource::Promo { .. } => return Err(Error::UnsupportedProtocol),
+        })
+    }
+}
+
+#[derive(CandidType)]
+pub(crate) struct LegacyContract<S> {
     term_starts_at_ms: u64,
     resource_pauses: Vec<(u64, Option<u64>)>,
     contract_id: Hash,
     plan: PlanVersion,
-    source: ContractSourceV1,
+    source: S,
     starts_at_ms: u64,
     expires_at_ms: u64,
     terminated_at_ms: Option<u64>,
@@ -34,13 +104,15 @@ pub(crate) struct MembershipContractV1 {
 }
 
 #[derive(CandidType)]
-pub(crate) struct MembershipTermsV1 {
-    contracts: Vec<MembershipContractV1>,
+pub(crate) struct LegacyTerms<S> {
+    contracts: Vec<LegacyContract<S>>,
     addons: Vec<StorageAddon>,
     refund: Option<RefundWindow>,
 }
 
-impl TryFrom<MembershipTerms> for MembershipTermsV1 {
+impl<S: CandidType + TryFrom<ContractSource, Error = Error>> TryFrom<MembershipTerms>
+    for LegacyTerms<S>
+{
     type Error = Error;
 
     fn try_from(terms: MembershipTerms) -> Result<Self> {
@@ -48,26 +120,12 @@ impl TryFrom<MembershipTerms> for MembershipTermsV1 {
             .contracts
             .into_iter()
             .map(|c| {
-                let source = match c.source {
-                    ContractSource::Cash { order_id } => ContractSourceV1::Cash { order_id },
-                    ContractSource::Sns { claim_id } => ContractSourceV1::Sns { claim_id },
-                    ContractSource::AppStore {
-                        transaction_id,
-                        environment,
-                    } => ContractSourceV1::AppStore {
-                        transaction_id,
-                        environment,
-                    },
-                    ContractSource::Compensation => ContractSourceV1::Compensation,
-                    // Do not omit a paid contract or disguise its payment source.
-                    ContractSource::GooglePlay { .. } => return Err(Error::UnsupportedProtocol),
-                };
-                Ok(MembershipContractV1 {
+                Ok(LegacyContract {
                     term_starts_at_ms: c.term_starts_at_ms,
                     resource_pauses: c.resource_pauses,
                     contract_id: c.contract_id,
                     plan: c.plan,
-                    source,
+                    source: S::try_from(c.source)?,
                     starts_at_ms: c.starts_at_ms,
                     expires_at_ms: c.expires_at_ms,
                     terminated_at_ms: c.terminated_at_ms,
@@ -84,3 +142,6 @@ impl TryFrom<MembershipTerms> for MembershipTermsV1 {
         })
     }
 }
+
+pub(crate) type MembershipTermsV1 = LegacyTerms<ContractSourceV1>;
+pub(crate) type MembershipTermsV2 = LegacyTerms<ContractSourceV2>;

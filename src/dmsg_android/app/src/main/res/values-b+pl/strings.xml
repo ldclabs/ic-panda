@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Poproś o działanie"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Użyj klucza tajnego za pośrednictwem zasad dotyczących urządzeń"</string>
     <string name="permission_write" formatted="false">"Zapis"</string>
+    <string name="promo_granted" formatted="false">"Członkostwo promocyjne"</string>
+    <string name="promo_no_charge" formatted="false">"Po wygaśnięciu nie pobierzemy opłaty automatycznie."</string>
     <string name="receive_closed" formatted="false">"Gdy odbiór jest wyłączony, nikt nie może wysyłać nowych listów."</string>
     <string name="receive_free" formatted="false">"Każda niezablokowana osoba może pisać bezpłatnie."</string>
     <string name="receive_selected" formatted="false">"Mogą pisać tylko wybrane konta i osoby z ważnym zaproszeniem."</string>

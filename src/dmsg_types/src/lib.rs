@@ -15,6 +15,7 @@ pub mod handle;
 pub mod login;
 pub mod membership;
 pub mod payment;
+pub mod promo;
 pub mod protocol;
 pub mod user;
 /// `dmsg-wallet/1` multisig wallets and their hub.

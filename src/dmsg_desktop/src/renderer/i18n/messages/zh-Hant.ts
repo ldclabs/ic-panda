@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "使用兌換碼",
+  "promoCode": "會員兌換碼",
+  "promoCheck": "驗證兌換碼",
+  "promoGuest": "產生好友體驗卡",
+  "promoNoCharge": "到期不會自動扣款。",
+  "promoPending": "等候權益到帳",
+  "promoApplied": "會員已生效",
+  "promoSync": "正在同步配額",
+  "promoUnavailable": "此帳戶無法使用這組代碼。",
+  "promoReplace": "補發未使用的卡片",
+  "promoGranted": "贈予會員",
   joinCreate: "建立獨立帳號",
   joinConfirm: "以此身分登入該帳號，並加入這部裝置",
   joinOther: "此登入身分屬於另一個帳號。請選擇其他登入方式。",

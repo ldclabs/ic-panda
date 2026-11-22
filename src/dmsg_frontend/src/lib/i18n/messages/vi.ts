@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "Đổi mã",
+  "Membership code": "Mã thành viên",
+  "No automatic charge at expiry.": "Không tự động tính phí khi hết hạn.",
+  "Open dMsg Desktop": "Mở dMsg Desktop",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "Kiểm tra và xác nhận trong dMsg Desktop hoặc dmsg CLI.",
+  "Try Plus for 30 days": "Dùng thử Plus trong 30 ngày",
   "Download sessions": "Phiên tải xuống",
   "User name": "Tên người dùng",
   "Credential": "Thông tin xác thực",

@@ -73,6 +73,41 @@ fn benefit_list_uses_tier_devices_and_the_hubs_actual_wallet_quotas() {
 }
 
 #[test]
+fn an_unknown_v3_source_still_decodes_its_tier_and_expiry() {
+    #[derive(candid::CandidType)]
+    struct FutureTerm {
+        contract_id: Hash,
+        plan_id: String,
+        source_kind: String,
+        is_sandbox: bool,
+        term_starts_at_ms: u64,
+        starts_at_ms: u64,
+        expires_at_ms: u64,
+        provider_label: Option<String>,
+    }
+    let bytes = candid::encode_one(FutureTerm {
+        contract_id: Hash::new([9; 32]),
+        plan_id: "Plus".into(),
+        source_kind: "future_provider".into(),
+        is_sandbox: false,
+        term_starts_at_ms: NOW,
+        starts_at_ms: NOW,
+        expires_at_ms: NOW + DAY_MS,
+        provider_label: Some("new field".into()),
+    })
+    .unwrap();
+    let term: TermDisplayV3 = candid::decode_one(&bytes).unwrap();
+    let row = contract_view(&term);
+    assert_eq!(row["method"], "Other");
+    assert_eq!(row["plan"], "Plus");
+    assert_eq!(row["ends_at_ms"], NOW + DAY_MS);
+    assert!(!store_action_allowed(
+        &json!({"allowed_actions":["future_action"]}),
+        "cash"
+    ));
+}
+
+#[test]
 fn cash_views_display_symbols_without_renaming_the_wire_asset_variants() {
     use dmsg_types::integration_billing::SettlementAssetKind;
     for (asset, symbol, wire) in [
@@ -115,24 +150,19 @@ fn cash_views_display_symbols_without_renaming_the_wire_asset_variants() {
     }
 }
 
-fn contract(seed: u8, plan: PlanId, starts_at_ms: u64, expires_at_ms: u64) -> MembershipContract {
-    MembershipContract {
-        term_starts_at_ms: starts_at_ms,
-        resource_pauses: vec![],
+fn contract(seed: u8, plan: PlanId, starts_at_ms: u64, expires_at_ms: u64) -> TermDisplayV3 {
+    TermDisplayV3 {
         contract_id: Hash::new([seed; 32]),
-        plan: dmsg_protocol::billing::default_plans(1)
-            .into_iter()
-            .find(|p| p.plan_id == plan)
-            .expect("catalog plan"),
-        source: ContractSource::Cash {
-            order_id: Hash::new([seed.wrapping_add(1); 32]),
-        },
+        plan_id: format!("{plan:?}"),
+        source_kind: "cash".into(),
+        source_ref: Some(Hash::new([seed.wrapping_add(1); 32])),
+        is_sandbox: false,
+        store_environment: None,
+        store_token_hash: None,
+        term_starts_at_ms: starts_at_ms,
         starts_at_ms,
         expires_at_ms,
         terminated_at_ms: None,
-        eligibility: dmsg_types::membership::Eligibility::Eligible,
-        observed_at_ms: starts_at_ms,
-        qualified_until_ms: expires_at_ms,
     }
 }
 
@@ -145,7 +175,7 @@ fn the_newest_started_contract_is_in_force() {
     let bought = contract(3, PlanId::Max, NOW - 60_000, NOW + 365 * DAY_MS);
     let contracts = [&refunded, &bought];
     assert_eq!(
-        in_force(&contracts, NOW).map(|c| c.contract_id),
+        in_force(&contracts, NOW, Some(bought.contract_id)).map(|c| c.contract_id),
         Some(bought.contract_id)
     );
     assert_eq!(queued(&contracts, NOW).map(|c| c.contract_id), None);
@@ -159,7 +189,7 @@ fn a_queued_renewal_follows_the_term_in_force() {
     let renewal = contract(7, PlanId::Plus, NOW + 5 * DAY_MS, NOW + 370 * DAY_MS);
     let contracts = [&running, &renewal];
     assert_eq!(
-        in_force(&contracts, NOW).map(|c| c.contract_id),
+        in_force(&contracts, NOW, Some(running.contract_id)).map(|c| c.contract_id),
         Some(running.contract_id)
     );
     assert_eq!(
@@ -174,7 +204,7 @@ fn a_queued_renewal_follows_the_term_in_force() {
 fn a_term_that_has_not_started_is_only_queued() {
     let future = contract(9, PlanId::Pro, NOW + DAY_MS, NOW + 366 * DAY_MS);
     let contracts = [&future];
-    assert_eq!(in_force(&contracts, NOW), None);
+    assert_eq!(in_force(&contracts, NOW, Some(future.contract_id)), None);
     assert_eq!(
         queued(&contracts, NOW).map(|c| c.contract_id),
         Some(future.contract_id)
@@ -197,10 +227,7 @@ fn an_app_store_term_offers_no_other_renewal_or_switch() {
     let renew = offers(&catalog, Some(&cash), None, NOW).unwrap();
     assert!(renew.iter().any(|o| o["action"] == "renew"));
     let mut apple = cash;
-    apple.source = ContractSource::AppStore {
-        environment: None,
-        transaction_id: Hash::new([12; 32]),
-    };
+    apple.source_kind = "app_store".into();
     let managed = offers(&catalog, Some(&apple), None, NOW).unwrap();
     assert_eq!(managed.len(), 3);
     assert!(managed.iter().all(|o| o["action"] == "unavailable"
@@ -264,12 +291,13 @@ fn sandbox_status_is_visible_but_never_selected_over_a_formal_contract() {
     use dmsg_types::app_store::StoreEnvironment;
     let formal = contract(31, PlanId::Plus, NOW - DAY_MS, NOW + DAY_MS);
     let mut sandbox = contract(32, PlanId::Max, NOW - 1000, NOW + DAY_MS);
-    sandbox.source = ContractSource::AppStore {
-        transaction_id: Hash::new([32; 32]),
-        environment: Some(StoreEnvironment::Sandbox),
-    };
+    sandbox.source_kind = "app_store".into();
+    sandbox.store_environment = Some("Sandbox".into());
+    sandbox.is_sandbox = true;
     assert_eq!(
-        in_force(&[&formal, &sandbox], NOW).unwrap().contract_id,
+        in_force(&[&formal, &sandbox], NOW, Some(formal.contract_id))
+            .unwrap()
+            .contract_id,
         formal.contract_id
     );
     assert_eq!(contract_view(&sandbox)["store_environment"], "Sandbox");

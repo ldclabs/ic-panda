@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "Code inwisselen",
+  "promoCode": "Lidmaatschapscode",
+  "promoCheck": "Code controleren",
+  "promoGuest": "Gastpas aanmaken",
+  "promoNoCharge": "Geen automatische afschrijving na afloop.",
+  "promoPending": "Wachten op activering",
+  "promoApplied": "Lidmaatschap geactiveerd",
+  "promoSync": "Limieten worden bijgewerkt",
+  "promoUnavailable": "Deze code is niet beschikbaar voor dit account.",
+  "promoReplace": "Ongebruikte pas vervangen",
+  "promoGranted": "Promotioneel lidmaatschap",
   joinCreate: "Een apart account maken",
   joinConfirm: "Deze aanmelding voor dit account gebruiken en dit apparaat toevoegen",
   joinOther: "Deze aanmelding hoort bij een ander account. Kies een andere aanmelding.",

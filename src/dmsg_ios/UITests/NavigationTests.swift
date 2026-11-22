@@ -353,6 +353,20 @@ final class NavigationTests: NavigationTestCase {
         }
     }
 
+    func testPromotionalMembershipShowsItsTermWithoutStoreRenewal() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-promo-subscription", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: "我的").tap()
+        let plan = app.buttons["account.plan"]
+        for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+        XCTAssertTrue(plan.isHittable)
+        plan.tap()
+        XCTAssertTrue(app.staticTexts["plan.promo"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["到期不会自动扣费。"].exists)
+        capture(app, name: "Promotional membership · Chinese")
+    }
+
     func testSandboxSubscriptionNoticeInChinese() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-sandbox-subscription", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]

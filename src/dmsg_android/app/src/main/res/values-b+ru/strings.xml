@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Запросить действие"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Использовать секрет по правилу устройства"</string>
     <string name="permission_write" formatted="false">"Записывать"</string>
+    <string name="promo_granted" formatted="false">"Подарочная подписка"</string>
+    <string name="promo_no_charge" formatted="false">"По окончании срока автоматического списания не будет."</string>
     <string name="receive_closed" formatted="false">"Пока приём закрыт, никто не может присылать вам новые письма."</string>
     <string name="receive_free" formatted="false">"Все, кого вы не заблокировали, могут писать вам бесплатно."</string>
     <string name="receive_selected" formatted="false">"Вам могут писать только выбранные аккаунты и люди с действующим приглашением."</string>

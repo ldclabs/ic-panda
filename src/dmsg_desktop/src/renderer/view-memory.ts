@@ -40,6 +40,7 @@ const lasting = (route: string) => !/\?(?!tab=\w+$)/.test(route)
 export function visitRoute(route: string): string {
   if (!route.startsWith('/plan?')) return route
   const params = new URLSearchParams(route.slice(6))
+  if (params.has('redeem')) return '/plan'
   return !params.has('reminder') && (params.get('accept') || params.get('names')) ? '/plan?tab=names' : route
 }
 

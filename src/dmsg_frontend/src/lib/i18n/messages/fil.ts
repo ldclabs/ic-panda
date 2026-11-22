@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "Gamitin ang code",
+  "Membership code": "Code ng membership",
+  "No automatic charge at expiry.": "Walang awtomatikong singil sa pag-expire.",
+  "Open dMsg Desktop": "Buksan ang dMsg Desktop",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "Suriin at kumpirmahin sa dMsg Desktop o sa dmsg CLI.",
+  "Try Plus for 30 days": "Subukan ang Plus nang 30 araw",
   "Download sessions": "Mag-download ng mga session",
   "User name": "User name",
   "Credential": "Kredensyal",

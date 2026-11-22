@@ -112,6 +112,10 @@ import net.dmsg.android.platform.numericExpression
                             if (tier != null && term.contract != null) Text(str(R.string.text_verified_service_term_33c14bd),
                                 Modifier.reminderVisible(client, NoticeTarget("plan", term.contract), revision = term), style = MaterialTheme.typography.labelMedium)
                             LabelValue(str(if (tier == null) R.string.text_last_recorded_term_7f08136 else R.string.text_current_term_ends_b4c54ff), displayTime(term.endsAt))
+                            if (term.method == "Promo" || term.method == "Compensation") {
+                                Text(str(R.string.promo_granted), style = MaterialTheme.typography.labelMedium)
+                                Text(str(R.string.promo_no_charge), style = MaterialTheme.typography.bodySmall)
+                            }
                             if (term.method == "AppStore") Text(str(R.string.text_manage_this_subscription_in_the_apple_account_that_purchased_it_d_7deb40b), style = MaterialTheme.typography.bodySmall)
                             if (term.environment in setOf("Sandbox", "Test")) Text(str(R.string.text_test_subscription_d0447bf), style = MaterialTheme.typography.labelMedium)
                         }

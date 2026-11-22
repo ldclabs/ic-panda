@@ -46,6 +46,7 @@ export const methodLabels: Record<string, Label> = {
   Cash: 'methodCash',
   Panda: 'methodPanda',
   AppStore: 'methodAppStore',
+  Promo: 'promoGranted',
   Compensation: 'methodCompensation'
 }
 

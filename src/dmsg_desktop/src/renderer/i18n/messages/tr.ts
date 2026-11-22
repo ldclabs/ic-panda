@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "Kodu kullan",
+  "promoCode": "Üyelik kodu",
+  "promoCheck": "Kodu kontrol et",
+  "promoGuest": "Misafir kartı oluştur",
+  "promoNoCharge": "Süre sonunda otomatik ücret alınmaz.",
+  "promoPending": "Etkinleştirme bekleniyor",
+  "promoApplied": "Üyelik etkinleştirildi",
+  "promoSync": "Kotalar güncelleniyor",
+  "promoUnavailable": "Bu kod bu hesap için kullanılamaz.",
+  "promoReplace": "Kullanılmamış kartı değiştir",
+  "promoGranted": "Promosyon üyeliği",
   joinCreate: "Ayrı bir hesap oluştur",
   joinConfirm: "Bu oturum açma yöntemini hesaba bağla ve bu cihazı ekle",
   joinOther: "Bu oturum açma yöntemi başka bir hesaba bağlı. Başka bir yöntem seçin.",

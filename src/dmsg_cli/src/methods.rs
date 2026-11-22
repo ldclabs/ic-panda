@@ -18,7 +18,7 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 80] = [
+pub(crate) const METHODS: [&str; 84] = [
     "feedback/get",
     "feedback/save",
     "feedback/send",
@@ -79,6 +79,10 @@ pub(crate) const METHODS: [&str; 80] = [
     "payer/use",
     "payer/balance",
     "payer/status",
+    "plan/promo_preview",
+    "plan/redeem",
+    "plan/guest_pass",
+    "plan/promo_history",
     "plan/catalog",
     "plan/status",
     "plan/assets",
@@ -449,6 +453,32 @@ impl Daemon {
                     source(params)?,
                     &id,
                     method == "plan/advance",
+                )
+                .await;
+            }
+            "plan/promo_preview" | "plan/redeem" | "plan/guest_pass" | "plan/promo_history" => {
+                let action = match method {
+                    "plan/promo_preview" => "preview",
+                    "plan/redeem" => "redeem",
+                    "plan/guest_pass" => "guest-passes",
+                    _ => "history",
+                };
+                let request = if params["request_id"].is_null() {
+                    dmsg_types::Hash::new(dmsg_client::crypto::random_id())
+                } else {
+                    crate::params::hash(params, "request_id")?
+                };
+                let account = params["account"].as_str();
+                if action == "redeem" && account.is_none() {
+                    return Err(Error::InvalidInput("confirmed account".into()));
+                }
+                return commerce::promo(
+                    &h,
+                    action,
+                    params["code"].as_str().unwrap_or_default(),
+                    &request,
+                    account,
+                    params["replace_slot"].as_u64(),
                 )
                 .await;
             }

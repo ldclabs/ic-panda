@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"操作をリクエスト"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"デバイスポリシーを通じてシークレットを使用する"</string>
     <string name="permission_write" formatted="false">"書き込み"</string>
+    <string name="promo_granted" formatted="false">"特典による会員資格"</string>
+    <string name="promo_no_charge" formatted="false">"期間終了時の自動課金はありません。"</string>
     <string name="receive_closed" formatted="false">"受信を閉じている間は、誰からも新しい手紙を受け取りません。"</string>
     <string name="receive_free" formatted="false">"ブロックしていない人は誰でも無料で手紙を送れます。"</string>
     <string name="receive_selected" formatted="false">"選択したアカウントと、有効な招待を持つ人だけが手紙を送れます。"</string>

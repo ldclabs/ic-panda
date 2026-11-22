@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "Đổi mã",
+  "promoCode": "Mã thành viên",
+  "promoCheck": "Kiểm tra mã",
+  "promoGuest": "Tạo thẻ khách",
+  "promoNoCharge": "Không tự động tính phí khi hết hạn.",
+  "promoPending": "Đang chờ kích hoạt",
+  "promoApplied": "Đã kích hoạt thành viên",
+  "promoSync": "Đang cập nhật hạn mức",
+  "promoUnavailable": "Tài khoản này không dùng được mã này.",
+  "promoReplace": "Cấp lại thẻ chưa sử dụng",
+  "promoGranted": "Gói thành viên khuyến mãi",
   joinCreate: "Tạo tài khoản riêng",
   joinConfirm: "Dùng cách đăng nhập này cho tài khoản và thêm thiết bị này",
   joinOther: "Cách đăng nhập này thuộc về một tài khoản khác. Hãy chọn cách khác.",

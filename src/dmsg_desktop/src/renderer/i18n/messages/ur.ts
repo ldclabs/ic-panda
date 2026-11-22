@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "کوڈ استعمال کریں",
+  "promoCode": "رکنیت کا کوڈ",
+  "promoCheck": "کوڈ چیک کریں",
+  "promoGuest": "مہمان پاس بنائیں",
+  "promoNoCharge": "مدت ختم ہونے پر خودکار رقم نہیں کاٹی جائے گی۔",
+  "promoPending": "فعال ہونے کا انتظار",
+  "promoApplied": "رکنیت فعال ہو گئی",
+  "promoSync": "حدود اپ ڈیٹ ہو رہی ہیں",
+  "promoUnavailable": "اس اکاؤنٹ پر یہ کوڈ دستیاب نہیں ہے۔",
+  "promoReplace": "غیر استعمال شدہ پاس تبدیل کریں",
+  "promoGranted": "تشہیری رکنیت",
   joinCreate: "علیحدہ اکاؤنٹ بنائیں",
   joinConfirm: "اس اکاؤنٹ کے لیے یہ لاگ ان استعمال کریں اور یہ آلہ شامل کریں",
   joinOther: "یہ لاگ ان دوسرے اکاؤنٹ سے منسلک ہے۔ کوئی اور لاگ ان منتخب کریں۔",

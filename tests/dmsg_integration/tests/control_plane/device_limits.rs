@@ -1,6 +1,6 @@
 use super::*;
 
-fn enrollment(f: &Fixture, id: &AccountId, n: u8) -> AccountMutation {
+pub(super) fn enrollment(f: &Fixture, id: &AccountId, n: u8) -> AccountMutation {
     let s = f.account_id(1, id);
     let input = device(n);
     let request_id = digest("device-limit-test", &(id, s.account_version, n));
@@ -47,7 +47,7 @@ fn enrollment(f: &Fixture, id: &AccountId, n: u8) -> AccountMutation {
     m
 }
 
-fn enroll(f: &Fixture, m: &AccountMutation) -> Result<OperationReceipt> {
+pub(super) fn enroll(f: &Fixture, m: &AccountMutation) -> Result<OperationReceipt> {
     update(&f.ic, f.user, person(1), "mutate_account", (m,))
 }
 

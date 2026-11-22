@@ -30,10 +30,7 @@ use dmsg_protocol::{
 };
 use dmsg_types::{
     Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
-    billing::{
-        Catalog, ContractSource, EntitlementView, MembershipContract, MembershipTerms, PlanId,
-        RENEWAL_WINDOW_MS, ResourceLimits, StorageAddon,
-    },
+    billing::{Catalog, EntitlementView, PlanId, RENEWAL_WINDOW_MS, ResourceLimits, StorageAddon},
     ensure, ensure_valid,
     integration::{
         AppRegistration, ApplicationApproval, ApprovalPurpose, BillingOffer, ProductRegistration,
@@ -50,6 +47,7 @@ use dmsg_types::{
         PandaOperationsPage, PandaServiceView,
     },
     membership::{Beneficiary, Eligibility},
+    promo::{TermDisplayV3, TermsDisplayV3, TermsErrorV3},
     user::{Capability, UserInit},
 };
 use icrc_ledger_types::icrc1::{account::Account, transfer::TransferArg};
@@ -895,56 +893,43 @@ pub async fn catalog_display<H: Hold>(h: &H) -> Result<Json> {
 }
 
 /// When a contract's rights end: its term, or an earlier termination.
-fn contract_end(c: &MembershipContract) -> u64 {
+fn contract_end(c: &TermDisplayV3) -> u64 {
     c.expires_at_ms.min(c.terminated_at_ms.unwrap_or(u64::MAX))
 }
 
-/// A base contract for display.
-fn contract_view(c: &MembershipContract) -> Json {
-    let (method, source) = match &c.source {
-        ContractSource::Cash { order_id } => ("Cash", hex::encode(**order_id)),
-        ContractSource::Sns { claim_id } => ("Panda", hex::encode(**claim_id)),
-        ContractSource::AppStore { transaction_id, .. } => {
-            ("AppStore", hex::encode(**transaction_id))
-        }
-        ContractSource::GooglePlay { transaction_id, .. } => {
-            ("GooglePlay", hex::encode(**transaction_id))
-        }
-        ContractSource::Compensation => ("Compensation", String::new()),
+fn contract_view(c: &TermDisplayV3) -> Json {
+    let method = match c.source_kind.as_str() {
+        "cash" => "Cash",
+        "sns" => "Panda",
+        "app_store" => "AppStore",
+        "google_play" => "GooglePlay",
+        "promo" => "Promo",
+        "compensation" => "Compensation",
+        _ => "Other",
     };
     json!({
-        "contract": hex::encode(*c.contract_id),
-        "plan": format!("{:?}", c.plan.plan_id),
-        "method": method,
-        "store_environment": match &c.source {
-            ContractSource::AppStore { environment, .. } => Some(if environment.as_ref() == Some(&dmsg_types::app_store::StoreEnvironment::Sandbox) { "Sandbox" } else { "Production" }),
-            ContractSource::GooglePlay { environment, .. } => Some(if *environment == dmsg_types::google_play::PlayEnvironment::Test { "Test" } else { "Production" }),
-            _ => None,
-        },
-        "source": source,
-        "store_token_hash": match &c.source { ContractSource::GooglePlay { token_hash, .. } => Some(hex::encode(**token_hash)), _ => None },
-        "term_starts_at_ms": c.term_starts_at_ms,
-        "starts_at_ms": c.starts_at_ms,
-        "expires_at_ms": c.expires_at_ms,
-        "terminated_at_ms": c.terminated_at_ms,
-        "ends_at_ms": contract_end(c),
+        "contract": hex::encode(*c.contract_id), "plan": c.plan_id, "method": method,
+        "source": c.source_ref.map(|id| hex::encode(*id)).unwrap_or_default(),
+        "store_environment": c.store_environment, "store_token_hash": c.store_token_hash.map(|id| hex::encode(*id)),
+        "term_starts_at_ms": c.term_starts_at_ms, "starts_at_ms": c.starts_at_ms, "expires_at_ms": c.expires_at_ms,
+        "terminated_at_ms": c.terminated_at_ms, "ends_at_ms": contract_end(c),
     })
 }
 
-/// The base contract in force now: the newest formal one that has started,
-/// else the newest Sandbox one, as commerce's own projection picks it. An early
-/// refund keeps its contract until the lease it already issued runs out, so a
-/// purchase made after it is the one in force.
-fn in_force<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a MembershipContract> {
+/// Match the certified contract; an unfamiliar display source still has its own identity.
+fn in_force<'a>(
+    live: &[&'a TermDisplayV3],
+    now: u64,
+    active: Option<Hash>,
+) -> Option<&'a TermDisplayV3> {
     live.iter()
-        .filter(|c| c.starts_at_ms <= now)
-        .max_by_key(|c| (!c.source.is_sandbox(), c.starts_at_ms))
         .copied()
+        .find(|c| Some(c.contract_id) == active && c.starts_at_ms <= now && now < contract_end(c))
 }
 
 /// The one renewal queued after the term in force: contracts come oldest
 /// first, so it is the first that has not started.
-fn queued<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a MembershipContract> {
+fn queued<'a>(live: &[&'a TermDisplayV3], now: u64) -> Option<&'a TermDisplayV3> {
     live.iter().find(|c| c.starts_at_ms > now).copied()
 }
 
@@ -957,18 +942,20 @@ fn queued<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a Membershi
 /// term end (`ends_at_ms`) that a PANDA neuron's lock must cover.
 fn offers(
     catalog: &Catalog,
-    current: Option<&MembershipContract>,
-    next: Option<&MembershipContract>,
+    current: Option<&TermDisplayV3>,
+    next: Option<&TermDisplayV3>,
     now: u64,
 ) -> Result<Vec<Json>> {
-    let price = |plan: &PlanId| {
+    let price = |plan: &str| {
         catalog
             .plans
             .iter()
-            .find(|p| p.plan_id == *plan)
+            .find(|p| format!("{:?}", p.plan_id) == plan)
             .map(|p| p.price_cents)
     };
-    let current = current.filter(|c| c.terminated_at_ms.is_none());
+    let current = current.filter(|c| {
+        c.terminated_at_ms.is_none() && !matches!(c.source_kind.as_str(), "promo" | "compensation")
+    });
     catalog
         .plans
         .iter()
@@ -1009,14 +996,14 @@ fn offers(
                 );
             };
             // Store renewal is managed by its provider; do not start a parallel cash term.
-            match c.source {
-                ContractSource::AppStore { .. } => return wait("APP_STORE_MANAGED", None),
-                ContractSource::GooglePlay { .. } => return wait("GOOGLE_PLAY_MANAGED", None),
+            match c.source_kind.as_str() {
+                "app_store" => return wait("APP_STORE_MANAGED", None),
+                "google_play" => return wait("GOOGLE_PLAY_MANAGED", None),
                 _ => {}
             }
-            let same = c.plan.plan_id == p.plan_id;
-            let higher = price(&c.plan.plan_id).is_some_and(|cents| p.price_cents > cents);
-            if higher && matches!(c.source, ContractSource::Cash { .. }) {
+            let same = c.plan_id == plan;
+            let higher = price(&c.plan_id).is_some_and(|cents| p.price_cents > cents);
+            if higher && c.source_kind == "cash" {
                 return offer(
                     "upgrade",
                     format!("upgrade-{sku}"),
@@ -1091,18 +1078,34 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
     // share the discovered commerce canister and agent.
     let beneficiaries = vec![&beneficiary];
     let key = billing::entitlement_key(&beneficiary);
-    let (view, terms, catalog): (Option<EntitlementView>, Result<MembershipTerms>, Catalog) = futures_util::try_join!(
-        certified_by(
-            &ic,
-            commerce,
-            "get_entitlement_batch",
-            (beneficiaries,),
-            key.as_slice()
-        ),
-        ic.query(commerce, "get_membership_terms_v2", (&beneficiary,)),
-        catalog_by(&ic, commerce)
+    let read = || async {
+        let (view, terms, catalog): (
+            Option<EntitlementView>,
+            std::result::Result<TermsDisplayV3, TermsErrorV3>,
+            Catalog,
+        ) = futures_util::try_join!(
+            certified_by(
+                &ic,
+                commerce,
+                "get_entitlement_batch",
+                (&beneficiaries,),
+                key.as_slice()
+            ),
+            ic.query(commerce, "get_membership_terms_v3", (&beneficiary,)),
+            catalog_by(&ic, commerce)
+        )?;
+        Ok::<_, Error>((view, terms.map_err(|_| Error::MembershipStale)?, catalog))
+    };
+    let mut state = read().await?;
+    if state.0.as_ref().map_or(0, |v| v.business_revision) != state.1.business_revision {
+        state = read().await?;
+    }
+    let (view, terms, catalog) = state;
+    ensure(
+        view.as_ref().map_or(0, |v| v.business_revision) == terms.business_revision,
+        Error::MembershipStale,
     )?;
-    let terms = terms?;
+    let active_id = view.as_ref().and_then(|v| v.active_contract_id);
     let mut status = match view {
         Some(view) => json!({
             "notification_revision":view.business_revision,
@@ -1131,48 +1134,48 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
         }
     };
     let now = now_ms();
-    let live: Vec<&MembershipContract> = terms
+    let live: Vec<&TermDisplayV3> = terms
         .contracts
         .iter()
         .filter(|c| contract_end(c) > now)
         .collect();
-    let current = in_force(&live, now);
+    let current = in_force(&live, now, active_id);
     let next = queued(&live, now);
     status["current"] = current.map_or(Json::Null, contract_view);
     status["next"] = next.map_or(Json::Null, contract_view);
-    status["offers"] = offers(
+    let allows = |action: &str| terms.allowed_actions.iter().any(|s| s == action);
+    let mut cards = offers(
         &catalog,
-        current.filter(|c| !c.source.is_sandbox()),
-        next.filter(|c| !c.source.is_sandbox()),
+        current.filter(|c| !c.is_sandbox),
+        next.filter(|c| !c.is_sandbox),
         now,
-    )?
-    .into();
-    // Storage packs extend a paid membership that qualifies now, to its end.
-    status["storage_available"] = (current
-        .is_some_and(|c| c.terminated_at_ms.is_none() && !c.source.is_sandbox())
-        && status["eligibility"] == "Eligible")
-        .into();
-    // Only a term running to its end is continued; one renewal at a time.
-    // Apple renews an App Store term without a window here.
-    status["renew_from_ms"] = match (current, next) {
-        (Some(c), None)
-            if c.terminated_at_ms.is_none()
-                && !matches!(
-                    c.source,
-                    ContractSource::AppStore { .. } | ContractSource::GooglePlay { .. }
-                ) =>
-        {
-            c.expires_at_ms.saturating_sub(RENEWAL_WINDOW_MS).into()
+    )?;
+    for card in &mut cards {
+        if let Some(methods) = card["methods"].as_array_mut() {
+            methods.retain(|m| {
+                matches!(m.as_str(), Some("Cash") if allows("cash"))
+                    || matches!(m.as_str(), Some("Panda") if allows("sns"))
+            });
+            if methods.is_empty() {
+                card["action"] = "unavailable".into();
+                card["reason"] = "UNAVAILABLE".into();
+            }
         }
-        _ => Json::Null,
-    };
-    status["refund"] = terms.refund.map_or(Json::Null, |w| {
-        json!({
-            "order": hex::encode(*w.order_id),
-            "contract": hex::encode(*w.contract_id),
-            "until_ms": w.until_ms,
+    }
+    status["offers"] = cards.into();
+    status["allowed_actions"] = json!(terms.allowed_actions);
+    status["storage_available"] = (allows("storage") && status["eligibility"] == "Eligible").into();
+    status["renew_from_ms"] = current
+        .filter(|c| {
+            next.is_none()
+                && c.terminated_at_ms.is_none()
+                && matches!(c.source_kind.as_str(), "cash" | "sns")
         })
-    });
+        .map(|c| c.expires_at_ms.saturating_sub(RENEWAL_WINDOW_MS))
+        .into();
+    status["refund"] = terms.refund.filter(|_| allows("refund")).map_or(Json::Null, |w| json!({
+        "order": hex::encode(*w.order_id), "contract": hex::encode(*w.contract_id), "until_ms": w.until_ms,
+    }));
     if refresh {
         status["synced"] = relay_refresh(h).await.is_ok().into();
     }
@@ -1217,6 +1220,62 @@ pub async fn relay_refresh<H: Hold>(h: &H) -> Result<()> {
     let base = h.with(|c| c.base()).await?;
     let path = format!("{base}/membership/refresh");
     h.send(|c| c.signed_post_empty(&path)).await.map(|_| ())
+}
+
+/// Preview, redeem or issue a guest pass using a device-bound operation.
+pub async fn promo<H: Hold>(
+    h: &H,
+    action: &str,
+    code: &str,
+    request_id: &Hash,
+    expected_account: Option<&str>,
+    replace_slot: Option<u64>,
+) -> Result<Json> {
+    let (base, account, generation) = h
+        .with(|c| {
+            Ok((
+                c.base()?,
+                c.session_state().account.ok_or(Error::Locked)?,
+                c.session_generation(),
+            ))
+        })
+        .await?;
+    ensure(
+        expected_account.is_none_or(|expected| expected == account),
+        Error::PolicyStale,
+    )?;
+    let (suffix, domain, payload) = match action {
+        "preview" => ("preview", "dmsg/promo/preview/v1", json!({"code":code})),
+        "redeem" => ("redeem", "dmsg/promo/redeem/v1", json!({"code":code})),
+        "guest-passes" => (
+            "guest-passes",
+            "dmsg/promo/guest-pass/v1",
+            json!({"replace_slot":replace_slot}),
+        ),
+        "history" => ("history", "", Json::Null),
+        _ => return Err(Error::UnsupportedProtocol),
+    };
+    let path = format!("{base}/promos/{suffix}");
+    let reply = h
+        .send(|c| {
+            ensure(
+                c.base()? == base && c.session_generation() == generation,
+                Error::PolicyStale,
+            )?;
+            if action == "history" {
+                return c.signed_get(&path);
+            }
+            c.signed_post(&path, domain, &payload, request_id)
+        })
+        .await?;
+    h.with(|c| {
+        ensure(
+            c.base()? == base && c.session_generation() == generation,
+            Error::PolicyStale,
+        )
+    })
+    .await?;
+    Ok(reply)
 }
 
 /// Acknowledge the relay's over-limit notice `id`; the export window it
@@ -1928,6 +1987,16 @@ pub async fn google_play_purchase_check<H: Hold>(
     )
 }
 
+fn gifted(current: &Json) -> bool {
+    matches!(current["method"].as_str(), Some("Promo" | "Compensation"))
+}
+
+fn store_action_allowed(status: &Json, key: &str) -> bool {
+    status["allowed_actions"]
+        .as_array()
+        .is_some_and(|actions| actions.iter().any(|action| action.as_str() == Some(key)))
+}
+
 fn google_play_purchase_reason(
     kind: &dmsg_types::google_play::PlayProductKind,
     status: &Json,
@@ -1941,11 +2010,19 @@ fn google_play_purchase_reason(
         return Some("subscription_suspended");
     }
     let current = &status["current"];
-    if !current.is_null() && current["method"] != "GooglePlay" {
+    if matches!(kind, PlayProductKind::Plan { .. }) && !store_action_allowed(status, "google_play")
+    {
+        return Some("external_plan");
+    }
+    if !current.is_null()
+        && current["method"] != "GooglePlay"
+        && !(matches!(kind, PlayProductKind::Plan { .. }) && gifted(current))
+    {
         return Some("external_plan");
     }
     if matches!(kind, PlayProductKind::Storage { .. })
         && (current.is_null()
+            || !store_action_allowed(status, "storage")
             || status["source"] != "Active"
             || current["contract"].as_str().is_none()
             || current["store_environment"]
@@ -1975,7 +2052,8 @@ mod google_play_purchase_tests {
             product: Hash::new([1; 32]),
             purchase_option_id: "buy".into(),
         };
-        let free = json!({"source":"Free","current":null});
+        let free =
+            json!({"source":"Free","current":null,"allowed_actions":["app_store","google_play"]});
         assert_eq!(
             google_play_purchase_reason(&plan, &free, &PlayEnvironment::Production),
             None
@@ -1994,7 +2072,7 @@ mod google_play_purchase_tests {
                 Some("external_plan")
             );
         }
-        let mut owned = json!({"source":"Active","current":{"method":"GooglePlay","store_environment":"Production","contract":"11".repeat(32)}});
+        let mut owned = json!({"source":"Active","allowed_actions":["google_play","storage"],"current":{"method":"GooglePlay","store_environment":"Production","contract":"11".repeat(32)}});
         assert_eq!(
             google_play_purchase_reason(&storage, &owned, &PlayEnvironment::Production),
             None
@@ -2065,11 +2143,20 @@ fn app_store_purchase_reason(
         };
     }
     let current = &status["current"];
-    if !current.is_null() && current["method"] != "AppStore" {
+    if matches!(kind, dmsg_types::app_store::StoreProductKind::Plan(_))
+        && !store_action_allowed(status, "app_store")
+    {
+        return Some("external_plan");
+    }
+    if !current.is_null()
+        && current["method"] != "AppStore"
+        && !(matches!(kind, dmsg_types::app_store::StoreProductKind::Plan(_)) && gifted(current))
+    {
         return Some("external_plan");
     }
     if matches!(kind, dmsg_types::app_store::StoreProductKind::Storage(_))
         && (current.is_null()
+            || !store_action_allowed(status, "storage")
             || status["source"] != "Active"
             || current["store_environment"] == "Sandbox")
     {
@@ -2087,7 +2174,8 @@ mod app_store_purchase_tests {
         use dmsg_types::app_store::StoreProductKind::{Plan, Storage};
         let plan = Plan(PlanId::Plus);
         let storage = Storage(Hash::new([1; 32]));
-        let free = json!({"source":"Free","current":null});
+        let free =
+            json!({"source":"Free","current":null,"allowed_actions":["app_store","google_play"]});
         assert_eq!(app_store_purchase_reason(&plan, &free, &Production), None);
         assert_eq!(
             app_store_purchase_reason(&storage, &free, &Production),
@@ -2104,7 +2192,7 @@ mod app_store_purchase_tests {
         assert_eq!(
             app_store_purchase_reason(
                 &storage,
-                &json!({"source":"Active","current":{"method":"AppStore"}}),
+                &json!({"source":"Active","allowed_actions":["app_store","storage"],"current":{"method":"AppStore"}}),
                 &Production
             ),
             None

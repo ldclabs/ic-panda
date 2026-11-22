@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"পদক্ষেপের অনুরোধ করুন"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"একটি ডিভাইস নীতি মাধ্যমে একটি গোপন ব্যবহার করুন"</string>
     <string name="permission_write" formatted="false">"লিখুন"</string>
+    <string name="promo_granted" formatted="false">"প্রচারমূলক সদস্যতা"</string>
+    <string name="promo_no_charge" formatted="false">"মেয়াদ শেষে স্বয়ংক্রিয়ভাবে টাকা কাটা হবে না।"</string>
     <string name="receive_closed" formatted="false">"চিঠি গ্রহণ বন্ধ থাকলে কেউ নতুন চিঠি পাঠাতে পারবেন না।"</string>
     <string name="receive_free" formatted="false">"আপনি যাঁদের অবরুদ্ধ করেননি তাঁরা বিনামূল্যে লিখতে পারেন।"</string>
     <string name="receive_selected" formatted="false">"কেবল নির্বাচিত অ্যাকাউন্ট বা বৈধ আমন্ত্রণধারীরা চিঠি লিখতে পারেন।"</string>

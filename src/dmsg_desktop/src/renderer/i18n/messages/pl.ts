@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "Zrealizuj kod",
+  "promoCode": "Kod członkostwa",
+  "promoCheck": "Sprawdź kod",
+  "promoGuest": "Utwórz przepustkę dla gościa",
+  "promoNoCharge": "Po wygaśnięciu nie pobierzemy opłaty automatycznie.",
+  "promoPending": "Oczekiwanie na aktywację",
+  "promoApplied": "Aktywowano członkostwo",
+  "promoSync": "Aktualizowanie limitów",
+  "promoUnavailable": "Ten kod jest niedostępny dla tego konta.",
+  "promoReplace": "Zastąp niewykorzystaną przepustkę",
+  "promoGranted": "Członkostwo promocyjne",
   joinCreate: "Utwórz osobne konto",
   joinConfirm: "Użyj tej metody logowania do tego konta i dodaj to urządzenie",
   joinOther: "Ta metoda logowania należy do innego konta. Wybierz inną metodę.",

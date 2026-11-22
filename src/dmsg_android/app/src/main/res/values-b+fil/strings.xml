@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Humiling ng aksyon"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Gumamit ng lihim sa pamamagitan ng patakaran sa device"</string>
     <string name="permission_write" formatted="false">"Magsulat"</string>
+    <string name="promo_granted" formatted="false">"Promosyonal na membership"</string>
+    <string name="promo_no_charge" formatted="false">"Walang awtomatikong singil sa pag-expire."</string>
     <string name="receive_closed" formatted="false">"Walang makakapagpadala ng bagong liham habang sarado ang pagtanggap."</string>
     <string name="receive_free" formatted="false">"Maaaring sumulat nang libre ang sinumang hindi mo hinarangan."</string>
     <string name="receive_selected" formatted="false">"Ang mga napiling account o taong may wastong imbitasyon lang ang maaaring sumulat."</string>

@@ -17,6 +17,7 @@
   import { locale, t } from '../../i18n/index.svelte'
   import { call, code, errorText, onChange, single, size, units, when } from '../../rpc'
   import { startLogin } from '../../shell/login.svelte'
+  import Promotions from './Promotions.svelte'
   import Checkout from './Checkout.svelte'
   import { daysLeft, eligibilityLabels, membershipState, methodLabels, offerLabels, refundOutcome, sourceLabels, waitLabels } from './plan'
 
@@ -27,7 +28,7 @@
    * is read on its own, so one that fails leaves the others. Buying opens
    * the checkout dialog; paying is the approval window's.
    */
-  let { status, onReviewPayments, onWallet }: { status: any; onReviewPayments: () => void; onWallet: (orderId?: string) => void } = $props()
+  let { status, redemption = $bindable(null), onReviewPayments, onWallet }: { status: any; redemption?: {code:string} | null; onReviewPayments: () => void; onWallet: (orderId?: string) => void } = $props()
   let plan = $state<any>(null)
   let catalog = $state<any>(null)
   let cloud = $state<any>(null)
@@ -226,6 +227,7 @@
           </div>
         {/if}
       </div>
+      <Promotions account={status?.account} bind:redemption guest={canManageMembership && ['Cash','Panda','AppStore','GooglePlay'].includes(current?.method) && !['Sandbox','Test'].includes(current?.store_environment)} refresh={() => load(true)} />
       <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(() => load(true))} data-testid="plan-refresh"><Icon name="sync-now" />{t('refresh')}</button>
     </div>
     {#if errors.plan}<div class="px-6 pb-4"><Notice failure={errors.plan} tone="danger" testid="plan-error">{errors.plan}</Notice></div>{/if}

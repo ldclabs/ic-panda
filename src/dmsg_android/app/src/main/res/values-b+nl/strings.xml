@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Actie aanvragen"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Gebruik een geheim via een apparaatbeleid"</string>
     <string name="permission_write" formatted="false">"Schrijven"</string>
+    <string name="promo_granted" formatted="false">"Promotioneel lidmaatschap"</string>
+    <string name="promo_no_charge" formatted="false">"Geen automatische afschrijving na afloop."</string>
     <string name="receive_closed" formatted="false">"Zolang de ontvangst is gesloten, kan niemand nieuwe brieven sturen."</string>
     <string name="receive_free" formatted="false">"Iedereen die je niet hebt geblokkeerd, kan gratis schrijven."</string>
     <string name="receive_selected" formatted="false">"Alleen geselecteerde accounts en mensen met een geldige uitnodiging kunnen schrijven."</string>

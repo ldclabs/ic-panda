@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "Kodu kullan",
+  "Membership code": "Üyelik kodu",
+  "No automatic charge at expiry.": "Süre sonunda otomatik ücret alınmaz.",
+  "Open dMsg Desktop": "dMsg Masaüstü’nü aç",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "dMsg Masaüstü veya dmsg CLI üzerinde inceleyip onaylayın.",
+  "Try Plus for 30 days": "Plus’ı 30 gün deneyin",
   "Download sessions": "Oturumları indir",
   "User name": "Kullanıcı adı",
   "Credential": "Kimlik bilgisi",

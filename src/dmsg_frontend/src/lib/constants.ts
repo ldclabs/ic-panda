@@ -1,6 +1,6 @@
-const src = globalThis.location?.href || ''
+const siteHost = globalThis.location?.hostname ?? ''
 
-export const IS_LOCAL = src.includes('localhost') || src.includes('127.0.0.1')
+export const IS_LOCAL = siteHost === 'localhost' || siteHost.endsWith('.localhost') || siteHost === '127.0.0.1'
 export const ENV = IS_LOCAL ? 'local' : 'ic'
 export const APP_ORIGIN = IS_LOCAL
   ? 'http://2fvu6-tqaaa-aaaap-akksa-cai.localhost:8000'

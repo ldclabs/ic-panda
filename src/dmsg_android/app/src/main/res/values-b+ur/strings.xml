@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"کارروائی کی درخواست کریں"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"ڈیوائس پالیسی کے ذریعے خفیہ استعمال کریں"</string>
     <string name="permission_write" formatted="false">"لکھیں"</string>
+    <string name="promo_granted" formatted="false">"تشہیری رکنیت"</string>
+    <string name="promo_no_charge" formatted="false">"مدت ختم ہونے پر خودکار رقم نہیں کاٹی جائے گی۔"</string>
     <string name="receive_closed" formatted="false">"وصولی بند ہو تو کوئی نیا خط نہیں بھیج سکتا۔"</string>
     <string name="receive_free" formatted="false">"جنہیں آپ نے بلاک نہیں کیا وہ سب مفت لکھ سکتے ہیں۔"</string>
     <string name="receive_selected" formatted="false">"صرف منتخب اکاؤنٹس یا درست دعوت نامہ رکھنے والے لوگ لکھ سکتے ہیں۔"</string>

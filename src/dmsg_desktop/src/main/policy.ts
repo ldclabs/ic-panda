@@ -361,6 +361,10 @@ export const WINDOW_METHODS = new Set([
   'plan/discard',
   'plan/cancel',
   'plan/reconcile',
+  'plan/promo_preview',
+  'plan/redeem',
+  'plan/promo_history',
+  'plan/guest_pass',
   'plan/refund_quote',
   'plan/panda',
   'plan/notice_ack',
@@ -525,6 +529,7 @@ const XID = /^[0-9a-v]{19}[0g]$/
 
 /** A `dmsg://` link as navigation: where to go, never what to do. */
 export type Link =
+  | { route: 'redeem'; code: string }
   | { route: 'browsers'; account: string | null }
   | { route: 'request'; account: string; request: string }
   | { route: 'join'; invitation: string }
@@ -537,6 +542,10 @@ export function parseLink(url: string): Link | null {
     parsed = new URL(url)
   } catch {
     return null
+  }
+  if (parsed.protocol === 'dmsg:' && parsed.host === 'redeem' && !parsed.username && !parsed.password && !parsed.search && !parsed.pathname) {
+    const code = parsed.hash.slice(1)
+    return /^[A-Za-z0-9-]{4,64}$/.test(code) ? { route: 'redeem', code } : null
   }
   if(parsed.protocol==='dmsg:'&&parsed.host==='wallet'&&!parsed.search&&!parsed.hash){
     const parts=parsed.pathname.split('/').filter(Boolean)

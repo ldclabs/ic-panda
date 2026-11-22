@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "কোড রিডিম করুন",
+  "Membership code": "সদস্যতার কোড",
+  "No automatic charge at expiry.": "মেয়াদ শেষে স্বয়ংক্রিয়ভাবে টাকা কাটা হবে না।",
+  "Open dMsg Desktop": "dMsg ডেস্কটপ খুলুন",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "dMsg ডেস্কটপ বা dmsg CLI-তে যাচাই করে নিশ্চিত করুন।",
+  "Try Plus for 30 days": "৩০ দিনের জন্য Plus ব্যবহার করুন",
   "Download sessions": "সেশন ডাউনলোড করুন",
   "User name": "ব্যবহারকারীর নাম",
   "Credential": "শংসাপত্র",

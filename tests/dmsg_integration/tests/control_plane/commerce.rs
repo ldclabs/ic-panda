@@ -14,8 +14,11 @@ mod device_limits;
 mod external_integration;
 #[path = "google_play.rs"]
 mod google_play;
+
 #[path = "membership_review.rs"]
 mod membership_review;
+#[path = "promo.rs"]
+mod promo;
 fn offer(f: &Fixture, id: &AccountId, op: u8) -> BillingOffer {
     offer_sku(f, id, "plus", op)
 }

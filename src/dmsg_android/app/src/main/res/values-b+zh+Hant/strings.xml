@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"要求執行操作"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"按裝置策略使用秘密"</string>
     <string name="permission_write" formatted="false">"寫入"</string>
+    <string name="promo_granted" formatted="false">"贈予會員"</string>
+    <string name="promo_no_charge" formatted="false">"到期不會自動扣款。"</string>
     <string name="receive_closed" formatted="false">"關閉收信後，任何人都無法寄來新信。"</string>
     <string name="receive_free" formatted="false">"所有未被你封鎖的人都可以免費來信。"</string>
     <string name="receive_selected" formatted="false">"只有選定的帳號或持有效邀請的人可以來信。"</string>

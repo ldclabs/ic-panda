@@ -1,4 +1,10 @@
 const en = {
+  "Redeem code": "Redeem code",
+  "Membership code": "Membership code",
+  "No automatic charge at expiry.": "No automatic charge at expiry.",
+  "Open dMsg Desktop": "Open dMsg Desktop",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "Review and confirm in dMsg Desktop or the dmsg CLI.",
+  "Try Plus for 30 days": "Try Plus for 30 days",
   "Download sessions": "Download sessions",
   "User name": "User name",
   "Credential": "Credential",

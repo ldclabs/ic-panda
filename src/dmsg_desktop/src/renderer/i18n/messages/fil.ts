@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "Gamitin ang code",
+  "promoCode": "Code ng membership",
+  "promoCheck": "Suriin ang code",
+  "promoGuest": "Gumawa ng guest pass",
+  "promoNoCharge": "Walang awtomatikong singil sa pag-expire.",
+  "promoPending": "Hinihintay ang pag-activate",
+  "promoApplied": "Aktibo na ang membership",
+  "promoSync": "Ina-update ang mga limitasyon",
+  "promoUnavailable": "Hindi magagamit ang code na ito sa account na ito.",
+  "promoReplace": "Palitan ang hindi nagamit na pass",
+  "promoGranted": "Promosyonal na membership",
   joinCreate: "Gumawa ng hiwalay na account",
   joinConfirm: "Gamitin ang login na ito sa account at idagdag ang device na ito",
   joinOther: "Para sa ibang account ang login na ito. Pumili ng ibang login.",

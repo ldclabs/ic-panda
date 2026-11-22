@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Eylem iste"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Cihaz politikası aracılığıyla bir gizli dizi kullanma"</string>
     <string name="permission_write" formatted="false">"Yaz"</string>
+    <string name="promo_granted" formatted="false">"Promosyon üyeliği"</string>
+    <string name="promo_no_charge" formatted="false">"Süre sonunda otomatik ücret alınmaz."</string>
     <string name="receive_closed" formatted="false">"Mektup alımı kapalıyken kimse yeni mektup gönderemez."</string>
     <string name="receive_free" formatted="false">"Engellemediğiniz herkes ücretsiz yazabilir."</string>
     <string name="receive_selected" formatted="false">"Yalnızca seçili hesaplar veya geçerli daveti olan kişiler yazabilir."</string>

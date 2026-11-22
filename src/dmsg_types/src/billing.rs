@@ -123,7 +123,7 @@ pub struct CommerceInit {
 /// refused when a limit is reached; recovery of accepted operations continues.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CommerceLimits {
-    /// Maximum retained beneficiary subjects, which only paying accounts create.
+    /// Maximum retained beneficiary subjects with a paid or granted contract.
     pub max_subjects: u64,
     /// Maximum orders kept in the hot table, including live subscriptions.
     pub max_hot_orders: u64,
@@ -146,7 +146,7 @@ pub struct CommerceLimits {
 /// limits to see how much admission headroom remains.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CommerceStats {
-    /// Beneficiary subjects, which only paying accounts create.
+    /// Beneficiary subjects with a paid or granted contract.
     pub subjects: u64,
     /// Orders in the hot table.
     pub hot_orders: u64,
@@ -196,11 +196,32 @@ pub enum ContractSource {
         /// Google's real/test purchase classification.
         environment: crate::google_play::PlayEnvironment,
     },
+    /// Fixed-duration promotional grant issued by commerce.
+    Promo {
+        /// Idempotent delivery receipt identity.
+        grant_id: Hash,
+    },
     /// Product-granted compensation benefit.
     Compensation,
 }
 
 impl ContractSource {
+    /// Gifted terms give resources without purchasing a subscription.
+    pub fn is_grant(&self) -> bool {
+        matches!(self, Self::Promo { .. } | Self::Compensation)
+    }
+
+    /// Formal sources take precedence over grants, then sandbox transactions.
+    pub fn priority(&self) -> u8 {
+        if self.is_sandbox() {
+            0
+        } else if self.is_grant() {
+            1
+        } else {
+            2
+        }
+    }
+
     /// Sandbox contracts provide fallback resources, never replace formal membership.
     pub fn is_sandbox(&self) -> bool {
         matches!(

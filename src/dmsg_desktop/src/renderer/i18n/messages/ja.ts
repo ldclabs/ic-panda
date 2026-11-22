@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "コードを引き換える",
+  "promoCode": "会員コード",
+  "promoCheck": "コードを確認",
+  "promoGuest": "ゲストパスを発行",
+  "promoNoCharge": "期間終了時の自動課金はありません。",
+  "promoPending": "反映待ち",
+  "promoApplied": "会員特典が有効になりました",
+  "promoSync": "利用枠を更新中",
+  "promoUnavailable": "このアカウントではこのコードを利用できません。",
+  "promoReplace": "未使用のパスを再発行",
+  "promoGranted": "特典による会員資格",
   joinCreate: "別のアカウントを作成",
   joinConfirm: "このログイン方法をアカウントに登録し、この端末を追加",
   joinOther: "このログイン方法は別のアカウントに登録されています。他のログイン方法を選んでください。",

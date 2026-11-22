@@ -20,6 +20,10 @@ pub struct Subject {
     pub last_service_end_ms: Option<u64>,
     #[serde(default)]
     pub last_sandbox_service_end_ms: Option<u64>,
+    #[serde(default)]
+    pub last_grant_end_ms: Option<u64>,
+    #[serde(default)]
+    pub attribution_grant_id: Option<Hash>,
     pub retry_after_ms: u64,
     /// Refundable independent addons require their own fresh store observation,
     /// including when their original base subscription has ended.
@@ -39,6 +43,8 @@ impl Subject {
             view: None,
             last_service_end_ms: None,
             last_sandbox_service_end_ms: None,
+            last_grant_end_ms: None,
+            attribution_grant_id: None,
             retry_after_ms: 0,
             store_qualifications: None,
         }
@@ -49,7 +55,7 @@ impl Subject {
         self.contracts
             .iter()
             .filter(|c| c.starts_at_ms <= at && at < end(c))
-            .max_by_key(|c| (!c.source.is_sandbox(), c.starts_at_ms))
+            .max_by_key(|c| (c.source.priority(), c.starts_at_ms))
     }
 }
 
@@ -69,7 +75,7 @@ pub const REFUNDABLE_LEASE_MS: u64 = 60 * MINUTE;
 /// [`CASH_REFUND_WINDOW_MS`] of its start. An upgrade or a renewal adds a
 /// second contract and closes the window.
 pub fn refund_window(s: &Subject, at: u64) -> Option<RefundWindow> {
-    let mut formal = s.contracts.iter().filter(|c| !c.source.is_sandbox());
+    let mut formal = s.contracts.iter().filter(|c| c.source.priority() == 2);
     let c = formal.next()?;
     if formal.next().is_some() {
         return None;
@@ -143,6 +149,8 @@ pub fn prune(s: &mut Subject, at: u64) -> Result<()> {
         if end <= month_start && !retain_store {
             let last = if c.source.is_sandbox() {
                 &mut s.last_sandbox_service_end_ms
+            } else if c.source.is_grant() {
+                &mut s.last_grant_end_ms
             } else {
                 &mut s.last_service_end_ms
             };
@@ -233,6 +241,7 @@ pub fn project(
     let mut status = if s.contracts.is_empty()
         && s.last_service_end_ms.is_none()
         && s.last_sandbox_service_end_ms.is_none()
+        && s.last_grant_end_ms.is_none()
     {
         SourceStatus::Free
     } else {
@@ -252,7 +261,9 @@ pub fn project(
             Some(ContractSource::AppStore { .. } | ContractSource::GooglePlay { .. })
         ) {
         REFUNDABLE_LEASE_MS
-    } else if matches!(source, Some(ContractSource::Sns { .. })) {
+    } else if matches!(source, Some(ContractSource::Sns { .. }))
+        || source.is_some_and(ContractSource::is_grant)
+    {
         PANDA_LEASE_MS
     } else {
         CASH_LEASE_MS
@@ -269,6 +280,7 @@ pub fn project(
         })
         .chain(s.last_service_end_ms)
         .chain(s.last_sandbox_service_end_ms)
+        .chain(s.last_grant_end_ms)
         .max();
     if let Some(c) = &active {
         eligibility = c.eligibility.clone();

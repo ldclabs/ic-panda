@@ -160,8 +160,8 @@ Production 配置可通过 `accept_sandbox = opt true` 接受 Sandbox 年度套�
 
 ### 资源权益与执行额度
 
-- 受益主体（`Beneficiary`，其 authority 必须在 `user_homes` 中）保存当月及以后的合同、存储包、最后一次服务结束时间和最近一次视图。主体只在首次购买时创建，之后不会删除，数量受 `max_subjects` 限制，因此只与付费过的账户数成正比。
-- 从未购买的账户没有主体，也没有认证叶：`get_entitlement_batch` 返回不存在证明，配合认证目录即为 Free。`get_execution_entitlement` 对这类账户按目录和 user home 提供的账户创建时间直接计算，不写状态，租约版本为 0；已保存主体的第一次投影是版本 1。
+- 受益主体（`Beneficiary`，其 authority 必须在 `user_homes` 中）保存当月及以后的合同、存储包、最后一次服务结束时间和最近一次视图。首次购买或获赠时创建主体，数量受 `max_subjects` 限制。
+- 从未购买或获赠的账户没有主体，也没有认证叶：`get_entitlement_batch` 返回不存在证明，配合认证目录即为 Free。`get_execution_entitlement` 对这类账户按目录和 user home 提供的账户创建时间直接计算，不写状态，租约版本为 0；已保存主体的第一次投影是版本 1。
 - `EntitlementView` 是合同的投影：当前基础档（没有有效合同时为 Free）加上有效的存储包。租约长度取决于权益能否被收回：首购现金退款窗口内的租约最长一小时；窗口外的现金、已到期和 Free 租约最长 30 天；PANDA 资格可能丢失，由 PANDA 支撑的租约不超过 1 天，也不超过 membership 的资格租约。所有租约都在下一个合同或存储包边界、下一个目录生效时间截止。资格不可核验时，视图截止时间等于签发时间，不会退化为可复用的 Free 租约。视图以 `entitlement_key(beneficiary)` 写入认证树。
 - `refresh_entitlement` 在视图剩余不足 10 分钟、业务版本变化、目录切换或新增目录排期落入旧租约时重新投影，否则返回原视图。新增排期会截断刷新后的租约；仅目录变化沿用已核验资格，不额外读取 SNS。当前合同来自 PANDA 且需要续租时，先调用 membership 的 `refresh_panda_claim`，它在同一个 10 分钟窗口内重新核验合格的认领：membership 返回 `Pending`、`QuotaExceeded`，或调用本身没有完成（membership 停止、`Unavailable`、`ExecutionUnknown`），都表示没有读取 SNS，原资格截止时间继续有效；目录变化仍会更新资源投影和租约版本，但不会延长资格。只有明确的否定答案把合同标为不可核验。两种情况都在 1 分钟内不再重试。
 - `get_execution_entitlement(beneficiary, month, account_created_at_ms)` 只接受该主体的 user home，返回视图和当月的 `MonthEntitlement`。当月按合同、资格暂停和实际生效的目录切分为最多 64 个片段；资格暂停期间按 Free 计算，从账户创建时间开始积分，最后向下取整。user home 最多缓存 1 小时，与资源租约长度无关。
@@ -181,7 +181,7 @@ Production 配置可通过 `accept_sandbox = opt true` 接受 Sandbox 年度套�
 
 | `CommerceLimits` 字段       | 含义                                                       | 上界       |
 | --------------------------- | ---------------------------------------------------------- | ---------: |
-| `max_subjects`              | 受益主体数，只有付费过的账户才有                           | 10,000,000 |
+| `max_subjects`              | 受益主体数，包含购买及获赠账户                           | 10,000,000 |
 | `max_hot_orders`            | 热订单数，包含所有有效订阅；不大于 `max_orders`            | 10,000,000 |
 | `max_orders`                | 累计订单身份（热与冷）                                     | 10,000,000 |
 | `daily_orders`              | 每 UTC 日的新订单                                          |  1,000,000 |
@@ -258,7 +258,7 @@ heap 保存配置缓存（含调用计数）、目录缓存、调用 guard 和�
 | `membership_canister` | 共享 `membership` 的 ID，初始化后不可修改                                                                                                                                                                        |
 | `user_homes`          | 1–64 个 `dmsg_user` ID，不得重复；之后只能用 `admin_add_user_home` 追加。新 home 还需加入 dMsg 产品登记的 `beneficiary_authorities`                                                                           |
 | `catalog`             | 初始目录：`schema = 1`，`version > 0`，`effective_at_ms` 不晚于安装时间；4 个套餐的 `catalog_version` 等于目录版本，Free 价格为 0，执行权重一致                                                                 |
-| `limits`              | 初始 `CommerceLimits`，见“限流与容量”；之后由 `admin_set_limits` 调整。`max_subjects` 只计付费过的账户                                                                                                           |
+| `limits`              | 初始 `CommerceLimits`，见“限流与容量”；之后由 `admin_set_limits` 调整。`max_subjects` 计入购买及获赠账户                                                                                                           |
 
 `governance` 和 `membership_canister` 不能是匿名 principal 或管理 canister，参数不合法时安装失败。
 
@@ -596,3 +596,9 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
   commerce::google_play::play_adapter_upgrade_preserves_existing_cash_subject_and_new_receipts \
   -- --exact --ignored
 ```
+
+### 固定时长赠予与会员展示 v3
+
+治理通过 `validate_set_promo_config`、`set_promo_config` 登记发放 principal，默认关闭。受控 `apply_promo_grant` 仅接受 dMsg 受益人的 Plus、Pro、Max 30 或 365 天固定区间。同一 grant_id 只交付一次，参数变化返回幂等冲突。可通过 update 取回权威回执或撤销，`promo_stats` 按档位、时长和补偿类别给出累计份数。正式合同优先于赠予，赠予优先于沙盒。赠予租约最长一天，纯赠期不能加购年度存储。首次现金退款资格独立于赠予历史。
+
+`get_membership_terms_v3` 使用开放来源和操作标识。消费者按认证权益的 business_revision、active_contract_id 匹配展示条款，未知来源仍可读取档位和区间。v1/v2 无法表达营销来源时返回 UnsupportedProtocol。先发布 v3 读取方，再开放生产赠予。新来源已写入后，停发使用治理开关。公开字节合同见 [Candid](dmsg_commerce.did)。

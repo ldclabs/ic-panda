@@ -9,6 +9,7 @@ mod checkout_store;
 mod google_play;
 mod model;
 mod product;
+mod promo;
 mod registrations;
 mod settlement;
 mod stable_codec;
@@ -18,6 +19,7 @@ use candid::Principal;
 use dmsg_runtime::admin::Validation;
 use dmsg_types::app_store::*;
 use dmsg_types::google_play::*;
+use dmsg_types::promo::*;
 use dmsg_types::{billing::*, integration::*, integration_billing::*, membership::*, *};
 use icrc_ledger_types::icrc1::account::Account;
 

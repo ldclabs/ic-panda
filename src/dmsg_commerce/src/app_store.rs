@@ -207,6 +207,7 @@ fn apply(
         .iter()
         .filter(|c| {
             c.starts_at_ms > t.purchased_at_ms
+                && !c.source.is_grant()
                 && c.source.is_sandbox() == (t.environment == StoreEnvironment::Sandbox)
         })
         .map(|c| c.starts_at_ms)
@@ -272,8 +273,9 @@ fn apply(
                 t.revoked_at_ms.is_some()
                     || t.is_upgraded == Some(true)
                     || t.environment == StoreEnvironment::Sandbox
-                    || s.active(t.purchased_at_ms)
-                        .is_none_or(|c| matches!(c.source, ContractSource::AppStore { .. })),
+                    || s.active(t.purchased_at_ms).is_none_or(|c| {
+                        c.source.is_grant() || matches!(c.source, ContractSource::AppStore { .. })
+                    }),
                 Error::Forbidden,
             )?;
             // StoreKit upgrades replace only overlapping Apple subscriptions.
@@ -365,8 +367,9 @@ fn restore_refund(
     // Reversing it must satisfy the same admission rule as a new subscription.
     ensure(
         t.environment == StoreEnvironment::Sandbox
-            || s.active(t.purchased_at_ms)
-                .is_none_or(|c| matches!(c.source, ContractSource::AppStore { .. })),
+            || s.active(t.purchased_at_ms).is_none_or(|c| {
+                c.source.is_grant() || matches!(c.source, ContractSource::AppStore { .. })
+            }),
         Error::Forbidden,
     )?;
     let id = digest(
@@ -571,6 +574,7 @@ fn apply_app_store_transaction(transaction: StoreTransaction) -> Result<Entitlem
         )
     });
     store::save(&subject);
+    crate::promo::observe_purchase(&subject, at);
     store::publish_certification(at);
     Ok(view)
 }

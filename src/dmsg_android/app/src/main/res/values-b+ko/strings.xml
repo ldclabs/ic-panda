@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"작업 요청"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"장치 정책을 통해 비밀 사용"</string>
     <string name="permission_write" formatted="false">"쓰기"</string>
+    <string name="promo_granted" formatted="false">"프로모션 멤버십"</string>
+    <string name="promo_no_charge" formatted="false">"만료 시 자동 결제되지 않습니다."</string>
     <string name="receive_closed" formatted="false">"수신을 닫으면 아무도 새 편지를 보낼 수 없습니다."</string>
     <string name="receive_free" formatted="false">"차단하지 않은 사람은 누구나 무료로 편지를 보낼 수 있습니다."</string>
     <string name="receive_selected" formatted="false">"선택한 계정이나 유효한 초대를 받은 사람만 편지를 보낼 수 있습니다."</string>

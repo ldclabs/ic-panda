@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "কোড রিডিম করুন",
+  "promoCode": "সদস্যতার কোড",
+  "promoCheck": "কোড যাচাই করুন",
+  "promoGuest": "অতিথি পাস তৈরি করুন",
+  "promoNoCharge": "মেয়াদ শেষে স্বয়ংক্রিয়ভাবে টাকা কাটা হবে না।",
+  "promoPending": "সক্রিয়করণের অপেক্ষায়",
+  "promoApplied": "সদস্যতা সক্রিয় হয়েছে",
+  "promoSync": "সীমা আপডেট হচ্ছে",
+  "promoUnavailable": "এই অ্যাকাউন্টে এই কোড ব্যবহার করা যাবে না।",
+  "promoReplace": "অব্যবহৃত পাস প্রতিস্থাপন করুন",
+  "promoGranted": "প্রচারমূলক সদস্যতা",
   joinCreate: "আলাদা অ্যাকাউন্ট তৈরি করুন",
   joinConfirm: "এই অ্যাকাউন্টে এই লগইন ব্যবহার করুন এবং ডিভাইসটি যোগ করুন",
   joinOther: "এই লগইন অন্য একটি অ্যাকাউন্টের। অন্য লগইন বেছে নিন।",

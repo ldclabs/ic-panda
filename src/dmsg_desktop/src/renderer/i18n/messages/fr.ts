@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "promoRedeem": "Utiliser un code",
+  "promoCode": "Code d’abonnement",
+  "promoCheck": "Vérifier le code",
+  "promoGuest": "Créer un pass invité",
+  "promoNoCharge": "Aucun prélèvement automatique à l’échéance.",
+  "promoPending": "Activation en attente",
+  "promoApplied": "Abonnement activé",
+  "promoSync": "Mise à jour des quotas",
+  "promoUnavailable": "Ce code est indisponible pour ce compte.",
+  "promoReplace": "Remplacer un pass inutilisé",
+  "promoGranted": "Abonnement offert",
   joinCreate: "Créer un compte distinct",
   joinConfirm: "Utiliser cet identifiant pour ce compte et ajouter cet appareil",
   joinOther: "Cet identifiant appartient à un autre compte. Choisissez un autre identifiant.",

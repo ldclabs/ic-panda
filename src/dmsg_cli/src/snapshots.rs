@@ -71,7 +71,9 @@ pub(crate) fn invalidates(method: &str) -> &'static [Kind] {
             Kind::Balances,
             Kind::History,
         ],
-        "plan/cancel" | "plan/reconcile" | "plan/notice_ack" => &[Kind::Plan, Kind::Usage],
+        "plan/redeem" | "plan/cancel" | "plan/reconcile" | "plan/notice_ack" => {
+            &[Kind::Plan, Kind::Usage]
+        }
         "handle/reconcile" | "handle/transfer_commit" => &[Kind::Handles],
         "files/storage_action" => &[Kind::Storage, Kind::Usage],
         _ => &[],

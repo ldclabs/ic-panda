@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Richiedi un’azione"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Utilizzare un segreto tramite una policy del dispositivo"</string>
     <string name="permission_write" formatted="false">"Scrivi"</string>
+    <string name="promo_granted" formatted="false">"Abbonamento promozionale"</string>
+    <string name="promo_no_charge" formatted="false">"Nessun addebito automatico alla scadenza."</string>
     <string name="receive_closed" formatted="false">"Nessuno può inviarti nuove lettere mentre la ricezione è chiusa."</string>
     <string name="receive_free" formatted="false">"Chiunque tu non abbia bloccato può scriverti gratuitamente."</string>
     <string name="receive_selected" formatted="false">"Possono scriverti solo gli account selezionati o chi dispone di un invito valido."</string>

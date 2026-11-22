@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "promoRedeem": "استرداد الرمز",
+  "promoCode": "رمز العضوية",
+  "promoCheck": "التحقق من الرمز",
+  "promoGuest": "إنشاء بطاقة ضيف",
+  "promoNoCharge": "لن يُخصم أي مبلغ تلقائيًا عند انتهاء المدة.",
+  "promoPending": "بانتظار التفعيل",
+  "promoApplied": "تم تفعيل العضوية",
+  "promoSync": "جارٍ تحديث الحصص",
+  "promoUnavailable": "هذا الرمز غير متاح لهذا الحساب.",
+  "promoReplace": "استبدال بطاقة غير مستخدمة",
+  "promoGranted": "عضوية ترويجية",
   joinCreate: "إنشاء حساب مستقل",
   joinConfirm: "استخدم تسجيل الدخول هذا لهذا الحساب وأضف هذا الجهاز",
   joinOther: "يرتبط تسجيل الدخول هذا بحساب آخر. اختر طريقة تسجيل دخول أخرى.",

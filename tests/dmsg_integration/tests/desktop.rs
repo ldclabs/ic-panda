@@ -1022,6 +1022,8 @@ struct Options {
     b_policy: &'static str,
     /// Put fault-injecting proxies in front of the relay and the IC gateway.
     proxies: bool,
+    /// Install a local promotion and its ephemeral verifier.
+    promotions: bool,
     /// Let the relay take paid letters.
     paid_contacts: bool,
     /// Serve Agent Delegation on the relay with principal documents from
@@ -1227,6 +1229,7 @@ impl Env {
         launch["ttl_ms"] = 1_200_000.into();
         let connect = format!("http://localhost:{}", free_port());
         launch["connect_origin"] = connect.clone().into();
+        launch["promotions"] = options.promotions.into();
         launch["paid_contacts"] = options.paid_contacts.into();
         // The proxy forwards to the relay's port; requests name the proxy.
         let relay_port = launch["port"].as_u64().unwrap();
@@ -1256,6 +1259,25 @@ impl Env {
                 .unwrap(),
         );
         let ready = wait_for(&dir.join("cloud-ready.json"), &mut children);
+        if options.promotions {
+            let verifier = Principal::from_text(ready["promo_verifier"].as_str().unwrap()).unwrap();
+            let cfg = dmsg_types::promo::PromoConfig {
+                enabled: true,
+                verifiers: vec![verifier],
+            };
+            let bytes = deployment
+                .ic
+                .update_call(
+                    deployment.commerce,
+                    deployment.peer,
+                    "set_promo_config",
+                    candid::encode_one(cfg).unwrap(),
+                )
+                .unwrap();
+            candid::decode_one::<dmsg_types::Result<()>>(&bytes)
+                .unwrap()
+                .unwrap();
+        }
         let relay = ready["api_origin"]
             .as_str()
             .or(ready["relay"].as_str())
@@ -5174,6 +5196,40 @@ fn desktop_bound_login_claims_legacy_name() {
     let removal = a.run(&["account", "unbind", &login_principal(42)]);
     assert_eq!(a.decide(http, &removal, true).unwrap()["state"], "done");
     assert_eq!(price()["claim"]["claimable"], false);
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_promotions() {
+    let env = Env::launch(
+        "promotions",
+        Options {
+            promotions: true,
+            ..Options::default()
+        },
+    );
+    let a = &env.a;
+    let http = &env.http;
+    assert_eq!(a.login(http, 42).unwrap()["state"], "no_account");
+    let account = a.run(&["account", "create"])["account"].clone();
+    let preview = a.run(&["plan", "redeem", "SMOKE-PLUS", "--preview"]);
+    assert_eq!(preview["account"], account);
+    assert_eq!(preview["eligible"], true);
+    assert_eq!(a.run(&["plan", "status"])["plan"], "Free");
+    let request = json!({"account":account,"code":"SMOKE-PLUS","request_id":"a1".repeat(32)});
+    let r = a.rpc(http, "plan/redeem", request.clone()).unwrap();
+    assert_eq!(r["status"], "applied", "{r}");
+    assert_eq!(r["synced"], true, "{r}");
+    assert_eq!(
+        a.rpc(http, "plan/redeem", request).unwrap()["grant_id"],
+        r["grant_id"]
+    );
+    let plan = a.run(&["plan", "status"]);
+    assert_eq!(plan["plan"], "Plus");
+    assert_eq!(plan["current"]["method"], "Promo");
+    assert_eq!(plan["storage_available"], false);
+    let history = a.run(&["plan", "promo-history"]);
+    assert_eq!(history["redemptions"][0]["grant_id"], r["grant_id"]);
 }
 
 #[test]

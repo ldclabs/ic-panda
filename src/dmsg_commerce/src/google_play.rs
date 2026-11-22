@@ -320,7 +320,7 @@ fn apply(
             // Restoring it must satisfy the same rule as a newly delivered plan.
             if active && t.environment == PlayEnvironment::Production {
                 ensure(s.active(t.purchased_at_ms).is_none_or(|c| {
-                    c.source.is_sandbox() || matches!(&c.source, ContractSource::GooglePlay { token_hash, environment, .. }
+                    c.source.priority() < 2 || matches!(&c.source, ContractSource::GooglePlay { token_hash, environment, .. }
                         if *environment == t.environment && (*token_hash == t.token_hash || Some(*token_hash) == t.linked_token_hash))
                 }), Error::Forbidden)?;
             }
@@ -580,6 +580,7 @@ fn apply_google_play_transaction(transaction: PlayTransaction) -> Result<Entitle
         )
     });
     store::save(&subject);
+    crate::promo::observe_purchase(&subject, at);
     store::publish_certification(at);
     Ok(view)
 }

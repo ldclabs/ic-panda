@@ -98,6 +98,14 @@ fn base_key(b: &Beneficiary) -> Hash {
     digest("dmsg/product/base/v2", b)
 }
 
+pub(crate) fn base_reserved(b: &Beneficiary, at: u64) -> bool {
+    BOOKS.with_borrow(|t| {
+        t.load(base_key(b).as_slice())
+            .and_then(|book| book.reservation)
+            .is_some_and(|r| r.decision_id.is_some() || at < r.until_ms)
+    })
+}
+
 fn topic(offer: &BillingOffer) -> Hash {
     if matches!(Sku::parse(&offer.sku), Ok(Sku::Storage(_))) {
         digest(
@@ -249,7 +257,7 @@ fn offer(
             )?;
             let current = s
                 .active(at)
-                .filter(|c| !c.source.is_sandbox())
+                .filter(|c| c.source.priority() == 2)
                 .ok_or(Error::MembershipIneligible)?;
             ensure(
                 current.eligibility == Eligibility::Eligible && at < current.qualified_until_ms,
@@ -600,7 +608,7 @@ fn deliver(
                 .contracts
                 .iter_mut()
                 .rev()
-                .find(|c| c.starts_at_ms <= at && at < model::end(c) && !c.source.is_sandbox())
+                .find(|c| c.starts_at_ms <= at && at < model::end(c) && c.source.priority() == 2)
                 .ok_or(Error::NotFound)?;
             ensure(
                 matches!(old.source, ContractSource::Cash { .. }),
@@ -646,6 +654,7 @@ fn deliver(
     )?;
     DELIVERED.with_borrow_mut(|t| t.put(contract.contract_id.as_slice(), decision));
     store::save(&s);
+    crate::promo::observe_purchase(&s, at);
     save(offer, &b);
     put_receipt(&r);
     Ok(r)

@@ -147,6 +147,13 @@ test('windows inspect Agent content and maintain mailboxes without authoring or 
   })
 })
 
+test('redeem links carry only a prefilled code', () => {
+  assert.deepEqual(parseLink('dmsg://redeem#PH-PLUS'), { route: 'redeem', code: 'PH-PLUS' })
+  for (const url of ['dmsg://redeem?code=PH-PLUS', 'dmsg://redeem/confirm#PH-PLUS', 'dmsg://user@redeem#PH-PLUS', 'dmsg://redeem#PH%2FPLUS']) {
+    assert.equal(parseLink(url), null)
+  }
+})
+
 test('dmsg links only navigate', () => {
   const account = '0123456789abcdefghig'
   assert.deepEqual(parseLink(`dmsg://connect/pair?account=${account}`), { route: 'browsers', account })

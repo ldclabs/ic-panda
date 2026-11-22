@@ -5,6 +5,17 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+  "promoRedeem": "Redeem code",
+  "promoCode": "Membership code",
+  "promoCheck": "Check code",
+  "promoGuest": "Create guest pass",
+  "promoNoCharge": "No automatic charge at expiry.",
+  "promoPending": "Delivery pending",
+  "promoApplied": "Membership activated",
+  "promoSync": "Updating limits",
+  "promoUnavailable": "This code is unavailable for this account.",
+  "promoReplace": "Replace unused pass",
+  "promoGranted": "Promotional membership",
   joinCreate: "Create a separate account",
   joinConfirm: "Use this login for this account and add this device",
   joinOther: "This login belongs to another account. Choose a different login.",

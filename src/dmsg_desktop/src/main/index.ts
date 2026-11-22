@@ -375,6 +375,7 @@ async function openLink(url: string) {
   const link = parseLink(url)
   if (!link) return
   if (link.route === 'browsers') return showMain('/settings/browsers')
+  if (link.route === 'redeem') return showMain('/plan?redeem=' + encodeURIComponent(link.code))
   if (link.route === 'join') return showMain(`/channels?join=${link.invitation}`)
   if (link.route === 'wallet') return showMain(`/wallet/${link.wallet}${link.proposal==null?'':`/${link.proposal}`}`)
   if (link.route === 'accept') return showMain(`/plan?accept=${link.token}`)

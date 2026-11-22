@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "Code einlösen",
+  "promoCode": "Mitgliedschaftscode",
+  "promoCheck": "Code prüfen",
+  "promoGuest": "Gästepass erstellen",
+  "promoNoCharge": "Bei Ablauf erfolgt keine automatische Abbuchung.",
+  "promoPending": "Freischaltung ausstehend",
+  "promoApplied": "Mitgliedschaft aktiviert",
+  "promoSync": "Kontingente werden aktualisiert",
+  "promoUnavailable": "Dieser Code ist für dieses Konto nicht verfügbar.",
+  "promoReplace": "Ungenutzten Pass ersetzen",
+  "promoGranted": "Aktionsmitgliedschaft",
   joinCreate: "Separates Konto erstellen",
   joinConfirm: "Diese Anmeldung für dieses Konto verwenden und dieses Gerät hinzufügen",
   joinOther: "Diese Anmeldung gehört zu einem anderen Konto. Wähle eine andere Anmeldung.",

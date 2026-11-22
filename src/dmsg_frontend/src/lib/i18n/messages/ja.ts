@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "コードを引き換える",
+  "Membership code": "会員コード",
+  "No automatic charge at expiry.": "期間終了時の自動課金はありません。",
+  "Open dMsg Desktop": "dMsg デスクトップを開く",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "dMsg デスクトップまたは dmsg CLI で内容を確認し、引き換えてください。",
+  "Try Plus for 30 days": "Plus を30日間体験",
   "Download sessions": "ダウンロードセッション",
   "User name": "ユーザー名",
   "Credential": "資格情報",

@@ -346,6 +346,22 @@ pub enum PayerCommand {
 
 #[derive(Subcommand)]
 pub enum PlanCommand {
+    /// Preview a code and confirm its redemption for the displayed account.
+    Redeem {
+        /// Omit to enter a private code at the prompt.
+        code: Option<String>,
+        #[arg(long)]
+        preview: bool,
+    },
+    /// Issue a Plus guest pass or replace an unused slot without spending another.
+    GuestPass {
+        #[arg(long)]
+        replace_slot: Option<u64>,
+        #[arg(long)]
+        request_id: Option<String>,
+    },
+    /// Show this account's redemption and pending delivery history.
+    PromoHistory,
     /// The certified catalog.
     Catalog,
     /// This account's plan and limits.
@@ -737,6 +753,56 @@ pub async fn payer(remote: &Remote, json: bool, command: PayerCommand) -> Result
 
 pub async fn plan(remote: &Remote, json: bool, command: PlanCommand) -> Result<(), Failure> {
     let (method, params) = match command {
+        PlanCommand::Redeem { code, preview } => {
+            use std::io::{IsTerminal, Write};
+            let code = match code {
+                Some(code) => code,
+                None => {
+                    eprint!("Redeem code: ");
+                    std::io::stderr().flush().ok();
+                    let mut input = String::new();
+                    std::io::stdin()
+                        .read_line(&mut input)
+                        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+                    input.trim().to_owned()
+                }
+            };
+            let view = remote
+                .call("plan/promo_preview", json!({"code":code}))
+                .await?;
+            if preview || view["eligible"] != true {
+                print(json, &view, pretty);
+                return Ok(());
+            }
+            eprintln!("{}", pretty(&view));
+            if !std::io::stdin().is_terminal() {
+                return Err(Failure::new(
+                    "INVALID_INPUT",
+                    "Confirm redemption at an interactive terminal",
+                ));
+            }
+            eprint!("Redeem for the displayed account? [y/N] ");
+            std::io::stderr().flush().ok();
+            let mut answer = String::new();
+            std::io::stdin()
+                .read_line(&mut answer)
+                .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+            if !answer.trim().eq_ignore_ascii_case("y") {
+                return Ok(());
+            }
+            (
+                "plan/redeem",
+                json!({"account":view["account"],"code":code}),
+            )
+        }
+        PlanCommand::GuestPass {
+            replace_slot,
+            request_id,
+        } => (
+            "plan/guest_pass",
+            json!({"replace_slot":replace_slot,"request_id":request_id}),
+        ),
+        PlanCommand::PromoHistory => ("plan/promo_history", Value::Null),
         PlanCommand::Catalog => ("plan/catalog", Value::Null),
         PlanCommand::Status => ("plan/status", json!({"refresh": true})),
         PlanCommand::Quote {

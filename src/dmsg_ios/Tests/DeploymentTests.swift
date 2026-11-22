@@ -45,6 +45,16 @@ final class DeploymentTests: XCTestCase {
         XCTAssertThrowsError(try PurchaseModel.requireApplied(Data(#"{"accepted":true}"#.utf8)))
     }
 
+    func testPromotionalTermsHaveNoStoreManagementOrAutomaticCharge() {
+        for method in ["Promo", "Compensation"] {
+            let term = SubscriptionView.Plan.Term(endsAtMs: 2_000_000, method: method, storeEnvironment: nil)
+            let plan = SubscriptionView.Plan(plan: "Plus", source: "Active", limits: .init(storageBytes: 1_073_741_824, activeChannels: 10, monthlyExecutionUnits: 10), current: term)
+            XCTAssertTrue(term.isGrant)
+            XCTAssertTrue(plan.allowsStoreSubscription)
+            XCTAssertFalse(plan.managesSubscription(environment: "Production", at: Date(timeIntervalSince1970: 1000)))
+        }
+    }
+
     func testActiveSubscriptionManagementDoesNotBlockARealPurchaseAfterSandbox() {
         let now = Date(timeIntervalSince1970: 1000)
         let limits = SubscriptionView.Plan.Limits(storageBytes: 10, activeChannels: 5, monthlyExecutionUnits: 5)

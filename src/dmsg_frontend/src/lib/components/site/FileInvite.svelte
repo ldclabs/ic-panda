@@ -1,10 +1,28 @@
 <script lang="ts">
   import Glyph from '$lib/components/landing/Glyph.svelte'
   import { installFor } from '$lib/downloads'
+  import { publicPromo } from '$lib/promo'
   import { t } from '$lib/i18n'
 
   let { ready = false, kind }: { ready?: boolean; kind: 'share' | 'request' } =
     $props()
+  const channel = $derived(kind === 'share' ? 'FROM-SHARE' : 'FROM-REQUEST')
+  let available = $state(false)
+  let plusTrial = $state(false)
+  $effect(() => {
+    available = false
+    if (!ready) return
+    const controller = new AbortController()
+    void publicPromo(channel, controller.signal, 'offer')
+      .then((r) => {
+        if (!controller.signal.aborted) {
+          available = !!r.valid
+          plusTrial = r.plan === 'Plus' && r.duration_days === 30
+        }
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  })
   const install = installFor(navigator.userAgent, navigator.maxTouchPoints)
 </script>
 
@@ -37,6 +55,13 @@
     >
   </ul>
   <div class="invite-actions">
+    {#if ready && available}<a
+        class="button secondary"
+        rel="noreferrer"
+        href={'/_/redeem#' + channel}
+        data-sveltekit-reload
+        >{$t(plusTrial ? 'Try Plus for 30 days' : 'Redeem code')}</a
+      >{/if}
     <a
       class="button primary"
       href={install.href}

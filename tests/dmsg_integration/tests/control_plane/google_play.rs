@@ -31,7 +31,7 @@ struct PreGoogleTerms {
     refund: Option<RefundWindow>,
 }
 
-fn configure(f: &Fixture) -> GooglePlayConfig {
+pub(super) fn configure(f: &Fixture) -> GooglePlayConfig {
     let config = GooglePlayConfig {
         verifiers: vec![person(90)],
         package_name: "net.dmsg.android".into(),
@@ -78,7 +78,7 @@ fn configure(f: &Fixture) -> GooglePlayConfig {
     config
 }
 
-fn transaction(f: &Fixture, account: &AccountId) -> PlayTransaction {
+pub(super) fn transaction(f: &Fixture, account: &AccountId) -> PlayTransaction {
     let at = time(&f.ic);
     PlayTransaction {
         beneficiary: beneficiary(f.user, account),
@@ -102,7 +102,7 @@ fn transaction(f: &Fixture, account: &AccountId) -> PlayTransaction {
     }
 }
 
-fn deliver(f: &Fixture, t: &PlayTransaction) -> Result<EntitlementView> {
+pub(super) fn deliver(f: &Fixture, t: &PlayTransaction) -> Result<EntitlementView> {
     update(
         &f.ic,
         f.commerce,

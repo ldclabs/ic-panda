@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "코드 사용",
+  "Membership code": "멤버십 코드",
+  "No automatic charge at expiry.": "만료 시 자동 결제되지 않습니다.",
+  "Open dMsg Desktop": "dMsg 데스크톱 열기",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "dMsg 데스크톱 또는 dmsg CLI에서 내용을 확인하고 승인하세요.",
+  "Try Plus for 30 days": "Plus 30일 체험",
   "Download sessions": "세션 다운로드",
   "User name": "사용자 이름",
   "Credential": "자격 증명",

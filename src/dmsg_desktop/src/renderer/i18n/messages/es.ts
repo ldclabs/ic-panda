@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "promoRedeem": "Canjear código",
+  "promoCode": "Código de membresía",
+  "promoCheck": "Comprobar código",
+  "promoGuest": "Crear pase de invitado",
+  "promoNoCharge": "Sin cargos automáticos al vencer.",
+  "promoPending": "Activación pendiente",
+  "promoApplied": "Membresía activada",
+  "promoSync": "Actualizando límites",
+  "promoUnavailable": "Este código no está disponible para esta cuenta.",
+  "promoReplace": "Reemplazar pase sin usar",
+  "promoGranted": "Membresía promocional",
   joinCreate: "Crear una cuenta independiente",
   joinConfirm: "Usar este acceso para esta cuenta y añadir este dispositivo",
   joinOther: "Este acceso pertenece a otra cuenta. Elige otro método de acceso.",

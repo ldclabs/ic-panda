@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Request an action"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Use a secret through a device policy"</string>
     <string name="permission_write" formatted="false">"Write"</string>
+    <string name="promo_granted" formatted="false">"Promotional membership"</string>
+    <string name="promo_no_charge" formatted="false">"No automatic charge at expiry."</string>
     <string name="receive_closed" formatted="false">"No one can send a new letter while receiving is closed."</string>
     <string name="receive_free" formatted="false">"Anyone you haven’t blocked can write for free."</string>
     <string name="receive_selected" formatted="false">"Only selected accounts or people with a valid invitation can write."</string>

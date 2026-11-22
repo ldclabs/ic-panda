@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Solicitar uma ação"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Use um segredo por meio de uma política de dispositivo"</string>
     <string name="permission_write" formatted="false">"Gravar"</string>
+    <string name="promo_granted" formatted="false">"Assinatura promocional"</string>
+    <string name="promo_no_charge" formatted="false">"Sem cobrança automática no vencimento."</string>
     <string name="receive_closed" formatted="false">"Ninguém pode enviar novas cartas enquanto o recebimento estiver fechado."</string>
     <string name="receive_free" formatted="false">"Qualquer pessoa que você não bloqueou pode escrever de graça."</string>
     <string name="receive_selected" formatted="false">"Só contas selecionadas ou pessoas com um convite válido podem escrever."</string>

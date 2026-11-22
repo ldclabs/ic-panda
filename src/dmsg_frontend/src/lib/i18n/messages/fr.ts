@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "Utiliser un code",
+  "Membership code": "Code d’abonnement",
+  "No automatic charge at expiry.": "Aucun prélèvement automatique à l’échéance.",
+  "Open dMsg Desktop": "Ouvrir dMsg Desktop",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "Vérifiez et confirmez dans dMsg Desktop ou la CLI dmsg.",
+  "Try Plus for 30 days": "Essayer Plus pendant 30 jours",
   "Download sessions": "Sessions de téléchargement",
   "User name": "Nom d’utilisateur",
   "Credential": "Identifiant",

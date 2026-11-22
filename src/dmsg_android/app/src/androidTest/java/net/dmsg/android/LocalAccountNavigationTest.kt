@@ -19,6 +19,26 @@ import java.util.UUID
 class LocalAccountNavigationTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun promotionalMembershipDisplaysItsTermAndNoAutomaticCharge() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as DMsgApplication
+        val client = ClientController(app)
+        try {
+            compose.setContent { net.dmsg.android.ui.MembershipScreen(client) }
+            compose.runOnIdle {
+                val store = client.membership.plan
+                val expiry = System.currentTimeMillis() + 30L * 86400000
+                val result = net.dmsg.android.core.parseMembershipPlan(kotlinx.serialization.json.Json.parseToJsonElement(
+                    """{"plan":"Plus","source":"Active","eligibility":"Eligible","lease_until_ms":$expiry,"limits":{"storage_bytes":1073741824,"active_channels":10,"monthly_execution_units":10,"active_devices":3},"current":{"contract":"${"ab".repeat(32)}","method":"Promo","ends_at_ms":$expiry}}"""
+                ))
+                store.accept(store.begin(), result)
+            }
+            compose.onNodeWithText(app.getString(R.string.promo_granted)).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText(app.getString(R.string.promo_no_charge)).performScrollTo().assertIsDisplayed()
+        } finally {
+            runBlocking { withContext(Dispatchers.Main.immediate) { client.shutdown() } }
+        }
+    }
+
     @Test fun localWorkspaceSurvivesLockAndSigningInToAnotherAccount() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as DMsgApplication
         val directory = File(net.dmsg.android.platform.PrivateFiles(app).workspace, "local-ui-" + UUID.randomUUID())

@@ -27,6 +27,7 @@
   /** A link's request for the names part: a transfer token to accept, or a name to look up. */
   let ask = $state<{ accept?: string; name?: string } | null>(null)
 
+  let redemption = $state<{code: string} | null>(null)
   const unlocked = $derived(status?.state === 'unlocked')
 
   function showTab(next: string) {
@@ -42,6 +43,8 @@
   // Hand off a one-time lookup or invitation. The lasting route only names the tab.
   $effect(() => {
     if (!unlocked) return
+    const code = params.get('redeem')
+    if (code) { redemption = {code}; go('/plan'); return }
     const accept = params.get('accept') ?? undefined
     const name = params.get('names') ?? undefined
     if (accept || name) {
@@ -66,7 +69,7 @@
     {:else}
       {#key status?.account}
         {#if tab === 'membership'}
-          <Membership {status} onReviewPayments={() => showTab('payments')} onWallet={showPayer} />
+          <Membership {status} bind:redemption onReviewPayments={() => showTab('payments')} onWallet={showPayer} />
         {:else if tab === 'names'}
           <Names {status} {go} bind:ask />
         {:else}

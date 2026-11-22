@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "Tukarkan kode",
+  "promoCode": "Kode keanggotaan",
+  "promoCheck": "Periksa kode",
+  "promoGuest": "Buat pas tamu",
+  "promoNoCharge": "Tidak ada tagihan otomatis saat berakhir.",
+  "promoPending": "Menunggu aktivasi",
+  "promoApplied": "Keanggotaan aktif",
+  "promoSync": "Memperbarui kuota",
+  "promoUnavailable": "Kode ini tidak tersedia untuk akun ini.",
+  "promoReplace": "Ganti pas yang belum dipakai",
+  "promoGranted": "Keanggotaan promosi",
   joinCreate: "Buat akun terpisah",
   joinConfirm: "Gunakan login ini untuk akun ini dan tambahkan perangkat ini",
   joinOther: "Login ini terhubung ke akun lain. Pilih login yang berbeda.",

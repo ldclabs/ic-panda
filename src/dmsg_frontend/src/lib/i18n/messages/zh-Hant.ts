@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "使用兌換碼",
+  "Membership code": "會員兌換碼",
+  "No automatic charge at expiry.": "到期不會自動扣款。",
+  "Open dMsg Desktop": "開啟 dMsg 桌面版",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "請在 dMsg 桌面版或 dmsg CLI 核對並確認領取。",
+  "Try Plus for 30 days": "體驗 Plus 30 天",
   "Download sessions": "領取次數",
   "User name": "使用者名稱",
   "Credential": "憑據",

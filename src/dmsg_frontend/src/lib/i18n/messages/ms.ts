@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Redeem code": "Tebus kod",
+  "Membership code": "Kod keahlian",
+  "No automatic charge at expiry.": "Tiada caj automatik apabila tamat.",
+  "Open dMsg Desktop": "Buka dMsg Desktop",
+  "Review and confirm in dMsg Desktop or the dmsg CLI.": "Semak dan sahkan dalam dMsg Desktop atau CLI dmsg.",
+  "Try Plus for 30 days": "Cuba Plus selama 30 hari",
   "Download sessions": "Muat turun sesi",
   "User name": "Nama pengguna",
   "Credential": "Tauliah",

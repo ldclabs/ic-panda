@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "코드 사용",
+  "promoCode": "멤버십 코드",
+  "promoCheck": "코드 확인",
+  "promoGuest": "게스트 패스 발급",
+  "promoNoCharge": "만료 시 자동 결제되지 않습니다.",
+  "promoPending": "활성화 대기 중",
+  "promoApplied": "멤버십이 활성화되었습니다",
+  "promoSync": "한도 업데이트 중",
+  "promoUnavailable": "이 계정에서는 이 코드를 사용할 수 없습니다.",
+  "promoReplace": "사용하지 않은 패스 재발급",
+  "promoGranted": "프로모션 멤버십",
   joinCreate: "별도 계정 만들기",
   joinConfirm: "이 로그인 수단을 계정에 연결하고 이 기기 추가",
   joinOther: "이 로그인 수단은 다른 계정에 연결되어 있습니다. 다른 로그인 수단을 선택하세요.",

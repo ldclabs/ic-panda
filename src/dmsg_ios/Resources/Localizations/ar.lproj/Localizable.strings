@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>No automatic charge at expiry.</key>
+	<string>لن يُخصم أي مبلغ تلقائيًا عند انتهاء المدة.</string>
+	<key>Promotional membership</key>
+	<string>عضوية ترويجية</string>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>لا تزال %lld من الأجهزة الملغاة أو التي لم تعد في حسابك مرتبطة بهذه المحفظة.</string>
 	<key>%lld files · %@</key>

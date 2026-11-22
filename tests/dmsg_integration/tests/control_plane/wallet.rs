@@ -98,7 +98,7 @@ fn register_module(f: &Fixture, hub: Principal, module: &[u8]) -> WalletVersion 
     v.unwrap()
 }
 
-fn setup(f: &Fixture) -> Principal {
+pub(super) fn setup(f: &Fixture) -> Principal {
     setup_with_module(f, &wasm("dmsg_wallet"))
 }
 

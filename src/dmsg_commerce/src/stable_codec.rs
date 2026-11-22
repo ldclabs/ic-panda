@@ -51,6 +51,8 @@ record!(SubjectRepr => Subject {
     12 => retry_after_ms: u64,
     13 => last_sandbox_service_end_ms: Option<u64>,
     14 => store_qualifications: Option<BTreeMap<Hash, (u64, u64)>>,
+    15 => last_grant_end_ms: Option<u64>,
+    16 => attribution_grant_id: Option<Hash>,
 });
 
 record!(ConfigRepr => Config {

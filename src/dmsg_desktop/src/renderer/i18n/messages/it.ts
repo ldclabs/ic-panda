@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "Riscatta codice",
+  "promoCode": "Codice abbonamento",
+  "promoCheck": "Verifica codice",
+  "promoGuest": "Crea pass ospite",
+  "promoNoCharge": "Nessun addebito automatico alla scadenza.",
+  "promoPending": "Attivazione in attesa",
+  "promoApplied": "Abbonamento attivato",
+  "promoSync": "Aggiornamento dei limiti",
+  "promoUnavailable": "Questo codice non è disponibile per questo account.",
+  "promoReplace": "Sostituisci pass inutilizzato",
+  "promoGranted": "Abbonamento promozionale",
   joinCreate: "Crea un account separato",
   joinConfirm: "Usa questo accesso per l’account e aggiungi questo dispositivo",
   joinOther: "Questo accesso appartiene a un altro account. Scegli un altro accesso.",

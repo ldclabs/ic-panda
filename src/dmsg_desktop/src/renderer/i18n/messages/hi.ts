@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "कोड भुनाएँ",
+  "promoCode": "सदस्यता कोड",
+  "promoCheck": "कोड जाँचें",
+  "promoGuest": "अतिथि पास बनाएँ",
+  "promoNoCharge": "अवधि पूरी होने पर कोई स्वचालित शुल्क नहीं लगेगा।",
+  "promoPending": "सक्रिय होने की प्रतीक्षा",
+  "promoApplied": "सदस्यता सक्रिय है",
+  "promoSync": "सीमाएँ अपडेट हो रही हैं",
+  "promoUnavailable": "यह कोड इस खाते के लिए उपलब्ध नहीं है।",
+  "promoReplace": "अप्रयुक्त पास बदलें",
+  "promoGranted": "प्रचार सदस्यता",
   joinCreate: "अलग खाता बनाएँ",
   joinConfirm: "इस खाते के लिए यह लॉगिन इस्तेमाल करें और यह डिवाइस जोड़ें",
   joinOther: "यह लॉगिन किसी दूसरे खाते से जुड़ा है। कोई और लॉगिन चुनें।",

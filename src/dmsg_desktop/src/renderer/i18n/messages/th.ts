@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+  "promoRedeem": "แลกรหัส",
+  "promoCode": "รหัสสมาชิก",
+  "promoCheck": "ตรวจสอบรหัส",
+  "promoGuest": "สร้างบัตรสำหรับเพื่อน",
+  "promoNoCharge": "ไม่มีการเรียกเก็บเงินอัตโนมัติเมื่อหมดอายุ",
+  "promoPending": "รอการเปิดใช้งาน",
+  "promoApplied": "เปิดใช้งานสมาชิกแล้ว",
+  "promoSync": "กำลังอัปเดตโควตา",
+  "promoUnavailable": "บัญชีนี้ใช้รหัสนี้ไม่ได้",
+  "promoReplace": "ออกบัตรใหม่แทนบัตรที่ยังไม่ได้ใช้",
+  "promoGranted": "สมาชิกโปรโมชัน",
   joinCreate: "สร้างบัญชีแยกต่างหาก",
   joinConfirm: "ใช้วิธีเข้าสู่ระบบนี้กับบัญชีและเพิ่มอุปกรณ์นี้",
   joinOther: "วิธีเข้าสู่ระบบนี้ผูกกับบัญชีอื่น โปรดเลือกวิธีอื่น",

@@ -1972,6 +1972,100 @@ smoke: try {
     console.log('Membership authentication passed: fast unlock, explicit login, usage reload, refresh recovery, late replies, keyboard and locale/theme/window matrix')
     break smoke
   }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'promotions') {
+    let delivered = false
+    const receipt = {
+      grant_id: 'e2'.repeat(32),
+      plan: 'Plus',
+      expires_at_ms: Date.now() + 30 * DAY,
+      synced: true,
+      status: 'applied'
+    }
+    methods['plan/promo_history'] = () => ({
+      redemptions: delivered ? [receipt] : [],
+      guest_passes: [],
+      guest_remaining: 2
+    })
+    methods['plan/promo_preview'] = ({ code }) => ({
+      account,
+      eligible: code === 'PH-PLUS',
+      plan: 'Plus',
+      duration_days: 30,
+      expires_at_ms: receipt.expires_at_ms
+    })
+    methods['plan/redeem'] = (request) => {
+      assert.equal(request.account, account)
+      assert.equal(request.code, 'PH-PLUS')
+      delivered = true
+      return receipt
+    }
+    methods['plan/guest_pass'] = () => ({
+      code: 'DMSG-K7P4-9X2M-3Q8R',
+      slot: 1,
+      remaining: 1,
+      ends_at_ms: receipt.expires_at_ms
+    })
+    membership = 'free'
+    methods['plan/status'] = () => {
+      if (!delivered || membership === 'cash') return planStatus()
+      return {
+        ...planStatus(),
+        plan: 'Plus',
+        source: 'Active',
+        limits: LIMITS.Plus,
+        current: {
+          contract: receipt.grant_id,
+          method: 'Promo',
+          plan: 'Plus',
+          starts_at_ms: Date.now(),
+          ends_at_ms: receipt.expires_at_ms,
+          expires_at_ms: receipt.expires_at_ms
+        }
+      }
+    }
+    session = 'locked'
+    emit('session/changed')
+    await main.evaluate(() => { location.hash = '/plan?redeem=PH-PLUS' })
+    await main.getByTestId('plan-locked').waitFor()
+    const dialog = main.getByTestId('promo-dialog')
+    assert.equal(await dialog.count(), 0)
+
+    session = 'unlocked'
+    emit('session/changed')
+    await dialog.waitFor()
+    const input = main.getByTestId('promo-input')
+    const button = main.getByTestId('promo-submit')
+    assert.equal(await input.inputValue(), 'PH-PLUS')
+    assert.equal(delivered, false)
+    await button.focus()
+    await main.keyboard.press('Enter')
+    await dialog.getByText(/No automatic charge/).waitFor()
+    await input.fill('WRONG')
+    assert.equal(await dialog.getByText(/No automatic charge/).count(), 0)
+    await button.click()
+    await dialog.getByText(/unavailable for this account/).waitFor()
+    await input.fill('PH-PLUS')
+    await button.click()
+    await dialog.getByText(/No automatic charge/).waitFor()
+    await formMatrix(app, main, shots, 'promo-redeem', '[data-testid="promo-dialog"]')
+    await button.focus()
+    await main.keyboard.press('Enter')
+    await dialog.getByText('Membership activated', { exact: false }).first().waitFor()
+    assert.equal(delivered, true)
+    await main.keyboard.press('Escape')
+    await dialog.waitFor({ state: 'detached' })
+    assert.equal(await main.getByTestId('guest-open').count(), 0)
+
+    membership = 'cash'
+    await main.getByTestId('plan-refresh').click()
+    await main.getByTestId('guest-open').click()
+    await dialog.getByRole('button', { name: 'Create guest pass', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Copy code', exact: true }).waitFor()
+    await main.keyboard.press('Escape')
+    assert.deepEqual(pageErrors, [])
+    console.log('Promotion prefill, invalidation, confirmation, guest pass and locale/theme/window matrix passed')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'plan-benefits') {
     await main.evaluate(() => location.hash = '/plan')
     await main.getByTestId('plan-cards').waitFor()

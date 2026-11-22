@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Aktion anfordern"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Verwenden Sie ein Geheimnis über eine Geräterichtlinie"</string>
     <string name="permission_write" formatted="false">"Schreiben"</string>
+    <string name="promo_granted" formatted="false">"Aktionsmitgliedschaft"</string>
+    <string name="promo_no_charge" formatted="false">"Bei Ablauf erfolgt keine automatische Abbuchung."</string>
     <string name="receive_closed" formatted="false">"Bei geschlossenem Posteingang kann niemand neue Briefe senden."</string>
     <string name="receive_free" formatted="false">"Alle, die du nicht blockiert hast, können dir kostenlos schreiben."</string>
     <string name="receive_selected" formatted="false">"Nur ausgewählte Konten oder Personen mit gültiger Einladung können dir schreiben."</string>

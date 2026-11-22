@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>No automatic charge at expiry.</key>
+	<string>到期不會自動扣款。</string>
+	<key>Promotional membership</key>
+	<string>贈予會員</string>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>有 %lld 台已撤銷或已不在你帳號中的裝置仍綁定在此錢包上。</string>
 	<key>%lld files · %@</key>

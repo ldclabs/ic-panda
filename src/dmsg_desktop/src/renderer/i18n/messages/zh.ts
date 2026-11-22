@@ -3,6 +3,17 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  "promoRedeem": "使用兑换码",
+  "promoCode": "会员兑换码",
+  "promoCheck": "核验兑换码",
+  "promoGuest": "生成赠友卡",
+  "promoNoCharge": "到期不会自动扣费。",
+  "promoPending": "等待权益到账",
+  "promoApplied": "会员已生效",
+  "promoSync": "配额同步中",
+  "promoUnavailable": "当前账户无法使用此码。",
+  "promoReplace": "补发未用卡",
+  "promoGranted": "赠予会员",
   joinCreate: "创建独立账号",
   joinConfirm: "以后用此身份登录该账号，并加入这台设备",
   joinOther: "此登录身份属于另一个账号。请选择其他登录方式。",

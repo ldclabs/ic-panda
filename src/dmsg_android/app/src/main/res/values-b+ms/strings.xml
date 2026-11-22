@@ -83,6 +83,8 @@
     <string name="permission_request_an_action" formatted="false">"Minta tindakan"</string>
     <string name="permission_use_a_secret_through_a_device_policy" formatted="false">"Gunakan rahsia melalui dasar peranti"</string>
     <string name="permission_write" formatted="false">"Tulis"</string>
+    <string name="promo_granted" formatted="false">"Keahlian promosi"</string>
+    <string name="promo_no_charge" formatted="false">"Tiada caj automatik apabila tamat."</string>
     <string name="receive_closed" formatted="false">"Tiada sesiapa boleh menghantar surat baharu apabila penerimaan ditutup."</string>
     <string name="receive_free" formatted="false">"Sesiapa yang tidak anda sekat boleh menulis secara percuma."</string>
     <string name="receive_selected" formatted="false">"Hanya akaun terpilih atau orang yang mempunyai jemputan sah boleh menulis."</string>
