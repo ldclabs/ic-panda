@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Subir uma pasta",
     "paletteMore": "Mais ações",
     "letter": "Carta",
+    "desktopStarting": "Iniciando…",
     "daemonFailed": "O dMsg não consegue acessar seu serviço local",
     "daemonFailedHint": "Seus dados continuam neste dispositivo. O dMsg segue tentando; você pode tentar agora ou encerrar e abrir de novo.",
     "technicalDetails": "Detalhes técnicos",

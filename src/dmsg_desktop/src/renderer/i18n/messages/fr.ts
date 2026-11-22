@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Dossier parent",
     "paletteMore": "Plus d’actions",
     "letter": "Lettre",
+    "desktopStarting": "Démarrage en cours…",
     "daemonFailed": "dMsg ne parvient pas à joindre son service local",
     "daemonFailedHint": "Vos données restent sur cet appareil. dMsg continue d’essayer ; réessayez maintenant, ou quittez puis rouvrez l’application.",
     "technicalDetails": "Détails techniques",

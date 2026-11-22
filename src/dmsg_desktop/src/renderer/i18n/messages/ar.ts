@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "مجلد واحد للأعلى",
     "paletteMore": "إجراءات أخرى",
     "letter": "رسالة",
+    "desktopStarting": "جارٍ بدء التشغيل…",
     "daemonFailed": "يتعذر على dMsg الوصول إلى خدمته المحلية",
     "daemonFailedHint": "تبقى بياناتك على هذا الجهاز. يواصل dMsg المحاولة؛ يمكنك المحاولة الآن أو الإنهاء وفتحه من جديد.",
     "technicalDetails": "تفاصيل تقنية",

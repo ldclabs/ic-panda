@@ -34,7 +34,7 @@ app.setPath('userData', process.env.DMSG_UPDATE_TEST_PROFILE)
 const nativeDialog = dialog.showMessageBox.bind(dialog)
 globalThis.scenario = async ({ locale = 'zh', response = 0, mode = 'busy', native = false, theme = 'light' } = {}) => {
   const steps = [], calls = [], prompts = []
-  const updates = new Updates(() => {})
+  const updates = new Updates(() => {}, async () => true)
   updates.session = new UpdateSession({
     enabled: true, channel: 'stable', changed() {},
     find: async () => ({ version: '1.3.1', channel: 'stable', installer: 'fixture.zip', assets: ['fixture.zip'] }),

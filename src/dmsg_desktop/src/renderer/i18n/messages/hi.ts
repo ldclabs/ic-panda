@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "एक फ़ोल्डर ऊपर",
     "paletteMore": "और क्रियाएँ",
     "letter": "पत्र",
+    "desktopStarting": "शुरू हो रहा है…",
     "daemonFailed": "dMsg अपनी स्थानीय सेवा से नहीं जुड़ पा रहा",
     "daemonFailedHint": "आपका डेटा इसी डिवाइस पर रहता है। dMsg कोशिश करता रहता है; आप अभी दोबारा कोशिश कर सकते हैं, या बंद करके फिर खोल सकते हैं।",
     "technicalDetails": "तकनीकी विवरण",

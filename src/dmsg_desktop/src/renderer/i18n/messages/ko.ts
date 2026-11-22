@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "상위 폴더로",
     "paletteMore": "추가 작업",
     "letter": "편지",
+    "desktopStarting": "시작하는 중…",
     "daemonFailed": "dMsg가 로컬 서비스에 연결할 수 없습니다",
     "daemonFailedHint": "데이터는 이 기기에 그대로 있습니다. dMsg는 계속 시도합니다. 지금 다시 시도하거나 종료 후 다시 여세요.",
     "technicalDetails": "기술 세부 정보",

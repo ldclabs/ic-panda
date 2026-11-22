@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Folder wyżej",
     "paletteMore": "Więcej działań",
     "letter": "List",
+    "desktopStarting": "Uruchamianie…",
     "daemonFailed": "dMsg nie może połączyć się z usługą lokalną",
     "daemonFailedHint": "Twoje dane pozostają na tym urządzeniu. dMsg próbuje dalej; możesz spróbować teraz albo zamknąć i otworzyć aplikację ponownie.",
     "technicalDetails": "Szczegóły techniczne",

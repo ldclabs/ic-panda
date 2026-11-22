@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "一つ上のフォルダへ",
     "paletteMore": "その他の操作",
     "letter": "手紙",
+    "desktopStarting": "起動しています…",
     "daemonFailed": "dMsg がローカルサービスに接続できません",
     "daemonFailedHint": "データはこのデバイスに残っています。dMsg は再試行を続けます。今すぐ再試行するか、終了して開き直してください。",
     "technicalDetails": "技術的な詳細",

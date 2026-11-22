@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Naik satu folder",
     "paletteMore": "Lagi tindakan",
     "letter": "Surat",
+    "desktopStarting": "Sedang memulakan…",
     "daemonFailed": "dMsg tidak dapat mencapai perkhidmatan setempatnya",
     "daemonFailedHint": "Data anda kekal pada peranti ini. dMsg terus mencuba; anda boleh cuba sekarang, atau keluar dan buka semula.",
     "technicalDetails": "Butiran teknikal",

@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "ขึ้นหนึ่งโฟลเดอร์",
     "paletteMore": "การทำงานเพิ่มเติม",
     "letter": "จดหมาย",
+    "desktopStarting": "กำลังเริ่มต้น…",
     "daemonFailed": "dMsg เชื่อมต่อบริการภายในเครื่องไม่ได้",
     "daemonFailedHint": "ข้อมูลของคุณยังอยู่ในอุปกรณ์นี้ dMsg จะพยายามต่อไป คุณลองอีกครั้งตอนนี้ หรือออกแล้วเปิดใหม่ก็ได้",
     "technicalDetails": "รายละเอียดทางเทคนิค",

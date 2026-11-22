@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Naik satu folder",
     "paletteMore": "Tindakan lainnya",
     "letter": "Surat",
+    "desktopStarting": "Sedang memulai…",
     "daemonFailed": "dMsg tidak dapat menjangkau layanan lokalnya",
     "daemonFailedHint": "Data Anda tetap di perangkat ini. dMsg terus mencoba; Anda dapat mencoba sekarang, atau keluar lalu membukanya lagi.",
     "technicalDetails": "Detail teknis",

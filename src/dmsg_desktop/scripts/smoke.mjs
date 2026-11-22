@@ -1475,7 +1475,9 @@ const heldFilters = new Map()
 const displayStates = new Map()
 const server = createServer((_req, res) => res.writeHead(404).end())
 const wss = new WebSocketServer({ noServer: true })
+let unavailable = false
 server.on('upgrade', (req, socket, head) => {
+  if (unavailable) return socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n')
   if (req.url !== '/ws/app/v1' || req.headers.authorization !== `Bearer ${token}`) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
     return socket.destroy()
@@ -1580,6 +1582,17 @@ await mkdir(shots, { recursive: true })
 await writeFile(join(profile, 'locale'), 'en')
 await writeFile(join(profile, 'appearance'), 'light')
 
+// A slow first initialization ends in a transient error. The next attempt succeeds.
+let releaseStartup
+if (process.env.DMSG_DESKTOP_SMOKE === 'startup') {
+  const initialize = methods['app/initialize']
+  releaseStartup = hold('app/initialize')
+  methods['app/initialize'] = () => {
+    methods['app/initialize'] = initialize
+    throw { code: 'UNAVAILABLE', message: 'Local service starting' }
+  }
+}
+
 const app = await electron.launch({
   executablePath: electronPath,
   // The appearance comes from the profile through nativeTheme, not from emulation.
@@ -1654,6 +1667,67 @@ smoke: try {
   // writes what it reads and so runs until Svelte gives up on it.
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
+  if (releaseStartup) {
+    const cover = main.getByTestId('daemon-disconnected'), failed = main.getByTestId('daemon-failed')
+    const starting = cover.getByRole('progressbar', { name: 'Starting up…' })
+    await starting.waitFor()
+    await main.emulateMedia({ reducedMotion: 'reduce' })
+    assert.equal(await cover.locator('.progress-run').evaluate(el => getComputedStyle(el).animationName), 'none')
+    await main.emulateMedia({ reducedMotion: 'no-preference' })
+    assert.equal(await cover.locator('.progress-run').evaluate(el => getComputedStyle(el).animationName), 'progress-run')
+    await main.evaluate(() => window.dmsg.setLocale('zh'))
+    await cover.getByRole('progressbar', { name: '正在启动…' }).waitFor()
+    const panel = await main.getByTestId('daemon-connecting').boundingBox()
+    await main.screenshot({ path: join(shots, 'startup-zh.png'), scale: 'css',
+      clip: { x: panel.x - 140, y: panel.y - 60, width: panel.width + 280, height: panel.height + 120 } })
+    await Promise.all([
+      formMatrix(app, main, shots, 'startup', '[data-testid="daemon-connecting"]'),
+      new Promise(resolve => setTimeout(resolve, 10_100))
+    ])
+    await releaseStartup()
+    await main.waitForFunction(async () => (await window.dmsg.connection()).error === 'Local service starting')
+    assert.equal(await Promise.race([
+      failed.waitFor().then(() => 'failed'),
+      cover.waitFor({ state: 'detached' }).then(() => 'ready')
+    ]), 'ready', 'a late first failure still has time to recover')
+    await main.getByTestId('channel-list').waitFor()
+
+    const opened = app.waitForEvent('window')
+    await main.evaluate(id => window.dmsg.openApproval(id), request.id)
+    const approval = await opened
+    approval.on('pageerror', error => pageErrors.push(error.message))
+    await approval.getByTestId('approval-origin').waitFor()
+    const approvalWindow = await app.browserWindow(approval)
+    await approvalWindow.evaluate(w => w.setContentSize(400, 560))
+    unavailable = true
+    for (const socket of sockets) socket.terminate()
+    await cover.getByRole('progressbar', { name: 'Connecting to the local dMsg service…' }).waitFor()
+    assert.equal(await main.getByTestId('channel-list').evaluate(el => !!el.closest('[inert]')), true)
+    await approval.getByTestId('daemon-connecting').waitFor()
+    assert.equal(await approval.getByTestId('approval-origin').evaluate(el => !!el.closest('[inert]')), true)
+    assert.equal(await failed.count(), 0)
+    await failed.waitFor()
+    await formMatrix(app, main, shots, 'connection-failure', '[data-testid="daemon-failed"]')
+    await approval.getByTestId('daemon-failed').waitFor()
+    await approval.screenshot({ path: join(shots, 'approval-connection-failure-400.png'), scale: 'css' })
+    await main.keyboard.press('Tab')
+    assert.equal(await main.getByTestId('daemon-retry').evaluate(el => el === document.activeElement), true)
+    await main.keyboard.press('Tab')
+    assert.equal(await main.getByTestId('daemon-quit').evaluate(el => el === document.activeElement), true)
+    await main.keyboard.press('Tab')
+    await main.keyboard.press('Enter')
+    await main.getByTestId('daemon-details').getByText(/503/).waitFor()
+    await main.keyboard.press('Shift+Tab')
+    await main.keyboard.press('Shift+Tab')
+    unavailable = false
+    await main.keyboard.press('Enter')
+    await cover.waitFor({ state: 'detached' })
+    await approval.getByTestId('daemon-disconnected').waitFor({ state: 'detached' })
+    await main.getByTestId('channel-list').waitFor()
+    assert.deepEqual(pageErrors, [])
+    console.log('Startup, automatic reconnect, persistent failure, keyboard retry and locale/theme screenshots passed')
+    break smoke
+  }
   await main.getByTestId('channel-list').waitFor()
   if (process.env.DMSG_DESKTOP_SMOKE === 'vault-backup') {
     const { vaultBackupFlow } = await import('./vault-backup-smoke.mjs')

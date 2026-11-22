@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "এক ফোল্ডার উপরে",
     "paletteMore": "আরও কাজ",
     "letter": "চিঠি",
+    "desktopStarting": "চালু হচ্ছে…",
     "daemonFailed": "dMsg তার স্থানীয় পরিষেবায় পৌঁছাতে পারছে না",
     "daemonFailedHint": "আপনার ডেটা এই ডিভাইসেই থাকে। dMsg চেষ্টা চালিয়ে যায়; এখনই আবার চেষ্টা করতে পারেন, অথবা বন্ধ করে আবার খুলতে পারেন।",
     "technicalDetails": "প্রযুক্তিগত বিবরণ",

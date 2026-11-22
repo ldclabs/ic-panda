@@ -213,6 +213,7 @@ const messages = {
     "shortcutParent": "Up one folder",
     "paletteMore": "More actions",
     "letter": "Letter",
+    "desktopStarting": "Starting up…",
     "daemonFailed": "dMsg can’t reach its local service",
     "daemonFailedHint": "Your data stays on this device. dMsg keeps trying; you can try now, or quit and open it again.",
     "technicalDetails": "Technical details",

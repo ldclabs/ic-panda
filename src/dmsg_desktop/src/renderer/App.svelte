@@ -7,7 +7,9 @@
   import Toaster from './components/Toaster.svelte'
   import Collapsible from './components/Collapsible.svelte'
   import Icon from './components/Icon.svelte'
+  import Progress from './components/Progress.svelte'
   import { buttonClass, modalOpen } from './components/ui'
+  import Brand from './shell/Brand.svelte'
   import RecoveryBanner from './shell/RecoveryBanner.svelte'
   import { startLogin } from './shell/login.svelte'
   import { call, single } from './rpc'
@@ -40,16 +42,17 @@
   let reconnecting = $state(false)
   /** The status last read: the shell keeps showing it while the next is read, where the views are gone at once. */
   let lastStatus = $state<any>(null)
-  /** The window has waited long enough for its daemon that saying so is no flash. */
-  let waited = $state(false)
+  let showProgress = $state(false)
+  let showFailure = $state(false)
   /** How many accounts this device holds, read while logged out: none means a first run. */
   let accounts = $state<number | null>(null)
 
   const blocked = $derived(!verifiedConnection)
-  // A session change destroyed the views at once, so nothing needs covering
-  // unless the wait lasts. A lost connection keeps its forms: those cover at once.
-  const covered = $derived(blocked && (viewSession !== null || waited))
-  const failed = $derived(waited && connection.kind === 'disconnected' && !!connectionError)
+  // Cover a cold start and any retained forms immediately. A session change
+  // already removed its contents, so a fast verification needs no overlay.
+  const covered = $derived(blocked && (!lastStatus || viewSession !== null || showProgress))
+  const hasConnectionError = $derived(!!connectionError)
+  const failed = $derived(showFailure && hasConnectionError)
 
   let stateRevision = 0
 
@@ -58,6 +61,7 @@
     const remote = await window.dmsg.connection()
     if (revision !== stateRevision) return
     if (!remote.connected) { connection = { kind: 'disconnected', view: connection.view, error: remote.error }; return }
+    if (connection.kind === 'disconnected') connection = { kind: 'verifying', view: connection.view }
     try {
       const next: any = await call('daemon/status')
       if (revision !== stateRevision) return
@@ -89,9 +93,18 @@
   })
 
   $effect(() => {
-    waited = false
+    showProgress = false
     if (!blocked) return
-    const timer = setTimeout(() => (waited = true), 400)
+    const timer = setTimeout(() => (showProgress = true), 400)
+    return () => clearTimeout(timer)
+  })
+
+  $effect(() => {
+    showFailure = false
+    if (!hasConnectionError) return
+    // Start at the first error, even after a slow launch. Allow the daemon's
+    // initial automatic retries (1, 2 and 4 seconds) before offering recovery.
+    const timer = setTimeout(() => (showFailure = true), 10_000)
     return () => clearTimeout(timer)
   })
 
@@ -124,7 +137,8 @@
     offs.push(window.dmsg.onEvent((event) => {
       if (event.type === 'session/changed' || event.type === 'connection/changed') {
         stateRevision++
-        connection = { kind: 'verifying', view: event.type === 'session/changed' ? null : connection.view }
+        if (event.type === 'session/changed') connection = { kind: 'verifying', view: null }
+        else if (verifiedConnection) connection = { kind: 'verifying', view: connection.view }
         document.body.setAttribute('data-daemon-unverified', '')
         if (event.type === 'session/changed') {
           // Destroy plaintext views immediately, even if the subsequent status
@@ -156,7 +170,8 @@
 </script>
 
 {#if covered}
-  <div class="fixed inset-0 z-[100] grid place-items-center bg-paper p-6 [-webkit-app-region:drag]" role="status" data-testid="daemon-disconnected">
+  <div class="fixed inset-0 z-[100] grid place-items-center overflow-auto bg-paper p-6 [-webkit-app-region:drag]" data-testid="daemon-disconnected">
+    <span class="sr-only" role="status">{failed ? t('daemonFailed') : ''}</span>
     {#if failed}
       <div class="grid w-[min(460px,100%)] gap-3 [-webkit-app-region:no-drag]" data-testid="daemon-failed">
         <span class="text-danger [&_svg]:size-6"><Icon name="warning" /></span>
@@ -171,8 +186,14 @@
           <pre class="max-h-48 overflow-auto rounded-lg bg-surface-2 p-3 font-mono text-[11.5px] break-words whitespace-pre-wrap select-text" dir="ltr">{connectionError}</pre>
         </Collapsible>
       </div>
-    {:else if waited}
-      {t('daemonDisconnected')}
+    {:else if showProgress}
+      <div class="grid w-52 max-w-full gap-4" data-testid="daemon-connecting">
+        <div class="flex items-center gap-2.5" aria-hidden="true">
+          <Brand class="h-8 w-7" />
+          <span class="text-xl leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
+        </div>
+        <Progress label={lastStatus ? t('daemonDisconnected') : t('desktopStarting')} />
+      </div>
     {/if}
   </div>
 {/if}

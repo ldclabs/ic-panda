@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Isang folder pataas",
     "paletteMore": "Iba pang aksyon",
     "letter": "Liham",
+    "desktopStarting": "Nagsisimula…",
     "daemonFailed": "Hindi maabot ng dMsg ang lokal na serbisyo nito",
     "daemonFailedHint": "Nananatili ang data mo sa device na ito. Patuloy na sumusubok ang dMsg; maaari kang sumubok ngayon, o isara at buksan ulit.",
     "technicalDetails": "Mga teknikal na detalye",

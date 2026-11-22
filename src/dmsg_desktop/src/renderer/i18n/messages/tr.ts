@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Bir klasör yukarı",
     "paletteMore": "Diğer işlemler",
     "letter": "Mektup",
+    "desktopStarting": "Başlatılıyor…",
     "daemonFailed": "dMsg yerel hizmetine ulaşamıyor",
     "daemonFailedHint": "Verileriniz bu cihazda kalır. dMsg denemeye devam eder; şimdi yeniden deneyebilir veya çıkıp tekrar açabilirsiniz.",
     "technicalDetails": "Teknik ayrıntılar",

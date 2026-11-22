@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Lên một thư mục",
     "paletteMore": "Thao tác khác",
     "letter": "Thư",
+    "desktopStarting": "Đang khởi động…",
     "daemonFailed": "dMsg không kết nối được với dịch vụ cục bộ",
     "daemonFailedHint": "Dữ liệu của bạn vẫn ở trên thiết bị này. dMsg sẽ tiếp tục thử; bạn có thể thử lại ngay hoặc thoát rồi mở lại.",
     "technicalDetails": "Chi tiết kỹ thuật",

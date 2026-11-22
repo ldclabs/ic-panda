@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Eén map omhoog",
     "paletteMore": "Meer acties",
     "letter": "Brief",
+    "desktopStarting": "Bezig met opstarten…",
     "daemonFailed": "dMsg kan zijn lokale dienst niet bereiken",
     "daemonFailedHint": "Je gegevens blijven op dit apparaat. dMsg blijft het proberen; je kunt het nu opnieuw proberen of afsluiten en weer openen.",
     "technicalDetails": "Technische details",

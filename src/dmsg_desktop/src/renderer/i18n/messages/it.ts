@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Su di una cartella",
     "paletteMore": "Altre azioni",
     "letter": "Lettera",
+    "desktopStarting": "Avvio in corso…",
     "daemonFailed": "dMsg non riesce a raggiungere il servizio locale",
     "daemonFailedHint": "I tuoi dati restano su questo dispositivo. dMsg continua a provare; puoi riprovare ora oppure uscire e riaprirlo.",
     "technicalDetails": "Dettagli tecnici",

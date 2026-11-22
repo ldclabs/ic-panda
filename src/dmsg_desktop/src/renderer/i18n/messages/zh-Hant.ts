@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "回到上層資料夾",
     "paletteMore": "更多操作",
     "letter": "信件",
+    "desktopStarting": "正在啟動…",
     "daemonFailed": "dMsg 無法連線本機服務",
     "daemonFailedHint": "你的資料仍在這台裝置上。dMsg 會繼續嘗試；也可以立即重試，或結束後重新開啟。",
     "technicalDetails": "技術詳情",

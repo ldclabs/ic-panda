@@ -210,6 +210,7 @@ export default {
     "shortcutParent": "Einen Ordner nach oben",
     "paletteMore": "Weitere Aktionen",
     "letter": "Brief",
+    "desktopStarting": "Wird gestartet…",
     "daemonFailed": "dMsg erreicht seinen lokalen Dienst nicht",
     "daemonFailedHint": "Ihre Daten bleiben auf diesem Gerät. dMsg versucht es weiter; Sie können es jetzt erneut versuchen oder die App beenden und neu öffnen.",
     "technicalDetails": "Technische Details",
