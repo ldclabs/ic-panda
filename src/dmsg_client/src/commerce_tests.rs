@@ -36,6 +36,10 @@ fn benefit_list_uses_tier_devices_and_the_hubs_actual_wallet_quotas() {
     let view = catalog_benefits(&catalog, Some(&quotas));
     for (index, (devices, wallets)) in [(2, 1), (3, 0), (5, 7), (10, 12)].into_iter().enumerate() {
         assert_eq!(view["plans"][index]["limits"]["active_devices"], devices);
+        assert_eq!(
+            view["plans"][index]["limits"]["agent_ids"],
+            [1, 3, 5, 10][index]
+        );
         assert_eq!(view["plans"][index]["limits"]["team_wallets"], wallets);
         assert_eq!(
             view["plans"][index]["limits"]["file_request_links"],

@@ -404,7 +404,7 @@ dmsg agent principal show | enable [--type person|organization|team|project|othe
 dmsg agent controller register [--name N] (--unrestricted | --scope S... --audience A...) | retire <gen> | compromise <gen> --from <ms> | rename <gen> [--name N]
 dmsg agent grant <subject> --scope S... --audience A... [--days 30] [--generation G] [--relationship R] [--replaces ID]
 dmsg agent revoke <id> [--generation G] [--reason R] | credentials | delegations
-dmsg agent id create <label> | list | use <agent> | resident <agent> on|off | credential <agent>
+dmsg agent id create <label> | list | quota | use <agent> | resident <agent> on|off | credential <agent>
 dmsg agent id uncredential <agent> | pause <agent> on|off | remove <agent> | profile <agent>
 dmsg grants list | add <agent> <capability>... [--days D] | revoke <id>
 dmsg audit [--agent owner|A] [--before SEQ] [--limit 50]
@@ -963,7 +963,12 @@ subject and scopes and relying parties among its own (anything wider is
 also has the delegation service read the published document again.
 
 `agent id create <label>` hosts an Agent ID; the same label on another device
-of the account brings the same Agent ID. `agent id use` picks the one `dmsg ap`
+of the account brings the same Agent ID after vault sync. Free, Plus, Pro and Max
+allow 1, 3, 5 and 10 distinct hosted IDs per account. `agent id quota` reads
+the shared usage and limit, while `agent id list` works locally. Registering a new key
+requires connectivity. Multiple devices hosting the same ID share one seat.
+Pausing keeps its seat, and removing its last host releases it when synchronized.
+Downgrading preserves existing identities. `agent id use` picks the one `dmsg ap`
 runs as; `resident on` keeps its key in the system credential store so it
 signs while the device is locked (unavailable with `secure_storage = "file"`).
 The Agent Mail keys its mailboxes need are sealed on this device, never synced

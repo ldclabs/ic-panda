@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"跟随系统语言"</string>
     <string name="history_device" formatted="false">"设备"</string>
     <string name="history_fields" formatted="false">"字段"</string>
+    <string name="hosted_agent_ids" formatted="false">"托管的智能体 ID"</string>
     <string name="import_local_account" formatted="false">"从本地账户导入"</string>
     <string name="join_code" formatted="false">"核对码"</string>
     <string name="join_compare_hint" formatted="false">"批准前，请核对两台设备显示的核对码是否一致。"</string>

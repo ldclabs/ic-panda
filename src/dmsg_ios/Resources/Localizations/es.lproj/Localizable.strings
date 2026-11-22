@@ -126,6 +126,8 @@
 	<string>Avanzado</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Después de aprobar las solicitudes de las billeteras, genera una nueva solicitud de reemplazo en el dispositivo nuevo.</string>
+	<key>Hosted Agent IDs</key>
+	<string>ID de agentes alojados</string>
 	<key>Agent ID</key>
 	<string>Agent ID</string>
 	<key>Agents</key>

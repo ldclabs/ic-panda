@@ -289,6 +289,7 @@
         <li data-testid="plan-backup-limit">{t('backupFileLimit')}: <bdi class="whitespace-nowrap">{cloud?.backup_max_file_bytes != null ? `${cloud.backup_max_file_bytes / 1048576} MiB` : '—'}</bdi></li>
         <li>{t('signaturesMonthly')}: {plan.limits.monthly_execution_units}</li>
         <li data-testid="plan-device-limit">{t('deviceSlots', { n: plan.limits.active_devices ?? '—' })}</li>
+        <li data-testid="plan-agent-limit">{t('hostedAgentIds')} · {plan.limits.agent_ids ?? '—'}</li>
         <li data-testid="plan-wallet-limit">{t('teamWalletSlots', { n: walletLimit ?? '—' })}</li>
       </ul>
     {/if}
@@ -324,6 +325,7 @@
               <li class="flex items-center gap-1.5"><Icon name="channels" class="size-3.5 text-faint" />{t('channelSlots', { n: p.limits.active_channels })}</li>
               <li class="flex items-center gap-1.5"><Icon name="signature" class="size-3.5 text-faint" />{t('executionUnits', { n: p.limits.monthly_execution_units })}</li>
               <li class="flex items-center gap-1.5" data-testid={`plan-${value}-devices`}><Icon name="device" class="size-3.5 shrink-0 text-faint" />{t('deviceSlots', { n: p.limits.active_devices ?? '—' })}</li>
+              <li class="flex items-center gap-1.5" data-testid={`plan-${value}-agents`}><Icon name="agents" class="size-3.5 shrink-0 text-faint" />{t('hostedAgentIds')} · {p.limits.agent_ids ?? '—'}</li>
               <li class="flex items-center gap-1.5" data-testid={`plan-${value}-wallets`}><Icon name="wallet" class="size-3.5 shrink-0 text-faint" />{t('teamWalletSlots', { n: p.limits.team_wallets ?? '—' })}</li>
             </ul>
             {#if offer && offer.action !== 'unavailable'}

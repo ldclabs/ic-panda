@@ -124,6 +124,8 @@
 	<string>Advanced</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>After approving the wallet requests, generate a new replacement request on the new device.</string>
+	<key>Hosted Agent IDs</key>
+	<string>Hosted Agent IDs</string>
 	<key>Agent ID</key>
 	<string>Agent ID</string>
 	<key>Agents</key>

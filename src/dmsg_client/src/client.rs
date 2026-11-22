@@ -473,6 +473,8 @@ pub struct Client {
     pub(crate) cloud: Cloud,
     pub(crate) login: Option<Login>,
     pub(crate) passkey: Option<crate::passkey::DeviceLogin>,
+    /// Serialize local hosting transitions while allowing other client operations during quota I/O.
+    pub(crate) agent_hosting: Arc<tokio::sync::Mutex<()>>,
     pub(crate) login_renewal: Arc<tokio::sync::Mutex<()>>,
     pub(crate) login_renewal_sequence: u64,
     pub(crate) login_renewal_failure: Option<Error>,
@@ -884,6 +886,7 @@ impl Client {
             cloud,
             login: None,
             passkey: None,
+            agent_hosting: Arc::default(),
             login_renewal: Arc::new(tokio::sync::Mutex::new(())),
             login_renewal_sequence: 0,
             login_renewal_failure: None,

@@ -254,7 +254,7 @@ mod tests {
     async fn owner_configures_an_agent_requests_and_only_the_owner_can_review() {
         let dir = TempDir::new();
         let mut c = unlocked(&dir.0.join("workspace"), false, None);
-        let actor = c.agent_create("test").unwrap();
+        let actor = c.test_host_agent("test").unwrap();
         c.agent_credential(&actor.agent_id).unwrap();
         let actor = c.agent_find(&actor.agent_id).unwrap();
         let item=c.vault_create("api",&serde_json::from_value::<Changes>(json!({"title":"GitHub","set":[{"id":"credential","value":"fixture-secret-not-a-real-token"}]})).unwrap()).unwrap();

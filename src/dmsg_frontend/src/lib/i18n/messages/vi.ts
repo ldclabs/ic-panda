@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "ID tác tử được lưu trữ",
   "Redeem code": "Đổi mã",
   "Membership code": "Mã thành viên",
   "No automatic charge at expiry.": "Không tự động tính phí khi hết hạn.",

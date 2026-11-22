@@ -77,6 +77,7 @@ import net.dmsg.android.platform.numericExpression
                     HorizontalDivider()
                     LabelValue(str(R.string.text_cloud_storage_3a75090), fileSize(benefit.limits.storage))
                     LabelValue(str(R.string.text_active_devices_2bf39f3), localizedNumber(benefit.limits.devices))
+                    LabelValue(str(R.string.hosted_agent_ids), benefit.limits.agentIds?.let(::localizedNumber) ?: str(R.string.text_unavailable_4ae32d2))
                     LabelValue(str(R.string.text_cloud_backup_file_limit_b0ce7c9), fileSize(benefit.backupFile))
                     LabelValue(str(R.string.text_active_file_request_links_67f03f4), localizedNumber(benefit.requests))
                     LabelValue(str(R.string.text_conversation_limit_cdef0ca), localizedNumber(benefit.limits.channels))

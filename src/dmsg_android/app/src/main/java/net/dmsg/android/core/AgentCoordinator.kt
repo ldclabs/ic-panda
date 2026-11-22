@@ -25,12 +25,15 @@ data class AgentDelegationDraft(val name: String = "", val controller: AgentAuth
     val validController get() = name.trim().isNotEmpty() && name.toByteArray(Charsets.UTF_8).size <= 64 && name.none(Char::isISOControl) && (unrestricted || controller.valid)
     val validGrant get() = validAgentIdentifier(subject.trim()) && grant.valid && days.toULongOrNull() in 1uL..366uL
 }
+data class HostedAgentQuota(val used: ULong, val limit: ULong?)
 data class ManagedAgent(val label: String, val id: String, val paused: Boolean, val resident: Boolean, val createdAt: ULong)
 data class AgentDeviceGrant(val id: String, val grantee: String, val capabilities: List<String>, val createdAt: ULong, val expiresAt: ULong?, val revokedAt: ULong?)
 data class AgentController(val generation: UInt, val id: String, val name: String?, val validFrom: ULong, val retiredAt: ULong?, val invalidFrom: ULong?, val unrestricted: Boolean, val scopes: List<String>, val audiences: List<String>)
 data class AgentPrincipal(val id: String, val controllers: List<AgentController>, val version: ULong, val publishedVersion: ULong, val published: Boolean)
 data class AgentCredential(val id: String, val subject: String, val scopes: List<String>, val audiences: List<String>, val status: String, val notBefore: ULong?, val expiresAt: ULong?)
 fun parseManagedAgents(value: JsonElement) = value.objectValue().rows("agents").map { ManagedAgent(it.required("label"), it.required("agent_id"), it.requiredFlag("paused"), it.requiredFlag("resident"), it.requiredUnsigned("created_at")) }
+fun parseHostedAgentQuota(value: JsonElement): HostedAgentQuota =
+    value.objectValue().let { HostedAgentQuota(it.requiredUnsigned("used"), it.unsigned("limit")) }
 fun parseAgentDeviceGrants(value: JsonElement) = value.arrayRows().map { AgentDeviceGrant(it.required("id"), it.required("grantee"), it.strings("capabilities"), it.requiredUnsigned("created_at"), it.unsigned("expires_at"), it.unsigned("revoked_at")) }
 fun parseAgentPrincipal(value: JsonElement): AgentPrincipal? {
     if (value == JsonNull) return null
@@ -48,6 +51,7 @@ fun parseAgentCredentials(value: JsonElement) = value.arrayRows().map { AgentCre
 
 class AgentCoordinator(private val client: ClientController) {
     val listing = ReadStore<List<ManagedAgent>> { it.isEmpty() }
+    val quota = ReadStore<HostedAgentQuota>()
     val grants = ReadStore<List<AgentDeviceGrant>> { it.isEmpty() }
     val principal = ReadStore<AgentPrincipal?> { it == null }
     val credentials = ReadStore<List<AgentCredential>> { it.isEmpty() }
@@ -63,6 +67,8 @@ class AgentCoordinator(private val client: ClientController) {
     fun load() {
         val read = listing.begin()
         client.perform({ parseManagedAgents(it.agents().decode()) }, key = "agents:list", replace = true, quiet = true, onError = { listing.fail(read, it) }) { listing.accept(read, it) }
+        val seats = quota.begin()
+        client.perform({ parseHostedAgentQuota(it.hostedAgentQuota().decode()) }, key = "agents:quota", replace = true, quiet = true, onError = { quota.fail(seats, it) }) { quota.accept(seats, it) }
         val access = grants.begin()
         client.perform({ parseAgentDeviceGrants(it.agentGrants().decode()) }, key = "agents:grants", replace = true, quiet = true, onError = { grants.fail(access, it) }) { grants.accept(access, it) }
     }
@@ -105,7 +111,7 @@ class AgentCoordinator(private val client: ClientController) {
     }
     fun revokeDelegation(id: String) = client.approvals.request("agent:revoke-delegation:" + id) { it.revokeAgentDelegation(id, null) }
     fun clear(retainForms: Boolean = false) {
-        listing.reset(); grants.reset(); principal.reset(); credentials.reset()
+        listing.reset(); quota.reset(); grants.reset(); principal.reset(); credentials.reset()
         if (!retainForms) { labelValue.value = ""; permissionsValue.value = emptyMap(); delegationValue.value = AgentDelegationDraft() }
     }
 }

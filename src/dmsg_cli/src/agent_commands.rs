@@ -166,6 +166,8 @@ pub enum IdCommand {
     },
     /// Hosted Agent IDs, the active one and the configured hosts.
     List,
+    /// Show the distinct IDs hosted across this account and its plan limit.
+    Quota,
     /// The Agent ID `dmsg ap` uses by default.
     Use {
         /// Label or `did:agent:…`.
@@ -336,6 +338,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
         AgentCommand::Delegations => ("agent/delegations", Value::Null),
         AgentCommand::Id(IdCommand::Create { label }) => ("agent/create", json!({"label": label})),
         AgentCommand::Id(IdCommand::List) => ("agent/ids", Value::Null),
+        AgentCommand::Id(IdCommand::Quota) => ("agent/quota", Value::Null),
         AgentCommand::Id(IdCommand::Use { agent }) => ("agent/use", json!({"agent": agent})),
         AgentCommand::Id(IdCommand::Resident { agent, state }) => (
             "agent/resident",

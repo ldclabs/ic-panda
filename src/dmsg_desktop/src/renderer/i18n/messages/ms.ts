@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Jika semua peranti hilang, log masuk terpaut boleh memulihkan kandungan yang dimuat naik selepas tempoh menunggu. Log masuk yang dicuri juga boleh berbuat demikian jika tiada peranti dibenarkan membatalkannya tepat pada masanya.",
     recoveryOffHint: "Simpan peranti dibenarkan yang boleh dibuka untuk bertukar peranti. Jika semuanya hilang, memulihkan log masuk tidak memulihkan kandungan awan.",
     recoveryUpdating: "Sedang melengkapkan kemas kini keselamatan. Kandungan baharu menunggu sehingga selesai.",
+    hostedAgentIds: "ID ejen yang dihoskan",
     deviceSlots: 'Sehingga {n} peranti',
     teamWalletSlots: "Sehingga {n} dompet berbilang tandatangan",
     walletQuotasUnavailable: "Had dompet berbilang tandatangan tidak tersedia. Muat semula untuk mencuba lagi.",

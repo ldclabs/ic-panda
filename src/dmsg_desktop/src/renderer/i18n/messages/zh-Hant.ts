@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "全部裝置遺失後，可憑綁定的登入身分在等待期後復原已上傳內容。登入身分遭竊且無人及時取消時，對方也可復原內容。",
     recoveryOffHint: "換機需要一台仍可解鎖的授權裝置。遺失全部授權裝置後，即使找回登入，也無法復原雲端內容。",
     recoveryUpdating: "正在完成安全設定更新；完成前暫緩儲存新內容。",
+    hostedAgentIds: "託管的智慧體 ID",
     deviceSlots: '最多 {n} 台裝置',
     teamWalletSlots: "最多開通 {n} 個多簽錢包",
     walletQuotasUnavailable: "暫時無法讀取多簽錢包額度，請重新整理再試。",

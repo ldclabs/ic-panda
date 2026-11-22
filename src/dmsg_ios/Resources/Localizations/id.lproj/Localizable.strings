@@ -126,6 +126,8 @@
 	<string>Lanjutan</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Setelah menyetujui permintaan dompet, buat permintaan penggantian baru di perangkat baru.</string>
+	<key>Hosted Agent IDs</key>
+	<string>ID agen yang dihosting</string>
 	<key>Agent ID</key>
 	<string>ID Agen</string>
 	<key>Agents</key>

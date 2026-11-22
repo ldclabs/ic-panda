@@ -126,6 +126,8 @@
 	<string>Дополнительно</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>После одобрения запросов кошельков создайте новый запрос на замену на новом устройстве.</string>
+	<key>Hosted Agent IDs</key>
+	<string>ID размещённых агентов</string>
 	<key>Agent ID</key>
 	<string>Agent ID</string>
 	<key>Agents</key>

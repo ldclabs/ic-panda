@@ -285,10 +285,10 @@ const DAY = 86_400_000
 let membership = 'free'
 let termEnds = 0
 const LIMITS = {
-  Free: { active_devices: 2, team_wallets: 0, storage_bytes: 1_000_000_000, active_channels: 3, monthly_execution_units: 10 },
-  Plus: { active_devices: 3, team_wallets: 1, storage_bytes: 50_000_000_000, active_channels: 20, monthly_execution_units: 100 },
-  Pro: { active_devices: 5, team_wallets: 3, storage_bytes: 200_000_000_000, active_channels: 50, monthly_execution_units: 500 },
-  Max: { active_devices: 10, team_wallets: 10, storage_bytes: 1_000_000_000_000, active_channels: 200, monthly_execution_units: 2000 }
+  Free: { active_devices: 2, agent_ids: 1, team_wallets: 0, storage_bytes: 1_000_000_000, active_channels: 3, monthly_execution_units: 10 },
+  Plus: { active_devices: 3, agent_ids: 3, team_wallets: 1, storage_bytes: 50_000_000_000, active_channels: 20, monthly_execution_units: 100 },
+  Pro: { active_devices: 5, agent_ids: 5, team_wallets: 3, storage_bytes: 200_000_000_000, active_channels: 50, monthly_execution_units: 500 },
+  Max: { active_devices: 10, agent_ids: 10, team_wallets: 10, storage_bytes: 1_000_000_000_000, active_channels: 200, monthly_execution_units: 2000 }
 }
 /** The catalog's storage pack. */
 const pack = 'e7'.repeat(32)
@@ -1279,6 +1279,7 @@ const methods = {
     payerSource = p.pem ? 'pem' : 'login'
     return { principal: payerSource === 'pem' ? '2vxsx-fae' : payer, source: payerSource }
   },
+  'agent/quota': () => ({ used: 2, limit: 3 }),
   'agent/ids': () => ({
     active: claude,
     agents: [
@@ -2070,12 +2071,24 @@ smoke: try {
     await main.evaluate(() => location.hash = '/plan')
     await main.getByTestId('plan-cards').waitFor()
     for (const tier of ['plus', 'pro', 'max']) {
+      assert.match(await main.getByTestId(`plan-${tier}-agents`).innerText(), new RegExp(String({ plus: 3, pro: 5, max: 10 }[tier]) + '$'))
       assert.match(await main.getByTestId(`plan-${tier}-backup-limit`).innerText(), tier === 'max' ? /1000 MiB/ : /100 MiB/)
     }
     await waitFor(async () => (await main.getByTestId('plan-backup-limit').innerText()).includes('100 MiB'))
     await formMatrix(app, main, shots, 'plan-backup-limits', '[data-testid="plan-cards"]')
     assert.deepEqual(pageErrors, [])
-    console.log('Plan backup limits passed: Free/Plus/Pro 100 MiB, Max 1000 MiB, locale/theme/narrow-window screenshots')
+    assert.match(await main.getByTestId('plan-agent-limit').innerText(), /1$/)
+    await main.getByTestId('plan-refresh').focus()
+    await main.keyboard.press('Enter')
+    await formMatrix(app, main, shots, 'agent-id-limits', '[data-testid="plan-benefits"]')
+
+    await main.evaluate(() => { location.hash = '/agents/ids' })
+    const quota = main.getByTestId('agent-account-quota')
+    await quota.waitFor()
+    assert.match(await quota.innerText(), /2\s*\/\s*3/)
+    await formMatrix(app, main, shots, 'agent-account-quota', '[data-testid="agent-account-quota"]')
+    assert.deepEqual(pageErrors, [])
+    console.log('Plan benefits and account-wide Agent ID usage passed in all four layouts')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'sync') {

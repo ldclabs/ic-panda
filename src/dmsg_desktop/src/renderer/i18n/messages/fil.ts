@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Kung mawala ang lahat ng device, maibabalik ng naka-link na login ang na-upload na nilalaman matapos ang paghihintay. Magagawa rin ito ng ninakaw na login maliban kung kanselahin agad ng awtorisadong device.",
     recoveryOffHint: "Magtabi ng awtorisadong device na mabubuksan mo para makalipat ng device. Kung mawala ang lahat, hindi maibabalik ng pagbawi sa login ang nilalaman sa cloud.",
     recoveryUpdating: "Tinatapos ang pag-update ng seguridad. Maghihintay ang bagong nilalaman hanggang matapos.",
+    hostedAgentIds: "Mga naka-host na Agent ID",
     deviceSlots: 'Hanggang {n} device',
     teamWalletSlots: "Hanggang {n} multisig wallet",
     walletQuotasUnavailable: "Hindi makuha ang mga limitasyon ng multisig wallet. I-refresh upang subukang muli.",

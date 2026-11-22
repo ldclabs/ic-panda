@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "معرّفات الوكلاء المستضافة",
   "Redeem code": "استرداد الرمز",
   "Membership code": "رمز العضوية",
   "No automatic charge at expiry.": "لن يُخصم أي مبلغ تلقائيًا عند انتهاء المدة.",

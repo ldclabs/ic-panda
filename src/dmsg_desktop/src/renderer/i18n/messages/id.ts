@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Jika semua perangkat hilang, login tertaut dapat memulihkan konten yang diunggah setelah masa tunggu. Login yang dicuri juga bisa, kecuali perangkat berizin membatalkan tepat waktu.",
     recoveryOffHint: "Simpan perangkat berizin yang bisa dibuka untuk pindah perangkat. Jika semuanya hilang, memulihkan login tidak memulihkan konten cloud.",
     recoveryUpdating: "Menyelesaikan pembaruan keamanan. Konten baru menunggu hingga selesai.",
+    hostedAgentIds: "ID agen yang dihosting",
     deviceSlots: 'Hingga {n} perangkat',
     teamWalletSlots: "Hingga {n} dompet multisig",
     walletQuotasUnavailable: "Batas dompet multisig tidak tersedia. Segarkan untuk mencoba lagi.",

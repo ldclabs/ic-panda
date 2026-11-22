@@ -190,7 +190,7 @@ fn reference_vector_has_independent_cbor_and_json_encoding() {
 fn setup() -> (TempDir, Client, String, PolicyInput) {
     let dir = TempDir::new();
     let mut c = unlocked(&dir.0, false, None);
-    let agent = c.agent_create("builder").unwrap();
+    let agent = c.test_host_agent("builder").unwrap();
     c.agent_credential(&agent.agent_id).unwrap();
     let entry = c
         .vault_create(
@@ -495,7 +495,7 @@ async fn slow_dispatch_releases_client_and_lock_aborts_without_replay() {
 async fn request_ownership_limits_recovery_and_configuration_are_enforced() {
     let (_dir, mut c, actor, p) = setup();
     let policy = configure(&mut c, &actor, p.clone()).await;
-    let other = c.agent_create("other").unwrap().agent_id;
+    let other = c.test_host_agent("other").unwrap().agent_id;
     c.agent_credential(&other).unwrap();
     assert_eq!(
         c.secret_use_request(&other, input(&policy)),

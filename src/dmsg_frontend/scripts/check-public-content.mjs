@@ -64,7 +64,12 @@ for (const path of ['index.html', '_/about.html', '_/about.zh.html']) {
     const cells = [...row.querySelectorAll('td')].map((cell) =>
       cell.textContent.trim()
     )
-    assert.equal(cells.length, 8, `${path}: complete plan comparison`)
+    assert.equal(cells.length, 9, `${path}: complete plan comparison`)
+    assert.equal(
+      cells[5],
+      { Free: '1', Plus: '3', Pro: '5', Max: '10' }[cells[0]],
+      `${path}: ${cells[0]} hosted Agent ID limit`
+    )
     assert.equal(
       cells[3],
       cells[0] === 'Max' ? '1000 MiB' : '100 MiB',

@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"Theo ngôn ngữ hệ thống"</string>
     <string name="history_device" formatted="false">"Thiết bị"</string>
     <string name="history_fields" formatted="false">"Trường"</string>
+    <string name="hosted_agent_ids" formatted="false">"ID tác tử được lưu trữ"</string>
     <string name="import_local_account" formatted="false">"Nhập từ tài khoản cục bộ"</string>
     <string name="join_code" formatted="false">"Mã đối chiếu"</string>
     <string name="join_compare_hint" formatted="false">"Trước khi duyệt, hãy kiểm tra xem mã trên hai thiết bị có khớp nhau không."</string>

@@ -103,3 +103,9 @@ The recorded local verification covered:
 - Before Mail publication, the host atomically saves connector state and encrypted key snapshots. Restart restores them before publication, clearing the snapshot only after normal key storage confirms persistence. Keys never enter MCP output. Remote owner inventory is separate from local read-only inventory; the former is authorized by relay grants, paginated and persisted for recovery. Recovering metadata does not recover keys or historical plaintext.
 - Desktop public-Agent-Profile reads persist the greatest verified nonce and reject older versions or same-nonce conflicts. Discovery cannot change configured service origins. SDK Profile pins are also persisted in connector snapshots.
 - An explicit controller nonce conflict permits at most one re-sign using valid, bounded `Max-Seen-Nonce`. The approved ID, generation, scope, audiences and expiry stay fixed; current authority is rechecked before signing. The retry count is journaled encrypted before retry and does not reset after restart. Unknown outcomes resubmit original bytes; other refusals require new approval.
+
+## Membership seats for hosted Agent IDs
+
+Free, Plus, Pro and Max allow 1, 3, 5 and 10 distinct hosted Agent IDs per account. A client registers a new identity online before enabling it. Hosting a synced vault key on additional devices shares its seat. Pausing keeps the seat. Removing its last host or revoking that device frees the seat. Clients retry outstanding releases during synchronization.
+
+A downgrade preserves existing IDs. Creating another requires room under the current limit. Existing local IDs from earlier clients count toward account usage, including overage, once the device synchronizes, and their keys remain usable and removable. External agents’ delegation credentials and principal controller registrations retain their own protocol rules.

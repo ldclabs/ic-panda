@@ -7,6 +7,7 @@ fn desktop_connector_profile_and_mail() {
     let mut env = Env::launch(
         "connector-workflows",
         Options {
+            promotions: true,
             agents: true,
             services: true,
             ..Options::default()
@@ -38,6 +39,7 @@ fn desktop_connector_profile_and_mail() {
         "https://dmsg.net",
     ]);
     assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
+    env.activate_plus_for_agents();
     let alice = a.run(&["agent", "id", "create", "alice"])["agent_id"]
         .as_str()
         .unwrap()

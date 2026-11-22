@@ -1,4 +1,5 @@
 const en = {
+  "Hosted Agent IDs": "Hosted Agent IDs",
   "Redeem code": "Redeem code",
   "Membership code": "Membership code",
   "No automatic charge at expiry.": "No automatic charge at expiry.",

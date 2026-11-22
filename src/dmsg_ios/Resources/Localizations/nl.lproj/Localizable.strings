@@ -126,6 +126,8 @@
 	<string>Geavanceerd</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Maak na het goedkeuren van de walletverzoeken een nieuw vervangingsverzoek op het nieuwe apparaat.</string>
+	<key>Hosted Agent IDs</key>
+	<string>Gehoste agent-ID’s</string>
 	<key>Agent ID</key>
 	<string>Agent-ID</string>
 	<key>Agents</key>

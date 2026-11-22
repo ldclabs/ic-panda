@@ -780,10 +780,10 @@ class WorkspaceFlowTest {
     }
 
     @Test fun localAgentPermissionsNeedReviewAndManagedPrivateKeyCannotBeRevealed() {
+        // An offline workspace can manage an existing key and must not manufacture a new seat.
+        assertTrue(runBlocking { runCatching { native.createAgent("offline") }.isFailure })
+        runBlocking { native.seedUiHostedAgent("research") }
         compose.runOnIdle { client.navigation.open("agents") }
-        compose.waitUntil(10_000) { client.agents.listing.state.value is ReadState.Empty }
-        compose.onNodeWithTag("agent-label").performTextInput("research")
-        compose.onNodeWithText("Create agent").performClick()
         compose.waitUntil(10_000) { client.agents.listing.value()?.size == 1 }
         val agent = client.agents.listing.value()!!.single()
         assertTrue(agent.id.startsWith("did:agent:"))
@@ -993,7 +993,7 @@ class WorkspaceFlowTest {
             client.membership.plan.accept(client.membership.plan.begin(), plan)
             client.membership.usage.accept(client.membership.usage.begin(), net.dmsg.android.core.MembershipUsage(null, null, "UNAVAILABLE", "AUTH_REQUIRED"))
             client.membership.catalog.accept(client.membership.catalog.begin(), net.dmsg.android.core.MembershipCatalog(
-                net.dmsg.android.core.membershipTiers.mapIndexed { index, tier -> net.dmsg.android.core.PlanBenefit(tier, limits.copy(storage = limits.storage * (index + 1).toULong()), 100uL * 1024u * 1024u, index.toULong() * 10u, null) }, "UNAVAILABLE"))
+                net.dmsg.android.core.membershipTiers.mapIndexed { index, tier -> net.dmsg.android.core.PlanBenefit(tier, limits.copy(storage = limits.storage * (index + 1).toULong(), agentIds = listOf(1uL, 3uL, 5uL, 10uL)[index]), 100uL * 1024u * 1024u, index.toULong() * 10u, null) }, "UNAVAILABLE"))
             client.clearNotice()
         }
         compose.onNodeWithText("Status needs updating").assertExists()
@@ -1003,6 +1003,7 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("Compare all plans").performClick()
         compose.onNodeWithTag("membership-list").performScrollToNode(hasTestTag("plan-card-Max"))
         compose.onNodeWithTag("plan-card-Max").assertExists()
+        compose.onNode(hasText("Hosted Agent IDs") and hasText("10") and hasAnyAncestor(hasTestTag("plan-card-Max"))).assertExists()
         compose.onAllNodesWithText("Current plan").assertCountEquals(0)
         capture("qa-membership-comparison")
     }

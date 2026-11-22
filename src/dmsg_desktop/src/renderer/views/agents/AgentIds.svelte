@@ -26,6 +26,7 @@
    */
   let {
     hosted,
+    quota,
     unlocked,
     busy,
     run,
@@ -35,6 +36,7 @@
     manage
   }: {
     hosted: any
+    quota: { used: number; limit: number | null } | null
     unlocked: boolean
     busy: boolean
     run: (method: string, params?: Record<string, unknown>, failed?: (message: string) => void) => Promise<boolean>
@@ -105,6 +107,9 @@
 </script>
 
 <Section title={t('agentIds')} description={t('agentIdsHint')} icon="agents" flush>
+  {#if quota}
+    <p class="px-4 py-2 text-[12px] text-muted" data-testid="agent-account-quota">{t('account')} · {t('hostedAgentIds')} · <bdi>{quota.used} / {quota.limit ?? '—'}</bdi></p>
+  {/if}
   <ul class="divide-y divide-line" data-testid="agent-ids">
     {#each hosted.agents as a (a.agent_id)}
       {@const shown = profiles[a.agent_id]}

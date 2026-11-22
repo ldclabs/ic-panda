@@ -3,7 +3,7 @@ package net.dmsg.android.core
 import kotlinx.serialization.json.*
 
 val membershipTiers = listOf("Free", "Plus", "Pro", "Max")
-data class PlanLimits(val storage: ULong, val channels: ULong, val executions: ULong, val devices: ULong)
+data class PlanLimits(val storage: ULong, val channels: ULong, val executions: ULong, val devices: ULong, val agentIds: ULong? = null)
 data class MembershipTerm(val endsAt: ULong, val method: String, val environment: String?, val contract: String? = null)
 data class MembershipPlan(val tier: String, val source: String, val eligibility: String?, val lease: ULong?, val limits: PlanLimits, val term: MembershipTerm?) {
     fun needsRefresh(now: ULong) = source !in setOf("Active", "Free", "Expired") || eligibility == "Unverifiable" || lease?.let { it <= now } == true
@@ -16,7 +16,7 @@ data class MembershipCloudUsage(val committed: ULong, val reserved: ULong, val l
 data class MembershipExecutionUsage(val month: UInt, val allowed: ULong, val charged: ULong, val remaining: ULong, val validUntil: ULong)
 data class MembershipUsage(val cloud: MembershipCloudUsage?, val execution: MembershipExecutionUsage?, val cloudError: String?, val executionError: String?)
 data class CachedMembership(val value: MembershipPlan, val stale: Boolean)
-private fun JsonObject.planLimits() = PlanLimits(requiredUnsigned("storage_bytes"), requiredUnsigned("active_channels"), requiredUnsigned("monthly_execution_units"), requiredUnsigned("active_devices"))
+private fun JsonObject.planLimits() = PlanLimits(requiredUnsigned("storage_bytes"), requiredUnsigned("active_channels"), requiredUnsigned("monthly_execution_units"), requiredUnsigned("active_devices"), unsigned("agent_ids"))
 fun parseMembershipPlan(value: JsonElement): MembershipPlan = value.objectValue().let { row ->
     val tier = row.required("plan"); check(tier in membershipTiers) { "INTEGRITY_FAILED" }
     MembershipPlan(tier, row.required("source"), row.text("eligibility"), row.unsigned("lease_until_ms"), row["limits"]!!.objectValue().planLimits(), row["current"]?.takeIf { it != JsonNull }?.objectValue()?.let { MembershipTerm(it.requiredUnsigned("ends_at_ms"), it.required("method"), it.text("store_environment"), it.required("contract").also { contract -> check(contract.matches(Regex("[a-f0-9]{64}"))) { "INTEGRITY_FAILED" } }) })

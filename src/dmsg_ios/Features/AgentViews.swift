@@ -5,11 +5,14 @@ struct AgentsView: View {
     @Environment(SessionModel.self) private var model
     @State private var visible = true
     @State private var agents: [Agent] = []
+    @State private var quota: Quota?
+    @State private var quotaRead = 0
     @State private var label = ""
     @State private var working = false
     @State private var loading = false
     @State private var failed = false
     struct Agent: Decodable, Identifiable { let label: String; let agentId: String; let paused: Bool; var id: String { agentId } }
+    struct Quota: Decodable { let used: UInt64; let limit: UInt64? }
     struct Listing: Decodable { let agents: [Agent] }
     var body: some View {
         List {
@@ -18,6 +21,9 @@ struct AgentsView: View {
             NoticeBar(text: String(localized: "This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app."))
             ForEach(agents) { agent in NavigationLink(agent.label) { AgentDetailView(agent: agent) } }
             Section("Create an agent identity") {
+                if let quota {
+                    LabeledContent("Hosted Agent IDs", value: "\(quota.used.formatted()) / \(quota.limit?.formatted() ?? "—")")
+                }
                 SettingsField("Local label") { TextField("Local label", text: $label).textInputAutocapitalization(.never).autocorrectionDisabled() }
                 SettingsAction("Create agent", prominent: true) { Task {
                     guard let engine = model.engine, !working else { return }
@@ -27,7 +33,9 @@ struct AgentsView: View {
                 } }.disabled(working || label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             NavigationLink("Controllers and delegations") { AgentDelegationsView() }
-        }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Agents").task { await load() }.refreshable { await load() }
+        }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Agents").task(id: model.epoch) { await load() }.task(id: quotaRead) {
+            if quotaRead > 0 { await loadQuota() }
+        }.refreshable { await load() }
     }
     private func load() async {
         guard !loading else { return }; loading = true; failed = false; defer { loading = false }
@@ -35,11 +43,23 @@ struct AgentsView: View {
         #if DEBUG
         if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-agent-grants") {
             agents = [Agent(label: "Studio assistant", agentId: "did:agent:studio.test", paused: false)]
+            quota = Quota(used: 1, limit: 3)
             return
         }
         #endif
-        do { if let value = try await model.engine?.agents(), epoch == model.epoch && visible, !Task.isCancelled { let values: Listing = try model.decode(value); agents = values.agents } }
-        catch { if epoch == model.epoch && visible, !Task.isCancelled { failed = true } }
+        do { if let value = try await model.engine?.agents(), epoch == model.epoch && visible, !Task.isCancelled { let values: Listing = try model.decode(value); agents = values.agents; quotaRead += 1 } }
+        catch { if epoch == model.epoch && visible, !Task.isCancelled { failed = true; quota = nil } }
+    }
+
+    private func loadQuota() async {
+        let epoch = model.epoch
+        guard let engine = model.engine else { quota = nil; return }
+        do {
+            let value = try await engine.hostedAgentQuota()
+            if epoch == model.epoch && visible && !Task.isCancelled { quota = try model.decode(value) }
+        } catch {
+            if epoch == model.epoch && visible && !Task.isCancelled { quota = nil }
+        }
     }
 }
 

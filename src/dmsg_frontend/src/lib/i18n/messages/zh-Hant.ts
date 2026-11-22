@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "託管的智慧體 ID",
   "Redeem code": "使用兌換碼",
   "Membership code": "會員兌換碼",
   "No automatic charge at expiry.": "到期不會自動扣款。",

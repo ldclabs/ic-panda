@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Nếu mất mọi thiết bị, thông tin đăng nhập đã liên kết có thể khôi phục nội dung đã tải lên sau thời gian chờ. Kẻ đánh cắp thông tin đăng nhập cũng có thể làm vậy nếu thiết bị được cấp quyền không hủy kịp.",
     recoveryOffHint: "Giữ một thiết bị được cấp quyền mà bạn có thể mở khóa để chuyển máy. Nếu mất tất cả, lấy lại đăng nhập cũng không khôi phục được nội dung đám mây.",
     recoveryUpdating: "Đang hoàn tất cập nhật bảo mật. Nội dung mới sẽ chờ đến khi hoàn tất.",
+    hostedAgentIds: "ID tác tử được lưu trữ",
     deviceSlots: 'Tối đa {n} thiết bị',
     teamWalletSlots: "Tối đa {n} ví đa chữ ký",
     walletQuotasUnavailable: "Chưa thể tải giới hạn ví đa chữ ký. Hãy làm mới để thử lại.",

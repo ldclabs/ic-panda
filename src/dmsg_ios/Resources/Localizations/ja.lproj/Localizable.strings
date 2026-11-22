@@ -126,6 +126,8 @@
 	<string>上級者向け</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>ウォレットのリクエストを承認した後、新しいデバイスで置き換えリクエストを再作成してください。</string>
+	<key>Hosted Agent IDs</key>
+	<string>ホストするエージェント ID</string>
 	<key>Agent ID</key>
 	<string>エージェントID</string>
 	<key>Agents</key>

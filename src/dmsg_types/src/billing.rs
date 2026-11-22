@@ -35,6 +35,16 @@ impl PlanId {
             Self::Max => 10,
         }
     }
+
+    /// Distinct managed Agent IDs across all devices of one account.
+    pub const fn agent_id_limit(&self) -> usize {
+        match self {
+            Self::Free => 1,
+            Self::Plus => 3,
+            Self::Pro => 5,
+            Self::Max => 10,
+        }
+    }
 }
 
 /// Logical storage, active-channel and formal-execution resource limits.

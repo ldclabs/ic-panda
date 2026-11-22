@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Si se pierden todos los dispositivos, un inicio de sesión vinculado puede recuperar el contenido subido tras la espera. Uno robado también, salvo que un dispositivo autorizado cancele a tiempo.",
     recoveryOffHint: "Conserva un dispositivo autorizado que puedas desbloquear para cambiar de dispositivo. Si los pierdes todos, recuperar el acceso no recuperará el contenido en la nube.",
     recoveryUpdating: "Finalizando la actualización de seguridad. El contenido nuevo espera hasta que termine.",
+    hostedAgentIds: "ID de agentes alojados",
     deviceSlots: 'Hasta {n} dispositivos',
     teamWalletSlots: "Hasta {n} carteras multifirma",
     walletQuotasUnavailable: "Los límites de carteras multifirma no están disponibles. Actualiza para reintentar.",

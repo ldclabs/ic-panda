@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "Gehostete Agenten-IDs",
   "Redeem code": "Code einlösen",
   "Membership code": "Mitgliedschaftscode",
   "No automatic charge at expiry.": "Bei Ablauf erfolgt keine automatische Abbuchung.",

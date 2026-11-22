@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Tüm cihazlar kaybolursa bağlı giriş, bekleme süresinden sonra yüklenen içeriği kurtarabilir. Yetkili bir cihaz zamanında iptal etmezse çalınan giriş de bunu yapabilir.",
     recoveryOffHint: "Cihaz değiştirmek için kilidini açabildiğiniz yetkili bir cihazı saklayın. Tüm yetkili cihazlar kaybolursa girişinizi kurtarmak bulut içeriğini geri getirmez.",
     recoveryUpdating: "Güvenlik güncellemesi tamamlanıyor. Yeni içerik tamamlanana kadar bekler.",
+    hostedAgentIds: "Barındırılan ajan kimlikleri",
     deviceSlots: 'En fazla {n} cihaz',
     teamWalletSlots: "En fazla {n} çok imzalı cüzdanı",
     walletQuotasUnavailable: "Çok imzalı cüzdanı limitleri alınamıyor. Yeniden denemek için yenileyin.",

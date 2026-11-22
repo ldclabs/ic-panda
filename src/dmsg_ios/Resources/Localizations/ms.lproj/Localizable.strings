@@ -126,6 +126,8 @@
 	<string>Maju</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Selepas meluluskan permintaan dompet, jana permintaan penggantian baharu pada peranti baharu.</string>
+	<key>Hosted Agent IDs</key>
+	<string>ID ejen yang dihoskan</string>
 	<key>Agent ID</key>
 	<string>ID ejen</string>
 	<key>Agents</key>

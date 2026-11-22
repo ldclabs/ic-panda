@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"ใช้ภาษาของระบบ"</string>
     <string name="history_device" formatted="false">"อุปกรณ์"</string>
     <string name="history_fields" formatted="false">"เขตข้อมูล"</string>
+    <string name="hosted_agent_ids" formatted="false">"รหัสเอเจนต์ที่โฮสต์"</string>
     <string name="import_local_account" formatted="false">"นำเข้าจากบัญชีในเครื่อง"</string>
     <string name="join_code" formatted="false">"รหัสเปรียบเทียบ"</string>
     <string name="join_compare_hint" formatted="false">"ตรวจสอบว่ารหัสบนอุปกรณ์ทั้งสองตรงกันก่อนอนุมัติ"</string>

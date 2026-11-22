@@ -266,6 +266,7 @@ const messages = {
   recoveryOnHint: "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.",
   recoveryOffHint: "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.",
   recoveryUpdating: "Finishing the security update. New content waits until it completes.",
+  hostedAgentIds: "Hosted Agent IDs",
   deviceSlots: 'Up to {n} devices',
   teamWalletSlots: "Multisig wallet slots: {n}",
   walletQuotasUnavailable: "Multisig wallet limits are unavailable. Refresh to retry.",

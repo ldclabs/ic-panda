@@ -126,6 +126,8 @@
 	<string>進階</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>批准錢包請求後，請在新裝置上重新產生替換請求。</string>
+	<key>Hosted Agent IDs</key>
+	<string>託管的智慧體 ID</string>
 	<key>Agent ID</key>
 	<string>Agent ID</string>
 	<key>Agents</key>

@@ -3085,7 +3085,7 @@ mod tests {
             dir: dir.0.join("home"),
         };
         let mut c = dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, None);
-        let actor = c.agent_create("boundary").unwrap();
+        let actor = c.test_host_agent("boundary").unwrap();
         let credential = c.agent_credential(&actor.agent_id).unwrap();
         let daemon = Arc::new(Daemon::new(
             "owner-token".into(),
@@ -3945,6 +3945,8 @@ mod tests {
         let account = dmsg_client::testing::account().id.to_string();
         let subject = dmsg_client::agent::agent_id(&[7; 32]);
         for (method, params, on_ic) in [
+            ("agent/quota", Value::Null, false),
+            ("agent/create", json!({"label":"research"}), false),
             ("agent/principal", Value::Null, true),
             (
                 "agent/register",

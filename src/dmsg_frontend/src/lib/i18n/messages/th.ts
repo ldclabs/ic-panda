@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "รหัสเอเจนต์ที่โฮสต์",
   "Redeem code": "แลกรหัส",
   "Membership code": "รหัสสมาชิก",
   "No automatic charge at expiry.": "ไม่มีการเรียกเก็บเงินอัตโนมัติเมื่อหมดอายุ",

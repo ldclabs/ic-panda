@@ -21,11 +21,12 @@
 
 use crate::agent::agent_id;
 use crate::client::Client;
-use crate::codec::canonical;
-use crate::crypto::{Key, random_id, signing_public};
+use crate::codec::{b64, canonical};
+use crate::crypto::{Key, random_id, random_key, signing_public};
+use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
 use crate::secure::SecureStorage;
-use crate::vault::Item;
+use crate::vault::{Field, Item};
 use agent_protocols::identity::{AgentSigner, service_origin};
 use dmsg_types::{DAY, Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
@@ -37,8 +38,6 @@ const AGENTS: &str = "agents";
 const GRANTS: &str = "agent-grants";
 /// Sealed record of an Agent ID's mail keys, by `did:agent:`.
 const MAIL_KEYS: &str = "agent-mail-keys:";
-/// Most Agent IDs one device hosts.
-pub const MAX_AGENTS: usize = 16;
 /// Most capability grants kept, revoked and expired ones included until a
 /// new grant needs their room.
 pub const MAX_GRANTS: usize = 64;
@@ -168,6 +167,9 @@ impl AgentEntry {
 
 #[derive(Serialize, Deserialize, Default)]
 pub(crate) struct Agents {
+    // Absent in old workspaces. Reconcile them the next time content syncs.
+    #[serde(default)]
+    quota_synced: Option<bool>,
     active: Option<String>,
     pub(crate) list: Vec<AgentEntry>,
 }
@@ -320,6 +322,136 @@ impl AgentMailCodec {
     }
 }
 
+/// Opaque and account-specific even when the same public key appears elsewhere.
+fn quota_id(account: &dmsg_types::AccountId, id: &str) -> String {
+    hex::encode(*dmsg_protocol::digest(
+        "dmsg/hosted-agent/1",
+        &(account, id),
+    ))
+}
+
+#[derive(Deserialize)]
+struct HostQuota {
+    revision: u64,
+    ids: Vec<String>,
+    used: usize,
+    limit: Option<usize>,
+    accepted: Option<bool>,
+}
+
+async fn reconcile_hosts<H: Hold>(h: &Unlocked<'_, H>, add: Option<&str>) -> Result<HostQuota> {
+    let (path, existing) = h
+        .with(|c| {
+            let ids: Vec<_> = c
+                .agents()?
+                .list
+                .iter()
+                .map(|a| quota_id(&h.account, &a.agent_id))
+                .collect();
+            Ok((format!("{}/hosted-agents", c.base()?), ids))
+        })
+        .await?;
+    let addition = add.map(|id| quota_id(&h.account, id));
+    let read = |v| serde_json::from_value::<HostQuota>(v).map_err(|_| Error::IntegrityFailed);
+    let state = read(h.get(&path).await?)?;
+    if addition.is_none()
+        && state.ids.len() == existing.len()
+        && existing.iter().all(|id| state.ids.contains(id))
+    {
+        return Ok(state);
+    }
+    let payload = json!({"revision": state.revision, "existing": existing, "add": addition});
+    let result = read(
+        h.post(
+            &path,
+            "dmsg/account/hosted-agents/v1",
+            &payload,
+            &random_id().into(),
+        )
+        .await?,
+    )?;
+    if let Some(id) = addition {
+        match result.accepted {
+            Some(true) => ensure(result.ids.contains(&id), Error::IntegrityFailed)?,
+            Some(false) => return Err(Error::QuotaExceeded),
+            None => return Err(Error::IntegrityFailed),
+        }
+    }
+    Ok(result)
+}
+
+/// Create an identity or rehost its synced key, with one seat across the account.
+/// # Errors
+/// New identities require online admission. Existing local identities can be reopened.
+pub async fn create_hosted<H: Hold>(h: &H, label: &str) -> Result<AgentEntry> {
+    validate_label(label)?;
+    let h = Unlocked::new(h).await?;
+    let gate = h.with(|c| Ok(c.agent_hosting.clone())).await?;
+    let _turn = gate.lock().await;
+    match h.with(|c| c.agent_find(label)).await {
+        Ok(entry) => return Ok(entry),
+        Err(Error::NotFound) => (),
+        Err(error) => return Err(error),
+    }
+    let seed = h
+        .with(|c| {
+            let seed = c.agent_candidate(label)?;
+            c.mark_agent_quota(false)?;
+            Ok(seed)
+        })
+        .await?;
+    let id = agent_id(&signing_public(&seed));
+    reconcile_hosts(&h, Some(&id)).await?;
+    h.with(|c| c.host_admitted(label, &seed)).await
+}
+
+async fn sync_host_list<H: Hold>(h: &Unlocked<'_, H>) -> Result<HostQuota> {
+    let state = reconcile_hosts(h, None).await?;
+    h.with(|c| c.mark_agent_quota(true)).await?;
+    Ok(state)
+}
+
+/// Content sync picks up old workspaces and interrupted creates or removals.
+pub(crate) async fn sync_pending_hosts<H: Hold>(h: &H) -> Result<()> {
+    if !h
+        .with(|c| {
+            let agents = c.agents()?;
+            Ok(!agents.quota_synced.unwrap_or(agents.list.is_empty()))
+        })
+        .await?
+    {
+        return Ok(());
+    }
+    let h = Unlocked::new(h).await?;
+    let gate = h.with(|c| Ok(c.agent_hosting.clone())).await?;
+    let _turn = gate.lock().await;
+    sync_host_list(&h).await?;
+    Ok(())
+}
+
+/// Reconcile this device and read the account-wide total. Local inventory reads stay offline.
+/// # Errors
+/// Requires an unlocked account and a reachable quota service.
+pub async fn hosted_quota<H: Hold>(h: &H) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    let gate = h.with(|c| Ok(c.agent_hosting.clone())).await?;
+    let _turn = gate.lock().await;
+    let quota = sync_host_list(&h).await?;
+    Ok(json!({"used":quota.used, "limit":quota.limit}))
+}
+
+/// Stop local access first. Content sync, quota reads and new creations retry a missed release.
+/// # Errors
+/// Requires an unlocked workspace and an existing local identity.
+pub async fn remove_hosted<H: Hold>(h: &H, via: &str, name: &str) -> Result<AgentEntry> {
+    let h = Unlocked::new(h).await?;
+    let gate = h.with(|c| Ok(c.agent_hosting.clone())).await?;
+    let _turn = gate.lock().await;
+    let removed = h.with(|c| c.remove_local_agent(via, name)).await?;
+    let _ = sync_host_list(&h).await;
+    Ok(removed)
+}
+
 impl Client {
     pub(crate) fn agents(&self) -> Result<Agents> {
         // Resident credentials may have travelled with the system keychain.
@@ -329,6 +461,15 @@ impl Client {
             Error::Locked,
         )?;
         Ok(self.workspace.store.meta(AGENTS)?.unwrap_or_default())
+    }
+
+    fn mark_agent_quota(&self, synced: bool) -> Result<()> {
+        let mut agents = self.agents()?;
+        if agents.quota_synced != Some(synced) {
+            agents.quota_synced = Some(synced);
+            self.save_agents(&agents)?;
+        }
+        Ok(())
     }
 
     fn save_agents(&self, agents: &Agents) -> Result<()> {
@@ -458,28 +599,34 @@ impl Client {
         }
     }
 
-    /// Host Agent ID `label`, creating its key in the vault unless another
-    /// device of the account already did.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked and `Error::QuotaExceeded`
-    /// beyond [`MAX_AGENTS`].
-    pub fn agent_create(&mut self, label: &str) -> Result<AgentEntry> {
+    // Stage a fresh seed in memory. An over-limit creation must not create or queue a vault item.
+    fn agent_candidate(&mut self, label: &str) -> Result<Zeroizing<Key>> {
         validate_label(label)?;
-        if let Ok(entry) = self.agent_find(label) {
-            return Ok(entry);
+        let item = agent_item(&self.account()?.id.to_string(), label);
+        match self.vault_key(&item, None) {
+            Err(Error::NotFound) => Ok(Zeroizing::new(random_key())),
+            result => result,
         }
-        let mut agents = self.agents()?;
-        ensure(agents.list.len() < MAX_AGENTS, Error::QuotaExceeded)?;
+    }
+
+    fn host_admitted(&mut self, label: &str, seed: &Key) -> Result<AgentEntry> {
         let account = self.account()?.id.to_string();
+        let id = agent_item(&account, label);
         let now = now_ms();
-        let mut item = Item::new("key", &format!("Agent ID {label}"), now);
-        item.tags = vec!["dmsg-agent".into()];
-        item.notes = format!("Agent Protocols identity \"{label}\" of {account}.");
-        let seed = self.vault_key(&agent_item(&account, label), Some(item))?;
+        match self.vault_key(&id, None) {
+            Ok(current) => ensure(*current == *seed, Error::VersionConflict)?,
+            Err(Error::NotFound) => {
+                let mut item = Item::new("key", &format!("Agent ID {label}"), now);
+                item.tags = vec!["dmsg-agent".into()];
+                item.notes = format!("Agent Protocols identity \"{label}\" of {account}.");
+                item.fields = vec![Field::new("key", "concealed", &b64(seed))];
+                self.vault_item_with_id(&id, &item)?;
+            }
+            Err(error) => return Err(error),
+        }
         let entry = AgentEntry {
             label: label.into(),
-            agent_id: agent_id(&signing_public(&seed)),
+            agent_id: agent_id(&signing_public(seed)),
             resident: false,
             credential: None,
             credential_at: None,
@@ -487,9 +634,28 @@ impl Client {
             pause_generation: 0,
             created_at: now,
         };
+        let mut agents = self.agents()?;
         agents.list.push(entry.clone());
+        agents.quota_synced = Some(true);
         self.save_agents(&agents)?;
         Ok(entry)
+    }
+
+    /// Host this ID after reserving the account-wide seat.
+    /// # Errors
+    /// Returns `QuotaExceeded` for a new distinct ID beyond the effective plan.
+    pub async fn agent_create(&mut self, label: &str) -> Result<AgentEntry> {
+        create_hosted(&self.hold(), label).await
+    }
+
+    /// Seed an offline test workspace with an already admitted identity.
+    #[cfg(any(test, feature = "testing"))]
+    pub fn test_host_agent(&mut self, label: &str) -> Result<AgentEntry> {
+        if let Ok(entry) = self.agent_find(label) {
+            return Ok(entry);
+        }
+        let seed = self.agent_candidate(label)?;
+        self.host_admitted(label, &seed)
     }
 
     /// Make an Agent ID the one the CLI's `ap` commands use by default.
@@ -610,7 +776,11 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked and `Error::NotFound` for an
     /// unknown Agent ID.
-    pub fn agent_remove(&mut self, via: &str, name: &str) -> Result<AgentEntry> {
+    pub async fn agent_remove(&mut self, via: &str, name: &str) -> Result<AgentEntry> {
+        remove_hosted(&self.hold(), via, name).await
+    }
+
+    pub(crate) fn remove_local_agent(&mut self, via: &str, name: &str) -> Result<AgentEntry> {
         let entry = self.agent_find(name)?;
         let keys = self.keys()?;
         let now = now_ms();
@@ -637,6 +807,7 @@ impl Client {
             .delete_private(&format!("{MAIL_KEYS}{}", entry.agent_id))?;
         let mut agents = self.agents()?;
         agents.list.retain(|a| a.agent_id != entry.agent_id);
+        agents.quota_synced = Some(false);
         if agents.active.as_deref() == Some(entry.agent_id.as_str()) {
             agents.active = None;
         }

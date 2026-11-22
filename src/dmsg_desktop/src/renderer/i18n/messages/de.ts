@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Gehen alle Geräte verloren, kann eine verknüpfte Anmeldung hochgeladene Inhalte nach der Wartezeit wiederherstellen. Das gilt auch bei Diebstahl der Anmeldung, sofern kein autorisiertes Gerät rechtzeitig widerspricht.",
     recoveryOffHint: "Behalte ein entsperrbares autorisiertes Gerät für den Gerätewechsel. Gehen alle autorisierten Geräte verloren, stellt die Wiederherstellung der Anmeldung keine Cloud-Inhalte wieder her.",
     recoveryUpdating: "Die Sicherheitsänderung wird abgeschlossen. Neue Inhalte warten bis dahin.",
+    hostedAgentIds: "Gehostete Agenten-IDs",
     deviceSlots: 'Bis zu {n} Geräte',
     teamWalletSlots: "Bis zu {n} Multisig-Wallets",
     walletQuotasUnavailable: "Die Limits für Multisig-Wallets sind nicht verfügbar. Zum erneuten Versuch aktualisieren.",

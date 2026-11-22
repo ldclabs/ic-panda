@@ -126,6 +126,8 @@
 	<string>Nâng cao</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Sau khi phê duyệt các yêu cầu ví, hãy tạo lại yêu cầu thay thế trên thiết bị mới.</string>
+	<key>Hosted Agent IDs</key>
+	<string>ID tác tử được lưu trữ</string>
 	<key>Agent ID</key>
 	<string>ID tác tử</string>
 	<key>Agents</key>

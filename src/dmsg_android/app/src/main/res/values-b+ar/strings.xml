@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"اتباع لغة النظام"</string>
     <string name="history_device" formatted="false">"الجهاز"</string>
     <string name="history_fields" formatted="false">"الحقول"</string>
+    <string name="hosted_agent_ids" formatted="false">"معرّفات الوكلاء المستضافة"</string>
     <string name="import_local_account" formatted="false">"استيراد من الحساب المحلي"</string>
     <string name="join_code" formatted="false">"رمز المطابقة"</string>
     <string name="join_compare_hint" formatted="false">"تأكد من تطابق الرمزين على الجهازين قبل الموافقة."</string>

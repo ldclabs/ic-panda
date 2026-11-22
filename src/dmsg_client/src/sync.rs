@@ -1090,6 +1090,10 @@ pub async fn sync_observed<H: Hold>(
         let security = crate::account::refreshed_security(&session).await?;
         session.with(|c| c.check_revoked(&security)).await?;
     }
+    if result.is_ok() && !receive_only {
+        // Hosting has its own admission and retry. It cannot invalidate a completed vault sync.
+        let _ = crate::agents::sync_pending_hosts(&session).await;
+    }
     if let Ok(report) = &mut result {
         report.elapsed_ms = started.elapsed().as_millis() as u64;
     }

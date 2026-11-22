@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"Sistem dilini izle"</string>
     <string name="history_device" formatted="false">"Cihaz"</string>
     <string name="history_fields" formatted="false">"Alanlar"</string>
+    <string name="hosted_agent_ids" formatted="false">"Barındırılan ajan kimlikleri"</string>
     <string name="import_local_account" formatted="false">"Yerel hesaptan içe aktar"</string>
     <string name="join_code" formatted="false">"Karşılaştırma kodu"</string>
     <string name="join_compare_hint" formatted="false">"Onaylamadan önce her iki cihazdaki kodun aynı olduğunu doğrulayın."</string>

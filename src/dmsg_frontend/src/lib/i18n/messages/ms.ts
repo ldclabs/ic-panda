@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "ID ejen yang dihoskan",
   "Redeem code": "Tebus kod",
   "Membership code": "Kod keahlian",
   "No automatic charge at expiry.": "Tiada caj automatik apabila tamat.",

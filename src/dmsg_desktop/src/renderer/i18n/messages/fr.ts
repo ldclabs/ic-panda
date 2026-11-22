@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Si tous les appareils sont perdus, une identité liée peut récupérer le contenu envoyé après le délai. Une identité volée le peut aussi, sauf annulation à temps par un appareil autorisé.",
     recoveryOffHint: "Gardez un appareil autorisé que vous pouvez déverrouiller pour changer d’appareil. Si tous sont perdus, retrouver votre connexion ne restaure pas le contenu cloud.",
     recoveryUpdating: "Mise à jour de sécurité en cours. Le nouveau contenu attend sa fin.",
+    hostedAgentIds: "Identifiants d’agents hébergés",
     deviceSlots: 'Jusqu’à {n} appareils',
     teamWalletSlots: "Portefeuilles multisignatures : {n}",
     walletQuotasUnavailable: "Les limites des portefeuilles multisignatures sont indisponibles. Actualisez pour réessayer.",

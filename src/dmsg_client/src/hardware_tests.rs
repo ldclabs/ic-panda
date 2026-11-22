@@ -269,7 +269,7 @@ fn moved_and_unverified_workspaces_cannot_use_resident_agent_keys() {
     let dir = TempDir::new();
     let secure = Arc::new(crate::testing::MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(secure.clone()));
-    let agent = client.agent_create("resident").unwrap();
+    let agent = client.test_host_agent("resident").unwrap();
     client.agent_resident(&agent.agent_id, true).unwrap();
     client.set_hardware_anchor(Enclave::new(1)).unwrap();
     drop(client);

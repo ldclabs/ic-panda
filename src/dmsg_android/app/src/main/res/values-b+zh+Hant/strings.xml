@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"跟隨系統語言"</string>
     <string name="history_device" formatted="false">"裝置"</string>
     <string name="history_fields" formatted="false">"欄位"</string>
+    <string name="hosted_agent_ids" formatted="false">"託管的智慧體 ID"</string>
     <string name="import_local_account" formatted="false">"從本機帳戶匯入"</string>
     <string name="join_code" formatted="false">"核對碼"</string>
     <string name="join_compare_hint" formatted="false">"核准前，請確認兩部裝置顯示的核對碼相同。"</string>

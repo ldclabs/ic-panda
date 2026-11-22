@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "모든 기기를 잃어버린 경우 연결된 로그인으로 대기 기간 후 업로드한 내용을 복구할 수 있습니다. 로그인이 도난당해도 승인된 기기가 제때 취소하지 않으면 마찬가지입니다.",
     recoveryOffHint: "기기를 바꾸려면 잠금 해제할 수 있는 승인된 기기를 보관하세요. 승인된 기기를 모두 잃으면 로그인을 되찾아도 클라우드 내용을 복구할 수 없습니다.",
     recoveryUpdating: "보안 설정을 업데이트하고 있습니다. 완료될 때까지 새 내용 저장을 기다립니다.",
+    hostedAgentIds: "호스팅된 에이전트 ID",
     deviceSlots: '최대 {n}개의 기기',
     teamWalletSlots: "최대 {n}개의 멀티시그 지갑",
     walletQuotasUnavailable: "멀티시그 지갑 한도를 불러올 수 없습니다. 새로고침하여 다시 시도하세요.",

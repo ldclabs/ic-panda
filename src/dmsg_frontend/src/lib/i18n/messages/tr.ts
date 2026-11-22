@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "Barındırılan ajan kimlikleri",
   "Redeem code": "Kodu kullan",
   "Membership code": "Üyelik kodu",
   "No automatic charge at expiry.": "Süre sonunda otomatik ücret alınmaz.",

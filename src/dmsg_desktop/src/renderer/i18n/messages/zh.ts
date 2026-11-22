@@ -263,6 +263,7 @@ export default {
     recoveryOnHint: "全部设备丢失后，可凭绑定的登录身份在等待期后恢复已上传内容。登录身份被盗且无人及时取消时，对方也可恢复内容。",
     recoveryOffHint: "换机需要一台仍可解锁的授权设备。丢失全部授权设备后，即使找回登录，也无法恢复云端内容。",
     recoveryUpdating: "正在完成安全设置更新；完成前暂缓保存新内容。",
+  hostedAgentIds: "托管的智能体 ID",
   deviceSlots: '最多 {n} 台设备',
   teamWalletSlots: "最多开通 {n} 个多签钱包",
   walletQuotasUnavailable: "暂时无法读取多签钱包额度，请刷新重试。",

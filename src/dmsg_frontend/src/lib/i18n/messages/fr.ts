@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "Identifiants d’agents hébergés",
   "Redeem code": "Utiliser un code",
   "Membership code": "Code d’abonnement",
   "No automatic charge at expiry.": "Aucun prélèvement automatique à l’échéance.",

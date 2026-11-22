@@ -5,6 +5,20 @@ use dmsg_client::{testing, vault::Changes};
 
 #[uniffi::export]
 impl MobileEngine {
+    /// An existing hosted identity for local grant and key-management UI tests.
+    pub async fn seed_ui_hosted_agent(&self, label: String) -> Result<ObjectSnapshot> {
+        self.object(move |c| {
+            Box::pin(async move {
+                ensure(
+                    c.session_state().account == Some(testing::account().id.to_string()),
+                    Error::Forbidden,
+                )?;
+                c.test_host_agent(&label).map(|a| a.view())
+            })
+        })
+        .await
+    }
+
     /// Local projection fixtures; native read/snooze/observe semantics remain real.
     pub async fn seed_ui_reminders(&self) -> Result<ObjectSnapshot> {
         self.object(|c| {

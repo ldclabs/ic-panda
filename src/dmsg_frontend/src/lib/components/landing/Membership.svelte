@@ -8,6 +8,7 @@
   // v2 (uwist-sqaaa-aaaaj-qsjyq-cai), wallet hub get_hub_config
   // (ghcje-dyaaa-aaaas-qg7va-cai), and dmsg_types::billing::PlanId::device_limit.
   // Backup file limits follow the public cloud contract (2026-11-02).
+  // Hosted Agent ID seats follow the per-account policy (2026-11-22).
   // Recheck both services when updating their figures; Rust's default catalog
   // is not the live catalog. Checkout always confirms current terms in the app.
   const { plans } = membership
@@ -32,6 +33,7 @@
       value: (plan) => `${number.format(plan.backupFileMiB)} MiB`
     },
     { label: 'Active devices', value: (plan) => number.format(plan.devices) },
+    { label: 'Hosted Agent IDs', value: (plan) => number.format(plan.agentIds) },
     { label: 'Active channels', value: (plan) => number.format(plan.channels) },
     {
       label: 'Formal signatures / month',

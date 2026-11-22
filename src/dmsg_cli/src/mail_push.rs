@@ -405,7 +405,7 @@ mod tests {
             dir: dir.path("home"),
         };
         let mut client = dmsg_client::testing::unlocked(&dir.path("workspace"), false, None);
-        let agent = client.agent_create("mail-test").unwrap().agent_id;
+        let agent = client.test_host_agent("mail-test").unwrap().agent_id;
         client.mail_push_set(&agent, true).unwrap();
         let watch = client.mail_push_watches().unwrap().remove(&agent).unwrap();
         let daemon = Arc::new(Daemon::new(
@@ -479,7 +479,7 @@ mod tests {
             false,
             Some(Arc::new(dmsg_client::testing::MemoryStorage::default())),
         );
-        let agent = client.agent_create("mail-test").unwrap().agent_id;
+        let agent = client.test_host_agent("mail-test").unwrap().agent_id;
         client
             .capability_grant(
                 "cli",

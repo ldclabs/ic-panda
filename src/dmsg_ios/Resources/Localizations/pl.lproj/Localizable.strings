@@ -126,6 +126,8 @@
 	<string>Zaawansowane</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Po zatwierdzeniu żądań portfeli wygeneruj nowe żądanie wymiany na nowym urządzeniu.</string>
+	<key>Hosted Agent IDs</key>
+	<string>Identyfikatory hostowanych agentów</string>
 	<key>Agent ID</key>
 	<string>Identyfikator agenta</string>
 	<key>Agents</key>

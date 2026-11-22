@@ -401,7 +401,7 @@ mod tests {
     fn watch_updates_are_fenced_and_leases_do_not_outlive_grants() {
         let dir = crate::testing::TempDir::new();
         let mut client = crate::testing::unlocked(&dir.0, false, None);
-        let agent = client.agent_create("mail-watch").unwrap().agent_id;
+        let agent = client.test_host_agent("mail-watch").unwrap().agent_id;
         client.mail_push_set(&agent, true).unwrap();
         let old = client.mail_push_watches().unwrap().remove(&agent).unwrap();
         client.mail_push_set(&agent, false).unwrap();
@@ -456,8 +456,8 @@ mod tests {
         let dir = TempDir::new();
         let secure = Arc::new(MemoryStorage::default());
         let mut client = unlocked(&dir.0, false, Some(secure.clone()));
-        let agent = client.agent_create("resident").unwrap().agent_id;
-        let ordinary = client.agent_create("ordinary").unwrap().agent_id;
+        let agent = client.test_host_agent("resident").unwrap().agent_id;
+        let ordinary = client.test_host_agent("ordinary").unwrap().agent_id;
         client.agent_resident(&agent, true).unwrap();
         for id in [&agent, &ordinary] {
             client.mail_push_set(id, true).unwrap();
@@ -539,7 +539,7 @@ mod tests {
     fn imports_existing_watches_and_tracks_callback_rotation_and_deletion() {
         let dir = crate::testing::TempDir::new();
         let mut client = crate::testing::unlocked(&dir.0, false, None);
-        let agent = client.agent_create("mail-watch").unwrap().agent_id;
+        let agent = client.test_host_agent("mail-watch").unwrap().agent_id;
         let original = Watch {
             enabled: true,
             generation: 4,

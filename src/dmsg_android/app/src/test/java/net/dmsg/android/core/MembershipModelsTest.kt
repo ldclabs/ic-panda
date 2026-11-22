@@ -26,6 +26,12 @@ class MembershipModelsTest {
         val plans = membershipTiers.map { tier -> Json.parseToJsonElement("""{"plan_id":"$tier","price_cents":987654321,"limits":{"storage_bytes":100,"active_channels":2,"monthly_execution_units":5,"active_devices":2,"backup_max_file_bytes":100,"file_request_links":0,"team_wallets":null}}""") }
         val value = parseMembershipCatalog(buildJsonObject { put("plans", JsonArray(plans.reversed())); put("wallet_quotas_error", "UNAVAILABLE") })
         assertEquals(membershipTiers, value.plans.map { it.tier }); assertTrue(value.plans.all { it.wallets == null })
+        assertTrue(value.plans.all { it.limits.agentIds == null })
+        val seatLimits = listOf(1, 3, 5, 10)
+        val current = plans.mapIndexed { index, old ->
+            JsonObject(old.jsonObject + ("limits" to JsonObject(old.jsonObject.getValue("limits").jsonObject + ("agent_ids" to JsonPrimitive(seatLimits[index])))))
+        }
+        assertEquals(seatLimits.map { it.toULong() }, parseMembershipCatalog(buildJsonObject { put("plans", JsonArray(current)) }).plans.map { it.limits.agentIds })
         assertTrue(runCatching { parseMembershipCatalog(buildJsonObject { put("plans", JsonArray(plans.dropLast(1))) }) }.isFailure)
         assertTrue(runCatching { parseMembershipCatalog(buildJsonObject { put("plans", JsonArray(plans.dropLast(1) + plans.first())) }) }.isFailure)
     }

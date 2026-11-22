@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Po utracie wszystkich urządzeń powiązane logowanie pozwala odzyskać przesłane treści po okresie oczekiwania. Skradzione logowanie również, jeśli autoryzowane urządzenie nie anuluje wniosku na czas.",
     recoveryOffHint: "Zachowaj autoryzowane urządzenie, które możesz odblokować, aby zmienić urządzenie. Po utracie wszystkich odzyskanie logowania nie przywróci treści w chmurze.",
     recoveryUpdating: "Trwa kończenie aktualizacji zabezpieczeń. Nowe treści czekają na jej zakończenie.",
+    hostedAgentIds: "Identyfikatory hostowanych agentów",
     deviceSlots: 'Do {n} urządzeń',
     teamWalletSlots: "Do {n} portfeli wielopodpisowych",
     walletQuotasUnavailable: "Limity portfeli wielopodpisowych są niedostępne. Odśwież, aby spróbować ponownie.",

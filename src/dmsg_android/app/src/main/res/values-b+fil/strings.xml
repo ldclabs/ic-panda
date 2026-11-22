@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"Sundin ang wika ng system"</string>
     <string name="history_device" formatted="false">"Device"</string>
     <string name="history_fields" formatted="false">"Mga patlang"</string>
+    <string name="hosted_agent_ids" formatted="false">"Mga naka-host na Agent ID"</string>
     <string name="import_local_account" formatted="false">"Mag-import mula sa lokal na account"</string>
     <string name="join_code" formatted="false">"Code na ihahambing"</string>
     <string name="join_compare_hint" formatted="false">"Bago aprubahan, tiyaking magkapareho ang code sa dalawang device."</string>

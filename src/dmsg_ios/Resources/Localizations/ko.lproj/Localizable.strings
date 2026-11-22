@@ -126,6 +126,8 @@
 	<string>고급</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>지갑 요청을 승인한 후 새 기기에서 교체 요청을 다시 생성하세요.</string>
+	<key>Hosted Agent IDs</key>
+	<string>호스팅된 에이전트 ID</string>
 	<key>Agent ID</key>
 	<string>에이전트 ID</string>
 	<key>Agents</key>

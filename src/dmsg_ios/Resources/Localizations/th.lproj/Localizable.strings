@@ -126,6 +126,8 @@
 	<string>ขั้นสูง</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>หลังจากอนุมัติคำขอกระเป๋าเงินแล้ว ให้สร้างคำขอเปลี่ยนอุปกรณ์ใหม่บนอุปกรณ์เครื่องใหม่</string>
+	<key>Hosted Agent IDs</key>
+	<string>รหัสเอเจนต์ที่โฮสต์</string>
 	<key>Agent ID</key>
 	<string>รหัสเอเจนต์</string>
 	<key>Agents</key>

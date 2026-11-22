@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Bij verlies van alle apparaten kan een gekoppelde aanmelding geüploade inhoud na de wachttijd herstellen. Een gestolen aanmelding kan dit ook, tenzij een bevoegd apparaat op tijd annuleert.",
     recoveryOffHint: "Bewaar een bevoegd apparaat dat je kunt ontgrendelen om van apparaat te wisselen. Als ze allemaal verloren gaan, herstelt opnieuw toegang krijgen geen cloudinhoud.",
     recoveryUpdating: "De beveiligingswijziging wordt afgerond. Nieuwe inhoud wacht tot die klaar is.",
+    hostedAgentIds: "Gehoste agent-ID’s",
     deviceSlots: 'Tot {n} apparaten',
     teamWalletSlots: "Tot {n} multisig-wallets",
     walletQuotasUnavailable: "De limieten voor multisig-wallets zijn niet beschikbaar. Vernieuw om het opnieuw te proberen.",

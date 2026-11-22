@@ -922,6 +922,11 @@
     "en": "Agent delegation",
     "zh-Hans": "Agent 委托"
   },
+  "hosted_agent_ids": {
+    "en": "Hosted Agent IDs",
+    "zh-Hans": "托管的智能体 ID",
+    "ios": "Hosted Agent IDs"
+  },
   "text_agent_id_badfded": {
     "en": "Agent ID",
     "zh-Hans": "Agent ID",

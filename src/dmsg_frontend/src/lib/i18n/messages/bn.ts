@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "হোস্ট করা এজেন্ট আইডি",
   "Redeem code": "কোড রিডিম করুন",
   "Membership code": "সদস্যতার কোড",
   "No automatic charge at expiry.": "মেয়াদ শেষে স্বয়ংক্রিয়ভাবে টাকা কাটা হবে না।",

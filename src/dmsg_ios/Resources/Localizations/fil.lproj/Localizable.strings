@@ -126,6 +126,8 @@
 	<string>Advanced</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Pagkatapos aprubahan ang mga kahilingan sa wallet, gumawa ng bagong kahilingan sa pagpapalit sa bagong device.</string>
+	<key>Hosted Agent IDs</key>
+	<string>Mga naka-host na Agent ID</string>
 	<key>Agent ID</key>
 	<string>ID ng Agent</string>
 	<key>Agents</key>

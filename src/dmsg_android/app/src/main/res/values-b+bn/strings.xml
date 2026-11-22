@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"সিস্টেমের ভাষা অনুসরণ করুন"</string>
     <string name="history_device" formatted="false">"ডিভাইস"</string>
     <string name="history_fields" formatted="false">"ক্ষেত্র"</string>
+    <string name="hosted_agent_ids" formatted="false">"হোস্ট করা এজেন্ট আইডি"</string>
     <string name="import_local_account" formatted="false">"স্থানীয় অ্যাকাউন্ট থেকে আমদানি করুন"</string>
     <string name="join_code" formatted="false">"মেলানোর কোড"</string>
     <string name="join_compare_hint" formatted="false">"অনুমোদনের আগে দুই ডিভাইসে দেখানো কোড মিলিয়ে নিন।"</string>

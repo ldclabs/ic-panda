@@ -22,7 +22,7 @@ use dmsg_agent::{DurableMail, Scope};
 use dmsg_client::{
     Client,
     agent::PrincipalChange,
-    agents::AgentEntry,
+    agents::{self, AgentEntry},
     attest::StatementInput,
     codec::{b64, unb64},
     error_code,
@@ -102,7 +102,7 @@ const TARGETS: [&str; 9] = [
 ];
 
 /// The owner's methods this module serves.
-pub(crate) const METHODS: [&str; 29] = [
+pub(crate) const METHODS: [&str; 30] = [
     "agent/mail_push",
     "agent/mail_push_set",
     "agent/principal",
@@ -118,6 +118,7 @@ pub(crate) const METHODS: [&str; 29] = [
     "agent/credentials",
     "agent/delegations",
     "agent/ids",
+    "agent/quota",
     "agent/create",
     "agent/use",
     "agent/resident",
@@ -276,22 +277,30 @@ impl Daemon {
             h.with(|_| Ok(())).await?;
             return Ok(json!({"agent_id": agent.agent_id, "profiles": profiles}));
         }
+        if method == "agent/create" {
+            let via = source(params)?;
+            let h = self.hold();
+            let session = dmsg_client::hold::Unlocked::new(&h).await?;
+            let entry = agents::create_hosted(&session, &text(params, "label")?).await?;
+            return session
+                .with(|c| {
+                    c.audit("owner", via, method, Some(&entry.agent_id), None, "ok");
+                    Ok(entry.view())
+                })
+                .await;
+        }
+        if method == "agent/quota" {
+            return agents::hosted_quota(&self.hold()).await;
+        }
         if method == "agent/remove" {
             let via = source(params)?;
-            let agent = self
-                .client()
-                .lock()
-                .await
-                .agent_find(&text(params, "agent")?)?;
-            // No call of it runs while its state goes.
+            let h = self.hold();
+            let session = dmsg_client::hold::Unlocked::new(&h).await?;
+            let (agent, path) = session
+                .with(|c| Ok((c.agent_find(&text(params, "agent")?)?, c.agent_runtime()?)))
+                .await?;
             let turn = self.agents().turn(&agent.agent_id).await;
-            let (removed, path) = {
-                let mut client = self.client().lock().await;
-                (
-                    client.agent_remove(via, &agent.agent_id)?,
-                    client.agent_runtime()?,
-                )
-            };
+            let removed = agents::remove_hosted(&session, via, &agent.agent_id).await?;
             self.agents().forget(&turn, &path)?;
             return Ok(removed.view());
         }
@@ -331,12 +340,6 @@ impl Daemon {
                         }
                     }
                     Ok(list)
-                })()),
-                "agent/create" => Some((|| {
-                    let entry = client.agent_create(&text(params, "label")?)?;
-                    let via = source(params)?;
-                    client.audit("owner", via, method, Some(&entry.agent_id), None, "ok");
-                    Ok(entry.view())
                 })()),
                 "agent/use" => Some((|| Ok(client.agent_use(&text(params, "agent")?)?.view()))()),
                 "agent/resident" => Some((|| {
@@ -1544,7 +1547,7 @@ mod tests {
             false,
             Some(Arc::new(dmsg_client::testing::MemoryStorage::default())),
         );
-        let agent = client.agent_create("mail-test").unwrap();
+        let agent = client.test_host_agent("mail-test").unwrap();
         let runtime = dmsg_agent::Runtime::new(&dmsg_agent::Options {
             hosts: vec![dmsg_agent::Host {
                 host: "https://mail.example".into(),
@@ -1636,7 +1639,7 @@ mod tests {
             .client()
             .lock()
             .await
-            .agent_create("ordinary")
+            .test_host_agent("ordinary")
             .unwrap();
         daemon
             .client()
@@ -1699,7 +1702,7 @@ mod tests {
                 .unwrap(),
             )
             .unwrap();
-        let agent = c.agent_create("history-reader").unwrap();
+        let agent = c.test_host_agent("history-reader").unwrap();
         c.capability_grant(
             "gui",
             &agent.agent_id,
@@ -1790,7 +1793,7 @@ mod tests {
                 1
             );
         }
-        let agent = client.agent_create("list-only").unwrap();
+        let agent = client.test_host_agent("list-only").unwrap();
         client
             .capability_grant("cli", &agent.agent_id, vec!["vault.list".into()], None)
             .unwrap();
@@ -1857,7 +1860,7 @@ mod tests {
             false,
             Some(Arc::new(dmsg_client::testing::MemoryStorage::default())),
         );
-        let agent = client.agent_create("vault-test").unwrap();
+        let agent = client.test_host_agent("vault-test").unwrap();
         client
             .capability_grant(
                 "cli",

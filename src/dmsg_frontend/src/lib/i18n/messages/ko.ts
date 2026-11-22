@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "호스팅된 에이전트 ID",
   "Redeem code": "코드 사용",
   "Membership code": "멤버십 코드",
   "No automatic charge at expiry.": "만료 시 자동 결제되지 않습니다.",

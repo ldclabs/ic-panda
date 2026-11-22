@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"Ikuti bahasa sistem"</string>
     <string name="history_device" formatted="false">"Peranti"</string>
     <string name="history_fields" formatted="false">"Padang"</string>
+    <string name="hosted_agent_ids" formatted="false">"ID ejen yang dihoskan"</string>
     <string name="import_local_account" formatted="false">"Import daripada akaun setempat"</string>
     <string name="join_code" formatted="false">"Kod perbandingan"</string>
     <string name="join_compare_hint" formatted="false">"Pastikan kedua-dua peranti memaparkan kod yang sama sebelum meluluskan."</string>

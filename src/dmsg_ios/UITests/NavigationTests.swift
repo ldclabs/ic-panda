@@ -1112,6 +1112,9 @@ final class SubscriptionPresentationTests: NavigationTestCase {
         reveal(compare, in: app, up: false); compare.tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "plan.comparison").firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["100 GiB"].firstMatch.exists)
+        let agents = app.staticTexts["托管的智能体 ID"].firstMatch
+        reveal(agents, in: app)
+        XCTAssertTrue(agents.exists)
         capture(app, name: "Subscribed Plus · Full comparison")
     }
 

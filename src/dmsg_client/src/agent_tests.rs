@@ -293,10 +293,14 @@ fn controller_and_agent_keys_live_in_the_vault() {
         Error::NotFound
     );
 
-    let agent = client.agent_create("claude").unwrap();
-    assert_eq!(client.agent_create("claude").unwrap(), agent, "idempotent");
+    let agent = client.test_host_agent("claude").unwrap();
+    assert_eq!(
+        client.test_host_agent("claude").unwrap(),
+        agent,
+        "idempotent"
+    );
     assert!(client.vault_show(&agent_item(&account, "claude")).is_ok());
-    assert!(client.agent_create("Not A Label").is_err());
+    assert!(client.test_host_agent("Not A Label").is_err());
     let signer = client.agent_signer("claude").unwrap();
     assert_eq!(signer.agent_id().to_string(), agent.agent_id);
 
@@ -344,7 +348,7 @@ fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
-    let agent = client.agent_create("mailer").unwrap().agent_id;
+    let agent = client.test_host_agent("mailer").unwrap().agent_id;
     let keys = |pairs: &[(&str, &str)]| json!({"version": 1, "agent_id": agent, "keys": pairs.iter().copied().collect::<std::collections::BTreeMap<_, _>>()});
     assert_eq!(client.agent_mail_keys("mailer").unwrap(), keys(&[]));
     client
@@ -412,7 +416,7 @@ fn empty_resident_mail_and_grant_copies_take_no_credential_slots() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
-    let agent = client.agent_create("worker").unwrap().agent_id;
+    let agent = client.test_host_agent("worker").unwrap().agent_id;
     let workspace = client.workspace.name().unwrap();
     let mail = format!("{workspace}:agent-mail:{agent}");
     let grants = format!("{workspace}:agent-grants:{agent}");
@@ -479,8 +483,8 @@ fn a_resident_agent_is_checked_against_a_copy_of_its_grants() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
-    let agent = client.agent_create("reader").unwrap().agent_id;
-    let other = client.agent_create("other").unwrap().agent_id;
+    let agent = client.test_host_agent("reader").unwrap().agent_id;
+    let other = client.test_host_agent("other").unwrap().agent_id;
     client
         .capability_grant("cli", "reader", vec!["discourse.read:*".into()], None)
         .unwrap();
@@ -544,7 +548,7 @@ fn a_reset_deletes_every_copy_of_a_resident_agent() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
-    let agent = client.agent_create("mailer").unwrap().agent_id;
+    let agent = client.test_host_agent("mailer").unwrap().agent_id;
     client
         .agent_mail_keys_save(
             "mailer",
@@ -572,7 +576,7 @@ fn a_reset_deletes_every_copy_of_a_resident_agent() {
 fn a_grant_takes_the_room_of_revoked_ones() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
-    client.agent_create("busy").unwrap();
+    client.test_host_agent("busy").unwrap();
     let grant = |client: &mut crate::Client| {
         client.capability_grant("cli", "busy", vec!["vault.list".into()], None)
     };
@@ -593,7 +597,7 @@ fn a_grant_takes_the_room_of_revoked_ones() {
 fn capabilities_cover_only_what_was_granted() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
-    let agent = client.agent_create("helper").unwrap().agent_id;
+    let agent = client.test_host_agent("helper").unwrap().agent_id;
     for capability in [
         "vault.read:work",
         "channel.read:*",
@@ -753,7 +757,7 @@ fn an_agent_is_withdrawn_paused_and_removed() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
-    let agent = client.agent_create("worker").unwrap();
+    let agent = client.test_host_agent("worker").unwrap();
     client.agent_use("worker").unwrap();
 
     let credential = client.agent_credential("worker").unwrap();
@@ -772,11 +776,11 @@ fn an_agent_is_withdrawn_paused_and_removed() {
     client.lock();
     // Removing it revokes grants, which needs the device unlocked.
     assert_eq!(
-        client.agent_remove("gui", "worker").unwrap_err(),
+        client.remove_local_agent("gui", "worker").unwrap_err(),
         Error::Locked
     );
     reopen(&mut client);
-    let removed = client.agent_remove("gui", "worker").unwrap();
+    let removed = client.remove_local_agent("gui", "worker").unwrap();
     assert_eq!(removed.agent_id, agent.agent_id);
     assert_eq!(client.agent_find("worker").unwrap_err(), Error::NotFound);
     assert!(client.agent_list().unwrap()["active"].is_null());
@@ -793,7 +797,7 @@ fn an_agent_is_withdrawn_paused_and_removed() {
     assert_eq!(actions, ["agent/remove", "grants/revoke", "grants/add"]);
     // Its key stays in the vault: the same label brings it back.
     assert_eq!(
-        client.agent_create("worker").unwrap().agent_id,
+        client.test_host_agent("worker").unwrap().agent_id,
         agent.agent_id
     );
     assert!(
@@ -807,7 +811,7 @@ fn an_agent_is_withdrawn_paused_and_removed() {
 fn an_agent_asks_and_an_approved_request_grants_once() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
-    let agent = client.agent_create("asker").unwrap().agent_id;
+    let agent = client.test_host_agent("asker").unwrap().agent_id;
     let wanted = vec!["vault.read:work".to_string()];
     let request = client
         .capability_request(&agent, wanted.clone(), Some(7))
@@ -865,7 +869,7 @@ fn the_vocabulary_names_what_can_be_granted() {
 fn profile_read_grants_are_scoped_and_independent_of_write() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
-    let agent = client.agent_create("profile-reader").unwrap().agent_id;
+    let agent = client.test_host_agent("profile-reader").unwrap().agent_id;
     let origin = "https://profiles.example";
     assert_eq!(
         client.capability_check(&agent, &format!("agent.profile.read:{origin}")),
@@ -902,14 +906,14 @@ fn mail_checkpoints_are_agent_and_workspace_bound_and_work_for_resident_agents()
     let dir = TempDir::new();
     let secure = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(secure));
-    let agent = client.agent_create("checkpoint").unwrap();
+    let agent = client.test_host_agent("checkpoint").unwrap();
     let keys =
         json!({"version":1,"agent_id":agent.agent_id,"keys":{"public":"secret-test-material"}});
     let codec = client.agent_mail_codec(&agent.agent_id).unwrap();
     let sealed = codec.seal(&keys).unwrap();
     assert!(!sealed.contains("secret-test-material"));
     assert_eq!(codec.open(&sealed).unwrap(), keys);
-    let other = client.agent_create("other-checkpoint").unwrap();
+    let other = client.test_host_agent("other-checkpoint").unwrap();
     assert!(
         client
             .agent_mail_codec(&other.agent_id)

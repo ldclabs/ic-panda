@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"Использовать язык системы"</string>
     <string name="history_device" formatted="false">"Устройство"</string>
     <string name="history_fields" formatted="false">"Поля"</string>
+    <string name="hosted_agent_ids" formatted="false">"ID размещённых агентов"</string>
     <string name="import_local_account" formatted="false">"Импортировать из локальной учётной записи"</string>
     <string name="join_code" formatted="false">"Код для сверки"</string>
     <string name="join_compare_hint" formatted="false">"Перед одобрением убедитесь, что коды на обоих устройствах совпадают."</string>

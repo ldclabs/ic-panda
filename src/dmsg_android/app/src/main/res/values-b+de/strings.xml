@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"Systemsprache verwenden"</string>
     <string name="history_device" formatted="false">"Gerät"</string>
     <string name="history_fields" formatted="false">"Felder"</string>
+    <string name="hosted_agent_ids" formatted="false">"Gehostete Agenten-IDs"</string>
     <string name="import_local_account" formatted="false">"Aus lokalem Konto importieren"</string>
     <string name="join_code" formatted="false">"Vergleichscode"</string>
     <string name="join_compare_hint" formatted="false">"Prüfe vor der Freigabe, ob beide Geräte denselben Code anzeigen."</string>

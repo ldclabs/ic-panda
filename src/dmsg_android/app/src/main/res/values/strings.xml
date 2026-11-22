@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"Follow system language"</string>
     <string name="history_device" formatted="false">"Device"</string>
     <string name="history_fields" formatted="false">"Fields"</string>
+    <string name="hosted_agent_ids" formatted="false">"Hosted Agent IDs"</string>
     <string name="import_local_account" formatted="false">"Import from local account"</string>
     <string name="join_code" formatted="false">"Comparison code"</string>
     <string name="join_compare_hint" formatted="false">"Check that both devices show the same code before approving."</string>

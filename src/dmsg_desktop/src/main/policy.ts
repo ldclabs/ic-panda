@@ -401,6 +401,7 @@ export const WINDOW_METHODS = new Set([
   'agent/credentials',
   'agent/delegations',
   'agent/ids',
+  'agent/quota',
   'agent/mail_push',
   'agent/mail_push_set',
   'agent/create',

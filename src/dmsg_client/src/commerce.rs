@@ -832,6 +832,7 @@ fn limits_view(l: &ResourceLimits, plan: &PlanId) -> Json {
         "active_channels": l.active_channels,
         "monthly_execution_units": l.monthly_execution_units,
         "active_devices": plan.device_limit(),
+        "agent_ids": plan.agent_id_limit(),
     })
 }
 

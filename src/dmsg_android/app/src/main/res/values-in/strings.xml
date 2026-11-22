@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"Ikuti bahasa sistem"</string>
     <string name="history_device" formatted="false">"Perangkat"</string>
     <string name="history_fields" formatted="false">"Bidang"</string>
+    <string name="hosted_agent_ids" formatted="false">"ID agen yang dihosting"</string>
     <string name="import_local_account" formatted="false">"Impor dari akun lokal"</string>
     <string name="join_code" formatted="false">"Kode pembanding"</string>
     <string name="join_compare_hint" formatted="false">"Pastikan kedua perangkat menampilkan kode yang sama sebelum menyetujui."</string>

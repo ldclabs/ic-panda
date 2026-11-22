@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "ホストするエージェント ID",
   "Redeem code": "コードを引き換える",
   "Membership code": "会員コード",
   "No automatic charge at expiry.": "期間終了時の自動課金はありません。",

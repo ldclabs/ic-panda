@@ -1,5 +1,5 @@
 use super::*;
-use dmsg_client::agent;
+use dmsg_client::{agent, agents};
 use dmsg_types::agent::{DelegationAuthority, PrincipalType};
 
 /// Device capabilities with their required target, from the core's grant contract.
@@ -20,9 +20,16 @@ impl MobileEngine {
         self.object(|c| Box::pin(async { c.agent_list() })).await
     }
 
-    pub async fn create_agent(&self, label: String) -> Result<ObjectSnapshot> {
-        self.object(move |c| Box::pin(async move { c.agent_create(&label).map(|a| a.view()) }))
+    pub async fn hosted_agent_quota(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| Box::pin(agents::hosted_quota(h)))
             .await
+    }
+
+    pub async fn create_agent(&self, label: String) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move { agents::create_hosted(h, &label).await.map(|a| a.view()) })
+        })
+        .await
     }
 
     pub async fn pause_agent(&self, label: String, paused: bool) -> Result<ObjectSnapshot> {
@@ -33,8 +40,12 @@ impl MobileEngine {
     }
 
     pub async fn remove_agent(&self, label: String) -> Result<ObjectSnapshot> {
-        self.object(move |c| {
-            Box::pin(async move { c.agent_remove("gui", &label).map(|a| a.view()) })
+        self.held_object(move |h| {
+            Box::pin(async move {
+                agents::remove_hosted(h, "gui", &label)
+                    .await
+                    .map(|a| a.view())
+            })
         })
         .await
     }

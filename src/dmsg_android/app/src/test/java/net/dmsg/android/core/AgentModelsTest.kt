@@ -6,6 +6,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AgentModelsTest {
+    @Test fun hostedQuotaUsesTheAccountTotalEvenWithoutLocalAgents() {
+        assertTrue(parseManagedAgents(Json.parseToJsonElement("""{"agents":[]}""")).isEmpty())
+        assertEquals(HostedAgentQuota(2u, 3u), parseHostedAgentQuota(Json.parseToJsonElement("""{"used":2,"limit":3}""")))
+        assertNull(parseHostedAgentQuota(Json.parseToJsonElement("""{"used":2,"limit":null}""")).limit)
+    }
+
     @Test fun delegationAuthorityHasExplicitBoundsAndNoImplicitWildcard() {
         assertTrue(AgentAuthority("read\nwrite", "https://example.test\ndid:agent:sample").valid)
         for (scope in listOf("", "*", "read:*", "with space", "a".repeat(65), "read\nread", (1..9).joinToString("\n") { "scope$it" })) assertFalse(scope, AgentAuthority(scope, "https://example.test").valid)

@@ -9,6 +9,7 @@ struct MembershipCatalogue: Decodable {
             let activeChannels: UInt64
             let monthlyExecutionUnits: UInt64
             let activeDevices: UInt64
+            let agentIds: UInt64?
             let backupMaxFileBytes: UInt64
             let fileRequestLinks: UInt64
             let teamWallets: UInt64?
@@ -23,10 +24,10 @@ struct MembershipCatalogue: Decodable {
 
     #if DEBUG
     static let fixture = MembershipCatalogue(plans: zip(MembershipTier.allCases, [
-        Plan.Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5, activeDevices: 2, backupMaxFileBytes: 104857600, fileRequestLinks: 0, teamWallets: 0),
-        Plan.Limits(storageBytes: 1073741824, activeChannels: 20, monthlyExecutionUnits: 20, activeDevices: 3, backupMaxFileBytes: 104857600, fileRequestLinks: 10, teamWallets: 1),
-        Plan.Limits(storageBytes: 10737418240, activeChannels: 100, monthlyExecutionUnits: 100, activeDevices: 5, backupMaxFileBytes: 104857600, fileRequestLinks: 50, teamWallets: 3),
-        Plan.Limits(storageBytes: 107374182400, activeChannels: 10000, monthlyExecutionUnits: 10000, activeDevices: 10, backupMaxFileBytes: 1048576000, fileRequestLinks: 200, teamWallets: 10)
+        Plan.Limits(storageBytes: 104857600, activeChannels: 5, monthlyExecutionUnits: 5, activeDevices: 2, agentIds: 1, backupMaxFileBytes: 104857600, fileRequestLinks: 0, teamWallets: 0),
+        Plan.Limits(storageBytes: 1073741824, activeChannels: 20, monthlyExecutionUnits: 20, activeDevices: 3, agentIds: 3, backupMaxFileBytes: 104857600, fileRequestLinks: 10, teamWallets: 1),
+        Plan.Limits(storageBytes: 10737418240, activeChannels: 100, monthlyExecutionUnits: 100, activeDevices: 5, agentIds: 5, backupMaxFileBytes: 104857600, fileRequestLinks: 50, teamWallets: 3),
+        Plan.Limits(storageBytes: 107374182400, activeChannels: 10000, monthlyExecutionUnits: 10000, activeDevices: 10, agentIds: 10, backupMaxFileBytes: 1048576000, fileRequestLinks: 200, teamWallets: 10)
     ]).map { Plan(planId: $0.0.rawValue, limits: $0.1) })
     #endif
 }
@@ -54,12 +55,13 @@ enum MembershipTier: String, CaseIterable {
 }
 
 enum MembershipBenefit: String, CaseIterable, Identifiable {
-    case storage, devices, backup, requests, channels, executions, wallets
+    case storage, devices, agentIds, backup, requests, channels, executions, wallets
     var id: String { rawValue }
     var title: String {
         switch self {
         case .storage: String(localized: "Cloud storage")
         case .devices: String(localized: "Active devices")
+        case .agentIds: String(localized: "Hosted Agent IDs")
         case .backup: String(localized: "Cloud backup file limit")
         case .requests: String(localized: "Active file request links")
         case .channels: String(localized: "Conversation limit")
@@ -71,6 +73,7 @@ enum MembershipBenefit: String, CaseIterable, Identifiable {
         switch self {
         case .storage: fileLimit(plan.limits.storageBytes)
         case .devices: plan.limits.activeDevices.formatted()
+        case .agentIds: plan.limits.agentIds?.formatted() ?? String(localized: "Unavailable")
         case .backup: fileLimit(plan.limits.backupMaxFileBytes)
         case .requests: plan.limits.fileRequestLinks == 0 ? String(localized: "Not included") : plan.limits.fileRequestLinks.formatted()
         case .channels: plan.limits.activeChannels.formatted()

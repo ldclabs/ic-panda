@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"सिस्टम की भाषा अपनाएँ"</string>
     <string name="history_device" formatted="false">"युक्ति"</string>
     <string name="history_fields" formatted="false">"खेत"</string>
+    <string name="hosted_agent_ids" formatted="false">"होस्ट किए गए एजेंट आईडी"</string>
     <string name="import_local_account" formatted="false">"स्थानीय खाते से आयात करें"</string>
     <string name="join_code" formatted="false">"मिलान कोड"</string>
     <string name="join_compare_hint" formatted="false">"मंज़ूरी देने से पहले जाँचें कि दोनों डिवाइस पर एक ही कोड दिख रहा है।"</string>

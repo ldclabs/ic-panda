@@ -19,9 +19,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.dmsg.android.core.*
+import net.dmsg.android.platform.localizedNumber
+import net.dmsg.android.platform.numericExpression
 
 @Composable fun AgentsScreen(client: ClientController) {
     val listing by client.agents.listing.state.collectAsStateWithLifecycle()
+    val quota by client.agents.quota.state.collectAsStateWithLifecycle()
     val label by client.agents.label.collectAsStateWithLifecycle()
     val state by client.state.collectAsStateWithLifecycle()
     val focus = LocalFocusManager.current
@@ -32,6 +35,9 @@ import net.dmsg.android.core.*
             Notice(str(R.string.text_manage_agent_identities_and_permissions_here_android_does_not_run_2cd2699))
             AccountRow(str(R.string.text_controllers_and_delegations_8ce7d82)) { client.navigation.push(Route("agent-delegations")) }
             ReadFeedback(listing, client.agents::load)
+            if (quota is ReadState.Ready) quota.valueOrNull()?.let {
+                LabelValue(str(R.string.hosted_agent_ids), numericExpression(localizedNumber(it.used) + " / " + (it.limit?.let(::localizedNumber) ?: "—")))
+            }
             if (listing is ReadState.Empty) EmptyPanel(str(R.string.text_no_agents_f2fe175))
             listing.valueOrNull().orEmpty().forEach { agent ->
                 Card(Modifier.fillMaxWidth()) {

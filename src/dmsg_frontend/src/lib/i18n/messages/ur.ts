@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "میزبانی کردہ ایجنٹ آئی ڈیز",
   "Redeem code": "کوڈ استعمال کریں",
   "Membership code": "رکنیت کا کوڈ",
   "No automatic charge at expiry.": "مدت ختم ہونے پر خودکار رقم نہیں کاٹی جائے گی۔",

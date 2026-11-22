@@ -58,6 +58,7 @@
   let credentials = $state<any[]>([])
   let delegations = $state<any[]>([])
   let hosted = $state<any>({ agents: [], hosts: [], vocabulary: [], blocked_senders: [] })
+  let quota = $state<{ used: number; limit: number | null } | null>(null)
   let grants = $state<any[]>([])
   /** An Agent ID the principal tab grants a credential to next. */
   let delegate = $state('')
@@ -131,8 +132,20 @@
   const loadCredentials = reader('credentials', 'agent/credentials', (value) => (credentials = value))
   const loadDelegations = reader('delegations', 'agent/delegations', (value) => (delegations = value))
 
+  const loadQuota = single(async () => {
+    if (!alive || !unlocked || tab !== 'ids') return
+    const turn = generation
+    try {
+      const result = await call<{ used: number; limit: number | null }>('agent/quota')
+      if (current(turn)) quota = result
+    } catch {
+      if (current(turn)) quota = null
+    }
+  })
+
   function loadTab() {
-    if (tab === 'overview') {
+    if (tab === 'ids') void loadQuota()
+    else if (tab === 'overview') {
       void loadPrincipal()
       if (unlocked) { void loadCredentials(); void loadDelegations() }
     } else if (tab === 'capabilities') void loadGrants()
@@ -166,7 +179,7 @@
         principal = null
         credentials = []; delegations = []; grants = []
         hosted = { agents: [], hosts: [], vocabulary: [], blocked_senders: [] }
-        errors = {}; loaded = {}; requiresUnlock = {}; busy = false; delegate = ''; focusDelegate = false; focusLabel = false; prepared = null; openFailure = ''
+        quota = null; errors = {}; loaded = {}; requiresUnlock = {}; busy = false; delegate = ''; focusDelegate = false; focusLabel = false; prepared = null; openFailure = ''
         void loadHosted()
       }
       loadTab()
@@ -222,7 +235,7 @@
       {:else if tab === 'overview'}
         <Overview {principal} principalError={errors.principal ?? ''} {loaded} {errors} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {createRequest} {run} onRetry={loadTab} onReviewRequests={() => go('/approvals')} bind:delegate bind:focusDelegate />
       {:else if tab === 'ids'}
-        <AgentIds {hosted} {unlocked} {busy} {run} {attempt} {delegateTo} onReview={loadHosted} manage={(id) => inspect('capabilities', id)} />
+        <AgentIds {hosted} {quota} {unlocked} {busy} {run} {attempt} {delegateTo} onReview={loadHosted} manage={(id) => inspect('capabilities', id)} />
       {:else if tab === 'capabilities'}
         {#if errors.grants}<Notice tone="danger" testid="grants-error">{errors.grants}
           {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={loadGrants}>{t('retry')}</button>{/snippet}

@@ -41,6 +41,7 @@
     <string name="follow_system_language" formatted="false">"시스템 언어 따르기"</string>
     <string name="history_device" formatted="false">"장치"</string>
     <string name="history_fields" formatted="false">"필드"</string>
+    <string name="hosted_agent_ids" formatted="false">"호스팅된 에이전트 ID"</string>
     <string name="import_local_account" formatted="false">"로컬 계정에서 가져오기"</string>
     <string name="join_code" formatted="false">"확인 코드"</string>
     <string name="join_compare_hint" formatted="false">"승인하기 전에 두 기기에 표시된 코드가 같은지 확인하세요."</string>

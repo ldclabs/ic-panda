@@ -262,6 +262,7 @@ export default {
     recoveryOnHint: "Se tutti i dispositivi vengono persi, un accesso collegato può recuperare i contenuti caricati dopo l’attesa. Anche un accesso rubato può farlo, salvo annullamento tempestivo da un dispositivo autorizzato.",
     recoveryOffHint: "Conserva un dispositivo autorizzato che puoi sbloccare per cambiare dispositivo. Se li perdi tutti, recuperare l’accesso non ripristina i contenuti cloud.",
     recoveryUpdating: "Aggiornamento di sicurezza in corso. I nuovi contenuti attendono il completamento.",
+    hostedAgentIds: "ID degli agenti ospitati",
     deviceSlots: 'Fino a {n} dispositivi',
     teamWalletSlots: "Fino a {n} portafogli multifirma",
     walletQuotasUnavailable: "I limiti dei portafogli multifirma non sono disponibili. Aggiorna per riprovare.",

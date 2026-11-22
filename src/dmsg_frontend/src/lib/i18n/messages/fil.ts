@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "Mga naka-host na Agent ID",
   "Redeem code": "Gamitin ang code",
   "Membership code": "Code ng membership",
   "No automatic charge at expiry.": "Walang awtomatikong singil sa pag-expire.",

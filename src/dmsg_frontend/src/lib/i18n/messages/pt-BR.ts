@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  "Hosted Agent IDs": "IDs de agentes hospedados",
   "Redeem code": "Resgatar código",
   "Membership code": "Código de assinatura",
   "No automatic charge at expiry.": "Sem cobrança automática no vencimento.",

@@ -1473,6 +1473,20 @@ impl Env {
         (origins[1].clone(), origins[2].clone())
     }
 
+    /// Multi-agent scenarios need a plan with at least two distinct hosted IDs.
+    fn activate_plus_for_agents(&self) {
+        let account = self.a.run(&["status"])["account"].clone();
+        let receipt = self
+            .a
+            .rpc(
+                &self.http,
+                "plan/redeem",
+                json!({"account":account, "code":"SMOKE-PLUS"}),
+            )
+            .unwrap();
+        assert_eq!(receipt["synced"], true, "{receipt}");
+    }
+
     /// A creates the account; B joins it with the same login and A's
     /// approval. Returns the account.
     fn pair(&self) -> String {
@@ -5233,6 +5247,61 @@ fn desktop_promotions() {
 }
 
 #[test]
+#[ignore = "requires the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn hosted_agent_seats_follow_the_account_across_two_devices() {
+    let env = Env::launch(
+        "hosted-agent-seats",
+        Options {
+            promotions: true,
+            ..Options::default()
+        },
+    );
+    let account = env.pair();
+    let (a, b, http) = (&env.a, &env.b, &env.http);
+    let create =
+        |device: &Desktop, label: &str| device.rpc(http, "agent/create", json!({"label":label}));
+    let remove = |device: &Desktop, label: &str| {
+        device
+            .rpc(http, "agent/remove", json!({"agent":label}))
+            .unwrap()
+    };
+    let usage = |device: &Desktop| device.run(&["agent", "id", "quota"]);
+
+    let shared = create(a, "shared").unwrap();
+    a.run(&["agent", "id", "pause", "shared", "on"]);
+    assert_eq!(create(b, "other"), Err("QUOTA_EXCEEDED".into()));
+    let rejected_key = dmsg_client::agents::agent_item(&account, "other");
+    assert_eq!(
+        b.rpc(http, "vault/show", json!({"id":rejected_key})),
+        Err("NOT_FOUND".into())
+    );
+    a.run(&["agent", "id", "pause", "shared", "off"]);
+    assert_eq!(usage(b), json!({"limit":1, "used":1}));
+    a.run(&["sync"]);
+    b.run(&["sync"]);
+    assert_eq!(create(b, "shared").unwrap()["agent_id"], shared["agent_id"]);
+    remove(a, "shared");
+    assert_eq!(create(a, "other"), Err("QUOTA_EXCEEDED".into()));
+    remove(b, "shared");
+    assert_eq!(usage(a)["used"], 0);
+    create(a, "other").unwrap();
+
+    let r = a
+        .rpc(
+            http,
+            "plan/redeem",
+            json!({"account":account,"code":"SMOKE-PLUS","request_id":"a8".repeat(32)}),
+        )
+        .unwrap();
+    assert_eq!(r["synced"], true);
+    create(a, "second").unwrap();
+    create(b, "third").unwrap();
+    assert_eq!(usage(a), json!({"limit":3, "used":3}));
+    assert_eq!(create(b, "fourth"), Err("QUOTA_EXCEEDED".into()));
+    assert_eq!(a.run(&["plan", "status"])["limits"]["agent_ids"], 3);
+}
+
+#[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_commerce() {
     use dmsg_types::integration::{AppCapability, AppRegistration};
@@ -6950,6 +7019,7 @@ fn desktop_agents() {
     let mut env = Env::launch(
         "agents",
         Options {
+            promotions: true,
             agents: true,
             proxies: true,
             ..Options::default()
@@ -6993,6 +7063,7 @@ fn desktop_agents() {
             .any(|e| e["item"]["tags"] == json!(["dmsg-controller"]))
     );
 
+    env.activate_plus_for_agents();
     // Two hosted Agent IDs: one the CLI uses, one an MCP client.
     let host_agent = a.run(&["agent", "id", "create", "host"])["agent_id"]
         .as_str()
@@ -8054,6 +8125,7 @@ fn desktop_claude_code() {
     let env = Env::launch(
         "claude",
         Options {
+            promotions: true,
             agents: true,
             ..Options::default()
         },
@@ -8061,6 +8133,7 @@ fn desktop_claude_code() {
     let (a, http) = (&env.a, &env.http);
     assert_eq!(a.login(http, 61).unwrap()["state"], "no_account");
     a.run(&["account", "create"]);
+    env.activate_plus_for_agents();
     a.run(&["agent", "id", "create", "host"]);
     a.run(&["agent", "id", "create", "claude"]);
     let credential = a.run(&["agent", "id", "credential", "claude"])["credential"]
@@ -8138,6 +8211,7 @@ fn desktop_mail_webhook_and_native_events() {
     let env = Env::launch(
         "mail-push",
         Options {
+            promotions: true,
             services: true,
             ..Options::default()
         },
@@ -8145,6 +8219,7 @@ fn desktop_mail_webhook_and_native_events() {
     let a = &env.a;
     assert_eq!(a.login(&env.http, 72).unwrap()["state"], "no_account");
     a.run(&["account", "create"]);
+    env.activate_plus_for_agents();
     a.run(&["agent", "id", "create", "sender"]);
     a.run(&["agent", "id", "create", "receiver"]);
     let mail = &env.services.as_ref().unwrap().mail;
@@ -8343,6 +8418,7 @@ fn desktop_mail_background_receives_and_notifies_mcp() {
     let env = Env::launch(
         "mail-background",
         Options {
+            promotions: true,
             services: true,
             ..Options::default()
         },
@@ -8350,6 +8426,7 @@ fn desktop_mail_background_receives_and_notifies_mcp() {
     let a = &env.a;
     assert_eq!(a.login(&env.http, 71).unwrap()["state"], "no_account");
     a.run(&["account", "create"]);
+    env.activate_plus_for_agents();
     a.run(&["agent", "id", "create", "sender"]);
     a.run(&["agent", "id", "create", "receiver"]);
     let mail = &env.services.as_ref().unwrap().mail;
@@ -8411,6 +8488,7 @@ fn desktop_mail_knowledge() {
     let mut env = Env::launch(
         "mail",
         Options {
+            promotions: true,
             services: true,
             ..Options::default()
         },
@@ -8421,6 +8499,7 @@ fn desktop_mail_knowledge() {
     let a = &env.a;
     assert_eq!(a.login(&http, 61).unwrap()["state"], "no_account");
     a.run(&["account", "create"]);
+    env.activate_plus_for_agents();
     let created = |label: &str| {
         a.run(&["agent", "id", "create", label])["agent_id"]
             .as_str()
@@ -8751,6 +8830,7 @@ fn desktop_mcp_events() {
     let mut env = Env::launch(
         "events",
         Options {
+            promotions: true,
             proxies: true,
             ..Options::default()
         },
@@ -8760,6 +8840,7 @@ fn desktop_mcp_events() {
     let a = &env.a;
     assert_eq!(a.login(&http, 71).unwrap()["state"], "no_account");
     a.run(&["account", "create"]);
+    env.activate_plus_for_agents();
     for label in ["anda", "other"] {
         a.run(&["agent", "id", "create", label]);
     }
