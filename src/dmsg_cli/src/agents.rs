@@ -282,12 +282,13 @@ impl Daemon {
             let h = self.hold();
             let session = dmsg_client::hold::Unlocked::new(&h).await?;
             let entry = agents::create_hosted(&session, &text(params, "label")?).await?;
-            return session
+            let _ = session
                 .with(|c| {
                     c.audit("owner", via, method, Some(&entry.agent_id), None, "ok");
-                    Ok(entry.view())
+                    Ok(())
                 })
                 .await;
+            return Ok(entry.view());
         }
         if method == "agent/quota" {
             return agents::hosted_quota(&self.hold()).await;

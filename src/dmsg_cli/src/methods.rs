@@ -472,13 +472,23 @@ impl Daemon {
                 if action == "redeem" && account.is_none() {
                     return Err(Error::InvalidInput("confirmed account".into()));
                 }
+                let replace_slot = if params["replace_slot"].is_null() {
+                    None
+                } else {
+                    Some(
+                        params["replace_slot"]
+                            .as_u64()
+                            .filter(|&slot| slot > 0)
+                            .ok_or_else(|| Error::InvalidInput("replace_slot".into()))?,
+                    )
+                };
                 return commerce::promo(
                     &h,
                     action,
                     params["code"].as_str().unwrap_or_default(),
                     &request,
                     account,
-                    params["replace_slot"].as_u64(),
+                    replace_slot,
                 )
                 .await;
             }

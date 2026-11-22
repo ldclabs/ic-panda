@@ -1982,10 +1982,13 @@ smoke: try {
       synced: true,
       status: 'applied'
     }
+    let guestPasses = []
+    let guestRequestIds = new Set()
+    let guestSeq = 0
     methods['plan/promo_history'] = () => ({
       redemptions: delivered ? [receipt] : [],
-      guest_passes: [],
-      guest_remaining: 2
+      guest_passes: guestPasses,
+      guest_remaining: Math.max(0, 2 - guestPasses.length)
     })
     methods['plan/promo_preview'] = ({ code }) => ({
       account,
@@ -2000,12 +2003,21 @@ smoke: try {
       delivered = true
       return receipt
     }
-    methods['plan/guest_pass'] = () => ({
-      code: 'DMSG-K7P4-9X2M-3Q8R',
-      slot: 1,
-      remaining: 1,
-      ends_at_ms: receipt.expires_at_ms
-    })
+    methods['plan/guest_pass'] = (request) => {
+      if (guestRequestIds.has(request.request_id)) {
+        return { code: null, slot: request.replace_slot ?? 1, replayed: true, ends_at_ms: receipt.expires_at_ms }
+      }
+      guestRequestIds.add(request.request_id)
+      guestSeq += 1
+      const slot = request.replace_slot ?? (guestPasses.length + 1)
+      if (!guestPasses.some((item) => item.slot === slot)) guestPasses.push({ slot, available: true })
+      return {
+        code: `DMSG-K7P4-9X2M-3Q8${guestSeq}`,
+        slot,
+        remaining: Math.max(0, 2 - guestPasses.length),
+        ends_at_ms: receipt.expires_at_ms
+      }
+    }
     membership = 'free'
     methods['plan/status'] = () => {
       if (!delivered || membership === 'cash') return planStatus()
@@ -2062,6 +2074,11 @@ smoke: try {
     await main.getByTestId('guest-open').click()
     await dialog.getByRole('button', { name: 'Create guest pass', exact: true }).click()
     await dialog.getByRole('button', { name: 'Copy code', exact: true }).waitFor()
+    const replaceButton = dialog.getByRole('button', { name: /Replace unused pass #1/ })
+    await replaceButton.click()
+    await waitFor(async () => (await dialog.locator('input[readonly]').inputValue()) === 'DMSG-K7P4-9X2M-3Q82')
+    await replaceButton.click()
+    await waitFor(async () => (await dialog.locator('input[readonly]').inputValue()) === 'DMSG-K7P4-9X2M-3Q83')
     await main.keyboard.press('Escape')
     assert.deepEqual(pageErrors, [])
     console.log('Promotion prefill, invalidation, confirmation, guest pass and locale/theme/window matrix passed')

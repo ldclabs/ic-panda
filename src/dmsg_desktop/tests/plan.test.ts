@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   acceptLink,
+  canIssueGuestPass,
   canonicalName,
   cashTotal,
   covers,
@@ -197,4 +198,21 @@ test('an App Store term is named and waits for Apple without a date', () => {
   assert.equal(en.messages[methodLabels.AppStore], 'App Store')
   assert.ok(en.messages[waitLabels.APP_STORE_MANAGED])
   assert.doesNotMatch(en.messages[waitLabels.APP_STORE_MANAGED], /\{time\}/)
+})
+
+test('guest passes require an active, eligible, non-sandbox formal contract', () => {
+  const base = {
+    source: 'Active',
+    eligibility: 'Eligible',
+    lease_until_ms: now + DAY,
+    current: { method: 'Cash', terminated_at_ms: null, store_environment: null }
+  }
+  assert.equal(canIssueGuestPass(base, now), true)
+  assert.equal(canIssueGuestPass({ ...base, current: { ...base.current, method: 'Promo' } }, now), false)
+  assert.equal(canIssueGuestPass({ ...base, current: { ...base.current, method: 'Compensation' } }, now), false)
+  assert.equal(canIssueGuestPass({ ...base, current: { ...base.current, method: 'AppStore', store_environment: 'Sandbox' } }, now), false)
+  assert.equal(canIssueGuestPass({ ...base, current: { ...base.current, method: 'GooglePlay', store_environment: 'Test' } }, now), false)
+  assert.equal(canIssueGuestPass({ ...base, source: 'Suspended', eligibility: 'Ineligible', current: { ...base.current, method: 'Panda' } }, now), false)
+  assert.equal(canIssueGuestPass({ ...base, current: { ...base.current, terminated_at_ms: now + 1000 } }, now), false)
+  assert.equal(canIssueGuestPass({ ...base, lease_until_ms: now }, now), false)
 })

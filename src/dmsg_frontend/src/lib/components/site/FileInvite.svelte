@@ -11,6 +11,7 @@
   let plusTrial = $state(false)
   $effect(() => {
     available = false
+    plusTrial = false
     if (!ready) return
     const controller = new AbortController()
     void publicPromo(channel, controller.signal, 'offer')

@@ -74,7 +74,7 @@ class AgentCoordinator(private val client: ClientController) {
     }
     fun create(label: String) {
         if (!validAgentLabel(label.trim())) { client.showError("INVALID_AGENT_LABEL"); return }
-        client.perform({ it.createAgent(label.trim()) }, key = "agents:create") { labelValue.value = ""; load() }
+        client.perform({ it.createAgent(label.trim()) }, key = "agents:create", onError = { load() }) { labelValue.value = ""; load() }
     }
     fun pause(agent: ManagedAgent, value: Boolean) = client.perform({ it.pauseAgent(agent.label, value) }, key = "agents:pause:" + agent.id, onError = { load() }) { load() }
     fun remove(agent: ManagedAgent) = client.perform({ it.removeAgent(agent.label) }, key = "agents:remove:" + agent.id, onError = { load() }) { permissionsValue.value -= agent.id; load(); client.navigation.back() }

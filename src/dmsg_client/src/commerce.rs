@@ -1234,6 +1234,7 @@ pub async fn promo<H: Hold>(
 ) -> Result<Json> {
     let (base, account, generation) = h
         .with(|c| {
+            c.keys()?;
             Ok((
                 c.base()?,
                 c.session_state().account.ok_or(Error::Locked)?,
@@ -2015,14 +2016,12 @@ fn google_play_purchase_reason(
     {
         return Some("external_plan");
     }
-    if !current.is_null()
-        && current["method"] != "GooglePlay"
-        && !(matches!(kind, PlayProductKind::Plan { .. }) && gifted(current))
-    {
+    if !current.is_null() && current["method"] != "GooglePlay" && !gifted(current) {
         return Some("external_plan");
     }
     if matches!(kind, PlayProductKind::Storage { .. })
         && (current.is_null()
+            || current["method"] != "GooglePlay"
             || !store_action_allowed(status, "storage")
             || status["source"] != "Active"
             || current["contract"].as_str().is_none()
@@ -2092,6 +2091,15 @@ mod google_play_purchase_tests {
             google_play_purchase_reason(&plan, &owned, &PlayEnvironment::Production),
             Some("unavailable")
         );
+        let promo = json!({"source":"Active","allowed_actions":["app_store","google_play"],"current":{"method":"Promo","contract":"22".repeat(32)}});
+        assert_eq!(
+            google_play_purchase_reason(&plan, &promo, &PlayEnvironment::Production),
+            None
+        );
+        assert_eq!(
+            google_play_purchase_reason(&storage, &promo, &PlayEnvironment::Production),
+            Some("subscription_required")
+        );
     }
 }
 
@@ -2149,14 +2157,12 @@ fn app_store_purchase_reason(
     {
         return Some("external_plan");
     }
-    if !current.is_null()
-        && current["method"] != "AppStore"
-        && !(matches!(kind, dmsg_types::app_store::StoreProductKind::Plan(_)) && gifted(current))
-    {
+    if !current.is_null() && current["method"] != "AppStore" && !gifted(current) {
         return Some("external_plan");
     }
     if matches!(kind, dmsg_types::app_store::StoreProductKind::Storage(_))
         && (current.is_null()
+            || current["method"] != "AppStore"
             || !store_action_allowed(status, "storage")
             || status["source"] != "Active"
             || current["store_environment"] == "Sandbox")
@@ -2205,6 +2211,12 @@ mod app_store_purchase_tests {
                 &Production
             ),
             Some("unavailable")
+        );
+        let promo = json!({"source":"Active","allowed_actions":["app_store","google_play"],"current":{"method":"Promo"}});
+        assert_eq!(app_store_purchase_reason(&plan, &promo, &Production), None);
+        assert_eq!(
+            app_store_purchase_reason(&storage, &promo, &Production),
+            Some("subscription_required")
         );
     }
 }

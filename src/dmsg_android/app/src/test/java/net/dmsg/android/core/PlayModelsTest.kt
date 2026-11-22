@@ -21,4 +21,19 @@ class PlayModelsTest {
         assertThrows(IllegalStateException::class.java) { parsePlayReceipts(Json.parseToJsonElement(json.replace("\"end\":false","\"end\":true"))) }
         assertThrows(IllegalStateException::class.java) { parsePlayReceipts(Json.parseToJsonElement(json.replace("\"delivered\":false","\"delivered\":true"))) }
     }
+    @Test fun playReplacementAppliesOnlyToActiveGooglePlaySubscriptions() {
+        val pro = PlaySelection("pro", "annual", null, PlayKind.SUBSCRIPTION, "Pro", null, true)
+        val plus = PlaySelection("plus", "annual", null, PlayKind.SUBSCRIPTION, "Plus", null, true)
+        val existing = PlayPurchase("tok-plus", "plus", PlayKind.SUBSCRIPTION, null, null, false, 1L, "GPA.1")
+        for (method in listOf("Promo", "Compensation")) {
+            val current = Json.parseToJsonElement("""{"method":"$method","plan":"Plus","store_token_hash":null}""").objectValue()
+            assertNull(playReplacement(plus, current, emptyList()))
+            assertNull(playReplacement(pro, current, emptyList()))
+        }
+        val playCurrent = Json.parseToJsonElement("""{"method":"GooglePlay","plan":"Plus","store_token_hash":"${existing.id}"}""").objectValue()
+        val upgrade = playReplacement(pro, playCurrent, listOf(existing))!!
+        assertEquals(existing.id, upgrade.purchase.id)
+        assertFalse(upgrade.deferred)
+        assertThrows(IllegalStateException::class.java) { playReplacement(plus, playCurrent, listOf(existing)) }
+    }
 }

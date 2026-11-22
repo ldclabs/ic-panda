@@ -19,7 +19,7 @@
   import { startLogin } from '../../shell/login.svelte'
   import Promotions from './Promotions.svelte'
   import Checkout from './Checkout.svelte'
-  import { daysLeft, eligibilityLabels, membershipState, methodLabels, offerLabels, refundOutcome, sourceLabels, waitLabels } from './plan'
+  import { canIssueGuestPass, daysLeft, eligibilityLabels, membershipState, methodLabels, offerLabels, refundOutcome, sourceLabels, waitLabels } from './plan'
 
   /**
    * The membership: the plan in force and its term, what it allows and what
@@ -225,9 +225,12 @@
               {#if membership.active && !pending}<span data-testid="plan-ends">{t('termEnds', { time: when(current.ends_at_ms), n: daysLeft(current.ends_at_ms, now) })}</span>{/if}
             {/if}
           </div>
+          {#if membership.active && !pending && (current?.method === 'Promo' || current?.method === 'Compensation')}
+            <p class="mt-1.5 text-[12px] text-muted" data-testid="plan-no-charge">{t('promoNoCharge')}</p>
+          {/if}
         {/if}
       </div>
-      <Promotions account={status?.account} bind:redemption guest={canManageMembership && ['Cash','Panda','AppStore','GooglePlay'].includes(current?.method) && !['Sandbox','Test'].includes(current?.store_environment)} refresh={() => load(true)} />
+      <Promotions account={status?.account} bind:redemption guest={canManageMembership && canIssueGuestPass(plan, now)} refresh={() => load(true)} />
       <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(() => load(true))} data-testid="plan-refresh"><Icon name="sync-now" />{t('refresh')}</button>
     </div>
     {#if errors.plan}<div class="px-6 pb-4"><Notice failure={errors.plan} tone="danger" testid="plan-error">{errors.plan}</Notice></div>{/if}

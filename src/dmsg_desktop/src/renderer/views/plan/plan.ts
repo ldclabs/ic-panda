@@ -41,6 +41,16 @@ export function membershipState(plan: any, now: number) {
   return { pending, active, endedAt }
 }
 
+/** Guest passes require an active, eligible, non-sandbox paid or PANDA membership. */
+export function canIssueGuestPass(plan: any, now: number): boolean {
+  const current = plan?.current
+  if (!current || !membershipState(plan, now).active) return false
+  return plan.eligibility === 'Eligible'
+    && !current.terminated_at_ms
+    && ['Cash', 'Panda', 'AppStore', 'GooglePlay'].includes(current.method)
+    && !['Sandbox', 'Test'].includes(current.store_environment)
+}
+
 /** How a term is paid, for people. */
 export const methodLabels: Record<string, Label> = {
   Cash: 'methodCash',

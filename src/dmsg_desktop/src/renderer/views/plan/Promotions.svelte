@@ -85,6 +85,7 @@
     epoch++
     open = false
     draft = ''
+    claim = null
     pass = null
     preview = null
     failure = ''
@@ -100,7 +101,7 @@
       start('redeem', code)
     }
   })
-  async function loadHistory(version: number) {
+  async function loadHistory(version: number, report = mode === 'guest') {
     try {
       const r = await call('plan/promo_history', {})
       if (version === epoch) {
@@ -109,7 +110,7 @@
         remaining = r.guest_remaining
       }
     } catch (error) {
-      if (version === epoch && mode === 'guest') failure = errorText(error)
+      if (version === epoch && report) failure = errorText(error)
     }
   }
   async function run(
@@ -152,6 +153,8 @@
         })
         if (version === epoch) {
           pass = r
+          operation = nonce()
+          replacement = null
           await loadHistory(version)
         }
       }
@@ -162,13 +165,22 @@
     }
   }
   async function updateClaim() {
+    if (busy) return
     const version = epoch
-    await loadHistory(version)
-    if (version !== epoch || !claim) return
-    const updated = history.find((r) => r.grant_id === claim?.grant_id)
-    if (updated) {
-      claim = updated
-      if (updated.status === 'applied') await refresh()
+    busy = true
+    failure = ''
+    try {
+      await loadHistory(version, true)
+      if (version !== epoch || !claim) return
+      const updated = history.find((r) => r.grant_id === claim?.grant_id)
+      if (updated) {
+        claim = updated
+        if (updated.status === 'applied') await refresh()
+      }
+    } catch (error) {
+      if (version === epoch) failure = errorText(error)
+    } finally {
+      if (version === epoch) busy = false
     }
   }
 </script>
@@ -194,7 +206,7 @@
   testid="promo-dialog"
 >
   <div class="grid min-w-0 gap-3">
-    <p class="text-sm break-all">{t('account')} · <bdi>{account}</bdi></p>
+    <p class="text-sm break-all">{t('account')} · <bdi dir="ltr">{account}</bdi></p>
     {#if mode === 'redeem'}
       <TextField
         label={t('promoCode')}
@@ -248,6 +260,7 @@
           value={pass.code}
           readonly
           mono
+          dir="ltr"
         /><button
           class={buttonClass('secondary', 'sm')}
           onclick={() => copyText(pass!.code!)}>{t('copyCode')}</button
@@ -273,7 +286,8 @@
       >
     {:else if claim}<button
         class={buttonClass('secondary')}
-        onclick={updateClaim}>{t('refresh')}</button
+        disabled={busy}
+        onclick={updateClaim}>{busy ? t('loading') : t('refresh')}</button
       >
     {:else}<button
         class={buttonClass('primary')}

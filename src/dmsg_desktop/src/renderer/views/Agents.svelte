@@ -235,7 +235,7 @@
       {:else if tab === 'overview'}
         <Overview {principal} principalError={errors.principal ?? ''} {loaded} {errors} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {createRequest} {run} onRetry={loadTab} onReviewRequests={() => go('/approvals')} bind:delegate bind:focusDelegate />
       {:else if tab === 'ids'}
-        <AgentIds {hosted} {quota} {unlocked} {busy} {run} {attempt} {delegateTo} onReview={loadHosted} manage={(id) => inspect('capabilities', id)} />
+        <AgentIds {hosted} {quota} {unlocked} {busy} {run} {attempt} {delegateTo} onReview={async () => { await Promise.all([loadHosted(), loadQuota()]) }} manage={(id) => inspect('capabilities', id)} />
       {:else if tab === 'capabilities'}
         {#if errors.grants}<Notice tone="danger" testid="grants-error">{errors.grants}
           {#snippet action()}<button class={buttonClass('secondary', 'sm')} onclick={loadGrants}>{t('retry')}</button>{/snippet}

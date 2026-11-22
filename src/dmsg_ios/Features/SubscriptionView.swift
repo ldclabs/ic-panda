@@ -199,7 +199,7 @@ struct SubscriptionView: View {
                     }
                     if let term = plan?.current, term.method != "AppStore", !term.isGrant, model.purchases.storeEnvironment != "Sandbox" {
                         NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
-                    } else if plan?.current == nil, model.purchases.storeEnvironment == "Production", model.purchases.products.contains(where: { $0.type == .consumable }) {
+                    } else if plan?.current == nil || plan?.current?.isGrant == true, model.purchases.storeEnvironment == "Production", model.purchases.products.contains(where: { $0.type == .consumable }) {
                         Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
                     }
                     subscriptionCards

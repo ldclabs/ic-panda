@@ -29,11 +29,11 @@ struct AgentsView: View {
                     guard let engine = model.engine, !working else { return }
                     let epoch = model.epoch; working = true; defer { working = false }
                     do { _ = try await engine.createAgent(label: label.trimmingCharacters(in: .whitespacesAndNewlines)); if epoch == model.epoch && visible { label = ""; await load() } }
-                    catch { if epoch == model.epoch && visible { model.report(error) } }
+                    catch { if epoch == model.epoch && visible { model.report(error); quotaRead += 1 } }
                 } }.disabled(working || label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             NavigationLink("Controllers and delegations") { AgentDelegationsView() }
-        }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Agents").task(id: model.epoch) { await load() }.task(id: quotaRead) {
+        }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Agents").task(id: model.epoch) { quota = nil; await load() }.task(id: quotaRead) {
             if quotaRead > 0 { await loadQuota() }
         }.refreshable { await load() }
     }

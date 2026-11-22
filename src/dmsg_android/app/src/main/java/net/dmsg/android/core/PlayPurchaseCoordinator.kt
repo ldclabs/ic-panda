@@ -195,14 +195,7 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
             val current = preflight["current"]?.takeIf { it != JsonNull }?.objectValue()
             val base = preflight.text("base_contract")
             if (selection.kind == PlayKind.STORAGE) check(reviewedTerm != null && reviewedTerm.contract == base && current?.unsigned("ends_at_ms") == reviewedTerm.endsAt) { "PLAY_PLAN_CHANGED" }
-            val replacement = if (selection.kind == PlayKind.SUBSCRIPTION && current != null) {
-                val oldHash = current.required("store_token_hash"); val oldTier = current.required("plan")
-                check(oldTier != selection.plan) { "PLAY_CURRENT_PLAN" }
-                val old = billing.currentPurchases().singleOrNull { it.id == oldHash && it.kind == PlayKind.SUBSCRIPTION } ?: error("PLAY_RESTORE_REQUIRED")
-                val tiers = listOf("Free", "Plus", "Pro", "Max")
-                check(oldTier in tiers && selection.plan in tiers) { "INTEGRITY_FAILED" }
-                PlayReplacement(old, tiers.indexOf(selection.plan) < tiers.indexOf(oldTier))
-            } else null
+            val replacement = playReplacement(selection, current, billing.currentPurchases())
             val details = AndroidPurchasePreparation(core.notificationInstallation(), selection.product, selection.option, selection.offer, selection.kind.wire, base)
             val proof = integrity(core.androidPreparationChallenge(details).decode().objectValue())
             val prepared = core.androidPreparePurchase(details, proof, requestId()).decode().objectValue()
@@ -226,4 +219,19 @@ class PlayPurchaseCoordinator(private val client: ClientController, private val 
         runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW,url)) }.onFailure { failed("GOOGLE_UNAVAILABLE") }
     }
     companion object { private const val SYNC = "play:sync"; private const val CHECKOUT = "play:checkout" }
+}
+
+internal fun playReplacement(
+    selection: PlaySelection,
+    current: JsonObject?,
+    purchases: List<PlayPurchase>,
+): PlayReplacement? {
+    if (selection.kind != PlayKind.SUBSCRIPTION || current?.text("method") != "GooglePlay") return null
+    val oldHash = current.required("store_token_hash")
+    val oldTier = current.required("plan")
+    check(oldTier != selection.plan) { "PLAY_CURRENT_PLAN" }
+    val old = purchases.singleOrNull { it.id == oldHash && it.kind == PlayKind.SUBSCRIPTION } ?: error("PLAY_RESTORE_REQUIRED")
+    val tiers = listOf("Free", "Plus", "Pro", "Max")
+    check(oldTier in tiers && selection.plan in tiers) { "INTEGRITY_FAILED" }
+    return PlayReplacement(old, tiers.indexOf(selection.plan) < tiers.indexOf(oldTier))
 }

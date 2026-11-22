@@ -274,7 +274,7 @@ fn apply(
                     || t.is_upgraded == Some(true)
                     || t.environment == StoreEnvironment::Sandbox
                     || s.active(t.purchased_at_ms).is_none_or(|c| {
-                        c.source.is_grant() || matches!(c.source, ContractSource::AppStore { .. })
+                        c.source.priority() < 2 || matches!(c.source, ContractSource::AppStore { .. })
                     }),
                 Error::Forbidden,
             )?;
@@ -368,7 +368,7 @@ fn restore_refund(
     ensure(
         t.environment == StoreEnvironment::Sandbox
             || s.active(t.purchased_at_ms).is_none_or(|c| {
-                c.source.is_grant() || matches!(c.source, ContractSource::AppStore { .. })
+                c.source.priority() < 2 || matches!(c.source, ContractSource::AppStore { .. })
             }),
         Error::Forbidden,
     )?;
@@ -1227,5 +1227,44 @@ mod tests {
             "recording a refund must not let its reversal bypass plan admission"
         );
         assert_eq!(subject, before);
+    }
+
+    #[test]
+    fn production_app_store_replaces_promo_and_play_test_terms() {
+        for source in [
+            ContractSource::Promo {
+                grant_id: Hash::new([7; 32]),
+            },
+            ContractSource::GooglePlay {
+                transaction_id: Hash::new([6; 32]),
+                token_hash: Hash::new([8; 32]),
+                environment: dmsg_types::google_play::PlayEnvironment::Test,
+            },
+        ] {
+            let mut prev = transaction("301", NOW - DAY);
+            prev.environment = StoreEnvironment::Production;
+            let mut subject = model::Subject::new(prev.beneficiary.clone());
+            apply(
+                &mut subject,
+                &prev,
+                &StoreProductKind::Plan(PlanId::Plus),
+                &catalog(),
+                NOW,
+            )
+            .unwrap();
+            subject.contracts[0].source = source;
+
+            let mut paid = transaction("302", NOW);
+            paid.environment = StoreEnvironment::Production;
+            apply(
+                &mut subject,
+                &paid,
+                &StoreProductKind::Plan(PlanId::Pro),
+                &catalog(),
+                NOW,
+            )
+            .unwrap();
+            assert_eq!(subject.active(NOW).unwrap().plan.plan_id, PlanId::Pro);
+        }
     }
 }

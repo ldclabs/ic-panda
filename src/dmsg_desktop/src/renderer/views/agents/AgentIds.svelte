@@ -82,7 +82,7 @@
     if (!valid) { document.getElementById('hosted-agent-label')?.focus(); return }
     const submitted = label, target = name
     if (!existing) {
-      if (!(await run('agent/create', { label: target }, message => { if (alive) createError = message })) || !alive) return
+      if (!(await run('agent/create', { label: target }, message => { if (alive) { createError = message; void onReview() } })) || !alive) return
       await onReview()
       if (!alive || label !== submitted) return
       created = target
@@ -108,7 +108,7 @@
 
 <Section title={t('agentIds')} description={t('agentIdsHint')} icon="agents" flush>
   {#if quota}
-    <p class="px-4 py-2 text-[12px] text-muted" data-testid="agent-account-quota">{t('account')} · {t('hostedAgentIds')} · <bdi>{quota.used} / {quota.limit ?? '—'}</bdi></p>
+    <p class="px-5 py-2 text-[12px] text-muted" data-testid="agent-account-quota">{t('account')} · {t('hostedAgentIds')} · <bdi dir="ltr">{quota.used} / {quota.limit ?? '—'}</bdi></p>
   {/if}
   <ul class="divide-y divide-line" data-testid="agent-ids">
     {#each hosted.agents as a (a.agent_id)}
