@@ -51,7 +51,7 @@ struct LoginBindingRequestView: View {
         do {
             _ = try await engine.acceptBinding(account: target)
             guard stamp == model.epoch else { return }
-            await model.updateSession()
+            if await model.updateSession() { model.showingJoinAccount = false }
         } catch { if stamp == model.epoch { model.report(error) } }
     }
 }

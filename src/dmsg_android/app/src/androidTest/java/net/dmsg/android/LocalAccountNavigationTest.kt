@@ -33,6 +33,9 @@ class LocalAccountNavigationTest {
             compose.waitUntil(10_000) { client.joiningAccount.value && compose.onAllNodesWithText("Scan invitation").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Scan invitation").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Review").assertIsNotEnabled()
+            compose.runOnIdle { client.showError("UNAVAILABLE") }
+            val unavailable = app.getString(R.string.text_the_service_is_unavailable_local_content_is_still_kept_551ab6a)
+            compose.onNodeWithText(unavailable).assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
             compose.waitUntil(5_000) { !client.joiningAccount.value }
             compose.onNodeWithTag("access.local").performClick()

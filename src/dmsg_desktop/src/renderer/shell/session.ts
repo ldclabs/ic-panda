@@ -38,7 +38,7 @@ export const unlocking = writable(false)
 /** Route a request to the one account menu, including when the rail is collapsed. */
 export const accountMenuRequested = writable(false)
 export const accountJoinRequested = writable(false)
-export const deviceRequestQr = writable(false)
+export const deviceRequestQr = writable<{ state: 'no_account' | 'pairing_required'; principal?: string } | null>(null)
 export const openAccounts = () => accountMenuRequested.set(true)
 let opening: Promise<void> | null = null
 

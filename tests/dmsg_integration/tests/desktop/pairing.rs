@@ -318,10 +318,13 @@ fn one_invitation_binds_a_new_login_then_enrolls_its_device() {
     };
 
     assert_eq!(read(phone)["stage"], "sign_in");
+    let existing = phone.login(http, 41).unwrap();
+    assert_eq!(existing["state"], "pairing_required");
     assert_eq!(phone.login(http, 42).unwrap()["state"], "no_account");
     let preview = read(phone);
     assert_eq!(preview["account"], account);
     assert_eq!(preview["stage"], "bind_login");
+    assert_eq!(preview["device_id"], existing["device_id"]);
     assert_eq!(send(false)["stage"], "bind_login");
     assert!(candidate().is_null());
     other.login(http, 43).unwrap();
@@ -377,6 +380,17 @@ fn one_invitation_binds_a_new_login_then_enrolls_its_device() {
     assert_eq!(other.run(&["status"])["account"], separate);
     // Use the other account for a separate two-device pair within the Free quota.
     same.login(http, 43).unwrap();
+    let legacy = other.rpc(http, "device/pair_invite", Value::Null).unwrap();
+    let legacy_preview = same
+        .rpc(
+            http,
+            "device/join_invitation",
+            json!({"invitation":legacy["token"]}),
+        )
+        .unwrap();
+    assert_eq!(legacy_preview["stage"], "device");
+    assert!(legacy_preview["device_id"].is_string());
+    assert!(legacy_preview.get("code").is_none());
     let direct = other
         .rpc(http, "device/pair_invite", json!({"with_login":true}))
         .unwrap();

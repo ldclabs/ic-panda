@@ -60,12 +60,10 @@
 
   const bindAccept = () =>
     attempt(async () => {
+      const principal = status?.principal
       const bound = await call<{state: string}>('account/bind_accept', { account: account.trim() })
       token = ''; bindingQr = ''
-      if (alive && bound?.state === 'pairing_required') {
-        const value = await call('device/pair_request', {role:member ? 'member' : 'administrator'})
-        if (alive) { pairing = value; polling = true }
-      }
+      if (bound?.state === 'pairing_required') deviceRequestQr.set({ state: bound.state, principal })
     })
 
   const pair = () =>
@@ -100,13 +98,17 @@
       if (alive && method !== 'recovery/complete') recovery = value
     })
 
+  $effect(() => {
+    const request = $deviceRequestQr
+    if (!request || !status || busy) return
+    if (status.principal !== request.principal) { deviceRequestQr.set(null); return }
+    if (status.state !== request.state) return
+    deviceRequestQr.set(null)
+    if (request.state === 'no_account') direct = true
+    else void pair()
+  })
+
   onMount(() => {
-    const offQr = deviceRequestQr.subscribe(requested => {
-      if (!requested) return
-      deviceRequestQr.set(false)
-      if (status?.state === 'no_account') direct = true
-      else if (status?.state === 'pairing_required') void pair()
-    })
     if (status?.state === 'root_required' && !status.setup_pending) polling = true
     if (recoverable) void recoveryCall('recovery/status')
     const off = onChange(['recovery/changed'], () => { if (recoverable) void recoveryCall('recovery/status') })
@@ -114,7 +116,7 @@
     const check = setInterval(() => {
       if (!document.hidden && !$accountJoinRequested && !busy && polling && recoverable) void joined(true)
     }, 5000)
-    return () => { clearInterval(timer); clearInterval(check); off(); offQr() }
+    return () => { clearInterval(timer); clearInterval(check); off() }
   })
 </script>
 

@@ -1,10 +1,12 @@
 //! A joining login accepts its own binding before signing the device request
 //! at the resulting account version. Both replies use the original QR.
 use super::*;
-use crate::client::Slot;
+use crate::client::{Slot, WORKSPACE};
 use crate::codec::digest;
 use crate::crypto::sign;
 use crate::security::{AUTH_REQUEST, AuthPacket};
+use crate::store::Store;
+use crate::workspace::{META, Meta, Workspace};
 use dmsg_protocol::{DeviceInputExt, verify};
 use dmsg_types::{Ed25519Signature, user::DeviceInput};
 
@@ -116,6 +118,25 @@ impl Delivery {
     }
 }
 
+fn provisional_target(c: &Client, account: AccountId) -> Result<Option<Workspace>> {
+    let slot = Slot::Account(account);
+    if c.slot == slot {
+        return Ok(None);
+    }
+    let path = c.slot_dir(&slot).join(WORKSPACE);
+    if !path.try_exists().map_err(crate::storage)? {
+        return Ok(None);
+    }
+    let store = Store::read_only(&path)?;
+    let meta: Meta = store.meta(META)?.ok_or(Error::IntegrityFailed)?;
+    ensure(
+        meta.environment == c.workspace.meta.environment,
+        Error::IntegrityFailed,
+    )?;
+    let workspace = Workspace { store, meta };
+    Ok(workspace.provisional().then_some(workspace))
+}
+
 /// The unexpired invitation this login already agreed to continue.
 /// # Errors
 /// Returns a storage error if the encrypted workspace cannot be read.
@@ -144,18 +165,25 @@ pub async fn account_invitation<H: Hold>(
     consent: Option<&str>,
     bind_login: bool,
 ) -> Result<Value> {
+    const ROLE: ControllerRole = ControllerRole::Administrator;
     let invite = Invitation::parse(token, now_ms())?;
     let mut view = json!({"account":invite.account.to_string(),"expires_at":invite.expires_at,"stage":"sign_in"});
-    let signed_in = h
+    let (signed_in, renewable) = h
         .with(|c| {
             ensure(
                 c.config.relay.trim_end_matches('/') == invite.relay,
                 Error::IntegrityFailed,
             )?;
-            Ok(c.session().is_ok())
+            Ok((c.session().is_ok(), !c.offline_mode() && c.renewable()))
         })
         .await?;
-    if !signed_in {
+    if renewable {
+        match h.ensure_login().await {
+            Ok(()) => {}
+            Err(Error::AuthRequired) if consent.is_none() => return Ok(view),
+            Err(error) => return Err(error),
+        }
+    } else if !signed_in {
         ensure(consent.is_none(), Error::AuthRequired)?;
         return Ok(view);
     }
@@ -188,39 +216,32 @@ pub async fn account_invitation<H: Hold>(
         homes.user_homes.contains(&invite.home),
         Error::IntegrityFailed,
     )?;
+    let check_login = |c: &Client| {
+        ensure(
+            c.session_generation == generation
+                && c.session()?.principal == principal
+                && c.config.handle == handle
+                && c.config.user_homes == pins
+                && c.config.relay.trim_end_matches('/') == invite.relay,
+            Error::Locked,
+        )?;
+        invite.check(now_ms())
+    };
     let found = account::find_account(&ic, &homes.user_homes).await?;
     if let Some((home, account)) = found
         && (home, account) != (invite.home, invite.account)
     {
+        h.with(|c| check_login(c)).await?;
         view["stage"] = json!("other_account");
         view["current_account"] = json!(account.to_string());
         return Ok(view);
     }
-    let mut peers = h
-        .with(|c| {
-            ensure(
-                c.session_generation == generation && c.session()?.principal == principal,
-                Error::Locked,
-            )?;
-            Ok(c.peers_of(&[invite.account]))
-        })
-        .await?;
-    let (_, security) = peers.read().await?.pop().ok_or(Error::NotFound)?;
-    ensure(
-        security.snapshot.home_user == invite.home,
-        Error::IntegrityFailed,
-    )?;
+    let security = account::fetch_security(&ic, invite.home, &invite.account).await?;
     let mut device = h
         .with(|c| {
-            ensure(
-                c.session_generation == generation
-                    && c.session()?.principal == principal
-                    && c.config.relay.trim_end_matches('/') == invite.relay,
-                Error::Locked,
-            )?;
-            invite.check(now_ms())?;
-            c.peers_met(peers);
-            Ok(c.workspace.device_input(ControllerRole::Administrator))
+            check_login(c)?;
+            let target = provisional_target(c, invite.account)?;
+            Ok(target.as_ref().unwrap_or(&c.workspace).device_input(ROLE))
         })
         .await?;
     let version = security.snapshot.account_version;
@@ -241,7 +262,9 @@ pub async fn account_invitation<H: Hold>(
         .as_ref()
         .map(|s| s.code.clone())
         .unwrap_or_else(|| comparison(&invite, linked.then_some(principal), &device));
-    view["code"] = json!(code);
+    if invite.binding.is_some() {
+        view["code"] = json!(code);
+    }
     let previous = saved.as_ref().filter(|d| d.nonce.is_some() == binding);
     if consent.is_none() || (binding && previous.is_none() && !bind_login) {
         view["stage"] = json!(if let Some(reply) = previous.filter(|reply| reply.sent) {
@@ -262,17 +285,27 @@ pub async fn account_invitation<H: Hold>(
         // An existing workspace uses its own keys and may already be authorized.
         let (actual, ready) = h
             .with(|c| {
-                ensure(
-                    c.session_generation == generation && c.session()?.principal == principal,
-                    Error::Locked,
-                )?;
+                check_login(c)?;
                 c.select(Slot::Account(invite.account))?;
                 c.located = found;
                 if c.workspace.provisional() && c.keys.is_none() {
                     c.keys = Some(c.workspace.unlock_provisional()?);
                 }
-                let actual = c.workspace.device_input(ControllerRole::Administrator);
+                let actual = c.workspace.device_input(ROLE);
                 let ready = security.active(&actual.device_id).is_ok();
+                if !ready && let Some(binding_reply) = saved.as_ref().filter(|d| d.nonce.is_some())
+                {
+                    ensure(
+                        binding_reply.code == comparison(&invite, Some(principal), &actual),
+                        Error::VersionConflict,
+                    )?;
+                    // Keep consent available across retries after selecting an existing workspace.
+                    if Delivery::load(c)?.is_none_or(|current| {
+                        current.invitation != token || current.principal != principal
+                    }) {
+                        binding_reply.save(c)?;
+                    }
+                }
                 Ok((actual, ready))
             })
             .await?;
@@ -282,23 +315,13 @@ pub async fn account_invitation<H: Hold>(
             return Ok(view);
         }
         if actual != device {
-            // An earlier login reply committed to a different provisional device.
-            ensure(!linked, Error::VersionConflict)?;
             device = actual;
-            code = comparison(&invite, None, &device);
+            code = comparison(&invite, linked.then_some(principal), &device);
             view["device_id"] = json!(hex::encode(*device.device_id));
-            view["code"] = json!(code);
         }
     }
     let session = Session::new(h).await?;
-    session
-        .with(|c| {
-            ensure(
-                c.session_generation == generation && c.session()?.principal == principal,
-                Error::Locked,
-            )
-        })
-        .await?;
+    session.with(|c| check_login(c)).await?;
     let reply = if let Some(reply) = previous {
         reply.clone()
     } else {
@@ -319,15 +342,25 @@ pub async fn account_invitation<H: Hold>(
             };
             reply.proof = session
                 .with(|c| {
+                    let target = provisional_target(c, invite.account)?;
+                    let workspace = target.as_ref().unwrap_or(&c.workspace);
+                    ensure(
+                        workspace.device_input(ROLE) == reply.device,
+                        Error::VersionConflict,
+                    )?;
+                    let keys = target
+                        .as_ref()
+                        .map(Workspace::unlock_provisional)
+                        .transpose()?;
                     Ok(Ed25519Signature::new(sign(
-                        &c.keys()?.signing,
+                        &keys.as_ref().unwrap_or(c.keys()?).signing,
                         reply.message(&invite).as_slice(),
                     )))
                 })
                 .await?;
             (b64(&canonical(&reply)), Some(nonce))
         } else {
-            let request = account::pair_request(&session, ControllerRole::Administrator).await?;
+            let request = account::pair_request(&session, ROLE).await?;
             ensure(
                 (request.home, request.account) == (invite.home, invite.account),
                 Error::IntegrityFailed,
@@ -359,7 +392,9 @@ pub async fn account_invitation<H: Hold>(
             })
             .await?
     };
-    view["code"] = json!(reply.code);
+    if invite.binding.is_some() {
+        view["code"] = json!(reply.code);
+    }
     view["stage"] = json!(reply.stage());
     if !reply.sent {
         submit(&session, &mailbox, &reply.sealed).await?;
@@ -377,12 +412,7 @@ pub async fn account_invitation<H: Hold>(
     } else if let Some(nonce) = reply.nonce
         && version > reply.version
     {
-        session
-            .with(|c| {
-                ensure(c.session()?.principal == principal, Error::Locked)?;
-                invite.check(now_ms())
-            })
-            .await?;
+        session.with(|c| check_login(c)).await?;
         let accepted: Result<()> = ic
             .update(invite.home, "accept_auth_binding", (&invite.account, nonce))
             .await?;
@@ -390,6 +420,7 @@ pub async fn account_invitation<H: Hold>(
             Ok(()) | Err(Error::NotFound) => {}
             Err(error) => return Err(error),
         }
+        session.with(|c| check_login(c)).await?;
     }
     Ok(view)
 }

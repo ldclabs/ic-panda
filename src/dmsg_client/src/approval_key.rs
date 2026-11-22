@@ -893,29 +893,33 @@ impl Client {
                 false,
                 key.device_id == own,
             )
-        } else if let Ok(login) = self.inspect_binding(token) {
-            (
-                json!({"kind":"login_binding","principal":login.principal.to_text(),"expires_at":login.expires_at}),
-                HardwarePurpose::AccountControl,
-                state.info.auth_bindings.contains(&login.principal),
-                false,
-                false,
-            )
         } else {
-            let pair = self.inspect_pairing(token)?;
-            let device = &pair.device;
-            let complete = state
-                .active(&device.device_id)
-                .is_ok_and(|d| d.input == *device);
-            (
-                json!({"kind":"device_pair", "device_id":hex::encode(*device.device_id),
-                    "role":device.role, "capabilities":device.capabilities, "account":pair.account.to_string(),
-                    "expires_at":pair.mutation.approval.expires_at}),
-                HardwarePurpose::DeviceControl,
-                complete,
-                state.info.account_version != pair.mutation.expected_version,
-                false,
-            )
+            match self.inspect_binding(token) {
+                Ok(login) => (
+                    json!({"kind":"login_binding","principal":login.principal.to_text(),"expires_at":login.expires_at}),
+                    HardwarePurpose::AccountControl,
+                    state.info.auth_bindings.contains(&login.principal),
+                    false,
+                    false,
+                ),
+                Err(Error::Expired) => return Err(Error::Expired),
+                Err(_) => {
+                    let pair = self.inspect_pairing(token)?;
+                    let device = &pair.device;
+                    let complete = state
+                        .active(&device.device_id)
+                        .is_ok_and(|d| d.input == *device);
+                    (
+                        json!({"kind":"device_pair", "device_id":hex::encode(*device.device_id),
+                            "role":device.role, "capabilities":device.capabilities, "account":pair.account.to_string(),
+                            "expires_at":pair.mutation.approval.expires_at}),
+                        HardwarePurpose::DeviceControl,
+                        complete,
+                        state.info.account_version != pair.mutation.expected_version,
+                        false,
+                    )
+                }
+            }
         };
         self.approval_route(state, purpose, complete, stale, self_enrollment, &mut view)?;
         Ok(view)

@@ -28,17 +28,20 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
     var failure by remember { mutableStateOf<String?>(null) }
     var manual by remember { mutableStateOf(false) }
     var paused by remember { mutableStateOf(false) }
+    var retryAdvance by remember { mutableStateOf(false) }
+    var visible by remember { mutableStateOf(true) }
     val stage = view?.text("stage")
     val key = "access:join-invitation"
-    fun edit(input: String) { token = input; view = null; failure = null; paused = false }
-    fun close() { client.showAccountInvitation(false) }
+    fun edit(input: String) { token = input; view = null; failure = null; paused = false; retryAdvance = false }
+    fun close() { if (visible) client.showAccountInvitation(false) }
     fun failed(code: String) {
         failure = code
+        val current = view
         if (code == "EXPIRED") {
             view = null
             paused = true
-        } else if (code in setOf("AUTH_REQUIRED", "LOGIN_EXPIRED") && view != null) {
-            view = JsonObject(view!!.filterKeys { it != "principal" } + ("stage" to JsonPrimitive("sign_in")))
+        } else if (code in setOf("AUTH_REQUIRED", "LOGIN_EXPIRED") && current != null) {
+            view = JsonObject(current.filterKeys { it == "account" || it == "expires_at" } + ("stage" to JsonPrimitive("sign_in")))
             paused = true
         } else {
             paused = code !in transientPollCodes
@@ -47,11 +50,14 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
     fun check(advance: Boolean = false) {
         val input = token.trim()
         if (input.isEmpty() || state.busy || client.isWorking(key) || state.concealed || client.qr.state.value is QrRequest) return
+        retryAdvance = advance
+        fun currentInput() = visible && token.trim() == input
+        fun onError(code: String) { if (currentInput()) failed(code) }
         val current = view
         val phase = current?.text("stage")
         if (advance && phase in setOf("waiting_device", "authorized") && state.session?.principal == current?.text("principal")) {
-            client.perform({ it.refreshAccount() }, transition = true, key = key, quiet = true, userInitiated = false, onError = ::failed) { result ->
-                if (token.trim() == input) {
+            client.perform({ it.refreshAccount() }, transition = true, key = key, quiet = true, userInitiated = false, onError = ::onError) { result ->
+                if (currentInput()) {
                     failure = null
                     if (result.state == "unlocked" && result.account == current?.text("account")) close()
                     else if (result.state == "pairing_required" && (current?.unsigned("expires_at") ?: 0uL) <= System.currentTimeMillis().toULong()) failed("EXPIRED")
@@ -59,8 +65,8 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
             }
         } else {
             client.perform({ it.accountInvitation(input, if (advance) current?.text("principal") else null, advance && phase == "bind_login").decode().objectValue() },
-                key = key, quiet = true, onError = ::failed) { next ->
-                if (token.trim() == input) {
+                key = key, quiet = true, onError = ::onError) { next ->
+                if (currentInput()) {
                     view = next
                     failure = null
                     if (next.text("stage") == "authorized" && state.unlocked && state.session?.account == next.text("account")) close()
@@ -69,9 +75,10 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
         }
     }
     BackHandler { if (manual) manual = false else close() }
+    DisposableEffect(Unit) { onDispose { visible = false } }
     LaunchedEffect(Unit) {
         client.perform({ it.savedAccountInvitation() }, quiet = true) { saved ->
-            if (saved != null && token.isBlank()) { edit(saved); check() }
+            if (visible && saved != null && token.isBlank()) { edit(saved); check() }
         }
     }
     LaunchedEffect(qr.result) {
@@ -109,10 +116,11 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
             Notice(str(R.string.join_scan_hint))
             Button(onClick = { client.qr.open("join-account") }) { Text(str(R.string.text_scan_invitation_27f0014)) }
             OutlinedTextField(token, ::edit, Modifier.fillMaxWidth(), label = { Text(str(R.string.text_paste_invitation_0989300)) })
-            OutlinedButton(onClick = { check() }, enabled = token.isNotBlank() && !state.working(key)) { Text(str(R.string.text_review_9a1a906)) }
+            OutlinedButton(onClick = { check() }, enabled = token.isNotBlank() && !state.busy && !state.working(key)) { Text(str(R.string.text_review_9a1a906)) }
             if (state.session?.state == "no_account") TextButton(onClick = { manual = true }) { Text(str(R.string.text_create_binding_request_598bc7a)) }
         } else {
             LabelValue(str(R.string.text_account_id_43f0a66), current.required("account"))
+            if (stage == "bind_login") current.text("principal")?.let { LabelValue(str(R.string.join_identity), it) }
             current.text("code")?.let { LabelValue(str(R.string.join_code), it); Text(str(R.string.join_compare_hint)) }
             current.text("device_id")?.let { SelectionContainer { Text(it, style = MaterialTheme.typography.bodySmall) } }
             when (stage) {
@@ -128,7 +136,7 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
                     }
                     OutlinedButton(onClick = { client.login(open = openLogin) }, enabled = !state.busy) { Text(str(R.string.text_sign_in_with_internet_identity_4d3941e)) }
                 }
-                "bind_login", "device" -> Button(onClick = { check(true) }, enabled = !state.working(key)) {
+                "bind_login", "device" -> Button(onClick = { check(true) }, enabled = !state.busy && !state.working(key)) {
                     Text(str(if (stage == "bind_login") R.string.join_confirm else R.string.text_send_device_request_c245e0d))
                 }
                 else -> {
@@ -141,7 +149,7 @@ private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EX
         if (state.working(key)) LinearProgressIndicator(Modifier.fillMaxWidth())
         failure?.let {
             Notice(if (it == "EXPIRED") str(R.string.text_this_invitation_has_expired_ask_for_a_new_invitation_d58d62e) else errorText(it), true)
-            if (it != "EXPIRED") OutlinedButton(onClick = { paused = false; check(stage in setOf("waiting_login", "waiting_device", "authorized")) }) { Text(str(R.string.text_retry_563171c)) }
+            if (it != "EXPIRED") OutlinedButton(onClick = { paused = false; check(retryAdvance) }, enabled = !state.busy && !state.working(key)) { Text(str(R.string.text_retry_563171c)) }
         }
     }
 }

@@ -331,9 +331,12 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   methods['device/moved_list'] = () => []
   methods['device/saved_invitation'] = () => null
   const target = '040g2081040g2081040g'
+  const originalStatus = methods['daemon/status']
+  let principal = 'first-principal'
+  methods['daemon/status'] = () => ({ ...originalStatus(), principal })
   methods['device/join_invitation'] = p => ({
-    account: target, principal: 'new-principal', code:loginCandidate.code, expires_at:Date.now()+240000,
-    stage: p.invitation === 'other-login' ? 'other_account' : p.principal ? 'waiting_login' : 'bind_login',
+    account: target, principal, code:loginCandidate.code, expires_at:Date.now()+240000,
+    stage: p.invitation === 'other-login' && principal === 'first-principal' ? 'other_account' : p.principal ? 'waiting_login' : 'bind_login',
   })
   setSession('no_account'); emit('session/changed')
   const openJoin = main.getByTestId('open-account-invite')
@@ -373,20 +376,38 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   await openJoin.click(); await input.fill('other-login')
   await wizard.getByRole('button',{name:'Review',exact:true}).click()
   await wizard.getByText('This login belongs to another account. Choose a different login.').waitFor()
+  await wizard.getByRole('button', { name: 'Log in', exact: true }).click()
+  await main.locator('[data-testid="login-steps"][data-phase="browser"]').waitFor()
+  const originalLoginResult = methods['session/login_result']
+  principal = 'new-principal'
+  methods['session/login_result'] = () => ({ done: true, status: methods['daemon/status']() })
+  emit('session/changed')
+  emit('login/changed')
+  await wizard.getByText('new-principal').waitFor()
+  assert.equal(last('device/join_invitation').params.invitation, 'other-login')
+  assert.equal(last('device/join_invitation').params.principal, undefined)
+  methods['session/login_result'] = originalLoginResult
   await wizard.getByTestId('dialog-close').click()
 
-  // An expired invitation clears the stale waiting state back to the invitation input.
-  let failJoin = true
+  // Preview and confirmed submission retry the step that failed.
+  let failPreview = true, failSubmission = true
   methods['device/join_invitation'] = p => {
     if (p.invitation === 'expired-invite') throw { code: 'EXPIRED', message: 'Expired' }
-    if (failJoin) { failJoin = false; throw { code: 'UNAVAILABLE', message: 'Temporary' } }
-    return { account: target, principal: 'new-principal', code: loginCandidate.code, expires_at: Date.now() + 240000, stage: p.principal ? 'waiting_login' : 'bind_login' }
+    if (!p.principal && failPreview) { failPreview = false; throw { code: 'UNAVAILABLE', message: 'Temporary' } }
+    if (p.principal && failSubmission) { failSubmission = false; throw { code: 'UNAVAILABLE', message: 'Temporary' } }
+    return { account: target, principal, code: loginCandidate.code, expires_at: Date.now() + 240000, stage: p.principal ? 'waiting_login' : 'bind_login' }
   }
   await openJoin.click(); await input.fill('retry-preview')
   await wizard.getByRole('button', { name: 'Review', exact: true }).click()
   await wizard.getByRole('button', { name: 'Retry', exact: true }).click()
   await wizard.getByText(target).waitFor()
   assert.equal(last('device/join_invitation').params.principal, undefined)
+  const confirm = wizard.getByRole('button', { name: 'Use this login for this account and add this device', exact: true })
+  await confirm.click()
+  await wizard.getByRole('button', { name: 'Retry', exact: true }).click()
+  await wizard.getByText('Waiting for login approval').waitFor()
+  assert.equal(last('device/join_invitation').params.principal, principal)
+  assert.equal(last('device/join_invitation').params.bind_login, true)
   await wizard.getByTestId('dialog-close').click()
   await openJoin.click(); await input.fill('expired-invite')
   await wizard.getByRole('button', { name: 'Review', exact: true }).click()
@@ -407,6 +428,12 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   methods['device/pair_request'] = () => ({ ...preview(`joining-request-${++made}`), qr: vector.qr })
   methods['device/moved_list'] = () => []
   methods['recovery/status'] = () => ({ enabled: false })
+  methods['account/bind_accept'] = p => {
+    assert.equal(p.account, target)
+    setSession('pairing_required')
+    emit('session/changed')
+    return { state: 'pairing_required' }
+  }
   methods['session/unlock'] = p => {
     assert.equal(p.pairing_poll, true)
     if (++checks === 1) throw { code: 'NETWORK_UNAVAILABLE', message: 'Fixture connection interrupted' }
@@ -417,10 +444,8 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
     return null
   }
   await main.evaluate(async () => { await window.dmsg.setLocale('en') })
-  setSession('pairing_required')
-  emit('session/changed')
+  await main.getByTestId('join-account').getByRole('button', { name: 'Finish after an administrator approved', exact: true }).click()
   const generate = main.getByTestId('onboarding').getByTestId('pair-request')
-  await generate.click()
   await main.getByTestId('pair-token').filter({ hasText: 'joining-request-1' }).waitFor()
   await generate.focus()
   await main.keyboard.press('Enter')
@@ -431,4 +456,5 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   await main.getByText('Approved. Preparing your vault…', { exact: true }).waitFor()
   await waitFor(() => checks === 4)
   await main.getByTestId('welcome-finish').waitFor()
+  methods['daemon/status'] = originalStatus
 }

@@ -78,14 +78,19 @@ import kotlinx.coroutines.CancellationException
         Surface(Modifier.fillMaxSize().fileDropTarget(client, !state.concealed && (!state.unlocked || navigation.workspace == Workspace.FILES))) {
             when {
                 state.starting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                joiningAccount -> AccountJoinScreen(client, openLogin)
-                state.unlocked && route == "account-invite" -> Column(Modifier.fillMaxSize().systemBarsPadding()) {
-                    // Keep the invitation mounted while Android shows the system credential prompt.
-                    BackHandler { client.navigation.open("devices") }
-                    if (!state.concealed) TextButton(onClick = { client.navigation.open("devices") }) {
-                        Text(str(R.string.text_back_5db5cac))
+                joiningAccount || (state.unlocked && route == "account-invite") -> Box(Modifier.fillMaxSize()) {
+                    if (joiningAccount) AccountJoinScreen(client, openLogin)
+                    else Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                        // Keep the invitation mounted while Android shows the system credential prompt.
+                        BackHandler { client.navigation.open("devices") }
+                        if (!state.concealed) TextButton(onClick = { client.navigation.open("devices") }) {
+                            Text(str(R.string.text_back_5db5cac))
+                        }
+                        Box(Modifier.weight(1f)) { AccountInviteHostScreen(client) }
                     }
-                    Box(Modifier.weight(1f)) { AccountInviteHostScreen(client) }
+                    if (!state.concealed) {
+                        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding())
+                    }
                 }
                 state.concealed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.dmsg_mark), null, Modifier.size(52.dp)) }
                 !state.unlocked -> EntryScreen(client, state, browser, openLogin, snackbar)

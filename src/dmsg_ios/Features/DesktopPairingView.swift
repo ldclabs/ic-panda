@@ -24,6 +24,7 @@ struct DesktopPairingView: View {
     @State private var working = false
     @State private var paused = false
     @State private var expired = false
+    @State private var retryContinuation = false
     @State private var cameraDenied = false
     @State private var failure: String?
     private var token: String { invitation.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -34,6 +35,9 @@ struct DesktopPairingView: View {
             if let preview {
                 Section("Account") {
                     FingerprintRow(title: "Account ID", value: preview.account)
+                    if preview.stage == "bind_login", let principal = preview.principal {
+                        FingerprintRow(title: "Login identity", value: principal)
+                    }
                     if let code = preview.code { FingerprintRow(title: "Comparison code", value: code); Text("Check that both devices show the same code before approving.") }
                     if let device = preview.deviceId {
                         FingerprintRow(title: "Device ID", value: groupedFingerprint(device))
@@ -82,7 +86,7 @@ struct DesktopPairingView: View {
             if expired { NoticeBar(text: String(localized: "This request has expired")) }
             if let failure { NoticeBar(text: failure) }
             if (paused && !expired) || failure != nil {
-                Button("Retry") { Task { paused = false; await check(continueJoin: waiting) } }
+                Button("Retry") { Task { paused = false; await check(continueJoin: retryContinuation) } }
             }
             if preview != nil || expired {
                 Button("Scan invitation") { preview = nil; failure = nil; expired = false; paused = false; invitation = ""; Task { await scan() } }
@@ -121,10 +125,12 @@ struct DesktopPairingView: View {
     }
 
     private func check(continueJoin: Bool = false) async {
-        guard !working else { return }
+        guard !working, !token.isEmpty else { return }
+        retryContinuation = continueJoin
         working = true; defer { working = false }
         let input = token
         failure = nil
+        expired = false
         do {
             #if DEBUG
             if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-pairing-expiry") {
@@ -135,24 +141,28 @@ struct DesktopPairingView: View {
             #endif
             guard let engine = model.engine else { return }
             if continueJoin, model.session?.principal == preview?.principal, ["authorized", "waiting_device"].contains(preview?.stage ?? "") {
-                _ = try await engine.refreshAccount()
+                do { _ = try await engine.refreshAccount() }
+                catch { await model.updateSession(); throw error }
                 await model.updateSession()
+                guard input == token, !Task.isCancelled, model.showingJoinAccount else { return }
                 if model.unlocked && model.session?.account == preview?.account { dismiss(); return }
                 if model.session?.state == "root_required" { return }
             }
             let result = try await engine.accountInvitation(invitation: input, principal: continueJoin ? preview?.principal : nil, bindLogin: continueJoin && preview?.stage == "bind_login")
-            guard input == token, !Task.isCancelled else { return }
+            guard input == token, !Task.isCancelled, model.showingJoinAccount else { return }
             let next: Preview = try model.decode(result)
             preview = next
             paused = false
             await model.updateSession()
             if next.stage == "authorized", model.unlocked, model.session?.account == next.account { dismiss() }
         } catch {
-            guard !Task.isCancelled, token == input else { return }
+            guard !Task.isCancelled, token == input, model.showingJoinAccount else { return }
             if let err = error as? MobileError, case .Failure(let code) = err {
                 if code == "EXPIRED" { expired = true; preview = nil; paused = true; return }
                 if ["AUTH_REQUIRED", "LOGIN_EXPIRED"].contains(code), preview != nil {
-                    preview?.stage = "sign_in"; preview?.principal = nil; return
+                    preview?.stage = "sign_in"; preview?.principal = nil; preview?.code = nil; preview?.deviceId = nil
+                    paused = true
+                    return
                 }
                 paused = !["UNAVAILABLE", "NETWORK_UNAVAILABLE", "EXECUTION_UNKNOWN", "POLICY_STALE", "SYNC_BUSY"].contains(code)
             } else { paused = true }

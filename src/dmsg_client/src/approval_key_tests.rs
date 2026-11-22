@@ -876,3 +876,23 @@ fn invitation_route_rejects_revoked_device_and_routes_handoff() {
         Err(Error::DeviceNotApproved)
     );
 }
+
+#[test]
+fn scanning_an_expired_login_binding_preserves_the_expiry_error() {
+    let dir = TempDir::new();
+    let software = Arc::new(Software::default());
+    let (client, _) = client(&dir, &software, None);
+    let account = client.account().unwrap();
+    let token = crate::codec::b64(&crate::codec::canonical(&crate::security::AuthPacket {
+        format: crate::security::AUTH_REQUEST.into(),
+        home: account.home,
+        account: account.id,
+        principal: candid::Principal::from_slice(&[42; 29]),
+        nonce: Hash::new([55; 32]),
+        expires_at: crate::now_ms() - 1,
+    }));
+    assert_eq!(
+        client.device_request_view(&state(info(&client, None, &[])), &token),
+        Err(Error::Expired)
+    );
+}
