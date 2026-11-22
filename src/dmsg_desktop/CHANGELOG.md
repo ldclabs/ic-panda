@@ -6,6 +6,20 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.6.0-beta.2] - 2026-11-22
+
+- Open an existing account on a new device with one encrypted invitation. If
+  the login is new to the account, an administrator reviews the login first
+  and the device second. A phone can scan requests shown on a desktop.
+- Keep the invitation through sign-in and resume confirmed requests after
+  temporary failures. Device authorization can finish in the same unlocked
+  session when the account key arrives.
+- Resume sync after another device rotates the account key. Verify the new
+  key before retrying pending writes, and preserve Mail key deletions made
+  while the workspace was locked.
+- Load cached avatars immediately and fetch missing images in parallel.
+  Participants who share an avatar URL use the same download.
+
 ## [1.6.0-beta.1] - 2026-11-20
 
 - Use the vault and files with a standalone local account and review imports
@@ -950,6 +964,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.6.0-beta.2]: https://github.com/ldclabs/ic-panda/compare/1.6.0-beta.1...1.6.0-beta.2
 [1.6.0-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.5.10...1.6.0-beta.1
 [1.5.10-beta.1]: https://github.com/ldclabs/ic-panda/compare/1.5.9...1.5.10-beta.1
 [1.5.7]: https://github.com/ldclabs/ic-panda/compare/1.5.6...1.5.7

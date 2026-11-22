@@ -5,6 +5,31 @@ independently of the desktop and CLI release. TestFlight build numbers are
 tracked separately. Build and device-test evidence is recorded in
 [`VALIDATION.md`](VALIDATION.md).
 
+## 1.2.4
+
+### Build 37 — 2026-11-22
+
+- Scan or paste an encrypted invitation to open an existing account. If the
+  login is already linked, only the device needs approval. For a new login,
+  an administrator reviews the login and device in two separate steps.
+- Resume a confirmed pairing request after a temporary connection failure.
+  If the workspace locks during pairing, return to the unlock screen.
+- Resume sync when another device rotates the account key, including retrying
+  pending writes after verifying the new key.
+- Show participant names while avatars load in parallel, and reuse decoded
+  thumbnails when the image is unchanged.
+- Include the local creation date and time in new passkey names so they are
+  easier to tell apart in the credential picker.
+
+### Build 36 — 2026-11-21
+
+- Use the vault and files in an encrypted, device-local workspace. Review
+  entries and file versions before importing them into a service account.
+- Create and manage sharing links from the vault item itself. See which
+  fields are included and how many downloads the link allows.
+- Keep confirmed approval results visible if the next refresh fails, and
+  show translated vault backup and import instructions in all app languages.
+
 ## 1.2.3
 
 ### Build 35 — 2026-11-19
