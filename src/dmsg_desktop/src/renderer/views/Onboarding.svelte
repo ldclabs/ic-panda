@@ -131,7 +131,7 @@
         <div class="grid gap-2 py-2">
         <p class="text-[12.5px] text-muted">{t('joinAccountHint')}</p>
         <div class="flex flex-wrap items-end gap-2">
-          <TextField label={t('accountId')} bind:value={account} oninput={() => (token = '')} mono disabled={busy} class="min-w-48 flex-1" data-testid="bind-account" />
+          <TextField label={t('accountId')} bind:value={account} oninput={() => { token = ''; bindingQr = '' }} mono disabled={busy} class="min-w-48 flex-1" data-testid="bind-account" />
           <button class={buttonClass('secondary')} disabled={busy || !account.trim()} onclick={bindRequest}>{t(token ? 'refresh' : 'bindRequest')}</button>
         </div>
         {#if token}

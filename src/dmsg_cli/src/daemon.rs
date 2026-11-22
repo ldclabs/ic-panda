@@ -1858,13 +1858,31 @@ impl Daemon {
             }
             "device/pair_inspect" => self.device_request_preview(&text(params, "token")?).await,
             "device/join_invitation" => {
-                dmsg_client::pairing::account_invitation(
-                    &self.hold(),
+                let h = self.hold();
+                let before = h
+                    .with(|c| {
+                        let s = c.session_state();
+                        Ok((s.state, s.account))
+                    })
+                    .await?;
+                let result = dmsg_client::pairing::account_invitation(
+                    &h,
                     &text(params, "invitation")?,
                     params["principal"].as_str(),
                     params["bind_login"] == true,
                 )
-                .await
+                .await;
+                if let Ok(after) = h
+                    .with(|c| {
+                        let s = c.session_state();
+                        Ok((s.state, s.account))
+                    })
+                    .await
+                    && after != before
+                {
+                    self.emit("session/changed", json!({"state": after.0}));
+                }
+                result
             }
             "device/saved_invitation" => Ok(json!(
                 self.hold()

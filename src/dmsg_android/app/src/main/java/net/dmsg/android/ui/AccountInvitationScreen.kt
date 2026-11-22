@@ -12,10 +12,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import net.dmsg.android.R
 import net.dmsg.android.core.*
 import net.dmsg.android.platform.str
 import net.dmsg.core.PasskeyOperation
+
+private val transientPollCodes = setOf("UNAVAILABLE", "NETWORK_UNAVAILABLE", "EXECUTION_UNKNOWN", "SYNC_BUSY", "POLICY_STALE")
 
 @Composable internal fun AccountJoinScreen(client: ClientController, openLogin: (String) -> Unit) {
     val state by client.state.collectAsStateWithLifecycle()
@@ -31,7 +34,15 @@ import net.dmsg.core.PasskeyOperation
     fun close() { client.showAccountInvitation(false) }
     fun failed(code: String) {
         failure = code
-        paused = code !in setOf("UNAVAILABLE", "EXECUTION_UNKNOWN", "SYNC_BUSY", "POLICY_STALE")
+        if (code == "EXPIRED") {
+            view = null
+            paused = true
+        } else if (code in setOf("AUTH_REQUIRED", "LOGIN_EXPIRED") && view != null) {
+            view = JsonObject(view!!.filterKeys { it != "principal" } + ("stage" to JsonPrimitive("sign_in")))
+            paused = true
+        } else {
+            paused = code !in transientPollCodes
+        }
     }
     fun check(advance: Boolean = false) {
         val input = token.trim()
@@ -49,7 +60,11 @@ import net.dmsg.core.PasskeyOperation
         } else {
             client.perform({ it.accountInvitation(input, if (advance) current?.text("principal") else null, advance && phase == "bind_login").decode().objectValue() },
                 key = key, quiet = true, onError = ::failed) { next ->
-                if (token.trim() == input) { view = next; failure = null }
+                if (token.trim() == input) {
+                    view = next
+                    failure = null
+                    if (next.text("stage") == "authorized" && state.unlocked && state.session?.account == next.text("account")) close()
+                }
             }
         }
     }
@@ -104,6 +119,8 @@ import net.dmsg.core.PasskeyOperation
                 "sign_in", "other_account", "linked_login_required" -> {
                     if (stage == "other_account") {
                         Notice(str(R.string.join_other)); current.text("current_account")?.let { SelectionContainer { Text(it) } }
+                    } else if (stage == "linked_login_required") {
+                        Notice(str(R.string.access_linked_login))
                     }
                     if (state.session?.passkeyAvailable == true) {
                         Button(onClick = { client.passkey() }, enabled = !state.busy) { Text(str(R.string.access_existing_passkey)) }
@@ -123,8 +140,8 @@ import net.dmsg.core.PasskeyOperation
         }
         if (state.working(key)) LinearProgressIndicator(Modifier.fillMaxWidth())
         failure?.let {
-            Notice(errorText(it), true)
-            OutlinedButton(onClick = { paused = false; check(stage in setOf("waiting_login","waiting_device","authorized")) }) { Text(str(R.string.text_retry_563171c)) }
+            Notice(if (it == "EXPIRED") str(R.string.text_this_invitation_has_expired_ask_for_a_new_invitation_d58d62e) else errorText(it), true)
+            if (it != "EXPIRED") OutlinedButton(onClick = { paused = false; check(stage in setOf("waiting_login", "waiting_device", "authorized")) }) { Text(str(R.string.text_retry_563171c)) }
         }
     }
 }
@@ -137,40 +154,64 @@ import net.dmsg.core.PasskeyOperation
     var loginDone by remember { mutableStateOf(false) }
     var finished by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var pollWarning by remember { mutableStateOf<String?>(null) }
     var turn by remember { mutableIntStateOf(0) }
     var alive by remember { mutableStateOf(true) }
     val key = "devices:account-invite"
+    fun cancelOnRelay(id: String?) {
+        id?.let { client.perform({ core -> core.cancelAccountInvitation(it) }, quiet = true) }
+    }
+    fun pollError(id: String, code: String) {
+        if (code in transientPollCodes) {
+            pollWarning = code
+        } else {
+            pollWarning = null
+            receipt = null
+            candidate = null
+            error = code
+            cancelOnRelay(id)
+        }
+    }
     DisposableEffect(Unit) {
         alive = true
         onDispose {
             alive = false
-            invite?.text("id")?.let { id -> client.perform({ it.cancelAccountInvitation(id) }, quiet = true) }
+            cancelOnRelay(invite?.text("id"))
         }
     }
     LaunchedEffect(turn) {
-        val previous = invite?.text("id")
-        invite = null; candidate = null; receipt = null; finished = false; loginDone = false; error = null
-        client.perform({ if (previous != null) it.cancelAccountInvitation(previous); it.startAccountInvitation().decode().objectValue() },
+        invite = null; candidate = null; receipt = null; finished = false; loginDone = false; error = null; pollWarning = null
+        // Core's InvitationHost cancels any previous invitation before creating the next one.
+        client.perform({ it.startAccountInvitation().decode().objectValue() },
             key = key, onError = { error = it }) { value ->
             if (alive) invite = value
-            else value.text("id")?.let { id -> client.perform({ it.cancelAccountInvitation(id) }, quiet = true) }
+            else cancelOnRelay(value.text("id"))
         }
     }
     LaunchedEffect(invite, finished, error, state.concealed) {
         val id = invite?.text("id") ?: return@LaunchedEffect
         while (!finished && error == null && !state.concealed) {
             delay(2000)
+            if (client.isWorking(key)) continue
             val pending = receipt
             if (pending != null) {
-                client.perform({ it.approval(pending).decode().objectValue().required("state") }, key = key, quiet = true, onError = { error = it }) { result ->
+                client.perform({ it.approval(pending).decode().objectValue().required("state") }, key = key, quiet = true, onError = { pollError(id, it) }) { result ->
+                    pollWarning = null
                     if (result == "done") {
-                        if (candidate?.text("kind") == "login_binding") loginDone = true else finished = true
+                        if (candidate?.text("kind") == "login_binding") loginDone = true
+                        else { finished = true; cancelOnRelay(id) }
                         receipt = null; candidate = null
-                    } else if (result in setOf("failed","rejected","expired","cancelled")) { error = result.uppercase(); receipt = null }
+                    } else if (result in setOf("failed", "rejected", "expired", "cancelled")) {
+                        receipt = null; candidate = null; error = "PAIR_REFRESH"
+                        cancelOnRelay(id)
+                    }
                 }
             } else if (candidate == null) {
                 client.perform({ it.accountInvitationStatus(id).decode().objectValue()["candidate"] as? JsonObject },
-                    key = key, quiet = true, onError = { error = it }) { if (!loginDone || it?.text("kind") != "login_binding") candidate = it }
+                    key = key, quiet = true, onError = { pollError(id, it) }) {
+                    pollWarning = null
+                    if (!loginDone || it?.text("kind") != "login_binding") candidate = it
+                }
             }
         }
     }
@@ -181,9 +222,13 @@ import net.dmsg.core.PasskeyOperation
         return
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        pollWarning?.let { Notice(errorText(it), true) }
         val shown = candidate
         when {
-            error != null -> { Notice(errorText(error!!), true); Button(onClick = { turn++ }) { Text(str(R.string.text_retry_563171c)) } }
+            error != null -> {
+                Notice(if (error in setOf("PAIR_REFRESH", "EXPIRED", "VERSION_CONFLICT")) str(R.string.pair_refresh_request) else errorText(error!!), true)
+                Button(onClick = { turn++ }) { Text(str(R.string.text_retry_563171c)) }
+            }
             invite?.text("route") == "handoff" -> {
                 val admins = invite?.strings("approvers").orEmpty()
                 Notice(str(if (admins.isEmpty()) R.string.pair_no_approver else R.string.pair_continue_elsewhere))
@@ -201,7 +246,7 @@ import net.dmsg.core.PasskeyOperation
                         val token = shown.required("token")
                         (if (shown.text("kind") == "login_binding") core.reviewBinding(token)
                          else core.approvePairingRequest(token, shown.required("device_id"))).decode().objectValue().required("id")
-                    }, key = key, onError = { error = it }) { receipt = it }
+                    }, key = key, onError = { error = if (it in setOf("EXPIRED", "VERSION_CONFLICT")) "PAIR_REFRESH" else it }) { receipt = it }
                 }, enabled = !state.working(key)) { Text(str(R.string.text_review_9a1a906)) }
             }
             loginDone -> Notice(str(R.string.join_wait_device))

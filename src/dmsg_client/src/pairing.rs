@@ -265,23 +265,81 @@ impl Receiver {
         )
     }
 
-    fn candidate(&self, c: &Client, value: &Value, now: u64) -> Result<Value> {
+    fn candidate_with_device(
+        &self,
+        c: &Client,
+        value: &Value,
+        now: u64,
+    ) -> Result<(Value, Option<dmsg_types::user::DeviceInput>)> {
         self.check_client(c, now)?;
         Self::check_metadata(&self.invitation, value)?;
-        let candidate = match value.get("sealed").ok_or(Error::IntegrityFailed)? {
-            Value::Null => Value::Null,
+        let (candidate, device) = match value.get("sealed").ok_or(Error::IntegrityFailed)? {
+            Value::Null => (Value::Null, None),
             Value::String(text) => {
                 ensure(text.len() <= MAX_SEALED * 4 / 3 + 4, Error::QuotaExceeded)?;
                 let token = self.invitation.open(&unb64(text)?)?;
-                let mut preview = c.pairing_preview_at(&token, now)?;
-                preview["token"] = json!(token);
-                preview
+                let pairing = c.inspect_pairing_at(&token, now)?;
+                let preview = json!({
+                    "device_id": hex::encode(*pairing.device.device_id),
+                    "role": pairing.device.role,
+                    "capabilities": pairing.device.capabilities,
+                    "account": pairing.account.to_string(),
+                    "expires_at": pairing.mutation.approval.expires_at,
+                    "token": token,
+                });
+                (preview, Some(pairing.device))
             }
             _ => return Err(Error::IntegrityFailed),
         };
-        Ok(
+        Ok((
             json!({"id": self.id(), "expires_at": self.invitation.expires_at, "candidate": candidate}),
-        )
+            device,
+        ))
+    }
+
+    #[cfg(test)]
+    fn candidate(&self, c: &Client, value: &Value, now: u64) -> Result<Value> {
+        self.candidate_with_device(c, value, now)
+            .map(|(view, _)| view)
+    }
+
+    fn resolve_dual(
+        &self,
+        c: &Client,
+        slot: &Invitation,
+        device: &Value,
+        login: &Value,
+        bound: Option<&[Principal]>,
+        now: u64,
+    ) -> Result<Value> {
+        let (mut result, parsed_device) = self.candidate_with_device(c, device, now)?;
+        let encoded = login.get("sealed").ok_or(Error::IntegrityFailed)?;
+        if let Some(text) = encoded.as_str() {
+            ensure(text.len() <= MAX_SEALED * 4 / 3 + 4, Error::QuotaExceeded)?;
+            let binding =
+                account_join::inspect_reply(c, &self.invitation, &slot.open(&unb64(text)?)?, now)?;
+            let candidate = &mut result["candidate"];
+            if let Some(parsed_device) = parsed_device {
+                ensure(parsed_device == binding.device, Error::IntegrityFailed)?;
+                if bound.is_some_and(|logins| logins.contains(&binding.principal)) {
+                    candidate["code"] = json!(binding.code);
+                } else {
+                    *candidate = binding.view();
+                }
+            } else {
+                *candidate = binding.view();
+            }
+        } else {
+            ensure(encoded.is_null(), Error::IntegrityFailed)?;
+            if let Some(parsed_device) = parsed_device {
+                result["candidate"]["code"] = json!(account_join::comparison(
+                    &self.invitation,
+                    None,
+                    &parsed_device,
+                ));
+            }
+        }
+        Ok(result)
     }
 
     /// Read and decrypt the single candidate with fresh device authentication.
@@ -290,7 +348,12 @@ impl Receiver {
     pub async fn status<H: Hold>(&self, h: &H) -> Result<Value> {
         let device = self.read(h, &self.invitation).await?;
         let Some(slot) = self.invitation.binding_slot() else {
-            return h.with(|c| self.candidate(c, &device, now_ms())).await;
+            return h
+                .with(|c| {
+                    self.candidate_with_device(c, &device, now_ms())
+                        .map(|(view, _)| view)
+                })
+                .await;
         };
         let login = self.read(h, &slot).await?;
         let bound = if device["sealed"].is_string() && login["sealed"].is_string() {
@@ -298,45 +361,8 @@ impl Receiver {
         } else {
             None
         };
-        h.with(|c| {
-            let now = now_ms();
-            let mut result = self.candidate(c, &device, now)?;
-            let encoded = login.get("sealed").ok_or(Error::IntegrityFailed)?;
-            if let Some(text) = encoded.as_str() {
-                ensure(text.len() <= MAX_SEALED * 4 / 3 + 4, Error::QuotaExceeded)?;
-                let binding =
-                    account_join::inspect_reply(c, &self.invitation, &slot.open(&unb64(text)?)?)?;
-                let candidate = &mut result["candidate"];
-                if let Some(token) = candidate["token"].as_str() {
-                    ensure(
-                        c.inspect_pairing(token)?.device == binding.device,
-                        Error::IntegrityFailed,
-                    )?;
-                    if bound
-                        .as_ref()
-                        .is_some_and(|logins| logins.contains(&binding.principal))
-                    {
-                        candidate["code"] = json!(binding.code);
-                    } else {
-                        *candidate = binding.view();
-                    }
-                } else {
-                    *candidate = binding.view();
-                }
-            } else {
-                ensure(encoded.is_null(), Error::IntegrityFailed)?;
-                let candidate = &mut result["candidate"];
-                if let Some(token) = candidate["token"].as_str() {
-                    candidate["code"] = json!(account_join::comparison(
-                        &self.invitation,
-                        None,
-                        &c.inspect_pairing(token)?.device
-                    ));
-                }
-            }
-            Ok(result)
-        })
-        .await
+        h.with(|c| self.resolve_dual(c, &slot, &device, &login, bound.as_deref(), now_ms()))
+            .await
     }
 
     async fn read<H: Hold>(&self, h: &H, slot: &Invitation) -> Result<Value> {

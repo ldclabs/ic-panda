@@ -922,6 +922,7 @@ impl Client {
     }
 
     pub(crate) fn invitation_route(&self, state: &crate::account::AccountState) -> Result<Json> {
+        state.active(&self.workspace.meta.device_id)?;
         let mut view = json!({"account":state.info.account_id.to_string()});
         self.approval_route(
             state,

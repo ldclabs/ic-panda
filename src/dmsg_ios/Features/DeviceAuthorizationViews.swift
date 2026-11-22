@@ -323,7 +323,7 @@ struct AccountInvitationHostView: View {
 
     private func watch() async {
         guard let engine = model.engine else { return }
-        invite = nil; candidate = nil; receipt = nil; finished = false; completedLogin = false; failure = nil
+        invite = nil; candidate = nil; receipt = nil; approval = nil; finished = false; completedLogin = false; failure = nil
         var id: String?
         defer { if let id { Task { try? await engine.cancelAccountInvitation(id: id) } } }
         do {
@@ -332,34 +332,59 @@ struct AccountInvitationHostView: View {
             guard !Task.isCancelled else { return }
             invite = result
             guard let id else { return }
+            let transient: Set<String> = ["UNAVAILABLE", "NETWORK_UNAVAILABLE", "EXECUTION_UNKNOWN", "POLICY_STALE", "SYNC_BUSY"]
             while !Task.isCancelled && !finished {
                 try await Task.sleep(for: .seconds(2))
                 guard scenePhase == .active, !working else { continue }
-                if let receipt {
-                    let status: ApprovalView = try model.decode(try await engine.approval(id: receipt.id))
-                    if status.state == "done" {
-                        if candidate?.kind == "login_binding" { completedLogin = true } else { finished = true }
-                        self.receipt = nil; candidate = nil
-                    } else if ["rejected","cancelled","expired","failed"].contains(status.state) {
-                        failure = String(localized: "Refresh the request on the joining device and scan it again."); return
+                do {
+                    if let receipt {
+                        let status: ApprovalView = try model.decode(try await engine.approval(id: receipt.id))
+                        failure = nil
+                        if status.state == "done" {
+                            if candidate?.kind == "login_binding" { completedLogin = true } else { finished = true }
+                            self.receipt = nil; candidate = nil
+                        } else if ["rejected", "cancelled", "expired", "failed"].contains(status.state) {
+                            self.receipt = nil; candidate = nil; approval = nil; invite = nil
+                            failure = String(localized: "Refresh the request on the joining device and scan it again."); return
+                        }
+                    } else if candidate == nil {
+                        let result: Invite = try model.decode(try await engine.accountInvitationStatus(id: id))
+                        failure = nil
+                        if result.candidate?.kind != "login_binding" || !completedLogin { candidate = result.candidate }
                     }
-                } else if candidate == nil {
-                    let result: Invite = try model.decode(try await engine.accountInvitationStatus(id: id))
-                    if result.candidate?.kind != "login_binding" || !completedLogin { candidate = result.candidate }
+                } catch let err as MobileError where !Task.isCancelled {
+                    if case .Failure(let code) = err, transient.contains(code) {
+                        model.reportBackground(err)
+                        try await Task.sleep(for: .seconds(3))
+                        continue
+                    }
+                    throw err
                 }
             }
         } catch {
-            if !Task.isCancelled { model.report(error); failure = model.error }
+            if !Task.isCancelled {
+                invite = nil; candidate = nil; receipt = nil
+                model.report(error)
+                failure = model.error
+            }
         }
     }
 
     private func review(_ candidate: Candidate) async {
         guard !working, let engine = model.engine else { return }
         working = true; defer { working = false }
+        failure = nil
         do {
             let result = candidate.kind == "login_binding" ? try await engine.reviewBinding(token: candidate.token) : try await engine.approvePairingRequest(token: candidate.token, device: candidate.deviceId)
             receipt = try model.decode(result)
             approval = receipt
-        } catch { model.report(error) }
+        } catch {
+            if let err = error as? MobileError, case .Failure(let code) = err, ["EXPIRED", "VERSION_CONFLICT"].contains(code) {
+                failure = String(localized: "Refresh the request on the joining device and scan it again.")
+            } else {
+                model.report(error)
+                failure = model.error
+            }
+        }
     }
 }

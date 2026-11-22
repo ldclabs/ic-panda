@@ -269,6 +269,10 @@ impl Client {
     /// # Errors
     /// A token for another home or account, or an expired one, is refused.
     pub fn inspect_binding(&self, token: &str) -> Result<BindingRequest> {
+        self.inspect_binding_at(token, now_ms())
+    }
+
+    pub(crate) fn inspect_binding_at(&self, token: &str, now: u64) -> Result<BindingRequest> {
         ensure(token.len() <= 1024, Error::QuotaExceeded)?;
         let packet: AuthPacket = decode(&unb64(token)?, 1024)?;
         let account = self.account()?;
@@ -278,7 +282,6 @@ impl Client {
                 && packet.account == account.id,
             Error::IntegrityFailed,
         )?;
-        let now = now_ms();
         ensure(
             packet.expires_at > now && packet.expires_at <= now + REQUEST_MS,
             Error::Expired,

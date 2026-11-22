@@ -1056,7 +1056,7 @@ impl Client {
         self.inspect_pairing_at(token, now_ms())
     }
 
-    fn inspect_pairing_at(&self, token: &str, now: u64) -> Result<PairingRequest> {
+    pub(crate) fn inspect_pairing_at(&self, token: &str, now: u64) -> Result<PairingRequest> {
         ensure(token.len() <= 4096, Error::QuotaExceeded)?;
         let packet: Pairing = decode(&unb64(token)?, 4096)?;
         let account = self.account()?;

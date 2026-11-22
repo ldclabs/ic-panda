@@ -338,3 +338,134 @@ fn invitation_qr_and_encrypted_relay_vector_round_trip() {
         view["token"].as_str().unwrap()
     );
 }
+
+#[test]
+fn v3_invitation_parsing_and_dual_mailbox_resolution() {
+    #[derive(Serialize)]
+    struct Reply {
+        token: String,
+        device: dmsg_types::user::DeviceInput,
+        proof: Ed25519Signature,
+    }
+    let now = now_ms();
+    let old_dir = TempDir::new();
+    let new_dir = TempDir::new();
+    let other_dir = TempDir::new();
+    let old = unlocked(&old_dir.0, false, None);
+    let new = unlocked(&new_dir.0, false, None);
+    let other = unlocked(&other_dir.0, false, None);
+    let mut host = receiver(&old);
+    host.invitation.expires_at = now + account::APPROVAL_MS;
+    host.invitation.binding = Some(BindingMailbox {
+        invite_id: Hash::new([9; 32]),
+        key: Hash::new([73; 32]),
+        submit_token: Hash::new([74; 32]),
+    });
+    let token = host.view().unwrap()["token"].as_str().unwrap().to_owned();
+    assert!(token.starts_with(ACCOUNT_PREFIX));
+    assert!(Invitation::parse(&token, now).is_ok());
+    // Prefix and binding presence must agree, and mailbox IDs must be distinct.
+    assert_eq!(
+        Invitation::parse(&token.replacen("/3:", "/2:", 1), now).err(),
+        Some(Error::IntegrityFailed)
+    );
+    let mut duplicate = host.invitation.clone();
+    duplicate.binding.as_mut().unwrap().invite_id = duplicate.invite_id;
+    let bad = format!("{ACCOUNT_PREFIX}{}", b64(&canonical(&duplicate)));
+    assert_eq!(
+        Invitation::parse(&bad, now).err(),
+        Some(Error::IntegrityFailed)
+    );
+
+    let slot = host.invitation.binding_slot().unwrap();
+    let principal = Principal::from_slice(&[42; 29]);
+    let account = old.account().unwrap();
+    let earlier = host.invitation.expires_at - 10_000;
+    let auth_token = b64(&canonical(&crate::security::AuthPacket {
+        format: crate::security::AUTH_REQUEST.into(),
+        home: account.home,
+        account: account.id,
+        principal,
+        nonce: Hash::new([55; 32]),
+        expires_at: earlier,
+    }));
+    let device_input = new.workspace.device_input(ControllerRole::Administrator);
+    let proof_msg = digest(
+        "dmsg/invited-login/v1",
+        &(host.invitation.invite_id, &auth_token, &device_input),
+    );
+    let login_payload = b64(&canonical(&Reply {
+        token: auth_token.clone(),
+        device: device_input.clone(),
+        proof: Ed25519Signature::new(sign(&new.keys().unwrap().signing, proof_msg.as_slice())),
+    }));
+    let login_sealed = json!({
+        "id": hex::encode(*slot.invite_id),
+        "expires_at": slot.expires_at,
+        "sealed": b64(&slot.seal(&login_payload, &[19; 12]).unwrap()),
+    });
+    let empty_device = json!({
+        "id": host.id(),
+        "expires_at": host.invitation.expires_at,
+        "sealed": Value::Null,
+    });
+    let empty_login = json!({
+        "id": hex::encode(*slot.invite_id),
+        "expires_at": slot.expires_at,
+        "sealed": Value::Null,
+    });
+
+    // Login reply alone shows login_binding with capped expiry and comparison code.
+    let login_only = host
+        .resolve_dual(&old, &slot, &empty_device, &login_sealed, None, now)
+        .unwrap();
+    let expected_code = account_join::comparison(&host.invitation, Some(principal), &device_input);
+    assert_eq!(login_only["candidate"]["kind"], "login_binding");
+    assert_eq!(login_only["candidate"]["principal"], principal.to_text());
+    assert_eq!(login_only["candidate"]["expires_at"], earlier);
+    assert_eq!(login_only["candidate"]["code"], expected_code);
+
+    // Matching device reply stays on login_binding until principal is bound, then advances with the same code.
+    let device_token = request(&new, account.id);
+    let device_sealed = delivery(&host, &device_token);
+    let still_unbound = host
+        .resolve_dual(&old, &slot, &device_sealed, &login_sealed, Some(&[]), now)
+        .unwrap();
+    assert_eq!(still_unbound["candidate"]["kind"], "login_binding");
+    let now_bound = host
+        .resolve_dual(
+            &old,
+            &slot,
+            &device_sealed,
+            &login_sealed,
+            Some(&[principal]),
+            now,
+        )
+        .unwrap();
+    assert_eq!(now_bound["candidate"]["token"], device_token);
+    assert_eq!(now_bound["candidate"]["code"], expected_code);
+
+    // A device reply for a different device than the signed login reply is refused.
+    let other_device = delivery(&host, &request(&other, account.id));
+    assert_eq!(
+        host.resolve_dual(
+            &old,
+            &slot,
+            &other_device,
+            &login_sealed,
+            Some(&[principal]),
+            now,
+        ),
+        Err(Error::IntegrityFailed)
+    );
+
+    // An already-linked login submits only the device mailbox and gets its null-principal code.
+    let linked_only = host
+        .resolve_dual(&old, &slot, &device_sealed, &empty_login, None, now)
+        .unwrap();
+    assert_eq!(linked_only["candidate"]["token"], device_token);
+    assert_eq!(
+        linked_only["candidate"]["code"],
+        account_join::comparison(&host.invitation, None, &device_input)
+    );
+}

@@ -62,7 +62,7 @@ import java.security.MessageDigest
     fun check(manual: Boolean = false) {
         if (state.busy || state.concealed || needsLogin || client.qr.state.value is QrRequest) return
         // The refresh transition cancels other operations in progress.
-        if (client.isWorking("access:pair-request") || client.isWorking("access:invitation")) return
+        if (client.isWorking("access:pair-request")) return
         if (!manual && (!polling || state.session?.state !in setOf("pairing_required", "root_required"))) return
         if (manual) polling = true
         client.perform({ it.refreshAccount() }, transition = true, userInitiated = manual, onError = { code ->
@@ -98,7 +98,7 @@ import java.security.MessageDigest
         if (needsLogin) TextButton(onClick = { client.showAccess(AccessPage.WELCOME) }) { Text(str(R.string.text_return_to_sign_in_b22d5c4)) }
         else OutlinedButton(
             onClick = { check(manual = true) },
-            enabled = !state.busy && !state.working("access:pair-request") && !state.working("access:invitation")
+            enabled = !state.busy && !state.working("access:pair-request")
         ) {
             Text(str(if (!polling || state.session?.state == "locked") R.string.text_unlock_workspace_ec9cb2a else R.string.text_check_authorization_039f8a2))
         }

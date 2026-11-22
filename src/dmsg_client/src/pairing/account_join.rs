@@ -64,9 +64,10 @@ pub(super) fn inspect_reply(
     c: &Client,
     invite: &Invitation,
     encoded: &str,
+    now: u64,
 ) -> Result<ReviewedLogin> {
     let reply: LoginReply = decode(&unb64(encoded)?, 3072)?;
-    let binding = c.inspect_binding(&reply.token)?;
+    let binding = c.inspect_binding_at(&reply.token, now)?;
     reply.device.validate()?;
     verify(
         &reply.device.signing_pub,
@@ -78,7 +79,7 @@ pub(super) fn inspect_reply(
         token: reply.token,
         device: reply.device,
         principal: binding.principal,
-        expires_at: invite.expires_at,
+        expires_at: invite.expires_at.min(binding.expires_at),
         code,
     })
 }
@@ -151,24 +152,28 @@ pub async fn account_invitation<H: Hold>(
                 c.config.relay.trim_end_matches('/') == invite.relay,
                 Error::IntegrityFailed,
             )?;
-            Ok(c.session().is_ok() && c.keys().is_ok())
+            Ok(c.session().is_ok())
         })
         .await?;
     if !signed_in {
         ensure(consent.is_none(), Error::AuthRequired)?;
         return Ok(view);
     }
-    let session = Session::new(h).await?;
-    let (ic, principal, handle, pins, saved) = session
+    let (generation, ic, principal, handle, pins, saved) = h
         .with(|c| {
             let login = c.session()?;
             ensure(
                 consent.is_none_or(|s| s == login.principal.to_text()),
                 Error::AuthRequired,
             )?;
-            let saved = Delivery::load(c)?
-                .filter(|d| d.invitation == token && d.principal == login.principal);
+            let saved = if c.keys().is_ok() {
+                Delivery::load(c)?
+                    .filter(|d| d.invitation == token && d.principal == login.principal)
+            } else {
+                None
+            };
             Ok((
+                c.session_generation,
                 login.ic.clone(),
                 login.principal,
                 c.config.handle,
@@ -191,22 +196,31 @@ pub async fn account_invitation<H: Hold>(
         view["current_account"] = json!(account.to_string());
         return Ok(view);
     }
-    let mut peers = session.with(|c| Ok(c.peers_of(&[invite.account]))).await?;
+    let mut peers = h
+        .with(|c| {
+            ensure(
+                c.session_generation == generation && c.session()?.principal == principal,
+                Error::Locked,
+            )?;
+            Ok(c.peers_of(&[invite.account]))
+        })
+        .await?;
     let (_, security) = peers.read().await?.pop().ok_or(Error::NotFound)?;
     ensure(
         security.snapshot.home_user == invite.home,
         Error::IntegrityFailed,
     )?;
-    session
+    let mut device = h
         .with(|c| {
             ensure(
-                c.session()?.principal == principal
+                c.session_generation == generation
+                    && c.session()?.principal == principal
                     && c.config.relay.trim_end_matches('/') == invite.relay,
                 Error::Locked,
             )?;
             invite.check(now_ms())?;
             c.peers_met(peers);
-            Ok(())
+            Ok(c.workspace.device_input(ControllerRole::Administrator))
         })
         .await?;
     let version = security.snapshot.account_version;
@@ -221,12 +235,9 @@ pub async fn account_invitation<H: Hold>(
         invite.clone()
     };
 
-    let device = session
-        .with(|c| Ok(c.workspace.device_input(ControllerRole::Administrator)))
-        .await?;
     view["device_id"] = json!(hex::encode(*device.device_id));
     let linked = binding || saved.as_ref().is_some_and(|d| d.nonce.is_some());
-    let code = saved
+    let mut code = saved
         .as_ref()
         .map(|s| s.code.clone())
         .unwrap_or_else(|| comparison(&invite, linked.then_some(principal), &device));
@@ -249,21 +260,45 @@ pub async fn account_invitation<H: Hold>(
     if !binding {
         // A new account on this installation inherits the provisional device.
         // An existing workspace uses its own keys and may already be authorized.
-        let ready = session
+        let (actual, ready) = h
             .with(|c| {
+                ensure(
+                    c.session_generation == generation && c.session()?.principal == principal,
+                    Error::Locked,
+                )?;
                 c.select(Slot::Account(invite.account))?;
                 c.located = found;
                 if c.workspace.provisional() && c.keys.is_none() {
                     c.keys = Some(c.workspace.unlock_provisional()?);
                 }
-                Ok(security.active(&c.workspace.meta.device_id).is_ok())
+                let actual = c.workspace.device_input(ControllerRole::Administrator);
+                let ready = security.active(&actual.device_id).is_ok();
+                Ok((actual, ready))
             })
             .await?;
         if ready {
+            view["device_id"] = json!(hex::encode(*actual.device_id));
             view["stage"] = json!("authorized");
             return Ok(view);
         }
+        if actual != device {
+            // An earlier login reply committed to a different provisional device.
+            ensure(!linked, Error::VersionConflict)?;
+            device = actual;
+            code = comparison(&invite, None, &device);
+            view["device_id"] = json!(hex::encode(*device.device_id));
+            view["code"] = json!(code);
+        }
     }
+    let session = Session::new(h).await?;
+    session
+        .with(|c| {
+            ensure(
+                c.session_generation == generation && c.session()?.principal == principal,
+                Error::Locked,
+            )
+        })
+        .await?;
     let reply = if let Some(reply) = previous {
         reply.clone()
     } else {

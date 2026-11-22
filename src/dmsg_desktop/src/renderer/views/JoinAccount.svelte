@@ -17,9 +17,10 @@
   let open = $state(false), scanning = $state(false), busy = $state(false)
   let token = $state(''), error = $state(''), view = $state<Preview | null>(null)
   let revision = 0, timer: ReturnType<typeof setTimeout> | undefined
-  let paused = $state(false), directAfterLogin = $state(false)
+  let paused = $state(false), expired = $state(false), directAfterLogin = $state(false)
+  const waiting = $derived(['waiting_login', 'waiting_device', 'authorized'].includes(view?.stage ?? ''))
   function edit(value: string) {
-    revision++; clearTimeout(timer); token = value; view = null; busy = false; paused = false; error = ''
+    revision++; clearTimeout(timer); token = value; view = null; busy = false; paused = false; expired = false; error = ''
   }
   function show(value: boolean) {
     if (!value) accountJoinRequested.set(false)
@@ -32,7 +33,7 @@
     }
   }
   onMount(() => accountJoinRequested.subscribe(value => { if (value && !open) show(true) }))
-  onDestroy(() => { revision++; clearTimeout(timer) })
+  onDestroy(() => { revision++; clearTimeout(timer); if (open) accountJoinRequested.set(false) })
   function schedule() {
     clearTimeout(timer)
     if (open && !paused && ['waiting_login','waiting_device','authorized'].includes(view?.stage ?? '')) {
@@ -42,22 +43,31 @@
   async function check(continueJoin = false) {
     if (busy || !token.trim()) return
     const turn = revision
-    busy = true; error = ''
+    busy = true; error = ''; expired = false
     try {
       if (continueJoin && ['waiting_device','authorized'].includes(view?.stage ?? '')) {
-        await call('session/unlock', { pairing_poll: true })
+        const unlocked = await call<{ state?: string; account?: string } | null>('session/unlock', view?.stage === 'authorized' ? {} : { pairing_poll: true })
         await refresh()
         if (turn !== revision) return
-        if (status?.state === 'unlocked' && status?.account === view?.account) { show(false); return }
-        if (status?.state === 'root_required') { schedule(); return }
+        const nextState = unlocked?.state ?? status?.state
+        const nextAccount = unlocked?.account ?? status?.account
+        if (nextState === 'unlocked' && nextAccount === view?.account) { show(false); return }
+        if (nextState === 'root_required') { schedule(); return }
+        if (view?.stage === 'authorized' && nextState === 'locked') { paused = true; return }
       }
       const result = await call<Preview>('device/join_invitation', { invitation: token.trim(), ...(continueJoin && view?.principal ? {principal:view.principal, bind_login:view.stage === 'bind_login'} : {}) })
       if (turn !== revision) return
+      if (result.stage === 'authorized' && status?.state === 'unlocked' && status?.account === result.account) { show(false); return }
       view = result; schedule()
     } catch (e) {
       if (turn !== revision) return
+      const failure = code(e)
       error = errorText(e)
-      if (!['UNAVAILABLE','EXECUTION_UNKNOWN','POLICY_STALE','SYNC_BUSY'].includes(code(e))) paused = true
+      if (failure === 'EXPIRED') { view = null; expired = true; paused = true; return }
+      if (['AUTH_REQUIRED', 'LOGIN_EXPIRED'].includes(failure) && view) {
+        view = { ...view, stage: 'sign_in', principal: undefined }; paused = true; return
+      }
+      if (!['DAEMON_DISCONNECTED', 'NETWORK_UNAVAILABLE', 'UNAVAILABLE', 'EXECUTION_UNKNOWN', 'POLICY_STALE', 'SYNC_BUSY'].includes(failure)) paused = true
       schedule()
     } finally { if (turn === revision) busy = false }
   }
@@ -79,11 +89,15 @@
     if (['no_account', 'pairing_required'].includes(status?.state)) { show(false); deviceRequestQr.set(true) }
     else { directAfterLogin = true; void startLogin() }
   }
+  let lastPrincipal: string | undefined
   $effect(() => {
-    const principal = status?.principal, state = status?.state
+    const principal = status?.principal, state = status?.state, currentBusy = busy
     untrack(() => {
       if (open && directAfterLogin && ['no_account','pairing_required'].includes(state)) { showRequest(); return }
-      if (!open || !view || busy) return
+      if (currentBusy) return
+      const changed = principal !== lastPrincipal
+      lastPrincipal = principal
+      if (!open || !view || error || !changed) return
       if (principal && (view.stage === 'sign_in' || view.principal !== principal)) void check()
       else if (!principal && view.principal) show(false)
     })
@@ -105,18 +119,20 @@
       <SecretInput label={t('pasteRequest')} multiline bind:value={() => token, edit} testid="join-invitation-token" />
       <button class={buttonClass('primary')} disabled={!token.trim() || busy} onclick={() => check()}>{t('review')}</button>
     {:else}
-      <Fact label={t('account')}><Id id={view.account} full wrap /></Fact>
-      {#if view.code}<Fact label={t('joinCode')}><b dir="ltr">{view.code}</b></Fact>{/if}
+      <dl>
+        <Fact label={t('account')}><Id id={view.account} full wrap /></Fact>
+        {#if view.code}<Fact label={t('joinCode')}><b dir="ltr">{view.code}</b></Fact>{/if}
+        {#if view.stage === 'waiting_device'}<Fact label={t('loginPrincipal')}>{t('done')}</Fact>{/if}
+      </dl>
       {#if ['sign_in','other_account','linked_login_required'].includes(view.stage)}
         {#if view.stage !== 'sign_in'}<Notice>{t(view.stage === 'other_account' ? 'joinOther' : 'passkeyExistingHint')}</Notice>{/if}
         <button class={buttonClass('primary')} onclick={() => startLogin()}>{t('login')}</button>
       {:else if view.stage === 'bind_login' || view.stage === 'device'}
         <button class={buttonClass('primary')} disabled={busy} onclick={() => check(true)}>{t(view.stage === 'bind_login' ? 'joinConfirm' : 'pairRequest')}</button>
       {:else}
-        {#if view.stage === 'waiting_device'}<Fact label={t('loginPrincipal')}>{t('done')}</Fact>{/if}
         <p role="status">{t(status?.state === 'root_required' ? 'pairPreparingVault' : view.stage === 'waiting_login' ? 'joinWaitLogin' : 'joinWaitDevice')}</p>
       {/if}
     {/if}
-    {#if error}<Notice failure={error} tone="danger">{error}</Notice><button class={buttonClass('secondary')} disabled={busy} onclick={() => { paused=false; void check(!!view) }}>{t('retry')}</button>{/if}
+    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{#if !expired}<button class={buttonClass('secondary')} disabled={busy} onclick={() => { paused=false; void check(waiting) }}>{t('retry')}</button>{/if}{/if}
   </div>
 </Dialog>

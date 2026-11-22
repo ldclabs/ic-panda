@@ -45,6 +45,8 @@ struct DesktopPairingView: View {
                     if preview.stage == "other_account" {
                         NoticeBar(text: String(localized: "This login belongs to another account. Choose a different login."))
                         if let account = preview.currentAccount { FingerprintRow(title: "Account ID", value: account) }
+                    } else if preview.stage == "linked_login_required" {
+                        NoticeBar(text: String(localized: "Use a login already linked to the account you want to open."))
                     }
                     if model.session?.passkeyAvailable == true {
                         Button("Use an existing passkey") { Task { await signIn(.login) } }
@@ -79,7 +81,7 @@ struct DesktopPairingView: View {
             }
             if expired { NoticeBar(text: String(localized: "This request has expired")) }
             if let failure { NoticeBar(text: failure) }
-            if paused || failure != nil {
+            if (paused && !expired) || failure != nil {
                 Button("Retry") { Task { paused = false; await check(continueJoin: waiting) } }
             }
             if preview != nil || expired {
@@ -140,15 +142,19 @@ struct DesktopPairingView: View {
             }
             let result = try await engine.accountInvitation(invitation: input, principal: continueJoin ? preview?.principal : nil, bindLogin: continueJoin && preview?.stage == "bind_login")
             guard input == token, !Task.isCancelled else { return }
-            preview = try model.decode(result)
+            let next: Preview = try model.decode(result)
+            preview = next
             paused = false
             await model.updateSession()
+            if next.stage == "authorized", model.unlocked, model.session?.account == next.account { dismiss() }
         } catch {
             guard !Task.isCancelled, token == input else { return }
             if let err = error as? MobileError, case .Failure(let code) = err {
-                if code == "EXPIRED" { expired = true; paused = true; return }
-                if ["AUTH_REQUIRED", "LOGIN_EXPIRED"].contains(code) { preview?.stage = "sign_in"; return }
-                paused = !["UNAVAILABLE","EXECUTION_UNKNOWN","POLICY_STALE","SYNC_BUSY"].contains(code)
+                if code == "EXPIRED" { expired = true; preview = nil; paused = true; return }
+                if ["AUTH_REQUIRED", "LOGIN_EXPIRED"].contains(code), preview != nil {
+                    preview?.stage = "sign_in"; preview?.principal = nil; return
+                }
+                paused = !["UNAVAILABLE", "NETWORK_UNAVAILABLE", "EXECUTION_UNKNOWN", "POLICY_STALE", "SYNC_BUSY"].contains(code)
             } else { paused = true }
             model.report(error)
             failure = model.error

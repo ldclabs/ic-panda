@@ -315,6 +315,7 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   await main.getByTestId('device-pair-preview').getByText(loginCandidate.code).waitFor()
   await main.getByTestId('device-pair-review').click()
   await waitFor(() => last('account/bind_approve')?.params.token === loginCandidate.token)
+  await main.getByTestId('device-pair-open-login-approval').waitFor()
   const inviteCount = count('device/pair_invite')
   approvedLogin = true
   next = {...preview('device-after-binding'),code:loginCandidate.code}
@@ -372,6 +373,24 @@ export async function pairingFlow({ app, main, shots, methods, hold, waitFor, ca
   await openJoin.click(); await input.fill('other-login')
   await wizard.getByRole('button',{name:'Review',exact:true}).click()
   await wizard.getByText('This login belongs to another account. Choose a different login.').waitFor()
+  await wizard.getByTestId('dialog-close').click()
+
+  // An expired invitation clears the stale waiting state back to the invitation input.
+  let failJoin = true
+  methods['device/join_invitation'] = p => {
+    if (p.invitation === 'expired-invite') throw { code: 'EXPIRED', message: 'Expired' }
+    if (failJoin) { failJoin = false; throw { code: 'UNAVAILABLE', message: 'Temporary' } }
+    return { account: target, principal: 'new-principal', code: loginCandidate.code, expires_at: Date.now() + 240000, stage: p.principal ? 'waiting_login' : 'bind_login' }
+  }
+  await openJoin.click(); await input.fill('retry-preview')
+  await wizard.getByRole('button', { name: 'Review', exact: true }).click()
+  await wizard.getByRole('button', { name: 'Retry', exact: true }).click()
+  await wizard.getByText(target).waitFor()
+  assert.equal(last('device/join_invitation').params.principal, undefined)
+  await wizard.getByTestId('dialog-close').click()
+  await openJoin.click(); await input.fill('expired-invite')
+  await wizard.getByRole('button', { name: 'Review', exact: true }).click()
+  await input.waitFor()
   await wizard.getByTestId('dialog-close').click()
 
   // Without a desktop camera, the authorized phone can scan the desktop display.

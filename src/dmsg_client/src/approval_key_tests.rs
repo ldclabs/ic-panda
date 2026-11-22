@@ -856,3 +856,23 @@ fn new_fingerprints_on_this_mac_do_not_settle_a_late_anchor_as_moved() {
     let anchor = client.workspace.meta.anchor.clone().unwrap();
     assert!(!anchor.late && anchor.foreign);
 }
+
+#[test]
+fn invitation_route_rejects_revoked_device_and_routes_handoff() {
+    let dir = TempDir::new();
+    let software = Arc::new(Software::default());
+    let (client, _key) = client(&dir, &software, None);
+    let own = client.workspace.meta.device_id;
+
+    let mut account_info = info(&client, None, &dmsg_types::user::CONTROL_PURPOSES);
+    let active_handoff = client
+        .invitation_route(&state(account_info.clone()))
+        .unwrap();
+    assert_eq!(active_handoff["route"], "handoff");
+
+    account_info.devices.get_mut(&own).unwrap().revoked_at = Some(2);
+    assert_eq!(
+        client.invitation_route(&state(account_info)),
+        Err(Error::DeviceNotApproved)
+    );
+}
