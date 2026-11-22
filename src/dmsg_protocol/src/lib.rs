@@ -6,11 +6,11 @@ mod requests;
 pub use codec::*;
 pub use handle::*;
 pub use requests::*;
+/// Android installation proof commitments; verification remains server-side.
+pub mod android;
 /// Application-action profile, registered command schemas and admission checks.
 pub mod app_action;
 pub mod app_store;
-/// Android installation proof commitments; verification remains server-side.
-pub mod android;
 /// Google Play account and receipt bindings, independent of Apple transactions.
 pub mod google_play;
 mod signing;

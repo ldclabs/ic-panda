@@ -6,14 +6,14 @@ use dmsg_types::{
 use serde::Serialize;
 #[path = "app_store.rs"]
 mod app_store;
-#[path = "google_play.rs"]
-mod google_play;
 #[path = "commerce_review.rs"]
 mod commerce_review;
 #[path = "device_limits.rs"]
 mod device_limits;
 #[path = "external_integration.rs"]
 mod external_integration;
+#[path = "google_play.rs"]
+mod google_play;
 #[path = "membership_review.rs"]
 mod membership_review;
 fn offer(f: &Fixture, id: &AccountId, op: u8) -> BillingOffer {

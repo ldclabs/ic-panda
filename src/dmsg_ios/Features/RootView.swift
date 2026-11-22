@@ -60,6 +60,10 @@ struct RootView: View {
                 }
             }
         }
+        // Only one sheet shows at a time: close the reminder or browser request that asked to join.
+        .onChange(of: model.showingJoinAccount) { _, joining in
+            if joining { ConnectNavigation.shared.pending = nil; model.reminderEntry = nil }
+        }
         .task { routeIntent() }
         .onChange(of: IntentNavigation.shared.destination) { _, _ in routeIntent() }
         .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent(); model.announceIncomingShares() } }
@@ -238,6 +242,7 @@ struct AccessView: View {
     private var fastUnlock: Bool { model.canUnlockWorkspace }
     private var needsSetup: Bool { !model.signingIntoAnotherAccount && model.needsAccountSetup }
     private var needsAuthorization: Bool { !model.signingIntoAnotherAccount && (model.session?.state == "pairing_required" || model.session?.state == "root_required") }
+    private var resumingSetup: Bool { model.session?.setupPending == true }
     private var guidance: String {
         if model.signingIntoAnotherAccount {
             return String(localized: "Use a login already linked to the account you want to open.")
@@ -248,7 +253,9 @@ struct AccessView: View {
                 : String(localized: "Setting up your encrypted workspace. Please keep dMsg open.")
         }
         if needsSetup {
-            return String(localized: "Scan the code on an authorized device to open its account.")
+            return resumingSetup
+                ? String(localized: "Create your encrypted workspace to start saving passwords, notes and files.")
+                : String(localized: "Scan the code on an authorized device to open its account.")
         }
         if model.session?.state == "root_required" { return String(localized: "Approved. Preparing your vault…") }
         if needsAuthorization {
@@ -292,8 +299,8 @@ struct AccessView: View {
                     }
                     if needsSetup {
                         Button { Task { await model.initializeAccount() } } label: {
-                            AccessActionLabel(model.initializingAccount ? "Preparing your workspace…" : "Create a separate account", symbol: "arrow.forward", working: model.initializingAccount)
-                        }.modifier(AccessActionStyle(prominent: false))
+                            AccessActionLabel(model.initializingAccount ? "Preparing your workspace…" : resumingSetup ? "Get started" : "Create a separate account", symbol: "arrow.forward", working: model.initializingAccount)
+                        }.modifier(AccessActionStyle(prominent: resumingSetup))
                             .accessibilityIdentifier("login.initialize")
                     } else if needsAuthorization {
                         NavigationLink { PairView() } label: {

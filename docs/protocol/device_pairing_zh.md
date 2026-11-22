@@ -76,7 +76,7 @@ owner daemon 提供 `device/pair_invite`、`device/pair_invite_status {id}`、
 `device/pair_scan {image}`（base64 图片字节，本地解码）。系统图片选择与剪贴板访问
 仍由主进程负责，renderer 不传文件路径；摄像头在成功、取消、离页或锁定后停止。
 桌面通过 `device/pair_invite {with_login: true}` 发出账号邀请，用 `device/join_invitation` 加入，用 `device/saved_invitation` 续办。登录绑定由 `account/bind_approve` 创建审批，设备授权由 `device/approve {token, device}` 创建审批。决定仍在审批窗口完成。
-移动端提供 `start_account_invitation`、`account_invitation` 和 `saved_account_invitation`，并保留 v2 和直接扫码接口。
+移动端提供 `start_account_invitation`、`account_invitation` 和 `saved_account_invitation`，并保留直接扫码接口；`account_invitation` 也接受 v2 邀请。
 
 [固定向量](../../tests/vectors/client/device-invite-v2.json) 只含公开测试密钥、二维码、
 加密载荷及规范创建/提交请求体。核心测试验证解密与请求证明、HTTP 传输、提交凭据

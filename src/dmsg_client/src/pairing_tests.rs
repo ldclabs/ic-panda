@@ -78,7 +78,7 @@ fn encrypted_request_is_verified_without_authorizing_the_device() {
         .unwrap();
     assert_eq!(crate::qr::scan(&image).unwrap(), token);
     assert_eq!(
-        old.pairing_preview(&token).unwrap()["device_id"],
+        hex::encode(*old.inspect_pairing(&token).unwrap().device.device_id),
         hex::encode(*new.workspace.meta.device_id)
     );
     let value = delivery(&host, &token);

@@ -170,17 +170,11 @@ impl Receiver {
         self.invitation.check(now)
     }
 
-    /// Register a five-minute mailbox for an unlocked root administrator. The
-    /// relay receives only the hash of a submit credential, never the QR key.
+    /// Register the device reply mailbox of a single QR for an unlocked root
+    /// administrator, plus a separate login reply mailbox when `with_login`.
+    /// The relay receives only the hash of each submit credential, never the QR key.
     /// # Errors
     /// Refuses a locked, stale or unauthorized device and relay registration failures.
-    pub async fn new<H: Hold>(h: &H) -> Result<Self> {
-        Self::register(h, false).await
-    }
-
-    /// Register the separate login and device reply mailboxes of a single QR.
-    /// # Errors
-    /// As in the original device invitation.
     async fn register<H: Hold>(h: &H, with_login: bool) -> Result<Self> {
         let h = Unlocked::new(h).await?;
         let security = refreshed_security(&h).await?;
@@ -401,33 +395,6 @@ impl Receiver {
         }
         result
     }
-}
-
-/// Return a signed device request via the configured relay after scanning an
-/// invitation. A relay receipt never means the desktop approved the device.
-/// # Errors
-/// Refuses another account/relay, expired invitations and changed sessions.
-pub async fn join<H: Hold>(h: &H, invitation: &str) -> Result<Value> {
-    let invite = Invitation::parse(invitation, now_ms())?;
-    let h = Session::new(h).await?;
-    h.with(|c| {
-        ensure(
-            c.config.relay.trim_end_matches('/') == invite.relay,
-            Error::IntegrityFailed,
-        )
-    })
-    .await?;
-    let request = account::pair_request(&h, ControllerRole::Administrator).await?;
-    ensure(
-        (request.home, request.account) == (invite.home, invite.account),
-        Error::IntegrityFailed,
-    )?;
-    let nonce: [u8; 12] = random_id()[..12].try_into().unwrap();
-    let sealed = invite.seal(&request.token, &nonce)?;
-    submit(&h, &invite, &sealed).await?;
-    Ok(
-        json!({"device_id": hex::encode(*request.device_id), "expires_at": invite.expires_at.min(request.expires_at)}),
-    )
 }
 
 async fn submit<H: Hold>(h: &H, invite: &Invitation, sealed: &[u8]) -> Result<()> {

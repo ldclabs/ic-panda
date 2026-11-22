@@ -918,15 +918,6 @@ impl MobileEngine {
         .await
     }
 
-    /// Send this provisional device's signed request to a scanned desktop
-    /// invitation. The desktop still requires explicit approval.
-    pub async fn join_device_invitation(&self, invitation: String) -> Result<ObjectSnapshot> {
-        self.held_object(move |h| {
-            Box::pin(async move { dmsg_client::pairing::join(h, &invitation).await })
-        })
-        .await
-    }
-
     pub async fn account_invitation(
         &self,
         invitation: String,

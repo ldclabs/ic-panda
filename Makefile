@@ -5,11 +5,12 @@ DMSG_CARGO_WASM_DIR := $(or $(CARGO_TARGET_DIR),target)/wasm32-unknown-unknown/r
 .PHONY: build-wasm build-did build-declarations build-dmsg test-dmsg local-network
 
 lint:
-	@cargo fmt
+	@cargo fmt --check
 	@cargo clippy --all-targets --all-features
 
 fix:
 	@cargo clippy --fix --workspace --tests
+	@cargo fmt
 
 test:
 	@cargo test --workspace -- --nocapture

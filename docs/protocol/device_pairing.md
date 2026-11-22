@@ -90,7 +90,7 @@ Owner daemon methods are `device/pair_invite`, `device/pair_invite_status {id}`,
 `device/pair_scan {image}` (base64 image bytes, decoded locally). The main process
 owns image selection and clipboard access; renderers never supply file paths.
 Camera capture stops on success, cancellation, navigation or lock. Desktop issues account invitations with `device/pair_invite {with_login: true}`, joins through `device/join_invitation` and resumes through `device/saved_invitation`. The login review uses `account/bind_approve` and the device review uses `device/approve {token, device}`. Decisions go through the approval window.
-Mobile exposes `start_account_invitation`, `account_invitation` and `saved_account_invitation`, alongside the v2 and direct scanning interfaces.
+Mobile exposes `start_account_invitation`, `account_invitation` and `saved_account_invitation`, alongside the direct scanning interfaces. `account_invitation` also accepts v2 invitations.
 
 The public [fixed vector](../../tests/vectors/client/device-invite-v2.json)
 contains public test keys, a QR, encrypted payload and canonical registration /

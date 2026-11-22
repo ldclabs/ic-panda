@@ -122,7 +122,7 @@ private enum class PasskeyIntent { NEW_WORKSPACE, EXISTING_ACCOUNT }
                     }
                     setup -> {
                         if (status == "no_account") Button(onClick = { client.showAccountInvitation(true) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(str(R.string.access_existing_account)) }
-                        OutlinedButton(onClick = client::initialize, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(R.string.join_create)) }
+                        OutlinedButton(onClick = client::initialize, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(str(if (status == "no_account") R.string.join_create else R.string.access_new_workspace)) }
                         Notice(if (slow) str(R.string.text_the_network_is_taking_longer_than_usual_your_setup_progress_is_ke_d703303)
                             else str(if (status == "no_account") R.string.join_scan_hint else R.string.text_create_your_encrypted_workspace_to_start_saving_passwords_notes_a_4982122))
                         TextButton(onClick = client::signInToAnotherAccount, enabled = !state.busy) { Text(str(R.string.text_switch_account_52f71df)) }

@@ -1033,24 +1033,6 @@ impl Client {
         })
     }
 
-    /// Check a pairing token for this administrator's account.
-    ///
-    /// # Errors
-    /// A token for another home or account, an expired request or a bad
-    /// proof of possession is refused.
-    pub fn pairing_preview(&self, token: &str) -> Result<serde_json::Value> {
-        self.pairing_preview_at(token, now_ms())
-    }
-
-    pub(crate) fn pairing_preview_at(&self, token: &str, now: u64) -> Result<serde_json::Value> {
-        let pairing = self.inspect_pairing_at(token, now)?;
-        Ok(serde_json::json!({
-            "device_id": hex::encode(*pairing.device.device_id),
-            "role": pairing.device.role, "capabilities": pairing.device.capabilities,
-            "account": pairing.account.to_string(), "expires_at": pairing.mutation.approval.expires_at,
-        }))
-    }
-
     /// The validated mutation used only by the approval state machine.
     pub(crate) fn inspect_pairing(&self, token: &str) -> Result<PairingRequest> {
         self.inspect_pairing_at(token, now_ms())
